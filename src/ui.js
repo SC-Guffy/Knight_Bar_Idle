@@ -1136,6 +1136,31 @@ function updateTray() {
   if (text !== trayText && window.bar) { trayText = text; window.bar.setTrayTitle(text); }
 }
 
+// ───────────────────────── 설치 가이드 (웹) ─────────────────────────
+// 서명·공증 전이라 처음 실행할 때 OS 경고가 뜬다. 받기 버튼을 누르면 넘기는 방법을 바로 보여 준다.
+function setupGuide(os) {
+  const show = (tab) => {
+    document.querySelectorAll('[data-guide-tab]').forEach((b) => b.classList.toggle('on', b.dataset.guideTab === tab));
+    document.querySelectorAll('[data-guide-pane]').forEach((p) => { p.hidden = p.dataset.guidePane !== tab; });
+    $('guide').hidden = false;
+  };
+  document.querySelectorAll('#webPromo a[data-os]').forEach((a) => a.addEventListener('click', () => show(a.dataset.os)));
+  document.querySelectorAll('[data-guide]').forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    show(a.dataset.guide || os || 'mac');
+  }));
+  document.querySelectorAll('[data-guide-tab]').forEach((b) => b.addEventListener('click', () => show(b.dataset.guideTab)));
+  $('guide').addEventListener('click', (e) => { if (e.target.id === 'guide' || e.target.closest('[data-guide-close]')) $('guide').hidden = true; });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('guide').hidden = true; });
+  document.querySelector('[data-guide-copy]').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    navigator.clipboard.writeText($('guideCmd').textContent).then(() => {
+      btn.textContent = '복사됨 ✓';
+      setTimeout(() => { btn.textContent = '복사'; }, 1500);
+    }, () => toast('복사하지 못했어요 — 직접 드래그해서 복사해 주세요'));
+  });
+}
+
 // ───────────────────────── 부팅 ─────────────────────────
 function boot() {
   resizeCanvas();
@@ -1147,6 +1172,7 @@ function boot() {
     $('webPromo').hidden = false;
     const os = /Windows/i.test(navigator.userAgent) ? 'win' : /Mac/i.test(navigator.userAgent) ? 'mac' : null;
     document.querySelectorAll(`#webPromo a[data-os="${os}"]`).forEach((a) => a.classList.add('rec'));
+    setupGuide(os);
   }
 
   if (window.bar) {
