@@ -1,7 +1,7 @@
 'use strict';
 // 장비·전리품·강화 규칙. core.js 처럼 DOM을 모르고 S 상태만 바꾼다.
-//  - 가방 전리품: { k: 'gear', slot, g, s, n, roll } | { k: 'curio', id, g, s } | { k: 'use', id }
-//  - 장비 창고:   S.gear.inv = [{ id, slot, g, s, n, roll }]   (n = 이름 명사 인덱스, roll = 능력치 편차)
+//  - 가방 전리품: { k: 'gear', slot, g, s, t, roll } | { k: 'curio', id, g, s } | { k: 'use', id }
+//  - 장비 창고:   S.gear.inv = [{ id, slot, g, s, t, roll }]   (t = GEAR_ITEMS 키, roll = 능력치 편차)
 //  - 장착:        S.gear.eq = { weapon: id|null, armor, ring }
 //  - 강화 단계:   S.gear.enh = { weapon: 0.., armor, ring }  — 부위에 붙어 있어서 장비를 바꿔도 유지
 //  - 최고 기록:   S.gear.top = { weapon: 0.., armor, ring }  — 초기화돼도 남는 부위별 최고 강화 단계
@@ -25,21 +25,32 @@ function rollLoot(g, s, boss) {
   if (kind === 'use') return { k: 'use', id: pickWeighted(SUPPLIES, (id) => SUPPLIES[id].w) };
   if (kind === 'curio') return { k: 'curio', id: pickWeighted(CURIOS, (id) => CURIOS[id].w), g, s };
   const slot = pickWeighted(GEAR_SLOTS, () => 1);
+  const pool = gearItemsOf(slot, g);
   return {
     k: 'gear', slot, g, s,
-    n: Math.floor(Math.random() * GEAR_SLOTS[slot].nouns.length),
+    t: pool[Math.floor(Math.random() * pool.length)],
     roll: Math.round((0.9 + Math.random() * 0.2) * 100) / 100,
   };
 }
+const gearItemsOf = (slot, g) => Object.keys(GEAR_ITEMS).filter((t) => GEAR_ITEMS[t].slot === slot && GEAR_ITEMS[t].g === g);
+
+// 도감이 생기기 전 장비({ n: 이름 인덱스 })나 도감에서 빠진 장비는 같은 부위·등급의 장비로 바꾼다
+function fixGearItem(it) {
+  if (GEAR_ITEMS[it.t] && GEAR_ITEMS[it.t].slot === it.slot) return it;
+  const pool = gearItemsOf(it.slot, it.g);
+  it.t = pool[(it.n || 0) % pool.length];
+  delete it.n;
+  return it;
+}
 
 // 예전 세이브의 미감정 상자 { g, s } 를 같은 등급의 전리품으로 바꾼다
-const upgradeOldLoot = (b) => (b && b.k ? b : rollLoot(b.g || 0, b.s || 1, false));
+const upgradeOldLoot = (b) => (!b.k ? rollLoot(b.g || 0, b.s || 1, false) : b.k === 'gear' ? fixGearItem(b) : b);
 
 // 전리품 표시용 등급 (소비 아이템은 종류별 고정)
 const lootGrade = (it) => (it.k === 'use' ? SUPPLY_GRADE[it.id] || 0 : it.g);
 
 function lootIcon(it) {
-  if (it.k === 'gear') return GEAR_SLOTS[it.slot].icon;
+  if (it.k === 'gear') return GEAR_ITEMS[it.t].icon;
   if (it.k === 'curio') return CURIOS[it.id].icon;
   return SUPPLIES[it.id].icon;
 }
@@ -50,7 +61,8 @@ function lootName(it) {
 }
 
 // ───────────────────────── 장비 능력치 ─────────────────────────
-const gearName = (it) => `${GEAR_PREFIX[it.g]} ${GEAR_SLOTS[it.slot].nouns[it.n] || GEAR_SLOTS[it.slot].nouns[0]}`;
+const gearName = (it) => GEAR_ITEMS[it.t].name;
+const gearDesc = (it) => GEAR_ITEMS[it.t].desc;
 const gearById = (id) => S.gear.inv.find((x) => x.id === id) || null;
 const equipped = (slot) => gearById(S.gear.eq[slot]);
 const isEquipped = (it) => S.gear.eq[it.slot] === it.id;

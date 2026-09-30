@@ -163,6 +163,34 @@ function claimedText(b) {
 }
 
 const LOOT_KIND = { gear: '장비', curio: '골동품', use: '소비' };
+const isMystery = (it) => it.k === 'gear' && it.g >= 3;
+
+// ── 장비 도트 아이콘 ──
+// <canvas data-gi="도감 키"> 를 HTML 에 넣어 두고, 그린 뒤 paintGearIcons 가 스프라이트를 찍는다
+const gearIcon = (it, cls = '') => `<canvas class="gicon g${it.g} ${cls}" width="14" height="14" data-gi="${it.t}"></canvas>`;
+const lootIconHtml = (it) => (it.k === 'gear' ? gearIcon(it) : `<span class="lic">${lootIcon(it)}</span>`);
+
+const gearSprCache = {};
+function gearSprite(t) {
+  if (gearSprCache[t]) return gearSprCache[t];
+  const def = GEAR_ITEMS[t], rows = GEAR_SPR[def.spr];
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 14;
+  const g = cv.getContext('2d');
+  const each = (fn) => rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') fn(x + 1, y + 1, ch); }));
+  g.fillStyle = '#14151c';                    // 외곽선: 칠해진 칸의 상하좌우
+  each((x, y) => { g.fillRect(x - 1, y, 3, 1); g.fillRect(x, y - 1, 1, 3); });
+  each((x, y, ch) => { g.fillStyle = def.pal[ch] || '#ff00ff'; g.fillRect(x, y, 1, 1); });
+  return (gearSprCache[t] = cv);
+}
+function paintGearIcons(root) {
+  root.querySelectorAll('canvas[data-gi]').forEach((cv) => {
+    if (!GEAR_ITEMS[cv.dataset.gi]) return;
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, 14, 14);
+    g.drawImage(gearSprite(cv.dataset.gi), 0, 0);
+  });
+}
 
 function viewReport() {
   const r = S.report;
@@ -182,12 +210,18 @@ function viewReport() {
     </div>` : '<div class="empty">새 원정 보고가 없습니다.</div>';
 
   const opened = revealed.map((b) => `
-    <div class="box opened ${b.fresh ? 'fresh' : ''}" style="--c:${GRADES[lootGrade(b.it)].color}">
-      <div class="lic">${lootIcon(b.it)}</div><div class="lname">${lootName(b.it)}</div><div class="loot">${claimedText(b)}</div>
+    <div class="box opened ${b.fresh ? (isMystery(b.it) ? 'fresh epic' : 'fresh') : ''}" style="--c:${GRADES[lootGrade(b.it)].color}"
+      title="${b.it.k === 'gear' ? gearDesc(b.it) : ''}">
+      ${lootIconHtml(b.it)}<div class="lname ${b.it.k === 'gear' ? 'gn g' + b.it.g : ''}">${lootName(b.it)}</div><div class="loot">${claimedText(b)}</div>
     </div>`).join('');
-  const closed = S.bag.map((it, i) => `
-    <button class="box" data-action="claim" data-i="${i}" style="--c:${GRADES[lootGrade(it)].color}" title="${LOOT_KIND[it.k]}">
-      <span class="lic">${lootIcon(it)}</span><span class="lname">${lootName(it)}</span>
+  // 영웅·전설 장비는 챙기기 전까지 실루엣만 보인다
+  const closed = S.bag.map((it, i) => isMystery(it) ? `
+    <button class="box mystery g${it.g}" data-action="claim" data-i="${i}" style="--c:${GRADES[it.g].color}" title="챙겨서 정체를 확인하세요">
+      ${gearIcon(it, 'sil')}<span class="lname">???</span>
+      <span class="grade">${GRADES[it.g].name} ${GEAR_SLOTS[it.slot].name}</span>
+    </button>` : `
+    <button class="box" data-action="claim" data-i="${i}" style="--c:${GRADES[lootGrade(it)].color}" title="${it.k === 'gear' ? gearDesc(it) : LOOT_KIND[it.k]}">
+      ${lootIconHtml(it)}<span class="lname">${lootName(it)}</span>
       <span class="grade">${it.k === 'use' ? LOOT_KIND.use : GRADES[it.g].name + ' ' + LOOT_KIND[it.k]}</span>
     </button>`).join('');
   revealed.forEach((b) => { b.fresh = false; });
@@ -492,9 +526,13 @@ function enhOdds(L) {
 function slotCard(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot), L = S.gear.enh[slot];
   const item = it ? `
-      <div class="gname" style="color:${GRADES[it.g].color}">${gearName(it)} <small>${GRADES[it.g].name} · S${it.s}</small></div>
+      <div class="gtop" style="--c:${GRADES[it.g].color}">
+        ${gearIcon(it, 'big')}
+        <div><div class="gname gn g${it.g}">${gearName(it)}</div><small>${GRADES[it.g].name} · S${it.s}</small></div>
+      </div>
+      <div class="gdesc">${gearDesc(it)}</div>
       <div class="gstat">${gearStatText(gearStat(it))}${L < ENHANCE_MAX ? ` <small>→ ${gearStatText(gearStat(it, L + 1))}</small>` : ''}</div>`
-    : '<div class="gname empty">비어 있음</div><div class="gstat small">강화 단계는 장비를 끼면 적용돼요</div>';
+    : '<div class="gtop"><div class="gicon big empty"></div><div class="gname empty">비어 있음</div></div><div class="gstat small">강화 단계는 장비를 끼면 적용돼요</div>';
   let enh;
   if (L >= ENHANCE_MAX) {
     enh = '<div class="small">최대 강화 달성!</div>';
@@ -526,9 +564,9 @@ function gearRow(it) {
   }
   return `
     <button class="gitem ${on ? 'on' : ''}" data-action="equip" data-id="${it.id}" style="--c:${GRADES[it.g].color}" ${on ? 'disabled' : ''}
-      title="판매가 ${fmt(gearSellPrice(it))} 골드">
-      <span class="lic">${GEAR_SLOTS[it.slot].icon}</span>
-      <span class="gi"><span class="gname">${gearName(it)}</span><span class="small">${GRADES[it.g].name} · S${it.s}</span></span>
+      title="${gearDesc(it)} — 판매가 ${fmt(gearSellPrice(it))} 골드">
+      ${gearIcon(it)}
+      <span class="gi"><span class="gname gn g${it.g}">${gearName(it)}</span><span class="small">${GRADES[it.g].name} · S${it.s}</span></span>
       <span class="gstat">${gearStatText(gearStat(it))}</span>
       <span class="gcmp">${on ? '<em class="on">장착 중</em>' : cmp}</span>
     </button>`;
@@ -874,6 +912,7 @@ function renderCamp() {
     <footer>${viewDepart()}</footer>`;
   $('campBody').scrollTop = scroll;
   tickLive($('campModal'));
+  paintGearIcons($('campModal'));
 }
 
 // ───────────────────────── 행동 ─────────────────────────
@@ -881,6 +920,7 @@ function claimOne(i) {
   const it = S.bag.splice(i, 1)[0];
   if (!it) return;
   revealed.push({ it, got: claimLoot(it), fresh: true });
+  if (isMystery(it)) toast(`${it.g >= 4 ? '🌟 전설' : '✨ 영웅'} 장비 — ${gearName(it)}!`);
 }
 
 function depart() {

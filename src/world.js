@@ -135,7 +135,14 @@ function hitMonster(m, mult = 1) {
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
     coins.push({ x: sx, y: groundY() - 14, vx: rand(-60, 60), vy: rand(-160, -90), t: 0, fly: false });
   }
-  if (r.loot) addFloater(`${lootIcon(r.loot)} ${lootName(r.loot)}`, sx, monsterTop(m) - 18, GRADES[lootGrade(r.loot)].color, 12);
+  // 영웅·전설 장비는 이름을 숨기고 크게 알린다 (정체는 캠프에서 챙길 때 공개)
+  if (r.loot && r.loot.k === 'gear' && r.loot.g >= 3) {
+    const G = GRADES[r.loot.g];
+    addFloater(`✨ ${G.name} ${GEAR_SLOTS[r.loot.slot].name}!`, sx, monsterTop(m) - 18, G.color, 15);
+    if (!m.boss) showBanner(`${G.name} 장비 발견!`, G.color);
+  } else if (r.loot) {
+    addFloater(`${lootIcon(r.loot)} ${lootName(r.loot)}`, sx, monsterTop(m) - 18, GRADES[lootGrade(r.loot)].color, 12);
+  }
   if (m.boss) { showBanner('STAGE CLEAR!'); save(); }
   if (S.bag.length >= bagCap()) endExpedition('bag');
 }

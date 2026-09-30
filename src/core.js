@@ -51,6 +51,7 @@ function migrate(o) {
     s[k] = isObj && o[k] ? Object.assign(s[k], o[k]) : o[k];
   }
   s.bag = (s.bag || []).map(upgradeOldLoot);     // v2 초기의 미감정 상자 → 전리품
+  s.gear.inv.forEach(fixGearItem);
   return s;
 }
 

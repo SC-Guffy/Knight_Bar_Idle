@@ -270,6 +270,28 @@
   .gitem .gstat { white-space: nowrap; }
   .gcmp { width: 52px; text-align: right; font-size: 11px; font-weight: 700; color: var(--muted); }
   .gcmp .up { color: #7dffb0; } .gcmp .down { color: var(--bad); }
+  /* 장비 도트 아이콘 (14×14 캔버스를 확대) · 등급 연출 */
+  .gicon { width: 34px; height: 34px; image-rendering: pixelated; flex: none; }
+  .gicon.big { width: 48px; height: 48px; border-radius: 9px; background: color-mix(in srgb, var(--c, #888) 14%, rgba(0,0,0,.25)); }
+  .gicon.empty { background: rgba(0,0,0,.25); border: 1px dashed var(--line); box-sizing: border-box; }
+  .gicon.g2 { filter: drop-shadow(0 0 2px rgba(74, 163, 255, .6)); }
+  .gicon.g3 { filter: drop-shadow(0 0 3px rgba(179, 107, 255, .85)); }
+  .gicon.g4 { animation: legendIcon 1.8s ease-in-out infinite; }
+  @keyframes legendIcon { 0%, 100% { filter: drop-shadow(0 0 2px #ff9f1c); } 50% { filter: drop-shadow(0 0 7px #ffd257) brightness(1.15); } }
+  .gicon.sil { filter: brightness(0) drop-shadow(0 0 4px var(--c)); opacity: .9; animation: none; }
+  .gn.g3 { color: #c99bff; }
+  .gn.g4 { background: linear-gradient(90deg, #ff9f1c, #fff1a8, #ff9f1c); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text;
+    color: transparent !important; animation: legendText 2.4s linear infinite; }
+  @keyframes legendText { to { background-position: -200% 0; } }
+  .box.mystery { animation: mystery 1.4s ease-in-out infinite; }
+  .box.mystery .lname { color: var(--c); font-weight: 800; letter-spacing: 2px; }
+  .box.mystery.g4 { background: radial-gradient(circle at 50% 40%, rgba(255, 159, 28, .22), var(--soft) 70%); }
+  @keyframes mystery { 50% { box-shadow: inset 0 0 18px color-mix(in srgb, var(--c) 55%, transparent), 0 0 10px color-mix(in srgb, var(--c) 45%, transparent); } }
+  .box.epic { animation: epic .9s ease-out; z-index: 1; }
+  @keyframes epic { 0% { transform: scale(.4) rotate(-10deg); filter: brightness(3); box-shadow: 0 0 40px var(--c); }
+    60% { transform: scale(1.18); box-shadow: 0 0 28px var(--c); } 100% { transform: none; } }
+  .gtop { display: flex; align-items: center; gap: 9px; }
+  .gdesc { font-size: 11px; color: var(--muted); font-style: italic; line-height: 1.35; min-height: 30px; }
 </style>
 </head>
 <body>
