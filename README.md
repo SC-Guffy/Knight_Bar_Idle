@@ -8,6 +8,17 @@ npm install
 npm start
 ```
 
+### 설치 파일 만들기
+
+```
+npm run dist:mac   # dist/KnightBar-mac-arm64.dmg, KnightBar-mac-x64.dmg
+npm run dist:win   # dist/KnightBar-win-x64.exe
+```
+
+- `productName` 은 영문(`KnightBar`)으로 둔다. 한글이면 패키징된 앱이 켜자마자 죽는다. Finder 표시 이름만 `CFBundleDisplayName` 으로 "기사 키우기".
+- 세이브·계정은 앱 이름과 상관없이 `~/Library/Application Support/knight-bar` 에 둔다 (`main.js` 의 `setPath`).
+- Apple 서명이 없어서(ad-hoc 서명) 받은 사람은 처음 열 때 경고가 뜬다. 시스템 설정 → 개인정보 보호 및 보안 → "그래도 열기".
+
 ## 플레이 루프
 
 ```

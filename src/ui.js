@@ -1117,6 +1117,14 @@ function boot() {
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
+  // 브라우저에서 열렸으면 배경을 깔고 데스크탑 앱 받기 안내를 보여 준다
+  if (!window.bar) {
+    document.body.classList.add('web');
+    $('webPromo').hidden = false;
+    const os = /Windows/i.test(navigator.userAgent) ? 'win' : /Mac/i.test(navigator.userAgent) ? 'mac' : null;
+    document.querySelectorAll(`#webPromo a[data-os="${os}"]`).forEach((a) => a.classList.add('rec'));
+  }
+
   if (window.bar) {
     window.bar.onReset(() => {
       if (!activeNick()) return;

@@ -1,12 +1,65 @@
 {
   "name": "knight-bar",
+  "productName": "KnightBar",
   "version": "0.1.0",
   "description": "화면 하단에서 기사가 알아서 몬스터를 잡는 Idle 게임",
+  "author": "SC-Guffy",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist": "electron-builder --mac --win"
+  },
+  "build": {
+    "appId": "com.scguffy.knightbar",
+    "artifactName": "KnightBar-${os}-${arch}.${ext}",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "src/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.games",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "extendInfo": {
+        "LSUIElement": true,
+        "CFBundleDisplayName": "기사 키우기"
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "기사 키우기"
+    }
   },
   "devDependencies": {
-    "electron": "^44.5.0"
+    "electron": "^44.5.0",
+    "electron-builder": "^26.15.3"
   }
 }

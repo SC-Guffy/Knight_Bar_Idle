@@ -2,6 +2,9 @@ const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, dialog } =
 const path = require('path');
 const fs = require('fs');
 
+// 앱 이름(productName)이 바뀌어도 세이브·계정이 있는 폴더는 그대로 쓴다
+app.setPath('userData', path.join(app.getPath('appData'), 'knight-bar'));
+
 const BAR_HEIGHT = 150;
 const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 

@@ -66,6 +66,22 @@
     background: rgba(18, 18, 26, .85); color: var(--gold); font-weight: 600; opacity: 0; transition: opacity .4s; pointer-events: none; white-space: nowrap; }
   #toast.show { opacity: 1; }
 
+  /* ── 웹에서 열렸을 때만: 배경 + 데스크탑 앱 받기 ── */
+  body.web { background: radial-gradient(ellipse at 50% 20%, #2a2f4a, #12131c 70%); }
+  /* 위쪽 띠. 캠프·계정 창은 그 아래에서 열려서 받기 버튼을 가리지 않는다 */
+  #webPromo { position: fixed; top: 0; left: 0; right: 0; z-index: 3; box-sizing: border-box; height: 64px; padding: 0 16px;
+    display: flex; align-items: center; gap: 14px; background: var(--glass-strong); border-bottom: 1px solid var(--line); }
+  #webPromo .t { flex: 1; min-width: 0; line-height: 1.45; }
+  #webPromo .t b { font-size: 14px; }
+  #webPromo .t small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #webPromo .dls { display: flex; gap: 6px; flex-shrink: 0; }
+  #webPromo .dls a { padding: 7px 11px; border-radius: 9px; text-decoration: none; color: var(--text); font-weight: 600; white-space: nowrap;
+    background: var(--soft); border: 1px solid var(--line); }
+  #webPromo .dls a:hover { background: var(--soft-hover); }
+  #webPromo .dls a.rec { background: var(--accent); border-color: var(--accent); color: #1a1206; }
+  body.web #camp, body.web #acct { top: 64px; }
+  body.web #campModal, body.web #acctModal { max-height: calc(100vh - 254px); }
+
   /* ── 캠프 창 ── */
   #camp, #acct { position: fixed; inset: 0; z-index: 1; background: rgba(6, 6, 12, .5);
     display: flex; align-items: center; justify-content: center; padding-bottom: 150px; box-sizing: border-box; }
@@ -291,6 +307,17 @@
 </style>
 </head>
 <body>
+<div id="webPromo" hidden>
+  <div class="t">
+    <b>⚔️ 데스크탑 앱으로 받으면 바탕화면 맨 아래에서 기사가 계속 싸워요</b>
+    <small title='Mac에서 처음 열 때 경고가 나오면 시스템 설정 → 개인정보 보호 및 보안 → "그래도 열기"'>다른 기기에서도 복구 코드로 같은 기사를 이어서 키울 수 있어요 · Mac 첫 실행 경고는 시스템 설정 → 개인정보 보호 및 보안 → "그래도 열기"</small>
+  </div>
+  <div class="dls">
+    <a data-os="mac" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-mac-arm64.dmg" target="_blank" rel="noopener">🍎 Mac (Apple 칩)</a>
+    <a data-os="mac" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-mac-x64.dmg" target="_blank" rel="noopener">🍎 Mac (Intel)</a>
+    <a data-os="win" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-win-x64.exe" target="_blank" rel="noopener">🪟 Windows</a>
+  </div>
+</div>
 <div id="camp" hidden><div id="campModal"></div></div>
 <div id="acct" hidden><div id="acctModal"></div></div>
 
