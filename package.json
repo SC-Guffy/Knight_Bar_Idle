@@ -1,0 +1,12 @@
+{
+  "name": "knight-bar",
+  "version": "0.1.0",
+  "description": "화면 하단에서 기사가 알아서 몬스터를 잡는 Idle 게임",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^44.5.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "knight-bar-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Knight Bar 계정·랭킹·결투 서버",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  }
+}
