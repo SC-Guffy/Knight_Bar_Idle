@@ -110,7 +110,7 @@ const routes = {
     return { available: !(await store.get(key)) };
   },
 
-  // 새 기사 만들기. state 를 같이 보내면 그 진행으로 시작한다 (기존 로컬 세이브 이전)
+  // 새 기사 만들기. state 는 클라이언트가 만든 첫 세이브
   'POST /api/accounts': async (req) => {
     const body = await readJson(req);
     const { nick, key } = nicknameKey(body.nickname);

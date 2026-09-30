@@ -877,7 +877,6 @@ function setMsg(id, text, kind = '') {
 function renderAccount() {
   const cur = activeNick();
   const mine = Object.keys(accounts.list);
-  const legacy = legacySave();
   const knights = mine.map((n) => `
     <div class="card">
       <div class="ic">🛡</div>
@@ -893,7 +892,6 @@ function renderAccount() {
     <section class="abody">
       <h3>🆕 새 기사 키우기</h3>
       <div class="hint">닉네임이 곧 계정이에요. 다른 기사와 겹칠 수 없고, 랭킹에 이 이름으로 올라갑니다.</div>
-      ${legacy ? `<div class="hint warn">이 기기에서 하던 진행(Lv ${legacy.level || 1} · 최고 스테이지 ${legacy.best || 1})이 새 기사로 이어집니다.</div>` : ''}
       <div class="frow">
         <input id="nickIn" maxlength="12" placeholder="한글·영문·숫자·_ 2~12자" autocomplete="off" spellcheck="false">
         <button class="go compact" data-action="acct-create">🚩 시작</button>
@@ -950,9 +948,9 @@ async function acctCreate() {
   setMsg('nickMsg', '⏳ 기사를 등록하는 중… 서버가 잠들어 있었다면 1분쯤 걸려요');
   try {
     if (activeNick()) { save(); await pushSave(); }
-    // 새 기사의 첫 세이브: 이 기기의 예전 진행이 있으면 그것, 없으면 새로 시작
+    // 새 기사의 첫 세이브는 항상 새로 시작
     const prev = S, prevKey = saveKey;
-    loadState(legacySave());
+    loadState(null);
     const state = S, prof = profile();
     S = prev; saveKey = prevKey;
     await createAccount(nick, state, prof);

@@ -54,19 +54,12 @@ function setActiveAccount(nick) {
   saveAccounts();
 }
 
-// 서버 계정이 생기기 전(v0.1)의 세이브. 이 기기에서 처음 만드는 기사가 이어받는다.
-function legacySave() {
-  if (Object.keys(accounts.list).length) return null;
-  try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch { return null; }
-}
-
 // ───────────────────────── 계정 API ─────────────────────────
 const checkNickname = (name) => api('GET', `/api/nickname?name=${encodeURIComponent(name)}`, null, { timeout: 70000 });
 
 async function createAccount(nickname, state, profile) {
   const r = await api('POST', '/api/accounts', { nickname, state, profile }, { timeout: 70000 });
   rememberAccount(r.nickname, r.token);
-  if (state) try { localStorage.removeItem(SAVE_KEY); } catch {}
   return r;
 }
 
