@@ -126,11 +126,13 @@ KB_SERVER=http://localhost:3000 KB_USER_DATA=/tmp/kb npm start
 
 토큰(복구 코드)은 서버에 SHA-256 해시로만 저장됩니다.
 
-### Render 배포
+### Render 배포 (DB는 Supabase)
 
-1. 이 폴더를 GitHub 저장소로 올립니다.
-2. Render 대시보드 → **New → Blueprint** → 저장소 선택. `render.yaml`대로 웹 서비스(`knight-bar`)와 Postgres(`knight-bar-db`)가 만들어지고 `DATABASE_URL`이 자동으로 연결됩니다.
-3. 서비스 주소가 `https://knight-bar.onrender.com`이 아니면 `src/net.js`의 `DEFAULT_SERVER`를 바꾸거나 `KB_SERVER`로 지정합니다.
+1. **Supabase**에서 프로젝트를 만들고 Connect → **Session pooler** 연결 문자열(`postgresql://postgres.xxxx:[비밀번호]@aws-...pooler.supabase.com:5432/postgres`)을 복사합니다. Render는 IPv6를 못 쓰므로 Direct connection 대신 pooler 주소를 씁니다.
+2. Render 대시보드 → **New → Blueprint** → 이 저장소를 선택하면 `render.yaml`대로 웹 서비스(`knight-bar`)가 만들어집니다.
+3. `knight-bar` → **Environment**에서 `DATABASE_URL`에 1의 연결 문자열을 넣습니다. 테이블은 서버가 처음 뜰 때 자동으로 만듭니다.
+4. 서비스 주소가 `https://knight-bar.onrender.com`이 아니면 `src/net.js`의 `DEFAULT_SERVER`를 바꾸거나 `KB_SERVER`로 지정합니다.
 
 - 무료 웹 서비스는 15분간 요청이 없으면 잠들고, 첫 요청에 깨어나는 데 1분쯤 걸립니다. 클라이언트는 이를 감안해 계정·랭킹 요청을 최대 70초까지 기다립니다.
-- Render 무료 Postgres는 만든 뒤 일정 기간(현재 30일)이 지나면 만료됩니다. 계속 운영하려면 유료 DB 플랜으로 올리거나, 유료 웹 서비스에 Persistent Disk를 붙이고 `DATABASE_URL` 대신 `DATA_DIR=/디스크/경로`를 쓰세요.
+- Render 무료 웹 서비스의 디스크는 재시작마다 비워지므로, Render에서 `DATABASE_URL`이 없으면 서버는 파일 저장으로 넘어가지 않고 시작을 멈춥니다.
+- Supabase 무료 프로젝트는 일정 기간 활동이 없으면 일시 중지될 수 있습니다(대시보드에서 다시 켤 수 있음).

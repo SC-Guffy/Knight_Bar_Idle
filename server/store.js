@@ -59,7 +59,7 @@ const snake = (c) => c.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
 class PgStore {
   constructor(url) {
     const { Pool } = require('pg');
-    this.pool = new Pool({ connectionString: url, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false } });
+    this.pool = new Pool({ connectionString: url, max: 5, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false } });
   }
   async init() {
     await this.pool.query(`
@@ -123,6 +123,10 @@ class PgStore {
 
 function openStore() {
   if (process.env.DATABASE_URL) return new PgStore(process.env.DATABASE_URL);
+  // Render 무료 인스턴스의 디스크는 재시작마다 비워진다. DB 설정이 빠졌으면 데이터를 잃기 전에 시작을 멈춘다.
+  if (process.env.RENDER && !process.env.DATA_DIR) {
+    throw new Error('DATABASE_URL 이 설정되지 않았습니다 (Render → Environment 에서 Supabase 연결 문자열을 넣어 주세요)');
+  }
   return new FileStore(process.env.DATA_DIR || path.join(__dirname, 'data'));
 }
 

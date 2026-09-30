@@ -1,4 +1,6 @@
-# Render Blueprint — 대시보드에서 New → Blueprint 로 이 저장소를 연결하면 서버와 DB가 함께 만들어진다.
+# Render Blueprint — 대시보드에서 New → Blueprint 로 이 저장소를 연결하면 웹 서비스가 만들어진다.
+# DB는 Supabase Postgres 를 쓴다. DATABASE_URL 은 비밀번호가 들어 있어서 저장소에 두지 않고
+# Render 대시보드 → knight-bar → Environment 에서 직접 넣는다 (Supabase 의 Session pooler 연결 문자열).
 services:
   - type: web
     name: knight-bar
@@ -10,10 +12,4 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: knight-bar-db
-          property: connectionString
-
-databases:
-  - name: knight-bar-db
-    plan: free
+        sync: false
