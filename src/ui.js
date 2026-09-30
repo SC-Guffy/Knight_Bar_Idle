@@ -32,6 +32,7 @@ function toast(msg, ms = 4000) {
 const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function campStatus() {
+  if (duelActive()) return { icon: '⚔️', text: '결투 중' };
   if (S.report || S.bag.length) return { icon: '❗', text: '정산 대기' };
   if (S.stamina < maxStamina() - 0.5) return { icon: '💤', text: `휴식 ${Math.floor((100 * S.stamina) / maxStamina())}%` };
   return { icon: '🚩', text: '출정 준비 완료' };
@@ -53,7 +54,6 @@ const LIVE = {
   blocker: () => departBlocker() || '',
   campStatus: () => campStatus().text,
   sync: () => (!activeNick() ? '' : sync.error ? `⚠️ ${sync.error} — 이 기기에 저장 중` : sync.lastOk ? '☁️ 서버에 저장됨' : '☁️ 연결 중…'),
-  duelResult: () => duelResultText(),
 };
 function tickLive(root = document) {
   root.querySelectorAll('[data-live]').forEach((el) => {
@@ -104,7 +104,7 @@ function renderHud() {
 
   // 캠프 말풍선
   const bubble = $('bubble');
-  if (S.phase === 'camp' && !modalOpen()) {
+  if (S.phase === 'camp' && !modalOpen() && !duelActive()) {
     bubble.hidden = false;
     bubble.style.left = (CAMP_X - 14) + 'px';
     bubble.textContent = campStatus().icon;
@@ -118,6 +118,7 @@ function renderHud() {
 function openCamp() {
   if (!activeNick()) { openAccount(); return; }
   if (S.phase !== 'camp' || campOpen || acctOpen) return;
+  skipDuel();                          // 결투를 보는 중이었으면 결과만 알리고 끝낸다
   campOpen = true;
   revealed = [];
   campTab = S.report || S.bag.length ? 'report' : 'town';
@@ -132,7 +133,6 @@ function closeCamp() {
   if (!campOpen) return;
   clearInterval(openAllTimer); openAllTimer = null;
   campOpen = false;
-  if (duel && duel.status !== 'loading') duel = null;
   S.report = null;                     // 창을 닫으면 보고는 읽은 것으로 처리
   $('camp').hidden = true;
   interactive = false;
@@ -662,11 +662,10 @@ function loadRanking(force = false) {
   pushSave(true)
     .then(() => fetchRanking(sort))
     .then((d) => { if (sort === rank.sort) { rank.data = d; rank.at = Date.now(); } }, (e) => { rank.error = e.message; })
-    .finally(() => { rank.loading = false; if (campOpen && campTab === 'rank' && !duel) renderCamp(); });
+    .finally(() => { rank.loading = false; if (campOpen && campTab === 'rank') renderCamp(); });
 }
 
 function viewRank() {
-  if (duel) return viewDuel();
   loadRanking();
   const d = rank.data && rank.data.sort === rank.sort ? rank.data : null;
   const seg = (id, label) => `<button class="seg ${rank.sort === id ? 'on' : ''}" data-action="rank-sort" data-sort="${id}">${label}</button>`;
@@ -680,7 +679,7 @@ function viewRank() {
         <span class="rv"><small>전투력</small><b>${fmt(p.power)}</b></span>
         <span class="rv"><small>결투 ${p.wins}승 ${p.losses}패</small><b>⚔️ ${p.rating}</b></span>
         ${me ? '<span class="rme">나</span>'
-          : `<button class="btn duel" data-action="duel" data-nick="${esc(p.nickname)}">⚔️ 결투</button>`}
+          : `<button class="btn duel" data-action="duel" data-nick="${esc(p.nickname)}" ${duelBusy || duelActive() ? 'disabled' : ''}>⚔️ 결투</button>`}
       </div>`;
   };
   let body;
@@ -698,191 +697,37 @@ function viewRank() {
       <div class="segs">${seg('stage', '🏰 스테이지')}${seg('duel', '⚔️ 결투 점수')}
         <button class="btn" data-action="rank-refresh" title="새로고침" ${rank.loading ? 'disabled' : ''}>↻</button></div>
     </div>
-    <div class="hint">결투는 서로의 저장된 능력치로 자동으로 싸워요. 이기면 상대의 결투 점수를 가져오고, 상대가 접속해 있지 않아도 도전할 수 있어요.</div>
+    <div class="hint">결투는 서로의 저장된 능력치로 자동으로 싸우고, 캠프 앞 하단바에서 벌어져요. 이기면 상대의 결투 점수를 가져오고, 상대가 접속해 있지 않아도 도전할 수 있어요.</div>
+    ${lastDuel ? `<div class="reason ${lastDuel.won ? '' : 'warn'}">최근 결투 — ${esc(duelResultText(lastDuel))}</div>` : ''}
     <div class="rlist">${body}</div>`;
 }
 
 // ───────────────────────── 결투 ─────────────────────────
-// 서버가 계산한 결투 기록(fight.events)을 받아 전투 화면으로 재생한다.
-let duel = null;     // { opponent, status: loading | play | error, res, error, t0, speed, shown, fx, last }
-const DUEL_PLAY_SEC = 9;   // 긴 결투도 이 시간 안에 재생되도록 빨리 감는다
+// 서버에 결투를 신청하고, 받은 기록은 캠프 창을 닫고 하단바에서 재생한다 (world.js playDuel).
+let duelBusy = false;        // 서버 응답을 기다리는 중
+let lastDuel = null;         // 마지막 결투 결과 (랭킹 탭 위에 보여 준다)
+
+const duelResultText = (r) =>
+  `${r.won ? '🏆 승리!' : '💀 패배…'} vs ${r.opponent.nickname}${r.fight.timeout ? ' (시간 종료 · 남은 체력 판정)' : ''} — 결투 점수 ${r.me.rating} (${r.won ? '+' : '-'}${r.delta})`;
 
 function startDuel(nick) {
-  if (duel && duel.status === 'loading') return;
-  const d = duel = { opponent: nick, status: 'loading' };
+  if (duelBusy || duelActive() || S.phase !== 'camp') return;
+  duelBusy = true;
+  const who = activeNick();
+  closeCamp();
+  toast(`⚔️ ${nick}에게 결투를 신청하는 중…`, 70000);
   requestDuel(nick).then((res) => {
-    if (duel !== d) return;
-    Object.assign(d, { status: 'play', res });
-    replayDuel();
-    rank.at = 0;                           // 돌아가면 점수가 바뀐 랭킹을 다시 불러온다
+    rank.at = 0;                              // 다음에 랭킹 탭을 열면 바뀐 점수로 다시 불러온다
+    if (activeNick() !== who || S.phase !== 'camp' || campOpen || acctOpen) {
+      toast(duelResultText(res), 6000);       // 그사이 다른 화면으로 갔으면 결과만 알린다
+      lastDuel = res;
+      return;
+    }
+    $('toast').classList.remove('show');
+    playDuel(res, (r) => { lastDuel = r; toast(duelResultText(r), 6000); renderHud(); });
   }, (e) => {
-    if (duel !== d) return;
-    Object.assign(d, { status: 'error', error: e.message });
-  }).finally(() => { if (campOpen && campTab === 'rank') renderCamp(); });
-}
-function replayDuel() {
-  const f = duel.res.fight;
-  Object.assign(duel, { t0: clock, speed: Math.max(1, f.dur / DUEL_PLAY_SEC), shown: 0, fx: [], last: {}, hit: {} });
-}
-const duelTime = () => Math.min(duel.res.fight.dur, (clock - duel.t0) * duel.speed);
-const duelDone = () => duel && duel.status === 'play' && duelTime() >= duel.res.fight.dur;
-
-function duelResultText() {
-  if (!duel || duel.status !== 'play') return '';
-  if (!duelDone()) return '⚔️ 결투 중…';
-  const r = duel.res;
-  const sign = r.won ? '+' : '-';
-  return `${r.won ? '🏆 승리!' : '💀 패배…'}${r.fight.timeout ? ' (시간 종료 · 남은 체력 판정)' : ''} 결투 점수 ${r.me.rating} (${sign}${r.delta})`;
-}
-
-function viewDuel() {
-  const opp = esc(duel.opponent);
-  const back = '<button class="btn" data-action="duel-back">← 랭킹으로</button>';
-  if (duel.status === 'loading') {
-    return `<h3>⚔️ 결투</h3><div class="arena-msg">⚔️ <b>${opp}</b>에게 결투를 신청하는 중…</div><div class="row">${back}</div>`;
-  }
-  if (duel.status === 'error') {
-    return `<h3>⚔️ 결투</h3><div class="arena-msg warn">⚠️ ${esc(duel.error)}</div><div class="row">${back}</div>`;
-  }
-  const r = duel.res;
-  return `
-    <h3>⚔️ 결투 <small>${esc(r.me.nickname)} vs ${esc(r.opponent.nickname)}</small></h3>
-    <canvas id="arena" class="arena"></canvas>
-    <div class="dfoot">
-      <div class="dres" data-live="duelResult"></div>
-      <div class="row">
-        <button class="btn" data-action="duel-skip">⏩ 결과 보기</button>
-        <button class="btn" data-action="duel-replay">↺ 다시 보기</button>
-        <button class="btn" data-action="duel-again" data-nick="${esc(r.opponent.nickname)}">⚔️ 재도전</button>
-        ${back}
-      </div>
-    </div>`;
-}
-
-function drawDuel() {
-  const cv = $('arena');
-  if (!cv || !duel || duel.status !== 'play') return;
-  const dpr = window.devicePixelRatio || 1;
-  const w = cv.clientWidth, h = cv.clientHeight;
-  if (!w) return;
-  if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
-  const g = cv.getContext('2d');
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.imageSmoothingEnabled = false;
-  g.clearRect(0, 0, w, h);
-
-  const r = duel.res, f = r.fight;
-  const pt = duelTime();
-  const done = pt >= f.dur;
-
-  // 재생 시간까지 일어난 공격을 반영한다
-  while (duel.shown < f.events.length && f.events[duel.shown].t <= pt) {
-    const e = f.events[duel.shown++];
-    const target = e.by === 'a' ? 'b' : 'a';
-    duel.last[e.by] = { e, at: clock };
-    duel.hit[target] = clock;
-    duel.fx.push({ side: target, at: clock, dx: (Math.random() - 0.5) * 36, text: (e.crit ? '💥' : '') + fmt(e.dmg), color: e.crit ? '#ffb13b' : '#ffffff', big: e.crit || e.kind === 'leap' });
-  }
-  const lastEv = duel.shown ? f.events[duel.shown - 1] : null;
-  const hp = { a: lastEv ? lastEv.hpA : f.maxA, b: lastEv ? lastEv.hpB : f.maxB };
-  const max = { a: f.maxA, b: f.maxB };
-
-  // 바닥
-  const gy = h - 22, pad = 70;
-  g.fillStyle = 'rgba(46, 94, 44, 0.85)'; g.fillRect(0, gy, w, 3);
-  g.fillStyle = 'rgba(92, 60, 36, 0.8)'; g.fillRect(0, gy + 3, w, h - gy - 3);
-  const sx = (x) => pad + (x * (w - pad * 2)) / f.start;
-
-  const k = 1.5;
-  const fighters = {
-    a: { cls: r.me.cls, name: r.me.nickname, dir: 1 },
-    b: { cls: r.opponent.cls, name: r.opponent.nickname, dir: -1 },
-  };
-  for (const side of ['a', 'b']) {
-    const F = fighters[side], mv = f.moves[side];
-    const walked = Math.min(pt, mv.t) * f.walk;
-    F.x = side === 'a' ? Math.min(mv.x, walked) : Math.max(mv.x, f.start - walked);
-    F.px = sx(F.x);
-  }
-  for (const side of ['a', 'b']) {
-    const F = fighters[side], mv = f.moves[side], L = duel.last[side];
-    const since = L ? clock - L.at : Infinity;
-    const loser = done && f.winner !== side;
-    let swing = since < 0.16 ? 0.35 + since * 4 : -1;
-    const lift = L && L.e.kind === 'leap' && since < 0.35 ? (1 - since / 0.35) * 26 : 0;
-    g.fillStyle = 'rgba(0,0,0,0.25)';
-    g.fillRect(F.px - 18, gy - 1, 36, 2);
-    g.save();
-    g.translate(Math.round(F.px), gy);
-    g.scale(k, k);
-    drawHero(g, F.cls, 0, 0, {
-      mode: loser ? 'sit' : pt < mv.t ? 'walk' : 'fight',
-      walkT: pt, swing: loser ? -1 : swing, facing: F.dir, t: clock, lift: lift / k,
-      flash: duel.hit[side] != null && clock - duel.hit[side] < 0.08,
-      alpha: loser ? 0.45 : 1,
-    });
-    g.restore();
-    // 원거리 공격은 화살이 날아가는 모습만 짧게 보여 준다
-    const wpn = WEAPONS[clsOf(F.cls).weapon];
-    if (L && wpn.kind === 'ranged' && since < 0.14) {
-      const O = fighters[side === 'a' ? 'b' : 'a'];
-      const q = since / 0.14, x0 = F.px + F.dir * 20, x1 = O.px - F.dir * 10;
-      const ax = x0 + (x1 - x0) * q, ay = gy - 32;
-      g.fillStyle = wpn.arrow.color;
-      g.fillRect(Math.min(ax, ax - F.dir * 14), ay, 14, 2);
-    }
-    if (L && L.e.kind === 'leap' && since < 0.5) {
-      const q = since / 0.5;
-      g.save();
-      g.globalAlpha = 1 - q;
-      g.strokeStyle = clsOf(F.cls).look.fx; g.lineWidth = 3;
-      const O = fighters[side === 'a' ? 'b' : 'a'];
-      g.beginPath(); g.ellipse(O.px, gy - 2, 10 + q * 50, 4 + q * 8, 0, 0, Math.PI * 2); g.stroke();
-      g.restore();
-    }
-  }
-
-  // 이름표와 체력바 (양쪽 위)
-  g.font = 'bold 13px -apple-system, sans-serif';
-  g.textBaseline = 'top';
-  for (const side of ['a', 'b']) {
-    const F = fighters[side], left = side === 'a';
-    const bw = Math.min(260, w / 2 - 40), bx = left ? 16 : w - 16 - bw;
-    g.textAlign = left ? 'left' : 'right';
-    g.fillStyle = '#f3efe6';
-    g.fillText(`${clsOf(F.cls).icon} ${F.name}  Lv ${side === 'a' ? r.me.level : r.opponent.level}`, left ? bx : bx + bw, 10);
-    g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(bx, 30, bw, 8);
-    g.fillStyle = left ? '#5fcf5a' : '#ff5a5a';
-    const ratio = Math.max(0, hp[side] / max[side]);
-    g.fillRect(left ? bx : bx + bw * (1 - ratio), 30, bw * ratio, 8);
-    g.font = '11px -apple-system, sans-serif';
-    g.fillStyle = 'rgba(243,239,230,0.7)';
-    g.fillText(`${fmt(hp[side])} / ${fmt(max[side])}`, left ? bx : bx + bw, 42);
-    g.font = 'bold 13px -apple-system, sans-serif';
-  }
-  g.textBaseline = 'alphabetic';
-
-  // 피해 숫자
-  g.textAlign = 'center'; g.lineJoin = 'round';
-  duel.fx = duel.fx.filter(x => clock - x.at < 0.9);
-  for (const x of duel.fx) {
-    const age = clock - x.at;
-    g.globalAlpha = Math.max(0, 1 - Math.max(0, age - 0.5) / 0.4);
-    g.font = `bold ${x.big ? 16 : 13}px -apple-system, sans-serif`;
-    const fx = fighters[x.side].px + x.dx, fy = gy - 80 - age * 30;
-    g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.75)'; g.strokeText(x.text, fx, fy);
-    g.fillStyle = x.color; g.fillText(x.text, fx, fy);
-  }
-  g.globalAlpha = 1;
-
-  if (done) {
-    g.font = 'bold 26px -apple-system, sans-serif';
-    g.lineWidth = 5; g.strokeStyle = 'rgba(0,0,0,0.7)';
-    const text = r.won ? 'VICTORY!' : 'DEFEAT';
-    g.strokeText(text, w / 2, 76);
-    g.fillStyle = r.won ? '#ffd257' : '#ff8080';
-    g.fillText(text, w / 2, 76);
-  }
+    toast(`⚠️ ${e.message}`, 5000);
+  }).finally(() => { duelBusy = false; renderHud(); });
 }
 
 function renderCamp() {
@@ -945,10 +790,6 @@ const ACTIONS = {
   'rank-sort': (el) => { rank.sort = el.dataset.sort; },
   'rank-refresh': () => loadRanking(true),
   'duel': (el) => startDuel(el.dataset.nick),
-  'duel-again': (el) => startDuel(el.dataset.nick),
-  'duel-skip': () => { if (duel && duel.status === 'play') duel.t0 = clock - duel.res.fight.dur; },
-  'duel-replay': () => { if (duel && duel.status === 'play') replayDuel(); },
-  'duel-back': () => { duel = null; },
   'acct-close': closeAccount,
   'acct-create': acctCreate,
   'acct-switch': (el) => acctSwitch(el.dataset.nick),
@@ -1162,7 +1003,7 @@ function resetWorld() {
   lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, leapT: -1, swing: -1, facing: 1 });
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
-  rank.data = null; duel = null; revealed = []; classSel = null; classConfirm = null;
+  rank.data = null; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
 }
 
 // 꺼져 있던 동안의 원정·휴식·건설을 한 번에 계산한다
@@ -1331,7 +1172,6 @@ function boot() {
     else clock += dt;
     render();
     if (campOpen && campTab === 'class') drawClassPreviews();
-    if (campOpen && campTab === 'rank') drawDuel();
     slow += dt;
     if (slow > 0.25) {
       slow = 0;

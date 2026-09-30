@@ -299,6 +299,7 @@ function update(dt) {
   if (S.phase === 'expedition') updateExpedition(dt, gdt);
   else if (S.phase === 'returning') updateReturning(dt);
   else advanceCamp(gdt);
+  if (duelPlay) updateDuel();
 
   for (const m of monsters) {
     m.t += dt;
@@ -758,10 +759,121 @@ function drawFx() {
     ctx.globalAlpha = Math.max(0, a);
     ctx.font = 'bold 20px -apple-system, sans-serif';
     ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-    const bx = Math.min(W - 60, Math.max(60, toScreen(knight.x) + 40)), by = groundY() - 78;
+    const cx = duelPlay ? duelPlay.x0 + duelPlay.res.fight.start / 2 : toScreen(knight.x) + 40;   // 결투 중엔 두 기사 사이
+    const bx = Math.min(W - 60, Math.max(60, cx)), by = groundY() - 78;
     ctx.strokeText(banner.text, bx, by);
     ctx.fillStyle = banner.color;
     ctx.fillText(banner.text, bx, by);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ───────────────────────── 결투 ─────────────────────────
+// 서버가 계산한 결투 기록(fight.events)을 하단바에서 재생한다. 캠프에 있을 때만 벌어지고,
+// 캠프의 기사가 일어나 오른쪽에서 걸어오는 상대와 싸운 뒤 다시 캠프에 앉는다.
+// 결투 좌표(fight.start·moves.x)는 하단바 px 단위라 그대로 쓴다.
+let duelPlay = null;          // { res, t0, speed, shown, last, hit, x0, doneAt, onEnd }
+const DUEL_PLAY_SEC = 9;      // 긴 결투도 이 시간 안에 재생되도록 빨리 감는다
+const DUEL_HOLD_SEC = 2.5;    // 결판이 난 뒤 결과를 보여 주는 시간
+const DUEL_ENTER_SEC = 0.5;   // 상대가 나타나는 시간
+
+const duelActive = () => !!duelPlay;
+function playDuel(res, onEnd) {
+  const f = res.fight;
+  duelPlay = {
+    res, onEnd, t0: clock, speed: Math.max(1, f.dur / DUEL_PLAY_SEC), shown: 0, last: {}, hit: {}, doneAt: null,
+    x0: CAMP_X + 70,
+  };
+  showBanner(`⚔️ VS ${res.opponent.nickname}`, '#ff9f1c');
+}
+const duelTime = () => Math.min(duelPlay.res.fight.dur, Math.max(0, clock - duelPlay.t0 - DUEL_ENTER_SEC) * duelPlay.speed);
+
+// 기사는 한 번 멈추면 다시 움직이지 않으므로 멈춘 시각·위치로 이동을 재현한다
+function duelX(side, pt) {
+  const f = duelPlay.res.fight, mv = f.moves[side];
+  const walked = Math.min(pt, mv.t) * f.walk;
+  return duelPlay.x0 + (side === 'a' ? Math.min(mv.x, walked) : Math.max(mv.x, f.start - walked));
+}
+
+function updateDuel() {
+  const d = duelPlay, f = d.res.fight, pt = duelTime();
+  while (d.shown < f.events.length && f.events[d.shown].t <= pt) {
+    const e = f.events[d.shown++];
+    const target = e.by === 'a' ? 'b' : 'a';
+    d.last[e.by] = { e, at: clock };
+    d.hit[target] = clock;
+    const tx = duelX(target, pt);
+    addFloater((e.crit ? '💥' : '') + fmt(e.dmg), tx + rand(-8, 8), groundY() - 76, e.crit ? '#ffb13b' : '#ffffff', e.crit || e.kind === 'leap' ? 14 : 12);
+    if (e.kind === 'leap') {
+      const who = e.by === 'a' ? d.res.me : d.res.opponent;
+      effects.push({ type: 'ring', x: tx, y: groundY() - 2, t: 0, color: (CLASSES[who.cls] || CLASSES.squire).look.fx });
+    }
+  }
+  if (pt >= f.dur && d.doneAt == null) {
+    d.doneAt = clock;
+    showBanner(d.res.won ? 'VICTORY!' : 'DEFEAT', d.res.won ? '#ffd257' : '#ff8080');
+  }
+  if (d.doneAt != null && clock - d.doneAt > DUEL_HOLD_SEC) endDuel();
+}
+
+function endDuel() {
+  if (!duelPlay) return;
+  const d = duelPlay;
+  duelPlay = null;
+  if (d.onEnd) d.onEnd(d.res);
+}
+// 캠프 창을 여는 등 결투를 끝까지 보지 않을 때: 결과만 알리고 끝낸다
+function skipDuel() {
+  if (!duelPlay) return;
+  if (duelPlay.doneAt == null) showBanner(duelPlay.res.won ? 'VICTORY!' : 'DEFEAT', duelPlay.res.won ? '#ffd257' : '#ff8080');
+  endDuel();
+}
+
+function drawDuel() {
+  const d = duelPlay, f = d.res.fight, pt = duelTime(), done = pt >= f.dur, gy = groundY();
+  const lastEv = d.shown ? f.events[d.shown - 1] : null;
+  const hp = { a: lastEv ? lastEv.hpA : f.maxA, b: lastEv ? lastEv.hpB : f.maxB };
+  const max = { a: f.maxA, b: f.maxB };
+  for (const side of ['a', 'b']) {
+    const who = side === 'a' ? d.res.me : d.res.opponent;
+    const c = CLASSES[who.cls] || CLASSES.squire;
+    const x = duelX(side, pt), mv = f.moves[side], L = d.last[side];
+    const since = L ? clock - L.at : Infinity;
+    const loser = done && f.winner !== side;
+    const lift = L && L.e.kind === 'leap' && since < 0.35 ? (1 - since / 0.35) * 26 : 0;
+    const alpha = side === 'b' ? Math.min(1, (clock - d.t0) / DUEL_ENTER_SEC) : 1;
+
+    ctx.fillStyle = `rgba(0,0,0,${0.25 * alpha})`;
+    ctx.fillRect(x - 14, gy - 1, 28, 2);
+    drawHero(ctx, who.cls, x, gy, {
+      mode: loser ? 'sit' : pt < mv.t ? 'walk' : 'fight',
+      walkT: pt, swing: !loser && since < 0.16 ? 0.35 + since * 4 : -1,
+      facing: side === 'a' ? 1 : -1, t: clock, lift,
+      flash: d.hit[side] != null && clock - d.hit[side] < 0.08,
+      alpha: loser ? 0.45 : alpha,
+    });
+
+    // 원거리 공격은 화살이 날아가는 모습만 짧게 보여 준다
+    const w = WEAPONS[c.weapon];
+    if (L && w.kind === 'ranged' && since < 0.14) {
+      const dir = side === 'a' ? 1 : -1, ox = duelX(side === 'a' ? 'b' : 'a', pt);
+      const x0 = x + dir * 16, x1 = ox - dir * 8, ax = x0 + (x1 - x0) * (since / 0.14);
+      ctx.fillStyle = w.arrow.color;
+      ctx.fillRect(Math.round(dir > 0 ? ax - 12 : ax), gy - 6 * PX, 12, 2);
+    }
+
+    // 이름표와 체력바
+    const top = gy - 58 - lift;
+    ctx.globalAlpha = alpha;
+    drawHpBar(x, top, 34, hp[side] / max[side], side === 'a' ? '#5fcf5a' : '#ff5a5a');
+    ctx.font = 'bold 11px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    const label = `${c.icon} ${who.nickname}`;
+    ctx.strokeText(label, x, top - 5);
+    ctx.fillStyle = side === 'a' ? '#f3efe6' : '#ffc9c9';
+    ctx.fillText(label, x, top - 5);
     ctx.globalAlpha = 1;
   }
 }
@@ -771,7 +883,7 @@ function render() {
   drawGround();
   drawCamp();
   for (const m of monsters) drawMonster(m);
-  drawKnight();
+  if (duelPlay) drawDuel(); else drawKnight();
   drawShots();
   drawEffects();
   drawFx();
