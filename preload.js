@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld('bar', {
   onSwitchAccount: (cb) => ipcRenderer.on('switch-account', () => cb()),
   onFlush: (cb) => ipcRenderer.on('flush', () => cb()),
   flushed: () => ipcRenderer.send('flushed'),
+  quit: () => ipcRenderer.send('quit'),
 });

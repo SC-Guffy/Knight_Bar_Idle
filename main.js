@@ -211,6 +211,7 @@ app.whenReady().then(() => {
       win.blur();
     }
   });
+  ipcMain.on('quit', () => app.quit());
   ipcMain.on('tray-title', (_e, text) => {
     if (tray) tray.setTitle(text);
   });

@@ -76,7 +76,7 @@ function renderHud() {
   $('cls').textContent = heroClass().icon;
   $('cls').title = heroClass().name;
   $('lv').textContent = S.level;
-  $('stage').textContent = `${S.stage}-${Math.min(S.run.kills + 1, S.run.total)}${S.run.farm && S.phase !== 'camp' ? ' 🔁' : ''}`;
+  $('stage').textContent = `${zoneOf(S.stage).icon} ${S.stage}-${Math.min(S.run.kills + 1, S.run.total)}${S.run.farm && S.phase !== 'camp' ? ' 🔁' : ''}`;
   $('gold').textContent = fmt(S.gold);
   $('bag').textContent = `${S.bag.length}/${bagCap()}`;
   $('hpfill').style.width = (100 * Math.max(0, S.hp) / st.maxHp) + '%';
@@ -628,6 +628,20 @@ function viewShop() {
   return `<h3>🎒 보급품</h3><div class="hint">가격은 최고 스테이지에 따라 오릅니다. 원정 가방에서도 가끔 나옵니다.</div>${rows}`;
 }
 
+// 필드 선택: 앞 필드의 마지막 보스를 잡아야 다음 필드가 열린다
+function viewFields() {
+  const cur = zoneIndex(S.stage);
+  return ZONES.map((z, i) => {
+    const open = zoneUnlocked(i, S.best), done = zoneCleared(i, S.best);
+    const range = z.to === Infinity ? `${z.from}~` : `${z.from}~${z.to}`;
+    const state = !open ? `🔒 ${ZONES[i - 1].name} 클리어` : done ? '✅ 클리어' : i === cur ? '사냥 중' : '도전 중';
+    const mobs = [...z.mobs.map((id) => MONSTERS[id].name), `👑 ${MONSTERS[z.boss].name}`].join(' · ');
+    return `<button class="field ${i === cur ? 'on' : ''} ${done ? 'done' : ''}" data-action="field" data-i="${i}" ${open ? '' : 'disabled'}
+      title="${open ? esc(mobs) : '앞 필드의 마지막 보스를 잡으면 열립니다'}">
+      <b>${z.icon} ${z.name}</b><small>${range} · ${state}</small></button>`;
+  }).join('');
+}
+
 function viewDepart() {
   const opt = (id) => {
     if (!S.items[id]) departOpts[id] = false;
@@ -636,6 +650,8 @@ function viewDepart() {
       ${SUPPLIES[id].icon} ${SUPPLIES[id].name} <small>(${S.items[id]})</small></label>`;
   };
   return `
+    <div class="fields">${viewFields()}</div>
+    <div class="frow">
     <div class="dstat">
       <div class="meter big"><div class="stbar" data-bar="stamina"></div></div>
       <div class="small">⚡ <span data-live="stamina"></span></div>
@@ -645,6 +661,7 @@ function viewDepart() {
     <div class="gobox">
       <button class="go" data-action="depart">🚩 출정</button>
       <div class="blocker" data-live="blocker"></div>
+    </div>
     </div>`;
 }
 
@@ -791,6 +808,7 @@ const ACTIONS = {
   'rank-refresh': () => loadRanking(true),
   'duel': (el) => startDuel(el.dataset.nick),
   'acct-close': closeAccount,
+  'quit': () => window.bar.quit(),
   'acct-create': acctCreate,
   'acct-switch': (el) => acctSwitch(el.dataset.nick),
   'acct-import': acctImport,
@@ -829,6 +847,11 @@ const ACTIONS = {
     if (r.result === 'up' && r.to % 5 === 0) toast(`⚒️ ${GEAR_SLOTS[slot].name} +${r.to} 달성!`);
   },
   'depart': depart,
+  'field': (el) => {
+    const i = Number(el.dataset.i);
+    if (!selectZone(i)) return;
+    toast(`${ZONES[i].icon} ${ZONES[i].name} ${S.stage}스테이지에서 출정합니다`);
+  },
   'class-sel': (el) => { classSel = el.dataset.id; classConfirm = null; },
   'class-ask': (el) => { classConfirm = el.dataset.id; },
   'class-cancel': () => { classConfirm = null; },
@@ -887,7 +910,8 @@ function renderAccount() {
     <header>
       <h2>${cur ? '👤 계정 변경' : '⚔️ 기사의 이름을 지어 주세요'}</h2>
       <div class="res"></div>
-      ${cur ? '<button class="x" data-action="acct-close" title="닫기 (Esc)">✕</button>' : ''}
+      ${cur ? '<button class="x" data-action="acct-close" title="닫기 (Esc)">✕</button>'
+        : window.bar ? '<button class="x" data-action="quit" title="게임 끄기">✕</button>' : ''}
     </header>
     <section class="abody">
       <h3>🆕 새 기사 키우기</h3>
