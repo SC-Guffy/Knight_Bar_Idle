@@ -634,7 +634,7 @@ function viewFields() {
   return ZONES.map((z, i) => {
     const open = zoneUnlocked(i, S.best), done = zoneCleared(i, S.best);
     const range = z.to === Infinity ? `${z.from}~` : `${z.from}~${z.to}`;
-    const state = !open ? `🔒 ${ZONES[i - 1].name} 클리어` : done ? '✅ 클리어' : i === cur ? '사냥 중' : '도전 중';
+    const state = !open ? '🔒 잠김' : done ? '✅ 클리어' : '⚔️ 도전 중';
     const mobs = [...z.mobs.map((id) => MONSTERS[id].name), `👑 ${MONSTERS[z.boss].name}`].join(' · ');
     return `<button class="field ${i === cur ? 'on' : ''} ${done ? 'done' : ''}" data-action="field" data-i="${i}" ${open ? '' : 'disabled'}
       title="${open ? esc(mobs) : '앞 필드의 마지막 보스를 잡으면 열립니다'}">
@@ -651,7 +651,7 @@ function viewDepart() {
   };
   return `
     <div class="fields">${viewFields()}</div>
-    <div class="frow">
+    <div class="drow">
     <div class="dstat">
       <div class="meter big"><div class="stbar" data-bar="stamina"></div></div>
       <div class="small">⚡ <span data-live="stamina"></span></div>

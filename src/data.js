@@ -282,15 +282,40 @@ function monsterStats(stage, boss) {
   const atk = 3 * Math.pow(1.17, stage - 1);
   const gold = 2 * Math.pow(1.2, stage - 1);
   const exp = 4 * Math.pow(1.16, stage - 1);
+  // 필드 마지막 스테이지의 보스(필드 보스)는 한층 더 세고 보상도 크다
+  const f = boss && stage === zoneOf(stage).to ? 1.5 : 1;
   return boss
-    ? { hp: hp * 5, atk: atk * 1.4, gold: gold * 10, exp: exp * 6, boss: true }
+    ? { hp: hp * 5 * f, atk: atk * 1.4 * (f > 1 ? 1.2 : 1), gold: gold * 10 * f, exp: exp * 6 * f, boss: true }
     : { hp, atk, gold, exp, boss: false };
 }
+
+// ───────────────────────── 필드 ─────────────────────────
+// 20스테이지마다 필드가 바뀐다. 앞 필드의 마지막 보스를 한 번이라도 잡아야 다음 필드로 갈 수 있다.
+// mobs 는 필드 안에서 5스테이지마다 하나씩 더 나온다 (처음엔 앞의 2종). boss 는 매 스테이지 끝의 보스.
+// 마지막 필드는 끝이 없고, 20스테이지마다 몬스터 색이 바뀐다.
+const ZONES = [
+  { name: '푸른 초원', icon: '🌿', from: 1, to: 20, mobs: ['slime', 'rabbit', 'bee', 'mushroom', 'goblin'], boss: 'wolf',
+    ground: { deco: 'meadow', line: 'rgba(46, 94, 44, 0.85)', soil: 'rgba(92, 60, 36, 0.8)', grass: 'rgba(88, 170, 70, 0.9)', accent: '#ffd257' } },
+  { name: '묘지 무덤', icon: '🪦', from: 21, to: 40, mobs: ['skeleton', 'bat', 'zombie', 'ghost'], boss: 'lich',
+    ground: { deco: 'grave', line: 'rgba(60, 64, 58, 0.9)', soil: 'rgba(52, 44, 48, 0.85)', grass: 'rgba(110, 112, 88, 0.9)', accent: '#8a6fb8' } },
+  { name: '독안개 늪', icon: '🐸', from: 41, to: 60, mobs: ['frog', 'bogslime', 'snake', 'lizardman'], boss: 'croc',
+    ground: { deco: 'swamp', line: 'rgba(58, 90, 50, 0.9)', soil: 'rgba(48, 58, 38, 0.85)', grass: 'rgba(96, 140, 70, 0.9)', accent: '#8a5a2b' } },
+  { name: '화산 동굴', icon: '🌋', from: 61, to: 80, mobs: ['imp', 'magmaslime', 'firesnake', 'golem'], boss: 'drake',
+    ground: { deco: 'volcano', line: 'rgba(200, 70, 20, 0.9)', soil: 'rgba(58, 36, 30, 0.9)', grass: 'rgba(90, 70, 60, 0.9)', accent: '#ff9f1c' } },
+  { name: '얼어붙은 설원', icon: '❄️', from: 81, to: 100, mobs: ['icewolf', 'icebat', 'snowman', 'yeti'], boss: 'icegolem',
+    ground: { deco: 'snow', line: 'rgba(232, 244, 255, 0.95)', soil: 'rgba(120, 146, 176, 0.8)', grass: 'rgba(240, 248, 255, 0.95)', accent: '#9fd8ff' } },
+  { name: '마왕성', icon: '🏰', from: 101, to: Infinity, mobs: ['gargoyle', 'demon', 'shade', 'darkknight'], boss: 'demonlord',
+    ground: { deco: 'castle', line: 'rgba(90, 70, 110, 0.9)', soil: 'rgba(40, 32, 48, 0.9)', grass: 'rgba(70, 60, 80, 0.9)', accent: '#ff4d4d' } },
+];
+const zoneIndex = (stage) => ZONES.findIndex((z) => stage <= z.to);
+const zoneOf = (stage) => ZONES[zoneIndex(stage)];
+// best 는 지금까지 도달한 가장 높은 스테이지 → 필드 첫 스테이지에 도달했으면(= 앞 필드를 깼으면) 열린다
+const zoneUnlocked = (i, best) => best >= ZONES[i].from;
+const zoneCleared = (i, best) => best > ZONES[i].to;
+
 function monsterPool(stage) {
-  if (stage <= 2) return ['slime'];
-  if (stage <= 5) return ['slime', 'bat'];
-  if (stage <= 9) return ['slime', 'bat', 'goblin'];
-  return ['slime', 'bat', 'goblin', 'skeleton'];
+  const z = zoneOf(stage);
+  return z.mobs.slice(0, Math.min(z.mobs.length, 2 + Math.floor((stage - z.from) / 5)));
 }
 const expToNextAt = (lv) => Math.floor(20 * Math.pow(1.22, lv - 1));
 
@@ -443,12 +468,271 @@ const PAL = {
   g: '#2f7d3b', G: '#5fcf5a', L: '#b7ff9e', W: '#f4f1e8', K: '#1b1d27',
   p: '#8a4fd1', R: '#ff4d4d', B: '#7a5230',
 };
-// 같은 글자라도 몬스터마다 색이 다를 때 덮어쓴다 (텐트의 D와 박쥐 날개 D 등)
-const MONSTER_PAL = {
-  slime: {},
-  bat: { D: '#4b2a6b' },
-  goblin: { G: '#8fae3c' },
-  skeleton: { W: '#e9e4d4' },
+// 몸통은 같고 아랫줄(다리·꼬리)만 번갈아 바뀌는 2프레임
+const walk2 = (body, a, b) => [body.concat(a), body.concat(b)];
+
+Object.assign(SPR, {
+  rabbit: walk2([
+    '.w..Y..w.',
+    '.wp.Y.pw.',
+    '.wp...pw.',
+    '.ww...ww.',
+    '.wwwwwww.',
+    'wwKwwwKww',
+    'wwwwpwwww',
+    '.wwwwwww.',
+  ], ['.ww...ww.'], ['..ww.ww..']),
+  bee: [[
+    '.aa.....aa.',
+    'aaaa...aaaa',
+    '.aaayyyaaa.',
+    '..yKyyyKy..',
+    '.yyyyyyyyy.',
+    '.KKKKKKKKK.',
+    '.yyyyyyyyy.',
+    '..KKKKKKK..',
+    '...yyyyy...',
+    '.....K.....',
+  ], [
+    '...........',
+    '...........',
+    'aaaayyyaaaa',
+    'aayKyyyKyaa',
+    '.yyyyyyyyy.',
+    '.KKKKKKKKK.',
+    '.yyyyyyyyy.',
+    '..KKKKKKK..',
+    '...yyyyy...',
+    '.....K.....',
+  ]],
+  mushroom: walk2([
+    '...rrrr...',
+    '.rrWrrrWr.',
+    'rrrrrrrrrr',
+    'rWrrrrrWrr',
+    'rrrrrrrrrr',
+    '..cccccc..',
+    '..cKccKc..',
+    '..cccccc..',
+  ], ['..cc..cc..'], ['...cccc...']),
+  wolf: walk2([
+    '..e.e........',
+    '.nnnnn.......',
+    'KnRnnnnnnnn.t',
+    '.nnnnnnnnnnnt',
+    '..wnnnnnnnnt.',
+    '...nnnnnnnn..',
+  ], ['...n.n..n.n..', '...K.K..K.K..'], ['..n..n.n..n..', '..K..K.K..K..']),
+  ghost: walk2([
+    '...wwww...',
+    '..wwwwww..',
+    '.wwKwwKww.',
+    '.wwKwwKww.',
+    '.wwwwwwww.',
+    '.wwwKKwww.',
+    'wwwwwwwwww',
+    'wwwwwwwwww',
+  ], ['w.ww.ww.ww'], ['ww.ww.ww.w']),
+  zombie: walk2([
+    '..zzzzz..',
+    '.zzzzzzz.',
+    '.zKzzzKz.',
+    '.zzzzzzz.',
+    '..zRRRz..',
+    '...zzz...',
+    'zzccccczz',
+    '..cBcBc..',
+    '..ccccc..',
+  ], ['..c...c..', '..z...z..'], ['...c.c...', '...z.z...']),
+  lich: walk2([
+    '...ppppp...',
+    '..ppWWWpp..',
+    '..pWRWRWp..',
+    '..pWWWWWp..',
+    '..ppWKWpp..',
+    '.ppppppppp.',
+    '.ppppGpppp.',
+    'Wppppppppp.',
+    '.ppppppppp.',
+    'ppppppppppp',
+  ], ['p.ppp.ppp.p'], ['.ppp.p.ppp.']),
+  frog: walk2([
+    '.ggg...ggg.',
+    'gWKgg.ggWKg',
+    'ggggggggggg',
+    'gggKKKKKggg',
+    'glllllllllg',
+    '.glllllllg.',
+  ], ['gg.g...g.gg'], ['.gg.g.g.gg.']),
+  snake: walk2([
+    '...sss......',
+    '..sKsss.....',
+    'rrsssss.....',
+    '....sss.....',
+    '....sss.....',
+  ], ['....ssss..s.', '...sssdssss.', '..ssssssss..'], ['.....ssss.s.', '..ssssdsss..', '...ssssssss.']),
+  lizardman: walk2([
+    '..LLLLL..',
+    '.LLLLLLL.',
+    '.LYLLLYL.',
+    'LLLLLLLLL',
+    '.LKKKKKL.',
+    '..LLLLL..',
+    '.LlllllL.',
+    'LLlllllLL',
+    'L.lllll.L',
+    '..LLLLL..',
+  ], ['..L...L..', '.LL...LL.'], ['...L.L...', '..LL.LL..']),
+  croc: walk2([
+    '....cc.cc......',
+    '...cYccYcc.....',
+    'cccccccccccc...',
+    'WcWcWcccccccccc',
+    'ccccccccccccccc',
+    '.WcWclllllllcct',
+    '....cccccccccc.',
+  ], ['....cc...cc....'], ['.....cc...cc...']),
+  imp: walk2([
+    'h.......h',
+    'hh.rrr.hh',
+    '.rrrrrrr.',
+    '.rYrrrYr.',
+    '.rrrrrrr.',
+    '..rKKKr..',
+    '...rrr...',
+    'w.rrrrr.w',
+    'wwrrrrrww',
+    '..rrrrr..',
+  ], ['..r...r..'], ['...r.r...']),
+  golem: walk2([
+    '...oooooo...',
+    '..oooooooo..',
+    '..oYooooYo..',
+    '..oooooooo..',
+    '.ooooOoooo..',
+    'oooooooooooo',
+    'oOoooooOoooo',
+    'oo.oooooo.oo',
+    'oo.ooOooo.oo',
+    '...oooooo...',
+  ], ['...oo..oo...', '..ooo..ooo..'], ['....oo.oo...', '...ooo.ooo..']),
+  drake: [[
+    '..hh.....ww....',
+    '.dddd...wwww...',
+    'dYdddd.wwwwww..',
+    'dddddddwwwwwww.',
+    'KKdddddddddddd.',
+    '...ddbbbbbdddt.',
+    '...dbbbbbbddddt',
+    '....dddddddd...',
+    '....dd...dd....',
+  ], [
+    '..hh...........',
+    '.dddd..........',
+    'dYdddd..wwwww..',
+    'dddddddwwwwwww.',
+    'KKdddddddddddd.',
+    '...ddbbbbbdddt.',
+    '...dbbbbbbddddt',
+    '....dddddddd...',
+    '.....dd...dd...',
+  ]],
+  yeti: walk2([
+    '...wwwww...',
+    '..wwwwwww..',
+    '..wbKbKbw..',
+    '..wbbbbbw..',
+    '..wbWWWbw..',
+    '.wwwwwwwww.',
+    'wwwwwwwwwww',
+    'ww.wwwww.ww',
+    'ww.wwwww.ww',
+    'bb.wwwww.bb',
+    '...wwwww...',
+  ], ['...ww.ww...', '..www.www..'], ['..ww...ww..', '.www...www.']),
+  snowman: walk2([
+    '..kkkkk..',
+    '..kkkkk..',
+    '.kkkkkkk.',
+    '..sssss..',
+    '.sKsssKs.',
+    '.sssosss.',
+    '..sssss..',
+    'bsssssssb',
+    'ssssKssss',
+    'sssssssss',
+    'ssssKssss',
+    '.sssssss.',
+  ], ['..sssss..'], ['.sssssss.']),
+  darkknight: walk2([
+    '....rr.....',
+    '...hhhhh...',
+    '..hhhhhhh..',
+    '..hKRKRKh..',
+    '..hhhhhhh..',
+    '...hhhhh...',
+    '.aaaaaaaaa.',
+    'aaaaaYaaaaa',
+    'a.aaaYaaa.a',
+    '..aaaaaaa..',
+    '..bbbbbbb..',
+  ], ['..aa...aa..', '..kk...kk..'], ['...aa.aa...', '..kk..kk...']),
+  demonlord: walk2([
+    'h...........h',
+    'hh..ddddd..hh',
+    '.hhdddddddhh.',
+    '...dRdddRd...',
+    '...ddddddd...',
+    '...dKWKWKd...',
+    'ww..ddddd..ww',
+    'wwwcccccccwww',
+    'wwcccYYYcccww',
+    'w.ccccccccc.w',
+    '..ccccccccc..',
+    '..ccccccccc..',
+  ], ['..cc.....cc..'], ['...cc...cc...']),
+});
+
+// 몬스터 정의. spr: 쓸 스프라이트(없으면 id 와 같은 이름), pal: 덮어쓸 색, fly: 공중에 뜬 높이(px),
+// fps: 날갯짓·걸음 속도, atkCd: 공격 간격(초), alpha: 반투명
+const MONSTERS = {
+  // 🌿 푸른 초원
+  slime:    { name: '슬라임' },
+  rabbit:   { name: '뿔토끼', pal: { w: '#e8dcc8', p: '#f29bb0', Y: '#ffd257' }, fps: 5 },
+  bee:      { name: '왕벌', pal: { y: '#ffcc33', K: '#2a2218', a: '#d8ecff' }, fly: 18, fps: 10, atkCd: 1.0 },
+  mushroom: { name: '독버섯', pal: { r: '#d8433a', W: '#fff3e0', c: '#f0dcb4' } },
+  goblin:   { name: '고블린', pal: { G: '#8fae3c' } },
+  wolf:     { name: '초원 늑대왕', pal: { n: '#8a8f99', e: '#5e636e', R: '#ffd257', w: '#e9e4d4', t: '#6e737e' }, fps: 6 },
+  // 🪦 묘지 무덤
+  skeleton: { name: '해골 병사', pal: { W: '#e9e4d4' } },
+  bat:      { name: '흡혈 박쥐', pal: { D: '#4b2a6b' }, fly: 20, fps: 8, atkCd: 1.0 },
+  zombie:   { name: '구울', pal: { z: '#7fa06a', R: '#6b2a2a', c: '#5a5e8a', B: '#3a3d5e' }, fps: 2 },
+  ghost:    { name: '원혼', pal: { w: '#e8f0ff', K: '#2a2f4a' }, fly: 12, fps: 4, alpha: 0.8 },
+  lich:     { name: '리치', pal: { p: '#4a2a6b', W: '#e9e4d4', R: '#7dffb0', G: '#7dffb0' }, fps: 2 },
+  // 🐸 독안개 늪
+  frog:      { name: '늪 개구리', pal: { g: '#4f9a3a', l: '#c8e07a' }, fps: 4 },
+  bogslime:  { name: '독 슬라임', spr: 'slime', pal: { g: '#4b3a6b', G: '#8a6fb8', L: '#c9b3ff' } },
+  snake:     { name: '독사', pal: { s: '#6aa84f', d: '#3f6e2e', K: '#1b1d27', r: '#ff4d4d' }, fps: 4 },
+  lizardman: { name: '리자드맨', pal: { L: '#3d8b6a', l: '#a7d49a', Y: '#ffd257' } },
+  croc:      { name: '늪지 악어왕', pal: { c: '#4a6b3a', Y: '#ffd257', l: '#b8c98a', t: '#4a6b3a' } },
+  // 🌋 화산 동굴
+  imp:        { name: '임프', pal: { r: '#d8433a', h: '#2a1d1d', Y: '#ffe066', w: '#6b2a2a' }, fly: 14, fps: 6, atkCd: 1.1 },
+  magmaslime: { name: '용암 슬라임', spr: 'slime', pal: { g: '#8a2a10', G: '#ff6a1f', L: '#ffe066' } },
+  firesnake:  { name: '화염 뱀', spr: 'snake', pal: { s: '#e0582a', d: '#ffb13b', K: '#1b1d27', r: '#ffe066' }, fps: 4 },
+  golem:      { name: '용암 골렘', pal: { o: '#6b5e52', O: '#ff7a2a', Y: '#ffb13b' }, fps: 2, atkCd: 1.8 },
+  drake:      { name: '화룡', pal: { d: '#b8321f', h: '#2a1d1d', Y: '#ffe066', w: '#7a1f14', b: '#ffb13b', t: '#b8321f' }, fps: 4 },
+  // ❄️ 얼어붙은 설원
+  icewolf:  { name: '서리 늑대', spr: 'wolf', pal: { n: '#d6ecff', e: '#9cc4e8', R: '#5ad1ff', w: '#ffffff', t: '#b0d4f0' }, fps: 6 },
+  icebat:   { name: '얼음 박쥐', spr: 'bat', pal: { D: '#7fb8e0', p: '#cfe8ff', R: '#1b6fd1' }, fly: 20, fps: 8, atkCd: 1.0 },
+  snowman:  { name: '눈사람', pal: { k: '#1b1d27', s: '#f4f8ff', o: '#ff8a1f', b: '#6b4a2b' }, fps: 2 },
+  yeti:     { name: '예티', pal: { w: '#eef4ff', b: '#6a8cc8', W: '#ffffff' }, fps: 3 },
+  icegolem: { name: '빙하 거인', spr: 'golem', pal: { o: '#8fbfe0', O: '#e8f6ff', Y: '#1b6fd1' }, fps: 2 },
+  // 🏰 마왕성
+  gargoyle:   { name: '가고일', spr: 'bat', pal: { D: '#4a4e5a', p: '#7a7e8a', R: '#ffb13b' }, fly: 20, fps: 6, atkCd: 1.0 },
+  demon:      { name: '하급 악마', spr: 'imp', pal: { r: '#5a2a7a', h: '#c9c9c9', Y: '#ff4d4d', w: '#2a1540' }, fly: 14, fps: 6, atkCd: 1.1 },
+  shade:      { name: '그림자', spr: 'ghost', pal: { w: '#3a2f55', K: '#ff4d4d' }, fly: 12, fps: 4, alpha: 0.85 },
+  darkknight: { name: '흑기사', pal: { r: '#8a1f2a', h: '#2e2e3a', K: '#0e0e14', R: '#ff3030', a: '#3a3a4a', Y: '#8a1f2a', b: '#5a1a1a', k: '#1b1b24' } },
+  demonlord:  { name: '마왕', pal: { h: '#e9e4d4', d: '#7a1f3a', R: '#ffe066', W: '#f4f1e8', w: '#2a1540', c: '#3a1a4a', Y: '#ffd257' } },
 };
 
 // 장비 아이콘 모양 (12×12). 글자 색은 장비마다 pal 로 정한다. 그릴 때 어두운 외곽선이 자동으로 붙는다

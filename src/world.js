@@ -38,10 +38,21 @@ let floaters = [];
 let coins = [];
 let banner = null;
 let grass = [];
+let decor = [];            // 필드별 땅 장식 (비석·갈대·바위 등)
+let groundZone = -1;       // grass/decor 를 만든 필드
 
+// 풀은 어느 필드에나 깔고, 필드마다 장식을 띄엄띄엄 세운다. 캠프(왼쪽 끝)엔 큰 장식을 두지 않는다
+const DECOR_KINDS = {
+  meadow: ['flower'], grave: ['tomb', 'cross', 'tomb'], swamp: ['reed', 'reed', 'puddle'],
+  volcano: ['rock', 'ember', 'rock'], snow: ['drift', 'pine'], castle: ['spike', 'torch'],
+};
 function makeGrass() {
+  groundZone = zoneIndex(S.stage);
+  const kinds = DECOR_KINDS[ZONES[groundZone].ground.deco];
   grass = [];
   for (let x = 0; x < W; x += rand(6, 22)) grass.push({ x, h: Math.floor(rand(1, 4)), c: Math.random() < 0.15 });
+  decor = [];
+  for (let x = 130 + rand(0, 60); x < W - 10; x += rand(90, 190)) decor.push({ x: Math.round(x), kind: kinds[Math.floor(Math.random() * kinds.length)], r: Math.random() });
 }
 
 function addFloater(text, x, y, color, size = 12) {
@@ -51,8 +62,9 @@ function showBanner(text, color = '#ffd257') { banner = { text, color, t: 0 }; }
 
 // ───────────────────────── 몬스터 ─────────────────────────
 function spriteOf(m) {
-  const frames = SPR[m.type];
-  return frames[Math.floor(m.t * (m.type === 'bat' ? 8 : 3)) % frames.length];
+  const def = MONSTERS[m.type];
+  const frames = SPR[def.spr || m.type];
+  return frames[Math.floor(m.t * (def.fps || 3)) % frames.length];
 }
 const monsterScale = (m) => (m.boss ? PX * 2 : PX);
 const monsterWidth = (m) => spriteOf(m)[0].length * monsterScale(m);
@@ -87,7 +99,7 @@ function layoutLap() {
     const x = from + gap * (i + 0.5) + rand(-0.2, 0.2) * gap;
     lapPlan.push({ type: pool[Math.floor(Math.random() * pool.length)], boss: false, x });
   }
-  if (boss) lapPlan.push({ type: pool[pool.length - 1], boss: true, x: bossX() });
+  if (boss) lapPlan.push({ type: zoneOf(S.stage).boss, boss: true, x: bossX() });
   S.run.kills = 0; S.run.cleared = false;
   S.run.total = n + (boss ? 1 : 0);
 }
@@ -99,18 +111,32 @@ function spawnAhead() {
     const p = lapPlan.shift();
     monsters.push(makeMonster(p.type, p.boss, p.x));
     alive++;
-    if (p.boss) showBanner('BOSS!', '#ff9f1c');
+    if (p.boss) {
+      const field = S.stage === zoneOf(S.stage).to;
+      showBanner(`${field ? 'FIELD BOSS' : 'BOSS'}! ${MONSTERS[p.type].name}`, field ? '#ff5a5a' : '#ff9f1c');
+    }
   }
 }
 
 function endLap() {
-  if (finishLap()) { showBanner(`STAGE ${S.stage}`); save(); }
+  const prevBest = S.best;
+  if (finishLap()) {
+    const z = zoneOf(S.stage);
+    if (S.stage === z.from) {
+      showBanner(`${z.icon} ${z.name}`, '#7dffb0');
+      if (S.best > prevBest) toast(`🗺️ 새 필드 개방 — ${z.icon} ${z.name}!`, 6000);
+    } else {
+      showBanner(`STAGE ${S.stage}`);
+    }
+    save();
+  }
   else if (S.run.farm) showBanner('🔁 재도전 대기', '#9fb3c8');
   lapReady = false;
 }
 
 function monsterTop(m) {
-  return groundY() - spriteOf(m).length * monsterScale(m) - (m.type === 'bat' ? 22 : 0);
+  const fly = MONSTERS[m.type].fly;
+  return groundY() - spriteOf(m).length * monsterScale(m) - (fly ? fly + 2 : 0);
 }
 
 function monsterMidY(m) {
@@ -245,7 +271,7 @@ function updateExpedition(dt, gdt) {
     if (aheadDist(knight.x, m.x) > monsterReach(m) + 1) continue;
     m.atkTimer -= dt;
     if (m.atkTimer > 0) continue;
-    m.atkTimer = m.type === 'bat' ? 1.0 : 1.4;
+    m.atkTimer = MONSTERS[m.type].atkCd || 1.4;
     m.lunge = 1;
     if (knight.leapT >= 0) continue;                       // 공중에 있으면 빗나감
     const dmg = m.atk * rand(0.9, 1.1) * (1 - st.guard);
@@ -390,14 +416,93 @@ function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false
 
 function drawGround() {
   if (!showGround) return;
+  if (groundZone !== zoneIndex(S.stage)) makeGrass();
+  const gr = ZONES[groundZone].ground;
   const gy = groundY();
-  ctx.fillStyle = 'rgba(46, 94, 44, 0.85)';
+  ctx.fillStyle = gr.line;
   ctx.fillRect(0, gy, W, 3);
-  ctx.fillStyle = 'rgba(92, 60, 36, 0.8)';
+  ctx.fillStyle = gr.soil;
   ctx.fillRect(0, gy + 3, W, H - gy - 3);
+  for (const d of decor) drawDecor(d, gy);
   for (const g of grass) {
-    ctx.fillStyle = g.c ? '#ffd257' : 'rgba(88, 170, 70, 0.9)';
+    ctx.fillStyle = g.c ? gr.accent : gr.grass;
     ctx.fillRect(g.x, gy - g.h * 2, 2, g.h * 2);
+  }
+}
+
+// 필드 장식 한 개. d.r(0~1)로 크기·모양을 조금씩 다르게 한다
+function drawDecor(d, gy) {
+  const x = d.x, r = d.r;
+  const box = (c, dx, dy, w, h) => { ctx.fillStyle = c; ctx.fillRect(x + dx, gy - dy, w, h); };
+  switch (d.kind) {
+    case 'flower':
+      box('rgba(70, 140, 60, 0.9)', 0, 8, 2, 8);
+      box(r < 0.5 ? '#ff8fb1' : '#fff3a0', -2, 12, 6, 4);
+      box('#ffd257', 0, 11, 2, 2);
+      break;
+    case 'tomb': {
+      const h = 14 + Math.round(r * 6);
+      box('#6e7280', 0, h, 12, h);
+      box('#8a8f9c', 2, h + 2, 8, 2);
+      box('#4a4e5a', 5, h - 4, 2, 7);
+      box('#4a4e5a', 3, h - 6, 6, 2);
+      break;
+    }
+    case 'cross':
+      box('#5e3818', 4, 18, 3, 18);
+      box('#5e3818', 0, 14, 11, 3);
+      break;
+    case 'reed':
+      for (let i = 0; i < 3; i++) {
+        const h = 14 + ((r * 10 + i * 5) % 9);
+        box('rgba(96, 140, 70, 0.95)', i * 4, h, 2, h);
+        box('#8a5a2b', i * 4 - 1, h + 3, 4, 5);
+      }
+      break;
+    case 'puddle':
+      box('rgba(90, 120, 80, 0.8)', -6, -3, 26, 3);
+      box('rgba(160, 200, 140, 0.5)', 0, -3, 6, 1);
+      break;
+    case 'rock':
+      box('#3a2e2a', 0, 8, 16, 8);
+      box('#5a4a42', 3, 11, 9, 3);
+      box('#ff7a2a', 6, 4, 4, 1);
+      break;
+    case 'ember': {
+      const f = Math.max(0, Math.sin(clock * 5 + r * 20));
+      box('#ff5a1f', 0, 3, 8, 3);
+      box('#ffb13b', 2, 5 + Math.round(f * 3), 2, 2);
+      box('#ffe066', 5, 8 + Math.round(f * 5), 2, 2);
+      break;
+    }
+    case 'drift':
+      box('#f4f8ff', 0, 5, 20, 5);
+      box('#f4f8ff', 4, 8, 10, 3);
+      break;
+    case 'pine': {
+      const h = 22 + Math.round(r * 10);
+      box('#5e3818', 5, 5, 3, 5);
+      for (let i = 0; i < 3; i++) {
+        const w = 13 - i * 4, y = 5 + (i + 1) * (h - 5) / 3;
+        box('#2f5e4a', 6 - w / 2, y, w + 1, (h - 5) / 3 + 1);
+        box('#f4f8ff', 6 - w / 2, y, w + 1, 2);
+      }
+      break;
+    }
+    case 'spike':
+      for (let i = 0; i < 4; i++) {
+        box('#2a2438', i * 5, 16, 2, 16);
+        box('#6a6078', i * 5, 18, 2, 2);
+      }
+      box('#2a2438', 0, 10, 17, 2);
+      break;
+    case 'torch': {
+      const f = Math.sin(clock * 9 + r * 10);
+      box('#4a3a52', 0, 18, 4, 18);
+      box('#ff5a1f', -1, 24, 6, 6);
+      box('#ffd257', 0, 23 + Math.round(f), 4, 3);
+      break;
+    }
   }
 }
 
@@ -719,16 +824,19 @@ function drawMonster(m) {
   if (x < -60 || x > W + 60) return;
   const scale = monsterScale(m);
   const rows = spriteOf(m);
-  const fly = m.type === 'bat' ? 20 + Math.sin(m.t * 4) * 4 : 0;
+  const def = MONSTERS[m.type];
+  const fly = def.fly ? def.fly + Math.sin(m.t * 4) * 4 : 0;
   const bottom = groundY() - fly;
   const alpha = m.dying ? Math.max(0, 1 - m.dying * 2) : Math.min(1, (clock - m.born) / 0.35);   // 등장 시 서서히
-  const hue = Math.floor((S.stage - 1) / 10) * 67 % 360;
+  // 끝없는 마지막 필드에선 20스테이지마다 몬스터 색을 바꿔 새로움을 준다
+  const last = ZONES[ZONES.length - 1];
+  const hue = S.stage >= last.from ? Math.floor((S.stage - last.from) / 20) * 67 % 360 : 0;
 
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.fillRect(x - rows[0].length * scale / 2 + 2, groundY() - 1, rows[0].length * scale - 4, 2);
 
   if (hue) ctx.filter = `hue-rotate(${hue}deg)`;
-  drawSprite(rows, MONSTER_PAL[m.type], x, bottom - (m.dying ? m.dying * 20 : 0), scale, { flash: m.flash > 0, alpha });
+  drawSprite(rows, def.pal || {}, x, bottom - (m.dying ? m.dying * 20 : 0), scale, { flash: m.flash > 0, alpha: alpha * (def.alpha || 1) });
   ctx.filter = 'none';
 
   const top = bottom - rows.length * scale;

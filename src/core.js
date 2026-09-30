@@ -263,6 +263,14 @@ function startExpedition({ charm = false, elixir = false } = {}) {
   return true;
 }
 
+// 캠프에서 사냥할 필드를 고른다. 열린 필드만 갈 수 있고, 그 필드에서 도달한 가장 높은 스테이지부터 시작한다.
+function selectZone(i) {
+  if (S.phase !== 'camp' || !ZONES[i] || !zoneUnlocked(i, S.best)) return false;
+  S.stage = Math.min(S.best, ZONES[i].to);
+  S.run.kills = 0; S.run.cleared = false;
+  return true;
+}
+
 // reason: stamina | bag | manual.  instant=true 면 걷는 연출 없이 바로 캠프 도착
 function endExpedition(reason, instant = false) {
   if (S.phase !== 'expedition') return;
@@ -324,9 +332,9 @@ function finishLap() {
 const isBossNext = () => !S.run.farm && !S.run.cleared && S.run.kills === S.run.total - 1;
 
 // 쓰러짐: 스태미나를 잃고 다시 일어나 이번 원정은 파밍만 한다.
-// 보스에게 졌으면 같은 스테이지에서, 일반 몬스터에게 졌으면 한 스테이지 아래에서.
+// 보스에게 졌으면 같은 스테이지에서, 일반 몬스터에게 졌으면 한 스테이지 아래에서 (필드 밖으로는 안 내려간다).
 function knightDefeated(atBoss) {
-  if (!atBoss && S.stage > 1) S.stage--;
+  if (!atBoss && S.stage > zoneOf(S.stage).from) S.stage--;
   if (atBoss) S.trip.bossFail = true;
   S.run.kills = 0; S.run.cleared = false; S.run.farm = true;
   S.trip.deaths++;
