@@ -122,6 +122,7 @@ function profile() {
 }
 
 const maxStamina = () => maxStaminaAt(S.bld.inn);
+const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
 const bagCap = () => bagCapAt(S.bld.storage);
 const expToNext = () => expToNextAt(S.level);
 
@@ -217,7 +218,7 @@ function buySupply(id) {
 function eatLunch() {
   if (S.phase !== 'camp' || S.items.lunch <= 0 || S.stamina >= maxStamina()) return false;
   S.items.lunch--;
-  S.stamina = Math.min(maxStamina(), S.stamina + 50);
+  S.stamina = Math.min(maxStamina(), S.stamina + maxStamina() * LUNCH_RATIO);
   return true;
 }
 // 원정 중 체력이 낮으면 물약 자동 사용
@@ -242,7 +243,7 @@ function rollGrade(boss, charm) {
 // ───────────────────────── 원정 ─────────────────────────
 function departBlocker() {
   if (S.phase !== 'camp') return '원정 중';
-  if (S.stamina < MIN_DEPART_STAMINA) return `스태미나 ${MIN_DEPART_STAMINA} 이상 필요`;
+  if (S.stamina < minDepartStamina()) return `스태미나 ${minDepartStamina()} 이상 필요`;
   if (S.bag.length >= bagCap()) return '가방이 가득 참 — 전리품을 먼저 챙겨주세요';
   return null;
 }

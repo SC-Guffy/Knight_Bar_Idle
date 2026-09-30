@@ -15,9 +15,10 @@ const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 const TIME_SCALE = Math.max(1, Number(new URLSearchParams(location.search).get('speed')) || 1);
 
 // ───────────────────────── 원정 / 캠프 ─────────────────────────
-const STAMINA_DRAIN = 2.5 / 60;       // 초당 소모 → 스태미나 100 = 40분 원정
-const MIN_DEPART_STAMINA = 20;
-const DEFEAT_STAMINA = 10;            // 쓰러지면 잃는 스태미나
+const STAMINA_DRAIN = 25 / 60;        // 초당 소모 → 스태미나 100 = 4분 원정
+const MIN_DEPART_RATIO = 0.2;         // 최대 스태미나의 20% 이상 있어야 출발
+const DEFEAT_STAMINA = 10;            // 쓰러지면 잃는 스태미나 (약 24초 분량)
+const LUNCH_RATIO = 0.5;              // 도시락: 최대 스태미나의 50% 회복
 const DEFEAT_DOWN_SEC = 2.5;          // 쓰러져 있는 시간
 const BOX_DROP = 0.05;                // 일반 몬스터 전리품 드랍률 (보스는 100%)
 const POTION_AT = 0.3;                // 체력 30% 이하에서 물약 자동 사용
@@ -31,8 +32,10 @@ const AGGRO_RANGE = 260;              // 이 거리 안에 들어오면 몬스�
 // ───────────────────────── 건물 ─────────────────────────
 const BUILD_MAX = 20;
 const trainCapAt = (lv) => 10 * lv;
-const maxStaminaAt = (lv) => 100 + 25 * (lv - 1);
-const restSecAt = (lv) => (20 * 60) / (1 + 0.15 * (lv - 1));   // 0 → 최대 스태미나까지
+// 초반엔 원정이 4분이라 자주 손봐야 하고, 여관을 올릴수록 길어져 방치가 된다
+// (Lv5 약 11분 · Lv10 약 42분 · Lv15 약 2.6시간 · Lv20 약 10시간)
+const maxStaminaAt = (lv) => Math.round(20 * Math.pow(1.3, lv - 1)) * 5;
+const restSecAt = (lv) => 180 * Math.pow(1.1, lv - 1);          // 0 → 최대 스태미나까지 (Lv1 3분 · Lv20 약 18분)
 const bagCapAt = (lv) => 20 + 6 * (lv - 1);
 const forgeMultAt = (lv) => Math.pow(1.3, lv - 1);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
@@ -44,7 +47,7 @@ const BUILDINGS = {
   },
   inn: {
     name: '여관', icon: '🛏️', mul: { gold: 1, wood: 1.3, ore: 0.4, mana: 0.8 },
-    effect: (lv) => `스태미나 ${maxStaminaAt(lv)} · 완전 휴식 ${Math.round(restSecAt(lv) / 60)}분`,
+    effect: (lv) => `원정 ${fmtTime(maxStaminaAt(lv) / STAMINA_DRAIN)} · 완전 휴식 ${fmtTime(restSecAt(lv))}`,
   },
   storage: {
     name: '창고', icon: '📦', mul: { gold: 0.8, wood: 1.5, ore: 0.3, mana: 0.6 },
@@ -75,7 +78,7 @@ const MATERIALS = {
 
 // price 는 최고 스테이지의 몬스터 골드 × 배수
 const SUPPLIES = {
-  lunch:  { name: '도시락',     icon: '🍱', price: 30, w: 35, desc: '캠프에서 먹으면 스태미나 +50' },
+  lunch:  { name: '도시락',     icon: '🍱', price: 30, w: 35, desc: '캠프에서 먹으면 최대 스태미나의 50% 회복' },
   potion: { name: '회복 물약',  icon: '🧪', price: 20, w: 40, desc: '원정 중 체력 30% 이하에서 자동 사용 (쓰러짐 방지)' },
   charm:  { name: '행운의 부적', icon: '🍀', price: 60, w: 12, desc: '이번 원정 동안 좋은 등급의 전리품이 더 잘 나옴' },
   elixir: { name: '투지의 영약', icon: '🔥', price: 60, w: 13, desc: '이번 원정 동안 공격력 +30%' },
