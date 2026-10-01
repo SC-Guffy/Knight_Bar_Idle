@@ -304,10 +304,18 @@
   .enhres.up { color: #7dffb0; } .enhres.keep { color: var(--muted); } .enhres.down { color: var(--accent); }
   .enhres.reset { color: var(--bad); } .enhres.saved { color: #7cc4ff; }
   .enhres.fresh { animation: pop .35s ease-out; }
-  .gdetail.flash-up, .gsbtn.flash-up .gsbox { animation: flashUp .6s ease-out; }
+  .gdetail.flash-up { animation: flashUp .6s ease-out; }
   .gdetail.flash-down, .gdetail.flash-reset, .gsbtn.flash-down .gsbox, .gsbtn.flash-reset .gsbox { animation: shake .4s ease-out; }
   @keyframes flashUp { 0% { box-shadow: 0 0 0 2px #7dffb0, 0 0 24px rgba(125,255,176,.6); } 100% { box-shadow: none; } }
   @keyframes shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+  .gsbtn.charging .gsbox { animation: enhCharge .6s ease-in forwards; }
+  @keyframes enhCharge { 0% { filter: none; } 30%, 50%, 70%, 90% { transform: translate(1px, -1px); } 40%, 60%, 80% { transform: translate(-1px, 1px); }
+    100% { filter: brightness(1.8); box-shadow: 0 0 18px rgba(255, 210, 87, .8); } }
+  .gsbtn.flash-up .gsbox { animation: flashUp .6s ease-out, enhPop .35s ease-out; }
+  @keyframes enhPop { 0% { transform: scale(1.25); filter: brightness(2.2); } 100% { transform: none; filter: none; } }
+  .gsbtn.flash-keep .gsbox, .gsbtn.flash-saved .gsbox { animation: enhFizzle .5s ease-out; }
+  @keyframes enhFizzle { 0% { filter: brightness(1.5); } 40% { filter: brightness(.6) grayscale(.6); } 100% { filter: none; } }
+  #enhfx { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 3; pointer-events: none; }
   .grow { margin-top: 8px; }
   .chk { all: unset; cursor: pointer; padding: 3px 8px; border-radius: 7px; font-size: 12px; }
   .chk:hover { background: var(--soft); }

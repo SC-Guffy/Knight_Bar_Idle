@@ -567,6 +567,132 @@ const ENH_RESULT = {
   saved: () => '📜 보호 주문서가 부서지며 단계를 지켰다',
 };
 
+// ── 강화 연출: 빛이 슬롯으로 모이다가(CHARGE) 결과가 나오면 성공은 팡 터지고, 실패는 파스스 흩어진다(BURST) ──
+// 결과는 모으기가 끝나는 순간에 굴린다. 화면 전체를 덮는 고정 캔버스에 슬롯 위치를 찾아 그린다 (캠프 창이 다시 그려져도 끊기지 않게)
+const ENH_CHARGE = 0.6, ENH_BURST = 0.55;
+let enhFx = null;                 // { slot, t0, t1, res, ps: 모이는 빛, bs: 터지는 조각 }
+let enhCv = null;
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+function startEnhanceFx(slot, protect) {
+  enhFx = {
+    slot, t0: performance.now(), t1: 0, res: null,
+    ps: Array.from({ length: 34 }, () => ({ a: rnd(0, Math.PI * 2), r: rnd(42, 78), s: rnd(0, ENH_CHARGE - 0.22), d: rnd(0.16, 0.24), c: Math.random() < 0.3 ? '#fff' : '#ffd257' })),
+  };
+  setTimeout(() => resolveEnhanceFx(slot, protect), ENH_CHARGE * 1000);
+  if (!enhCv) {
+    enhCv = document.createElement('canvas');
+    enhCv.id = 'enhfx';
+    document.body.appendChild(enhCv);
+  }
+  requestAnimationFrame(drawEnhanceFx);
+}
+
+function resolveEnhanceFx(slot, protect) {
+  const r = enhance(slot, protect);
+  if (!r) { enhFx = null; if (campOpen) renderCamp(); return; }     // 그 사이 출정 등으로 강화할 수 없게 됐다
+  gearUi.last = { slot, ...r, fresh: true };
+  if (r.result === 'up' && r.to % 5 === 0) toast(`⚒️ ${GEAR_SLOTS[slot].name} +${r.to} 달성!`);
+  const up = r.result === 'up', big = up && r.to % 5 === 0;
+  const col = up ? ['#fff', '#ffd257', '#7dffb0'] : r.result === 'saved' ? ['#7cc4ff', '#cfe8ff'] : r.result === 'keep' ? ['#9a9aa8', '#c8c8d0'] : ['#ff6b6b', '#8a8a96'];
+  const fx = enhFx;
+  fx.res = r;
+  fx.t1 = performance.now();
+  // 끝내기는 타이머로 — 창이 가려져 그리기 루프가 멈춰도 강화 버튼이 잠긴 채 남지 않게
+  setTimeout(() => { if (enhFx !== fx) return; enhFx = null; drawEnhanceFx(); if (campOpen) renderCamp(); }, ENH_BURST * 1000);
+  fx.bs = Array.from({ length: up ? (big ? 44 : 30) : 40 }, (_, i) => up
+    ? { a: rnd(0, Math.PI * 2), R: rnd(45, big ? 110 : 85), w: rnd(1.5, 3), c: col[i % col.length] }
+    : { a: rnd(0, Math.PI * 2), r0: rnd(0, 14), R: rnd(16, 52), rise: rnd(14, 36), z: rnd(2.5, 4.5), f: rnd(0, 9), c: col[i % col.length] });
+  save();
+  if (campOpen) renderCamp();
+  renderHud();
+}
+
+function drawEnhanceFx() {
+  const fx = enhFx, cv = enhCv;
+  const dpr = window.devicePixelRatio || 1, W = window.innerWidth, H = window.innerHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  if (!fx) return;
+  const now = performance.now();
+  if (fx.res && (now - fx.t1) / 1000 > ENH_BURST) return;    // 마지막 장면은 비우고 끝 (정리는 resolveEnhanceFx 의 타이머)
+  requestAnimationFrame(drawEnhanceFx);
+  const box = campOpen && campTab === 'gear' && document.querySelector(`.gsbtn.s-${fx.slot} .gsbox`);
+  if (!box) return;
+  const bb = box.getBoundingClientRect(), cx = bb.left + bb.width / 2, cy = bb.top + bb.height / 2;
+  g.globalCompositeOperation = 'lighter';
+  const glow = (r, c, a) => {
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+    gr.addColorStop(0, c.replace('A', a)); gr.addColorStop(1, c.replace('A', 0));
+    g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+  };
+
+  if (!fx.res) {
+    // 위이잉 — 빛줄기가 점점 빨라지며 가운데로 빨려 들고, 중심 빛이 떨리며 부푼다
+    const t = (now - fx.t0) / 1000, p = Math.min(1, t / ENH_CHARGE);
+    for (const q of fx.ps) {
+      const u = (t - q.s) / q.d;
+      if (u <= 0 || u >= 1) continue;
+      const k = u * u, r = q.r * (1 - k), tail = Math.min(r, 6 + 16 * k);
+      g.strokeStyle = q.c; g.globalAlpha = Math.min(1, u * 4) * 0.9; g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(cx + Math.cos(q.a) * r, cy + Math.sin(q.a) * r);
+      g.lineTo(cx + Math.cos(q.a) * (r + tail), cy + Math.sin(q.a) * (r + tail));
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+    const ring = 58 * (1 - p) + 22;
+    g.strokeStyle = `rgba(255, 210, 87, ${0.15 + 0.5 * p})`; g.lineWidth = 1.5 + p;
+    g.beginPath(); g.arc(cx, cy, ring, 0, Math.PI * 2); g.stroke();
+    glow(14 + 26 * p + 3 * Math.sin(t * (20 + 40 * p)), 'rgba(255, 225, 140, A)', 0.25 + 0.55 * p);
+    return;
+  }
+
+  const t = (now - fx.t1) / 1000, x = Math.min(1, t / ENH_BURST);
+  if (fx.res.result === 'up') {
+    // 팡 — 하얀 섬광, 퍼지는 충격파 고리, 사방으로 튀는 불꽃
+    const big = fx.res.to % 5 === 0, out = 1 - (1 - x) ** 3;
+    glow(30 + (big ? 60 : 40) * out, 'rgba(255, 255, 235, A)', (1 - x) ** 2);
+    g.strokeStyle = `rgba(125, 255, 176, ${(1 - x) * 0.9})`; g.lineWidth = 4 * (1 - x) + 0.5;
+    g.beginPath(); g.arc(cx, cy, 16 + (big ? 100 : 70) * out, 0, Math.PI * 2); g.stroke();
+    if (big) {
+      g.strokeStyle = `rgba(255, 210, 87, ${(1 - x) * 0.7})`; g.lineWidth = 2 * (1 - x) + 0.5;
+      g.beginPath(); g.arc(cx, cy, 10 + 70 * (1 - (1 - x) ** 2), 0, Math.PI * 2); g.stroke();
+    }
+    for (const q of fx.bs) {
+      const d = 10 + q.R * out, tail = 14 * (1 - x) + 2;
+      g.strokeStyle = q.c; g.globalAlpha = 1 - x * x; g.lineWidth = q.w * (1 - x * 0.6);
+      g.beginPath();
+      g.moveTo(cx + Math.cos(q.a) * d, cy + Math.sin(q.a) * d);
+      g.lineTo(cx + Math.cos(q.a) * (d - tail), cy + Math.sin(q.a) * (d - tail));
+      g.stroke();
+    }
+  } else {
+    // 파스스 — 모였던 빛이 힘없이 꺼지며 재처럼 흩어져 깜빡이다 사라진다
+    glow(40 * (1 - x) + 4, fx.res.result === 'saved' ? 'rgba(124, 196, 255, A)' : 'rgba(255, 225, 140, A)', 0.8 * (1 - x) ** 3);
+    g.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < 3; i++) {     // 꺼진 자리에서 피어오르는 연기
+      const sx = cx + (i - 1) * 12, sy = cy - 26 * x - i * 4, sr = 12 + 22 * x;
+      const gr = g.createRadialGradient(sx, sy, 0, sx, sy, sr);
+      gr.addColorStop(0, `rgba(120, 120, 135, ${0.35 * (1 - x)})`); gr.addColorStop(1, 'rgba(120, 120, 135, 0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(sx, sy, sr, 0, Math.PI * 2); g.fill();
+    }
+    for (const q of fx.bs) {
+      const d = q.r0 + q.R * (1 - (1 - x) ** 2);
+      const px = cx + Math.cos(q.a) * d, py = cy + Math.sin(q.a) * d * 0.7 - q.rise * x;
+      g.globalAlpha = (1 - x) * (0.55 + 0.45 * Math.sin(t * 38 + q.f));
+      g.fillStyle = q.c;
+      const z = q.z * (1 - x * 0.5);
+      g.fillRect(Math.round(px - z / 2), Math.round(py - z / 2), z, z);
+    }
+  }
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
+}
+
 // 자동 장착하면 더 강해지는 조합(세트 효과 포함)이 있으면 탭에 표시
 function gearBadge() {
   const best = bestLoadout();
@@ -623,7 +749,8 @@ function gearSel() {
 
 function gearSlotBtn(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot), L = S.gear.enh[slot];
-  const last = gearUi.last && gearUi.last.slot === slot && gearUi.last.fresh ? ' flash-' + gearUi.last.result : '';
+  const last = gearUi.last && gearUi.last.slot === slot && gearUi.last.fresh ? ' flash-' + gearUi.last.result
+    : enhFx && !enhFx.res && enhFx.slot === slot ? ' charging' : '';
   return `
     <button class="gsbtn s-${slot} ${gearSel().slot === slot ? 'on' : ''}${last}" data-action="gear-sel-slot" data-slot="${slot}"
       style="--c:${it ? gearGrade(it).color : 'rgba(255,255,255,.18)'}" title="${def.name}">
@@ -655,7 +782,7 @@ function slotDetail(slot) {
     enh = `
       <div class="odds">+${L} → +${L + 1} · ${enhOdds(L)}</div>
       <div class="costs">${costChip('<i class="gc"></i>', c.gold, S.gold)}${costChip('🪨', c.ore, S.mats.ore)}${costChip('💎', c.mana, S.mats.mana)}</div>
-      <button class="btn enh" data-action="enhance" data-slot="${slot}" ${blocker ? 'disabled' : ''}>⚒️ 강화</button>
+      <button class="btn enh" data-action="enhance" data-slot="${slot}" ${blocker || enhFx ? 'disabled' : ''}>${enhFx && enhFx.slot === slot && !enhFx.res ? '✨ 강화 중…' : '⚒️ 강화'}</button>
       <button class="chk ${gearUi.protect ? 'on' : ''}" data-action="gear-protect" ${S.items.protect ? '' : 'disabled'}>
         ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화 때만 소모</small></button>`;
   }
@@ -1415,10 +1542,9 @@ const ACTIONS = {
   'gear-protect': () => { gearUi.protect = !gearUi.protect; },
   'enhance': (el) => {
     const slot = el.dataset.slot;
-    const r = enhance(slot, gearUi.protect);
-    if (!r) return;
-    gearUi.last = { slot, ...r, fresh: true };
-    if (r.result === 'up' && r.to % 5 === 0) toast(`⚒️ ${GEAR_SLOTS[slot].name} +${r.to} 달성!`);
+    if (enhFx || enhanceBlocker(slot)) return;
+    gearUi.last = null;
+    startEnhanceFx(slot, gearUi.protect);         // 결과는 모으기 연출이 끝날 때 나온다
   },
   'depart': depart,
   'field': (el) => {
