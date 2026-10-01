@@ -371,6 +371,20 @@
   /* ── 보스 레이드 ── */
   .gsp { font-size: 11px; color: #7dffd0; font-weight: 700; }
   .gset { font-size: 11px; color: #ffd6a0; line-height: 1.4; }
+  /* 세트 장비: 전용 등급 색·글자·아이콘 효과 */
+  .gn.gs { background-image: linear-gradient(90deg, #3dffa8, #e8fff4, #ffd257, #3dffa8); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text;
+    color: transparent !important; animation: legendText 2.2s linear infinite; }
+  .gicon.gs { animation: setIcon 1.6s ease-in-out infinite; }
+  @keyframes setIcon { 0%, 100% { filter: drop-shadow(0 0 3px #3dffa8); } 50% { filter: drop-shadow(0 0 8px #ffd257) brightness(1.2); } }
+  .gicon.gs.sil { animation: none; }
+  /* 일괄 판매 등급 필터 */
+  .sellbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 4px; }
+  .sellbar > .small { margin-right: 2px; }
+  .gchip { all: unset; cursor: pointer; padding: 3px 8px; border-radius: 999px; font-size: 11.5px; border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); color: var(--muted); }
+  .gchip.on { color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); font-weight: 700; }
+  .gchip:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
+  .gchip small { color: inherit; opacity: .75; }
+  .sellgo { margin-left: auto; }
   .box .gsp { font-size: 10px; text-align: center; padding: 0 3px; line-height: 1.25; }
   .box.sig { box-shadow: inset 0 0 18px color-mix(in srgb, var(--c) 45%, transparent), 0 0 12px rgba(125, 255, 208, .45); }
   .bossic { width: 64px; height: 56px; image-rendering: pixelated; object-fit: contain; flex: none; }

@@ -10,6 +10,7 @@
 const freshGear = () => ({
   inv: [], eq: { weapon: null, armor: null, ring: null }, enh: { weapon: 0, armor: 0, ring: 0 }, top: { weapon: 0, armor: 0, ring: 0 }, seq: 0,
   auto: true,            // 전리품을 챙길 때 더 좋은 장비를 자동 장착
+  sellG: SELL_FILTER_DEFAULT.slice(),   // 일괄 판매에 넣을 등급 (세트 장비는 등급과 상관없이 빠진다)
 });
 
 // ───────────────────────── 전리품 뽑기 ─────────────────────────
@@ -62,6 +63,15 @@ const upgradeOldLoot = (b) => (!b.k ? { k: 'box', g: b.g || 0, s: b.s || 1 } : b
 
 // 전리품·상자 표시용 등급 (소비 아이템은 종류별 고정)
 const lootGrade = (it) => (it.k === 'use' ? SUPPLY_GRADE[it.id] || 0 : it.g);
+
+// 세트 장비 = 레이드 보스 고유 장비. 화면에서는 원래 등급 대신 '세트' 등급으로 보이고 일괄 판매에서 빠진다
+const isSetGear = (it) => !!(it && it.t && GEAR_ITEMS[it.t] && GEAR_ITEMS[it.t].raid);
+const gearGrade = (it) => (isSetGear(it) ? SET_GRADE : GRADES[it.g]);
+const lootColor = (it) => (it.k === 'gear' || it.k == null ? gearGrade(it) : GRADES[lootGrade(it)]).color;
+// 이름 글자 효과 클래스 (세트는 전용 효과)
+const gnClass = (it) => (isSetGear(it) ? 'gn gs' : `gn g${it.g}`);
+// '전설 무기' / '슬라임 왕가 세트 무기'
+const gearKindText = (it) => (isSetGear(it) ? `${RAID_BOSSES[GEAR_ITEMS[it.t].raid].set.name} 세트` : GRADES[it.g].name) + ' ' + GEAR_SLOTS[it.slot].name;
 
 function lootIcon(it) {
   if (it.k === 'box') return '📦';
@@ -201,6 +211,11 @@ function keepHpRatio(oldMax) {
   if (S.hp != null && oldMax > 0) S.hp = Math.min(max, (S.hp / oldMax) * max);
 }
 
+// 일괄 판매 목록: 착용 중이 아니고, 체크한 등급(S.gear.sellG)이며, 세트 장비가 아닌 것
+function bulkSellList() {
+  const f = S.gear.sellG || SELL_FILTER_DEFAULT;
+  return S.gear.inv.filter((x) => !isEquipped(x) && !isSetGear(x) && f[x.g]);
+}
 function sellGear(list) {
   const ids = new Set(list.filter((x) => !isEquipped(x)).map((x) => x.id));
   let gold = 0;

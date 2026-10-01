@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.5.1';
+const GAME_VERSION = '0.5.2';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -103,6 +103,10 @@ const GRADES = [
   { name: '초월', color: '#3ee8ff', w: 0.005,  stat: 9.5,  sell: 500,  res: 90 },
   { name: '태초', color: '#f4f0ff', w: 0.0008, stat: 13.7, sell: 1300, res: 200 },
 ];
+// 세트 장비(레이드 보스 고유 장비)는 화면에서 이 등급으로 보인다. 능력치는 장비 도감의 g(원래 등급)를 그대로 쓴다
+const SET_GRADE = { name: '세트', color: '#3dffa8' };
+// 일괄 판매 등급 필터 기본값: 일반~영웅만 체크
+const SELL_FILTER_DEFAULT = [true, true, true, true, false, false, false, false];
 const CHARM_BONUS = [0.5, 1, 1.6, 2, 2, 2, 2, 2];     // 행운의 부적: 등급별 가중치 배수 (전설 이상은 2배까지만)
 
 // ───────────────────────── 전리품 상자 ─────────────────────────
