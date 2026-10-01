@@ -155,7 +155,7 @@ function monsterMidY(m) {
 function hitMonster(m, mult = 1) {
   const st = stats();
   const crit = Math.random() < st.crit;
-  const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1) * (m.boss ? 1 + st.bossDmg : 1);
+  const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
   m.flash = 0.08;
   m.hurt = 1;

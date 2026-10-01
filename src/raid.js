@@ -60,9 +60,9 @@ function settleRaid(result, nick) {
   const mult = (f.won ? 1 : RAID_FAIL_MULT) * (mvp ? RAID_MVP_MULT : 1);
   const ms = monsterStats(b.stage, true), scale = 1 + (b.stage - 1) * 0.04;
   const reward = {
-    gold: Math.round(ms.gold * 8 * mult),
+    gold: Math.round(ms.gold * 8 * mult * goldMult()),
     wood: Math.round(60 * scale * mult), ore: Math.round(45 * scale * mult), mana: Math.round(12 * scale * mult),
-    exp: Math.round(ms.exp * (f.won ? 5 : 1)),
+    exp: Math.round(ms.exp * (f.won ? 5 : 1) * expMult()),
     chest: f.won, mvp, mult,
   };
   S.gold += reward.gold;

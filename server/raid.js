@@ -78,7 +78,7 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
   const hit = (k, kind) => {
     const crit = rng() < k.p.crit;
     const base = kind === 'leap' ? k.p.leap.mult : k.p.shots * k.p.shotMult;
-    const dmg = Math.min(boss.hp, k.p.atk * base * (crit ? k.p.critMult : 1) * (1 + (k.p.bossDmg || 0)) * (0.9 + rng() * 0.2));
+    const dmg = Math.min(boss.hp, k.p.atk * base * (crit ? k.p.critMult : 1) * (0.9 + rng() * 0.2));
     boss.hp -= dmg;
     k.dmg += dmg;
     if (k.p.heal) {

@@ -19,7 +19,7 @@ function freshState() {
     mats: { wood: 0, ore: 0, mana: 0 },
     stage: 1, best: 1,
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
-    train: { atk: 0, hp: 0, def: 0, boss: 0 },
+    train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
@@ -60,8 +60,11 @@ function migrate(o) {
   }
   if (refund > 0) {
     s.gold += refund;
-    s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·거물 사냥으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
+    s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·수완으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
   }
+  // 잠깐 있었던 거물 사냥(boss) 훈련은 비용 곡선이 같은 수완으로 단계를 옮긴다
+  if (s.train.boss) s.train.fortune = (s.train.fortune || 0) + s.train.boss;
+  delete s.train.boss;
   s.gear.inv.forEach(fixGearItem);
   return s;
 }
@@ -114,7 +117,6 @@ function stats(base = false) {
     // 받는 피해 감소: 직업·장비(최대 60%)와 방어 훈련을 곱으로 합친다 (최대 85%)
     guard: Math.min(0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed)), defRed,
     heal: Math.min(0.1, (m.heal || 0) + gb.heal), leap: c.leap || null,
-    bossDmg: t.boss * BOSS_DMG_PER_LV + gb.bossDmg,
   };
 }
 // 한 마리를 상대로 한 초당 피해 (연발·도약 포함)
@@ -133,7 +135,6 @@ function profile() {
     cls: S.cls, level: S.level, best: S.best, power: powerOf(st),
     atk: st.atk, maxHp: st.maxHp, aspd: st.aspd, crit: st.crit, critMult: st.critMult,
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal, leap: st.leap,
-    bossDmg: st.bossDmg,
   };
 }
 
@@ -319,10 +320,14 @@ function arriveCamp(silent = false) {
 }
 
 // 몬스터 처치 보상 (실시간·오프라인 공용). 연출용 정보를 돌려준다.
+// 수완 훈련의 골드·경험치 보너스, 그리고 장비(고유 효과·세트)까지 합친 획득 배율
+const fortuneBonus = () => S.train.fortune * FORTUNE_PER_LV;
+const goldMult = () => 1 + fortuneBonus() + gearBonus().goldPct;
+const expMult = () => 1 + fortuneBonus() + gearBonus().expPct;
+
 function rewardKill(m) {
   const t = S.trip;
-  const gb = gearBonus();
-  const gold = m.gold * (1 + gb.goldPct), exp = m.exp * (1 + gb.expPct);
+  const gold = m.gold * goldMult(), exp = m.exp * expMult();
   S.gold += gold; t.gold += gold;
   t.kills++; if (m.boss) t.bosses++;
   t.xp += exp;
@@ -386,7 +391,7 @@ function simulate(sec) {
     const m = monsterStats(S.stage, boss);
     const walk = 4.5;
     // 여러 마리를 동시에 때리는 무기는 처치 속도가 조금 빨라진다고 근사
-    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1) * (boss ? 1 + st.bossDmg : 1));
+    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1));
     const cycle = walk + fight;
     const staminaLeft = S.stamina / STAMINA_DRAIN;
     if (cycle > t || cycle > staminaLeft) {

@@ -55,7 +55,6 @@ function sanitizeProfile(p = {}) {
     guard: num(p.guard, 0, 0.9, 0),
     heal: num(p.heal, 0, 0.2, 0),
     leap,
-    bossDmg: num(p.bossDmg, 0, 1000, 0),      // 보스에게 주는 추가 피해 (레이드에서만 쓴다)
     power: Math.floor(num(p.power, 0, 1e30, 0)),
   };
 }

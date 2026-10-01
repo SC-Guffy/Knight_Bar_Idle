@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.5.0';
+const GAME_VERSION = '0.5.1';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -344,7 +344,6 @@ const SPECIAL_STATS = {
   critMult: { name: '치명 피해', fmt: (v) => `+${Math.round(v * 100)}%` },
   guard:    { name: '받는 피해', fmt: (v) => `-${Math.round(v * 100)}%` },
   heal:     { name: '타격 시 체력 회복', fmt: (v) => `${(v * 100).toFixed(1)}%` },
-  bossDmg:  { name: '보스 피해', fmt: (v) => `+${Math.round(v * 100)}%` },
   goldPct:  { name: '골드 획득', fmt: (v) => `+${Math.round(v * 100)}%` },
   expPct:   { name: '경험치 획득', fmt: (v) => `+${Math.round(v * 100)}%` },
 };
@@ -424,12 +423,12 @@ const TRAINING = [
   { id: 'atk',  name: '⚔️ 공격력', max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
   { id: 'hp',   name: '🛡️ 체력',   max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },
   { id: 'def',  name: '🛡️ 방어',   max: Infinity, base: 15, grow: 1.3,  show: (st) => `-${Math.round(st.defRed * 100)}%` },
-  { id: 'boss', name: '👑 거물 사냥', max: Infinity, base: 15, grow: 1.3, show: (st) => `+${Math.round(st.bossDmg * 100)}%` },
+  { id: 'fortune', name: '💰 수완', max: Infinity, base: 15, grow: 1.3, show: () => `+${Math.round(fortuneBonus() * 100)}%` },
 ];
 // 방어: 받는 피해 감소 = Lv / (Lv + DEF_K) — 올릴수록 효과가 줄어들어 100%에는 닿지 않는다 (Lv 80 50% · Lv 240 75%)
 const DEF_K = 80;
-// 거물 사냥: 보스(필드 보스·레이드 보스)에게 주는 피해 Lv 당 +4%
-const BOSS_DMG_PER_LV = 0.04;
+// 수완: 골드·경험치 획득 Lv 당 +3% (몬스터 처치와 레이드 보상에 적용)
+const FORTUNE_PER_LV = 0.03;
 // 예전 훈련(공속·치명)은 없어졌다. 예전 세이브에 남은 단계는 쓴 골드를 돌려준다 (core.js migrate)
 const OLD_TRAINING = { spd: { base: 25, grow: 1.55 }, crit: { base: 30, grow: 1.6 } };
 
@@ -1221,7 +1220,7 @@ const RAID_BOSSES = {
       pal: { B: '#2a1a4a', b: '#150d26', W: '#4a2a6b', H: '#7dffb0', G: '#7dffb0', J: '#ff4d6d' } } },
   boglord: { name: '늪의 군주', icon: '🐊', stage: 60, spr: 'croc', style: 'pounce', skill: '독안개 포효',
     pal: { c: '#2f4f2a', Y: '#c9b3ff', l: '#8a6fb8', t: '#2f4f2a' },
-    set: { name: '늪의 지배자', 2: { aspdPct: 0.08 }, 3: { hpPct: 0.15, bossDmg: 0.2 } },
+    set: { name: '늪의 지배자', 2: { aspdPct: 0.08 }, 3: { hpPct: 0.15, expPct: 0.15 } },
     desc: '독안개 늪 한가운데 웅크린 거대한 악어. 숨을 내쉴 때마다 늪 전체가 보랏빛으로 물든다.',
     chest: { name: '늪 군주의 이끼 궤', n: [3, 4], w: [0, 0, 10, 50, 34, 6, 0, 0], sig: 0.04, spr: 'chest',
       pal: { B: '#3a5a2a', b: '#1f3315', W: '#8fd8a8', H: '#8a6fb8', G: '#c9b3ff', J: '#ffd257' } } },
@@ -1239,7 +1238,7 @@ const RAID_BOSSES = {
       pal: { B: '#8fbfe0', b: '#3f6f9a', W: '#e8f6ff', H: '#ffffff', G: '#ffffff', J: '#1b6fd1' } } },
   demonking: { name: '마왕', icon: '😈', stage: 130, spr: 'demonlord', style: 'cast', orb: '#c06bff', skill: '멸망의 흑염',
     pal: { h: '#ffd257', d: '#5a0f2a', R: '#ff3b4b', W: '#f4f1e8', w: '#150a20', c: '#2a1540', Y: '#ff3b4b' },
-    set: { name: '마왕의 권능', 2: { atkPct: 0.2, hpPct: 0.15 }, 3: { aspdPct: 0.15, crit: 0.08, critMult: 0.5, bossDmg: 0.3 } },
+    set: { name: '마왕의 권능', 2: { atkPct: 0.2, hpPct: 0.15 }, 3: { aspdPct: 0.15, crit: 0.08, critMult: 0.5, guard: 0.05 } },
     desc: '마왕성의 옥좌에 앉은 모든 어둠의 주인. 그가 일어서면 하늘이 꺼진다.',
     chest: { name: '마왕의 옥좌 보고', n: [4, 5], w: [0, 0, 0, 0, 40, 45, 13, 2], sig: 0.03, spr: 'jewelbox',
       pal: { B: '#2a1540', b: '#150a20', W: '#c06bff', H: '#ffd257', G: '#ffd257', J: '#ff3b4b' } } },
