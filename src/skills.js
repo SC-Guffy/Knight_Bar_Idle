@@ -40,7 +40,12 @@ function startCast(owner, id, a, queue = false) {
   Object.assign(a, { owner, id, k, u: 0, color: CLASSES[a.cls || S.cls].look.fx });
   a.cls = a.cls || S.cls;
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
-  a.px = () => a.x() + a.dir * ((fx.pose && fx.pose(a.u, a).dx) || 0);
+  // 화면에서 시전자가 실제로 서 있는 x. 자세가 뒤돌아(facing -1) 있으면 dx 도 뒤집혀 있다
+  a.px = () => {
+    if (!fx.pose) return a.x();
+    const p = fx.pose(a.u, a);
+    return a.x() + (p.dx || 0) * (p.facing || 1) * a.dir;
+  };
   casts.push({ owner, id, k, fx, t: 0, a, hi: 0, ci: 0, next: [], squash: 0, hist: [] });
   if (skillTier(k) >= 2) cutin = { k, color: a.color, t: 0, cx: a.x() };
   else addFloater(`${k.icon} ${k.name}`, a.x(), groundY() - 72, a.color, 12);
@@ -96,7 +101,8 @@ function drawCastTrail(owner, cls, gy, facing) {
   const h = c.hist, fx = CLASSES[cls].look.fx;
   for (let j = h.length - 1; j >= 1; j--) {
     const p = h[j].p, q = h[j - 1].p;
-    const body = Math.abs((q.dx || 0) - (p.dx || 0)) + Math.abs((q.lift || 0) - (p.lift || 0));
+    const off = (r) => (r.dx || 0) * (r.facing || facing);         // 화면에서의 이동량 (뒤돌면 dx 부호가 바뀐다)
+    const body = Math.abs(off(q) - off(p)) + Math.abs((q.lift || 0) - (p.lift || 0));
     const arm = Math.abs((q.wa || 0) - (p.wa || 0)) * 14 + Math.abs((q.ext || 0) - (p.ext || 0)) + Math.abs((q.pull || 0) - (p.pull || 0));
     if (body + arm < 1.5) continue;
     const fade = 1 - j / h.length, al = p.alpha == null ? 1 : p.alpha;
@@ -318,9 +324,9 @@ function gatherFx(x, y, colors, n = 2, r = 26) {
   }
 }
 // 시전자 잔상: 같은 모습을 한 가지 색으로 칠해 흐리게 남긴다
-function ghostFx(a, x, facing, tint, life, pose = {}) {
+function ghostFx(a, x, facing, tint, life, pose = {}, alpha = 0.35) {
   skFx(null, 0, life, (u) => {
-    drawHero(ctx, a.cls, x, groundY(), { mode: 'fight', swing: -1, t: clock, facing, tint, alpha: 0.35 * (1 - u), ...pose });
+    drawHero(ctx, a.cls, x, groundY(), { mode: 'fight', swing: -1, t: clock, facing, tint, alpha: alpha * (1 - u), ...pose });
   });
 }
 // 회전하는 마법진 (rx·ry 타원). 바깥 원 + 도는 룬 점 + 안쪽 별
@@ -403,7 +409,8 @@ function autoHitFx(c, i) {
   const t2 = skillTier(k) >= 2;
   const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1);
   const tg = c.a.targets();
-  for (const t of tg) { hitFx(t.x, t.y, c.a.color, pow); weaponMarks(c.a, t, pow); }
+  // 스킬마다 고유한 타격 이미지(fx.marks). 없으면 무기별 기본 검흔
+  for (const t of tg) { hitFx(t.x, t.y, c.a.color, pow); (c.fx.marks || weaponMarks)(c.a, t, pow, i, n); }
   const big = share >= 0.2 || last;
   impact({ stop: big ? 0.035 * pow : 0.012, shake: 0.06 * pow });
 }
@@ -458,6 +465,304 @@ function slashMarkFx(x, y, ang, len, color, width = 4, life = 0.45, delay = 0, b
     ctx.fillStyle = '#ffffff'; poly(width * 0.4);
     // 그어지는 순간 칼끝에 맺히는 빛
     if (reach < 1) { const [hx, hy] = pt(reach, 0, 0); dot(hx, hy, 3, '#ffffff'); }
+    ctx.restore();
+  });
+}
+
+// ───────────────────────── 스킬 전용 타격 이미지 ─────────────────────────
+// 스킬마다 모양이 겹치지 않게 따로 그린다. 공통 규칙: 어두운 테두리 → 스킬 색 → 흰 심 (하얗게 번쩍이는 적 위에서도 또렷하게)
+const OUTLINE = '#0b0d14';
+const fadeOf = (u, hold = 0.45) => (u < hold ? 1 : 1 - (u - hold) / (1 - hold));
+
+// 초승달 자국 (강철 베기): 두꺼운 반달이 위에서 아래로 그어지고, 바깥 테두리에 강철빛이 번뜩이며 쇳가루 불똥이 떨어진다
+function crescentMarkFx(cx, cy, r, a0, a1, thick, color, life = 0.5, delay = 0, dir = 1) {
+  const steps = 18;
+  skFx(null, delay, life, (u) => {
+    const reach = Math.min(1, u / 0.18), fade = fadeOf(u), th = thick * (u < 0.45 ? 1 : 1 - 0.6 * (u - 0.45) / 0.55);
+    const ang = (v) => flipA(a0 + (a1 - a0) * v, dir);
+    const lune = (outer, inner) => {
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) { const v = (reach * i) / steps, A = ang(v), R = r + outer * Math.sin(Math.PI * v); i ? ctx.lineTo(cx + Math.cos(A) * R, cy + Math.sin(A) * R) : ctx.moveTo(cx + Math.cos(A) * R, cy + Math.sin(A) * R); }
+      for (let i = steps; i >= 0; i--) { const v = (reach * i) / steps, A = ang(v), R = r - inner * Math.sin(Math.PI * v); ctx.lineTo(cx + Math.cos(A) * R, cy + Math.sin(A) * R); }
+      ctx.closePath(); ctx.fill();
+    };
+    ctx.save();
+    ctx.globalAlpha = 0.6 * fade; ctx.fillStyle = OUTLINE; lune(2, th + 2);
+    ctx.globalAlpha = fade; ctx.shadowColor = color; ctx.shadowBlur = 12;
+    ctx.fillStyle = color; lune(0, th);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#e8f0ff'; lune(0, th * 0.45);       // 강철 날빛 (바깥쪽만)
+    ctx.fillStyle = '#ffffff'; lune(0, th * 0.15);
+    ctx.restore();
+  }, null, (u) => {
+    // 그어지는 동안 칼끝에서 쇳가루 불똥
+    if (u > 0.2 || Math.random() > 0.8) return;
+    const A = flipA(a0 + (a1 - a0) * Math.min(1, u / 0.18), dir);
+    parts.push({ x: cx + Math.cos(A) * r, y: cy + Math.sin(A) * r, vx: rand(-40, 40) + dir * 40, vy: rand(-60, 10), g: 520, size: 2, color: Math.random() < 0.5 ? '#fff3b0' : '#ffffff', life: rand(0.3, 0.55), t: 0, add: true });
+  });
+}
+
+// 성흔 (심판의 일격): 하늘에서 꽂힌 검 모양의 세로 빛 + 가로 빛이 십자를 이루고, 가운데 마름모 문장이 돌며 빛살이 퍼진다
+function holyCrossFx(x, y, size, life = 0.7, delay = 0) {
+  const gold = '#ffd257';
+  skFx(null, delay, life, (u) => {
+    const grow = easeOut(Math.min(1, u / 0.15)), fade = fadeOf(u, 0.5), s = size * (0.9 + 0.1 * grow);
+    const blade = (x0, y0, x1, y1, w, color) => {
+      const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x0 + dx * 0.3 + nx * w, y0 + dy * 0.3 + ny * w);
+      ctx.lineTo(x1, y1);
+      ctx.lineTo(x0 + dx * 0.3 - nx * w, y0 + dy * 0.3 - ny * w);
+      ctx.closePath(); ctx.fill();
+    };
+    ctx.save();
+    ctx.globalAlpha = fade;
+    // 빛살 8줄 (천천히 돈다)
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = gold; ctx.lineWidth = 1;
+    for (let j = 0; j < 8; j++) {
+      const A = clock * 0.8 + (j / 8) * Math.PI * 2, r0 = s * 0.5, r1 = s * (0.9 + 0.5 * grow) * (j % 2 ? 0.7 : 1);
+      ctx.globalAlpha = 0.5 * fade;
+      ctx.beginPath(); ctx.moveTo(x + Math.cos(A) * r0, y + Math.sin(A) * r0); ctx.lineTo(x + Math.cos(A) * r1, y + Math.sin(A) * r1); ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.55 * fade;
+    const vy0 = y - s * 1.7 * grow, vy1 = y + s * 0.75 * grow, hx = s * 0.6 * grow;
+    blade(x, vy0 - 2, x, vy1 + 2, 6, OUTLINE); blade(x - hx - 2, y, x + hx + 2, y, 5, OUTLINE);
+    ctx.globalAlpha = fade; ctx.shadowColor = gold; ctx.shadowBlur = 14;
+    blade(x, vy0, x, vy1, 4.5, gold); blade(x - hx, y, x + hx, y, 3.5, gold);
+    ctx.shadowBlur = 0;
+    blade(x, vy0 + 4, x, vy1 - 2, 1.6, '#ffffff'); blade(x - hx + 3, y, x + hx - 3, y, 1.2, '#ffffff');
+    // 가운데 문장: 도는 마름모 두 겹
+    ctx.strokeStyle = '#fff3b0'; ctx.lineWidth = 1.5;
+    for (const [rr, sp] of [[7, 2], [11, -1.4]]) {
+      const A = clock * sp;
+      ctx.beginPath();
+      for (let j = 0; j < 4; j++) { const B = A + (j * Math.PI) / 2; j ? ctx.lineTo(x + Math.cos(B) * rr * grow, y + Math.sin(B) * rr * grow) : ctx.moveTo(x + Math.cos(B) * rr * grow, y + Math.sin(B) * rr * grow); }
+      ctx.closePath(); ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+// 머리카락 같은 일섬 (일섬): 실처럼 가는 흰 선이 먼저 그어지고, 잠시 뒤 위아래로 벌어지며 붉게 터진다
+function razorFx(x0, x1, y, color, life = 0.6, delay = 0, split = true) {
+  skFx(null, delay, life, (u) => {
+    const reach = Math.min(1, u / 0.1), fade = fadeOf(u, 0.5);
+    const xe = mix(x0, x1, reach);
+    ctx.save();
+    if (!split || u < 0.22) {
+      ctx.globalAlpha = fade;
+      ctx.fillStyle = OUTLINE; ctx.fillRect(Math.min(x0, xe), y - 1.5, Math.abs(xe - x0), 3);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.min(x0, xe), y - 0.5, Math.abs(xe - x0), 1);
+    } else {
+      // 벌어지는 두 줄 + 그 사이 붉은 빛
+      const g = 1 + 5 * easeOut(segU(u, 0.22, 0.5));
+      ctx.globalAlpha = 0.45 * fade; ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 12;
+      ctx.fillRect(Math.min(x0, x1), y - g, Math.abs(x1 - x0), g * 2);
+      ctx.shadowBlur = 0; ctx.globalAlpha = fade;
+      for (const sgn of [-1, 1]) {
+        ctx.fillStyle = OUTLINE; ctx.fillRect(Math.min(x0, x1), y + sgn * g - 1, Math.abs(x1 - x0), 2.5);
+        ctx.fillStyle = sgn < 0 ? '#ffffff' : color; ctx.fillRect(Math.min(x0, x1), y + sgn * g - 0.5, Math.abs(x1 - x0), 1.2);
+      }
+    }
+    ctx.restore();
+  }, null, (u) => {
+    // 벌어질 때 선을 따라 붉은 방울이 떨어진다
+    if (!split || u < 0.22 || u > 0.5 || Math.random() > 0.7) return;
+    parts.push({ x: mix(x0, x1, Math.random()), y: y + rand(-2, 2), vx: rand(-15, 15), vy: rand(-30, 20), g: 360, size: 2, color: Math.random() < 0.6 ? color : '#ffffff', life: rand(0.3, 0.5), t: 0 });
+  });
+}
+
+// 나선 관통 (관통 찌르기): 곧은 찌르기 자국을 바람 고리 세 개가 감싸고 앞으로 밀려 나간다
+function pierceSpiralFx(x, y, dir, len, color, life = 0.45, delay = 0) {
+  slashMarkFx(x + dir * len * 0.3, y, dir > 0 ? 0 : Math.PI, len, color, 3.5, life, delay);
+  skFx(null, delay, life, (u) => {
+    const fade = fadeOf(u, 0.3);
+    ctx.save();
+    for (let j = 0; j < 3; j++) {
+      const k = segU(u, j * 0.06, 0.5 + j * 0.06), px = x + dir * (len * 0.1 + j * 14 + 22 * easeOut(k)), ry = 4 + 7 * easeOut(k) - j;
+      if (k <= 0) continue;
+      ctx.globalAlpha = 0.6 * fade; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(px, y, 2.5, ry, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = fade * (1 - k * 0.5); ctx.strokeStyle = j ? color : '#ffffff'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(px, y, 2.5, ry, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+// 화살 박힘 (연사): 화살이 대상에 반쯤 박혀 깃이 파르르 떨다가 사라지고, 맞은 자리에 잎사귀 바람이 흩어진다
+function arrowStuckFx(x, y, dir, color, life = 0.5, delay = 0) {
+  const tilt = rand(-0.25, 0.25), depth = rand(4, 8);
+  skFx(null, delay, life, (u) => {
+    const fade = fadeOf(u, 0.6), wob = Math.sin(u * 60) * (1 - u) * 0.12;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.translate(x - dir * depth, y);
+    ctx.rotate((dir > 0 ? 0 : Math.PI) + tilt + wob);
+    ctx.fillStyle = OUTLINE; ctx.fillRect(-23, -2.5, 23, 5); ctx.fillRect(-24, -5, 7, 10);
+    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(-22, -1, 22, 2);
+    ctx.fillStyle = color; ctx.fillRect(-23, -4, 6, 2); ctx.fillRect(-23, 2, 6, 2);           // 깃
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(-23, -4, 2, 2); ctx.fillRect(-23, 2, 2, 2);
+    ctx.restore();
+  });
+  for (let j = 0; j < 4; j++) parts.push({ x, y, vx: -dir * rand(20, 70), vy: rand(-60, -10), g: 60, size: 2, color: j % 2 ? color : '#bfffd0', life: rand(0.4, 0.7), t: 0 });
+}
+
+// 용 발톱 (용추락): 휘어진 발톱 자국 세 줄이 차례로 할퀴고 지나간다
+function clawMarksFx(x, y, dir, color, size = 1, delay = 0) {
+  for (let j = 0; j < 3; j++) {
+    slashMarkFx(x + (j - 1) * 9 * size, y + (j - 1) * 3, flipA(1.15, dir), 46 * size, color, 4 * size, 0.55, delay + j * 0.045, dir * 7);
+  }
+}
+
+// 용의 불꽃 자국 (용의 숨결): 보라 불꽃 혀가 대상에 들러붙어 날름거리다 연기로 사그라든다
+function scorchFx(x, y, color, life = 0.5) {
+  const tongues = Array.from({ length: 5 }, () => ({ dx: rand(-11, 11), dy: rand(-4, 10), h: rand(14, 22), ph: rand(0, 6) }));
+  skFx(null, 0, life, (u) => {
+    const fade = fadeOf(u, 0.4);
+    ctx.save();
+    for (const t of tongues) {
+      const h = t.h * (1 - u * 0.6) * (0.8 + 0.2 * Math.sin(clock * 30 + t.ph)), bx = x + t.dx, by = y + t.dy;
+      for (const [c, k] of [[OUTLINE, 1.25], [color, 1], ['#e0c8ff', 0.6], ['#ffffff', 0.25]]) {
+        ctx.globalAlpha = (c === OUTLINE ? 0.5 : 1) * fade; ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(bx - 5 * k, by);
+        ctx.quadraticCurveTo(bx - 3 * k, by - h * 0.6 * k, bx + Math.sin(clock * 20 + t.ph) * 3, by - h * k);
+        ctx.quadraticCurveTo(bx + 3 * k, by - h * 0.6 * k, bx + 5 * k, by);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }, null, (u) => {
+    if (u > 0.4 && Math.random() < 0.3) parts.push({ x: x + rand(-8, 8), y: y - 6, vx: rand(-6, 6), vy: rand(-40, -20), g: -10, size: 3, color: 'rgba(60,40,80,0.8)', life: 0.5, t: 0 });
+  });
+}
+
+// 회전 베기 고리 (대회전): 대상을 기울어진 타원으로 한 바퀴 휘감아 베는 자국
+function ringSlashFx(x, y, rx, ry, tiltA, color, life = 0.5, delay = 0) {
+  const steps = 28;
+  skFx(null, delay, life, (u) => {
+    const reach = Math.min(1, u / 0.2), fade = fadeOf(u), th = 4 * (u < 0.45 ? 1 : 1 - 0.6 * (u - 0.45) / 0.55);
+    const ct = Math.cos(tiltA), st = Math.sin(tiltA);
+    const P = (v, off) => {
+      const A = -Math.PI / 2 + v * Math.PI * 2, ex = Math.cos(A) * (rx + off), ey = Math.sin(A) * (ry + off * 0.4);
+      return [x + ex * ct - ey * st, y + ex * st + ey * ct];
+    };
+    const band = (w) => {
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) { const v = (reach * i) / steps, [px, py] = P(v, w * Math.sin(Math.PI * Math.min(1, v * 1.1))); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      for (let i = steps; i >= 0; i--) { const v = (reach * i) / steps, [px, py] = P(v, -w * Math.sin(Math.PI * Math.min(1, v * 1.1))); ctx.lineTo(px, py); }
+      ctx.closePath(); ctx.fill();
+    };
+    ctx.save();
+    ctx.globalAlpha = 0.55 * fade; ctx.fillStyle = OUTLINE; band(th + 1.5);
+    ctx.globalAlpha = fade; ctx.shadowColor = color; ctx.shadowBlur = 10; ctx.fillStyle = color; band(th);
+    ctx.shadowBlur = 0; ctx.fillStyle = '#ffffff'; band(th * 0.35);
+    ctx.restore();
+  });
+}
+
+// 대지 파열 (대지 가르기): 땅에서 하늘로 솟구치는 거대한 쐐기 자국 + 갈라진 틈에서 새는 빛
+function ruptureFx(x, color, h = 56, life = 0.6, delay = 0) {
+  const gy = groundY();
+  skFx(null, delay, life, (u) => {
+    const grow = easeOut(Math.min(1, u / 0.14)), fade = fadeOf(u, 0.4), hh = h * grow, w = 9 * (u < 0.4 ? 1 : 1 - 0.6 * (u - 0.4) / 0.6);
+    const wedge = (ww, top) => { ctx.beginPath(); ctx.moveTo(x - ww, gy); ctx.lineTo(x + ww * 0.3, gy - top * 0.5); ctx.lineTo(x, gy - top); ctx.lineTo(x + ww, gy); ctx.closePath(); ctx.fill(); };
+    ctx.save();
+    ctx.globalAlpha = 0.6 * fade; ctx.fillStyle = OUTLINE; wedge(w + 2, hh + 3);
+    ctx.globalAlpha = fade; ctx.shadowColor = color; ctx.shadowBlur = 14; ctx.fillStyle = color; wedge(w, hh);
+    ctx.shadowBlur = 0; ctx.fillStyle = '#fff3d0'; wedge(w * 0.35, hh * 0.9);
+    ctx.restore();
+  });
+  for (let j = 0; j < 6; j++) parts.push({ x: x + rand(-6, 6), y: gy - rand(4, 30), vx: rand(-50, 50), vy: rand(-220, -120), g: 520, size: Math.random() < 0.4 ? 4 : 3, color: j % 2 ? '#5a4a42' : '#8a7060', life: rand(0.5, 0.8), t: 0 });
+}
+
+// 유리 깨짐 (헤드샷): 맞은 점에서 지그재그 금이 사방으로 뻗고 동그란 금이 이어지며, 가운데 구멍이 뚫린다
+function crackFx(x, y, color, life = 0.6, delay = 0) {
+  const rays = Array.from({ length: 7 }, (_, j) => {
+    const A = (j / 7) * Math.PI * 2 + rand(-0.25, 0.25), L = rand(12, 22), pts = [[0, 0]];
+    for (let k = 1; k <= 3; k++) pts.push([Math.cos(A + rand(-0.35, 0.35)) * (L * k) / 3, Math.sin(A + rand(-0.35, 0.35)) * (L * k) / 3]);
+    return pts;
+  });
+  skFx(null, delay, life, (u) => {
+    const reach = Math.min(1, u / 0.12), fade = fadeOf(u, 0.5);
+    ctx.save();
+    ctx.lineJoin = 'round';
+    for (const [c, w] of [[OUTLINE, 3], [color, 1.6], ['#ffffff', 0.7]]) {
+      ctx.globalAlpha = (c === OUTLINE ? 0.6 : 1) * fade; ctx.strokeStyle = c; ctx.lineWidth = w;
+      for (const pts of rays) {
+        ctx.beginPath();
+        const n = Math.max(1, Math.ceil(reach * 3));
+        pts.slice(0, n + 1).forEach(([px, py], k) => (k ? ctx.lineTo(x + px * reach, y + py * reach) : ctx.moveTo(x, y)));
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(x, y, 8 * reach, 0.3, Math.PI * 1.6); ctx.stroke();
+    }
+    ctx.globalAlpha = fade; ctx.fillStyle = OUTLINE; ctx.fillRect(Math.round(x) - 2, Math.round(y) - 2, 4, 4);
+    ctx.fillStyle = '#ff3b3b'; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+    ctx.restore();
+  });
+}
+
+// 나선 철갑 (철갑 관통탄): 두 가닥 나선이 대상을 꿰뚫고 지나가며, 갑옷 조각이 튄다
+function drillFx(x, y, dir, color, life = 0.5, delay = 0) {
+  skFx(null, delay, life, (u) => {
+    const fade = fadeOf(u, 0.35), L = 70 * easeOut(Math.min(1, u / 0.15)), amp = 6 * (1 - u * 0.5);
+    ctx.save();
+    for (const ph of [0, Math.PI]) {
+      for (const [c, w] of [[OUTLINE, 3], [ph ? color : '#ffffff', 1.5]]) {
+        ctx.globalAlpha = (c === OUTLINE ? 0.5 : 1) * fade; ctx.strokeStyle = c; ctx.lineWidth = w;
+        ctx.beginPath();
+        for (let s = 0; s <= 24; s++) {
+          const v = s / 24, px = x - dir * 20 + dir * L * v, py = y + Math.sin(v * Math.PI * 5 + ph - clock * 30) * amp * Math.sin(Math.PI * v);
+          s ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+        }
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  });
+  for (let j = 0; j < 6; j++) parts.push({ x, y, vx: dir * rand(60, 160), vy: rand(-120, -30), g: 480, size: 3, color: j % 2 ? '#8c95a6' : '#cfd6e0', life: rand(0.4, 0.7), t: 0 });
+}
+
+// 마법 각인 (유도 마탄): 육망성 각인이 찍혔다가 돌면서 오그라든다
+function runeStampFx(x, y, r, color, life = 0.45, delay = 0) {
+  const rot0 = rand(0, Math.PI);
+  skFx(null, delay, life, (u) => {
+    const fade = fadeOf(u, 0.3), rr = r * (u < 0.15 ? easeOut(u / 0.15) * 1.3 : 1.3 - 0.5 * segU(u, 0.15, 1)), A = rot0 + u * 3;
+    ctx.save();
+    for (const [c, w] of [[OUTLINE, 3], [color, 1.5]]) {
+      ctx.globalAlpha = (c === OUTLINE ? 0.5 : 1) * fade; ctx.strokeStyle = c; ctx.lineWidth = w;
+      for (const off of [0, Math.PI]) {
+        ctx.beginPath();
+        for (let j = 0; j < 3; j++) { const B = A + off + (j * Math.PI * 2) / 3; j ? ctx.lineTo(x + Math.cos(B) * rr, y + Math.sin(B) * rr) : ctx.moveTo(x + Math.cos(B) * rr, y + Math.sin(B) * rr); }
+        ctx.closePath(); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(x, y, rr * 1.15, 0, Math.PI * 2); ctx.stroke();
+    }
+    dot(x, y, 3, '#ffffff', fade);
+    ctx.restore();
+  });
+}
+
+// 별 각인 (별빛 화살비): 떨어진 자리 땅바닥에 납작한 오각별이 찍혀 번진다
+function starStampFx(x, color, size = 12, life = 0.6) {
+  const gy = groundY() - 2, A0 = rand(0, Math.PI);
+  skFx(null, 0, life, (u) => {
+    const fade = fadeOf(u, 0.35), s = size * (0.6 + 0.6 * easeOut(Math.min(1, u / 0.2)));
+    const star = () => {
+      ctx.beginPath();
+      for (let j = 0; j < 10; j++) { const B = A0 + (j * Math.PI) / 5, R = j % 2 ? s * 0.42 : s; const px = x + Math.cos(B) * R, py = gy + Math.sin(B) * R * 0.3; j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.closePath();
+    };
+    ctx.save();
+    ctx.globalAlpha = 0.5 * fade; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3; star(); ctx.stroke();
+    ctx.globalAlpha = fade; ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.shadowColor = color; ctx.shadowBlur = 8; star(); ctx.stroke();
+    ctx.globalAlpha = 0.25 * fade; ctx.fillStyle = color; star(); ctx.fill();
     ctx.restore();
   });
 }
@@ -539,23 +844,58 @@ const DRAGON_HEAD = [
 ];
 const DRAGON_PAL = { h: '#3b2458', H: '#b388ff', e: '#ffe066', w: '#ffffff' };
 
+// 질풍난무 동선: [도착 시점, 대상 기준 위치(+ 대상 너머 / - 대상 앞), 베는 방향(1 내려베기 · -1 올려베기)]
+// 각 구간은 앞 55% 동안 돌진(빠르게 → 잔상), 도착 직전부터 베기. 타격 시점(SKILLS.gale.hits)과 맞춰 둔다
+const GALE_STOPS = [[0.15, 36, 1], [0.24, -30, -1], [0.33, 44, 1], [0.42, -36, -1], [0.51, 32, 1], [0.6, -26, -1]];
+function galeAt(u, D) {
+  // 준비: 몸을 낮추고 쌍검을 뒤로 젖힌다
+  if (u < 0.06) { const c = easeOut(u / 0.06); return { pos: 0, fast: false, body: { sy: 1 - 0.16 * c, skew: 0.25 * c, wa: mix(-1.0, 2.4, c), wa2: mix(-0.6, 2.7, c) } }; }
+  let prevT = 0.06, prevPos = 0;
+  for (const [t, off, dirS] of GALE_STOPS) {
+    if (u < t) {
+      const span = t - prevT, k = (u - prevT) / span, dash = segU(k, 0, 0.55), pos = mix(prevPos, D + off, easeOut(dash));
+      const sw = easeIn(segU(k, 0.45, 1));                 // 베기
+      const wa = dirS > 0 ? mix(-2.4, 1.0, sw) : mix(1.2, -2.2, sw), wa2 = dirS > 0 ? mix(-2.0, 0.7, segU(k, 0.6, 1)) : mix(0.9, -1.8, segU(k, 0.6, 1));
+      const moving = dash < 1;
+      return { pos, fast: moving && dash > 0.05, body: { wa, wa2, skew: moving ? 0.4 : 0.2, sy: moving ? 0.88 : 0.95, sx: moving ? 1.12 : 1, lift: moving ? 5 * Math.sin(Math.PI * dash) : 0 } };
+    }
+    prevT = t; prevPos = D + off;
+  }
+  // 막타 준비: 대상 앞쪽으로 뛰어올라 쌍검을 머리 위로 엇갈려 든다
+  if (u < 0.74) { const k = easeOut(segU(u, 0.6, 0.74)); return { pos: mix(prevPos, D - 18, k), fast: k < 0.9, body: { wa: mix(-2.2, -2.5, k), wa2: mix(-1.8, -2.0, k), lift: 30 * Math.sin((Math.PI / 2) * k), sy: 1.08, skew: -0.15 } }; }
+  // 정점에서 잠깐 멈췄다가 내리꽂으며 X자로 벤다 (0.86 타격)
+  if (u < 0.86) { const d = easeIn(segU(u, 0.78, 0.86)); return { pos: D - 18, fast: d > 0.1, body: { wa: mix(-2.5, 1.1, d), wa2: mix(-2.0, 0.6, d), lift: 30 * (1 - d), sy: mix(1.08, 0.84, d), sx: mix(1, 1.12, d), skew: mix(-0.15, 0.45, d) } }; }
+  // 착지 자세를 잠깐 유지했다가 원래 자리로 물러난다
+  if (u < 0.92) return { pos: D - 18, fast: false, body: { wa: 1.1, wa2: 0.6, sy: 0.86, skew: 0.4 } };
+  const r = easeOut(segU(u, 0.92, 1));
+  return { pos: mix(D - 18, 0, r), fast: r < 0.8, body: { wa: mix(1.1, -1.0, r), wa2: mix(0.6, -0.6, r), lift: 8 * Math.sin(Math.PI * r), sy: 1, skew: 0.4 * (1 - r) } };
+}
+
 const SKILL_FX = {
-  // ── 검사: 강철 베기 — 치켜들었다가 크게 내려벤다 ──
+  // ── 검사: 강철 베기 — 웅크려 검을 치켜들고, 앞으로 뛰어오르며 착지와 함께 내려벤다 ──
   steelCleave: {
     pose(u) {
-      if (u < 0.4) { const w = easeOut(segU(u, 0, 0.4)); return { wa: mix(-1.0, -2.3, w), skew: -0.25 * w, sy: 1 - 0.08 * w, dx: -2 * w }; }
-      if (u < 0.6) { const d = easeIn(segU(u, 0.4, 0.5)); return { wa: mix(-2.3, 1.0, d), skew: mix(-0.25, 0.35, d), sy: mix(0.92, 1.04, d), dx: mix(-2, 8, d) }; }
-      const r = easeOut(segU(u, 0.6, 1));
-      return { wa: mix(1.0, -1.0, r), skew: 0.35 * (1 - r), dx: 8 * (1 - r) };
+      if (u < 0.28) { const w = easeOut(segU(u, 0, 0.28)); return { wa: mix(-1.0, -2.3, w), skew: -0.2 * w, sy: 1 - 0.12 * w, dx: -3 * w }; }
+      if (u < 0.44) { const j = segU(u, 0.28, 0.44); return { wa: mix(-2.3, -2.7, j), skew: -0.25, sy: mix(0.88, 1.08, j), sx: mix(1, 0.94, j), dx: mix(-3, 8, easeOut(j)), lift: 16 * Math.sin((Math.PI / 2) * j) }; }
+      if (u < 0.5) { const d = easeIn(segU(u, 0.44, 0.5)); return { wa: mix(-2.7, 1.1, d), skew: mix(-0.25, 0.4, d), sy: mix(1.08, 0.86, d), sx: mix(0.94, 1.1, d), dx: mix(8, 12, d), lift: 16 * (1 - d) }; }
+      if (u < 0.7) { const f = segU(u, 0.5, 0.7); return { wa: 1.1 + 0.25 * Math.sin(Math.PI * f), skew: 0.4 - 0.15 * f, sy: mix(0.86, 1, easeOut(f)), sx: mix(1.1, 1, f), dx: 12 }; }
+      const r = easeOut(segU(u, 0.7, 1));
+      return { wa: mix(1.1, -1.0, r), skew: 0.25 * (1 - r), dx: 12 * (1 - r) };
     },
-    cues: [[0.3, (a) => { const h = hand(a); starFx(h.x - a.dir * 8, h.y - 22, 6, '#ffffff', 0.25); }]],
+    cues: [
+      [0.26, (a) => { const h = hand(a); starFx(h.x - a.dir * 8, h.y - 24, 7, '#ffffff', 0.25); }],
+      [0.3, (a) => { for (let i = 0; i < 6; i++) parts.push({ x: a.x() - a.dir * 4, y: groundY() - 2, vx: -a.dir * rand(30, 90), vy: rand(-50, -10), g: 200, size: 3, color: i % 2 ? '#c9b38a' : '#a8946a', life: 0.35, t: 0 }); }],
+    ],
     hit(a) {
       const h = hand(a);
-      crescentFx(h.x, h.y, 30, -2.6, 1.0, a.dir, '#cfe0ff', 4, 0.32);
-      crescentFx(h.x, h.y, 23, -2.4, 0.9, a.dir, a.color, 2, 0.3);
-      for (const t of a.targets()) slashMarkFx(t.x, t.y - 4, flipA(1.15, a.dir), 52, a.color, 6, 0.42, 0, a.dir * 8);
-      for (const t of a.targets()) burst(t.x, t.y, 12, ['#ffffff', a.color, '#cfe0ff'], 140);
-      impact({ stop: 0.04, shake: 0.12 });
+      crescentFx(h.x, h.y, 30, -2.6, 1.0, a.dir, '#cfe0ff', 3, 0.28);
+      ringFx(a.px(), 'rgba(214,196,150,0.9)', 0.5, 0.35);
+      debris(a.px() + a.dir * 10, 6, ['#c9b38a', '#a8946a']);
+    },
+    // 반달 자국 두 겹: 두꺼운 직업색 + 늦게 따라오는 가는 강철빛
+    marks(a, t) {
+      crescentMarkFx(t.x - a.dir * 6, t.y - 2, 26, -2.1, 1.25, 9, a.color, 0.6, 0, a.dir);
+      crescentMarkFx(t.x - a.dir * 2, t.y + 2, 19, -1.9, 1.1, 4, '#cfe0ff', 0.5, 0.05, a.dir);
     },
     kb: 14,
   },
@@ -581,6 +921,7 @@ const SKILL_FX = {
       for (const t of tips) burst(t.x, t.y, 10, ['#ffffff', a.color], 130);
       impact({ stop: 0.04, shake: 0.1 });
     },
+    marks(a, t, pow) { pierceSpiralFx(t.x - a.dir * 10, t.y, a.dir, 46 + 8 * pow, a.color); },
     kb: 12,
   },
 
@@ -600,16 +941,20 @@ const SKILL_FX = {
       burst(h.x + a.dir * 4, h.y, 4, ['#e9ffe9', a.color], 50, 2, 0);
       impact({ shake: i === n - 1 ? 0.1 : 0.04 });
     },
+    marks(a, t) { arrowStuckFx(t.x, t.y + rand(-9, 5), a.dir, a.color); },
     kb: 6,
   },
 
   // ── 성기사: 심판의 일격 — 성검을 하늘로, 대상 위로 빛기둥 ──
   judgment: {
     pose(u) {
-      if (u < 0.45) { const r = easeOut(segU(u, 0, 0.4)); return { wa: mix(-1.0, -1.57, r), sy: 1 + 0.06 * r, skew: -0.1 * r }; }
-      if (u < 0.75) { const d = easeIn(segU(u, 0.45, 0.58)); return { wa: mix(-1.57, 0.7, d), skew: mix(-0.1, 0.3, d), dx: 4 * d }; }
-      const r = easeOut(segU(u, 0.75, 1));
-      return { wa: mix(0.7, -1.0, r), skew: 0.3 * (1 - r), dx: 4 * (1 - r) };
+      // 성검을 하늘로 치켜들며 천천히 떠오른다 → 정점에서 한 번 더 젖힌다 → 내리꽂으며 착지
+      if (u < 0.4) { const r = easeOut(segU(u, 0, 0.4)); return { wa: mix(-1.0, -1.57, r), sy: 1 + 0.08 * r, skew: -0.1 * r, lift: 10 * r + Math.sin(clock * 8) * r }; }
+      if (u < 0.52) { const r = segU(u, 0.4, 0.52); return { wa: -1.57 - 0.3 * easeOut(r), sy: 1.08, skew: -0.1 - 0.12 * r, lift: 10 + 3 * r }; }
+      if (u < 0.6) { const d = easeIn(segU(u, 0.52, 0.6)); return { wa: mix(-1.87, 0.85, d), skew: mix(-0.22, 0.38, d), dx: 7 * d, lift: 13 * (1 - d), sy: mix(1.08, 0.86, d), sx: mix(1, 1.1, d) }; }
+      if (u < 0.78) { const f = segU(u, 0.6, 0.78); return { wa: 0.85, skew: 0.38 - 0.1 * f, dx: 7, sy: mix(0.86, 1, easeOut(f)) }; }
+      const r = easeOut(segU(u, 0.78, 1));
+      return { wa: mix(0.85, -1.0, r), skew: 0.28 * (1 - r), dx: 7 * (1 - r) };
     },
     tick(a, u) {
       if (u > 0.05 && u < 0.45 && Math.random() < 0.6) {
@@ -631,11 +976,11 @@ const SKILL_FX = {
         pillarFx(t.x, '#ffd257', 40, 0.6);
         ringFx(t.x, '#ffd257', 1.1, 0.6);
         ringFx(t.x, '#ffffff', 0.6, 0.4);
-        starFx(t.x, t.y, 22, '#fff3b0', 0.35);
         burst(t.x, groundY() - 10, 26, ['#ffd257', '#ffffff', '#fff3b0'], 170, 3, 250);
       }
       impact({ stop: 0.1, shake: 0.3 });
     },
+    marks(a, t) { holyCrossFx(t.x, t.y - 4, 18, 0.75); },
     kb: 16,
   },
 
@@ -673,28 +1018,36 @@ const SKILL_FX = {
     kb: 3,
   },
 
-  // ── 검성: 질풍난무 — 사라졌다가 적 사이를 오가며 6번, 마지막 X자 ──
+  // ── 검성: 질풍난무 — 대상 앞뒤를 지그재그로 꿰뚫고 오가며 6번 베고, 뛰어올라 X자로 내리꽂는다 ──
+  // 지나간 자리마다 붉은 잔상이 촤라락 남는다 (tick). 위치는 '대상까지 거리' 기준이라 결투·레이드에서도 같은 모양
   gale: {
-    pose(u) {
-      if (u < 0.1) { const c = segU(u, 0, 0.1); return { sy: 1 - 0.15 * c, skew: 0.2 * c, wa: mix(-1.0, 2.4, c), wa2: mix(-0.6, 2.6, c) }; }
-      if (u < 0.74) return { alpha: 0, wa: 2.4 };
-      if (u < 0.86) { const r = segU(u, 0.74, 0.8); return { alpha: r, wa: -2.2, wa2: -2.6, skew: -0.15, sy: 0.95 }; }
-      const d = easeOut(segU(u, 0.86, 0.92)), r = segU(u, 0.92, 1);
-      return { wa: mix(-2.2, 1.0, d), wa2: mix(-2.6, 0.6, d), skew: 0.3 * (1 - r), dx: 6 * d * (1 - r) };
+    pose(u, a) {
+      const D = Math.max(16, (a.tx() - a.x()) * a.dir);
+      const P = galeAt(u, D);
+      const f = P.pos > D ? -1 : 1;                       // 늘 대상 쪽을 본다 (대상 너머면 뒤돈다)
+      return { ...P.body, dx: P.pos * f, facing: f };
+    },
+    tick(a, u, dt) {
+      // 빠르게 움직이는 동안: 지나온 길에 가는 속도선 세 줄 + 0.03초마다 옅은 잔상 하나
+      const D = Math.max(16, (a.tx() - a.x()) * a.dir), P = galeAt(u, D);
+      const sx = a.x() + a.dir * P.pos, lift = P.body.lift || 0;
+      if (P.fast && a.prevX != null && Math.abs(sx - a.prevX) > 1.5) {
+        const x0 = a.prevX, gy = groundY();
+        for (const [h, c, w] of [[12, '#ffffff', 1], [24, '#ff4d4d', 2], [36, '#ffffff', 1]]) streakFx(x0, gy - h - lift, sx, gy - h - lift, c, w, 0.16);
+      }
+      a.prevX = sx;
+      a.ghostT = (a.ghostT || 0) - dt;
+      if (!P.fast || a.ghostT > 0) return;
+      a.ghostT = 0.03;
+      ghostFx(a, sx, (P.pos > D ? -1 : 1) * a.dir, '#ff4d4d', 0.2, { ...P.body }, 0.28);
     },
     cues: [
-      [0.1, (a) => {
-        const x = a.x();
-        burst(x, groundY() - 24, 14, ['#ff4d4d', '#1a1b22', '#ffffff'], 120);
-        streakFx(x, groundY() - 24, a.tx(), groundY() - 24, '#ff4d4d', 4, 0.15);
-      }],
-      [0.74, (a) => burst(a.x(), groundY() - 24, 10, ['#ff4d4d', '#ffffff'], 90)],
+      [0.06, (a) => { burst(a.x(), groundY() - 4, 10, ['#c9b38a', '#a8946a'], 80, 3, 300); }],
+      [0.64, (a) => { burst(a.px(), groundY() - 4, 8, ['#c9b38a', '#a8946a'], 80, 3, 300); }],
     ],
     hit(a, i, n) {
       const t = a.targets()[0];
       if (i < n - 1) {
-        const side = i % 2 ? 1 : -1;
-        ghostFx(a, t.x + side * 18, -side, '#ff4d4d', 0.28, { wa: side > 0 ? 0.9 : -2.2, wa2: 0.5 });
         slashMarkFx(t.x, t.y, rand(-0.9, 0.9) + (i % 2 ? Math.PI / 2 : 0), 48, '#ff4d4d', 4, 0.3, 0, rand(-6, 6));
         burst(t.x, t.y, 6, ['#ffffff', '#ff4d4d'], 90);
         impact({ stop: 0.02, shake: 0.06 });
@@ -704,6 +1057,7 @@ const SKILL_FX = {
         xslashFx(tt.x, tt.y, 22, '#ff3040', 0.4);
         burst(tt.x, tt.y, 24, ['#ffffff', '#ff4d4d', '#1a1b22'], 160);
       }
+      ringFx(a.px(), '#ff4d4d', 0.8, 0.4);
       impact({ stop: 0.12, shake: 0.3 });
     },
     kb: 6,
@@ -723,18 +1077,17 @@ const SKILL_FX = {
       [0.32, (a) => { const h = hand(a); starFx(h.x - a.dir * 12, h.y + 4, 12, '#ffffff', 0.3); }],
       [0.46, (a) => {
         const y = groundY() - 26, x = a.x(), far = Math.abs(a.tx() - x) + 60;
-        slashMarkFx(x + a.dir * far / 2, y, a.dir > 0 ? 0 : Math.PI, far, '#ff3040', 3, 0.55);
+        razorFx(x, x + a.dir * far, y, '#ff3040', 0.5, 0, false);
         for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * (Math.abs(a.tx() - x) + 34) * (i / 4), a.dir, '#ff4d4d', 0.3, { wa: 0.15, skew: 0.4 });
         
       }],
     ],
     hit(a) {
-      for (const t of a.targets()) {
-        xslashFx(t.x, t.y, 28, '#ff3040', 0.45);
-        burst(t.x, t.y, 30, ['#ffffff', '#ff3040', '#1a1b22'], 190, 3);
-      }
+      for (const t of a.targets()) burst(t.x, t.y, 30, ['#ffffff', '#ff3040', '#1a1b22'], 190, 3);
       impact({ stop: 0.18, shake: 0.4 });
     },
+    // 머리카락처럼 가는 선이 그어졌다가 늦게 위아래로 벌어지며 터진다
+    marks(a, t) { razorFx(t.x - 42, t.x + 42, t.y, '#ff3040', 0.7); razorFx(t.x - 26, t.x + 26, t.y - 9, '#ff3040', 0.6, 0.05); },
     kb: 20,
   },
 
@@ -774,6 +1127,7 @@ const SKILL_FX = {
       for (const t of a.targets()) burst(t.x, t.y, 14, ['#ffffff', '#b388ff'], 140);
       impact({ stop: 0.12, shake: 0.4 });
     },
+    marks(a, t) { clawMarksFx(t.x, t.y, a.dir, '#b388ff', 1.15); },
     kb: 16,
   },
 
@@ -806,6 +1160,7 @@ const SKILL_FX = {
       for (const t of a.targets()) burst(t.x, t.y, i === n - 1 ? 16 : 5, ['#b388ff', '#ffffff', '#7a3cff'], i === n - 1 ? 140 : 70);
       impact({ shake: i === n - 1 ? 0.2 : 0.05 });
     },
+    marks(a, t, pow, i, n) { scorchFx(t.x + rand(-6, 6), t.y + 8, '#b388ff', i === n - 1 ? 0.8 : 0.45); },
     kb: 5,
   },
 
@@ -848,6 +1203,7 @@ const SKILL_FX = {
       impact({ stop: 0.05, shake: 0.18 });
       if (i === n - 1) ringFx(a.x(), '#ff9f40', 1.2, 0.45);
     },
+    marks(a, t, pow, i) { ringSlashFx(t.x, t.y, 24, 9, i % 2 ? 0.3 : -0.3, '#ff9f40', 0.5); },
     kb: 24,
   },
 
@@ -877,6 +1233,7 @@ const SKILL_FX = {
     hit(a) {
       for (const t of a.targets()) burst(t.x, t.y, 16, ['#ff9f40', '#ffffff', '#5a4a42'], 150);
     },
+    marks(a, t) { ruptureFx(t.x, '#ff9f40', 62, 0.7); },
     kb: 10, launch: true,
   },
 
@@ -917,6 +1274,7 @@ const SKILL_FX = {
       }
       impact({ stop: 0.14, shake: 0.25 });
     },
+    marks(a, t) { crackFx(t.x, t.y - 8, '#ffe066', 0.7); },
     kb: 34,
   },
 
@@ -945,6 +1303,7 @@ const SKILL_FX = {
     hit(a) {
       for (const t of a.targets()) burst(t.x, t.y, 18, ['#ffe066', '#ffffff'], 160);
     },
+    marks(a, t) { drillFx(t.x, t.y, a.dir, '#ffe066', 0.55); },
     kb: 22,
   },
 
@@ -977,6 +1336,7 @@ const SKILL_FX = {
       impact({ shake: 0.05 });
       if (i === n - 1) { ringFx(a.tx(), '#6ff3ff', 0.8, 0.4); impact({ stop: 0.05, shake: 0.18 }); }
     },
+    marks(a, t) { runeStampFx(t.x + rand(-7, 7), t.y + rand(-9, 9), 7, '#6ff3ff'); },
     kb: 5,
   },
 
@@ -998,10 +1358,11 @@ const SKILL_FX = {
       const x1 = cx + (last ? 0 : rand(-46, 46)), x0 = x1 - a.dir * rand(14, 30);
       meteorFx(x0, 34, x1, groundY() - 6, i % 3 ? '#6ff3ff' : '#ffe066', last ? 7 : 4, 0.1, () => {
         burst(x1, groundY() - 6, last ? 22 : 8, ['#6ff3ff', '#ffffff', '#ffe066'], last ? 160 : 100, 2, 260);
-        ringFx(x1, '#6ff3ff', last ? 0.9 : 0.35, 0.35);
+        starStampFx(x1, i % 3 ? '#6ff3ff' : '#ffe066', last ? 22 : 11, last ? 0.8 : 0.55);
       });
       impact(last ? { stop: 0.08, shake: 0.28 } : { shake: 0.06 });
     },
+    marks(a, t) { starFx(t.x + rand(-10, 10), t.y + rand(-12, 6), 5, '#ffe066', 0.25); },
     kb: 4,
   },
 };

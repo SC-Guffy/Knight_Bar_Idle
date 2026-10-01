@@ -817,7 +817,7 @@ function drawKnight() {
 
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   const shadowW = Math.max(6, 28 - lift * 0.3);
-  ctx.fillRect(x + (sp ? sp.dx || 0 : 0) - shadowW / 2, gy - 1, shadowW, 2);
+  ctx.fillRect(x + (sp ? (sp.dx || 0) * (sp.facing || knight.facing) : 0) - shadowW / 2, gy - 1, shadowW, 2);
 
   const pose = {
     mode: S.phase === 'camp' ? 'sit' : knight.fighting ? 'fight' : 'walk',

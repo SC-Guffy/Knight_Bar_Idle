@@ -215,5 +215,6 @@ function run() {
   setClass(T.cls);
   renderInfo();
   requestAnimationFrame(frame);
-  window.skillTest = T;           // 콘솔에서 확인용
+  // 콘솔·자동 캡처용: skillTest.state 상태, setClass(id), cast(skillId), step(초) 한 번에 진행 후 그리기
+  window.skillTest = { state: T, setClass, cast, step: (sec) => { for (let i = 0; i < Math.round(sec * 60); i++) tick(1 / 60); render(); } };
 }
