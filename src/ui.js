@@ -798,7 +798,7 @@ function gearSlotBtn(slot) {
 const gearInfo = (it) => `
   <div class="gtop" style="--c:${gearGrade(it).color}">
     ${gearIcon(it, 'big')}
-    <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)} · S${it.s}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''}</small></div>
+    <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''}</small></div>
   </div>
   ${gearSpecialText(it) ? `<div class="gsp">✦ 고유 효과 — ${gearSpecialText(it)}</div>` : ''}
   ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
@@ -849,7 +849,7 @@ function gearRow(it) {
   return `
     <button class="gitem ${gearUi.sel.id === it.id ? 'sel' : ''}" data-action="gear-sel-item" data-id="${it.id}" style="--c:${gearGrade(it).color}">
       ${gearIcon(it)}
-      <span class="gi"><span class="gname ${gnClass(it)}">${gearName(it)}</span><span class="small">${gearKindText(it)} · S${it.s}</span></span>
+      <span class="gi"><span class="gname ${gnClass(it)}">${gearName(it)}</span><span class="small">${gearKindText(it)}</span></span>
       <span class="gstat">${gearStatText(gearStat(it))}</span>
       <span class="gcmp">${gearCmp(it)}</span>
     </button>`;

@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.8.7';
+const GAME_VERSION = '0.8.8';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -139,7 +139,8 @@ const LOOT_KIND_W = { gear: 40, curio: 45, use: 15 };
 const LOOT_KIND_W_BOSS = { gear: 65, curio: 25, use: 10 };
 
 // ───────────────────────── 장비 ─────────────────────────
-// 능력치는 드랍된 스테이지(s)와 등급으로 정해지고, 강화 단계(부위별)가 곱해진다.
+// 능력치는 등급과 내 최고 스테이지(S.best)로 정해지고, 강화 단계(부위별)가 곱해진다.
+//  드랍된 스테이지(s)는 판매가에만 쓴다 — 모든 장비가 나와 함께 성장하므로 등급이 높으면 항상 더 세다.
 //  무기: 공격력 (대장간 배율을 받음) · 갑옷: 체력 · 장신구(반지·왕관 등): 치명 확률 + 치명 피해
 const GEAR_SLOTS = {
   weapon: { name: '무기', icon: '🗡️' },

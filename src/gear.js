@@ -94,9 +94,10 @@ const gearById = (id) => S.gear.inv.find((x) => x.id === id) || null;
 const equipped = (slot) => gearById(S.gear.eq[slot]);
 const isEquipped = (it) => S.gear.eq[it.slot] === it.id;
 
-// enh: 적용할 강화 단계 (기본은 그 부위의 현재 단계)
+// enh: 적용할 강화 단계 (기본은 그 부위의 현재 단계).
+// 능력치는 드랍된 스테이지가 아니라 내 최고 스테이지 기준 — 등급이 높을수록 항상 세다
 function gearStat(it, enh = S.gear.enh[it.slot]) {
-  const b = gearBase(it.slot, it.g, it.s, it.roll);
+  const b = gearBase(it.slot, it.g, S.best, it.roll);
   const m = enhanceMultAt(enh), soft = softEnhMultAt(enh);
   const out = {};
   for (const k of Object.keys(b)) out[k] = b[k] * (SOFT_ENH[k] ? soft : m);
@@ -211,7 +212,7 @@ function loadoutValue(eq) {
 let loadoutCache = { key: '', eq: null };
 function bestLoadout() {
   // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
-  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${S.bld.forge}`;
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${S.bld.forge}|${S.best}`;
   if (loadoutCache.key === key) return loadoutCache.eq;
   const slots = Object.keys(GEAR_SLOTS);
   const cands = slots.map((slot) => {
