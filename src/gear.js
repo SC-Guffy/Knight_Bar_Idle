@@ -164,10 +164,6 @@ function keepHpRatio(oldMax) {
   if (S.hp != null && oldMax > 0) S.hp = Math.min(max, (S.hp / oldMax) * max);
 }
 
-// 착용 중이 아닌 장비 중 maxGrade 등급 이하를 전부 판다. slot 을 주면 그 부위만.
-function bulkSellList(maxGrade, slot = null) {
-  return S.gear.inv.filter((x) => !isEquipped(x) && x.g <= maxGrade && (!slot || x.slot === slot));
-}
 function sellGear(list) {
   const ids = new Set(list.filter((x) => !isEquipped(x)).map((x) => x.id));
   let gold = 0;

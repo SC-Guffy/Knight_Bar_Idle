@@ -268,8 +268,6 @@
   .box.opened .lname { color: var(--c); font-weight: 700; }
   .box em.on, .gitem em.on { color: #7dffb0; font-style: normal; font-weight: 700; }
   .gain .btn { margin-left: 8px; color: var(--text); }
-  .gslots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .gslot { display: flex; flex-direction: column; gap: 4px; padding: 10px 11px; border-radius: 11px; background: var(--soft); border: 1px solid var(--line); }
   .ghead { display: flex; align-items: center; gap: 6px; font-weight: 700; }
   .ghead > span { flex: 1; }
   .lvl { padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,.12); font-size: 13px; }
@@ -288,8 +286,8 @@
   .enhres.up { color: #7dffb0; } .enhres.keep { color: var(--muted); } .enhres.down { color: var(--accent); }
   .enhres.reset { color: var(--bad); } .enhres.saved { color: #7cc4ff; }
   .enhres.fresh { animation: pop .35s ease-out; }
-  .gslot.flash-up { animation: flashUp .6s ease-out; }
-  .gslot.flash-down, .gslot.flash-reset { animation: shake .4s ease-out; }
+  .gdetail.flash-up, .gsbtn.flash-up .gsbox { animation: flashUp .6s ease-out; }
+  .gdetail.flash-down, .gdetail.flash-reset, .gsbtn.flash-down .gsbox, .gsbtn.flash-reset .gsbox { animation: shake .4s ease-out; }
   @keyframes flashUp { 0% { box-shadow: 0 0 0 2px #7dffb0, 0 0 24px rgba(125,255,176,.6); } 100% { box-shadow: none; } }
   @keyframes shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
   .grow { margin-top: 8px; }
@@ -298,20 +296,36 @@
   .chk.on { color: var(--gold); }
   .chk:disabled { opacity: .45; cursor: default; }
   .shead .row { display: flex; gap: 6px; align-items: center; }
-  .gfilter, .ggrades { display: flex; gap: 4px; }
-  .gfilter { margin-bottom: 6px; }
-  .gfilter button, .ggrades button { all: unset; cursor: pointer; padding: 3px 9px; border-radius: 7px; background: var(--soft); font-size: 12px; }
-  .gfilter button.on { background: var(--soft-hover); box-shadow: inset 0 0 0 1px var(--accent); }
-  .ggrades button { color: var(--c); }
-  .ggrades button.on { background: color-mix(in srgb, var(--c) 25%, transparent); box-shadow: inset 0 0 0 1px var(--c); }
-  .gsell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 7px 10px; border-radius: 9px; background: rgba(0,0,0,.2); margin-bottom: 8px; font-size: 12px; color: var(--muted); }
-  .gsell .btn { margin-left: auto; color: var(--text); }
-  .glist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
   .glist .empty { grid-column: 1 / -1; }
+  /* 장비 탭: 위(캐릭터 + 장착 슬롯 | 세부 정보) · 아래(창고 리스트) */
+  .gpanel { display: grid; grid-template-columns: 330px 1fr; gap: 10px; margin-bottom: 4px; }
+  .gstage { position: relative; height: 270px; border-radius: 12px; border: 1px solid var(--line);
+    background: radial-gradient(ellipse at 50% 62%, rgba(255, 210, 87, .1), transparent 60%), rgba(0,0,0,.22); }
+  .gchar { position: absolute; left: 50%; top: 62px; width: 130px; height: 140px; transform: translateX(-50%); pointer-events: none; }
+  .gpow { position: absolute; left: 0; right: 0; top: 206px; text-align: center; font-size: 11px; color: var(--muted); pointer-events: none; }
+  .gpow b { color: var(--gold); font-size: 13px; }
+  .gsbtn { all: unset; position: absolute; width: 92px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .gsbtn.s-armor { top: 8px; left: 50%; transform: translateX(-50%); }
+  .gsbtn.s-weapon { bottom: 8px; left: 10px; }
+  .gsbtn.s-ring { bottom: 8px; right: 10px; }
+  .gsbox { position: relative; width: 50px; height: 50px; display: grid; place-items: center; border-radius: 10px;
+    background: color-mix(in srgb, var(--c) 14%, rgba(0,0,0,.35)); border: 2px solid var(--c); }
+  .gsbox .gicon.big { width: 42px; height: 42px; background: none; }
+  .gsbox .lvl { position: absolute; right: -10px; bottom: -6px; font-size: 10px; padding: 0 5px; background: #1b1d27; border: 1px solid var(--line); }
+  .gsempty { font-size: 20px; opacity: .35; }
+  .gsname { max-width: 92px; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gsbtn:hover .gsbox { box-shadow: 0 0 10px var(--c); }
+  .gsbtn.on .gsbox { box-shadow: 0 0 0 2px var(--accent), 0 0 12px var(--c); }
+  .gdetail { display: flex; flex-direction: column; gap: 5px; padding: 11px 12px; border-radius: 12px; background: var(--soft); border: 1px solid var(--line); min-width: 0; }
+  .gacts { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
+  .gacts .btn { flex: 1; text-align: center; }
+  .btn.warn { background: rgba(255, 77, 77, .22); border-color: rgba(255, 77, 77, .5); }
+  .glist { display: flex; flex-direction: column; gap: 4px; }
+  .gitem.sel { background: var(--soft-hover); box-shadow: inset 0 0 0 1px var(--c); }
+  @media (max-width: 640px) { .gpanel { grid-template-columns: 1fr; } }
   .gitem { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 9px;
     background: var(--soft); border-left: 3px solid var(--c); }
   .gitem:hover { background: var(--soft-hover); }
-  .gitem.on { cursor: default; background: rgba(125, 255, 176, .08); }
   .gitem .gi { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .gitem .gname { color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gitem .gstat { white-space: nowrap; }
