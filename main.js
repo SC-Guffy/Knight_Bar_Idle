@@ -64,13 +64,10 @@ function createWindow() {
   win.setIgnoreMouseEvents(true, { forward: true });
   place();
 
-  // 서버 주소: KB_SERVER 환경 변수 > settings.json 의 serverUrl > 렌더러 기본값(net.js)
-  const server = process.env.KB_SERVER || settings.serverUrl || '';
-  win.loadFile('index.html', { query: { speed: process.env.KB_SPEED || '1', server } });
-  win.once('ready-to-show', () => {
-    win.webContents.send('settings', settings);
-    win.showInactive();
-  });
+  loadGame();
+  win.once('ready-to-show', () => win.showInactive());
+  // 게임을 다시 불러올 때마다(새 버전 반영, 웹 실패 → 로컬) 설정을 다시 보낸다
+  win.webContents.on('did-finish-load', () => win.webContents.send('settings', settings));
 
   // 개발용: KB_SNAPSHOT=경로 로 실행하면 몇 초 뒤 창을 PNG 로 저장하고 콘솔 로그를 출력
   if (process.env.KB_SNAPSHOT) {
@@ -87,6 +84,72 @@ function createWindow() {
       win.webContents.executeJavaScript(process.env.KB_EVAL).then((r) => console.log('[eval]', r), (e) => console.log('[eval]', e.message));
     }, 1000));
   }
+}
+
+// 게임 화면은 웹(GitHub Pages)에서 불러온다. 그래서 게임 코드 업데이트는 푸시만 하면 앱에도 반영되고,
+// 앱을 다시 빌드하는 건 main.js / preload.js 를 바꿀 때뿐이다. 웹을 못 불러오면 앱에 들어 있는 파일로 연다.
+// 개발(npm start)에서는 고친 코드를 바로 보도록 로컬 파일을 연다. KB_WEB=주소 로 웹 주소를 지정할 수 있다.
+const WEB_URL = process.env.KB_WEB || (app.isPackaged ? 'https://sc-guffy.github.io/Knight_Bar_Idle/' : '');
+const LOAD_TIMEOUT = 15000;
+
+function gameQuery() {
+  // 서버 주소: KB_SERVER 환경 변수 > settings.json 의 serverUrl > 렌더러 기본값(net.js)
+  return { speed: process.env.KB_SPEED || '1', server: process.env.KB_SERVER || settings.serverUrl || '' };
+}
+
+function loadLocal() {
+  win.loadFile('index.html', { query: gameQuery() });
+}
+
+async function loadGame() {
+  if (!WEB_URL) return loadLocal();
+  await migrateLocalStorage();
+  await win.webContents.session.clearCache();   // 항상 최신 게임 코드를 받는다
+  const url = new URL(WEB_URL);
+  for (const [k, v] of Object.entries(gameQuery())) url.searchParams.set(k, v);
+
+  let settled = false;
+  const fallback = () => {
+    if (settled || !win || win.isDestroyed()) return;
+    settled = true;
+    clearTimeout(timer);
+    win.webContents.removeListener('did-fail-load', onFail);
+    loadLocal();
+  };
+  const onFail = (_e, code, _desc, _url, isMainFrame) => { if (isMainFrame && code !== -3) fallback(); };
+  win.webContents.on('did-fail-load', onFail);
+  const timer = setTimeout(fallback, LOAD_TIMEOUT);
+  win.webContents.once('did-finish-load', () => {
+    settled = true;
+    clearTimeout(timer);
+    win.webContents.removeListener('did-fail-load', onFail);
+  });
+  win.loadURL(url.toString()).catch(() => {});
+}
+
+// 예전 앱은 로컬 파일(file://)에서 게임을 열어서 세이브·계정이 그쪽 localStorage 에 있다.
+// 웹 주소로 처음 열기 전에 한 번 옮긴다. 웹 쪽에 이미 있는 값은 덮어쓰지 않는다.
+function withPage(loader, js) {
+  return new Promise((resolve) => {
+    const w = new BrowserWindow({ show: false });
+    const done = (v) => { if (!w.isDestroyed()) w.destroy(); resolve(v); };
+    w.webContents.once('did-fail-load', (_e, code) => { if (code !== -3) done(null); });
+    w.webContents.once('did-finish-load', () => w.webContents.executeJavaScript(js).then(done, () => done(null)));
+    setTimeout(() => done(null), LOAD_TIMEOUT);
+    loader(w).catch(() => done(null));
+  });
+}
+async function migrateLocalStorage() {
+  if (settings.migratedToWeb) return;
+  const dump = await withPage((w) => w.loadFile('store.html'), 'JSON.stringify(Object.assign({}, localStorage))');
+  if (dump == null) return;
+  if (dump !== '{}') {
+    const ok = await withPage((w) => w.loadURL(new URL('store.html', WEB_URL).toString()),
+      `(() => { const d = ${dump}; for (const k in d) if (localStorage.getItem(k) == null) localStorage.setItem(k, d[k]); return true; })()`);
+    if (!ok) return;   // 웹을 못 열었으면 다음 실행 때 다시 시도
+  }
+  settings.migratedToWeb = true;
+  saveSettings();
 }
 
 function trayIcon() {
@@ -212,6 +275,8 @@ app.whenReady().then(() => {
     }
   });
   ipcMain.on('quit', () => app.quit());
+  // 렌더러가 새 게임 버전을 발견하면 캐시를 비우고 다시 불러온다
+  ipcMain.on('reload', () => { if (win && !win.isDestroyed()) loadGame(); });
   ipcMain.on('tray-title', (_e, text) => {
     if (tray) tray.setTitle(text);
   });

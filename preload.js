@@ -11,4 +11,5 @@ contextBridge.exposeInMainWorld('bar', {
   onFlush: (cb) => ipcRenderer.on('flush', () => cb()),
   flushed: () => ipcRenderer.send('flushed'),
   quit: () => ipcRenderer.send('quit'),
+  reload: () => ipcRenderer.send('reload'),
 });

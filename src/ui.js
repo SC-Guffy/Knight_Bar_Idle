@@ -1161,6 +1161,39 @@ function setupGuide(os) {
   });
 }
 
+// ───────────────────────── 새 버전 자동 반영 (데스크탑 앱) ─────────────────────────
+// 앱은 게임 화면을 웹에서 불러온다. 켜 둔 채로도 업데이트가 반영되도록 몇 분마다 웹의 게임 파일을 다시 받아 보고,
+// 바뀌었으면 저장한 뒤 다시 불러온다. 배포 도중 일부 파일만 바뀐 상태를 피하려고 같은 결과가 두 번 연속 나와야 반영한다.
+const UPDATE_CHECK_EVERY = 5 * 60 * 1000;
+
+async function gameFingerprint() {
+  const urls = [location.origin + location.pathname, ...[...document.scripts].map((s) => s.src).filter(Boolean)];
+  const texts = await Promise.all(urls.map((u) => fetch(u, { cache: 'no-store' }).then((r) => {
+    if (!r.ok) throw new Error(r.status);
+    return r.text();
+  })));
+  let h = 0;
+  for (const ch of texts.join('\0')) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  return h;
+}
+
+function watchForUpdates() {
+  if (!window.bar || location.protocol === 'file:') return;   // 로컬 파일로 열렸으면(개발·오프라인) 확인하지 않는다
+  let current = null, pending = null;
+  gameFingerprint().then((h) => { current = h; }, () => {});
+  setInterval(async () => {
+    let h;
+    try { h = await gameFingerprint(); } catch { return; }
+    if (current == null) { current = h; return; }
+    if (h === current) { pending = null; return; }
+    if (pending !== h) { pending = h; return; }
+    if (campOpen || document.activeElement?.value) return;   // 캠프 창을 보거나 뭔가 입력하던 중이면 끝난 뒤에
+    save();
+    try { await pushSave(); } catch {}
+    window.bar.reload ? window.bar.reload() : location.reload();
+  }, UPDATE_CHECK_EVERY);
+}
+
 // ───────────────────────── 부팅 ─────────────────────────
 function boot() {
   resizeCanvas();
@@ -1194,6 +1227,7 @@ function boot() {
       await pushSave();
       window.bar.flushed();
     });
+    watchForUpdates();
   }
 
   if (activeToken()) {
