@@ -12,5 +12,4 @@ contextBridge.exposeInMainWorld('bar', {
   flushed: () => ipcRenderer.send('flushed'),
   quit: () => ipcRenderer.send('quit'),
   reload: () => ipcRenderer.send('reload'),
-  setGameVersion: (v) => ipcRenderer.send('game-version', v),
 });

@@ -769,7 +769,7 @@ function renderCamp() {
       </div>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
     </header>
-    <nav>${tabs.map(([id, label, badge]) => `<button class="${id === campTab ? 'on' : ''}" data-action="tab" data-tab="${id}">${label}${badge}</button>`).join('')}</nav>
+    <nav>${tabs.map(([id, label, badge]) => `<button class="${id === campTab ? 'on' : ''}" data-action="tab" data-tab="${id}">${label}${badge}</button>`).join('')}<span class="ver">v${GAME_VERSION}</span></nav>
     <section id="campBody">${view}</section>
     <footer>${viewDepart()}</footer>`;
   $('campBody').scrollTop = scroll;
@@ -1221,7 +1221,6 @@ function boot() {
       $('hud').classList.toggle('right', !!s.hudRight);
     });
     window.bar.onSwitchAccount(openAccount);
-    if (window.bar.setGameVersion) window.bar.setGameVersion(GAME_VERSION);   // 0.2.0 앱에는 없다
     // 앱을 끄기 직전에 서버에 마지막으로 저장한다
     window.bar.onFlush(async () => {
       save();

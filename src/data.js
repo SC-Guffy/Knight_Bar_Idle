@@ -9,8 +9,8 @@ const WALK_SPEED = 42;          // px/s
 const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
-// 게임 버전. 데스크탑 앱 트레이 메뉴에 "기사 키우기 (v…)"로 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.2.1';
+// 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
+const GAME_VERSION = '0.2.0';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
