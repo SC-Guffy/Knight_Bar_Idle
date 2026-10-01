@@ -94,10 +94,9 @@ const gearById = (id) => S.gear.inv.find((x) => x.id === id) || null;
 const equipped = (slot) => gearById(S.gear.eq[slot]);
 const isEquipped = (it) => S.gear.eq[it.slot] === it.id;
 
-// enh: 적용할 강화 단계 (기본은 그 부위의 현재 단계).
-// 능력치는 드랍된 스테이지가 아니라 내 최고 스테이지 기준 — 등급이 높을수록 항상 세다
+// enh: 적용할 강화 단계 (기본은 그 부위의 현재 단계). 능력치는 등급·roll 로만 정해진다
 function gearStat(it, enh = S.gear.enh[it.slot]) {
-  const b = gearBase(it.slot, it.g, S.best, it.roll);
+  const b = gearBase(it.slot, it.g, it.roll);
   const m = enhanceMultAt(enh), soft = softEnhMultAt(enh);
   const out = {};
   for (const k of Object.keys(b)) out[k] = b[k] * (SOFT_ENH[k] ? soft : m);
@@ -107,7 +106,7 @@ function gearStat(it, enh = S.gear.enh[it.slot]) {
 // 고유 장비의 특수 효과는 대략 그만큼 점수를 올려 준다 (골드·경험치는 전투력이 아니라 조금만)
 function gearScore(it) {
   const st = gearStat(it, 0);
-  const base = it.slot === 'ring' ? st.crit * 2.5 + st.critMult * 0.3 : it.slot === 'weapon' ? st.atk * (1 + st.aspdPct) : st.hp;
+  const base = it.slot === 'ring' ? st.crit * 2.5 + st.critMult * 0.3 : it.slot === 'weapon' ? (1 + st.atkUp) * (1 + st.aspdPct) : 1 + st.hpUp;
   const sp = GEAR_ITEMS[it.t].sp;
   if (!sp) return base;
   let k = 1;
@@ -120,15 +119,15 @@ function gearSpecialText(it) {
   return sp ? Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v)}`).join(' · ') : '';
 }
 function gearStatText(st) {
-  if (st.atk != null) return `⚔️ +${fmt(st.atk)}${st.aspdPct ? ` · 💨 +${Math.round(st.aspdPct * 100)}%` : ''}`;
-  if (st.hp != null) return `❤️ +${fmt(st.hp)}`;
+  if (st.atkUp != null) return `⚔️ +${Math.round(st.atkUp * 100)}%${st.aspdPct ? ` · 💨 +${Math.round(st.aspdPct * 100)}%` : ''}`;
+  if (st.hpUp != null) return `❤️ +${Math.round(st.hpUp * 100)}%`;
   return `💥 +${(st.crit * 100).toFixed(1)}% · 피해 +${Math.round(st.critMult * 100)}%`;
 }
 const gearSellPrice = (it) => Math.floor(monsterStats(it.s, false).gold * GRADES[it.g].sell * it.roll);
 
 // stats() 가 합치는 장착 장비 보너스 (고유 장비의 특수 효과 포함)
 function gearBonus() {
-  const out = { atk: 0, hp: 0, crit: 0, critMult: 0 };
+  const out = { atkUp: 0, hpUp: 0, crit: 0, critMult: 0 };
   for (const k of Object.keys(SPECIAL_STATS)) if (!(k in out)) out[k] = 0;
   for (const slot of Object.keys(GEAR_SLOTS)) {
     const it = equipped(slot);
@@ -212,7 +211,7 @@ function loadoutValue(eq) {
 let loadoutCache = { key: '', eq: null };
 function bestLoadout() {
   // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
-  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${S.bld.forge}|${S.best}`;
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${S.bld.forge}`;
   if (loadoutCache.key === key) return loadoutCache.eq;
   const slots = Object.keys(GEAR_SLOTS);
   const cands = slots.map((slot) => {

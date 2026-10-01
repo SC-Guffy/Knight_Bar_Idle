@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.8.8';
+const GAME_VERSION = '0.9.0';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -57,7 +57,7 @@ const BUILDINGS = {
   },
   forge: {
     name: '대장간', icon: '⚒️', mul: { gold: 1.2, wood: 0.4, ore: 1.6, mana: 1.4 },
-    effect: (lv) => `무기 공격력 ×${forgeMultAt(lv).toFixed(2)}`,
+    effect: (lv) => `공격력 ×${forgeMultAt(lv).toFixed(2)}`,
   },
 };
 
@@ -139,9 +139,9 @@ const LOOT_KIND_W = { gear: 40, curio: 45, use: 15 };
 const LOOT_KIND_W_BOSS = { gear: 65, curio: 25, use: 10 };
 
 // ───────────────────────── 장비 ─────────────────────────
-// 능력치는 등급과 내 최고 스테이지(S.best)로 정해지고, 강화 단계(부위별)가 곱해진다.
-//  드랍된 스테이지(s)는 판매가에만 쓴다 — 모든 장비가 나와 함께 성장하므로 등급이 높으면 항상 더 세다.
-//  무기: 공격력 (대장간 배율을 받음) · 갑옷: 체력 · 장신구(반지·왕관 등): 치명 확률 + 치명 피해
+// 절대값은 훈련·레벨이 쌓고, 장비는 그 위에 %를 곱한다. 능력치는 등급(과 roll)으로만 정해지고 강화 단계(부위별)가 곱해진다.
+//  드랍된 스테이지(s)는 판매가에만 쓴다 — 등급이 높으면 언제 주웠든 항상 더 세다.
+//  무기: 공격력 % · 갑옷: 체력 % · 장신구(반지·왕관 등): 치명 확률 + 치명 피해
 const GEAR_SLOTS = {
   weapon: { name: '무기', icon: '🗡️' },
   armor:  { name: '갑옷', icon: '🛡️' },
@@ -352,14 +352,14 @@ const SPECIAL_STATS = {
   goldPct:  { name: '골드 획득', fmt: (v) => `+${Math.round(v * 100)}%` },
   expPct:   { name: '경험치 획득', fmt: (v) => `+${Math.round(v * 100)}%` },
 };
-const gearStageMult = (s) => Math.pow(1.18, s - 1);
 // 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)
 const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
-function gearBase(slot, g, s, roll) {
+// 무기 공격력·갑옷 체력은 등급 stat 의 절반만큼 % (영웅 +160% · 태초 +685%), 강화 배율이 그대로 곱해진다
+function gearBase(slot, g, roll) {
   const k = GRADES[g].stat * roll;
-  if (slot === 'weapon') return { atk: 6 * gearStageMult(s) * k, aspdPct: WEAPON_ASPD[g] * roll };
-  if (slot === 'armor') return { hp: 40 * gearStageMult(s) * k };
-  return { crit: 0.02 * k, critMult: 0.12 * k * (1 + 0.02 * (s - 1)) };
+  if (slot === 'weapon') return { atkUp: 0.5 * k, aspdPct: WEAPON_ASPD[g] * roll };
+  if (slot === 'armor') return { hpUp: 0.5 * k };
+  return { crit: 0.02 * k, critMult: 0.2 * k };
 }
 // 강화가 공속·치명에는 단계당 4%만 곱해진다 (+25 에서 2배)
 const SOFT_ENH = { aspdPct: true, crit: true };
@@ -424,14 +424,22 @@ const CURIOS = {
 };
 
 // ───────────────────────── 훈련 (골드) ─────────────────────────
+// 공격력·체력 훈련이 절대값 성장의 중심이다: 단계마다 ×1.286 (스테이지를 따라 비용이 1.32배씩 오르는 것과 맞춘 값)
+const TRAIN_GROW = 1.286;
+const trainAtkAt = (t) => 6 * Math.pow(TRAIN_GROW, t);
+const trainHpAt = (t) => 40 * Math.pow(TRAIN_GROW, t);
 const TRAINING = [
   { id: 'atk',  name: '⚔️ 공격력', max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
   { id: 'hp',   name: '🛡️ 체력',   max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },
-  { id: 'def',  name: '🛡️ 방어',   max: Infinity, base: 15, grow: 1.3,  show: (st) => `-${Math.round(st.defRed * 100)}%` },
+  { id: 'def',  name: '🛡️ 방어',   max: Infinity, base: 15, grow: 1.3,  show: (st) => fmt(st.def) },
   { id: 'fortune', name: '💰 수완', max: Infinity, base: 15, grow: 1.3, show: () => `+${Math.round(fortuneBonus() * 100)}%` },
 ];
-// 방어: 받는 피해 감소 = Lv / (Lv + DEF_K) — 올릴수록 효과가 줄어들어 100%에는 닿지 않는다 (Lv 80 50% · Lv 240 75%)
-const DEF_K = 80;
+// 방어: 훈련이 절대값을 쌓고(공격력·체력과 같은 ×1.286), 받는 피해 감소 = 방어 / (방어 + DEF_K × 그 스테이지 몬스터 공격력).
+//  올릴수록 효율이 떨어져 100%에는 닿지 않고, 깊은 스테이지일수록 같은 방어의 효과가 줄어든다.
+//  스테이지 속도에 맞춰 훈련하면 대략 20~50% (Lv 6 @10스테이지 22% · Lv 26 @40 34% · Lv 57 @88 40%)
+const defAt = (t) => 10 * (Math.pow(TRAIN_GROW, t) - 1);
+const DEF_K = 10;
+const defRedAt = (def, stage) => def / (def + DEF_K * monsterStats(stage, false).atk);
 // 수완: 골드·경험치 획득 Lv 당 +3% (몬스터 처치와 레이드 보상에 적용)
 const FORTUNE_PER_LV = 0.03;
 // 예전 훈련(공속·치명)은 없어졌다. 예전 세이브에 남은 단계는 쓴 골드를 돌려준다 (core.js migrate)

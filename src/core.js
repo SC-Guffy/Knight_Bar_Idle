@@ -104,19 +104,19 @@ function stats(base = false) {
   const c = heroClass(), w = WEAPONS[c.weapon], m = c.mods;
   const t = S.train;
   const gb = gearBonus();
-  // 장비 무기 공격력도 대장간 배율을 받는다
-  let atk = ((5 + t.atk * 2.5) * Math.pow(1.07, t.atk) + (S.level - 1) * 1.5 + gb.atk)
-    * forgeMultAt(S.bld.forge) * (m.atk || 1) * (1 + gb.atkPct);
+  // 절대값(훈련·레벨)에 장비 %(무기·갑옷)와 대장간·직업·특수 효과 배율이 곱해진다
+  let atk = (trainAtkAt(t.atk) + (S.level - 1) * 1.5)
+    * (1 + gb.atkUp) * forgeMultAt(S.bld.forge) * (m.atk || 1) * (1 + gb.atkPct);
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
-  const maxHp = ((60 + t.hp * 18) * Math.pow(1.07, t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1) * (1 + gb.hpPct);
+  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8) * (1 + gb.hpUp) * (m.hp || 1) * (1 + gb.hpPct);
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
-  const defRed = t.def / (t.def + DEF_K);
+  const def = defAt(t.def), defRed = defRedAt(def, S.stage || 1);
   return {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
     // 받는 피해 감소: 직업·장비(최대 60%)와 방어 훈련을 곱으로 합친다 (최대 85%)
-    guard: Math.min(0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed)), defRed,
+    guard: Math.min(0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed)), def, defRed,
     heal: Math.min(0.1, (m.heal || 0) + gb.heal), skills: unlockedSkills(),
   };
 }
