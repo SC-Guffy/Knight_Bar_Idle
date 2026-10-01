@@ -22,7 +22,7 @@ const WEAPONS = {
 // ───────────────────────── 전직 조건 ─────────────────────────
 const CLASS_REQ = {
   1: { level: 20, mana: 10, gold: 500 },
-  2: { level: 45, mana: 80, gold: 50000 },
+  2: { level: 50, mana: 80, gold: 50000 },
 };
 
 // ───────────────────────── 직업별 몸통 스프라이트 (11×13, 오른쪽을 봄) ─────────────────────────
@@ -237,9 +237,8 @@ const CLASSES = {
   },
   dragoon: {
     tier: 2, from: 'lancer', name: '용기병', icon: '🐉', weapon: 'dragonSpear',
-    mods: { atk: 2.05, hp: 1.6, aspd: 0.9, crit: 0.1 },
-    leap: { every: 6, mult: 3, radius: 70 },
-    desc: '6초마다 높이 도약해 내리꽂는다. 주변 적 모두에게 3배 피해.',
+    mods: { atk: 2.6, hp: 1.6, aspd: 0.9, crit: 0.1 },
+    desc: '용의 힘을 두른 창. 하늘에서 내리꽂고 용의 숨결을 뿜는다.',
     look: {
       body: BODY.dragoon, fx: '#b388ff',
       pal: { n: '#e8e0d0', h: '#3b2458', H: '#6b45a0', v: '#ffcc33', a: '#2e1d47', A: '#5a3a8a', y: '#c0a0ff', b: '#1f1430', l: '#3b2458', k: '#1f1430' },
@@ -287,6 +286,111 @@ const CLASSES = {
     },
   },
 };
+
+// ───────────────────────── 스킬 ─────────────────────────
+// 직업마다 1차 1종, 2차 2종. 해금 레벨이 되면 교전 중 쿨타임이 찬 스킬부터 쓰고, 없으면 평타를 친다 (레벨 높은 스킬 우선).
+// 수치(여기)는 원정·결투·레이드·DPS 계산이 함께 쓰고, 모션과 이펙트는 src/skills.js 의 SKILL_FX 에 있다.
+//  lv 해금 레벨 · cd 쿨타임(초) · dur 시전 시간(초) — 이 동안은 평타·이동을 멈춘다
+//  hits: [[시점(dur 비율 0~1), 배율], ...] — 배율의 합이 대상 하나가 받는 총 피해
+//  area: single 가장 가까운 적 | line 앞쪽 일직선 (무기 사거리 × reach) | all 사거리 + radius 안의 적 모두
+//  crit 치명타 확정 · air: [시작, 끝] 이 구간엔 공중에 있어 맞지 않는다
+//  ward: 시전이 끝나면 펼치는 보호막 { dur 초, guard 받는 피해 감소, heal 즉시 회복(최대 체력 비율), tick 보호막 동안 초당 주변 피해 배율 }
+const evenHits = (n, from, step, mult) => Array.from({ length: n }, (_, i) => [from + step * i, mult]);
+const SKILLS = {
+  // ── 1차 ──
+  steelCleave: {
+    cls: 'swordsman', name: '강철 베기', icon: '⚔️', lv: 25, cd: 8, dur: 0.7, area: 'single',
+    hits: [[0.5, 2.6]],
+    desc: '검을 머리 위로 치켜들었다가 크게 내려벤다.',
+  },
+  piercingThrust: {
+    cls: 'lancer', name: '관통 찌르기', icon: '🔱', lv: 25, cd: 9, dur: 0.65, area: 'line', reach: 1.6,
+    hits: [[0.45, 2.3]],
+    desc: '뒤로 웅크렸다가 돌진하며 찔러 일직선의 적을 모두 꿰뚫는다.',
+  },
+  rapidFire: {
+    cls: 'ranger', name: '연사', icon: '🏹', lv: 25, cd: 8, dur: 0.8, area: 'single',
+    hits: evenHits(4, 0.25, 0.15, 0.7),
+    desc: '화살 4발을 숨 돌릴 틈 없이 쏜다.',
+  },
+
+  // ── 성기사 ──
+  judgment: {
+    cls: 'paladin', name: '심판의 일격', icon: '⚡', lv: 60, cd: 10, dur: 1.0, area: 'all', radius: 60,
+    hits: [[0.6, 4]],
+    desc: '성검을 하늘로 들어 적 위에 황금 빛기둥을 내리꽂는다.',
+  },
+  sanctuary: {
+    cls: 'paladin', name: '성역', icon: '🛡️', lv: 70, cd: 18, dur: 0.9, area: 'all', radius: 40,
+    hits: [], ward: { dur: 4, guard: 0.5, heal: 0.2, tick: 0.5 },
+    desc: '성검을 땅에 꽂아 4초 동안 황금 성역을 펼친다. 받는 피해 -50%, 체력 20% 회복, 안의 적은 계속 불탄다.',
+  },
+
+  // ── 검성 ──
+  gale: {
+    cls: 'blademaster', name: '질풍난무', icon: '🌪️', lv: 60, cd: 10, dur: 1.3, area: 'all', radius: 40,
+    hits: [...evenHits(6, 0.15, 0.09, 0.5), [0.86, 1.2]],
+    desc: '모습을 감추고 적 사이를 오가며 6번 벤 뒤 X자로 마무리한다.',
+  },
+  iaido: {
+    cls: 'blademaster', name: '일섬', icon: '🌙', lv: 70, cd: 15, dur: 1.4, area: 'all', radius: 200, crit: true,
+    hits: [[0.78, 4]],
+    desc: '숨을 죽인 발도 자세에서 한 줄기 섬광으로 지나간다. 늦게 터지는 베기는 반드시 치명타.',
+  },
+
+  // ── 용기병 ──
+  dragonFall: {
+    cls: 'dragoon', name: '용추락', icon: '☄️', lv: 60, cd: 8, dur: 1.1, area: 'all', radius: 80, air: [0.15, 0.72],
+    hits: [[0.72, 3]],
+    desc: '화면 위로 솟구쳤다가 유성처럼 내리꽂혀 땅을 가른다.',
+  },
+  dragonBreath: {
+    cls: 'dragoon', name: '용의 숨결', icon: '🔥', lv: 70, cd: 14, dur: 1.8, area: 'line', reach: 2.2,
+    hits: evenHits(8, 0.25, 0.08, 0.5),
+    desc: '창끝에 깃든 용이 보라색 불꽃을 쏟아낸다.',
+  },
+
+  // ── 할버디어 ──
+  whirlwind: {
+    cls: 'halberdier', name: '대회전', icon: '🌀', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 30,
+    hits: [[0.38, 1.4], [0.78, 1.4]],
+    desc: '할버드를 들고 두 바퀴 돌며 주변을 모두 쓸어 날린다.',
+  },
+  earthSplitter: {
+    cls: 'halberdier', name: '대지 가르기', icon: '⛰️', lv: 70, cd: 15, dur: 1.4, area: 'line', reach: 4,
+    hits: [[0.6, 4]],
+    desc: '뛰어올라 내리찍으면 땅이 앞으로 갈라지며 바위가 솟구친다.',
+  },
+
+  // ── 저격수 ──
+  headshot: {
+    cls: 'marksman', name: '헤드샷', icon: '🎯', lv: 60, cd: 12, dur: 1.1, area: 'single', crit: true,
+    hits: [[0.75, 2.2]],
+    desc: '무릎을 꿇고 숨을 고른 뒤 급소를 꿰뚫는다. 반드시 치명타.',
+  },
+  armorPiercer: {
+    cls: 'marksman', name: '철갑 관통탄', icon: '💥', lv: 70, cd: 16, dur: 1.2, area: 'line', reach: 3,
+    hits: [[0.6, 3]],
+    desc: '시위를 끝까지 당겨 화면 끝까지 꿰뚫는 한 발. 반동에 몸이 밀려난다.',
+  },
+
+  // ── 마궁수 ──
+  homingBolts: {
+    cls: 'arcaneArcher', name: '유도 마탄', icon: '✴️', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 60,
+    hits: evenHits(6, 0.6, 0.05, 0.8),
+    desc: '등 뒤 마법진에서 마력탄 6발이 곡선을 그리며 적을 쫓는다.',
+  },
+  starfall: {
+    cls: 'arcaneArcher', name: '별빛 화살비', icon: '🌠', lv: 70, cd: 16, dur: 2.2, area: 'all', radius: 200,
+    hits: evenHits(10, 0.35, 0.06, 0.7),
+    desc: '하늘에 마법진을 열어 별빛 화살을 쏟아붓는다.',
+  },
+};
+for (const id in SKILLS) SKILLS[id].id = id;
+// 대상 하나가 받는 총 피해 배율 (보호막 지속 피해 포함)
+const skillMult = (k) => k.hits.reduce((a, h) => a + h[1], 0) + (k.ward ? k.ward.tick * k.ward.dur : 0);
+// 직업의 스킬 (해금 레벨 순)
+const skillsOf = (cls) => Object.values(SKILLS).filter((k) => k.cls === cls).sort((a, b) => a.lv - b.lv);
 
 // 트리 화면 배치 순서
 const CLASS_TREE = [

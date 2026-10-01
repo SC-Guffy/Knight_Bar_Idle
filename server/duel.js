@@ -22,6 +22,25 @@ function mulberry32(seed) {
 
 const round1 = (n) => Math.round(n * 10) / 10;
 
+// 스킬: 교전 중 쿨타임이 찬 스킬부터 쓰고(목록 앞쪽 우선), 시전 시간(dur) 동안은 평타를 멈춘다.
+// 첫 스킬은 교전 시작 직후, 나머지는 조금씩 늦게 준비된다. 원정과 같은 규칙 (src/classes.js SKILLS)
+const makeSkills = (p) => (p.skills || []).map((s, i) => ({ ...s, left: 0.3 + i * 1.5 }));
+function readySkill(me, dt) {
+  me.busy -= dt;
+  let pick = null;
+  for (const s of me.skills) {
+    s.left -= dt;
+    if (!pick && s.left <= 0 && me.busy <= 0) pick = s;
+  }
+  if (!pick) return null;
+  pick.left = pick.cd;
+  me.busy = pick.dur;
+  me.cd = Math.max(me.cd, pick.dur);
+  return pick;
+}
+// 보호막(성역)이 켜져 있으면 받는 피해가 준다
+const wardCut = (k, t) => (k.ward && t < k.ward.until ? 1 - k.ward.guard : 1);
+
 // p: 클라이언트가 저장할 때 올린 전투 프로필 (sanitizeProfile 을 거친 값)
 function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
   const rng = mulberry32(seed);
@@ -29,19 +48,28 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     p, x, dir, hp: p.maxHp * HP_MULT, max: p.maxHp * HP_MULT,
     cd: 0.2 + rng() * 0.3,
     leapCd: p.leap ? p.leap.every / 2 : Infinity,
+    skills: makeSkills(p), busy: 0, ward: null,
     stopT: null,
   });
   const a = make(pa, 0, 1), b = make(pb, START_DIST, -1);
   const events = [];
   let t = 0;
 
-  const hit = (me, op, side, kind) => {
-    const crit = rng() < me.p.crit;
-    const base = kind === 'leap' ? me.p.leap.mult : me.p.shots * me.p.shotMult;
-    const dmg = me.p.atk * base * (crit ? me.p.critMult : 1) * (0.9 + rng() * 0.2) * (1 - op.p.guard);
+  // sk: 쓰는 스킬 (kind === 'skill')
+  const hit = (me, op, side, kind, sk) => {
+    const crit = (sk && sk.crit) || rng() < me.p.crit;
+    const base = kind === 'leap' ? me.p.leap.mult : sk ? sk.mult : me.p.shots * me.p.shotMult;
+    const dmg = me.p.atk * base * (crit ? me.p.critMult : 1) * (0.9 + rng() * 0.2) * (1 - op.p.guard) * wardCut(op, t);
     op.hp -= dmg;
     if (me.p.heal) me.hp = Math.min(me.max, me.hp + me.max * me.p.heal);
-    events.push({ t: round1(t), by: side, kind, dmg: Math.round(dmg), crit, hpA: Math.max(0, Math.round(a.hp)), hpB: Math.max(0, Math.round(b.hp)) });
+    if (sk && sk.ward) {
+      me.ward = { until: t + sk.dur + sk.ward.dur, guard: sk.ward.guard };
+      me.hp = Math.min(me.max, me.hp + me.max * sk.ward.heal);
+    }
+    events.push({
+      t: round1(t), by: side, kind, ...(sk ? { sk: sk.id } : {}),
+      dmg: Math.round(dmg), crit, hpA: Math.max(0, Math.round(a.hp)), hpB: Math.max(0, Math.round(b.hp)),
+    });
   };
 
   while (t < MAX_T && a.hp > 0 && b.hp > 0) {
@@ -57,7 +85,9 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
       me.cd -= DT;
       me.leapCd -= DT;
       if (me.leapCd <= 0) { me.leapCd = me.p.leap.every; hit(me, op, side, 'leap'); continue; }
-      if (me.cd <= 0) { me.cd = 1 / me.p.aspd; hit(me, op, side, 'hit'); }
+      const sk = readySkill(me, DT);
+      if (sk) { hit(me, op, side, 'skill', sk); continue; }
+      if (me.busy <= 0 && me.cd <= 0) { me.cd = 1 / me.p.aspd; hit(me, op, side, 'hit'); }
     }
     t += DT;
   }
@@ -82,4 +112,4 @@ function eloDelta(winnerRating, loserRating, k = 32) {
   return Math.max(1, Math.round(k * (1 - expected)));
 }
 
-module.exports = { simulateDuel, eloDelta };
+module.exports = { simulateDuel, eloDelta, makeSkills, readySkill, wardCut };

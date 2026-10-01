@@ -29,7 +29,8 @@ const aheadDist = (from, to) => mod(to - from, worldLen());
 const knight = {
   x: toWorld(CAMP_X), swing: -1, atkTimer: 0, flash: 0, walkT: 0, facing: 1, fighting: false, down: 0,
   pending: false,          // 휘두르는 도중 타격/발사 시점을 기다리는 중
-  leapT: -1, leapCd: 3,    // 용기병 도약 (leapT 0→1 진행 중)
+  cds: {},                 // 스킬별 남은 쿨타임 (src/skills.js)
+  ward: null,              // 성역 보호막 { left, guard, tick, acc }
 };
 let monsters = [];
 let shots = [];            // 화살·마력탄
@@ -151,17 +152,25 @@ function monsterMidY(m) {
   return monsterTop(m) + (spriteOf(m).length * monsterScale(m)) / 2;
 }
 
-// mult: 연발 화살·도약 등 무기별 피해 배율
-function hitMonster(m, mult = 1) {
+// mult: 연발 화살·스킬 등 피해 배율. o: 스킬 타격 { crit 치명 확정, kb 밀려나는 거리, color 숫자 색 }
+function hitMonster(m, mult = 1, o = {}) {
   const st = stats();
-  const crit = Math.random() < st.crit;
+  const crit = o.crit || Math.random() < st.crit;
   const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
   m.flash = 0.08;
   m.hurt = 1;
-  m.kb = m.boss ? 2 : heroWeapon().motion === 'sweep' ? 10 : 5;
+  const kb = o.kb != null ? o.kb : heroWeapon().motion === 'sweep' ? 10 : 5;
+  m.kb = m.boss ? Math.min(kb, 4) : Math.max(m.kb, kb);
   if (st.heal) S.hp = Math.min(st.maxHp, S.hp + st.maxHp * st.heal);
-  addFloater((crit ? '💥' : '') + fmt(dmg), toScreen(m.x) + rand(-6, 6), monsterTop(m) - 4, crit ? '#ffb13b' : '#ffffff', crit ? 14 : 12);
+  // quiet: 여러 번 나눠 때리는 스킬 — 숫자를 모아 두었다가 마지막 타격이나 처치 때 한 번에 띄운다
+  m.skAcc = (m.skAcc || 0) + dmg;
+  m.skCrit = m.skCrit || crit;
+  if (!o.quiet || m.hp <= 0) {
+    const total = m.skAcc, anyCrit = m.skCrit, size = (anyCrit ? 14 : 12) + (o.color ? 2 : 0) + (o.quiet != null && total > dmg * 1.5 ? 2 : 0);
+    m.skAcc = 0; m.skCrit = false;
+    addFloater((anyCrit ? '💥' : '') + fmt(total), toScreen(m.x) + rand(-6, 6), monsterTop(m) - 4 - (o.color ? rand(0, 10) : 0), anyCrit ? '#ffb13b' : o.color || '#ffffff', size);
+  }
   if (m.hp > 0) return;
 
   m.dying = 0.001;
@@ -199,17 +208,6 @@ function releaseAttack(st) {
   } else {
     inRange.slice(0, st.targets).forEach(m => hitMonster(m));
   }
-}
-
-// 용기병: 높이 뛰어올라 착지하며 주변 적 모두에게 큰 피해
-function updateLeap(dt, st) {
-  knight.leapT += dt / 0.7;
-  if (knight.leapT < 1) return;
-  knight.leapT = -1;
-  effects.push({ type: 'ring', x: toScreen(knight.x) + 24, y: groundY() - 2, t: 0, color: heroClass().look.fx });
-  monsters
-    .filter(m => !m.dying && aheadDist(knight.x, m.x) <= st.range + st.leap.radius)
-    .forEach(m => hitMonster(m, st.leap.mult));
 }
 
 function updateExpedition(dt, gdt) {
@@ -255,14 +253,15 @@ function updateExpedition(dt, gdt) {
   }
 
   knight.facing = 1;
-  if (st.leap) knight.leapCd -= dt;       // 도약 쿨타임은 원정 내내 흐르고, 준비되면 다음 교전에서 바로 뛴다
-  if (knight.leapT >= 0) {
-    updateLeap(dt, st);
+  tickSkills(dt, st);                     // 스킬 쿨타임은 원정 내내 흐르고, 준비되면 다음 교전에서 바로 쓴다
+  if (castOf('hero')) {
+    // 스킬을 쓰는 동안은 평타도 이동도 멈춘다 (피해는 src/skills.js 가 타격 시점에 넣는다)
   } else if (target && best <= reachTo(target)) {
     if (!knight.fighting) { knight.fighting = true; knight.crisis = false; }
     knight.atkTimer -= dt;
-    if (st.leap && knight.leapCd <= 0 && !knight.pending) { knight.leapCd = st.leap.every; knight.leapT = 0; }
-    if (knight.atkTimer <= 0 && knight.leapT < 0 && !knight.pending) {
+    if (!knight.pending && tryCastSkill(st, target)) {
+      // 스킬부터
+    } else if (knight.atkTimer <= 0 && !knight.pending) {
       knight.atkTimer = 1 / st.aspd;
       knight.swing = 0;
       knight.pending = true;
@@ -297,9 +296,9 @@ function advanceMonsterAttack(m, dt, st) {
   if (a.hit || a.t < a.dur * mo.hitAt) return false;
   a.hit = true;
   // 공중에 있거나 그새 사거리 밖이면 빗나감
-  if (knight.leapT >= 0 || aheadDist(knight.x, m.x) > monsterReach(m) + 1) return false;
+  if (heroAirborne() || aheadDist(knight.x, m.x) > monsterReach(m) + 1) return false;
   strikeFx(m);
-  const dmg = m.atk * rand(0.9, 1.1) * (1 - st.guard);
+  const dmg = m.atk * rand(0.9, 1.1) * (1 - st.guard) * (knight.ward ? 1 - knight.ward.guard : 1);
   S.hp -= dmg;
   knight.flash = 0.08;
   knight.recoil = 1;
@@ -312,6 +311,8 @@ function advanceMonsterAttack(m, dt, st) {
   knight.down = DEFEAT_DOWN_SEC;
   knight.fighting = false;
   knight.pending = false;
+  endCast('hero');
+  knight.ward = null;
   shots = [];
   monsters.forEach(o => { if (!o.dying) o.dying = 0.001; });
   if (S.stamina <= 0) endExpedition('stamina');
@@ -335,6 +336,8 @@ function updateReturning(dt) {
 }
 
 function update(dt) {
+  // 큰 타격 순간엔 화면 전체를 아주 잠깐 멈춘다 (히트스톱)
+  if (hitstop > 0) { hitstop -= dt; return; }
   clock += dt;
   const gdt = dt * TIME_SCALE;
   advanceBuild(gdt);
@@ -353,12 +356,14 @@ function update(dt) {
   else advanceCamp(gdt);
   if (duelPlay) updateDuel();
   if (raidPlay) updateRaid(dt);
+  updateCasts(dt);
 
   for (const m of monsters) {
     m.t += dt;
     m.flash = Math.max(0, m.flash - dt);
     m.kb = Math.max(0, m.kb - dt * 40);
     m.hurt = Math.max(0, m.hurt - dt * 4);
+    if (m.air != null && (m.air += dt) > 0.6) m.air = null;   // 스킬에 띄워진 시간
     if (m.dying) m.dying += dt;
   }
   monsters = monsters.filter(m => !m.dying || m.dying < 0.5);
@@ -417,7 +422,8 @@ hooks.onExpeditionEnd = (reason) => {
   monsters.forEach(m => { if (!m.dying) m.dying = 0.001; m.anim = null; });
   knight.fighting = false;
   knight.pending = false;
-  knight.leapT = -1;
+  endCast('hero');
+  knight.ward = null;
   shots = [];
   const label = { stamina: '지쳤다… 귀환!', bag: '가방 가득! 귀환!', manual: '귀환!' }[reason];
   addFloater(label, toScreen(knight.x), groundY() - 70, '#ffd257', 12);
@@ -433,7 +439,7 @@ hooks.onLevelUp = () => addFloater('LEVEL UP!', toScreen(knight.x), groundY() - 
 // ───────────────────────── 렌더 ─────────────────────────
 // g: 그릴 캔버스 (기본은 하단바, 전직 미리보기는 자기 캔버스). 알파는 현재 값에 곱한다.
 // sx·sy: 가로·세로 늘림(발밑 기준), skew: 높이 1px 당 가로로 밀리는 양 — 줄 단위로 밀어 도트가 계단처럼 기운다
-function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false, alpha = 1, sx = 1, sy = 1, skew = 0 } = {}, g = ctx) {
+function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false, tint = null, alpha = 1, sx = 1, sy = 1, skew = 0 } = {}, g = ctx) {
   const h = rows.length, w = rows[0].length;
   const cw = scale * sx, chh = scale * sy;
   const ox = cx - (w * cw) / 2;
@@ -449,7 +455,7 @@ function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false
       if (ch === '.') continue;
       const cc = flip ? w - 1 - c : c;
       const x0 = Math.round(ox + cc * cw) + shift, x1 = Math.round(ox + (cc + 1) * cw) + shift;
-      g.fillStyle = flash ? '#ffffff' : (pal[ch] || PAL[ch]);
+      g.fillStyle = flash ? '#ffffff' : tint || (pal[ch] || PAL[ch]);
       g.fillRect(x0, y0, x1 - x0, y1 - y0);
     }
   }
@@ -653,14 +659,32 @@ function drawArcTrail(g, w, hx, hy, s, r, from, to, width = 2) {
   g.stroke();
 }
 
+// 스킬 자세(src/skills.js)는 pose.wa(무기 각도)·ext(창 내밀기)·pull(시위)·bowA(활 기울기)로 무기를 직접 정한다
+function drawSkillWeapon(g, w, hx, hy, pose) {
+  if (w.kind === 'ranged') {
+    g.save();
+    g.translate(hx + PX, hy); g.rotate(pose.bowA || 0); g.translate(-(hx + PX), -hy);
+    drawBow(g, w, hx + PX, hy, pose.pull || 0);
+    g.restore();
+  } else if (w.motion === 'thrust' || w.motion === 'sweep') {
+    const ext = pose.ext || 0;
+    drawPole(g, w, hx + Math.cos(pose.wa) * ext, hy + Math.sin(pose.wa) * ext, pose.wa);
+  } else {
+    if (w.motion === 'dual') drawBlade(g, w, hx - 3 * PX, hy + PX, pose.wa2 != null ? pose.wa2 : pose.wa + 0.5, w.len - 1);
+    drawBlade(g, w, hx, hy, pose.wa);
+  }
+}
+
 function drawWeapon(g, w, x, bodyBottom, pose) {
   const s = pose.swing;
-  const hx = x + 4 * PX, hy = bodyBottom - 3 * PX;
+  const hx = x + 4 * PX + Math.round((pose.skew || 0) * 3 * PX), hy = bodyBottom - 3 * PX;
   const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : 0;
   g.save();
   if (w.glow) { g.shadowColor = w.glow; g.shadowBlur = 8; }
 
-  if (w.kind === 'ranged') {
+  if (pose.wa != null || (w.kind === 'ranged' && pose.pull != null)) {
+    drawSkillWeapon(g, w, hx, hy, pose);
+  } else if (w.kind === 'ranged') {
     const pull = s >= 0 && s < 0.45 ? (s / 0.45) * 8 : 0;
     drawBow(g, w, hx + PX, hy, pull);
   } else if (w.motion === 'swing') {
@@ -750,10 +774,11 @@ function drawHero(g, id, x, gy, pose) {
   const t = pose.t || 0;
   const sit = pose.mode === 'sit', walking = pose.mode === 'walk';
   const step = Math.floor((pose.walkT || 0) * 8) % 2;
-  const opt = { flash: !!pose.flash };
+  const opt = { flash: !!pose.flash, tint: pose.tint || null };
   g.save();
   g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;
   if (pose.facing < 0) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0); }
+  x += Math.round(pose.dx || 0);          // 스킬 돌진 (바라보는 쪽으로)
 
   if (sit) {
     drawRestingWeapon(g, w, x - 17, gy);
@@ -765,16 +790,18 @@ function drawHero(g, id, x, gy, pose) {
     if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
     if (look.halo) drawHalo(g, x, top, t);
   } else {
+    // 스킬 자세: sy 웅크림·늘어남, sx 가로 늘림, skew 앞(+)/뒤(-)로 기울임 — 몸통만 기운다
+    const sy = pose.sy || 1, sx = pose.sx || 1;
     const base = gy - (pose.lift || 0);
     const legs = SPR.knightLegs[walking ? step : 0];
-    const bodyBottom = base - legs.length * PX - (walking ? step : 0);
-    const top = bodyBottom - look.body.length * PX;
-    if (look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight');
-    drawSprite(legs, pal, x, base, PX, opt, g);
-    drawSprite(look.body, pal, x, bodyBottom, PX, opt, g);
+    const bodyBottom = base - legs.length * PX * sy - (walking ? step : 0);
+    const top = bodyBottom - look.body.length * PX * sy;
+    if (look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
+    drawSprite(legs, pal, x, base, PX, { ...opt, sx, sy }, g);
+    drawSprite(look.body, pal, x, bodyBottom, PX, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
     if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
     if (look.halo) drawHalo(g, x, top, t);
-    drawWeapon(g, w, x, bodyBottom, pose);
+    if (!pose.tint) drawWeapon(g, w, x, bodyBottom, pose);      // 한 색 잔상은 몸만 남긴다
   }
   g.restore();
 }
@@ -782,19 +809,25 @@ function drawHero(g, id, x, gy, pose) {
 function drawKnight() {
   const x = toScreen(knight.x) - Math.round((knight.recoil || 0) * 3);
   const gy = groundY();
-  const lift = knight.leapT >= 0 ? Math.sin(Math.PI * knight.leapT) * 40 : 0;
+  const sp = castPose('hero');
+  const lift = sp ? sp.lift || 0 : 0;
 
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  const shadowW = 28 - lift * 0.3;
-  ctx.fillRect(x - shadowW / 2, gy - 1, shadowW, 2);
+  const shadowW = Math.max(6, 28 - lift * 0.3);
+  ctx.fillRect(x + (sp ? sp.dx || 0 : 0) - shadowW / 2, gy - 1, shadowW, 2);
 
-  drawHero(ctx, S.cls, x, gy, {
+  const pose = {
     mode: S.phase === 'camp' ? 'sit' : knight.fighting ? 'fight' : 'walk',
-    walkT: knight.walkT, swing: knight.swing, facing: knight.facing, t: clock, lift,
+    walkT: knight.walkT, swing: knight.swing, facing: knight.facing, t: clock,
     flash: knight.flash > 0,
     alpha: knight.down > 0 ? 0.35 + 0.25 * Math.sin(clock * 12) : 1,
-  });
-  if (S.phase !== 'camp') drawHpBar(x, gy - 58 - lift, 30, S.hp / stats().maxHp, '#ff5a5a');
+  };
+  if (sp) Object.assign(pose, sp, { alpha: pose.alpha * (sp.alpha == null ? 1 : sp.alpha) });
+  drawHero(ctx, S.cls, x, gy, pose);
+  if (S.phase !== 'camp') {
+    drawHpBar(x, gy - 58 - Math.min(lift, 40), 30, S.hp / stats().maxHp, '#ff5a5a');
+    drawSkillIcons(x - 15, gy - 58 - Math.min(lift, 40) - 12);
+  }
 }
 
 function drawShots() {
@@ -926,6 +959,7 @@ function monsterPose(m) {
     const br = Math.sin(m.t * 3.5);                           // 숨쉬기
     pose.sy = 1 + br * 0.04; pose.sx = 1 - br * 0.02;
   }
+  if (m.air != null) pose.dy -= Math.sin(Math.PI * Math.min(1, m.air / 0.6)) * (m.boss ? 12 : 34);   // 공중에 띄워졌다 떨어진다
   if (m.hurt) {                                               // 맞으면 찌그러지며 뒤로 젖혀진다
     const h = m.hurt * m.hurt;
     pose.sx *= 1 + 0.14 * h; pose.sy *= 1 - 0.14 * h; pose.skew += 0.3 * h;
@@ -1132,6 +1166,19 @@ function updateDuel() {
   while (d.shown < f.events.length && f.events[d.shown].t <= pt) {
     const e = f.events[d.shown++];
     const target = e.by === 'a' ? 'b' : 'a';
+    if (e.kind === 'skill' && SKILLS[e.sk]) {
+      // 스킬: 시전 모션을 재생하고, 피해 숫자는 마지막 타격 순간에 띄운다
+      const who = e.by === 'a' ? d.res.me : d.res.opponent;
+      startCast(`duel-${e.by}`, e.sk, {
+        x: () => duelX(e.by, duelTime()), dir: e.by === 'a' ? 1 : -1, tx: () => duelX(target, duelTime()), ty: () => groundY() - 24,
+        cls: who.cls,
+        onHit: (i, n) => {
+          d.hit[target] = clock;
+          if (i === n - 1) addFloater((e.crit ? '💥' : '') + fmt(e.dmg), duelX(target, duelTime()) + rand(-8, 8), groundY() - 76, e.crit ? '#ffb13b' : CLASSES[who.cls].look.fx, 16);
+        },
+     }, true);
+      continue;
+    }
     d.last[e.by] = { e, at: clock };
     d.hit[target] = clock;
     const tx = duelX(target, pt);
@@ -1150,6 +1197,7 @@ function updateDuel() {
 
 function endDuel() {
   if (!duelPlay) return;
+  endCasts('duel-');
   const d = duelPlay;
   duelPlay = null;
   if (d.onEnd) d.onEnd(d.res);
@@ -1172,22 +1220,25 @@ function drawDuel() {
     const x = duelX(side, pt), mv = f.moves[side], L = d.last[side];
     const since = L ? clock - L.at : Infinity;
     const loser = done && f.winner !== side;
-    const lift = L && L.e.kind === 'leap' && since < 0.35 ? (1 - since / 0.35) * 26 : 0;
+    const sp = loser ? null : castPose(`duel-${side}`);
+    const lift = sp ? sp.lift || 0 : L && L.e.kind === 'leap' && since < 0.35 ? (1 - since / 0.35) * 26 : 0;
     const alpha = side === 'b' ? Math.min(1, (clock - d.t0) / DUEL_ENTER_SEC) : 1;
 
     ctx.fillStyle = `rgba(0,0,0,${0.25 * alpha})`;
     ctx.fillRect(x - 14, gy - 1, 28, 2);
-    drawHero(ctx, who.cls, x, gy, {
+    const pose = {
       mode: loser ? 'sit' : pt < mv.t ? 'walk' : 'fight',
       walkT: pt, swing: !loser && since < 0.16 ? 0.35 + since * 4 : -1,
       facing: side === 'a' ? 1 : -1, t: clock, lift,
       flash: d.hit[side] != null && clock - d.hit[side] < 0.08,
       alpha: loser ? 0.45 : alpha,
-    });
+    };
+    if (sp) Object.assign(pose, sp, { alpha: alpha * (sp.alpha == null ? 1 : sp.alpha) });
+    drawHero(ctx, who.cls, x, gy, pose);
 
     // 원거리 공격은 화살이 날아가는 모습만 짧게 보여 준다
     const w = WEAPONS[c.weapon];
-    if (L && w.kind === 'ranged' && since < 0.14) {
+    if (L && !sp && w.kind === 'ranged' && since < 0.14) {
       const dir = side === 'a' ? 1 : -1, ox = duelX(side === 'a' ? 'b' : 'a', pt);
       const x0 = x + dir * 16, x1 = ox - dir * 8, ax = x0 + (x1 - x0) * (since / 0.14);
       ctx.fillStyle = w.arrow.color;
@@ -1541,7 +1592,22 @@ function updateRaid(dt) {
   const def = RAID_BOSSES[f.boss], g = raidBossGeom();
   while (d.shown < f.events.length && f.events[d.shown].t <= pt) {
     const e = f.events[d.shown++];
-    if (e.k != null) {
+    if (e.k != null && e.s && SKILLS[e.s]) {
+      // 스킬 타격: 시전 모션을 재생하고, 보스 체력·피해 숫자는 마지막 타격 순간에 반영한다
+      const i = e.k, cls = d.res.members[i].cls;
+      d.hpK[i] = e.h;
+      startCast(`raid-${i}`, e.s, {
+        x: () => raidKnightX(i), dir: 1, tx: () => raidBossGeom().left + 12, ty: () => groundY() - raidBossGeom().h * 0.5,
+        cls,
+        onHit: (j, n) => {
+          d.bossHit = clock;
+          if (j < n - 1) return;
+          d.hpB = Math.min(d.hpB, e.bh);
+          const gg = raidBossGeom();
+          addFloater((e.c ? '💥' : '') + fmt(e.d), gg.left + rand(4, 40), gy - gg.h * 0.6 + rand(-10, 10), e.c ? '#ffb13b' : clsOf(cls).look.fx, 16);
+        },
+     }, true);
+    } else if (e.k != null) {
       // 기사 타격 (짧은 시간 동안의 타격을 묶은 것)
       d.hpB = e.bh; d.hpK[e.k] = e.h;
       d.last[e.k] = { e, at: clock };
@@ -1603,6 +1669,7 @@ function updateRaid(dt) {
 
 function endRaid() {
   if (!raidPlay) return;
+  endCasts('raid-');
   const d = raidPlay;
   raidPlay = null;
   if (d.onEnd) d.onEnd(d.res);
@@ -1696,15 +1763,18 @@ function drawRaid() {
     const me = m.nickname === activeNick();
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(x - 14, gy - 1, 28, 2);
-    drawHero(ctx, m.cls, x, gy, {
+    const sp = dead ? null : castPose(`raid-${i}`);
+    const pose = {
       mode: dead ? 'sit' : pt < k.stop.t ? 'walk' : 'fight',
       walkT: pt + i * 0.3, swing: !dead && s < 0.16 ? 0.35 + s * 4 : -1,
       facing: 1, t: clock, lift: L && L.e.l && s < 0.35 ? (1 - s / 0.35) * 26 : 0,
       flash: d.hitK[i] != null && clock - d.hitK[i] < 0.08,
       alpha: dead ? 0.4 : 1,
-    });
+    };
+    if (sp) Object.assign(pose, sp);
+    drawHero(ctx, m.cls, x, gy, pose);
     const wpn = WEAPONS[c.weapon];
-    if (!dead && L && wpn.kind === 'ranged' && s < 0.14) {
+    if (!dead && !sp && L && wpn.kind === 'ranged' && s < 0.14) {
       const x0 = x + 16, x1 = g.left + 6, ax = x0 + (x1 - x0) * (s / 0.14);
       ctx.fillStyle = wpn.arrow.color;
       ctx.fillRect(Math.round(ax - 12), gy - 6 * PX, 12, 2);
@@ -1729,7 +1799,9 @@ function render() {
   if (duelPlay) drawDuel(); else if (raidPlay) drawRaid(); else drawKnight();
   drawShots();
   drawEffects();
+  drawSkillFx();
   drawParts();
   ctx.restore();
+  drawScreenFx();
   drawFx();
 }

@@ -226,6 +226,14 @@
   .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
   .req { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 7px; font-size: 12px; color: var(--muted); }
   .chip.ok { color: #9fd49a; }
+  .skills { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+  .skill { display: flex; gap: 8px; align-items: flex-start; padding: 5px 8px; border-radius: 8px; background: rgba(255,255,255,0.04); }
+  .skill.on { background: rgba(125,255,176,0.08); box-shadow: inset 0 0 0 1px rgba(125,255,176,0.25); }
+  .skill.locked { opacity: 0.6; }
+  .skill .sicon { font-size: 16px; line-height: 20px; }
+  .skill .sbody { display: flex; flex-direction: column; font-size: 12px; }
+  .skill .sbody small { color: var(--muted); font-size: 11px; }
+  .skill .sdesc { color: var(--muted); font-size: 11.5px; margin-top: 1px; }
   .cdetail .act { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 180px; }
   .cdetail .row { display: flex; gap: 6px; }
   .go.compact { padding: 8px 16px; font-size: 13px; }
@@ -522,6 +530,7 @@
 <script src="src/core.js"></script>
 <script src="src/net.js"></script>
 <script src="src/world.js"></script>
+<script src="src/skills.js"></script>
 <script src="src/ui.js"></script>
 </body>
 </html>

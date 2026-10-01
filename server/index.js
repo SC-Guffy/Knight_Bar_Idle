@@ -40,6 +40,15 @@ const num = (v, min, max, dflt) => {
 function sanitizeProfile(p = {}) {
   const leap = p.leap && typeof p.leap === 'object'
     ? { every: num(p.leap.every, 1, 60, 6), mult: num(p.leap.mult, 0, 20, 1) } : null;
+  // 스킬: 최대 3종. 수치는 클라이언트 src/classes.js 의 SKILLS 에서 계산해 올린다
+  const skills = (Array.isArray(p.skills) ? p.skills : []).slice(0, 3)
+    .filter((s) => s && typeof s === 'object' && typeof s.id === 'string')
+    .map((s) => ({
+      id: s.id.slice(0, 24),
+      cd: num(s.cd, 2, 60, 10), dur: num(s.dur, 0, 3, 1), mult: num(s.mult, 0, 12, 1), crit: !!s.crit,
+      ...(s.ward && typeof s.ward === 'object'
+        ? { ward: { dur: num(s.ward.dur, 0, 8, 0), guard: num(s.ward.guard, 0, 0.8, 0), heal: num(s.ward.heal, 0, 0.5, 0) } } : {}),
+    }));
   return {
     cls: typeof p.cls === 'string' ? p.cls.slice(0, 24) : 'squire',
     level: Math.floor(num(p.level, 1, 1e6, 1)),
@@ -54,7 +63,7 @@ function sanitizeProfile(p = {}) {
     shotMult: num(p.shotMult, 0, 5, 1),
     guard: num(p.guard, 0, 0.9, 0),
     heal: num(p.heal, 0, 0.2, 0),
-    leap,
+    leap, skills,
     power: Math.floor(num(p.power, 0, 1e30, 0)),
   };
 }

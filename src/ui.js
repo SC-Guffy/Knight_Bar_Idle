@@ -369,13 +369,29 @@ function modChips(id) {
   if (m.critMult) out.push(`💥 치명 피해 +${Math.round(m.critMult * 100)}%`);
   if (m.guard) out.push(`🛡 받는 피해 -${Math.round(m.guard * 100)}%`);
   if (m.heal) out.push(`💚 타격마다 회복 ${Math.round(m.heal * 100)}%`);
-  if (c.leap) out.push(`🐉 ${c.leap.every}초마다 도약 ×${c.leap.mult}`);
   if (w.kind === 'ranged') out.push(`🏹 사거리 ${w.range}`);
   else if (w.range > 20) out.push(`📏 사거리 ${w.range}`);
   if (w.shots > 1) out.push(`✨ ${w.shots}연발`);
   else if (w.targets >= 9) out.push('🌀 범위 휩쓸기');
   else if (w.targets > 1) out.push(`➰ ${w.targets}마리 관통`);
   return out.map(t => `<span class="chip">${t}</span>`).join('');
+}
+
+// 직업 스킬 목록: 해금 레벨·쿨타임·피해 배율. 내 직업이면 해금 여부도 보여 준다
+function skillList(id) {
+  const list = skillsOf(id);
+  if (!list.length) return '';
+  const mine = id === S.cls;
+  return `<div class="skills">${list.map((k) => {
+    const on = mine && S.level >= k.lv;
+    const mult = skillMult(k), hitN = k.hits.length;
+    const dmg = k.ward ? `초당 ×${k.ward.tick}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
+    return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
+      <span class="sicon">${k.icon}</span>
+      <span class="sbody"><b>${k.name}</b> <small>Lv ${k.lv} · 쿨 ${k.cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+        <span class="sdesc">${k.desc}</span></span>
+    </div>`;
+  }).join('')}</div>`;
 }
 
 function reqChips(id) {
@@ -430,7 +446,8 @@ function viewClass() {
         : `
           <b>${c.icon} ${c.name}</b> <small>${c.tier ? c.tier + '차 직업' : '기본'} · ${w.name}</small>
           <div class="eff">${c.desc}</div>
-          <div class="chips">${modChips(id) || '<span class="small">기본 능력치</span>'}</div>`}
+          <div class="chips">${modChips(id) || '<span class="small">기본 능력치</span>'}</div>
+          ${skillList(id)}`}
         ${req}
       </div>
       <div class="act">${act}</div>
@@ -463,14 +480,26 @@ function drawClassPreviews() {
     const id = cv.dataset.cls, c = CLASSES[id], st = classState(id), masked = classMasked(id);
     const tt = clock + i * 0.37;
     let swing = tt % 1.4; if (swing >= 1) swing = -1;
-    let lift = 0;
-    if (c.leap) { const q = tt % 3.5; if (q < 0.7) { lift = Math.sin((Math.PI * q) / 0.7) * 16; swing = -1; } }
+    // 평타 몇 번 뒤에 그 직업의 스킬 모션을 번갈아 보여 준다 (이펙트 없이 자세만, 공중 높이는 칸 안으로 줄인다)
+    let sp = null;
+    const sks = skillsOf(id);
+    if (sks.length) {
+      const cyc = 5.5, q = tt % cyc, sk = sks[Math.floor(tt / cyc) % sks.length];
+      if (q >= cyc - sk.dur - 0.3 && q < cyc - 0.3) {
+        const u = (q - (cyc - sk.dur - 0.3)) / sk.dur;
+        sp = SKILL_FX[sk.id].pose(u, { dir: 1, x: () => 0, tx: () => 26 });
+        if (sp.facing == null) delete sp.facing;
+        sp.dx = Math.max(-12, Math.min(26, sp.dx || 0));
+        sp.lift = Math.min(18, (sp.lift || 0) * 0.2);
+        swing = -1;
+      }
+    }
     const k = cv.classList.contains('big') ? 1.5 : 1;
     const paint = (gg) => {
       gg.save();
       gg.translate(Math.round(w * 0.36), h - 8);
       gg.scale(k, k);
-      drawHero(gg, id, 0, 0, { mode: 'fight', swing, t: tt, lift, walkT: 0 });
+      drawHero(gg, id, 0, 0, { mode: 'fight', swing, t: tt, walkT: 0, ...(sp || {}), alpha: sp && sp.alpha != null ? Math.max(0.25, sp.alpha) : 1 });
       gg.restore();
     };
 
@@ -1492,7 +1521,8 @@ async function acctImport() {
 function resetWorld() {
   monsters = []; coins = []; floaters = []; shots = []; effects = [];
   lapReady = false;
-  Object.assign(knight, { down: 0, fighting: false, pending: false, leapT: -1, swing: -1, facing: 1 });
+  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null });
+  casts = []; skfx = []; screenFx = []; cutin = null; hitstop = 0;
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
   rank.data = null; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
   raidPlay = null; Object.assign(raidUi, { rooms: null, at: 0, room: null, error: null, revealed: [], showResult: false, key: '' });

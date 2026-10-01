@@ -116,15 +116,22 @@ function stats(base = false) {
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
     // 받는 피해 감소: 직업·장비(최대 60%)와 방어 훈련을 곱으로 합친다 (최대 85%)
     guard: Math.min(0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed)), defRed,
-    heal: Math.min(0.1, (m.heal || 0) + gb.heal), leap: c.leap || null,
+    heal: Math.min(0.1, (m.heal || 0) + gb.heal), skills: unlockedSkills(),
   };
 }
-// 한 마리를 상대로 한 초당 피해 (연발·도약 포함)
+// 지금 레벨에서 쓸 수 있는 스킬 id (먼저 쓸 순서 = 해금 레벨 높은 순)
+const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id);
+
+// 한 마리를 상대로 한 초당 피해 (연발·스킬 포함). 스킬을 쓰는 동안은 평타를 멈춘다
 function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
-  let dps = perHit * st.shots * st.shotMult * st.aspd;
-  if (st.leap) dps += (perHit * st.leap.mult) / st.leap.every;
-  return dps;
+  let busy = 0, extra = 0;
+  for (const id of st.skills || []) {
+    const k = SKILLS[id];
+    busy += k.dur / k.cd;
+    extra += (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) / k.cd;
+  }
+  return perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra;
 }
 const powerOf = (st) => Math.round(Math.sqrt(dpsOf(st) * st.maxHp) * 10);
 
@@ -134,7 +141,12 @@ function profile() {
   return {
     cls: S.cls, level: S.level, best: S.best, power: powerOf(st),
     atk: st.atk, maxHp: st.maxHp, aspd: st.aspd, crit: st.crit, critMult: st.critMult,
-    range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal, leap: st.leap,
+    range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal,
+    // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
+    skills: st.skills.map((id) => {
+      const k = SKILLS[id];
+      return { id, cd: k.cd, dur: k.dur, mult: skillMult(k), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
+    }),
   };
 }
 
