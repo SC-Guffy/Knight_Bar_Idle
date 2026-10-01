@@ -9,15 +9,14 @@
 //   kb: 원정에서 맞은 적이 밀려나는 거리 · launch: 맞은 적을 공중에 띄운다
 // a(시전 정보): { owner, id, k, cls, color, dir 바라보는 쪽, x() 시전자 화면 x, tx()·ty() 대상 위치, targets() [{x, y}], u, onHit, onEnd }
 //
-// 1차와 2차의 차이: 1차는 직업색 이펙트 하나 + 가벼운 흔들림. 2차는 이름 띠(컷인), 화면 번쩍임·어두워짐, 히트스톱, 잔상·마법진·지형 연출.
+// 1차와 2차의 차이: 1차는 직업색 이펙트 하나 + 가벼운 흔들림. 2차는 이름 띠(컷인), 히트스톱, 검흔 여러 겹, 잔상·마법진·지형 연출.
+// 바탕화면 위에 떠 있는 게임이라 화면 전체를 번쩍이거나 어둡게 하지 않는다. 화려함은 타격 지점(검흔·불꽃)과 기사 주변에서만 낸다.
 
 let hitstop = 0;          // 남은 정지 시간(초). 큰 타격 순간 화면 전체를 아주 잠깐 멈춘다 (world.js update)
-let screenFx = [];        // 화면 전체 번쩍임·어두워짐 { color, a, t, life, kind }
 let casts = [];           // 진행 중인 시전 { owner, id, k, fx, t, a, hi, ci }
 let skfx = [];            // 스킬 이펙트 조각 { owner, at, life, draw(u), tick(u, dt), end() } — u 는 0→1 진행
 let cutin = null;         // 2차 스킬 이름 띠 { k, color, t }
-let shakeAmp = 0;         // 화면 흔들림 세기(px). 0 이면 기본(3px)
-let camPunch = null;      // 카메라 펀치 { x, y, k 확대량, t, life }
+let shakeAmp = 0;         // 화면 흔들림 세기(px). 0 이면 기본(3px), 최대 6px
 
 const clamp01 = (u) => Math.max(0, Math.min(1, u));
 const segU = (u, a, b) => clamp01((u - a) / (b - a));
@@ -42,7 +41,7 @@ function startCast(owner, id, a, queue = false) {
   a.cls = a.cls || S.cls;
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
   a.px = () => a.x() + a.dir * ((fx.pose && fx.pose(a.u, a).dx) || 0);
-  casts.push({ owner, id, k, fx, t: 0, a, hi: 0, ci: 0, next: [] });
+  casts.push({ owner, id, k, fx, t: 0, a, hi: 0, ci: 0, next: [], squash: 0, hist: [] });
   if (skillTier(k) >= 2) cutin = { k, color: a.color, t: 0, cx: a.x() };
   else addFloater(`${k.icon} ${k.name}`, a.x(), groundY() - 72, a.color, 12);
 }
@@ -58,11 +57,53 @@ function endCasts(prefix) {
 const castOf = (owner) => casts.find((c) => c.owner === owner) || null;
 function castPose(owner) {
   const c = castOf(owner);
-  if (!c || !c.fx.pose) return null;
-  const p = c.fx.pose(c.a.u, c.a);
+  return c && c.fx.pose ? finalPose(c) : null;
+}
+
+// ── 모션을 부드럽게 ──
+// 무기별 평소 자세. 스킬 자세로 들어갈 때(0.08초)와 나올 때(0.14초) 이 자세에서/로 섞어서 툭 끊기지 않게 한다
+function restPose(cls) {
+  const w = WEAPONS[CLASSES[cls].weapon];
+  if (w.kind === 'ranged') return { pull: 0, bowA: 0 };
+  return { wa: w.motion === 'thrust' ? -1.3 : w.motion === 'sweep' ? -1.35 : -1.0, wa2: -0.6, ext: 0 };
+}
+const POSE_DEF = { dx: 0, lift: 0, sx: 1, sy: 1, skew: 0, wa: null, wa2: null, ext: 0, pull: 0, bowA: 0, alpha: 1 };
+function blendPose(from, to, w) {
+  const out = { ...to };
+  for (const key in POSE_DEF) {
+    const d = POSE_DEF[key];
+    const a = from[key] != null ? from[key] : d, b = to[key] != null ? to[key] : d != null ? d : a;
+    if (a == null || b == null) continue;
+    out[key] = mix(a, b, w);
+  }
+  return out;
+}
+// 시전 진행도의 자세 + 들어가고 나오는 섞기 + 타격 순간 몸이 찌그러졌다 펴지는 반동
+function finalPose(c) {
+  let p = c.fx.pose(c.a.u, c.a);
+  const w = Math.max(0, Math.min(1, c.t / 0.08, (c.k.dur - c.t) / 0.14));
+  if (w < 1) p = blendPose(restPose(c.a.cls), p, w * w * (3 - 2 * w));
+  if (c.squash > 0) { p.sy = (p.sy || 1) * (1 - 0.1 * c.squash); p.sx = (p.sx || 1) * (1 + 0.08 * c.squash); }
   if (p.facing) p.facing *= c.a.dir;
   else delete p.facing;
   return p;
+}
+
+// 모션 잔상: 최근 몇 프레임의 자세를 기억했다가, 빠르게 움직인 구간만 무기(와 크게 움직인 몸)를 흐리게 겹쳐 그린다
+function drawCastTrail(owner, cls, gy, facing) {
+  const c = castOf(owner);
+  if (!c) return;
+  const h = c.hist, fx = CLASSES[cls].look.fx;
+  for (let j = h.length - 1; j >= 1; j--) {
+    const p = h[j].p, q = h[j - 1].p;
+    const body = Math.abs((q.dx || 0) - (p.dx || 0)) + Math.abs((q.lift || 0) - (p.lift || 0));
+    const arm = Math.abs((q.wa || 0) - (p.wa || 0)) * 14 + Math.abs((q.ext || 0) - (p.ext || 0)) + Math.abs((q.pull || 0) - (p.pull || 0));
+    if (body + arm < 1.5) continue;
+    const fade = 1 - j / h.length, al = p.alpha == null ? 1 : p.alpha;
+    const pose = { mode: 'fight', swing: -1, t: clock, ...p, facing: p.facing || facing };
+    if (body > 3) drawHero(ctx, cls, h[j].x, gy, { ...pose, tint: fx, alpha: 0.3 * fade * al });
+    drawHero(ctx, cls, h[j].x, gy, { ...pose, onlyWeapon: true, alpha: 0.3 * fade * al });
+  }
 }
 
 function updateCasts(dt) {
@@ -77,10 +118,13 @@ function updateCasts(dt) {
       const i = c.hi++;
       if (c.fx.hit) c.fx.hit(c.a, i, hits.length);
       autoHitFx(c, i);
+      c.squash = 1;
       if (c.a.onHit) c.a.onHit(i, hits.length);
     }
     if (c.fx.tick) c.fx.tick(c.a, u, dt);
     auraTick(c);
+    c.squash = Math.max(0, c.squash - dt * 7);
+    if (c.fx.pose) { c.hist.unshift({ p: finalPose(c), x: c.a.x() }); if (c.hist.length > 5) c.hist.pop(); }
     if (u >= 1) {
       c.done = true;
       if (!hits.length && c.a.onHit) c.a.onHit(0, 1);
@@ -104,9 +148,6 @@ function updateCasts(dt) {
   }
   skfx = skfx.filter((f) => !f.done);
   if (shake <= 0) shakeAmp = 0;
-  if (camPunch && (camPunch.t += dt) > camPunch.life) camPunch = null;
-  for (const s of screenFx) s.t += dt;
-  screenFx = screenFx.filter((s) => s.t < s.life);
   if (cutin && (cutin.t += dt) > 1.2) cutin = null;
 }
 
@@ -184,14 +225,11 @@ function heroAirborne() {
 }
 
 // ───────────────────────── 타격감 도구 ─────────────────────────
-function impact({ stop = 0, shake: sh = 0, flash = null, flashA = 0.35, punch = 0, at = null } = {}) {
+function impact({ stop = 0, shake: sh = 0 } = {}) {
   hitstop = Math.max(hitstop, stop * 1.3);
-  shake = Math.max(shake, sh * 1.2);
-  shakeAmp = Math.max(shakeAmp, 3 + sh * 16);
-  if (flash) screenFx.push({ kind: 'flash', color: flash, a: Math.min(0.7, flashA * 1.2), t: 0, life: 0.24 });
-  if (punch && at && (!camPunch || camPunch.k < punch)) camPunch = { x: at.x, y: at.y, k: punch, t: 0, life: 0.28 };
+  shake = Math.max(shake, sh);
+  shakeAmp = Math.max(shakeAmp, Math.min(6, 3 + sh * 8));
 }
-const dimScreen = (a, life, color = '#05060c') => screenFx.push({ kind: 'dim', color, a, t: 0, life });
 
 function skFx(owner, delay, life, draw, end, tick) { skfx.push({ owner, at: clock + delay, life, draw, end, tick }); }
 const aFx = (a, delay, life, draw, end, tick) => skFx(a.owner, delay, life, draw, end, tick);
@@ -231,8 +269,8 @@ function streakFx(x0, y0, x1, y1, color, width, life, delay = 0) {
   });
 }
 function xslashFx(x, y, size, color, life) {
-  streakFx(x - size, y - size, x + size, y + size, color, 6, life);
-  streakFx(x - size, y + size, x + size, y - size, color, 6, life, 0.06);
+  slashMarkFx(x, y, Math.PI / 4, size * 2.8, color, 6, life + 0.1, 0, 5);
+  slashMarkFx(x, y, -Math.PI / 4, size * 2.8, color, 6, life + 0.1, 0.06, -5);
 }
 // 4갈래 반짝임
 function starFx(x, y, size, color, life) {
@@ -282,7 +320,7 @@ function gatherFx(x, y, colors, n = 2, r = 26) {
 // 시전자 잔상: 같은 모습을 한 가지 색으로 칠해 흐리게 남긴다
 function ghostFx(a, x, facing, tint, life, pose = {}) {
   skFx(null, 0, life, (u) => {
-    drawHero(ctx, a.cls, x, groundY(), { mode: 'fight', swing: -1, t: clock, facing, tint, alpha: 0.55 * (1 - u), ...pose });
+    drawHero(ctx, a.cls, x, groundY(), { mode: 'fight', swing: -1, t: clock, facing, tint, alpha: 0.35 * (1 - u), ...pose });
   });
 }
 // 회전하는 마법진 (rx·ry 타원). 바깥 원 + 도는 룬 점 + 안쪽 별
@@ -365,23 +403,68 @@ function autoHitFx(c, i) {
   const t2 = skillTier(k) >= 2;
   const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1);
   const tg = c.a.targets();
-  for (const t of tg) hitFx(t.x, t.y, c.a.color, pow);
+  for (const t of tg) { hitFx(t.x, t.y, c.a.color, pow); weaponMarks(c.a, t, pow); }
   const big = share >= 0.2 || last;
-  impact({ stop: big ? 0.035 * pow : 0.012, shake: 0.07 * pow, punch: pow >= 2 ? 0.05 * pow : 0, at: tg[0] });
-  if (pow >= 2.6) speedLinesFx(c.a.color, c.a.dir);
+  impact({ stop: big ? 0.035 * pow : 0.012, shake: 0.06 * pow });
+}
+
+// 무기마다 다른 검흔: 검은 휘어진 베기 자국 여러 겹, 창은 곧게 꿰뚫는 자국, 할버드는 넓게 휩쓴 호, 활은 화살이 긁고 간 짧은 X 자국
+function weaponMarks(a, t, pow) {
+  const w = WEAPONS[CLASSES[a.cls].weapon], col = a.color, d = a.dir;
+  const n = Math.min(4, Math.round(0.6 + pow));
+  for (let j = 0; j < n; j++) {
+    const dl = j * 0.035;
+    if (w.kind === 'ranged') {
+      const ang = (d > 0 ? 0 : Math.PI) + rand(-0.3, 0.3);
+      slashMarkFx(t.x, t.y + rand(-6, 6), ang, 22 + 7 * pow, col, 2.5 + 0.6 * pow, 0.38, dl);
+      if (j === 0) slashMarkFx(t.x, t.y, ang + Math.PI / 2 + rand(-0.3, 0.3), 10 + 4 * pow, '#ffffff', 1.5 + 0.4 * pow, 0.25, 0.03);
+    } else if (w.motion === 'thrust') {
+      slashMarkFx(t.x + d * 6, t.y + (j - (n - 1) / 2) * 6, (d > 0 ? 0 : Math.PI) + rand(-0.08, 0.08), 36 + 12 * pow, col, 3 + 0.7 * pow, 0.42, dl);
+    } else if (w.motion === 'sweep') {
+      slashMarkFx(t.x, t.y + rand(-8, 8), rand(-0.35, 0.35), 44 + 12 * pow, col, 4.5 + pow, 0.48, dl, (j % 2 ? -1 : 1) * (9 + 3 * pow));
+    } else {
+      const ang = (j % 2 ? 0.7 : -0.7) + rand(-0.35, 0.35) + (d < 0 ? Math.PI : 0);
+      slashMarkFx(t.x + rand(-4, 4), t.y + rand(-6, 6), ang, 34 + 10 * pow, col, 3.5 + pow, 0.45, dl, (j % 2 ? -1 : 1) * rand(4, 9));
+    }
+  }
+}
+
+// 검흔: 양끝이 뾰족한 칼자국이 순식간에 그어지고(앞 16%), 잠깐 빛나다가 가늘어지며 사라진다.
+// ang 방향, len 길이, width 가운데 두께, bend 휘어짐(+면 오른손 쪽으로 볼록). 바깥은 직업색, 안쪽 심은 흰색
+function slashMarkFx(x, y, ang, len, color, width = 4, life = 0.45, delay = 0, bend = 0) {
+  const ca = Math.cos(ang), sa = Math.sin(ang), steps = 12;
+  skFx(null, delay, life, (u) => {
+    const reach = Math.min(1, u / 0.16);
+    const fade = u < 0.45 ? 1 : 1 - (u - 0.45) / 0.55;
+    const thin = u < 0.45 ? 1 : 1 - 0.7 * (u - 0.45) / 0.55;
+    const pt = (t, side, wd) => {
+      const along = (t - 0.5) * len, off = bend * Math.sin(Math.PI * t) + side * wd * Math.sin(Math.PI * t) * thin;
+      return [x + ca * along - sa * off, y + sa * along + ca * off];
+    };
+    const poly = (wd) => {
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) { const [px, py] = pt((reach * i) / steps, 1, wd); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      for (let i = steps; i >= 0; i--) { const [px, py] = pt((reach * i) / steps, -1, wd); ctx.lineTo(px, py); }
+      ctx.closePath(); ctx.fill();
+    };
+    // 어두운 테두리 → 직업색 날 → 흰 심. 하얗게 번쩍이는 적 위에서도 자국이 또렷하게 보인다
+    ctx.save();
+    ctx.globalAlpha = 0.55 * fade;
+    ctx.fillStyle = '#0b0d14'; poly(width + 2);
+    ctx.shadowColor = color; ctx.shadowBlur = 10;
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = color; poly(width);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffffff'; poly(width * 0.4);
+    // 그어지는 순간 칼끝에 맺히는 빛
+    if (reach < 1) { const [hx, hy] = pt(reach, 0, 0); dot(hx, hy, 3, '#ffffff'); }
+    ctx.restore();
+  });
 }
 
 // 타격점: 하얀 섬광 원 + 사방으로 뻗는 불꽃 줄 + 퍼지는 충격파 + 빛나는 파편 (+ 세면 흙먼지·땅 고리)
 function hitFx(x, y, color, pow = 1) {
-  const n = Math.round(6 + 4 * pow), len = 10 + 9 * pow, rot = rand(0, Math.PI);
-  skFx(null, 0, 0.07, (u) => {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.9 * (1 - u);
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(x, y, (3 + 2.5 * Math.min(pow, 3)) * (1 - u * 0.5), 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  });
+  const n = Math.round(4 + 2 * pow), len = 8 + 6 * pow, rot = rand(0, Math.PI);
   skFx(null, 0, 0.2, (u) => {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -389,22 +472,20 @@ function hitFx(x, y, color, pow = 1) {
     for (let j = 0; j < n; j++) {
       const ang = rot + (j / n) * Math.PI * 2 + (j % 2) * 0.2, l = len * (j % 2 ? 0.6 : 1);
       const r0 = l * easeOut(u) * 0.6, r1 = l * (0.3 + easeOut(u));
-      ctx.globalAlpha = 1 - u;
-      ctx.strokeStyle = color; ctx.lineWidth = 3 * (1 - u) + 0.5;
+      ctx.globalAlpha = 0.8 * (1 - u);
+      ctx.strokeStyle = color; ctx.lineWidth = 2 * (1 - u) + 0.5;
       ctx.beginPath(); ctx.moveTo(x + Math.cos(ang) * r0, y + Math.sin(ang) * r0); ctx.lineTo(x + Math.cos(ang) * r1, y + Math.sin(ang) * r1); ctx.stroke();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
-      ctx.stroke();
     }
     ctx.restore();
   });
   skFx(null, 0, 0.28, (u) => {
     ctx.save();
-    ctx.globalAlpha = (1 - u) * 0.9;
-    ctx.strokeStyle = color; ctx.lineWidth = 3 * (1 - u) + 0.5;
-    ctx.beginPath(); ctx.arc(x, y, 4 + 16 * pow * easeOut(u), 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = (1 - u) * 0.55;
+    ctx.strokeStyle = color; ctx.lineWidth = 2 * (1 - u) + 0.5;
+    ctx.beginPath(); ctx.arc(x, y, 4 + 12 * pow * easeOut(u), 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   });
-  for (let j = 0; j < Math.round(8 * pow); j++) {
+  for (let j = 0; j < Math.round(5 * pow); j++) {
     const ang = rand(0, Math.PI * 2), v = rand(60, 150) * Math.sqrt(pow);
     parts.push({ x, y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v - 40, g: 320, size: Math.random() < 0.3 ? 3 : 2, color: j % 3 ? color : '#ffffff', life: rand(0.25, 0.5), t: 0, add: true });
   }
@@ -412,22 +493,6 @@ function hitFx(x, y, color, pow = 1) {
     ringFx(x, color, 0.4 * pow, 0.4);
     debris(x, Math.round(3 * pow), ['#c9b38a', '#a8946a']);
   }
-}
-
-// 만화풍 집중선: 화면을 가로지르는 빛줄기가 순간 지나간다
-function speedLinesFx(color, dir) {
-  const lines = Array.from({ length: 14 }, () => ({ y: rand(8, groundY() - 6), w: rand(40, 140), o: rand(0, 1), c: Math.random() < 0.4 ? color : '#ffffff' }));
-  skFx(null, 0, 0.22, (u) => {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    for (const l of lines) {
-      const x = (dir > 0 ? -l.w + (W + l.w * 2) * mix(l.o * 0.5, 1, u) : W - (W + l.w * 2) * mix(l.o * 0.5, 1, u));
-      ctx.globalAlpha = 0.55 * (1 - u);
-      ctx.fillStyle = l.c;
-      ctx.fillRect(Math.round(x), Math.round(l.y), Math.round(l.w), 1);
-    }
-    ctx.restore();
-  });
 }
 
 // 시전 중 기사 주변에 직업색 기운이 피어오른다 (2차는 더 크고 진하게). 오라는 기사 뒤에 그린다 (world.js render)
@@ -488,6 +553,7 @@ const SKILL_FX = {
       const h = hand(a);
       crescentFx(h.x, h.y, 30, -2.6, 1.0, a.dir, '#cfe0ff', 4, 0.32);
       crescentFx(h.x, h.y, 23, -2.4, 0.9, a.dir, a.color, 2, 0.3);
+      for (const t of a.targets()) slashMarkFx(t.x, t.y - 4, flipA(1.15, a.dir), 52, a.color, 6, 0.42, 0, a.dir * 8);
       for (const t of a.targets()) burst(t.x, t.y, 12, ['#ffffff', a.color, '#cfe0ff'], 140);
       impact({ stop: 0.04, shake: 0.12 });
     },
@@ -568,7 +634,7 @@ const SKILL_FX = {
         starFx(t.x, t.y, 22, '#fff3b0', 0.35);
         burst(t.x, groundY() - 10, 26, ['#ffd257', '#ffffff', '#fff3b0'], 170, 3, 250);
       }
-      impact({ stop: 0.1, shake: 0.3, flash: '#fff3b0', flashA: 0.45 });
+      impact({ stop: 0.1, shake: 0.3 });
     },
     kb: 16,
   },
@@ -584,7 +650,7 @@ const SKILL_FX = {
       const h = hand(a), k = a.k;
       ringFx(h.x, '#ffd257', 1.2, 0.6);
       debris(h.x, 10, ['#c9b38a', '#ffd257']);
-      impact({ stop: 0.06, shake: 0.15, flash: '#ffd257', flashA: 0.25 });
+      impact({ stop: 0.06, shake: 0.15 });
       // 돔: 시전자를 따라다니며 보호막이 사라질 때까지 남는다
       const life = k.dur * 0.52 + k.ward.dur;
       aFx(a, 0, life, (u) => {
@@ -629,8 +695,7 @@ const SKILL_FX = {
       if (i < n - 1) {
         const side = i % 2 ? 1 : -1;
         ghostFx(a, t.x + side * 18, -side, '#ff4d4d', 0.28, { wa: side > 0 ? 0.9 : -2.2, wa2: 0.5 });
-        const ang = rand(-0.9, 0.9) + (i % 2 ? Math.PI / 2 : 0), L = 22;
-        streakFx(t.x - Math.cos(ang) * L, t.y - Math.sin(ang) * L, t.x + Math.cos(ang) * L, t.y + Math.sin(ang) * L, '#ff4d4d', 4, 0.18);
+        slashMarkFx(t.x, t.y, rand(-0.9, 0.9) + (i % 2 ? Math.PI / 2 : 0), 48, '#ff4d4d', 4, 0.3, 0, rand(-6, 6));
         burst(t.x, t.y, 6, ['#ffffff', '#ff4d4d'], 90);
         impact({ stop: 0.02, shake: 0.06 });
         return;
@@ -639,7 +704,7 @@ const SKILL_FX = {
         xslashFx(tt.x, tt.y, 22, '#ff3040', 0.4);
         burst(tt.x, tt.y, 24, ['#ffffff', '#ff4d4d', '#1a1b22'], 160);
       }
-      impact({ stop: 0.12, shake: 0.3, flash: '#ff3040', flashA: 0.3 });
+      impact({ stop: 0.12, shake: 0.3 });
     },
     kb: 6,
   },
@@ -655,13 +720,12 @@ const SKILL_FX = {
       return { dx: D * (1 - r), wa: mix(0.15, -1.0, r), wa2: mix(0.35, -0.6, r) };
     },
     cues: [
-      [0.05, () => dimScreen(0.55, 1.05)],
       [0.32, (a) => { const h = hand(a); starFx(h.x - a.dir * 12, h.y + 4, 12, '#ffffff', 0.3); }],
       [0.46, (a) => {
-        const y = groundY() - 26, x = a.x();
-        streakFx(-10, y, W + 10, y, '#ff3040', 3, 0.5);
+        const y = groundY() - 26, x = a.x(), far = Math.abs(a.tx() - x) + 60;
+        slashMarkFx(x + a.dir * far / 2, y, a.dir > 0 ? 0 : Math.PI, far, '#ff3040', 3, 0.55);
         for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * (Math.abs(a.tx() - x) + 34) * (i / 4), a.dir, '#ff4d4d', 0.3, { wa: 0.15, skew: 0.4 });
-        impact({ flash: '#ffffff', flashA: 0.2 });
+        
       }],
     ],
     hit(a) {
@@ -669,7 +733,7 @@ const SKILL_FX = {
         xslashFx(t.x, t.y, 28, '#ff3040', 0.45);
         burst(t.x, t.y, 30, ['#ffffff', '#ff3040', '#1a1b22'], 190, 3);
       }
-      impact({ stop: 0.18, shake: 0.4, flash: '#ffffff', flashA: 0.55 });
+      impact({ stop: 0.18, shake: 0.4 });
     },
     kb: 20,
   },
@@ -708,7 +772,7 @@ const SKILL_FX = {
       cracksFx(x, x - 90, '#c0a0ff', 0.9);
       debris(x, 22, ['#5a4a42', '#b388ff', '#c9b38a'], 1.4);
       for (const t of a.targets()) burst(t.x, t.y, 14, ['#ffffff', '#b388ff'], 140);
-      impact({ stop: 0.12, shake: 0.4, flash: '#b388ff', flashA: 0.35 });
+      impact({ stop: 0.12, shake: 0.4 });
     },
     kb: 16,
   },
@@ -732,7 +796,7 @@ const SKILL_FX = {
       }
     },
     cues: [[0.2, (a) => {
-      impact({ shake: 0.12, flash: '#b388ff', flashA: 0.2 });
+      impact({ shake: 0.12 });
       aFx(a, 0, a.k.dur * 0.7, (u) => {
         const h = hand(a), x = h.x + a.dir * 22, k = u < 0.1 ? u / 0.1 : u > 0.85 ? (1 - u) / 0.15 : 1;
         drawSprite(DRAGON_HEAD, DRAGON_PAL, x + Math.sin(clock * 30), h.y + 15, 3, { flip: a.dir < 0, alpha: k });
@@ -800,7 +864,7 @@ const SKILL_FX = {
     cues: [[0.52, (a) => {
       const h = hand(a), x0 = h.x + a.dir * 40;
       const far = Math.max(220, Math.max(...a.targets().map((t) => (t.x - x0) * a.dir)) + 50);
-      impact({ stop: 0.12, shake: 0.45, flash: '#ff9f40', flashA: 0.35 });
+      impact({ stop: 0.12, shake: 0.45 });
       ringFx(x0, '#ff9f40', 1, 0.5);
       debris(x0, 16, ['#5a4a42', '#c9b38a', '#ff9f40']);
       cracksFx(x0, x0 + a.dir * far, '#ff9f40', 1.3, 0.3);
@@ -827,7 +891,6 @@ const SKILL_FX = {
     },
     cues: [
       [0.15, (a) => {
-        dimScreen(0.25, a.k.dur * 0.6);
         aFx(a, 0, a.k.dur * 0.6, (u) => {
           const x = a.tx(), y = a.ty() - 8, r = mix(26, 7, easeOut(u));
           ctx.save();
@@ -852,7 +915,7 @@ const SKILL_FX = {
         starFx(t.x, t.y - 8, 14, '#ffe066', 0.3);
         addFloater('HEADSHOT!', t.x, (t.top || t.y - 20) - 22, '#ffe066', 13);
       }
-      impact({ stop: 0.14, shake: 0.25, flash: '#ffffff', flashA: 0.35 });
+      impact({ stop: 0.14, shake: 0.25 });
     },
     kb: 34,
   },
@@ -877,7 +940,7 @@ const SKILL_FX = {
         ctx.restore();
       });
       for (let i = 0; i < 8; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * rand(60, 140), vy: rand(-60, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
-      impact({ stop: 0.08, shake: 0.3, flash: '#ffe066', flashA: 0.3 });
+      impact({ stop: 0.08, shake: 0.3 });
     }]],
     hit(a) {
       for (const t of a.targets()) burst(t.x, t.y, 18, ['#ffe066', '#ffffff'], 160);
@@ -912,7 +975,7 @@ const SKILL_FX = {
     hit(a, i, n) {
       for (const t of a.targets()) { burst(t.x, t.y, 8, ['#6ff3ff', '#ffffff'], 100, 2, 0); starFx(t.x, t.y, 6, '#6ff3ff', 0.18); }
       impact({ shake: 0.05 });
-      if (i === n - 1) { ringFx(a.tx(), '#6ff3ff', 0.8, 0.4); impact({ stop: 0.05, shake: 0.18, flash: '#6ff3ff', flashA: 0.2 }); }
+      if (i === n - 1) { ringFx(a.tx(), '#6ff3ff', 0.8, 0.4); impact({ stop: 0.05, shake: 0.18 }); }
     },
     kb: 5,
   },
@@ -927,7 +990,6 @@ const SKILL_FX = {
     cues: [
       [0.25, (a) => { const h = hand(a); streakFx(h.x + a.dir * 4, h.y - 6, h.x + a.dir * 40, -10, '#6ff3ff', 3, 0.2); }],
       [0.3, (a) => {
-        dimScreen(0.35, a.k.dur * 0.68, '#0a1030');
         circleFx(a, () => ({ x: a.tx(), y: 34 }), 74, 9, '#6ff3ff', a.k.dur * 0.68);
       }],
     ],
@@ -938,7 +1000,7 @@ const SKILL_FX = {
         burst(x1, groundY() - 6, last ? 22 : 8, ['#6ff3ff', '#ffffff', '#ffe066'], last ? 160 : 100, 2, 260);
         ringFx(x1, '#6ff3ff', last ? 0.9 : 0.35, 0.35);
       });
-      impact(last ? { stop: 0.08, shake: 0.28, flash: '#6ff3ff', flashA: 0.3 } : { shake: 0.06 });
+      impact(last ? { stop: 0.08, shake: 0.28 } : { shake: 0.06 });
     },
     kb: 4,
   },
@@ -949,15 +1011,8 @@ function drawSkillFx() {
   for (const f of skfx) if (f.draw && clock >= f.at) f.draw(f.life ? Math.min(1, (clock - f.at) / f.life) : 1);
 }
 
-// 화면 전체 번쩍임·어두워짐 + 2차 스킬 이름 띠
+// 2차 스킬 이름 띠 (화면 전체를 덮는 연출은 쓰지 않는다)
 function drawScreenFx() {
-  for (const s of screenFx) {
-    const u = s.t / s.life;
-    ctx.globalAlpha = s.kind === 'dim' ? s.a * (u < 0.15 ? u / 0.15 : u > 0.8 ? (1 - u) / 0.2 : 1) : s.a * (1 - u);
-    ctx.fillStyle = s.color;
-    ctx.fillRect(0, 0, W, H);
-  }
-  ctx.globalAlpha = 1;
   if (!cutin) return;
   // 띠가 옆에서 미끄러져 들어와 잠깐 멈췄다가 빠진다
   const t = cutin.t, k = cutin.k;

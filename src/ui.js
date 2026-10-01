@@ -1598,7 +1598,7 @@ function resetWorld() {
   monsters = []; coins = []; floaters = []; shots = []; effects = [];
   lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null });
-  casts = []; skfx = []; screenFx = []; cutin = null; hitstop = 0;
+  casts = []; skfx = []; cutin = null; hitstop = 0;
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
   rank.data = null; seasonUi.data = null; seasonUi.at = 0; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
   raidPlay = null; Object.assign(raidUi, { rooms: null, at: 0, room: null, error: null, revealed: [], showResult: false, key: '' });

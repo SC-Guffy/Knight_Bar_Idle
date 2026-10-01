@@ -797,11 +797,13 @@ function drawHero(g, id, x, gy, pose) {
     const legs = SPR.knightLegs[walking ? step : 0];
     const bodyBottom = base - legs.length * PX * sy - (walking ? step : 0);
     const top = bodyBottom - look.body.length * PX * sy;
-    if (look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
-    drawSprite(legs, pal, x, base, PX, { ...opt, sx, sy }, g);
-    drawSprite(look.body, pal, x, bodyBottom, PX, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
-    if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
-    if (look.halo) drawHalo(g, x, top, t);
+    if (!pose.onlyWeapon) {          // onlyWeapon: 모션 잔상용으로 무기만 그린다
+      if (look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
+      drawSprite(legs, pal, x, base, PX, { ...opt, sx, sy }, g);
+      drawSprite(look.body, pal, x, bodyBottom, PX, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
+      if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
+      if (look.halo) drawHalo(g, x, top, t);
+    }
     if (!pose.tint) drawWeapon(g, w, x, bodyBottom, pose);      // 한 색 잔상은 몸만 남긴다
   }
   g.restore();
@@ -824,6 +826,7 @@ function drawKnight() {
     alpha: knight.down > 0 ? 0.35 + 0.25 * Math.sin(clock * 12) : 1,
   };
   if (sp) Object.assign(pose, sp, { alpha: pose.alpha * (sp.alpha == null ? 1 : sp.alpha) });
+  if (sp) drawCastTrail('hero', S.cls, gy, knight.facing);
   drawHero(ctx, S.cls, x, gy, pose);
   if (S.phase !== 'camp') {
     drawHpBar(x, gy - 58 - Math.min(lift, 40), 30, S.hp / stats().maxHp, '#ff5a5a');
@@ -1238,6 +1241,7 @@ function drawDuel() {
       alpha: loser ? 0.45 : alpha,
     };
     if (sp) Object.assign(pose, sp, { alpha: alpha * (sp.alpha == null ? 1 : sp.alpha) });
+    if (sp) drawCastTrail(`duel-${side}`, who.cls, gy, side === 'a' ? 1 : -1);
     drawHero(ctx, who.cls, x, gy, pose);
 
     // 원거리 공격은 화살이 날아가는 모습만 짧게 보여 준다
@@ -1778,6 +1782,7 @@ function drawRaid() {
       alpha: dead ? 0.4 : 1,
     };
     if (sp) Object.assign(pose, sp);
+    if (sp) drawCastTrail(`raid-${i}`, m.cls, gy, 1);
     drawHero(ctx, m.cls, x, gy, pose);
     const wpn = WEAPONS[c.weapon];
     if (!dead && !sp && L && wpn.kind === 'ranged' && s < 0.14) {
@@ -1801,11 +1806,6 @@ function render() {
   // 흔들림 세기는 스킬 타격이 키운다 (shakeAmp, src/skills.js)
   const amp = Math.max(3, shakeAmp);
   if (shake > 0) ctx.translate(Math.round(rand(-amp, amp)), Math.round(rand(-amp * 0.7, amp * 0.7)));
-  // 카메라 펀치: 큰 스킬 타격 순간 그 지점으로 살짝 확대됐다가 돌아온다 (src/skills.js)
-  if (camPunch) {
-    const z = 1 + camPunch.k * (1 - easeOut(Math.min(1, camPunch.t / camPunch.life)));
-    ctx.translate(camPunch.x, camPunch.y); ctx.scale(z, z); ctx.translate(-camPunch.x, -camPunch.y);
-  }
   drawGround();
   drawCamp();
   for (const m of monsters) drawMonster(m);
