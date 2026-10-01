@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
-<title>스킬 테스트 (개발용)</title>
+<title>스킬·평타 테스트 (개발용)</title>
 <!--
   개발 확인용 스킬 모션 테스트 페이지. 게임(index.html)은 이 페이지를 불러오지 않고, 앱 패키지에도 들어가지 않는다 (package.json build.files 는 src/ 만 포함).
   로컬에서만 동작한다:  python3 -m http.server 8765  →  http://localhost:8765/dev/skills.html
@@ -31,11 +31,12 @@
 </head>
 <body>
 <main id="app">
-  <h1>⚔️ 스킬 모션 테스트 <small style="color:var(--muted)">개발용</small></h1>
-  <div class="sub">실제 게임 렌더링 코드로 그립니다. 스킬 수치는 src/classes.js 의 SKILLS, 연출은 src/skills.js 의 SKILL_FX.</div>
+  <h1>⚔️ 스킬·평타 모션 테스트 <small style="color:var(--muted)">개발용</small></h1>
+  <div class="sub">실제 게임 렌더링 코드로 그립니다. 스킬 수치는 src/classes.js 의 SKILLS, 스킬 연출은 src/skills.js 의 SKILL_FX, 평타 모션은 src/world.js 의 HERO_ATK.</div>
   <div id="stage"><canvas id="c"></canvas><span id="gold"></span><div id="barLayer"></div></div>
+  <div class="row"><span class="label">모드</span><span id="modes" class="row" style="margin:0"></span></div>
   <div class="row"><span class="label">직업</span><span id="classes" class="row" style="margin:0"></span></div>
-  <div class="row"><span class="label">스킬</span><span id="skills" class="row" style="margin:0"></span></div>
+  <div class="row"><span class="label" id="pickLabel">스킬</span><span id="skills" class="row" style="margin:0"></span></div>
   <div class="row"><span class="label">재생</span>
     <button id="auto">🔁 자동 반복</button>
     <button id="allCls">🌐 전 직업 순회</button>

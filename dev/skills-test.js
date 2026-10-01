@@ -1,5 +1,6 @@
 'use strict';
-// 스킬 모션 테스트 (개발용). 게임의 world.js · skills.js 를 그대로 쓰고, 이 파일은 무대만 꾸민다:
+// 스킬·평타 모션 테스트 (개발용). 게임의 world.js · skills.js 를 그대로 쓰고, 이 파일은 무대만 꾸민다:
+//  - 모드: 스킬(고른 스킬을 반복) / 평타만(공격 속도대로 평타를 계속 친다. 연속기 동작을 번갈아 또는 하나만 고정)
 //  - 하단바 대신 고정 폭 캔버스를 2배로 키워 그린다
 //  - 왼쪽에 기사, 오른쪽에 맞아도 쓰러지지 않는 허수아비 (공격하지 않음)
 //  - 고른 스킬을 실제 원정과 같은 경로(tryCastSkill)로 쓴다 → 피해 숫자·검흔·히트스톱까지 게임과 똑같다
@@ -73,7 +74,7 @@ function run() {
   let dummy = null;
   function placeDummy() {
     const st = stats();
-    const gap = st.kind === 'ranged' ? Math.min(260, st.range * 0.8) : st.range + 12;
+    const gap = Math.min(W - HERO_X - 50, st.kind === 'ranged' ? Math.min(260, st.range * 0.8) : st.range + 12);   // 무대가 좁으면 안쪽으로
     monsters = [];
     dummy = makeMonster('dummy', false, toWorld(HERO_X + gap));
     dummy.hp = dummy.maxHp = 1e15;
@@ -90,21 +91,29 @@ function run() {
 
   // ── 상태 ──
   const T = {
-    cls: 'swordsman', skill: null, auto: true, allCls: false, basic: true, paused: false, speed: 1, stepOnce: false,
+    mode: 'skill', cls: 'swordsman', skill: null, auto: true, allCls: false, basic: true, paused: false, speed: 1, stepOnce: false,
     wait: 0.4, basicDone: false, last: null,
+    motion: null, atkT: 0.3, swings: 0, lastBasic: null,     // 평타만: motion 고정할 동작 번호(null 이면 번갈아), swings 친 횟수
   };
-  const testClasses = () => Object.keys(CLASSES).filter((id) => skillsOf(id).length);
+  // 스킬 모드는 스킬이 있는 직업만, 평타 모드는 견습 기사까지 전부
+  const testClasses = () => Object.keys(CLASSES).filter((id) => T.mode === 'basic' || skillsOf(id).length);
+  const motionsOf = (id) => HERO_ATK[CLASSES[id].weapon] || HERO_ATK.sword;
 
   function setClass(id) {
     T.cls = id;
     S.cls = id; S.level = 99; S.phase = 'test';
     S.hp = stats().maxHp;
     casts = []; skfx = []; cutin = null; hitstop = 0; floaters = []; parts = []; effects = []; shots = [];
-    Object.assign(knight, { x: toWorld(HERO_X), fighting: true, facing: 1, swing: -1, pending: false, cds: {}, ward: null, down: 0 });
+    Object.assign(knight, { x: toWorld(HERO_X), fighting: true, facing: 1, swing: -1, pending: false, cds: {}, ward: null, down: 0, combo: 0 });
     placeDummy();
-    T.skill = skillsOf(id)[0].id;
+    T.skill = skillsOf(id).length ? skillsOf(id)[0].id : null;
     T.wait = 0.4; T.basicDone = false;
-    renderUi();
+    T.motion = null; T.atkT = 0.3; T.swings = 0; T.lastBasic = null;
+    renderUi(); renderInfo();
+  }
+  function setMode(m) {
+    T.mode = m;
+    if (m === 'skill' && !skillsOf(T.cls).length) setClass('swordsman'); else setClass(T.cls);
   }
 
   // 정해진 스킬 하나만 준비 상태로 만들고 실제 원정 경로로 쓴다
@@ -131,8 +140,35 @@ function run() {
     T.skill = list[0];
   }
 
+  // 평타만: 실제 원정과 같은 순서 — 공격 간격(1/공속)마다 휘두르기 시작, 타격 시점(근접 35%·활 45%)에 releaseAttack
+  function basicTick(dt) {
+    const st = stats();
+    if (knight.pending && (knight.swing < 0 || knight.swing >= (st.kind === 'ranged' ? 0.45 : 0.35))) {
+      knight.pending = false;
+      releaseAttack(st);
+    }
+    T.atkT -= dt;
+    if (T.atkT <= 0 && !knight.pending) {
+      if (T.lastBasic) { T.lastBasic.dmg = T.lastBasic.hp0 - dummy.hp; }
+      // 전 직업 순회면 연속기를 두 바퀴 보여 준 뒤 다음 직업으로
+      if (T.allCls && T.auto && T.motion == null && T.swings >= motionsOf(T.cls).length * 2) {
+        const cl = testClasses();
+        setClass(cl[(cl.indexOf(T.cls) + 1) % cl.length]);
+        return;
+      }
+      T.atkT = 1 / st.aspd;
+      knight.swing = 0;
+      knight.combo = T.motion != null ? T.motion : (knight.combo || 0) + 1;
+      knight.pending = true;
+      T.swings++;
+      T.lastBasic = { hp0: dummy.hp, n: knight.combo % motionsOf(T.cls).length, prev: T.lastBasic && T.lastBasic.dmg };
+      renderInfo(); renderUi();
+    }
+  }
+
   function tick(dt) {
     refillDummy();
+    if (T.mode === 'basic') { if (T.auto) basicTick(dt); update(dt); return; }
     const busy = castOf('hero');
     if (!busy && T.last && T.last.dmg == null) {
       T.last.dmg = T.last.hp0 - dummy.hp;
@@ -174,15 +210,34 @@ function run() {
     return b;
   }
   function renderUi() {
+    $('modes').replaceChildren(
+      btn('✨ 스킬', T.mode === 'skill', () => setMode('skill')),
+      btn('🗡️ 평타만', T.mode === 'basic', () => setMode('basic')),
+    );
+    $('pickLabel').textContent = T.mode === 'basic' ? '동작' : '스킬';
+    $('basic').style.display = T.mode === 'basic' ? 'none' : '';
     $('classes').replaceChildren(...testClasses().map((id) => {
       const c = CLASSES[id];
       return btn(`${c.icon} ${c.name}`, id === T.cls, () => setClass(id), `${c.tier}차`);
     }));
-    $('skills').replaceChildren(...skillsOf(T.cls).map((k) => btn(`${k.icon} ${k.name}`, k.id === T.skill, () => {
-      T.skill = k.id;
-      if (!castOf('hero')) { cast(k.id); T.wait = GAP_SEC; T.basicDone = false; if (T.auto) nextSkill(); }
-      renderUi();
-    }, k.desc)));
+    if (T.mode === 'basic') {
+      // 연속기: 번갈아(기본) 또는 한 동작만 고정
+      const mo = motionsOf(T.cls), cur = T.lastBasic ? T.lastBasic.n : -1;
+      $('skills').replaceChildren(
+        btn('🔁 번갈아', T.motion == null, () => { T.motion = null; renderUi(); }),
+        ...mo.map((_, i) => {
+          const b = btn(`${i + 1}번 동작`, T.motion != null && T.motion % mo.length === i, () => { T.motion = i; T.atkT = Math.min(T.atkT, 0.15); renderUi(); });
+          if (T.motion == null && i === cur) b.style.borderColor = 'rgba(255,177,59,.45)';     // 지금 나온 동작
+          return b;
+        }),
+      );
+    } else {
+      $('skills').replaceChildren(...skillsOf(T.cls).map((k) => btn(`${k.icon} ${k.name}`, k.id === T.skill, () => {
+        T.skill = k.id;
+        if (!castOf('hero')) { cast(k.id); T.wait = GAP_SEC; T.basicDone = false; if (T.auto) nextSkill(); }
+        renderUi();
+      }, k.desc)));
+    }
     $('auto').classList.toggle('on', T.auto);
     $('allCls').classList.toggle('on', T.allCls);
     $('basic').classList.toggle('on', T.basic);
@@ -191,6 +246,14 @@ function run() {
     $('speeds').replaceChildren(...[0.1, 0.25, 0.5, 1].map((v) => btn(`×${v}`, T.speed === v, () => { T.speed = v; renderUi(); })));
   }
   function renderInfo() {
+    if (T.mode === 'basic') {
+      const c = CLASSES[T.cls], w = WEAPONS[c.weapon], st = stats(), mo = motionsOf(T.cls), L = T.lastBasic;
+      const per = st.atk * st.shots * st.shotMult;
+      $('info').innerHTML = `<b>${c.icon} ${c.name} 평타</b> <small>${w.name} · ${c.tier ? c.tier + '차' : '기본'}</small>
+        <div class="meta">공속 ${st.aspd.toFixed(2)}/초 (간격 ${(1 / st.aspd).toFixed(2)}초) · 사거리 ${st.range} · ${st.kind === 'ranged' ? `${st.shots}발 × ${st.shotMult}` : `최대 ${st.targets}마리`} · 한 번 피해 약 ${fmt(per)} · 치명 ${Math.round(st.crit * 100)}%</div>
+        <div class="meta">연속기 ${mo.length}동작${L ? ` · 지금 ${L.n + 1}번 동작` : ''}${L && L.prev != null ? ` · 직전 평타 실제 피해 ${fmt(L.prev)}` : ''} · 친 횟수 ${T.swings}</div>`;
+      return;
+    }
     if (!T.last) { $('info').innerHTML = '스킬을 고르거나 자동 반복을 켜세요.'; return; }
     const k = SKILLS[T.last.id], c = CLASSES[k.cls];
     const hits = k.hits.length, mult = +skillMult(k).toFixed(2);

@@ -372,7 +372,7 @@ function update(dt) {
 
   for (const sh of shots) {
     if (sh.delay > 0) { sh.delay -= dt; continue; }
-    if (sh.m.dying || S.phase !== 'expedition') { sh.done = true; continue; }
+    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
     const tx = toScreen(sh.m.x), ty = monsterMidY(sh.m);
     const dx = tx - sh.x, dy = ty - sh.y, dist = Math.hypot(dx, dy);
     const step = sh.w.arrow.speed * dt;
