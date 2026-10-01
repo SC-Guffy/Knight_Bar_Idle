@@ -13,6 +13,7 @@ let tray = null;
 let campOpen = false;   // 캠프 창이 열리면 창을 화면 전체로 키운다
 let settings = { displayId: null, overDock: false, showGround: true, hudRight: false, serverUrl: '' };
 let accountName = null;   // 렌더러가 알려 주는 현재 기사 닉네임
+let gameVersion = null;   // 렌더러(웹)가 알려 주는 게임 버전. 못 받으면 앱 버전을 보여 준다
 let quitting = false;
 
 function loadSettings() {
@@ -186,7 +187,7 @@ function buildMenu() {
   const displays = screen.getAllDisplays();
   const current = targetDisplay();
   const menu = Menu.buildFromTemplate([
-    { label: `⚔️ 기사 키우기 (v${app.getVersion()})`, enabled: false },
+    { label: `⚔️ 기사 키우기 (v${gameVersion || app.getVersion()})`, enabled: false },
     { label: accountName ? `👤 ${accountName}` : '👤 계정 없음', enabled: false },
     { label: '계정 변경…', click: () => { win.showInactive(); win.webContents.send('switch-account'); } },
     { type: 'separator' },
@@ -279,6 +280,10 @@ app.whenReady().then(() => {
   ipcMain.on('reload', () => { if (win && !win.isDestroyed()) loadGame(); });
   ipcMain.on('tray-title', (_e, text) => {
     if (tray) tray.setTitle(text);
+  });
+  ipcMain.on('game-version', (_e, v) => {
+    gameVersion = String(v);
+    buildMenu();
   });
   ipcMain.on('account', (_e, nick) => {
     accountName = nick;

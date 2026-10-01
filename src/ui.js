@@ -1221,6 +1221,7 @@ function boot() {
       $('hud').classList.toggle('right', !!s.hudRight);
     });
     window.bar.onSwitchAccount(openAccount);
+    if (window.bar.setGameVersion) window.bar.setGameVersion(GAME_VERSION);   // 0.2.0 앱에는 없다
     // 앱을 끄기 직전에 서버에 마지막으로 저장한다
     window.bar.onFlush(async () => {
       save();

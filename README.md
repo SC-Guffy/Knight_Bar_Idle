@@ -13,6 +13,7 @@ npm start
 설치된 앱은 게임 화면(`index.html`, `src/`)을 웹 버전(GitHub Pages, https://sc-guffy.github.io/Knight_Bar_Idle/)에서 불러온다.
 
 - **게임 코드만 바꿨으면** `main`에 푸시하면 끝. 웹 버전이 1~2분 안에 갱신되고, 켜져 있는 앱도 5분마다 확인해서 저장한 뒤 새 버전으로 다시 불러온다 (`ui.js`의 `watchForUpdates`).
+- 게임 업데이트를 푸시할 때는 `src/data.js`의 `GAME_VERSION`을 올린다. 앱 트레이 메뉴의 "기사 키우기 (v…)"가 이 값이다 (앱 0.2.1부터).
 - **`main.js`·`preload.js`를 바꿨을 때만** 설치 파일을 새로 만들어 Releases 에 올린다. 웹 코드에서 새 `window.bar` 기능을 쓸 때는 예전 앱에 없을 수 있으니 `if (window.bar.새기능)`으로 확인하고 쓴다.
 - 웹을 불러오지 못하면(오프라인 등) 앱에 들어 있는 파일로 연다. `npm start`(개발)는 항상 로컬 파일을 열고, `KB_WEB=주소`로 다른 웹 주소를 지정할 수 있다.
 - 예전(0.1.x) 앱의 로컬 세이브는 처음 웹 주소로 열 때 한 번 옮긴다 (`main.js`의 `migrateLocalStorage`, `store.html`).
