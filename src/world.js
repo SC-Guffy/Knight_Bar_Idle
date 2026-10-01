@@ -33,7 +33,9 @@ const knight = {
 };
 let monsters = [];
 let shots = [];            // 화살·마력탄
-let effects = [];          // 충격파, 전직 빛기둥
+let effects = [];          // 충격파, 전직 빛기둥, 몬스터 공격 이펙트
+let parts = [];            // 도트 파편·흙먼지·불꽃
+let shake = 0;             // 보스 타격 시 화면 흔들림 (남은 초)
 let floaters = [];
 let coins = [];
 let banner = null;
@@ -81,7 +83,7 @@ const MAX_ALIVE = 2;
 
 function makeMonster(type, boss, x) {
   const st = monsterStats(S.stage, boss);
-  return { type, ...st, maxHp: st.hp, x, born: clock, atkTimer: rand(0.4, 1.0), flash: 0, kb: 0, lunge: 0, dying: 0, t: Math.random() * 10 };
+  return { type, ...st, maxHp: st.hp, x, born: clock, atkTimer: rand(0.4, 1.0), flash: 0, kb: 0, hurt: 0, anim: null, dying: 0, t: Math.random() * 10 };
 }
 
 function layoutLap() {
@@ -139,6 +141,12 @@ function monsterTop(m) {
   return groundY() - spriteOf(m).length * monsterScale(m) - (fly ? fly + 2 : 0);
 }
 
+// 끝없는 마지막 필드에선 20스테이지마다 몬스터 색을 바꿔 새로움을 준다
+function monsterHue() {
+  const last = ZONES[ZONES.length - 1];
+  return S.stage >= last.from ? Math.floor((S.stage - last.from) / 20) * 67 % 360 : 0;
+}
+
 function monsterMidY(m) {
   return monsterTop(m) + (spriteOf(m).length * monsterScale(m)) / 2;
 }
@@ -150,12 +158,15 @@ function hitMonster(m, mult = 1) {
   const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
   m.flash = 0.08;
+  m.hurt = 1;
   m.kb = m.boss ? 2 : heroWeapon().motion === 'sweep' ? 10 : 5;
   if (st.heal) S.hp = Math.min(st.maxHp, S.hp + st.maxHp * st.heal);
   addFloater((crit ? '💥' : '') + fmt(dmg), toScreen(m.x) + rand(-6, 6), monsterTop(m) - 4, crit ? '#ffb13b' : '#ffffff', crit ? 14 : 12);
   if (m.hp > 0) return;
 
   m.dying = 0.001;
+  m.killed = true;
+  shatter(m);
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -232,6 +243,7 @@ function updateExpedition(dt, gdt) {
     const d = aheadDist(knight.x, m.x);
     if (d <= reachTo(m) + 4) m.engaged = true;
     const stop = Math.max(monsterReach(m), prev + 16);
+    m.moving = m.engaged && d > stop && !m.anim;
     if (m.engaged && d > stop) m.x -= Math.min(MONSTER_SPEED * dt, d - stop);
     prev = aheadDist(knight.x, m.x);
   }
@@ -264,32 +276,46 @@ function updateExpedition(dt, gdt) {
     S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * dt);
   }
 
+  // 공격은 예비동작 → 타격 → 복귀 모션으로 재생하고, 피해는 타격 프레임에 들어간다
   for (const m of monsters) {
     if (m.dying || S.phase !== 'expedition') continue;
+    if (m.anim && advanceMonsterAttack(m, dt, st)) break;   // true = 기사가 쓰러짐
     if (aheadDist(knight.x, m.x) > monsterReach(m) + 1) continue;
     m.atkTimer -= dt;
-    if (m.atkTimer > 0) continue;
-    m.atkTimer = MONSTERS[m.type].atkCd || 1.4;
-    m.lunge = 1;
-    if (knight.leapT >= 0) continue;                       // 공중에 있으면 빗나감
-    const dmg = m.atk * rand(0.9, 1.1) * (1 - st.guard);
-    S.hp -= dmg;
-    knight.flash = 0.08;
-    addFloater('-' + fmt(dmg), toScreen(knight.x) + rand(-4, 4), groundY() - 52, '#ff6b6b', 11);
-    if (S.hp > 0 && tryPotion()) addFloater('🧪 +HP', toScreen(knight.x), groundY() - 66, '#7dffb0', 12);
-    if (S.hp > 0 && S.hp < st.maxHp * 0.25 && !knight.crisis) { knight.crisis = true; S.trip.crises++; }
-    if (S.hp <= 0) {
-      addFloater(`💀 스태미나 -${DEFEAT_STAMINA}`, toScreen(knight.x), groundY() - 50, '#ff9f9f', 12);
-      knightDefeated(!!m.boss);
-      knight.down = DEFEAT_DOWN_SEC;
-      knight.fighting = false;
-      knight.pending = false;
-      shots = [];
-      monsters.forEach(o => { if (!o.dying) o.dying = 0.001; });
-      if (S.stamina <= 0) endExpedition('stamina');
-      break;
-    }
+    if (m.atkTimer > 0 || m.anim) continue;
+    const cd = MONSTERS[m.type].atkCd || 1.4;
+    m.atkTimer = cd;
+    const mo = ATK_MOTION[MONSTERS[m.type].style] || ATK_MOTION.swing;
+    m.anim = { t: 0, dur: Math.min(mo.dur, cd * 0.85), hit: false };
   }
+}
+
+function advanceMonsterAttack(m, dt, st) {
+  const a = m.anim, mo = monsterMotion(m);
+  a.t += dt;
+  if (a.t >= a.dur) m.anim = null;
+  if (a.hit || a.t < a.dur * mo.hitAt) return false;
+  a.hit = true;
+  // 공중에 있거나 그새 사거리 밖이면 빗나감
+  if (knight.leapT >= 0 || aheadDist(knight.x, m.x) > monsterReach(m) + 1) return false;
+  strikeFx(m);
+  const dmg = m.atk * rand(0.9, 1.1) * (1 - st.guard);
+  S.hp -= dmg;
+  knight.flash = 0.08;
+  knight.recoil = 1;
+  addFloater('-' + fmt(dmg), toScreen(knight.x) + rand(-4, 4), groundY() - 52, '#ff6b6b', 11);
+  if (S.hp > 0 && tryPotion()) addFloater('🧪 +HP', toScreen(knight.x), groundY() - 66, '#7dffb0', 12);
+  if (S.hp > 0 && S.hp < st.maxHp * 0.25 && !knight.crisis) { knight.crisis = true; S.trip.crises++; }
+  if (S.hp > 0) return false;
+  addFloater(`💀 스태미나 -${DEFEAT_STAMINA}`, toScreen(knight.x), groundY() - 50, '#ff9f9f', 12);
+  knightDefeated(!!m.boss);
+  knight.down = DEFEAT_DOWN_SEC;
+  knight.fighting = false;
+  knight.pending = false;
+  shots = [];
+  monsters.forEach(o => { if (!o.dying) o.dying = 0.001; });
+  if (S.stamina <= 0) endExpedition('stamina');
+  return true;
 }
 
 function updateReturning(dt) {
@@ -314,6 +340,8 @@ function update(dt) {
   advanceBuild(gdt);
 
   knight.flash = Math.max(0, knight.flash - dt);
+  knight.recoil = Math.max(0, (knight.recoil || 0) - dt * 6);
+  shake = Math.max(0, shake - dt);
   if (knight.swing >= 0) {
     // 공속이 아주 빠르면 모션도 빨라진다
     knight.swing += dt * Math.max(5, stats().aspd * 1.3);
@@ -329,7 +357,7 @@ function update(dt) {
     m.t += dt;
     m.flash = Math.max(0, m.flash - dt);
     m.kb = Math.max(0, m.kb - dt * 40);
-    m.lunge = Math.max(0, m.lunge - dt * 3);
+    m.hurt = Math.max(0, m.hurt - dt * 4);
     if (m.dying) m.dying += dt;
   }
   monsters = monsters.filter(m => !m.dying || m.dying < 0.5);
@@ -348,7 +376,16 @@ function update(dt) {
   }
   shots = shots.filter(sh => !sh.done);
   for (const e of effects) e.t += dt;
-  effects = effects.filter(e => e.t < (e.type === 'pillar' ? 2.4 : 0.6));
+  effects = effects.filter(e => e.t < (e.life || (e.type === 'pillar' ? 2.4 : 0.6)));
+
+  for (const p of parts) {
+    p.t += dt;
+    p.vy += p.g * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const floor = groundY() - p.size / 2;
+    if (p.y > floor) { p.y = floor; p.vy *= -0.35; p.vx *= 0.6; }
+  }
+  parts = parts.filter(p => p.t < p.life);
 
   for (const f of floaters) { f.t += dt; f.y -= 22 * dt; }
   floaters = floaters.filter(f => f.t < 1.1);
@@ -376,7 +413,7 @@ function update(dt) {
 
 // 원정이 끝나면 남은 몬스터는 사라지고 기사는 돌아선다
 hooks.onExpeditionEnd = (reason) => {
-  monsters.forEach(m => { if (!m.dying) m.dying = 0.001; });
+  monsters.forEach(m => { if (!m.dying) m.dying = 0.001; m.anim = null; });
   knight.fighting = false;
   knight.pending = false;
   knight.leapT = -1;
@@ -394,19 +431,25 @@ hooks.onLevelUp = () => addFloater('LEVEL UP!', toScreen(knight.x), groundY() - 
 
 // ───────────────────────── 렌더 ─────────────────────────
 // g: 그릴 캔버스 (기본은 하단바, 전직 미리보기는 자기 캔버스). 알파는 현재 값에 곱한다.
-function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false, alpha = 1 } = {}, g = ctx) {
+// sx·sy: 가로·세로 늘림(발밑 기준), skew: 높이 1px 당 가로로 밀리는 양 — 줄 단위로 밀어 도트가 계단처럼 기운다
+function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false, alpha = 1, sx = 1, sy = 1, skew = 0 } = {}, g = ctx) {
   const h = rows.length, w = rows[0].length;
-  const ox = Math.round(cx - (w * scale) / 2);
-  const oy = Math.round(bottomY - h * scale);
+  const cw = scale * sx, chh = scale * sy;
+  const ox = cx - (w * cw) / 2;
   const prevAlpha = g.globalAlpha;
   g.globalAlpha = prevAlpha * alpha;
   for (let r = 0; r < h; r++) {
     const row = rows[r];
+    const y0 = Math.round(bottomY - (h - r) * chh), y1 = Math.round(bottomY - (h - r - 1) * chh);
+    if (y1 <= y0) continue;
+    const shift = skew ? Math.round(skew * (h - r - 0.5) * chh) : 0;
     for (let c = 0; c < w; c++) {
       const ch = row[c];
       if (ch === '.') continue;
+      const cc = flip ? w - 1 - c : c;
+      const x0 = Math.round(ox + cc * cw) + shift, x1 = Math.round(ox + (cc + 1) * cw) + shift;
       g.fillStyle = flash ? '#ffffff' : (pal[ch] || PAL[ch]);
-      g.fillRect(ox + (flip ? w - 1 - c : c) * scale, oy + r * scale, scale, scale);
+      g.fillRect(x0, y0, x1 - x0, y1 - y0);
     }
   }
   g.globalAlpha = prevAlpha;
@@ -736,7 +779,7 @@ function drawHero(g, id, x, gy, pose) {
 }
 
 function drawKnight() {
-  const x = toScreen(knight.x);
+  const x = toScreen(knight.x) - Math.round((knight.recoil || 0) * 3);
   const gy = groundY();
   const lift = knight.leapT >= 0 ? Math.sin(Math.PI * knight.leapT) * 40 : 0;
 
@@ -787,11 +830,39 @@ function drawShots() {
 function drawEffects() {
   for (const e of effects) {
     if (e.type === 'ring') {
-      const k = e.t / 0.6;
+      const k = e.t / (e.life || 0.6);
       ctx.save();
       ctx.globalAlpha = 1 - k;
       ctx.strokeStyle = e.color; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.ellipse(e.x, e.y, 10 + k * 70, 4 + k * 10, 0, 0, Math.PI * 2); ctx.stroke();
+      const sz = e.size || 1;
+      ctx.beginPath(); ctx.ellipse(e.x, e.y, (10 + k * 70) * sz, (4 + k * 10) * sz, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    } else if (e.type === 'slash') {
+      // 몬스터 쪽에서 기사 앞을 위→아래로 긋는 초승달 베기 (도트로 찍는다)
+      const k = e.t / e.life;
+      const head = Math.min(1, k * 2.5), tail = Math.max(0, k * 2.5 - 0.7);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (1 - k) * 2);
+      ctx.fillStyle = '#ffffff';
+      for (let u = tail; u <= head; u += 0.04) {
+        const ang = -2.1 - u * 2.1, sz = 1 + Math.round(3 * Math.sin(Math.PI * u));
+        ctx.fillRect(Math.round(e.x + Math.cos(ang) * 18) - 1, Math.round(e.y + Math.sin(ang) * 18) - 1, sz, sz);
+      }
+      ctx.restore();
+    } else if (e.type === 'bite') {
+      // 위아래 이빨이 맞물린다
+      const k = e.t / e.life;
+      const gap = 2 + 12 * (1 - smooth(Math.min(1, k / 0.4)));
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
+      ctx.fillStyle = '#ffffff';
+      for (let i = -1; i <= 1; i++) {
+        const tx = Math.round(e.x + i * 6);
+        for (let j = 0; j < 3; j++) {
+          ctx.fillRect(tx - 2 + j, Math.round(e.y - gap - 4 + j * 2), 5 - j * 2, 2);   // 윗니 ▼
+          ctx.fillRect(tx - 2 + j, Math.round(e.y + gap + 2 - j * 2), 5 - j * 2, 2);   // 아랫니 ▲
+        }
+      }
       ctx.restore();
     } else if (e.type === 'pillar') {
       // 전직: 기사 위로 빛기둥이 내려오고 빛 조각이 솟아오른다
@@ -817,29 +888,182 @@ function drawEffects() {
   }
 }
 
+// ───────────────────────── 몬스터 모션 ─────────────────────────
+// 키프레임 [진행도, dx, dy, sx, sy, skew]. dx<0 은 기사 쪽, dy<0 은 위, skew>0 은 뒤로 젖힘. hitAt 에서 피해가 들어간다
+const ATK_MOTION = {
+  swing:  { dur: 0.6, hitAt: 0.5, keys: [[0, 0, 0, 1, 1, 0], [0.35, 4, 0, 0.94, 1.06, 0.3], [0.5, -7, 0, 1.12, 0.92, -0.45], [0.64, -6, 0, 1.05, 0.97, -0.35], [1, 0, 0, 1, 1, 0]] },
+  pounce: { dur: 0.6, hitAt: 0.5, keys: [[0, 0, 0, 1, 1, 0], [0.35, 4, 0, 1.22, 0.74, 0.15], [0.5, -10, -6, 1.3, 0.8, -0.2], [0.62, -8, 0, 0.9, 1.1, 0], [1, 0, 0, 1, 1, 0]] },
+  bounce: { dur: 0.65, hitAt: 0.55, keys: [[0, 0, 0, 1, 1, 0], [0.25, 0, 0, 1.25, 0.7, 0], [0.42, -6, -16, 0.85, 1.2, 0], [0.55, -9, 0, 1.3, 0.7, 0], [0.68, -8, 0, 0.95, 1.08, 0], [0.82, -4, -6, 1, 1, 0], [1, 0, 0, 1, 1, 0]] },
+  slam:   { dur: 0.8, hitAt: 0.6, keys: [[0, 0, 0, 1, 1, 0], [0.4, 3, 0, 0.9, 1.2, 0.2], [0.5, 3, -1, 0.88, 1.24, 0.22], [0.6, -6, 0, 1.25, 0.78, -0.3], [0.75, -5, 0, 1.1, 0.9, -0.15], [1, 0, 0, 1, 1, 0]] },
+  dive:   { dur: 0.7, hitAt: 0.55, keys: [[0, 0, 0, 1, 1, 0], [0.35, 5, -12, 1, 1, 0.25], [0.55, -14, 14, 1.15, 0.9, -0.4], [0.7, -10, 8, 1, 1, -0.2], [1, 0, 0, 1, 1, 0]] },
+  cast:   { dur: 0.8, hitAt: 0.72, release: 0.55, keys: [[0, 0, 0, 1, 1, 0], [0.5, 4, -2, 0.92, 1.12, 0.2], [0.58, -3, 0, 1.1, 0.92, -0.15], [0.72, -1, 0, 1.02, 0.98, -0.05], [1, 0, 0, 1, 1, 0]] },
+};
+const monsterMotion = (m) => ATK_MOTION[MONSTERS[m.type].style] || ATK_MOTION.swing;
+const smooth = (u) => u * u * (3 - 2 * u);
+
+function monsterPose(m) {
+  const def = MONSTERS[m.type];
+  const pose = { dx: 0, dy: 0, sx: 1, sy: 1, skew: 0 };
+  if (m.anim) {
+    const mo = monsterMotion(m), keys = mo.keys;
+    const p = Math.min(1, m.anim.t / m.anim.dur);
+    let i = 0;
+    while (i < keys.length - 2 && p > keys[i + 1][0]) i++;
+    const a = keys[i], b = keys[i + 1];
+    const u = Math.min(1, Math.max(0, (p - a[0]) / (b[0] - a[0])));
+    const e = b[0] === mo.hitAt ? u * u * u : smooth(u);     // 타격 직전 구간은 확 가속
+    const k = m.boss ? 1.5 : 1;
+    pose.dx = (a[1] + (b[1] - a[1]) * e) * k;
+    pose.dy = (a[2] + (b[2] - a[2]) * e) * k;
+    pose.sx = a[3] + (b[3] - a[3]) * e;
+    pose.sy = a[4] + (b[4] - a[4]) * e;
+    pose.skew = a[5] + (b[5] - a[5]) * e;
+  } else if (m.moving) {
+    pose.dy = -Math.abs(Math.sin(m.t * 12)) * 3;            // 통통 뛰며 다가온다
+    pose.skew = -0.08;
+  } else if (!def.fly) {
+    const br = Math.sin(m.t * 3.5);                           // 숨쉬기
+    pose.sy = 1 + br * 0.04; pose.sx = 1 - br * 0.02;
+  }
+  if (m.hurt) {                                               // 맞으면 찌그러지며 뒤로 젖혀진다
+    const h = m.hurt * m.hurt;
+    pose.sx *= 1 + 0.14 * h; pose.sy *= 1 - 0.14 * h; pose.skew += 0.3 * h;
+  }
+  const age = clock - m.born;
+  if (age < 0.4 && !m.dying) {                                // 등장: 땅에서 튀어나오거나 위에서 내려온다
+    const k = age / 0.4;
+    if (def.fly) pose.dy -= (1 - k) * (1 - k) * 24;
+    else {
+      const c1 = 1.70158, back = 1 + (c1 + 1) * (k - 1) ** 3 + c1 * (k - 1) ** 2;
+      pose.sy *= back; pose.sx *= 1 + (1 - k) * 0.3;
+    }
+  }
+  return pose;
+}
+
+// 처치하면 스프라이트가 도트 조각으로 부서져 튄다
+function shatter(m) {
+  const rows = spriteOf(m), def = MONSTERS[m.type], pal = def.pal || {};
+  const s = monsterScale(m), w = rows[0].length, h = rows.length;
+  const cx = toScreen(m.x) + m.kb;
+  const bottom = groundY() - (def.fly ? def.fly + Math.sin(m.t * 4) * 4 : 0);
+  const hue = monsterHue();
+  for (let r = 0; r < h; r++) {
+    for (let c = 0; c < w; c++) {
+      const ch = rows[r][c];
+      if (ch === '.') continue;
+      parts.push({
+        x: cx + (c - w / 2 + 0.5) * s, y: bottom - (h - r - 0.5) * s,
+        vx: rand(10, 80) + (c - w / 2) * 10, vy: rand(-150, -40) - (h - r) * 5,
+        g: 520, size: s, color: pal[ch] || PAL[ch], life: rand(0.5, 0.9), t: 0, hue,
+      });
+    }
+  }
+}
+
+function burst(x, y, n, colors, speed = 90, size = 2, g = 300) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(0, Math.PI * 2), v = rand(0.4, 1) * speed;
+    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - speed * 0.3, g, size, color: colors[i % colors.length], life: rand(0.25, 0.45), t: 0 });
+  }
+}
+
+// 기사가 맞는 순간의 이펙트 (공격 모션별)
+function strikeFx(m) {
+  const def = MONSTERS[m.type];
+  const kx = toScreen(knight.x), gy = groundY(), ky = gy - 24;
+  const style = def.style;
+  if (style === 'swing') effects.push({ type: 'slash', x: kx + 16, y: ky - 2, t: 0, life: 0.25 });
+  else if (style === 'pounce') effects.push({ type: 'bite', x: kx + 8, y: ky + 2, t: 0, life: 0.35 });
+  else if (style === 'cast') burst(kx + 8, ky, 12, [def.orb, '#ffffff'], 110, 2, 120);
+  else if (style === 'dive') burst(kx + 8, ky - 6, 8, ['#ffffff', '#ffd257'], 100, 2, 200);
+  if (style === 'slam' || style === 'bounce') {
+    effects.push({ type: 'ring', x: kx + 14, y: gy, t: 0, life: 0.4, size: m.boss ? 0.6 : 0.35, color: 'rgba(214,196,150,0.9)' });
+    for (const dir of [-1, 1]) {
+      for (let i = 0; i < 5; i++) {
+        parts.push({ x: kx + 14 + rand(-6, 6), y: gy - 2, vx: dir * rand(30, 90), vy: rand(-70, -20), g: 200, size: 3, color: i % 2 ? '#c9b38a' : '#a8946a', life: rand(0.3, 0.5), t: 0 });
+      }
+    }
+  }
+  burst(kx + 6, ky, 5, ['#ffffff', '#ffe9a8'], 70);
+  if (m.boss) shake = style === 'slam' || style === 'bounce' ? 0.3 : 0.18;
+}
+
 function drawMonster(m) {
-  const x = toScreen(m.x) + m.kb - m.lunge * 5;
+  const def = MONSTERS[m.type];
+  if (m.killed && m.dying > 0.07) return;                    // 하얗게 번쩍인 뒤엔 파편만 남는다
+  const pose = monsterPose(m);
+  const baseX = toScreen(m.x) + m.kb;
+  const x = baseX + pose.dx;
   if (x < -60 || x > W + 60) return;
   const scale = monsterScale(m);
   const rows = spriteOf(m);
-  const def = MONSTERS[m.type];
   const fly = def.fly ? def.fly + Math.sin(m.t * 4) * 4 : 0;
-  const bottom = groundY() - fly;
-  const alpha = m.dying ? Math.max(0, 1 - m.dying * 2) : Math.min(1, (clock - m.born) / 0.35);   // 등장 시 서서히
-  // 끝없는 마지막 필드에선 20스테이지마다 몬스터 색을 바꿔 새로움을 준다
-  const last = ZONES[ZONES.length - 1];
-  const hue = S.stage >= last.from ? Math.floor((S.stage - last.from) / 20) * 67 % 360 : 0;
+  const bottom = Math.min(groundY(), groundY() - fly + pose.dy);
+  const fade = m.killed ? 1 : m.dying ? Math.max(0, 1 - m.dying * 2) : 1;
+  const alpha = fade * Math.min(1, (clock - m.born) / 0.25);
+  const hue = monsterHue();
+  const w = rows[0].length * scale;
 
+  // 그림자는 공중에 뜰수록 작아진다
+  const air = Math.max(0, groundY() - bottom);
+  const sw = Math.max(4, (w - 4) * pose.sx * (1 - Math.min(0.6, air / 60)));
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.fillRect(x - rows[0].length * scale / 2 + 2, groundY() - 1, rows[0].length * scale - 4, 2);
+  ctx.fillRect(Math.round(x - sw / 2), groundY() - 1, Math.round(sw), 2);
 
   if (hue) ctx.filter = `hue-rotate(${hue}deg)`;
-  drawSprite(rows, def.pal || {}, x, bottom - (m.dying ? m.dying * 20 : 0), scale, { flash: m.flash > 0, alpha: alpha * (def.alpha || 1) });
+  const opt = { flash: m.flash > 0, alpha: alpha * (def.alpha || 1), sx: pose.sx, sy: pose.sy, skew: pose.skew };
+  if (m.killed) { opt.sx *= 1.15; opt.sy *= 0.9; }
+  drawSprite(rows, def.pal || {}, x, bottom - (m.dying && !m.killed ? m.dying * 20 : 0), scale, opt);
   ctx.filter = 'none';
+  if (m.killed) return;
 
-  const top = bottom - rows.length * scale;
-  if (m.boss) drawSprite(SPR.crown, PAL, x, top - 2, PX, { alpha });
-  if (!m.dying) drawHpBar(x, top - (m.boss ? 16 : 8), m.boss ? 50 : 24, m.hp / m.maxHp, m.boss ? '#ff9f1c' : '#ff5a5a');
+  const h = rows.length * scale * pose.sy;
+  const top = bottom - h;
+  if (m.boss) drawSprite(SPR.crown, PAL, x + Math.round(pose.skew * h), top - 2, PX, { alpha });
+  if (m.anim && def.style === 'cast') drawOrb(m, x - w / 2 * pose.sx, top + h * 0.45);
+  if (!m.dying) {
+    const baseTop = groundY() - fly - rows.length * scale;
+    drawHpBar(baseX, baseTop - (m.boss ? 16 : 8), m.boss ? 50 : 24, m.hp / m.maxHp, m.boss ? '#ff9f1c' : '#ff5a5a');
+  }
+}
+
+// 마법형: 손끝에 마력을 모았다가(차징) 기사에게 날린다
+function drawOrb(m, mx, my) {
+  const mo = monsterMotion(m), a = m.anim, color = MONSTERS[m.type].orb;
+  const p = a.t / a.dur;
+  const rel = mo.release * a.dur, hit = mo.hitAt * a.dur;
+  if (p < 0.15 || a.t > hit) return;
+  let x = mx - 3, y = my, r;
+  if (a.t < rel) {
+    r = 1 + Math.floor(((a.t / a.dur - 0.15) / (mo.release - 0.15)) * 3) + (Math.sin(clock * 40) > 0 ? 1 : 0);
+  } else {
+    const u = (a.t - rel) / (hit - rel);
+    x = mx + (toScreen(knight.x) + 10 - mx) * u;
+    y = my + (groundY() - 26 - my) * u - Math.sin(u * Math.PI) * 8;
+    r = 3;
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = color;
+    for (let i = 1; i <= 3; i++) ctx.fillRect(Math.round(x + i * 5) - 1, Math.round(y) - 1, 2, 2);
+    ctx.globalAlpha = 1;
+  }
+  if (m.boss) r += 2;
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x - r), Math.round(y - r), r * 2, r * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(Math.round(x - r / 2), Math.round(y - r / 2), Math.max(1, r), Math.max(1, r));
+}
+
+function drawParts() {
+  let hue = 0;
+  for (const p of parts) {
+    if ((p.hue || 0) !== hue) { hue = p.hue || 0; ctx.filter = hue ? `hue-rotate(${hue}deg)` : 'none'; }
+    ctx.globalAlpha = Math.min(1, (p.life - p.t) / 0.25);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(Math.round(p.x - p.size / 2), Math.round(p.y - p.size / 2), p.size, p.size);
+  }
+  ctx.filter = 'none';
+  ctx.globalAlpha = 1;
 }
 
 function drawFx() {
@@ -986,11 +1210,15 @@ function drawDuel() {
 
 function render() {
   ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (shake > 0) ctx.translate(Math.round(rand(-3, 3)), Math.round(rand(-2, 2)));
   drawGround();
   drawCamp();
   for (const m of monsters) drawMonster(m);
   if (duelPlay) drawDuel(); else drawKnight();
   drawShots();
   drawEffects();
+  drawParts();
+  ctx.restore();
   drawFx();
 }
