@@ -325,14 +325,25 @@
   .gicon.g3 { filter: drop-shadow(0 0 3px rgba(179, 107, 255, .85)); }
   .gicon.g4 { animation: legendIcon 1.8s ease-in-out infinite; }
   @keyframes legendIcon { 0%, 100% { filter: drop-shadow(0 0 2px #ff9f1c); } 50% { filter: drop-shadow(0 0 7px #ffd257) brightness(1.15); } }
+  .gicon.g5 { animation: mythIcon 1.5s ease-in-out infinite; }
+  @keyframes mythIcon { 0%, 100% { filter: drop-shadow(0 0 3px #ff4d6d); } 50% { filter: drop-shadow(0 0 9px #ff9f1c) brightness(1.2); } }
+  .gicon.g6 { animation: transIcon 1.3s ease-in-out infinite; }
+  @keyframes transIcon { 0%, 100% { filter: drop-shadow(0 0 4px #3ee8ff); } 50% { filter: drop-shadow(0 0 10px #b36bff) brightness(1.25); } }
+  .gicon.g7 { animation: originIcon 2.4s linear infinite; }
+  @keyframes originIcon { 0% { filter: drop-shadow(0 0 6px #ff9ff3) hue-rotate(0deg) brightness(1.2); } 100% { filter: drop-shadow(0 0 6px #ff9ff3) hue-rotate(360deg) brightness(1.2); } }
   .gicon.sil { filter: brightness(0) drop-shadow(0 0 4px var(--c)); opacity: .9; animation: none; }
   .gn.g3 { color: #c99bff; }
   .gn.g4 { background: linear-gradient(90deg, #ff9f1c, #fff1a8, #ff9f1c); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text;
     color: transparent !important; animation: legendText 2.4s linear infinite; }
+  .gn.g5, .gn.g6, .gn.g7 { background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent !important; animation: legendText 2s linear infinite; }
+  .gn.g5 { background-image: linear-gradient(90deg, #ff4d6d, #ffc0cb, #ff9f1c, #ff4d6d); }
+  .gn.g6 { background-image: linear-gradient(90deg, #3ee8ff, #ffffff, #b36bff, #3ee8ff); }
+  .gn.g7 { background-image: linear-gradient(90deg, #ff9ff3, #ffe066, #7dffd0, #7cc4ff, #c99bff, #ff9ff3); animation-duration: 1.6s; }
   @keyframes legendText { to { background-position: -200% 0; } }
   .box.mystery { animation: mystery 1.4s ease-in-out infinite; }
   .box.mystery .lname { color: var(--c); font-weight: 800; letter-spacing: 2px; }
   .box.mystery.g4 { background: radial-gradient(circle at 50% 40%, rgba(255, 159, 28, .22), var(--soft) 70%); }
+  .box.mystery.g5, .box.mystery.g6, .box.mystery.g7 { background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c) 30%, transparent), var(--soft) 70%); animation-duration: 1s; }
   @keyframes mystery { 50% { box-shadow: inset 0 0 18px color-mix(in srgb, var(--c) 55%, transparent), 0 0 10px color-mix(in srgb, var(--c) 45%, transparent); } }
   .box.epic { animation: epic .9s ease-out; z-index: 1; }
   @keyframes epic { 0% { transform: scale(.4) rotate(-10deg); filter: brightness(3); box-shadow: 0 0 40px var(--c); }

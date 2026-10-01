@@ -214,7 +214,7 @@ function viewReport() {
       title="${b.it.k === 'gear' ? gearDesc(b.it) : ''}">
       ${lootIconHtml(b.it)}<div class="lname ${b.it.k === 'gear' ? 'gn g' + b.it.g : ''}">${lootName(b.it)}</div><div class="loot">${claimedText(b)}</div>
     </div>`).join('');
-  // 영웅·전설 장비는 챙기기 전까지 실루엣만 보인다
+  // 영웅 이상 장비는 챙기기 전까지 실루엣만 보인다
   const closed = S.bag.map((it, i) => isMystery(it) ? `
     <button class="box mystery g${it.g}" data-action="claim" data-i="${i}" style="--c:${GRADES[it.g].color}" title="챙겨서 정체를 확인하세요">
       ${gearIcon(it, 'sil')}<span class="lname">???</span>
@@ -585,7 +585,8 @@ function viewGear() {
 
   const sell = bulkSellList(gearUi.sellGrade, f === 'all' ? null : f);
   const sellGold = sell.reduce((a, x) => a + gearSellPrice(x), 0);
-  const grades = GRADES.map((g, i) => `<button class="${i === gearUi.sellGrade ? 'on' : ''}" style="--c:${g.color}" data-action="gear-sell-grade" data-g="${i}">${g.name}</button>`).join('');
+  // 일괄 판매는 전설까지만 고를 수 있다 (신화 이상은 너무 귀해서 일괄 판매 대상에서 뺀다)
+  const grades = GRADES.slice(0, 5).map((g, i) => `<button class="${i === gearUi.sellGrade ? 'on' : ''}" style="--c:${g.color}" data-action="gear-sell-grade" data-g="${i}">${g.name}</button>`).join('');
 
   const slotCards = slots.map(slotCard).join('');
   if (gearUi.last) gearUi.last.fresh = false;       // 결과 연출은 한 번만
@@ -782,7 +783,7 @@ function claimOne(i) {
   const it = S.bag.splice(i, 1)[0];
   if (!it) return;
   revealed.push({ it, got: claimLoot(it), fresh: true });
-  if (isMystery(it)) toast(`${it.g >= 4 ? '🌟 전설' : '✨ 영웅'} 장비 — ${gearName(it)}!`);
+  if (isMystery(it)) toast(`${it.g >= 4 ? '🌟' : '✨'} ${GRADES[it.g].name} 장비 — ${gearName(it)}!`);
 }
 
 function depart() {

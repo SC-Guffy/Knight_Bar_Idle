@@ -1,6 +1,7 @@
 'use strict';
 // 장비·전리품·강화 규칙. core.js 처럼 DOM을 모르고 S 상태만 바꾼다.
-//  - 가방 전리품: { k: 'gear', slot, g, s, t, roll } | { k: 'curio', id, g, s } | { k: 'use', id }
+//  - 가방:        상자 { k: 'box', g, s, boss } — 캠프에서 열면 아래 전리품들이 나온다 (openBox)
+//  - 전리품:      { k: 'gear', slot, g, s, t, roll } | { k: 'curio', id, g, s } | { k: 'use', id }
 //  - 장비 창고:   S.gear.inv = [{ id, slot, g, s, t, roll }]   (t = GEAR_ITEMS 키, roll = 능력치 편차)
 //  - 장착:        S.gear.eq = { weapon: id|null, armor, ring }
 //  - 강화 단계:   S.gear.enh = { weapon: 0.., armor, ring }  — 부위에 붙어 있어서 장비를 바꿔도 유지
@@ -43,18 +44,32 @@ function fixGearItem(it) {
   return it;
 }
 
-// 예전 세이브의 미감정 상자 { g, s } 를 같은 등급의 전리품으로 바꾼다
-const upgradeOldLoot = (b) => (!b.k ? rollLoot(b.g || 0, b.s || 1, false) : b.k === 'gear' ? fixGearItem(b) : b);
+// 상자를 연다: 첫 내용물은 상자 등급, 나머지는 한 등급 아래
+function openBox(b) {
+  const [lo, hi] = LOOT_BOXES[b.g].n;
+  const n = lo + Math.floor(Math.random() * (hi - lo + 1));
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(rollLoot(i === 0 ? b.g : Math.max(0, b.g - 1), b.s, !!b.boss && i === 0));
+  return out;
+}
 
-// 전리품 표시용 등급 (소비 아이템은 종류별 고정)
+// 가방 무게. 상자가 생기기 전 세이브에 남아 있는 낱개 전리품은 1
+const lootWeight = (it) => (it.k === 'box' ? LOOT_BOXES[it.g].w : 1);
+
+// 예전 세이브의 미감정 상자 { g, s } 는 같은 등급의 전리품 상자로 바꾼다
+const upgradeOldLoot = (b) => (!b.k ? { k: 'box', g: b.g || 0, s: b.s || 1 } : b.k === 'gear' ? fixGearItem(b) : b);
+
+// 전리품·상자 표시용 등급 (소비 아이템은 종류별 고정)
 const lootGrade = (it) => (it.k === 'use' ? SUPPLY_GRADE[it.id] || 0 : it.g);
 
 function lootIcon(it) {
+  if (it.k === 'box') return '📦';
   if (it.k === 'gear') return GEAR_ITEMS[it.t].icon;
   if (it.k === 'curio') return CURIOS[it.id].icon;
   return SUPPLIES[it.id].icon;
 }
 function lootName(it) {
+  if (it.k === 'box') return LOOT_BOXES[it.g].name;
   if (it.k === 'gear') return gearName(it);
   if (it.k === 'curio') return CURIOS[it.id].name;
   return SUPPLIES[it.id].name;
@@ -101,7 +116,7 @@ function gearBonus() {
 }
 
 // ───────────────────────── 가방 → 창고 ─────────────────────────
-// 가방 전리품 1개를 챙긴다: 장비는 창고로(자동 장착이 켜져 있으면 더 좋은 걸 바로 낌), 골동품은 팔아서 재화로, 소비 아이템은 보급품으로.
+// 상자에서 나온 전리품 1개를 챙긴다: 장비는 창고로(자동 장착이 켜져 있으면 더 좋은 걸 바로 낌), 골동품은 팔아서 재화로, 소비 아이템은 보급품으로.
 // 받은 재화와, 장비였으면 창고에서의 id(gearId)를 돌려준다
 function claimLoot(it) {
   const got = { gold: 0, wood: 0, ore: 0, mana: 0 };

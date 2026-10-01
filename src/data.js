@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.2.0';
+const GAME_VERSION = '0.3.1';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -22,7 +22,7 @@ const MIN_DEPART_RATIO = 0.2;         // 최대 스태미나의 20% 이상 있�
 const DEFEAT_STAMINA = 10;            // 쓰러지면 잃는 스태미나 (약 24초 분량)
 const LUNCH_RATIO = 0.5;              // 도시락: 최대 스태미나의 50% 회복
 const DEFEAT_DOWN_SEC = 2.5;          // 쓰러져 있는 시간
-const BOX_DROP = 0.05;                // 일반 몬스터 전리품 드랍률 (보스는 100%)
+const BOX_DROP = 0.05;                // 일반 몬스터 전리품 상자 드랍률 (보스는 100%)
 const POTION_AT = 0.3;                // 체력 30% 이하에서 물약 자동 사용
 const CAMP_HEAL_PER_SEC = 0.1;        // 캠프에서 초당 최대 체력의 10% 회복
 
@@ -38,7 +38,7 @@ const trainCapAt = (lv) => 10 * lv;
 // (Lv5 약 11분 · Lv10 약 42분 · Lv15 약 2.6시간 · Lv20 약 10시간)
 const maxStaminaAt = (lv) => Math.round(20 * Math.pow(1.3, lv - 1)) * 5;
 const restSecAt = (lv) => 180 * Math.pow(1.1, lv - 1);          // 0 → 최대 스태미나까지 (Lv1 3분 · Lv20 약 18분)
-const bagCapAt = (lv) => 20 + 6 * (lv - 1);
+const bagCapAt = (lv) => 20 + 6 * (lv - 1);                     // 가방이 들 수 있는 무게 (상자마다 무게가 다름)
 const forgeMultAt = (lv) => Math.pow(1.3, lv - 1);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
 
@@ -53,7 +53,7 @@ const BUILDINGS = {
   },
   storage: {
     name: '창고', icon: '📦', mul: { gold: 0.8, wood: 1.5, ore: 0.3, mana: 0.6 },
-    effect: (lv) => `가방 ${bagCapAt(lv)}칸`,
+    effect: (lv) => `가방 무게 ${bagCapAt(lv)}`,
   },
   forge: {
     name: '대장간', icon: '⚒️', mul: { gold: 1.2, wood: 0.4, ore: 1.6, mana: 1.4 },
@@ -91,17 +91,40 @@ const SUPPLY_GRADE = { lunch: 0, potion: 0, charm: 2, elixir: 2, protect: 3 };
 
 // ───────────────────────── 전리품 등급 ─────────────────────────
 // 장비·골동품 공통. stat: 장비 능력치 배수, sell: 판매가(몬스터 골드 배수), res: 골동품 재화 배수
-// 원정 1회(전리품 약 20개, 보스 3마리 기준) 장비 기대치: 영웅 4~5회에 1개, 전설 약 40회에 1개 (부적을 쓰면 약 20회)
+// 원정 1회(상자 약 13개, 보스 3마리 기준) 장비 기대치: 영웅 4~5회에 1개, 전설 약 40회에 1개 (부적을 쓰면 약 20회)
+//  그 위로 신화 약 270회 · 초월 약 1,600회 · 태초 약 10,000회에 1개 (부적은 모두 2배)
 const GRADES = [
   { name: '일반', color: '#b8bcc6', w: 64,  stat: 1,   sell: 3,  res: 1 },
   { name: '고급', color: '#5fcf5a', w: 26,  stat: 1.5, sell: 6,  res: 2 },
   { name: '희귀', color: '#4aa3ff', w: 8,   stat: 2.2, sell: 12, res: 4 },
   { name: '영웅', color: '#b36bff', w: 1.8, stat: 3.2, sell: 30, res: 8 },
   { name: '전설', color: '#ff9f1c', w: 0.2, stat: 4.6, sell: 80, res: 18 },
+  { name: '신화', color: '#ff4d6d', w: 0.03,   stat: 6.6,  sell: 200,  res: 40 },
+  { name: '초월', color: '#3ee8ff', w: 0.005,  stat: 9.5,  sell: 500,  res: 90 },
+  { name: '태초', color: '#f4f0ff', w: 0.0008, stat: 13.7, sell: 1300, res: 200 },
 ];
-const CHARM_BONUS = [0.5, 1, 1.6, 2, 2];     // 행운의 부적: 등급별 가중치 배수 (전설은 2배까지만)
+const CHARM_BONUS = [0.5, 1, 1.6, 2, 2, 2, 2, 2];     // 행운의 부적: 등급별 가중치 배수 (전설 이상은 2배까지만)
 
-// 가방에 들어오는 전리품 종류 비율 (보스는 장비가 더 잘 나온다)
+// ───────────────────────── 전리품 상자 ─────────────────────────
+// 원정 중 전리품은 등급별 상자로 가방에 쌓이고, 캠프 정산에서 하나씩 열면 내용물이 나온다.
+// 가방은 칸 수가 아니라 무게로 찬다 (평균 상자 무게 약 1.5 → 기본 가방 20에 상자 13개 안팎).
+//  w: 무게, n: [최소, 최대] 내용물 수. 첫 내용물은 상자 등급, 나머지는 한 등급 아래(일반은 그대로)
+//  spr: GEAR_SPR 모양, pal: 글자별 색 (B 판자 · b 그늘 · W 광택 · H 테두리 · G 자물쇠 · J 보석)
+const LOOT_BOXES = [
+  { name: '낡은 상자', w: 1, n: [1, 1], spr: 'crate',
+    pal: { B: '#8a6a48', b: '#5e4630', W: '#a88a66', H: '#4a3420', G: '#7d8290', J: '#7d8290' } },
+  { name: '나무 상자', w: 2, n: [1, 2], spr: 'chest',
+    pal: { B: '#a0642e', b: '#6b4420', W: '#c98a4a', H: '#5e3818', G: '#c9a227', J: '#3a2a1a' } },
+  { name: '철제 상자', w: 3, n: [2, 2], spr: 'chest',
+    pal: { B: '#8c95a6', b: '#5a6070', W: '#c9d1dd', H: '#3d4250', G: '#d8dde6', J: '#4aa3ff' } },
+  { name: '기사단 보물상자', w: 4, n: [2, 3], spr: 'chest',
+    pal: { B: '#7a2a4a', b: '#4a1830', W: '#a8486a', H: '#ffd257', G: '#ffd257', J: '#b36bff' } },
+  // 보석함은 작아서 보물상자보다 가볍다
+  { name: '왕가의 보석함', w: 3, n: [3, 3], spr: 'jewelbox',
+    pal: { B: '#ffd257', b: '#c79a12', W: '#fffbe0', H: '#e08a1a', G: '#e08a1a', J: '#ff3b4b' } },
+];
+
+// 상자에서 나오는 전리품 종류 비율 (보스 상자의 첫 내용물은 장비가 더 잘 나온다)
 const LOOT_KIND_W = { gear: 40, curio: 45, use: 15 };
 const LOOT_KIND_W_BOSS = { gear: 65, curio: 25, use: 10 };
 
@@ -150,6 +173,16 @@ const GEAR_ITEMS = {
     pal: { B: '#6a5bff', b: '#2a1f6b', W: '#b6a8ff', H: '#1b1d27', G: '#7a5bff', J: '#35ffd0' } },
   yggdrasil:    { slot: 'weapon', g: 4, name: '세계수의 활 이그드라실', icon: '🌳', spr: 'bow', desc: '세계수의 가지로 만든 활. 쏜 화살에서 새싹이 돋는다.',
     pal: { B: '#fff6c2', b: '#d9c87a', W: '#fff6c2', H: '#6b8f3a', G: GOLD, J: '#7dff8a' } },
+  ragnarok:     { slot: 'weapon', g: 5, name: '종말검 라그나로크', icon: '🌋', spr: 'greatsword', desc: '신들의 황혼에 휘둘러졌다는 검. 칼끝에서 재가 흩날린다.',
+    pal: { B: '#ff4d6d', b: '#8a0f2a', W: '#ffd0d8', H: '#1b1218', G: '#ff9f1c', J: '#ffe066' } },
+  gungnir:      { slot: 'weapon', g: 5, name: '신창 궁니르', icon: '🔱', spr: 'spear', desc: '한 번 던지면 반드시 과녁을 꿰뚫고 주인의 손으로 돌아온다.',
+    pal: { B: '#ffe9a8', b: '#c98a12', W: '#ffffff', H: '#5a1a2a', G: '#ff4d6d', J: '#ff4d6d' } },
+  void_scythe:  { slot: 'weapon', g: 6, name: '공허의 낫', icon: '🌌', spr: 'scythe', desc: '휘두른 자리의 공간이 찢어진다. 틈 너머로 별이 보인다.',
+    pal: { B: '#3ee8ff', b: '#1a2a6b', W: '#e8ffff', H: '#0d0d1a', G: '#b36bff', J: '#ffffff' } },
+  astral_staff: { slot: 'weapon', g: 6, name: '성좌의 홀', icon: '✨', spr: 'staff', desc: '별자리 하나를 통째로 깎아 만든 홀. 하늘이 그 손짓을 따른다.',
+    pal: { B: '#9af6ff', b: '#3a7ad6', W: '#ffffff', H: '#1a2a6b', G: '#3ee8ff', J: '#ffffff' } },
+  genesis:      { slot: 'weapon', g: 7, name: '창세검 제네시스', icon: '🌅', spr: 'sword', desc: '세상이 생기기 전부터 있던 검. 이 검이 첫 빛을 갈랐다.',
+    pal: { B: '#ffffff', b: '#c9b8ff', W: '#ffffff', H: '#ffd257', G: '#7dffd0', J: '#ff9ff3' } },
 
   // ── 갑옷 ──
   rag_tunic:    { slot: 'armor', g: 0, name: '누더기 가죽옷', icon: '🧥', spr: 'tunic', desc: '여기저기 기운 자국투성이. 없는 것보단 낫다.',
@@ -180,6 +213,14 @@ const GEAR_ITEMS = {
     pal: { B: '#ff7a1a', b: '#b3261e', W: '#ffe066', H: '#b3261e', G: GOLD, J: '#fff6c2' } },
   celestial:    { slot: 'armor', g: 4, name: '천공의 성갑', icon: '☁️', spr: 'chain', desc: '구름 위 성채의 기사단장이 입던 갑옷. 깃털처럼 가볍다.',
     pal: { B: '#e8f4ff', b: '#9ac4ff', W: '#ffffff', H: GOLD, G: GOLD, J: '#7cc4ff' } },
+  titan_plate:  { slot: 'armor', g: 5, name: '거신의 판금', icon: '⛰️', spr: 'plate', desc: '산을 짊어졌던 거신의 갑옷. 사람이 입기엔 지나치게 튼튼하다.',
+    pal: { B: '#c94a5a', b: '#6b1a2a', W: '#ffb3b8', H: '#3a2a1a', G: GOLD, J: '#ffe066' } },
+  valkyrie:     { slot: 'armor', g: 5, name: '발키리의 깃갑옷', icon: '🪽', spr: 'chain', desc: '전장의 용사를 데려가던 전사들의 갑옷. 등에서 날개 소리가 난다.',
+    pal: { B: '#ffe0e6', b: '#d97a8a', W: '#ffffff', H: '#8a1a2a', G: GOLD, J: '#ff4d6d' } },
+  starlight_robe:{ slot: 'armor', g: 6, name: '은하수 성의', icon: '🌠', spr: 'robe', desc: '밤하늘을 오려 지었다. 옷자락 사이로 유성이 흐른다.',
+    pal: { B: '#1a2a6b', b: '#0d1238', W: '#3ee8ff', H: '#0d1238', G: '#ffffff', J: '#3ee8ff' } },
+  primordial:   { slot: 'armor', g: 7, name: '태초의 성갑', icon: '🕊️', spr: 'plate', desc: '첫 번째 새벽의 빛으로 빚어졌다. 어떤 어둠도 닿지 못한다.',
+    pal: { B: '#ffffff', b: '#c9b8ff', W: '#ffffff', H: '#ffd257', G: '#7dffd0', J: '#ff9ff3' } },
 
   // ── 반지 ──
   copper_band:  { slot: 'ring', g: 0, name: '구리 가락지', icon: '💍', spr: 'band', desc: '시장에서 산 싸구려 반지. 끼면 손가락이 초록색이 된다.',
@@ -202,6 +243,14 @@ const GEAR_ITEMS = {
     pal: { B: GOLD, b: '#c98a12', W: '#fffbe0', H: '#c98a12', G: '#c98a12', J: '#e0443c' } },
   ouroboros:    { slot: 'ring', g: 4, name: '무한의 고리 우로보로스', icon: '🐍', spr: 'ouro', desc: '제 꼬리를 문 뱀. 끝도 시작도 없다.',
     pal: { B: '#35ffd0', b: '#1f8a7a', W: '#e8fffb', H: '#1f8a7a', G: '#1f8a7a', J: '#ff3b4b' } },
+  draupnir:     { slot: 'ring', g: 5, name: '황금 팔찌 드라우프니르', icon: '💫', spr: 'band', desc: '아흐레 밤마다 똑같은 금반지를 여덟 개씩 낳는다.',
+    pal: { B: GOLD, b: '#b3261e', W: '#fffbe0', H: '#b3261e', G: '#b3261e', J: '#ff4d6d' } },
+  dragon_heart: { slot: 'ring', g: 5, name: '용심장 반지', icon: '❤️‍🔥', spr: 'gem', desc: '고룡의 심장이 굳어 생긴 보석. 아직도 뛴다.',
+    pal: { B: '#3a1a24', b: '#1b0d12', W: '#ff9fae', H: '#1b0d12', G: '#1b0d12', J: '#ff4d6d' } },
+  eclipse_ring: { slot: 'ring', g: 6, name: '일식의 고리', icon: '🌘', spr: 'signet', desc: '해와 달이 겹치는 순간을 가둬 두었다. 시간이 잠시 멈춘다.',
+    pal: { B: '#1b1d27', b: '#0d0d1a', W: '#3ee8ff', H: '#0d0d1a', G: '#3ee8ff', J: '#ffffff' } },
+  origin_ring:  { slot: 'ring', g: 7, name: '근원의 고리', icon: '♾️', spr: 'ouro', desc: '모든 것이 시작된 곳과 끝나는 곳을 하나로 잇는다.',
+    pal: { B: '#ffffff', b: '#c9b8ff', W: '#ffffff', H: '#c9b8ff', G: '#c9b8ff', J: '#ff9ff3' } },
 };
 const gearStageMult = (s) => Math.pow(1.18, s - 1);
 function gearBase(slot, g, s, roll) {
@@ -739,6 +788,49 @@ const MONSTERS = {
 
 // 장비 아이콘 모양 (12×12). 글자 색은 장비마다 pal 로 정한다. 그릴 때 어두운 외곽선이 자동으로 붙는다
 const GEAR_SPR = {
+  // ── 전리품 상자 ──
+  crate: [
+    '............',
+    '............',
+    '.HHHHHHHHHH.',
+    '.HWWWWWWWGH.',
+    '.HBBBBBBBBH.',
+    '.HbbbbbbbbH.',
+    '.HHHHHHHHHH.',
+    '.HGBBBBBBBH.',
+    '.HBBBBBBBBH.',
+    '.HbbbbbbbbH.',
+    '.HHHHHHHHHH.',
+    '............',
+  ],
+  chest: [
+    '............',
+    '..HHHHHHHH..',
+    '.HBWWWWWWBH.',
+    '.HBBBBBBBBH.',
+    '.HbbbbbbbbH.',
+    '.HHHHGGHHHH.',
+    '.HBBBJJBBBH.',
+    '.HBBBGGBBBH.',
+    '.HBBBBBBBBH.',
+    '.HbbbbbbbbH.',
+    '.HHHHHHHHHH.',
+    '............',
+  ],
+  jewelbox: [
+    '............',
+    '............',
+    '....HHHH....',
+    '...HBWWBH...',
+    '..HBWBBWBH..',
+    '..HHHGGHHH..',
+    '..HBBJJBBH..',
+    '..HBBGGBBH..',
+    '..HbbbbbbH..',
+    '..HHHHHHHH..',
+    '............',
+    '............',
+  ],
   sword: [
     '..........WB',
     '.........WBb',

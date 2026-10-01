@@ -254,7 +254,7 @@ function startExpedition({ charm = false, elixir = false } = {}) {
   if (elixir && S.items.elixir > 0) S.items.elixir--; else elixir = false;
   S.trip = {
     start: Date.now(), dur: 0, kills: 0, bosses: 0, gold: 0, xp: 0, levels: 0,
-    stageFrom: S.stage, stageTo: S.stage, boxes: [0, 0, 0, 0, 0],
+    stageFrom: S.stage, stageTo: S.stage, boxes: GRADES.map(() => 0),
     potions: 0, crises: 0, deaths: 0, bossFail: false, reason: null, buffs: { charm, elixir },
   };
   S.run.kills = 0; S.run.farm = false; S.run.cleared = false;
@@ -290,7 +290,7 @@ function arriveCamp(silent = false) {
     // 이전 보고를 안 봤으면 합친다
     const r = S.report;
     for (const k of ['dur', 'kills', 'bosses', 'gold', 'xp', 'levels', 'potions', 'crises', 'deaths']) r[k] += t[k];
-    t.boxes.forEach((n, i) => { r.boxes[i] += n; });
+    t.boxes.forEach((n, i) => { r.boxes[i] = (r.boxes[i] || 0) + n; });
     r.stageTo = t.stageTo; r.reason = t.reason; r.bossFail = r.bossFail || t.bossFail;
     r.trips = (r.trips || 1) + 1;
   } else {
@@ -310,7 +310,8 @@ function rewardKill(m) {
   if ((m.boss || Math.random() < BOX_DROP) && S.bag.length < bagCap()) {
     loot = rollLoot(rollGrade(m.boss, t.buffs.charm), S.stage, m.boss);
     S.bag.push(loot);
-    t.boxes[lootGrade(loot)]++;
+    const bg = lootGrade(loot);
+    t.boxes[bg] = (t.boxes[bg] || 0) + 1;
   }
   S.run.kills++;
   if (m.boss) S.run.cleared = true;
