@@ -182,6 +182,7 @@ const BODY = {
 
 // ───────────────────────── 직업 ─────────────────────────
 // mods: atk/hp/aspd 배율, crit 가산, critMult 가산, guard 받는 피해 감소, heal 타격마다 최대 체력 회복 비율
+// 공속·치명은 훈련으로 못 올리고 직업(여기)과 장비(무기 공속 · 장신구 치명)에서만 얻는다. 빠른 직업·치명 직업이 확실히 갈리도록
 // look: body 스프라이트, pal 색 덮어쓰기, cape/halo/shield 장식, fx 전직 연출 색
 const CLASSES = {
   squire: {
@@ -193,7 +194,7 @@ const CLASSES = {
   // ── 검 계열 ──
   swordsman: {
     tier: 1, from: 'squire', name: '검사', icon: '⚔️', weapon: 'knightSword',
-    mods: { atk: 1.35, hp: 1.25, crit: 0.05 },
+    mods: { atk: 1.35, hp: 1.25, aspd: 1.1, crit: 0.08 },
     desc: '균형 잡힌 근접 전투. 무난하고 튼튼하다.',
     look: {
       body: BODY.swordsman, fx: '#8fb4ff',
@@ -203,7 +204,7 @@ const CLASSES = {
   },
   paladin: {
     tier: 2, from: 'swordsman', name: '성기사', icon: '✨', weapon: 'holySword',
-    mods: { atk: 1.7, hp: 1.8, guard: 0.25, heal: 0.02 },
+    mods: { atk: 1.7, hp: 1.8, aspd: 1.05, crit: 0.06, guard: 0.25, heal: 0.02 },
     desc: '성검과 방패. 받는 피해가 줄고 때릴 때마다 회복한다.',
     look: {
       body: BODY.paladin, fx: '#ffd257',
@@ -215,7 +216,7 @@ const CLASSES = {
   },
   blademaster: {
     tier: 2, from: 'swordsman', name: '검성', icon: '🗡️', weapon: 'dualBlades',
-    mods: { atk: 1.8, hp: 1.3, aspd: 1.5, crit: 0.12, critMult: 0.5 },
+    mods: { atk: 1.8, hp: 1.3, aspd: 1.8, crit: 0.2, critMult: 0.5 },
     desc: '쌍검으로 몰아친다. 매우 빠르고 치명타가 강하다.',
     look: {
       body: BODY.blademaster, fx: '#ff4d4d',
@@ -227,7 +228,7 @@ const CLASSES = {
   // ── 창 계열 ──
   lancer: {
     tier: 1, from: 'squire', name: '창기사', icon: '🔱', weapon: 'spear',
-    mods: { atk: 1.4, hp: 1.25, aspd: 0.85 },
+    mods: { atk: 1.4, hp: 1.25, aspd: 0.9, crit: 0.06 },
     desc: '긴 창으로 멀리서 찌르고 2마리까지 꿰뚫는다.',
     look: {
       body: BODY.lancer, fx: '#9fd49a',
@@ -236,7 +237,7 @@ const CLASSES = {
   },
   dragoon: {
     tier: 2, from: 'lancer', name: '용기병', icon: '🐉', weapon: 'dragonSpear',
-    mods: { atk: 2.05, hp: 1.6, aspd: 0.85 },
+    mods: { atk: 2.05, hp: 1.6, aspd: 0.9, crit: 0.1 },
     leap: { every: 6, mult: 3, radius: 70 },
     desc: '6초마다 높이 도약해 내리꽂는다. 주변 적 모두에게 3배 피해.',
     look: {
@@ -247,7 +248,7 @@ const CLASSES = {
   },
   halberdier: {
     tier: 2, from: 'lancer', name: '할버디어', icon: '🪓', weapon: 'halberd',
-    mods: { atk: 2.7, hp: 1.9, aspd: 0.75 },
+    mods: { atk: 2.7, hp: 1.9, aspd: 0.8, crit: 0.08 },
     desc: '묵직한 할버드로 사거리 안의 적을 모두 휩쓸어 밀어낸다.',
     look: {
       body: BODY.halberdier, fx: '#ff9f40',
@@ -258,7 +259,7 @@ const CLASSES = {
   // ── 활 계열 ──
   ranger: {
     tier: 1, from: 'squire', name: '레인저', icon: '🏹', weapon: 'bow',
-    mods: { atk: 1.3, hp: 1.0, aspd: 1.1 },
+    mods: { atk: 1.3, hp: 1.0, aspd: 1.25, crit: 0.08 },
     desc: '멀리서 화살을 쏜다. 적이 다가오는 동안 먼저 때린다.',
     look: {
       body: BODY.ranger, fx: '#7fd06a',
@@ -267,7 +268,7 @@ const CLASSES = {
   },
   marksman: {
     tier: 2, from: 'ranger', name: '저격수', icon: '🎯', weapon: 'longbow',
-    mods: { atk: 2.5, hp: 1.2, aspd: 0.8, crit: 0.2 },
+    mods: { atk: 2.5, hp: 1.2, aspd: 0.8, crit: 0.3, critMult: 0.5 },
     desc: '아주 먼 거리에서 강력한 한 발. 치명타 확률이 높다.',
     look: {
       body: BODY.marksman, fx: '#e8e070',
@@ -277,7 +278,7 @@ const CLASSES = {
   },
   arcaneArcher: {
     tier: 2, from: 'ranger', name: '마궁수', icon: '🔮', weapon: 'arcaneBow',
-    mods: { atk: 1.7, hp: 1.2, aspd: 1.2 },
+    mods: { atk: 1.7, hp: 1.2, aspd: 1.35, crit: 0.1 },
     desc: '마력 화살 3발을 흩뿌려 여러 적을 동시에 맞힌다.',
     look: {
       body: BODY.arcaneArcher, fx: '#6ff3ff',

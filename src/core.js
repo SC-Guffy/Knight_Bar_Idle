@@ -19,7 +19,7 @@ function freshState() {
     mats: { wood: 0, ore: 0, mana: 0 },
     stage: 1, best: 1,
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
-    train: { atk: 0, hp: 0, spd: 0, crit: 0 },
+    train: { atk: 0, hp: 0, def: 0, boss: 0 },
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
@@ -52,6 +52,16 @@ function migrate(o) {
     s[k] = isObj && o[k] ? Object.assign(s[k], o[k]) : o[k];
   }
   s.bag = (s.bag || []).map(upgradeOldLoot);     // v2 초기의 미감정 상자 → 전리품 상자
+  // 공속·치명 훈련이 없어졌다: 올려 둔 단계만큼 쓴 골드를 돌려준다
+  let refund = 0;
+  for (const [id, u] of Object.entries(OLD_TRAINING)) {
+    for (let i = 0; i < (s.train[id] || 0); i++) refund += Math.floor(u.base * Math.pow(u.grow, i));
+    delete s.train[id];
+  }
+  if (refund > 0) {
+    s.gold += refund;
+    s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·거물 사냥으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
+  }
   s.gear.inv.forEach(fixGearItem);
   return s;
 }
@@ -95,12 +105,16 @@ function stats(base = false) {
     * forgeMultAt(S.bld.forge) * (m.atk || 1) * (1 + gb.atkPct);
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
   const maxHp = ((60 + t.hp * 18) * Math.pow(1.07, t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1) * (1 + gb.hpPct);
-  const aspd = (0.9 + t.spd * 0.08) * (m.aspd || 1) * (1 + gb.aspdPct);
-  const crit = Math.min(0.8, 0.05 + t.crit * 0.025 + (m.crit || 0) + gb.crit);
+  const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
+  const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
+  const defRed = t.def / (t.def + DEF_K);
   return {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
-    guard: Math.min(0.6, (m.guard || 0) + gb.guard), heal: Math.min(0.1, (m.heal || 0) + gb.heal), leap: c.leap || null,
+    // 받는 피해 감소: 직업·장비(최대 60%)와 방어 훈련을 곱으로 합친다 (최대 85%)
+    guard: Math.min(0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed)), defRed,
+    heal: Math.min(0.1, (m.heal || 0) + gb.heal), leap: c.leap || null,
+    bossDmg: t.boss * BOSS_DMG_PER_LV + gb.bossDmg,
   };
 }
 // 한 마리를 상대로 한 초당 피해 (연발·도약 포함)
@@ -119,6 +133,7 @@ function profile() {
     cls: S.cls, level: S.level, best: S.best, power: powerOf(st),
     atk: st.atk, maxHp: st.maxHp, aspd: st.aspd, crit: st.crit, critMult: st.critMult,
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal, leap: st.leap,
+    bossDmg: st.bossDmg,
   };
 }
 
@@ -371,7 +386,7 @@ function simulate(sec) {
     const m = monsterStats(S.stage, boss);
     const walk = 4.5;
     // 여러 마리를 동시에 때리는 무기는 처치 속도가 조금 빨라진다고 근사
-    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1));
+    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1) * (boss ? 1 + st.bossDmg : 1));
     const cycle = walk + fight;
     const staminaLeft = S.stamina / STAMINA_DRAIN;
     if (cycle > t || cycle > staminaLeft) {

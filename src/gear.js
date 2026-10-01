@@ -86,16 +86,16 @@ const isEquipped = (it) => S.gear.eq[it.slot] === it.id;
 // enh: 적용할 강화 단계 (기본은 그 부위의 현재 단계)
 function gearStat(it, enh = S.gear.enh[it.slot]) {
   const b = gearBase(it.slot, it.g, it.s, it.roll);
-  const m = enhanceMultAt(enh);
+  const m = enhanceMultAt(enh), soft = softEnhMultAt(enh);
   const out = {};
-  for (const k of Object.keys(b)) out[k] = b[k] * m;
+  for (const k of Object.keys(b)) out[k] = b[k] * (SOFT_ENH[k] ? soft : m);
   return out;
 }
 // 같은 부위 장비끼리 비교하는 점수 (장신구는 치명 확률과 피해를 기대 피해 증가로 환산)
 // 고유 장비의 특수 효과는 대략 그만큼 점수를 올려 준다 (골드·경험치는 전투력이 아니라 조금만)
 function gearScore(it) {
   const st = gearStat(it, 0);
-  const base = it.slot === 'ring' ? st.crit * 2.5 + st.critMult * 0.3 : st.atk || st.hp;
+  const base = it.slot === 'ring' ? st.crit * 2.5 + st.critMult * 0.3 : it.slot === 'weapon' ? st.atk * (1 + st.aspdPct) : st.hp;
   const sp = GEAR_ITEMS[it.t].sp;
   if (!sp) return base;
   let k = 1;
@@ -108,7 +108,7 @@ function gearSpecialText(it) {
   return sp ? Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v)}`).join(' · ') : '';
 }
 function gearStatText(st) {
-  if (st.atk != null) return `⚔️ +${fmt(st.atk)}`;
+  if (st.atk != null) return `⚔️ +${fmt(st.atk)}${st.aspdPct ? ` · 💨 +${Math.round(st.aspdPct * 100)}%` : ''}`;
   if (st.hp != null) return `❤️ +${fmt(st.hp)}`;
   return `💥 +${(st.crit * 100).toFixed(1)}% · 피해 +${Math.round(st.critMult * 100)}%`;
 }
@@ -126,7 +126,30 @@ function gearBonus() {
     const sp = GEAR_ITEMS[it.t].sp;
     if (sp) for (const k of Object.keys(sp)) out[k] += sp[k];
   }
+  for (const s of raidSets()) for (const t of s.tiers) if (t.on) for (const k of Object.keys(t.sp)) out[k] += t.sp[k];
   return out;
+}
+
+// ───────────────────────── 레이드 세트 ─────────────────────────
+// 같은 보스의 고유 장비를 2부위·3부위 끼면 그 보스의 세트 효과(RAID_BOSSES[보스].set)가 붙는다.
+// 낀 고유 장비가 있는 세트마다 { boss, n: 낀 부위 수, tiers: [{ need, sp, on }] }
+function raidSets() {
+  const n = {};
+  for (const slot of Object.keys(GEAR_SLOTS)) {
+    const it = equipped(slot), b = it && GEAR_ITEMS[it.t].raid;
+    if (b) n[b] = (n[b] || 0) + 1;
+  }
+  return Object.keys(n).map((boss) => ({
+    boss, n: n[boss],
+    tiers: [2, 3].map((need) => ({ need, sp: RAID_BOSSES[boss].set[need], on: n[boss] >= need })),
+  }));
+}
+const spText = (sp) => Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v)}`).join(' · ');
+// 세트 효과 설명 (지금 낀 부위 수 기준). 레이드 장비가 아니면 ''
+function setText(boss) {
+  const set = RAID_BOSSES[boss].set, cur = raidSets().find((x) => x.boss === boss);
+  const n = cur ? cur.n : 0;
+  return `🔗 ${set.name} (${n}/3) — ` + [2, 3].map((need) => `${n >= need ? '✅' : '▫️'} ${need}세트: ${spText(set[need])}`).join(' / ');
 }
 
 // ───────────────────────── 가방 → 창고 ─────────────────────────

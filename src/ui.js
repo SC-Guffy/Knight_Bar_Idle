@@ -611,6 +611,7 @@ const gearInfo = (it) => `
     <div><div class="gname gn g${it.g}">${gearName(it)}</div><small>${GRADES[it.g].name} ${GEAR_SLOTS[it.slot].name} · S${it.s}</small></div>
   </div>
   ${gearSpecialText(it) ? `<div class="gsp">✦ 고유 효과 — ${gearSpecialText(it)}</div>` : ''}
+  ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
   <div class="gdesc">${gearDesc(it)}</div>`;
 
 // 장착 슬롯 세부: 낀 장비 + 부위 강화
@@ -978,6 +979,7 @@ function viewRaidResult() {
       </div>
       <div class="clist">${rows}</div>
       <div class="gain">내 보상 — ${gain}${r.mvp ? ` <b class="mvpchip">👑 MVP 재화 ×${RAID_MVP_MULT}</b>` : ''}${r.chest ? ` · 🎁 ${esc(b.chest.name)} +1` : L.won ? '' : ' · 실패해서 재화를 일부만 받았어요'}</div>
+      ${r.first ? `<div class="reason">🏅 <b>${b.name} 첫 처치!</b> 이번 처치 상자에는 ${b.name}의 고유 장비가 반드시 들어 있어요.</div>` : ''}
     </div>`;
 }
 
@@ -989,9 +991,9 @@ function viewRaidChests() {
   const closed = S.raid.chests.map((c, i) => {
     const b = RAID_BOSSES[c.b];
     return `
-      <button class="box chestbox glow g${b.chest.w.findLastIndex((w) => w > 0)}" data-action="raid-open" data-i="${i}" style="--c:${GRADES[b.chest.w.findLastIndex((w) => w > 0)].color}"
-        title="장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 · 고유 장비 ${Math.round(b.chest.sig * 100)}% · 눌러서 열기">
-        ${raidChestIcon(c.b)}<span class="lname">${esc(b.chest.name)}</span>
+      <button class="box chestbox glow g${b.chest.w.findLastIndex((w) => w > 0)} ${c.first ? 'sig' : ''}" data-action="raid-open" data-i="${i}" style="--c:${GRADES[b.chest.w.findLastIndex((w) => w > 0)].color}"
+        title="장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 · 고유 장비 ${c.first ? '확정 (첫 처치)' : Math.round(b.chest.sig * 100) + '%'} · 눌러서 열기">
+        ${raidChestIcon(c.b)}<span class="lname">${c.first ? '🏅 ' : ''}${esc(b.chest.name)}</span>
       </button>`;
   }).join('');
   return `
@@ -1008,10 +1010,16 @@ function chestRange(b) {
   const lo = w.findIndex((x) => x > 0), hi = w.findLastIndex((x) => x > 0);
   return `<span class="gn g${lo}" style="color:${GRADES[lo].color}">${GRADES[lo].name}</span> ~ <span class="gn g${hi}" style="color:${GRADES[hi].color}">${GRADES[hi].name}</span>`;
 }
-const sigIcons = (b) => raidSignatures(b).map((t) => {
-  const it = { t, g: GEAR_ITEMS[t].g };
-  return `<span title="${esc(GEAR_ITEMS[t].name)} — ${esc(gearSpecialText(it))}">${gearIcon(it)}</span>`;
-}).join('');
+// 보스 고유 장비 3부위 아이콘. 가진 적 없는 부위는 실루엣, 마우스를 올리면 효과와 세트 효과
+const sigIcons = (b) => {
+  const set = RAID_BOSSES[b].set;
+  const setLine = `세트 「${set.name}」 2세트: ${spText(set[2])} / 3세트: ${spText(set[3])}`;
+  return raidSignatures(b).map((t) => {
+    const it = { t, g: GEAR_ITEMS[t].g }, owned = S.gear.inv.some((x) => x.t === t);
+    return `<span title="${esc(GEAR_ITEMS[t].name)}${owned ? '' : ' (미획득)'} — ${esc(gearSpecialText(it))}&#10;${esc(setLine)}">${gearIcon(it, owned ? '' : 'sil')}</span>`;
+  }).join('');
+};
+const setLine = (b) => { const s = RAID_BOSSES[b].set; return `🔗 ${s.name} — 2세트 ${spText(s[2])} · 3세트 ${spText(s[3])}`; };
 
 // ── 대기실 ──
 function viewRaidRoom() {
@@ -1065,8 +1073,9 @@ function viewRaidRoom() {
       <div class="info">
         <b>${b.icon} ${b.name}</b> <small>권장 스테이지 ${b.stage}+ · 광역기 「${b.skill}」</small>
         <div class="eff">${b.desc}</div>
-        <div class="eff">🎁 ${esc(b.chest.name)} — 장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 (${chestRange(room.boss)}) · 고유 장비 ${Math.round(b.chest.sig * 100)}%</div>
+        <div class="eff">🎁 ${esc(b.chest.name)} — 장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 (${chestRange(room.boss)}) · 고유 장비 ${S.raid.kills[room.boss] ? Math.round(b.chest.sig * 100) + '%' : '확정 (첫 처치)'}</div>
         <div class="sigs">${sigIcons(room.boss)}</div>
+        <div class="eff gset">${setLine(room.boss)}</div>
       </div>
     </div>
     ${bossSeg}
@@ -1118,6 +1127,7 @@ function viewRaidLobby() {
         <b>${b.icon} ${b.name}</b>
         <small>${open ? `스테이지 ${b.stage}+` : `🔒 최고 스테이지 ${b.stage} 필요`}</small>
         <small>🎁 ${chestRange(id)}</small>
+        <small>${S.raid.kills[id] ? `⚔️ 처치 ${S.raid.kills[id]}회` : '🏅 첫 처치 시 고유 장비 확정'}</small>
         <div class="sigs">${sigIcons(id)}</div>
         <button class="btn" data-action="raid-create" data-boss="${id}" ${!open || raidUi.busy ? 'disabled' : ''}>방 만들기</button>
       </div>`;
@@ -1485,6 +1495,7 @@ function applyState(o) {
   loadState(o);
   resetWorld();
   catchUp();
+  if (S.notice) { toast(S.notice, 10000); delete S.notice; }
   save();
   renderHud();
 }

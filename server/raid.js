@@ -6,16 +6,16 @@
 //  stage: 입장에 필요한 최고 스테이지이자 보스 능력치 기준 스테이지
 //  hp·atk: 같은 스테이지 필드 보스 대비 배수, aoeEvery: 광역기 간격(초), aoe: 광역기 위력(평타 대비)
 const RAID_BOSSES = {
-  slimeking:   { stage: 10,  hp: 5.5, atk: 0.75, aoeEvery: 7,   aoe: 0.7 },
-  goblinchief: { stage: 20,  hp: 5.5, atk: 0.75, aoeEvery: 6.5, aoe: 0.75 },
-  lichking:    { stage: 40,  hp: 5.5, atk: 0.75, aoeEvery: 6,   aoe: 0.8 },
-  boglord:     { stage: 60,  hp: 5.5, atk: 0.75, aoeEvery: 6,   aoe: 0.8 },
-  flamedragon: { stage: 80,  hp: 6,   atk: 0.75, aoeEvery: 5.5, aoe: 0.85 },
-  frostgiant:  { stage: 100, hp: 6,   atk: 0.8,  aoeEvery: 5.5, aoe: 0.85 },
-  demonking:   { stage: 130, hp: 6.5, atk: 0.8,  aoeEvery: 5,   aoe: 0.9 },
+  slimeking:   { stage: 10,  hp: 20, atk: 1.5,  aoeEvery: 7,   aoe: 0.7 },
+  goblinchief: { stage: 20,  hp: 22, atk: 1.55, aoeEvery: 6.5, aoe: 0.75 },
+  lichking:    { stage: 40,  hp: 24, atk: 1.6,  aoeEvery: 6,   aoe: 0.8 },
+  boglord:     { stage: 60,  hp: 25, atk: 1.62, aoeEvery: 6,   aoe: 0.8 },
+  flamedragon: { stage: 80,  hp: 27, atk: 1.66, aoeEvery: 5.5, aoe: 0.85 },
+  frostgiant:  { stage: 100, hp: 28, atk: 1.7,  aoeEvery: 5.5, aoe: 0.85 },
+  demonking:   { stage: 130, hp: 30, atk: 1.75, aoeEvery: 5,   aoe: 0.9 },
 };
 const MAX_PARTY = 4;
-const PARTY_HP = [1, 1.5, 2, 2.5];   // 인원수별 보스 체력 배수 (혼자보다 넷이 한 사람당 덜 때려도 된다)
+const PARTY_HP = [1, 1.1, 1.2, 1.3];   // 인원수별 보스 체력 배수 (넷이 모이면 혼자보다 5~6스테이지 앞서 도전할 수 있다)
 
 const START = 300;          // 보스 위치(px). 기사는 0 에서 출발하고 뒷사람은 조금씩 뒤에서 시작
 const KNIGHT_GAP = 12;      // 출발 간격
@@ -78,7 +78,7 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
   const hit = (k, kind) => {
     const crit = rng() < k.p.crit;
     const base = kind === 'leap' ? k.p.leap.mult : k.p.shots * k.p.shotMult;
-    const dmg = Math.min(boss.hp, k.p.atk * base * (crit ? k.p.critMult : 1) * (0.9 + rng() * 0.2));
+    const dmg = Math.min(boss.hp, k.p.atk * base * (crit ? k.p.critMult : 1) * (1 + (k.p.bossDmg || 0)) * (0.9 + rng() * 0.2));
     boss.hp -= dmg;
     k.dmg += dmg;
     if (k.p.heal) {

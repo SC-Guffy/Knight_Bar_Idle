@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.4.1';
+const GAME_VERSION = '0.5.0';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -260,16 +260,17 @@ const GEAR_ITEMS = {
 };
 
 // ── 레이드 보스 고유 장비 ── (raid: 떨어뜨리는 보스. 일반 상자에서는 나오지 않고 그 보스의 처치 상자에서만 나온다)
+//  보스가 뒤로 갈수록 등급과 효과가 오른다: 슬라임 킹 영웅 → 고블린 족장·리치 킹 전설 → 늪의 군주·화염룡 신화 → 서리 거인 초월 → 마왕 태초
 //  sp: 특수 효과 — 강화 배율을 받지 않는 고정 보너스 (SPECIAL_STATS 참고)
 Object.assign(GEAR_ITEMS, {
   // 👑 슬라임 킹
-  jelly_mace:    { slot: 'weapon', g: 4, raid: 'slimeking', name: '말랑 젤리 철퇴', icon: '🔨', spr: 'hammer', sp: { aspdPct: 0.08 },
+  jelly_mace:    { slot: 'weapon', g: 3, raid: 'slimeking', name: '말랑 젤리 철퇴', icon: '🔨', spr: 'hammer', sp: { aspdPct: 0.06 },
     desc: '슬라임 킹의 몸에서 떼어 낸 젤리를 굳혔다. 때릴 때마다 통 하고 튀어 올라 손이 빨라진다.',
     pal: { B: '#4aa3ff', b: '#2a5fa8', W: '#bfe3ff', H: '#2a5fa8', G: '#ffd257', J: '#ffd257' } },
-  slime_cloak:   { slot: 'armor', g: 4, raid: 'slimeking', name: '점액 왕의 망토', icon: '🫧', spr: 'robe', sp: { guard: 0.06 },
+  slime_cloak:   { slot: 'armor', g: 3, raid: 'slimeking', name: '점액 왕의 망토', icon: '🫧', spr: 'robe', sp: { guard: 0.04 },
     desc: '끈적한 점액이 칼날을 미끄러뜨린다. 냄새만 빼면 완벽한 방어구.',
     pal: { B: '#4aa3ff', b: '#2a5fa8', W: '#bfe3ff', H: '#2a5fa8', G: '#ffd257', J: '#bfe3ff' } },
-  slime_crown:   { slot: 'ring', g: 4, raid: 'slimeking', name: '슬라임 킹의 왕관', icon: '👑', spr: 'crown', sp: { goldPct: 0.15 },
+  slime_crown:   { slot: 'ring', g: 3, raid: 'slimeking', name: '슬라임 킹의 왕관', icon: '👑', spr: 'crown', sp: { goldPct: 0.1 },
     desc: '왕의 머리 위에서 수백 번 튀어 오르고도 멀쩡했던 왕관. 쓰면 금화가 따라 굴러온다.',
     pal: { B: '#ffd257', b: '#c79a12', W: '#fffbe0', H: '#c79a12', G: '#c79a12', J: '#4aa3ff' } },
   // 👺 고블린 족장
@@ -279,41 +280,41 @@ Object.assign(GEAR_ITEMS, {
   loot_mail:     { slot: 'armor', g: 4, raid: 'goblinchief', name: '약탈품 누더기 갑옷', icon: '🧥', spr: 'tunic', sp: { hpPct: 0.1 },
     desc: '빼앗은 갑옷 조각을 아무렇게나 이어 붙였다. 생각보다 훨씬 튼튼하다.',
     pal: { B: '#8a6a48', b: '#5e4630', W: '#c9cdd4', H: '#8fae3c', G: '#c9a227', J: '#e0443c' } },
-  gold_tooth:    { slot: 'ring', g: 4, raid: 'goblinchief', name: '족장의 금니 목걸이', icon: '🦷', spr: 'gem', sp: { goldPct: 0.2 },
+  gold_tooth:    { slot: 'ring', g: 4, raid: 'goblinchief', name: '족장의 금니 목걸이', icon: '🦷', spr: 'gem', sp: { goldPct: 0.15 },
     desc: '족장이 모은 금니를 꿰었다. 금 냄새를 맡는 고블린의 감이 옮아온다.',
     pal: { B: '#ffd257', b: '#c79a12', W: '#fffbe0', H: '#5e4630', G: '#5e4630', J: '#fff6c2' } },
   // 💀 리치 킹
-  soul_staff:    { slot: 'weapon', g: 5, raid: 'lichking', name: '영혼 수확자의 홀', icon: '🪄', spr: 'staff', sp: { heal: 0.01 },
+  soul_staff:    { slot: 'weapon', g: 4, raid: 'lichking', name: '영혼 수확자의 홀', icon: '🪄', spr: 'staff', sp: { heal: 0.008 },
     desc: '때린 상대의 생명을 한 줌씩 빨아들여 주인에게 돌려준다.',
     pal: { B: '#7dffb0', b: '#2a8a5a', W: '#e8fff0', H: '#2a1a4a', G: '#ffd257', J: '#7dffb0' } },
-  dead_shroud:   { slot: 'armor', g: 5, raid: 'lichking', name: '망자의 수의', icon: '🥀', spr: 'robe', sp: { guard: 0.08 },
+  dead_shroud:   { slot: 'armor', g: 4, raid: 'lichking', name: '망자의 수의', icon: '🥀', spr: 'robe', sp: { guard: 0.07 },
     desc: '천 년 묵은 리치 킹의 수의. 산 자의 칼은 이 옷을 반쯤만 벤다.',
     pal: { B: '#2a1a4a', b: '#150d26', W: '#4a2a6b', H: '#150d26', G: '#7dffb0', J: '#7dffb0' } },
-  phylactery:    { slot: 'ring', g: 5, raid: 'lichking', name: '리치 킹의 성물함', icon: '⚱️', spr: 'signet', sp: { crit: 0.06 },
+  phylactery:    { slot: 'ring', g: 4, raid: 'lichking', name: '리치 킹의 성물함', icon: '⚱️', spr: 'signet', sp: { crit: 0.05 },
     desc: '리치 킹이 영혼을 숨겨 두던 작은 함. 들여다보면 적의 급소가 훤히 보인다.',
     pal: { B: '#e9e4d4', b: '#9a9480', W: '#ffffff', H: '#9a9480', G: '#4a2a6b', J: '#7dffb0' } },
   // 🐊 늪의 군주
   bog_harpoon:   { slot: 'weapon', g: 5, raid: 'boglord', name: '늪 군주의 작살', icon: '🔱', spr: 'trident', sp: { aspdPct: 0.1 },
     desc: '늪 밑바닥에서 사냥감을 꿰던 작살. 찌르고 빼는 손놀림이 빨라진다.',
     pal: { B: '#8fd8a8', b: '#3a6b4a', W: '#e8fff0', H: '#3a2a1a', G: '#8a6fb8', J: '#c9b3ff' } },
-  moss_scale:    { slot: 'armor', g: 5, raid: 'boglord', name: '이끼 비늘 갑주', icon: '🐊', spr: 'chain', sp: { hpPct: 0.15 },
+  moss_scale:    { slot: 'armor', g: 5, raid: 'boglord', name: '이끼 비늘 갑주', icon: '🐊', spr: 'chain', sp: { hpPct: 0.14 },
     desc: '이끼가 자라는 늪 군주의 비늘. 상처가 나도 금세 이끼가 덮어 버린다.',
     pal: { B: '#4a6b3a', b: '#2a3f20', W: '#b8c98a', H: '#3a2a1a', G: '#ffd257', J: '#8a6fb8' } },
   fog_charm:     { slot: 'ring', g: 5, raid: 'boglord', name: '독안개 부적', icon: '🧿', spr: 'gem', sp: { expPct: 0.2 },
     desc: '늪의 독안개를 가둬 둔 부적. 싸울 때마다 배우는 것이 많아진다.',
     pal: { B: '#4b3a6b', b: '#2a1f40', W: '#c9b3ff', H: '#2a1f40', G: '#2a1f40', J: '#8a6fb8' } },
   // 🐉 화염룡
-  fang_blade:    { slot: 'weapon', g: 6, raid: 'flamedragon', name: '화염룡의 송곳니', icon: '🐉', spr: 'greatsword', sp: { atkPct: 0.12 },
+  fang_blade:    { slot: 'weapon', g: 5, raid: 'flamedragon', name: '화염룡의 송곳니', icon: '🐉', spr: 'greatsword', sp: { atkPct: 0.12 },
     desc: '화염룡의 송곳니를 통째로 벼린 대검. 아직도 이빨 사이로 불씨가 샌다.',
     pal: { B: '#fff1d6', b: '#d9a86a', W: '#ffffff', H: '#b8321f', G: '#ff8a1f', J: '#ff3b1f' } },
-  flame_scale:   { slot: 'armor', g: 6, raid: 'flamedragon', name: '용린 화염 갑주', icon: '🔥', spr: 'plate', sp: { guard: 0.1 },
+  flame_scale:   { slot: 'armor', g: 5, raid: 'flamedragon', name: '용린 화염 갑주', icon: '🔥', spr: 'plate', sp: { guard: 0.09 },
     desc: '화염룡의 가슴 비늘로 만든 갑주. 불길도 칼날도 비늘 위에서 미끄러진다.',
     pal: { B: '#b8321f', b: '#6e1414', W: '#ffb13b', H: '#6e1414', G: '#ffe066', J: '#ff8a1f' } },
-  dragon_core:   { slot: 'ring', g: 6, raid: 'flamedragon', name: '불타는 용의 심장', icon: '❤️‍🔥', spr: 'gem', sp: { critMult: 0.4 },
+  dragon_core:   { slot: 'ring', g: 5, raid: 'flamedragon', name: '불타는 용의 심장', icon: '❤️‍🔥', spr: 'gem', sp: { critMult: 0.4 },
     desc: '쓰러진 화염룡의 심장이 굳은 보석. 치명타마다 용의 분노가 터진다.',
     pal: { B: '#3a1a14', b: '#1b0d0a', W: '#ffb13b', H: '#1b0d0a', G: '#1b0d0a', J: '#ff5a1f' } },
   // 🧊 서리 거인
-  glacier_maul:  { slot: 'weapon', g: 6, raid: 'frostgiant', name: '거인의 빙하 망치', icon: '🔨', spr: 'hammer', sp: { atkPct: 0.12 },
+  glacier_maul:  { slot: 'weapon', g: 6, raid: 'frostgiant', name: '거인의 빙하 망치', icon: '🔨', spr: 'hammer', sp: { atkPct: 0.15 },
     desc: '빙하 한 덩이를 깎아 자루를 박았다. 내려치면 땅이 얼어붙는다.',
     pal: { B: '#cfeeff', b: '#7ab8e0', W: '#ffffff', H: '#3f6f9a', G: '#1b6fd1', J: '#5ad1ff' } },
   giant_plate:   { slot: 'armor', g: 6, raid: 'frostgiant', name: '만년설 거인갑', icon: '🏔️', spr: 'plate', sp: { hpPct: 0.2 },
@@ -343,17 +344,22 @@ const SPECIAL_STATS = {
   critMult: { name: '치명 피해', fmt: (v) => `+${Math.round(v * 100)}%` },
   guard:    { name: '받는 피해', fmt: (v) => `-${Math.round(v * 100)}%` },
   heal:     { name: '타격 시 체력 회복', fmt: (v) => `${(v * 100).toFixed(1)}%` },
+  bossDmg:  { name: '보스 피해', fmt: (v) => `+${Math.round(v * 100)}%` },
   goldPct:  { name: '골드 획득', fmt: (v) => `+${Math.round(v * 100)}%` },
   expPct:   { name: '경험치 획득', fmt: (v) => `+${Math.round(v * 100)}%` },
 };
 const gearStageMult = (s) => Math.pow(1.18, s - 1);
+// 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)
+const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
 function gearBase(slot, g, s, roll) {
   const k = GRADES[g].stat * roll;
-  if (slot === 'weapon') return { atk: 6 * gearStageMult(s) * k };
+  if (slot === 'weapon') return { atk: 6 * gearStageMult(s) * k, aspdPct: WEAPON_ASPD[g] * roll };
   if (slot === 'armor') return { hp: 40 * gearStageMult(s) * k };
-  const ringS = 1 + 0.02 * (s - 1);
-  return { crit: 0.01 * k * ringS, critMult: 0.12 * k * ringS };
+  return { crit: 0.02 * k, critMult: 0.12 * k * (1 + 0.02 * (s - 1)) };
 }
+// 강화가 공속·치명에는 단계당 4%만 곱해진다 (+25 에서 2배)
+const SOFT_ENH = { aspdPct: true, crit: true };
+const softEnhMultAt = (L) => 1 + 0.04 * L;
 
 // ───────────────────────── 강화 ─────────────────────────
 // 강화 단계는 부위(무기·갑옷·반지)에 붙어 있어서 장비를 바꿔 껴도 유지된다.
@@ -417,9 +423,15 @@ const CURIOS = {
 const TRAINING = [
   { id: 'atk',  name: '⚔️ 공격력', max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
   { id: 'hp',   name: '🛡️ 체력',   max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },
-  { id: 'spd',  name: '💨 공속',   max: 40,       base: 25, grow: 1.55, show: (st) => st.aspd.toFixed(2) + '/s' },
-  { id: 'crit', name: '💥 치명',   max: 22,       base: 30, grow: 1.6,  show: (st) => Math.round(st.crit * 100) + '%' },
+  { id: 'def',  name: '🛡️ 방어',   max: Infinity, base: 15, grow: 1.3,  show: (st) => `-${Math.round(st.defRed * 100)}%` },
+  { id: 'boss', name: '👑 거물 사냥', max: Infinity, base: 15, grow: 1.3, show: (st) => `+${Math.round(st.bossDmg * 100)}%` },
 ];
+// 방어: 받는 피해 감소 = Lv / (Lv + DEF_K) — 올릴수록 효과가 줄어들어 100%에는 닿지 않는다 (Lv 80 50% · Lv 240 75%)
+const DEF_K = 80;
+// 거물 사냥: 보스(필드 보스·레이드 보스)에게 주는 피해 Lv 당 +4%
+const BOSS_DMG_PER_LV = 0.04;
+// 예전 훈련(공속·치명)은 없어졌다. 예전 세이브에 남은 단계는 쓴 골드를 돌려준다 (core.js migrate)
+const OLD_TRAINING = { spd: { base: 25, grow: 1.55 }, crit: { base: 30, grow: 1.6 } };
 
 // ───────────────────────── 몬스터 ─────────────────────────
 function monsterStats(stage, boss) {
@@ -1185,41 +1197,51 @@ const GEAR_SPR = {
 // id·stage 는 server/raid.js 의 RAID_BOSSES 와 같아야 한다. stage: 입장에 필요한 최고 스테이지 (보스 능력치 기준이기도 함)
 //  spr·pal·style: 하단바에 그릴 몬스터 도트와 색 · skill: 광역기 이름
 //  chest: 처치 상자 — n 내용물 수, w 등급(GRADES 순서)별 가중치, sig 고유 장비가 하나 섞일 확률, spr·pal 상자 모양
+//   등급은 보스를 따라 한 칸씩 오른다: 슬라임 킹 희귀 위주(가끔 전설) → … → 마왕 신화 위주(가끔 태초).
+//   고유 장비는 잘 안 나온다(sig 3~6%). 보스를 처음 잡으면 첫 처치 상자에는 그 보스의 고유 장비가 반드시 하나 들어 있다
+//  set: 그 보스 고유 장비 3부위(무기·갑옷·장신구) 세트. 같은 보스 것을 2부위·3부위 끼면 효과가 붙는다 (SPECIAL_STATS 키)
 const RAID_BOSSES = {
   slimeking: { name: '슬라임 킹', icon: '👑', stage: 10, spr: 'slime', style: 'bounce', skill: '왕의 점프',
     pal: { g: '#2a5fa8', G: '#4aa3ff', L: '#bfe3ff' },
+    set: { name: '슬라임 왕가', 2: { hpPct: 0.08 }, 3: { atkPct: 0.08, aspdPct: 0.05 } },
     desc: '초원의 슬라임들이 모이고 모여 왕이 되었다. 뛰어오를 때마다 땅이 흔들린다.',
-    chest: { name: '슬라임 킹의 보물상자', n: [3, 4], w: [0, 0, 40, 42, 15, 3, 0, 0], sig: 0.12, spr: 'chest',
+    chest: { name: '슬라임 킹의 보물상자', n: [3, 3], w: [0, 30, 52, 16, 2, 0, 0, 0], sig: 0.06, spr: 'chest',
       pal: { B: '#2a5fa8', b: '#173a6b', W: '#4aa3ff', H: '#ffd257', G: '#ffd257', J: '#bfe3ff' } } },
   goblinchief: { name: '고블린 족장', icon: '👺', stage: 20, spr: 'goblin', style: 'swing', skill: '약탈의 회오리',
     pal: { G: '#6b8f2a', B: '#7a2a2a', R: '#ffd257' },
+    set: { name: '약탈자의 긍지', 2: { atkPct: 0.1 }, 3: { crit: 0.04, goldPct: 0.2 } },
     desc: '초원의 고블린 부족을 하나로 묶은 족장. 빼앗은 보물이 동굴 천장까지 쌓여 있다.',
-    chest: { name: '족장의 약탈품 궤짝', n: [3, 4], w: [0, 0, 25, 45, 24, 6, 0, 0], sig: 0.12, spr: 'chest',
+    chest: { name: '족장의 약탈품 궤짝', n: [3, 3], w: [0, 10, 50, 33, 7, 0, 0, 0], sig: 0.05, spr: 'chest',
       pal: { B: '#6b4420', b: '#3a2410', W: '#8fae3c', H: '#ffd257', G: '#ffd257', J: '#e0443c' } } },
   lichking: { name: '리치 킹', icon: '💀', stage: 40, spr: 'lich', style: 'cast', orb: '#7dffb0', skill: '죽음의 파동',
     pal: { p: '#1b1030', W: '#f4f1e8', R: '#ff4d6d', G: '#ffd257' },
+    set: { name: '불사의 군주', 2: { hpPct: 0.12 }, 3: { guard: 0.06, heal: 0.01 } },
     desc: '묘지의 모든 망자를 거느린 왕. 쓰러뜨려도 성물함이 남아 있는 한 다시 일어난다.',
-    chest: { name: '리치 킹의 관', n: [3, 4], w: [0, 0, 0, 45, 40, 13, 2, 0], sig: 0.1, spr: 'jewelbox',
+    chest: { name: '리치 킹의 관', n: [3, 4], w: [0, 0, 30, 50, 18, 2, 0, 0], sig: 0.05, spr: 'jewelbox',
       pal: { B: '#2a1a4a', b: '#150d26', W: '#4a2a6b', H: '#7dffb0', G: '#7dffb0', J: '#ff4d6d' } } },
   boglord: { name: '늪의 군주', icon: '🐊', stage: 60, spr: 'croc', style: 'pounce', skill: '독안개 포효',
     pal: { c: '#2f4f2a', Y: '#c9b3ff', l: '#8a6fb8', t: '#2f4f2a' },
+    set: { name: '늪의 지배자', 2: { aspdPct: 0.08 }, 3: { hpPct: 0.15, bossDmg: 0.2 } },
     desc: '독안개 늪 한가운데 웅크린 거대한 악어. 숨을 내쉴 때마다 늪 전체가 보랏빛으로 물든다.',
-    chest: { name: '늪 군주의 이끼 궤', n: [3, 4], w: [0, 0, 0, 30, 47, 19, 4, 0], sig: 0.1, spr: 'chest',
+    chest: { name: '늪 군주의 이끼 궤', n: [3, 4], w: [0, 0, 10, 50, 34, 6, 0, 0], sig: 0.04, spr: 'chest',
       pal: { B: '#3a5a2a', b: '#1f3315', W: '#8fd8a8', H: '#8a6fb8', G: '#c9b3ff', J: '#ffd257' } } },
   flamedragon: { name: '화염룡', icon: '🐉', stage: 80, spr: 'drake', style: 'cast', orb: '#ff5a1f', skill: '화염 숨결',
     pal: { d: '#8a1414', h: '#1b0d0a', Y: '#ffe066', w: '#ff5a1f', b: '#ffd257', t: '#8a1414' },
+    set: { name: '화염룡의 분노', 2: { atkPct: 0.15 }, 3: { crit: 0.05, critMult: 0.5 } },
     desc: '화산 동굴 가장 깊은 곳에서 잠든 고룡. 깨어나는 순간 동굴 전체가 용광로가 된다.',
-    chest: { name: '화염룡의 보물궤', n: [4, 4], w: [0, 0, 0, 0, 55, 33, 11, 1], sig: 0.08, spr: 'chest',
+    chest: { name: '화염룡의 보물궤', n: [4, 4], w: [0, 0, 0, 40, 45, 14, 1, 0], sig: 0.04, spr: 'chest',
       pal: { B: '#b3263e', b: '#6e1424', W: '#ff6b81', H: '#ffd257', G: '#ffd257', J: '#ff9f1c' } } },
   frostgiant: { name: '서리 거인', icon: '🧊', stage: 100, spr: 'yeti', style: 'slam', skill: '빙하 내려찍기',
     pal: { w: '#cfeeff', b: '#1b6fd1', W: '#ffffff' },
+    set: { name: '만년설 거인', 2: { hpPct: 0.2 }, 3: { atkPct: 0.15, guard: 0.08 } },
     desc: '설원의 끝에서 산맥을 베개 삼아 자는 거인. 한 걸음에 눈사태가 난다.',
-    chest: { name: '서리 거인의 얼음 성궤', n: [4, 4], w: [0, 0, 0, 0, 40, 42, 15, 3], sig: 0.08, spr: 'jewelbox',
+    chest: { name: '서리 거인의 얼음 성궤', n: [4, 4], w: [0, 0, 0, 15, 50, 30, 5, 0], sig: 0.035, spr: 'jewelbox',
       pal: { B: '#8fbfe0', b: '#3f6f9a', W: '#e8f6ff', H: '#ffffff', G: '#ffffff', J: '#1b6fd1' } } },
   demonking: { name: '마왕', icon: '😈', stage: 130, spr: 'demonlord', style: 'cast', orb: '#c06bff', skill: '멸망의 흑염',
     pal: { h: '#ffd257', d: '#5a0f2a', R: '#ff3b4b', W: '#f4f1e8', w: '#150a20', c: '#2a1540', Y: '#ff3b4b' },
+    set: { name: '마왕의 권능', 2: { atkPct: 0.2, hpPct: 0.15 }, 3: { aspdPct: 0.15, crit: 0.08, critMult: 0.5, bossDmg: 0.3 } },
     desc: '마왕성의 옥좌에 앉은 모든 어둠의 주인. 그가 일어서면 하늘이 꺼진다.',
-    chest: { name: '마왕의 옥좌 보고', n: [5, 5], w: [0, 0, 0, 0, 0, 55, 35, 10], sig: 0.06, spr: 'jewelbox',
+    chest: { name: '마왕의 옥좌 보고', n: [4, 5], w: [0, 0, 0, 0, 40, 45, 13, 2], sig: 0.03, spr: 'jewelbox',
       pal: { B: '#2a1540', b: '#150a20', W: '#c06bff', H: '#ffd257', G: '#ffd257', J: '#ff3b4b' } } },
 };
 
