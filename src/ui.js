@@ -678,21 +678,22 @@ function viewGear() {
   const f = S.gear.sellG;
   const sellList = bulkSellList();
   const sellGold = sellList.reduce((a, x) => a + gearSellPrice(x), 0);
-  const rare = sellList.filter((x) => x.g >= 4).length;
+  const rare = sellList.filter((x) => x.g >= 4 || isSetGear(x)).length;
   const gradeChips = GRADES.map((G, i) => {
     const n = inv.filter((x) => x.g === i && !isSetGear(x)).length;
     return `<button class="gchip ${f[i] ? 'on' : ''}" data-action="gear-sell-grade" data-g="${i}" style="--c:${G.color}">${f[i] ? '☑' : '☐'} ${G.name}${n ? ` <small>${n}</small>` : ''}</button>`;
   }).join('');
   const setN = inv.filter(isSetGear).length;
+  const setChip = `<button class="gchip ${S.gear.sellSet ? 'on' : ''}" data-action="gear-sell-set" style="--c:${SET_GRADE.color}">${S.gear.sellSet ? '☑' : '☐'} 🔗 ${SET_GRADE.name}${setN ? ` <small>${setN}</small>` : ''}</button>`;
   const sellBtn = gearUi.sellAsk
-    ? `<button class="btn warn" data-action="gear-sell">정말 ${sellList.length}개 팔까요?${rare ? ` (전설 이상 ${rare}개)` : ''}</button>`
+    ? `<button class="btn warn" data-action="gear-sell">정말 ${sellList.length}개 팔까요?${rare ? ` (전설 이상·세트 ${rare}개)` : ''}</button>`
     : `<button class="btn" data-action="gear-sell" ${sellList.length ? '' : 'disabled'}>💰 일괄 판매 ${sellList.length}개 · <i class="gc"></i> ${fmt(sellGold)}</button>`;
   const sellBar = `
     <div class="sellbar">
-      <span class="small">판매할 등급</span>${gradeChips}
+      <span class="small">판매할 등급</span>${gradeChips}${setChip}
       <span class="sellgo">${sellBtn}</span>
     </div>
-    <div class="hint">🔗 세트 장비${setN ? ` ${setN}개` : ''}와 장착 중인 장비는 일괄 판매에서 빠져요. 하나씩 고르면 따로 팔 수 있어요.</div>`;
+    <div class="hint">장착 중인 장비는 일괄 판매에서 빠져요. 🔗 세트 장비는 세트 칩을 체크했을 때만 팔려요.</div>`;
 
   const html = `
     <div class="gpanel">
@@ -1030,8 +1031,11 @@ const sigIcons = (b) => {
   const set = RAID_BOSSES[b].set;
   const setLine = `세트 「${set.name}」 2세트: ${spText(set[2])} / 3세트: ${spText(set[3])}`;
   return raidSignatures(b).map((t) => {
-    const it = { t, g: GEAR_ITEMS[t].g }, owned = S.gear.inv.some((x) => x.t === t);
-    return `<span title="${esc(GEAR_ITEMS[t].name)}${owned ? '' : ' (미획득)'} — ${esc(gearSpecialText(it))}&#10;${esc(setLine)}">${gearIcon(it, owned ? '' : 'sil')}</span>`;
+    const d = GEAR_ITEMS[t], it = { t, g: d.g }, owned = S.gear.inv.some((x) => x.t === t);
+    // 테두리 색 = 능력치 등급. 아직 못 얻은 부위는 실루엣
+    return `<span class="sigcard ${owned ? 'own' : ''}" style="--c:${GRADES[d.g].color}"
+      title="${esc(d.name)} · ${GRADES[d.g].name}급 ${GEAR_SLOTS[d.slot].name}${owned ? '' : ' (미획득)'}&#10;${esc(gearSpecialText(it))}&#10;${esc(setLine)}">
+      ${gearIcon(it, owned ? '' : 'sil')}<small>${GEAR_SLOTS[d.slot].name}</small></span>`;
   }).join('');
 };
 const setLine = (b) => { const s = RAID_BOSSES[b].set; return `🔗 ${s.name} — 2세트 ${spText(s[2])} · 3세트 ${spText(s[3])}`; };
@@ -1305,6 +1309,7 @@ const ACTIONS = {
     if (r.n) toast(`💰 장비 ${r.n}개를 ${fmt(r.gold)} 골드에 팔았어요`);
   },
   'gear-sell-grade': (el) => { const g = Number(el.dataset.g); S.gear.sellG[g] = !S.gear.sellG[g]; },
+  'gear-sell-set': () => { S.gear.sellSet = !S.gear.sellSet; },
   'gear-protect': () => { gearUi.protect = !gearUi.protect; },
   'enhance': (el) => {
     const slot = el.dataset.slot;

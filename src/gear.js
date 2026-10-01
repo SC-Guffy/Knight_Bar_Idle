@@ -10,7 +10,8 @@
 const freshGear = () => ({
   inv: [], eq: { weapon: null, armor: null, ring: null }, enh: { weapon: 0, armor: 0, ring: 0 }, top: { weapon: 0, armor: 0, ring: 0 }, seq: 0,
   auto: true,            // 전리품을 챙길 때 더 좋은 장비를 자동 장착
-  sellG: SELL_FILTER_DEFAULT.slice(),   // 일괄 판매에 넣을 등급 (세트 장비는 등급과 상관없이 빠진다)
+  sellG: SELL_FILTER_DEFAULT.slice(),   // 일괄 판매에 넣을 등급
+  sellSet: false,                        // 세트 장비도 일괄 판매에 넣을지 (기본은 뺀다)
 });
 
 // ───────────────────────── 전리품 뽑기 ─────────────────────────
@@ -211,10 +212,10 @@ function keepHpRatio(oldMax) {
   if (S.hp != null && oldMax > 0) S.hp = Math.min(max, (S.hp / oldMax) * max);
 }
 
-// 일괄 판매 목록: 착용 중이 아니고, 체크한 등급(S.gear.sellG)이며, 세트 장비가 아닌 것
+// 일괄 판매 목록: 착용 중이 아니고, 세트 장비는 세트 칩(S.gear.sellSet)으로, 나머지는 등급 칩(S.gear.sellG)으로 고른다
 function bulkSellList() {
   const f = S.gear.sellG || SELL_FILTER_DEFAULT;
-  return S.gear.inv.filter((x) => !isEquipped(x) && !isSetGear(x) && f[x.g]);
+  return S.gear.inv.filter((x) => !isEquipped(x) && (isSetGear(x) ? S.gear.sellSet : f[x.g]));
 }
 function sellGear(list) {
   const ids = new Set(list.filter((x) => !isEquipped(x)).map((x) => x.id));
