@@ -301,11 +301,13 @@
   .btn.enh { align-self: stretch; text-align: center; background: rgba(255, 177, 59, .2); border-color: rgba(255, 177, 59, .45); }
   .btn.enh:hover { background: rgba(255, 177, 59, .32); }
   .enhres { font-size: 12px; font-weight: 700; }
-  .enhres.up { color: #7dffb0; } .enhres.keep { color: var(--muted); } .enhres.down { color: var(--accent); }
+  .enhres.up { color: #7dffb0; } .enhres.keep { color: var(--muted); } .enhres.down { color: #ff6b6b; }
   .enhres.reset { color: var(--bad); } .enhres.saved { color: #7cc4ff; }
   .enhres.fresh { animation: pop .35s ease-out; }
   .gdetail.flash-up { animation: flashUp .6s ease-out; }
-  .gdetail.flash-down, .gdetail.flash-reset, .gsbtn.flash-down .gsbox, .gsbtn.flash-reset .gsbox { animation: shake .4s ease-out; }
+  .gdetail.flash-down, .gdetail.flash-reset { animation: shake .4s ease-out; }
+  .gsbtn.flash-down .gsbox, .gsbtn.flash-reset .gsbox { animation: shake .4s ease-out, enhBad .9s ease-out; }
+  @keyframes enhBad { 0%, 40% { filter: grayscale(1) brightness(.55); box-shadow: inset 0 0 14px rgba(255, 40, 40, .6), 0 0 10px rgba(255, 40, 40, .5); } 100% { filter: none; } }
   @keyframes flashUp { 0% { box-shadow: 0 0 0 2px #7dffb0, 0 0 24px rgba(125,255,176,.6); } 100% { box-shadow: none; } }
   @keyframes shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
   .gsbtn.charging .gsbox { animation: enhCharge .6s ease-in forwards; }

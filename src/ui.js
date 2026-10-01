@@ -595,7 +595,8 @@ function resolveEnhanceFx(slot, protect) {
   gearUi.last = { slot, ...r, fresh: true };
   if (r.result === 'up' && r.to % 5 === 0) toast(`⚒️ ${GEAR_SLOTS[slot].name} +${r.to} 달성!`);
   const up = r.result === 'up', big = up && r.to % 5 === 0;
-  const col = up ? ['#fff', '#ffd257', '#7dffb0'] : r.result === 'saved' ? ['#7cc4ff', '#cfe8ff'] : r.result === 'keep' ? ['#9a9aa8', '#c8c8d0'] : ['#ff6b6b', '#8a8a96'];
+  const bad = r.result === 'down' || r.result === 'reset';
+  const col = up ? ['#fff', '#ffd257', '#7dffb0'] : r.result === 'saved' ? ['#7cc4ff', '#cfe8ff'] : r.result === 'keep' ? ['#9a9aa8', '#c8c8d0'] : ['#b02a2a', '#4a4650', '#6e2020', '#2a262e'];
   const fx = enhFx;
   fx.res = r;
   fx.t1 = performance.now();
@@ -603,7 +604,15 @@ function resolveEnhanceFx(slot, protect) {
   setTimeout(() => { if (enhFx !== fx) return; enhFx = null; drawEnhanceFx(); if (campOpen) renderCamp(); }, ENH_BURST * 1000);
   fx.bs = Array.from({ length: up ? (big ? 44 : 30) : 40 }, (_, i) => up
     ? { a: rnd(0, Math.PI * 2), R: rnd(45, big ? 110 : 85), w: rnd(1.5, 3), c: col[i % col.length] }
-    : { a: rnd(0, Math.PI * 2), r0: rnd(0, 14), R: rnd(16, 52), rise: rnd(14, 36), z: rnd(2.5, 4.5), f: rnd(0, 9), c: col[i % col.length] });
+    : { a: rnd(0, Math.PI * 2), r0: rnd(0, 14), R: rnd(16, 52), rise: bad ? -rnd(30, 70) : rnd(14, 36), z: rnd(2.5, 4.5) + (bad ? 1 : 0), f: rnd(0, 9), c: col[i % col.length] });
+  // 하락·초기화: 슬롯에 금이 간다 (가운데서 뻗는 들쭉날쭉한 선)
+  const nCrack = r.result === 'reset' ? 8 : 5;
+  fx.cracks = bad ? Array.from({ length: nCrack }, (_, i) => {
+    let a = (i / nCrack) * Math.PI * 2 + rnd(-0.3, 0.3), d = 0;
+    const pts = [[0, 0]];
+    while (d < rnd(22, r.result === 'reset' ? 46 : 34)) { d += rnd(6, 10); a += rnd(-0.5, 0.5); pts.push([Math.cos(a) * d, Math.sin(a) * d]); }
+    return pts;
+  }) : null;
   save();
   if (campOpen) renderCamp();
   renderHud();
@@ -670,9 +679,36 @@ function drawEnhanceFx() {
       g.lineTo(cx + Math.cos(q.a) * (d - tail), cy + Math.sin(q.a) * (d - tail));
       g.stroke();
     }
+  } else if (fx.cracks) {
+    // 하락·초기화 — 빛이 검붉게 꺼지고, 슬롯에 금이 가며, 검은 파편이 툭툭 떨어진다
+    const reset = fx.res.result === 'reset';
+    g.globalCompositeOperation = 'source-over';
+    const fade = x < 0.7 ? 1 : (1 - x) / 0.3;
+    const dark = g.createRadialGradient(cx, cy, 0, cx, cy, 44 + (reset ? 16 : 0));
+    dark.addColorStop(0, `rgba(25, 0, 4, ${0.75 * fade})`); dark.addColorStop(0.6, `rgba(60, 0, 8, ${0.45 * fade})`); dark.addColorStop(1, 'rgba(60, 0, 8, 0)');
+    g.fillStyle = dark; g.beginPath(); g.arc(cx, cy, 60, 0, Math.PI * 2); g.fill();
+    if (x < 0.25) {     // 터지자마자 붉은 경고 테두리가 한 번 번쩍
+      g.strokeStyle = `rgba(255, 40, 40, ${(1 - x / 0.25) * 0.9})`; g.lineWidth = 3;
+      g.strokeRect(bb.left - 3, bb.top - 3, bb.width + 6, bb.height + 6);
+    }
+    const grow = Math.min(1, x / 0.25);
+    g.strokeStyle = `rgba(255, 60, 60, ${0.9 * fade})`; g.lineWidth = reset ? 2 : 1.5;
+    for (const pts of fx.cracks) {
+      const n = Math.max(2, Math.ceil(pts.length * grow));
+      g.beginPath();
+      pts.slice(0, n).forEach(([px, py], i) => (i ? g.lineTo(cx + px, cy + py) : g.moveTo(cx + px, cy + py)));
+      g.stroke();
+    }
+    for (const q of fx.bs) {
+      const d = q.r0 + q.R * 0.6 * (1 - (1 - x) ** 2);
+      const px = cx + Math.cos(q.a) * d, py = cy + Math.sin(q.a) * d * 0.6 - q.rise * x * x;
+      g.globalAlpha = fade;
+      g.fillStyle = q.c;
+      g.fillRect(Math.round(px - q.z / 2), Math.round(py - q.z / 2), q.z, q.z);
+    }
   } else {
     // 파스스 — 모였던 빛이 힘없이 꺼지며 재처럼 흩어져 깜빡이다 사라진다
-    glow(40 * (1 - x) + 4, fx.res.result === 'saved' ? 'rgba(124, 196, 255, A)' : 'rgba(255, 225, 140, A)', 0.8 * (1 - x) ** 3);
+    glow(40 * (1 - x) + 4, fx.res.result === 'saved' ? 'rgba(124, 196, 255, A)' : 'rgba(190, 190, 205, A)', 0.6 * (1 - x) ** 3);
     g.globalCompositeOperation = 'source-over';
     for (let i = 0; i < 3; i++) {     // 꺼진 자리에서 피어오르는 연기
       const sx = cx + (i - 1) * 12, sy = cy - 26 * x - i * 4, sr = 12 + 22 * x;
