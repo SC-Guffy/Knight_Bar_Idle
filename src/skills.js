@@ -16,6 +16,8 @@ let screenFx = [];        // 화면 전체 번쩍임·어두워짐 { color, a, t
 let casts = [];           // 진행 중인 시전 { owner, id, k, fx, t, a, hi, ci }
 let skfx = [];            // 스킬 이펙트 조각 { owner, at, life, draw(u), tick(u, dt), end() } — u 는 0→1 진행
 let cutin = null;         // 2차 스킬 이름 띠 { k, color, t }
+let shakeAmp = 0;         // 화면 흔들림 세기(px). 0 이면 기본(3px)
+let camPunch = null;      // 카메라 펀치 { x, y, k 확대량, t, life }
 
 const clamp01 = (u) => Math.max(0, Math.min(1, u));
 const segU = (u, a, b) => clamp01((u - a) / (b - a));
@@ -74,9 +76,11 @@ function updateCasts(dt) {
     while (c.hi < hits.length && hits[c.hi][0] <= u) {
       const i = c.hi++;
       if (c.fx.hit) c.fx.hit(c.a, i, hits.length);
+      autoHitFx(c, i);
       if (c.a.onHit) c.a.onHit(i, hits.length);
     }
     if (c.fx.tick) c.fx.tick(c.a, u, dt);
+    auraTick(c);
     if (u >= 1) {
       c.done = true;
       if (!hits.length && c.a.onHit) c.a.onHit(0, 1);
@@ -99,6 +103,8 @@ function updateCasts(dt) {
     if (u >= 1) { f.done = true; if (f.end) f.end(); }
   }
   skfx = skfx.filter((f) => !f.done);
+  if (shake <= 0) shakeAmp = 0;
+  if (camPunch && (camPunch.t += dt) > camPunch.life) camPunch = null;
   for (const s of screenFx) s.t += dt;
   screenFx = screenFx.filter((s) => s.t < s.life);
   if (cutin && (cutin.t += dt) > 1.2) cutin = null;
@@ -178,10 +184,12 @@ function heroAirborne() {
 }
 
 // ───────────────────────── 타격감 도구 ─────────────────────────
-function impact({ stop = 0, shake: sh = 0, flash = null, flashA = 0.35 } = {}) {
-  hitstop = Math.max(hitstop, stop);
-  shake = Math.max(shake, sh);
-  if (flash) screenFx.push({ kind: 'flash', color: flash, a: flashA, t: 0, life: 0.22 });
+function impact({ stop = 0, shake: sh = 0, flash = null, flashA = 0.35, punch = 0, at = null } = {}) {
+  hitstop = Math.max(hitstop, stop * 1.3);
+  shake = Math.max(shake, sh * 1.2);
+  shakeAmp = Math.max(shakeAmp, 3 + sh * 16);
+  if (flash) screenFx.push({ kind: 'flash', color: flash, a: Math.min(0.7, flashA * 1.2), t: 0, life: 0.24 });
+  if (punch && at && (!camPunch || camPunch.k < punch)) camPunch = { x: at.x, y: at.y, k: punch, t: 0, life: 0.28 };
 }
 const dimScreen = (a, life, color = '#05060c') => screenFx.push({ kind: 'dim', color, a, t: 0, life });
 
@@ -348,6 +356,108 @@ function spikeFx(x, h, color, life) {
     ctx.beginPath(); ctx.moveTo(x - 2, gy); ctx.lineTo(x, gy - hh); ctx.lineTo(x + 2, gy - hh * 0.3); ctx.fill();
     ctx.restore();
   });
+}
+
+// ── 모든 스킬 타격에 공통으로 붙는 타격 레이어 ──
+// 그 타격이 전체 피해에서 차지하는 비중(share)과 2차 여부로 세기(pow)를 정한다. 다단 히트의 잔타는 가볍게, 막타·한 방은 세게
+function autoHitFx(c, i) {
+  const k = c.k, n = k.hits.length, share = k.hits[i][1] / skillMult(k), last = i === n - 1;
+  const t2 = skillTier(k) >= 2;
+  const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1);
+  const tg = c.a.targets();
+  for (const t of tg) hitFx(t.x, t.y, c.a.color, pow);
+  const big = share >= 0.2 || last;
+  impact({ stop: big ? 0.035 * pow : 0.012, shake: 0.07 * pow, punch: pow >= 2 ? 0.05 * pow : 0, at: tg[0] });
+  if (pow >= 2.6) speedLinesFx(c.a.color, c.a.dir);
+}
+
+// 타격점: 하얀 섬광 원 + 사방으로 뻗는 불꽃 줄 + 퍼지는 충격파 + 빛나는 파편 (+ 세면 흙먼지·땅 고리)
+function hitFx(x, y, color, pow = 1) {
+  const n = Math.round(6 + 4 * pow), len = 10 + 9 * pow, rot = rand(0, Math.PI);
+  skFx(null, 0, 0.07, (u) => {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.9 * (1 - u);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(x, y, (3 + 2.5 * Math.min(pow, 3)) * (1 - u * 0.5), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+  skFx(null, 0, 0.2, (u) => {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    for (let j = 0; j < n; j++) {
+      const ang = rot + (j / n) * Math.PI * 2 + (j % 2) * 0.2, l = len * (j % 2 ? 0.6 : 1);
+      const r0 = l * easeOut(u) * 0.6, r1 = l * (0.3 + easeOut(u));
+      ctx.globalAlpha = 1 - u;
+      ctx.strokeStyle = color; ctx.lineWidth = 3 * (1 - u) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x + Math.cos(ang) * r0, y + Math.sin(ang) * r0); ctx.lineTo(x + Math.cos(ang) * r1, y + Math.sin(ang) * r1); ctx.stroke();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+  skFx(null, 0, 0.28, (u) => {
+    ctx.save();
+    ctx.globalAlpha = (1 - u) * 0.9;
+    ctx.strokeStyle = color; ctx.lineWidth = 3 * (1 - u) + 0.5;
+    ctx.beginPath(); ctx.arc(x, y, 4 + 16 * pow * easeOut(u), 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  });
+  for (let j = 0; j < Math.round(8 * pow); j++) {
+    const ang = rand(0, Math.PI * 2), v = rand(60, 150) * Math.sqrt(pow);
+    parts.push({ x, y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v - 40, g: 320, size: Math.random() < 0.3 ? 3 : 2, color: j % 3 ? color : '#ffffff', life: rand(0.25, 0.5), t: 0, add: true });
+  }
+  if (pow >= 2) {
+    ringFx(x, color, 0.4 * pow, 0.4);
+    debris(x, Math.round(3 * pow), ['#c9b38a', '#a8946a']);
+  }
+}
+
+// 만화풍 집중선: 화면을 가로지르는 빛줄기가 순간 지나간다
+function speedLinesFx(color, dir) {
+  const lines = Array.from({ length: 14 }, () => ({ y: rand(8, groundY() - 6), w: rand(40, 140), o: rand(0, 1), c: Math.random() < 0.4 ? color : '#ffffff' }));
+  skFx(null, 0, 0.22, (u) => {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const l of lines) {
+      const x = (dir > 0 ? -l.w + (W + l.w * 2) * mix(l.o * 0.5, 1, u) : W - (W + l.w * 2) * mix(l.o * 0.5, 1, u));
+      ctx.globalAlpha = 0.55 * (1 - u);
+      ctx.fillStyle = l.c;
+      ctx.fillRect(Math.round(x), Math.round(l.y), Math.round(l.w), 1);
+    }
+    ctx.restore();
+  });
+}
+
+// 시전 중 기사 주변에 직업색 기운이 피어오른다 (2차는 더 크고 진하게). 오라는 기사 뒤에 그린다 (world.js render)
+function auraTick(c) {
+  if (c.a.u >= 0.95 || Math.random() > (skillTier(c.k) >= 2 ? 0.9 : 0.45)) return;
+  const x = c.a.px(), gy = groundY();
+  parts.push({ x: x + rand(-12, 12), y: gy - rand(2, 30), vx: rand(-8, 8), vy: rand(-90, -40), g: -30, size: Math.random() < 0.3 ? 3 : 2,
+    color: Math.random() < 0.65 ? c.a.color : '#ffffff', life: rand(0.3, 0.6), t: 0, add: true });
+}
+function drawAuras() {
+  for (const c of casts) {
+    const t2 = skillTier(c.k) >= 2, k = Math.sin(Math.PI * Math.min(1, c.a.u * 1.2));
+    if (k <= 0.02) continue;
+    const pose = c.fx.pose ? c.fx.pose(c.a.u, c.a) : {};
+    if (pose.alpha === 0) continue;
+    const x = c.a.px(), y = groundY() - 24 - (pose.lift || 0), r = t2 ? 46 : 32;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (t2 ? 0.38 : 0.25) * k * (0.85 + 0.15 * Math.sin(clock * 20));
+    const grad = ctx.createRadialGradient(x, y, 2, x, y, r);
+    grad.addColorStop(0, c.a.color); grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    if (t2) {
+      // 발밑에 도는 빛 고리
+      ctx.strokeStyle = c.a.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7 * k;
+      ctx.beginPath(); ctx.ellipse(x, groundY() - 1, 22 + 3 * Math.sin(clock * 8), 5, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 // ───────────────────────── 직업별 스킬 연출 ─────────────────────────

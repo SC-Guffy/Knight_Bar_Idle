@@ -58,8 +58,9 @@ function makeGrass() {
   for (let x = 130 + rand(0, 60); x < W - 10; x += rand(90, 190)) decor.push({ x: Math.round(x), kind: kinds[Math.floor(Math.random() * kinds.length)], r: Math.random() });
 }
 
-function addFloater(text, x, y, color, size = 12) {
-  floaters.push({ text, x, y, color, size, t: 0 });
+// pop: 처음 잠깐 크게 튀어나왔다가 제 크기로 줄어든다 (스킬 피해 숫자)
+function addFloater(text, x, y, color, size = 12, pop = false) {
+  floaters.push({ text, x, y, color, size, t: 0, pop });
 }
 function showBanner(text, color = '#ffd257') { banner = { text, color, t: 0 }; }
 
@@ -158,7 +159,7 @@ function hitMonster(m, mult = 1, o = {}) {
   const crit = o.crit || Math.random() < st.crit;
   const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
-  m.flash = 0.08;
+  m.flash = o.color ? 0.13 : 0.08;
   m.hurt = 1;
   const kb = o.kb != null ? o.kb : heroWeapon().motion === 'sweep' ? 10 : 5;
   m.kb = m.boss ? Math.min(kb, 4) : Math.max(m.kb, kb);
@@ -169,7 +170,7 @@ function hitMonster(m, mult = 1, o = {}) {
   if (!o.quiet || m.hp <= 0) {
     const total = m.skAcc, anyCrit = m.skCrit, size = (anyCrit ? 14 : 12) + (o.color ? 2 : 0) + (o.quiet != null && total > dmg * 1.5 ? 2 : 0);
     m.skAcc = 0; m.skCrit = false;
-    addFloater((anyCrit ? '💥' : '') + fmt(total), toScreen(m.x) + rand(-6, 6), monsterTop(m) - 4 - (o.color ? rand(0, 10) : 0), anyCrit ? '#ffb13b' : o.color || '#ffffff', size);
+    addFloater((anyCrit ? '💥' : '') + fmt(total), toScreen(m.x) + rand(-6, 6), monsterTop(m) - 4 - (o.color ? rand(0, 10) : 0), anyCrit ? '#ffb13b' : o.color || '#ffffff', size + (o.color ? 2 : 0), !!o.color);
   }
   if (m.hp > 0) return;
 
@@ -1094,9 +1095,11 @@ function drawParts() {
   for (const p of parts) {
     if ((p.hue || 0) !== hue) { hue = p.hue || 0; ctx.filter = hue ? `hue-rotate(${hue}deg)` : 'none'; }
     ctx.globalAlpha = Math.min(1, (p.life - p.t) / 0.25);
+    ctx.globalCompositeOperation = p.add ? 'lighter' : 'source-over';     // add: 빛나는 불꽃 (겹치면 더 밝아진다)
     ctx.fillStyle = p.color;
     ctx.fillRect(Math.round(p.x - p.size / 2), Math.round(p.y - p.size / 2), p.size, p.size);
   }
+  ctx.globalCompositeOperation = 'source-over';
   ctx.filter = 'none';
   ctx.globalAlpha = 1;
 }
@@ -1106,7 +1109,8 @@ function drawFx() {
   ctx.lineJoin = 'round';
   for (const f of floaters) {
     ctx.globalAlpha = Math.max(0, 1 - Math.max(0, f.t - 0.6) / 0.5);
-    ctx.font = `bold ${f.size}px -apple-system, sans-serif`;
+    const popK = f.pop && f.t < 0.16 ? 1 + 0.7 * (1 - f.t / 0.16) : 1;
+    ctx.font = `bold ${Math.round(f.size * popK)}px -apple-system, sans-serif`;
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
     ctx.strokeText(f.text, f.x, f.y);
     ctx.fillStyle = f.color;
@@ -1174,7 +1178,7 @@ function updateDuel() {
         cls: who.cls,
         onHit: (i, n) => {
           d.hit[target] = clock;
-          if (i === n - 1) addFloater((e.crit ? '💥' : '') + fmt(e.dmg), duelX(target, duelTime()) + rand(-8, 8), groundY() - 76, e.crit ? '#ffb13b' : CLASSES[who.cls].look.fx, 16);
+          if (i === n - 1) addFloater((e.crit ? '💥' : '') + fmt(e.dmg), duelX(target, duelTime()) + rand(-8, 8), groundY() - 76, e.crit ? '#ffb13b' : CLASSES[who.cls].look.fx, 18, true);
         },
      }, true);
       continue;
@@ -1604,7 +1608,7 @@ function updateRaid(dt) {
           if (j < n - 1) return;
           d.hpB = Math.min(d.hpB, e.bh);
           const gg = raidBossGeom();
-          addFloater((e.c ? '💥' : '') + fmt(e.d), gg.left + rand(4, 40), gy - gg.h * 0.6 + rand(-10, 10), e.c ? '#ffb13b' : clsOf(cls).look.fx, 16);
+          addFloater((e.c ? '💥' : '') + fmt(e.d), gg.left + rand(4, 40), gy - gg.h * 0.6 + rand(-10, 10), e.c ? '#ffb13b' : clsOf(cls).look.fx, 18, true);
         },
      }, true);
     } else if (e.k != null) {
@@ -1794,10 +1798,18 @@ function drawRaid() {
 function render() {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
-  if (shake > 0) ctx.translate(Math.round(rand(-3, 3)), Math.round(rand(-2, 2)));
+  // 흔들림 세기는 스킬 타격이 키운다 (shakeAmp, src/skills.js)
+  const amp = Math.max(3, shakeAmp);
+  if (shake > 0) ctx.translate(Math.round(rand(-amp, amp)), Math.round(rand(-amp * 0.7, amp * 0.7)));
+  // 카메라 펀치: 큰 스킬 타격 순간 그 지점으로 살짝 확대됐다가 돌아온다 (src/skills.js)
+  if (camPunch) {
+    const z = 1 + camPunch.k * (1 - easeOut(Math.min(1, camPunch.t / camPunch.life)));
+    ctx.translate(camPunch.x, camPunch.y); ctx.scale(z, z); ctx.translate(-camPunch.x, -camPunch.y);
+  }
   drawGround();
   drawCamp();
   for (const m of monsters) drawMonster(m);
+  drawAuras();
   if (duelPlay) drawDuel(); else if (raidPlay) drawRaid(); else drawKnight();
   drawShots();
   drawEffects();
