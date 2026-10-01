@@ -33,7 +33,8 @@ function rollLoot(g, s, boss) {
     roll: Math.round((0.9 + Math.random() * 0.2) * 100) / 100,
   };
 }
-const gearItemsOf = (slot, g) => Object.keys(GEAR_ITEMS).filter((t) => GEAR_ITEMS[t].slot === slot && GEAR_ITEMS[t].g === g);
+// 레이드 고유 장비(raid)는 일반 상자에서 나오지 않는다
+const gearItemsOf = (slot, g) => Object.keys(GEAR_ITEMS).filter((t) => GEAR_ITEMS[t].slot === slot && GEAR_ITEMS[t].g === g && !GEAR_ITEMS[t].raid);
 
 // 도감이 생기기 전 장비({ n: 이름 인덱스 })나 도감에서 빠진 장비는 같은 부위·등급의 장비로 바꾼다
 function fixGearItem(it) {
@@ -90,11 +91,21 @@ function gearStat(it, enh = S.gear.enh[it.slot]) {
   for (const k of Object.keys(b)) out[k] = b[k] * m;
   return out;
 }
-// 같은 부위 장비끼리 비교하는 점수 (반지는 치명 확률과 피해를 기대 피해 증가로 환산)
+// 같은 부위 장비끼리 비교하는 점수 (장신구는 치명 확률과 피해를 기대 피해 증가로 환산)
+// 고유 장비의 특수 효과는 대략 그만큼 점수를 올려 준다 (골드·경험치는 전투력이 아니라 조금만)
 function gearScore(it) {
   const st = gearStat(it, 0);
-  if (it.slot === 'ring') return st.crit * 2.5 + st.critMult * 0.3;
-  return st.atk || st.hp;
+  const base = it.slot === 'ring' ? st.crit * 2.5 + st.critMult * 0.3 : st.atk || st.hp;
+  const sp = GEAR_ITEMS[it.t].sp;
+  if (!sp) return base;
+  let k = 1;
+  for (const [key, v] of Object.entries(sp)) k += key === 'heal' ? v * 10 : key === 'goldPct' || key === 'expPct' ? v * 0.3 : key === 'crit' ? v * 3 : v;
+  return base * k;
+}
+// 고유 장비 특수 효과 글 (없으면 '')
+function gearSpecialText(it) {
+  const sp = GEAR_ITEMS[it.t] && GEAR_ITEMS[it.t].sp;
+  return sp ? Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v)}`).join(' · ') : '';
 }
 function gearStatText(st) {
   if (st.atk != null) return `⚔️ +${fmt(st.atk)}`;
@@ -103,14 +114,17 @@ function gearStatText(st) {
 }
 const gearSellPrice = (it) => Math.floor(monsterStats(it.s, false).gold * GRADES[it.g].sell * it.roll);
 
-// stats() 가 합치는 장착 장비 보너스
+// stats() 가 합치는 장착 장비 보너스 (고유 장비의 특수 효과 포함)
 function gearBonus() {
   const out = { atk: 0, hp: 0, crit: 0, critMult: 0 };
+  for (const k of Object.keys(SPECIAL_STATS)) if (!(k in out)) out[k] = 0;
   for (const slot of Object.keys(GEAR_SLOTS)) {
     const it = equipped(slot);
     if (!it) continue;
     const st = gearStat(it);
     for (const k of Object.keys(st)) out[k] += st[k];
+    const sp = GEAR_ITEMS[it.t].sp;
+    if (sp) for (const k of Object.keys(sp)) out[k] += sp[k];
   }
   return out;
 }

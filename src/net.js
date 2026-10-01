@@ -107,3 +107,17 @@ async function requestDuel(opponent) {
   await pushSave(true);                       // 내 최신 능력치로 싸우도록
   return api('POST', '/api/duels', { opponent }, { token: activeToken(), timeout: 70000 });
 }
+
+// ───────────────────────── 보스 레이드 로비 ─────────────────────────
+// 방 상태는 서버 메모리에 있고, 방에 있는 동안 주기적으로 물어봐서 파티원·준비·출정 결과를 받는다 (ui.js 의 raidPoll)
+const raidCall = (method, path, body, timeout = 20000) => api(method, path, body, { token: activeToken(), timeout });
+const fetchRaids = () => raidCall('GET', '/api/raids', null, 70000);
+const fetchMyRaid = () => raidCall('GET', '/api/raids/me');
+const createRaid = (boss) => raidCall('POST', '/api/raids', { boss }, 70000);
+const joinRaid = (id) => raidCall('POST', '/api/raids/join', { id }, 70000);
+const leaveRaid = () => raidCall('POST', '/api/raids/leave', {});
+const readyRaid = (ready) => raidCall('POST', '/api/raids/ready', { ready });
+const setRaidBoss = (boss) => raidCall('POST', '/api/raids/boss', { boss });
+const kickRaid = (nickname) => raidCall('POST', '/api/raids/kick', { nickname });
+const startRaid = () => raidCall('POST', '/api/raids/start', {}, 70000);
+const againRaid = () => raidCall('POST', '/api/raids/again', {});

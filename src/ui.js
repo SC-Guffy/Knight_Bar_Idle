@@ -1,5 +1,5 @@
 'use strict';
-// HUD, 캠프 말풍선, 캠프 창(정산·마을·훈련·보급·랭킹·출정), 계정 창, 그리고 부팅/메인 루프.
+// HUD, 캠프 말풍선, 캠프 창(정산·마을·훈련·보급·랭킹·레이드·출정), 계정 창, 그리고 부팅/메인 루프.
 
 const $ = (id) => document.getElementById(id);
 let campOpen = false;
@@ -33,6 +33,8 @@ const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 
 function campStatus() {
   if (duelActive()) return { icon: '⚔️', text: '결투 중' };
+  if (raidActive()) return { icon: '🐉', text: '레이드 중' };
+  if (raidUi.room) return { icon: '🐉', text: raidUi.room.state === 'open' ? `레이드 대기 ${raidUi.room.members.length}/4` : '레이드 정산' };
   if (S.report || S.bag.length) return { icon: '❗', text: '정산 대기' };
   if (S.stamina < maxStamina() - 0.5) return { icon: '💤', text: `휴식 ${Math.floor((100 * S.stamina) / maxStamina())}%` };
   return { icon: '🚩', text: '출정 준비 완료' };
@@ -104,7 +106,7 @@ function renderHud() {
 
   // 캠프 말풍선
   const bubble = $('bubble');
-  if (S.phase === 'camp' && !modalOpen() && !duelActive()) {
+  if (S.phase === 'camp' && !modalOpen() && !duelActive() && !raidActive()) {
     bubble.hidden = false;
     bubble.style.left = (CAMP_X - 14) + 'px';
     bubble.textContent = campStatus().icon;
@@ -115,13 +117,15 @@ function renderHud() {
 }
 
 // ───────────────────────── 캠프 창 ─────────────────────────
-function openCamp() {
+// tab: 열 탭 (없으면 정산할 게 있으면 원정 보고, 아니면 마을)
+function openCamp(tab) {
   if (!activeNick()) { openAccount(); return; }
   if (S.phase !== 'camp' || campOpen || acctOpen) return;
   skipDuel();                          // 결투를 보는 중이었으면 결과만 알리고 끝낸다
+  if (raidActive()) { skipRaid(); return; }   // 레이드는 끝나면서 정산 화면(레이드 탭)을 연다
   campOpen = true;
   revealed = [];
-  campTab = S.report || S.bag.length ? 'report' : 'town';
+  campTab = typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : raidUi.room ? 'raid' : 'town';
   if (window.bar) window.bar.setCampMode(true);
   interactive = true;
   $('camp').hidden = false;
@@ -195,6 +199,27 @@ function paintGearIcons(root) {
   };
   root.querySelectorAll('canvas[data-gi]').forEach((cv) => paint(cv, cv.dataset.gi, GEAR_ITEMS[cv.dataset.gi]));
   root.querySelectorAll('canvas[data-bx]').forEach((cv) => paint(cv, 'box' + cv.dataset.bx, LOOT_BOXES[cv.dataset.bx]));
+  root.querySelectorAll('canvas[data-rb]').forEach((cv) => paint(cv, 'rbox' + cv.dataset.rb, RAID_BOSSES[cv.dataset.rb].chest));
+  // 레이드 보스 초상: 몬스터 도트 첫 프레임을 캔버스 크기에 맞춰 찍는다
+  root.querySelectorAll('canvas[data-boss]').forEach((cv) => {
+    const def = RAID_BOSSES[cv.dataset.boss], rows = SPR[def.spr][0];
+    cv.width = rows[0].length + 2; cv.height = rows.length + 2;
+    const g = cv.getContext('2d');
+    drawSprite(rows, def.pal, cv.width / 2, cv.height - 1, 1, {}, g);
+  });
+}
+const raidChestIcon = (b) => `<canvas class="gicon g${RAID_BOSSES[b].chest.w.findLastIndex((w) => w > 0)}" width="14" height="14" data-rb="${b}"></canvas>`;
+const bossPortrait = (b, cls = '') => `<canvas class="bossic ${cls}" data-boss="${b}"></canvas>`;
+
+// 상자에서 나와 챙긴 전리품 카드 (원정 보고·레이드 처치 상자 공용). b = { it, got, fresh }
+function openedCard(b) {
+  const sp = b.it.k === 'gear' ? gearSpecialText(b.it) : '';
+  return `
+    <div class="box opened ${b.fresh ? (isMystery(b.it) ? 'fresh epic' : 'fresh') : ''} ${sp ? 'sig' : ''}" style="--c:${GRADES[lootGrade(b.it)].color}"
+      title="${b.it.k === 'gear' ? esc(gearDesc(b.it)) : ''}">
+      ${lootIconHtml(b.it)}<div class="lname ${b.it.k === 'gear' ? 'gn g' + b.it.g : ''}">${lootName(b.it)}</div>
+      ${sp ? `<div class="gsp">✦ ${sp}</div>` : ''}<div class="loot">${claimedText(b)}</div>
+    </div>`;
 }
 
 function viewReport() {
@@ -214,11 +239,7 @@ function viewReport() {
       ${cell('⚠️ 위기', r.crises + (r.deaths ? ` · 쓰러짐 ${r.deaths}` : ''))}
     </div>` : '<div class="empty">새 원정 보고가 없습니다.</div>';
 
-  const opened = revealed.map((b) => `
-    <div class="box opened ${b.fresh ? (isMystery(b.it) ? 'fresh epic' : 'fresh') : ''}" style="--c:${GRADES[lootGrade(b.it)].color}"
-      title="${b.it.k === 'gear' ? gearDesc(b.it) : ''}">
-      ${lootIconHtml(b.it)}<div class="lname ${b.it.k === 'gear' ? 'gn g' + b.it.g : ''}">${lootName(b.it)}</div><div class="loot">${claimedText(b)}</div>
-    </div>`).join('');
+  const opened = revealed.map(openedCard).join('');
   // 영웅 이상 장비는 챙기기 전까지 실루엣만 보인다
   // 상자는 이름과 무게만 보이고, 눌러서 열면 내용물이 위의 카드로 쏟아진다. 보물상자 이상은 빛난다
   const closed = S.bag.map((it, i) => it.k === 'box' ? `
@@ -589,6 +610,7 @@ const gearInfo = (it) => `
     ${gearIcon(it, 'big')}
     <div><div class="gname gn g${it.g}">${gearName(it)}</div><small>${GRADES[it.g].name} ${GEAR_SLOTS[it.slot].name} · S${it.s}</small></div>
   </div>
+  ${gearSpecialText(it) ? `<div class="gsp">✦ 고유 효과 — ${gearSpecialText(it)}</div>` : ''}
   <div class="gdesc">${gearDesc(it)}</div>`;
 
 // 장착 슬롯 세부: 낀 장비 + 부위 강화
@@ -636,7 +658,7 @@ function gearRow(it) {
   return `
     <button class="gitem ${gearUi.sel.id === it.id ? 'sel' : ''}" data-action="gear-sel-item" data-id="${it.id}" style="--c:${GRADES[it.g].color}">
       ${gearIcon(it)}
-      <span class="gi"><span class="gname gn g${it.g}">${gearName(it)}</span><span class="small">${GRADES[it.g].name} ${GEAR_SLOTS[it.slot].name} · S${it.s}</span></span>
+      <span class="gi"><span class="gname gn g${it.g}">${gearName(it)}</span><span class="small">${GRADES[it.g].name} ${GEAR_SLOTS[it.slot].name} · S${it.s}${GEAR_ITEMS[it.t].sp ? ' · <span class="gsp">✦ 고유</span>' : ''}</span></span>
       <span class="gstat">${gearStatText(gearStat(it))}</span>
       <span class="gcmp">${gearCmp(it)}</span>
     </button>`;
@@ -797,7 +819,7 @@ const duelResultText = (r) =>
   `${r.won ? '🏆 승리!' : '💀 패배…'} vs ${r.opponent.nickname}${r.fight.timeout ? ' (시간 종료 · 남은 체력 판정)' : ''} — 결투 점수 ${r.me.rating} (${r.won ? '+' : '-'}${r.delta})`;
 
 function startDuel(nick) {
-  if (duelBusy || duelActive() || S.phase !== 'camp') return;
+  if (duelBusy || duelActive() || raidActive() || S.phase !== 'camp') return;
   duelBusy = true;
   const who = activeNick();
   closeCamp();
@@ -816,6 +838,315 @@ function startDuel(nick) {
   }).finally(() => { duelBusy = false; renderHud(); });
 }
 
+
+// ───────────────────────── 보스 레이드 ─────────────────────────
+// 로비(방 목록 · 방 만들기 · 참가 · 준비 · 출정)는 서버가 들고 있고, 여기서는 2초마다 물어봐서 화면을 갱신한다.
+// 방장이 출정하면 서버가 전투를 계산해 방에 결과를 남기고, 각자 그 결과를 받아 정산(raid.js settleRaid)한 뒤
+// 캠프 앞 하단바에서 재생(world.js playRaid)하고, 끝나면 레이드 탭의 정산 화면을 연다.
+const raidUi = {
+  rooms: null, at: 0,          // 열린 방 목록과 불러온 시각
+  room: null,                  // 내가 들어가 있는 방 (서버의 roomView)
+  error: null, busy: false,    // busy: 방 만들기·참가·출정 등 요청 중
+  revealed: [],                // 이번에 연 처치 상자 내용물 [{ it, got, fresh }]
+  showResult: false,           // 정산 화면을 펼쳐 보여 줄지
+  key: '',                     // 마지막으로 그린 서버 데이터 (바뀌었을 때만 다시 그린다)
+};
+let raidPollBusy = false;
+const RAID_POLL_MS = 2000;
+
+const raidTabOpen = () => campOpen && campTab === 'raid';
+function raidRefresh() {
+  const key = JSON.stringify([raidUi.rooms, raidUi.room, raidUi.error]);
+  if (key === raidUi.key) return;
+  raidUi.key = key;
+  if (raidTabOpen()) renderCamp();
+  renderHud();
+}
+
+// 방에 있으면 방 상태를, 레이드 탭을 보고 있으면 방 목록을 주기적으로 불러온다
+function raidPoll(force = false) {
+  if (!activeNick() || raidPollBusy || !saveKey) return;
+  const listing = raidTabOpen() && !raidUi.room;
+  if (!raidUi.room && !listing) return;
+  if (!force && listing && Date.now() - raidUi.at < 3000) return;
+  raidPollBusy = true;
+  const who = activeNick();
+  (raidUi.room ? fetchMyRaid() : fetchRaids()).then((r) => {
+    if (who !== activeNick()) return;
+    if (r.rooms) { raidUi.rooms = r.rooms; raidUi.at = Date.now(); }
+    raidUi.error = null;
+    setRaidRoom(r.room);
+  }, (e) => {
+    raidUi.error = e.message;
+  }).finally(() => { raidPollBusy = false; raidRefresh(); });
+}
+setInterval(raidPoll, RAID_POLL_MS);
+
+function setRaidRoom(room) {
+  raidUi.room = room;
+  if (room && room.state === 'done' && room.result) onRaidResult(room.result);
+}
+
+// 출정 결과를 받았다: 내 몫을 정산하고 하단바에서 재생한 뒤 정산 화면을 연다
+function onRaidResult(result) {
+  if (S.raid.claimed.includes(result.id)) return;
+  const last = settleRaid(result, activeNick());
+  if (!last) return;
+  save();
+  pushSave();
+  raidUi.revealed = [];
+  raidUi.showResult = true;
+  const b = RAID_BOSSES[result.boss];
+  if (S.phase !== 'camp' || acctOpen) {
+    toast(`🐉 ${b.name} 레이드 결과가 도착했어요 — 캠프의 레이드 탭에서 확인하세요`, 6000);
+    return;
+  }
+  closeCamp();
+  skipDuel();
+  $('toast').classList.remove('show');
+  playRaid(result, () => { openCamp('raid'); renderHud(); });
+}
+
+// 서버 요청을 하나 보내고 결과 방으로 화면을 바꾼다
+function raidRequest(fn, okMsg) {
+  if (raidUi.busy) return;
+  raidUi.busy = true;
+  raidUi.error = null;
+  const who = activeNick();
+  fn().then((r) => {
+    if (who !== activeNick()) return;
+    if ('room' in r) setRaidRoom(r.room);
+    if (okMsg) toast(okMsg);
+    raidUi.at = 0;
+  }, (e) => {
+    toast(`⚠️ ${e.message}`, 5000);
+    raidUi.at = 0;
+  }).finally(() => {
+    raidUi.busy = false;
+    raidUi.key = '';
+    if (!raidUi.room) raidPoll(true);
+    raidRefresh();
+  });
+}
+
+// 준비·출정 직전엔 서버에 최신 능력치를 올려 둔다 (서버는 저장된 프로필로 싸운다)
+const withSave = (fn) => () => pushSave(true).then(fn);
+
+function raidLeave() {
+  if (!raidUi.room) return;
+  raidUi.room = null;
+  leaveRaid().catch(() => {});
+  raidUi.at = 0;
+  raidUi.key = '';
+}
+
+function raidBadge() {
+  if (S.raid.chests.length) return `<i>${S.raid.chests.length}</i>`;
+  if (raidUi.room) return '<i>●</i>';
+  return '';
+}
+
+// ── 정산 화면 ──
+function viewRaidResult() {
+  const L = S.raid.last;
+  if (!L) return '';
+  const b = RAID_BOSSES[L.boss], r = L.reward;
+  if (!raidUi.showResult) {
+    return `<div class="reason">최근 레이드 — ${b.icon} ${b.name} ${L.won ? '처치 ✅' : '실패'} <button class="btn" data-action="raid-result">📊 정산 보기</button></div>`;
+  }
+  const top = Math.max(...L.members.map((m) => m.dmg), 1);
+  const rows = L.members.map((m, i) => {
+    const c = clsOf(m.cls), mvp = i === L.mvp, me = i === L.me;
+    return `
+      <div class="crow2 ${me ? 'me' : ''} ${mvp ? 'mvp' : ''}">
+        <span class="rnm"><b>${mvp ? '👑 ' : ''}${esc(m.nickname)}${me ? ' <small>(나)</small>' : ''}</b><small>${c.icon} ${c.name} · Lv ${m.level}</small></span>
+        <span class="cbar"><span style="width:${(100 * m.dmg) / top}%"></span><em>${m.score}%</em></span>
+        <span class="rv"><small>피해량</small><b>${fmt(m.dmg)}</b></span>
+        <span class="rv"><small>받아 낸 피해</small><b>${fmt(m.taken)}</b></span>
+        <span class="rv"><small>회복</small><b>${fmt(m.heal)}</b></span>
+      </div>`;
+  }).join('');
+  const gain = gainText(r) + ` · ✨ ${fmt(r.exp)}${r.levels ? ` · Lv +${r.levels}` : ''}`;
+  return `
+    <div class="rres ${L.won ? 'won' : 'lost'}">
+      <div class="rhead">
+        ${bossPortrait(L.boss, 'sm')}
+        <div class="rtitle"><b>${L.won ? `👑 ${b.name} 처치!` : L.timeout ? `⏳ 시간 초과 — ${b.name}` : `💀 패배 — ${b.name}`}</b>
+          <small>${fmtTime(L.dur)} · ${L.members.length}인 파티 · 기여도 = 피해 75% + 받아 낸 피해 15% + 회복 10%</small></div>
+        <button class="x" data-action="raid-result-close" title="접기">✕</button>
+      </div>
+      <div class="clist">${rows}</div>
+      <div class="gain">내 보상 — ${gain}${r.mvp ? ` <b class="mvpchip">👑 MVP 재화 ×${RAID_MVP_MULT}</b>` : ''}${r.chest ? ` · 🎁 ${esc(b.chest.name)} +1` : L.won ? '' : ' · 실패해서 재화를 일부만 받았어요'}</div>
+    </div>`;
+}
+
+// ── 처치 상자 ──
+function viewRaidChests() {
+  if (!S.raid.chests.length && !raidUi.revealed.length) return '';
+  const opened = raidUi.revealed.map(openedCard).join('');
+  raidUi.revealed.forEach((x) => { x.fresh = false; });
+  const closed = S.raid.chests.map((c, i) => {
+    const b = RAID_BOSSES[c.b];
+    return `
+      <button class="box chestbox glow g${b.chest.w.findLastIndex((w) => w > 0)}" data-action="raid-open" data-i="${i}" style="--c:${GRADES[b.chest.w.findLastIndex((w) => w > 0)].color}"
+        title="장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 · 고유 장비 ${Math.round(b.chest.sig * 100)}% · 눌러서 열기">
+        ${raidChestIcon(c.b)}<span class="lname">${esc(b.chest.name)}</span>
+      </button>`;
+  }).join('');
+  return `
+    <div class="shead">
+      <h3>🎁 처치 상자 <small>${S.raid.chests.length}개</small></h3>
+      <button class="btn" data-action="raid-open-all" ${S.raid.chests.length ? '' : 'disabled'}>모두 열기</button>
+    </div>
+    <div class="boxes">${opened}${closed}</div>`;
+}
+
+// 보스가 떨어뜨리는 상자 등급 범위
+function chestRange(b) {
+  const w = RAID_BOSSES[b].chest.w;
+  const lo = w.findIndex((x) => x > 0), hi = w.findLastIndex((x) => x > 0);
+  return `<span class="gn g${lo}" style="color:${GRADES[lo].color}">${GRADES[lo].name}</span> ~ <span class="gn g${hi}" style="color:${GRADES[hi].color}">${GRADES[hi].name}</span>`;
+}
+const sigIcons = (b) => raidSignatures(b).map((t) => {
+  const it = { t, g: GEAR_ITEMS[t].g };
+  return `<span title="${esc(GEAR_ITEMS[t].name)} — ${esc(gearSpecialText(it))}">${gearIcon(it)}</span>`;
+}).join('');
+
+// ── 대기실 ──
+function viewRaidRoom() {
+  const room = raidUi.room, b = RAID_BOSSES[room.boss];
+  const meHost = room.host === activeNick();
+  const ticket = S.raid.tickets > 0;
+  const slots = [];
+  for (let i = 0; i < 4; i++) {
+    const m = room.members[i];
+    if (!m) { slots.push('<div class="pslot empty">빈 자리<small>방 목록에서 참가할 수 있어요</small></div>'); continue; }
+    const c = clsOf(m.cls), me = m.nickname === activeNick();
+    const state = m.host ? '<span class="pst host">👑 방장</span>' : m.ready ? '<span class="pst ok">✅ 준비 완료</span>' : '<span class="pst">⏳ 준비 중</span>';
+    slots.push(`
+      <div class="pslot ${me ? 'me' : ''} ${m.ready || m.host ? 'ready' : ''}">
+        <div class="pic">${c.icon}</div>
+        <b>${esc(m.nickname)}${me ? ' <small>(나)</small>' : ''}</b>
+        <small>${c.name} · Lv ${m.level} · 전투력 ${fmt(m.power)}</small>
+        ${state}
+        ${meHost && !m.host && room.state === 'open' ? `<button class="chk" data-action="raid-kick" data-nick="${esc(m.nickname)}">내보내기</button>` : ''}
+      </div>`);
+  }
+  const mine = room.members.find((m) => m.nickname === activeNick());
+  const allReady = room.members.every((m) => m.host || m.ready);
+  let acts;
+  if (room.state === 'done') {
+    acts = meHost
+      ? `<button class="go compact" data-action="raid-again" ${raidUi.busy ? 'disabled' : ''}>🔁 같은 파티로 다시 도전</button>`
+      : '<span class="small">방장이 다시 도전하면 대기실이 다시 열려요</span>';
+  } else if (meHost) {
+    const why = !ticket ? '입장권이 없어요' : !allReady ? '모두 준비하면 출정할 수 있어요' : '';
+    acts = `<span class="blocker">${why}</span>
+      <button class="go compact" data-action="raid-start" ${why || raidUi.busy ? 'disabled' : ''}>🐉 출정</button>`;
+  } else {
+    acts = mine && mine.ready
+      ? '<button class="btn" data-action="raid-ready" data-on="0">준비 취소</button>'
+      : `<span class="blocker">${ticket ? '' : '입장권이 없어요'}</span><button class="go compact" data-action="raid-ready" data-on="1" ${ticket && !raidUi.busy ? '' : 'disabled'}>✅ 준비</button>`;
+  }
+  const bossSeg = meHost && room.state === 'open'
+    ? `<div class="segs wrap">${Object.keys(RAID_BOSSES).map((id) => {
+        const x = RAID_BOSSES[id], low = room.members.some((m) => m.best < x.stage);
+        return `<button class="seg ${id === room.boss ? 'on' : ''}" data-action="raid-boss" data-boss="${id}" ${low || id === room.boss ? 'disabled' : ''}
+          title="${low ? `최고 스테이지 ${x.stage} 이상인 사람만 갈 수 있어요` : ''}">${x.icon} ${x.name}</button>`;
+      }).join('')}</div>` : '';
+  return `
+    <div class="shead">
+      <h3>🐉 레이드 대기실 <small>${room.members.length}/4 · 🎟 입장권 ${S.raid.tickets}장</small></h3>
+      <button class="btn" data-action="raid-leave">🚪 나가기</button>
+    </div>
+    <div class="rboss">
+      ${bossPortrait(room.boss)}
+      <div class="info">
+        <b>${b.icon} ${b.name}</b> <small>권장 스테이지 ${b.stage}+ · 광역기 「${b.skill}」</small>
+        <div class="eff">${b.desc}</div>
+        <div class="eff">🎁 ${esc(b.chest.name)} — 장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 (${chestRange(room.boss)}) · 고유 장비 ${Math.round(b.chest.sig * 100)}%</div>
+        <div class="sigs">${sigIcons(room.boss)}</div>
+      </div>
+    </div>
+    ${bossSeg}
+    <div class="pslots">${slots.join('')}</div>
+    <div class="ract">${acts}</div>
+    <div class="hint">출정하면 서버가 파티원들의 저장된 능력치로 전투를 계산하고, 모두의 캠프 앞에서 같은 전투가 펼쳐져요. 출정할 때 입장권이 1장씩 쓰여요.
+      ${raidUi.error ? `<br><span class="bad">⚠️ ${esc(raidUi.error)}</span>` : ''}</div>`;
+}
+
+// ── 로비: 입장권 · 열린 방 · 보스 목록 ──
+function viewRaidLobby() {
+  const p = ticketPrice(), tb = ticketBlocker();
+  const bought = ticketsBoughtToday();
+  const ticket = `
+    <div class="card">
+      <div class="ic">🎟️</div>
+      <div class="info"><b>레이드 입장권 <small>보유 ${S.raid.tickets} / ${RAID_TICKET_MAX}</small></b>
+        <div class="eff">출정할 때 1장 쓰여요. 오늘 ${bought}장 샀어요 — 살수록 비싸지고 자정에 초기화돼요.</div></div>
+      <div class="act">
+        <div class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip('💎', p.mana, S.mats.mana)}</div>
+        <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button>
+      </div>
+    </div>`;
+
+  let list;
+  if (raidUi.rooms) {
+    list = raidUi.rooms.map((r) => {
+      const b = RAID_BOSSES[r.boss], open = raidUnlocked(r.boss), full = r.count >= 4;
+      return `
+        <div class="rmrow">
+          ${bossPortrait(r.boss, 'sm')}
+          <span class="rnm"><b>${b.icon} ${b.name}</b><small>방장 ${esc(r.host)} · ${r.members.map(esc).join(', ')}</small></span>
+          <span class="rv"><small>인원</small><b>${r.count} / 4</b></span>
+          <button class="btn" data-action="raid-join" data-id="${r.id}" ${!open || full || raidUi.busy ? 'disabled' : ''}
+            title="${!open ? `최고 스테이지 ${b.stage} 이상이어야 해요` : full ? '가득 찼어요' : ''}">${full ? '가득 참' : !open ? `🔒 ${b.stage}+` : '참가'}</button>
+        </div>`;
+    }).join('') || '<div class="empty">열린 방이 없어요. 아래에서 보스를 골라 방을 만들어 보세요.</div>';
+  } else if (raidUi.error) {
+    list = `<div class="empty">⚠️ ${esc(raidUi.error)} <button class="btn" data-action="raid-refresh">다시 시도</button></div>`;
+  } else {
+    list = '<div class="empty">방 목록을 불러오는 중… <small>서버가 잠들어 있었다면 깨어나는 데 1분쯤 걸려요</small></div>';
+  }
+
+  const bosses = Object.keys(RAID_BOSSES).map((id) => {
+    const b = RAID_BOSSES[id], open = raidUnlocked(id);
+    return `
+      <div class="bcard ${open ? '' : 'locked'}">
+        ${bossPortrait(id)}
+        <b>${b.icon} ${b.name}</b>
+        <small>${open ? `스테이지 ${b.stage}+` : `🔒 최고 스테이지 ${b.stage} 필요`}</small>
+        <small>🎁 ${chestRange(id)}</small>
+        <div class="sigs">${sigIcons(id)}</div>
+        <button class="btn" data-action="raid-create" data-boss="${id}" ${!open || raidUi.busy ? 'disabled' : ''}>방 만들기</button>
+      </div>`;
+  }).join('');
+
+  return `
+    ${ticket}
+    <div class="shead">
+      <h3>🚪 열린 방 <small>1~4명 · 방장이 출정하면 시작</small></h3>
+      <button class="btn" data-action="raid-refresh" title="새로고침">↻</button>
+    </div>
+    <div class="rlist">${list}</div>
+    <h3>🐉 보스 <small>처치하면 그 보스의 처치 상자 — 높은 등급 장비가 쏟아지고, 보스마다 고유 장비가 숨어 있어요</small></h3>
+    <div class="bgrid">${bosses}</div>`;
+}
+
+function viewRaid() {
+  raidPoll();
+  return `${viewRaidResult()}${viewRaidChests()}${raidUi.room ? viewRaidRoom() : viewRaidLobby()}`;
+}
+
+function openRaidChestAt(i) {
+  const got = claimRaidChest(i);
+  for (const x of got) raidUi.revealed.push({ ...x, fresh: true });
+  const sig = got.find((x) => GEAR_ITEMS[x.it.t].raid);
+  const top = got.map((x) => x.it).sort((a, b) => b.g - a.g)[0];
+  if (sig) toast(`🌟 고유 장비 — ${gearName(sig.it)}!`, 5000);
+  else if (top && top.g >= 4) toast(`🌟 ${GRADES[top.g].name} 장비 — ${gearName(top)}!`);
+}
+
 function renderCamp() {
   if (!campOpen) return;
   const tabs = [
@@ -826,8 +1157,9 @@ function renderCamp() {
     ['gear', '🗡️ 장비', gearBadge()],
     ['class', '⚜️ 전직', anyClassReady() ? '<i>!</i>' : ''],
     ['rank', '🏆 랭킹', ''],
+    ['raid', '🐉 레이드', raidBadge()],
   ];
-  const view = { report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank }[campTab]();
+  const view = { report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
   $('campModal').innerHTML = `
     <header>
@@ -859,6 +1191,7 @@ function claimOne(i) {
 
 function depart() {
   if (!startExpedition(departOpts)) return;
+  raidLeave();                          // 원정을 떠나면 레이드 대기실에서는 나온다
   departOpts.charm = departOpts.elixir = false;
   monsters = [];
   lapReady = false;
@@ -879,6 +1212,31 @@ const ACTIONS = {
   'rank-sort': (el) => { rank.sort = el.dataset.sort; },
   'rank-refresh': () => loadRanking(true),
   'duel': (el) => startDuel(el.dataset.nick),
+  'raid-refresh': () => { raidUi.at = 0; raidUi.error = null; raidPoll(true); },
+  'raid-ticket': () => { if (buyTicket()) toast(`🎟️ 레이드 입장권을 샀어요 (${S.raid.tickets}장)`); },
+  'raid-create': (el) => raidRequest(() => createRaid(el.dataset.boss), `🐉 ${RAID_BOSSES[el.dataset.boss].name} 레이드 방을 열었어요`),
+  'raid-join': (el) => raidRequest(() => joinRaid(el.dataset.id), '🐉 레이드 방에 들어왔어요'),
+  'raid-leave': () => { raidLeave(); raidPoll(true); },
+  'raid-ready': (el) => {
+    const on = el.dataset.on === '1';
+    if (on && S.raid.tickets <= 0) return;
+    raidRequest(on ? withSave(() => readyRaid(true)) : () => readyRaid(false));
+  },
+  'raid-boss': (el) => raidRequest(() => setRaidBoss(el.dataset.boss)),
+  'raid-kick': (el) => raidRequest(() => kickRaid(el.dataset.nick)),
+  'raid-start': () => { if (S.raid.tickets > 0) raidRequest(withSave(startRaid)); },
+  'raid-again': () => raidRequest(againRaid),
+  'raid-result': () => { raidUi.showResult = true; },
+  'raid-result-close': () => { raidUi.showResult = false; },
+  'raid-open': (el) => openRaidChestAt(Number(el.dataset.i)),
+  'raid-open-all': () => {
+    if (openAllTimer) return;
+    openAllTimer = setInterval(() => {
+      if (!S.raid.chests.length || !campOpen) { clearInterval(openAllTimer); openAllTimer = null; save(); return; }
+      openRaidChestAt(0);
+      renderCamp();
+    }, 220);
+  },
   'acct-close': closeAccount,
   'quit': () => window.bar.quit(),
   'acct-create': acctCreate,
@@ -1107,6 +1465,7 @@ function resetWorld() {
   Object.assign(knight, { down: 0, fighting: false, pending: false, leapT: -1, swing: -1, facing: 1 });
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
   rank.data = null; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
+  raidPlay = null; Object.assign(raidUi, { rooms: null, at: 0, room: null, error: null, revealed: [], showResult: false, key: '' });
 }
 
 // 꺼져 있던 동안의 원정·휴식·건설을 한 번에 계산한다

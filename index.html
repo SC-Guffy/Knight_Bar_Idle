@@ -367,6 +367,55 @@
     60% { transform: scale(1.18); box-shadow: 0 0 28px var(--c); } 100% { transform: none; } }
   .gtop { display: flex; align-items: center; gap: 9px; }
   .gdesc { font-size: 11px; color: var(--muted); font-style: italic; line-height: 1.35; min-height: 30px; }
+
+  /* ── 보스 레이드 ── */
+  .gsp { font-size: 11px; color: #7dffd0; font-weight: 700; }
+  .box .gsp { font-size: 10px; text-align: center; padding: 0 3px; line-height: 1.25; }
+  .box.sig { box-shadow: inset 0 0 18px color-mix(in srgb, var(--c) 45%, transparent), 0 0 12px rgba(125, 255, 208, .45); }
+  .bossic { width: 64px; height: 56px; image-rendering: pixelated; object-fit: contain; flex: none; }
+  .bossic.sm { width: 40px; height: 34px; }
+  .bgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+  .bcard { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 8px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); text-align: center; }
+  .bcard.locked { opacity: .5; }
+  .bcard .btn { margin-top: 4px; }
+  .sigs { display: flex; gap: 2px; justify-content: center; }
+  .sigs .gicon { width: 26px; height: 26px; }
+  .rmrow { display: grid; grid-template-columns: 44px 1fr 70px 86px; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 9px; background: var(--soft); }
+  .rmrow .btn { text-align: center; }
+  .rboss { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--soft); margin-bottom: 8px; }
+  .rboss .info { flex: 1; min-width: 0; }
+  .rboss .eff { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .rboss .sigs { justify-content: flex-start; margin-top: 4px; }
+  .segs.wrap { flex-wrap: wrap; margin-bottom: 8px; }
+  .seg:disabled { opacity: .4; cursor: default; }
+  .seg.on:disabled { opacity: 1; }
+  .pslots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .pslot { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 6px; border-radius: 10px; background: var(--soft);
+    border: 1px solid var(--line); text-align: center; min-height: 96px; justify-content: center; }
+  .pslot.empty { color: var(--muted); border-style: dashed; }
+  .pslot.me { box-shadow: inset 0 0 0 1px rgba(255, 210, 87, .5); }
+  .pslot.ready { background: rgba(125, 255, 176, .08); }
+  .pslot b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pic { font-size: 22px; }
+  .pst { font-size: 11px; color: var(--muted); }
+  .pst.ok { color: #7dffb0; font-weight: 700; } .pst.host { color: var(--gold); font-weight: 700; }
+  .ract { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: 10px 0 4px; }
+  .rres { padding: 12px 14px; border-radius: 12px; background: var(--soft); border: 1px solid var(--line); margin: 10px 0 4px; }
+  .rres.won { border-color: rgba(255, 210, 87, .55); background: radial-gradient(ellipse at 20% 0%, rgba(255, 210, 87, .14), var(--soft) 60%); }
+  .rres.lost { border-color: rgba(255, 107, 107, .35); }
+  .rhead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .rtitle { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .rtitle b { font-size: 15px; }
+  .clist { display: flex; flex-direction: column; gap: 4px; }
+  .crow2 { display: grid; grid-template-columns: 1.3fr 1.6fr 80px 80px 64px; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 9px; background: rgba(0,0,0,.18); }
+  .crow2.me { box-shadow: inset 0 0 0 1px rgba(255, 210, 87, .4); }
+  .crow2.mvp { background: rgba(255, 210, 87, .12); }
+  .cbar { position: relative; height: 16px; border-radius: 5px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .cbar span { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #f08c1a, #ffd257); }
+  .crow2:not(.mvp) .cbar span { background: linear-gradient(90deg, #3d8bff, #7cc4ff); }
+  .cbar em { position: relative; font-style: normal; font-size: 11px; font-weight: 700; padding-left: 6px; line-height: 16px; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
+  .mvpchip { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: linear-gradient(90deg, #ffd257, #ff9f1c); color: #1b1300; }
+  @media (max-width: 640px) { .pslots { grid-template-columns: repeat(2, 1fr); } .crow2 { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
@@ -447,6 +496,7 @@
 <script src="src/data.js"></script>
 <script src="src/classes.js"></script>
 <script src="src/gear.js"></script>
+<script src="src/raid.js"></script>
 <script src="src/core.js"></script>
 <script src="src/net.js"></script>
 <script src="src/world.js"></script>

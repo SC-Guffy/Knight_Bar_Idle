@@ -352,6 +352,7 @@ function update(dt) {
   else if (S.phase === 'returning') updateReturning(dt);
   else advanceCamp(gdt);
   if (duelPlay) updateDuel();
+  if (raidPlay) updateRaid();
 
   for (const m of monsters) {
     m.t += dt;
@@ -1089,7 +1090,8 @@ function drawFx() {
     ctx.globalAlpha = Math.max(0, a);
     ctx.font = 'bold 20px -apple-system, sans-serif';
     ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-    const cx = duelPlay ? duelPlay.x0 + duelPlay.res.fight.start / 2 : toScreen(knight.x) + 40;   // 결투 중엔 두 기사 사이
+    // 결투 중엔 두 기사 사이, 레이드 중엔 파티와 보스 사이
+    const cx = duelPlay ? duelPlay.x0 + duelPlay.res.fight.start / 2 : raidPlay ? raidPlay.x0 + raidPlay.f.start * 0.55 : toScreen(knight.x) + 40;
     const bx = Math.min(W - 60, Math.max(60, cx)), by = groundY() - 78;
     ctx.strokeText(banner.text, bx, by);
     ctx.fillStyle = banner.color;
@@ -1208,6 +1210,176 @@ function drawDuel() {
   }
 }
 
+// ───────────────────────── 보스 레이드 ─────────────────────────
+// 서버가 계산한 레이드 기록(res.fight.events)을 하단바에서 재생한다. 결투처럼 캠프에 있을 때만 벌어지고,
+// 파티원들이 캠프에서 차례로 걸어 나가 오른쪽의 보스와 싸운 뒤 끝나면 정산 화면이 열린다.
+// 기록의 좌표(start·stop.x)는 하단바 px 단위라 그대로 쓴다. 파티원 순서 = res.members 순서
+let raidPlay = null;          // { res, f, t0, speed, shown, x0, hpB, hpK, last, hitK, bossHit, act, dead, doneAt, onEnd }
+const RAID_PLAY_SEC = 18;     // 긴 레이드도 이 시간 안에 재생되도록 빨리 감는다
+const RAID_HOLD_SEC = 3;      // 결판이 난 뒤 결과를 보여 주는 시간
+const RAID_ENTER_SEC = 0.8;   // 보스가 나타나는 시간
+const RAID_BOSS_SCALE = 7;    // 보스 도트 1칸 크기(px)
+
+const raidActive = () => !!raidPlay;
+function playRaid(res, onEnd) {
+  const f = res.fight;
+  raidPlay = {
+    res, f, onEnd, t0: clock, speed: Math.max(1, f.dur / RAID_PLAY_SEC), shown: 0, x0: CAMP_X + 60,
+    hpB: f.maxB, hpK: f.knights.map((k) => k.max), last: {}, hitK: {}, bossHit: -1, act: null, dead: {}, doneAt: null,
+  };
+  showBanner(`⚔️ ${RAID_BOSSES[f.boss].name} 레이드!`, '#ff9f1c');
+}
+const raidTime = () => Math.min(raidPlay.f.dur, Math.max(0, clock - raidPlay.t0 - RAID_ENTER_SEC) * raidPlay.speed);
+const raidBossX = () => raidPlay.x0 + raidPlay.f.start;
+// 기사는 한 번 멈추면 다시 움직이지 않으므로 멈춘 시각·위치로 이동을 재현한다 (뒷사람은 gap 만큼 뒤에서 출발)
+function raidKnightX(i, pt) {
+  const f = raidPlay.f, k = f.knights[i];
+  return raidPlay.x0 + Math.min(k.stop.x, -i * f.gap + Math.min(pt, k.stop.t) * f.walk);
+}
+
+function updateRaid() {
+  const d = raidPlay, f = d.f, pt = raidTime(), gy = groundY(), bx = raidBossX();
+  const def = RAID_BOSSES[f.boss];
+  while (d.shown < f.events.length && f.events[d.shown].t <= pt) {
+    const e = f.events[d.shown++];
+    if (e.k != null) {
+      // 기사 타격 (짧은 시간 동안의 타격을 묶은 것)
+      d.hpB = e.bh; d.hpK[e.k] = e.h;
+      d.last[e.k] = { e, at: clock };
+      d.bossHit = clock;
+      addFloater((e.c ? '💥' : '') + fmt(e.d), bx + rand(-22, 22), gy - 70 + rand(-8, 8), e.c ? '#ffb13b' : '#ffffff', e.c || e.l ? 14 : 12);
+      if (e.l) effects.push({ type: 'ring', x: bx - 20, y: gy - 2, t: 0, color: clsOf(d.res.members[e.k].cls).look.fx });
+    } else if (e.b) {
+      d.hpK = e.h.slice();
+      d.act = { kind: e.b, at: clock, tg: e.tg };
+      if (e.b === 'hit') {
+        const kx = raidKnightX(e.tg, pt);
+        d.hitK[e.tg] = clock;
+        addFloater(fmt(e.d), kx + rand(-6, 6), gy - 62, '#ff8080', 12);
+        burst(kx + 6, gy - 24, 8, def.orb ? [def.orb, '#ffffff'] : ['#ffffff', '#ffe9a8'], 90);
+        shake = 0.15;
+      } else {
+        // 광역기: 모두가 맞는다
+        addFloater(`🔥 ${def.skill}!`, bx - 30, gy - 96, '#ff9f1c', 14);
+        e.d.forEach((dmg, i) => {
+          if (!dmg) return;
+          const kx = raidKnightX(i, pt);
+          d.hitK[i] = clock;
+          addFloater(fmt(dmg), kx + rand(-6, 6), gy - 62, '#ff8080', 12);
+          effects.push({ type: 'ring', x: kx, y: gy, t: 0, life: 0.45, size: 0.5, color: def.orb || 'rgba(214,196,150,0.9)' });
+        });
+        shake = 0.35;
+      }
+    } else if (e.die != null) {
+      d.dead[e.die] = clock;
+      addFloater('💀 쓰러짐', raidKnightX(e.die, pt), gy - 74, '#c9c9c9', 12);
+    }
+  }
+  if (pt >= f.dur && d.doneAt == null) {
+    d.doneAt = clock;
+    showBanner(f.won ? '👑 RAID CLEAR!' : f.timeout ? '⏳ TIME OVER' : '💀 RAID FAILED', f.won ? '#ffd257' : '#ff8080');
+    if (f.won) {
+      burst(bx, gy - 40, 40, [def.pal.G || def.pal.d || '#ffd257', '#ffffff', '#ffd257'], 160, 3, 250);
+      for (let i = 0; i < 14; i++) coins.push({ x: bx, y: gy - 20, vx: rand(-90, 90), vy: rand(-200, -100), t: 0, fly: false });
+    }
+    addFloater('👑 MVP', raidKnightX(f.mvp, pt), gy - 88, '#ffd257', 14);
+  }
+  if (d.doneAt != null && clock - d.doneAt > RAID_HOLD_SEC) endRaid();
+}
+
+function endRaid() {
+  if (!raidPlay) return;
+  const d = raidPlay;
+  raidPlay = null;
+  if (d.onEnd) d.onEnd(d.res);
+}
+// 캠프 창을 여는 등 끝까지 보지 않을 때
+function skipRaid() {
+  if (!raidPlay) return;
+  if (raidPlay.doneAt == null) showBanner(raidPlay.f.won ? '👑 RAID CLEAR!' : '💀 RAID FAILED', raidPlay.f.won ? '#ffd257' : '#ff8080');
+  endRaid();
+}
+
+function drawRaid() {
+  const d = raidPlay, f = d.f, pt = raidTime(), done = pt >= f.dur, gy = groundY();
+  const def = RAID_BOSSES[f.boss];
+  ctx.font = 'bold 11px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.lineJoin = 'round';
+  const label = (text, x, y, color) => {
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  };
+
+  // ── 보스 ──
+  const frames = SPR[def.spr], rows = frames[done ? 0 : Math.floor(clock * 2.5) % frames.length];
+  const enter = Math.min(1, (clock - d.t0) / RAID_ENTER_SEC);
+  const dying = done && f.won ? Math.min(1, (clock - d.doneAt) / 1.2) : 0;
+  const since = d.act ? clock - d.act.at : Infinity;
+  let dx = 0, lift = 0;
+  if (since < 0.4) {
+    const u = Math.sin((since / 0.4) * Math.PI);
+    if (d.act.kind === 'hit') dx = -14 * u; else lift = 22 * u;
+  }
+  const bx = raidBossX() + dx, h = rows.length * RAID_BOSS_SCALE, w = rows[0].length * RAID_BOSS_SCALE;
+  const bottom = gy - lift;
+  ctx.fillStyle = `rgba(0,0,0,${0.3 * enter})`;
+  ctx.fillRect(Math.round(bx - w / 2), gy - 2, w, 3);
+  drawSprite(rows, def.pal, bx, bottom + dying * 30, RAID_BOSS_SCALE, {
+    flash: clock - d.bossHit < 0.06, alpha: enter * (1 - dying), sy: 1 - dying * 0.5,
+  });
+  if (!dying) drawSprite(SPR.crown, PAL, bx, bottom - h - 1, PX * 2, { alpha: enter });
+  if (d.act && d.act.kind === 'aoe' && since < 0.5) {
+    ctx.globalAlpha = 1 - since / 0.5;
+    ctx.strokeStyle = def.orb || '#ffd257';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(bx, gy, 40 + since * 600, 6 + since * 30, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // 보스 체력바와 이름
+  if (!done || !f.won) {
+    ctx.globalAlpha = enter;
+    const top = gy - h - 28;           // 왕관 위
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(Math.round(bx - 56), top - 1, 112, 7);
+    ctx.fillStyle = '#ff9f1c';
+    ctx.fillRect(Math.round(bx - 55), top, Math.round(110 * Math.max(0, d.hpB / f.maxB)), 5);
+    label(`${def.icon} ${def.name}`, bx, top - 4, '#ffd257');
+    ctx.globalAlpha = 1;
+  }
+
+  // ── 파티 ──
+  d.res.members.forEach((m, i) => {
+    const c = clsOf(m.cls), x = raidKnightX(i, pt), k = f.knights[i];
+    const L = d.last[i], s = L ? clock - L.at : Infinity;
+    const dead = d.dead[i] != null;
+    const me = m.nickname === activeNick();
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(x - 14, gy - 1, 28, 2);
+    drawHero(ctx, m.cls, x, gy, {
+      mode: dead ? 'sit' : pt < k.stop.t ? 'walk' : 'fight',
+      walkT: pt + i * 0.3, swing: !dead && s < 0.16 ? 0.35 + s * 4 : -1,
+      facing: 1, t: clock, lift: L && L.e.l && s < 0.35 ? (1 - s / 0.35) * 26 : 0,
+      flash: d.hitK[i] != null && clock - d.hitK[i] < 0.08,
+      alpha: dead ? 0.4 : 1,
+    });
+    const wpn = WEAPONS[c.weapon];
+    if (!dead && L && wpn.kind === 'ranged' && s < 0.14) {
+      const x0 = x + 16, x1 = raidBossX() - 30, ax = x0 + (x1 - x0) * (s / 0.14);
+      ctx.fillStyle = wpn.arrow.color;
+      ctx.fillRect(Math.round(ax - 12), gy - 6 * PX, 12, 2);
+    }
+    // 이름표가 겹치지 않게 번갈아 높이를 다르게 한다
+    const top = gy - 58 - (i % 2) * 14;
+    drawHpBar(x, top, 26, d.hpK[i] / k.max, me ? '#5fcf5a' : '#7cc4ff');
+    label(`${done && f.mvp === i ? '👑' : c.icon} ${m.nickname}`, x, top - 4, me ? '#ffd257' : '#f3efe6');
+  });
+}
+
 function render() {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
@@ -1215,7 +1387,7 @@ function render() {
   drawGround();
   drawCamp();
   for (const m of monsters) drawMonster(m);
-  if (duelPlay) drawDuel(); else drawKnight();
+  if (duelPlay) drawDuel(); else if (raidPlay) drawRaid(); else drawKnight();
   drawShots();
   drawEffects();
   drawParts();

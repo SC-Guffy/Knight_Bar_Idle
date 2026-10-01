@@ -30,6 +30,7 @@ function freshState() {
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
     trip: null,                             // 진행 중인 원정 기록
     report: null,                           // 확인 안 한 원정 기록
+    raid: freshRaid(),                      // 보스 레이드: 입장권·처치 상자·마지막 정산 (raid.js)
     lastSeen: Date.now(),
   };
 }
@@ -91,15 +92,15 @@ function stats(base = false) {
   const gb = gearBonus();
   // 장비 무기 공격력도 대장간 배율을 받는다
   let atk = ((5 + t.atk * 2.5) * Math.pow(1.07, t.atk) + (S.level - 1) * 1.5 + gb.atk)
-    * forgeMultAt(S.bld.forge) * (m.atk || 1);
+    * forgeMultAt(S.bld.forge) * (m.atk || 1) * (1 + gb.atkPct);
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
-  const maxHp = ((60 + t.hp * 18) * Math.pow(1.07, t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1);
-  const aspd = (0.9 + t.spd * 0.08) * (m.aspd || 1);
+  const maxHp = ((60 + t.hp * 18) * Math.pow(1.07, t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1) * (1 + gb.hpPct);
+  const aspd = (0.9 + t.spd * 0.08) * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + t.crit * 0.025 + (m.crit || 0) + gb.crit);
   return {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
-    guard: m.guard || 0, heal: m.heal || 0, leap: c.leap || null,
+    guard: Math.min(0.6, (m.guard || 0) + gb.guard), heal: Math.min(0.1, (m.heal || 0) + gb.heal), leap: c.leap || null,
   };
 }
 // 한 마리를 상대로 한 초당 피해 (연발·도약 포함)
@@ -305,10 +306,12 @@ function arriveCamp(silent = false) {
 // 몬스터 처치 보상 (실시간·오프라인 공용). 연출용 정보를 돌려준다.
 function rewardKill(m) {
   const t = S.trip;
-  S.gold += m.gold; t.gold += m.gold;
+  const gb = gearBonus();
+  const gold = m.gold * (1 + gb.goldPct), exp = m.exp * (1 + gb.expPct);
+  S.gold += gold; t.gold += gold;
   t.kills++; if (m.boss) t.bosses++;
-  t.xp += m.exp;
-  t.levels += gainExp(m.exp);
+  t.xp += exp;
+  t.levels += gainExp(exp);
   let loot = null;
   if ((m.boss || Math.random() < BOX_DROP) && !bagFull()) {
     loot = { k: 'box', g: rollGrade(m.boss, t.buffs.charm), s: S.stage };

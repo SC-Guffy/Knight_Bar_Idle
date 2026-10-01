@@ -1,11 +1,12 @@
 'use strict';
-// Knight Bar 서버: 계정(닉네임) · 세이브 동기화 · 랭킹 · 결투.
+// Knight Bar 서버: 계정(닉네임) · 세이브 동기화 · 랭킹 · 결투 · 보스 레이드 로비.
 // 의존성은 pg 하나뿐이라 http 모듈로 직접 라우팅한다.
 
 const http = require('http');
 const crypto = require('crypto');
 const { openStore, TakenError } = require('./store');
 const { simulateDuel, eloDelta } = require('./duel');
+const { RAID_BOSSES, MAX_PARTY, simulateRaid } = require('./raid');
 
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 256 * 1024;
@@ -70,6 +71,7 @@ function send(res, status, body) {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+    'Cache-Control': 'no-store',
   });
   res.end(body === undefined ? '' : JSON.stringify(body));
 }
@@ -195,6 +197,212 @@ const routes = {
     };
   },
 };
+
+// ───────────────────────── 보스 레이드 로비 ─────────────────────────
+// 방은 서버 메모리에만 둔다 (재시작되면 열려 있던 방은 사라진다). 클라이언트는 방에 있는 동안 2초마다 방 상태를 물어보고,
+// 한동안 소식이 없는 파티원은 나간 것으로 본다. 방장이 출정하면 서버가 전투를 계산해서 방에 결과를 남기고,
+// 파티원들은 다음 조회 때 같은 결과를 받아 각자 재생·정산한다.
+const ROOM_IDLE_MS = 90000;        // 이 시간 동안 조회가 없으면 방에서 내보낸다 (웹 버전이 뒤쪽 탭에 있으면 브라우저가 타이머를 1분 간격까지 늦춘다)
+const ROOM_DONE_KEEP_MS = 180000;  // 끝난 방(결과)을 남겨 두는 시간
+const rooms = new Map();           // id → { id, boss, host, members: [{ key, nickname, cls, level, power, best, ready, seen }], state, result, at }
+const roomOf = new Map();          // 계정 key → 방 id
+let roomSeq = 0;
+
+// 방 조회는 자주 오므로 토큰 → 계정을 잠깐 기억해 둔다 (DB 왕복을 줄이려고)
+const authCache = new Map();       // tokenHash → { acc, at }
+async function authLite(req) {
+  const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
+  if (!m) throw new HttpError(401, '계정 인증에 실패했어요');
+  const h = hashToken(m[1]);
+  const c = authCache.get(h);
+  if (c && Date.now() - c.at < 60000) return c.acc;
+  const acc = await store.byToken(h);
+  if (!acc) throw new HttpError(401, '계정 인증에 실패했어요');
+  authCache.set(h, { acc, at: Date.now() });
+  return acc;
+}
+
+function raidBoss(id) {
+  if (!Object.prototype.hasOwnProperty.call(RAID_BOSSES, id)) throw new HttpError(400, '그런 보스는 없어요');
+  return RAID_BOSSES[id];
+}
+const memberOf = (a) => {
+  const p = sanitizeProfile(a.profile);
+  return { key: a.key, nickname: a.nickname, cls: p.cls, level: p.level, power: p.power, best: p.best, ready: false, seen: Date.now() };
+};
+const myRoom = (key) => rooms.get(roomOf.get(key)) || null;
+
+function roomView(r) {
+  if (!r) return null;
+  const host = r.members.find((m) => m.key === r.host);
+  return {
+    id: r.id, boss: r.boss, state: r.state, host: host ? host.nickname : null,
+    members: r.members.map((m) => ({ nickname: m.nickname, cls: m.cls, level: m.level, power: m.power, best: m.best, ready: m.ready, host: m.key === r.host })),
+    result: r.result,
+  };
+}
+
+function leaveRoom(key) {
+  const r = myRoom(key);
+  roomOf.delete(key);
+  if (!r) return;
+  r.members = r.members.filter((m) => m.key !== key);
+  if (!r.members.length) { rooms.delete(r.id); return; }
+  if (r.host === key) { r.host = r.members[0].key; r.members[0].ready = false; }
+}
+
+function touch(r, key) {
+  const m = r && r.members.find((x) => x.key === key);
+  if (m) m.seen = Date.now();
+  return m;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const r of rooms.values()) {
+    if (r.state === 'done' && now - r.at > ROOM_DONE_KEEP_MS) {
+      for (const m of r.members) roomOf.delete(m.key);
+      rooms.delete(r.id);
+      continue;
+    }
+    for (const m of [...r.members]) if (now - m.seen > ROOM_IDLE_MS) leaveRoom(m.key);
+  }
+  for (const [h, c] of authCache) if (now - c.at > 60000) authCache.delete(h);
+}, 5000).unref();
+
+function hostRoom(acc) {
+  const r = myRoom(acc.key);
+  if (!r) throw new HttpError(404, '레이드 방에 있지 않아요');
+  if (r.host !== acc.key) throw new HttpError(403, '방장만 할 수 있어요');
+  if (r.state !== 'open') throw new HttpError(409, '이미 출정한 방이에요');
+  return r;
+}
+
+const raidRoutes = {
+  // 열려 있는 방 목록 + 내가 들어가 있는 방
+  'GET /api/raids': async (req) => {
+    const me = await authLite(req);
+    const list = [...rooms.values()].filter((r) => r.state === 'open').sort((a, b) => b.at - a.at).slice(0, 50).map((r) => {
+      const host = r.members.find((m) => m.key === r.host);
+      return { id: r.id, boss: r.boss, host: host ? host.nickname : '', count: r.members.length, members: r.members.map((m) => m.nickname) };
+    });
+    const r = myRoom(me.key);
+    touch(r, me.key);
+    return { rooms: list, room: roomView(r), max: MAX_PARTY };
+  },
+
+  'GET /api/raids/me': async (req) => {
+    const me = await authLite(req);
+    const r = myRoom(me.key);
+    touch(r, me.key);
+    return { room: roomView(r) };
+  },
+
+  // 방 만들기. 들어가 있던 방에서는 나온다
+  'POST /api/raids': async (req) => {
+    const me = await authLite(req);
+    const body = await readJson(req);
+    const b = raidBoss(body.boss);
+    const acc = await store.get(me.key);
+    if (sanitizeProfile(acc.profile).best < b.stage) throw new HttpError(403, `최고 스테이지 ${b.stage} 이상이어야 해요`);
+    leaveRoom(me.key);
+    const r = { id: String(++roomSeq), boss: body.boss, host: me.key, members: [memberOf(acc)], state: 'open', result: null, at: Date.now() };
+    rooms.set(r.id, r);
+    roomOf.set(me.key, r.id);
+    return { room: roomView(r) };
+  },
+
+  'POST /api/raids/join': async (req) => {
+    const me = await authLite(req);
+    const body = await readJson(req);
+    const r = rooms.get(String(body.id));
+    if (!r || r.state !== 'open') throw new HttpError(404, '이미 출정했거나 사라진 방이에요');
+    if (r.members.some((m) => m.key === me.key)) return { room: roomView(r) };
+    if (r.members.length >= MAX_PARTY) throw new HttpError(409, '방이 가득 찼어요');
+    const acc = await store.get(me.key);
+    const b = RAID_BOSSES[r.boss];
+    if (sanitizeProfile(acc.profile).best < b.stage) throw new HttpError(403, `최고 스테이지 ${b.stage} 이상이어야 해요`);
+    leaveRoom(me.key);
+    r.members.push(memberOf(acc));
+    roomOf.set(me.key, r.id);
+    return { room: roomView(r) };
+  },
+
+  'POST /api/raids/leave': async (req) => {
+    const me = await authLite(req);
+    leaveRoom(me.key);
+    return { room: null };
+  },
+
+  // 준비 / 준비 취소. 준비하기 직전에 클라이언트가 세이브(프로필)를 올려 둔다
+  'POST /api/raids/ready': async (req) => {
+    const me = await authLite(req);
+    const body = await readJson(req);
+    const r = myRoom(me.key);
+    if (!r || r.state !== 'open') throw new HttpError(404, '레이드 방에 있지 않아요');
+    const m = touch(r, me.key);
+    m.ready = !!body.ready && r.host !== me.key;
+    return { room: roomView(r) };
+  },
+
+  // 방장: 보스 바꾸기 (준비는 모두 풀린다)
+  'POST /api/raids/boss': async (req) => {
+    const me = await authLite(req);
+    const body = await readJson(req);
+    const r = hostRoom(me);
+    const b = raidBoss(body.boss);
+    const low = r.members.find((m) => m.best < b.stage);
+    if (low) throw new HttpError(403, `${low.nickname}님이 아직 최고 스테이지 ${b.stage}에 못 미쳐요`);
+    r.boss = body.boss;
+    r.members.forEach((m) => { m.ready = false; });
+    return { room: roomView(r) };
+  },
+
+  // 방장: 내보내기
+  'POST /api/raids/kick': async (req) => {
+    const me = await authLite(req);
+    const body = await readJson(req);
+    const r = hostRoom(me);
+    const m = r.members.find((x) => x.nickname === body.nickname && x.key !== me.key);
+    if (m) leaveRoom(m.key);
+    return { room: roomView(r) };
+  },
+
+  // 방장: 출정. 모두 준비됐으면 서버가 전투를 끝까지 계산해서 방에 결과를 남긴다
+  'POST /api/raids/start': async (req) => {
+    const me = await authLite(req);
+    const r = hostRoom(me);
+    const waiting = r.members.find((m) => m.key !== r.host && !m.ready);
+    if (waiting) throw new HttpError(409, `${waiting.nickname}님이 아직 준비하지 않았어요`);
+    // 저장된 최신 능력치로 싸운다
+    const accs = await Promise.all(r.members.map((m) => store.get(m.key)));
+    const b = RAID_BOSSES[r.boss];
+    const profiles = accs.map((a) => sanitizeProfile(a && a.profile));
+    const low = profiles.findIndex((p) => p.best < b.stage);
+    if (low >= 0) throw new HttpError(403, `${r.members[low].nickname}님이 아직 최고 스테이지 ${b.stage}에 못 미쳐요`);
+    if (r.state !== 'open') throw new HttpError(409, '이미 출정한 방이에요');
+    const fight = simulateRaid(r.boss, profiles);
+    r.state = 'done';
+    r.at = Date.now();
+    r.result = {
+      id: `${r.id}-${r.at}`, boss: r.boss,
+      members: r.members.map((m, i) => ({ nickname: m.nickname, cls: profiles[i].cls, level: profiles[i].level })),
+      fight,
+    };
+    return { room: roomView(r) };
+  },
+
+  // 방장: 끝난 방을 다시 열어 같은 파티로 한 번 더
+  'POST /api/raids/again': async (req) => {
+    const me = await authLite(req);
+    const r = myRoom(me.key);
+    if (!r || r.host !== me.key) throw new HttpError(403, '방장만 할 수 있어요');
+    r.state = 'open'; r.result = null; r.at = Date.now();
+    r.members.forEach((m) => { m.ready = false; });
+    return { room: roomView(r) };
+  },
+};
+Object.assign(routes, raidRoutes);
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204);
