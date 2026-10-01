@@ -941,6 +941,7 @@ function raidLeave() {
 }
 
 function raidBadge() {
+  refillTickets();
   if (S.raid.chests.length) return `<i>${S.raid.chests.length}</i>`;
   if (raidUi.room) return '<i>●</i>';
   return '';
@@ -1083,7 +1084,7 @@ function viewRaidLobby() {
     <div class="card">
       <div class="ic">🎟️</div>
       <div class="info"><b>레이드 입장권 <small>보유 ${S.raid.tickets} / ${RAID_TICKET_MAX}</small></b>
-        <div class="eff">출정할 때 1장 쓰여요. 오늘 ${bought}장 샀어요 — 살수록 비싸지고 자정에 초기화돼요.</div></div>
+        <div class="eff">매일 ${RAID_TICKET_FREE}장까지 무료로 채워져요. 출정할 때 1장 쓰이고, 더 필요하면 사세요 — 오늘 ${bought}장 샀어요 (살수록 비싸지고 자정에 초기화).</div></div>
       <div class="act">
         <div class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip('💎', p.mana, S.mats.mana)}</div>
         <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button>
@@ -1134,6 +1135,7 @@ function viewRaidLobby() {
 }
 
 function viewRaid() {
+  refillTickets();
   raidPoll();
   return `${viewRaidResult()}${viewRaidChests()}${raidUi.room ? viewRaidRoom() : viewRaidLobby()}`;
 }

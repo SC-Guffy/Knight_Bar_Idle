@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.4.0';
+const GAME_VERSION = '0.4.1';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -1223,7 +1223,9 @@ const RAID_BOSSES = {
       pal: { B: '#2a1540', b: '#150a20', W: '#c06bff', H: '#ffd257', G: '#ffd257', J: '#ff3b4b' } } },
 };
 
-// 입장권: 재화로 산다. 하루에 살수록 비싸지고(자정에 초기화), 최대 RAID_TICKET_MAX 장까지 들고 있을 수 있다
+// 입장권: 매일 RAID_TICKET_FREE 장까지 무료로 채워 주고, 그 이상은 재화로 산다.
+// 하루에 살수록 비싸지고(자정에 초기화), 사서 모으는 건 최대 RAID_TICKET_MAX 장까지
+const RAID_TICKET_FREE = 3;
 const RAID_TICKET_MAX = 5;
 const RAID_TICKET_GOLD = 150;          // 최고 스테이지 몬스터 골드 × 이 값
 const RAID_TICKET_GROW = 1.6;          // 오늘 산 장수만큼 가격 × 1.6^n

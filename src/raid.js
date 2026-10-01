@@ -2,18 +2,26 @@
 // 보스 레이드 규칙: 입장권, 결과 정산(재화·처치 상자), 처치 상자 열기. core.js·gear.js 처럼 DOM 을 모르고 S 상태만 바꾼다.
 // 로비(방 목록·준비·출정)와 전투 계산은 서버가 하고(server/raid.js), 여기서는 받은 결과로 내 보상만 정산한다.
 //  S.raid = {
-//    tickets: 보유 입장권, buyDay·bought: 오늘(buyDay) 산 장수 — 살수록 비싸진다,
+//    tickets: 보유 입장권, freeDay: 무료 충전을 마지막으로 받은 날, buyDay·bought: 오늘(buyDay) 산 장수 — 살수록 비싸진다,
 //    chests: 아직 안 연 처치 상자 [{ k: 'rbox', b: 보스 id, s: 스테이지 }],
 //    claimed: 이미 정산한 결과 id (같은 결과를 두 번 받지 않도록), last: 마지막 정산 화면 내용
 //  }
 
-const freshRaid = () => ({ tickets: 1, buyDay: '', bought: 0, chests: [], claimed: [], last: null });
+const freshRaid = () => ({ tickets: 0, freeDay: '', buyDay: '', bought: 0, chests: [], claimed: [], last: null });
 
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 const ticketsBoughtToday = () => (S.raid.buyDay === todayKey() ? S.raid.bought : 0);
 const raidUnlocked = (id) => S.best >= RAID_BOSSES[id].stage;
 
 // ───────────────────────── 입장권 ─────────────────────────
+// 하루에 한 번(자정 기준) 입장권이 RAID_TICKET_FREE 장보다 적으면 그만큼 채워 준다. 더 필요하면 재화로 산다
+function refillTickets() {
+  if (S.raid.freeDay === todayKey()) return false;
+  S.raid.freeDay = todayKey();
+  if (S.raid.tickets >= RAID_TICKET_FREE) return false;
+  S.raid.tickets = RAID_TICKET_FREE;
+  return true;
+}
 function ticketPrice() {
   const k = Math.pow(RAID_TICKET_GROW, ticketsBoughtToday());
   return { gold: Math.floor(monsterStats(S.best, false).gold * RAID_TICKET_GOLD * k), mana: Math.floor((3 + S.best / 10) * k) };
