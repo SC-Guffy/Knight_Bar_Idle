@@ -1273,4 +1273,31 @@ function boot() {
   requestAnimationFrame(frame);
 }
 
-boot();
+// 게임 모음 사이트(sheet.sanai-club) 게시글은 이 웹 버전을 iframe 으로 띄운다. 예전에는 그 사이트에 게임 파일을 직접 올려서
+// 세이브·계정이 그쪽 주소의 localStorage 에 있다. 부모 페이지에 준비됐다고 알리고 잠깐(최대 1초) 기다려서,
+// 보내 준 값 중 여기 없는 것만 넣고 시작한다.
+const IMPORT_FROM = ['https://sheet-play.sanai-club.workers.dev'];
+function start() {
+  if (window.parent === window) return boot();
+  let started = false;
+  const go = () => {
+    if (started) return;
+    started = true;
+    window.removeEventListener('message', onMessage);
+    boot();
+  };
+  const onMessage = (e) => {
+    if (!IMPORT_FROM.includes(e.origin) || !e.data || e.data.type !== 'kb-import') return;
+    try {
+      for (const [k, v] of Object.entries(e.data.items || {})) {
+        if (k.startsWith('knight-bar') && localStorage.getItem(k) == null) localStorage.setItem(k, String(v));
+      }
+      accounts = Object.assign({ active: null, list: {} }, JSON.parse(localStorage.getItem(ACCOUNTS_KEY)));
+    } catch {}
+    go();
+  };
+  window.addEventListener('message', onMessage);
+  window.parent.postMessage({ type: 'kb-ready' }, '*');
+  setTimeout(go, 1000);
+}
+start();
