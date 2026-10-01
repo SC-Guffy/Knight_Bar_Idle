@@ -538,13 +538,10 @@ const ENH_RESULT = {
   saved: () => '📜 보호 주문서가 부서지며 단계를 지켰다',
 };
 
-// 창고에 지금 낀 것보다 좋은 장비가 있으면 탭에 표시
+// 자동 장착하면 더 강해지는 조합(세트 효과 포함)이 있으면 탭에 표시
 function gearBadge() {
-  for (const slot of Object.keys(GEAR_SLOTS)) {
-    const cur = equipped(slot), score = cur ? gearScore(cur) : -1;
-    if (S.gear.inv.some((x) => x.slot === slot && gearScore(x) > score)) return '<i>▲</i>';
-  }
-  return '';
+  const best = bestLoadout();
+  return Object.keys(GEAR_SLOTS).some((slot) => best[slot] !== S.gear.eq[slot]) ? '<i>▲</i>' : '';
 }
 
 function enhOdds(L) {
@@ -576,11 +573,11 @@ function drawGearHero() {
   g.restore();
 }
 
-// 고른 장비가 지금 낀 장비보다 얼마나 좋은지
+// 고른 장비로 바꿔 끼면 전투력이 얼마나 변하는지 (세트가 깨지거나 맞춰지는 것까지 반영)
 function gearCmp(it) {
   const cur = equipped(it.slot);
   if (isEquipped(it)) return '<em class="on">장착 중</em>';
-  const d = cur ? gearScore(it) / gearScore(cur) - 1 : 1;
+  const d = cur ? swapGain(it) : 1;
   return d > 0.005 ? `<span class="up">▲${cur ? Math.round(d * 100) + '%' : ''}</span>` : d < -0.005 ? `<span class="down">▼${Math.round(-d * 100)}%</span>` : '<span>＝</span>';
 }
 

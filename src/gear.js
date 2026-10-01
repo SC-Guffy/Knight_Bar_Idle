@@ -195,13 +195,59 @@ function equipGear(id) {
   keepHpRatio(oldMax);
   return true;
 }
-// 부위마다 창고에서 가장 좋은 장비를 낀다. 바뀐 부위 수를 돌려준다
+// ───────────────────────── 자동 장착 (세트 고려) ─────────────────────────
+// 장비 조합의 전투 가치: 초당 피해 × 버틸 수 있는 체력(받는 피해 감소·타격 회복 반영).
+// 세트 효과·고유 효과·공속·치명이 모두 stats() 에 들어 있으므로 실제로 끼워 보고 잰다.
+function loadoutValue(eq) {
+  const keep = S.gear.eq;
+  S.gear.eq = eq;
+  const st = stats(true);
+  S.gear.eq = keep;
+  return dpsOf(st) * st.maxHp / (1 - st.guard) * (1 + st.heal * st.aspd * 5);
+}
+
+// 가장 강한 장비 조합 { weapon, armor, ring }. 부위마다 후보를 추려 모든 조합을 비교한다:
+// 일반 장비는 부위별 점수 상위 2개, 세트 장비는 보스(세트)마다 그 부위에서 가장 좋은 것 1개
+let loadoutCache = { key: '', eq: null };
+function bestLoadout() {
+  // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${S.bld.forge}`;
+  if (loadoutCache.key === key) return loadoutCache.eq;
+  const slots = Object.keys(GEAR_SLOTS);
+  const cands = slots.map((slot) => {
+    const items = S.gear.inv.filter((x) => x.slot === slot).sort((a, b) => gearScore(b) - gearScore(a));
+    const pick = items.filter((x) => !isSetGear(x)).slice(0, 2);
+    const seen = new Set();
+    for (const x of items) {
+      const b = isSetGear(x) && GEAR_ITEMS[x.t].raid;
+      if (b && !seen.has(b)) { seen.add(b); pick.push(x); }
+    }
+    return pick.length ? pick.map((x) => x.id) : [null];
+  });
+  // 지금 조합보다 확실히 좋을 때만 바꾼다 (같으면 그대로)
+  let best = { ...S.gear.eq }, bestV = loadoutValue(best) * 1.0001;
+  for (const w of cands[0]) for (const a of cands[1]) for (const r of cands[2]) {
+    const eq = { [slots[0]]: w, [slots[1]]: a, [slots[2]]: r };
+    const v = loadoutValue(eq);
+    if (v > bestV) { best = eq; bestV = v; }
+  }
+  loadoutCache = { key, eq: best };
+  return best;
+}
+
+// 이 장비로 바꿔 끼면 전투력(√전투 가치)이 얼마나 변하는지 (0.05 = +5%)
+function swapGain(it) {
+  const cur = loadoutValue({ ...S.gear.eq }), next = loadoutValue({ ...S.gear.eq, [it.slot]: it.id });
+  return cur > 0 ? Math.sqrt(next / cur) - 1 : 1;
+}
+
+// 가장 강한 조합으로 바꿔 낀다. 바뀐 부위 수를 돌려준다
 function autoEquip() {
   const oldMax = stats().maxHp;
+  const best = bestLoadout();
   let changed = 0;
   for (const slot of Object.keys(GEAR_SLOTS)) {
-    const best = S.gear.inv.filter((x) => x.slot === slot).sort((a, b) => gearScore(b) - gearScore(a))[0];
-    if (best && S.gear.eq[slot] !== best.id) { S.gear.eq[slot] = best.id; changed++; }
+    if (best[slot] != null && S.gear.eq[slot] !== best[slot]) { S.gear.eq[slot] = best[slot]; changed++; }
   }
   keepHpRatio(oldMax);
   return changed;
