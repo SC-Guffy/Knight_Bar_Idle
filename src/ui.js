@@ -499,7 +499,7 @@ function drawClassPreviews() {
       gg.save();
       gg.translate(Math.round(w * 0.36), h - 8);
       gg.scale(k, k);
-      drawHero(gg, id, 0, 0, { mode: 'fight', swing, t: tt, walkT: 0, ...(sp || {}), alpha: sp && sp.alpha != null ? Math.max(0.25, sp.alpha) : 1 });
+      drawHero(gg, id, 0, 0, { mode: 'fight', swing, combo: Math.floor(tt / 1.4), t: tt, walkT: 0, ...(sp || {}), alpha: sp && sp.alpha != null ? Math.max(0.25, sp.alpha) : 1 });
       gg.restore();
     };
 
@@ -724,7 +724,7 @@ function drawGearHero() {
   g.save();
   g.translate(Math.round(w * 0.4), h - 6);
   g.scale(2, 2);
-  drawHero(g, S.cls, 0, 0, { mode: 'fight', swing, t: clock, lift: 0, walkT: 0 });
+  drawHero(g, S.cls, 0, 0, { mode: 'fight', swing, combo: Math.floor(clock / 2.6), t: clock, lift: 0, walkT: 0 });
   g.restore();
 }
 

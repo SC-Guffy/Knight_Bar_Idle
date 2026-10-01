@@ -140,7 +140,7 @@ function run() {
     }
     if (!busy) {
       T.wait -= dt;
-      if (T.basic && !T.basicDone && T.wait < GAP_SEC * 0.55) { knight.swing = 0; T.basicDone = true; }   // 평타 모션만 (피해 없음)
+      if (T.basic && !T.basicDone && T.wait < GAP_SEC * 0.55) { knight.swing = 0; knight.combo = (knight.combo || 0) + 1; T.basicDone = true; }   // 평타 모션만 (피해 없음)
       if (T.wait <= 0 && T.auto) {
         cast(T.skill);
         T.wait = GAP_SEC; T.basicDone = false;

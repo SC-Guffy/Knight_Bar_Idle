@@ -265,6 +265,7 @@ function updateExpedition(dt, gdt) {
     } else if (knight.atkTimer <= 0 && !knight.pending) {
       knight.atkTimer = 1 / st.aspd;
       knight.swing = 0;
+      knight.combo = (knight.combo || 0) + 1;            // 연속기 직업은 평타마다 모션을 번갈아 쓴다
       knight.pending = true;
     }
   } else {
@@ -347,8 +348,8 @@ function update(dt) {
   knight.recoil = Math.max(0, (knight.recoil || 0) - dt * 6);
   shake = Math.max(0, shake - dt);
   if (knight.swing >= 0) {
-    // 공속이 아주 빠르면 모션도 빨라진다
-    knight.swing += dt * Math.max(5, stats().aspd * 1.3);
+    // 평타 한 번은 0.38초 (치켜들기 → 내려치기 → 여운). 공속이 빨라 공격 간격이 더 짧으면 모션도 그만큼 빨라진다
+    knight.swing += dt * Math.max(2.6, stats().aspd * 1.25);
     if (knight.swing >= 1) knight.swing = -1;
   }
 
@@ -597,12 +598,6 @@ function heroPal(id) {
   return heroPalCache[id] || (heroPalCache[id] = Object.assign({}, PAL, CLASSES[id].look.pal));
 }
 
-// 휘두르기 각도: 치켜들었다가(0~0.3) 앞으로 내려친다(0.3~1)
-function swingAngle(s, wobble = 0) {
-  if (s < 0) return -1.0 + wobble;
-  return s < 0.3 ? -1.2 - (s / 0.3) * 1.0 : -2.2 + ((s - 0.3) / 0.7) * 3.0;
-}
-
 function drawBlade(g, w, hx, hy, angle, len = w.len) {
   g.save();
   g.translate(hx, hy);
@@ -635,7 +630,7 @@ function drawPole(g, w, hx, hy, angle) {
   g.restore();
 }
 
-function drawBow(g, w, hx, hy, pull) {
+function drawBow(g, w, hx, hy, pull, arrow = true) {
   const r = w.size;
   g.save();
   g.lineCap = 'round';
@@ -643,7 +638,7 @@ function drawBow(g, w, hx, hy, pull) {
   g.beginPath(); g.moveTo(hx, hy - r); g.quadraticCurveTo(hx + r * 0.75, hy, hx, hy + r); g.stroke();
   g.strokeStyle = w.glow || 'rgba(255,255,255,0.85)'; g.lineWidth = 1;
   g.beginPath(); g.moveTo(hx, hy - r); g.lineTo(hx - pull, hy); g.lineTo(hx, hy + r); g.stroke();
-  if (pull > 0) {
+  if (pull > 0 && arrow) {
     g.fillStyle = w.arrow.color;
     g.fillRect(hx - pull, hy - 0.75, 18, 1.5);
     g.beginPath(); g.moveTo(hx - pull + 18, hy - 2.5); g.lineTo(hx - pull + 22, hy); g.lineTo(hx - pull + 18, hy + 2.5); g.fill();
@@ -651,67 +646,324 @@ function drawBow(g, w, hx, hy, pull) {
   g.restore();
 }
 
-function drawArcTrail(g, w, hx, hy, s, r, from, to, width = 2) {
-  if (s < 0.3 || s > 0.8) return;
-  g.strokeStyle = `rgba(${w.trail},${0.7 * (1 - s)})`;
-  g.lineWidth = width;
-  g.beginPath();
-  g.arc(hx, hy, r, from, to);
-  g.stroke();
+// ───────────────────────── 평타 모션 ─────────────────────────
+// 무기만 돌리지 않고 팔과 몸이 같이 움직인다: 예비동작(감속) → 잠깐 멈춤 → 타격(가속, 몸이 앞으로 실림) → 여운 → 제자리.
+// 직업(무기)마다 모션이 다르고, 전직할수록 커지고 화려해진다:
+//   기본(견습) 한 가지 동작 · 1차 두 동작을 번갈아 치는 연속기 · 2차 큰 동작 연속기 + 타격 순간 섬광
+// 타격 판정은 근접 s=0.35, 활 s=0.45 (updateExpedition) 라서 무기가 그 무렵 앞을 지나가도록 키를 잡는다.
+// 키: s 진행도 · h 앞손 [x, y] (기본 손 자리에서 칸 단위로 옮김) · wa 무기 각도 · dx 몸 앞으로(px) · skew 기울임 · sy 세로 늘림
+//     lift 뛰어오름(px) · b·wb 뒷손과 뒷손 칼(쌍검) · ext 창 내밀기 · pull 시위 · bowA 활 기울기
+//     e 이 키로 들어가는 구간의 이징: o 감속(예비동작·여운) · i 가속(타격 시작) · l 일정(타격 끝) · 없으면 부드럽게
+// 모션: keys · trail·btrail 무기 끝(뒷손 칼) 잔상 구간 · burst [시점, 'r,g,b', 크기] 무기 끝(활은 활 앞) 섬광
+//       charge [시작, 끝, 'r,g,b'] 시위 당기는 손에 모이는 마력
+// HERO_ATK[무기 id] 는 모션 배열 — 평타마다 차례로 돌아가며 쓴다
+const SWORD_REST = { h: [0, 0], wa: -1.0, dx: 0, skew: 0, sy: 1, lift: 0 };
+const POLE_REST = { h: [0, 0], wa: -1.3, ext: 0, dx: 0, skew: 0, sy: 1, lift: 0 };
+const BOW_REST = { h: [0, 0], bowA: 0, pull: 0, dx: 0, skew: 0, sy: 1, lift: 0 };
+const atkKeys = (rest, ...mid) => [{ s: 0, ...rest }, ...mid.map((k) => ({ ...rest, ...k })), { s: 1, ...rest }];
+const HERO_ATK = {
+  // ── 견습 기사: 어깨높이에서 투박하게 내려친다 ──
+  sword: [
+    { trail: [0.27, 0.52], keys: atkKeys(SWORD_REST,
+      { s: 0.2,  h: [-1.5, -3.5], wa: -2.1, dx: -1,  skew: -0.06, sy: 1.02, e: 'o' },
+      { s: 0.27, h: [-1.6, -3.6], wa: -2.2, dx: -1,  skew: -0.07, sy: 1.02 },
+      { s: 0.37, h: [1, 0.5],     wa: 0.55, dx: 2.5, skew: 0.1,   sy: 0.96, e: 'i' },
+      { s: 0.56, h: [0.5, 1],     wa: 0.85, dx: 2,   skew: 0.08,  sy: 0.97, e: 'o' }) },
+  ],
+  // ── 검사: 머리 위에서 내려베기 ↔ 아래에서 올려베기 ──
+  knightSword: [
+    { trail: [0.24, 0.56], keys: atkKeys(SWORD_REST,
+      { s: 0.18, h: [-1, -6],     wa: -2.5,  dx: -2,   skew: -0.12, sy: 1.05, e: 'o' },
+      { s: 0.24, h: [-1.2, -6.2], wa: -2.65, dx: -2.5, skew: -0.14, sy: 1.05 },
+      { s: 0.3,  h: [1.5, -4.5],  wa: -1.1,  dx: 2,    skew: 0.05,  sy: 1,    e: 'i' },
+      { s: 0.36, h: [1.5, 0],     wa: 0.75,  dx: 5,    skew: 0.2,   sy: 0.92, e: 'l' },
+      { s: 0.52, h: [1, 1],       wa: 1.1,   dx: 4,    skew: 0.15,  sy: 0.96, e: 'o' }) },
+    { trail: [0.24, 0.56], keys: atkKeys(SWORD_REST,
+      { s: 0.18, h: [-2.2, 1.5],  wa: 2.5,  dx: -2,   skew: -0.1,  sy: 0.94, e: 'o' },
+      { s: 0.24, h: [-2.4, 1.6],  wa: 2.6,  dx: -2.5, skew: -0.12, sy: 0.93 },
+      { s: 0.3,  h: [0.5, 1.5],   wa: 0.6,  dx: 2,    skew: 0.08,  sy: 0.98, e: 'i' },
+      { s: 0.36, h: [1.5, -2.5],  wa: -1.4, dx: 5,    skew: 0.18,  sy: 1.05, e: 'l' },
+      { s: 0.52, h: [1, -3.5],    wa: -1.9, dx: 4,    skew: 0.12,  sy: 1.03, e: 'o' }) },
+  ],
+  // ── 성기사: 뛰어올라 성검을 내리꽂기 ↔ 크게 올려베기, 타격마다 황금 섬광 ──
+  holySword: [
+    { trail: [0.26, 0.58], burst: [0.35, '255,215,90', 1.2], keys: atkKeys(SWORD_REST,
+      { s: 0.2,  h: [-1.2, -6.5], wa: -2.8, dx: -3,   skew: -0.16, sy: 1.07, e: 'o' },
+      { s: 0.26, h: [-1.3, -6.7], wa: -2.9, dx: -3.5, skew: -0.18, sy: 1.08, lift: 3 },
+      { s: 0.31, h: [1.5, -5],    wa: -1.2, dx: 2,    skew: 0.06,  sy: 1,    lift: 5, e: 'i' },
+      { s: 0.36, h: [2, 0.5],     wa: 1.0,  dx: 7,    skew: 0.26,  sy: 0.86, e: 'l' },
+      { s: 0.58, h: [1.5, 1],     wa: 1.15, dx: 6,    skew: 0.2,   sy: 0.92, e: 'o' }) },
+    { trail: [0.24, 0.58], burst: [0.35, '255,215,90', 1], keys: atkKeys(SWORD_REST,
+      { s: 0.18, h: [-2.5, 1.5],  wa: 2.7,  dx: -3,   skew: -0.14, sy: 0.9,  e: 'o' },
+      { s: 0.24, h: [-2.6, 1.6],  wa: 2.75, dx: -3.5, skew: -0.16, sy: 0.88 },
+      { s: 0.3,  h: [0.5, 1.5],   wa: 0.6,  dx: 3,    skew: 0.1,   sy: 0.98, e: 'i' },
+      { s: 0.36, h: [1.5, -3.5],  wa: -1.6, dx: 7,    skew: 0.2,   sy: 1.08, lift: 5, e: 'l' },
+      { s: 0.56, h: [1, -4.5],    wa: -2.1, dx: 6,    skew: 0.12,  sy: 1.04, lift: 2, e: 'o' }) },
+  ],
+  // ── 검성: 앞손 내려베기 → 뒷손 올려베기 ↔ 두 칼을 함께 X자로 교차해 베기, 붉은 섬광 ──
+  dualBlades: [
+    { trail: [0.21, 0.46], btrail: [0.36, 0.64], burst: [0.34, '255,70,70', 0.9], keys: atkKeys({ ...SWORD_REST, b: [0, 0], wb: -0.6 },
+      { s: 0.16, h: [-1, -5.8],   wa: -2.45, b: [-2, 0],     wb: 2.3,  dx: -1,   skew: -0.1,  sy: 1.03, e: 'o' },
+      { s: 0.21, h: [-1.2, -6],   wa: -2.55, b: [-2.2, 0],   wb: 2.4,  dx: -1.5, skew: -0.12, sy: 1.03 },
+      { s: 0.27, h: [1.5, -4],    wa: -1.0,  b: [-2.2, 0.3], wb: 2.4,  dx: 2,    skew: 0.05,  sy: 1,    e: 'i' },
+      { s: 0.34, h: [1.5, 0.5],   wa: 0.8,   b: [-2, 0.5],   wb: 2.4,  dx: 5,    skew: 0.2,   sy: 0.93, e: 'l' },
+      { s: 0.42, h: [1, 1.5],     wa: 1.2,   b: [0.5, -1],   wb: 0.4,  dx: 6,    skew: 0.16,  sy: 0.98, e: 'i' },
+      { s: 0.5,  h: [0.5, 1.5],   wa: 1.25,  b: [1, -3],     wb: -1.3, dx: 6,    skew: 0.12,  sy: 1.03, e: 'l' },
+      { s: 0.62, h: [0.3, 1],     wa: 1.0,   b: [0.8, -2.5], wb: -1.1, dx: 4,    skew: 0.08,  sy: 1,    e: 'o' }) },
+    { trail: [0.24, 0.52], btrail: [0.24, 0.52], burst: [0.35, '255,70,70', 1.2], keys: atkKeys({ ...SWORD_REST, b: [0, 0], wb: -0.6 },
+      { s: 0.18, h: [-1, -6],     wa: -2.5, b: [2.5, -6],  wb: -0.8, dx: -2,   skew: -0.12, sy: 1.06, e: 'o' },
+      { s: 0.24, h: [-1.2, -6.2], wa: -2.6, b: [2.6, -6.2], wb: -0.7, dx: -2.5, skew: -0.14, sy: 1.07, lift: 2 },
+      { s: 0.36, h: [1.5, 0.5],   wa: 0.9,  b: [0, 1.5],   wb: 2.3,  dx: 7,    skew: 0.24,  sy: 0.88, e: 'i' },
+      { s: 0.56, h: [1, 1],       wa: 1.1,  b: [0, 1.5],   wb: 2.4,  dx: 6,    skew: 0.18,  sy: 0.92, e: 'o' }) },
+  ],
+  // ── 창기사: 가슴높이 찌르기 ↔ 위에서 아래로 내려찌르기 (창대가 손 사이로 미끄러져 나간다) ──
+  spear: [
+    { trail: [0.28, 0.6], keys: atkKeys(POLE_REST,
+      { s: 0.22, h: [-2.5, -1.5], wa: -0.15, ext: -2, dx: -3,   skew: -0.14, sy: 0.93, e: 'o' },
+      { s: 0.28, h: [-2.7, -1.5], wa: -0.12, ext: -3, dx: -3.5, skew: -0.16, sy: 0.92 },
+      { s: 0.36, h: [1.5, -1],    wa: -0.04, ext: 7,  dx: 6,    skew: 0.22,  sy: 1,    e: 'i' },
+      { s: 0.54, h: [1, -0.7],    wa: -0.04, ext: 5,  dx: 5,    skew: 0.18,  sy: 0.98, e: 'o' }) },
+    { trail: [0.28, 0.6], keys: atkKeys(POLE_REST,
+      { s: 0.22, h: [-1.5, -4],   wa: -0.55, ext: -3, dx: -2,   skew: -0.1,  sy: 1.04, e: 'o' },
+      { s: 0.28, h: [-1.7, -4.2], wa: -0.5,  ext: -4, dx: -2.5, skew: -0.12, sy: 1.05 },
+      { s: 0.36, h: [1.5, -1.5],  wa: 0.3,   ext: 7,  dx: 6,    skew: 0.24,  sy: 0.92, e: 'i' },
+      { s: 0.54, h: [1, -1],      wa: 0.3,   ext: 5,  dx: 5,    skew: 0.18,  sy: 0.95, e: 'o' }) },
+  ],
+  // ── 용기병: 창을 한 바퀴 돌려 눕힌 뒤 두 번 연달아 찌르기 ↔ 뛰어올라 내리꽂기, 보라 섬광 ──
+  dragonSpear: [
+    { trail: [0.28, 0.62], burst: [0.36, '190,150,255', 1], keys: atkKeys({ ...POLE_REST, wa: -1.3 },
+      { s: 0.2,  h: [-1.5, -3],   wa: -6.43, ext: -2, dx: -3,   skew: -0.14, sy: 0.95, e: 'o' },
+      { s: 0.27, h: [-2.7, -1.5], wa: -6.41, ext: -3, dx: -4,   skew: -0.18, sy: 0.9 },
+      { s: 0.35, h: [2, -1.2],    wa: -6.32, ext: 10, dx: 8,    skew: 0.26,  sy: 1,    e: 'i' },
+      { s: 0.41, h: [1, -1],      wa: -6.32, ext: 3,  dx: 7,    skew: 0.2,   sy: 0.97, e: 'o' },
+      { s: 0.47, h: [2, -1.2],    wa: -6.32, ext: 11, dx: 9,    skew: 0.26,  sy: 1,    e: 'i' },
+      { s: 0.64, h: [1, -0.7],    wa: -6.32, ext: 5,  dx: 6,    skew: 0.18,  sy: 0.98, e: 'o' },
+      { s: 0.999, wa: -7.58 }) },
+    { trail: [0.27, 0.6], burst: [0.36, '190,150,255', 1.3], keys: atkKeys(POLE_REST,
+      { s: 0.18, h: [-1, -5],     wa: -1.0, ext: -3, dx: -2, skew: -0.1,  sy: 0.88, e: 'o' },
+      { s: 0.27, h: [-1.2, -5.5], wa: -0.6, ext: -4, dx: 0,  skew: -0.08, sy: 1.08, lift: 12 },
+      { s: 0.36, h: [1.5, -1],    wa: 0.65, ext: 9,  dx: 8,  skew: 0.26,  sy: 0.86, lift: 0, e: 'i' },
+      { s: 0.58, h: [1, -0.5],    wa: 0.6,  ext: 6,  dx: 7,  skew: 0.2,   sy: 0.92, e: 'o' }) },
+  ],
+  // ── 할버디어: 머리 뒤까지 넘겨 내려찍기 ↔ 아래에서 뛰어오르며 퍼올리기, 주황 섬광 ──
+  halberd: [
+    { trail: [0.25, 0.6], burst: [0.37, '255,150,60', 1.3], keys: atkKeys({ ...POLE_REST, wa: -1.35 },
+      { s: 0.2,  h: [-1, -5.8],   wa: -2.75, dx: -3,   skew: -0.16, sy: 1.05, e: 'o' },
+      { s: 0.25, h: [-1.2, -6],   wa: -2.85, dx: -3.5, skew: -0.18, sy: 1.05 },
+      { s: 0.31, h: [1, -4.5],    wa: -1.4,  dx: 1,    skew: 0,     sy: 1,    e: 'i' },
+      { s: 0.38, h: [1.5, 0.5],   wa: 0.55,  dx: 6,    skew: 0.24,  sy: 0.88, e: 'l' },
+      { s: 0.56, h: [0.5, 1.5],   wa: 0.95,  dx: 5,    skew: 0.18,  sy: 0.92, e: 'o' }) },
+    { trail: [0.25, 0.6], burst: [0.36, '255,150,60', 1.1], keys: atkKeys({ ...POLE_REST, wa: -1.35 },
+      { s: 0.2,  h: [-2, 1.5],    wa: 2.7,  dx: -3,   skew: -0.14, sy: 0.9,  e: 'o' },
+      { s: 0.25, h: [-2.2, 1.6],  wa: 2.8,  dx: -3.5, skew: -0.16, sy: 0.88 },
+      { s: 0.3,  h: [0.5, 1.5],   wa: 0.7,  dx: 2,    skew: 0.06,  sy: 0.98, e: 'i' },
+      { s: 0.37, h: [1.5, -3],    wa: -1.3, dx: 6,    skew: 0.2,   sy: 1.08, lift: 7, e: 'l' },
+      { s: 0.58, h: [1, -4],      wa: -1.9, dx: 5,    skew: 0.12,  sy: 1.04, lift: 2, e: 'o' }) },
+  ],
+  // ── 레인저: 가슴높이로 당겨 쏘기 ↔ 허리춤에서 몸을 숙여 재빨리 쏘기 ──
+  bow: [
+    { keys: atkKeys(BOW_REST,
+      { s: 0.14, h: [0.5, -2.5], bowA: -0.1,  pull: 2, dx: 0,  skew: -0.03, e: 'o' },
+      { s: 0.44, h: [0.5, -2.7], bowA: -0.06, pull: 9, dx: -1, skew: -0.08, sy: 1.02 },
+      { s: 0.47, h: [0, -3],     bowA: -0.3,  pull: 0, dx: -3, skew: -0.12, e: 'o' },
+      { s: 0.7,  h: [0.2, -2.4], bowA: -0.12, pull: 0, dx: -2, skew: -0.05, e: 'o' }) },
+    { keys: atkKeys(BOW_REST,
+      { s: 0.1,  h: [1, -0.5],   bowA: 0.05, pull: 3, dx: 2,  skew: 0.12, sy: 0.93, e: 'o' },
+      { s: 0.44, h: [1, -0.6],   bowA: 0.03, pull: 7, dx: 2,  skew: 0.14, sy: 0.92 },
+      { s: 0.47, h: [0.5, -1],   bowA: -0.2, pull: 0, dx: -1, skew: 0.02, sy: 0.96, e: 'o' },
+      { s: 0.7,  h: [0.6, -0.8], bowA: -0.05, pull: 0, dx: 0, skew: 0.04, sy: 0.98, e: 'o' }) },
+  ],
+  // ── 저격수: 서서 끝까지 당겨 쏘기 ↔ 무릎 꿇고 조준해 쏘기, 놓는 순간 하얀 섬광과 큰 반동 ──
+  longbow: [
+    { burst: [0.45, '255,255,220', 1], keys: atkKeys(BOW_REST,
+      { s: 0.16, h: [0.5, -3],   bowA: -0.08, pull: 4,  dx: -1, skew: -0.06, sy: 1.02, e: 'o' },
+      { s: 0.44, h: [0.6, -3.1], bowA: -0.04, pull: 13, dx: -2, skew: -0.12, sy: 1.03 },
+      { s: 0.47, h: [-0.5, -3.5], bowA: -0.4, pull: 0,  dx: -6, skew: -0.18, e: 'o' },
+      { s: 0.72, h: [0, -2.8],   bowA: -0.15, pull: 0,  dx: -4, skew: -0.08, e: 'o' }) },
+    { burst: [0.45, '255,255,220', 1], keys: atkKeys(BOW_REST,
+      { s: 0.16, h: [0.5, -0.5], bowA: -0.05, pull: 4,  dx: -1, skew: 0.02,  sy: 0.84, e: 'o' },
+      { s: 0.44, h: [0.6, -0.6], bowA: -0.03, pull: 13, dx: -1, skew: -0.04, sy: 0.83 },
+      { s: 0.47, h: [-0.5, -1],  bowA: -0.35, pull: 0,  dx: -5, skew: -0.14, sy: 0.86, e: 'o' },
+      { s: 0.72, h: [0, -0.6],   bowA: -0.12, pull: 0,  dx: -3, skew: -0.06, sy: 0.88, e: 'o' }) },
+  ],
+  // ── 마궁수: 몸이 떠오르며 시위에 마력을 모아 쏘기 ↔ 활을 머리 위로 치켜들어 쏘기, 청록 마력·섬광 ──
+  arcaneBow: [
+    { charge: [0.1, 0.45, '111,243,255'], burst: [0.45, '111,243,255', 1.1], keys: atkKeys(BOW_REST,
+      { s: 0.16, h: [0.5, -3],   bowA: -0.12, pull: 3,  dx: 0,  skew: -0.04, sy: 1.03, lift: 4, e: 'o' },
+      { s: 0.44, h: [0.6, -3.2], bowA: -0.1,  pull: 10, dx: -1, skew: -0.08, sy: 1.04, lift: 6 },
+      { s: 0.47, h: [0, -3.5],   bowA: -0.35, pull: 0,  dx: -3, skew: -0.12, sy: 1,    lift: 6, e: 'o' },
+      { s: 0.75, h: [0.2, -2.6], bowA: -0.12, pull: 0,  dx: -2, skew: -0.05, lift: 2,  e: 'o' }) },
+    { charge: [0.1, 0.45, '111,243,255'], burst: [0.45, '111,243,255', 1.3], keys: atkKeys(BOW_REST,
+      { s: 0.16, h: [0, -5.5],   bowA: -0.55, pull: 3,  dx: -1, skew: -0.1,  sy: 1.06, lift: 2, e: 'o' },
+      { s: 0.44, h: [0, -5.7],   bowA: -0.5,  pull: 10, dx: -2, skew: -0.14, sy: 1.07, lift: 3 },
+      { s: 0.47, h: [-0.5, -6],  bowA: -0.75, pull: 0,  dx: -4, skew: -0.18, sy: 1.04, lift: 3, e: 'o' },
+      { s: 0.75, h: [0, -4.5],   bowA: -0.4,  pull: 0,  dx: -2, skew: -0.08, lift: 1,  e: 'o' }) },
+  ],
+};
+const ATK_EASE = { o: (u) => 1 - (1 - u) ** 3, i: (u) => u * u, l: (u) => u };
+for (const id in WEAPONS) WEAPONS[id].id = id;
+// 이 무기의 n 번째 평타 모션 (연속기는 차례로 돈다)
+const heroAtkOf = (w, n = 0) => {
+  const list = HERO_ATK[w.id] || HERO_ATK.sword;
+  return list[(n || 0) % list.length];
+};
+
+// 진행도 s 의 평타 자세 (키 사이를 섞는다). mo 는 돌려주는 자세에 실어 잔상·섬광이 같은 모션을 쓰게 한다
+function heroAtk(mo, s) {
+  const keys = mo.keys;
+  let i = 1;
+  while (i < keys.length - 1 && keys[i].s < s) i++;
+  const a = keys[i - 1], b = keys[i];
+  const v = Math.max(0, Math.min(1, (s - a.s) / (b.s - a.s)));
+  const u = b.e ? ATK_EASE[b.e](v) : v * v * (3 - 2 * v);
+  const out = { s, mo };
+  for (const k in a) {
+    if (k === 's' || k === 'e') continue;
+    out[k] = Array.isArray(a[k]) ? a[k].map((x, j) => x + (b[k][j] - x) * u) : a[k] + (b[k] - a[k]) * u;
+  }
+  return out;
 }
 
-// 스킬 자세(src/skills.js)는 pose.wa(무기 각도)·ext(창 내밀기)·pull(시위)·bowA(활 기울기)로 무기를 직접 정한다
-function drawSkillWeapon(g, w, hx, hy, pose) {
+// 몸의 뼈대: 어깨(몸통 9번째 줄 양쪽)와 손. 무기는 손에서 나가고, 팔은 어깨에서 손까지 잇는다.
+// atk(평타 자세)가 있으면 그 손 위치·무기 각도를 쓰고, 없으면 기본 손 자리에 스킬 자세(pose.wa 등)나 평소 각도
+function heroRig(w, x, bodyBottom, pose, atk) {
+  const sy = pose.sy || 1, k = pose.skew || 0;
+  const shY = bodyBottom - 5 * PX * sy, shX = x + k * 4.5 * PX * sy;
+  const hx = x + 4 * PX + Math.round(k * 3 * PX), hy = bodyBottom - 3 * PX;
+  const off = atk ? atk.h : [0, 0];
+  const r = { fs: [shX + 1.5 * PX, shY], bs: [shX - 1.5 * PX, shY] };
+  const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : 0;
   if (w.kind === 'ranged') {
-    g.save();
-    g.translate(hx + PX, hy); g.rotate(pose.bowA || 0); g.translate(-(hx + PX), -hy);
-    drawBow(g, w, hx + PX, hy, pose.pull || 0);
-    g.restore();
+    r.fh = [hx + PX + off[0] * PX, hy + off[1] * PX];
+    r.bowA = atk ? atk.bowA : pose.bowA || 0;
+    r.pull = atk ? atk.pull : pose.pull || 0;
+    r.arrow = !atk || atk.s < 0.45;                          // 놓은 뒤엔 화살이 날아가고 없다
+    // 활은 줌통(활대 가운데)을 쥐고, 시위 당기는 손은 시위 가운데 — 둘 다 활 기울기를 따라 돈다
+    const c = Math.cos(r.bowA), sn = Math.sin(r.bowA), gx = w.size * 0.375;
+    r.grip = [r.fh[0] + gx * c, r.fh[1] + gx * sn];
+    if (r.pull > 1) r.bh = [r.fh[0] - r.pull * c, r.fh[1] - r.pull * sn];
+    return r;
+  }
+  r.fh = [hx + off[0] * PX, hy + off[1] * PX];
+  const rest = w.motion === 'thrust' ? -1.3 : w.motion === 'sweep' ? -1.35 : -1.0;
+  r.wa = atk ? atk.wa : pose.wa != null ? pose.wa : rest + wob;
+  r.ext = atk ? atk.ext || 0 : pose.wa != null ? pose.ext || 0 : 0;
+  if (w.motion === 'dual') {
+    const bo = atk ? atk.b : [0, 0];
+    r.bh = [hx - 3 * PX + bo[0] * PX, hy + PX + bo[1] * PX];
+    r.wb = atk ? atk.wb : pose.wa != null ? (pose.wa2 != null ? pose.wa2 : pose.wa + 0.5) : -0.6 + wob;
   } else if (w.motion === 'thrust' || w.motion === 'sweep') {
-    const ext = pose.ext || 0;
-    drawPole(g, w, hx + Math.cos(pose.wa) * ext, hy + Math.sin(pose.wa) * ext, pose.wa);
-  } else {
-    if (w.motion === 'dual') drawBlade(g, w, hx - 3 * PX, hy + PX, pose.wa2 != null ? pose.wa2 : pose.wa + 0.5, w.len - 1);
-    drawBlade(g, w, hx, hy, pose.wa);
+    // 양손 무기: 뒷손은 앞손보다 창대 아래쪽을 쥔다 (창이 미끄러져 나가면 같이 밀려 나간다)
+    const d = r.ext - 2.5 * PX;
+    r.bh = [r.fh[0] + Math.cos(r.wa) * d, r.fh[1] + Math.sin(r.wa) * d];
+  }
+  return r;
+}
+
+// 팔: 어깨에서 손까지 도트 한 칸 굵기로 잇는다 (한 경로로 채워서 반투명일 때 겹친 곳이 진해지지 않게)
+function drawArm(g, col, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / (PX * 0.5)));
+  g.fillStyle = col;
+  g.beginPath();
+  for (let i = 0; i <= n; i++) g.rect(Math.round(a[0] + (dx * i) / n - PX / 2), Math.round(a[1] + (dy * i) / n - PX / 2), PX, PX);
+  g.fill();
+}
+function drawFist(g, col, p) {
+  g.fillStyle = col;
+  g.fillRect(Math.round(p[0] - 2), Math.round(p[1] - 2), 4, 4);
+}
+// 팔 색: 몸통 어깨 줄의 바깥 테두리 색(팔)과 그 안쪽 색(주먹)
+const heroArmCache = {};
+function heroArmCols(id, look, pal) {
+  if (heroArmCache[id]) return heroArmCache[id];
+  const row = look.body[8], i = row.search(/[^.]/);
+  return (heroArmCache[id] = [pal[row[i]] || PAL.a, pal[row[i + 1]] || PAL.A]);
+}
+
+// 무기 끝 잔상: 지난 몇 프레임의 무기 끝을 이어 띠로 그린다 (창은 끝이 지나간 직선)
+// base: 평타로 뛰어오르기 전의 발밑 높이
+function drawAtkTrail(g, w, x0, base, legsH, mo, s, back) {
+  const win = back ? mo.btrail : mo.trail;
+  if (!win || s < win[0] || s > win[1]) return;
+  const pole = w.motion === 'thrust' || w.motion === 'sweep';
+  const from = Math.max(win[0], s - 0.12), n = 6, pts = [];
+  for (let i = 0; i <= n; i++) {
+    const a = heroAtk(mo, from + ((s - from) * i) / n);
+    const r = heroRig(w, x0 + Math.round(a.dx), base - a.lift - legsH * a.sy, a, a);
+    const hand = back ? r.bh : r.fh, ang = back ? r.wb : r.wa;
+    const c = Math.cos(ang), sn = Math.sin(ang);
+    const out = pole ? r.ext + (w.len + 3) * PX : (back ? w.len : w.len + 1.5) * PX, inn = pole ? r.ext + w.len * 0.7 * PX : out * 0.6;
+    pts.push([hand[0] + c * out, hand[1] + sn * out, hand[0] + c * inn, hand[1] + sn * inn]);
+  }
+  const fade = 1 - (s - win[0]) / (win[1] - win[0]);
+  if (w.motion === 'thrust') {
+    // 찌르기: 창끝이 지나온 직선을 창 방향으로 조금 더 길게
+    const p = pts[0], q = pts[n], d = Math.hypot(q[0] - q[2], q[1] - q[3]) || 1;
+    const ux = (q[0] - q[2]) / d, uy = (q[1] - q[3]) / d;
+    g.strokeStyle = `rgba(${w.trail},${0.8 * fade})`;
+    g.lineWidth = 2;
+    g.beginPath(); g.moveTo(Math.min(p[0], q[0]) - ux * 14, q[1] - uy * 14 - 1); g.lineTo(q[0], q[1] - 1); g.stroke();
+    return;
+  }
+  for (let i = 1; i <= n; i++) {
+    const p = pts[i - 1], q = pts[i];
+    g.fillStyle = `rgba(${w.trail},${0.45 * fade * (i / n)})`;
+    g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.lineTo(q[2], q[3]); g.lineTo(p[2], p[3]); g.closePath(); g.fill();
   }
 }
 
-function drawWeapon(g, w, x, bodyBottom, pose) {
-  const s = pose.swing;
-  const hx = x + 4 * PX + Math.round((pose.skew || 0) * 3 * PX), hy = bodyBottom - 3 * PX;
-  const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : 0;
+// 2차 직업 평타의 타격 섬광(무기 끝, 활은 활 앞)과 마궁수가 시위에 모으는 마력
+function drawAtkFx(g, w, r, atk) {
+  const mo = atk.mo, s = atk.s;
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  if (mo.charge && s >= mo.charge[0] && s < mo.charge[1] && r.bh) {
+    const u = (s - mo.charge[0]) / (mo.charge[1] - mo.charge[0]);
+    g.fillStyle = `rgba(${mo.charge[2]},${0.25 + 0.35 * u})`;
+    g.beginPath(); g.arc(r.bh[0], r.bh[1], 2 + 4 * u, 0, Math.PI * 2); g.fill();
+    g.fillStyle = `rgba(255,255,255,${0.5 * u})`;
+    g.beginPath(); g.arc(r.bh[0], r.bh[1], 1 + 1.5 * u, 0, Math.PI * 2); g.fill();
+  }
+  const [at, col, size] = mo.burst || [];
+  if (at != null && s >= at && s < at + 0.16) {
+    const u = (s - at) / 0.16, k = 1 - u;
+    let px, py;
+    if (w.kind === 'ranged') {
+      const L = w.size * 0.375 + 6;
+      px = r.fh[0] + Math.cos(r.bowA) * L; py = r.fh[1] + Math.sin(r.bowA) * L;
+    } else {
+      const pole = w.motion === 'thrust' || w.motion === 'sweep';
+      const L = pole ? r.ext + (w.len + 3) * PX : (w.len + 1) * PX;
+      px = r.fh[0] + Math.cos(r.wa) * L; py = r.fh[1] + Math.sin(r.wa) * L;
+    }
+    const R = (6 + 14 * easeOutQ(u)) * size;
+    g.strokeStyle = `rgba(${col},${0.8 * k})`;
+    g.lineWidth = 2;
+    g.beginPath(); g.arc(px, py, R * 0.7, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = `rgba(255,255,255,${0.9 * k})`;
+    for (let i = 0; i < 4; i++) {                                     // 십자로 뻗는 빛살
+      const a = i * Math.PI / 2 + Math.PI / 4 * (i % 2 ? 0.2 : 0), len = R * (i % 2 ? 0.8 : 1.2);
+      g.save(); g.translate(px, py); g.rotate(a); g.fillRect(0, -1, len, 2); g.restore();
+    }
+    g.fillStyle = `rgba(${col},${0.6 * k})`;
+    g.beginPath(); g.arc(px, py, 3 * size * (1 + u), 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+}
+const easeOutQ = (u) => 1 - (1 - u) * (1 - u);
+
+// 손에 든 무기 (쌍검의 뒷손 칼은 몸 뒤라 drawHero 가 따로 그린다)
+function drawWeapon(g, w, r) {
   g.save();
   if (w.glow) { g.shadowColor = w.glow; g.shadowBlur = 8; }
-
-  if (pose.wa != null || (w.kind === 'ranged' && pose.pull != null)) {
-    drawSkillWeapon(g, w, hx, hy, pose);
-  } else if (w.kind === 'ranged') {
-    const pull = s >= 0 && s < 0.45 ? (s / 0.45) * 8 : 0;
-    drawBow(g, w, hx + PX, hy, pull);
-  } else if (w.motion === 'swing') {
-    drawBlade(g, w, hx, hy, swingAngle(s, wob));
-    drawArcTrail(g, w, hx, hy, s, PX * (w.len + 1), -1.9, swingAngle(s));
-  } else if (w.motion === 'dual') {
-    // 뒷손 칼은 반 박자 늦게 따라온다
-    const s2 = s >= 0 ? (s + 0.45) % 1 : -1;
-    drawBlade(g, w, hx - 3 * PX, hy + PX, s2 >= 0 ? swingAngle(s2) : -0.6 + wob, w.len - 1);
-    drawBlade(g, w, hx, hy, swingAngle(s, wob));
-    drawArcTrail(g, w, hx, hy, s, PX * (w.len + 1), -1.9, swingAngle(s));
-    drawArcTrail(g, w, hx - 3 * PX, hy + PX, s2, PX * w.len, -1.9, swingAngle(s2));
-  } else if (w.motion === 'thrust') {
-    const angle = s < 0 ? -1.3 + wob : -1.3 + Math.min(1, s / 0.25) * 1.22;
-    const ext = s < 0 ? 0 : s < 0.3 ? -5 * (s / 0.3) : 16 * Math.sin((Math.PI * (s - 0.3)) / 0.7);
-    drawPole(g, w, hx + ext, hy, angle);
-    if (s >= 0.3 && s < 0.65) {
-      const tipX = hx + ext + w.len * PX + 10;
-      g.strokeStyle = `rgba(${w.trail},${(0.8 * (0.65 - s)) / 0.35})`;
-      g.lineWidth = 2;
-      g.beginPath(); g.moveTo(tipX - 26, hy - 2); g.lineTo(tipX + 6, hy - 2); g.stroke();
-    }
-  } else if (w.motion === 'sweep') {
-    const angle = s < 0 ? -1.35 + wob : s < 0.3 ? -1.35 - (s / 0.3) * 1.2 : -2.55 + ((s - 0.3) / 0.7) * 3.2;
-    drawPole(g, w, hx, hy, angle);
-    drawArcTrail(g, w, hx, hy, s, PX * (w.len + 2), -2.3, angle, 3);
+  if (w.kind === 'ranged') {
+    g.translate(r.fh[0], r.fh[1]); g.rotate(r.bowA); g.translate(-r.fh[0], -r.fh[1]);
+    drawBow(g, w, r.fh[0], r.fh[1], r.pull, r.arrow);
+  } else if (w.motion === 'thrust' || w.motion === 'sweep') {
+    drawPole(g, w, r.fh[0] + Math.cos(r.wa) * r.ext, r.fh[1] + Math.sin(r.wa) * r.ext, r.wa);
+  } else {
+    drawBlade(g, w, r.fh[0], r.fh[1], r.wa);
   }
   g.restore();
 }
@@ -776,10 +1028,16 @@ function drawHero(g, id, x, gy, pose) {
   const sit = pose.mode === 'sit', walking = pose.mode === 'walk';
   const step = Math.floor((pose.walkT || 0) * 8) % 2;
   const opt = { flash: !!pose.flash, tint: pose.tint || null };
+  // 평타 중이면 몸(dx·skew·sy)과 손·무기를 평타 자세로 (스킬 자세가 있으면 스킬이 우선)
+  // combo: 몇 번째 평타인지 — 연속기 직업은 이걸로 모션을 번갈아 고른다
+  const atk = pose.mode === 'fight' && pose.swing >= 0 && pose.wa == null && pose.pull == null ? heroAtk(heroAtkOf(w, pose.combo), pose.swing) : null;
+  const base0 = gy - (pose.lift || 0);
+  if (atk) pose = { ...pose, dx: (pose.dx || 0) + atk.dx, skew: atk.skew, sy: atk.sy, lift: (pose.lift || 0) + atk.lift };
   g.save();
   g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;
   if (pose.facing < 0) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0); }
-  x += Math.round(pose.dx || 0);          // 스킬 돌진 (바라보는 쪽으로)
+  const x0 = x;
+  x += Math.round(pose.dx || 0);          // 스킬 돌진·평타 디딤 (바라보는 쪽으로)
 
   if (sit) {
     drawRestingWeapon(g, w, x - 17, gy);
@@ -797,14 +1055,40 @@ function drawHero(g, id, x, gy, pose) {
     const legs = SPR.knightLegs[walking ? step : 0];
     const bodyBottom = base - legs.length * PX * sy - (walking ? step : 0);
     const top = bodyBottom - look.body.length * PX * sy;
-    if (!pose.onlyWeapon) {          // onlyWeapon: 모션 잔상용으로 무기만 그린다
-      if (look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
+    const rig = heroRig(w, x, bodyBottom, pose, atk);
+    const body = !pose.onlyWeapon, weapon = !pose.tint;      // onlyWeapon: 모션 잔상용으로 무기만 · tint: 한 색 잔상은 몸만
+    const [armC, fistC] = opt.flash ? ['#ffffff', '#ffffff'] : opt.tint ? [opt.tint, opt.tint] : heroArmCols(c === CLASSES[id] ? id : 'squire', look, pal);
+    const dual = w.motion === 'dual' && w.kind !== 'ranged';
+    if (body && look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
+    // 몸 뒤: 뒷팔 (쌍검은 뒷손 칼까지)
+    if (body && rig.bh) drawArm(g, armC, rig.bs, rig.bh);
+    if (dual) {
+      if (weapon) {
+        g.save();
+        if (w.glow) { g.shadowColor = w.glow; g.shadowBlur = 8; }
+        drawBlade(g, w, rig.bh[0], rig.bh[1], rig.wb, w.len - 1);
+        g.restore();
+        if (atk) drawAtkTrail(g, w, x0, base0, legs.length * PX, atk.mo, atk.s, true);
+      }
+      if (body) drawFist(g, fistC, rig.bh);
+    }
+    if (body) {
       drawSprite(legs, pal, x, base, PX, { ...opt, sx, sy }, g);
       drawSprite(look.body, pal, x, bodyBottom, PX, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
       if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
       if (look.halo) drawHalo(g, x, top, t);
     }
-    if (!pose.tint) drawWeapon(g, w, x, bodyBottom, pose);      // 한 색 잔상은 몸만 남긴다
+    // 몸 앞: 무기 → 잔상 → 무기를 쥔 손과 앞팔
+    if (weapon) {
+      drawWeapon(g, w, rig);
+      if (atk) { drawAtkTrail(g, w, x0, base0, legs.length * PX, atk.mo, atk.s, false); drawAtkFx(g, w, rig, atk); }
+    }
+    if (body) {
+      if (rig.bh && !dual) drawFist(g, fistC, rig.bh);
+      const hand = rig.grip || rig.fh;
+      drawArm(g, armC, rig.fs, hand);
+      drawFist(g, fistC, hand);
+    }
   }
   g.restore();
 }
@@ -821,7 +1105,7 @@ function drawKnight() {
 
   const pose = {
     mode: S.phase === 'camp' ? 'sit' : knight.fighting ? 'fight' : 'walk',
-    walkT: knight.walkT, swing: knight.swing, facing: knight.facing, t: clock,
+    walkT: knight.walkT, swing: knight.swing, combo: knight.combo, facing: knight.facing, t: clock,
     flash: knight.flash > 0,
     alpha: knight.down > 0 ? 0.35 + 0.25 * Math.sin(clock * 12) : 1,
   };
@@ -1186,7 +1470,7 @@ function updateDuel() {
      }, true);
       continue;
     }
-    d.last[e.by] = { e, at: clock };
+    d.last[e.by] = { e, at: clock, n: (d.last[e.by] ? d.last[e.by].n : 0) + 1 };
     d.hit[target] = clock;
     const tx = duelX(target, pt);
     addFloater((e.crit ? '💥' : '') + fmt(e.dmg), tx + rand(-8, 8), groundY() - 76, e.crit ? '#ffb13b' : '#ffffff', e.crit || e.kind === 'leap' ? 14 : 12);
@@ -1235,7 +1519,7 @@ function drawDuel() {
     ctx.fillRect(x - 14, gy - 1, 28, 2);
     const pose = {
       mode: loser ? 'sit' : pt < mv.t ? 'walk' : 'fight',
-      walkT: pt, swing: !loser && since < 0.16 ? 0.35 + since * 4 : -1,
+      walkT: pt, swing: !loser && since < 0.16 ? 0.35 + since * 4 : -1, combo: L ? L.n : 0,
       facing: side === 'a' ? 1 : -1, t: clock, lift,
       flash: d.hit[side] != null && clock - d.hit[side] < 0.08,
       alpha: loser ? 0.45 : alpha,
@@ -1618,7 +1902,7 @@ function updateRaid(dt) {
     } else if (e.k != null) {
       // 기사 타격 (짧은 시간 동안의 타격을 묶은 것)
       d.hpB = e.bh; d.hpK[e.k] = e.h;
-      d.last[e.k] = { e, at: clock };
+      d.last[e.k] = { e, at: clock, n: (d.last[e.k] ? d.last[e.k].n : 0) + 1 };
       if (e.c || e.l) d.bossHit = clock;      // 보스가 하얗게 번쩍이는 건 치명타·도약 때만 (타격은 0.2초마다 묶여 와서 매번 번쩍이면 정신없다)
       // 피해 숫자는 보스 몸 위쪽에 띄운다 (왼쪽 끝은 기사 이름표·체력바와 겹친다)
       addFloater((e.c ? '💥' : '') + fmt(e.d), g.cx + rand(-g.w * 0.25, g.w * 0.25), gy - g.h * 0.75 + rand(-8, 8), e.c ? '#ffb13b' : '#ffffff', e.c || e.l ? 14 : 12);
@@ -1776,7 +2060,7 @@ function drawRaid() {
     const sp = dead ? null : castPose(`raid-${i}`);
     const pose = {
       mode: dead ? 'sit' : pt < k.stop.t ? 'walk' : 'fight',
-      walkT: pt + i * 0.3, swing: !dead && s < 0.16 ? 0.35 + s * 4 : -1,
+      walkT: pt + i * 0.3, swing: !dead && s < 0.16 ? 0.35 + s * 4 : -1, combo: L ? L.n : 0,
       facing: 1, t: clock, lift: L && L.e.l && s < 0.35 ? (1 - s / 0.35) * 26 : 0,
       flash: d.hitK[i] != null && clock - d.hitK[i] < 0.08,
       alpha: dead ? 0.4 : 1,
