@@ -340,7 +340,10 @@
   .gn.g6 { background-image: linear-gradient(90deg, #3ee8ff, #ffffff, #b36bff, #3ee8ff); }
   .gn.g7 { background-image: linear-gradient(90deg, #ff9ff3, #ffe066, #7dffd0, #7cc4ff, #c99bff, #ff9ff3); animation-duration: 1.6s; }
   @keyframes legendText { to { background-position: -200% 0; } }
-  .box.mystery { animation: mystery 1.4s ease-in-out infinite; }
+  .box.mystery, .box.glow { animation: mystery 1.4s ease-in-out infinite; }
+  .box.chestbox .gicon { width: 38px; height: 38px; }
+  .box.glow.g4, .box.glow.g5, .box.glow.g6, .box.glow.g7 { background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c) 26%, transparent), var(--soft) 70%); }
+  .box.glow.g5, .box.glow.g6, .box.glow.g7 { animation-duration: 1s; }
   .box.mystery .lname { color: var(--c); font-weight: 800; letter-spacing: 2px; }
   .box.mystery.g4 { background: radial-gradient(circle at 50% 40%, rgba(255, 159, 28, .22), var(--soft) 70%); }
   .box.mystery.g5, .box.mystery.g6, .box.mystery.g7 { background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c) 30%, transparent), var(--soft) 70%); animation-duration: 1s; }

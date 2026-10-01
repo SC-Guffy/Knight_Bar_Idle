@@ -78,7 +78,7 @@ function renderHud() {
   $('lv').textContent = S.level;
   $('stage').textContent = `${zoneOf(S.stage).icon} ${S.stage}-${Math.min(S.run.kills + 1, S.run.total)}${S.run.farm && S.phase !== 'camp' ? ' 🔁' : ''}`;
   $('gold').textContent = fmt(S.gold);
-  $('bag').textContent = `${S.bag.length}/${bagCap()}`;
+  $('bag').textContent = `${bagWeight()}/${bagCap()}`;
   $('hpfill').style.width = (100 * Math.max(0, S.hp) / st.maxHp) + '%';
   $('stfill').style.width = (100 * S.stamina / maxStamina()) + '%';
   $('xpfill').style.width = (100 * S.exp / expToNext()) + '%';
@@ -167,13 +167,16 @@ const isMystery = (it) => it.k === 'gear' && it.g >= 3;
 
 // ── 장비 도트 아이콘 ──
 // <canvas data-gi="도감 키"> 를 HTML 에 넣어 두고, 그린 뒤 paintGearIcons 가 스프라이트를 찍는다
+// 전리품 상자도 같은 방식으로 <canvas data-bx="등급"> 에 찍는다
 const gearIcon = (it, cls = '') => `<canvas class="gicon g${it.g} ${cls}" width="14" height="14" data-gi="${it.t}"></canvas>`;
+const boxIcon = (g) => `<canvas class="gicon g${g}" width="14" height="14" data-bx="${g}"></canvas>`;
 const lootIconHtml = (it) => (it.k === 'gear' ? gearIcon(it) : `<span class="lic">${lootIcon(it)}</span>`);
 
 const gearSprCache = {};
-function gearSprite(t) {
-  if (gearSprCache[t]) return gearSprCache[t];
-  const def = GEAR_ITEMS[t], rows = GEAR_SPR[def.spr];
+// key: 캐시 키, def: { spr, pal } (장비 도감 항목 또는 LOOT_BOXES 항목)
+function gearSprite(key, def) {
+  if (gearSprCache[key]) return gearSprCache[key];
+  const rows = GEAR_SPR[def.spr];
   const cv = document.createElement('canvas');
   cv.width = cv.height = 14;
   const g = cv.getContext('2d');
@@ -181,15 +184,17 @@ function gearSprite(t) {
   g.fillStyle = '#14151c';                    // 외곽선: 칠해진 칸의 상하좌우
   each((x, y) => { g.fillRect(x - 1, y, 3, 1); g.fillRect(x, y - 1, 1, 3); });
   each((x, y, ch) => { g.fillStyle = def.pal[ch] || '#ff00ff'; g.fillRect(x, y, 1, 1); });
-  return (gearSprCache[t] = cv);
+  return (gearSprCache[key] = cv);
 }
 function paintGearIcons(root) {
-  root.querySelectorAll('canvas[data-gi]').forEach((cv) => {
-    if (!GEAR_ITEMS[cv.dataset.gi]) return;
+  const paint = (cv, key, def) => {
+    if (!def) return;
     const g = cv.getContext('2d');
     g.clearRect(0, 0, 14, 14);
-    g.drawImage(gearSprite(cv.dataset.gi), 0, 0);
-  });
+    g.drawImage(gearSprite(key, def), 0, 0);
+  };
+  root.querySelectorAll('canvas[data-gi]').forEach((cv) => paint(cv, cv.dataset.gi, GEAR_ITEMS[cv.dataset.gi]));
+  root.querySelectorAll('canvas[data-bx]').forEach((cv) => paint(cv, 'box' + cv.dataset.bx, LOOT_BOXES[cv.dataset.bx]));
 }
 
 function viewReport() {
@@ -215,7 +220,13 @@ function viewReport() {
       ${lootIconHtml(b.it)}<div class="lname ${b.it.k === 'gear' ? 'gn g' + b.it.g : ''}">${lootName(b.it)}</div><div class="loot">${claimedText(b)}</div>
     </div>`).join('');
   // 영웅 이상 장비는 챙기기 전까지 실루엣만 보인다
-  const closed = S.bag.map((it, i) => isMystery(it) ? `
+  // 상자는 이름과 무게만 보이고, 눌러서 열면 내용물이 위의 카드로 쏟아진다. 보물상자 이상은 빛난다
+  const closed = S.bag.map((it, i) => it.k === 'box' ? `
+    <button class="box chestbox ${it.g >= 3 ? 'glow g' + it.g : ''}" data-action="claim" data-i="${i}" style="--c:${GRADES[it.g].color}"
+      title="${GRADES[it.g].name} 상자 · 내용물 ${LOOT_BOXES[it.g].n[0]}${LOOT_BOXES[it.g].n[1] > LOOT_BOXES[it.g].n[0] ? '~' + LOOT_BOXES[it.g].n[1] : ''}개 · 눌러서 열기">
+      ${boxIcon(it.g)}<span class="lname">${lootName(it)}</span>
+      <span class="grade">⚖️ ${LOOT_BOXES[it.g].w}</span>
+    </button>` : isMystery(it) ? `
     <button class="box mystery g${it.g}" data-action="claim" data-i="${i}" style="--c:${GRADES[it.g].color}" title="챙겨서 정체를 확인하세요">
       ${gearIcon(it, 'sil')}<span class="lname">???</span>
       <span class="grade">${GRADES[it.g].name} ${GEAR_SLOTS[it.slot].name}</span>
@@ -239,10 +250,10 @@ function viewReport() {
     <h3>📜 원정 일지</h3>
     ${report}
     <div class="shead">
-      <h3>🎒 가방 <small>${S.bag.length} / ${bagCap()}</small></h3>
-      <button class="btn" data-action="claim-all" ${S.bag.length ? '' : 'disabled'}>모두 챙기기</button>
+      <h3>🎒 가방 <small>상자 ${S.bag.length}개 · ⚖️ ${bagWeight()} / ${bagCap()}</small></h3>
+      <button class="btn" data-action="claim-all" ${S.bag.length ? '' : 'disabled'}>모두 열기</button>
     </div>
-    <div class="hint">장비는 창고로 가고, 골동품은 팔려서 재화가 되고, 소비 아이템은 보급품에 더해집니다.</div>
+    <div class="hint">상자를 눌러 열면 내용물이 나옵니다. 장비는 창고로 가고, 골동품은 팔려서 재화가 되고, 소비 아이템은 보급품에 더해집니다.</div>
     <div class="boxes">${opened}${closed || (opened ? '' : '<div class="empty">가방이 비어 있습니다.</div>')}</div>
     ${revealed.length ? `<div class="gain">획득 합계 — ${sumLine || '없음'}${sum.gear ? ' <button class="btn" data-action="tab" data-tab="gear">🗡️ 장비 보기</button>' : ''}</div>` : ''}`;
 }
@@ -780,10 +791,12 @@ function renderCamp() {
 
 // ───────────────────────── 행동 ─────────────────────────
 function claimOne(i) {
-  const it = S.bag.splice(i, 1)[0];
-  if (!it) return;
-  revealed.push({ it, got: claimLoot(it), fresh: true });
-  if (isMystery(it)) toast(`${it.g >= 4 ? '🌟' : '✨'} ${GRADES[it.g].name} 장비 — ${gearName(it)}!`);
+  const b = S.bag.splice(i, 1)[0];
+  if (!b) return;
+  const items = b.k === 'box' ? openBox(b) : [b];     // 상자가 생기기 전 세이브의 낱개 전리품은 그대로 챙긴다
+  for (const it of items) revealed.push({ it, got: claimLoot(it), fresh: true });
+  const top = items.filter(isMystery).sort((x, y) => y.g - x.g)[0];
+  if (top) toast(`${top.g >= 4 ? '🌟' : '✨'} ${GRADES[top.g].name} 장비 — ${gearName(top)}!`);
 }
 
 function depart() {
@@ -1121,7 +1134,7 @@ hooks.onArrive = () => {
   toast('🏕 캠프에 도착했어요 — 기사를 클릭해 정산하세요', 6000);
   try {
     new Notification('⚔️ 기사가 캠프로 돌아왔어요', {
-      body: `${REASON_TEXT[r.reason]} 처치 ${fmt(r.kills)} · 전리품 ${S.bag.length}개`,
+      body: `${REASON_TEXT[r.reason]} 처치 ${fmt(r.kills)} · 전리품 상자 ${S.bag.length}개`,
     });
   } catch {}
 };

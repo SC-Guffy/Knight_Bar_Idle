@@ -27,7 +27,7 @@ function freshState() {
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     phase: 'camp',                          // camp | expedition | returning
     stamina: 100, hp: null,
-    bag: [],                                // 원정 전리품 (장비·골동품·소비 아이템, gear.js 참고)
+    bag: [],                                // 원정 전리품 상자 (gear.js 참고)
     trip: null,                             // 진행 중인 원정 기록
     report: null,                           // 확인 안 한 원정 기록
     lastSeen: Date.now(),
@@ -50,7 +50,7 @@ function migrate(o) {
     const isObj = s[k] && typeof s[k] === 'object' && !Array.isArray(s[k]);
     s[k] = isObj && o[k] ? Object.assign(s[k], o[k]) : o[k];
   }
-  s.bag = (s.bag || []).map(upgradeOldLoot);     // v2 초기의 미감정 상자 → 전리품
+  s.bag = (s.bag || []).map(upgradeOldLoot);     // v2 초기의 미감정 상자 → 전리품 상자
   s.gear.inv.forEach(fixGearItem);
   return s;
 }
@@ -124,6 +124,9 @@ function profile() {
 const maxStamina = () => maxStaminaAt(S.bld.inn);
 const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
 const bagCap = () => bagCapAt(S.bld.storage);
+const bagWeight = () => S.bag.reduce((a, it) => a + lootWeight(it), 0);
+// 무게가 조금이라도 남아 있으면 상자를 하나 더 얹는다 (마지막 상자는 조금 넘쳐도 들고 온다)
+const bagFull = () => bagWeight() >= bagCap();
 const expToNext = () => expToNextAt(S.level);
 
 function gainExp(e) {
@@ -232,7 +235,7 @@ function tryPotion() {
 }
 
 // ───────────────────────── 전리품 ─────────────────────────
-// 전리품 등급. 보스는 일반 등급이 안 나오고, 행운의 부적은 좋은 등급 가중치를 올린다. 종류는 gear.js 의 rollLoot
+// 전리품 상자 등급. 보스는 일반 등급이 안 나오고, 행운의 부적은 좋은 등급 가중치를 올린다. 내용물은 gear.js 의 openBox
 function rollGrade(boss, charm) {
   const w = GRADES.map((g, i) => (boss && i === 0 ? 0 : g.w) * (charm ? CHARM_BONUS[i] : 1));
   let r = Math.random() * w.reduce((a, b) => a + b, 0);
@@ -244,7 +247,7 @@ function rollGrade(boss, charm) {
 function departBlocker() {
   if (S.phase !== 'camp') return '원정 중';
   if (S.stamina < minDepartStamina()) return `스태미나 ${minDepartStamina()} 이상 필요`;
-  if (S.bag.length >= bagCap()) return '가방이 가득 참 — 전리품을 먼저 챙겨주세요';
+  if (bagFull()) return '가방이 가득 참 — 상자를 먼저 열어주세요';
   return null;
 }
 
@@ -307,11 +310,11 @@ function rewardKill(m) {
   t.xp += m.exp;
   t.levels += gainExp(m.exp);
   let loot = null;
-  if ((m.boss || Math.random() < BOX_DROP) && S.bag.length < bagCap()) {
-    loot = rollLoot(rollGrade(m.boss, t.buffs.charm), S.stage, m.boss);
+  if ((m.boss || Math.random() < BOX_DROP) && !bagFull()) {
+    loot = { k: 'box', g: rollGrade(m.boss, t.buffs.charm), s: S.stage };
+    if (m.boss) loot.boss = 1;
     S.bag.push(loot);
-    const bg = lootGrade(loot);
-    t.boxes[bg] = (t.boxes[bg] || 0) + 1;
+    t.boxes[loot.g] = (t.boxes[loot.g] || 0) + 1;
   }
   S.run.kills++;
   if (m.boss) S.run.cleared = true;
@@ -398,7 +401,7 @@ function simulate(sec) {
     S.hp = Math.min(st.maxHp, S.hp);
     if (S.hp < st.maxHp * 0.25) S.trip.crises++;
     rewardKill(m);
-    if (S.bag.length >= bagCap()) endExpedition('bag', true);
+    if (bagFull()) endExpedition('bag', true);
   }
   if (t > 0) advanceCamp(t);
 }

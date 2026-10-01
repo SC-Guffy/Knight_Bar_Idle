@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.3.1';
+const GAME_VERSION = '0.3.2';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -122,6 +122,12 @@ const LOOT_BOXES = [
   // 보석함은 작아서 보물상자보다 가볍다
   { name: '왕가의 보석함', w: 3, n: [3, 3], spr: 'jewelbox',
     pal: { B: '#ffd257', b: '#c79a12', W: '#fffbe0', H: '#e08a1a', G: '#e08a1a', J: '#ff3b4b' } },
+  { name: '용의 보물궤', w: 4, n: [3, 4], spr: 'chest',
+    pal: { B: '#b3263e', b: '#6e1424', W: '#ff6b81', H: '#ffd257', G: '#ffd257', J: '#ff9f1c' } },
+  { name: '별의 성궤', w: 4, n: [4, 4], spr: 'jewelbox',
+    pal: { B: '#2a3f8f', b: '#18245a', W: '#3ee8ff', H: '#e8fbff', G: '#e8fbff', J: '#b36bff' } },
+  { name: '태초의 함', w: 5, n: [5, 5], spr: 'jewelbox',
+    pal: { B: '#f4f0ff', b: '#c9b8ff', W: '#ffffff', H: '#ff9ff3', G: '#ffe066', J: '#7dffd0' } },
 ];
 
 // 상자에서 나오는 전리품 종류 비율 (보스 상자의 첫 내용물은 장비가 더 잘 나온다)
