@@ -58,7 +58,7 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
   const boss = { hp: bs.hp, max: bs.hp, atk: bs.atk, cd: 1.2, aoe: def.aoeEvery * 0.8 };
   const ks = profiles.map((p, i) => ({
     p, i, x: -i * KNIGHT_GAP, hp: p.maxHp * KNIGHT_HP_MULT, max: p.maxHp * KNIGHT_HP_MULT,
-    reach: p.range + BOSS_HALF + i * 10,       // 같은 사거리끼리 겹치지 않게 뒷사람은 조금 뒤에 선다
+    reach: p.range + BOSS_HALF + i * 18,       // 같은 사거리끼리 겹치지 않게 뒷사람은 조금 뒤에 선다 (멈춘 뒤엔 사거리를 다시 따지지 않아 전투 결과와는 무관)
     cd: 0.2 + rng() * 0.4, leapCd: p.leap ? p.leap.every / 2 : Infinity, skills: makeSkills(p), busy: 0, ward: null,
     stopT: null, alive: true, dmg: 0, taken: 0, heal: 0, acc: null,
   }));

@@ -1612,7 +1612,8 @@ function updateRaid(dt) {
       d.hpB = e.bh; d.hpK[e.k] = e.h;
       d.last[e.k] = { e, at: clock };
       if (e.c || e.l) d.bossHit = clock;      // 보스가 하얗게 번쩍이는 건 치명타·도약 때만 (타격은 0.2초마다 묶여 와서 매번 번쩍이면 정신없다)
-      addFloater((e.c ? '💥' : '') + fmt(e.d), g.left + rand(4, 40), gy - g.h * 0.6 + rand(-10, 10), e.c ? '#ffb13b' : '#ffffff', e.c || e.l ? 14 : 12);
+      // 피해 숫자는 보스 몸 위쪽에 띄운다 (왼쪽 끝은 기사 이름표·체력바와 겹친다)
+      addFloater((e.c ? '💥' : '') + fmt(e.d), g.cx + rand(-g.w * 0.25, g.w * 0.25), gy - g.h * 0.75 + rand(-8, 8), e.c ? '#ffb13b' : '#ffffff', e.c || e.l ? 14 : 12);
       if (e.l) effects.push({ type: 'ring', x: g.left + 10, y: gy - 2, t: 0, color: clsOf(d.res.members[e.k].cls).look.fx });
     } else if (e.b === 'hit') {
       RAID_HIT[def.hit](e, def);
@@ -1739,10 +1740,11 @@ function drawRaid() {
     ctx.fillRect(cx - r, bottom - g.h / 2 - r, r * 2, r * 2);
     ctx.globalAlpha = 1;
   }
-  drawSprite(g.rows, def.pal, cx, bottom + dying * 30, g.scale, {
-    flash: clock - d.bossHit < 0.05 || (d.wind > 0.9 && Math.floor(clock * 20) % 3 === 0),
-    alpha: enter * (1 - dying), sx: p.sx, sy: p.sy * (1 - dying * 0.5), flip: p.flip,
-  });
+  const bossOpt = { alpha: enter * (1 - dying), sx: p.sx, sy: p.sy * (1 - dying * 0.5), flip: p.flip };
+  drawSprite(g.rows, def.pal, cx, bottom + dying * 30, g.scale, bossOpt);
+  // 맞았을 때·기를 다 모았을 때는 반투명한 흰 빛만 덮는다 (큰 보스가 통째로 하얘지면 눈이 아프다)
+  const glow = clock - d.bossHit < 0.08 ? 0.45 * (1 - (clock - d.bossHit) / 0.08) : d.wind > 0.9 && Math.floor(clock * 20) % 3 === 0 ? 0.35 : 0;
+  if (glow > 0) drawSprite(g.rows, def.pal, cx, bottom + dying * 30, g.scale, { ...bossOpt, flash: true, alpha: bossOpt.alpha * glow });
   // 보스 체력바와 이름
   if (!done || !f.won) {
     ctx.globalAlpha = enter;
