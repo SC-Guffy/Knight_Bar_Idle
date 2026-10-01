@@ -437,6 +437,8 @@ const FORTUNE_PER_LV = 0.03;
 const OLD_TRAINING = { spd: { base: 25, grow: 1.55 }, crit: { base: 30, grow: 1.6 } };
 
 // ───────────────────────── 몬스터 ─────────────────────────
+// 잡몹 체력 배율: 한 방에 녹지 않고 두세 대는 맞고 쓰러지게 (보스 체력은 그대로)
+const MOB_HP_MULT = 3;
 function monsterStats(stage, boss) {
   const hp = 14 * Math.pow(1.23, stage - 1);
   const atk = 3 * Math.pow(1.17, stage - 1);
@@ -446,7 +448,7 @@ function monsterStats(stage, boss) {
   const f = boss && stage === zoneOf(stage).to ? 1.5 : 1;
   return boss
     ? { hp: hp * 5 * f, atk: atk * 1.4 * (f > 1 ? 1.2 : 1), gold: gold * 10 * f, exp: exp * 6 * f, boss: true }
-    : { hp, atk, gold, exp, boss: false };
+    : { hp: hp * MOB_HP_MULT, atk, gold, exp, boss: false };
 }
 
 // ───────────────────────── 필드 ─────────────────────────
