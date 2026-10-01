@@ -13,3 +13,6 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      # 전체 초기화(POST /api/admin/reset)용 비밀 키. 대시보드에서 직접 넣는다. 없으면 초기화 주소가 닫혀 있다
+      - key: ADMIN_KEY
+        sync: false

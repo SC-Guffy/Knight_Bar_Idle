@@ -1729,6 +1729,7 @@ async function acctSwitch(nick) {
   acctBusy = true;
   save();
   await pushSave();
+  if (!accounts.list[nick]) { acctBusy = false; return; }   // 올리는 사이 전체 초기화로 지워졌다
   await enterAccount(nick);
   acctBusy = false;
   closeAccount();
@@ -1765,6 +1766,19 @@ function resetWorld() {
   rank.data = null; seasonUi.data = null; seasonUi.at = 0; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
   raidPlay = null; Object.assign(raidUi, { rooms: null, at: 0, room: null, error: null, revealed: [], showResult: false, key: '' });
 }
+
+// 서버가 전체 초기화돼서 플레이 중인 기사가 없어졌다. 이 기기의 기사·세이브를 모두 지우고 닉네임 만들기 화면으로 보낸다
+hooks.onAccountGone = () => {
+  saveKey = null;                            // 지금 상태를 더는 저장하지 않는다
+  forgetAllAccounts();
+  sync.dirty = false;
+  closeCamp();
+  loadState(null);
+  resetWorld();
+  if (acctOpen) renderAccount(); else openAccount();
+  renderHud();
+  toast('🔄 서버가 새로 시작되어 모든 기사가 초기화됐어요 — 새 닉네임으로 다시 시작해 주세요', 15000);
+};
 
 // 꺼져 있던 동안의 원정·휴식·건설을 한 번에 계산한다
 function catchUp() {
@@ -1806,7 +1820,7 @@ async function enterAccount(nick, known) {
   }
   const remote = fetchMe().then((r) => r.state, (e) => {
     sync.error = e.message;
-    if (e.status === 401) toast('⚠️ 서버에서 이 기사를 찾을 수 없어요 — 이 기기의 기록으로 계속합니다', 7000);
+    if (e.status === 401 && e.code !== 'gone') toast('⚠️ 서버에서 이 기사를 찾을 수 없어요 — 이 기기의 기록으로 계속합니다', 7000);
     return undefined;
   });
   if (local) {

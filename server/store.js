@@ -78,6 +78,12 @@ class FileStore {
     this.sdb.rewards = this.sdb.rewards.filter(r => !(r.key === key && seasons.includes(r.season)));
     this.persist();
   }
+  // 전체 초기화: 계정·시즌 기록을 모두 지운다
+  async wipe() {
+    this.db = {};
+    this.sdb = { seasons: [], rewards: [] };
+    this.flush();
+  }
 }
 
 // ───────────────────────── Postgres ─────────────────────────
@@ -209,6 +215,10 @@ class PgStore {
   }
   async ackRewards(key, seasons) {
     await this.pool.query('DELETE FROM season_rewards WHERE key=$1 AND season = ANY($2::int[])', [key, seasons]);
+  }
+  // 전체 초기화: 계정·시즌 기록을 모두 지운다
+  async wipe() {
+    await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards');
   }
 }
 

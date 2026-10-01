@@ -9,6 +9,7 @@ const hooks = {
   onBuilt: (_id) => {},
   onClassChange: (_id) => {},
   onSave: () => {},
+  onAccountGone: () => {},
 };
 
 // ───────────────────────── 상태 / 저장 ─────────────────────────

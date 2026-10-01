@@ -17,8 +17,10 @@ const store = openStore();
 
 // ───────────────────────── 유틸 ─────────────────────────
 class HttpError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, code) { super(message); this.status = status; this.code = code; }
 }
+// 토큰은 맞는 모양인데 그 계정이 서버에 없다 = 전체 초기화로 지워진 계정. 클라이언트는 이걸 받으면 이 기기의 기사를 지운다
+const goneError = () => new HttpError(401, '서버에서 이 기사를 찾을 수 없어요', 'gone');
 
 // 한글·영문·숫자·_ 2~12자. 대소문자만 다른 닉네임은 같은 닉네임으로 본다.
 function nicknameKey(raw) {
@@ -81,7 +83,7 @@ function send(res, status, body) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Key',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Cache-Control': 'no-store',
   });
@@ -107,8 +109,9 @@ function readJson(req) {
 
 async function auth(req) {
   const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
-  const acc = m && await store.byToken(hashToken(m[1]));
-  if (!acc) throw new HttpError(401, '계정 인증에 실패했어요');
+  if (!m) throw new HttpError(401, '계정 인증에 실패했어요');
+  const acc = await store.byToken(hashToken(m[1]));
+  if (!acc) throw goneError();
   return acc;
 }
 
@@ -283,7 +286,7 @@ async function authLite(req) {
   const c = authCache.get(h);
   if (c && Date.now() - c.at < 60000) return c.acc;
   const acc = await store.byToken(h);
-  if (!acc) throw new HttpError(401, '계정 인증에 실패했어요');
+  if (!acc) throw goneError();
   authCache.set(h, { acc, at: Date.now() });
   return acc;
 }
@@ -470,6 +473,25 @@ const raidRoutes = {
 };
 Object.assign(routes, raidRoutes);
 
+// ───────────────────────── 관리자: 전체 초기화 ─────────────────────────
+// 모든 계정(닉네임 포함)·세이브·시즌 기록을 지운다. Render 환경 변수 ADMIN_KEY 가 있어야 열린다.
+//   curl -X POST https://knight-bar.onrender.com/api/admin/reset -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" -d '{"confirm":"RESET"}'
+// 접속 중인 기사는 다음 서버 요청 때 401(gone)을 받고 이 기기의 기록이 지워진 채 닉네임 만들기 화면으로 간다.
+routes['POST /api/admin/reset'] = async (req) => {
+  const key = process.env.ADMIN_KEY;
+  const given = String(req.headers['x-admin-key'] || '');
+  const ok = key && given.length === key.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(key));
+  if (!ok) throw new HttpError(404, '없는 주소입니다');
+  const body = await readJson(req);
+  if (body.confirm !== 'RESET') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"RESET"})');
+  const removed = await store.count();
+  await store.wipe();
+  rooms.clear(); roomOf.clear(); authCache.clear(); lastDuel.clear();
+  settledThrough = -1;
+  console.log(`전체 초기화: 계정 ${removed}개 삭제`);
+  return { ok: true, removed };
+};
+
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204);
   const url = new URL(req.url, 'http://x');
@@ -480,7 +502,7 @@ const server = http.createServer(async (req, res) => {
     if (out && out.status) send(res, out.status, out.body);
     else send(res, 200, out);
   } catch (e) {
-    if (e instanceof HttpError) return send(res, e.status, { error: e.message });
+    if (e instanceof HttpError) return send(res, e.status, { error: e.message, ...(e.code ? { code: e.code } : {}) });
     console.error(e);
     send(res, 500, { error: '서버 오류가 났어요' });
   }

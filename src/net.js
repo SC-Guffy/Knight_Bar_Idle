@@ -8,7 +8,7 @@ const ACCOUNTS_KEY = 'knight-bar-accounts';
 const SYNC_EVERY = 30000;
 
 class ApiError extends Error {
-  constructor(message, status) { super(message); this.status = status; }
+  constructor(message, status, code) { super(message); this.status = status; this.code = code; }
 }
 
 // timeout: Render 무료 플랜은 잠들어 있다가 첫 요청에 깨어나느라 30~60초 걸릴 수 있다
@@ -22,7 +22,11 @@ async function api(method, path, body, { token, timeout = 20000, keepalive = fal
       method, headers, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal, keepalive,
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new ApiError(data.error || `서버 오류 (${res.status})`, res.status);
+    if (!res.ok) {
+      // 지금 플레이 중인 기사가 서버에서 지워졌다 (전체 초기화) → ui.js 가 이 기기의 기사를 지우고 처음 화면으로 보낸다
+      if (data.code === 'gone' && token && token === activeToken()) hooks.onAccountGone();
+      throw new ApiError(data.error || `서버 오류 (${res.status})`, res.status, data.code);
+    }
     return data;
   } catch (e) {
     if (e instanceof ApiError) throw e;
@@ -51,6 +55,14 @@ function rememberAccount(nick, token) {
 }
 function setActiveAccount(nick) {
   accounts.active = nick;
+  saveAccounts();
+}
+// 전체 초기화: 이 기기의 모든 기사(계정 목록과 세이브)를 지운다
+function forgetAllAccounts() {
+  accounts = { active: null, list: {} };
+  try {
+    for (const k of Object.keys(localStorage)) if (k === SAVE_KEY || k.startsWith(SAVE_KEY + ':')) localStorage.removeItem(k);
+  } catch {}
   saveAccounts();
 }
 
