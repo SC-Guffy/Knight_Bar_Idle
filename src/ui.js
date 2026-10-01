@@ -388,7 +388,7 @@ function skillList(id) {
     const dmg = k.ward ? `초당 ×${k.ward.tick}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
-      <span class="sbody"><b>${k.name}</b> <small>Lv ${k.lv} · 쿨 ${k.cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+      <span class="sbody"><b>${k.name}</b> <small>${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${k.cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
         <span class="sdesc">${k.desc}</span></span>
     </div>`;
   }).join('')}</div>`;
