@@ -1,5 +1,5 @@
 'use strict';
-// Knight Bar 서버: 계정(닉네임) · 세이브 동기화 · 랭킹 · 결투 · 보스 레이드 로비.
+// Knight Bar 서버: 계정(닉네임) · 세이브 동기화 · 랭킹 · 결투(시즌) · 보스 레이드 로비.
 // 의존성은 pg 하나뿐이라 http 모듈로 직접 라우팅한다.
 
 const http = require('http');
@@ -7,11 +7,11 @@ const crypto = require('crypto');
 const { openStore, TakenError } = require('./store');
 const { simulateDuel, eloDelta } = require('./duel');
 const { RAID_BOSSES, MAX_PARTY, simulateRaid } = require('./raid');
+const { START_RATING, seasonAt, seasonRange, fresh } = require('./season');
 
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 256 * 1024;
 const DUEL_COOLDOWN_MS = 5000;
-const START_RATING = 1000;
 
 const store = openStore();
 
@@ -68,11 +68,14 @@ function sanitizeProfile(p = {}) {
   };
 }
 
-// 랭킹·결투 목록에 보여 줄 공개 정보
-const publicInfo = (a) => ({
-  nickname: a.nickname, cls: a.cls, level: a.level, best: a.best, power: a.power,
-  rating: a.rating, wins: a.wins, losses: a.losses, updatedAt: a.updatedAt,
-});
+// 랭킹·결투 목록에 보여 줄 공개 정보. 결투 기록은 이번 시즌 것 (지난 시즌 값이면 새로 시작한 값으로)
+const publicInfo = (acc) => {
+  const a = fresh(acc);
+  return {
+    nickname: a.nickname, cls: a.cls, level: a.level, best: a.best, power: a.power,
+    rating: a.rating, wins: a.wins, losses: a.losses, attacks: a.attacks, updatedAt: a.updatedAt,
+  };
+};
 
 function send(res, status, body) {
   res.writeHead(status, {
@@ -109,6 +112,28 @@ async function auth(req) {
   return acc;
 }
 
+// ───────────────────────── 결투 시즌 정산 ─────────────────────────
+// 끝난 시즌을 차례로 정산한다. 계정의 지난 시즌 기록은 다음 결투 때 덮어써지므로, 결투·랭킹 전에 반드시 먼저 부른다.
+// (서버가 잠들어 있던 사이 시즌이 바뀌었어도 깨어나서 처음 요청을 받을 때 정산된다.)
+let settledThrough = -1, settling = null;
+function settleSeasons() {
+  const last = seasonAt() - 1;
+  if (settledThrough >= last) return Promise.resolve();
+  if (!settling) {
+    settling = (async () => {
+      let s = await store.settledThrough();
+      while (s < last) {
+        s++;
+        await store.settleSeason(s, Date.now());
+        console.log(`결투 시즌 ${s} 정산`);
+      }
+      settledThrough = s;
+    })().finally(() => { settling = null; });
+  }
+  return settling;
+}
+setInterval(() => settleSeasons().catch((e) => console.error(e)), 60000).unref();
+
 // ───────────────────────── 라우트 ─────────────────────────
 const lastDuel = new Map();   // key → 마지막 결투 시각
 
@@ -133,7 +158,7 @@ const routes = {
         key, nickname: nick, tokenHash: hashToken(token),
         state: body.state && typeof body.state === 'object' ? body.state : null, profile,
         level: profile.level, best: profile.best, power: profile.power, cls: profile.cls,
-        rating: START_RATING, wins: 0, losses: 0, createdAt: now, updatedAt: now,
+        rating: START_RATING, wins: 0, losses: 0, season: seasonAt(now), attacks: 0, createdAt: now, updatedAt: now,
       });
     } catch (e) {
       if (e instanceof TakenError) throw new HttpError(409, '이미 사용 중인 닉네임이에요');
@@ -162,19 +187,47 @@ const routes = {
     return { ok: true, updatedAt: now };
   },
 
-  // 랭킹. 인증 헤더가 있으면 내 순위도 같이 준다
+  // 랭킹. 인증 헤더가 있으면 내 순위도 같이 준다.
+  // 결투(duel) 순위는 이번 시즌에 직접 결투를 1번 이상 건 기사만 — 시즌 보상도 이 순위로 준다
   'GET /api/ranking': async (req, url) => {
     const sort = url.searchParams.get('sort') === 'duel' ? 'duel' : 'stage';
     const limit = Math.floor(num(url.searchParams.get('limit'), 1, 200, 100));
-    const players = (await store.top(sort, limit)).map(publicInfo);
+    await settleSeasons();
+    const season = sort === 'duel' ? seasonAt() : 0;
+    const players = (await store.top(sort, limit, season)).map(publicInfo);
     let me = null;
     if (req.headers.authorization) {
       try {
         const a = await auth(req);
-        me = { ...publicInfo(a), rank: await store.rankOf(a, sort) };
+        const f = fresh(a);
+        const ranked = !season || f.attacks > 0;
+        me = { ...publicInfo(a), rank: ranked ? await store.rankOf(f, sort, season) : null };
       } catch {}
     }
-    return { sort, players, me, total: await store.count() };
+    return { sort, players, me, total: await store.count(season), ...(season ? { season: seasonRange(season) } : {}) };
+  },
+
+  // 결투 시즌: 이번 시즌 정보와 내 기록, 지난 시즌 결과, 아직 안 받아 간 시즌 보상
+  'GET /api/season': async (req) => {
+    const a = await auth(req);
+    await settleSeasons();
+    const id = seasonAt(), f = fresh(a, id);
+    return {
+      ...seasonRange(id), now: Date.now(),
+      players: await store.count(id),
+      me: { rating: f.rating, wins: f.wins, losses: f.losses, attacks: f.attacks, rank: f.attacks > 0 ? await store.rankOf(f, 'duel', id) : null },
+      last: id > 1 ? await store.season(id - 1) : null,
+      rewards: await store.pendingRewards(a.key),
+    };
+  },
+
+  // 시즌 보상을 세이브에 넣었으면 지운다
+  'POST /api/season/ack': async (req) => {
+    const a = await auth(req);
+    const body = await readJson(req);
+    const ids = (Array.isArray(body.seasons) ? body.seasons : []).map(Number).filter(Number.isInteger).slice(0, 50);
+    if (ids.length) await store.ackRewards(a.key, ids);
+    return { ok: true };
   },
 
   // 결투. 서버가 두 기사의 프로필로 싸움을 계산하고, 결과 기록을 돌려준다.
@@ -189,17 +242,21 @@ const routes = {
     if (since < DUEL_COOLDOWN_MS) throw new HttpError(429, `${Math.ceil((DUEL_COOLDOWN_MS - since) / 1000)}초 뒤에 다시 도전할 수 있어요`);
     lastDuel.set(me.key, Date.now());
 
+    // 지난 시즌을 먼저 정산하고, 두 기사 모두 이번 시즌 기록으로 싸운다. 건 쪽만 attacks 가 늘어 시즌 보상 대상이 된다
+    await settleSeasons();
+    const season = seasonAt();
+    const a = fresh(me, season), b = fresh(op, season);
     const pa = sanitizeProfile(me.profile), pb = sanitizeProfile(op.profile);
     const fight = simulateDuel(pa, pb);
     const won = fight.winner === 'a';
-    const d = won ? eloDelta(me.rating, op.rating) : eloDelta(op.rating, me.rating);
-    const myRating = Math.max(0, me.rating + (won ? d : -d));
-    const opRating = Math.max(0, op.rating + (won ? -d : d));
-    await store.update(me.key, { rating: myRating, wins: me.wins + (won ? 1 : 0), losses: me.losses + (won ? 0 : 1) });
-    await store.update(op.key, { rating: opRating, wins: op.wins + (won ? 0 : 1), losses: op.losses + (won ? 1 : 0) });
+    const d = won ? eloDelta(a.rating, b.rating) : eloDelta(b.rating, a.rating);
+    const myRating = Math.max(0, a.rating + (won ? d : -d));
+    const opRating = Math.max(0, b.rating + (won ? -d : d));
+    await store.update(me.key, { season, attacks: a.attacks + 1, rating: myRating, wins: a.wins + (won ? 1 : 0), losses: a.losses + (won ? 0 : 1) });
+    await store.update(op.key, { season, attacks: b.attacks, rating: opRating, wins: b.wins + (won ? 0 : 1), losses: b.losses + (won ? 1 : 0) });
 
     return {
-      won, delta: d,
+      won, delta: d, season,
       me: { nickname: me.nickname, cls: pa.cls, level: pa.level, rating: myRating },
       opponent: { nickname: op.nickname, cls: pb.cls, level: pb.level, rating: opRating },
       fight,
@@ -429,7 +486,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-store.init().then(() => {
+store.init().then(() => settleSeasons()).then(() => {
   server.listen(PORT, () => console.log(`knight-bar server :${PORT} (${process.env.DATABASE_URL ? 'postgres' : 'file'})`));
 });
 

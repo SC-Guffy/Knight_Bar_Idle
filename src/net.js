@@ -108,6 +108,10 @@ async function requestDuel(opponent) {
   return api('POST', '/api/duels', { opponent }, { token: activeToken(), timeout: 70000 });
 }
 
+// 결투 시즌: 이번 시즌 정보 · 내 기록 · 지난 시즌 결과 · 아직 안 받은 시즌 보상
+const fetchSeason = () => api('GET', '/api/season', null, { token: activeToken(), timeout: 70000 });
+const ackSeason = (seasons) => api('POST', '/api/season/ack', { seasons }, { token: activeToken() });
+
 // ───────────────────────── 보스 레이드 로비 ─────────────────────────
 // 방 상태는 서버 메모리에 있고, 방에 있는 동안 주기적으로 물어봐서 파티원·준비·출정 결과를 받는다 (ui.js 의 raidPoll)
 const raidCall = (method, path, body, timeout = 20000) => api(method, path, body, { token: activeToken(), timeout });

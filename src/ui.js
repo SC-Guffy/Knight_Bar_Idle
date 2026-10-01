@@ -816,6 +816,78 @@ function loadRanking(force = false) {
     .finally(() => { rank.loading = false; if (campOpen && campTab === 'rank') renderCamp(); });
 }
 
+// ───────────────────────── 결투 시즌 ─────────────────────────
+// 시즌은 서버가 3일마다 자동으로 바꾼다. 끝난 시즌의 보상은 접속해 있을 때(입장 직후·10분마다·랭킹 탭) 받아서 세이브에 넣고,
+// 서버에 저장한 뒤에 받았다고 알린다 (season.js claimSeasonReward 가 시즌 번호로 두 번 받지 않게 막는다).
+const seasonUi = { data: null, at: 0, loading: false, error: null, tiers: false };
+const SEASON_CHECK_EVERY = 10 * 60 * 1000;
+
+function loadSeason(force = false) {
+  if (seasonUi.loading || !activeNick() || !saveKey) return;
+  if (!force && seasonUi.data && Date.now() - seasonUi.at < 15000) return;
+  seasonUi.loading = true;
+  seasonUi.error = null;
+  const who = activeNick();
+  fetchSeason()
+    .then((d) => {
+      if (activeNick() !== who || !saveKey) return;
+      seasonUi.data = d;
+      seasonUi.at = Date.now();
+      return takeSeasonRewards(d.rewards || []);
+    }, (e) => { seasonUi.error = e.message; })
+    .finally(() => { seasonUi.loading = false; if (campOpen && campTab === 'rank') renderCamp(); });
+}
+setInterval(() => loadSeason(true), SEASON_CHECK_EVERY);
+
+async function takeSeasonRewards(rows) {
+  if (!rows.length) return;
+  const got = rows.map(claimSeasonReward).filter(Boolean);
+  save();
+  if (got.length) {
+    const L = got[got.length - 1];
+    toast(`🏆 결투 시즌 ${L.season} 보상 — ${seasonTier(L.rank, L.total).name} (${L.total}명 중 ${L.rank}위) · ${seasonRewardText(L.reward, false)}`, 10000);
+    renderHud();
+  }
+  await pushSave(true);
+  if (!sync.error) await ackSeason(rows.map((r) => r.season)).catch(() => {});
+}
+
+function seasonRewardText(r, html = true) {
+  const parts = html ? [gainText(r)] : [`골드 ${fmt(r.gold)} · 🪵 ${fmt(r.wood)} · 🪨 ${fmt(r.ore)} · 💎 ${fmt(r.mana)}`];
+  if (r.chests) parts.push(`🎁 ${html ? esc(RAID_BOSSES[r.boss].chest.name) : RAID_BOSSES[r.boss].chest.name} ×${r.chests}`);
+  return parts.join(' · ');
+}
+
+function fmtLeft(ms) {
+  const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+  return d ? `${d}일 ${h}시간` : h ? `${h}시간 ${m % 60}분` : `${m % 60}분`;
+}
+const fmtDate = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+function viewSeason() {
+  loadSeason();
+  const d = seasonUi.data;
+  if (!d) return seasonUi.error ? `<div class="reason warn">⚠️ 시즌 정보를 불러오지 못했어요 — ${esc(seasonUi.error)}</div>` : '';
+  const me = d.me, myTier = me.rank ? seasonTier(me.rank, Math.max(d.players, me.rank)) : null;
+  const status = me.attacks > 0
+    ? `내 기록 — ⚔️ <b>${me.rating}</b> · ${me.wins}승 ${me.losses}패 · <b>${me.rank}위</b> (지금 끝나면 ${myTier.name})`
+    : `<span class="warn">아직 이번 시즌에 직접 건 결투가 없어요 — 1번 이상 걸어야 순위에 오르고 보상을 받아요 (도전받기만 한 결투는 세지 않아요)</span>`;
+  const tiers = SEASON_TIERS.map((t) => `
+    <div class="stier ${myTier && myTier.id === t.id ? 'on' : ''}"><b>${t.name}</b><span>${seasonRewardText(seasonReward(t))}</span></div>`).join('');
+  const L = d.last, mine = S.season.last;
+  const last = L ? `
+    <div class="slast">지난 시즌 ${L.id} (${L.players}명) — ${L.top.length ? L.top.slice(0, 3).map((p, i) => `${['🥇', '🥈', '🥉'][i]} ${esc(p.nickname)} <small>${p.rating}</small>`).join(' · ') : '참가자 없음'}
+      ${mine && mine.season === L.id ? `<br>내 보상 — ${seasonTier(mine.rank, mine.total).name} (${mine.rank}위) · ${seasonRewardText(mine.reward)}` : ''}</div>` : '';
+  return `
+    <div class="season">
+      <div class="shd"><b>⚔️ 결투 시즌 ${d.id}</b><small>${fmtDate(d.endsAt)} 마감 · 남은 시간 ${fmtLeft(d.endsAt - d.now - (Date.now() - seasonUi.at))} · 참가 ${d.players}명</small></div>
+      <div class="sme">${status}</div>
+      <div class="stiers"><button class="lnk" data-action="season-tiers">${seasonUi.tiers ? '▾' : '▸'} 순위별 보상</button>
+        <small>내 최고 스테이지 기준 · 상자는 열 수 있는 가장 높은 레이드 보스의 처치 상자</small>${seasonUi.tiers ? tiers : ''}</div>
+      ${last}
+    </div>`;
+}
+
 function viewRank() {
   loadRanking();
   const d = rank.data && rank.data.sort === rank.sort ? rank.data : null;
@@ -828,15 +900,16 @@ function viewRank() {
         <span class="rnm"><b>${esc(p.nickname)}</b><small>${c.icon} ${c.name} · Lv ${p.level}</small></span>
         <span class="rv"><small>최고 스테이지</small><b>🏰 ${p.best}</b></span>
         <span class="rv"><small>전투력</small><b>${fmt(p.power)}</b></span>
-        <span class="rv"><small>결투 ${p.wins}승 ${p.losses}패</small><b>⚔️ ${p.rating}</b></span>
+        <span class="rv"><small>시즌 ${p.wins}승 ${p.losses}패</small><b>⚔️ ${p.rating}</b></span>
         ${me ? '<span class="rme">나</span>'
           : `<button class="btn duel" data-action="duel" data-nick="${esc(p.nickname)}" ${duelBusy || duelActive() ? 'disabled' : ''}>⚔️ 결투</button>`}
       </div>`;
   };
   let body;
   if (d) {
-    body = d.players.map((p, i) => row(p, i + 1)).join('') || '<div class="empty">아직 등록된 기사가 없어요.</div>';
-    if (d.me && !d.players.some(p => p.nickname === d.me.nickname)) body += '<div class="rgap">⋯</div>' + row(d.me, d.me.rank);
+    const none = rank.sort === 'duel' ? '아직 이번 시즌에 결투를 건 기사가 없어요. 🏰 스테이지 순위에서 상대를 골라 먼저 도전해 보세요!' : '아직 등록된 기사가 없어요.';
+    body = d.players.map((p, i) => row(p, i + 1)).join('') || `<div class="empty">${none}</div>`;
+    if (d.me && d.me.rank && !d.players.some(p => p.nickname === d.me.nickname)) body += '<div class="rgap">⋯</div>' + row(d.me, d.me.rank);
   } else if (rank.error) {
     body = `<div class="empty">⚠️ ${esc(rank.error)} <button class="btn" data-action="rank-refresh">다시 시도</button></div>`;
   } else {
@@ -844,11 +917,13 @@ function viewRank() {
   }
   return `
     <div class="shead">
-      <h3>🏆 랭킹 <small>${d ? `기사 ${d.total}명${d.me ? ` · 내 순위 ${d.me.rank}위` : ''}` : ''}</small></h3>
-      <div class="segs">${seg('stage', '🏰 스테이지')}${seg('duel', '⚔️ 결투 점수')}
+      <h3>🏆 랭킹 <small>${d ? `${rank.sort === 'duel' ? '시즌 참가' : '기사'} ${d.total}명${d.me ? ` · 내 순위 ${d.me.rank ? d.me.rank + '위' : '없음'}` : ''}` : ''}</small></h3>
+      <div class="segs">${seg('stage', '🏰 스테이지')}${seg('duel', '⚔️ 결투 시즌')}
         <button class="btn" data-action="rank-refresh" title="새로고침" ${rank.loading ? 'disabled' : ''}>↻</button></div>
     </div>
-    <div class="hint">결투는 서로의 저장된 능력치로 자동으로 싸우고, 캠프 앞 하단바에서 벌어져요. 이기면 상대의 결투 점수를 가져오고, 상대가 접속해 있지 않아도 도전할 수 있어요.</div>
+    <div class="hint">결투는 서로의 저장된 능력치로 자동으로 싸우고, 캠프 앞 하단바에서 벌어져요. 이기면 상대의 결투 점수를 가져오고, 상대가 접속해 있지 않아도 도전할 수 있어요.
+      결투 점수는 3일마다 바뀌는 시즌마다 1000점에서 다시 시작하고, 시즌이 끝나면 직접 결투를 1번 이상 건 기사에게 순위별 보상을 줘요.</div>
+    ${rank.sort === 'duel' ? viewSeason() : ''}
     ${lastDuel ? `<div class="reason ${lastDuel.won ? '' : 'warn'}">최근 결투 — ${esc(duelResultText(lastDuel))}</div>` : ''}
     <div class="rlist">${body}</div>`;
 }
@@ -868,7 +943,7 @@ function startDuel(nick) {
   closeCamp();
   toast(`⚔️ ${nick}에게 결투를 신청하는 중…`, 70000);
   requestDuel(nick).then((res) => {
-    rank.at = 0;                              // 다음에 랭킹 탭을 열면 바뀐 점수로 다시 불러온다
+    rank.at = 0; seasonUi.at = 0;             // 다음에 랭킹 탭을 열면 바뀐 점수로 다시 불러온다
     if (activeNick() !== who || S.phase !== 'camp' || campOpen || acctOpen) {
       toast(duelResultText(res), 6000);       // 그사이 다른 화면으로 갔으면 결과만 알린다
       lastDuel = res;
@@ -1267,7 +1342,8 @@ const ACTIONS = {
   'close': closeCamp,
   'tab': (el) => { campTab = el.dataset.tab; $('campBody').scrollTop = 0; },
   'rank-sort': (el) => { rank.sort = el.dataset.sort; },
-  'rank-refresh': () => loadRanking(true),
+  'season-tiers': () => { seasonUi.tiers = !seasonUi.tiers; },
+  'rank-refresh': () => { loadRanking(true); if (rank.sort === 'duel') loadSeason(true); },
   'duel': (el) => startDuel(el.dataset.nick),
   'raid-refresh': () => { raidUi.at = 0; raidUi.error = null; raidPoll(true); },
   'raid-ticket': () => { if (buyTicket()) toast(`🎟️ 레이드 입장권을 샀어요 (${S.raid.tickets}장)`); },
@@ -1524,7 +1600,7 @@ function resetWorld() {
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null });
   casts = []; skfx = []; screenFx = []; cutin = null; hitstop = 0;
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
-  rank.data = null; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
+  rank.data = null; seasonUi.data = null; seasonUi.at = 0; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
   raidPlay = null; Object.assign(raidUi, { rooms: null, at: 0, room: null, error: null, revealed: [], showResult: false, key: '' });
 }
 
@@ -1563,7 +1639,7 @@ async function enterAccount(nick, known) {
   if (known !== undefined) {
     saveKey = key;
     applyState(known && (known.lastSeen || 0) >= localSeen ? known : local);
-    pushSave(true);
+    pushSave(true).then(() => loadSeason(true));
     return;
   }
   const remote = fetchMe().then((r) => r.state, (e) => {
@@ -1577,7 +1653,7 @@ async function enterAccount(nick, known) {
     remote.then((st) => {
       if (activeNick() !== nick) return;
       if (st && (st.lastSeen || 0) > localSeen) { applyState(st); toast('☁️ 다른 기기에서 진행한 기록을 불러왔어요'); }
-      pushSave(true);
+      pushSave(true).then(() => loadSeason(true));
     });
     return;
   }
@@ -1590,7 +1666,7 @@ async function enterAccount(nick, known) {
   applyState(st || null);
   if (st) toast('☁️ 기록을 불러왔어요', 2500);
   else toast(`⚠️ 기록을 불러오지 못했어요 (${sync.error}) — 새 기록으로 시작합니다`, 7000);
-  pushSave(true);
+  pushSave(true).then(() => loadSeason(true));
 }
 
 document.addEventListener('click', (e) => {

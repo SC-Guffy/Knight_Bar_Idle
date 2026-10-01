@@ -31,6 +31,7 @@ function freshState() {
     trip: null,                             // 진행 중인 원정 기록
     report: null,                           // 확인 안 한 원정 기록
     raid: freshRaid(),                      // 보스 레이드: 입장권·처치 상자·마지막 정산 (raid.js)
+    season: freshSeason(),                  // 결투 시즌: 받은 시즌 보상 (season.js)
     lastSeen: Date.now(),
   };
 }
