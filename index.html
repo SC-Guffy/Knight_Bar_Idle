@@ -31,6 +31,11 @@
   /* 자동 숨기기: 마우스가 하단바를 벗어나면 기사·HUD 를 흐리게 감춘다 (말풍선·토스트는 그대로) */
   #c, #hud { transition: opacity .4s; }
   body.faded #c, body.faded #hud { opacity: 0; pointer-events: none; }
+  /* 도전의 탑 (world.js drawTower): 오른쪽 아래에 붙은 세로 띠. 창이 하단바 높이뿐이면 하단바 오른쪽 끝 안에 들어간다 */
+  #tc { position: fixed; right: 0; bottom: 0; z-index: 3; pointer-events: none; transition: opacity .4s; }
+  #tc[hidden] { display: none; }
+  body.faded #tc { opacity: 0; }
+  body.tower #hud.right { right: 160px; }
 
   #hud { position: absolute; top: 6px; left: 10px; width: 470px; }
   #hud.right { left: auto; right: 10px; }
@@ -592,6 +597,7 @@
 <script src="src/gear.js"></script>
 <script src="src/raid.js"></script>
 <script src="src/season.js"></script>
+<script src="src/tower.js"></script>
 <script src="src/core.js"></script>
 <script src="src/net.js"></script>
 <script src="src/world.js"></script>

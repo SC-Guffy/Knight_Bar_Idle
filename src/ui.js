@@ -71,6 +71,8 @@ const LIVE = {
   expLeft: () => fmtTime(S.stamina / STAMINA_DRAIN),
   expKills: () => (S.trip ? S.trip.kills : 0),
   expBoxes: () => (S.trip ? S.trip.boxes.reduce((a, b) => a + b, 0) : 0),
+  towerFloor: () => (S.tower.run ? `${S.tower.run.floor}F` : '-'),
+  towerTomes: () => (S.tower.run ? S.tower.run.tomes : 0),
   build: () => (S.build ? `🔨 ${BUILDINGS[S.build.id].name} Lv ${S.bld[S.build.id] + 1} 건설 중 · ${fmtTime(S.build.remain)}` : ''),
   buildLeft: () => (S.build ? fmtTime(S.build.remain) : ''),
   gold: () => fmt(S.gold),
@@ -116,10 +118,11 @@ function renderHud() {
   $('xpfill').style.width = (100 * S.exp / expToNext()) + '%';
   $('status').textContent =
     S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / STAMINA_DRAIN)}`
+      : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / STAMINA_DRAIN)}` : '🏃 귀환 중')
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`;
 
-  const key = S.phase + (S.build ? 'b' : '');
+  const key = S.phase + (S.build ? 'b' : '') + (S.tower.run ? 'r' : '');
   if (key !== panelKey) {
     panelKey = key;
     const build = S.build ? '<div class="pline" data-live="build"></div>' : '';
@@ -128,7 +131,11 @@ function renderHud() {
         <div class="pline">⏳ 남은 원정 <b data-live="expLeft"></b> · 처치 <b data-live="expKills"></b> · 📦 <b data-live="expBoxes"></b></div>
         ${build}
         <button class="pbtn" data-action="recall">🏕 귀환 명령</button>`
-      : S.phase === 'returning' ? `<div class="pline">캠프로 돌아가는 중…</div>${build}`
+      : S.phase === 'tower' && S.tower.run ? `
+        <div class="pline">🗼 도전의 탑 <b data-live="towerFloor"></b> · ⏳ <b data-live="expLeft"></b> · 📖 <b data-live="towerTomes"></b></div>
+        ${build}
+        <button class="pbtn" data-action="tower-retreat">⬇️ 후퇴</button>`
+      : S.phase === 'returning' || S.phase === 'tower' ? `<div class="pline">캠프로 돌아가는 중…</div>${build}`
       : `<div class="pline" data-live="campStatus"></div>${build}
          <button class="pbtn" data-action="open-camp">🏕 캠프 열기</button>`;
   }
@@ -814,6 +821,8 @@ function campDots() {
     gear: Object.keys(GEAR_SLOTS).some(gearBetter),
     class: anyClassReady() || canLevelSkill(),
     raid: S.raid.chests.length > 0 || !!raidUi.room,
+    // 탑: 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
+    tower: towerBlocker() === '' && towerDayTomes() < TOWER_DAILY_TOMES,
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
@@ -1525,6 +1534,30 @@ function viewRaidLobby() {
     <div class="bgrid">${bosses}</div>`;
 }
 
+// ───────────────────────── 도전의 탑 ─────────────────────────
+const TOWER_REASON = { down: '💀 쓰러졌습니다', stamina: '😮‍💨 스태미나가 바닥났습니다', retreat: '⬇️ 후퇴했습니다', offline: '🌙 앱이 꺼져서 그 층에서 멈췄습니다' };
+function viewTower() {
+  const t = S.tower, blocker = towerBlocker(), cp = towerCheckpoint();
+  const nextFirst = Math.floor(t.best / 10) * 10 + 10;
+  const m = towerMonster(cp), boss = towerBossFloor(cp);
+  const day = towerDayTomes();
+  const L = t.last;
+  const last = L ? `
+    <div class="card"><div class="ic">📜</div><div class="info"><b>지난 도전</b>
+      <div class="eff">${TOWER_REASON[L.reason] || ''} — ${L.start}F 에서 시작해 ${L.cleared}개 층 돌파 (${L.start + L.cleared - 1 >= L.start ? `${L.start + L.cleared - 1}F 까지` : '돌파 없음'})</div>
+      <div class="eff"><i class="gc"></i> ${fmt(L.gold)} · ✨ ${fmt(L.exp)} · 📖 ${L.tomes}${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')}` : ''}</div></div></div>` : '';
+  return `
+    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 반복 비전서 ${day}/${TOWER_DAILY_TOMES}</small></h3>
+    <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 바닥까지 떨어져 캠프로 돌아옵니다.
+      체크포인트(10층 단위)부터 시작해요. 한 번의 도전에서 5층을 깰 때마다 📖 1권(하루 ${TOWER_DAILY_TOMES}권까지), 10층 단위를 처음 넘으면 📖 묶음.</div>
+    <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
+      <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
+      <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
+      <div class="act"><button class="go compact${rd(blocker === '' && day < TOWER_DAILY_TOMES)}" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 도전</button>
+        <div class="blocker">${blocker}</div></div></div>
+    ${last}`;
+}
+
 function viewRaid() {
   refillTickets();
   raidPoll();
@@ -1554,8 +1587,9 @@ function renderCamp() {
     ['class', '⚜️ 전직', dots.class ? DOT : ''],
     ['rank', '🏆 랭킹', ''],
     ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
+    ['tower', '🗼 탑', dots.tower ? DOT : ''],
   ];
-  const view = { report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid }[campTab]();
+  const view = { report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid, tower: viewTower }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
   $('campModal').innerHTML = `
     <header>
@@ -1603,6 +1637,14 @@ const ACTIONS = {
   'hud': () => { if (S.phase === 'camp') openCamp(); },
   'open-camp': openCamp,
   'recall': () => { endExpedition('manual'); save(); },
+  'tower-retreat': () => { towerEndRun('retreat'); renderHud(); },
+  'tower-start': () => {
+    if (!startTower()) return;
+    closeCamp();
+    beginTowerView();
+    save();
+    renderHud();
+  },
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),
   'tab': (el) => { campTab = el.dataset.tab; $('campBody').scrollTop = 0; },
@@ -1871,6 +1913,9 @@ async function acctImport() {
 // ───────────────────────── 계정 불러오기 ─────────────────────────
 // 전투 화면을 새 상태에 맞춰 비운다
 function resetWorld() {
+  // 탑은 이어서 하지 않는다: 다시 불러오면 그 층에서 끝낸 것으로 정산
+  if (S.phase === 'tower') { endTower('offline'); S.phase = 'camp'; }
+  if (tw) endTowerView();
   monsters = []; coins = []; floaters = []; shots = []; effects = [];
   lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null });
@@ -1982,6 +2027,11 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ───────────────────────── 알림 / 메뉴바 ─────────────────────────
+hooks.onTowerEnd = (r) => {
+  renderHud();
+  if (!r) return;
+  toast(`🗼 ${TOWER_REASON[r.reason] || '도전 끝'} — ${r.cleared}개 층 돌파${r.tomes ? ` · 📖 +${r.tomes}` : ''} (최고 ${r.best}F)`, 7000);
+};
 hooks.onArrive = () => {
   const r = S.report;
   toast('🏕 캠프에 도착했어요 — 기사를 클릭해 정산하세요', 6000);
@@ -2054,7 +2104,7 @@ function watchForUpdates() {
     if (current == null) { current = h; return; }
     if (h === current) { pending = null; return; }
     if (pending !== h) { pending = h; return; }
-    if (campOpen || document.activeElement?.value) return;   // 캠프 창을 보거나 뭔가 입력하던 중이면 끝난 뒤에
+    if (campOpen || S.phase === 'tower' || document.activeElement?.value) return;   // 캠프 창을 보거나 탑을 오르거나 뭔가 입력하던 중이면 끝난 뒤에
     save();
     try { await pushSave(); } catch {}
     window.bar.reload ? window.bar.reload() : location.reload();

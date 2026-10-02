@@ -10,6 +10,7 @@ const hooks = {
   onClassChange: (_id) => {},
   onSave: () => {},
   onAccountGone: () => {},
+  onTowerEnd: (_result) => {},
 };
 
 // ───────────────────────── 상태 / 저장 ─────────────────────────
@@ -28,13 +29,14 @@ function freshState() {
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 누적 경험치 (classes.js SKILL_MAX·skillNeed)
     tomes: 0,                               // 📖 비전서 (1권 = 경험치 TOME_EXP)
-    phase: 'camp',                          // camp | expedition | returning
+    phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
     trip: null,                             // 진행 중인 원정 기록
     report: null,                           // 확인 안 한 원정 기록
     raid: freshRaid(),                      // 보스 레이드: 입장권·처치 상자·마지막 정산 (raid.js)
     season: freshSeason(),                  // 결투 시즌: 받은 시즌 보상 (season.js)
+    tower: freshTower(),                    // 도전의 탑: 최고 층·진행 중인 도전 (tower.js)
     lastSeen: Date.now(),
   };
 }
@@ -296,7 +298,7 @@ function tryPotion() {
   if (S.hp >= max * POTION_AT || S.items.potion <= 0) return false;
   S.items.potion--;
   S.hp = max;
-  S.trip.potions++;
+  if (S.trip) S.trip.potions++;
   return true;
 }
 
@@ -433,6 +435,8 @@ function advanceCamp(sec) {
 // 전투는 "걷기 + 몬스터 1마리 처치"를 한 사이클로 근사하고, 바퀴의 몬스터를 다 잡으면 다음 바퀴로 넘어간다.
 function simulate(sec) {
   advanceBuild(sec);
+  // 탑은 오프라인으로 진행하지 않는다: 멈춰 있던 동안(앱을 껐거나 절전) 그 층에서 끝낸 것으로 정산
+  if (S.phase === 'tower') { endTower('offline'); S.phase = 'camp'; }
   if (S.phase === 'returning') arriveCamp(true);
   let t = sec;
   let guard = 0;

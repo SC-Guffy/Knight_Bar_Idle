@@ -11,6 +11,9 @@ const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 let win = null;
 let tray = null;
 let campOpen = false;   // 캠프 창이 열리면 창을 화면 전체로 키운다
+// 오버레이: 창을 화면 전체 높이로 키우되 클릭은 계속 통과시킨다 (하단바 밖 화면 가장자리에 그리는 콘텐츠용 — 도전의 탑 등).
+// 무엇을 어디에 그릴지는 게임 코드(웹)가 정하므로, 이 통로만 있으면 새 가장자리 콘텐츠도 앱 재설치 없이 추가할 수 있다.
+let overlay = false;
 let settings = { displayId: null, overDock: false, showGround: true, hudRight: false, serverUrl: '' };
 let accountName = null;   // 렌더러가 알려 주는 현재 기사 닉네임
 let quitting = false;
@@ -31,7 +34,7 @@ function place() {
   if (!win) return;
   const d = targetDisplay();
   const area = settings.overDock ? d.bounds : d.workArea;
-  const h = campOpen ? area.height : BAR_HEIGHT;
+  const h = campOpen || overlay ? area.height : BAR_HEIGHT;
   win.setBounds({ x: area.x, y: area.y + area.height - h, width: area.width, height: h });
   win.setAlwaysOnTop(true, settings.overDock ? 'screen-saver' : 'floating');
 }
@@ -273,6 +276,11 @@ app.whenReady().then(() => {
       win.setIgnoreMouseEvents(true, { forward: true });
       win.blur();
     }
+  });
+  ipcMain.on('overlay', (_e, on) => {
+    if (!win || overlay === !!on) return;
+    overlay = !!on;
+    place();
   });
   ipcMain.on('quit', () => app.quit());
   // 렌더러가 새 게임 버전을 발견하면 캐시를 비우고 다시 불러온다

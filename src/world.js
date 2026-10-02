@@ -2,7 +2,8 @@
 // 하단바의 실시간 연출: 기사/몬스터 이동과 전투, 캠프, 이펙트.
 
 const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+// 그리는 캔버스. 도전의 탑 안의 장면은 탑 캔버스로 잠깐 바꿔서 같은 그리기 함수로 그린다 (drawTower)
+let ctx = canvas.getContext('2d');
 let W = 0;
 const H = BAR_H;
 let showGround = true;
@@ -14,6 +15,7 @@ function resizeCanvas() {
   canvas.width = W * dpr; canvas.height = H * dpr;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (tw) resizeTower();
   ctx.imageSmoothingEnabled = false;
   makeGrass();
 }
@@ -60,6 +62,7 @@ function makeGrass() {
 
 // pop: 처음 잠깐 크게 튀어나왔다가 제 크기로 줄어든다 (스킬 피해 숫자)
 function addFloater(text, x, y, color, size = 12, pop = false) {
+  if (towerInside()) return floaters.push({ text, x, y, color, size, pop, t: 0, tw: true });
   floaters.push({ text, x, y, color, size, t: 0, pop });
 }
 function showBanner(text, color = '#ffd257') { banner = { text, color, t: 0 }; }
@@ -83,8 +86,7 @@ const bossX = () => toWorld(W - 60);
 const SPAWN_AHEAD = 260;                  // 기사 앞 이 거리 안에 들어온 자리부터 몬스터가 나타남
 const MAX_ALIVE = 2;
 
-function makeMonster(type, boss, x) {
-  const st = monsterStats(S.stage, boss);
+function makeMonster(type, boss, x, st = monsterStats(S.stage, boss)) {
   return { type, ...st, maxHp: st.hp, x, born: clock, atkTimer: rand(0.4, 1.0), flash: 0, kb: 0, hurt: 0, anim: null, dying: 0, t: Math.random() * 10 };
 }
 
@@ -177,6 +179,7 @@ function hitMonster(m, mult = 1, o = {}) {
   m.dying = 0.001;
   m.killed = true;
   shatter(m);
+  if (S.phase === 'tower') { towerKillReward(m); return; }
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -232,6 +235,17 @@ function updateExpedition(dt, gdt) {
   if (!lapReady) layoutLap();
   spawnAhead();
 
+  fightTick(dt, st, () => {
+    knight.x += WALK_SPEED * dt;
+    if (knight.x >= worldLen()) { knight.x -= worldLen(); endLap(); }
+    knight.walkT += dt;
+    S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * dt);
+  });
+}
+
+// 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree() (원정은 걷기, 탑은 층 정리)
+function fightTick(dt, st, onFree) {
+  const phase = S.phase;
   const alive = monsters.filter(m => !m.dying)
     .sort((a, b) => aheadDist(knight.x, a.x) - aheadDist(knight.x, b.x));
   const target = alive[0] || null;
@@ -271,16 +285,13 @@ function updateExpedition(dt, gdt) {
     }
   } else {
     knight.fighting = false;
-    knight.x += WALK_SPEED * dt;
-    if (knight.x >= worldLen()) { knight.x -= worldLen(); endLap(); }
-    knight.walkT += dt;
     knight.atkTimer = Math.min(knight.atkTimer, 0.25);
-    S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * dt);
+    onFree();
   }
 
   // 공격은 예비동작 → 타격 → 복귀 모션으로 재생하고, 피해는 타격 프레임에 들어간다
   for (const m of monsters) {
-    if (m.dying || S.phase !== 'expedition') continue;
+    if (m.dying || S.phase !== phase || knight.down > 0) continue;
     if (m.anim && advanceMonsterAttack(m, dt, st)) break;   // true = 기사가 쓰러짐
     if (aheadDist(knight.x, m.x) > monsterReach(m) + 1) continue;
     m.atkTimer -= dt;
@@ -307,8 +318,9 @@ function advanceMonsterAttack(m, dt, st) {
   knight.recoil = 1;
   addFloater('-' + fmt(dmg), toScreen(knight.x) + rand(-4, 4), groundY() - 52, '#ff6b6b', 11);
   if (S.hp > 0 && tryPotion()) addFloater('🧪 +HP', toScreen(knight.x), groundY() - 66, '#7dffb0', 12);
-  if (S.hp > 0 && S.hp < st.maxHp * 0.25 && !knight.crisis) { knight.crisis = true; S.trip.crises++; }
+  if (S.hp > 0 && S.hp < st.maxHp * 0.25 && !knight.crisis) { knight.crisis = true; if (S.trip) S.trip.crises++; }
   if (S.hp > 0) return false;
+  if (S.phase === 'tower') { towerKnightDown(); return true; }
   addFloater(`💀 스태미나 -${DEFEAT_STAMINA}`, toScreen(knight.x), groundY() - 50, '#ff9f9f', 12);
   knightDefeated(!!m.boss);
   knight.down = DEFEAT_DOWN_SEC;
@@ -338,6 +350,252 @@ function updateReturning(dt) {
   knight.walkT += dt;
 }
 
+// ───────────────────────── 도전의 탑 ─────────────────────────
+// 규칙(층·보상)은 src/tower.js. 여기는 연출: 하단바를 걸어 탑 문으로 → 층마다 싸우고 사다리로 오름 → 끝나면 바닥까지 추락 → 캠프로.
+// 탑은 화면 오른쪽 끝의 세로 띠(탑 캔버스 #tc)에 그린다. 창이 하단바 높이뿐이면(새 창 모드가 없는 옛 앱, 좁은 iframe)
+// 같은 탑이 하단바 오른쪽 끝 150px 안에서 층을 아래로 내리며 보인다. 새 앱은 탑에 들어갈 때 창을 화면 전체 높이로 키운다
+// (window.bar.setOverlay — 클릭은 계속 통과).
+// 탑 안의 기사·몬스터는 "층 좌표"에 있다: 하단바와 같은 눈금(x = 탑 왼쪽 끝부터, 땅 = groundY())이고,
+// 그릴 때만 그 층의 높이로 옮긴다. 그래서 원정의 전투·스킬·이펙트 코드를 그대로 쓴다.
+const TOWER_W = 150;            // 탑 폭(px)
+const FLOOR_H = 80;             // 층 높이(px)
+const TW_START_X = 30;          // 층에서 기사가 자리 잡는 곳 (탑 안 x)
+const TW_LADDER_X = TOWER_W - 16;
+const TW_SPAWN_X = TOWER_W - 36;
+const tcv = document.createElement('canvas');
+tcv.id = 'tc';
+tcv.hidden = true;
+document.body.appendChild(tcv);
+const tctx = tcv.getContext('2d');
+let tcH = BAR_H;                // 탑 캔버스 높이 (하단바 높이면 하단바 안 탑)
+// 탑 연출 상태. sub: walkIn 하단바에서 문으로 | enter 층 자리로 | fight | clear 잠깐 숨 고르기 | climb 사다리 | fall 추락 | exit 문 밖으로 | walkOut 캠프로
+//  idx: 이번 도전의 시작 층부터 센 층 번호(0 = 1층 자리), dy: 사다리를 오른 높이, h·vy: 추락 높이·속도, cam: 화면 맨 아래 층(소수)
+let tw = null;
+const towerInside = () => !!tw && tw.sub !== 'walkIn' && tw.sub !== 'walkOut';
+const towerStrip = () => tcH > BAR_H;
+const towerLevel = () => (tw.sub === 'fall' || tw.sub === 'exit' ? tw.h / FLOOR_H : tw.idx + tw.dy / FLOOR_H);
+const towerFloorY = (i) => tcH - 10 - (i - tw.cam) * FLOOR_H;
+
+function resizeTower() {
+  const dpr = window.devicePixelRatio || 1;
+  tcH = window.innerHeight >= BAR_H + 150 ? window.innerHeight : BAR_H;
+  tcv.width = TOWER_W * dpr; tcv.height = tcH * dpr;
+  tcv.style.width = TOWER_W + 'px'; tcv.style.height = tcH + 'px';
+  tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  tctx.imageSmoothingEnabled = false;
+}
+
+// 캠프에서 도전을 시작한 직후 (core 상태는 startTower 가 이미 바꿨다)
+function beginTowerView() {
+  tw = { sub: 'walkIn', idx: 0, dy: 0, h: 0, vy: 0, cam: 0, t: 0, res: null };
+  monsters = []; shots = []; lapReady = false;
+  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, ward: null });
+  document.body.classList.add('tower');
+  if (window.bar && window.bar.setOverlay) window.bar.setOverlay(true);
+  resizeTower();
+}
+function endTowerView() {
+  tw = null;
+  document.body.classList.remove('tower');
+  if (window.bar && window.bar.setOverlay) window.bar.setOverlay(false);
+}
+// 층 좌표에서 생긴 이펙트를 걷어 낸다 (탑을 드나들 때 하단바 좌표와 섞이지 않게)
+function clearTowerFx() {
+  effects = []; parts = []; shots = []; casts = []; skfx = []; cutin = null;
+  floaters = floaters.filter((f) => !f.tw);
+}
+
+// 도전 끝: 쓰러짐·지침·후퇴. 기사는 지금 높이에서 바닥까지 떨어진다
+function towerEndRun(reason) {
+  if (!tw || !S.tower.run) return;
+  tw.res = endTower(reason);
+  monsters.forEach((m) => { if (!m.dying) m.dying = 0.001; m.anim = null; });
+  knight.fighting = false; knight.pending = false; knight.ward = null;
+  endCast('hero');
+  shots = [];
+  if (tw.sub === 'walkIn') { tw.sub = 'walkOut'; return; }
+  const label = { down: '💀 쓰러졌다!', stamina: '😮‍💨 지쳤다…', retreat: '⬇️ 후퇴!' }[reason];
+  if (label) addFloater(label, toScreen(knight.x), groundY() - 60, '#ffd257', 12);
+  tw.h = towerLevel() * FLOOR_H; tw.vy = -60; tw.sub = 'fall';
+  save();
+}
+function towerKnightDown() {
+  knight.down = 0.6;
+  towerEndRun('down');
+}
+
+function towerWalk(toX, speed, dt) {
+  const sx = toScreen(knight.x), diff = toX - sx;
+  if (Math.abs(diff) <= speed * dt) { knight.x = toWorld(toX); return true; }
+  knight.facing = Math.sign(diff);
+  knight.x += knight.facing * speed * dt;
+  knight.walkT += dt;
+  return false;
+}
+
+function updateTower(dt, gdt) {
+  if (!tw) beginTowerView();
+  const st = stats();
+  const regen = () => { S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * dt); };
+  knight.down = Math.max(0, knight.down - dt);
+  // 카메라: 띠에선 지금 층을 아래에서 30% 쯤에, 하단바 안에선 지금 층을 바닥에 둔다
+  const keep = towerStrip() ? Math.floor((tcH * 0.3) / FLOOR_H) : 0;
+  const camTo = Math.max(0, towerLevel() - keep);
+  tw.cam += (camTo - tw.cam) * Math.min(1, dt * (tw.sub === 'fall' ? 12 : 5));
+
+  if (S.tower.run && towerInside()) {
+    S.stamina -= STAMINA_DRAIN * gdt;
+    if (S.stamina <= 0) { S.stamina = 0; towerEndRun('stamina'); }
+  }
+
+  switch (tw.sub) {
+    case 'walkIn':
+      if (towerWalk(W - TOWER_W + 6, RETURN_SPEED, dt)) {
+        clearTowerFx();
+        tw.sub = 'enter';
+        knight.x = toWorld(2);
+      }
+      break;
+    case 'enter':
+      regen();
+      if (towerWalk(TW_START_X, WALK_SPEED * 1.6, dt)) {
+        knight.facing = 1;
+        const floor = S.tower.run.floor, m = towerMonster(floor);
+        monsters = [makeMonster(m.type, m.boss, toWorld(TW_SPAWN_X), m)];
+        if (m.boss) showBanner(`🗼 ${floor}F 보스! ${MONSTERS[m.type].name}`, '#ff5a5a');
+        tw.sub = 'fight';
+      }
+      break;
+    case 'fight':
+      fightTick(dt, st, () => {
+        if (monsters.some((m) => !m.dying)) { knight.x += WALK_SPEED * dt; knight.walkT += dt; return; }
+        const r = clearTowerFloor();
+        addFloater(`${r.floor}F 돌파!`, toScreen(knight.x), groundY() - 62, '#ffffff', 12);
+        if (r.tomes) addFloater(`📖 비전서 +${r.tomes}`, toScreen(knight.x), groundY() - 78, '#c9a7ff', 14, true);
+        if (r.first) showBanner(`🗼 ${r.floor}F 첫 돌파! 📖 +${r.tomes}`, '#c9a7ff');
+        else if (r.record) showBanner(`🗼 최고 기록 경신!`, '#ffd257');
+        tw.sub = 'clear'; tw.t = 0;
+        save();
+      });
+      break;
+    case 'clear':
+      regen();
+      if ((tw.t += dt) > 0.45) tw.sub = 'climb';
+      break;
+    case 'climb':
+      regen();
+      if (!towerWalk(TW_LADDER_X, WALK_SPEED * 1.6, dt)) break;
+      knight.facing = 1;
+      knight.walkT += dt;
+      tw.dy += (FLOOR_H / 0.6) * dt;
+      if (tw.dy >= FLOOR_H) { tw.dy = 0; tw.idx++; monsters = []; tw.sub = 'enter'; }
+      break;
+    case 'fall':
+      tw.vy = Math.min(700, tw.vy + 1100 * dt);
+      tw.h -= tw.vy * dt;
+      if (tw.h <= 0) {
+        tw.h = 0;
+        burst(toScreen(knight.x), groundY() - 2, 12, ['#b8a890', '#8a7a68', '#ffffff'], 90, 2, 300);
+        shake = Math.max(shake, 0.15);
+        tw.sub = 'exit';
+      }
+      break;
+    case 'exit':
+      if (towerWalk(-14, RETURN_SPEED, dt)) {
+        clearTowerFx();
+        tw.sub = 'walkOut';
+        knight.x = toWorld(W - TOWER_W + 6);
+      }
+      break;
+    case 'walkOut':
+      if (towerWalk(CAMP_X, RETURN_SPEED, dt)) {
+        knight.facing = 1;
+        const res = tw.res;
+        endTowerView();
+        S.phase = 'camp';
+        hooks.onTowerEnd(res);
+        save();
+      }
+      break;
+  }
+}
+
+// 탑 캔버스: 벽돌 벽·층 바닥·사다리·층 번호, 그 위에 지금 층의 기사·몬스터·이펙트
+function drawTower() {
+  if (tcv.hidden !== !tw) { tcv.hidden = !tw; if (tw) resizeTower(); }
+  if (!tw) return;
+  const g = tctx;
+  g.clearRect(0, 0, TOWER_W, tcH);
+  drawTowerBody(g);
+  if (!towerInside()) return;
+  const keep = ctx;
+  ctx = g;
+  try {
+    ctx.save();
+    if (shake > 0) { const amp = Math.max(3, shakeAmp); ctx.translate(Math.round(rand(-amp, amp)), Math.round(rand(-amp * 0.7, amp * 0.7))); }
+    ctx.translate(0, Math.round(towerFloorY(towerLevel()) - groundY()));
+    drawActors();
+    drawFloaters(true);
+    ctx.restore();
+  } finally {
+    ctx = keep;
+  }
+}
+
+function drawTowerBody(g) {
+  const r = S.tower.run || tw.res, start = r ? r.start : towerCheckpoint();
+  const gr = ZONES[zoneIndex(S.stage)].ground;
+  const lo = Math.max(0, Math.floor(tw.cam) - 1), hi = Math.ceil(tw.cam + tcH / FLOOR_H) + 1;
+  g.font = 'bold 10px -apple-system, sans-serif';
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
+  for (let i = lo; i <= hi; i++) {
+    const gy = Math.round(towerFloorY(i)), f = start + i, top = gy - FLOOR_H, boss = towerBossFloor(f);
+    if (top > tcH || gy < -10) continue;
+    // 벽 (벽돌 줄눈)
+    g.fillStyle = 'rgba(30,27,40,0.93)';
+    g.fillRect(0, top, TOWER_W, FLOOR_H);
+    g.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let row = 0; row < FLOOR_H; row += 10) {
+      g.fillRect(0, top + row, TOWER_W, 1);
+      for (let x = (row / 10) % 2 ? 0 : 12; x < TOWER_W; x += 24) g.fillRect(x, top + row, 1, 10);
+    }
+    // 가운데 좁은 창과 횃불
+    g.fillStyle = 'rgba(120,150,220,0.18)';
+    g.fillRect(TOWER_W / 2 - 4, top + 14, 8, 22);
+    g.fillRect(TOWER_W / 2 - 2, top + 12, 4, 2);
+    const fl = 0.6 + 0.4 * Math.sin(clock * 9 + i * 1.7);
+    g.fillStyle = '#5a4030'; g.fillRect(14, top + 30, 2, 8);
+    g.fillStyle = `rgba(255,170,60,${0.7 * fl})`; g.fillRect(13, top + 26, 4, 4);
+    g.fillStyle = `rgba(255,230,140,${fl})`; g.fillRect(14, top + 27, 2, 2);
+    // 사다리 (이 층에서 위층으로)
+    g.fillStyle = '#7a5530';
+    g.fillRect(TW_LADDER_X - 5, top, 2, FLOOR_H);
+    g.fillRect(TW_LADDER_X + 4, top, 2, FLOOR_H);
+    for (let y = top + 4; y < gy; y += 8) g.fillRect(TW_LADDER_X - 5, y, 11, 2);
+    // 바닥
+    g.fillStyle = boss ? '#7a3b46' : '#575066';
+    g.fillRect(0, gy, TOWER_W, 4);
+    g.fillStyle = boss ? '#b05a66' : '#8a8298';
+    g.fillRect(0, gy, TOWER_W, 1);
+    // 층 번호 (최고 기록 층은 금색, 보스 층은 빨강)
+    g.fillStyle = f === S.tower.best ? '#ffd257' : boss ? '#ff8080' : 'rgba(255,255,255,0.55)';
+    g.fillText(`${boss ? '👑' : ''}${f}F`, 22, top + 12);
+    if (i === 0) {
+      // 1층 왼쪽 벽의 문
+      g.fillStyle = '#0c0a12';
+      g.fillRect(0, gy - 26, 10, 26);
+      g.fillRect(2, gy - 28, 6, 2);
+    }
+  }
+  // 바닥층 아래는 하단바와 같은 흙
+  const g0 = Math.round(towerFloorY(0));
+  if (g0 < tcH) { g.fillStyle = gr.soil; g.fillRect(0, g0 + 4, TOWER_W, tcH - g0 - 4); }
+  // 바깥 벽
+  g.fillStyle = '#15131c';
+  g.fillRect(0, 0, 2, Math.min(tcH, g0 - 26)); g.fillRect(TOWER_W - 2, 0, 2, tcH);
+}
+
 function update(dt) {
   // 큰 타격 순간엔 화면 전체를 아주 잠깐 멈춘다 (히트스톱)
   if (hitstop > 0) { hitstop -= dt; return; }
@@ -356,6 +614,7 @@ function update(dt) {
 
   if (S.phase === 'expedition') updateExpedition(dt, gdt);
   else if (S.phase === 'returning') updateReturning(dt);
+  else if (S.phase === 'tower') updateTower(dt, gdt);
   else advanceCamp(gdt);
   if (duelPlay) updateDuel();
   if (raidPlay) updateRaid(dt);
@@ -373,7 +632,7 @@ function update(dt) {
 
   for (const sh of shots) {
     if (sh.delay > 0) { sh.delay -= dt; continue; }
-    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
+    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'tower' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
     const tx = toScreen(sh.m.x), ty = monsterMidY(sh.m);
     const dx = tx - sh.x, dy = ty - sh.y, dist = Math.hypot(dx, dy);
     const step = sh.w.arrow.speed * dt;
@@ -1393,18 +1652,7 @@ function drawParts() {
 }
 
 function drawFx() {
-  ctx.textAlign = 'center';
-  ctx.lineJoin = 'round';
-  for (const f of floaters) {
-    ctx.globalAlpha = Math.max(0, 1 - Math.max(0, f.t - 0.6) / 0.5);
-    const popK = f.pop && f.t < 0.16 ? 1 + 0.7 * (1 - f.t / 0.16) : 1;
-    ctx.font = `bold ${Math.round(f.size * popK)}px -apple-system, sans-serif`;
-    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-    ctx.strokeText(f.text, f.x, f.y);
-    ctx.fillStyle = f.color;
-    ctx.fillText(f.text, f.x, f.y);
-  }
-  ctx.globalAlpha = 1;
+  drawFloaters(false);
 
   for (const c of coins) {
     ctx.fillStyle = '#b8860b'; ctx.fillRect(Math.round(c.x) - 3, Math.round(c.y) - 3, 6, 6);
@@ -1416,14 +1664,31 @@ function drawFx() {
     ctx.globalAlpha = Math.max(0, a);
     ctx.font = 'bold 20px -apple-system, sans-serif';
     ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-    // 결투 중엔 두 기사 사이, 레이드 중엔 파티와 보스 사이
-    const cx = duelPlay ? duelPlay.x0 + duelPlay.res.fight.start / 2 : raidPlay ? raidPlay.x0 + raidPlay.f.start * 0.55 : toScreen(knight.x) + 40;
+    // 결투 중엔 두 기사 사이, 레이드 중엔 파티와 보스 사이, 탑 안에 있으면 탑 바로 왼쪽
+    const cx = duelPlay ? duelPlay.x0 + duelPlay.res.fight.start / 2 : raidPlay ? raidPlay.x0 + raidPlay.f.start * 0.55
+      : towerInside() ? W - TOWER_W - 130 : toScreen(knight.x) + 40;
     const bx = Math.min(W - 60, Math.max(60, cx)), by = groundY() - 78;
     ctx.strokeText(banner.text, bx, by);
     ctx.fillStyle = banner.color;
     ctx.fillText(banner.text, bx, by);
     ctx.globalAlpha = 1;
   }
+}
+// 떠오르는 글자. tw: 탑 안에서 생긴 글자(탑 캔버스의 층 좌표)만 / 아니면 하단바 글자만
+function drawFloaters(tw) {
+  ctx.textAlign = 'center';
+  ctx.lineJoin = 'round';
+  for (const f of floaters) {
+    if (!!f.tw !== tw) continue;
+    ctx.globalAlpha = Math.max(0, 1 - Math.max(0, f.t - 0.6) / 0.5);
+    const popK = f.pop && f.t < 0.16 ? 1 + 0.7 * (1 - f.t / 0.16) : 1;
+    ctx.font = `bold ${Math.round(f.size * popK)}px -apple-system, sans-serif`;
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
 }
 
 // ───────────────────────── 결투 ─────────────────────────
@@ -2093,6 +2358,14 @@ function render() {
   if (shake > 0) ctx.translate(Math.round(rand(-amp, amp)), Math.round(rand(-amp * 0.7, amp * 0.7)));
   drawGround();
   drawCamp();
+  // 탑 안에 있는 동안 기사·몬스터·이펙트는 탑 캔버스에 그린다 (drawTower)
+  if (!towerInside()) drawActors();
+  ctx.restore();
+  drawScreenFx();
+  drawFx();
+  drawTower();
+}
+function drawActors() {
   for (const m of monsters) drawMonster(m);
   drawAuras();
   if (duelPlay) drawDuel(); else if (raidPlay) drawRaid(); else drawKnight();
@@ -2100,7 +2373,4 @@ function render() {
   drawEffects();
   drawSkillFx();
   drawParts();
-  ctx.restore();
-  drawScreenFx();
-  drawFx();
 }
