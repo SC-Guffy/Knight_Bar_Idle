@@ -27,8 +27,9 @@ function freshState() {
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
-    mast: {},                               // 스킬 숙련도: 스킬 id → 누적 경험치 (classes.js SKILL_MAX·skillNeed)
-    tomes: 0,                               // 📖 비전서 (1권 = 경험치 TOME_EXP)
+    mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed)
+    mastV: 2,                               // 2: mast 가 권수 (1: 옛 경험치, 1권 = 10)
+    tomes: 0,                               // 📖 비전서
     phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -72,6 +73,9 @@ function migrate(o) {
   // 잠깐 있었던 거물 사냥(boss) 훈련은 비용 곡선이 같은 수완으로 단계를 옮긴다
   // 스킬 숙련도 도입: 모두 Lv1 에서 시작한다 (Lv1 은 예전 스킬 배율의 ×0.85)
   if (!o.mast && !s.notice) s.notice = '📖 스킬 숙련도 도입 — 스킬 한 방은 세졌지만 쿨타임이 3배로 길어졌어요. 비전서를 먹여 Lv30까지 키우면 쿨타임이 줄고 위력이 오릅니다 (전직 탭)';
+  // 숙련도가 경험치(1권 = 10) → 비전서 권수로: 먹였던 권수 그대로 옮긴다 (요구량이 줄어서 레벨은 오른다)
+  if (o.mast && o.mastV !== 2) for (const id of Object.keys(s.mast)) s.mast[id] = Math.min(SKILL_TOME_MAX, Math.round(s.mast[id] / 10));
+  s.mastV = 2;
   if (s.train.boss) s.train.fortune = (s.train.fortune || 0) + s.train.boss;
   delete s.train.boss;
   s.gear.inv.forEach(fixGearItem);
@@ -144,18 +148,17 @@ function feedTomes(id, n) {
   const k = SKILLS[id];
   if (!k || !skillsOf(S.cls).includes(k)) return null;
   const have = S.mast[id] || 0;
-  const room = Math.ceil((SKILL_EXP_MAX - have) / TOME_EXP);
-  const used = Math.min(n, S.tomes, room);
+  const used = Math.min(n, S.tomes, SKILL_TOME_MAX - have);
   if (used <= 0) return null;
   const from = skillLv(id);
   S.tomes -= used;
-  S.mast[id] = Math.min(SKILL_EXP_MAX, have + used * TOME_EXP);
+  S.mast[id] = have + used;
   return { used, from, to: skillLv(id) };
 }
 // 지금 가진 비전서로 레벨을 하나라도 올릴 수 있는 내 스킬이 있는가 (레드닷)
 const canLevelSkill = () => skillsOf(S.cls).some((k) => {
   const s = skillLvOf(S.mast[k.id] || 0);
-  return s.lv < SKILL_MAX && S.tomes * TOME_EXP >= s.need - s.exp;
+  return s.lv < SKILL_MAX && S.tomes >= s.need - s.have;
 });
 
 // 한 마리를 상대로 한 초당 피해 (연발·스킬 포함). 스킬을 쓰는 동안은 평타를 멈춘다

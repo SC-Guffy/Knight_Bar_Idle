@@ -566,7 +566,7 @@ const skillsOf = (cls) => {
 };
 
 // ───────────────────────── 스킬 숙련도 ─────────────────────────
-// 📖 비전서로만 경험치가 오른다 (쓴다고 오르지 않는다). 숙련도가 오르면 **쿨타임이 줄고 한 방이 세진다** (둘을 함께 쓴다).
+// 📖 비전서로만 오른다 (쓴다고 오르지 않는다). 경험치 없이 비전서 권수 그대로 — 다음 레벨까지 1~20권. 숙련도가 오르면 **쿨타임이 줄고 한 방이 세진다** (둘을 함께 쓴다).
 //  - 쿨타임: 위 SKILLS 의 cd × 3.0 (Lv1) → × 1.2 (Lv30). 다 키워도 숙련도 도입 전보다 길다 — 스킬은 가끔 터지는 한 방
 //  - 한 방 위력: SKILLS 배율 × SKILL_DMG[직업] × (Lv1 1/1.4 → Lv30 1). Lv30 이면 그 직업의 전체 DPS 가 도입 전보다 +25% 가 되도록 직업마다 정했다.
 //    스킬 비중이 큰 직업(용기병·할버디어 ~50%)일수록 낮고 1차(~25%)는 높다 — 그래야 다 키웠을 때 모든 직업의 성장이 같다.
@@ -574,7 +574,6 @@ const skillsOf = (cls) => {
 //  - 성장의 70% 는 레벨마다 고르게, 30% 는 Lv10·20·30 을 넘는 순간 10% 씩 (비주얼이 바뀌는 순간 힘도 함께 오른다).
 //  - 보호막(성역)의 지속·감소·회복 수치는 그대로이고 지속 피해만 위력 배율을 받는다.
 const SKILL_MAX = 30;
-const TOME_EXP = 10;                     // 비전서 1권 = 경험치 10
 const SKILL_CD_LV1 = 3.0;
 const SKILL_CD_MAX = 1.2;
 const SKILL_DMG_LV1 = 1 / 1.4;           // Lv1 한 방 위력 = Lv30 의 71%
@@ -595,9 +594,10 @@ const MASTERY = [
   { lv: 20, name: '달인', star: '★★', desc: '쿨타임이 크게 줄고, 발밑에 빛 고리가 돌고 잔상이 짙어진다' },
   { lv: 30, name: '극의', star: '★★★', desc: '쿨타임이 크게 줄고, 이펙트가 금빛으로 물들고 이름 띠와 마무리 섬광이 붙는다' },
 ];
-// L → L+1 에 필요한 경험치. Lv10 까지 770, Lv20 까지 3,755, Lv30 까지 9,338 (비전서 약 934권).
-// Lv1 → 2 만 비전서 1권으로 오른다: 탑에서 처음 받은 비전서 한 권으로 바로 강화를 해 보게 (FTUE)
-const skillNeed = (L) => (L === 1 ? TOME_EXP : Math.round(12 * Math.pow(L, 1.2)));
+// L → L+1 에 필요한 비전서 권수: Lv1→2 1권(탑에서 처음 받은 한 권으로 바로 강화해 보게, FTUE), 그 뒤 2권에서 고르게 늘어 Lv29→30 20권.
+// 한 레벨에 20권을 넘지 않는다. 누적 Lv10 36권 · Lv20 139권 · Lv30 309권
+const SKILL_NEED_MAX = 20;
+const skillNeed = (L) => (L === 1 ? 1 : Math.min(SKILL_NEED_MAX, Math.round(2 + (SKILL_NEED_MAX - 2) * (L - 2) / (SKILL_MAX - 3))));
 const masteryOf = (lv) => Math.min(3, Math.floor(lv / 10));
 const skillProg = (lv) => 0.7 * (lv - 1) / (SKILL_MAX - 1) + 0.1 * masteryOf(lv);
 // 쿨타임 배수 (SKILLS 의 cd 에 곱한다)
@@ -606,14 +606,14 @@ const skillCdOf = (k, lv) => Math.round(k.cd * skillCdAt(lv) * 10) / 10;
 // 한 방 위력 배수 (SKILLS 배율에 곱한다). cls 는 스킬의 직업, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG 를 곱한다)
 const skillPowAt = (cls, lv, owner = cls) =>
   (SKILL_DMG[cls] || 2) * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv)) * (owner !== cls ? INHERIT_DMG[owner] || 1 : 1);
-// 누적 경험치 → { lv, exp 이번 레벨에서 모은 양, need 다음 레벨까지 필요한 양 }
+// 누적 비전서 → { lv, have 이번 레벨에 먹인 권수, need 이번 레벨에 필요한 권수 }
 function skillLvOf(total) {
   let lv = 1, left = total;
   while (lv < SKILL_MAX && left >= skillNeed(lv)) { left -= skillNeed(lv); lv++; }
-  return { lv, exp: lv >= SKILL_MAX ? 0 : left, need: lv >= SKILL_MAX ? 0 : skillNeed(lv) };
+  return { lv, have: lv >= SKILL_MAX ? 0 : left, need: lv >= SKILL_MAX ? 0 : skillNeed(lv) };
 }
-// 만렙까지 필요한 누적 경험치
-const SKILL_EXP_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed(i + 1)).reduce((a, b) => a + b, 0);
+// 만렙까지 필요한 누적 비전서
+const SKILL_TOME_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed(i + 1)).reduce((a, b) => a + b, 0);
 
 // 트리 화면 배치 순서
 const CLASS_TREE = [

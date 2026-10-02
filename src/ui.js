@@ -445,11 +445,11 @@ function skillList(id) {
 // 스킬 숙련도: 지금 직업의 스킬에 📖 비전서를 먹여서 Lv30 까지 키운다 (classes.js SKILL_MAX·MASTERY)
 function viewMastery() {
   const list = skillsOf(S.cls);
-  const head = `<h3>📖 스킬 숙련도 <small>비전서 <b>${fmt(S.tomes)}</b>권 · 1권 = 경험치 ${TOME_EXP}</small></h3>`;
+  const head = `<h3>📖 스킬 숙련도 <small>가진 비전서 <b>${fmt(S.tomes)}</b>권 · 칸을 다 채우면 레벨 업 (한 레벨 최대 ${SKILL_NEED_MAX}권)</small></h3>`;
   if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요. 비전서는 원정 보스가 가끔 떨굽니다.</div>`;
   const rows = list.map((k) => {
     const s = skillLvOf(S.mast[k.id] || 0), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
-    const need = max ? 0 : Math.ceil((s.need - s.exp) / TOME_EXP);
+    const need = max ? 0 : s.need - s.have;
     const nextM = MASTERY[m + 1];
     const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k.cls, lv, S.cls)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k.cls, lv, S.cls)).toFixed(2)}`;
     const tag = m ? `<span class="mtag m${m}">${MASTERY[m].star} ${MASTERY[m].name}</span>` : '';
@@ -459,7 +459,7 @@ function viewMastery() {
         <span class="sicon">${k.icon}</span>
         <div class="mbody">
           <div><b>${skillNameAt(k, s.lv)}</b>${k.stageName && skillNameAt(k, s.lv) !== k.name ? ` <small>(${k.name})</small>` : ''} <span class="mlv">Lv ${s.lv}</span>${tag}${S.level < k.lv ? ` <small>· 🔒 Lv ${k.lv}에 해금</small>` : ''}</div>
-          <div class="mbar"><i style="width:${max ? 100 : (s.exp / s.need) * 100}%"></i><span>${max ? 'MAX' : `경험치 ${fmt(s.exp)} / ${fmt(s.need)} · 📖 ${need}권 더`}</span></div>
+          <div class="mseg">${max ? '<div class="cells"><i class="on"></i></div><b>MAX</b>' : `<div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div><b>📖 ${s.have} / ${s.need}</b>`}</div>
           <small>쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → ${skillCdOf(k, s.lv + 1)}초`} · 위력 ${mt(s.lv)}${max ? '' : ` → ${mt(s.lv + 1)}`} <span class="dim">(Lv30 ${skillCdOf(k, SKILL_MAX)}초 · ${mt(SKILL_MAX)})</span></small>
           ${k.stageDesc ? `<small>지금 「${k.stageName[m]}」 ${k.stageDesc[m]}</small>` : ''}
           ${nextM ? `<small>다음 Lv ${nextM.lv} ${nextM.star} ${nextM.name}${k.stageName ? ` → <b class="mnext">「${k.stageName[m + 1]}」</b> ${k.stageDesc[m + 1]}` : `: ${nextM.desc}`}</small>` : ''}
@@ -829,8 +829,8 @@ function campDots() {
     gear: Object.keys(GEAR_SLOTS).some(gearBetter),
     class: anyClassReady() || canLevelSkill(),
     raid: S.raid.chests.length > 0 || !!raidUi.room,
-    // 탑: 처음 열렸거나 아직 안 본 도전 정산이 있을 때
-    tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending(),
+    // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
+    tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerBlocker() === '' && towerDayTomes() < TOWER_DAILY_TOMES,
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
@@ -1607,15 +1607,15 @@ function viewTower() {
       <div class="eff">${TOWER_REASON[L.reason] || ''} — ${L.start}F 에서 시작해 ${L.cleared}개 층 돌파 (${L.cleared ? `${L.start + L.cleared - 1}F 까지` : '돌파 없음'})</div>
       <div class="eff"><i class="gc"></i> ${fmt(L.gold)} · ✨ ${fmt(L.exp)} · 📖 ${L.tomes}${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')}` : ''}</div></div></div>` : '';
   return `
-    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
+    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 층 비전서 ${towerDayTomes()}/${TOWER_DAILY_TOMES} · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 바닥까지 떨어져 캠프로 돌아옵니다.
-      체크포인트(10층 단위)부터 시작해요. <b>층을 깰 때마다 📖 비전서</b>(1~20F 1권, 21~40F 2권, 41~60F 3권…) — 하루 제한 없이 스태미나만큼. 10층 단위를 처음 넘으면 📖 묶음.</div>
+      체크포인트(10층 단위)부터 시작해요. <b>층을 깰 때마다 📖 비전서 1권</b>(하루 ${TOWER_DAILY_TOMES}권까지), 10층 단위를 처음 넘으면 📖 묶음.</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
-      <div class="eff">이 구간 한 층에 📖 ${towerFloorTomes(cp)}권 · 다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
-      <div class="act"><button class="go compact${rd(blocker === '')}" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 도전</button>
+      <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
+      <div class="act"><button class="go compact${rd(blocker === '' && towerDayTomes() < TOWER_DAILY_TOMES)}" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 도전</button>
         <div class="blocker">${blocker}</div></div></div>
     ${last}`;
 }

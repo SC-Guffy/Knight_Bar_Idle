@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.10.14';
+const GAME_VERSION = '0.10.15';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -34,9 +34,9 @@ const TOWER_BOSS_HP = 2;              // 10층 보스는 같은 스테이지 보
 const TOWER_BOSS_ATK = 1.6;
 const TOWER_ENRAGE_SEC = 10;          // 한 층에서 이만큼 싸우면 광폭화: 그 뒤 TOWER_ENRAGE_DOUBLE 초마다 공격력 2배씩 (10초 ×1, 15초 ×4, 20초 ×16, 25초 ×64…)
 const TOWER_ENRAGE_DOUBLE = 2.5;
-// 탑 비전서: 층을 깰 때마다 바로 받는다 (하루 제한 없음 — 스태미나가 한도). 높은 층일수록 한 층에 더 많이:
-//  1~20F 1권, 21~40F 2권, 41~60F 3권 … → 체크포인트를 올릴수록 같은 스태미나로 더 많이 번다
-const towerFloorTomes = (floor) => 1 + Math.floor((floor - 1) / 20);
+// 탑 비전서: 층을 깰 때마다 1권, 하루 TOWER_DAILY_TOMES 권까지 (10층 단위 첫 돌파 묶음은 따로·제한 없음).
+//  숙련도는 스킬 하나 Lv30 에 309권 — 탑만으로 하루 30권이면 한 스킬 Lv10 은 이틀, Lv30 은 열흘쯤
+const TOWER_DAILY_TOMES = 30;
 const BOSS_TOME_DROP = 0.15;          // 원정 보스가 📖 비전서를 떨굴 확률 (스킬 숙련도, classes.js)
 const POTION_AT = 0.3;                // 체력 30% 이하에서 물약 자동 사용
 const CAMP_HEAL_PER_SEC = 0.1;        // 캠프에서 초당 최대 체력의 10% 회복
