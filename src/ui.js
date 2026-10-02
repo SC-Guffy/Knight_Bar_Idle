@@ -167,7 +167,7 @@ function openCamp(tab) {
   if (raidActive()) { skipRaid(); return; }   // 레이드는 끝나면서 정산 화면(레이드 탭)을 연다
   campOpen = true;
   revealed = [];
-  campTab = typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : raidUi.room ? 'raid' : guideTab() || 'town';
+  campTab = typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : raidUi.room ? 'raid' : guideTab() || 'town';
   if (window.bar) window.bar.setCampMode(true);
   interactive = true;
   $('camp').hidden = false;
@@ -180,6 +180,8 @@ function closeCamp() {
   clearInterval(openAllTimer); openAllTimer = null;
   campOpen = false;
   S.report = null;                     // 창을 닫으면 보고는 읽은 것으로 처리
+  if (towerResultViewed && S.tower.last) S.tower.last.seen = true;   // 탑 정산도 본 채로 닫았으면 읽은 것으로
+  towerResultViewed = false;
   $('camp').hidden = true;
   interactive = false;
   if (window.bar) window.bar.setCampMode(false);
@@ -457,7 +459,7 @@ function viewMastery() {
         <span class="sicon">${k.icon}</span>
         <div class="mbody">
           <div><b>${skillNameAt(k, s.lv)}</b>${k.stageName && skillNameAt(k, s.lv) !== k.name ? ` <small>(${k.name})</small>` : ''} <span class="mlv">Lv ${s.lv}</span>${tag}${S.level < k.lv ? ` <small>· 🔒 Lv ${k.lv}에 해금</small>` : ''}</div>
-          <div class="mbar"><i style="width:${max ? 100 : (s.exp / s.need) * 100}%"></i><span>${max ? 'MAX' : `${fmt(s.exp)} / ${fmt(s.need)}`}</span></div>
+          <div class="mbar"><i style="width:${max ? 100 : (s.exp / s.need) * 100}%"></i><span>${max ? 'MAX' : `경험치 ${fmt(s.exp)} / ${fmt(s.need)} · 📖 ${need}권 더`}</span></div>
           <small>쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → ${skillCdOf(k, s.lv + 1)}초`} · 위력 ${mt(s.lv)}${max ? '' : ` → ${mt(s.lv + 1)}`} <span class="dim">(Lv30 ${skillCdOf(k, SKILL_MAX)}초 · ${mt(SKILL_MAX)})</span></small>
           ${k.stageDesc ? `<small>지금 「${k.stageName[m]}」 ${k.stageDesc[m]}</small>` : ''}
           ${nextM ? `<small>다음 Lv ${nextM.lv} ${nextM.star} ${nextM.name}${k.stageName ? ` → <b class="mnext">「${k.stageName[m + 1]}」</b> ${k.stageDesc[m + 1]}` : `: ${nextM.desc}`}</small>` : ''}
@@ -827,8 +829,8 @@ function campDots() {
     gear: Object.keys(GEAR_SLOTS).some(gearBetter),
     class: anyClassReady() || canLevelSkill(),
     raid: S.raid.chests.length > 0 || !!raidUi.room,
-    // 탑: 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
-    tower: towerUnlocked() && !S.guide.towerSeen || towerBlocker() === '' && towerDayTomes() < TOWER_DAILY_TOMES,
+    // 탑: 처음 열렸거나 아직 안 본 도전 정산이 있을 때
+    tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending(),
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
@@ -1571,26 +1573,49 @@ const guideFlow = (here) => `<div class="gflow">${[['tower', '🗼 탑 오르기
 
 // ───────────────────────── 도전의 탑 ─────────────────────────
 const TOWER_REASON = { down: '💀 쓰러졌습니다', stamina: '😮‍💨 스태미나가 바닥났습니다', retreat: '⬇️ 후퇴했습니다', offline: '🌙 앱이 꺼져서 그 층에서 멈췄습니다' };
+// 아직 정산 화면을 안 본 탑 도전이 있는가 (옛 저장의 last 엔 seen 이 없다 → 본 것으로)
+const towerResultPending = () => !!S.tower.last && S.tower.last.seen === false;
+let towerResultViewed = false;
+// 원정 보고처럼: 돌아오면 캠프를 열 때 탑 탭 맨 위에 이번 도전 정산
+function towerResultHtml(L) {
+  const cell = (label, value) => `<div class="cell"><span>${label}</span><b>${value}</b></div>`;
+  const top = L.start + L.cleared - 1;
+  const rec = L.best > L.best0 ? `<div class="reason">🏆 최고 기록 경신! ${L.best0}F → <b>${L.best}F</b>${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')} (📖 ${L.firsts.map(towerFirstTomes).reduce((a, b) => a + b, 0)}권 포함)` : ''}</div>` : '';
+  return `
+    <div class="treport" style="margin-bottom:10px">
+      <div class="reason">${TOWER_REASON[L.reason] || '도전 끝'}${L.cleared ? ` — ${L.start}F → ${top}F, <b>${L.cleared}개 층</b> 돌파` : ` — ${L.start}F 를 넘지 못했어요`}</div>
+      ${rec}
+      <div class="stats">
+        ${cell('📖 비전서', `+${fmt(L.tomes)}권`)}
+        ${cell('🗼 돌파', `${L.cleared}층`)}
+        ${cell('⚔️ 처치', fmt(L.kills || 0))}
+        ${cell('⏱ 시간', L.dur ? fmtTime(L.dur) : '-')}
+        ${cell('<i class="gc"></i> 골드', fmt(L.gold))}
+        ${cell('✨ 경험치', fmt(L.exp) + (L.levels ? ` · Lv +${L.levels}` : ''))}
+      </div>
+      ${L.tomes && skillsOf(S.cls).length ? `<div class="gtip">📖 지금 비전서 ${fmt(S.tomes)}권 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
+    </div>`;
+}
 function viewTower() {
   const t = S.tower, blocker = towerBlocker(), cp = towerCheckpoint();
   const nextFirst = Math.floor(t.best / 10) * 10 + 10;
   const m = towerMonster(cp), boss = towerBossFloor(cp);
-  const day = towerDayTomes();
-  const L = t.last;
-  const last = L ? `
+  const L = t.last, fresh = towerResultPending();
+  if (fresh) towerResultViewed = true;
+  const last = L && !fresh ? `
     <div class="card"><div class="ic">📜</div><div class="info"><b>지난 도전</b>
-      <div class="eff">${TOWER_REASON[L.reason] || ''} — ${L.start}F 에서 시작해 ${L.cleared}개 층 돌파 (${L.start + L.cleared - 1 >= L.start ? `${L.start + L.cleared - 1}F 까지` : '돌파 없음'})</div>
+      <div class="eff">${TOWER_REASON[L.reason] || ''} — ${L.start}F 에서 시작해 ${L.cleared}개 층 돌파 (${L.cleared ? `${L.start + L.cleared - 1}F 까지` : '돌파 없음'})</div>
       <div class="eff"><i class="gc"></i> ${fmt(L.gold)} · ✨ ${fmt(L.exp)} · 📖 ${L.tomes}${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')}` : ''}</div></div></div>` : '';
   return `
-    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 반복 비전서 ${day}/${TOWER_DAILY_TOMES} · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
-    ${guideFlow('tower')}
-    ${S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
+    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
+    ${fresh ? towerResultHtml(L) : guideFlow('tower')}
+    ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 바닥까지 떨어져 캠프로 돌아옵니다.
-      체크포인트(10층 단위)부터 시작해요. 한 번의 도전에서 ${TOWER_TOME_EVERY}층을 깰 때마다 📖 1권(하루 ${TOWER_DAILY_TOMES}권까지), 10층 단위를 처음 넘으면 📖 묶음.</div>
+      체크포인트(10층 단위)부터 시작해요. <b>층을 깰 때마다 📖 비전서</b>(1~20F 1권, 21~40F 2권, 41~60F 3권…) — 하루 제한 없이 스태미나만큼. 10층 단위를 처음 넘으면 📖 묶음.</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
-      <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
-      <div class="act"><button class="go compact${rd(blocker === '' && day < TOWER_DAILY_TOMES)}" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 도전</button>
+      <div class="eff">이 구간 한 층에 📖 ${towerFloorTomes(cp)}권 · 다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
+      <div class="act"><button class="go compact${rd(blocker === '')}" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 도전</button>
         <div class="blocker">${blocker}</div></div></div>
     ${last}`;
 }
@@ -2079,7 +2104,7 @@ document.addEventListener('keydown', (e) => {
 hooks.onTowerEnd = (r) => {
   renderHud();
   if (!r) return;
-  toast(`🗼 ${TOWER_REASON[r.reason] || '도전 끝'} — ${r.cleared}개 층 돌파${r.tomes ? ` · 📖 +${r.tomes}` : ''} (최고 ${r.best}F)${r.tomes && skillsOf(S.cls).length ? ' — 캠프 → ⚜️ 전직 탭에서 스킬 강화!' : ''}`, 8000);
+  toast(`🗼 ${TOWER_REASON[r.reason] || '도전 끝'} — ${r.cleared}개 층 돌파${r.tomes ? ` · 📖 +${r.tomes}` : ''} · 기사를 클릭해 정산을 확인하세요`, 8000);
 };
 hooks.onArrive = () => {
   const r = S.report;
