@@ -118,7 +118,7 @@ function renderHud() {
   $('xpfill').style.width = (100 * S.exp / expToNext()) + '%';
   $('status').textContent =
     S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / STAMINA_DRAIN)}`
-      : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / STAMINA_DRAIN)}` : '🏃 귀환 중')
+      : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / STAMINA_DRAIN)}` : '✨ 귀환 중')
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`;
 
@@ -135,7 +135,8 @@ function renderHud() {
         <div class="pline">🗼 도전의 탑 <b data-live="towerFloor"></b> · ⏳ <b data-live="expLeft"></b> · 📖 <b data-live="towerTomes"></b></div>
         ${build}
         <button class="pbtn" data-action="tower-retreat">⬇️ 후퇴</button>`
-      : S.phase === 'returning' || S.phase === 'tower' ? `<div class="pline">캠프로 돌아가는 중…</div>${build}`
+      : S.phase === 'tower' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
+      : S.phase === 'returning' ? `<div class="pline">캠프로 돌아가는 중…</div>${build}`
       : `<div class="pline" data-live="campStatus"></div>${build}
          <button class="pbtn" data-action="open-camp">🏕 캠프 열기</button>`;
   }
@@ -1596,6 +1597,7 @@ const towerResultPending = () => !!S.tower.last && S.tower.last.seen === false;
 let towerResultViewed = false;
 // 원정 보고처럼: 돌아오면 캠프를 열 때 탑 탭 맨 위에 이번 도전 정산
 function towerResultHtml(L) {
+  const blocker = towerBlocker();
   const cell = (label, value) => `<div class="cell"><span>${label}</span><b>${value}</b></div>`;
   const top = L.start + L.cleared - 1;
   const rec = L.best > L.best0 ? `<div class="reason">🏆 최고 기록 경신! ${L.best0}F → <b>${L.best}F</b>${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')} (📖 ${L.firsts.map(towerFirstTomes).reduce((a, b) => a + b, 0)}권 포함)` : ''}</div>` : '';
@@ -1612,6 +1614,7 @@ function towerResultHtml(L) {
         ${cell('✨ 경험치', fmt(L.exp) + (L.levels ? ` · Lv +${L.levels}` : ''))}
       </div>
       ${L.tomes && skillsOf(S.cls).length ? `<div class="gtip">📖 지금 비전서 ${fmt(S.tomes)}권 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
+      <div class="act" style="margin-top:6px"><button class="go compact" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 다시 도전 (${towerCheckpoint()}F 부터)</button>${blocker ? ` <span class="blocker">${blocker}</span>` : ''}</div>
     </div>`;
 }
 function viewTower() {
@@ -1628,7 +1631,7 @@ function viewTower() {
     <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 탑 비전서 ${towerDayTomes()}/${towerDailyCap()} · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
-    <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 바닥까지 떨어져 캠프로 돌아옵니다.
+    <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
       체크포인트(10층 단위)부터 시작하고, 그 아래층은 <b>바로 소탕해 ${TOWER_SWEEP_PER}층마다 📖 1권</b>. 올라가며 깬 층도 <b>층마다 📖 1권</b> — 합쳐서 하루 ${TOWER_DAILY_BASE} + 최고 층 권까지(높이 오를수록 하루 몫이 늘어요). 10층 단위를 처음 넘으면 📖 묶음.</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
@@ -2011,7 +2014,7 @@ function resetWorld() {
   if (tw) endTowerView();
   monsters = []; coins = []; floaters = []; shots = []; effects = []; drops = [];
   lapReady = false;
-  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null });
+  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null });
   casts = []; skfx = []; cutin = null; hitstop = 0;
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
   rank.data = null; seasonUi.data = null; seasonUi.at = 0; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;

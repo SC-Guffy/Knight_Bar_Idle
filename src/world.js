@@ -347,7 +347,8 @@ function updateReturning(dt) {
 }
 
 // ───────────────────────── 도전의 탑 ─────────────────────────
-// 규칙(층·보상)은 src/tower.js. 여기는 연출: 하단바를 걸어 탑 문으로 → 층마다 싸우고 사다리로 오름 → 끝나면 바닥까지 추락 → 캠프로.
+// 규칙(층·보상)은 src/tower.js. 여기는 연출: 캠프에서 빛에 싸여 탑 1층으로 순간이동 → 층마다 싸우고 사다리로 오름
+// → 끝나면 귀환 빛으로 캠프에 돌아온다 (쓰러지면 바닥까지 추락한 뒤, 후퇴·지침은 그 층에서 바로).
 // 탑은 화면 오른쪽 끝의 세로 띠(탑 캔버스 #tc)에 그린다. 창이 하단바 높이뿐이면(새 창 모드가 없는 옛 앱, 좁은 iframe)
 // 같은 탑이 하단바 오른쪽 끝 150px 안에서 층을 아래로 내리며 보인다. 새 앱은 탑에 들어갈 때 창을 화면 전체 높이로 키운다
 // (window.bar.setOverlay — 클릭은 계속 통과).
@@ -364,12 +365,20 @@ tcv.hidden = true;
 document.body.appendChild(tcv);
 const tctx = tcv.getContext('2d');
 let tcH = BAR_H;                // 탑 캔버스 높이 (하단바 높이면 하단바 안 탑)
-// 탑 연출 상태. sub: walkIn 하단바에서 문으로 | enter 층 자리로 | fight | clear 잠깐 숨 고르기 | climb 사다리 | fall 추락 | exit 문 밖으로 | walkOut 캠프로
+// 탑 연출 상태. sub: warpOut 캠프에서 사라짐 | enter 층 자리로 | fight | clear 잠깐 숨 고르기 | climb 사다리 | fall 추락 | recall 귀환 빛 → 캠프
 //  idx: 이번 도전의 시작 층부터 센 층 번호(0 = 1층 자리), dy: 사다리를 오른 높이, h·vy: 추락 높이·속도, cam: 화면 맨 아래 층(소수)
+//  hold: recall 에서 귀환 빛이 일기 전까지 머무는 시간
 let tw = null;
-const towerInside = () => !!tw && tw.sub !== 'walkIn' && tw.sub !== 'walkOut';
+const WARP_SEC = 0.45;          // 순간이동 빛에 사라지거나 나타나는 시간
+const WARP_COLORS = ['#e8dcff', '#c9a7ff', '#ffffff'];
+const towerInside = () => !!tw && tw.sub !== 'warpOut';
 const towerStrip = () => tcH > BAR_H;
-const towerLevel = () => (tw.sub === 'fall' || tw.sub === 'exit' ? tw.h / FLOOR_H : tw.idx + tw.dy / FLOOR_H);
+const towerLevel = () => (tw.sub === 'fall' ? tw.h / FLOOR_H : tw.idx + tw.dy / FLOOR_H);
+// 기사 순간이동 빛: out 사라짐(끝나도 안 보이는 채로 남음) | in 나타남(끝나면 지움). 그리기는 drawKnight
+function warpKnight(dir) {
+  knight.warp = { dir, t: 0 };
+  burst(toScreen(knight.x), groundY() - 18, 14, WARP_COLORS, 70, 2, -60);
+}
 const towerFloorY = (i) => tcH - 10 - (i - tw.cam) * FLOOR_H;
 
 function resizeTower() {
@@ -383,12 +392,13 @@ function resizeTower() {
 
 // 캠프에서 도전을 시작한 직후 (core 상태는 startTower 가 이미 바꿨다)
 function beginTowerView() {
-  tw = { sub: 'walkIn', idx: 0, dy: 0, h: 0, vy: 0, cam: 0, t: 0, res: null };
+  tw = { sub: 'warpOut', idx: 0, dy: 0, h: 0, vy: 0, cam: 0, t: 0, hold: 0, res: null };
   monsters = []; shots = []; lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, ward: null });
   document.body.classList.add('tower');
   if (window.bar && window.bar.setOverlay) window.bar.setOverlay(true);
   resizeTower();
+  warpKnight('out');
 }
 function endTowerView() {
   tw = null;
@@ -401,7 +411,7 @@ function clearTowerFx() {
   floaters = floaters.filter((f) => !f.tw);
 }
 
-// 도전 끝: 쓰러짐·지침·후퇴. 기사는 지금 높이에서 바닥까지 떨어진다
+// 도전 끝: 쓰러지면 바닥까지 추락한 뒤, 지침·후퇴는 그 층에서 바로 귀환 빛에 싸여 캠프로
 function towerEndRun(reason) {
   if (!tw || !S.tower.run) return;
   tw.res = endTower(reason);
@@ -409,10 +419,23 @@ function towerEndRun(reason) {
   knight.fighting = false; knight.pending = false; knight.ward = null;
   endCast('hero');
   shots = [];
-  if (tw.sub === 'walkIn') { tw.sub = 'walkOut'; return; }
-  const label = { down: '💀 쓰러졌다!', stamina: '😮‍💨 지쳤다…', retreat: '⬇️ 후퇴!' }[reason];
+  if (tw.sub === 'warpOut') { towerHome(); return; }   // 아직 캠프를 떠나기 전
+  const label = { down: '💀 쓰러졌다!', stamina: '😮‍💨 지쳤다…', retreat: '✨ 귀환!' }[reason];
   if (label) addFloater(label, toScreen(knight.x), groundY() - 60, '#ffd257', 12);
-  tw.h = towerLevel() * FLOOR_H; tw.vy = -60; tw.sub = 'fall';
+  if (reason === 'down') { tw.h = towerLevel() * FLOOR_H; tw.vy = -60; tw.sub = 'fall'; }
+  else { tw.sub = 'recall'; tw.t = 0; tw.hold = reason === 'stamina' ? 0.5 : 0.1; }
+  save();
+}
+// 귀환 빛이 다 걷히면: 탑을 닫고 캠프 모닥불 옆에 나타난다
+function towerHome() {
+  const res = tw.res;
+  clearTowerFx();
+  monsters = [];
+  endTowerView();
+  S.phase = 'camp';
+  Object.assign(knight, { x: toWorld(CAMP_X), facing: 1, down: 0, fighting: false });
+  warpKnight('in');
+  hooks.onTowerEnd(res);
   save();
 }
 function towerKnightDown() {
@@ -445,11 +468,14 @@ function updateTower(dt, gdt) {
   }
 
   switch (tw.sub) {
-    case 'walkIn':
-      if (towerWalk(W - TOWER_W + 6, RETURN_SPEED, dt)) {
+    case 'warpOut':
+      // 캠프에서 빛에 싸여 사라지면 → 탑 1층 문 안쪽에 나타난다
+      if ((tw.t += dt) >= WARP_SEC) {
         clearTowerFx();
         tw.sub = 'enter';
-        knight.x = toWorld(2);
+        knight.x = toWorld(TW_START_X - 14);
+        knight.facing = 1;
+        warpKnight('in');
       }
       break;
     case 'enter':
@@ -506,25 +532,17 @@ function updateTower(dt, gdt) {
         tw.h = 0;
         burst(toScreen(knight.x), groundY() - 2, 12, ['#b8a890', '#8a7a68', '#ffffff'], 90, 2, 300);
         shake = Math.max(shake, 0.15);
-        tw.sub = 'exit';
+        // 바닥에 쓰러진 채 잠깐 → 귀환 빛
+        tw.idx = 0; tw.dy = 0;
+        knight.down = Math.max(knight.down, 0.9);
+        addFloater('👻', toScreen(knight.x), groundY() - 40, '#ffffff', 14);
+        tw.sub = 'recall'; tw.t = 0; tw.hold = 0.8;
       }
       break;
-    case 'exit':
-      if (towerWalk(-14, RETURN_SPEED, dt)) {
-        clearTowerFx();
-        tw.sub = 'walkOut';
-        knight.x = toWorld(W - TOWER_W + 6);
-      }
-      break;
-    case 'walkOut':
-      if (towerWalk(CAMP_X, RETURN_SPEED, dt)) {
-        knight.facing = 1;
-        const res = tw.res;
-        endTowerView();
-        S.phase = 'camp';
-        hooks.onTowerEnd(res);
-        save();
-      }
+    case 'recall':
+      tw.t += dt;
+      if (tw.t >= tw.hold && !knight.warp) warpKnight('out');
+      if (knight.warp && knight.warp.dir === 'out' && knight.warp.t >= WARP_SEC) towerHome();
       break;
   }
 }
@@ -614,6 +632,7 @@ function update(dt) {
 
   knight.flash = Math.max(0, knight.flash - dt);
   knight.recoil = Math.max(0, (knight.recoil || 0) - dt * 6);
+  if (knight.warp && (knight.warp.t += dt) >= WARP_SEC && knight.warp.dir === 'in') knight.warp = null;
   shake = Math.max(0, shake - dt);
   if (knight.swing >= 0) {
     // 평타 한 번은 0.38초 (치켜들기 → 내려치기 → 여운). 공속이 빨라 공격 간격이 더 짧으면 모션도 그만큼 빨라진다
@@ -1368,6 +1387,11 @@ function drawKnight() {
   const gy = groundY();
   const sp = castPose('hero');
   const lift = sp ? sp.lift || 0 : 0;
+  // 순간이동: 빛기둥이 솟았다 걷히는 동안 기사가 흐려지거나(out) 짙어진다(in)
+  const wp = knight.warp, wk = wp ? Math.min(1, wp.t / WARP_SEC) : 0;
+  const vis = !wp ? 1 : wp.dir === 'out' ? 1 - wk : wk;
+  if (wp && wk < 1) drawWarpBeam(x, gy, Math.sin(wk * Math.PI));
+  if (vis <= 0) return;
 
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   const shadowW = Math.max(6, 28 - lift * 0.3);
@@ -1377,15 +1401,29 @@ function drawKnight() {
     mode: S.phase === 'camp' ? 'sit' : knight.fighting ? 'fight' : 'walk',
     walkT: knight.walkT, swing: knight.swing, combo: knight.combo, facing: knight.facing, t: clock,
     flash: knight.flash > 0,
-    alpha: knight.down > 0 ? 0.35 + 0.25 * Math.sin(clock * 12) : 1,
+    alpha: (knight.down > 0 ? 0.35 + 0.25 * Math.sin(clock * 12) : 1) * vis,
   };
   if (sp) Object.assign(pose, sp, { alpha: pose.alpha * (sp.alpha == null ? 1 : sp.alpha) });
   if (sp) drawCastTrail('hero', S.cls, gy, knight.facing);
   drawHero(ctx, S.cls, x, gy, pose);
-  if (S.phase !== 'camp') {
+  if (S.phase !== 'camp' && !wp) {
     drawHpBar(x, gy - 58 - Math.min(lift, 40), 30, S.hp / stats().maxHp, '#ff5a5a');
     drawSkillIcons(x - 15, gy - 58 - Math.min(lift, 40) - 12);
   }
+}
+
+// 순간이동 빛기둥 (a: 0~1 세기)
+function drawWarpBeam(x, gy, a) {
+  if (a <= 0) return;
+  const w = Math.round(6 + 14 * a), h = 70;
+  const gr = ctx.createLinearGradient(0, gy - h, 0, gy);
+  gr.addColorStop(0, 'rgba(201,167,255,0)');
+  gr.addColorStop(1, `rgba(201,167,255,${0.55 * a})`);
+  ctx.fillStyle = gr;
+  ctx.fillRect(x - w / 2, gy - h, w, h);
+  ctx.fillStyle = `rgba(255,255,255,${0.7 * a})`;
+  ctx.fillRect(x - 1, gy - h * 0.8, 2, h * 0.8);
+  ctx.fillRect(x - w / 2 - 2, gy - 2, w + 4, 2);
 }
 
 function drawShots() {
