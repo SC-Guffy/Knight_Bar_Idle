@@ -1981,6 +1981,340 @@ function earthSplitterBase(u) {
   return { wa: mix(1.1, -1.35, r), sy: mix(0.84, 1, r), skew: 0.4 * (1 - r) };
 }
 
+// ── 진화 연출 도구 (활 계열 숙련 단계 전용) ──
+// 활 공통 자세: 다음 타격 시점을 향해 시위를 당겼다가 놓는다 (타격 수가 단계마다 달라도 맞는다)
+function bowPullPose(u, a, max = 9) {
+  const hits = a.k ? a.k.hits : [[0.5]];
+  let prev = 0;
+  for (const h of hits) { if (u < h[0]) { const f = (u - prev) / Math.max(0.01, h[0] - prev); return { pull: max * Math.min(1, f * 1.6), dx: -1.5 * (1 - f) }; } prev = h[0]; }
+  return { pull: 0, dx: 0 };
+}
+// Lv1 화살 한 줄: 가늘고 짧게 남는 화살 궤적
+function plainShotFx(x0, y0, x1, y1, color, life = 0.1) {
+  skFx(null, 0, life, (u) => {
+    ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(mix(x0, x1, u * 0.6), mix(y0, y1, u * 0.6)); ctx.lineTo(x1, y1); ctx.stroke(); ctx.restore();
+  });
+}
+// ★★ 분열 화살: 화살이 반쯤 날아가다 초록 빛과 함께 세 갈래로 갈라져 대상 주변에 꽂힌다
+function splitArrowFx(a, x0, y0, tx, ty, life = 0.2) {
+  const mx = mix(x0, tx, 0.45), my = mix(y0, ty, 0.45), ends = [[tx, ty - 10], [tx + a.dir * 6, ty], [tx, ty + 9]];
+  skFx(null, 0, life, (u) => {
+    ctx.save(); ctx.lineCap = 'round';
+    if (u < 0.45) {
+      const k = u / 0.45, x = mix(x0, mx, k), y = mix(y0, my, k);
+      ctx.strokeStyle = '#e8d9b0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - a.dir * 8, y); ctx.lineTo(x, y); ctx.stroke();
+    } else {
+      const k = (u - 0.45) / 0.55;
+      if (k < 0.3) { ctx.fillStyle = `rgba(191,255,208,${1 - k / 0.3})`; ctx.beginPath(); ctx.arc(mx, my, 5, 0, Math.PI * 2); ctx.fill(); }
+      for (const [ex, ey] of ends) {
+        const x = mix(mx, ex, k), y = mix(my, ey, k);
+        ctx.strokeStyle = '#bfffd0'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x - a.dir * 7, y - (ey - my) * 0.08); ctx.lineTo(x, y); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  });
+}
+// ★★★ 바람매: 기사 위에서 초록빛 매가 맴돌다가(날갯짓) diveAt 초에 대상을 꿰뚫고 급강하해 지나간다
+const HAWK = [
+  ['....bb......', '..bbBBb.....', 'bBBBBBBbbe..', '..bbBBBBBBBy', '....bBBBb...', '.....bb.....'],
+  ['bb..........', 'BBb.........', '.bBBbbbbe...', '..bBBBBBBBBy', '...bBBBb....', '..bBb.......'],
+];
+const HAWK_PAL = { b: '#2f5a2a', B: '#7fd06a', e: '#ffffff', y: '#ffe066' };
+function spiritHawkFx(a, life, diveAt) {
+  let px = 0, py = 0;
+  aFx(a, 0, life, (u) => {
+    const t = u * life, gy = groundY();
+    if (t < diveAt) {
+      const ang = t * 7, cx = a.x() + a.dir * 10;
+      px = cx + Math.cos(ang) * 26; py = gy - 74 + Math.sin(ang) * 9;
+    } else {
+      const k = Math.min(1, (t - diveAt) / 0.25), sx = a.x() + a.dir * 10, tx = a.tx() + a.dir * 70;
+      px = mix(sx, tx, easeIn(k)); py = mix(gy - 74, gy - 18, Math.sin(Math.PI * k * 0.9));
+    }
+    const out = t > life - 0.2 ? (life - t) / 0.2 : Math.min(1, t / 0.15);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = out * 0.5;
+    ctx.fillStyle = '#7fd06a'; ctx.beginPath(); ctx.arc(px, py - 5, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    const flipFace = t < diveAt ? Math.sin(t * 7) < 0 : a.dir < 0;
+    drawSprite(HAWK[Math.floor(t * 12) % 2], HAWK_PAL, px, py, 3, { flip: flipFace, alpha: out });
+  }, null, (u) => {
+    const t = u * life;
+    if (Math.random() < (t >= diveAt ? 1 : 0.3)) parts.push({ x: px, y: py - 4, vx: rand(-20, 20), vy: rand(-10, 20), g: 30, size: 2, color: Math.random() < 0.5 ? '#bfffd0' : '#ffffff', life: 0.4, t: 0 });
+    if (t >= diveAt && t < diveAt + 0.25) streakFx(px - a.dir * 18, py - 4, px, py - 4, '#bfffd0', 2, 0.15);
+  });
+}
+
+// ★★ 관통 헤드샷: 탄이 지나간 길에 아지랑이 같은 열선이 한동안 일렁인다
+function heatTrailFx(x0, y, x1, life = 0.8) {
+  skFx(null, 0, life, (u) => {
+    const fade = 1 - u, n = Math.ceil(Math.abs(x1 - x0) / 6), d = Math.sign(x1 - x0);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < n; i++) {
+      const x = x0 + d * i * 6, wob = Math.sin(clock * 22 + i * 0.9) * 1.6 * fade;
+      ctx.fillStyle = `rgba(255,${150 + 60 * Math.sin(i + clock * 9)},60,${0.55 * fade})`; ctx.fillRect(x, y + wob - 1, 6, 2);
+      if (i % 3 === 0) { ctx.fillStyle = `rgba(255,255,220,${0.6 * fade})`; ctx.fillRect(x, y + wob, 3, 1); }
+    }
+    ctx.restore();
+  });
+}
+// ★★★ 정적의 일발: 하단바가 청회색으로 가라앉고 대상에 커다란 조준경이 걸린다 (눈금·십자선이 천천히 좁혀진다)
+function scopeFx(a, life, fireAt) {
+  backFx(a, 0, life, (u) => {
+    const t = u * life, k = Math.min(1, t / 0.3), out = t > life - 0.25 ? (life - t) / 0.25 : 1;
+    dimBand(0.5 * k * out, '10,18,30');
+    const x = a.tx(), y = a.ty() - 8, r = mix(60, 30, easeOut(Math.min(1, t / fireAt)));
+    ctx.save();
+    ctx.globalAlpha = k * out;
+    ctx.strokeStyle = 'rgba(255,224,102,0.9)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,224,102,0.9)';
+    ctx.fillRect(x - r - 14, y, r * 0.75, 1); ctx.fillRect(x + r * 0.4 + 6, y, r * 0.75, 1);
+    ctx.fillRect(x, y - r - 14, 1, r * 0.75); ctx.fillRect(x, y + r * 0.4 + 6, 1, r * 0.75);
+    for (let i = -3; i <= 3; i++) if (i) ctx.fillRect(x + i * r * 0.18, y - 2, 1, 4);
+    if (t < fireAt && Math.sin(clock * 16) > 0) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(x - 1, y - 1, 3, 3); }
+    ctx.restore();
+  });
+}
+// 느리게 날아가는 탄: 탄 둘레에 공기가 갈라지는 고리가 연달아 남는다
+function slowBulletFx(a, x0, y0, life) {
+  skFx(null, 0, life, (u) => {
+    const x1 = a.tx(), y1 = a.ty() - 8, x = mix(x0, x1, u), y = mix(y0, y1, u);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,240,180,0.7)'; ctx.lineWidth = 1;
+    for (let i = 1; i <= 4; i++) { const k = Math.max(0, u - i * 0.12), rx = mix(x0, x1, k); ctx.globalAlpha = 0.8 - i * 0.18; ctx.beginPath(); ctx.ellipse(rx, mix(y0, y1, k), 2 + i, 5 + i * 3, 0, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffe066'; ctx.fillRect(x - 4, y - 1, 6, 3);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - a.dir * 1, y - 1, 2, 2);
+    ctx.restore();
+  });
+}
+// 맞은 자리가 유리처럼 깨진다: 대상 앞에 방사형 금이 퍼지고 조각이 흩어진다
+function glassBreakFx(x, y, life = 0.6) {
+  const rays = [];
+  for (let i = 0; i < 9; i++) { const an = i / 9 * Math.PI * 2 + rand(-0.2, 0.2); rays.push([an, rand(14, 30)]); }
+  skFx(null, 0, life, (u) => {
+    const k = Math.min(1, u / 0.12);
+    ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+    for (const [an, L] of rays) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(an) * L * k, y + Math.sin(an) * L * k); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(x, y, 9 * k, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  });
+  for (let i = 0; i < 18; i++) parts.push({ x, y, vx: rand(-170, 170), vy: rand(-170, 80), g: 280, size: 2, color: i % 2 ? '#dff4ff' : '#ffffff', life: 0.5, t: 0 });
+}
+
+// ── 철갑 관통탄 ──
+// ★★ 폭렬: 맞은 자리에서 주황 불덩이가 부풀었다 꺼지고, 쇳조각이 사방으로 선을 그으며 튄다. 연기가 남는다
+function shellBlastFx(x, y, life = 0.6) {
+  const shards = [];
+  for (let i = 0; i < 10; i++) shards.push([rand(0, Math.PI * 2), rand(26, 48)]);
+  skFx(null, 0, life, (u) => {
+    const k = easeOut(Math.min(1, u / 0.25)), fade = 1 - u;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = Math.max(0, 1 - u / 0.5);
+    ctx.fillStyle = '#ff8a2a'; ctx.beginPath(); ctx.arc(x, y, 6 + 16 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.arc(x, y, 3 + 8 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = fade; ctx.strokeStyle = '#c9c2b4'; ctx.lineWidth = 1;
+    for (const [an, L] of shards) { const r0 = L * k * 0.5, r1 = L * k; ctx.beginPath(); ctx.moveTo(x + Math.cos(an) * r0, y + Math.sin(an) * r0); ctx.lineTo(x + Math.cos(an) * r1, y + Math.sin(an) * r1); ctx.stroke(); }
+    ctx.globalAlpha = fade * 0.5; ctx.fillStyle = '#4a4a52';
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(x + (i - 1.5) * 8, y - 6 - 18 * u - i * 2, 5 + 6 * u, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+  });
+}
+// ★★★ 공성 노포: 기사 옆에 나무 틀과 쇠 활대의 거대한 노포가 세워지고, 쏠 때마다 활대가 휘었다 튕긴다
+function ballistaFx(a, life, shotTimes) {
+  aFx(a, 0, life, (u) => {
+    const t = u * life, d = a.dir, x = a.x() + d * 22, gy = groundY();
+    const build = easeOut(Math.min(1, t / 0.3)), out = t > life - 0.25 ? (life - t) / 0.25 : 1;
+    let flex = 0;
+    for (const s of shotTimes) { if (t > s - 0.25 && t < s) flex = (t - (s - 0.25)) / 0.25; else if (t >= s && t < s + 0.08) flex = -1 + (t - s) / 0.08; }
+    ctx.save();
+    ctx.globalAlpha = out;
+    ctx.translate(x, gy - 4 * build); ctx.scale(d * 1.6, 1.6);          // 기사보다 큰 공성 병기
+    const h = 26 * build;
+    ctx.fillStyle = '#5a3a1e'; ctx.fillRect(-14, -4, 4, 4); ctx.fillRect(10, -4, 4, 4);            // 다리
+    ctx.fillStyle = '#7a5530'; ctx.fillRect(-16, -h * 0.55, 32, 5);                                 // 몸통 틀
+    ctx.fillStyle = '#4a3220'; ctx.fillRect(-16, -h * 0.55 + 4, 32, 2);
+    ctx.fillStyle = '#9a9aa6'; ctx.fillRect(4, -h * 0.55 - 2, 4, 9);                               // 쇠 장식
+    // 활대: 앞쪽에서 위아래로 휘어진다 (당길수록 뒤로 굽는다)
+    const bend = 6 * flex;
+    ctx.strokeStyle = '#3a3a44'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(12, -h * 0.55 - 16); ctx.quadraticCurveTo(14 - bend, -h * 0.55, 12, -h * 0.55 + 18); ctx.stroke();
+    ctx.strokeStyle = '#e8d9b0'; ctx.lineWidth = 1;
+    const sx = 12 - 22 * Math.max(0, flex);
+    ctx.beginPath(); ctx.moveTo(12, -h * 0.55 - 16); ctx.lineTo(sx, -h * 0.55 + 1); ctx.lineTo(12, -h * 0.55 + 18); ctx.stroke();   // 시위
+    if (flex > 0) { ctx.fillStyle = '#8a5a2b'; ctx.fillRect(sx, -h * 0.55, 30, 3); ctx.fillStyle = '#c9c2b4'; ctx.fillRect(sx + 30, -h * 0.55 - 2, 6, 7); }   // 장전된 살
+    ctx.restore();
+  });
+}
+// 쇠뇌 살: 굵은 나무 살과 쇠촉이 하단바 끝까지 날아가 화면 가장자리에 꽂힌 채 흔들린다
+function ballistaBoltFx(a, y, life = 1.0) {
+  const d = a.dir, x0 = a.x() + d * 60, end = d > 0 ? W - 6 : 6;
+  skFx(null, 0, life, (u) => {
+    const t = u * life, fly = Math.min(1, t / 0.12), x = mix(x0, end, fly);
+    const wob = fly >= 1 ? Math.sin(t * 70) * 1.5 * Math.max(0, 1 - (t - 0.12) / 0.4) : 0;
+    const out = u > 0.75 ? (1 - u) / 0.25 : 1;
+    ctx.save();
+    ctx.globalAlpha = out;
+    if (fly < 1) { ctx.fillStyle = 'rgba(232,217,176,0.4)'; ctx.fillRect(Math.min(x0, x), y - 1, Math.abs(x - x0), 2); }
+    ctx.translate(x, y + wob); ctx.scale(d, 1);
+    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(-36, -1.5, 34, 3);
+    ctx.fillStyle = '#c9c2b4'; ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(6, 0); ctx.lineTo(-2, 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e8d9b0'; ctx.fillRect(-36, -4, 5, 2); ctx.fillRect(-36, 2, 5, 2);           // 깃
+    ctx.restore();
+  });
+}
+
+// ── 유도 마탄 ──
+// Lv1 마력탄: 활끝에서 대상까지 곧게 날아가는 작은 마력 구슬
+function plainBoltFx(a, x0, y0, life = 0.18) {
+  skFx(null, 0, life, (u) => { const x = mix(x0, a.tx(), u), y = mix(y0, a.ty(), u); dot(x, y, 3, '#9fefff', 0.9); dot(x, y, 1.5, '#ffffff'); });
+}
+// ★★ 마탄 군무: 기사 둘레를 마력탄 n 개가 원을 그리며 돌다가, launch[i] 초에 하나씩 대상을 향해 휘어 날아간다
+function orbitBoltsFx(a, n, life, launch) {
+  aFx(a, 0, life, (u) => {
+    const t = u * life, cx = a.x(), cy = groundY() - 28;
+    for (let i = 0; i < n; i++) {
+      const ang = t * 5 + i / n * Math.PI * 2, r = 22 + 4 * Math.sin(t * 6 + i);
+      const ox = cx + Math.cos(ang) * r, oy = cy + Math.sin(ang) * r * 0.55;
+      if (t < launch[i]) { ctx.save(); ctx.shadowColor = '#6ff3ff'; ctx.shadowBlur = 6; dot(ox, oy, 4, '#6ff3ff', 0.7); dot(ox, oy, 2, '#ffffff'); ctx.restore(); continue; }
+      const k = Math.min(1, (t - launch[i]) / 0.16);
+      if (k >= 1) continue;
+      const tx = a.tx(), ty = a.ty(), mx = (ox + tx) / 2, my = Math.min(oy, ty) - 30;
+      const x = (1 - k) ** 2 * ox + 2 * (1 - k) * k * mx + k * k * tx, y = (1 - k) ** 2 * oy + 2 * (1 - k) * k * my + k * k * ty;
+      dot(x, y, 4, '#6ff3ff', 0.8); dot(x, y, 2, '#ffffff');
+    }
+  });
+}
+// ★★★ 마력 붕괴: 대상 위에 검푸른 특이점이 열려 둘레의 빛을 빨아들이며 커지다가, burstAt 초에 터져 고리가 퍼진다
+function singularityFx(a, life, burstAt) {
+  const x = a.tx(), y = a.ty() - 44;
+  backFx(a, 0, life, (u) => {
+    const t = u * life;
+    if (t > burstAt + 0.4) return;
+    const grow = Math.min(1, t / burstAt), r = 4 + 14 * grow;
+    if (t < burstAt) {
+      ctx.save();
+      // 빨려 드는 원반: 돌면서 납작한 빛 고리
+      ctx.strokeStyle = '#6ff3ff'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.8;
+      for (let i = 0; i < 3; i++) { const ph = -t * (8 + i * 3); ctx.beginPath(); ctx.ellipse(x, y, r * (1.8 + i * 0.5), r * (0.45 + i * 0.12), 0.2, ph, ph + 4); ctx.stroke(); }
+      ctx.fillStyle = '#05121a'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    } else {
+      const k = (t - burstAt) / 0.4;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - k;
+      ctx.strokeStyle = '#6ff3ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 18 + 90 * k, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 10 + 60 * k, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+  }, null, (u) => {
+    const t = u * life;
+    if (t < burstAt) for (let i = 0; i < 2; i++) { const an = rand(0, Math.PI * 2), dd = rand(40, 70), px = x + Math.cos(an) * dd, py = y + Math.sin(an) * dd * 0.6; parts.push({ x: px, y: py, vx: (x - px) * 3, vy: (y - py) * 3, g: 0, size: 2, color: Math.random() < 0.5 ? '#6ff3ff' : '#ffffff', life: 0.32, t: 0, add: true }); }
+  });
+}
+
+// ── 별빛 화살비 ──
+// Lv1 별똥 화살: 하늘에서 작은 화살 하나가 반짝이며 떨어진다
+function fallingArrowFx(x, life = 0.18) {
+  const gy = groundY(), x0 = x - 16;
+  skFx(null, 0, life, (u) => {
+    const px = mix(x0, x, u), py = mix(-10, gy - 6, u);
+    ctx.save(); ctx.strokeStyle = '#cfefff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px - 6, py - 12); ctx.lineTo(px, py); ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(px - 1, py - 1, 2, 2); ctx.restore();
+  });
+}
+// ★★ 별자리: 대상 위 하늘에 별이 하나씩 켜지고 선으로 이어진다. 별마다 화살이 떨어질 자리
+function constellationFx(a, life, n) {
+  const cx = a.tx(), stars = [];
+  for (let i = 0; i < n; i++) stars.push({ x: cx + (i - (n - 1) / 2) * 14 + rand(-6, 6), y: 18 + rand(0, 26), at: i * 0.06 });
+  a.stars = stars;
+  aFx(a, 0, life, (u) => {
+    const t = u * life, out = u > 0.85 ? (1 - u) / 0.15 : 1;
+    ctx.save();
+    ctx.globalAlpha = out * 0.6; ctx.strokeStyle = '#9fd8ff'; ctx.lineWidth = 1;
+    ctx.beginPath(); let first = true;
+    for (const s of stars) { if (t < s.at) break; first ? ctx.moveTo(s.x, s.y) : ctx.lineTo(s.x, s.y); first = false; }
+    ctx.stroke();
+    ctx.globalAlpha = out;
+    for (const s of stars) {
+      if (t < s.at) continue;
+      const tw = 0.7 + 0.3 * Math.sin(clock * 10 + s.x);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(s.x - 1, s.y - 1, 2, 2);
+      ctx.fillStyle = `rgba(159,216,255,${tw})`; ctx.fillRect(s.x - 4, s.y, 8, 1); ctx.fillRect(s.x, s.y - 4, 1, 8);
+    }
+    ctx.restore();
+  });
+}
+// ★★★ 별이 지는 밤: 하단바가 남색 밤하늘로 물들고 별이 반짝이며 오로라가 흐른다. 마지막에 거대한 별이 떨어진다
+function nightSkyFx(a, life, starAt) {
+  const tw = [];
+  for (let i = 0; i < 40; i++) tw.push([rand(0, 1), rand(0, 0.65), rand(0, 6)]);
+  backFx(a, 0, life, (u) => {
+    const t = u * life, k = Math.min(1, t / 0.4), out = t > life - 0.35 ? (life - t) / 0.35 : 1, al = k * out;
+    ctx.save();
+    const g = ctx.createLinearGradient(0, 0, 0, groundY());
+    g.addColorStop(0, `rgba(8,12,40,${0.75 * al})`); g.addColorStop(1, `rgba(20,30,80,${0.35 * al})`);
+    ctx.fillStyle = g; ctx.fillRect(-60, -240, W + 120, groundY() + 240);
+    for (const [fx, fy, ph] of tw) { ctx.globalAlpha = al * (0.4 + 0.6 * Math.abs(Math.sin(clock * 3 + ph))); ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(fx * W), Math.round(fy * groundY()), 1, 1); }
+    // 오로라: 위쪽을 흐르는 초록·청록 물결 띠
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [col, off] of [['rgba(80,255,180,0.18)', 0], ['rgba(111,243,255,0.14)', 2]]) {
+      ctx.globalAlpha = al; ctx.fillStyle = col;
+      for (let x = 0; x < W; x += 4) { const y = 22 + Math.sin(x * 0.02 + clock * 1.5 + off) * 8, h = 14 + 8 * Math.sin(x * 0.05 + clock * 2 + off); ctx.fillRect(x, y, 4, h); }
+    }
+    ctx.restore();
+  });
+  // 거대한 별: 하늘 위에서 빛을 모으며 커지다가 starAt 초에 대상에게 떨어진다
+  aFx(a, 0, starAt + 0.05, (u) => {
+    const t = u * (starAt + 0.05), x1 = a.tx(), gy = groundY();
+    const grow = Math.min(1, t / (starAt - 0.25)), fall = t > starAt - 0.2 ? (t - (starAt - 0.2)) / 0.2 : 0;
+    const x = mix(x1 - a.dir * 50, x1, fall), y = mix(28, gy - 10, easeIn(Math.min(1, fall))), R = 6 + 8 * grow;
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(clock * 2);
+    ctx.fillStyle = '#ffe066';
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const r = i % 2 ? R * 0.45 : R, an = i * Math.PI / 5 - Math.PI / 2; i ? ctx.lineTo(Math.cos(an) * r, Math.sin(an) * r) : ctx.moveTo(Math.cos(an) * r, Math.sin(an) * r); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, R * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    if (fall > 0) streakFx(x - a.dir * 20, y - 30, x, y, '#ffe066', 3, 0.15);
+  });
+}
+// 거대한 별이 부서진다: 다섯 갈래 빛줄기와 별 조각
+function starShatterFx(x, life = 0.7) {
+  const gy = groundY() - 10;
+  skFx(null, 0, life, (u) => {
+    const k = easeOut(Math.min(1, u / 0.2)), fade = 1 - u;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade; ctx.fillStyle = '#ffe066';
+    for (let i = 0; i < 5; i++) { const an = i * Math.PI * 2 / 5 - Math.PI / 2; ctx.save(); ctx.translate(x, gy); ctx.rotate(an); ctx.fillRect(0, -1.5, 70 * k, 3); ctx.restore(); }
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, gy, 12 * (1 - u), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+  for (let i = 0; i < 30; i++) parts.push({ x, y: gy, vx: rand(-200, 200), vy: rand(-220, -40), g: 260, size: Math.random() < 0.4 ? 3 : 2, color: i % 3 ? '#ffe066' : '#ffffff', life: rand(0.5, 0.9), t: 0 });
+}
+
+// 활 계열: 숙련 단계 이전부터 있던 기본 자세 (★ 단계의 모습)
+function headshotBase(u) {
+  if (u < 0.15) { const k = segU(u, 0, 0.15); return { sy: 1 - 0.16 * k, dx: -2 * k, pull: 0 }; }
+  if (u < 0.7) return { sy: 0.84, dx: -2, pull: 11 * easeOut(segU(u, 0.15, 0.6)) };
+  if (u < 0.85) return { sy: 0.84, dx: -2 - 5 * easeOut(segU(u, 0.7, 0.76)), pull: 0 };
+  const r = segU(u, 0.85, 1);
+  return { sy: mix(0.84, 1, r), dx: -7 * (1 - r), pull: 0 };
+}
+function armorPiercerBase(u) {
+  if (u < 0.5) { const d = easeOut(segU(u, 0, 0.5)); return { pull: 13 * d, skew: -0.15 * d, sy: 1 - 0.05 * d }; }
+  if (u < 0.58) { const r = easeOut(segU(u, 0.5, 0.58)); return { pull: 0, dx: -12 * r, skew: -0.3 }; }
+  const r = segU(u, 0.7, 1);
+  return { pull: 0, dx: -12 * (1 - r), skew: -0.3 * (1 - r) };
+}
+
 const SKILL_FX = {
   // ── 검사: 강철 베기 ──
   //  Lv1 「강철 베기」 제자리에서 수수하게 내려벤다
@@ -2126,23 +2460,37 @@ const SKILL_FX = {
     kb: 12,
   },
 
-  // ── 레인저: 연사 — 숨 돌릴 틈 없이 4발 ──
+  // ── 레인저: 연사 ──
+  //  Lv1 「두 발 쏘기」 가는 화살 두 발 / ★ 「연사」 네 발을 숨 돌릴 틈 없이
+  //  ★★ 「분열 화살」 날아가던 화살이 초록 빛과 함께 세 갈래로 갈라져 주변까지 꽂힌다
+  //  ★★★ 「바람매 연사」 빛나는 바람매가 기사 위를 맴돌다 — 마지막에 적을 꿰뚫고 급강하한다
   rapidFire: {
-    pose(u) {
-      if (u < 0.1) return { pull: 9 * (u / 0.1) };
-      if (u < 0.7) { const f = ((u - 0.1) % 0.15) / 0.15; return { pull: 9 * Math.min(1, f * 1.6), dx: -1.5 * (1 - f), sy: 1 + 0.03 * (1 - f) }; }
-      return { pull: 0, dx: 0 };
-    },
+    pose(u, a) { return bowPullPose(u, a); },
+    cues: (a) => (a.mast >= 3 ? [[0.01, (a) => spiritHawkFx(a, a.k.dur - 0.02, a.k.hits[a.k.hits.length - 1][0] * a.k.dur - 0.15)]] : []),
     hit(a, i, n) {
-      const h = hand(a);
-      for (const t of a.targets()) {
+      const m = a.mast, h = hand(a);
+      if (m === 0) { for (const t of a.targets(i)) { plainShotFx(h.x + a.dir * 8, h.y, t.x, t.y, '#e8d9b0'); burst(t.x, t.y, 3, ['#ffffff', '#e8d9b0'], 70); } impact({ shake: 0.03 }); return; }
+      if (m === 2) {
+        const t0 = a.targets(i)[0] || { x: a.tx(), y: a.ty() };
+        splitArrowFx(a, h.x + a.dir * 8, h.y, t0.x, t0.y);
+        for (const t of a.targets(i)) burst(t.x, t.y, 5, ['#ffffff', '#bfffd0'], 90);
+        impact({ shake: 0.05 });
+        return;
+      }
+      if (m >= 3 && i === n - 1) {
+        for (const t of a.targets(i)) burst(t.x, t.y, 26, ['#bfffd0', '#ffffff', '#7fd06a'], 190);
+        for (let j = 0; j < 12; j++) parts.push({ x: a.tx(), y: a.ty(), vx: rand(-80, 80), vy: rand(-90, 10), g: 40, size: 2, color: j % 2 ? '#7fd06a' : '#ffffff', life: 0.8, t: 0 });
+        impact({ stop: 0.12, shake: 0.35 });
+        return;
+      }
+      for (const t of a.targets(i)) {
         streakFx(h.x + a.dir * 8, h.y, t.x, t.y, '#bfffd0', 3, 0.12);
         burst(t.x, t.y, 6, ['#ffffff', '#e8d9b0', a.color], 90);
       }
       burst(h.x + a.dir * 4, h.y, 4, ['#e9ffe9', a.color], 50, 2, 0);
       impact({ shake: i === n - 1 ? 0.1 : 0.04 });
     },
-    marks(a, t) { arrowStuckFx(t.x, t.y + rand(-9, 5), a.dir, a.color); },
+    marks(a, t, pow, i, n) { if (a.mast && !(a.mast >= 3 && i === n - 1)) arrowStuckFx(t.x, t.y + rand(-9, 5), a.dir, a.color); },
     kb: 6,
   },
 
@@ -2697,132 +3045,235 @@ const SKILL_FX = {
     kb: 10, launch: true,
   },
 
-  // ── 저격수: 헤드샷 — 무릎 꿇고 조준, 급소를 꿰뚫는다 ──
+  // ── 저격수: 헤드샷 ──
+  //  Lv1 「조준 사격」 짧게 겨눠 한 발 / ★ 「헤드샷」 무릎 꿇고 조준선을 좁혀 급소를
+  //  ★★ 「관통 헤드샷」 머리를 꿰뚫은 탄이 뒤의 적까지 — 지나간 길에 열선이 일렁인다
+  //  ★★★ 「정적의 일발」 하단바가 조준경 속처럼 청회색으로 가라앉고, 느리게 날아가는 탄이 공기를 가르다 — 유리처럼 깨진다
   headshot: {
-    pose(u) {
-      if (u < 0.15) { const k = segU(u, 0, 0.15); return { sy: 1 - 0.16 * k, dx: -2 * k, pull: 0 }; }
-      if (u < 0.7) return { sy: 0.84, dx: -2, pull: 11 * easeOut(segU(u, 0.15, 0.6)) };
-      if (u < 0.85) return { sy: 0.84, dx: -2 - 5 * easeOut(segU(u, 0.7, 0.76)), pull: 0 };
-      const r = segU(u, 0.85, 1);
-      return { sy: mix(0.84, 1, r), dx: -7 * (1 - r), pull: 0 };
-    },
-    cues: [
-      [0.15, (a) => {
-        aFx(a, 0, a.k.dur * 0.6, (u) => {
-          const x = a.tx(), y = a.ty() - 8, r = mix(26, 7, easeOut(u));
-          ctx.save();
-          ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
-          ctx.fillStyle = '#ffe066';
-          ctx.fillRect(Math.round(x - r - 6), Math.round(y), 8, 1); ctx.fillRect(Math.round(x + r - 2), Math.round(y), 8, 1);
-          ctx.fillRect(Math.round(x), Math.round(y - r - 6), 1, 8); ctx.fillRect(Math.round(x), Math.round(y + r - 2), 1, 8);
-          if (Math.sin(clock * 30) > 0) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
-          ctx.restore();
-        });
-      }],
-      [0.7, (a) => {
-        const h = hand(a);
-        streakFx(h.x + a.dir * 8, h.y, a.tx(), a.ty() - 8, '#ffe066', 3, 0.16);
-        burst(h.x + a.dir * 6, h.y, 6, ['#ffffff', '#ffe066'], 60, 2, 0);
-      }],
-    ],
-    hit(a) {
-      for (const t of a.targets()) {
-        burst(t.x, t.y - 8, 20, ['#ffffff', '#ff3b3b', '#ffe066'], 160);
-        starFx(t.x, t.y - 8, 14, '#ffe066', 0.3);
-        addFloater('HEADSHOT!', t.x, (t.top || t.y - 20) - 22, '#ffe066', 13);
+    pose(u, a) {
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 1.1);
+      if (a.k && m === 0) {
+        if (t < 0.12) { const k = t / 0.12; return { sy: 1 - 0.05 * k, pull: 0 }; }
+        if (t < 0.48) return { sy: 0.95, pull: 9 * easeOut(segU(t, 0.12, 0.46)) };
+        const r = segU(t, 0.48, 0.8);
+        return { sy: mix(0.95, 1, r), dx: -3 * Math.sin(Math.PI * r), pull: 0 };
       }
-      impact({ stop: 0.14, shake: 0.25 });
+      if (m >= 3) {
+        if (t < 0.2) { const k = t / 0.2; return { sy: 1 - 0.16 * k, dx: -2 * k, pull: 0 }; }
+        if (t < 1.14) return { sy: 0.84 + 0.01 * Math.sin(clock * 4), dx: -2, pull: 12 * easeOut(segU(t, 0.2, 1.0)) };
+        if (t < 1.3) return { sy: 0.84, dx: -2 - 7 * easeOut(segU(t, 1.14, 1.22)), pull: 0 };
+        if (t < 1.7) return { sy: 0.84, dx: -9, pull: 0 };
+        const r = segU(t, 1.7, 2.0);
+        return { sy: mix(0.84, 1, r), dx: -9 * (1 - r), pull: 0 };
+      }
+      return headshotBase(u);
     },
-    marks(a, t) { crackFx(t.x, t.y - 8, '#ffe066', 0.7); },
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [];
+      if (m >= 3) return [
+        [0.01, (a) => scopeFx(a, d - 0.02, 1.64)],
+        [1.14 / d, (a) => { const h = hand(a); slowBulletFx(a, h.x + a.dir * 8, h.y, 0.5); burst(h.x + a.dir * 6, h.y, 8, ['#ffffff', '#ffe066'], 70, 2, 0); impact({ shake: 0.15 }); }],
+      ];
+      return [
+        [0.15, (a) => {
+          aFx(a, 0, a.k.dur * 0.6, (u) => {
+            const x = a.tx(), y = a.ty() - 8, r = mix(26, 7, easeOut(u));
+            ctx.save();
+            ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = '#ffe066';
+            ctx.fillRect(Math.round(x - r - 6), Math.round(y), 8, 1); ctx.fillRect(Math.round(x + r - 2), Math.round(y), 8, 1);
+            ctx.fillRect(Math.round(x), Math.round(y - r - 6), 1, 8); ctx.fillRect(Math.round(x), Math.round(y + r - 2), 1, 8);
+            if (Math.sin(clock * 30) > 0) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+            ctx.restore();
+          });
+        }],
+        [0.7, (a) => {
+          const h = hand(a);
+          streakFx(h.x + a.dir * 8, h.y, a.tx(), a.ty() - 8, '#ffe066', 3, 0.16);
+          burst(h.x + a.dir * 6, h.y, 6, ['#ffffff', '#ffe066'], 60, 2, 0);
+        }],
+      ];
+    },
+    hit(a, i) {
+      const m = a.mast, h = hand(a);
+      if (m === 0) { for (const t of a.targets(i)) { plainShotFx(h.x + a.dir * 8, h.y, t.x, t.y - 8, '#f0e0a0'); burst(t.x, t.y - 8, 6, ['#ffffff', '#ffe066'], 100); } impact({ stop: 0.05, shake: 0.1 }); return; }
+      const tg = a.targets(i);
+      if (m === 2) {
+        const far = Math.max(a.tx() + a.dir * 30, ...tg.map((t) => t.x + a.dir * 40));
+        heatTrailFx(h.x + a.dir * 8, h.y, a.dir > 0 ? Math.max(far, a.tx() + 60) : Math.min(far, a.tx() - 60));
+      }
+      for (const t of tg) {
+        if (m >= 3) glassBreakFx(t.x, t.y - 8);
+        burst(t.x, t.y - 8, m >= 3 ? 30 : 20, ['#ffffff', '#ff3b3b', '#ffe066'], m >= 3 ? 200 : 160);
+        if (m !== 3) starFx(t.x, t.y - 8, 14, '#ffe066', 0.3);
+        addFloater(m >= 3 ? 'HEADSHOT!!' : 'HEADSHOT!', t.x, (t.top || t.y - 20) - 22, '#ffe066', m >= 3 ? 15 : 13);
+      }
+      impact({ stop: m >= 3 ? 0.22 : 0.14, shake: m >= 3 ? 0.45 : 0.25 });
+    },
+    marks(a, t) { if (a.mast === 1 || a.mast === 2) crackFx(t.x, t.y - 8, '#ffe066', 0.7); },
     kb: 34,
   },
 
-  // ── 저격수: 철갑 관통탄 — 끝까지 당겨 화면 끝까지 꿰뚫는다. 반동에 밀려난다 ──
+  // ── 저격수: 철갑 관통탄 ──
+  //  Lv1 「강궁 사격」 힘껏 당겨 묵직한 한 발 / ★ 「철갑 관통탄」 화면 끝까지 꿰뚫는 한 발, 반동에 밀려난다
+  //  ★★ 「폭렬 관통탄」 맞은 자리에서 포탄처럼 터져 쇳조각과 연기가 흩어진다
+  //  ★★★ 「공성 노포」 옆에 거대한 노포가 세워지고 — 굵은 쇠뇌 살 세 발이 하단바 끝까지 날아가 가장자리에 꽂힌다
   armorPiercer: {
-    pose(u) {
-      if (u < 0.5) { const d = easeOut(segU(u, 0, 0.5)); return { pull: 13 * d, skew: -0.15 * d, sy: 1 - 0.05 * d }; }
-      if (u < 0.58) { const r = easeOut(segU(u, 0.5, 0.58)); return { pull: 0, dx: -12 * r, skew: -0.3 }; }
-      const r = segU(u, 0.7, 1);
-      return { pull: 0, dx: -12 * (1 - r), skew: -0.3 * (1 - r) };
+    pose(u, a) {
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 1.2);
+      if (a.k && m === 0) {
+        if (t < 0.54) return { pull: 11 * easeOut(segU(t, 0, 0.5)), skew: -0.1, sy: 0.97 };
+        const r = segU(t, 0.54, 0.9);
+        return { pull: 0, dx: -4 * Math.sin(Math.PI * Math.min(1, r * 1.5)), skew: -0.1 * (1 - r) };
+      }
+      if (m >= 3) return { pull: 0, sy: 0.94, skew: 0.1, dx: -6 };
+      return armorPiercerBase(u);
     },
     tick(a, u) {
-      if (u < 0.5) { const h = hand(a); gatherFx(h.x + a.dir * 18, h.y, ['#ffe066', '#ffffff'], 1, 22); }
+      if ((a.mast === 1 || a.mast === 2) && u < 0.5) { const h = hand(a); gatherFx(h.x + a.dir * 18, h.y, ['#ffe066', '#ffffff'], 1, 22); }
     },
-    cues: [[0.5, (a) => {
-      const h = hand(a), end = a.dir > 0 ? W + 20 : -20;
-      streakFx(h.x + a.dir * 8, h.y, end, h.y, '#ffe066', 10, 0.4);
-      aFx(a, 0, 0.3, (u) => {
-        ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2;
-        for (const k of [0.6, 1]) { ctx.beginPath(); ctx.ellipse(h.x + a.dir * (10 + u * 30 * k), h.y, 3 + u * 4, 8 + u * 18 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
-        ctx.restore();
-      });
-      for (let i = 0; i < 8; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * rand(60, 140), vy: rand(-60, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
-      impact({ stop: 0.08, shake: 0.3 });
-    }]],
-    hit(a) {
-      for (const t of a.targets()) burst(t.x, t.y, 18, ['#ffe066', '#ffffff'], 160);
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [];
+      if (m >= 3) {
+        const shots = a.k.hits.map((h) => h[0] * d - 0.08);
+        return [[0.01, (a) => ballistaFx(a, d - 0.02, shots)], ...shots.map((s, j) => [s / d, (a) => {
+          ballistaBoltFx(a, groundY() - 26 + j * 3);
+          for (let i = 0; i < 6; i++) parts.push({ x: a.x() + a.dir * 18, y: groundY() - 2, vx: -a.dir * rand(40, 120), vy: rand(-60, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
+          impact({ stop: 0.06, shake: 0.3 });
+        }])];
+      }
+      return [[0.5, (a) => {
+        const h = hand(a), end = a.dir > 0 ? W + 20 : -20;
+        streakFx(h.x + a.dir * 8, h.y, end, h.y, '#ffe066', 10, 0.4);
+        aFx(a, 0, 0.3, (u) => {
+          ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2;
+          for (const k of [0.6, 1]) { ctx.beginPath(); ctx.ellipse(h.x + a.dir * (10 + u * 30 * k), h.y, 3 + u * 4, 8 + u * 18 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
+          ctx.restore();
+        });
+        for (let i = 0; i < 8; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * rand(60, 140), vy: rand(-60, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
+        impact({ stop: 0.08, shake: 0.3 });
+      }]];
     },
-    marks(a, t) { drillFx(t.x, t.y, a.dir, '#ffe066', 0.55); },
+    hit(a, i) {
+      const m = a.mast, h = hand(a);
+      if (m === 0) { for (const t of a.targets(i)) { plainShotFx(h.x + a.dir * 8, h.y, t.x, t.y, '#ffe066', 0.14); burst(t.x, t.y, 8, ['#ffe066', '#ffffff'], 110); } impact({ stop: 0.05, shake: 0.12 }); return; }
+      if (m === 2 && i === 1) {
+        const tg = a.targets(0);
+        for (const t of (tg.length ? tg : [{ x: a.tx(), y: a.ty() }])) shellBlastFx(t.x, t.y);
+        impact({ stop: 0.1, shake: 0.35 });
+        return;
+      }
+      for (const t of a.targets(i)) burst(t.x, t.y, m >= 3 ? 22 : 18, m >= 3 ? ['#c9c2b4', '#8a5a2b', '#ffffff'] : ['#ffe066', '#ffffff'], 160);
+    },
+    marks(a, t, pow, i) { if ((a.mast === 1 || a.mast === 2) && i === 0) drillFx(t.x, t.y, a.dir, '#ffe066', 0.55); },
     kb: 22,
   },
 
-  // ── 마궁수: 유도 마탄 — 등 뒤 마법진에서 마력탄 6발이 휘어 날아간다 ──
+  // ── 마궁수: 유도 마탄 ──
+  //  Lv1 「마력탄」 작은 구슬 두 발이 곧게 / ★ 「유도 마탄」 등 뒤 마법진에서 6발이 휘어 쫓는다
+  //  ★★ 「마탄 군무」 마력탄 8발이 기사 둘레를 돌며 춤추다가 하나씩 튀어나가 휘어 날아간다
+  //  ★★★ 「마력 붕괴」 적 위에 검푸른 특이점이 열려 빛을 빨아들이며 커지고 — 터지며 고리가 퍼진다
   homingBolts: {
     pose(u) {
       if (u < 0.3) return { pull: 8 * segU(u, 0, 0.3), bowA: -0.25 * segU(u, 0, 0.3) };
       if (u < 0.6) return { pull: 8 * (1 - segU(u, 0.3, 0.55)), bowA: -0.25 };
       return { pull: 0, bowA: -0.25 * (1 - segU(u, 0.6, 1)) };
     },
-    cues: [
-      [0.02, (a) => circleFx(a, () => ({ x: a.x() - a.dir * 14, y: groundY() - 30 }), 9, 26, '#6ff3ff', a.k.dur * 0.9)],
-      ...[0, 1, 2, 3, 4, 5].map((i) => [0.3 + i * 0.05, (a) => {
-        const h = hand(a), x0 = a.x() - a.dir * 14, y0 = groundY() - 30 + (i - 2.5) * 6;
-        const cx = x0 - a.dir * rand(10, 40), cy = h.y + (i % 2 ? -1 : 1) * rand(50, 80);
-        const trail = [];
-        aFx(a, 0, 0.3, (u) => {
-          const tx = a.tx(), ty = a.ty();
-          const x = (1 - u) ** 2 * x0 + 2 * (1 - u) * u * cx + u * u * tx, y = (1 - u) ** 2 * y0 + 2 * (1 - u) * u * cy + u * u * ty;
-          trail.push([x, y]); if (trail.length > 7) trail.shift();
-          trail.forEach(([px, py], j) => dot(px, py, 2, '#6ff3ff', ((j + 1) / trail.length) * 0.6));
-          ctx.save(); ctx.shadowColor = '#6ff3ff'; ctx.shadowBlur = 8;
-          dot(x, y, 5, '#6ff3ff', 0.6); dot(x, y, 3, '#ffffff');
-          ctx.restore();
-        });
-      }]),
-    ],
-    hit(a, i, n) {
-      for (const t of a.targets()) { burst(t.x, t.y, 8, ['#6ff3ff', '#ffffff'], 100, 2, 0); starFx(t.x, t.y, 6, '#6ff3ff', 0.18); }
-      impact({ shake: 0.05 });
-      if (i === n - 1) { ringFx(a.tx(), '#6ff3ff', 0.8, 0.4); impact({ stop: 0.05, shake: 0.18 }); }
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return a.k.hits.map((hh) => [Math.max(0, hh[0] - 0.12 / d), (a) => { const h = hand(a); plainBoltFx(a, h.x + a.dir * 8, h.y - 2, 0.12); }]);
+      if (m === 2) return [[0.01, (a) => orbitBoltsFx(a, 8, d - 0.02, a.k.hits.map((hh) => hh[0] * d - 0.16))]];
+      if (m >= 3) return [[0.01, (a) => singularityFx(a, d - 0.02, a.k.hits[a.k.hits.length - 1][0] * d)]];
+      return [
+        [0.02, (a) => circleFx(a, () => ({ x: a.x() - a.dir * 14, y: groundY() - 30 }), 9, 26, '#6ff3ff', a.k.dur * 0.9)],
+        ...[0, 1, 2, 3, 4, 5].map((i) => [0.3 + i * 0.05, (a) => {
+          const h = hand(a), x0 = a.x() - a.dir * 14, y0 = groundY() - 30 + (i - 2.5) * 6;
+          const cx = x0 - a.dir * rand(10, 40), cy = h.y + (i % 2 ? -1 : 1) * rand(50, 80);
+          const trail = [];
+          aFx(a, 0, 0.3, (u) => {
+            const tx = a.tx(), ty = a.ty();
+            const x = (1 - u) ** 2 * x0 + 2 * (1 - u) * u * cx + u * u * tx, y = (1 - u) ** 2 * y0 + 2 * (1 - u) * u * cy + u * u * ty;
+            trail.push([x, y]); if (trail.length > 7) trail.shift();
+            trail.forEach(([px, py], j) => dot(px, py, 2, '#6ff3ff', ((j + 1) / trail.length) * 0.6));
+            ctx.save(); ctx.shadowColor = '#6ff3ff'; ctx.shadowBlur = 8;
+            dot(x, y, 5, '#6ff3ff', 0.6); dot(x, y, 3, '#ffffff');
+            ctx.restore();
+          });
+        }]),
+      ];
     },
-    marks(a, t) { runeStampFx(t.x + rand(-7, 7), t.y + rand(-9, 9), 7, '#6ff3ff'); },
+    hit(a, i, n) {
+      const m = a.mast, last = i === n - 1;
+      if (m === 0) { for (const t of a.targets(i)) burst(t.x, t.y, 4, ['#9fefff', '#ffffff'], 70, 2, 0); return; }
+      if (m >= 3) {
+        if (!last) {
+          // 특이점이 맥박치듯 둘레의 빛 고리를 빨아들인다
+          const x = a.tx(), y = a.ty() - 44;
+          skFx(null, 0, 0.25, (u) => { ctx.save(); ctx.globalAlpha = 0.8 * (1 - u); ctx.strokeStyle = '#9fefff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(x, y, 60 * (1 - u) + 6, 24 * (1 - u) + 3, 0.2, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); });
+          for (const t of a.targets(i)) burst(t.x, t.y, 5, ['#6ff3ff', '#ffffff'], 80, 2, 0);
+          impact({ shake: 0.05 });
+          return;
+        }
+        for (const t of a.targets(i)) burst(t.x, t.y, 34, ['#6ff3ff', '#ffffff', '#05121a'], 210, 3, 0);
+        impact({ stop: 0.16, shake: 0.45 });
+        return;
+      }
+      for (const t of a.targets(i)) { burst(t.x, t.y, 8, ['#6ff3ff', '#ffffff'], 100, 2, 0); starFx(t.x, t.y, 6, '#6ff3ff', 0.18); }
+      impact({ shake: 0.05 });
+      if (last) { ringFx(a.tx(), '#6ff3ff', 0.8, 0.4); impact({ stop: 0.05, shake: 0.18 }); }
+    },
+    marks(a, t, pow, i, n) { if (a.mast === 1 || a.mast === 2) runeStampFx(t.x + rand(-7, 7), t.y + rand(-9, 9), 7, '#6ff3ff'); },
     kb: 5,
   },
 
-  // ── 마궁수: 별빛 화살비 — 하늘에 마법진, 별빛 화살이 쏟아진다 ──
+  // ── 마궁수: 별빛 화살비 ──
+  //  Lv1 「별똥 화살」 하늘에서 작은 화살 세 발 / ★ 「별빛 화살비」 하늘의 마법진에서 별빛 화살이 쏟아진다
+  //  ★★ 「별자리 화살비」 하늘에 별이 하나씩 켜져 선으로 이어지고 — 별마다 화살이 떨어진다
+  //  ★★★ 「별이 지는 밤」 하단바가 남색 밤하늘로 물들고 오로라가 흐르다 — 커다란 별이 떨어져 다섯 갈래로 부서진다
   starfall: {
     pose(u) {
       if (u < 0.25) return { bowA: -1.1 * easeOut(segU(u, 0, 0.15)), pull: 10 * segU(u, 0.05, 0.25) };
       if (u < 0.92) return { bowA: -1.1, pull: 0 };
       return { bowA: -1.1 * (1 - segU(u, 0.92, 1)), pull: 0 };
     },
-    cues: [
-      [0.25, (a) => { const h = hand(a); streakFx(h.x + a.dir * 4, h.y - 6, h.x + a.dir * 40, -10, '#6ff3ff', 3, 0.2); }],
-      [0.3, (a) => {
-        circleFx(a, () => ({ x: a.tx(), y: 34 }), 74, 9, '#6ff3ff', a.k.dur * 0.68);
-      }],
-    ],
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      const up = [0.25, (a) => { const h = hand(a); streakFx(h.x + a.dir * 4, h.y - 6, h.x + a.dir * 40, -10, m ? '#6ff3ff' : '#cfefff', m ? 3 : 1, 0.2); }];
+      if (m === 0) return [up];
+      if (m === 2) return [up, [0.28, (a) => constellationFx(a, d * 0.72, a.k.hits.length)]];
+      if (m >= 3) return [up, [0.01, (a) => nightSkyFx(a, d - 0.02, a.k.hits[a.k.hits.length - 1][0] * d)]];
+      return [up, [0.3, (a) => { circleFx(a, () => ({ x: a.tx(), y: 34 }), 74, 9, '#6ff3ff', a.k.dur * 0.68); }]];
+    },
     hit(a, i, n) {
-      const cx = a.tx(), last = i === n - 1;
+      const m = a.mast, cx = a.tx(), last = i === n - 1, gy = groundY();
+      if (m === 0) { const x = cx + rand(-20, 20); fallingArrowFx(x); skFx(null, 0.18, 0.01, null, () => burst(x, gy - 6, 5, ['#cfefff', '#ffffff'], 80, 2, 260)); impact({ shake: 0.03 }); return; }
+      if (m === 2) {
+        const s = (a.stars || [])[i] || { x: cx, y: 30 }, x1 = s.x + rand(-6, 6);
+        streakFx(s.x, s.y, x1, gy - 6, '#9fd8ff', last ? 3 : 2, 0.14);
+        burst(x1, gy - 6, last ? 18 : 6, ['#9fd8ff', '#ffffff'], last ? 150 : 90, 2, 260);
+        impact(last ? { stop: 0.08, shake: 0.28 } : { shake: 0.05 });
+        return;
+      }
+      if (m >= 3) {
+        if (last) { starShatterFx(cx); impact({ stop: 0.2, shake: 0.55 }); return; }
+        // 오로라 아래로 별가루가 빗금으로 떨어진다
+        const x = cx + rand(-60, 60);
+        skFx(null, 0, 0.16, (u) => { ctx.save(); ctx.globalAlpha = 1 - u * 0.5; ctx.fillStyle = '#ffffff'; ctx.fillRect(x - a.dir * 10 * (1 - u), mix(20, gy - 4, u), 2, 2); ctx.fillStyle = 'rgba(150,255,210,0.6)'; ctx.fillRect(x - a.dir * 10 * (1 - u) - a.dir * 3, mix(20, gy - 4, u) - 6, 1, 6); ctx.restore(); },
+          () => burst(x, gy - 4, 4, ['#9fffd8', '#ffffff'], 70, 2, 260));
+        impact({ shake: 0.04 });
+        return;
+      }
       const x1 = cx + (last ? 0 : rand(-46, 46)), x0 = x1 - a.dir * rand(14, 30);
-      meteorFx(x0, 34, x1, groundY() - 6, i % 3 ? '#6ff3ff' : '#ffe066', last ? 7 : 4, 0.1, () => {
-        burst(x1, groundY() - 6, last ? 22 : 8, ['#6ff3ff', '#ffffff', '#ffe066'], last ? 160 : 100, 2, 260);
+      meteorFx(x0, 34, x1, gy - 6, i % 3 ? '#6ff3ff' : '#ffe066', last ? 7 : 4, 0.1, () => {
+        burst(x1, gy - 6, last ? 22 : 8, ['#6ff3ff', '#ffffff', '#ffe066'], last ? 160 : 100, 2, 260);
         starStampFx(x1, i % 3 ? '#6ff3ff' : '#ffe066', last ? 22 : 11, last ? 0.8 : 0.55);
       });
       impact(last ? { stop: 0.08, shake: 0.28 } : { shake: 0.06 });
     },
-    marks(a, t) { starFx(t.x + rand(-10, 10), t.y + rand(-12, 6), 5, '#ffe066', 0.25); },
+    marks(a, t) { if (a.mast === 1 || a.mast === 2) starFx(t.x + rand(-10, 10), t.y + rand(-12, 6), 5, '#ffe066', 0.25); },
     kb: 4,
   },
 };
