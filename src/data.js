@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.10.5';
+const GAME_VERSION = '0.10.6';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -77,7 +77,8 @@ function buildCost(id, lv) {
     gold: Math.floor(40 * Math.pow(1.9, lv - 1) * m.gold),
     wood: Math.floor(20 * Math.pow(2, lv - 1) * m.wood),
     ore: Math.floor(12 * Math.pow(2, lv - 1) * m.ore),
-    mana: lv >= 2 ? Math.floor(4 * Math.pow(1.9, lv - 2) * m.mana) : 0,
+    // 마력석은 Lv5 → 6 부터 (초반 마력석은 전직·강화 몫으로 남도록), 오르는 폭도 목재·철광석보다 완만하게
+    mana: lv >= 5 ? Math.floor(4 * Math.pow(1.7, lv - 5) * m.mana) : 0,
   };
 }
 
@@ -430,7 +431,7 @@ const CURIOS = {
   coin:  { name: '옛 금화',     icon: '🪙', res: 'gold', amt: 20, w: 25 },
   idol:  { name: '낡은 목각상', icon: '🗿', res: 'wood', amt: 13, w: 32 },
   helm:  { name: '녹슨 투구',   icon: '⛑️', res: 'ore',  amt: 10, w: 30 },
-  gem:   { name: '빛바랜 보석', icon: '🔮', res: 'mana', amt: 3,  w: 13 },
+  gem:   { name: '빛바랜 보석', icon: '🔮', res: 'mana', amt: 5,  w: 22 },
 };
 
 // ───────────────────────── 훈련 (골드) ─────────────────────────
