@@ -1565,6 +1565,422 @@ function judgmentBase(u) {
   return { wa: mix(0.85, -1.0, r), skew: 0.28 * (1 - r), dx: 7 * (1 - r) };
 }
 
+// ── 진화 연출 도구 (창 계열 숙련 단계 전용) ──
+// Lv1 찌르기: 창끝에서 짧고 가는 흰 선 하나와 작은 불티
+function jabLineFx(x, y, dir, life = 0.16) {
+  skFx(null, 0, life, (u) => {
+    const L = 22 * Math.min(1, u / 0.3);
+    ctx.save(); ctx.globalAlpha = 1 - u;
+    ctx.fillStyle = '#e8eef5'; ctx.fillRect(Math.min(x, x + dir * L), y, L, 1);
+    ctx.restore();
+  });
+  parts.push({ x: x + dir * 22, y, vx: dir * 40, vy: -20, g: 120, size: 2, color: '#ffffff', life: 0.2, t: 0 });
+}
+// ★★ 투창: 창의 빛이 떨어져 나가 날아가고(꼬리 바람), 끝에서 비스듬히 땅에 꽂혀 부르르 떨다 녹아내린다
+function thrownSpearFx(a, x0, y0, dist, life) {
+  const d = a.dir, fly = 0.14, gy = groundY();
+  const xEnd = x0 + d * dist, yEnd = gy - 6;
+  skFx(null, 0, life, (u) => {
+    const t = u * life;
+    let x, y, ang;
+    if (t < fly) { const k = t / fly; x = mix(x0, xEnd, k); y = mix(y0, yEnd, k * k); ang = Math.atan2((yEnd - y0) * 2 * k / dist, d); }
+    else { x = xEnd; y = yEnd; ang = Math.atan2(0.35, d) + Math.sin(t * 60) * 0.06 * Math.max(0, 1 - (t - fly) / 0.4); }
+    const out = t > life - 0.3 ? (life - t) / 0.3 : 1;
+    ctx.save();
+    ctx.globalAlpha = out;
+    ctx.translate(x, y); ctx.rotate(ang);
+    if (t < fly) { ctx.fillStyle = 'rgba(159,212,154,0.5)'; for (const oy of [-3, 0, 3]) ctx.fillRect(-40, oy, 26, 1); }
+    ctx.fillStyle = "#6fa37a"; ctx.fillRect(-26, -1, 26, 2);                                  // 자루
+    ctx.fillStyle = '#d6ffd8'; ctx.fillRect(-26, -1, 26, 1);
+    ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(10, 0); ctx.lineTo(0, 4); ctx.closePath();
+    ctx.fillStyle = '#eafff0'; ctx.fill();                                                    // 창날
+    ctx.restore();
+  }, null, (u) => {
+    const t = u * life;
+    if (t > fly && t < life - 0.3 && Math.random() < 0.4) parts.push({ x: xEnd + rand(-4, 4), y: yEnd - rand(0, 18), vx: 0, vy: rand(-30, -10), g: -10, size: 1, color: '#bfffd0', life: 0.4, t: 0 });
+  });
+}
+// ★★★ 천공창: 기사 등 뒤에 거대한 빛의 창이 맺힌다 (차오르는 동안 길어지고 밝아진다)
+function spearChargeFx(a, life) {
+  aFx(a, 0, life, (u) => {
+    const x = a.px() - a.dir * 6, y = groundY() - 30, k = easeOut(u), L = 70 * k;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.3 + 0.5 * k;
+    ctx.translate(x, y); ctx.scale(a.dir, 1);
+    ctx.fillStyle = '#6fa37a'; ctx.fillRect(-L, -2, L, 4);
+    ctx.fillStyle = '#d6ffd8'; ctx.fillRect(-L, -1, L, 1);
+    ctx.beginPath(); ctx.moveTo(0, -9 * k); ctx.lineTo(22 * k, 0); ctx.lineTo(0, 9 * k); ctx.closePath(); ctx.fillStyle = '#eafff0'; ctx.fill();
+    // 창날을 감는 나선 빛
+    ctx.strokeStyle = '#bfffd0'; ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) { const ph = clock * 18 + i * 2.1; ctx.beginPath(); ctx.ellipse(-L * 0.3 * i / 2, 0, 4, 10 * k, 0, ph, ph + 2); ctx.stroke(); }
+    ctx.restore();
+  });
+}
+// ★★★ 천공창 발사: 회전하는 거대한 창이 하단바 끝까지 일직선으로 뚫고 나간다 — 창 둘레로 소용돌이 고리, 지나간 땅은 패인 고랑
+function drillSpearFx(a, x0, y, life) {
+  const d = a.dir, end = d > 0 ? W + 40 : -40, len = Math.abs(end - x0);
+  skFx(null, 0, life, (u) => {
+    const head = x0 + d * len * easeOut(Math.min(1, u / 0.35)), fade = u > 0.7 ? 1 - (u - 0.7) / 0.3 : 1;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    // 지나간 길: 땅이 패인 고랑
+    ctx.fillStyle = '#3a3026'; ctx.fillRect(Math.min(x0, head), groundY(), Math.abs(head - x0), 2);
+    // 창 몸통: 빛나는 원뿔
+    ctx.globalCompositeOperation = 'lighter';
+    const tail = head - d * 90;
+    const grad = ctx.createLinearGradient(tail, 0, head, 0);
+    grad.addColorStop(0, 'rgba(111,163,122,0)'); grad.addColorStop(1, 'rgba(214,255,216,0.9)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.moveTo(tail, y - 3); ctx.lineTo(head - d * 18, y - 12); ctx.lineTo(head + d * 14, y); ctx.lineTo(head - d * 18, y + 12); ctx.lineTo(tail, y + 3); ctx.closePath(); ctx.fill();
+    // 몸통을 감는 회전 띠
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 4; i++) { const px = head - d * (8 + i * 18), ph = clock * 30 + i; ctx.beginPath(); ctx.ellipse(px, y, 3, 11 - i * 2, 0, ph, ph + 2.4); ctx.stroke(); }
+    // 지나간 자리마다 남는 소용돌이 고리
+    ctx.strokeStyle = 'rgba(191,255,208,0.7)'; ctx.lineWidth = 1;
+    for (let rx = x0 + d * 30; d > 0 ? rx < head - 40 : rx > head + 40; rx += d * 46) { ctx.beginPath(); ctx.ellipse(rx, y, 3, 14 * fade, 0, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.restore();
+  }, null, (u) => {
+    const head = x0 + d * len * easeOut(Math.min(1, u / 0.35));
+    if (u < 0.4) for (let i = 0; i < 3; i++) parts.push({ x: head - d * rand(0, 30), y: groundY() - 1, vx: -d * rand(20, 80), vy: rand(-140, -40), g: 420, size: 2, color: i % 2 ? '#8a7a68' : '#5b5048', life: 0.5, t: 0 });
+  });
+}
+
+// Lv1 도약 찌르기: 착지 자리의 작은 흙먼지 고리
+function hopDustFx(x, life = 0.35) {
+  const gy = groundY();
+  skFx(null, 0, life, (u) => {
+    ctx.save(); ctx.globalAlpha = (1 - u) * 0.7;
+    ctx.strokeStyle = '#c9b38a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(x, gy - 1, 6 + 16 * u, 2 + 2 * u, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  });
+}
+// ★★ 업화: 내리꽂힌 자리에 보라 불꽃이 바닥을 따라 넘실대며 한동안 타오른다 (도트 불꽃 혀가 제각각 일렁인다)
+function firePoolFx(x, halfW, life) {
+  const gy = groundY(), tongues = [];
+  for (let i = 0; i < 13; i++) tongues.push({ dx: mix(-halfW, halfW, i / 12) + rand(-3, 3), h: rand(7, 15), ph: rand(0, 6) });
+  skFx(null, 0, life, (u) => {
+    const grow = Math.min(1, u * life / 0.15), fade = u > 0.8 ? (1 - u) / 0.2 : 1;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = 'rgba(122,60,255,0.35)'; ctx.fillRect(x - halfW * grow, gy - 2, halfW * 2 * grow, 3);
+    for (const T of tongues) {
+      if (Math.abs(T.dx) > halfW * grow) continue;
+      const h = T.h * (0.7 + 0.3 * Math.sin(clock * 12 + T.ph)) * (1 - Math.abs(T.dx) / halfW * 0.4);
+      ctx.fillStyle = '#7a3cff'; ctx.fillRect(Math.round(x + T.dx) - 2, gy - h, 4, h);
+      ctx.fillStyle = '#b388ff'; ctx.fillRect(Math.round(x + T.dx) - 1, gy - h + 2, 2, h - 2);
+      ctx.fillStyle = '#e0c8ff'; ctx.fillRect(Math.round(x + T.dx), gy - h * 0.5, 1, h * 0.5);
+    }
+    ctx.restore();
+  }, null, () => { if (Math.random() < 0.5) parts.push({ x: x + rand(-halfW, halfW), y: gy - rand(6, 14), vx: rand(-8, 8), vy: rand(-50, -25), g: -10, size: 2, color: Math.random() < 0.5 ? '#b388ff' : '#e0c8ff', life: 0.5, t: 0, add: true }); });
+}
+// ★★★ 유성룡: 떨어지는 동안 기사 뒤로 보라 용의 몸통이 굽이치며 따라오고(지나온 자리를 기억해 잇는다), 머리에 뿔과 눈
+function dragonTrailFx(a, from, to) {
+  const pts = [];
+  aFx(a, from, to - from + 0.25, (u) => {
+    if (pts.length < 2) return;
+    const fade = u > 0.8 ? (1 - u) / 0.2 : 1;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    for (let i = 1; i < pts.length; i++) {
+      const p = pts[i], q = pts[i - 1], k = i / pts.length, w = 2 + 9 * k;
+      const wob = Math.sin(clock * 14 + i * 0.7) * 3 * (1 - k);
+      ctx.strokeStyle = i % 3 ? '#5a2bb0' : '#b388ff'; ctx.lineWidth = w; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(q.x + wob, q.y); ctx.lineTo(p.x + wob, p.y); ctx.stroke();
+      if (i % 4 === 0) { ctx.fillStyle = '#e0c8ff'; ctx.fillRect(Math.round(p.x + wob - w / 2), Math.round(p.y) - 1, 2, 2); }   // 비늘 빛
+    }
+    const h = pts[pts.length - 1];
+    ctx.fillStyle = '#3b2458'; ctx.fillRect(h.x - 7, h.y - 22, 14, 10);       // 머리
+    ctx.fillStyle = '#b388ff'; ctx.fillRect(h.x - 9, h.y - 26, 3, 6); ctx.fillRect(h.x + 6, h.y - 26, 3, 6);   // 뿔
+    ctx.fillStyle = '#ffe066'; ctx.fillRect(h.x - 4, h.y - 19, 2, 2); ctx.fillRect(h.x + 2, h.y - 19, 2, 2);   // 눈
+    ctx.restore();
+  }, null, () => {
+    const p = castPose(a.owner) || {};
+    if (pts.length < 26) pts.push({ x: a.px(), y: groundY() - 24 - (p.lift || 0) });
+    else { pts.shift(); pts.push({ x: a.px(), y: groundY() - 24 - (p.lift || 0) }); }
+  });
+}
+// 유성 파편 하나: 하늘에서 비스듬히 떨어지는 작은 보라 불덩이, 땅에 닿으면 작은 불꽃 꽃
+function shardFallFx(x, delay, life = 0.22) {
+  const gy = groundY(), x0 = x - 30;
+  skFx(null, delay, life, (u) => {
+    const px = mix(x0, x, u), py = mix(-10, gy - 4, u * u);
+    ctx.save();
+    ctx.fillStyle = 'rgba(179,136,255,0.5)'; ctx.fillRect(px - 12, py - 10, 12, 2);
+    ctx.fillStyle = '#e0c8ff'; ctx.fillRect(px - 3, py - 3, 6, 6);
+    ctx.fillStyle = '#7a3cff'; ctx.fillRect(px - 2, py - 2, 4, 4);
+    ctx.restore();
+  }, () => {
+    for (let i = 0; i < 10; i++) parts.push({ x, y: gy - 3, vx: rand(-90, 90), vy: rand(-130, -40), g: 300, size: 2, color: i % 2 ? '#b388ff' : '#ffffff', life: 0.4, t: 0 });
+  });
+}
+
+// ── 용의 숨결 ──
+// Lv1 화염 숨: 창끝에서 짧게 터지는 주황빛 불꽃 몇 점 (용머리 없이)
+function puffFx(x, y, dir) {
+  for (let i = 0; i < 3; i++) parts.push({ x, y: y + rand(-2, 2), vx: dir * rand(70, 120), vy: rand(-25, 10), g: -30, size: 2, color: i % 2 ? '#ffb070' : '#c79bff', life: rand(0.18, 0.28), t: 0 });
+}
+// ★★ 삼두룡: 창끝 둘레로 작은 용머리 셋이 위·가운데·아래로 갈라져 나타나 각자 불꽃을 뿜는다
+const TRI_ANG = [-0.32, 0, 0.32];
+function tripleHeadsFx(a, life) {
+  aFx(a, 0, life, (u) => {
+    const h = hand(a), k = u < 0.1 ? u / 0.1 : u > 0.88 ? (1 - u) / 0.12 : 1;
+    TRI_ANG.forEach((ang, i) => {
+      const r = 18 + (i === 1 ? 6 : 0), x = h.x + a.dir * Math.cos(ang) * r, y = h.y + Math.sin(ang) * r * 1.6 + Math.sin(clock * 20 + i) * 1.5;
+      // 목: 창끝에서 머리까지 이어진 보라 줄
+      ctx.save(); ctx.globalAlpha = k * 0.8; ctx.strokeStyle = '#5a2bb0'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(h.x + a.dir * 6, h.y); ctx.quadraticCurveTo(h.x + a.dir * r * 0.5, y, x - a.dir * 6, y); ctx.stroke(); ctx.restore();
+      drawSprite(DRAGON_HEAD, DRAGON_PAL, x, y + 9, 2, { flip: a.dir < 0, alpha: k });
+    });
+  }, null, (u) => {
+    if (u < 0.12 || u > 0.9) return;
+    const h = hand(a);
+    TRI_ANG.forEach((ang, i) => {
+      const r = 18 + (i === 1 ? 6 : 0), x = h.x + a.dir * (Math.cos(ang) * r + 10), y = h.y + Math.sin(ang) * r * 1.6;
+      parts.push({ x, y, vx: a.dir * rand(150, 230) * Math.cos(ang), vy: Math.sin(ang) * 160 + rand(-20, 20), g: -30, size: Math.random() < 0.4 ? 3 : 2, color: ['#b388ff', '#e0c8ff', '#7a3cff'][i], life: rand(0.3, 0.45), t: 0 });
+    });
+  });
+}
+// ★★★ 용왕: 기사 뒤 하늘에 거대한 용왕 머리가 떠오른다 (뿔·갈기·빛나는 눈, 입이 벌어진다)
+const GREAT_DRAGON = [
+  '....hh..............',
+  '...hHHh......hh.....',
+  '..hHHHHhhhhhhHHh....',
+  '.hHHHHHHHHHHHHHHhh..',
+  'hHHHeeHHHHHHHHHHHHh.',
+  'hHHHeyHHHHHHHHHHHHHh',
+  'hHHHHHHHHHHHHwHwHwHh',
+  '.hhHHHHHHHHHmmmmmmmh',
+  '...hhhHHHHHHmmmmmmm.',
+  '.....hHHHHHHHwHwHwh.',
+  '......hhhHHHHHHHHh..',
+  '.........hhhhhhhh...',
+];
+const GREAT_DRAGON_PAL = { h: '#241238', H: '#5a2bb0', e: '#ffe066', y: '#ff3b3b', w: '#f4f1e8', m: '#1a0a28' };
+function greatDragonFx(a, life, openAt) {
+  backFx(a, 0, life, (u) => {
+    const t = u * life, rise = easeOut(Math.min(1, t / 0.6)), out = t > life - 0.3 ? (life - t) / 0.3 : 1;
+    const x = a.px() - a.dir * 10, base = groundY() - 46 + 30 * (1 - rise);
+    const open = t > openAt ? Math.min(1, (t - openAt) / 0.12) : 0;
+    ctx.save();
+    ctx.globalAlpha = rise * out * 0.92;
+    // 아래턱이 벌어지도록 위/아래를 나눠 그린다
+    const top = GREAT_DRAGON.slice(0, 7), jaw = GREAT_DRAGON.slice(7);
+    drawSprite(top, GREAT_DRAGON_PAL, x + a.dir * 30, base, 5, { flip: a.dir < 0 });
+    drawSprite(jaw, GREAT_DRAGON_PAL, x + a.dir * 30, base + jaw.length * 5 + open * 12, 5, { flip: a.dir < 0 });
+    // 갈기: 머리 뒤로 흔들리는 보라 불꽃 줄기
+    for (let i = 0; i < 7; i++) {
+      const mx = x - a.dir * (14 + i * 6), my = base - 30 + i * 6, len = 14 + 6 * Math.sin(clock * 10 + i);
+      ctx.fillStyle = i % 2 ? '#7a3cff' : '#b388ff'; ctx.fillRect(Math.round(a.dir > 0 ? mx - len : mx), Math.round(my), len, 3);
+    }
+    ctx.restore();
+  });
+}
+// 용왕의 광선: 입에서 하단바 끝까지 굵은 보라 빛줄기 (가장자리가 출렁이고 흰 심이 떨린다)
+function dragonBeamFx(a, from, life) {
+  aFx(a, from, life, (u) => {
+    const d = a.dir, x0 = a.px() + d * 70, y = groundY() - 30, end = d > 0 ? W + 40 : -40;
+    const k = u < 0.08 ? u / 0.08 : u > 0.85 ? (1 - u) / 0.15 : 1, w = 26 * k;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(122,60,255,0.55)';
+    for (let x = x0; d > 0 ? x < end : x > end; x += d * 6) {
+      const ww = w * (0.8 + 0.2 * Math.sin(clock * 30 + x * 0.1));
+      ctx.fillRect(Math.min(x, x + d * 6), y - ww / 2, 6, ww);
+    }
+    ctx.fillStyle = 'rgba(224,200,255,0.8)'; ctx.fillRect(Math.min(x0, end), y - w * 0.22, Math.abs(end - x0), w * 0.44);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.min(x0, end), y - 1 + Math.sin(clock * 50), Math.abs(end - x0), 2);
+    ctx.restore();
+  }, null, (u) => {
+    const d = a.dir, x0 = a.px() + d * 70, y = groundY() - 30;
+    for (let i = 0; i < 2; i++) parts.push({ x: x0 + d * rand(0, W), y: y + rand(-12, 12), vx: d * rand(60, 160), vy: rand(-40, 40), g: 0, size: 2, color: Math.random() < 0.5 ? '#e0c8ff' : '#ffffff', life: 0.3, t: 0, add: true });
+  });
+}
+// 포효: 용왕의 입 앞에서 반원 음파가 연달아 퍼진다
+function roarFx(a, life = 0.6) {
+  aFx(a, 0, life, (u) => {
+    const x = a.px() + a.dir * 64, y = groundY() - 32;
+    ctx.save(); ctx.strokeStyle = '#c79bff'; ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const p = (u * 1.6 + i * 0.25) % 1, r = 8 + 60 * p;
+      ctx.globalAlpha = (1 - p) * 0.8;
+      ctx.beginPath(); ctx.arc(x, y, r, a.dir > 0 ? -0.9 : Math.PI - 0.9, a.dir > 0 ? 0.9 : Math.PI + 0.9); ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+// ── 대회전 ──
+// Lv1 휩쓸기: 앞쪽으로 반원을 긋는 납작한 주황 호 하나
+function sweepArcFx(a, life = 0.25) {
+  skFx(null, 0, life, (u) => {
+    const x = a.px(), y = groundY() - HAND_Y, k = Math.min(1, u / 0.4);
+    ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#e0a070'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(x, y, 34, 9, 0, a.dir > 0 ? -Math.PI / 2 : Math.PI / 2, a.dir > 0 ? -Math.PI / 2 + Math.PI * k : Math.PI / 2 + Math.PI * k, a.dir < 0); ctx.stroke();
+    ctx.restore();
+  });
+}
+// ★★ 회오리: 기사 발밑에서 흙먼지 회오리가 생겨 점점 커지다가, 끝나면 앞으로 굴러가며 흩어진다
+function dustTwisterFx(a, life, rollAt) {
+  let x0 = null;
+  aFx(a, 0, life, (u) => {
+    const t = u * life;
+    if (x0 == null) x0 = a.x();
+    const roll = t > rollAt ? (t - rollAt) * 90 : 0;
+    const x = (t > rollAt ? x0 + a.dir * roll : a.x()), gy = groundY();
+    const grow = Math.min(1, t / 0.4), fade = u > 0.85 ? (1 - u) / 0.15 : 1, H = 64 * grow;
+    if (t <= rollAt) x0 = a.x();
+    ctx.save();
+    ctx.globalAlpha = fade * 0.85;
+    for (let i = 0; i < 9; i++) {
+      const k = i / 8, y = gy - k * H, rx = 6 + 20 * k, ph = clock * 14 - i * 0.6;
+      ctx.strokeStyle = i % 2 ? '#c9b38a' : '#a8946a'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(x + Math.sin(clock * 6 + k * 3) * 3 * k, y, rx, 3 + 2 * k, 0, ph, ph + 3.6); ctx.stroke();
+    }
+    ctx.restore();
+  }, null, (u) => {
+    const t = u * life, x = x0 == null ? a.x() : x0 + (t > rollAt ? a.dir * (t - rollAt) * 90 : 0);
+    if (Math.random() < 0.8) parts.push({ x: x + rand(-14, 14), y: groundY() - rand(0, 50), vx: rand(-60, 60), vy: rand(-60, -20), g: 60, size: 2, color: Math.random() < 0.5 ? '#c9b38a' : '#8a7a68', life: 0.4, t: 0 });
+  });
+}
+// ★★★ 폭풍: 하단바 위쪽으로 먹구름이 몰려와 뭉게뭉게 꿈틀대고, 빗줄기가 비스듬히 떨어진다
+function stormCloudFx(a, life) {
+  const puffs = [];
+  for (let i = 0; i < 9; i++) puffs.push({ dx: (i - 4) * 16 + rand(-4, 4), r: rand(10, 17), ph: rand(0, 6) });
+  backFx(a, 0, life, (u) => {
+    const t = u * life, x = a.px(), cy = groundY() - 108, k = Math.min(1, t / 0.35), out = t > life - 0.35 ? (life - t) / 0.35 : 1;
+    ctx.save();
+    ctx.globalAlpha = k * out;
+    for (const P of puffs) { ctx.fillStyle = '#2a2d3a'; ctx.beginPath(); ctx.arc(x + P.dx * k, cy + Math.sin(clock * 2 + P.ph) * 2, P.r, 0, Math.PI * 2); ctx.fill(); }
+    for (const P of puffs) { ctx.fillStyle = '#3d4152'; ctx.beginPath(); ctx.arc(x + P.dx * k - 2, cy - 3 + Math.sin(clock * 2 + P.ph) * 2, P.r * 0.6, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = 'rgba(160,190,230,0.45)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 16; i++) { const rx = x - 70 + ((i * 37 + clock * 120) % 140), ry = cy + 12 + ((i * 53 + clock * 260) % 90); ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 3, ry + 8); ctx.stroke(); }
+    ctx.restore();
+  });
+}
+// 벼락: 구름에서 대상까지 갈라지는 번개 (가지 하나), 맞은 자리에 하얀 섬광
+function boltFx(x, life = 0.22) {
+  const gy = groundY(), top = gy - 100, pts = [[x + rand(-10, 10), top]];
+  for (let y = top + 12; y < gy; y += 12) pts.push([x + rand(-7, 7), y]);
+  pts.push([x, gy - 2]);
+  const br = pts[3] ? [[pts[3][0], pts[3][1]], [pts[3][0] + rand(10, 18), pts[3][1] + 16], [pts[3][0] + rand(14, 24), pts[3][1] + 26]] : null;
+  skFx(null, 0, life, (u) => {
+    if (u > 0.5 && Math.floor(u * 24) % 2) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [P, w, c] of [[pts, 4, 'rgba(140,180,255,0.6)'], [pts, 1.5, '#ffffff'], ...(br ? [[br, 1, '#cfe0ff']] : [])]) {
+      ctx.strokeStyle = c; ctx.lineWidth = w;
+      ctx.beginPath(); P.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
+    }
+    ctx.globalAlpha = 1 - u; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(x, gy - 2, 14, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ── 대지 가르기 ──
+// Lv1 내려찍기: 날 끝에서 짧은 금 하나
+function shortCrackFx(x, dir, life = 0.5) {
+  const gy = groundY(), pts = [[x, gy + 1]];
+  for (let i = 1; i <= 4; i++) pts.push([x + dir * i * 7, gy + 1 + (i % 2 ? -1 : 1)]);
+  skFx(null, 0, life, (u) => {
+    ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#5a4a42'; ctx.lineWidth = 2;
+    ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke(); ctx.restore();
+  });
+}
+// ★★ 대지 진동: 땅이 파도처럼 솟아 앞으로 밀려간다 (흙 둔덕이 굴러가며 풀과 흙을 튀긴다) — 두 번 연달아
+function quakeWaveFx(a, x0, dist, life, delay = 0, hgt = 10) {
+  const d = a.dir, gy = groundY();
+  skFx(null, delay, life, (u) => {
+    const cx = x0 + d * dist * u, fade = u > 0.8 ? (1 - u) / 0.2 : 1, hw = 22;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = '#6b5a44';
+    ctx.beginPath(); ctx.moveTo(cx - hw, gy + 1);
+    for (let i = 0; i <= 12; i++) { const k = i / 12, px = cx - hw + 2 * hw * k; ctx.lineTo(px, gy + 1 - Math.sin(Math.PI * k) * hgt); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#8fbf5a';
+    for (let i = 1; i < 12; i += 2) { const k = i / 12, px = cx - hw + 2 * hw * k; ctx.fillRect(Math.round(px), Math.round(gy - Math.sin(Math.PI * k) * hgt) - 2, 2, 3); }
+    ctx.restore();
+  }, null, (u) => {
+    const cx = x0 + d * dist * u;
+    if (Math.random() < 0.7) parts.push({ x: cx + rand(-10, 10), y: gy - hgt, vx: d * rand(0, 60), vy: rand(-120, -50), g: 400, size: 2, color: Math.random() < 0.5 ? '#8a7a68' : '#8fbf5a', life: 0.4, t: 0 });
+  });
+}
+// ★★★ 대지 분쇄: 하단바를 가로지르는 용암 균열이 빛나며 벌어지고, 군데군데 용암이 솟구쳐 불덩이가 흩어진다
+function lavaFissureFx(a, x0, life) {
+  const d = a.dir, gy = groundY(), end = d > 0 ? W + 20 : -20, pts = [];
+  for (let x = x0; d > 0 ? x < end : x > end; x += d * 10) pts.push([x, gy + 1 + rand(-2, 2)]);
+  skFx(null, 0, life, (u) => {
+    const grow = Math.min(1, u / 0.15), m = Math.max(2, Math.round(pts.length * grow)), fade = u > 0.75 ? 1 - (u - 0.75) / 0.25 : 1;
+    const glow = 0.7 + 0.3 * Math.sin(clock * 9);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    for (const [w, c] of [[7, `rgba(255,80,20,${0.35 * glow})`], [4, '#2a1408'], [2, '#ff6a1a'], [1, '#ffe08a']]) {
+      ctx.strokeStyle = c; ctx.lineWidth = w;
+      ctx.beginPath(); pts.slice(0, m).forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+function lavaGeyserFx(x, delay, life = 0.7) {
+  const gy = groundY();
+  skFx(null, delay, life, (u) => {
+    const up = Math.sin(Math.PI * Math.min(1, u / 0.7)), h = 54 * up;
+    if (h < 1) return;
+    ctx.save();
+    ctx.fillStyle = '#a32a08'; ctx.fillRect(x - 6, gy - h, 12, h);
+    ctx.fillStyle = '#ff6a1a'; ctx.fillRect(x - 4, gy - h, 8, h);
+    ctx.fillStyle = '#ffe08a'; ctx.fillRect(x - 1, gy - h, 2, h * 0.8);
+    ctx.fillStyle = '#ff6a1a'; ctx.beginPath(); ctx.arc(x, gy - h, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }, null, (u) => {
+    if (u < 0.6 && Math.random() < 0.8) parts.push({ x: x + rand(-4, 4), y: gy - 54 * Math.sin(Math.PI * Math.min(1, u / 0.7)), vx: rand(-70, 70), vy: rand(-120, -40), g: 380, size: Math.random() < 0.4 ? 3 : 2, color: Math.random() < 0.5 ? '#ff6a1a' : '#ffe08a', life: 0.6, t: 0 });
+  });
+}
+
+// 창 계열: 숙련 단계 이전부터 있던 기본 자세 (★ 단계의 모습)
+function piercingBase(u) {
+  if (u < 0.35) { const w = easeOut(segU(u, 0, 0.35)); return { wa: mix(-1.3, -0.05, w), ext: -6 * w, dx: -5 * w, sy: 1 - 0.1 * w, skew: -0.2 * w }; }
+  if (u < 0.55) { const d = easeOut(segU(u, 0.35, 0.45)); return { wa: 0, ext: mix(-6, 18, d), dx: mix(-5, 14, d), skew: mix(-0.2, 0.3, d), sy: mix(0.9, 1, d) }; }
+  const r = easeOut(segU(u, 0.55, 1));
+  return { wa: mix(0, -1.3, r), ext: 18 * (1 - r), dx: 14 * (1 - r), skew: 0.3 * (1 - r) };
+}
+function dragonFallBase(u, D) {
+  if (u < 0.15) { const c = segU(u, 0, 0.15); return { sy: 1 - 0.2 * c, sx: 1 + 0.1 * c, wa: -1.3 }; }
+  if (u < 0.45) { const r = easeOut(segU(u, 0.15, 0.42)); return { lift: 170 * r, wa: -1.57, sy: 1.1 }; }
+  if (u < 0.6) return { lift: 170, dx: D * segU(u, 0.45, 0.6), wa: 1.57 };
+  if (u < 0.72) { const f = easeIn(segU(u, 0.6, 0.72)); return { lift: 170 * (1 - f), dx: D, wa: 1.57, sy: 1.15 }; }
+  if (u < 0.85) return { dx: D, sy: mix(0.8, 1, segU(u, 0.72, 0.85)), wa: 1.2 };
+  const b = segU(u, 0.85, 1);
+  return { dx: D * (1 - b), lift: 30 * Math.sin(Math.PI * b), wa: -1.3 };
+}
+function dragonBreathBase(u) {
+  if (u < 0.2) { const r = easeOut(segU(u, 0, 0.2)); return { skew: -0.3 * r, wa: mix(-1.3, -0.35, r), dx: -3 * r }; }
+  if (u < 0.9) return { skew: 0.15, wa: 0.05 + Math.sin(clock * 40) * 0.03, dx: Math.sin(clock * 55), ext: 4 };
+  const r = easeOut(segU(u, 0.9, 1));
+  return { wa: mix(0.05, -1.3, r), skew: 0.15 * (1 - r) };
+}
+// 대회전: spins 바퀴 도는 동안 몸이 앞뒤로 돌아서고 할버드가 원을 그린다. lift: 바람에 떠오른 높이
+function whirlPose(u, spins, lift = 0) {
+  if (u < 0.12) { const w = segU(u, 0, 0.12); return { wa: mix(-1.35, -2.8, w), skew: -0.2 * w, sy: 1 - 0.08 * w, lift }; }
+  if (u < 0.9) {
+    const s = segU(u, 0.12, 0.9), e = s < 0.5 ? 2 * s * s : 1 - 2 * (1 - s) ** 2;
+    const ang = -2.8 + e * Math.PI * 2 * spins, front = Math.cos(ang) >= 0;
+    return { facing: front ? 1 : -1, wa: front ? ang : Math.PI - ang, sy: 0.94, lift: lift + 2 * Math.abs(Math.sin(ang)) };
+  }
+  const r = easeOut(segU(u, 0.9, 1));
+  return { wa: mix(-2.8, -1.35, r), lift };
+}
+function earthSplitterBase(u) {
+  if (u < 0.18) { const c = segU(u, 0, 0.18); return { sy: 1 - 0.18 * c, wa: mix(-1.35, -2.0, c) }; }
+  if (u < 0.42) { const j = segU(u, 0.18, 0.42); return { lift: 46 * Math.sin((Math.PI / 2) * j), wa: mix(-2.0, -2.9, j), skew: -0.2 }; }
+  if (u < 0.52) { const s = easeIn(segU(u, 0.42, 0.52)); return { lift: 46 * (1 - s), wa: mix(-2.9, 1.1, s), skew: mix(-0.2, 0.4, s) }; }
+  if (u < 0.8) return { wa: 1.1, sy: 0.84, skew: 0.4 };
+  const r = easeOut(segU(u, 0.8, 1));
+  return { wa: mix(1.1, -1.35, r), sy: mix(0.84, 1, r), skew: 0.4 * (1 - r) };
+}
+
 const SKILL_FX = {
   // ── 검사: 강철 베기 ──
   //  Lv1 「강철 베기」 제자리에서 수수하게 내려벤다
@@ -1636,28 +2052,77 @@ const SKILL_FX = {
     kb: 14,
   },
 
-  // ── 창기사: 관통 찌르기 — 웅크렸다가 돌진하며 찌른다 ──
+  // ── 창기사: 관통 찌르기 ──
+  //  Lv1 「찌르기」 제자리에서 짧게 / ★ 「관통 찌르기」 웅크렸다 돌진하며 일직선 꿰뚫기
+  //  ★★ 「투창」 찌른 창의 빛이 떨어져 나가 멀리 날아가 비스듬히 꽂히고 부르르 떤다
+  //  ★★★ 「천공창」 오래 웅크린 등 뒤에 거대한 빛의 창이 맺히고 — 나선으로 돌며 하단바 끝까지 뚫는다 (지나간 땅이 패인다)
   piercingThrust: {
-    pose(u) {
-      if (u < 0.35) { const w = easeOut(segU(u, 0, 0.35)); return { wa: mix(-1.3, -0.05, w), ext: -6 * w, dx: -5 * w, sy: 1 - 0.1 * w, skew: -0.2 * w }; }
-      if (u < 0.55) { const d = easeOut(segU(u, 0.35, 0.45)); return { wa: 0, ext: mix(-6, 18, d), dx: mix(-5, 14, d), skew: mix(-0.2, 0.3, d), sy: mix(0.9, 1, d) }; }
-      const r = easeOut(segU(u, 0.55, 1));
-      return { wa: mix(0, -1.3, r), ext: 18 * (1 - r), dx: 14 * (1 - r), skew: 0.3 * (1 - r) };
+    pose(u, a) {
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 0.65);
+      if (a.k && m === 0) {
+        if (t < 0.2) { const w = easeOut(t / 0.2); return { wa: mix(-1.3, -0.05, w), ext: -3 * w, sy: 1 - 0.05 * w }; }
+        if (t < 0.3) { const d = easeOut(segU(t, 0.2, 0.3)); return { wa: 0, ext: mix(-3, 12, d), dx: 4 * d, skew: 0.15 * d }; }
+        if (t < 0.36) return { wa: 0, ext: 12, dx: 4, skew: 0.15 };
+        const r = easeOut(segU(t, 0.36, 0.55));
+        return { wa: mix(0, -1.3, r), ext: 12 * (1 - r), dx: 4 * (1 - r), skew: 0.15 * (1 - r) };
+      }
+      if (m >= 3) {
+        if (t < 0.55) { const w = easeOut(Math.min(1, t / 0.3)); return { wa: mix(-1.3, -0.05, w), ext: -9 * w, dx: -7 * w + Math.sin(clock * 50) * w, sy: 1 - 0.14 * w, skew: -0.3 * w }; }
+        if (t < 0.62) { const d = easeOut(segU(t, 0.55, 0.62)); return { wa: 0, ext: mix(-9, 22, d), dx: mix(-7, 16, d), skew: mix(-0.3, 0.35, d), sy: mix(0.86, 1, d) }; }
+        if (t < 0.98) return { wa: Math.sin(clock * 60) * 0.02, ext: 22, dx: 16, skew: 0.35 };
+        const r = easeOut(segU(t, 0.98, 1.2));
+        return { wa: mix(0, -1.3, r), ext: 22 * (1 - r), dx: 16 * (1 - r), skew: 0.35 * (1 - r) };
+      }
+      return piercingBase(Math.min(1, t / 0.65));
     },
-    cues: [[0.36, (a) => {
-      const x = a.x();
-      for (let i = 0; i < 6; i++) parts.push({ x: x - a.dir * 4, y: groundY() - 2, vx: -a.dir * rand(40, 110), vy: rand(-50, -10), g: 200, size: 3, color: i % 2 ? '#c9b38a' : '#a8946a', life: rand(0.25, 0.4), t: 0 });
-      ghostFx(a, x - a.dir * 5, a.dir, a.color, 0.25, { sy: 0.9 });
-    }]],
-    hit(a) {
-      const h = hand(a), tips = a.targets();
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [];
+      if (m >= 3) return [
+        [0.01, (a) => spearChargeFx(a, 0.56)],
+        [0.55 / d, (a) => {
+          const h = hand(a);
+          for (let i = 0; i < 12; i++) parts.push({ x: a.x() - a.dir * 6, y: groundY() - 2, vx: -a.dir * rand(60, 160), vy: rand(-70, -10), g: 220, size: 3, color: i % 2 ? '#c9b38a' : '#6fa37a', life: 0.45, t: 0 });
+          drillSpearFx(a, h.x + a.dir * 24, h.y, 0.95);
+          impact({ shake: 0.2 });
+        }],
+      ];
+      const list = [[0.234 / d, (a) => {
+        const x = a.x();
+        for (let i = 0; i < 6; i++) parts.push({ x: x - a.dir * 4, y: groundY() - 2, vx: -a.dir * rand(40, 110), vy: rand(-50, -10), g: 200, size: 3, color: i % 2 ? '#c9b38a' : '#a8946a', life: rand(0.25, 0.4), t: 0 });
+        ghostFx(a, x - a.dir * 5, a.dir, a.color, 0.25, { sy: 0.9 });
+      }]];
+      if (m === 2) list.push([0.46 / d, (a) => { const h = hand(a); thrownSpearFx(a, h.x + a.dir * 20, h.y, Math.max(90, Math.abs(a.tx() - h.x) + 60), 1.3); }]);
+      return list;
+    },
+    hit(a, i, n) {
+      const m = a.mast, h = hand(a);
+      if (m === 0) { jabLineFx(h.x + a.dir * 4, h.y, a.dir); impact({ shake: 0.05 }); return; }
+      if (m >= 3) {
+        if (i === 0) { starFx(h.x + a.dir * 30, h.y, 10, '#eafff0', 0.2); return; }
+        for (const t of a.targets(i)) burst(t.x, t.y, i === n - 1 ? 22 : 8, ['#ffffff', '#bfffd0', '#6fa37a'], i === n - 1 ? 180 : 110);
+        impact({ stop: i === n - 1 ? 0.12 : 0.02, shake: i === n - 1 ? 0.35 : 0.08 });
+        return;
+      }
+      if (m === 2 && i === 1) { for (const t of a.targets(i)) burst(t.x, t.y, 14, ['#ffffff', '#bfffd0'], 140); impact({ stop: 0.05, shake: 0.15 }); return; }
+      const tips = a.targets(i);
       const far = Math.max(...tips.map((t) => (t.x - h.x) * a.dir)) + 34;
       streakFx(h.x, h.y, h.x + a.dir * far, h.y, a.color, 6, 0.28);
       starFx(h.x + a.dir * 50, h.y, 8, '#ffffff', 0.2);
       for (const t of tips) burst(t.x, t.y, 10, ['#ffffff', a.color], 130);
       impact({ stop: 0.04, shake: 0.1 });
     },
-    marks(a, t, pow) { pierceSpiralFx(t.x - a.dir * 10, t.y, a.dir, 46 + 8 * pow, a.color); },
+    marks(a, t, pow, i) {
+      const m = a.mast;
+      if (m === 0 || (m === 2 && i === 1)) return;
+      if (m >= 3) {
+        if (i === 0) return;
+        // 천공창이 지나간 자리: 대상 둘레에 잠깐 남는 소용돌이 고리 두 겹
+        skFx(null, 0, 0.35, (u) => { ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#bfffd0'; ctx.lineWidth = 1.5; for (const s of [1, 0.6]) { ctx.beginPath(); ctx.ellipse(t.x, t.y, 4 * s + 6 * u, 14 * s, 0, 0, Math.PI * 2); ctx.stroke(); } ctx.restore(); });
+        return;
+      }
+      pierceSpiralFx(t.x - a.dir * 10, t.y, a.dir, 46 + 8 * pow, a.color);
+    },
     kb: 12,
   },
 
@@ -1969,56 +2434,94 @@ const SKILL_FX = {
     kb: 20,
   },
 
-  // ── 용기병: 용추락 — 화면 밖으로 솟구쳤다가 유성처럼 내리꽂힌다 ──
+  // ── 용기병: 용추락 ──
+  //  Lv1 「도약 찌르기」 낮게 뛰어올라 내려찍는다 / ★ 「용추락」 화면 위로 솟구쳤다 유성처럼
+  //  ★★ 「용추락·업화」 내리꽂힌 자리에 보라 불바다가 한동안 넘실댄다
+  //  ★★★ 「유성룡」 떨어지는 동안 보라 용의 몸통이 굽이치며 따라오고 — 뒤이어 유성 파편 셋이 쏟아진다
   dragonFall: {
     pose(u, a) {
-      const D = Math.max(0, Math.abs(a.tx() - a.x()) - 14);
-      if (u < 0.15) { const c = segU(u, 0, 0.15); return { sy: 1 - 0.2 * c, sx: 1 + 0.1 * c, wa: -1.3 }; }
-      if (u < 0.45) { const r = easeOut(segU(u, 0.15, 0.42)); return { lift: 170 * r, wa: -1.57, sy: 1.1 }; }
-      if (u < 0.6) return { lift: 170, dx: D * segU(u, 0.45, 0.6), wa: 1.57 };
-      if (u < 0.72) { const f = easeIn(segU(u, 0.6, 0.72)); return { lift: 170 * (1 - f), dx: D, wa: 1.57, sy: 1.15 }; }
-      if (u < 0.85) return { dx: D, sy: mix(0.8, 1, segU(u, 0.72, 0.85)), wa: 1.2 };
-      const b = segU(u, 0.85, 1);
-      return { dx: D * (1 - b), lift: 30 * Math.sin(Math.PI * b), wa: -1.3 };
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 1.1), D = Math.max(0, Math.abs(a.tx() - a.x()) - 14);
+      if (a.k && m === 0) {
+        if (t < 0.12) { const c = t / 0.12; return { sy: 1 - 0.14 * c, wa: -1.3 }; }
+        if (t < 0.3) { const r = easeOut(segU(t, 0.12, 0.3)); return { lift: 30 * r, wa: -1.57, sy: 1.05 }; }
+        if (t < 0.42) return { lift: 30, dx: D * segU(t, 0.3, 0.42), wa: 1.4 };
+        if (t < 0.5) { const f = easeIn(segU(t, 0.42, 0.5)); return { lift: 30 * (1 - f), dx: D, wa: 1.57, sy: 1.1 }; }
+        if (t < 0.62) return { dx: D, sy: mix(0.86, 1, segU(t, 0.5, 0.62)), wa: 1.2 };
+        const b = segU(t, 0.62, 0.8);
+        return { dx: D * (1 - b), lift: 12 * Math.sin(Math.PI * b), wa: -1.3 };
+      }
+      if (m >= 3) {
+        if (t < 0.935) return dragonFallBase(t / 1.1, D);
+        if (t < 1.15) return { dx: D, sy: 0.82, wa: 1.2 };
+        const b = segU(t, 1.15, 1.4);
+        return { dx: D * (1 - b), lift: 30 * Math.sin(Math.PI * b), wa: -1.3 };
+      }
+      return dragonFallBase(u, D);
     },
-    cues: [
-      [0.15, (a) => { ringFx(a.x(), 'rgba(214,196,150,0.9)', 0.5, 0.4); debris(a.x(), 8, ['#c9b38a', '#a8946a']); }],
-      [0.45, (a) => {
-        aFx(a, 0, 0.3, (u) => {
-          const x = a.tx() - a.dir * 4, gy = groundY();
-          ctx.save();
-          ctx.globalAlpha = 0.4 + 0.5 * u;
-          ctx.strokeStyle = '#b388ff'; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.ellipse(x, gy - 1, 34 * (1 - u * 0.6), 6 * (1 - u * 0.6), 0, 0, Math.PI * 2); ctx.stroke();
-          ctx.restore();
-        });
-      }],
-      [0.6, (a) => { const x = a.tx() - a.dir * 4; meteorFx(x - a.dir * 40, -20, x, groundY() - 12, '#b388ff', 12, 0.13); }],
-    ],
-    hit(a) {
-      const x = a.tx() - a.dir * 4;
-      ringFx(x, '#b388ff', 1.3, 0.6);
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [[0.12 / d, (a) => { for (let i = 0; i < 4; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: rand(-50, 50), vy: rand(-40, -10), g: 200, size: 2, color: '#c9b38a', life: 0.3, t: 0 }); }]];
+      const list = [
+        [0.165 / d, (a) => { ringFx(a.x(), 'rgba(214,196,150,0.9)', 0.5, 0.4); debris(a.x(), 8, ['#c9b38a', '#a8946a']); }],
+        [0.495 / d, (a) => {
+          aFx(a, 0, 0.3, (u) => {
+            const x = a.tx() - a.dir * 4, gy = groundY();
+            ctx.save();
+            ctx.globalAlpha = 0.4 + 0.5 * u;
+            ctx.strokeStyle = '#b388ff'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.ellipse(x, gy - 1, 34 * (1 - u * 0.6), 6 * (1 - u * 0.6), 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+          });
+        }],
+        [0.66 / d, (a) => { const x = a.tx() - a.dir * 4; meteorFx(x - a.dir * 40, -20, x, groundY() - 12, '#b388ff', 12, 0.13); }],
+      ];
+      if (m >= 3) {
+        list.push([0.45 / d, (a) => dragonTrailFx(a, 0, 0.36)]);
+        list.push([0.79 / d, (a) => {
+          const x = a.tx() - a.dir * 4;
+          a.k.hits.slice(1).forEach((h, j) => shardFallFx(x + [-26, 30, 4][j] * a.dir, h[0] * d - 0.79 - 0.22));
+        }]);
+      }
+      return list;
+    },
+    hit(a, i) {
+      const m = a.mast, x = a.tx() - a.dir * 4;
+      if (m === 0) { hopDustFx(x); for (const t of a.targets(i)) burst(t.x, t.y, 6, ['#ffffff', '#c79bff'], 90); impact({ shake: 0.1 }); return; }
+      if (i > 0) {
+        if (m === 2) { for (let j = 0; j < 14; j++) parts.push({ x: x + rand(-40, 40), y: groundY() - 4, vx: rand(-20, 20), vy: rand(-140, -60), g: 60, size: 3, color: j % 2 ? '#b388ff' : '#e0c8ff', life: 0.5, t: 0, add: true }); impact({ shake: 0.12 }); }
+        else impact({ stop: 0.03, shake: 0.15 });
+        return;
+      }
+      ringFx(x, '#b388ff', m >= 3 ? 1.7 : 1.3, 0.6);
       ringFx(x, '#ffffff', 0.7, 0.35);
       cracksFx(x, x + 90, '#c0a0ff', 0.9);
       cracksFx(x, x - 90, '#c0a0ff', 0.9);
       debris(x, 22, ['#5a4a42', '#b388ff', '#c9b38a'], 1.4);
-      for (const t of a.targets()) burst(t.x, t.y, 14, ['#ffffff', '#b388ff'], 140);
-      impact({ stop: 0.12, shake: 0.4 });
+      for (const t of a.targets(i)) burst(t.x, t.y, 14, ['#ffffff', '#b388ff'], 140);
+      if (m === 2) firePoolFx(x, 48, 2.6);
+      impact({ stop: 0.12, shake: m >= 3 ? 0.5 : 0.4 });
     },
-    marks(a, t) { clawMarksFx(t.x, t.y, a.dir, '#b388ff', 1.15); },
+    marks(a, t, pow, i) { if (a.mast && i === 0) clawMarksFx(t.x, t.y, a.dir, '#b388ff', 1.15); },
     kb: 16,
   },
 
-  // ── 용기병: 용의 숨결 — 창끝의 용이 보라 불꽃을 쏟는다 ──
+  // ── 용기병: 용의 숨결 ──
+  //  Lv1 「화염 숨」 창끝에서 짧은 불꽃만 / ★ 「용의 숨결」 창끝의 용머리가 보라 불꽃을 쏟는다
+  //  ★★ 「삼두룡의 숨결」 창끝 둘레로 용머리 셋이 갈라져 나와 세 갈래 부채꼴로 뿜는다
+  //  ★★★ 「용왕의 포효」 기사 뒤 하늘에 거대한 용왕 머리가 솟아 포효하고 — 입을 벌려 하단바 끝까지 닿는 광선
   dragonBreath: {
-    pose(u) {
-      if (u < 0.2) { const r = easeOut(segU(u, 0, 0.2)); return { skew: -0.3 * r, wa: mix(-1.3, -0.35, r), dx: -3 * r }; }
-      if (u < 0.9) return { skew: 0.15, wa: 0.05 + Math.sin(clock * 40) * 0.03, dx: Math.sin(clock * 55), ext: 4 };
-      const r = easeOut(segU(u, 0.9, 1));
-      return { wa: mix(0.05, -1.3, r), skew: 0.15 * (1 - r) };
+    pose(u, a) {
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 1.8);
+      if (m >= 3) {
+        if (t < 0.95) { const r = easeOut(Math.min(1, t / 0.5)); return { wa: mix(-1.3, -1.6, r), sy: 1 + 0.06 * r, skew: -0.12 * r, lift: 3 * r }; }
+        return dragonBreathBase(0.2 + 0.8 * segU(t, 0.95, a.k.dur));
+      }
+      return dragonBreathBase(u);
     },
     tick(a, u) {
-      const h = hand(a), tip = { x: h.x + a.dir * 26, y: h.y - 2 };
+      const m = a.mast, h = hand(a), tip = { x: h.x + a.dir * 26, y: h.y - 2 };
+      if (m === 0) { if (u > 0.3 && u < 0.8 && Math.random() < 0.6) puffFx(h.x + a.dir * 20, h.y - 2, a.dir); return; }
+      if (m >= 2) return;
       if (u < 0.2) gatherFx(tip.x, tip.y, ['#b388ff', '#ffffff'], 2, 24);
       else if (u < 0.9) {
         for (let i = 0; i < 3; i++) {
@@ -2027,91 +2530,170 @@ const SKILL_FX = {
         }
       }
     },
-    cues: [[0.2, (a) => {
-      impact({ shake: 0.12 });
-      aFx(a, 0, a.k.dur * 0.7, (u) => {
-        const h = hand(a), x = h.x + a.dir * 22, k = u < 0.1 ? u / 0.1 : u > 0.85 ? (1 - u) / 0.15 : 1;
-        drawSprite(DRAGON_HEAD, DRAGON_PAL, x + Math.sin(clock * 30), h.y + 15, 3, { flip: a.dir < 0, alpha: k });
-      });
-    }]],
-    hit(a, i, n) {
-      for (const t of a.targets()) burst(t.x, t.y, i === n - 1 ? 16 : 5, ['#b388ff', '#ffffff', '#7a3cff'], i === n - 1 ? 140 : 70);
-      impact({ shake: i === n - 1 ? 0.2 : 0.05 });
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [];
+      if (m === 2) return [[0.2, (a) => { impact({ shake: 0.14 }); tripleHeadsFx(a, d * 0.72); }]];
+      if (m >= 3) return [
+        [0.01, (a) => greatDragonFx(a, d - 0.05, 0.85)],
+        [0.55 / d, (a) => { roarFx(a, 0.55); impact({ shake: 0.3 }); }],
+        [0.92 / d, (a) => dragonBeamFx(a, 0, d - 0.92 - 0.15)],
+      ];
+      return [[0.2, (a) => {
+        impact({ shake: 0.12 });
+        aFx(a, 0, a.k.dur * 0.7, (u) => {
+          const h = hand(a), x = h.x + a.dir * 22, k = u < 0.1 ? u / 0.1 : u > 0.85 ? (1 - u) / 0.15 : 1;
+          drawSprite(DRAGON_HEAD, DRAGON_PAL, x + Math.sin(clock * 30), h.y + 15, 3, { flip: a.dir < 0, alpha: k });
+        });
+      }]];
     },
-    marks(a, t, pow, i, n) { scorchFx(t.x + rand(-6, 6), t.y + 8, '#b388ff', i === n - 1 ? 0.8 : 0.45); },
+    hit(a, i, n) {
+      const m = a.mast, last = i === n - 1;
+      if (m === 0) { for (const t of a.targets(i)) burst(t.x, t.y, 3, ['#ffb070', '#c79bff'], 60); return; }
+      if (m >= 3 && last) {
+        for (const t of a.targets(i)) burst(t.x, t.y, 40, ['#ffffff', '#e0c8ff', '#7a3cff', '#5a2bb0'], 220, 3);
+        impact({ stop: 0.16, shake: 0.5 });
+        return;
+      }
+      for (const t of a.targets(i)) {
+        if (m === 2) for (const dy of [-8, 0, 8]) burst(t.x, t.y + dy, last ? 8 : 2, ['#b388ff', '#ffffff', '#7a3cff'], last ? 120 : 60);
+        else burst(t.x, t.y, last ? 16 : 5, ['#b388ff', '#ffffff', '#7a3cff'], last ? 140 : 70);
+      }
+      impact({ shake: last ? 0.2 : 0.05 });
+    },
+    marks(a, t, pow, i, n) { if (a.mast) scorchFx(t.x + rand(-6, 6), t.y + 8, '#b388ff', i === n - 1 ? 0.8 : 0.45); },
     kb: 5,
   },
 
-  // ── 할버디어: 대회전 — 두 바퀴 돌며 주변을 쓸어 날린다 ──
+  // ── 할버디어: 대회전 ──
+  //  Lv1 「휩쓸기」 앞으로 반 바퀴 / ★ 「대회전」 두 바퀴 돌며 주황 궤적
+  //  ★★ 「회오리 대회전」 세 바퀴 — 발밑에서 흙먼지 회오리가 커지다가 끝나면 앞으로 굴러간다
+  //  ★★★ 「폭풍 참격」 먹구름이 몰려와 비가 내리고, 돌 때마다 벼락이 적에게 떨어지며 — 바람에 떠올랐다가 내려찍는다
   whirlwind: {
-    pose(u) {
-      if (u < 0.12) { const w = segU(u, 0, 0.12); return { wa: mix(-1.35, -2.8, w), skew: -0.2 * w, sy: 1 - 0.08 * w }; }
-      if (u < 0.9) {
-        const s = segU(u, 0.12, 0.9), e = s < 0.5 ? 2 * s * s : 1 - 2 * (1 - s) ** 2;
-        const ang = -2.8 + e * Math.PI * 4, front = Math.cos(ang) >= 0;
-        return { facing: front ? 1 : -1, wa: front ? ang : Math.PI - ang, sy: 0.94, lift: 2 * Math.abs(Math.sin(ang)) };
+    pose(u, a) {
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 1.0);
+      if (a.k && m === 0) {
+        if (t < 0.2) { const w = easeOut(t / 0.2); return { wa: mix(-1.35, -2.8, w), skew: -0.2 * w, sy: 1 - 0.06 * w }; }
+        if (t < 0.33) { const d = easeIn(segU(t, 0.2, 0.33)); return { wa: mix(-2.8, 0.9, d), skew: mix(-0.2, 0.35, d), sy: 0.94 }; }
+        if (t < 0.4) return { wa: 0.9, skew: 0.35, sy: 0.94 };
+        const r = easeOut(segU(t, 0.4, 0.6));
+        return { wa: mix(0.9, -1.35, r), skew: 0.35 * (1 - r) };
       }
-      const r = easeOut(segU(u, 0.9, 1));
-      return { wa: mix(-2.8, -1.35, r) };
+      if (m >= 3) {
+        if (t < 1.48) return whirlPose(segU(t, 0, 1.6), 4, 26 * easeOut(segU(t, 0.2, 1.3)));
+        if (t < 1.63) { const d = easeIn(segU(t, 1.48, 1.63)); return { wa: mix(-2.6, 1.1, d), lift: 26 * (1 - d), sy: mix(1.08, 0.82, d), skew: mix(-0.2, 0.4, d) }; }
+        if (t < 1.72) return { wa: 1.1, sy: 0.84, skew: 0.4 };
+        const r = easeOut(segU(t, 1.72, 1.9));
+        return { wa: mix(1.1, -1.35, r), sy: mix(0.84, 1, r), skew: 0.4 * (1 - r) };
+      }
+      return whirlPose(u, m === 2 ? 3 : 2, 0);
     },
-    cues: [[0.12, (a) => {
-      ringFx(a.x(), '#ff9f40', 0.8, 0.5);
-      const life = a.k.dur * 0.78;
-      aFx(a, 0, life, (u) => {
-        const x = a.x(), y = groundY() - HAND_Y;
-        const fade = u > 0.85 ? (1 - u) / 0.15 : 1;
-        ctx.save();
-        ctx.lineCap = 'round';
-        for (let j = 0; j < 2; j++) {
-          const base = clock * 16 + j * Math.PI;
-          ctx.globalAlpha = 0.75 * fade;
-          ctx.strokeStyle = '#ff9f40'; ctx.lineWidth = 4;
-          ctx.beginPath(); ctx.ellipse(x, y, 54, 16, 0, base - 1.4, base); ctx.stroke();
-          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.globalAlpha = fade;
-          ctx.beginPath(); ctx.ellipse(x, y, 54, 16, 0, base - 0.4, base); ctx.stroke();
-        }
-        ctx.restore();
-      }, null, () => {
-        const x = a.x();
-        if (Math.random() < 0.7) parts.push({ x: x + rand(-30, 30), y: groundY() - 2, vx: rand(-80, 80), vy: rand(-40, -10), g: 200, size: 3, color: '#c9b38a', life: 0.35, t: 0 });
-      });
-    }]],
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [];
+      const trail = [0.12 * (m >= 3 ? 1.6 : d) / d, (a) => {
+        ringFx(a.x(), '#ff9f40', 0.8, 0.5);
+        const life = (m >= 3 ? 1.36 : d * 0.78);
+        aFx(a, 0, life, (u) => {
+          const p = castPose(a.owner) || {}, x = a.x(), y = groundY() - HAND_Y - (p.lift || 0);
+          const fade = u > 0.85 ? (1 - u) / 0.15 : 1;
+          ctx.save();
+          ctx.lineCap = 'round';
+          for (let j = 0; j < 2; j++) {
+            const base = clock * 16 + j * Math.PI;
+            ctx.globalAlpha = 0.75 * fade;
+            ctx.strokeStyle = '#ff9f40'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.ellipse(x, y, 54, 16, 0, base - 1.4, base); ctx.stroke();
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.globalAlpha = fade;
+            ctx.beginPath(); ctx.ellipse(x, y, 54, 16, 0, base - 0.4, base); ctx.stroke();
+          }
+          ctx.restore();
+        }, null, () => {
+          const x = a.x();
+          if (Math.random() < 0.7) parts.push({ x: x + rand(-30, 30), y: groundY() - 2, vx: rand(-80, 80), vy: rand(-40, -10), g: 200, size: 3, color: '#c9b38a', life: 0.35, t: 0 });
+        });
+      }];
+      const list = [trail];
+      if (m === 2) list.push([0.1, (a) => dustTwisterFx(a, d * 0.9 + 0.7, d * 0.85)]);
+      if (m >= 3) list.push([0.01, (a) => stormCloudFx(a, d - 0.02)]);
+      return list;
+    },
     hit(a, i, n) {
-      for (const t of a.targets()) burst(t.x, t.y, 12, ['#ff9f40', '#ffffff', '#ffd257'], 150);
+      const m = a.mast;
+      if (m === 0) { sweepArcFx(a); for (const t of a.targets(i)) burst(t.x, t.y, 4, ['#e0a070', '#ffffff'], 80); impact({ shake: 0.06 }); return; }
+      if (m >= 3) {
+        for (const t of a.targets(i)) { boltFx(t.x + rand(-4, 4)); burst(t.x, t.y, 10, ['#cfe0ff', '#ffffff', '#ff9f40'], 150); }
+        if (i === n - 1) {
+          const x = a.px();
+          ringFx(x, '#ff9f40', 1.6, 0.5);
+          for (const s of [-1, 1]) boltFx(x + s * rand(30, 50), 0.26);
+          debris(x, 18, ['#5a4a42', '#c9b38a', '#ff9f40'], 1.5);
+          impact({ stop: 0.14, shake: 0.45 });
+        } else impact({ stop: 0.04, shake: 0.15 });
+        return;
+      }
+      for (const t of a.targets(i)) burst(t.x, t.y, 12, ['#ff9f40', '#ffffff', '#ffd257'], 150);
       impact({ stop: 0.05, shake: 0.18 });
       if (i === n - 1) ringFx(a.x(), '#ff9f40', 1.2, 0.45);
     },
-    marks(a, t, pow, i) { ringSlashFx(t.x, t.y, 24, 9, i % 2 ? 0.3 : -0.3, '#ff9f40', 0.5); },
+    marks(a, t, pow, i) { if (a.mast) ringSlashFx(t.x, t.y, 24, 9, i % 2 ? 0.3 : -0.3, '#ff9f40', 0.5); },
     kb: 24,
   },
 
-  // ── 할버디어: 대지 가르기 — 뛰어올라 내리찍으면 땅이 갈라지며 바위가 솟는다 ──
+  // ── 할버디어: 대지 가르기 ──
+  //  Lv1 「내려찍기」 제자리에서 짧은 금 / ★ 「대지 가르기」 뛰어올라 내려찍으면 균열과 바위
+  //  ★★ 「대지 진동」 땅이 흙 둔덕 파도처럼 솟아 두 번 밀려가며 적을 띄운다
+  //  ★★★ 「대지 분쇄」 더 높이 솟구쳐 내려찍으면 하단바를 가로지르는 용암 균열이 열리고 — 적 발밑마다 용암이 솟구친다
   earthSplitter: {
-    pose(u) {
-      if (u < 0.18) { const c = segU(u, 0, 0.18); return { sy: 1 - 0.18 * c, wa: mix(-1.35, -2.0, c) }; }
-      if (u < 0.42) { const j = segU(u, 0.18, 0.42); return { lift: 46 * Math.sin((Math.PI / 2) * j), wa: mix(-2.0, -2.9, j), skew: -0.2 }; }
-      if (u < 0.52) { const s = easeIn(segU(u, 0.42, 0.52)); return { lift: 46 * (1 - s), wa: mix(-2.9, 1.1, s), skew: mix(-0.2, 0.4, s) }; }
-      if (u < 0.8) return { wa: 1.1, sy: 0.84, skew: 0.4 };
-      const r = easeOut(segU(u, 0.8, 1));
-      return { wa: mix(1.1, -1.35, r), sy: mix(0.84, 1, r), skew: 0.4 * (1 - r) };
-    },
-    cues: [[0.52, (a) => {
-      const h = hand(a), x0 = h.x + a.dir * 40;
-      const far = Math.max(220, Math.max(...a.targets().map((t) => (t.x - x0) * a.dir)) + 50);
-      impact({ stop: 0.12, shake: 0.45 });
-      ringFx(x0, '#ff9f40', 1, 0.5);
-      debris(x0, 16, ['#5a4a42', '#c9b38a', '#ff9f40']);
-      cracksFx(x0, x0 + a.dir * far, '#ff9f40', 1.3, 0.3);
-      const n = Math.round(far / 34);
-      for (let i = 0; i < n; i++) {
-        const x = x0 + a.dir * (20 + i * 34);
-        skLater(a, i * 0.035, () => { spikeFx(x, 18 + rand(0, 14), '#ff9f40', 0.55); debris(x, 4, ['#5a4a42', '#c9b38a']); });
+    pose(u, a) {
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 1.4);
+      if (a.k && m === 0) {
+        if (t < 0.25) { const c = easeOut(t / 0.25); return { sy: 1 - 0.14 * c, wa: mix(-1.35, -2.0, c) }; }
+        if (t < 0.42) { const j = segU(t, 0.25, 0.42); return { lift: 10 * Math.sin((Math.PI / 2) * j), wa: mix(-2.0, -2.6, j), skew: -0.15 }; }
+        if (t < 0.5) { const s = easeIn(segU(t, 0.42, 0.5)); return { lift: 10 * (1 - s), wa: mix(-2.6, 1.1, s), skew: mix(-0.15, 0.35, s) }; }
+        if (t < 0.7) return { wa: 1.1, sy: 0.88, skew: 0.35 };
+        const r = easeOut(segU(t, 0.7, 0.9));
+        return { wa: mix(1.1, -1.35, r), sy: mix(0.88, 1, r), skew: 0.35 * (1 - r) };
       }
-    }]],
-    hit(a) {
-      for (const t of a.targets()) burst(t.x, t.y, 16, ['#ff9f40', '#ffffff', '#5a4a42'], 150);
+      const p = earthSplitterBase(u);
+      if (m >= 3) p.lift = (p.lift || 0) * 1.9;
+      return p;
     },
-    marks(a, t) { ruptureFx(t.x, '#ff9f40', 62, 0.7); },
+    cues: (a) => {
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [];
+      return [[0.52, (a) => {
+        const h = hand(a), x0 = h.x + a.dir * 40;
+        const far = Math.max(220, Math.max(...a.targets().map((t) => (t.x - x0) * a.dir)) + 50);
+        impact({ stop: 0.12, shake: m >= 3 ? 0.55 : 0.45 });
+        ringFx(x0, m >= 3 ? '#ff6a1a' : '#ff9f40', m >= 3 ? 1.5 : 1, 0.5);
+        debris(x0, 16, ['#5a4a42', '#c9b38a', '#ff9f40']);
+        if (m === 1) {
+          cracksFx(x0, x0 + a.dir * far, '#ff9f40', 1.3, 0.3);
+          const n = Math.round(far / 34);
+          for (let i = 0; i < n; i++) {
+            const x = x0 + a.dir * (20 + i * 34);
+            skLater(a, i * 0.035, () => { spikeFx(x, 18 + rand(0, 14), '#ff9f40', 0.55); debris(x, 4, ['#5a4a42', '#c9b38a']); });
+          }
+        } else if (m === 2) {
+          quakeWaveFx(a, x0 - a.dir * 20, far + 40, 0.55, 0, 12);
+          quakeWaveFx(a, x0 - a.dir * 20, far + 40, 0.55, 0.2, 8);
+        } else {
+          lavaFissureFx(a, x0 - a.dir * 20, 1.4);
+          const slam = 0.52 * d;
+          a.k.hits.slice(1).forEach((hh, j) => { for (const t of a.targets(j + 1)) lavaGeyserFx(t.x, hh[0] * d - slam - 0.12); });
+          if (!a.targets(1).length) [70, 130, 190].forEach((dx, j) => lavaGeyserFx(x0 + a.dir * dx, 0.15 + j * 0.12));
+        }
+      }]];
+    },
+    hit(a, i) {
+      const m = a.mast;
+      if (m === 0) { const h = hand(a); shortCrackFx(h.x + a.dir * 10, a.dir); debris(h.x + a.dir * 10, 4, ['#5a4a42', '#c9b38a']); for (const t of a.targets(i)) burst(t.x, t.y, 5, ['#c9b38a', '#ffffff'], 90); impact({ shake: 0.1 }); return; }
+      const col = m >= 3 ? ['#ff6a1a', '#ffe08a', '#5a4a42'] : ['#ff9f40', '#ffffff', '#5a4a42'];
+      for (const t of a.targets(i)) burst(t.x, t.y, i === 0 ? 16 : 10, col, 150);
+      if (i > 0) impact({ stop: 0.03, shake: 0.15 });
+    },
+    marks(a, t, pow, i) { if (a.mast === 1) ruptureFx(t.x, '#ff9f40', 62, 0.7); },
     kb: 10, launch: true,
   },
 

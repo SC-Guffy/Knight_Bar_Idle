@@ -340,6 +340,14 @@ const SKILLS = {
   piercingThrust: {
     cls: 'lancer', name: '관통 찌르기', icon: '🔱', lv: 25, cd: 9, dur: 0.65, area: 'line', reach: 1.6,
     hits: [[0.45, 2.3]],
+    stages: [
+      { dur: 0.55, reach: 1.0, hits: [[0.5, 1]] },
+      {},
+      { dur: 0.8, hits: [[0.37, 1.3], [0.6, 1.0, { area: 'line', reach: 3.5 }]] },
+      { dur: 1.2, hits: [[0.5, 0.8], [0.58, 0.5, { area: 'line', reach: 6 }], [0.65, 0.5, { area: 'line', reach: 6 }], [0.72, 0.5, { area: 'line', reach: 6 }], [0.8, 1.0, { area: 'line', reach: 6 }]] },
+    ],
+    stageName: ['찌르기', '관통 찌르기', '투창', '천공창'],
+    stageDesc: ['제자리에서 짧게 찌른다', '웅크렸다가 돌진하며 일직선을 꿰뚫는다', '찌른 창의 빛이 떨어져 나가 멀리 날아가 꽂히고, 한동안 떨며 서 있다', '등 뒤에 거대한 빛의 창이 맺혀 — 나선으로 회전하며 하단바 끝까지 뚫는다'],
     desc: '뒤로 웅크렸다가 돌진하며 찔러 일직선의 적을 모두 꿰뚫는다.',
   },
   rapidFire: {
@@ -409,11 +417,27 @@ const SKILLS = {
   dragonFall: {
     cls: 'dragoon', name: '용추락', icon: '☄️', lv: 0, cd: 8, dur: 1.1, area: 'all', radius: 80, air: [0.15, 0.72],
     hits: [[0.72, 3]],
+    stages: [
+      { dur: 0.8, radius: 40, air: [0.15, 0.6], hits: [[0.62, 1]] },
+      {},
+      { hits: [[0.72, 2.4], [0.9, 0.6, { area: 'all', radius: 70 }]] },
+      { dur: 1.4, radius: 90, air: [0.12, 0.565], hits: [[0.565, 1.8], [0.68, 0.4, { area: 'all', radius: 110 }], [0.74, 0.4, { area: 'all', radius: 110 }], [0.8, 0.4, { area: 'all', radius: 110 }]] },
+    ],
+    stageName: ['도약 찌르기', '용추락', '용추락·업화', '유성룡'],
+    stageDesc: ['낮게 뛰어올라 내려찍는다', '화면 위로 솟구쳤다가 유성처럼 내리꽂힌다', '내리꽂힌 자리에 보라 불바다가 한동안 타오른다', '보라 용의 몸통을 끌며 떨어지고 — 뒤따라 유성 파편 셋이 쏟아진다'],
     desc: '화면 위로 솟구쳤다가 유성처럼 내리꽂혀 땅을 가른다.',
   },
   dragonBreath: {
     cls: 'dragoon', name: '용의 숨결', icon: '🔥', lv: 70, cd: 14, dur: 1.8, area: 'line', reach: 2.2,
     hits: evenHits(8, 0.25, 0.08, 0.5),
+    stages: [
+      { dur: 1.0, reach: 1.2, hits: evenHits(4, 0.3, 0.12, 0.5) },
+      {},
+      { dur: 1.9, reach: 2.6, hits: evenHits(10, 0.22, 0.065, 0.5) },
+      { dur: 2.3, reach: 6, hits: [...evenHits(8, 0.42, 0.05, 0.5), [0.86, 2.0]] },
+    ],
+    stageName: ['화염 숨', '용의 숨결', '삼두룡의 숨결', '용왕의 포효'],
+    stageDesc: ['창끝에서 짧은 불꽃을 뿜는다', '창끝의 용머리가 보라 불꽃을 쏟는다', '용머리 셋이 나타나 세 갈래 부채꼴로 불꽃을 쏟는다', '거대한 용왕의 머리가 솟아 포효하고 — 하단바 끝까지 닿는 광선을 내뿜는다'],
     desc: '창끝에 깃든 용이 보라색 불꽃을 쏟아낸다.',
   },
 
@@ -421,11 +445,27 @@ const SKILLS = {
   whirlwind: {
     cls: 'halberdier', name: '대회전', icon: '🌀', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 30,
     hits: [[0.38, 1.4], [0.78, 1.4]],
+    stages: [
+      { dur: 0.6, radius: 20, hits: [[0.5, 1]] },
+      {},
+      { dur: 1.35, radius: 40, hits: [[0.3, 1], [0.55, 1], [0.8, 1.2]] },
+      { dur: 1.9, radius: 50, hits: [[0.25, 0.6], [0.4, 0.6], [0.55, 0.6], [0.68, 0.6], [0.86, 2.0, { area: 'all', radius: 70 }]] },
+    ],
+    stageName: ['휩쓸기', '대회전', '회오리 대회전', '폭풍 참격'],
+    stageDesc: ['할버드를 반 바퀴 휘두른다', '두 바퀴 돌며 주변을 쓸어 날린다', '세 바퀴 — 흙먼지 회오리가 일어나 앞으로 굴러간다', '먹구름이 몰려와 도는 동안 벼락이 내리꽂히고 — 하늘로 떠올랐다가 내려찍는다'],
     desc: '할버드를 들고 두 바퀴 돌며 주변을 모두 쓸어 날린다.',
   },
   earthSplitter: {
     cls: 'halberdier', name: '대지 가르기', icon: '⛰️', lv: 70, cd: 15, dur: 1.4, area: 'line', reach: 4,
     hits: [[0.6, 4]],
+    stages: [
+      { dur: 0.9, reach: 1.6, hits: [[0.55, 1]] },
+      {},
+      { dur: 1.6, reach: 5, hits: [[0.55, 2.4], [0.7, 0.8, { area: 'line', reach: 5, launch: true }], [0.82, 0.8, { area: 'line', reach: 5 }]] },
+      { dur: 1.9, reach: 6, hits: [[0.53, 1.6], [0.66, 0.8, { area: 'line', reach: 6 }], [0.74, 0.8, { area: 'line', reach: 6 }], [0.82, 1.4, { area: 'line', reach: 6, launch: true }]] },
+    ],
+    stageName: ['내려찍기', '대지 가르기', '대지 진동', '대지 분쇄'],
+    stageDesc: ['제자리에서 내려찍어 짧은 금을 낸다', '뛰어올라 내려찍으면 땅이 갈라지며 바위가 솟는다', '땅이 파도처럼 출렁이며 앞으로 밀려가 적을 띄운다', '높이 솟아 내려찍으면 대지가 쪼개져 용암이 뿜어져 나온다'],
     desc: '뛰어올라 내리찍으면 땅이 앞으로 갈라지며 바위가 솟구친다.',
   },
 
