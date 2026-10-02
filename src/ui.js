@@ -445,32 +445,49 @@ function skillList(id) {
 // 스킬 숙련도: 지금 직업의 스킬에 📖 비전서를 먹여서 Lv30 까지 키운다 (classes.js SKILL_MAX·MASTERY)
 function viewMastery() {
   const list = skillsOf(S.cls);
-  const head = `<h3>📖 스킬 숙련도 <small>가진 비전서 <b>${fmt(S.tomes)}</b>권 · 칸을 다 채우면 레벨 업 (한 레벨 최대 ${SKILL_NEED_MAX}권)</small></h3>`;
-  if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요. 비전서는 원정 보스가 가끔 떨굽니다.</div>`;
+  // 보유 비전서를 맨 위에 크게: 지금 몇 권 있고, 어떻게 쓰는지
+  const head = `<h3>📖 스킬 숙련도</h3>
+    <div class="mhave"><span class="mcount">📖 <b>${fmt(S.tomes)}</b>권 보유</span>
+      <span class="mhow">칸 1개 = 비전서 1권 · 칸을 다 채우면 <b>레벨 업</b> → 쿨타임↓ 위력↑<br>Lv 10·20·30 에서 기술이 <b>진화</b>해요</span></div>`;
+  if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요.</div>`;
+  const firstOpen = list.find((x) => skillLvOf(S.mast[x.id] || 0).lv < SKILL_MAX);
   const rows = list.map((k) => {
-    const s = skillLvOf(S.mast[k.id] || 0), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
+    const total = S.mast[k.id] || 0, s = skillLvOf(total), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
     const need = max ? 0 : s.need - s.have;
     const nextM = MASTERY[m + 1];
     const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k.cls, lv, S.cls)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k.cls, lv, S.cls)).toFixed(2)}`;
     const tag = m ? `<span class="mtag m${m}">${MASTERY[m].star} ${MASTERY[m].name}</span>` : '';
-    const btn = (n, label, dot = false) => `<button class="btn${rd(dot)}${dot && guidePendingFeed() && k === list.find((x) => skillLvOf(S.mast[x.id] || 0).lv < SKILL_MAX) ? ' gpulse' : ''}" data-action="tome" data-id="${k.id}" data-n="${n}" ${S.tomes < 1 ? 'disabled' : ''}>${label}</button>`;
+    const locked = S.level < k.lv;
+    const all = Math.min(S.tomes, SKILL_TOME_MAX - total);   // 전부 쓰기: 가진 만큼 (만렙에서 남는 건 안 씀)
+    const ups = skillLvOf(total + all).lv - s.lv;
+    const pulse = guidePendingFeed() && k === firstOpen ? ' gpulse' : '';
+    const btns = max ? '<span class="mmax">★★★ 최고 단계</span>' : `
+      <button class="btn mb1${rd(S.tomes >= need)}${pulse}" data-action="tome" data-id="${k.id}" data-n="1" ${S.tomes < 1 ? 'disabled' : ''}>📖 1권 쓰기</button>
+      <button class="btn mball" data-action="tome" data-id="${k.id}" data-n="${all}" ${all < 1 ? 'disabled' : ''}>전부 쓰기 <small>${all ? `${all}권${ups ? ` · Lv +${ups}` : ''}` : '0권'}</small></button>`;
+    // 다음 진화(Lv10·20·30)를 크게: 거기까지 남은 권수와 바뀌는 모습
+    const toNext = nextM ? skillTomesAt(nextM.lv) - total : 0;
+    const evo = nextM ? `
+      <div class="mevo m${m + 1}">
+        <div class="mevo-h">${nextM.star} <b>Lv ${nextM.lv} ${nextM.name}</b> 까지 📖 <b>${toNext}</b>권${k.stageName ? ` → <b class="mnext">「${k.stageName[m + 1]}」</b>` : ''}</div>
+        <div class="mevo-d">${k.stageDesc ? k.stageDesc[m + 1] : nextM.desc}</div>
+      </div>` : '';
     return `
-      <div class="mskill m${m}">
+      <div class="mskill m${m}${locked ? ' locked' : ''}">
         <span class="sicon">${k.icon}</span>
         <div class="mbody">
-          <div><b>${skillNameAt(k, s.lv)}</b>${k.stageName && skillNameAt(k, s.lv) !== k.name ? ` <small>(${k.name})</small>` : ''} <span class="mlv">Lv ${s.lv}</span>${tag}${S.level < k.lv ? ` <small>· 🔒 Lv ${k.lv}에 해금</small>` : ''}</div>
-          <div class="mseg">${max ? '<div class="cells"><i class="on"></i></div><b>MAX</b>' : `<div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div><b>📖 ${s.have} / ${s.need}</b>`}</div>
-          <small>쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → ${skillCdOf(k, s.lv + 1)}초`} · 위력 ${mt(s.lv)}${max ? '' : ` → ${mt(s.lv + 1)}`} <span class="dim">(Lv30 ${skillCdOf(k, SKILL_MAX)}초 · ${mt(SKILL_MAX)})</span></small>
-          ${k.stageDesc ? `<small>지금 「${k.stageName[m]}」 ${k.stageDesc[m]}</small>` : ''}
-          ${nextM ? `<small>다음 Lv ${nextM.lv} ${nextM.star} ${nextM.name}${k.stageName ? ` → <b class="mnext">「${k.stageName[m + 1]}」</b> ${k.stageDesc[m + 1]}` : `: ${nextM.desc}`}</small>` : ''}
+          <div class="mtitle"><b>${skillNameAt(k, s.lv)}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${locked ? ` <span class="mlock">🔒 캐릭터 Lv ${k.lv}에 사용 가능</span>` : ''}</div>
+          ${max ? '' : `<div class="mseg"><div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div>
+            <b>${s.have} / ${s.need}</b><span class="mto">→ Lv ${s.lv + 1}</span></div>`}
+          <small>쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → <b>${skillCdOf(k, s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}${k.stageDesc ? ` · 지금 「${k.stageName[m]}」` : ''}</small>
+          ${evo}
         </div>
-        <div class="act">${max ? '<span class="small">최고 단계</span>' : `${btn(1, '📖 1권')}${btn(10, '📖 10권')}${btn(need, `⏫ 레벨업 ${need}권`, S.tomes >= need)}`}</div>
+        <div class="act">${btns}</div>
       </div>`;
   }).join('');
   const guide = guidePendingFeed()
-    ? `<div class="gtip big">👉 처음이라면 <b>⏫ 레벨업</b> 버튼을 눌러 보세요 — 비전서를 먹인 만큼 쿨타임이 바로 줄고 위력이 올라요. Lv10·20·30 을 넘을 때마다 연출도 바뀝니다.</div>`
+    ? `<div class="gtip big">👉 <b>📖 1권 쓰기</b>를 눌러 보세요 — 칸이 차면 레벨이 오르고, 쿨타임이 바로 줄고 위력이 올라요.</div>`
     : S.tomes === 0 ? `<div class="gtip">📖 비전서는 ${towerUnlocked() ? '<button class="lnk" data-action="tab" data-tab="tower">🗼 도전의 탑</button>에서 가장 많이 얻어요 (원정 보스·레이드 상자·결투 시즌에서도)' : `🗼 도전의 탑(스테이지 ${TOWER_UNLOCK_STAGE}에 열림)·원정 보스·레이드 상자·결투 시즌에서 얻어요`}</div>` : '';
-  return `${head}${guideFlow('class')}${guide}<div class="hint">숙련도가 오를수록 쿨타임이 줄고(Lv30 에 Lv1 의 40%) 한 방이 세져요(Lv30 에 1.4배). Lv10·20·30 을 넘으면 크게 오르고 스킬 연출이 바뀝니다. 1차 스킬은 2차 전직 뒤에도 숙련도 그대로 계속 써요 (2차 직업에선 위력이 조금 줄어요).</div>${rows}`;
+  return `${head}${guideFlow('class')}${guide}${rows}<div class="hint">1차 스킬은 2차 전직 뒤에도 숙련도 그대로 써요 (2차 직업에선 위력이 조금 줄어요).</div>`;
 }
 
 function reqChips(id) {

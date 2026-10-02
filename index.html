@@ -269,28 +269,43 @@
   .skill .sbody small { color: var(--muted); font-size: 11px; }
   .skill .sdesc { color: var(--muted); font-size: 11.5px; margin-top: 1px; }
   /* 스킬 숙련도 (ui.js viewMastery). 단계(m1~m3)가 오를수록 테두리가 금빛으로 */
-  .mskill { display: flex; gap: 10px; align-items: center; padding: 8px 10px; margin-bottom: 6px; border-radius: 10px; background: rgba(255,255,255,0.04); }
+  .mhave { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; padding: 10px 14px; border-radius: 10px; background: rgba(201,167,255,0.1); box-shadow: inset 0 0 0 1px rgba(201,167,255,0.35); }
+  .mhave .mcount { font-size: 18px; white-space: nowrap; color: #e2d2ff; }
+  .mhave .mcount b { font-size: 24px; color: #fff; }
+  .mhave .mhow { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .mhave .mhow b { color: #e2d2ff; }
+  .mskill { display: flex; gap: 12px; align-items: center; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); }
   .mskill.m1 { box-shadow: inset 0 0 0 1px rgba(201,167,255,0.35); }
   .mskill.m2 { box-shadow: inset 0 0 0 1px rgba(201,167,255,0.6); background: rgba(201,167,255,0.07); }
   .mskill.m3 { box-shadow: inset 0 0 0 1px rgba(255,220,120,0.75), 0 0 12px rgba(255,210,90,0.25); background: rgba(255,220,120,0.08); }
-  .mskill .sicon { font-size: 22px; }
-  .mskill .mbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; }
+  .mskill.locked { opacity: 0.7; }
+  .mskill .sicon { font-size: 24px; }
+  .mskill .mbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
   .mskill .mbody small { color: var(--muted); font-size: 11px; }
-  .mskill .mlv { font-weight: 700; color: #c9a7ff; margin-left: 4px; }
+  .mskill .mbody small b { color: #e2d2ff; font-weight: 600; }
+  .mskill .mtitle { font-size: 14px; }
+  .mskill .mlv { font-weight: 800; color: #c9a7ff; margin-left: 4px; }
+  .mskill .mlock { margin-left: 6px; font-size: 11px; color: var(--muted); }
   .mskill .mtag { margin-left: 6px; font-size: 11px; padding: 1px 6px; border-radius: 6px; background: rgba(201,167,255,0.18); color: #e2d2ff; }
   .mskill .mtag.m3 { background: rgba(255,220,120,0.2); color: #fff0b8; }
-  .mskill .mnext { color: #e2d2ff; font-weight: 600; }
-  .mskill .mseg { display: flex; align-items: center; gap: 6px; }
-  .mskill .mseg .cells { flex: 1; display: flex; gap: 2px; height: 10px; }
-  .mskill .mseg .cells i { flex: 1; border-radius: 2px; background: rgba(255,255,255,0.1); }
+  .mskill .mnext { color: #fff0b8; }
+  .mskill .mseg { display: flex; align-items: center; gap: 8px; }
+  .mskill .mseg .cells { flex: 1; display: flex; gap: 3px; height: 14px; }
+  .mskill .mseg .cells i { flex: 1; border-radius: 3px; background: rgba(255,255,255,0.1); }
   .mskill .mseg .cells i.on { background: linear-gradient(180deg, #c9a7ff, #7a5cff); box-shadow: 0 0 4px rgba(201,167,255,0.5); }
   .mskill.m3 .mseg .cells i.on { background: linear-gradient(180deg, #fff0b8, #d9a640); }
-  .mskill .mseg b { font-size: 10.5px; color: #c9a7ff; white-space: nowrap; }
-  .mskill .mbar { position: relative; height: 12px; border-radius: 6px; background: rgba(255,255,255,0.08); overflow: hidden; }
-  .mskill .mbar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #7a5cff, #c9a7ff); }
-  .mskill.m3 .mbar i { background: linear-gradient(90deg, #d9a640, #fff0b8); }
-  .mskill .mbar span { position: relative; display: block; text-align: center; font-size: 9.5px; line-height: 12px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.6); }
-  .mskill .act { display: flex; gap: 4px; flex-shrink: 0; }
+  .mskill .mseg b { font-size: 13px; color: #fff; white-space: nowrap; }
+  .mskill .mseg .mto { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .mskill .mevo { padding: 6px 10px; border-radius: 8px; background: rgba(255,210,90,0.1); border-left: 3px solid #ffd257; }
+  .mskill .mevo-h { font-size: 12.5px; color: #ffe6a0; }
+  .mskill .mevo-h b { color: #fff0b8; }
+  .mskill .mevo-d { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .mskill .act { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; width: 120px; }
+  .mskill .act .btn { text-align: center; padding: 7px 10px; }
+  .mskill .act .mb1 { background: rgba(201,167,255,0.22); border-color: rgba(201,167,255,0.55); }
+  .mskill .act .mb1:hover { background: rgba(201,167,255,0.34); }
+  .mskill .act .mball small { display: block; font-size: 10.5px; font-weight: 400; color: var(--muted); margin-top: 1px; }
+  .mskill .mmax { color: #fff0b8; font-weight: 700; text-align: center; }
   .cdetail .act { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 180px; }
   .cdetail .row { display: flex; gap: 6px; }
   .go.compact { padding: 8px 16px; font-size: 13px; }
