@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.10.2';
+const GAME_VERSION = '0.10.3';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -25,11 +25,13 @@ const DEFEAT_DOWN_SEC = 2.5;          // 쓰러져 있는 시간
 const BOX_DROP = 0.05;                // 일반 몬스터 전리품 상자 드랍률 (보스는 100%)
 // 도전의 탑 (src/tower.js)
 const TOWER_UNLOCK_STAGE = 30;        // 이 스테이지에 도달하면 열린다
-const TOWER_STAGE0 = 10;              // 층 난이도 = 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER (10층 = 30스테이지, 50층 = 110스테이지)
-const TOWER_STAGE_PER = 2;
+const TOWER_STAGE0 = 25;              // 층 난이도 = 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER (1층 = 28, 10층 = 55, 20층 = 85, 50층 = 175스테이지)
+const TOWER_STAGE_PER = 3;            //  한 층 오를 때마다 체력 ×1.86 · 공격력 ×1.6 — 한 층 한 층이 확실한 계단이 되게. 해금(스테이지 30) 직후엔 2~3층이 벽
 const TOWER_ELITE_HP = 3;             // 탑의 일반 몬스터는 정예: 같은 스테이지 몬스터의 체력 ×3 · 공격력 ×1.3
 const TOWER_ELITE_ATK = 1.3;
-const TOWER_DAILY_TOMES = 3;          // 5층마다 주는 비전서는 하루 3권까지 (10층 단위 첫 돌파 보상은 따로)
+const TOWER_BOSS_HP = 2;              // 10층 보스는 같은 스테이지 보스보다 체력 ×2 더 (안 그러면 바로 아래층 정예와 체력이 같아 계단이 안 느껴짐)
+const TOWER_TOME_EVERY = 3;           // 한 번의 도전에서 이만큼 층을 깰 때마다 비전서 1권 (층이 가팔라 한 번에 오르는 층이 적다)
+const TOWER_DAILY_TOMES = 3;          // 반복 비전서는 하루 3권까지 (10층 단위 첫 돌파 보상은 따로)
 const BOSS_TOME_DROP = 0.15;          // 원정 보스가 📖 비전서를 떨굴 확률 (스킬 숙련도, classes.js)
 const POTION_AT = 0.3;                // 체력 30% 이하에서 물약 자동 사용
 const CAMP_HEAL_PER_SEC = 0.1;        // 캠프에서 초당 최대 체력의 10% 회복

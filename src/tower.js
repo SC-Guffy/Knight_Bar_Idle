@@ -2,6 +2,8 @@
 // 도전의 탑 규칙. core.js 처럼 DOM 을 모르고 S 상태만 바꾼다. 화면 연출(층 오르기·추락)은 world.js 의 updateTower.
 //  S.tower = {
 //    best: 지금까지 깬 가장 높은 층 (0 = 아직 없음),
+//    paid: 첫 돌파 묶음을 받은 가장 높은 10층 단위 (난이도 개편 전 기록을 옮길 때 같은 묶음을 두 번 주지 않게),
+//    curve: 층 난이도 곡선 버전 (TOWER_CURVE 와 다르면 best 를 새 곡선으로 옮긴다),
 //    day, dayTomes: 오늘(자정 기준) 반복 보상으로 받은 비전서 수 (TOWER_DAILY_TOMES 까지),
 //    run: 진행 중인 도전 { start 시작 층, floor 지금 층, cleared 이번에 깬 층 수, gold, exp, tomes, firsts: [첫 돌파 층] } | null,
 //    last: 마지막 도전 결과 { start, reached, cleared, gold, exp, tomes, firsts, reason, best, at } | null,
@@ -9,11 +11,19 @@
 // 규칙
 //  - 원정과 같은 스태미나를 같은 속도(STAMINA_DRAIN)로 쓴다. 스태미나가 바닥나거나 쓰러지거나 후퇴하면 끝.
 //  - 시작은 체크포인트(깬 10층 단위 다음 층)부터. 층마다 정예 몬스터 1마리, 10층마다 보스.
-//  - 층 난이도는 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER. 정예는 체력 ×TOWER_ELITE_HP · 공격력 ×TOWER_ELITE_ATK.
-//  - 보상: 처치 골드·경험치(원정과 같은 눈금) + 📖 비전서 — 한 번의 도전에서 5층 깰 때마다 1권(하루 TOWER_DAILY_TOMES 권까지)
+//  - 층 난이도는 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER. 정예는 체력 ×TOWER_ELITE_HP · 공격력 ×TOWER_ELITE_ATK, 보스는 체력 ×TOWER_BOSS_HP.
+//  - 보상: 처치 골드·경험치(원정과 같은 눈금) + 📖 비전서 — 한 번의 도전에서 TOWER_TOME_EVERY 층 깰 때마다 1권(하루 TOWER_DAILY_TOMES 권까지)
 //          + 10층 단위 첫 돌파 때 묶음(towerFirstTomes). 오프라인 진행은 없다(앱을 껐다 켜면 그 층에서 끝낸 것으로 정산).
 
-const freshTower = () => ({ best: 0, day: '', dayTomes: 0, run: null, last: null });
+const TOWER_CURVE = 2;   // 1: 스테이지 10 + 층×2 (0.10.0) → 2: 25 + 층×3
+const freshTower = () => ({ best: 0, paid: 0, curve: TOWER_CURVE, day: '', dayTomes: 0, run: null, last: null });
+// 옛 곡선의 최고 층을 같은 스테이지 급의 새 층으로 옮긴다 (체크포인트가 감당 못 할 높이가 되지 않게)
+function migrateTower(t) {
+  if (t.curve === TOWER_CURVE) return;
+  t.paid = Math.max(t.paid || 0, Math.floor((t.best || 0) / 10) * 10);
+  t.best = Math.max(0, Math.floor((10 + (t.best || 0) * 2 - TOWER_STAGE0) / TOWER_STAGE_PER));
+  t.curve = TOWER_CURVE;
+}
 
 const towerUnlocked = () => S.best >= TOWER_UNLOCK_STAGE;
 const towerCheckpoint = () => Math.floor(S.tower.best / 10) * 10 + 1;
@@ -32,7 +42,7 @@ function towerMonster(floor) {
   const st = monsterStats(stage, boss);
   const pool = monsterPool(stage);
   const type = boss ? zoneOf(stage).boss : pool[Math.floor(Math.random() * pool.length)];
-  return boss ? { type, ...st } : { type, ...st, hp: st.hp * TOWER_ELITE_HP, atk: st.atk * TOWER_ELITE_ATK, gold: st.gold * 3, exp: st.exp * 3 };
+  return boss ? { type, ...st, hp: st.hp * TOWER_BOSS_HP } : { type, ...st, hp: st.hp * TOWER_ELITE_HP, atk: st.atk * TOWER_ELITE_ATK, gold: st.gold * 3, exp: st.exp * 3 };
 }
 
 function towerBlocker() {
@@ -65,11 +75,11 @@ function clearTowerFloor() {
   const r = S.tower.run, f = r.floor;
   r.cleared++;
   let tomes = 0, first = false, record = false;
-  if (r.cleared % 5 === 0 && towerDayTomes() < TOWER_DAILY_TOMES) { S.tower.dayTomes++; tomes++; }
+  if (r.cleared % TOWER_TOME_EVERY === 0 && towerDayTomes() < TOWER_DAILY_TOMES) { S.tower.dayTomes++; tomes++; }
   if (f > S.tower.best) {
     if (!r.record) { r.record = true; record = S.tower.best > 0; }
     S.tower.best = f;
-    if (f % 10 === 0) { tomes += towerFirstTomes(f); r.firsts.push(f); first = true; }
+    if (f % 10 === 0 && f > (S.tower.paid || 0)) { tomes += towerFirstTomes(f); r.firsts.push(f); first = true; S.tower.paid = f; }
   }
   S.tomes += tomes; r.tomes += tomes;
   r.floor++;

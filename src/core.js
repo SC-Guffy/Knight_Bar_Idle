@@ -75,6 +75,8 @@ function migrate(o) {
   if (s.train.boss) s.train.fortune = (s.train.fortune || 0) + s.train.boss;
   delete s.train.boss;
   s.gear.inv.forEach(fixGearItem);
+  // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
+  if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
   return s;
 }
 
