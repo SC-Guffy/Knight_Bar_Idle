@@ -128,6 +128,10 @@ function renderHud() {
          <button class="pbtn" data-action="open-camp">🏕 캠프 열기</button>`;
   }
   tickLive($('hud'));
+  const todo = S.phase === 'camp' && !modalOpen() && !duelActive() && !raidActive() && campHasDot();
+  document.querySelector('#hud .bar').classList.toggle('rd', todo);
+  const openBtn = document.querySelector('#panelBody [data-action="open-camp"]');
+  if (openBtn) openBtn.classList.toggle('rd', todo);
 
   // 캠프 말풍선
   const bubble = $('bubble');
@@ -136,6 +140,7 @@ function renderHud() {
     bubble.style.left = (CAMP_X - 14) + 'px';
     bubble.textContent = campStatus().icon;
     bubble.classList.toggle('alert', campStatus().icon === '❗' || campStatus().icon === '🚩');
+    bubble.classList.toggle('rd', todo);
   } else {
     bubble.hidden = true;
   }
@@ -299,11 +304,11 @@ function viewReport() {
     ${report}
     <div class="shead">
       <h3>🎒 가방 <small>상자 ${S.bag.length}개 · ⚖️ ${bagWeight()} / ${bagCap()}</small></h3>
-      <button class="btn" data-action="claim-all" ${S.bag.length ? '' : 'disabled'}>모두 열기</button>
+      <button class="btn${rd(S.bag.length)}" data-action="claim-all" ${S.bag.length ? '' : 'disabled'}>모두 열기</button>
     </div>
     <div class="hint">상자를 눌러 열면 내용물이 나옵니다. 장비는 창고로 가고, 골동품은 팔려서 재화가 되고, 소비 아이템은 보급품에 더해집니다.</div>
     <div class="boxes">${opened}${closed || (opened ? '' : '<div class="empty">가방이 비어 있습니다.</div>')}</div>
-    ${revealed.length ? `<div class="gain">획득 합계 — ${sumLine || '없음'}${sum.gear ? ' <button class="btn" data-action="tab" data-tab="gear">🗡️ 장비 보기</button>' : ''}</div>` : ''}`;
+    ${revealed.length ? `<div class="gain">획득 합계 — ${sumLine || '없음'}${sum.gear ? ` <button class="btn${rd(Object.keys(GEAR_SLOTS).some(gearBetter))}" data-action="tab" data-tab="gear">🗡️ 장비 보기</button>` : ''}</div>` : ''}`;
 }
 
 function viewTown() {
@@ -317,7 +322,7 @@ function viewTown() {
     } else {
       const c = buildCost(id, lv);
       act = `<div class="costs">${costChip('<i class="gc"></i>', c.gold, S.gold)}${costChip('🪵', c.wood, S.mats.wood)}${costChip('🪨', c.ore, S.mats.ore)}${costChip('💎', c.mana, S.mats.mana)}</div>
-        <button class="btn" data-action="build" data-id="${id}" ${S.build || !canAfford(c) ? 'disabled' : ''}>
+        <button class="btn${rd(canBuild(id))}" data-action="build" data-id="${id}" ${S.build || !canAfford(c) ? 'disabled' : ''}>
           ${S.build ? '다른 건물 건설 중' : `건설 · ${fmtTime(buildTimeAt(lv))}`}</button>`;
     }
     return `
@@ -341,7 +346,7 @@ function viewTrain() {
     const lv = S.train[u.id], max = trainMax(u), cost = trainCost(u);
     const maxed = lv >= max;
     return `
-      <button class="tcard" data-action="train" data-id="${u.id}" ${maxed || S.gold < cost ? 'disabled' : ''}>
+      <button class="tcard${rd(canTrain(u))}" data-action="train" data-id="${u.id}" ${maxed || S.gold < cost ? 'disabled' : ''}>
         <span class="nm">${u.name}</span>
         <span class="val">${u.show(st)}</span>
         <span class="small">Lv ${lv} / ${max === Infinity ? '∞' : max}</span>
@@ -359,7 +364,7 @@ function viewTrain() {
       <div class="ic">${c.icon}</div>
       <div class="info"><b>${c.name} · ${w.name}</b>
         <div class="eff">대장간 보정 ×${forgeMultAt(S.bld.forge).toFixed(2)} · DPS ${fmt(dpsOf(st))} · ${nextLine}</div></div>
-      <div class="act"><button class="btn" data-action="tab" data-tab="class">⚜️ 전직 트리</button></div>
+      <div class="act"><button class="btn${rd(anyClassReady())}" data-action="tab" data-tab="class">⚜️ 전직 트리</button></div>
     </div>`;
 }
 
@@ -434,7 +439,7 @@ function viewClass() {
   const node = (id) => {
     const c = CLASSES[id], st = classState(id), hidden = classMasked(id);
     return `
-      <button class="cnode t${c.tier} ${st} ${id === classSel ? 'sel' : ''}" data-action="class-sel" data-id="${id}">
+      <button class="cnode t${c.tier} ${st} ${id === classSel ? 'sel' : ''}${rd(st === 'ready')}" data-action="class-sel" data-id="${id}">
         <canvas class="cprev" data-cls="${id}"></canvas>
         <span class="cname">${hidden ? '???' : `${c.icon} ${c.name}`}</span>
         <span class="cstate">${CLASS_STATE_LABEL[st]}</span>
@@ -755,11 +760,28 @@ function drawEnhanceFx() {
   g.globalCompositeOperation = 'source-over';
 }
 
-// 자동 장착하면 더 강해지는 조합(세트 효과 포함)이 있으면 탭에 표시
-function gearBadge() {
-  const best = bestLoadout();
-  return Object.keys(GEAR_SLOTS).some((slot) => best[slot] !== S.gear.eq[slot]) ? '<i>▲</i>' : '';
+// ───────────────────────── 레드닷 ─────────────────────────
+// 글을 읽지 않아도 어디를 누르면 되는지 보이도록, 지금 바로 할 수 있는 일이 있는 탭·버튼에 빨간 점을 찍는다.
+// 조건은 모두 "누르면 실제로 되는가"라서, 하고 나면 저절로 사라진다 (봤는지는 따로 기억하지 않는다).
+// 탭의 점 → 그 탭 안의 점 → 누를 버튼 순으로 따라가면 된다. 하단바 HUD·말풍선에는 캠프 전체를 합쳐서 찍는다.
+const DOT = '<i class="dot"></i>';
+const rd = (on) => (on ? ' rd' : '');
+const canBuild = (id) => !S.build && S.bld[id] < BUILD_MAX && canAfford(buildCost(id, S.bld[id]));
+const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u);
+// 자동 장착하면 더 강해지는 부위(세트 효과 포함)
+const gearBetter = (slot) => bestLoadout()[slot] !== S.gear.eq[slot];
+function campDots() {
+  refillTickets();
+  return {
+    report: S.bag.length > 0 || !!S.report,
+    town: Object.keys(BUILDINGS).some(canBuild),
+    train: TRAINING.some(canTrain),
+    gear: Object.keys(GEAR_SLOTS).some(gearBetter),
+    class: anyClassReady(),
+    raid: S.raid.chests.length > 0 || !!raidUi.room,
+  };
 }
+const campHasDot = () => Object.values(campDots()).some(Boolean);
 
 function enhOdds(L) {
   const e = ENHANCE[L], fail = 1 - e.rate;
@@ -816,7 +838,7 @@ function gearSlotBtn(slot) {
   return `
     <button class="gsbtn s-${slot} ${gearSel().slot === slot ? 'on' : ''}${last}" data-action="gear-sel-slot" data-slot="${slot}"
       style="--c:${it ? gearGrade(it).color : 'rgba(255,255,255,.18)'}" title="${def.name}">
-      <span class="gsbox">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
+      <span class="gsbox${rd(gearBetter(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
       <span class="gsname ${it ? gnClass(it) : ''}">${it ? gearName(it) : def.name}</span>
     </button>`;
 }
@@ -926,7 +948,7 @@ function viewGear() {
       <h3>📦 창고 <small>${inv.length}개 · 장착 중 제외</small></h3>
       <div class="row">
         <button class="chk ${S.gear.auto ? 'on' : ''}" data-action="gear-auto-toggle">${S.gear.auto ? '☑' : '☐'} 챙길 때 자동 장착</button>
-        <button class="btn" data-action="gear-auto">✨ 자동 장착</button>
+        <button class="btn${rd(Object.keys(GEAR_SLOTS).some(gearBetter))}" data-action="gear-auto">✨ 자동 장착</button>
       </div>
     </div>
     ${sellBar}
@@ -1247,13 +1269,6 @@ function raidLeave() {
   raidUi.key = '';
 }
 
-function raidBadge() {
-  refillTickets();
-  if (S.raid.chests.length) return `<i>${S.raid.chests.length}</i>`;
-  if (raidUi.room) return '<i>●</i>';
-  return '';
-}
-
 // ── 정산 화면 ──
 function viewRaidResult() {
   const L = S.raid.last;
@@ -1305,7 +1320,7 @@ function viewRaidChests() {
   return `
     <div class="shead">
       <h3>🎁 처치 상자 <small>${S.raid.chests.length}개</small></h3>
-      <button class="btn" data-action="raid-open-all" ${S.raid.chests.length ? '' : 'disabled'}>모두 열기</button>
+      <button class="btn${rd(S.raid.chests.length)}" data-action="raid-open-all" ${S.raid.chests.length ? '' : 'disabled'}>모두 열기</button>
     </div>
     <div class="boxes">${opened}${closed}</div>`;
 }
@@ -1470,15 +1485,16 @@ function openRaidChestAt(i) {
 
 function renderCamp() {
   if (!campOpen) return;
+  const dots = campDots();
   const tabs = [
-    ['report', '📜 원정 보고', S.bag.length ? `<i>${S.bag.length}</i>` : S.report ? '<i>!</i>' : ''],
-    ['town', '🏘 마을', S.build ? '<i>🔨</i>' : ''],
-    ['train', '🎯 훈련', ''],
+    ['report', '📜 원정 보고', S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
+    ['town', '🏘 마을', S.build ? '<i class="info">🔨</i>' : dots.town ? DOT : ''],
+    ['train', '🎯 훈련', dots.train ? DOT : ''],
     ['shop', '🎒 보급품', ''],
-    ['gear', '🗡️ 장비', gearBadge()],
-    ['class', '⚜️ 전직', anyClassReady() ? '<i>!</i>' : ''],
+    ['gear', '🗡️ 장비', dots.gear ? DOT : ''],
+    ['class', '⚜️ 전직', dots.class ? DOT : ''],
     ['rank', '🏆 랭킹', ''],
-    ['raid', '🐉 레이드', raidBadge()],
+    ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
   ];
   const view = { report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
