@@ -1960,7 +1960,7 @@ function resetWorld() {
   // 탑은 이어서 하지 않는다: 다시 불러오면 그 층에서 끝낸 것으로 정산
   if (S.phase === 'tower') { endTower('offline'); S.phase = 'camp'; }
   if (tw) endTowerView();
-  monsters = []; coins = []; floaters = []; shots = []; effects = [];
+  monsters = []; coins = []; floaters = []; shots = []; effects = []; drops = [];
   lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null });
   casts = []; skfx = []; cutin = null; hitstop = 0;

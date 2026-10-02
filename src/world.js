@@ -185,13 +185,9 @@ function hitMonster(m, mult = 1, o = {}) {
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
     coins.push({ x: sx, y: groundY() - 14, vx: rand(-60, 60), vy: rand(-160, -90), t: 0, fly: false });
   }
-  // 상자 이름만 띄운다 (내용물은 캠프에서 열 때 공개). 보물상자 이상은 크게 알린다
-  if (r.loot) {
-    const G = GRADES[r.loot.g], big = r.loot.g >= 3;
-    addFloater(`${big ? '✨' : '📦'} ${lootName(r.loot)}${big ? '!' : ''}`, sx, monsterTop(m) - 18, G.color, big ? 15 : 12);
-    if (big && !m.boss) showBanner(`${lootName(r.loot)} 발견!`, G.color);
-  }
-  if (r.tome) addFloater('📖 비전서!', sx, monsterTop(m) - 34, '#c9a7ff', 14, true);
+  // 상자·비전서는 실제로 필드에 떨어지고 기사가 주워 간다 (src/drops.js). 내용물은 캠프에서 열 때 공개
+  if (r.loot) spawnDrop('box', r.loot.g, sx, monsterMidY(m), m.boss);
+  if (r.tome) spawnDrop('tome', 0, sx, monsterMidY(m), false, { dist: r.loot ? rand(-14, -4) : rand(16, 28), delay: r.loot ? 0.12 : 0, pop: 1.15 });
   if (m.boss) { showBanner('STAGE CLEAR!'); save(); }
   if (bagFull()) endExpedition('bag');
 }
@@ -675,6 +671,7 @@ function update(dt) {
     }
   }
   coins = coins.filter(c => !c.fly || c.ft < 1);
+  updateDrops(dt);
 
   if (banner) { banner.t += dt; if (banner.t > 2.2) banner = null; }
 }
@@ -1658,6 +1655,7 @@ function drawFx() {
     ctx.fillStyle = '#b8860b'; ctx.fillRect(Math.round(c.x) - 3, Math.round(c.y) - 3, 6, 6);
     ctx.fillStyle = '#ffd257'; ctx.fillRect(Math.round(c.x) - 2, Math.round(c.y) - 3, 4, 5);
   }
+  drawDropsTop();
 
   if (banner) {
     const a = banner.t < 0.3 ? banner.t / 0.3 : banner.t > 1.8 ? (2.2 - banner.t) / 0.4 : 1;
@@ -2366,7 +2364,9 @@ function render() {
   drawTower();
 }
 function drawActors() {
+  drawDropsBack();
   for (const m of monsters) drawMonster(m);
+  drawDropsFront();
   drawAuras();
   if (duelPlay) drawDuel(); else if (raidPlay) drawRaid(); else drawKnight();
   drawShots();
