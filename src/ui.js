@@ -21,6 +21,31 @@ const modalOpen = () => campOpen || acctOpen;
 document.addEventListener('mousemove', (e) => { if (!modalOpen()) setInteractive(!!e.target.closest('.interactive')); });
 document.addEventListener('mouseleave', () => { if (!modalOpen()) setInteractive(false); });
 
+// ───────────────────────── 자동 숨기기 (앱 전용 옵션) ─────────────────────────
+// 켜 두면 마우스가 하단바를 벗어나고 잠시 뒤 기사·HUD 가 사라지고, 하단바 위로 가져가면 다시 나타난다.
+// 앱 창은 클릭만 통과시키고 마우스 이동은 계속 받으므로(forward) 웹 코드만으로 감지할 수 있다.
+const AUTOHIDE_KEY = 'knight-bar-autohide';
+const AUTOHIDE_DELAY = 2000;
+let autoHide = false;
+try { autoHide = localStorage.getItem(AUTOHIDE_KEY) === '1'; } catch {}
+let fadeTimer = null;
+function showBar() {
+  clearTimeout(fadeTimer); fadeTimer = null;
+  document.body.classList.remove('faded');
+}
+function scheduleFade() {
+  clearTimeout(fadeTimer);
+  if (!autoHide || !window.bar) return;
+  fadeTimer = setTimeout(() => { if (!modalOpen()) document.body.classList.add('faded'); }, AUTOHIDE_DELAY);
+}
+function setAutoHide(on) {
+  autoHide = on;
+  try { localStorage.setItem(AUTOHIDE_KEY, on ? '1' : '0'); } catch {}
+  showBar();
+}
+document.addEventListener('mousemove', showBar);
+document.addEventListener('mouseleave', scheduleFade);
+
 // ───────────────────────── 공통 ─────────────────────────
 function toast(msg, ms = 4000) {
   const el = $('toast');
@@ -143,6 +168,7 @@ function closeCamp() {
   if (window.bar) window.bar.setCampMode(false);
   save();
   renderHud();
+  scheduleFade();
 }
 
 const costChip = (icon, need, have) =>
@@ -1465,7 +1491,7 @@ function renderCamp() {
       </div>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
     </header>
-    <nav>${tabs.map(([id, label, badge]) => `<button class="${id === campTab ? 'on' : ''}" data-action="tab" data-tab="${id}">${label}${badge}</button>`).join('')}<span class="ver">v${GAME_VERSION}</span></nav>
+    <nav>${tabs.map(([id, label, badge]) => `<button class="${id === campTab ? 'on' : ''}" data-action="tab" data-tab="${id}">${label}${badge}</button>`).join('')}${window.bar ? `<button class="autohide ${autoHide ? 'on' : ''}" data-action="autohide" title="켜면 마우스가 하단바를 벗어나고 잠시 뒤 기사·HUD 가 숨고, 하단바에 마우스를 올리면 다시 보여요">🫥 자동 숨기기 ${autoHide ? '켬' : '끔'}</button>` : ''}<span class="ver">v${GAME_VERSION}</span></nav>
     <section id="campBody">${view}</section>
     <footer>${viewDepart()}</footer>`;
   $('campBody').scrollTop = scroll;
@@ -1503,6 +1529,7 @@ const ACTIONS = {
   'open-camp': openCamp,
   'recall': () => { endExpedition('manual'); save(); },
   'close': closeCamp,
+  'autohide': () => setAutoHide(!autoHide),
   'tab': (el) => { campTab = el.dataset.tab; $('campBody').scrollTop = 0; },
   'rank-sort': (el) => { rank.sort = el.dataset.sort; },
   'season-tiers': () => { seasonUi.tiers = !seasonUi.tiers; },
@@ -1624,6 +1651,7 @@ function closeAccount() {
   interactive = false;
   if (window.bar) window.bar.setCampMode(false);
   renderHud();
+  scheduleFade();
 }
 
 function setMsg(id, text, kind = '') {
@@ -1975,6 +2003,7 @@ function boot() {
       $('hud').classList.toggle('right', !!s.hudRight);
     });
     window.bar.onSwitchAccount(openAccount);
+    scheduleFade();                     // 자동 숨기기를 켜 뒀으면 켜자마자 잠시 뒤 숨긴다
     // 앱을 끄기 직전에 서버에 마지막으로 저장한다
     window.bar.onFlush(async () => {
       save();

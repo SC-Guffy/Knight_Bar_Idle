@@ -27,6 +27,9 @@
   /* ── 하단바 ── */
   #barLayer { position: fixed; left: 0; right: 0; bottom: 0; height: 150px; z-index: 2; }
   #c { position: absolute; inset: 0; }
+  /* 자동 숨기기: 마우스가 하단바를 벗어나면 기사·HUD 를 흐리게 감춘다 (말풍선·토스트는 그대로) */
+  #c, #hud { transition: opacity .4s; }
+  body.faded #c, body.faded #hud { opacity: 0; pointer-events: none; }
 
   #hud { position: absolute; top: 6px; left: 10px; width: 470px; }
   #hud.right { left: auto; right: 10px; }
@@ -121,6 +124,11 @@
   #campModal nav { display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--line); }
   #campModal nav button { all: unset; cursor: pointer; padding: 8px 12px; border-radius: 8px 8px 0 0; color: var(--muted); position: relative; }
   #campModal nav button.on { color: var(--text); background: var(--soft); }
+  #campModal nav .autohide { all: unset; cursor: pointer; margin-left: auto; align-self: center; padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; color: var(--muted); background: var(--soft); }
+  #campModal nav .autohide:hover { background: var(--soft-hover); }
+  #campModal nav .autohide.on { color: #1b1300; background: var(--accent); font-weight: 600; }
+  #campModal nav .autohide + .ver { margin-left: 8px; }
   #campModal nav .ver { margin-left: auto; align-self: center; color: var(--muted); font-size: 11px; opacity: .7; }
   #campModal nav i { font-style: normal; margin-left: 5px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: #1b1300; font-size: 11px; font-weight: 700; }
   #campBody { padding: 4px 18px 16px; overflow-y: auto; flex: 1; min-height: 200px; }
