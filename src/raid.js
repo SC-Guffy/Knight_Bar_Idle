@@ -23,9 +23,14 @@ function refillTickets() {
   S.raid.tickets = RAID_TICKET_FREE;
   return true;
 }
+// 하루 첫 구매는 헐값(마력석 없음), 두 번째부터 RAID_TICKET_STEPS 대로 비싸지고 그 뒤로는 × RAID_TICKET_GROW
 function ticketPrice() {
-  const k = Math.pow(RAID_TICKET_GROW, ticketsBoughtToday());
-  return { gold: Math.floor(monsterStats(S.best, false).gold * RAID_TICKET_GOLD * k), mana: Math.floor((3 + S.best / 10) * k) };
+  const n = ticketsBoughtToday(), last = RAID_TICKET_STEPS.length - 1;
+  const k = n <= last ? RAID_TICKET_STEPS[n] : RAID_TICKET_STEPS[last] * Math.pow(RAID_TICKET_GROW, n - last);
+  return {
+    gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * RAID_TICKET_GOLD * k)),
+    mana: n === 0 ? 0 : Math.floor((RAID_TICKET_MANA + S.best / 20) * k),
+  };
 }
 function ticketBlocker() {
   if (S.raid.tickets >= RAID_TICKET_MAX) return `입장권은 최대 ${RAID_TICKET_MAX}장까지 가질 수 있어요`;
@@ -46,7 +51,7 @@ function buyTicket() {
 }
 
 // ───────────────────────── 정산 ─────────────────────────
-// 서버가 보낸 레이드 결과를 내 몫만큼 정산한다: 입장권 1장 소모, 재화(MVP 1.5배), 경험치, 이기면 처치 상자.
+// 서버가 보낸 레이드 결과를 내 몫만큼 정산한다: 클리어했을 때만 입장권 1장 소모, 재화(MVP 1.5배), 경험치, 이기면 처치 상자.
 // 이미 정산했거나 내가 그 파티에 없었으면 null
 function settleRaid(result, nick) {
   if (S.raid.claimed.includes(result.id)) return null;
@@ -54,8 +59,6 @@ function settleRaid(result, nick) {
   if (me < 0) return null;
   S.raid.claimed.push(result.id);
   if (S.raid.claimed.length > 30) S.raid.claimed.shift();
-  S.raid.tickets = Math.max(0, S.raid.tickets - 1);
-
   const f = result.fight, b = RAID_BOSSES[result.boss], mvp = f.mvp === me;
   const mult = (f.won ? 1 : RAID_FAIL_MULT) * (mvp ? RAID_MVP_MULT : 1);
   // 재화·경험치는 인원수만큼 강해진 보스의 스테이지 기준 (적은 인원으로 어렵게 잡을수록 많이). 단 내 최고 스테이지를 넘지는 않는다
@@ -72,6 +75,7 @@ function settleRaid(result, nick) {
   S.mats.wood += reward.wood; S.mats.ore += reward.ore; S.mats.mana += reward.mana;
   reward.levels = gainExp(reward.exp);
   if (f.won) {
+    S.raid.tickets = Math.max(0, S.raid.tickets - 1);
     reward.first = !S.raid.kills[result.boss];
     S.raid.kills[result.boss] = (S.raid.kills[result.boss] || 0) + 1;
     S.raid.chests.push({ k: 'rbox', b: result.boss, s: b.stage, ...(reward.first ? { first: 1 } : {}) });

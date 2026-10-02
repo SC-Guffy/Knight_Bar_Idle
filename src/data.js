@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.10.11';
+const GAME_VERSION = '0.10.12';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -1277,11 +1277,14 @@ const RAID_BOSSES = {
 };
 
 // 입장권: 매일 RAID_TICKET_FREE 장까지 무료로 채워 주고, 그 이상은 재화로 산다.
-// 하루에 살수록 비싸지고(자정에 초기화), 사서 모으는 건 최대 RAID_TICKET_MAX 장까지
+// 입장권은 레이드를 클리어했을 때만 1장 쓰인다 (실패하면 그대로 남음).
+// 하루 첫 구매는 헐값, 두 번째부터 점점 비싸진다(자정에 초기화). 사서 모으는 건 최대 RAID_TICKET_MAX 장까지
 const RAID_TICKET_FREE = 3;
 const RAID_TICKET_MAX = 5;
-const RAID_TICKET_GOLD = 150;          // 최고 스테이지 몬스터 골드 × 이 값
-const RAID_TICKET_GROW = 1.6;          // 오늘 산 장수만큼 가격 × 1.6^n
+const RAID_TICKET_GOLD = 20;           // 기준 가격: 최고 스테이지 몬스터 골드 × 이 값 (레이드 승리 골드의 약 1/4)
+const RAID_TICKET_MANA = 2;            // 기준 마력석: 이 값 + 최고 스테이지 / 20
+const RAID_TICKET_STEPS = [0.05, 1, 2, 3.5, 6];  // 오늘 n번째 구매의 기준 가격 배율 (첫 구매는 헐값)
+const RAID_TICKET_GROW = 1.6;          // 표를 넘어가면 한 장마다 × 1.6
 const RAID_MVP_MULT = 1.5;             // MVP 는 재화 1.5배
 const RAID_FAIL_MULT = 0.25;           // 실패하면 재화 25%만, 상자는 없음
 // 인원수별 보스 강화 비율 (server/raid.js 의 PARTY_STAGE 와 같아야 함). 보상도 이 '실제로 싸운 스테이지' 기준이다
