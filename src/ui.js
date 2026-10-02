@@ -1372,7 +1372,7 @@ function viewRaidResult() {
       </div>
       <div class="clist">${rows}</div>
       <div class="gain">내 보상 — ${gain}${r.mvp ? ` <b class="mvpchip">👑 MVP 재화 ×${RAID_MVP_MULT}</b>` : ''}${r.chest ? ` · 🎁 ${esc(b.chest.name)} +1` : L.won ? '' : ' · 실패해서 재화를 일부만 받았어요 (입장권은 그대로 남았어요 🎟️)'}</div>
-      ${r.first ? `<div class="reason">🏅 <b>${b.name} 첫 처치!</b> 이번 처치 상자에는 ${b.name}의 고유 장비가 반드시 들어 있어요.</div>` : ''}
+      ${r.first ? `<div class="reason">🏅 <b>${b.name} 첫 처치!</b> 이번 처치 상자에는 📖 비전서 5권이 들어 있어요.</div>` : ''}
     </div>`;
 }
 
@@ -1384,8 +1384,8 @@ function viewRaidChests() {
   const closed = S.raid.chests.map((c, i) => {
     const b = RAID_BOSSES[c.b];
     return `
-      <button class="box chestbox glow g${b.chest.w.findLastIndex((w) => w > 0)} ${c.first ? 'sig' : ''}" data-action="raid-open" data-i="${i}" style="--c:${GRADES[b.chest.w.findLastIndex((w) => w > 0)].color}"
-        title="장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 · 고유 장비 ${c.first ? '확정 (첫 처치)' : Math.round(b.chest.sig * 100) + '%'} · 눌러서 열기">
+      <button class="box chestbox glow g${b.chest.w.findLastIndex((w) => w > 0)} " data-action="raid-open" data-i="${i}" style="--c:${GRADES[b.chest.w.findLastIndex((w) => w > 0)].color}"
+        title="장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 · 고유 장비 ${Math.round(b.chest.sig * 100)}%${c.first ? ' · 📖 비전서 5권 (첫 처치)' : ''} · 눌러서 열기">
         ${raidChestIcon(c.b)}<span class="lname">${c.first ? '🏅 ' : ''}${esc(b.chest.name)}</span>
       </button>`;
   }).join('');
@@ -1469,7 +1469,7 @@ function viewRaidRoom() {
       <div class="info">
         <b>${b.icon} ${b.name}</b> <small>권장 스테이지 ${b.stage}+ · 광역기 「${b.skill}」</small>
         <div class="eff">${b.desc}</div>
-        <div class="eff">🎁 ${esc(b.chest.name)} — 장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 (${chestRange(room.boss)}) · 고유 장비 ${S.raid.kills[room.boss] ? Math.round(b.chest.sig * 100) + '%' : '확정 (첫 처치)'}</div>
+        <div class="eff">🎁 ${esc(b.chest.name)} — 장비 ${b.chest.n[0]}${b.chest.n[1] > b.chest.n[0] ? '~' + b.chest.n[1] : ''}개 (${chestRange(room.boss)}) · 고유 장비 ${Math.round(b.chest.sig * 100)}%</div>
         <div class="sigs">${sigIcons(room.boss)}</div>
         <div class="eff gset">${setLine(room.boss)}</div>
       </div>
@@ -1523,7 +1523,7 @@ function viewRaidLobby() {
         <b>${b.icon} ${b.name}</b>
         <small>${open ? `스테이지 ${b.stage}+` : `🔒 최고 스테이지 ${b.stage} 필요`}</small>
         <small>🎁 ${chestRange(id)}</small>
-        <small>${S.raid.kills[id] ? `⚔️ 처치 ${S.raid.kills[id]}회` : '🏅 첫 처치 시 고유 장비 확정'}</small>
+        <small>${S.raid.kills[id] ? `⚔️ 처치 ${S.raid.kills[id]}회` : '🏅 첫 처치 시 📖 비전서 5권'}</small>
         <div class="sigs">${sigIcons(id)}</div>
         <button class="btn" data-action="raid-create" data-boss="${id}" ${!open || raidUi.busy ? 'disabled' : ''}>방 만들기</button>
       </div>`;

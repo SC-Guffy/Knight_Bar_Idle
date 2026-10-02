@@ -4,7 +4,7 @@
 //  S.raid = {
 //    tickets: 보유 입장권, freeDay: 무료 충전을 마지막으로 받은 날, buyDay·bought: 오늘(buyDay) 산 장수 — 살수록 비싸진다,
 //    chests: 아직 안 연 처치 상자 [{ k: 'rbox', b: 보스 id, s: 스테이지, first: 첫 처치 상자면 1 }],
-//    kills: 보스별 처치 횟수 { 보스 id: n } — 처음 잡으면 첫 처치 상자(고유 장비 확정)를 준다,
+//    kills: 보스별 처치 횟수 { 보스 id: n } — 처음 잡으면 첫 처치 상자(비전서 5권)를 준다 — 고유 장비는 첫 처치여도 확률대로만,
 //    claimed: 이미 정산한 결과 id (같은 결과를 두 번 받지 않도록), last: 마지막 정산 화면 내용
 //  }
 
@@ -90,7 +90,7 @@ function settleRaid(result, nick) {
 }
 
 // ───────────────────────── 처치 상자 ─────────────────────────
-// 내용물은 전부 장비. 등급은 보스마다 정한 가중치(chest.w)로 뽑고, chest.sig 확률로(첫 처치 상자는 반드시) 그 보스의 고유 장비가 하나 섞인다
+// 내용물은 전부 장비. 등급은 보스마다 정한 가중치(chest.w)로 뽑고, chest.sig 확률로 그 보스의 고유 장비가 하나 섞인다 (첫 처치 상자도 예외 없이 확률대로)
 function rollRaidGear(g, s) {
   const slot = pickWeighted(GEAR_SLOTS, () => 1);
   const pool = gearItemsOf(slot, g);
@@ -107,7 +107,7 @@ function openRaidChest(c) {
     for (; g < ch.w.length - 1; g++) { r -= ch.w[g]; if (r <= 0) break; }
     out.push(rollRaidGear(g, c.s));
   }
-  if (c.first || Math.random() < ch.sig) {
+  if (Math.random() < ch.sig) {
     // 세트를 모으도록 아직 가진 적 없는 부위를 먼저 준다 (다 있으면 아무 부위나)
     const all = raidSignatures(c.b), missing = all.filter((t) => !S.gear.inv.some((x) => x.t === t));
     const sigs = missing.length ? missing : all;
