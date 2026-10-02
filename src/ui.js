@@ -767,7 +767,8 @@ function drawEnhanceFx() {
 const DOT = '<i class="dot"></i>';
 const rd = (on) => (on ? ' rd' : '');
 const canBuild = (id) => !S.build && S.bld[id] < BUILD_MAX && canAfford(buildCost(id, S.bld[id]));
-const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u);
+// 훈련은 골드가 쌓이면 늘 할 수 있어서, 다음 단계 비용의 2배가 모였을 때만 찍는다 (버튼은 비용만 있으면 눌림)
+const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= 2 * trainCost(u);
 // 자동 장착하면 더 강해지는 부위(세트 효과 포함)
 const gearBetter = (slot) => bestLoadout()[slot] !== S.gear.eq[slot];
 function campDots() {
