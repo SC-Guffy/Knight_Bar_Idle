@@ -6,15 +6,19 @@ const { makeSkills, readySkill, wardCut } = require('./duel');
 
 //  stage: 입장에 필요한 최고 스테이지이자 보스 능력치 기준 스테이지
 //  hp·atk: 같은 스테이지 필드 보스 대비 배수, aoeEvery: 광역기 간격(초), aoe: 광역기 위력(평타 대비)
+//  kb·stun: 광역기에 맞으면 밀려나는 거리(px)·기절 시간(초). 밀려난 기사는 기절이 풀린 뒤 다시 걸어 들어와야 하고, 기절 중엔 아무것도 못 한다
+//  smash: 평타 SMASH_EVERY 번째마다 맨 앞 기사에게 강타 — 위력(평타 대비)·밀려남·기절
 const RAID_BOSSES = {
-  slimeking:   { stage: 10,  hp: 20, atk: 1.5,  aoeEvery: 7,   aoe: 0.7 },
-  goblinchief: { stage: 20,  hp: 22, atk: 1.55, aoeEvery: 6.5, aoe: 0.75 },
-  lichking:    { stage: 40,  hp: 24, atk: 1.6,  aoeEvery: 6,   aoe: 0.8 },
-  boglord:     { stage: 60,  hp: 25, atk: 1.62, aoeEvery: 6,   aoe: 0.8 },
-  flamedragon: { stage: 80,  hp: 27, atk: 1.66, aoeEvery: 5.5, aoe: 0.85 },
-  frostgiant:  { stage: 100, hp: 28, atk: 1.7,  aoeEvery: 5.5, aoe: 0.85 },
-  demonking:   { stage: 130, hp: 30, atk: 1.75, aoeEvery: 5,   aoe: 0.9 },
+  slimeking:   { stage: 10,  hp: 20, atk: 1.5,  aoeEvery: 7,   aoe: 0.7,  kb: 50, stun: 0.8, smash: { mult: 1.8, kb: 40, stun: 1.0 } },
+  goblinchief: { stage: 20,  hp: 22, atk: 1.55, aoeEvery: 6.5, aoe: 0.75, kb: 80, stun: 0.6, smash: { mult: 1.8, kb: 50, stun: 1.0 } },
+  lichking:    { stage: 40,  hp: 24, atk: 1.6,  aoeEvery: 6,   aoe: 0.8,  kb: 10, stun: 1.6, smash: { mult: 1.9, kb: 30, stun: 1.2 } },
+  boglord:     { stage: 60,  hp: 25, atk: 1.62, aoeEvery: 6,   aoe: 0.8,  kb: 30, stun: 1.3, smash: { mult: 2.0, kb: 60, stun: 1.0 } },
+  flamedragon: { stage: 80,  hp: 27, atk: 1.66, aoeEvery: 5.5, aoe: 0.85, kb: 90, stun: 0.9, smash: { mult: 2.0, kb: 60, stun: 1.2 } },
+  frostgiant:  { stage: 100, hp: 28, atk: 1.7,  aoeEvery: 5.5, aoe: 0.85, kb: 30, stun: 1.8, smash: { mult: 2.1, kb: 70, stun: 1.3 } },
+  demonking:   { stage: 130, hp: 30, atk: 1.75, aoeEvery: 5,   aoe: 0.9,  kb: 70, stun: 1.5, smash: { mult: 2.2, kb: 70, stun: 1.5 } },
 };
+const SMASH_EVERY = 4;      // 평타 네 번째마다 강타
+const CC_HP = 0.8;          // 넉백·기절로 잃는 딜 시간을 일부 메우려고 보스 체력을 조금 깎는다 (시뮬로 재 보면 승률은 예전과 거의 같다)
 const MAX_PARTY = 4;
 // 인원수별 보정: 보스를 (보스 스테이지 × 이 비율)만큼 더 깊은 스테이지의 능력치로 키운다 (체력·공격력 모두).
 //  혼자서는 입장 스테이지의 약 2배 레벨이어야 겨우 잡고(80렙 → 리치 킹), 4명이면 입장 스테이지와 같은 레벨이 장비·훈련을 잘 챙겨야 겨우 잡는다
@@ -24,6 +28,7 @@ const START = 300;          // 보스 위치(px). 기사는 0 에서 출발하�
 const KNIGHT_GAP = 12;      // 출발 간격
 const BOSS_HALF = 30;       // 보스 몸 반폭
 const WALK = 40;            // px/s
+const RUSH = 110;           // 밀려난 기사가 다시 달려 들어오는 속도(px/s)
 const KNIGHT_HP_MULT = 3;   // 결투처럼 레이드에서만 기사 체력을 늘린다
 const BOSS_CD = 1.5;        // 보스 평타 간격
 const ENRAGE_T = 75;        // 이 시간이 지나면 보스가 광폭해져 두 배로 때린다
@@ -47,7 +52,7 @@ const round1 = (n) => Math.round(n * 10) / 10;
 function bossStats(id, n) {
   const b = RAID_BOSSES[id], s = b.stage * (1 + PARTY_STAGE[Math.max(0, Math.min(MAX_PARTY, n) - 1)]);
   return {
-    hp: 14 * Math.pow(1.23, s - 1) * 7.5 * b.hp,
+    hp: 14 * Math.pow(1.23, s - 1) * 7.5 * b.hp * CC_HP,
     atk: 3 * Math.pow(1.17, s - 1) * 1.68 * b.atk,
   };
 }
@@ -57,11 +62,11 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
   const rng = mulberry32(seed);
   const def = RAID_BOSSES[bossId];
   const bs = bossStats(bossId, profiles.length);
-  const boss = { hp: bs.hp, max: bs.hp, atk: bs.atk, cd: 1.2, aoe: def.aoeEvery * 0.8 };
+  const boss = { hp: bs.hp, max: bs.hp, atk: bs.atk, cd: 1.2, aoe: def.aoeEvery * 0.8, swings: 0 };
   const ks = profiles.map((p, i) => ({
     p, i, x: -i * KNIGHT_GAP, hp: p.maxHp * KNIGHT_HP_MULT, max: p.maxHp * KNIGHT_HP_MULT,
     reach: p.range + BOSS_HALF + i * 18,       // 같은 사거리끼리 겹치지 않게 뒷사람은 조금 뒤에 선다 (멈춘 뒤엔 사거리를 다시 따지지 않아 전투 결과와는 무관)
-    cd: 0.2 + rng() * 0.4, leapCd: p.leap ? p.leap.every / 2 : Infinity, skills: makeSkills(p), busy: 0, ward: null,
+    cd: 0.2 + rng() * 0.4, stun: 0, leapCd: p.leap ? p.leap.every / 2 : Infinity, skills: makeSkills(p), busy: 0, ward: null,
     stopT: null, alive: true, dmg: 0, taken: 0, heal: 0, acc: null,
   }));
   const events = [];
@@ -108,6 +113,12 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
     k.hp -= d; k.taken += d;
     return Math.round(dmg);
   };
+  // 밀쳐 내고 기절시킨다. 기록에는 맞은 뒤 위치(x)와 남은 기절 시간(st)을 남겨 재생 때 그대로 따라 그린다
+  const knock = (k, kb, stun) => {
+    k.x -= kb;
+    k.stun = Math.max(k.stun, t + stun);
+    return { x: round1(k.x), st: round1(k.stun - t) };
+  };
   const deaths = () => {
     for (const k of ks) if (k.alive && k.hp <= 0) { k.alive = false; events.push({ t: round1(t), die: k.i }); }
   };
@@ -116,6 +127,14 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
     for (const k of ks) {
       if (!k.alive || boss.hp <= 0) continue;
       const dist = START - k.x;
+      // 기절 중엔 걷지도 때리지도 못하고, 밀려났으면 기절이 풀린 뒤 달려 들어온다 (그동안 쿨타임은 돈다)
+      if (k.stopT != null && (t < k.stun || dist > k.reach)) {
+        k.cd -= DT; k.leapCd -= DT; k.busy -= DT;
+        for (const s of k.skills) s.left -= DT;
+        if (t >= k.stun) k.x += Math.min(RUSH * DT, dist - k.reach);
+        continue;
+      }
+      if (t < k.stun) continue;
       if (dist > k.reach) { k.x += Math.min(WALK * DT, dist - k.reach); continue; }
       if (k.stopT == null) k.stopT = round1(t);
       k.cd -= DT;
@@ -136,7 +155,8 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
         boss.aoe = def.aoeEvery;
         flush();
         const d = ks.map((k) => (k.alive ? strike(k, def.aoe) : 0));
-        events.push({ t: round1(t), b: 'aoe', d, h: hpList() });
+        const cc = ks.map((k) => (k.alive ? knock(k, def.kb, def.stun) : null));
+        events.push({ t: round1(t), b: 'aoe', d, h: hpList(), x: cc.map((c) => c && c.x), st: cc.map((c) => c && c.st) });
         deaths();
       } else if (boss.cd <= 0) {
         boss.cd = BOSS_CD;
@@ -144,8 +164,15 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
         const front = engaged.reduce((a, k) => (k.x > a.x ? k : a));
         const tg = rng() < 0.65 ? front : engaged[Math.floor(rng() * engaged.length)];
         flush();
-        const d = strike(tg, 1);
-        events.push({ t: round1(t), b: 'hit', tg: tg.i, d, h: hpList() });
+        // 평타 몇 번에 한 번은 맨 앞 기사를 강타해 멀리 날려 버리고 기절시킨다
+        if (++boss.swings % SMASH_EVERY === 0) {
+          const d = strike(front, def.smash.mult);
+          const c = knock(front, def.smash.kb, def.smash.stun);
+          events.push({ t: round1(t), b: 'smash', tg: front.i, d, h: hpList(), x: c.x, st: c.st });
+        } else {
+          const d = strike(tg, 1);
+          events.push({ t: round1(t), b: 'hit', tg: tg.i, d, h: hpList() });
+        }
         deaths();
       }
     }
@@ -167,7 +194,7 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
   const mvp = contrib.reduce((best, c, i) => (c.score > contrib[best].score ? i : best), 0);
   return {
     seed, boss: bossId, won, timeout: !won && ks.some((k) => k.alive), dur: round1(t),
-    start: START, walk: WALK, gap: KNIGHT_GAP, maxB: Math.round(boss.max),
+    start: START, walk: WALK, rush: RUSH, gap: KNIGHT_GAP, maxB: Math.round(boss.max),
     knights: ks.map((k) => ({ max: Math.round(k.max), stop: { t: k.stopT ?? round1(t), x: round1(k.x) } })),
     contrib, mvp, events,
   };
