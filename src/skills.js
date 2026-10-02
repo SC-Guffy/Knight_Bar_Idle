@@ -10,10 +10,13 @@
 // a(시전 정보): { owner, id, k, cls, color, dir 바라보는 쪽, x() 시전자 화면 x, tx()·ty() 대상 위치, targets() [{x, y}], u, onHit, onEnd,
 //               lv 스킬 숙련도(없으면 내 기사는 내 숙련도, 남은 1), mast 숙련 단계 0~3 (classes.js MASTERY) }
 //
-// 숙련 단계(Lv10·20·30)는 스킬마다 따로 그리지 않고 공통 레이어로 덧입힌다:
-//   ★ 숙련  타격 레이어 세기 +15%, 타격마다 직업색 파편
-//   ★★ 달인  + 발밑 빛 고리(1차도), 잔상이 짙어짐, 세기 +30%
-//   ★★★ 극의 + 이펙트 색이 금빛으로 물듦, 이름 띠(1차도), 시전 끝 마무리 섬광, 세기 +45%
+// 숙련 단계(Lv10·20·30)마다 연출이 진화한다 — Lv1 은 수수하게 시작해서 단계마다 화려해진다:
+//   공통 세기 fxVis (MASTERY_VIS): 시전 중 나오는 모든 연출 도구(검흔·고리·빛기둥·파편·히트스톱·흔들림)의 크기·개수에 곱한다
+//   Lv1   세기 55%, 직업색이 바랜 회색빛, 오라·몸 잔상·이름 띠 없음 (이름은 작은 글자만)
+//   ★ 숙련  세기 80%, 색이 살아나고 작은 오라, 타격마다 직업색 파편
+//   ★★ 달인  세기 100%, 원래 색, 발밑 빛 고리·짙은 잔상, 2차 스킬 이름 띠
+//   ★★★ 극의 세기 120%, 금빛으로 물듦, 이름 띠(1차도), 바깥 금빛 고리, 시전 끝 마무리 섬광
+// 기술의 모양(타격 횟수·마무리 일격)은 classes.js 의 stages 가 따로 바꾼다
 //
 // 1차와 2차의 차이: 1차는 직업색 이펙트 하나 + 가벼운 흔들림. 2차는 이름 띠(컷인), 히트스톱, 검흔 여러 겹, 잔상·마법진·지형 연출.
 // 바탕화면 위에 떠 있는 게임이라 화면 전체를 번쩍이거나 어둡게 하지 않는다. 화려함은 타격 지점(검흔·불꽃)과 기사 주변에서만 낸다.
@@ -32,6 +35,9 @@ const mix = (a, b, u) => a + (b - a) * u;
 const HAND_Y = 18;        // 땅에서 손까지 높이 (다리 3칸 + 몸통 3칸)
 const skillTier = (k) => CLASSES[k.cls].tier;
 const MASTERY_GOLD = '#fff0b8';
+const MASTERY_VIS = [0.55, 0.8, 1, 1.2];
+const MASTERY_FADE = ['#a9adb8', 0.45, 0.2];   // Lv1·★ 에서 직업색을 섞을 회색과 비율
+let fxVis = 1;            // 지금 만드는 연출의 세기 (시전의 숙련 단계, updateCasts 가 정한다)
 // '#rrggbb' 두 색을 u 만큼 섞는다
 function mixHex(c1, c2, u) {
   const p = (c, i) => parseInt(c.slice(1 + i * 2, 3 + i * 2), 16);
@@ -55,7 +61,9 @@ function startCast(owner, id, a, queue = false) {
   a.cls = a.cls || S.cls;
   a.lv = lv;
   a.mast = masteryOf(a.lv);
+  a.vis = MASTERY_VIS[a.mast];
   if (a.mast >= 3) a.color = mixHex(a.color, MASTERY_GOLD, 0.45);
+  else if (a.mast < 2) a.color = mixHex(a.color, MASTERY_FADE[0], MASTERY_FADE[1 + a.mast]);
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
   // 화면에서 시전자가 실제로 서 있는 x. 자세가 뒤돌아(facing -1) 있으면 dx 도 뒤집혀 있다
   a.px = () => {
@@ -66,7 +74,7 @@ function startCast(owner, id, a, queue = false) {
   casts.push({ owner, id, k, fx, t: 0, a, hi: 0, ci: 0, next: [], squash: 0, hist: [] });
   // 숙련도를 키운 스킬은 이름 옆에 레벨과 단계 별을 붙여서, 먹인 비전서가 전투에 보이게 한다
   const star = (a.lv > 1 ? ` Lv${a.lv}` : '') + (a.mast ? ' ' + MASTERY[a.mast].star : '');
-  if (skillTier(k) >= 2 || a.mast >= 3) cutin = { k, color: a.color, t: 0, cx: a.x(), star };
+  if (a.mast >= 3 || (skillTier(k) >= 2 && a.mast >= 2)) cutin = { k, color: a.color, t: 0, cx: a.x(), star };
   else addFloater(`${k.icon} ${k.name}${star}`, a.x(), groundY() - 72, a.color, 12);
 }
 function endCast(owner) {
@@ -116,7 +124,7 @@ function finalPose(c) {
 // 모션 잔상: 최근 몇 프레임의 자세를 기억했다가, 빠르게 움직인 구간만 무기(와 크게 움직인 몸)를 흐리게 겹쳐 그린다
 function drawCastTrail(owner, cls, gy, facing) {
   const c = castOf(owner);
-  if (!c) return;
+  if (!c || !c.a.mast) return;            // Lv1 은 몸 잔상 없이
   const h = c.hist, fx = c.a.mast >= 3 ? c.a.color : CLASSES[cls].look.fx;
   for (let j = h.length - 1; j >= 1; j--) {
     const p = h[j].p, q = h[j - 1].p;
@@ -133,6 +141,7 @@ function drawCastTrail(owner, cls, gy, facing) {
 
 function updateCasts(dt) {
   for (const c of casts) {
+    fxVis = c.a.vis || 1;
     c.t += dt;
     const u = Math.min(1, c.t / c.k.dur);
     c.a.u = u;
@@ -158,6 +167,7 @@ function updateCasts(dt) {
       if (c.a.onEnd) c.a.onEnd();
     }
   }
+  fxVis = 1;
   const finished = casts.filter((c) => c.done);
   casts = casts.filter((c) => !c.done);
   for (const c of finished) {
@@ -206,7 +216,9 @@ function tickSkills(dt, st) {
   // ★★★ 극의 성역: 보호막이 끝나는 순간 성광이 터진다
   if (w.finish) {
     for (const m of skillTargets({ area: 'all', radius: 56 }, st)) hitMonster(m, w.finish, { kb: 16, color: '#fff3b0' });
+    fxVis = MASTERY_VIS[3];
     if (SKILL_FX.sanctuary.finish) SKILL_FX.sanctuary.finish(w.a);
+    fxVis = 1;
   }
 }
 
@@ -261,6 +273,7 @@ function heroAirborne() {
 
 // ───────────────────────── 타격감 도구 ─────────────────────────
 function impact({ stop = 0, shake: sh = 0 } = {}) {
+  stop *= fxVis; sh *= fxVis;
   hitstop = Math.max(hitstop, stop * 1.3);
   shake = Math.max(shake, sh);
   shakeAmp = Math.max(shakeAmp, Math.min(6, 3 + sh * 8));
@@ -280,6 +293,7 @@ const flipA = (ang, dir) => (dir < 0 ? Math.PI - ang : ang);
 
 // 초승달 베기: 도트를 호를 따라 찍으며 머리가 앞서 나가고 꼬리가 따라온다
 function crescentFx(x, y, r, a0, a1, dir, color, width, life) {
+  width *= fxVis; r *= 0.75 + 0.25 * fxVis;
   skFx(null, 0, life, (u) => {
     const head = Math.min(1, u * 2.4), tail = Math.max(0, u * 2.4 - 0.9);
     for (let v = tail; v <= head; v += 0.03) {
@@ -290,6 +304,7 @@ function crescentFx(x, y, r, a0, a1, dir, color, width, life) {
 }
 // 직선 섬광: 굵게 그어졌다가 가늘어지며 사라진다. 가운데는 하얀 심
 function streakFx(x0, y0, x1, y1, color, width, life, delay = 0) {
+  width *= fxVis;
   skFx(null, delay, life, (u) => {
     const w = width * (1 - u);
     if (w < 0.5) return;
@@ -304,11 +319,13 @@ function streakFx(x0, y0, x1, y1, color, width, life, delay = 0) {
   });
 }
 function xslashFx(x, y, size, color, life) {
+  size *= 0.7 + 0.3 * fxVis;
   slashMarkFx(x, y, Math.PI / 4, size * 2.8, color, 6, life + 0.1, 0, 5);
   slashMarkFx(x, y, -Math.PI / 4, size * 2.8, color, 6, life + 0.1, 0.06, -5);
 }
 // 4갈래 반짝임
 function starFx(x, y, size, color, life) {
+  size *= fxVis;
   skFx(null, 0, life, (u) => {
     const s = size * Math.sin(Math.PI * u);
     ctx.save();
@@ -321,9 +338,10 @@ function starFx(x, y, size, color, life) {
     ctx.restore();
   });
 }
-const ringFx = (x, color, size = 1, life = 0.5, y = groundY() - 2) => effects.push({ type: 'ring', x, y, t: 0, life, size, color });
+const ringFx = (x, color, size = 1, life = 0.5, y = groundY() - 2) => effects.push({ type: 'ring', x, y, t: 0, life, size: size * fxVis, color });
 // 하늘에서 내리꽂히는 빛기둥
 function pillarFx(x, color, width, life) {
+  width *= fxVis;
   skFx(null, 0, life, (u) => {
     const w = width * (u < 0.15 ? u / 0.15 : 1 - (u - 0.15) / 0.85 * 0.8);
     const gy = groundY();
@@ -340,6 +358,7 @@ function pillarFx(x, color, width, life) {
 }
 // 흙·돌 파편이 튀어 오른다
 function debris(x, n, colors, spread = 1) {
+  n = Math.max(1, Math.round(n * fxVis)); spread *= 0.8 + 0.2 * fxVis;
   const gy = groundY();
   for (let i = 0; i < n; i++) {
     parts.push({ x: x + rand(-10, 10) * spread, y: gy - 3, vx: rand(-90, 90) * spread, vy: rand(-220, -80), g: 520, size: Math.random() < 0.3 ? 4 : 3, color: colors[i % colors.length], life: rand(0.5, 0.9), t: 0 });
@@ -354,6 +373,7 @@ function gatherFx(x, y, colors, n = 2, r = 26) {
 }
 // 시전자 잔상: 같은 모습을 한 가지 색으로 칠해 흐리게 남긴다
 function ghostFx(a, x, facing, tint, life, pose = {}, alpha = 0.35) {
+  alpha *= Math.min(1, fxVis);
   skFx(null, 0, life, (u) => {
     drawHero(ctx, a.cls, x, groundY(), { mode: 'fight', swing: -1, t: clock, facing, tint, alpha: alpha * (1 - u), ...pose });
   });
@@ -437,7 +457,7 @@ function autoHitFx(c, i) {
   const k = c.k, n = k.hits.length, share = k.hits[i][1] / skillMult(k), last = i === n - 1;
   const t2 = skillTier(k) >= 2;
   const mast = c.a.mast || 0;
-  const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1) * (1 + 0.15 * mast);
+  const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1);
   const tg = c.a.targets(i);
   // 숙련: 타격마다 직업색 파편 (극의는 금빛이 섞인다)
   if (mast) for (const t of tg) burst(t.x, t.y, Math.round((3 + 3 * mast) * Math.min(1.5, pow / 1.4)), [c.a.color, '#ffffff', mast >= 3 ? MASTERY_GOLD : c.a.color], 70 + 25 * mast, 2, 160);
@@ -471,6 +491,7 @@ function weaponMarks(a, t, pow) {
 // 검흔: 양끝이 뾰족한 칼자국이 순식간에 그어지고(앞 16%), 잠깐 빛나다가 가늘어지며 사라진다.
 // ang 방향, len 길이, width 가운데 두께, bend 휘어짐(+면 오른손 쪽으로 볼록). 바깥은 직업색, 안쪽 심은 흰색
 function slashMarkFx(x, y, ang, len, color, width = 4, life = 0.45, delay = 0, bend = 0) {
+  len *= 0.75 + 0.25 * fxVis; width *= fxVis;
   const ca = Math.cos(ang), sa = Math.sin(ang), steps = 12;
   skFx(null, delay, life, (u) => {
     const reach = Math.min(1, u / 0.16);
@@ -508,6 +529,7 @@ const fadeOf = (u, hold = 0.45) => (u < hold ? 1 : 1 - (u - hold) / (1 - hold));
 
 // 초승달 자국 (강철 베기): 두꺼운 반달이 위에서 아래로 그어지고, 바깥 테두리에 강철빛이 번뜩이며 쇳가루 불똥이 떨어진다
 function crescentMarkFx(cx, cy, r, a0, a1, thick, color, life = 0.5, delay = 0, dir = 1) {
+  thick *= fxVis; r *= 0.8 + 0.2 * fxVis;
   const steps = 18;
   skFx(null, delay, life, (u) => {
     const reach = Math.min(1, u / 0.18), fade = fadeOf(u), th = thick * (u < 0.45 ? 1 : 1 - 0.6 * (u - 0.45) / 0.55);
@@ -536,6 +558,7 @@ function crescentMarkFx(cx, cy, r, a0, a1, thick, color, life = 0.5, delay = 0, 
 
 // 성흔 (심판의 일격): 하늘에서 꽂힌 검 모양의 세로 빛 + 가로 빛이 십자를 이루고, 가운데 마름모 문장이 돌며 빛살이 퍼진다
 function holyCrossFx(x, y, size, life = 0.7, delay = 0) {
+  size *= 0.7 + 0.3 * fxVis;
   const gold = '#ffd257';
   skFx(null, delay, life, (u) => {
     const grow = easeOut(Math.min(1, u / 0.15)), fade = fadeOf(u, 0.5), s = size * (0.9 + 0.1 * grow);
@@ -581,6 +604,7 @@ function holyCrossFx(x, y, size, life = 0.7, delay = 0) {
 
 // 머리카락 같은 일섬 (일섬): 실처럼 가는 흰 선이 먼저 그어지고, 잠시 뒤 위아래로 벌어지며 붉게 터진다
 function razorFx(x0, x1, y, color, life = 0.6, delay = 0, split = true) {
+  { const c = (x0 + x1) / 2, k = 0.7 + 0.3 * fxVis; x0 = c + (x0 - c) * k; x1 = c + (x1 - c) * k; }
   skFx(null, delay, life, (u) => {
     const reach = Math.min(1, u / 0.1), fade = fadeOf(u, 0.5);
     const xe = mix(x0, x1, reach);
@@ -801,6 +825,7 @@ function starStampFx(x, color, size = 12, life = 0.6) {
 
 // 타격점: 하얀 섬광 원 + 사방으로 뻗는 불꽃 줄 + 퍼지는 충격파 + 빛나는 파편 (+ 세면 흙먼지·땅 고리)
 function hitFx(x, y, color, pow = 1) {
+  pow *= fxVis;
   const n = Math.round(4 + 2 * pow), len = 8 + 6 * pow, rot = rand(0, Math.PI);
   skFx(null, 0, 0.2, (u) => {
     ctx.save();
@@ -845,15 +870,16 @@ function masteryFinish(a) {
 }
 
 function auraTick(c) {
-  if (c.a.u >= 0.95 || Math.random() > (skillTier(c.k) >= 2 || c.a.mast >= 2 ? 0.9 : 0.45)) return;
+  if (!c.a.mast || c.a.u >= 0.95 || Math.random() > (c.a.mast >= 2 ? 0.9 : 0.45)) return;
   const x = c.a.px(), gy = groundY();
   parts.push({ x: x + rand(-12, 12), y: gy - rand(2, 30), vx: rand(-8, 8), vy: rand(-90, -40), g: -30, size: Math.random() < 0.3 ? 3 : 2,
     color: Math.random() < 0.65 ? c.a.color : '#ffffff', life: rand(0.3, 0.6), t: 0, add: true });
 }
 function drawAuras() {
   for (const c of casts) {
-    const t2 = skillTier(c.k) >= 2 || c.a.mast >= 2, k = Math.sin(Math.PI * Math.min(1, c.a.u * 1.2));
-    if (k <= 0.02) continue;
+    // 오라는 ★ 숙련부터 (작게), ★★ 달인부터 크게 + 발밑 빛 고리
+    const t2 = c.a.mast >= 2, k = Math.sin(Math.PI * Math.min(1, c.a.u * 1.2));
+    if (k <= 0.02 || !c.a.mast) continue;
     const pose = c.fx.pose ? c.fx.pose(c.a.u, c.a) : {};
     if (pose.alpha === 0) continue;
     const x = c.a.px(), y = groundY() - 24 - (pose.lift || 0), r = t2 ? 46 : 32;
@@ -895,6 +921,7 @@ const DRAGON_PAL = { h: '#3b2458', H: '#b388ff', e: '#ffe066', w: '#ffffff' };
 // ── 숙련 단계 연출에 쓰는 도구 ──
 // 앞으로 날아가는 초승달 검풍 (x0 에서 dist 만큼). 지나가는 땅에서 흙먼지가 인다
 function waveFx(a, x0, y, dist, color, life, size = 1, delay = 0) {
+  size *= fxVis;
   const d = a.dir, r = 13 * size;
   const at = (u) => x0 + d * dist * easeOut(u);
   skFx(null, delay, life, (u) => {
@@ -917,6 +944,7 @@ function waveFx(a, x0, y, dist, color, life, size = 1, delay = 0) {
 }
 // 땅이 양옆으로 갈라지는 금 (x 에서 좌우 len 만큼)
 function groundCrackFx(x, len, color, life = 0.7) {
+  len *= fxVis;
   const side = (s) => { const out = [[x, groundY() + 1]]; for (let i = 1; i <= 6; i++) out.push([x + s * len * (i / 6), groundY() + 1 + (i % 2 ? -2 : 1) * rand(0.5, 1.5)]); return out; };
   const L = side(-1), R = side(1);
   skFx(null, 0, life, (u) => {
@@ -932,7 +960,8 @@ function groundCrackFx(x, len, color, life = 0.7) {
   });
 }
 // 흩어진 빛 알갱이가 한 점(x, y)으로 빨려 들며 빛 구슬이 커진다 (life 초 뒤 터질 자리)
-function gatherFx(a, x, y, color, life, size = 1) {
+function lightOrbFx(a, x, y, color, life, size = 1) {
+  size *= fxVis;
   aFx(a, 0, life, (u) => {
     const r = (3 + 9 * easeIn(u)) * size;
     ctx.save();
@@ -1143,7 +1172,7 @@ const SKILL_FX = {
         }],
       ];
       // ★★★ 빛 모으기: 대상 위에서 빛 구슬이 커지다가 내려찍는 순간 터진다
-      if (a.mast >= 3) list.push([0.8 / d, (a) => { for (const t of a.targets()) gatherFx(a, t.x, groundY() - 54, MASTERY_GOLD, 1.105 - 0.8, 1.2); starFx(hand(a).x, hand(a).y - 28, 12, MASTERY_GOLD, 0.4); }]);
+      if (a.mast >= 3) list.push([0.8 / d, (a) => { for (const t of a.targets()) lightOrbFx(a, t.x, groundY() - 54, MASTERY_GOLD, 1.105 - 0.8, 1.2); starFx(hand(a).x, hand(a).y - 28, 12, MASTERY_GOLD, 0.4); }]);
       return list;
     },
     hit(a, i) {
@@ -1206,12 +1235,15 @@ const SKILL_FX = {
         const rx = RX * easeOut(grow), ry = RY * easeOut(grow);
         ctx.save();
         ctx.globalAlpha = fade * (0.85 + 0.15 * Math.sin(clock * 6));
-        ctx.fillStyle = s >= 3 ? 'rgba(255,235,160,0.16)' : 'rgba(255,215,90,0.13)';
+        ctx.fillStyle = s >= 3 ? 'rgba(255,235,160,0.16)' : s ? 'rgba(255,215,90,0.13)' : 'rgba(220,205,150,0.07)';
         ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.fill();
-        ctx.strokeStyle = s >= 3 ? MASTERY_GOLD : '#ffd257'; ctx.lineWidth = 2; ctx.shadowColor = '#ffd257'; ctx.shadowBlur = 10;
+        // Lv1 은 가는 선 하나, ★부터 빛 번짐과 안쪽 반사광
+        ctx.strokeStyle = s >= 3 ? MASTERY_GOLD : s ? '#ffd257' : '#d8c890'; ctx.lineWidth = s ? 2 : 1; ctx.shadowColor = '#ffd257'; ctx.shadowBlur = s ? 10 : 0;
         ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.ellipse(x, gy, rx * 0.8, ry * 0.85, 0, Math.PI * 1.1, Math.PI * 1.5); ctx.stroke();
+        if (s) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.ellipse(x, gy, rx * 0.8, ry * 0.85, 0, Math.PI * 1.1, Math.PI * 1.5); ctx.stroke();
+        }
         if (s >= 3) {
           // 안쪽 두 번째 막 + 돔 양옆의 가는 빛기둥
           ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.globalAlpha *= 0.8;
@@ -1263,7 +1295,7 @@ const SKILL_FX = {
       // 빠르게 움직이는 동안: 지나온 길에 가는 속도선 세 줄 + 0.03초마다 옅은 잔상 하나
       const P = galePlanOf(a), D = Math.max(16, (a.tx() - a.x()) * a.dir), G = galeAt(u * P.dur, D, P);
       const sx = a.x() + a.dir * G.pos, lift = G.body.lift || 0;
-      if (G.fast && a.prevX != null && Math.abs(sx - a.prevX) > 1.5) {
+      if (a.mast && G.fast && a.prevX != null && Math.abs(sx - a.prevX) > 1.5) {
         const x0 = a.prevX, gy = groundY();
         for (const [h, c, w] of [[12, '#ffffff', 1], [24, '#ff4d4d', 2], [36, '#ffffff', 1]]) streakFx(x0, gy - h - lift, sx, gy - h - lift, c, w, 0.16);
       }
@@ -1275,7 +1307,7 @@ const SKILL_FX = {
       a.prevX = sx; a.prevLift = lift;
       a.ghostT = (a.ghostT || 0) - dt;
       if (!G.fast || a.ghostT > 0) return;
-      a.ghostT = 0.03;
+      a.ghostT = [0.08, 0.05, 0.03, 0.03][a.mast];
       ghostFx(a, sx, (G.pos > D ? -1 : 1) * a.dir, '#ff4d4d', 0.2, { ...G.body }, 0.28);
     },
     cues: (a) => {
@@ -1357,7 +1389,7 @@ const SKILL_FX = {
         [0.644 / d, (a) => {
           const y = groundY() - 26, x = a.x(), far = Math.abs(a.tx() - x) + (s ? 60 : 36);
           razorFx(x, x + a.dir * far, y, '#ff3040', 0.5, 0, false);
-          for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * (Math.abs(a.tx() - x) + 34) * (i / 4), a.dir, '#ff4d4d', 0.3, { wa: 0.15, skew: 0.4 });
+          for (let i = a.mast ? 1 : 3; i <= 3; i++) ghostFx(a, x + a.dir * (Math.abs(a.tx() - x) + 34) * (i / 4), a.dir, '#ff4d4d', 0.3, { wa: 0.15, skew: 0.4 });
         }],
       ];
       if (a.mast >= 3) {

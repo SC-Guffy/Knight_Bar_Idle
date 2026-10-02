@@ -1542,6 +1542,7 @@ function shatter(m) {
 }
 
 function burst(x, y, n, colors, speed = 90, size = 2, g = 300) {
+  n = Math.max(1, Math.round(n * fxVis));            // 스킬 연출 중이면 숙련 단계의 세기만큼 (src/skills.js fxVis)
   for (let i = 0; i < n; i++) {
     const a = rand(0, Math.PI * 2), v = rand(0.4, 1) * speed;
     parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - speed * 0.3, g, size, color: colors[i % colors.length], life: rand(0.25, 0.45), t: 0 });
