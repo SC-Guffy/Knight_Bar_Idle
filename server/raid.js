@@ -16,7 +16,9 @@ const RAID_BOSSES = {
   demonking:   { stage: 130, hp: 30, atk: 1.75, aoeEvery: 5,   aoe: 0.9 },
 };
 const MAX_PARTY = 4;
-const PARTY_HP = [1, 1.1, 1.2, 1.3];   // 인원수별 보스 체력 배수 (넷이 모이면 혼자보다 5~6스테이지 앞서 도전할 수 있다)
+// 인원수별 보정: 보스를 (보스 스테이지 × 이 비율)만큼 더 깊은 스테이지의 능력치로 키운다 (체력·공격력 모두).
+//  혼자서는 입장 스테이지의 약 2배 레벨이어야 겨우 잡고(80렙 → 리치 킹), 4명이면 입장 스테이지와 같은 레벨이 장비·훈련을 잘 챙겨야 겨우 잡는다
+const PARTY_STAGE = [1.25, 0.75, 0.45, 0.24];
 
 const START = 300;          // 보스 위치(px). 기사는 0 에서 출발하고 뒷사람은 조금씩 뒤에서 시작
 const KNIGHT_GAP = 12;      // 출발 간격
@@ -43,9 +45,9 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 // 클라이언트 data.js 의 monsterStats(필드 보스) 와 같은 기준
 function bossStats(id, n) {
-  const b = RAID_BOSSES[id], s = b.stage;
+  const b = RAID_BOSSES[id], s = b.stage * (1 + PARTY_STAGE[Math.max(0, Math.min(MAX_PARTY, n) - 1)]);
   return {
-    hp: 14 * Math.pow(1.23, s - 1) * 7.5 * b.hp * PARTY_HP[Math.max(0, Math.min(MAX_PARTY, n) - 1)],
+    hp: 14 * Math.pow(1.23, s - 1) * 7.5 * b.hp,
     atk: 3 * Math.pow(1.17, s - 1) * 1.68 * b.atk,
   };
 }
