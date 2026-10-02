@@ -127,6 +127,10 @@
   .res { display: flex; gap: 14px; flex: 1; justify-content: flex-end; }
   .x { all: unset; cursor: pointer; width: 26px; height: 26px; border-radius: 7px; text-align: center; line-height: 26px; color: var(--muted); }
   .x:hover { background: var(--soft-hover); color: var(--text); }
+  /* 내용이 길어도 머리·탭·바닥은 줄어들지 않고 #campBody 만 스크롤 (nav 는 overflow 때문에 기본 최소 높이가 0 이라 잘렸다) */
+  #campModal > header, #campModal nav, #campModal footer { flex-shrink: 0; }
+  #campModal nav { white-space: nowrap; }
+  #campModal nav button { white-space: nowrap; }
   #campModal nav { display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; white-space: nowrap; }
   #campModal nav::-webkit-scrollbar { display: none; }
   #campModal nav > * { flex-shrink: 0; }
@@ -147,7 +151,7 @@
     background: var(--dot); box-shadow: 0 0 0 2px rgba(18, 18, 26, .85); pointer-events: none; }
   .bar.rd::after, #bubble.rd::before { animation: dotPulse 1.6s ease-in-out infinite; }
   @keyframes dotPulse { 50% { transform: scale(1.3); } }
-  #campBody { padding: 4px 18px 16px; overflow-y: auto; flex: 1; min-height: 200px; }
+  #campBody { padding: 4px 18px 16px; overflow-y: auto; flex: 1; min-height: 120px; }
   #campBody h3 { font-size: 14px; margin: 14px 0 8px; }
   .hint, .empty { color: var(--muted); margin-bottom: 10px; }
   /* 처음 하는 일 안내 (ui.js guideFlow·guideTick): 탑 → 비전서 → 스킬 강화 흐름, 지금 할 일 말풍선, 눌러야 할 버튼 맥동 */
@@ -269,42 +273,45 @@
   .skill .sbody small { color: var(--muted); font-size: 11px; }
   .skill .sdesc { color: var(--muted); font-size: 11.5px; margin-top: 1px; }
   /* 스킬 숙련도 (ui.js viewMastery). 단계(m1~m3)가 오를수록 테두리가 금빛으로 */
-  .mhave { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; padding: 10px 14px; border-radius: 10px; background: rgba(201,167,255,0.1); box-shadow: inset 0 0 0 1px rgba(201,167,255,0.35); }
-  .mhave .mcount { font-size: 18px; white-space: nowrap; color: #e2d2ff; }
-  .mhave .mcount b { font-size: 24px; color: #fff; }
-  .mhave .mhow { font-size: 12px; color: var(--muted); line-height: 1.5; }
-  .mhave .mhow b { color: #e2d2ff; }
-  .mskill { display: flex; gap: 12px; align-items: center; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); }
-  .mskill.m1 { box-shadow: inset 0 0 0 1px rgba(201,167,255,0.35); }
-  .mskill.m2 { box-shadow: inset 0 0 0 1px rgba(201,167,255,0.6); background: rgba(201,167,255,0.07); }
-  .mskill.m3 { box-shadow: inset 0 0 0 1px rgba(255,220,120,0.75), 0 0 12px rgba(255,210,90,0.25); background: rgba(255,220,120,0.08); }
-  .mskill.locked { opacity: 0.7; }
-  .mskill .sicon { font-size: 24px; }
-  .mskill .mbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
+  .mhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 14px 0 10px; }
+  .mhead h3 { margin: 0 0 2px !important; }
+  .mhead small { color: var(--muted); font-size: 11px; }
+  .mchip { display: inline-flex; align-items: baseline; gap: 4px; padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+    background: rgba(201,167,255,0.12); box-shadow: inset 0 0 0 1px rgba(201,167,255,0.4); color: #c9a7ff; font-size: 12px; }
+  .mchip b { color: #fff; font-size: 15px; font-weight: 800; }
+  .mchip small { color: #c9a7ff; font-size: 11px; }
+  .mchip.none { opacity: .55; }
+  .mskill { display: flex; gap: 12px; align-items: center; padding: 10px 12px; margin-bottom: 6px; border-radius: 10px; background: rgba(255,255,255,0.035); }
+  .mskill.m1 { box-shadow: inset 0 0 0 1px rgba(201,167,255,0.3); }
+  .mskill.m2 { box-shadow: inset 0 0 0 1px rgba(201,167,255,0.55); background: rgba(201,167,255,0.06); }
+  .mskill.m3 { box-shadow: inset 0 0 0 1px rgba(255,220,120,0.7), 0 0 12px rgba(255,210,90,0.2); background: rgba(255,220,120,0.07); }
+  .mskill.locked { opacity: 0.6; }
+  .mskill .sicon { font-size: 22px; width: 26px; text-align: center; }
+  .mskill .mbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
   .mskill .mbody small { color: var(--muted); font-size: 11px; }
-  .mskill .mbody small b { color: #e2d2ff; font-weight: 600; }
-  .mskill .mtitle { font-size: 14px; }
+  .mskill .mstat b { color: #e2d2ff; font-weight: 600; }
+  .mskill .mtitle { font-size: 13.5px; }
   .mskill .mlv { font-weight: 800; color: #c9a7ff; margin-left: 4px; }
   .mskill .mlock { margin-left: 6px; font-size: 11px; color: var(--muted); }
-  .mskill .mtag { margin-left: 6px; font-size: 11px; padding: 1px 6px; border-radius: 6px; background: rgba(201,167,255,0.18); color: #e2d2ff; }
+  .mskill .mtag { margin-left: 6px; font-size: 10.5px; padding: 1px 6px; border-radius: 6px; background: rgba(201,167,255,0.18); color: #e2d2ff; }
   .mskill .mtag.m3 { background: rgba(255,220,120,0.2); color: #fff0b8; }
-  .mskill .mnext { color: #fff0b8; }
   .mskill .mseg { display: flex; align-items: center; gap: 8px; }
-  .mskill .mseg .cells { flex: 1; display: flex; gap: 3px; height: 14px; }
-  .mskill .mseg .cells i { flex: 1; border-radius: 3px; background: rgba(255,255,255,0.1); }
-  .mskill .mseg .cells i.on { background: linear-gradient(180deg, #c9a7ff, #7a5cff); box-shadow: 0 0 4px rgba(201,167,255,0.5); }
+  .mskill .mseg .cells { flex: 1; display: flex; gap: 2px; height: 8px; }
+  .mskill .mseg .cells i { flex: 1; border-radius: 2px; background: rgba(255,255,255,0.09); }
+  .mskill .mseg .cells i.on { background: linear-gradient(180deg, #d8c2ff, #8a6cff); box-shadow: 0 0 5px rgba(201,167,255,0.45); }
   .mskill.m3 .mseg .cells i.on { background: linear-gradient(180deg, #fff0b8, #d9a640); }
-  .mskill .mseg b { font-size: 13px; color: #fff; white-space: nowrap; }
-  .mskill .mseg .mto { font-size: 11px; color: var(--muted); white-space: nowrap; }
-  .mskill .mevo { padding: 6px 10px; border-radius: 8px; background: rgba(255,210,90,0.1); border-left: 3px solid #ffd257; }
-  .mskill .mevo-h { font-size: 12.5px; color: #ffe6a0; }
-  .mskill .mevo-h b { color: #fff0b8; }
-  .mskill .mevo-d { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .mskill .act { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; width: 120px; }
-  .mskill .act .btn { text-align: center; padding: 7px 10px; }
-  .mskill .act .mb1 { background: rgba(201,167,255,0.22); border-color: rgba(201,167,255,0.55); }
-  .mskill .act .mb1:hover { background: rgba(201,167,255,0.34); }
-  .mskill .act .mball small { display: block; font-size: 10.5px; font-weight: 400; color: var(--muted); margin-top: 1px; }
+  .mskill .mseg .mnum { font-size: 11px; color: var(--muted); white-space: nowrap; min-width: 34px; text-align: right; }
+  .mskill .mseg .mnum b { color: #fff; font-size: 12.5px; }
+  .mskill .mevo { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 11px; padding-top: 4px; border-top: 1px dashed rgba(255,210,90,0.18); }
+  .mskill .mevo-s { flex-shrink: 0; color: #ffd257; font-weight: 700; }
+  .mskill .mevo-t { flex: 1; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mskill .mevo-t b { color: #fff0b8; font-weight: 600; }
+  .mskill .mevo-n { flex-shrink: 0; color: #ffd257; padding: 0 7px; border-radius: 999px; background: rgba(255,210,90,0.12); }
+  .mskill .act { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; width: 92px; }
+  .mskill .act .btn { text-align: center; padding: 5px 8px; font-size: 12px; }
+  .mskill .act .mb1 { background: rgba(201,167,255,0.2); border-color: rgba(201,167,255,0.5); }
+  .mskill .act .mb1:hover { background: rgba(201,167,255,0.32); }
+  .mskill .act .mball small { font-size: 10.5px; font-weight: 400; color: var(--muted); margin-left: 2px; }
   .mskill .mmax { color: #fff0b8; font-weight: 700; text-align: center; }
   .cdetail .act { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 180px; }
   .cdetail .row { display: flex; gap: 6px; }

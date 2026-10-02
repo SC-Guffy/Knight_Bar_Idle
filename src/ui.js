@@ -446,9 +446,9 @@ function skillList(id) {
 function viewMastery() {
   const list = skillsOf(S.cls);
   // 보유 비전서를 맨 위에 크게: 지금 몇 권 있고, 어떻게 쓰는지
-  const head = `<h3>📖 스킬 숙련도</h3>
-    <div class="mhave"><span class="mcount">📖 <b>${fmt(S.tomes)}</b>권 보유</span>
-      <span class="mhow">칸 1개 = 비전서 1권 · 칸을 다 채우면 <b>레벨 업</b> → 쿨타임↓ 위력↑<br>Lv 10·20·30 에서 기술이 <b>진화</b>해요</span></div>`;
+  const head = `<div class="mhead"><div><h3>📖 스킬 숙련도</h3>
+      <small>칸 1개 = 비전서 1권 · 칸을 다 채우면 레벨 업 · Lv 10·20·30 에서 기술 진화</small></div>
+    <span class="mchip${S.tomes ? '' : ' none'}" title="가진 비전서">📖 <b>${fmt(S.tomes)}</b><small>권 보유</small></span></div>`;
   if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요.</div>`;
   const firstOpen = list.find((x) => skillLvOf(S.mast[x.id] || 0).lv < SKILL_MAX);
   const rows = list.map((k) => {
@@ -462,14 +462,15 @@ function viewMastery() {
     const ups = skillLvOf(total + all).lv - s.lv;
     const pulse = guidePendingFeed() && k === firstOpen ? ' gpulse' : '';
     const btns = max ? '<span class="mmax">★★★ 최고 단계</span>' : `
-      <button class="btn mb1${rd(S.tomes >= need)}${pulse}" data-action="tome" data-id="${k.id}" data-n="1" ${S.tomes < 1 ? 'disabled' : ''}>📖 1권 쓰기</button>
-      <button class="btn mball" data-action="tome" data-id="${k.id}" data-n="${all}" ${all < 1 ? 'disabled' : ''}>전부 쓰기 <small>${all ? `${all}권${ups ? ` · Lv +${ups}` : ''}` : '0권'}</small></button>`;
+      <button class="btn mb1${rd(S.tomes >= need)}${pulse}" data-action="tome" data-id="${k.id}" data-n="1" ${S.tomes < 1 ? 'disabled' : ''}>1권 쓰기</button>
+      <button class="btn mball" data-action="tome" data-id="${k.id}" data-n="${all}" ${all < 1 ? 'disabled' : ''} title="${all ? `비전서 ${all}권을 모두 넣어요${ups ? ` (Lv +${ups})` : ''}` : ''}">전부 쓰기${all ? ` <small>${all}${ups ? ` · Lv+${ups}` : ''}</small>` : ''}</button>`;
     // 다음 진화(Lv10·20·30)를 크게: 거기까지 남은 권수와 바뀌는 모습
     const toNext = nextM ? skillTomesAt(nextM.lv) - total : 0;
     const evo = nextM ? `
-      <div class="mevo m${m + 1}">
-        <div class="mevo-h">${nextM.star} <b>Lv ${nextM.lv} ${nextM.name}</b> 까지 📖 <b>${toNext}</b>권${k.stageName ? ` → <b class="mnext">「${k.stageName[m + 1]}」</b>` : ''}</div>
-        <div class="mevo-d">${k.stageDesc ? k.stageDesc[m + 1] : nextM.desc}</div>
+      <div class="mevo" title="${k.stageDesc ? k.stageDesc[m + 1] : nextM.desc}">
+        <span class="mevo-s">${nextM.star} Lv ${nextM.lv}</span>
+        <span class="mevo-t">${k.stageName ? `<b>「${k.stageName[m + 1]}」</b> ${k.stageDesc[m + 1]}` : nextM.desc}</span>
+        <span class="mevo-n">${toNext}권 남음</span>
       </div>` : '';
     return `
       <div class="mskill m${m}${locked ? ' locked' : ''}">
@@ -477,8 +478,8 @@ function viewMastery() {
         <div class="mbody">
           <div class="mtitle"><b>${skillNameAt(k, s.lv)}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${locked ? ` <span class="mlock">🔒 캐릭터 Lv ${k.lv}에 사용 가능</span>` : ''}</div>
           ${max ? '' : `<div class="mseg"><div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div>
-            <b>${s.have} / ${s.need}</b><span class="mto">→ Lv ${s.lv + 1}</span></div>`}
-          <small>쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → <b>${skillCdOf(k, s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}${k.stageDesc ? ` · 지금 「${k.stageName[m]}」` : ''}</small>
+            <span class="mnum"><b>${s.have}</b>/${s.need}</span></div>`}
+          <small class="mstat">${max ? '' : '다음 레벨 · '}쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → <b>${skillCdOf(k, s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}</small>
           ${evo}
         </div>
         <div class="act">${btns}</div>
