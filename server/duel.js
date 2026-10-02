@@ -5,7 +5,12 @@
 const START_DIST = 260;     // 시작 거리(px) — 장궁(230)은 거의 바로 쏠 수 있다
 const BODY_GAP = 20;        // 두 기사 몸 사이 최소 거리
 const WALK = 40;            // px/s
-const HP_MULT = 4;          // 원정보다 오래 싸우도록 결투에서만 체력을 늘린다
+const HP_MULT = 4;          // 원정보다 오래 싸우도록 결투에서만 체력을 늘린다 (최소 배수)
+// 대장간은 공격력만 키워서 뒤로 갈수록 공격력이 체력을 크게 앞지른다 (20렙 0.3배 → 80렙 2.5배).
+// 그대로 두면 결투가 1~2초 만에 끝나 사거리 긴 쪽이 먼저 쏘면 이기므로, 서로 평타만 주고받아도
+// 이 시간(초)은 버티도록 두 기사의 체력 배수를 같이 키운다 (둘 다 같은 배수라 체력·방어 차이는 그대로)
+const DUEL_SEC = 12;
+const rateOf = (p) => p.atk * (1 + p.crit * (p.critMult - 1)) * p.shots * p.shotMult * p.aspd;
 const MAX_T = 45;           // 이 시간이 지나면 남은 체력 비율로 판정
 const DT = 0.05;
 
@@ -44,8 +49,9 @@ const wardCut = (k, t) => (k.ward && t < k.ward.until ? 1 - k.ward.guard : 1);
 // p: 클라이언트가 저장할 때 올린 전투 프로필 (sanitizeProfile 을 거친 값)
 function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
   const rng = mulberry32(seed);
+  const hpMult = Math.max(HP_MULT, DUEL_SEC * (rateOf(pa) * (1 - pb.guard) / pb.maxHp + rateOf(pb) * (1 - pa.guard) / pa.maxHp) / 2);
   const make = (p, x, dir) => ({
-    p, x, dir, hp: p.maxHp * HP_MULT, max: p.maxHp * HP_MULT,
+    p, x, dir, hp: p.maxHp * hpMult, max: p.maxHp * hpMult,
     cd: 0.2 + rng() * 0.3,
     leapCd: p.leap ? p.leap.every / 2 : Infinity,
     skills: makeSkills(p), busy: 0, ward: null,
@@ -98,7 +104,7 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     winner: ra >= rb ? 'a' : 'b',
     timeout: a.hp > 0 && b.hp > 0,
     dur: round1(t),
-    start: START_DIST, walk: WALK, hpMult: HP_MULT,
+    start: START_DIST, walk: WALK, hpMult: Math.round(hpMult * 10) / 10,
     // 기사는 한 번 멈추면 다시 움직이지 않으므로 멈춘 시각·위치만 알면 이동을 재현할 수 있다
     moves: { a: { t: a.stopT ?? round1(t), x: round1(a.x) }, b: { t: b.stopT ?? round1(t), x: round1(b.x) } },
     maxA: Math.round(a.max), maxB: Math.round(b.max),

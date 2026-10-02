@@ -266,7 +266,7 @@ const GEAR_ITEMS = {
 };
 
 // ── 레이드 보스 고유 장비 ── (raid: 떨어뜨리는 보스. 일반 상자에서는 나오지 않고 그 보스의 처치 상자에서만 나온다)
-//  보스가 뒤로 갈수록 등급과 효과가 오른다: 슬라임 킹 영웅 → 고블린 족장·리치 킹 전설 → 늪의 군주·화염룡 신화 → 서리 거인 초월 → 마왕 태초
+//  보스가 뒤로 갈수록 등급과 효과가 오른다: 슬라임 킹·고블린 족장 영웅 → 리치 킹 전설 → 늪의 군주·화염룡 신화 → 서리 거인 초월 → 마왕 태초
 //  sp: 특수 효과 — 강화 배율을 받지 않는 고정 보너스 (SPECIAL_STATS 참고)
 Object.assign(GEAR_ITEMS, {
   // 👑 슬라임 킹
@@ -280,13 +280,13 @@ Object.assign(GEAR_ITEMS, {
     desc: '왕의 머리 위에서 수백 번 튀어 오르고도 멀쩡했던 왕관. 쓰면 금화가 따라 굴러온다.',
     pal: { B: '#ffd257', b: '#c79a12', W: '#fffbe0', H: '#c79a12', G: '#c79a12', J: '#4aa3ff' } },
   // 👺 고블린 족장
-  saw_axe:       { slot: 'weapon', g: 4, raid: 'goblinchief', name: '족장의 톱날 도끼', icon: '🪓', spr: 'axe', sp: { atkPct: 0.08 },
+  saw_axe:       { slot: 'weapon', g: 3, raid: 'goblinchief', name: '족장의 톱날 도끼', icon: '🪓', spr: 'axe', sp: { atkPct: 0.12 },
     desc: '날에 이빨처럼 톱니를 갈아 넣었다. 족장은 이걸로 부족 회의를 끝냈다.',
     pal: { B: '#9aa0a8', b: '#5a6070', W: '#e8ecf2', H: '#5a3a1a', G: '#8fae3c', J: '#e0443c' } },
-  loot_mail:     { slot: 'armor', g: 4, raid: 'goblinchief', name: '약탈품 누더기 갑옷', icon: '🧥', spr: 'tunic', sp: { hpPct: 0.1 },
+  loot_mail:     { slot: 'armor', g: 3, raid: 'goblinchief', name: '약탈품 누더기 갑옷', icon: '🧥', spr: 'tunic', sp: { hpPct: 0.14 },
     desc: '빼앗은 갑옷 조각을 아무렇게나 이어 붙였다. 생각보다 훨씬 튼튼하다.',
     pal: { B: '#8a6a48', b: '#5e4630', W: '#c9cdd4', H: '#8fae3c', G: '#c9a227', J: '#e0443c' } },
-  gold_tooth:    { slot: 'ring', g: 4, raid: 'goblinchief', name: '족장의 금니 목걸이', icon: '🦷', spr: 'gem', sp: { goldPct: 0.15 },
+  gold_tooth:    { slot: 'ring', g: 3, raid: 'goblinchief', name: '족장의 금니 목걸이', icon: '🦷', spr: 'gem', sp: { goldPct: 0.15 },
     desc: '족장이 모은 금니를 꿰었다. 금 냄새를 맡는 고블린의 감이 옮아온다.',
     pal: { B: '#ffd257', b: '#c79a12', W: '#fffbe0', H: '#5e4630', G: '#5e4630', J: '#fff6c2' } },
   // 💀 리치 킹
@@ -454,10 +454,12 @@ function monsterStats(stage, boss) {
   const atk = 3 * Math.pow(1.17, stage - 1);
   const gold = 2 * Math.pow(1.2, stage - 1);
   const exp = 4 * Math.pow(1.16, stage - 1);
-  // 필드 마지막 스테이지의 보스(필드 보스)는 한층 더 세고 보상도 크다
-  const f = boss && stage === zoneOf(stage).to ? 1.5 : 1;
+  // 필드 마지막 스테이지의 보스(필드 보스)는 필드마다 넘어야 하는 벽이다: 체력 ×4 · 공격력 ×1.6
+  //  (일반 보스보다 약 5스테이지 더 센 셈 → 성장이 그만큼 쌓여야 다음 필드로 간다). 보상은 1.5배
+  const field = boss && stage === zoneOf(stage).to;
+  const f = field ? 1.5 : 1;
   return boss
-    ? { hp: hp * 5 * f, atk: atk * 1.4 * (f > 1 ? 1.2 : 1), gold: gold * 10 * f, exp: exp * 6 * f, boss: true }
+    ? { hp: hp * 5 * (field ? 4 : 1), atk: atk * 1.4 * (field ? 1.6 : 1), gold: gold * 10 * f, exp: exp * 6 * f, boss: true }
     : { hp: hp * MOB_HP_MULT, atk, gold, exp, boss: false };
 }
 
@@ -1268,6 +1270,8 @@ const RAID_TICKET_GOLD = 150;          // 최고 스테이지 몬스터 골드 �
 const RAID_TICKET_GROW = 1.6;          // 오늘 산 장수만큼 가격 × 1.6^n
 const RAID_MVP_MULT = 1.5;             // MVP 는 재화 1.5배
 const RAID_FAIL_MULT = 0.25;           // 실패하면 재화 25%만, 상자는 없음
+// 인원수별 보스 강화 비율 (server/raid.js 의 PARTY_STAGE 와 같아야 함). 보상도 이 '실제로 싸운 스테이지' 기준이다
+const RAID_PARTY_STAGE = [1.25, 0.75, 0.45, 0.24];
 
 // ───────────────────────── 레이드 보스 도트 ─────────────────────────
 // 필드 몬스터와 다른 레이드 전용 외형 (모두 왼쪽 = 파티 쪽을 본다). 글자 색은 RAID_BOSSES[보스].pal

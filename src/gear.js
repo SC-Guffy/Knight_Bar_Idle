@@ -40,7 +40,11 @@ const gearItemsOf = (slot, g) => Object.keys(GEAR_ITEMS).filter((t) => GEAR_ITEM
 
 // 도감이 생기기 전 장비({ n: 이름 인덱스 })나 도감에서 빠진 장비는 같은 부위·등급의 장비로 바꾼다
 function fixGearItem(it) {
-  if (GEAR_ITEMS[it.t] && GEAR_ITEMS[it.t].slot === it.slot) return it;
+  if (GEAR_ITEMS[it.t] && GEAR_ITEMS[it.t].slot === it.slot) {
+    // 고유 장비는 도감 등급을 따른다 (등급이 조정된 고유 장비도 새 등급으로)
+    if (GEAR_ITEMS[it.t].raid) it.g = GEAR_ITEMS[it.t].g;
+    return it;
+  }
   const pool = gearItemsOf(it.slot, it.g);
   it.t = pool[(it.n || 0) % pool.length];
   delete it.n;

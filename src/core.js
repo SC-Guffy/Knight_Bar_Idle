@@ -116,7 +116,9 @@ function stats(base = false) {
   const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8) * (1 + gb.hpUp) * (m.hp || 1) * (1 + gb.hpPct);
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
-  const def = defAt(t.def), defRed = defRedAt(def, S.stage || 1);
+  // 방어 효과는 원정에선 지금 스테이지 몬스터 기준, 결투·레이드용(base)은 최고 스테이지 기준
+  //  (낮은 필드에 서 있기만 해도 서버에 올라가는 방어가 상한까지 뛰지 않게)
+  const def = defAt(t.def), defRed = defRedAt(def, (base ? S.best : S.stage) || 1);
   return {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
