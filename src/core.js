@@ -137,12 +137,12 @@ const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reve
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[id] || 0).lv;
-const skillPow = (id) => skillPowAt(SKILLS[id].cls, skillLv(id));
+const skillPow = (id) => skillPowAt(SKILLS[id].cls, skillLv(id), S.cls);
 const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id));
 // 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null
 function feedTomes(id, n) {
   const k = SKILLS[id];
-  if (!k || k.cls !== S.cls) return null;
+  if (!k || !skillsOf(S.cls).includes(k)) return null;
   const have = S.mast[id] || 0;
   const room = Math.ceil((SKILL_EXP_MAX - have) / TOME_EXP);
   const used = Math.min(n, S.tomes, room);
@@ -242,11 +242,7 @@ function changeClass(id) {
   const req = CLASS_REQ[CLASSES[id].tier];
   S.mats.mana -= req.mana;
   S.gold -= req.gold;
-  // 1차 스킬은 2차에서 쓰지 않으니, 먹인 비전서를 돌려준다 (먹인 만큼 그대로)
-  for (const k of skillsOf(S.cls)) {
-    S.tomes += Math.round((S.mast[k.id] || 0) / TOME_EXP);
-    delete S.mast[k.id];
-  }
+  // 1차 스킬은 2차 직업이 물려받으므로 숙련도도 그대로 둔다 (classes.js skillsOf)
   S.cls = id;
   S.hp = stats().maxHp;
   hooks.onClassChange(id);

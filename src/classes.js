@@ -556,8 +556,14 @@ function skillAt(id, lv = 1) {
 const skillNameAt = (k, lv = 1) => (k.stageName ? k.stageName[Math.min(3, Math.floor(lv / 10))] : k.name);
 // 타격 i 의 대상 범위 (그 타격만의 범위가 있으면 덮어쓴다)
 const hitRange = (k, i) => (k.hits[i] && k.hits[i][2] ? { ...k, ...k.hits[i][2] } : k);
-// 직업의 스킬 (해금 레벨 순)
-const skillsOf = (cls) => Object.values(SKILLS).filter((k) => k.cls === cls).sort((a, b) => a.lv - b.lv);
+// 그 직업만의 스킬 (해금 레벨 순)
+const classSkillsOf = (cls) => Object.values(SKILLS).filter((k) => k.cls === cls).sort((a, b) => a.lv - b.lv);
+// 쓸 수 있는 스킬: 2차 직업은 1차 스킬을 물려받는다 (숙련도도 그대로). 해금 레벨 순
+const skillsOf = (cls) => {
+  const out = [];
+  for (let c = cls; c; c = CLASSES[c].from) out.push(...classSkillsOf(c));
+  return out.sort((a, b) => a.lv - b.lv);
+};
 
 // ───────────────────────── 스킬 숙련도 ─────────────────────────
 // 📖 비전서로만 경험치가 오른다 (쓴다고 오르지 않는다). 숙련도가 오르면 **쿨타임이 줄고 한 방이 세진다** (둘을 함께 쓴다).
@@ -577,6 +583,11 @@ const SKILL_DMG = {
   paladin: 1.92, blademaster: 1.82, marksman: 1.81, arcaneArcher: 1.80,
   dragoon: 1.70, halberdier: 1.75,
 };
+// 2차 직업이 물려받은 1차 스킬의 위력 배수. 1차 스킬을 그대로 얹으면 직업마다 DPS 가 +15~43%(Lv30) 로 들쭉날쭉해서,
+// 계승 스킬이 2차 직업의 전체 DPS 를 Lv1 +5% → Lv30 +10% 만큼 올리도록 직업마다 맞췄다 (스킬 비중이 큰 직업일수록 낮다)
+const INHERIT_DMG = {
+  paladin: 0.46, blademaster: 0.77, dragoon: 0.49, halberdier: 0.43, marksman: 0.35, arcaneArcher: 0.74,
+};
 // 숙련 단계 (Lv10·20·30). 이름과, 그 단계에서 바뀌는 모습
 const MASTERY = [
   null,
@@ -592,8 +603,9 @@ const skillProg = (lv) => 0.7 * (lv - 1) / (SKILL_MAX - 1) + 0.1 * masteryOf(lv)
 // 쿨타임 배수 (SKILLS 의 cd 에 곱한다)
 const skillCdAt = (lv) => SKILL_CD_LV1 + (SKILL_CD_MAX - SKILL_CD_LV1) * skillProg(lv);
 const skillCdOf = (k, lv) => Math.round(k.cd * skillCdAt(lv) * 10) / 10;
-// 한 방 위력 배수 (SKILLS 배율에 곱한다)
-const skillPowAt = (cls, lv) => (SKILL_DMG[cls] || 2) * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv));
+// 한 방 위력 배수 (SKILLS 배율에 곱한다). cls 는 스킬의 직업, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG 를 곱한다)
+const skillPowAt = (cls, lv, owner = cls) =>
+  (SKILL_DMG[cls] || 2) * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv)) * (owner !== cls ? INHERIT_DMG[owner] || 1 : 1);
 // 누적 경험치 → { lv, exp 이번 레벨에서 모은 양, need 다음 레벨까지 필요한 양 }
 function skillLvOf(total) {
   let lv = 1, left = total;

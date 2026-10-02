@@ -427,13 +427,14 @@ function skillList(id) {
   if (!list.length) return '';
   const mine = id === S.cls;
   return `<div class="skills">${list.map((k) => {
+    const inh = k.cls !== id;              // 1차에서 물려받은 스킬
     const on = mine && S.level >= k.lv;
     // 숙련도를 반영한 값 (내 직업은 지금 숙련도, 다른 직업은 처음 익혔을 때인 Lv1)
-    const pow = mine ? skillPow(k.id) : skillPowAt(k.cls, 1), mult = skillMult(k) * pow, hitN = k.hits.length, cd = mine ? skillCd(k.id) : skillCdOf(k, 1);
+    const pow = mine ? skillPow(k.id) : skillPowAt(k.cls, 1, id), mult = skillMult(k) * pow, hitN = k.hits.length, cd = mine ? skillCd(k.id) : skillCdOf(k, 1);
     const dmg = k.ward ? `초당 ×${+(k.ward.tick * pow).toFixed(2)}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
-      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id)) : k.name}</b> <small>${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id)) : k.name}</b> <small>${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
         <span class="sdesc">${k.desc}</span></span>
     </div>`;
   }).join('')}</div>`;
@@ -448,7 +449,7 @@ function viewMastery() {
     const s = skillLvOf(S.mast[k.id] || 0), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
     const need = max ? 0 : Math.ceil((s.need - s.exp) / TOME_EXP);
     const nextM = MASTERY[m + 1];
-    const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k.cls, lv)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k.cls, lv)).toFixed(2)}`;
+    const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k.cls, lv, S.cls)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k.cls, lv, S.cls)).toFixed(2)}`;
     const tag = m ? `<span class="mtag m${m}">${MASTERY[m].star} ${MASTERY[m].name}</span>` : '';
     const btn = (n, label, dot = false) => `<button class="btn${rd(dot)}${dot && guidePendingFeed() && k === list.find((x) => skillLvOf(S.mast[x.id] || 0).lv < SKILL_MAX) ? ' gpulse' : ''}" data-action="tome" data-id="${k.id}" data-n="${n}" ${S.tomes < 1 ? 'disabled' : ''}>${label}</button>`;
     return `
@@ -467,7 +468,7 @@ function viewMastery() {
   const guide = guidePendingFeed()
     ? `<div class="gtip big">👉 처음이라면 <b>⏫ 레벨업</b> 버튼을 눌러 보세요 — 비전서를 먹인 만큼 쿨타임이 바로 줄고 위력이 올라요. Lv10·20·30 을 넘을 때마다 연출도 바뀝니다.</div>`
     : S.tomes === 0 ? `<div class="gtip">📖 비전서는 ${towerUnlocked() ? '<button class="lnk" data-action="tab" data-tab="tower">🗼 도전의 탑</button>에서 가장 많이 얻어요 (원정 보스·레이드 상자·결투 시즌에서도)' : `🗼 도전의 탑(스테이지 ${TOWER_UNLOCK_STAGE}에 열림)·원정 보스·레이드 상자·결투 시즌에서 얻어요`}</div>` : '';
-  return `${head}${guideFlow('class')}${guide}<div class="hint">숙련도가 오를수록 쿨타임이 줄고(Lv30 에 Lv1 의 40%) 한 방이 세져요(Lv30 에 1.4배). Lv10·20·30 을 넘으면 크게 오르고 스킬 연출이 바뀝니다. 2차 전직 때 1차 스킬에 쓴 비전서는 돌려받아요.</div>${rows}`;
+  return `${head}${guideFlow('class')}${guide}<div class="hint">숙련도가 오를수록 쿨타임이 줄고(Lv30 에 Lv1 의 40%) 한 방이 세져요(Lv30 에 1.4배). Lv10·20·30 을 넘으면 크게 오르고 스킬 연출이 바뀝니다. 1차 스킬은 2차 전직 뒤에도 숙련도 그대로 계속 써요 (2차 직업에선 위력이 조금 줄어요).</div>${rows}`;
 }
 
 function reqChips(id) {
@@ -559,7 +560,7 @@ function drawClassPreviews() {
     let swing = tt % 1.4; if (swing >= 1) swing = -1;
     // 평타 몇 번 뒤에 그 직업의 스킬 모션을 번갈아 보여 준다 (이펙트 없이 자세만, 공중 높이는 칸 안으로 줄인다)
     let sp = null;
-    const sks = skillsOf(id);
+    const sks = classSkillsOf(id);       // 그 직업만의 스킬 모션 (물려받은 1차 스킬은 빼고)
     if (sks.length) {
       const cyc = 5.5, q = tt % cyc, sk = sks[Math.floor(tt / cyc) % sks.length];
       if (q >= cyc - sk.dur - 0.3 && q < cyc - 0.3) {
@@ -1778,7 +1779,7 @@ const ACTIONS = {
     S.guide.fed = 1;
     const m = masteryOf(r.to);
     if (first && r.to > r.from) {
-      toast(`⚡ ${k.name} Lv ${r.to}! 쿨타임 ${skillCdOf(k, r.from)}초 → ${skillCdOf(k, r.to)}초 · 위력 ×${(skillMult(k) * skillPowAt(k.cls, r.from)).toFixed(2)} → ×${(skillMult(k) * skillPowAt(k.cls, r.to)).toFixed(2)} — 다음 원정·탑·결투부터 바로 적용돼요. Lv10 ★숙련을 목표로 탑에서 비전서를 더 모아 보세요`, 12000);
+      toast(`⚡ ${k.name} Lv ${r.to}! 쿨타임 ${skillCdOf(k, r.from)}초 → ${skillCdOf(k, r.to)}초 · 위력 ×${(skillMult(k) * skillPowAt(k.cls, r.from, S.cls)).toFixed(2)} → ×${(skillMult(k) * skillPowAt(k.cls, r.to, S.cls)).toFixed(2)} — 다음 원정·탑·결투부터 바로 적용돼요. Lv10 ★숙련을 목표로 탑에서 비전서를 더 모아 보세요`, 12000);
       save();
       return;
     }
