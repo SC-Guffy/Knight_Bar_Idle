@@ -1211,7 +1211,7 @@ let duelBusy = false;        // 서버 응답을 기다리는 중
 let lastDuel = null;         // 마지막 결투 결과 (랭킹 탭 위에 보여 준다)
 
 const duelResultText = (r) =>
-  `${r.won ? '🏆 승리!' : '💀 패배…'} vs ${r.opponent.nickname}${r.fight.timeout ? ' (시간 종료 · 남은 체력 판정)' : ''} — 결투 점수 ${r.me.rating} (${r.won ? '+' : '-'}${r.delta})`;
+  `${r.won ? '🏆 승리!' : '💀 패배…'} vs ${r.opponent.nickname}${r.fight.timeout ? (r.fight.judge === 'dmg' ? ' (시간 종료 · 체력이 비슷해 가한 피해 판정)' : ' (시간 종료 · 남은 체력 판정)') : ''} — 결투 점수 ${r.me.rating} (${r.won ? '+' : '-'}${r.delta})`;
 
 function startDuel(nick) {
   if (duelBusy || duelActive() || raidActive() || S.phase !== 'camp') return;

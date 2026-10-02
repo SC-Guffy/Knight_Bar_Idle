@@ -12,6 +12,7 @@ const HP_MULT = 4;          // 원정보다 오래 싸우도록 결투에서만 
 const DUEL_SEC = 12;
 const rateOf = (p) => p.atk * (1 + p.crit * (p.critMult - 1)) * p.shots * p.shotMult * p.aspd;
 const MAX_T = 45;           // 이 시간이 지나면 남은 체력 비율로 판정
+const HP_TIE = 0.01;        // 시간 종료 때 남은 체력 비율 차이가 이것(또는 결투 중 가장 큰 한 방)보다 작으면 가한 총 피해로 판정
 const DT = 0.05;
 
 function mulberry32(seed) {
@@ -55,11 +56,12 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     cd: 0.2 + rng() * 0.3,
     leapCd: p.leap ? p.leap.every / 2 : Infinity,
     skills: makeSkills(p), busy: 0, ward: null,
-    stopT: null,
+    stopT: null, dealt: 0,
   });
   const a = make(pa, 0, 1), b = make(pb, START_DIST, -1);
   const events = [];
   let t = 0;
+  let bigHit = 0;   // 결투 중 가장 큰 한 방 (맞은 쪽 최대 체력 비율)
 
   // sk: 쓰는 스킬 (kind === 'skill')
   const hit = (me, op, side, kind, sk) => {
@@ -67,6 +69,8 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     const base = kind === 'leap' ? me.p.leap.mult : sk ? sk.mult : me.p.shots * me.p.shotMult;
     const dmg = me.p.atk * base * (crit ? me.p.critMult : 1) * (0.9 + rng() * 0.2) * (1 - op.p.guard) * wardCut(op, t);
     op.hp -= dmg;
+    me.dealt += dmg;
+    bigHit = Math.max(bigHit, dmg / op.max);
     if (me.p.heal) me.hp = Math.min(me.max, me.hp + me.max * me.p.heal);
     if (sk && sk.ward) {
       me.ward = { until: t + sk.dur + sk.ward.dur, guard: sk.ward.guard };
@@ -78,8 +82,11 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     });
   };
 
+  const AB = [[a, b, 'a'], [b, a, 'b']], BA = [AB[1], AB[0]];
   while (t < MAX_T && a.hp > 0 && b.hp > 0) {
-    for (const [me, op, side] of [[a, b, 'a'], [b, a, 'b']]) {
+    // 같은 틱 안에서 누가 먼저 움직일지는 매 틱 무작위로 정한다. 항상 a 가 먼저면 같은 틱에 둘 다 때릴 때
+    // b 가 늘 마지막 타격(과 타격 회복)을 가져가서, 시간 종료 판정에서 b 가 유리해진다
+    for (const [me, op, side] of (rng() < 0.5 ? AB : BA)) {
       if (me.hp <= 0 || op.hp <= 0) break;
       const dist = Math.abs(op.x - me.x);
       const reach = me.p.range + BODY_GAP;
@@ -98,11 +105,18 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     t += DT;
   }
 
-  const ra = a.hp / a.max, rb = b.hp / b.max;
+  // 판정: 한쪽이 쓰러졌거나 시간 종료 때 체력 비율 차이가 뚜렷하면 체력으로 정한다. 차이가 한 방이면 뒤집힐 정도라면
+  // (방어·회복이 높아 둘 다 체력이 거의 가득한 경우 등) 마지막 타격 타이밍에 좌우되지 않도록 가한 총 피해로 정한다.
+  // 그마저 같으면 무작위
+  const ra = Math.max(0, a.hp) / a.max, rb = Math.max(0, b.hp) / b.max;
+  const timeout = a.hp > 0 && b.hp > 0;
+  const judge = timeout && Math.abs(ra - rb) < Math.max(HP_TIE, bigHit) ? 'dmg' : 'hp';
+  const diff = judge === 'dmg' ? a.dealt - b.dealt : ra - rb;
   return {
     seed,
-    winner: ra >= rb ? 'a' : 'b',
-    timeout: a.hp > 0 && b.hp > 0,
+    winner: diff > 0 ? 'a' : diff < 0 ? 'b' : rng() < 0.5 ? 'a' : 'b',
+    timeout, judge,
+    dealtA: Math.round(a.dealt), dealtB: Math.round(b.dealt),
     dur: round1(t),
     start: START_DIST, walk: WALK, hpMult: Math.round(hpMult * 10) / 10,
     // 기사는 한 번 멈추면 다시 움직이지 않으므로 멈춘 시각·위치만 알면 이동을 재현할 수 있다
