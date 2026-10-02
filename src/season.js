@@ -11,13 +11,14 @@ const freshSeason = () => ({ claimed: [], last: null });
 
 // 순위 구간. mult: 재화 배율, chests: 내가 열 수 있는 가장 높은 레이드 보스의 처치 상자 개수
 // (아직 레이드를 못 여는 기사는 상자 1개 대신 재화 배율 +1)
+// tomes: 📖 비전서 (스킬 숙련도)
 const SEASON_TIERS = [
-  { id: 'r1',  name: '🥇 1위',      test: (r) => r === 1,          mult: 6,   chests: 3 },
-  { id: 'r2',  name: '🥈 2위',      test: (r) => r === 2,          mult: 4.5, chests: 2 },
-  { id: 'r3',  name: '🥉 3위',      test: (r) => r === 3,          mult: 3.5, chests: 2 },
-  { id: 'r10', name: '🏅 4~10위',   test: (r) => r <= 10,          mult: 2.5, chests: 1 },
-  { id: 'p30', name: '⭐ 상위 30%', test: (r, n) => r <= Math.ceil(n * 0.3), mult: 1.6, chests: 0 },
-  { id: 'all', name: '🎖️ 참가',     test: () => true,              mult: 1,   chests: 0 },
+  { id: 'r1',  name: '🥇 1위',      test: (r) => r === 1,          mult: 6,   chests: 3, tomes: 15 },
+  { id: 'r2',  name: '🥈 2위',      test: (r) => r === 2,          mult: 4.5, chests: 2, tomes: 12 },
+  { id: 'r3',  name: '🥉 3위',      test: (r) => r === 3,          mult: 3.5, chests: 2, tomes: 10 },
+  { id: 'r10', name: '🏅 4~10위',   test: (r) => r <= 10,          mult: 2.5, chests: 1, tomes: 7 },
+  { id: 'p30', name: '⭐ 상위 30%', test: (r, n) => r <= Math.ceil(n * 0.3), mult: 1.6, chests: 0, tomes: 4 },
+  { id: 'all', name: '🎖️ 참가',     test: () => true,              mult: 1,   chests: 0, tomes: 2 },
 ];
 const seasonTier = (rank, total) => SEASON_TIERS.find((t) => t.test(rank, total));
 const seasonChestBoss = () => Object.keys(RAID_BOSSES).filter(raidUnlocked).pop() || null;
@@ -30,7 +31,7 @@ function seasonReward(tier) {
   return {
     gold: Math.round(ms.gold * 6 * mult),
     wood: Math.round(50 * scale * mult), ore: Math.round(40 * scale * mult), mana: Math.round(10 * scale * mult),
-    chests: boss ? tier.chests : 0, boss,
+    chests: boss ? tier.chests : 0, boss, tomes: tier.tomes,
   };
 }
 
@@ -42,6 +43,7 @@ function claimSeasonReward(row) {
   const tier = seasonTier(row.rank, row.total), reward = seasonReward(tier);
   S.gold += reward.gold;
   S.mats.wood += reward.wood; S.mats.ore += reward.ore; S.mats.mana += reward.mana;
+  S.tomes += reward.tomes;
   for (let i = 0; i < reward.chests; i++) S.raid.chests.push({ k: 'rbox', b: reward.boss, s: RAID_BOSSES[reward.boss].stage });
   S.season.last = { ...row, tier: tier.id, reward, at: Date.now() };
   return S.season.last;

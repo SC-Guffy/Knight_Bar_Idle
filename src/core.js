@@ -26,6 +26,8 @@ function freshState() {
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
+    mast: {},                               // 스킬 숙련도: 스킬 id → 누적 경험치 (classes.js SKILL_MAX·skillNeed)
+    tomes: 0,                               // 📖 비전서 (1권 = 경험치 TOME_EXP)
     phase: 'camp',                          // camp | expedition | returning
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -65,6 +67,8 @@ function migrate(o) {
     s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·수완으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
   }
   // 잠깐 있었던 거물 사냥(boss) 훈련은 비용 곡선이 같은 수완으로 단계를 옮긴다
+  // 스킬 숙련도 도입: 모두 Lv1 에서 시작한다 (Lv1 은 예전 스킬 배율의 ×0.85)
+  if (!o.mast && !s.notice) s.notice = '📖 스킬 숙련도 도입 — 스킬 한 방은 세졌지만 쿨타임이 3배로 길어졌어요. 비전서를 먹여 Lv30까지 키우면 쿨타임이 줄고 위력이 오릅니다 (전직 탭)';
   if (s.train.boss) s.train.fortune = (s.train.fortune || 0) + s.train.boss;
   delete s.train.boss;
   s.gear.inv.forEach(fixGearItem);
@@ -124,14 +128,38 @@ function stats(base = false) {
 // 지금 레벨에서 쓸 수 있는 스킬 id (먼저 쓸 순서 = 해금 레벨 높은 순)
 const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id);
 
+// 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
+const skillLv = (id) => skillLvOf(S.mast[id] || 0).lv;
+const skillPow = (id) => skillPowAt(SKILLS[id].cls, skillLv(id));
+const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id));
+// 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null
+function feedTomes(id, n) {
+  const k = SKILLS[id];
+  if (!k || k.cls !== S.cls) return null;
+  const have = S.mast[id] || 0;
+  const room = Math.ceil((SKILL_EXP_MAX - have) / TOME_EXP);
+  const used = Math.min(n, S.tomes, room);
+  if (used <= 0) return null;
+  const from = skillLv(id);
+  S.tomes -= used;
+  S.mast[id] = Math.min(SKILL_EXP_MAX, have + used * TOME_EXP);
+  return { used, from, to: skillLv(id) };
+}
+// 지금 가진 비전서로 레벨을 하나라도 올릴 수 있는 내 스킬이 있는가 (레드닷)
+const canLevelSkill = () => skillsOf(S.cls).some((k) => {
+  const s = skillLvOf(S.mast[k.id] || 0);
+  return s.lv < SKILL_MAX && S.tomes * TOME_EXP >= s.need - s.exp;
+});
+
 // 한 마리를 상대로 한 초당 피해 (연발·스킬 포함). 스킬을 쓰는 동안은 평타를 멈춘다
 function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
   let busy = 0, extra = 0;
   for (const id of st.skills || []) {
     const k = SKILLS[id];
-    busy += k.dur / k.cd;
-    extra += (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) / k.cd;
+    const cd = skillCd(id);
+    busy += k.dur / cd;
+    extra += (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id) / cd;
   }
   return perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra;
 }
@@ -147,7 +175,7 @@ function profile() {
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     skills: st.skills.map((id) => {
       const k = SKILLS[id];
-      return { id, cd: k.cd, dur: k.dur, mult: skillMult(k), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
+      return { id, lv: skillLv(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
     }),
   };
 }
@@ -207,6 +235,11 @@ function changeClass(id) {
   const req = CLASS_REQ[CLASSES[id].tier];
   S.mats.mana -= req.mana;
   S.gold -= req.gold;
+  // 1차 스킬은 2차에서 쓰지 않으니, 먹인 비전서를 돌려준다 (먹인 만큼 그대로)
+  for (const k of skillsOf(S.cls)) {
+    S.tomes += Math.round((S.mast[k.id] || 0) / TOME_EXP);
+    delete S.mast[k.id];
+  }
   S.cls = id;
   S.hp = stats().maxHp;
   hooks.onClassChange(id);
@@ -289,7 +322,7 @@ function startExpedition({ charm = false, elixir = false } = {}) {
   S.trip = {
     start: Date.now(), dur: 0, kills: 0, bosses: 0, gold: 0, xp: 0, levels: 0,
     stageFrom: S.stage, stageTo: S.stage, boxes: GRADES.map(() => 0),
-    potions: 0, crises: 0, deaths: 0, bossFail: false, reason: null, buffs: { charm, elixir },
+    potions: 0, crises: 0, deaths: 0, tomes: 0, bossFail: false, reason: null, buffs: { charm, elixir },
   };
   S.run.kills = 0; S.run.farm = false; S.run.cleared = false;
   S.hp = stats().maxHp;
@@ -323,7 +356,7 @@ function arriveCamp(silent = false) {
   if (S.report) {
     // 이전 보고를 안 봤으면 합친다
     const r = S.report;
-    for (const k of ['dur', 'kills', 'bosses', 'gold', 'xp', 'levels', 'potions', 'crises', 'deaths']) r[k] += t[k];
+    for (const k of ['dur', 'kills', 'bosses', 'gold', 'xp', 'levels', 'potions', 'crises', 'deaths', 'tomes']) r[k] = (r[k] || 0) + (t[k] || 0);
     t.boxes.forEach((n, i) => { r.boxes[i] = (r.boxes[i] || 0) + n; });
     r.stageTo = t.stageTo; r.reason = t.reason; r.bossFail = r.bossFail || t.bossFail;
     r.trips = (r.trips || 1) + 1;
@@ -353,9 +386,12 @@ function rewardKill(m) {
     S.bag.push(loot);
     t.boxes[loot.g] = (t.boxes[loot.g] || 0) + 1;
   }
+  // 보스는 낮은 확률로 비전서를 떨군다 (가방 무게와 상관없이 바로 챙긴다)
+  let tome = false;
+  if (m.boss && Math.random() < BOSS_TOME_DROP) { S.tomes++; t.tomes = (t.tomes || 0) + 1; tome = true; }
   S.run.kills++;
   if (m.boss) S.run.cleared = true;
-  return { loot };
+  return { loot, tome };
 }
 
 // 화면 오른쪽 끝을 지나 한 바퀴를 마쳤을 때. 보스를 잡았으면 다음 스테이지, 아니면 같은 스테이지를 한 바퀴 더.

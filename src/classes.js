@@ -393,6 +393,49 @@ const skillMult = (k) => k.hits.reduce((a, h) => a + h[1], 0) + (k.ward ? k.ward
 // 직업의 스킬 (해금 레벨 순)
 const skillsOf = (cls) => Object.values(SKILLS).filter((k) => k.cls === cls).sort((a, b) => a.lv - b.lv);
 
+// ───────────────────────── 스킬 숙련도 ─────────────────────────
+// 📖 비전서로만 경험치가 오른다 (쓴다고 오르지 않는다). 숙련도가 오르면 **쿨타임이 줄고 한 방이 세진다** (둘을 함께 쓴다).
+//  - 쿨타임: 위 SKILLS 의 cd × 3.0 (Lv1) → × 1.2 (Lv30). 다 키워도 숙련도 도입 전보다 길다 — 스킬은 가끔 터지는 한 방
+//  - 한 방 위력: SKILLS 배율 × SKILL_DMG[직업] × (Lv1 1/1.4 → Lv30 1). Lv30 이면 그 직업의 전체 DPS 가 도입 전보다 +25% 가 되도록 직업마다 정했다.
+//    스킬 비중이 큰 직업(용기병·할버디어 ~50%)일수록 낮고 1차(~25%)는 높다 — 그래야 다 키웠을 때 모든 직업의 성장이 같다.
+//    그 결과 전체 DPS(도입 전 = 100%)는 Lv1 79~94%, Lv10 86~99%, Lv20 99~107%, Lv30 125%. 스킬 비중이 큰 직업일수록 Lv1 이 낮다.
+//  - 성장의 70% 는 레벨마다 고르게, 30% 는 Lv10·20·30 을 넘는 순간 10% 씩 (비주얼이 바뀌는 순간 힘도 함께 오른다).
+//  - 보호막(성역)의 지속·감소·회복 수치는 그대로이고 지속 피해만 위력 배율을 받는다.
+const SKILL_MAX = 30;
+const TOME_EXP = 10;                     // 비전서 1권 = 경험치 10
+const SKILL_CD_LV1 = 3.0;
+const SKILL_CD_MAX = 1.2;
+const SKILL_DMG_LV1 = 1 / 1.4;           // Lv1 한 방 위력 = Lv30 의 71%
+const SKILL_DMG = {
+  swordsman: 2.28, lancer: 2.34, ranger: 2.30,
+  paladin: 1.92, blademaster: 1.82, marksman: 1.81, arcaneArcher: 1.80,
+  dragoon: 1.70, halberdier: 1.75,
+};
+// 숙련 단계 (Lv10·20·30). 이름과, 그 단계에서 바뀌는 모습
+const MASTERY = [
+  null,
+  { lv: 10, name: '숙련', star: '★', desc: '쿨타임이 크게 줄고, 타격 이펙트가 커지고 파편이 늘어난다' },
+  { lv: 20, name: '달인', star: '★★', desc: '쿨타임이 크게 줄고, 발밑에 빛 고리가 돌고 잔상이 짙어진다' },
+  { lv: 30, name: '극의', star: '★★★', desc: '쿨타임이 크게 줄고, 이펙트가 금빛으로 물들고 이름 띠와 마무리 섬광이 붙는다' },
+];
+// L → L+1 에 필요한 경험치. Lv10 까지 772, Lv20 까지 3,757, Lv30 까지 9,340 (비전서 약 934권)
+const skillNeed = (L) => Math.round(12 * Math.pow(L, 1.2));
+const masteryOf = (lv) => Math.min(3, Math.floor(lv / 10));
+const skillProg = (lv) => 0.7 * (lv - 1) / (SKILL_MAX - 1) + 0.1 * masteryOf(lv);
+// 쿨타임 배수 (SKILLS 의 cd 에 곱한다)
+const skillCdAt = (lv) => SKILL_CD_LV1 + (SKILL_CD_MAX - SKILL_CD_LV1) * skillProg(lv);
+const skillCdOf = (k, lv) => Math.round(k.cd * skillCdAt(lv) * 10) / 10;
+// 한 방 위력 배수 (SKILLS 배율에 곱한다)
+const skillPowAt = (cls, lv) => (SKILL_DMG[cls] || 2) * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv));
+// 누적 경험치 → { lv, exp 이번 레벨에서 모은 양, need 다음 레벨까지 필요한 양 }
+function skillLvOf(total) {
+  let lv = 1, left = total;
+  while (lv < SKILL_MAX && left >= skillNeed(lv)) { left -= skillNeed(lv); lv++; }
+  return { lv, exp: lv >= SKILL_MAX ? 0 : left, need: lv >= SKILL_MAX ? 0 : skillNeed(lv) };
+}
+// 만렙까지 필요한 누적 경험치
+const SKILL_EXP_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed(i + 1)).reduce((a, b) => a + b, 0);
+
 // 트리 화면 배치 순서
 const CLASS_TREE = [
   ['squire'],

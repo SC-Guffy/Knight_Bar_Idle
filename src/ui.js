@@ -274,6 +274,7 @@ function viewReport() {
       ${cell('✨ 경험치', fmt(r.xp) + (r.levels ? ` · Lv +${r.levels}` : ''))}
       ${cell('🧪 물약 사용', r.potions)}
       ${cell('⚠️ 위기', r.crises + (r.deaths ? ` · 쓰러짐 ${r.deaths}` : ''))}
+      ${r.tomes ? cell('📖 비전서', r.tomes) : ''}
     </div>` : '<div class="empty">새 원정 보고가 없습니다.</div>';
 
   const opened = revealed.map(openedCard).join('');
@@ -420,14 +421,41 @@ function skillList(id) {
   const mine = id === S.cls;
   return `<div class="skills">${list.map((k) => {
     const on = mine && S.level >= k.lv;
-    const mult = skillMult(k), hitN = k.hits.length;
-    const dmg = k.ward ? `초당 ×${k.ward.tick}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
+    // 숙련도를 반영한 값 (내 직업은 지금 숙련도, 다른 직업은 처음 익혔을 때인 Lv1)
+    const pow = mine ? skillPow(k.id) : skillPowAt(k.cls, 1), mult = skillMult(k) * pow, hitN = k.hits.length, cd = mine ? skillCd(k.id) : skillCdOf(k, 1);
+    const dmg = k.ward ? `초당 ×${+(k.ward.tick * pow).toFixed(2)}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
-      <span class="sbody"><b>${k.name}</b> <small>${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${k.cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+      <span class="sbody"><b>${k.name}</b> <small>${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
         <span class="sdesc">${k.desc}</span></span>
     </div>`;
   }).join('')}</div>`;
+}
+
+// 스킬 숙련도: 지금 직업의 스킬에 📖 비전서를 먹여서 Lv30 까지 키운다 (classes.js SKILL_MAX·MASTERY)
+function viewMastery() {
+  const list = skillsOf(S.cls);
+  const head = `<h3>📖 스킬 숙련도 <small>비전서 <b>${fmt(S.tomes)}</b>권 · 1권 = 경험치 ${TOME_EXP}</small></h3>`;
+  if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요. 비전서는 원정 보스가 가끔 떨굽니다.</div>`;
+  const rows = list.map((k) => {
+    const s = skillLvOf(S.mast[k.id] || 0), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
+    const need = max ? 0 : Math.ceil((s.need - s.exp) / TOME_EXP);
+    const nextM = MASTERY[m + 1];
+    const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k.cls, lv)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k.cls, lv)).toFixed(2)}`;
+    const tag = m ? `<span class="mtag m${m}">${MASTERY[m].star} ${MASTERY[m].name}</span>` : '';
+    const btn = (n, label, dot = false) => `<button class="btn${rd(dot)}" data-action="tome" data-id="${k.id}" data-n="${n}" ${S.tomes < 1 ? 'disabled' : ''}>${label}</button>`;
+    return `
+      <div class="mskill m${m}">
+        <span class="sicon">${k.icon}</span>
+        <div class="mbody">
+          <div><b>${k.name}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${S.level < k.lv ? ` <small>· 🔒 Lv ${k.lv}에 해금</small>` : ''}</div>
+          <div class="mbar"><i style="width:${max ? 100 : (s.exp / s.need) * 100}%"></i><span>${max ? 'MAX' : `${fmt(s.exp)} / ${fmt(s.need)}`}</span></div>
+          <small>쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → ${skillCdOf(k, s.lv + 1)}초`} · 위력 ${mt(s.lv)}${max ? '' : ` → ${mt(s.lv + 1)}`} <span class="dim">(Lv30 ${skillCdOf(k, SKILL_MAX)}초 · ${mt(SKILL_MAX)})</span>${nextM ? ` · 다음 단계 Lv ${nextM.lv} ${nextM.star} ${nextM.name}: ${nextM.desc}` : ''}</small>
+        </div>
+        <div class="act">${max ? '<span class="small">최고 단계</span>' : `${btn(1, '📖 1권')}${btn(10, '📖 10권')}${btn(need, `⏫ 레벨업 ${need}권`, S.tomes >= need)}`}</div>
+      </div>`;
+  }).join('');
+  return `${head}<div class="hint">숙련도가 오를수록 쿨타임이 줄고(Lv30 에 Lv1 의 40%) 한 방이 세져요(Lv30 에 1.4배). Lv10·20·30 을 넘으면 크게 오르고 스킬 연출이 바뀝니다. 2차 전직 때 1차 스킬에 쓴 비전서는 돌려받아요.</div>${rows}`;
 }
 
 function reqChips(id) {
@@ -471,6 +499,7 @@ function viewClass() {
   const req = c.tier && st !== 'current' && st !== 'done' ? `<div class="req">조건 ${reqChips(id)}</div>` : '';
 
   return `
+    ${viewMastery()}
     <h3>⚜️ 전직 <small>현재 ${heroClass().icon} ${heroClass().name}</small></h3>
     <div class="tree">${tree}</div>
     <div class="cdetail">
@@ -783,7 +812,7 @@ function campDots() {
     town: Object.keys(BUILDINGS).some(canBuild),
     train: TRAINING.some(canTrain),
     gear: Object.keys(GEAR_SLOTS).some(gearBetter),
-    class: anyClassReady(),
+    class: anyClassReady() || canLevelSkill(),
     raid: S.raid.chests.length > 0 || !!raidUi.room,
   };
 }
@@ -1093,6 +1122,7 @@ async function takeSeasonRewards(rows) {
 function seasonRewardText(r, html = true) {
   const parts = html ? [gainText(r)] : [`골드 ${fmt(r.gold)} · 🪵 ${fmt(r.wood)} · 🪨 ${fmt(r.ore)} · 💎 ${fmt(r.mana)}`];
   if (r.chests) parts.push(`🎁 ${html ? esc(RAID_BOSSES[r.boss].chest.name) : RAID_BOSSES[r.boss].chest.name} ×${r.chests}`);
+  if (r.tomes) parts.push(`📖 비전서 ×${r.tomes}`);
   return parts.join(' · ');
 }
 
@@ -1504,6 +1534,7 @@ function viewRaid() {
 function openRaidChestAt(i) {
   const got = claimRaidChest(i);
   for (const x of got) raidUi.revealed.push({ ...x, fresh: true });
+  if (got.tomes) toast(`📖 비전서 +${got.tomes}`);
   const sig = got.find((x) => GEAR_ITEMS[x.it.t].raid);
   const top = got.map((x) => x.it).sort((a, b) => b.g - a.g)[0];
   if (sig) toast(`🌟 고유 장비 — ${gearName(sig.it)}!`, 5000);
@@ -1658,6 +1689,16 @@ const ACTIONS = {
     const i = Number(el.dataset.i);
     if (!selectZone(i)) return;
     toast(`${ZONES[i].icon} ${ZONES[i].name} ${S.stage}스테이지에서 출정합니다`);
+  },
+  'tome': (el) => {
+    const k = SKILLS[el.dataset.id], r = feedTomes(k.id, Number(el.dataset.n));
+    if (!r) return;
+    const m = masteryOf(r.to);
+    if (m > masteryOf(r.from)) {
+      showBanner(`${k.icon} ${k.name} — ${MASTERY[m].star} ${MASTERY[m].name} 도달!`, mixHex(heroClass().look.fx, MASTERY_GOLD, m >= 3 ? 0.45 : 0));
+      toast(`${MASTERY[m].star} ${k.name} ${MASTERY[m].name} — ${MASTERY[m].desc}`, 6000);
+    } else if (r.to > r.from) toast(`${k.icon} ${k.name} Lv ${r.to}!`);
+    save();
   },
   'class-sel': (el) => { classSel = el.dataset.id; classConfirm = null; },
   'class-ask': (el) => { classConfirm = el.dataset.id; },

@@ -7,7 +7,13 @@
 //   hit(a, i, n)  i 번째 타격 순간의 연출 (피해는 원정에서만 a.onHit 이 넣는다. 재생은 숫자만 띄운다)
 //   tick(a, u, dt)  매 프레임 연출 (불꽃·기 모으기)
 //   kb: 원정에서 맞은 적이 밀려나는 거리 · launch: 맞은 적을 공중에 띄운다
-// a(시전 정보): { owner, id, k, cls, color, dir 바라보는 쪽, x() 시전자 화면 x, tx()·ty() 대상 위치, targets() [{x, y}], u, onHit, onEnd }
+// a(시전 정보): { owner, id, k, cls, color, dir 바라보는 쪽, x() 시전자 화면 x, tx()·ty() 대상 위치, targets() [{x, y}], u, onHit, onEnd,
+//               lv 스킬 숙련도(없으면 내 기사는 내 숙련도, 남은 1), mast 숙련 단계 0~3 (classes.js MASTERY) }
+//
+// 숙련 단계(Lv10·20·30)는 스킬마다 따로 그리지 않고 공통 레이어로 덧입힌다:
+//   ★ 숙련  타격 레이어 세기 +15%, 타격마다 직업색 파편
+//   ★★ 달인  + 발밑 빛 고리(1차도), 잔상이 짙어짐, 세기 +30%
+//   ★★★ 극의 + 이펙트 색이 금빛으로 물듦, 이름 띠(1차도), 시전 끝 마무리 섬광, 세기 +45%
 //
 // 1차와 2차의 차이: 1차는 직업색 이펙트 하나 + 가벼운 흔들림. 2차는 이름 띠(컷인), 히트스톱, 검흔 여러 겹, 잔상·마법진·지형 연출.
 // 바탕화면 위에 떠 있는 게임이라 화면 전체를 번쩍이거나 어둡게 하지 않는다. 화려함은 타격 지점(검흔·불꽃)과 기사 주변에서만 낸다.
@@ -25,6 +31,12 @@ const easeIn = (u) => u * u * u;
 const mix = (a, b, u) => a + (b - a) * u;
 const HAND_Y = 18;        // 땅에서 손까지 높이 (다리 3칸 + 몸통 3칸)
 const skillTier = (k) => CLASSES[k.cls].tier;
+const MASTERY_GOLD = '#fff0b8';
+// '#rrggbb' 두 색을 u 만큼 섞는다
+function mixHex(c1, c2, u) {
+  const p = (c, i) => parseInt(c.slice(1 + i * 2, 3 + i * 2), 16);
+  return '#' + [0, 1, 2].map((i) => Math.round(mix(p(c1, i), p(c2, i), u)).toString(16).padStart(2, '0')).join('');
+}
 
 // ───────────────────────── 시전 관리 ─────────────────────────
 // queue: 결투·레이드 재생은 빨리 감기라 스킬이 겹칠 수 있다 — 앞 스킬이 끝나면 이어서 쓴다 (최대 2개 대기)
@@ -39,6 +51,9 @@ function startCast(owner, id, a, queue = false) {
   const k = SKILLS[id], fx = SKILL_FX[id];
   Object.assign(a, { owner, id, k, u: 0, color: CLASSES[a.cls || S.cls].look.fx });
   a.cls = a.cls || S.cls;
+  a.lv = a.lv || (owner === 'hero' ? skillLv(id) : 1);
+  a.mast = masteryOf(a.lv);
+  if (a.mast >= 3) a.color = mixHex(a.color, MASTERY_GOLD, 0.45);
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
   // 화면에서 시전자가 실제로 서 있는 x. 자세가 뒤돌아(facing -1) 있으면 dx 도 뒤집혀 있다
   a.px = () => {
@@ -47,8 +62,9 @@ function startCast(owner, id, a, queue = false) {
     return a.x() + (p.dx || 0) * (p.facing || 1) * a.dir;
   };
   casts.push({ owner, id, k, fx, t: 0, a, hi: 0, ci: 0, next: [], squash: 0, hist: [] });
-  if (skillTier(k) >= 2) cutin = { k, color: a.color, t: 0, cx: a.x() };
-  else addFloater(`${k.icon} ${k.name}`, a.x(), groundY() - 72, a.color, 12);
+  const star = a.mast ? ' ' + MASTERY[a.mast].star : '';
+  if (skillTier(k) >= 2 || a.mast >= 3) cutin = { k, color: a.color, t: 0, cx: a.x(), star };
+  else addFloater(`${k.icon} ${k.name}${star}`, a.x(), groundY() - 72, a.color, 12);
 }
 function endCast(owner) {
   casts = casts.filter((c) => c.owner !== owner);
@@ -98,14 +114,14 @@ function finalPose(c) {
 function drawCastTrail(owner, cls, gy, facing) {
   const c = castOf(owner);
   if (!c) return;
-  const h = c.hist, fx = CLASSES[cls].look.fx;
+  const h = c.hist, fx = c.a.mast >= 3 ? c.a.color : CLASSES[cls].look.fx;
   for (let j = h.length - 1; j >= 1; j--) {
     const p = h[j].p, q = h[j - 1].p;
     const off = (r) => (r.dx || 0) * (r.facing || facing);         // 화면에서의 이동량 (뒤돌면 dx 부호가 바뀐다)
     const body = Math.abs(off(q) - off(p)) + Math.abs((q.lift || 0) - (p.lift || 0));
     const arm = Math.abs((q.wa || 0) - (p.wa || 0)) * 14 + Math.abs((q.ext || 0) - (p.ext || 0)) + Math.abs((q.pull || 0) - (p.pull || 0));
     if (body + arm < 1.5) continue;
-    const fade = 1 - j / h.length, al = p.alpha == null ? 1 : p.alpha;
+    const fade = (1 - j / h.length) * (c.a.mast >= 2 ? 1.5 : 1), al = p.alpha == null ? 1 : p.alpha;
     const pose = { mode: 'fight', swing: -1, t: clock, ...p, facing: p.facing || facing };
     if (body > 3) drawHero(ctx, cls, h[j].x, gy, { ...pose, tint: fx, alpha: 0.3 * fade * al });
     drawHero(ctx, cls, h[j].x, gy, { ...pose, onlyWeapon: true, alpha: 0.3 * fade * al });
@@ -133,6 +149,7 @@ function updateCasts(dt) {
     if (c.fx.pose) { c.hist.unshift({ p: finalPose(c), x: c.a.x() }); if (c.hist.length > 5) c.hist.pop(); }
     if (u >= 1) {
       c.done = true;
+      if (c.a.mast >= 3) masteryFinish(c.a);
       if (!hits.length && c.a.onHit) c.a.onHit(0, 1);
       if (c.a.onEnd) c.a.onEnd();
     }
@@ -188,7 +205,7 @@ function tryCastSkill(st, target) {
   for (const id of st.skills) {
     if ((knight.cds[id] || 0) > 0) continue;
     const k = SKILLS[id], fx = SKILL_FX[id];
-    knight.cds[id] = k.cd;
+    knight.cds[id] = skillCd(id);
     knight.swing = -1;
     let focus = target;
     const a = {
@@ -206,14 +223,14 @@ function tryCastSkill(st, target) {
         if (list.length) focus = list[0];
         for (const m of list) {
           // 여러 번 나눠 때리는 스킬은 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다
-          hitMonster(m, k.hits[i][1], { crit: k.crit, kb: fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 6 && i < k.hits.length - 1 });
+          hitMonster(m, k.hits[i][1] * skillPow(id), { crit: k.crit, kb: fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 6 && i < k.hits.length - 1 });
           if (fx.launch && !m.boss) m.air = 0;
         }
       },
       onEnd: () => {
         if (!k.ward) return;
         const max = stats().maxHp;
-        knight.ward = { left: k.ward.dur, guard: k.ward.guard, tick: k.ward.tick, acc: 0 };
+        knight.ward = { left: k.ward.dur, guard: k.ward.guard, tick: k.ward.tick * skillPow(id), acc: 0 };
         S.hp = Math.min(max, S.hp + max * k.ward.heal);
         addFloater(`💚 +${fmt(max * k.ward.heal)}`, toScreen(knight.x), groundY() - 66, '#7dffb0', 13);
       },
@@ -407,8 +424,11 @@ function spikeFx(x, h, color, life) {
 function autoHitFx(c, i) {
   const k = c.k, n = k.hits.length, share = k.hits[i][1] / skillMult(k), last = i === n - 1;
   const t2 = skillTier(k) >= 2;
-  const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1);
+  const mast = c.a.mast || 0;
+  const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1) * (1 + 0.15 * mast);
   const tg = c.a.targets();
+  // 숙련: 타격마다 직업색 파편 (극의는 금빛이 섞인다)
+  if (mast) for (const t of tg) burst(t.x, t.y, Math.round((3 + 3 * mast) * Math.min(1.5, pow / 1.4)), [c.a.color, '#ffffff', mast >= 3 ? MASTERY_GOLD : c.a.color], 70 + 25 * mast, 2, 160);
   // 스킬마다 고유한 타격 이미지(fx.marks). 없으면 무기별 기본 검흔
   for (const t of tg) { hitFx(t.x, t.y, c.a.color, pow); (c.fx.marks || weaponMarks)(c.a, t, pow, i, n); }
   const big = share >= 0.2 || last;
@@ -801,15 +821,26 @@ function hitFx(x, y, color, pow = 1) {
 }
 
 // 시전 중 기사 주변에 직업색 기운이 피어오른다 (2차는 더 크고 진하게). 오라는 기사 뒤에 그린다 (world.js render)
+// 극의(Lv30): 시전이 끝나는 순간 발밑에서 금빛 고리가 두 겹 퍼지고 위로 불꽃이 솟는다
+function masteryFinish(a) {
+  const x = a.px(), gy = groundY();
+  effects.push({ type: 'ring', x, y: gy - 2, t: 0, color: MASTERY_GOLD, size: 0.8, life: 0.5 });
+  effects.push({ type: 'ring', x, y: gy - 2, t: -0.08, color: a.color, size: 0.6, life: 0.5 });
+  for (let i = 0; i < 14; i++) {
+    parts.push({ x: x + rand(-14, 14), y: gy - rand(0, 10), vx: rand(-20, 20), vy: rand(-150, -70), g: -20, size: Math.random() < 0.3 ? 3 : 2,
+      color: i % 3 ? MASTERY_GOLD : '#ffffff', life: rand(0.35, 0.6), t: 0, add: true });
+  }
+}
+
 function auraTick(c) {
-  if (c.a.u >= 0.95 || Math.random() > (skillTier(c.k) >= 2 ? 0.9 : 0.45)) return;
+  if (c.a.u >= 0.95 || Math.random() > (skillTier(c.k) >= 2 || c.a.mast >= 2 ? 0.9 : 0.45)) return;
   const x = c.a.px(), gy = groundY();
   parts.push({ x: x + rand(-12, 12), y: gy - rand(2, 30), vx: rand(-8, 8), vy: rand(-90, -40), g: -30, size: Math.random() < 0.3 ? 3 : 2,
     color: Math.random() < 0.65 ? c.a.color : '#ffffff', life: rand(0.3, 0.6), t: 0, add: true });
 }
 function drawAuras() {
   for (const c of casts) {
-    const t2 = skillTier(c.k) >= 2, k = Math.sin(Math.PI * Math.min(1, c.a.u * 1.2));
+    const t2 = skillTier(c.k) >= 2 || c.a.mast >= 2, k = Math.sin(Math.PI * Math.min(1, c.a.u * 1.2));
     if (k <= 0.02) continue;
     const pose = c.fx.pose ? c.fx.pose(c.a.u, c.a) : {};
     if (pose.alpha === 0) continue;
@@ -825,6 +856,11 @@ function drawAuras() {
       // 발밑에 도는 빛 고리
       ctx.strokeStyle = c.a.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7 * k;
       ctx.beginPath(); ctx.ellipse(x, groundY() - 1, 22 + 3 * Math.sin(clock * 8), 5, 0, 0, Math.PI * 2); ctx.stroke();
+      if (c.a.mast >= 3) {
+        // 극의: 바깥에 반대로 도는 금빛 고리 하나 더
+        ctx.strokeStyle = MASTERY_GOLD; ctx.lineWidth = 1; ctx.globalAlpha = 0.55 * k;
+        ctx.beginPath(); ctx.ellipse(x, groundY() - 1, 30 - 3 * Math.sin(clock * 6), 7, 0, 0, Math.PI * 2); ctx.stroke();
+      }
     }
     ctx.restore();
   }
@@ -1397,7 +1433,7 @@ function drawScreenFx() {
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
   ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-  const label = `${k.icon} ${k.name}`;
+  const label = `${k.icon} ${k.name}${cutin.star || ''}`;
   ctx.strokeText(label, cx, y + h / 2 + 1);
   ctx.fillStyle = cutin.color;
   ctx.fillText(label, cx, y + h / 2 + 1);
@@ -1419,7 +1455,7 @@ function drawSkillIcons(x, y) {
     ctx.globalAlpha = 1;
     if (!ready) {
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(bx, y, sz, Math.round(sz * Math.min(1, left / k.cd)));
+      ctx.fillRect(bx, y, sz, Math.round(sz * Math.min(1, left / skillCd(id))));
     } else {
       ctx.strokeStyle = CLASSES[k.cls].look.fx; ctx.lineWidth = 1;
       ctx.globalAlpha = 0.6 + 0.4 * Math.sin(clock * 6);

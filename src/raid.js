@@ -114,5 +114,9 @@ function openRaidChest(c) {
 function claimRaidChest(i) {
   const c = S.raid.chests.splice(i, 1)[0];
   if (!c) return [];
-  return openRaidChest(c).map((it) => ({ it, got: claimLoot(it) }));
+  const got = openRaidChest(c).map((it) => ({ it, got: claimLoot(it) }));
+  // 📖 비전서 (스킬 숙련도): 상자마다 1~2권, 그 보스의 첫 처치 상자는 5권
+  got.tomes = c.first ? 5 : 1 + (Math.random() < 0.5 ? 1 : 0);
+  S.tomes += got.tomes;
+  return got;
 }

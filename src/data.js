@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.9.6';
+const GAME_VERSION = '0.9.7';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -23,6 +23,7 @@ const DEFEAT_STAMINA = 10;            // 쓰러지면 잃는 스태미나 (약 2
 const LUNCH_RATIO = 0.5;              // 도시락: 최대 스태미나의 50% 회복
 const DEFEAT_DOWN_SEC = 2.5;          // 쓰러져 있는 시간
 const BOX_DROP = 0.05;                // 일반 몬스터 전리품 상자 드랍률 (보스는 100%)
+const BOSS_TOME_DROP = 0.15;          // 원정 보스가 📖 비전서를 떨굴 확률 (스킬 숙련도, classes.js)
 const POTION_AT = 0.3;                // 체력 30% 이하에서 물약 자동 사용
 const CAMP_HEAL_PER_SEC = 0.1;        // 캠프에서 초당 최대 체력의 10% 회복
 

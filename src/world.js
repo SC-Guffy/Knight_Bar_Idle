@@ -188,6 +188,7 @@ function hitMonster(m, mult = 1, o = {}) {
     addFloater(`${big ? '✨' : '📦'} ${lootName(r.loot)}${big ? '!' : ''}`, sx, monsterTop(m) - 18, G.color, big ? 15 : 12);
     if (big && !m.boss) showBanner(`${lootName(r.loot)} 발견!`, G.color);
   }
+  if (r.tome) addFloater('📖 비전서!', sx, monsterTop(m) - 34, '#c9a7ff', 14, true);
   if (m.boss) { showBanner('STAGE CLEAR!'); save(); }
   if (bagFull()) endExpedition('bag');
 }
@@ -1462,7 +1463,7 @@ function updateDuel() {
       const who = e.by === 'a' ? d.res.me : d.res.opponent;
       startCast(`duel-${e.by}`, e.sk, {
         x: () => duelX(e.by, duelTime()), dir: e.by === 'a' ? 1 : -1, tx: () => duelX(target, duelTime()), ty: () => groundY() - 24,
-        cls: who.cls,
+        cls: who.cls, lv: e.sl,
         onHit: (i, n) => {
           d.hit[target] = clock;
           if (i === n - 1) addFloater((e.crit ? '💥' : '') + fmt(e.dmg), duelX(target, duelTime()) + rand(-8, 8), groundY() - 76, e.crit ? '#ffb13b' : CLASSES[who.cls].look.fx, 18, true);
@@ -1890,7 +1891,7 @@ function updateRaid(dt) {
       d.hpK[i] = e.h;
       startCast(`raid-${i}`, e.s, {
         x: () => raidKnightX(i), dir: 1, tx: () => raidBossGeom().left + 12, ty: () => groundY() - raidBossGeom().h * 0.5,
-        cls,
+        cls, lv: e.sl,
         onHit: (j, n) => {
           d.bossHit = clock;
           if (j < n - 1) return;
