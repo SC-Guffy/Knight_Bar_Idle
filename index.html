@@ -127,8 +127,10 @@
   .res { display: flex; gap: 14px; flex: 1; justify-content: flex-end; }
   .x { all: unset; cursor: pointer; width: 26px; height: 26px; border-radius: 7px; text-align: center; line-height: 26px; color: var(--muted); }
   .x:hover { background: var(--soft-hover); color: var(--text); }
-  #campModal nav { display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--line); }
-  #campModal nav button { all: unset; cursor: pointer; padding: 8px 12px; border-radius: 8px 8px 0 0; color: var(--muted); position: relative; }
+  #campModal nav { display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; white-space: nowrap; }
+  #campModal nav::-webkit-scrollbar { display: none; }
+  #campModal nav > * { flex-shrink: 0; }
+  #campModal nav button { all: unset; cursor: pointer; padding: 8px 10px; border-radius: 8px 8px 0 0; color: var(--muted); position: relative; }
   #campModal nav button.on { color: var(--text); background: var(--soft); }
   #campModal nav .autohide { all: unset; cursor: pointer; margin-left: auto; align-self: center; padding: 2px 9px; border-radius: 999px;
     font-size: 11px; color: var(--muted); background: var(--soft); }
