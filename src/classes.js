@@ -294,13 +294,44 @@ const CLASSES = {
 //  hits: [[시점(dur 비율 0~1), 배율], ...] — 배율의 합이 대상 하나가 받는 총 피해
 //  area: single 가장 가까운 적 | line 앞쪽 일직선 (무기 사거리 × reach) | all 사거리 + radius 안의 적 모두
 //  crit 치명타 확정 · air: [시작, 끝] 이 구간엔 공중에 있어 맞지 않는다
-//  ward: 시전이 끝나면 펼치는 보호막 { dur 초, guard 받는 피해 감소, heal 즉시 회복(최대 체력 비율), tick 보호막 동안 초당 주변 피해 배율 }
+//  ward: 시전이 끝나면 펼치는 보호막 { dur 초, guard 받는 피해 감소, heal 즉시 회복(최대 체력 비율), tick 보호막 동안 초당 주변 피해 배율,
+//        finish 보호막이 끝날 때 터지는 마무리 타격 배율 }
+//  hits 의 세 번째 칸(선택): 그 타격만의 대상 { area, radius, reach, launch 맞은 적을 띄움 } — 예: 첫 타는 눈앞 하나, 검풍은 일직선
+//  stages: 숙련 단계(0 = Lv1~9, 1 = ★숙련 Lv10, 2 = ★★달인 Lv20, 3 = ★★★극의 Lv30)마다 기술의 모양을 덮어쓴다 (skillAt).
+//          타격 배율은 비율만 뜻한다 — 합이 위의 원래 배율(skillMult)과 같아지도록 자동으로 맞추고, 위력 성장은 skillPowAt 이 따로 곱한다.
+//          그래서 타격 횟수·마무리 일격이 늘어도 단계별 DPS 곡선(숙련도 설명 참고)은 그대로다.
 const evenHits = (n, from, step, mult) => Array.from({ length: n }, (_, i) => [from + step * i, mult]);
+
+// 질풍난무 동선 시간표(초): n 번 지그재그로 베고 → 뛰어올라 X자로 내리꽂고 → (fin) 다시 높이 솟구쳐 마무리 일격으로 내려찍는다.
+// skills.js 의 galeAt 이 같은 시간표로 자세를 그린다
+function galePlan(n, fin) {
+  const stops = [];
+  let t = 0.078;                                   // 준비 자세
+  for (let i = 0; i < n; i++) stops.push(t += 0.117);
+  const rise = t + 0.182, hang = rise + 0.052, x = hang + 0.104, hold = x + 0.078;
+  const f = fin ? { up: hold + 0.2, top: hold + 0.26, hit: hold + 0.34, land: hold + 0.44 } : null;
+  const dur = Math.round((f ? f.land + 0.12 : hold + 0.104) * 100) / 100;
+  return { stops, rise, hang, x, hold, fin: f, dur };
+}
+function galeStage(n, fin) {
+  const P = galePlan(n, fin), u = (sec) => sec / P.dur;
+  return {
+    dur: P.dur, n, fin,
+    hits: [...P.stops.map((s) => [u(s), 0.5]), [u(P.x), 1.2], ...(fin ? [[u(P.fin.hit), 1.8, { area: 'all', radius: 60 }]] : [])],
+  };
+}
 const SKILLS = {
   // ── 1차 ──
   steelCleave: {
     cls: 'swordsman', name: '강철 베기', icon: '⚔️', lv: 25, cd: 8, dur: 0.7, area: 'single',
     hits: [[0.5, 2.6]],
+    stages: [
+      {},
+      { hits: [[0.5, 2.0], [0.66, 0.8, { area: 'line', reach: 3 }]] },                                        // ★ 베고 나면 검풍이 앞으로
+      { hits: [[0.5, 1.8, { area: 'all', radius: 34 }], [0.64, 0.9, { area: 'line', reach: 4 }]] },          // ★★ 내려벨 때 주변까지, 검풍 두 겹
+      { dur: 0.95, hits: [[0.37, 1.4, { area: 'all', radius: 34 }], [0.47, 0.6, { area: 'line', reach: 4 }], [0.78, 1.6, { area: 'all', radius: 34 }]] },   // ★★★ 되베어 X자
+    ],
+    stageDesc: ['내려베기 한 번', '벤 자리에서 초승달 검풍이 앞으로 날아간다', '땅이 갈라지며 주변까지 베고, 검풍이 두 겹', '낮게 되돌린 검으로 올려베어 금빛 X자 마무리'],
     desc: '검을 머리 위로 치켜들었다가 크게 내려벤다.',
   },
   piercingThrust: {
@@ -318,23 +349,46 @@ const SKILLS = {
   judgment: {
     cls: 'paladin', name: '심판의 일격', icon: '⚡', lv: 60, cd: 10, dur: 1.0, area: 'all', radius: 60,
     hits: [[0.6, 4]],
+    stages: [
+      { radius: 45 },
+      { radius: 60 },                                                                                        // ★ 범위 +30%
+      { radius: 60, hits: [[0.6, 2.4], [0.74, 1.6]] },                                                        // ★★ 빛기둥 두 번
+      { dur: 1.3, radius: 70, hits: [[0.46, 1.6], [0.57, 1.2], [0.85, 2.2, { area: 'all', radius: 90, launch: true }]] },   // ★★★ 빛이 모여 대폭발
+    ],
+    stageDesc: ['가는 빛기둥 하나', '범위 +30% · 굵은 빛기둥', '흰 빛기둥이 한 번 더 내리꽂힌다', '흩어진 빛을 모아 거대한 금빛 기둥 — 적을 띄운다'],
     desc: '성검을 하늘로 들어 적 위에 황금 빛기둥을 내리꽂는다.',
   },
   sanctuary: {
     cls: 'paladin', name: '성역', icon: '🛡️', lv: 70, cd: 18, dur: 0.9, area: 'all', radius: 40,
     hits: [], ward: { dur: 4, guard: 0.5, heal: 0.2, tick: 0.5 },
-    desc: '성검을 땅에 꽂아 4초 동안 황금 성역을 펼친다. 받는 피해 -50%, 체력 20% 회복, 안의 적은 계속 불탄다.',
+    stages: [
+      { ward: { dur: 3 } },
+      { ward: { dur: 4 } },                                                                                  // ★ 보호막 4초
+      { ward: { dur: 4, heal: 0.3 } },                                                                       // ★★ 회복 30%
+      { ward: { dur: 4, heal: 0.3, finish: 1 } },                                                            // ★★★ 끝날 때 성광 폭발
+    ],
+    stageDesc: ['작은 돔 3초', '보호막 4초 · 돔이 커진다', '회복 20% → 30% · 성호 룬이 돔을 돈다', '금빛 이중 돔 — 끝날 때 성광이 터진다'],
+    desc: '성검을 땅에 꽂아 황금 성역을 펼친다. 받는 피해 -50%, 체력 회복, 안의 적은 계속 불탄다.',
   },
 
   // ── 검성 ──
   gale: {
     cls: 'blademaster', name: '질풍난무', icon: '🌪️', lv: 60, cd: 10, dur: 1.3, area: 'all', radius: 40,
     hits: [...evenHits(6, 0.15, 0.09, 0.5), [0.86, 1.2]],
+    stages: [galeStage(4, false), galeStage(5, false), galeStage(6, false), galeStage(6, true)],               // 난무 4 → 5 → 6회 → 6회 + 마무리 일격
+    stageDesc: ['난무 4회 + X자', '난무 5회 · 검흔 두 겹', '난무 6회 · 더 큰 X자', '난무 6회 뒤 높이 솟구쳐 내려찍는 마무리 일격'],
     desc: '모습을 감추고 적 사이를 오가며 6번 벤 뒤 X자로 마무리한다.',
   },
   iaido: {
     cls: 'blademaster', name: '일섬', icon: '🌙', lv: 70, cd: 15, dur: 1.4, area: 'all', radius: 200, crit: true,
     hits: [[0.78, 4]],
+    stages: [
+      { radius: 110 },
+      { radius: 140, hits: [[0.78, 3.2], [0.9, 0.8]] },                                                     // ★ 늦게 터지는 잔상 베기
+      { radius: 200, hits: [[0.78, 3.2], [0.9, 0.8]], kb: 32 },                                             // ★★ 범위 확대 · 크게 밀쳐 냄
+      { dur: 1.9, radius: 200, kb: 32, hits: [[0.575, 2.0], [0.66, 0.6], [0.86, 2.2]] },                    // ★★★ 되돌아오며 이중 일섬
+    ],
+    stageDesc: ['짧은 섬광 한 줄기', '늦게 따라온 잔상이 한 번 더 벤다', '범위 확대 · 화면을 가로지르는 칼바람으로 크게 밀쳐 낸다', '돌아서서 다시 발도 — 되돌아오는 금빛 이중 일섬'],
     desc: '숨을 죽인 발도 자세에서 한 줄기 섬광으로 지나간다. 늦게 터지는 베기는 반드시 치명타.',
   },
 
@@ -389,7 +443,25 @@ const SKILLS = {
 };
 for (const id in SKILLS) SKILLS[id].id = id;
 // 대상 하나가 받는 총 피해 배율 (보호막 지속 피해 포함)
-const skillMult = (k) => k.hits.reduce((a, h) => a + h[1], 0) + (k.ward ? k.ward.tick * k.ward.dur : 0);
+const skillMult = (k) => k.hits.reduce((a, h) => a + h[1], 0) + (k.ward ? k.ward.tick * k.ward.dur + (k.ward.finish || 0) : 0);
+// 숙련도 lv 의 모양이 반영된 스킬 (stages). 타격 배율 합은 원래 skillMult 와 같게 맞춘다
+const stageCache = {};
+function skillAt(id, lv = 1) {
+  const k = SKILLS[id];
+  if (!k.stages) return k;
+  const m = Math.min(3, Math.floor(lv / 10)), key = id + m;
+  if (stageCache[key]) return stageCache[key];
+  const o = k.stages[m] || {};
+  const s = { ...k, ...o, stage: m };
+  if (k.ward) s.ward = { ...k.ward, ...(o.ward || {}) };
+  const raw = s.hits.reduce((a, h) => a + h[1], 0) + (s.ward ? s.ward.tick * s.ward.dur + (s.ward.finish || 0) : 0);
+  const f = raw ? skillMult(k) / raw : 1;
+  s.hits = s.hits.map((h) => [h[0], h[1] * f, ...h.slice(2)]);
+  if (s.ward) { s.ward.tick *= f; if (s.ward.finish) s.ward.finish *= f; }
+  return (stageCache[key] = s);
+}
+// 타격 i 의 대상 범위 (그 타격만의 범위가 있으면 덮어쓴다)
+const hitRange = (k, i) => (k.hits[i] && k.hits[i][2] ? { ...k, ...k.hits[i][2] } : k);
 // 직업의 스킬 (해금 레벨 순)
 const skillsOf = (cls) => Object.values(SKILLS).filter((k) => k.cls === cls).sort((a, b) => a.lv - b.lv);
 

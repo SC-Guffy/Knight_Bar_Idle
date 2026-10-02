@@ -48,10 +48,12 @@ function startCast(owner, id, a, queue = false) {
     return;
   }
   casts = casts.filter((c) => c.owner !== owner);      // 남아 있는 이펙트(성역 돔 등)는 그대로 둔다
-  const k = SKILLS[id], fx = SKILL_FX[id];
+  // 숙련 단계마다 기술의 모양이 다르다 (classes.js stages): 타격 횟수·시전 시간·마무리 일격
+  const lv = a.lv || (owner === 'hero' ? skillLv(id) : 1);
+  const k = skillAt(id, lv), fx = SKILL_FX[id];
   Object.assign(a, { owner, id, k, u: 0, color: CLASSES[a.cls || S.cls].look.fx });
   a.cls = a.cls || S.cls;
-  a.lv = a.lv || (owner === 'hero' ? skillLv(id) : 1);
+  a.lv = lv;
   a.mast = masteryOf(a.lv);
   if (a.mast >= 3) a.color = mixHex(a.color, MASTERY_GOLD, 0.45);
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
@@ -134,7 +136,8 @@ function updateCasts(dt) {
     c.t += dt;
     const u = Math.min(1, c.t / c.k.dur);
     c.a.u = u;
-    const cues = c.fx.cues || [];
+    // cues 는 [[시점, fn]] 목록, 또는 숙련 단계마다 시전 시간이 달라서 시전 정보로 목록을 만드는 함수
+    const cues = typeof c.fx.cues === 'function' ? (c.cueList || (c.cueList = c.fx.cues(c.a))) : c.fx.cues || [];
     while (c.ci < cues.length && cues[c.ci][0] <= u) cues[c.ci++][1](c.a);
     const hits = c.k.hits;
     while (c.hi < hits.length && hits[c.hi][0] <= u) {
@@ -198,14 +201,20 @@ function tickSkills(dt, st) {
       burst(toScreen(m.x), monsterMidY(m), 8, ['#ffd257', '#fff3b0'], 70, 2, -40);
     }
   }
-  if (w.left <= 0) knight.ward = null;
+  if (w.left > 0) return;
+  knight.ward = null;
+  // ★★★ 극의 성역: 보호막이 끝나는 순간 성광이 터진다
+  if (w.finish) {
+    for (const m of skillTargets({ area: 'all', radius: 56 }, st)) hitMonster(m, w.finish, { kb: 16, color: '#fff3b0' });
+    if (SKILL_FX.sanctuary.finish) SKILL_FX.sanctuary.finish(w.a);
+  }
 }
 
 // 교전 중 쿨타임이 찬 스킬이 있으면 쓴다 (해금 레벨 높은 것부터)
 function tryCastSkill(st, target) {
   for (const id of st.skills) {
     if ((knight.cds[id] || 0) > 0) continue;
-    const k = SKILLS[id], fx = SKILL_FX[id];
+    const k = skillAt(id, skillLv(id)), fx = SKILL_FX[id];
     knight.cds[id] = skillCd(id);
     knight.swing = -1;
     let focus = target;
@@ -214,24 +223,26 @@ function tryCastSkill(st, target) {
       x: () => toScreen(knight.x),
       tx: () => toScreen(focus.x) + focus.kb,
       ty: () => monsterMidY(focus),
-      targets: () => {
-        const list = skillTargets(k, stats());
+      // i: 타격 번호 — 그 타격만의 범위가 있으면 그 범위의 대상 (classes.js hitRange)
+      targets: (i) => {
+        const list = skillTargets(i == null ? k : hitRange(k, i), stats());
         return (list.length ? list : [focus]).map((m) => ({ x: toScreen(m.x) + m.kb, y: monsterMidY(m), top: monsterTop(m) }));
       },
       onHit: (i) => {
         if (!k.hits.length) return;
-        const list = skillTargets(k, stats());
+        const hk = hitRange(k, i);
+        const list = skillTargets(hk, stats());
         if (list.length) focus = list[0];
         for (const m of list) {
           // 여러 번 나눠 때리는 스킬은 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다
-          hitMonster(m, k.hits[i][1] * skillPow(id), { crit: k.crit, kb: fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 6 && i < k.hits.length - 1 });
-          if (fx.launch && !m.boss) m.air = 0;
+          hitMonster(m, k.hits[i][1] * skillPow(id), { crit: k.crit, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 6 && i < k.hits.length - 1 });
+          if ((fx.launch || hk.launch) && !m.boss) m.air = 0;
         }
       },
       onEnd: () => {
         if (!k.ward) return;
         const max = stats().maxHp;
-        knight.ward = { left: k.ward.dur, guard: k.ward.guard, tick: k.ward.tick * skillPow(id), acc: 0 };
+        knight.ward = { left: k.ward.dur, guard: k.ward.guard, tick: k.ward.tick * skillPow(id), acc: 0, finish: (k.ward.finish || 0) * skillPow(id), a };
         S.hp = Math.min(max, S.hp + max * k.ward.heal);
         addFloater(`💚 +${fmt(max * k.ward.heal)}`, toScreen(knight.x), groundY() - 66, '#7dffb0', 13);
       },
@@ -427,7 +438,7 @@ function autoHitFx(c, i) {
   const t2 = skillTier(k) >= 2;
   const mast = c.a.mast || 0;
   const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1) * (1 + 0.15 * mast);
-  const tg = c.a.targets();
+  const tg = c.a.targets(i);
   // 숙련: 타격마다 직업색 파편 (극의는 금빛이 섞인다)
   if (mast) for (const t of tg) burst(t.x, t.y, Math.round((3 + 3 * mast) * Math.min(1.5, pow / 1.4)), [c.a.color, '#ffffff', mast >= 3 ? MASTERY_GOLD : c.a.color], 70 + 25 * mast, 2, 160);
   // 스킬마다 고유한 타격 이미지(fx.marks). 없으면 무기별 기본 검흔
@@ -881,56 +892,172 @@ const DRAGON_HEAD = [
 ];
 const DRAGON_PAL = { h: '#3b2458', H: '#b388ff', e: '#ffe066', w: '#ffffff' };
 
-// 질풍난무 동선: [도착 시점, 대상 기준 위치(+ 대상 너머 / - 대상 앞), 베는 방향(1 내려베기 · -1 올려베기)]
-// 각 구간은 앞 55% 동안 돌진(빠르게 → 잔상), 도착 직전부터 베기. 타격 시점(SKILLS.gale.hits)과 맞춰 둔다
-const GALE_STOPS = [[0.15, 36, 1], [0.24, -30, -1], [0.33, 44, 1], [0.42, -36, -1], [0.51, 32, 1], [0.6, -26, -1]];
-function galeAt(u, D) {
+// ── 숙련 단계 연출에 쓰는 도구 ──
+// 앞으로 날아가는 초승달 검풍 (x0 에서 dist 만큼). 지나가는 땅에서 흙먼지가 인다
+function waveFx(a, x0, y, dist, color, life, size = 1, delay = 0) {
+  const d = a.dir, r = 13 * size;
+  const at = (u) => x0 + d * dist * easeOut(u);
+  skFx(null, delay, life, (u) => {
+    const x = at(u), fade = u > 0.65 ? (1 - u) / 0.35 : 1;
+    const a0 = d > 0 ? -1.15 : Math.PI - 1.15, a1 = d > 0 ? 1.15 : Math.PI + 1.15;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = fade;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = color; ctx.lineWidth = 5 * size;
+    ctx.beginPath(); ctx.arc(x - d * r, y, r, a0, a1); ctx.stroke();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.6 * size;
+    ctx.beginPath(); ctx.arc(x - d * r, y, r, a0 + 0.25, a1 - 0.25); ctx.stroke();
+    ctx.globalAlpha = fade * 0.5; ctx.strokeStyle = color; ctx.lineWidth = 1;
+    for (const dy of [-r * 0.6, 0, r * 0.6]) { ctx.beginPath(); ctx.moveTo(x - d * (r + 4), y + dy); ctx.lineTo(x - d * (r + 26 * size), y + dy); ctx.stroke(); }
+    ctx.restore();
+  }, null, (u) => {
+    if (Math.random() < 0.6) parts.push({ x: at(u), y: groundY() - 2, vx: -d * rand(10, 50), vy: rand(-50, -10), g: 220, size: 2, color: Math.random() < 0.5 ? '#c9b38a' : '#a8946a', life: 0.3, t: 0 });
+  });
+}
+// 땅이 양옆으로 갈라지는 금 (x 에서 좌우 len 만큼)
+function groundCrackFx(x, len, color, life = 0.7) {
+  const side = (s) => { const out = [[x, groundY() + 1]]; for (let i = 1; i <= 6; i++) out.push([x + s * len * (i / 6), groundY() + 1 + (i % 2 ? -2 : 1) * rand(0.5, 1.5)]); return out; };
+  const L = side(-1), R = side(1);
+  skFx(null, 0, life, (u) => {
+    const grow = Math.min(1, u / 0.18), fade = u > 0.5 ? 1 - (u - 0.5) / 0.5 : 1;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    for (const [P, w, c] of [[L, 3, color], [R, 3, color], [L, 1, '#ffffff'], [R, 1, '#ffffff']]) {
+      const m = Math.max(2, Math.round(P.length * grow));
+      ctx.strokeStyle = c; ctx.lineWidth = w;
+      ctx.beginPath(); P.slice(0, m).forEach(([px, py], j) => (j ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+// 흩어진 빛 알갱이가 한 점(x, y)으로 빨려 들며 빛 구슬이 커진다 (life 초 뒤 터질 자리)
+function gatherFx(a, x, y, color, life, size = 1) {
+  aFx(a, 0, life, (u) => {
+    const r = (3 + 9 * easeIn(u)) * size;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.4);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, color); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r * 2.4, y - r * 2.4, r * 4.8, r * 4.8);
+    ctx.restore();
+  }, null, (u) => {
+    for (let j = 0; j < 2; j++) {
+      const ang = rand(0, Math.PI * 2), dist = rand(36, 70) * size;
+      const px = x + Math.cos(ang) * dist, py = y + Math.sin(ang) * dist * 0.7, k = rand(2.2, 3);
+      parts.push({ x: px, y: py, vx: (x - px) * k, vy: (y - py) * k, g: 0, size: 2, color: Math.random() < 0.5 ? color : '#ffffff', life: 1 / k, t: 0, add: true });
+    }
+  });
+}
+
+// 질풍난무 동선: 대상 기준 위치(+ 대상 너머 / - 대상 앞)와 베는 방향(1 내려베기 · -1 올려베기). 난무 횟수만큼 앞에서부터 쓴다
+// 시간표(초)는 classes.js 의 galePlan — 각 구간은 앞 55% 동안 돌진(빠르게 → 잔상), 도착 직전부터 베기
+const GALE_OFFS = [[36, 1], [-30, -1], [44, 1], [-36, -1], [32, 1], [-26, -1]];
+const galePlanOf = (a) => a.galeP || (a.galeP = galePlan(a.k ? a.k.n : 6, a.k ? a.k.fin : false));
+function galeAt(t, D, P) {
   // 준비: 몸을 낮추고 쌍검을 뒤로 젖힌다
-  if (u < 0.06) { const c = easeOut(u / 0.06); return { pos: 0, fast: false, body: { sy: 1 - 0.16 * c, skew: 0.25 * c, wa: mix(-1.0, 2.4, c), wa2: mix(-0.6, 2.7, c) } }; }
-  let prevT = 0.06, prevPos = 0;
-  for (const [t, off, dirS] of GALE_STOPS) {
-    if (u < t) {
-      const span = t - prevT, k = (u - prevT) / span, dash = segU(k, 0, 0.55), pos = mix(prevPos, D + off, easeOut(dash));
+  if (t < 0.078) { const c = easeOut(t / 0.078); return { pos: 0, fast: false, body: { sy: 1 - 0.16 * c, skew: 0.25 * c, wa: mix(-1.0, 2.4, c), wa2: mix(-0.6, 2.7, c) } }; }
+  let prevT = 0.078, prevPos = 0;
+  for (let i = 0; i < P.stops.length; i++) {
+    const [off, dirS] = GALE_OFFS[i % GALE_OFFS.length], st = P.stops[i];
+    if (t < st) {
+      const k = (t - prevT) / (st - prevT), dash = segU(k, 0, 0.55), pos = mix(prevPos, D + off, easeOut(dash));
       const sw = easeIn(segU(k, 0.45, 1));                 // 베기
       const wa = dirS > 0 ? mix(-2.4, 1.0, sw) : mix(1.2, -2.2, sw), wa2 = dirS > 0 ? mix(-2.0, 0.7, segU(k, 0.6, 1)) : mix(0.9, -1.8, segU(k, 0.6, 1));
       const moving = dash < 1;
       return { pos, fast: moving && dash > 0.05, body: { wa, wa2, skew: moving ? 0.4 : 0.2, sy: moving ? 0.88 : 0.95, sx: moving ? 1.12 : 1, lift: moving ? 5 * Math.sin(Math.PI * dash) : 0 } };
     }
-    prevT = t; prevPos = D + off;
+    prevT = st; prevPos = D + off;
   }
-  // 막타 준비: 대상 앞쪽으로 뛰어올라 쌍검을 머리 위로 엇갈려 든다
-  if (u < 0.74) { const k = easeOut(segU(u, 0.6, 0.74)); return { pos: mix(prevPos, D - 18, k), fast: k < 0.9, body: { wa: mix(-2.2, -2.5, k), wa2: mix(-1.8, -2.0, k), lift: 30 * Math.sin((Math.PI / 2) * k), sy: 1.08, skew: -0.15 } }; }
-  // 정점에서 잠깐 멈췄다가 내리꽂으며 X자로 벤다 (0.86 타격)
-  if (u < 0.86) { const d = easeIn(segU(u, 0.78, 0.86)); return { pos: D - 18, fast: d > 0.1, body: { wa: mix(-2.5, 1.1, d), wa2: mix(-2.0, 0.6, d), lift: 30 * (1 - d), sy: mix(1.08, 0.84, d), sx: mix(1, 1.12, d), skew: mix(-0.15, 0.45, d) } }; }
-  // 착지 자세를 잠깐 유지했다가 원래 자리로 물러난다
-  if (u < 0.92) return { pos: D - 18, fast: false, body: { wa: 1.1, wa2: 0.6, sy: 0.86, skew: 0.4 } };
-  const r = easeOut(segU(u, 0.92, 1));
-  return { pos: mix(D - 18, 0, r), fast: r < 0.8, body: { wa: mix(1.1, -1.0, r), wa2: mix(0.6, -0.6, r), lift: 8 * Math.sin(Math.PI * r), sy: 1, skew: 0.4 * (1 - r) } };
+  // X 준비: 대상 앞쪽으로 뛰어올라 쌍검을 머리 위로 엇갈려 든다
+  if (t < P.rise) { const k = easeOut(segU(t, prevT, P.rise)); return { pos: mix(prevPos, D - 18, k), fast: k < 0.9, body: { wa: mix(-2.2, -2.5, k), wa2: mix(-1.8, -2.0, k), lift: 30 * Math.sin((Math.PI / 2) * k), sy: 1.08, skew: -0.15 } }; }
+  // 정점에서 잠깐 멈췄다가 내리꽂으며 X자로 벤다
+  if (t < P.x) { const d = easeIn(segU(t, P.hang, P.x)); return { pos: D - 18, fast: d > 0.1, body: { wa: mix(-2.5, 1.1, d), wa2: mix(-2.0, 0.6, d), lift: 30 * (1 - d), sy: mix(1.08, 0.84, d), sx: mix(1, 1.12, d), skew: mix(-0.15, 0.45, d) } }; }
+  if (t < P.hold) return { pos: D - 18, fast: false, body: { wa: 1.1, wa2: 0.6, sy: 0.86, skew: 0.4 } };
+  let from = D - 18, t0 = P.hold;
+  const F = P.fin;
+  if (F) {
+    // ★★★ 마무리 일격: 대상 바로 위로 높이 솟구쳐 몸을 말아 쌍검을 모으고 → 내리꽂아 땅째 가른다
+    if (t < F.up) { const k = easeOut(segU(t, P.hold, F.up)); return { pos: mix(D - 18, D - 4, k), fast: true, body: { wa: mix(1.1, -2.7, k), wa2: mix(0.6, -2.5, k), lift: 64 * k, sy: mix(0.86, 1.12, k), sx: mix(1.1, 0.9, k), skew: mix(0.4, -0.3, k) } }; }
+    if (t < F.top) { const k = segU(t, F.up, F.top); return { pos: D - 4, fast: false, body: { wa: -2.75, wa2: -2.55, lift: 64 + 3 * Math.sin(Math.PI * k), sy: 1.14, sx: 0.88, skew: -0.3 } }; }
+    if (t < F.hit) { const d = easeIn(segU(t, F.top, F.hit)); return { pos: D - 4, fast: true, body: { wa: mix(-2.75, 1.35, d), wa2: mix(-2.55, 1.15, d), lift: 64 * (1 - d), sy: mix(1.14, 0.78, d), sx: mix(0.88, 1.18, d), skew: mix(-0.3, 0.55, d) } }; }
+    if (t < F.land) return { pos: D - 4, fast: false, body: { wa: 1.35, wa2: 1.15, sy: 0.8, sx: 1.15, skew: 0.5 } };
+    from = D - 4; t0 = F.land;
+  }
+  // 원래 자리로 물러난다
+  const r = easeOut(segU(t, t0, P.dur));
+  return { pos: mix(from, 0, r), fast: r < 0.8, body: { wa: mix(1.1, -1.0, r), wa2: mix(0.6, -0.6, r), lift: 8 * Math.sin(Math.PI * r), sy: 1, skew: 0.4 * (1 - r) } };
+}
+
+// 숙련 단계 이전부터 있던 기본 자세 (단계가 오르면 이 뒤에 동작이 이어진다)
+function steelCleaveBase(u) {
+  if (u < 0.28) { const w = easeOut(segU(u, 0, 0.28)); return { wa: mix(-1.0, -2.3, w), skew: -0.2 * w, sy: 1 - 0.12 * w, dx: -3 * w }; }
+  if (u < 0.44) { const j = segU(u, 0.28, 0.44); return { wa: mix(-2.3, -2.7, j), skew: -0.25, sy: mix(0.88, 1.08, j), sx: mix(1, 0.94, j), dx: mix(-3, 8, easeOut(j)), lift: 16 * Math.sin((Math.PI / 2) * j) }; }
+  if (u < 0.5) { const d = easeIn(segU(u, 0.44, 0.5)); return { wa: mix(-2.7, 1.1, d), skew: mix(-0.25, 0.4, d), sy: mix(1.08, 0.86, d), sx: mix(0.94, 1.1, d), dx: mix(8, 12, d), lift: 16 * (1 - d) }; }
+  if (u < 0.7) { const f = segU(u, 0.5, 0.7); return { wa: 1.1 + 0.25 * Math.sin(Math.PI * f), skew: 0.4 - 0.15 * f, sy: mix(0.86, 1, easeOut(f)), sx: mix(1.1, 1, f), dx: 12 }; }
+  const r = easeOut(segU(u, 0.7, 1));
+  return { wa: mix(1.1, -1.0, r), skew: 0.25 * (1 - r), dx: 12 * (1 - r) };
+}
+// 성검을 하늘로 치켜들며 천천히 떠오른다 → 정점에서 한 번 더 젖힌다 → 내리꽂으며 착지
+function judgmentBase(u) {
+  if (u < 0.4) { const r = easeOut(segU(u, 0, 0.4)); return { wa: mix(-1.0, -1.57, r), sy: 1 + 0.08 * r, skew: -0.1 * r, lift: 10 * r + Math.sin(clock * 8) * r }; }
+  if (u < 0.52) { const r = segU(u, 0.4, 0.52); return { wa: -1.57 - 0.3 * easeOut(r), sy: 1.08, skew: -0.1 - 0.12 * r, lift: 10 + 3 * r }; }
+  if (u < 0.6) { const d = easeIn(segU(u, 0.52, 0.6)); return { wa: mix(-1.87, 0.85, d), skew: mix(-0.22, 0.38, d), dx: 7 * d, lift: 13 * (1 - d), sy: mix(1.08, 0.86, d), sx: mix(1, 1.1, d) }; }
+  if (u < 0.78) { const f = segU(u, 0.6, 0.78); return { wa: 0.85, skew: 0.38 - 0.1 * f, dx: 7, sy: mix(0.86, 1, easeOut(f)) }; }
+  const r = easeOut(segU(u, 0.78, 1));
+  return { wa: mix(0.85, -1.0, r), skew: 0.28 * (1 - r), dx: 7 * (1 - r) };
 }
 
 const SKILL_FX = {
   // ── 검사: 강철 베기 — 웅크려 검을 치켜들고, 앞으로 뛰어오르며 착지와 함께 내려벤다 ──
+  //  ★ 벤 자리에서 초승달 검풍이 앞으로 날아간다 / ★★ 내려벨 때 땅이 양옆으로 갈라지며 주변까지 베고, 검풍이 두 겹
+  //  ★★★ 검을 낮게 되돌렸다가 뛰어오르며 올려베어 X자로 마무리 (금빛 반달)
   steelCleave: {
-    pose(u) {
-      if (u < 0.28) { const w = easeOut(segU(u, 0, 0.28)); return { wa: mix(-1.0, -2.3, w), skew: -0.2 * w, sy: 1 - 0.12 * w, dx: -3 * w }; }
-      if (u < 0.44) { const j = segU(u, 0.28, 0.44); return { wa: mix(-2.3, -2.7, j), skew: -0.25, sy: mix(0.88, 1.08, j), sx: mix(1, 0.94, j), dx: mix(-3, 8, easeOut(j)), lift: 16 * Math.sin((Math.PI / 2) * j) }; }
-      if (u < 0.5) { const d = easeIn(segU(u, 0.44, 0.5)); return { wa: mix(-2.7, 1.1, d), skew: mix(-0.25, 0.4, d), sy: mix(1.08, 0.86, d), sx: mix(0.94, 1.1, d), dx: mix(8, 12, d), lift: 16 * (1 - d) }; }
-      if (u < 0.7) { const f = segU(u, 0.5, 0.7); return { wa: 1.1 + 0.25 * Math.sin(Math.PI * f), skew: 0.4 - 0.15 * f, sy: mix(0.86, 1, easeOut(f)), sx: mix(1.1, 1, f), dx: 12 }; }
-      const r = easeOut(segU(u, 0.7, 1));
-      return { wa: mix(1.1, -1.0, r), skew: 0.25 * (1 - r), dx: 12 * (1 - r) };
+    pose(u, a) {
+      const t = u * (a.k ? a.k.dur : 0.7);
+      if (a.mast >= 3 && t >= 0.42) {
+        if (t < 0.6) { const w = easeOut(segU(t, 0.42, 0.6)); return { wa: mix(1.1, 1.75, w), skew: mix(0.3, -0.1, w), sy: mix(0.95, 0.84, w), sx: mix(1, 1.06, w), dx: mix(12, 9, w) }; }
+        if (t < 0.74) { const d = easeIn(segU(t, 0.6, 0.74)); return { wa: mix(1.75, -2.0, d), skew: mix(-0.1, -0.35, d), sy: mix(0.84, 1.12, d), sx: mix(1.06, 0.92, d), dx: mix(9, 20, d), lift: 14 * d }; }
+        if (t < 0.83) { const f = segU(t, 0.74, 0.83); return { wa: -2.0 - 0.15 * Math.sin(Math.PI * f), skew: -0.35, sy: 1.08, dx: 20, lift: 14 * (1 - easeIn(f)) }; }
+        const r = easeOut(segU(t, 0.83, 0.95));
+        return { wa: mix(-2.0, -1.0, r), skew: -0.35 * (1 - r), dx: 20 * (1 - r) };
+      }
+      return steelCleaveBase(t / 0.7);
     },
-    cues: [
-      [0.26, (a) => { const h = hand(a); starFx(h.x - a.dir * 8, h.y - 24, 7, '#ffffff', 0.25); }],
-      [0.3, (a) => { for (let i = 0; i < 6; i++) parts.push({ x: a.x() - a.dir * 4, y: groundY() - 2, vx: -a.dir * rand(30, 90), vy: rand(-50, -10), g: 200, size: 3, color: i % 2 ? '#c9b38a' : '#a8946a', life: 0.35, t: 0 }); }],
-    ],
-    hit(a) {
-      const h = hand(a);
-      crescentFx(h.x, h.y, 30, -2.6, 1.0, a.dir, '#cfe0ff', 3, 0.28);
-      ringFx(a.px(), 'rgba(214,196,150,0.9)', 0.5, 0.35);
-      debris(a.px() + a.dir * 10, 6, ['#c9b38a', '#a8946a']);
+    cues: (a) => {
+      const d = a.k.dur;
+      const list = [
+        [0.182 / d, (a) => { const h = hand(a); starFx(h.x - a.dir * 8, h.y - 24, 7 + 2 * Math.min(2, a.mast), '#ffffff', 0.25); }],
+        [0.21 / d, (a) => { for (let i = 0; i < 6; i++) parts.push({ x: a.x() - a.dir * 4, y: groundY() - 2, vx: -a.dir * rand(30, 90), vy: rand(-50, -10), g: 200, size: 3, color: i % 2 ? '#c9b38a' : '#a8946a', life: 0.35, t: 0 }); }],
+      ];
+      if (a.mast >= 3) list.push([0.58 / d, (a) => { const h = hand(a); starFx(h.x + a.dir * 6, h.y + 8, 9, MASTERY_GOLD, 0.25); debris(a.px(), 6, ['#c9b38a', MASTERY_GOLD], 0.8); }]);
+      return list;
     },
-    // 반달 자국 두 겹: 두꺼운 직업색 + 늦게 따라오는 가는 강철빛
-    marks(a, t) {
+    hit(a, i) {
+      const s = a.k.stage || 0, h = hand(a), big = Math.min(2, s);
+      if (i === 0) {
+        crescentFx(h.x, h.y, 30 + 6 * big, -2.6, 1.0, a.dir, '#cfe0ff', 3 + (s >= 2 ? 1 : 0), 0.28);
+        ringFx(a.px(), 'rgba(214,196,150,0.9)', 0.5 + 0.3 * big, 0.35);
+        debris(a.px() + a.dir * 10, 6 + 5 * big, ['#c9b38a', '#a8946a'], s >= 2 ? 1.6 : 1);
+        if (s >= 2) { groundCrackFx(a.px() + a.dir * 10, 40, a.color); impact({ shake: 0.15 }); }
+      } else if (i === 1) {
+        // 검풍: 땅 위를 스치며 앞으로 (★★부터 두 겹)
+        waveFx(a, h.x, h.y + 4, 120, a.color, 0.36, s >= 2 ? 1.25 : 1);
+        if (s >= 2) waveFx(a, h.x, h.y - 6, 120, '#ffffff', 0.36, 0.8, 0.06);
+        impact({ shake: 0.08 });
+      } else {
+        // ★★★ 올려베기: 금빛 역반달 + 대상마다 X
+        crescentFx(h.x, h.y - 6, 42, 1.0, -2.4, a.dir, MASTERY_GOLD, 5, 0.32);
+        for (const t of a.targets(i)) { xslashFx(t.x, t.y, 20, a.color, 0.45); burst(t.x, t.y, 22, ['#ffffff', a.color, MASTERY_GOLD], 170); }
+        ringFx(a.px(), MASTERY_GOLD, 1.2, 0.45);
+        impact({ stop: 0.1, shake: 0.3 });
+      }
+    },
+    // 반달 자국 두 겹: 두꺼운 직업색 + 늦게 따라오는 가는 강철빛. 검풍은 가로로 스친 자국, 올려베기는 금빛 역반달
+    marks(a, t, pow, i) {
+      if (i === 1) { slashMarkFx(t.x, t.y + rand(-4, 4), a.dir > 0 ? 0 : Math.PI, 44, a.color, 3, 0.3); return; }
+      if (i === 2) { crescentMarkFx(t.x + a.dir * 4, t.y + 2, 24, 1.9, -1.2, 8, MASTERY_GOLD, 0.55, 0, a.dir); return; }
       crescentMarkFx(t.x - a.dir * 6, t.y - 2, 26, -2.1, 1.25, 9, a.color, 0.6, 0, a.dir);
       crescentMarkFx(t.x - a.dir * 2, t.y + 2, 19, -1.9, 1.1, 4, '#cfe0ff', 0.5, 0.05, a.dir);
     },
@@ -983,45 +1110,81 @@ const SKILL_FX = {
   },
 
   // ── 성기사: 심판의 일격 — 성검을 하늘로, 대상 위로 빛기둥 ──
+  //  Lv1 가는 기둥 / ★ 범위 +30%·굵은 기둥과 불꽃 / ★★ 흰 빛기둥이 한 번 더 내리꽂힌다
+  //  ★★★ 성검을 다시 들어 흩어진 빛을 대상 위로 모으고 → 거대한 금빛 기둥이 터지며 적을 띄운다
   judgment: {
-    pose(u) {
-      // 성검을 하늘로 치켜들며 천천히 떠오른다 → 정점에서 한 번 더 젖힌다 → 내리꽂으며 착지
-      if (u < 0.4) { const r = easeOut(segU(u, 0, 0.4)); return { wa: mix(-1.0, -1.57, r), sy: 1 + 0.08 * r, skew: -0.1 * r, lift: 10 * r + Math.sin(clock * 8) * r }; }
-      if (u < 0.52) { const r = segU(u, 0.4, 0.52); return { wa: -1.57 - 0.3 * easeOut(r), sy: 1.08, skew: -0.1 - 0.12 * r, lift: 10 + 3 * r }; }
-      if (u < 0.6) { const d = easeIn(segU(u, 0.52, 0.6)); return { wa: mix(-1.87, 0.85, d), skew: mix(-0.22, 0.38, d), dx: 7 * d, lift: 13 * (1 - d), sy: mix(1.08, 0.86, d), sx: mix(1, 1.1, d) }; }
-      if (u < 0.78) { const f = segU(u, 0.6, 0.78); return { wa: 0.85, skew: 0.38 - 0.1 * f, dx: 7, sy: mix(0.86, 1, easeOut(f)) }; }
-      const r = easeOut(segU(u, 0.78, 1));
-      return { wa: mix(0.85, -1.0, r), skew: 0.28 * (1 - r), dx: 7 * (1 - r) };
+    pose(u, a) {
+      const t = u * (a.k ? a.k.dur : 1);
+      if (a.mast >= 3 && t >= 0.78) {
+        if (t < 1.0) { const r = easeOut(segU(t, 0.78, 1.0)); return { wa: mix(0.85, -1.75, r), sy: 1 + 0.1 * r, skew: mix(0.28, -0.15, r), dx: 7 * (1 - r), lift: 18 * r + Math.sin(clock * 10) * r }; }
+        if (t < 1.105) { const d = easeIn(segU(t, 1.0, 1.105)); return { wa: mix(-1.75, 0.95, d), skew: mix(-0.15, 0.45, d), dx: 9 * d, lift: 18 * (1 - d), sy: mix(1.1, 0.82, d), sx: mix(1, 1.14, d) }; }
+        if (t < 1.18) return { wa: 0.95, skew: 0.42, dx: 9, sy: 0.84, sx: 1.1 };
+        const r = easeOut(segU(t, 1.18, 1.3));
+        return { wa: mix(0.95, -1.0, r), skew: 0.42 * (1 - r), dx: 9 * (1 - r) };
+      }
+      return judgmentBase(Math.min(1, t));
     },
     tick(a, u) {
-      if (u > 0.05 && u < 0.45 && Math.random() < 0.6) {
+      const t = u * a.k.dur;
+      if (((t > 0.05 && t < 0.45) || (a.mast >= 3 && t > 0.8 && t < 1.05)) && Math.random() < 0.6) {
         const h = hand(a);
         parts.push({ x: h.x + rand(-10, 10), y: h.y - rand(0, 20), vx: rand(-10, 10), vy: rand(-80, -40), g: -20, size: 2, color: Math.random() < 0.5 ? '#ffd257' : '#ffffff', life: 0.5, t: 0 });
       }
     },
-    cues: [
-      [0.2, (a) => { const h = hand(a); starFx(h.x, h.y - 26, 10, '#fff3b0', 0.4); }],
-      [0.3, (a) => {
-        for (const t of a.targets()) {
-          aFx(a, 0, 0.3, (u) => { ctx.save(); ctx.globalAlpha = 0.5 + u * 0.5; ctx.fillStyle = '#ffd257'; ctx.fillRect(Math.round(t.x) - 1, 0, 2, groundY()); ctx.restore(); });
-          ringFx(t.x, '#ffd257', 0.5, 0.3);
-        }
-      }],
-    ],
-    hit(a) {
-      for (const t of a.targets()) {
-        pillarFx(t.x, '#ffd257', 40, 0.6);
-        ringFx(t.x, '#ffd257', 1.1, 0.6);
-        ringFx(t.x, '#ffffff', 0.6, 0.4);
-        burst(t.x, groundY() - 10, 26, ['#ffd257', '#ffffff', '#fff3b0'], 170, 3, 250);
-      }
-      impact({ stop: 0.1, shake: 0.3 });
+    cues: (a) => {
+      const d = a.k.dur;
+      const list = [
+        [0.2 / d, (a) => { const h = hand(a); starFx(h.x, h.y - 26, 10, '#fff3b0', 0.4); }],
+        [0.3 / d, (a) => {
+          for (const t of a.targets()) {
+            aFx(a, 0, 0.3, (u) => { ctx.save(); ctx.globalAlpha = 0.5 + u * 0.5; ctx.fillStyle = '#ffd257'; ctx.fillRect(Math.round(t.x) - 1, 0, 2, groundY()); ctx.restore(); });
+            ringFx(t.x, '#ffd257', 0.5, 0.3);
+          }
+        }],
+      ];
+      // ★★★ 빛 모으기: 대상 위에서 빛 구슬이 커지다가 내려찍는 순간 터진다
+      if (a.mast >= 3) list.push([0.8 / d, (a) => { for (const t of a.targets()) gatherFx(a, t.x, groundY() - 54, MASTERY_GOLD, 1.105 - 0.8, 1.2); starFx(hand(a).x, hand(a).y - 28, 12, MASTERY_GOLD, 0.4); }]);
+      return list;
     },
-    marks(a, t) { holyCrossFx(t.x, t.y - 4, 18, 0.75); },
+    hit(a, i) {
+      const s = a.k.stage || 0;
+      if (i === 0) {
+        for (const t of a.targets(i)) {
+          pillarFx(t.x, '#ffd257', s ? 44 : 28, 0.6);
+          ringFx(t.x, '#ffd257', s ? 1.2 : 0.8, 0.6);
+          ringFx(t.x, '#ffffff', 0.6, 0.4);
+          burst(t.x, groundY() - 10, s ? 30 : 18, ['#ffd257', '#ffffff', '#fff3b0'], 170, 3, 250);
+          if (s >= 1) for (const sd of [-1, 1]) streakFx(t.x, groundY() - 2, t.x + sd * 30, groundY() - 2, '#ffd257', 3, 0.3);
+        }
+        impact({ stop: 0.1, shake: s ? 0.3 : 0.2 });
+      } else if (i === 1) {
+        // ★★ 두 번째 빛기둥: 흰 심이 굵은 기둥이 살짝 옆에 한 번 더
+        for (const t of a.targets(i)) {
+          pillarFx(t.x + a.dir * 6, '#ffffff', 34, 0.5);
+          pillarFx(t.x + a.dir * 6, '#fff3b0', 18, 0.4);
+          holyCrossFx(t.x, t.y - 8, 24, 0.7);
+          burst(t.x, t.y, 20, ['#ffffff', '#ffd257'], 150);
+        }
+        impact({ stop: 0.06, shake: 0.22 });
+      } else {
+        // ★★★ 대폭발: 금빛 거대 기둥 + 겹고리 + 큰 성호, 적이 떠오른다
+        for (const t of a.targets(i)) {
+          pillarFx(t.x, MASTERY_GOLD, 90, 0.85);
+          pillarFx(t.x, '#ffffff', 30, 0.55);
+          ringFx(t.x, MASTERY_GOLD, 2.2, 0.75);
+          ringFx(t.x, '#ffffff', 1.4, 0.5);
+          holyCrossFx(t.x, t.y - 12, 32, 0.9);
+          burst(t.x, groundY() - 14, 50, [MASTERY_GOLD, '#ffffff', '#ffd257'], 230, 3, 220);
+        }
+        impact({ stop: 0.16, shake: 0.45 });
+      }
+    },
+    marks(a, t, pow, i) { holyCrossFx(t.x, t.y - 4, i === 2 ? 24 : 18, 0.75); },
     kb: 16,
   },
 
   // ── 성기사: 성역 — 성검을 땅에 꽂아 황금 돔 ──
+  //  Lv1 작은 돔 3초 / ★ 4초·돔이 커짐 / ★★ 회복 +50%·돔 둘레를 성호 룬이 돌고 초록빛 회복 / ★★★ 금빛 이중 돔과 양옆 빛기둥, 끝날 때 성광 폭발
   sanctuary: {
     pose(u) {
       if (u < 0.35) { const r = segU(u, 0, 0.35); return { wa: mix(-1.0, -1.57, easeOut(r)), lift: 12 * Math.sin(Math.PI * r) }; }
@@ -1029,102 +1192,221 @@ const SKILL_FX = {
       return { wa: 1.57, sy: mix(0.86, 0.96, segU(u, 0.5, 1)) };
     },
     cues: [[0.48, (a) => {
-      const h = hand(a), k = a.k;
-      ringFx(h.x, '#ffd257', 1.2, 0.6);
+      const h = hand(a), k = a.k, s = k.stage || 0;
+      ringFx(h.x, '#ffd257', 1.2 + 0.2 * s, 0.6);
       debris(h.x, 10, ['#c9b38a', '#ffd257']);
       impact({ stop: 0.06, shake: 0.15 });
+      if (s >= 2) for (let j = 0; j < 12; j++) parts.push({ x: a.x() + rand(-14, 14), y: groundY() - rand(4, 30), vx: rand(-15, 15), vy: rand(-70, -35), g: -15, size: 3, color: j % 2 ? '#7dffb0' : '#ffffff', life: 0.8, t: 0, add: true });
       // 돔: 시전자를 따라다니며 보호막이 사라질 때까지 남는다
+      const [RX, RY] = [[28, 38], [34, 46], [40, 52], [46, 58]][s];
       const life = k.dur * 0.52 + k.ward.dur;
       aFx(a, 0, life, (u) => {
         const x = a.x(), gy = groundY();
         const grow = Math.min(1, u * life / 0.25), fade = u > 0.9 ? (1 - u) / 0.1 : 1;
-        const rx = 34 * easeOut(grow), ry = 46 * easeOut(grow);
+        const rx = RX * easeOut(grow), ry = RY * easeOut(grow);
         ctx.save();
         ctx.globalAlpha = fade * (0.85 + 0.15 * Math.sin(clock * 6));
-        ctx.fillStyle = 'rgba(255,215,90,0.13)';
+        ctx.fillStyle = s >= 3 ? 'rgba(255,235,160,0.16)' : 'rgba(255,215,90,0.13)';
         ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.fill();
-        ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 2; ctx.shadowColor = '#ffd257'; ctx.shadowBlur = 10;
+        ctx.strokeStyle = s >= 3 ? MASTERY_GOLD : '#ffd257'; ctx.lineWidth = 2; ctx.shadowColor = '#ffd257'; ctx.shadowBlur = 10;
         ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.stroke();
         ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.ellipse(x, gy, rx * 0.8, ry * 0.85, 0, Math.PI * 1.1, Math.PI * 1.5); ctx.stroke();
+        if (s >= 3) {
+          // 안쪽 두 번째 막 + 돔 양옆의 가는 빛기둥
+          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.globalAlpha *= 0.8;
+          ctx.beginPath(); ctx.ellipse(x, gy, rx * 0.62, ry * 0.7, 0, Math.PI, 0); ctx.stroke();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = 'rgba(255,240,184,0.35)';
+          for (const sd of [-1, 1]) ctx.fillRect(Math.round(x + sd * rx) - 1, gy - ry - 30, 2, ry + 30);
+        }
+        ctx.shadowBlur = 0;
+        if (s >= 2) {
+          // 돔 둘레를 도는 성호 룬 6개
+          ctx.fillStyle = '#fff3b0'; ctx.globalAlpha = fade * 0.9;
+          for (let j = 0; j < 6; j++) {
+            const ang = Math.PI + ((clock * 0.9 + j / 6) % 1) * Math.PI;
+            const px = Math.round(x + Math.cos(ang) * rx), py = Math.round(gy + Math.sin(ang) * ry);
+            ctx.fillRect(px - 1, py - 3, 2, 6); ctx.fillRect(px - 3, py - 1, 6, 2);
+          }
+        }
         ctx.restore();
       }, null, () => {
-        if (Math.random() < 0.35) parts.push({ x: a.x() + rand(-28, 28), y: groundY() - 2, vx: 0, vy: rand(-60, -30), g: -10, size: 2, color: Math.random() < 0.5 ? '#ffd257' : '#ffffff', life: 0.7, t: 0 });
+        if (Math.random() < 0.35 + 0.1 * s) parts.push({ x: a.x() + rand(-RX + 6, RX - 6), y: groundY() - 2, vx: 0, vy: rand(-60, -30), g: -10, size: 2, color: s >= 2 && Math.random() < 0.4 ? '#7dffb0' : Math.random() < 0.5 ? '#ffd257' : '#ffffff', life: 0.7, t: 0 });
       });
     }]],
+    // ★★★ 보호막이 끝나는 순간: 돔이 성광으로 터진다 (피해는 skills.js tickSkills)
+    finish(a) {
+      const x = a.x(), gy = groundY();
+      pillarFx(x, MASTERY_GOLD, 80, 0.8);
+      pillarFx(x, '#ffffff', 26, 0.5);
+      ringFx(x, MASTERY_GOLD, 2.4, 0.7);
+      ringFx(x, '#ffffff', 1.5, 0.5);
+      for (const sd of [-1, 1]) holyCrossFx(x + sd * 36, gy - 30, 20, 0.7, 0.05);
+      burst(x, gy - 24, 44, [MASTERY_GOLD, '#ffffff', '#ffd257'], 220, 3, 160);
+      impact({ stop: 0.1, shake: 0.35 });
+    },
     kb: 3,
   },
 
-  // ── 검성: 질풍난무 — 대상 앞뒤를 지그재그로 꿰뚫고 오가며 6번 베고, 뛰어올라 X자로 내리꽂는다 ──
+  // ── 검성: 질풍난무 — 대상 앞뒤를 지그재그로 꿰뚫고 오가며 베고, 뛰어올라 X자로 내리꽂는다 ──
   // 지나간 자리마다 붉은 잔상이 촤라락 남는다 (tick). 위치는 '대상까지 거리' 기준이라 결투·레이드에서도 같은 모양
+  //  Lv1 난무 4회 / ★ 5회 · 검흔이 두 겹 / ★★ 6회 · X가 커짐 / ★★★ 6회 + 높이 솟구쳐 내려찍는 마무리 일격 (땅이 갈라지고 금빛 X)
   gale: {
     pose(u, a) {
-      const D = Math.max(16, (a.tx() - a.x()) * a.dir);
-      const P = galeAt(u, D);
-      const f = P.pos > D ? -1 : 1;                       // 늘 대상 쪽을 본다 (대상 너머면 뒤돈다)
-      return { ...P.body, dx: P.pos * f, facing: f };
+      const P = galePlanOf(a), D = Math.max(16, (a.tx() - a.x()) * a.dir);
+      const G = galeAt(u * P.dur, D, P);
+      const f = G.pos > D ? -1 : 1;                       // 늘 대상 쪽을 본다 (대상 너머면 뒤돈다)
+      return { ...G.body, dx: G.pos * f, facing: f };
     },
     tick(a, u, dt) {
       // 빠르게 움직이는 동안: 지나온 길에 가는 속도선 세 줄 + 0.03초마다 옅은 잔상 하나
-      const D = Math.max(16, (a.tx() - a.x()) * a.dir), P = galeAt(u, D);
-      const sx = a.x() + a.dir * P.pos, lift = P.body.lift || 0;
-      if (P.fast && a.prevX != null && Math.abs(sx - a.prevX) > 1.5) {
+      const P = galePlanOf(a), D = Math.max(16, (a.tx() - a.x()) * a.dir), G = galeAt(u * P.dur, D, P);
+      const sx = a.x() + a.dir * G.pos, lift = G.body.lift || 0;
+      if (G.fast && a.prevX != null && Math.abs(sx - a.prevX) > 1.5) {
         const x0 = a.prevX, gy = groundY();
         for (const [h, c, w] of [[12, '#ffffff', 1], [24, '#ff4d4d', 2], [36, '#ffffff', 1]]) streakFx(x0, gy - h - lift, sx, gy - h - lift, c, w, 0.16);
       }
-      a.prevX = sx;
+      // 마무리 일격으로 솟구치고 내리꽂는 동안은 세로 속도선
+      if (P.fin && G.fast && lift > 8 && a.prevLift != null && Math.abs(lift - a.prevLift) > 2) {
+        const gy = groundY();
+        for (const [dx, c, w] of [[-6, '#ffffff', 1], [0, '#ff4d4d', 2], [6, MASTERY_GOLD, 1]]) streakFx(sx + dx, gy - 24 - a.prevLift, sx + dx, gy - 24 - lift, c, w, 0.18);
+      }
+      a.prevX = sx; a.prevLift = lift;
       a.ghostT = (a.ghostT || 0) - dt;
-      if (!P.fast || a.ghostT > 0) return;
+      if (!G.fast || a.ghostT > 0) return;
       a.ghostT = 0.03;
-      ghostFx(a, sx, (P.pos > D ? -1 : 1) * a.dir, '#ff4d4d', 0.2, { ...P.body }, 0.28);
+      ghostFx(a, sx, (G.pos > D ? -1 : 1) * a.dir, '#ff4d4d', 0.2, { ...G.body }, 0.28);
     },
-    cues: [
-      [0.06, (a) => { burst(a.x(), groundY() - 4, 10, ['#c9b38a', '#a8946a'], 80, 3, 300); }],
-      [0.64, (a) => { burst(a.px(), groundY() - 4, 8, ['#c9b38a', '#a8946a'], 80, 3, 300); }],
-    ],
-    hit(a, i, n) {
-      const t = a.targets()[0];
-      if (i < n - 1) {
-        slashMarkFx(t.x, t.y, rand(-0.9, 0.9) + (i % 2 ? Math.PI / 2 : 0), 48, '#ff4d4d', 4, 0.3, 0, rand(-6, 6));
+    cues: (a) => {
+      const P = galePlanOf(a), d = P.dur;
+      const list = [
+        [0.078 / d, (a) => { burst(a.x(), groundY() - 4, 10, ['#c9b38a', '#a8946a'], 80, 3, 300); }],
+        [(P.stops[P.stops.length - 1] + 0.05) / d, (a) => { burst(a.px(), groundY() - 4, 8, ['#c9b38a', '#a8946a'], 80, 3, 300); }],
+      ];
+      if (P.fin) {
+        list.push([(P.hold + 0.02) / d, (a) => {
+          debris(a.px(), 12, ['#c9b38a', '#ff4d4d'], 1.2);
+          ringFx(a.px(), '#ff4d4d', 0.9, 0.35);
+        }]);
+        list.push([P.fin.top / d, (a) => { const h = hand(a); starFx(h.x, h.y - 10, 14, MASTERY_GOLD, 0.3); starFx(h.x, h.y - 10, 8, '#ffffff', 0.2); }]);
+      }
+      return list;
+    },
+    hit(a, i) {
+      const P = galePlanOf(a), s = a.k.stage || 0, nS = P.stops.length, t = a.targets(i)[0];
+      if (i < nS) {
+        const ang = rand(-0.9, 0.9) + (i % 2 ? Math.PI / 2 : 0);
+        slashMarkFx(t.x, t.y, ang, 48, '#ff4d4d', s ? 4 : 3, 0.3, 0, rand(-6, 6));
+        if (s >= 1) slashMarkFx(t.x, t.y, ang + 0.18, 36, '#ffffff', 1.5, 0.22, 0.03);
         burst(t.x, t.y, 6, ['#ffffff', '#ff4d4d'], 90);
         impact({ stop: 0.02, shake: 0.06 });
         return;
       }
-      for (const tt of a.targets()) {
-        xslashFx(tt.x, tt.y, 22, '#ff3040', 0.4);
-        burst(tt.x, tt.y, 24, ['#ffffff', '#ff4d4d', '#1a1b22'], 160);
+      if (i === nS) {
+        for (const tt of a.targets(i)) {
+          xslashFx(tt.x, tt.y, s >= 2 ? 26 : 20, '#ff3040', 0.4);
+          burst(tt.x, tt.y, 24, ['#ffffff', '#ff4d4d', '#1a1b22'], 160);
+        }
+        ringFx(a.px(), '#ff4d4d', 0.8, 0.4);
+        impact({ stop: 0.12, shake: 0.3 });
+        return;
       }
-      ringFx(a.px(), '#ff4d4d', 0.8, 0.4);
-      impact({ stop: 0.12, shake: 0.3 });
+      // ★★★ 마무리 일격: 세로로 내리그은 거대한 붉은 베기, 금빛 X, 땅이 양옆으로 갈라진다
+      const x = a.px();
+      for (const tt of a.targets(i)) {
+        slashMarkFx(tt.x, tt.y - 14, Math.PI / 2, 96, '#ff3040', 8, 0.55, 0, 4);
+        slashMarkFx(tt.x, tt.y - 14, Math.PI / 2, 70, '#ffffff', 2, 0.4, 0.04, 4);
+        xslashFx(tt.x, tt.y, 30, MASTERY_GOLD, 0.5);
+        burst(tt.x, tt.y, 40, ['#ffffff', '#ff4d4d', MASTERY_GOLD, '#1a1b22'], 220);
+      }
+      groundCrackFx(x, 70, '#ff3040', 0.8);
+      debris(x, 18, ['#c9b38a', '#a8946a', '#ff4d4d'], 1.8);
+      ringFx(x, '#ff3040', 1.8, 0.6);
+      ringFx(x, MASTERY_GOLD, 1.1, 0.5);
+      impact({ stop: 0.16, shake: 0.45 });
     },
     kb: 6,
   },
 
   // ── 검성: 일섬 — 숨죽인 발도, 섬광, 늦게 터지는 베기 ──
+  //  Lv1 짧은 섬광 / ★ 늦게 따라오는 잔상이 한 번 더 벤다 / ★★ 범위가 넓어지고, 터질 때 화면 가로로 칼바람이 뻗으며 크게 밀쳐 낸다
+  //  ★★★ 지나간 자리에서 돌아서서 다시 발도 — 되돌아오는 금빛 섬광으로 이중 일섬, 대상 뒤로 붉은 달이 뜬다
   iaido: {
     pose(u, a) {
-      const D = Math.max(20, Math.abs(a.tx() - a.x()) + 34);
-      if (u < 0.45) { const s = easeOut(segU(u, 0, 0.15)); return { sy: 1 - 0.12 * s, skew: 0.15 * s, wa: mix(-1.0, 2.5, s), wa2: mix(-0.5, 2.7, s) }; }
-      if (u < 0.52) { const d = easeOut(segU(u, 0.45, 0.52)); return { dx: D * d, skew: 0.4, wa: 0.15, wa2: 0.35, sy: 0.9, alpha: 0.4 + 0.6 * d }; }
-      if (u < 0.85) return { dx: D, skew: 0.25, wa: 0.15, wa2: 0.35, sy: 0.92 };
-      const r = easeOut(segU(u, 0.85, 1));
+      const t = u * (a.k ? a.k.dur : 1.4), D = Math.max(20, Math.abs(a.tx() - a.x()) + 34);
+      if (t < 0.63) { const s = easeOut(segU(t, 0, 0.21)); return { sy: 1 - 0.12 * s, skew: 0.15 * s, wa: mix(-1.0, 2.5, s), wa2: mix(-0.5, 2.7, s) }; }
+      if (t < 0.728) { const d = easeOut(segU(t, 0.63, 0.728)); return { dx: D * d, skew: 0.4, wa: 0.15, wa2: 0.35, sy: 0.9, alpha: 0.4 + 0.6 * d }; }
+      if (a.mast >= 3) {
+        // 뒤돈 자세의 dx 는 facing 이 곱해지므로 부호를 뒤집어 같은 자리를 가리킨다
+        if (t < 1.2) return { dx: D, skew: 0.25, wa: 0.15, wa2: 0.35, sy: 0.92 };
+        if (t < 1.45) { const k = easeOut(segU(t, 1.2, 1.45)); return { dx: -D, facing: -1, sy: 1 - 0.12 * k, skew: 0.15 * k, wa: mix(0.15, 2.5, k), wa2: mix(0.35, 2.7, k) }; }
+        if (t < 1.53) { const d = easeOut(segU(t, 1.45, 1.53)); return { dx: -D * (1 - d), facing: -1, skew: 0.4, wa: 0.15, wa2: 0.35, sy: 0.9, alpha: 0.4 + 0.6 * d }; }
+        if (t < 1.78) return { dx: 0, facing: -1, skew: 0.25, wa: 0.15, wa2: 0.35, sy: 0.92 };
+        const r = easeOut(segU(t, 1.78, 1.9));
+        return { dx: 0, facing: r < 0.5 ? -1 : 1, wa: mix(0.15, -1.0, r), wa2: mix(0.35, -0.6, r) };
+      }
+      if (t < 1.19) return { dx: D, skew: 0.25, wa: 0.15, wa2: 0.35, sy: 0.92 };
+      const r = easeOut(segU(t, 1.19, 1.4));
       return { dx: D * (1 - r), wa: mix(0.15, -1.0, r), wa2: mix(0.35, -0.6, r) };
     },
-    cues: [
-      [0.32, (a) => { const h = hand(a); starFx(h.x - a.dir * 12, h.y + 4, 12, '#ffffff', 0.3); }],
-      [0.46, (a) => {
-        const y = groundY() - 26, x = a.x(), far = Math.abs(a.tx() - x) + 60;
-        razorFx(x, x + a.dir * far, y, '#ff3040', 0.5, 0, false);
-        for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * (Math.abs(a.tx() - x) + 34) * (i / 4), a.dir, '#ff4d4d', 0.3, { wa: 0.15, skew: 0.4 });
-        
-      }],
-    ],
-    hit(a) {
-      for (const t of a.targets()) burst(t.x, t.y, 30, ['#ffffff', '#ff3040', '#1a1b22'], 190, 3);
-      impact({ stop: 0.18, shake: 0.4 });
+    cues: (a) => {
+      const d = a.k.dur, s = a.k.stage || 0;
+      const list = [
+        [0.448 / d, (a) => { const h = hand(a); starFx(h.x - a.dir * 12, h.y + 4, 12, '#ffffff', 0.3); }],
+        [0.644 / d, (a) => {
+          const y = groundY() - 26, x = a.x(), far = Math.abs(a.tx() - x) + (s ? 60 : 36);
+          razorFx(x, x + a.dir * far, y, '#ff3040', 0.5, 0, false);
+          for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * (Math.abs(a.tx() - x) + 34) * (i / 4), a.dir, '#ff4d4d', 0.3, { wa: 0.15, skew: 0.4 });
+        }],
+      ];
+      if (a.mast >= 3) {
+        list.push([1.3 / d, (a) => { const h = hand(a); starFx(h.x + a.dir * 12, h.y + 4, 14, MASTERY_GOLD, 0.3); }]);
+        list.push([1.46 / d, (a) => {
+          // 되돌아오는 섬광: 대상 너머에서 출발점까지 금빛 칼날 선과 잔상
+          const y = groundY() - 26, x = a.x(), D = Math.abs(a.tx() - x) + 34;
+          razorFx(x + a.dir * (D + 20), x - a.dir * 20, y + 4, MASTERY_GOLD, 0.55, 0, false);
+          for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * D * (1 - i / 4), -a.dir, MASTERY_GOLD, 0.3, { wa: 0.15, skew: 0.4 });
+        }]);
+      }
+      return list;
     },
-    // 머리카락처럼 가는 선이 그어졌다가 늦게 위아래로 벌어지며 터진다
-    marks(a, t) { razorFx(t.x - 42, t.x + 42, t.y, '#ff3040', 0.7); razorFx(t.x - 26, t.x + 26, t.y - 9, '#ff3040', 0.6, 0.05); },
+    hit(a, i) {
+      const s = a.k.stage || 0;
+      if (i === 0) {
+        for (const t of a.targets(i)) burst(t.x, t.y, s ? 30 : 20, ['#ffffff', '#ff3040', '#1a1b22'], 190, 3);
+        if (s >= 2) {
+          // 칼바람: 터지는 높이에서 화면 가로로 길게
+          const x = a.tx(), y = groundY() - 24;
+          razorFx(x - 150, x + 150, y, '#ff3040', 0.55, 0.02, false);
+          razorFx(x - 110, x + 110, y - 10, '#ffffff', 0.4, 0.05, false);
+        }
+        impact({ stop: 0.18, shake: s >= 2 ? 0.45 : 0.4 });
+      } else if (i === 1) {
+        // 늦게 따라오는 잔상의 한 번 더 베기
+        for (const t of a.targets(i)) {
+          ghostFx(a, t.x - a.dir * 10, a.dir, '#ff4d4d', 0.25, { wa: 0.9, wa2: 1.1, skew: 0.4 }, 0.45);
+          slashMarkFx(t.x, t.y, a.dir > 0 ? -0.5 : Math.PI + 0.5, 40, '#ff4d4d', 3, 0.3);
+          burst(t.x, t.y, 10, ['#ffffff', '#ff4d4d'], 110);
+        }
+        impact({ stop: 0.03, shake: 0.1 });
+      } else {
+        // ★★★ 두 번째 일섬이 터진다: 대상 뒤로 붉은 달 + 금빛 X
+        for (const t of a.targets(i)) {
+          crescentMarkFx(t.x, t.y - 6, 34, -1.0, 2.2, 10, '#ff3040', 0.7, 0, -a.dir);
+          xslashFx(t.x, t.y, 26, MASTERY_GOLD, 0.5);
+          burst(t.x, t.y, 40, ['#ffffff', '#ff3040', MASTERY_GOLD, '#1a1b22'], 220, 3);
+        }
+        impact({ stop: 0.2, shake: 0.5 });
+      }
+    },
+    // 머리카락처럼 가는 선이 그어졌다가 늦게 위아래로 벌어지며 터진다 (★★★ 두 번째는 금빛 두 겹)
+    marks(a, t, pow, i) {
+      if (i === 1) return;
+      const w = a.k.stage ? 42 : 30, col = i === 2 ? MASTERY_GOLD : '#ff3040';
+      razorFx(t.x - w, t.x + w, t.y, col, 0.7);
+      razorFx(t.x - w * 0.62, t.x + w * 0.62, t.y - 9, col, 0.6, 0.05);
+    },
     kb: 20,
   },
 

@@ -163,7 +163,7 @@ function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
   let busy = 0, extra = 0;
   for (const id of st.skills || []) {
-    const k = SKILLS[id];
+    const k = skillAt(id, skillLv(id));
     const cd = skillCd(id);
     busy += k.dur / cd;
     extra += (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id) / cd;
@@ -181,7 +181,7 @@ function profile() {
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal,
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     skills: st.skills.map((id) => {
-      const k = SKILLS[id];
+      const k = skillAt(id, skillLv(id));
       return { id, lv: skillLv(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
     }),
   };

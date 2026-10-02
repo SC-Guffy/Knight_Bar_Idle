@@ -93,15 +93,27 @@ function run() {
   const T = {
     mode: 'skill', cls: 'swordsman', skill: null, auto: true, allCls: false, basic: true, paused: false, speed: 1, stepOnce: false,
     wait: 0.4, basicDone: false, last: null,
+    stage: 0, stageCycle: false,                              // 숙련 단계(0 = Lv1, 1 = ★Lv10, 2 = ★★Lv20, 3 = ★★★Lv30), 스킬을 쓸 때마다 단계를 돌린다
     motion: null, atkT: 0.3, swings: 0, lastBasic: null,     // 평타만: motion 고정할 동작 번호(null 이면 번갈아), swings 친 횟수
   };
   // 스킬 모드는 스킬이 있는 직업만, 평타 모드는 견습 기사까지 전부
   const testClasses = () => Object.keys(CLASSES).filter((id) => T.mode === 'basic' || skillsOf(id).length);
   const motionsOf = (id) => HERO_ATK[CLASSES[id].weapon] || HERO_ATK.sword;
 
+  // 이 직업 스킬의 숙련도를 단계의 첫 레벨(1·10·20·30)에 맞춘다
+  const STAGE_LV = [1, 10, 20, 30];
+  function setStage(st) {
+    T.stage = st;
+    const lv = STAGE_LV[st];
+    let exp = 0;
+    for (let L = 1; L < lv; L++) exp += skillNeed(L);
+    for (const k of skillsOf(T.cls)) S.mast[k.id] = exp;
+    knight.ward = null;
+  }
   function setClass(id) {
     T.cls = id;
     S.cls = id; S.level = 99; S.phase = 'test';
+    setStage(T.stage);
     S.hp = stats().maxHp;
     casts = []; skfx = []; cutin = null; hitstop = 0; floaters = []; parts = []; effects = []; shots = [];
     Object.assign(knight, { x: toWorld(HERO_X), fighting: true, facing: 1, swing: -1, pending: false, cds: {}, ward: null, down: 0, combo: 0 });
@@ -169,6 +181,7 @@ function run() {
   function tick(dt) {
     refillDummy();
     if (T.mode === 'basic') { if (T.auto) basicTick(dt); update(dt); return; }
+    tickSkills(dt, stats());                // 성역 보호막도 원정처럼 흐른다 (지속 피해·끝날 때 성광 폭발)
     const busy = castOf('hero');
     if (!busy && T.last && T.last.dmg == null) {
       T.last.dmg = T.last.hp0 - dummy.hp;
@@ -180,7 +193,9 @@ function run() {
       if (T.wait <= 0 && T.auto) {
         cast(T.skill);
         T.wait = GAP_SEC; T.basicDone = false;
-        nextSkill();
+        // 단계 순회: 같은 스킬을 Lv1 → ★ → ★★ → ★★★ 로 보여 준 뒤 다음 스킬로
+        if (T.stageCycle) { setStage((T.stage + 1) % 4); if (T.stage === 0) nextSkill(); }
+        else nextSkill();
         renderUi();
       }
     }
@@ -238,6 +253,11 @@ function run() {
         renderUi();
       }, k.desc)));
     }
+    $('stageRow').style.display = T.mode === 'basic' ? 'none' : '';
+    $('stages').replaceChildren(
+      ...['Lv1', '★ 숙련 Lv10', '★★ 달인 Lv20', '★★★ 극의 Lv30'].map((label, i) => btn(label, T.stage === i, () => { setStage(i); renderUi(); })),
+      btn('🔁 단계 순회', T.stageCycle, () => { T.stageCycle = !T.stageCycle; if (T.stageCycle) { T.auto = true; setStage(0); } renderUi(); }, '같은 스킬을 Lv1 → ★ → ★★ → ★★★ 순서로'),
+    );
     $('auto').classList.toggle('on', T.auto);
     $('allCls').classList.toggle('on', T.allCls);
     $('basic').classList.toggle('on', T.basic);
@@ -255,11 +275,12 @@ function run() {
       return;
     }
     if (!T.last) { $('info').innerHTML = '스킬을 고르거나 자동 반복을 켜세요.'; return; }
-    const k = SKILLS[T.last.id], c = CLASSES[k.cls];
-    const hits = k.hits.length, mult = +skillMult(k).toFixed(2);
+    const lv = skillLv(T.last.id), k = skillAt(T.last.id, lv), c = CLASSES[k.cls];
+    const hits = k.hits.length, mult = +(skillMult(k) * skillPow(k.id)).toFixed(2);
+    const stageName = ['Lv1~9', '★ 숙련', '★★ 달인', '★★★ 극의'][masteryOf(lv)];
     const dmg = T.last.dmg != null ? ` · 실제 피해 ${fmt(T.last.dmg)} (공격력 ${fmt(stats().atk)})` : '';
     $('info').innerHTML = `<b>${k.icon} ${k.name}</b> <small>${c.icon} ${c.name} · ${c.tier}차</small>
-      <div class="meta">${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${k.cd}초 · 시전 ${k.dur}초 · 배율 ×${mult}${hits > 1 ? ` (${hits}회)` : ''} · 범위 ${k.area}${k.crit ? ' · 치명 확정' : ''}${dmg}</div>
+      <div class="meta">숙련 <b>Lv ${lv}</b> ${stageName} · 쿨 ${skillCd(k.id)}초 · 시전 ${k.dur}초 · 배율 ×${mult}${hits > 1 ? ` (${hits}회)` : ''} · 범위 ${k.area}${k.radius ? ` ${k.radius}` : ''}${k.crit ? ' · 치명 확정' : ''}${k.ward ? ` · 보호막 ${k.ward.dur}초 회복 ${Math.round(k.ward.heal * 100)}%${k.ward.finish ? ' · 끝에 성광 폭발' : ''}` : ''}${dmg}</div>
       <div class="meta">${k.desc}</div>`;
   }
   $('auto').onclick = () => { T.auto = !T.auto; renderUi(); };
@@ -279,5 +300,5 @@ function run() {
   renderInfo();
   requestAnimationFrame(frame);
   // 콘솔·자동 캡처용: skillTest.state 상태, setClass(id), cast(skillId), step(초) 한 번에 진행 후 그리기
-  window.skillTest = { state: T, setClass, cast, step: (sec) => { for (let i = 0; i < Math.round(sec * 60); i++) tick(1 / 60); render(); } };
+  window.skillTest = { state: T, setClass, setStage, cast, step: (sec) => { for (let i = 0; i < Math.round(sec * 60); i++) tick(1 / 60); render(); } };
 }

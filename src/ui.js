@@ -457,7 +457,7 @@ function viewMastery() {
         <div class="mbody">
           <div><b>${k.name}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${S.level < k.lv ? ` <small>· 🔒 Lv ${k.lv}에 해금</small>` : ''}</div>
           <div class="mbar"><i style="width:${max ? 100 : (s.exp / s.need) * 100}%"></i><span>${max ? 'MAX' : `${fmt(s.exp)} / ${fmt(s.need)}`}</span></div>
-          <small>쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → ${skillCdOf(k, s.lv + 1)}초`} · 위력 ${mt(s.lv)}${max ? '' : ` → ${mt(s.lv + 1)}`} <span class="dim">(Lv30 ${skillCdOf(k, SKILL_MAX)}초 · ${mt(SKILL_MAX)})</span>${nextM ? ` · 다음 단계 Lv ${nextM.lv} ${nextM.star} ${nextM.name}: ${nextM.desc}` : ''}</small>
+          <small>쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → ${skillCdOf(k, s.lv + 1)}초`} · 위력 ${mt(s.lv)}${max ? '' : ` → ${mt(s.lv + 1)}`} <span class="dim">(Lv30 ${skillCdOf(k, SKILL_MAX)}초 · ${mt(SKILL_MAX)})</span>${nextM ? ` · 다음 단계 Lv ${nextM.lv} ${nextM.star} ${nextM.name}: ${k.stageDesc ? `<b class="mnext">${k.stageDesc[m + 1]}</b> · ` : ''}${nextM.desc}` : ''}</small>
         </div>
         <div class="act">${max ? '<span class="small">최고 단계</span>' : `${btn(1, '📖 1권')}${btn(10, '📖 10권')}${btn(need, `⏫ 레벨업 ${need}권`, S.tomes >= need)}`}</div>
       </div>`;
@@ -1782,7 +1782,7 @@ const ACTIONS = {
     }
     if (m > masteryOf(r.from)) {
       showBanner(`${k.icon} ${k.name} — ${MASTERY[m].star} ${MASTERY[m].name} 도달!`, mixHex(heroClass().look.fx, MASTERY_GOLD, m >= 3 ? 0.45 : 0));
-      toast(`${MASTERY[m].star} ${k.name} ${MASTERY[m].name} — ${MASTERY[m].desc}`, 6000);
+      toast(`${MASTERY[m].star} ${k.name} ${MASTERY[m].name} — ${k.stageDesc ? k.stageDesc[m] + ' · ' : ''}${MASTERY[m].desc}`, 8000);
     } else if (r.to > r.from) toast(`${k.icon} ${k.name} Lv ${r.to}!`);
     save();
   },
