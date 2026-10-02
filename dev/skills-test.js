@@ -279,9 +279,9 @@ function run() {
     const hits = k.hits.length, mult = +(skillMult(k) * skillPow(k.id)).toFixed(2);
     const stageName = ['Lv1~9', '★ 숙련', '★★ 달인', '★★★ 극의'][masteryOf(lv)];
     const dmg = T.last.dmg != null ? ` · 실제 피해 ${fmt(T.last.dmg)} (공격력 ${fmt(stats().atk)})` : '';
-    $('info').innerHTML = `<b>${k.icon} ${k.name}</b> <small>${c.icon} ${c.name} · ${c.tier}차</small>
+    $('info').innerHTML = `<b>${k.icon} ${skillNameAt(k, lv)}</b> <small>${k.stageName ? `(${k.name}) · ` : ''}${c.icon} ${c.name} · ${c.tier}차</small>
       <div class="meta">숙련 <b>Lv ${lv}</b> ${stageName} · 쿨 ${skillCd(k.id)}초 · 시전 ${k.dur}초 · 배율 ×${mult}${hits > 1 ? ` (${hits}회)` : ''} · 범위 ${k.area}${k.radius ? ` ${k.radius}` : ''}${k.crit ? ' · 치명 확정' : ''}${k.ward ? ` · 보호막 ${k.ward.dur}초 회복 ${Math.round(k.ward.heal * 100)}%${k.ward.finish ? ' · 끝에 성광 폭발' : ''}` : ''}${dmg}</div>
-      <div class="meta">${k.desc}</div>`;
+      <div class="meta">${k.stageDesc ? k.stageDesc[masteryOf(lv)] : k.desc}</div>`;
   }
   $('auto').onclick = () => { T.auto = !T.auto; renderUi(); };
   $('allCls').onclick = () => { T.allCls = !T.allCls; if (T.allCls) T.auto = true; renderUi(); };

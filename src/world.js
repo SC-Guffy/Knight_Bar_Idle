@@ -2365,6 +2365,7 @@ function render() {
   drawTower();
 }
 function drawActors() {
+  drawSkillFxBack();                       // 대천사·붉은 달·시간 정지 어둠은 기사·몬스터 뒤에
   drawDropsBack();
   for (const m of monsters) drawMonster(m);
   drawDropsFront();

@@ -298,6 +298,8 @@ const CLASSES = {
 //        finish 보호막이 끝날 때 터지는 마무리 타격 배율 }
 //  hits 의 세 번째 칸(선택): 그 타격만의 대상 { area, radius, reach, launch 맞은 적을 띄움 } — 예: 첫 타는 눈앞 하나, 검풍은 일직선
 //  stages: 숙련 단계(0 = Lv1~9, 1 = ★숙련 Lv10, 2 = ★★달인 Lv20, 3 = ★★★극의 Lv30)마다 기술의 모양을 덮어쓴다 (skillAt).
+//          진화 사다리: Lv1 맨몸 기술(제자리·짧게) → ★ 무기 각성(멀리 닿음) → ★★ 전장이 바뀜(분신·지형·소환물) → ★★★ 궁극(거대 소환·시간 정지)
+//  stageName·stageDesc: 단계마다 기술 이름이 진화하고(이름 띠·숙련도 패널), 그 단계의 모습을 한 줄로
 //          타격 배율은 비율만 뜻한다 — 합이 위의 원래 배율(skillMult)과 같아지도록 자동으로 맞추고, 위력 성장은 skillPowAt 이 따로 곱한다.
 //          그래서 타격 횟수·마무리 일격이 늘어도 단계별 DPS 곡선(숙련도 설명 참고)은 그대로다.
 const evenHits = (n, from, step, mult) => Array.from({ length: n }, (_, i) => [from + step * i, mult]);
@@ -327,11 +329,12 @@ const SKILLS = {
     hits: [[0.5, 2.6]],
     stages: [
       {},
-      { hits: [[0.5, 2.0], [0.66, 0.8, { area: 'line', reach: 3 }]] },                                        // ★ 베고 나면 검풍이 앞으로
-      { hits: [[0.5, 1.8, { area: 'all', radius: 34 }], [0.64, 0.9, { area: 'line', reach: 4 }]] },          // ★★ 내려벨 때 주변까지, 검풍 두 겹
-      { dur: 0.95, hits: [[0.37, 1.4, { area: 'all', radius: 34 }], [0.47, 0.6, { area: 'line', reach: 4 }], [0.78, 1.6, { area: 'all', radius: 34 }]] },   // ★★★ 되베어 X자
+      { hits: [[0.5, 2.0], [0.66, 0.8, { area: 'line', reach: 3 }]] },
+      { dur: 0.8, hits: [[0.44, 1.8, { area: 'all', radius: 40 }], [0.6, 1.0, { area: 'line', reach: 3.5 }]] },
+      { dur: 1.25, hits: [[0.28, 0.9], [0.8, 2.4, { area: 'all', radius: 64 }]] },
     ],
-    stageDesc: ['내려베기 한 번', '벤 자리에서 초승달 검풍이 앞으로 날아간다', '땅이 갈라지며 주변까지 베고, 검풍이 두 겹', '낮게 되돌린 검으로 올려베어 금빛 X자 마무리'],
+    stageName: ['강철 베기', '강철 검풍', '강철 대검', '천강검'],
+    stageDesc: ['제자리에서 내려벤다', '검이 빛나며 초승달 검풍을 날린다', '검이 거대한 강철 대검으로 변해 내려찍고, 땅에서 바위 송곳이 솟는다', '검을 하늘로 치켜들면 거대한 강철 검이 떨어져 꽂힌다'],
     desc: '검을 머리 위로 치켜들었다가 크게 내려벤다.',
   },
   piercingThrust: {
@@ -350,12 +353,13 @@ const SKILLS = {
     cls: 'paladin', name: '심판의 일격', icon: '⚡', lv: 60, cd: 10, dur: 1.0, area: 'all', radius: 60,
     hits: [[0.6, 4]],
     stages: [
-      { radius: 45 },
-      { radius: 60 },                                                                                        // ★ 범위 +30%
-      { radius: 60, hits: [[0.6, 2.4], [0.74, 1.6]] },                                                        // ★★ 빛기둥 두 번
-      { dur: 1.3, radius: 70, hits: [[0.46, 1.6], [0.57, 1.2], [0.85, 2.2, { area: 'all', radius: 90, launch: true }]] },   // ★★★ 빛이 모여 대폭발
+      { radius: 40 },
+      { radius: 60 },
+      { dur: 1.2, radius: 60, hits: [[0.55, 1], [0.65, 1], [0.77, 1.4]] },
+      { dur: 1.6, radius: 80, hits: [[0.375, 1.0], [0.82, 3.0, { area: 'all', radius: 100, launch: true }]] },
     ],
-    stageDesc: ['가는 빛기둥 하나', '범위 +30% · 굵은 빛기둥', '흰 빛기둥이 한 번 더 내리꽂힌다', '흩어진 빛을 모아 거대한 금빛 기둥 — 적을 띄운다'],
+    stageName: ['심판의 빛', '심판의 일격', '심판의 성검', '대천사 강림'],
+    stageDesc: ['가느다란 빛줄기가 내리친다', '빛기둥이 내리꽂히고 적에게 심판의 낙인이 새겨진다', '하늘에 성검 세 자루가 떠올라 차례로 꽂힌다', '기사 뒤로 날개 달린 대천사가 강림해 함께 내리친다 — 적을 띄운다'],
     desc: '성검을 하늘로 들어 적 위에 황금 빛기둥을 내리꽂는다.',
   },
   sanctuary: {
@@ -363,11 +367,12 @@ const SKILLS = {
     hits: [], ward: { dur: 4, guard: 0.5, heal: 0.2, tick: 0.5 },
     stages: [
       { ward: { dur: 3 } },
-      { ward: { dur: 4 } },                                                                                  // ★ 보호막 4초
-      { ward: { dur: 4, heal: 0.3 } },                                                                       // ★★ 회복 30%
-      { ward: { dur: 4, heal: 0.3, finish: 1 } },                                                            // ★★★ 끝날 때 성광 폭발
+      { ward: { dur: 4 } },
+      { ward: { dur: 4, heal: 0.3 }, hits: [[0.55, 0.5, { area: 'all', radius: 44 }]] },
+      { ward: { dur: 4, heal: 0.3, finish: 1 }, hits: [[0.55, 0.4, { area: 'all', radius: 44 }]] },
     ],
-    stageDesc: ['작은 돔 3초', '보호막 4초 · 돔이 커진다', '회복 20% → 30% · 성호 룬이 돔을 돈다', '금빛 이중 돔 — 끝날 때 성광이 터진다'],
+    stageName: ['성광', '성역', '성채', '성전'],
+    stageDesc: ['발밑에 빛의 원 3초', '황금 돔 4초', '돔 둘레에 성벽 기둥 넷이 솟아 적을 밀어내고, 회복 20% → 30%', '성당이 세워져 종이 울리고, 끝날 때 빛으로 무너지며 성광이 터진다'],
     desc: '성검을 땅에 꽂아 황금 성역을 펼친다. 받는 피해 -50%, 체력 회복, 안의 적은 계속 불탄다.',
   },
 
@@ -375,20 +380,27 @@ const SKILLS = {
   gale: {
     cls: 'blademaster', name: '질풍난무', icon: '🌪️', lv: 60, cd: 10, dur: 1.3, area: 'all', radius: 40,
     hits: [...evenHits(6, 0.15, 0.09, 0.5), [0.86, 1.2]],
-    stages: [galeStage(4, false), galeStage(5, false), galeStage(6, false), galeStage(6, true)],               // 난무 4 → 5 → 6회 → 6회 + 마무리 일격
-    stageDesc: ['난무 4회 + X자', '난무 5회 · 검흔 두 겹', '난무 6회 · 더 큰 X자', '난무 6회 뒤 높이 솟구쳐 내려찍는 마무리 일격'],
+    stages: [
+      { dur: 0.75, trio: true, hits: [[0.3, 1], [0.48, 1], [0.66, 1.2]] },
+      galeStage(5, false),
+      { ...galeStage(6, false), clones: 1 },
+      { ...galeStage(6, true), clones: 3 },
+    ],
+    stageName: ['삼연참', '질풍난무', '질풍난무·분신', '월하난무'],
+    stageDesc: ['제자리에서 쌍검으로 세 번', '적 사이를 지그재그로 돌진하며 5번 베고 X자', '그림자 분신이 반대편에서 함께 난무 (6회)', '분신 셋과 함께 — 시간이 멎은 듯 어두워졌다가 솟구쳐 내려찍는 마무리 일격'],
     desc: '모습을 감추고 적 사이를 오가며 6번 벤 뒤 X자로 마무리한다.',
   },
   iaido: {
     cls: 'blademaster', name: '일섬', icon: '🌙', lv: 70, cd: 15, dur: 1.4, area: 'all', radius: 200, crit: true,
     hits: [[0.78, 4]],
     stages: [
-      { radius: 110 },
-      { radius: 140, hits: [[0.78, 3.2], [0.9, 0.8]] },                                                     // ★ 늦게 터지는 잔상 베기
-      { radius: 200, hits: [[0.78, 3.2], [0.9, 0.8]], kb: 32 },                                             // ★★ 범위 확대 · 크게 밀쳐 냄
-      { dur: 1.9, radius: 200, kb: 32, hits: [[0.575, 2.0], [0.66, 0.6], [0.86, 2.2]] },                    // ★★★ 되돌아오며 이중 일섬
+      { dur: 0.9, radius: 60, hits: [[0.5, 1]] },
+      { radius: 140 },
+      { radius: 200, kb: 32, hits: [[0.78, 0.5], [0.92, 1.5, { area: 'all', radius: 200 }]] },
+      { dur: 1.9, radius: 200, kb: 32, hits: [[0.575, 2.0], [0.66, 0.6], [0.86, 2.2]] },
     ],
-    stageDesc: ['짧은 섬광 한 줄기', '늦게 따라온 잔상이 한 번 더 벤다', '범위 확대 · 화면을 가로지르는 칼바람으로 크게 밀쳐 낸다', '돌아서서 다시 발도 — 되돌아오는 금빛 이중 일섬'],
+    stageName: ['발도', '일섬', '일섬·납도', '적월일섬'],
+    stageDesc: ['제자리에서 한 번 발도', '섬광처럼 돌진해 지나가며 벤다', '칼을 거두는 순간 지나간 적이 모두 늦게 갈라지고, 하단바를 가로지르는 검선', '붉은 달이 뜨고 — 돌아서서 되돌아오는 이중 일섬'],
     desc: '숨을 죽인 발도 자세에서 한 줄기 섬광으로 지나간다. 늦게 터지는 베기는 반드시 치명타.',
   },
 
@@ -460,6 +472,8 @@ function skillAt(id, lv = 1) {
   if (s.ward) { s.ward.tick *= f; if (s.ward.finish) s.ward.finish *= f; }
   return (stageCache[key] = s);
 }
+// 숙련도 lv 에서의 기술 이름 (단계마다 이름이 진화한다)
+const skillNameAt = (k, lv = 1) => (k.stageName ? k.stageName[Math.min(3, Math.floor(lv / 10))] : k.name);
 // 타격 i 의 대상 범위 (그 타격만의 범위가 있으면 덮어쓴다)
 const hitRange = (k, i) => (k.hits[i] && k.hits[i][2] ? { ...k, ...k.hits[i][2] } : k);
 // 직업의 스킬 (해금 레벨 순)

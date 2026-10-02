@@ -62,6 +62,7 @@ function startCast(owner, id, a, queue = false) {
   a.lv = lv;
   a.mast = masteryOf(a.lv);
   a.vis = MASTERY_VIS[a.mast];
+  a.name = skillNameAt(k, lv);              // 단계마다 진화하는 기술 이름 (classes.js stageName)
   if (a.mast >= 3) a.color = mixHex(a.color, MASTERY_GOLD, 0.45);
   else if (a.mast < 2) a.color = mixHex(a.color, MASTERY_FADE[0], MASTERY_FADE[1 + a.mast]);
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
@@ -74,8 +75,8 @@ function startCast(owner, id, a, queue = false) {
   casts.push({ owner, id, k, fx, t: 0, a, hi: 0, ci: 0, next: [], squash: 0, hist: [] });
   // 숙련도를 키운 스킬은 이름 옆에 레벨과 단계 별을 붙여서, 먹인 비전서가 전투에 보이게 한다
   const star = (a.lv > 1 ? ` Lv${a.lv}` : '') + (a.mast ? ' ' + MASTERY[a.mast].star : '');
-  if (a.mast >= 3 || (skillTier(k) >= 2 && a.mast >= 2)) cutin = { k, color: a.color, t: 0, cx: a.x(), star };
-  else addFloater(`${k.icon} ${k.name}${star}`, a.x(), groundY() - 72, a.color, 12);
+  if (a.mast >= 3 || (skillTier(k) >= 2 && a.mast >= 2)) cutin = { k, name: a.name, color: a.color, t: 0, cx: a.x(), star };
+  else addFloater(`${k.icon} ${a.name}${star}`, a.x(), groundY() - 72, a.color, 12);
 }
 function endCast(owner) {
   casts = casts.filter((c) => c.owner !== owner);
@@ -942,41 +943,567 @@ function waveFx(a, x0, y, dist, color, life, size = 1, delay = 0) {
     if (Math.random() < 0.6) parts.push({ x: at(u), y: groundY() - 2, vx: -d * rand(10, 50), vy: rand(-50, -10), g: 220, size: 2, color: Math.random() < 0.5 ? '#c9b38a' : '#a8946a', life: 0.3, t: 0 });
   });
 }
-// 땅이 양옆으로 갈라지는 금 (x 에서 좌우 len 만큼)
-function groundCrackFx(x, len, color, life = 0.7) {
-  len *= fxVis;
-  const side = (s) => { const out = [[x, groundY() + 1]]; for (let i = 1; i <= 6; i++) out.push([x + s * len * (i / 6), groundY() + 1 + (i % 2 ? -2 : 1) * rand(0.5, 1.5)]); return out; };
-  const L = side(-1), R = side(1);
+// ── 진화 연출 도구 (검 계열 숙련 단계 전용) ──
+// 뒤 레이어: 기사·몬스터보다 먼저 그린다 (대천사 실루엣·붉은 달·시간 정지 어둠)
+function backFx(a, delay, life, draw, end, tick) { aFx(a, delay, life, draw, end, tick); skfx[skfx.length - 1].back = true; }
+// 지금 자세의 앞손(무기 쥔 손) 화면 위치와 칼날 각도 — 무기 위에 덧그리는 연출(빛나는 검·대검)이 실제 무기를 따라가게
+function gripOf(a) {
+  const p = castPose(a.owner) || {}, sy = p.sy || 1, k = p.skew || 0;
+  const face = p.facing != null ? p.facing : a.dir;
+  const legs = SPR.knightLegs[0].length;
+  const wa = p.wa != null ? p.wa : -1.0;
+  return {
+    x: a.px() + face * (4 * PX + Math.round(k * 3 * PX)),
+    y: groundY() - (p.lift || 0) - legs * PX * sy - 3 * PX,
+    ang: face > 0 ? wa : Math.PI - wa,
+  };
+}
+// 하단바(탑 안이면 그 층) 전체를 덮는 어둠 — 화면 전체가 아니라 이 게임이 그리는 띠 안에서만
+function dimBand(alpha, color = '5,0,10') {
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = `rgba(${color},${alpha})`;
+  ctx.fillRect(-60, -240, W + 120, H + 480);
+  ctx.restore();
+}
+
+// ★ 강철 검풍: 칼날을 따라 푸른 빛이 차오르고 끝에서 불티가 떨어진다
+function steelGlowFx(a, life) {
+  aFx(a, 0, life, (u) => {
+    const g = gripOf(a), L = (9 + 2) * PX, k = Math.min(1, u * 2.2);
+    ctx.save();
+    ctx.translate(g.x, g.y); ctx.rotate(g.ang);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.35 + 0.35 * k;
+    ctx.fillStyle = '#7fb0ff'; ctx.fillRect(PX, -PX * 1.5, L * k, PX * 3);
+    ctx.globalAlpha = 0.9 * k;
+    ctx.fillStyle = '#e8f2ff'; ctx.fillRect(PX, -PX / 2, L * k, PX);
+    ctx.restore();
+  }, null, (u) => {
+    if (Math.random() > 0.5) return;
+    const g = gripOf(a), L = 10 * PX * Math.min(1, u * 2.2);
+    parts.push({ x: g.x + Math.cos(g.ang) * L, y: g.y + Math.sin(g.ang) * L, vx: rand(-20, 20), vy: rand(-30, 10), g: 160, size: 2, color: Math.random() < 0.5 ? '#bcd6ff' : '#ffffff', life: 0.3, t: 0, add: true });
+  });
+}
+
+// ★★ 강철 대검: 손에 든 검 위로 몸만 한 대검이 겹쳐 보인다 (넓은 칼날·홈·두꺼운 가드)
+function greatswordFx(a, life) {
+  aFx(a, 0, life, (u) => {
+    const g = gripOf(a), grow = easeOut(Math.min(1, u * 4)), fade = u > 0.85 ? (1 - u) / 0.15 : 1;
+    const L = 52 * grow, Wd = 11;
+    ctx.save();
+    ctx.translate(g.x, g.y); ctx.rotate(g.ang);
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = '#3c4250'; ctx.fillRect(-7, -2, 7, 4);                       // 자루
+    ctx.fillStyle = '#c9a24a'; ctx.fillRect(-9, -2.5, 2, 5);                      // 자루 끝
+    ctx.fillStyle = '#5a6372'; ctx.fillRect(0, -Wd / 2 - 4, 4, Wd + 8);           // 가드
+    ctx.fillStyle = '#9aa6b8'; ctx.fillRect(4, -Wd / 2, L, Wd);                    // 칼날
+    ctx.fillStyle = '#d8e0ec'; ctx.fillRect(4, -Wd / 2, L, 2);                     // 날 위쪽 빛
+    ctx.fillStyle = '#6d7686'; ctx.fillRect(8, -1, L - 10, 2);                     // 홈
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(4, Wd / 2 - 1, L, 1);                  // 날 끝선
+    ctx.beginPath(); ctx.moveTo(4 + L, -Wd / 2); ctx.lineTo(4 + L + 8, 0); ctx.lineTo(4 + L, Wd / 2); ctx.closePath();
+    ctx.fillStyle = '#c4ccd8'; ctx.fill();                                        // 칼끝
+    ctx.restore();
+  });
+}
+// ★★ 바위 송곳: 대검이 땅을 친 자리부터 앞으로 하나씩 솟아 잠시 서 있다가 부서진다
+function rockSpikesFx(a, x0, n, gap, life) {
+  const gy = groundY();
+  for (let i = 0; i < n; i++) {
+    const x = x0 + a.dir * gap * (i + 0.5), h = 16 + 7 * Math.sin(i * 1.7 + 1) + i * 2, lean = rand(-0.18, 0.18), at = i * 0.045;
+    skFx(null, at, life, (u) => {
+      const up = easeOut(Math.min(1, u / 0.08)), sink = u > 0.8 ? (u - 0.8) / 0.2 : 0, hh = h * up * (1 - sink);
+      if (hh < 1) return;
+      ctx.save();
+      ctx.translate(x, gy); ctx.rotate(lean);
+      ctx.fillStyle = '#6e6a66';
+      ctx.beginPath(); ctx.moveTo(-6, 1); ctx.lineTo(-1, -hh); ctx.lineTo(6, 1); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#a8a29a';
+      ctx.beginPath(); ctx.moveTo(-1, -hh); ctx.lineTo(-3, -hh * 0.4); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#d9d3c8'; ctx.fillRect(-1, -hh, 1, 3);
+      ctx.restore();
+    }, () => { debris(x, 5, ['#6e6a66', '#a8a29a'], 0.6); });
+    skFx(null, at, 0.01, null, () => { for (let j = 0; j < 6; j++) parts.push({ x: x + rand(-5, 5), y: gy - 2, vx: rand(-60, 60), vy: rand(-160, -60), g: 500, size: 3, color: j % 2 ? '#8a8378' : '#5b5650', life: 0.5, t: 0 }); });
+  }
+}
+
+// ★★★ 천강검: 땅에 그림자가 번지고, 하늘에서 거대한 강철 검이 떨어져 꽂혔다가 빛가루로 흩어진다
+function skySwordFx(x, dropAt, life) {
+  const gy = groundY(), BL = 104;          // 칼날 길이
   skFx(null, 0, life, (u) => {
-    const grow = Math.min(1, u / 0.18), fade = u > 0.5 ? 1 - (u - 0.5) / 0.5 : 1;
+    const t = u * life;
+    // 그림자: 떨어지기 전부터 짙어진다
+    const sh = Math.min(1, t / dropAt);
+    ctx.save();
+    ctx.globalAlpha = 0.45 * sh * (t > dropAt + 0.5 ? Math.max(0, 1 - (t - dropAt - 0.5) / 0.3) : 1);
+    ctx.fillStyle = '#000000';
+    ctx.beginPath(); ctx.ellipse(x, gy + 1, 6 + 18 * sh, 2 + 2 * sh, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    const fall = t < dropAt - 0.16 ? 0 : Math.min(1, (t - (dropAt - 0.16)) / 0.16);
+    if (fall <= 0) return;
+    const tipY = mix(-40, gy + 6, easeIn(fall));          // 칼끝 높이
+    const out = t > dropAt + 0.55 ? Math.min(1, (t - dropAt - 0.55) / 0.3) : 0;
+    ctx.save();
+    ctx.globalAlpha = 1 - out;
+    // 떨어지는 동안 위로 긴 속도선
+    if (fall < 1) { ctx.fillStyle = 'rgba(200,220,255,0.5)'; for (const dx of [-9, 0, 9]) ctx.fillRect(x + dx, tipY - BL - 60, 1, 60); }
+    const top = tipY - BL;
+    ctx.fillStyle = '#8f9bb0'; ctx.fillRect(x - 6, top, 12, BL - 10);                     // 칼날
+    ctx.fillStyle = '#dfe7f3'; ctx.fillRect(x - 6, top, 3, BL - 10);                      // 빛 받는 면
+    ctx.fillStyle = '#5f6a7e'; ctx.fillRect(x - 1, top + 4, 2, BL - 22);                   // 홈
+    ctx.beginPath(); ctx.moveTo(x - 6, tipY - 10); ctx.lineTo(x, tipY); ctx.lineTo(x + 6, tipY - 10); ctx.closePath();
+    ctx.fillStyle = '#c9d2e0'; ctx.fill();                                                 // 칼끝
+    ctx.fillStyle = '#c9a24a'; ctx.fillRect(x - 20, top - 6, 40, 6);                       // 가드
+    ctx.fillStyle = '#ffe08a'; ctx.fillRect(x - 20, top - 6, 40, 2);
+    ctx.fillStyle = '#4a3220'; ctx.fillRect(x - 3, top - 26, 6, 20);                       // 자루
+    ctx.fillStyle = '#c9a24a'; ctx.fillRect(x - 5, top - 32, 10, 6);                       // 자루 끝
+    ctx.fillStyle = '#7fd0ff'; ctx.fillRect(x - 2, top - 30, 4, 3);                        // 보석
+    if (fall >= 1) {
+      // 꽂힌 뒤: 칼날 가장자리가 숨 쉬듯 빛난다
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = (1 - out) * (0.35 + 0.25 * Math.sin(clock * 14));
+      ctx.fillStyle = '#9fc4ff'; ctx.fillRect(x - 8, top, 16, BL - 10);
+    }
+    ctx.restore();
+  }, null, (u) => {
+    const t = u * life;
+    if (t > dropAt + 0.55 && Math.random() < 0.9) parts.push({ x: x + rand(-6, 6), y: gy - rand(0, BL), vx: rand(-10, 10), vy: rand(-70, -30), g: -20, size: 2, color: Math.random() < 0.5 ? '#cfe0ff' : '#ffffff', life: 0.6, t: 0, add: true });
+  });
+}
+// 천강검이 꽂힌 자리: 패인 구덩이와 사방으로 튀는 흙줄기, 바닥을 따라 퍼지는 먼지 물결
+function craterFx(x, life = 0.9) {
+  const gy = groundY();
+  skFx(null, 0, life, (u) => {
+    const k = easeOut(Math.min(1, u / 0.15)), fade = u > 0.6 ? 1 - (u - 0.6) / 0.4 : 1;
     ctx.save();
     ctx.globalAlpha = fade;
-    for (const [P, w, c] of [[L, 3, color], [R, 3, color], [L, 1, '#ffffff'], [R, 1, '#ffffff']]) {
-      const m = Math.max(2, Math.round(P.length * grow));
-      ctx.strokeStyle = c; ctx.lineWidth = w;
-      ctx.beginPath(); P.slice(0, m).forEach(([px, py], j) => (j ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
+    ctx.fillStyle = '#2b2620';
+    ctx.beginPath(); ctx.ellipse(x, gy + 1, 26 * k, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#a8946a'; ctx.lineWidth = 2;
+    for (let i = 0; i < 9; i++) {
+      const ang = -Math.PI * (0.08 + 0.84 * i / 8), r0 = 10, r1 = 18 + 26 * k;
+      ctx.beginPath(); ctx.moveTo(x + Math.cos(ang) * r0, gy + Math.sin(ang) * r0 * 0.6); ctx.lineTo(x + Math.cos(ang) * r1, gy + Math.sin(ang) * r1 * 0.6); ctx.stroke();
+    }
+    const w = 30 + 120 * easeOut(u);
+    ctx.globalAlpha = 0.5 * (1 - u);
+    ctx.fillStyle = '#c9b38a';
+    ctx.fillRect(x - w, gy - 3, w * 2, 3);
+    ctx.restore();
+  });
+}
+
+// Lv1 심판의 빛: 하늘에서 가느다란 빛줄기가 지그재그로 깜박이며 내리친다
+function lightRayFx(x, life = 0.28) {
+  const gy = groundY(), segs = [];
+  for (let y = -10; y < gy; y += 12) segs.push([x + rand(-2.5, 2.5), y]);
+  segs.push([x, gy]);
+  skFx(null, 0, life, (u) => {
+    if (u > 0.4 && Math.floor(u * 30) % 2) return;            // 꺼질 때 깜박
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = '#fff3b0'; ctx.lineWidth = 2; ctx.globalAlpha = 1 - u * 0.6;
+    ctx.beginPath(); segs.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 3, gy - 2, 6, 2);
+    ctx.restore();
+  });
+}
+// ★ 심판의 낙인: 맞은 적 머리 위에 천천히 도는 금빛 표식이 한동안 남는다
+function brandFx(x, y, life = 2.2) {
+  skFx(null, 0.05, life, (u) => {
+    const fade = u < 0.1 ? u / 0.1 : u > 0.75 ? (1 - u) / 0.25 : 1, r = 9, sp = clock * 2.2;
+    ctx.save();
+    ctx.globalAlpha = fade * 0.9;
+    ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.4, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#fff3b0';
+    for (let i = 0; i < 4; i++) { const t = sp + i * Math.PI / 2; ctx.fillRect(Math.round(x + Math.cos(t) * r) - 1, Math.round(y + Math.sin(t) * r * 0.4) - 1, 2, 2); }
+    ctx.fillStyle = '#ffd257'; ctx.fillRect(x - 1, y - 7, 2, 9); ctx.fillRect(x - 3, y - 4, 6, 2);
+    ctx.restore();
+  });
+}
+// ★★ 심판의 성검: 대상 위 하늘에 금빛 성검이 나타나 떠 있다가, dropAt 초에 떨어져 박힌 뒤 빛으로 흩어진다
+function holySwordFx(x, dropAt, life) {
+  const gy = groundY(), hover = gy - 86, L = 30;
+  skFx(null, 0, life, (u) => {
+    const t = u * life, appear = Math.min(1, t / 0.18);
+    const fall = t < dropAt - 0.08 ? 0 : Math.min(1, (t - (dropAt - 0.08)) / 0.08);
+    const tip = fall ? mix(hover + L, gy + 4, easeIn(fall)) : hover + L + Math.sin(clock * 6 + x) * 1.5;
+    const out = t > dropAt + 0.35 ? Math.min(1, (t - dropAt - 0.35) / 0.25) : 0;
+    ctx.save();
+    ctx.globalAlpha = appear * (1 - out);
+    if (fall === 0) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,215,90,0.25)'; ctx.fillRect(x - 5, tip - L - 4, 10, L + 8); ctx.globalCompositeOperation = 'source-over'; }
+    ctx.fillStyle = '#fff6dc'; ctx.fillRect(x - 2, tip - L, 4, L - 5);                 // 칼날
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 2, tip - L, 1, L - 5);
+    ctx.beginPath(); ctx.moveTo(x - 2, tip - 5); ctx.lineTo(x, tip); ctx.lineTo(x + 2, tip - 5); ctx.closePath(); ctx.fillStyle = '#fff6dc'; ctx.fill();
+    ctx.fillStyle = '#ffcc33'; ctx.fillRect(x - 7, tip - L - 3, 14, 3);                // 가드
+    ctx.fillStyle = '#8a6a2a'; ctx.fillRect(x - 1, tip - L - 11, 2, 8);                // 자루
+    ctx.fillStyle = '#ffcc33'; ctx.fillRect(x - 2, tip - L - 13, 4, 3);
+    if (fall > 0 && fall < 1) { ctx.fillStyle = 'rgba(255,240,180,0.6)'; ctx.fillRect(x - 1, tip - L - 40, 2, 30); }
+    ctx.restore();
+  }, null, (u) => {
+    const t = u * life;
+    if (t > dropAt + 0.35 && Math.random() < 0.7) parts.push({ x: x + rand(-3, 3), y: gy - rand(4, 28), vx: rand(-10, 10), vy: rand(-60, -30), g: -20, size: 2, color: '#ffe08a', life: 0.5, t: 0, add: true });
+  });
+}
+// 성검이 박힌 자리의 작은 금빛 십자 섬광 (가로로 짧게, 세로로 길게)
+function swordImpactFx(x, life = 0.3) {
+  const gy = groundY();
+  skFx(null, 0, life, (u) => {
+    const k = 1 - u;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = k;
+    ctx.fillStyle = '#fff3b0'; ctx.fillRect(x - 14 * k, gy - 3, 28 * k, 2); ctx.fillRect(x - 1, gy - 26 * k, 2, 26 * k);
+    ctx.restore();
+  });
+}
+
+// ★★★ 대천사 강림: 기사 뒤에 기사 모습을 한 거대한 빛의 천사가 날개를 펴고 나타나, 기사와 같은 자세로 성검을 휘두른다
+function archangelFx(a, life, strikeAt) {
+  backFx(a, 0, life, (u) => {
+    const t = u * life, x = a.px(), gy = groundY();
+    const show = Math.min(1, t / 0.35), out = t > strikeAt + 0.2 ? Math.min(1, (t - strikeAt - 0.2) / 0.3) : 0;
+    const al = show * (1 - out);
+    if (al <= 0) return;
+    const S2 = 2.6, rise = 6 * out * 10;                          // 끝나면 위로 떠오르며 사라진다
+    const cx = x - a.dir * 10, base = gy - 4 - rise;
+    // 날개: 깃털 줄이 부채꼴로 펼쳐진다
+    const open = easeOut(Math.min(1, t / 0.5));
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = al * 0.75;
+    const flap = Math.sin(clock * 5) * 0.06;
+    for (const side of [-1, 1]) {
+      for (let row = 0; row < 6; row++) {
+        const len = (24 + row * 8) * open, ang = (-Math.PI / 2) + side * (0.3 + row * 0.25 + flap) * open;
+        const sx = cx + side * 8, sy = base - 72 + row * 3;
+        for (let f = 0; f < len; f += 2) {
+          const px = sx + Math.cos(ang) * f, py = sy + Math.sin(ang) * f * 0.75 + f * 0.3;
+          ctx.fillStyle = f > len - 5 ? '#ffffff' : row % 2 ? '#ffe7a0' : '#d9a640';
+          ctx.fillRect(Math.round(px), Math.round(py), 3, 3);
+        }
+      }
+    }
+    ctx.restore();
+    // 거대한 빛의 기사 (기사의 지금 자세를 그대로 따라 한다)
+    const pose = castPose(a.owner) || {};
+    // 망토·방패까지 한 덩어리 빛으로: 따로 그린 기사를 금빛 그라데이션으로 칠해서 겹친다
+    const sil = angelSilhouette(a.cls, { mode: 'fight', swing: -1, t: clock, ...pose, lift: 0, dx: 0, facing: a.dir }, S2);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // 먼저 크게 번진 빛, 그 위에 또렷한 윤곽
+    ctx.filter = 'blur(5px)';
+    ctx.globalAlpha = al * 0.55;
+    ctx.drawImage(sil.cv, cx - sil.ox, base - sil.oy, sil.w, sil.h);
+    ctx.filter = 'blur(1px)';
+    ctx.globalAlpha = al * (0.3 + 0.08 * Math.sin(clock * 7));
+    ctx.drawImage(sil.cv, cx - sil.ox, base - sil.oy, sil.w, sil.h);
+    ctx.filter = 'none';
+    ctx.restore();
+    // 머리 위 고리
+    ctx.save();
+    ctx.globalAlpha = al;
+    ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(cx, base - 108, 12, 3, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }, null, (u) => {
+    if (Math.random() < 0.5) parts.push({ x: a.px() + rand(-40, 40), y: groundY() - rand(40, 110), vx: rand(-20, 20), vy: rand(10, 40), g: 20, size: 2, color: Math.random() < 0.5 ? '#fff1c8' : '#ffffff', life: 0.8, t: 0, add: true });
+  });
+}
+// 거대한 빛의 기사 한 장: 작은 캔버스에 기사를 S 배로 그린 뒤 그 모양대로 금빛을 칠한다 (망토·방패 색도 지워진다)
+const angelCv = document.createElement('canvas');
+function angelSilhouette(cls, pose, S) {
+  const w = 150, h = 150, ox = 75, oy = 140, dpr = window.devicePixelRatio || 1;
+  if (angelCv.width !== w * dpr) { angelCv.width = w * dpr; angelCv.height = h * dpr; }
+  const g = angelCv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.imageSmoothingEnabled = false;
+  g.globalCompositeOperation = 'source-over';
+  g.clearRect(0, 0, w, h);
+  g.save();
+  g.translate(ox, oy); g.scale(S, S); g.translate(-ox, -oy);
+  drawHero(g, cls, ox, oy, pose);
+  g.restore();
+  g.globalCompositeOperation = 'source-in';
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#fffbe8'); grad.addColorStop(0.5, '#ffe08a'); grad.addColorStop(1, '#d9a640');
+  g.fillStyle = grad; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'source-over';
+  return { cv: angelCv, w, h, ox, oy };
+}
+// 대천사의 일격: 하늘이 열린 듯 넓은 빛이 내려오고 깃털이 흩날린다
+function heavenStrikeFx(x, life = 0.9) {
+  const gy = groundY();
+  skFx(null, 0, life, (u) => {
+    const open = easeOut(Math.min(1, u / 0.12)), fade = u > 0.3 ? 1 - (u - 0.3) / 0.7 : 1, w = 120 * open;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = fade;
+    const grad = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+    grad.addColorStop(0, 'rgba(255,230,150,0)'); grad.addColorStop(0.3, 'rgba(255,230,150,0.55)'); grad.addColorStop(0.5, 'rgba(255,255,240,0.95)'); grad.addColorStop(0.7, 'rgba(255,230,150,0.55)'); grad.addColorStop(1, 'rgba(255,230,150,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - w / 2, -20, w, gy + 20);
+    ctx.fillStyle = '#ffffff'; ctx.globalAlpha = fade * 0.8;
+    ctx.beginPath(); ctx.ellipse(x, gy, w * 0.7, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+  for (let i = 0; i < 26; i++) parts.push({ x: x + rand(-60, 60), y: rand(-10, gy - 40), vx: rand(-30, 30), vy: rand(20, 60), g: 30, size: Math.random() < 0.4 ? 3 : 2, color: Math.random() < 0.6 ? '#ffffff' : '#fff1c8', life: rand(0.6, 1.1), t: 0 });
+}
+
+// ── 성역: 빛의 원 → 황금 돔 → 성채 → 성전 (모두 시전자를 따라다니며 보호막이 끝날 때까지 남는다) ──
+const wardFade = (u, life, x) => Math.min(1, u * life / 0.25) * (u > 0.92 ? (1 - u) / 0.08 : 1);
+// Lv1 성광: 발밑에만 납작한 빛의 원이 숨 쉬듯 번진다
+function lightCircleFx(a, life) {
+  aFx(a, 0, life, (u) => {
+    const x = a.x(), gy = groundY(), f = wardFade(u, life), p = 0.85 + 0.15 * Math.sin(clock * 5);
+    ctx.save();
+    ctx.globalAlpha = f * 0.7;
+    ctx.strokeStyle = '#e9d9a0'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(x, gy - 1, 22 * p, 4 * p, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = f * 0.18; ctx.fillStyle = '#ffe9a8';
+    ctx.beginPath(); ctx.ellipse(x, gy - 1, 22 * p, 4 * p, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }, null, () => { if (Math.random() < 0.15) parts.push({ x: a.x() + rand(-18, 18), y: groundY() - 2, vx: 0, vy: rand(-30, -15), g: 0, size: 1, color: '#fff3b0', life: 0.6, t: 0 }); });
+}
+// ★ 성역: 반투명한 황금 돔 하나
+function goldenDome(x, gy, rx, ry, f) {
+  ctx.save();
+  ctx.globalAlpha = f * (0.85 + 0.15 * Math.sin(clock * 6));
+  ctx.fillStyle = 'rgba(255,215,90,0.13)';
+  ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.fill();
+  ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 2; ctx.shadowColor = '#ffd257'; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(x, gy, rx * 0.8, ry * 0.85, 0, Math.PI * 1.1, Math.PI * 1.5); ctx.stroke();
+  ctx.restore();
+}
+function domeFx(a, life) {
+  aFx(a, 0, life, (u) => {
+    const g = easeOut(Math.min(1, u * life / 0.25));
+    goldenDome(a.x(), groundY(), 34 * g, 46 * g, wardFade(u, life));
+  });
+}
+// ★★ 성채: 돔 둘레에 돌기둥 넷이 땅에서 솟아오른다 (금빛 머리장식, 기둥 사이를 잇는 빛줄)
+function rampartFx(a, life) {
+  const cols = [-40, -22, 22, 40];
+  aFx(a, 0, life, (u) => {
+    const x = a.x(), gy = groundY(), f = wardFade(u, life), t = u * life;
+    goldenDome(x, gy, 38 * easeOut(Math.min(1, t / 0.25)), 50 * easeOut(Math.min(1, t / 0.25)), f);
+    ctx.save();
+    ctx.globalAlpha = f;
+    const hs = cols.map((c, i) => (Math.abs(c) > 30 ? 30 : 38) * easeOut(Math.min(1, (t - i * 0.05) / 0.18)));
+    cols.forEach((c, i) => {
+      const h = hs[i]; if (h <= 0) return;
+      const px = x + c;
+      ctx.fillStyle = '#8c8578'; ctx.fillRect(px - 4, gy - h, 8, h);
+      ctx.fillStyle = '#b9b2a4'; ctx.fillRect(px - 4, gy - h, 2, h);
+      ctx.fillStyle = '#5e584e'; for (let y = gy - h + 6; y < gy; y += 7) ctx.fillRect(px - 4, y, 8, 1);
+      ctx.fillStyle = '#ffcc33'; ctx.fillRect(px - 6, gy - h - 3, 12, 3);
+      ctx.fillStyle = '#fff3b0'; ctx.fillRect(px - 1, gy - h - 6, 2, 3);
+    });
+    // 기둥 꼭대기를 잇는 빛줄
+    if (hs.every((h) => h > 20)) {
+      ctx.strokeStyle = 'rgba(255,230,140,0.55)'; ctx.lineWidth = 1;
+      ctx.beginPath(); cols.forEach((c, i) => { const px = x + c, py = gy - hs[i] - 5; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.stroke();
     }
     ctx.restore();
   });
 }
-// 흩어진 빛 알갱이가 한 점(x, y)으로 빨려 들며 빛 구슬이 커진다 (life 초 뒤 터질 자리)
-function lightOrbFx(a, x, y, color, life, size = 1) {
-  size *= fxVis;
+// ★★★ 성전: 첨탑 셋과 장미창이 있는 금빛 성당 실루엣. 1초마다 종이 울린다
+function cathedralShape(x, gy, k) {
+  // 바닥 너비 92, 가운데 첨탑 꼭대기 gy-96 — k(0→1)로 아래에서 위로 세워진다
+  const top = gy - 96 * k;
+  ctx.beginPath();
+  ctx.moveTo(x - 46, gy);
+  ctx.lineTo(x - 46, gy - 40 * k); ctx.lineTo(x - 38, gy - 62 * k); ctx.lineTo(x - 30, gy - 40 * k);   // 왼쪽 탑
+  ctx.lineTo(x - 18, gy - 50 * k); ctx.lineTo(x - 12, gy - 68 * k);
+  ctx.lineTo(x, top);                                                                            // 가운데 첨탑
+  ctx.lineTo(x + 12, gy - 68 * k); ctx.lineTo(x + 18, gy - 50 * k);
+  ctx.lineTo(x + 30, gy - 40 * k); ctx.lineTo(x + 38, gy - 62 * k); ctx.lineTo(x + 46, gy - 40 * k);   // 오른쪽 탑
+  ctx.lineTo(x + 46, gy);
+  ctx.closePath();
+}
+function cathedralFx(a, life) {
   aFx(a, 0, life, (u) => {
-    const r = (3 + 9 * easeIn(u)) * size;
+    const x = a.x(), gy = groundY(), f = wardFade(u, life), t = u * life, k = easeOut(Math.min(1, t / 0.4));
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.4);
-    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, color); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(x - r * 2.4, y - r * 2.4, r * 4.8, r * 4.8);
+    ctx.globalAlpha = f;
+    cathedralShape(x, gy, k);
+    ctx.fillStyle = 'rgba(255,236,170,0.14)'; ctx.fill();
+    ctx.strokeStyle = MASTERY_GOLD; ctx.lineWidth = 1.5; ctx.shadowColor = '#ffd257'; ctx.shadowBlur = 8; ctx.stroke();
+    ctx.shadowBlur = 0;
+    if (k > 0.7) {
+      // 장미창과 아치 창
+      const rw = gy - 52;
+      ctx.globalAlpha = f * (0.7 + 0.3 * Math.sin(clock * 3));
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(x, rw, 7, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4 + clock * 0.6; ctx.beginPath(); ctx.moveTo(x, rw); ctx.lineTo(x + Math.cos(an) * 7, rw + Math.sin(an) * 7); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,240,184,0.45)';
+      for (const dx of [-38, 38]) { ctx.fillRect(x + dx - 2, gy - 34, 4, 14); ctx.beginPath(); ctx.arc(x + dx, gy - 34, 2, Math.PI, 0); ctx.fill(); }
+      ctx.fillRect(x - 5, gy - 18, 10, 18);                                  // 정문
+    }
     ctx.restore();
   }, null, (u) => {
-    for (let j = 0; j < 2; j++) {
-      const ang = rand(0, Math.PI * 2), dist = rand(36, 70) * size;
-      const px = x + Math.cos(ang) * dist, py = y + Math.sin(ang) * dist * 0.7, k = rand(2.2, 3);
-      parts.push({ x: px, y: py, vx: (x - px) * k, vy: (y - py) * k, g: 0, size: 2, color: Math.random() < 0.5 ? color : '#ffffff', life: 1 / k, t: 0, add: true });
+    const t = u * life, a0 = a;
+    // 종: 1초마다 첨탑 꼭대기에서 소리 물결
+    const ring = Math.floor((t - 0.4) / 1.0);
+    if (t > 0.4 && ring !== a0.bellN) { a0.bellN = ring; bellWaveFx(a0, 0.7); }
+  });
+}
+// 종소리 물결: 첨탑 꼭대기에서 위쪽 반원 호가 두 겹으로 퍼진다
+function bellWaveFx(a, life) {
+  skFx(a.owner, 0, life, (u) => {
+    const x = a.x(), y = groundY() - 96;
+    ctx.save();
+    ctx.globalAlpha = (1 - u) * 0.8;
+    ctx.strokeStyle = MASTERY_GOLD; ctx.lineWidth = 1;
+    for (const k of [1, 0.6]) { const r = 6 + 40 * u * k; ctx.beginPath(); ctx.arc(x, y, r, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
+    ctx.restore();
+  });
+}
+// 성전이 무너진다: 윤곽이 금빛 조각으로 부서져 위로 흩어지고, 큰 종소리와 함께 성광이 터진다
+function cathedralFallFx(a) {
+  const x = a.x(), gy = groundY();
+  for (let i = 0; i < 46; i++) {
+    const side = rand(-46, 46), h = rand(0, 90 - Math.abs(side));
+    parts.push({ x: x + side, y: gy - h, vx: side * rand(0.5, 1.5), vy: rand(-140, -60), g: 60, size: Math.random() < 0.4 ? 3 : 2, color: i % 3 ? MASTERY_GOLD : '#ffffff', life: rand(0.6, 1.0), t: 0, add: true });
+  }
+  skFx(null, 0, 0.8, (u) => {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (1 - u);
+    const r = 20 + 130 * easeOut(u);
+    const grad = ctx.createRadialGradient(x, gy - 30, 0, x, gy - 30, r);
+    grad.addColorStop(0, 'rgba(255,250,220,0.9)'); grad.addColorStop(0.5, 'rgba(255,220,120,0.35)'); grad.addColorStop(1, 'rgba(255,220,120,0)');
+    ctx.fillStyle = grad; ctx.fillRect(x - r, gy - 30 - r, r * 2, r * 2);
+    ctx.strokeStyle = MASTERY_GOLD; ctx.lineWidth = 2;
+    for (const k of [1, 0.7, 0.45]) { ctx.beginPath(); ctx.arc(x, gy - 96, 10 + 120 * u * k, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); }
+    ctx.restore();
+  });
+  impact({ stop: 0.1, shake: 0.35 });
+}
+
+// ── 질풍난무: 삼연참 → 지그재그 → 분신 → 월하난무 ──
+// Lv1 삼연참: 제자리에서 쌍검을 번갈아 세 번 (앞칼 내려베기 → 뒷칼 올려베기 → 두 칼 모아 내려베기)
+function galeTrioPose(t) {
+  if (t < 0.12) { const c = easeOut(t / 0.12); return { wa: mix(-1.0, -2.3, c), wa2: mix(-0.6, 0.9, c), sy: 1 - 0.08 * c, skew: -0.1 * c }; }
+  if (t < 0.225) { const d = easeIn(segU(t, 0.12, 0.225)); return { wa: mix(-2.3, 1.0, d), wa2: 0.9, skew: mix(-0.1, 0.3, d), dx: 3 * d, sy: 0.94 }; }      // 앞칼 내려베기
+  if (t < 0.27) { const k = segU(t, 0.225, 0.27); return { wa: 1.0, wa2: mix(0.9, 1.2, k), skew: 0.3, dx: 3, sy: 0.94 }; }
+  if (t < 0.36) { const d = easeIn(segU(t, 0.27, 0.36)); return { wa: 1.0, wa2: mix(1.2, -2.1, d), skew: mix(0.3, -0.15, d), dx: mix(3, 4.5, d), sy: 0.96 }; }   // 뒷칼 올려베기
+  if (t < 0.41) { const k = easeOut(segU(t, 0.36, 0.41)); return { wa: mix(1.0, -2.4, k), wa2: mix(-2.1, -2.2, k), skew: -0.2, dx: 4.5, sy: 1.04 }; }
+  if (t < 0.495) { const d = easeIn(segU(t, 0.41, 0.495)); return { wa: mix(-2.4, 1.1, d), wa2: mix(-2.2, 0.9, d), skew: mix(-0.2, 0.4, d), dx: mix(4.5, 7.5, d), sy: mix(1.04, 0.88, d) }; }   // 두 칼 모아 내려베기
+  const r = easeOut(segU(t, 0.495, 0.75));
+  return { wa: mix(1.1, -1.0, r), wa2: mix(0.9, -0.6, r), skew: 0.4 * (1 - r), dx: 7.5 * (1 - r), sy: mix(0.88, 1, r) };
+}
+// 삼연참 칼자국: 짧고 가는 붉은 홈 두 줄이 겹친다
+function nickFx(x, y, ang, life = 0.25) {
+  skFx(null, 0, life, (u) => {
+    const L = 14 * Math.min(1, u / 0.2) + 2, ca = Math.cos(ang), sa = Math.sin(ang);
+    ctx.save();
+    ctx.globalAlpha = 1 - u;
+    ctx.strokeStyle = '#d04a52'; ctx.lineWidth = 2;
+    for (const o of [-2, 2]) { ctx.beginPath(); ctx.moveTo(x - ca * L - sa * o, y - sa * L + ca * o); ctx.lineTo(x + ca * L - sa * o, y + sa * L + ca * o); ctx.stroke(); }
+    ctx.restore();
+  });
+}
+// ★★·★★★ 그림자 분신: 기사의 난무를 거울처럼(대상 너머에서) 혹은 시간차로 따라 하는 검붉은 그림자
+//  n: 분신 수. 0번은 거울 분신, 그다음은 0.05초씩 늦게 다른 높이에서 따라 하는 잔영
+function shadowClonesFx(a, n) {
+  const P = galePlanOf(a);
+  aFx(a, 0, P.dur, (u) => {
+    const t = u * P.dur, D = Math.max(16, (a.tx() - a.x()) * a.dir), gy = groundY();
+    const show = Math.min(1, t / 0.12) * (t > P.dur - 0.15 ? (P.dur - t) / 0.15 : 1);
+    for (let i = 0; i < n; i++) {
+      const G = galeAt(Math.max(0, t - i * 0.05), D, P);
+      const mirror = i % 2 === 0, pos = mirror ? 2 * D - G.pos : G.pos + (i === 1 ? -14 : 14);
+      const f = (pos > D ? -1 : 1) * a.dir, x = a.x() + a.dir * pos;
+      const pose = { mode: 'fight', swing: -1, t: clock, ...G.body, dx: 0, facing: f };
+      ctx.save();
+      ctx.globalAlpha = show * (i ? 0.5 : 0.8);
+      drawHero(ctx, a.cls, x, gy, { ...pose, tint: '#2a0910' });
+      drawHero(ctx, a.cls, x, gy, { ...pose, onlyWeapon: true, alpha: 0.9 });
+      // 붉은 눈빛 한 점
+      ctx.fillStyle = '#ff2030'; ctx.fillRect(Math.round(x + f * 3), Math.round(gy - (G.body.lift || 0) - 34), 2, 1);
+      ctx.restore();
     }
+  });
+}
+// ★★★ 시간 정지: 하단바가 검붉게 어두워지고 그 사이 그어진 칼자국이 허공에 멈춰 있다가, 마무리 일격에 한꺼번에 부서진다
+function timeStopFx(a, from, to, cx, cy) {
+  const life = to - from, lines = [];
+  for (let i = 0; i < 9; i++) lines.push({ ang: rand(0, Math.PI), len: rand(22, 46), ox: rand(-14, 14), oy: rand(-14, 10), at: i / 9 });
+  backFx(a, from, life + 0.25, (u) => {
+    const t = u * (life + 0.25), k = t < 0.08 ? t / 0.08 : t > life ? 1 - (t - life) / 0.25 : 1;
+    dimBand(0.62 * k, '20,0,6');
+  });
+  aFx(a, from, life, (u) => {
+    ctx.save();
+    for (const L of lines) {
+      if (u < L.at * 0.8) continue;
+      const ca = Math.cos(L.ang), sa = Math.sin(L.ang), x = cx + L.ox, y = cy + L.oy;
+      ctx.strokeStyle = '#ff2a3a'; ctx.lineWidth = 2; ctx.globalAlpha = 0.95;
+      ctx.beginPath(); ctx.moveTo(x - ca * L.len / 2, y - sa * L.len / 2); ctx.lineTo(x + ca * L.len / 2, y + sa * L.len / 2); ctx.stroke();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(x - ca * L.len / 3, y - sa * L.len / 3); ctx.lineTo(x + ca * L.len / 3, y + sa * L.len / 3); ctx.stroke();
+    }
+    ctx.restore();
+  }, () => {
+    for (const L of lines) for (let j = 0; j < 6; j++) {
+      const f = rand(-0.5, 0.5);
+      parts.push({ x: cx + L.ox + Math.cos(L.ang) * L.len * f, y: cy + L.oy + Math.sin(L.ang) * L.len * f, vx: rand(-160, 160), vy: rand(-160, 60), g: 260, size: 2, color: j % 2 ? '#ff2a3a' : '#ffffff', life: 0.45, t: 0 });
+    }
+  });
+}
+
+// ── 일섬: 발도 → 섬광 돌진 → 납도 → 적월 ──
+// Lv1 발도: 제자리에서 앞으로 짧은 호를 긋는 칼빛 (가로로 납작한 반원)
+function drawArcFx(a, x, y, life = 0.22) {
+  const d = a.dir;
+  skFx(null, 0, life, (u) => {
+    const sweep = Math.min(1, u / 0.35);
+    ctx.save();
+    ctx.globalAlpha = 1 - u;
+    ctx.strokeStyle = '#e8c8cc'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 22, 7, 0, d > 0 ? Math.PI * 1.25 : -Math.PI * 0.25, d > 0 ? Math.PI * 1.25 + Math.PI * 1.1 * sweep : -Math.PI * 0.25 - Math.PI * 1.1 * sweep, d < 0);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+// ★★ 납도: 칼을 거두는 순간 손잡이에서 "딸깍" 불꽃, 그리고 하단바 끝에서 끝까지 한 줄 검선이 그어졌다 사라진다
+function sheatheFx(a, y) {
+  const h = hand(a);
+  for (let i = 0; i < 7; i++) parts.push({ x: h.x, y: h.y, vx: rand(-60, 60), vy: rand(-80, -20), g: 300, size: 1, color: '#ffe0a0', life: 0.25, t: 0 });
+  skFx(null, 0, 0.5, (u) => {
+    const grow = easeOut(Math.min(1, u / 0.12)), cx = h.x, half = (W + 80) * grow;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 1 - u;
+    ctx.fillStyle = '#ff3040'; ctx.fillRect(cx - half, y - 1, half * 2, 3);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(cx - half, y, half * 2, 1);
+    ctx.restore();
+  });
+}
+// ★★★ 적월: 대상 뒤 하늘에 붉은 보름달이 떠오르고, 이중 일섬 동안 하단바가 핏빛으로 가라앉는다
+function bloodMoonFx(a, life, dimFrom, dimTo) {
+  const mx = a.tx() + a.dir * 34, my = groundY() - 92;
+  backFx(a, 0, life, (u) => {
+    const t = u * life, rise = easeOut(Math.min(1, t / 0.5)), out = t > life - 0.3 ? (life - t) / 0.3 : 1;
+    const dim = t < dimFrom ? 0 : t < dimFrom + 0.1 ? (t - dimFrom) / 0.1 : t < dimTo ? 1 : Math.max(0, 1 - (t - dimTo) / 0.2);
+    if (dim > 0) dimBand(0.55 * dim, '24,0,4');
+    const y = my + 16 * (1 - rise);
+    ctx.save();
+    ctx.globalAlpha = rise * out;
+    const glow = ctx.createRadialGradient(mx, y, 10, mx, y, 44);
+    glow.addColorStop(0, 'rgba(255,60,60,0.45)'); glow.addColorStop(1, 'rgba(255,40,40,0)');
+    ctx.fillStyle = glow; ctx.fillRect(mx - 44, y - 44, 88, 88);
+    ctx.fillStyle = '#c4202c'; ctx.beginPath(); ctx.arc(mx, y, 22, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e84450'; ctx.beginPath(); ctx.arc(mx - 4, y - 4, 17, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#a3141f';
+    for (const [cx, cy, r] of [[6, -6, 4], [-8, 5, 3], [3, 9, 2.5], [-3, -11, 2]]) { ctx.beginPath(); ctx.arc(mx + cx, y + cy, r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
   });
 }
 
@@ -1039,56 +1566,72 @@ function judgmentBase(u) {
 }
 
 const SKILL_FX = {
-  // ── 검사: 강철 베기 — 웅크려 검을 치켜들고, 앞으로 뛰어오르며 착지와 함께 내려벤다 ──
-  //  ★ 벤 자리에서 초승달 검풍이 앞으로 날아간다 / ★★ 내려벨 때 땅이 양옆으로 갈라지며 주변까지 베고, 검풍이 두 겹
-  //  ★★★ 검을 낮게 되돌렸다가 뛰어오르며 올려베어 X자로 마무리 (금빛 반달)
+  // ── 검사: 강철 베기 ──
+  //  Lv1 「강철 베기」 제자리에서 수수하게 내려벤다
+  //  ★ 「강철 검풍」 검날을 따라 푸른 빛이 차오르고, 베면 초승달 검풍이 앞으로 날아간다
+  //  ★★ 「강철 대검」 손의 검이 몸만 한 대검이 되어 내려찍고, 땅에서 바위 송곳이 차례로 솟는다
+  //  ★★★ 「천강검」 한 번 벤 뒤 검을 하늘로 치켜들면 빛줄기가 하늘로 뻗고, 거대한 강철 검이 떨어져 꽂힌다
   steelCleave: {
     pose(u, a) {
-      const t = u * (a.k ? a.k.dur : 0.7);
-      if (a.mast >= 3 && t >= 0.42) {
-        if (t < 0.6) { const w = easeOut(segU(t, 0.42, 0.6)); return { wa: mix(1.1, 1.75, w), skew: mix(0.3, -0.1, w), sy: mix(0.95, 0.84, w), sx: mix(1, 1.06, w), dx: mix(12, 9, w) }; }
-        if (t < 0.74) { const d = easeIn(segU(t, 0.6, 0.74)); return { wa: mix(1.75, -2.0, d), skew: mix(-0.1, -0.35, d), sy: mix(0.84, 1.12, d), sx: mix(1.06, 0.92, d), dx: mix(9, 20, d), lift: 14 * d }; }
-        if (t < 0.83) { const f = segU(t, 0.74, 0.83); return { wa: -2.0 - 0.15 * Math.sin(Math.PI * f), skew: -0.35, sy: 1.08, dx: 20, lift: 14 * (1 - easeIn(f)) }; }
-        const r = easeOut(segU(t, 0.83, 0.95));
-        return { wa: mix(-2.0, -1.0, r), skew: -0.35 * (1 - r), dx: 20 * (1 - r) };
+      const t = u * (a.k ? a.k.dur : 0.7), m = a.mast || 0;
+      if (m >= 3 && t >= 0.42) {
+        if (t < 0.72) { const r = easeOut(segU(t, 0.42, 0.72)); return { wa: mix(1.1, -1.57, r), skew: mix(0.3, -0.12, r), sy: mix(0.95, 1.1, r), dx: mix(12, 6, r), lift: 6 * r }; }
+        if (t < 0.95) return { wa: -1.57 + 0.04 * Math.sin(clock * 40), skew: -0.12, sy: 1.1, dx: 6, lift: 6 };
+        if (t < 1.0) { const d = easeIn(segU(t, 0.95, 1.0)); return { wa: mix(-1.57, 0.9, d), skew: mix(-0.12, 0.35, d), sy: mix(1.1, 0.88, d), dx: mix(6, 9, d), lift: 6 * (1 - d) }; }
+        const r = easeOut(segU(t, 1.0, 1.25));
+        return { wa: mix(0.9, -1.0, r), skew: 0.35 * (1 - r), dx: 9 * (1 - r), sy: mix(0.88, 1, r) };
       }
-      return steelCleaveBase(t / 0.7);
+      const p = steelCleaveBase(Math.min(1, t / 0.7));
+      if (m === 0) { p.lift = (p.lift || 0) * 0.25; p.dx = (p.dx || 0) * 0.35; }   // 뛰어들지 않고 제자리에서
+      return p;
     },
     cues: (a) => {
-      const d = a.k.dur;
-      const list = [
-        [0.182 / d, (a) => { const h = hand(a); starFx(h.x - a.dir * 8, h.y - 24, 7 + 2 * Math.min(2, a.mast), '#ffffff', 0.25); }],
-        [0.21 / d, (a) => { for (let i = 0; i < 6; i++) parts.push({ x: a.x() - a.dir * 4, y: groundY() - 2, vx: -a.dir * rand(30, 90), vy: rand(-50, -10), g: 200, size: 3, color: i % 2 ? '#c9b38a' : '#a8946a', life: 0.35, t: 0 }); }],
-      ];
-      if (a.mast >= 3) list.push([0.58 / d, (a) => { const h = hand(a); starFx(h.x + a.dir * 6, h.y + 8, 9, MASTERY_GOLD, 0.25); debris(a.px(), 6, ['#c9b38a', MASTERY_GOLD], 0.8); }]);
+      const d = a.k.dur, m = a.mast;
+      const list = [[0.21 / d, (a) => { for (let i = 0; i < (m ? 6 : 3); i++) parts.push({ x: a.x() - a.dir * 4, y: groundY() - 2, vx: -a.dir * rand(30, 90), vy: rand(-50, -10), g: 200, size: 3, color: i % 2 ? '#c9b38a' : '#a8946a', life: 0.35, t: 0 }); }]];
+      if (m === 1 || m >= 3) list.push([0.01, (a) => steelGlowFx(a, 0.34)]);
+      if (m === 2) list.push([0.01, (a) => greatswordFx(a, d * 0.95)]);
+      if (m >= 3) {
+        list.push([0.6 / d, (a) => {
+          // 치켜든 칼끝에서 하늘로 가는 빛줄기, 그리고 대상 위로 천강검
+          aFx(a, 0, 0.4, (u) => { const g = gripOf(a), tx = g.x + Math.cos(g.ang) * 11 * PX, ty = g.y + Math.sin(g.ang) * 11 * PX; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.sin(Math.PI * u); ctx.fillStyle = '#cfe0ff'; ctx.fillRect(tx - 1, -20, 2, ty + 20); ctx.fillStyle = '#ffffff'; ctx.fillRect(tx, -20, 1, ty + 20); ctx.restore(); });
+          a.skyX = a.tx();
+          skySwordFx(a.skyX, 0.4, 1.5);
+        }]);
+      }
       return list;
     },
     hit(a, i) {
-      const s = a.k.stage || 0, h = hand(a), big = Math.min(2, s);
-      if (i === 0) {
-        crescentFx(h.x, h.y, 30 + 6 * big, -2.6, 1.0, a.dir, '#cfe0ff', 3 + (s >= 2 ? 1 : 0), 0.28);
-        ringFx(a.px(), 'rgba(214,196,150,0.9)', 0.5 + 0.3 * big, 0.35);
-        debris(a.px() + a.dir * 10, 6 + 5 * big, ['#c9b38a', '#a8946a'], s >= 2 ? 1.6 : 1);
-        if (s >= 2) { groundCrackFx(a.px() + a.dir * 10, 40, a.color); impact({ shake: 0.15 }); }
-      } else if (i === 1) {
-        // 검풍: 땅 위를 스치며 앞으로 (★★부터 두 겹)
-        waveFx(a, h.x, h.y + 4, 120, a.color, 0.36, s >= 2 ? 1.25 : 1);
-        if (s >= 2) waveFx(a, h.x, h.y - 6, 120, '#ffffff', 0.36, 0.8, 0.06);
-        impact({ shake: 0.08 });
-      } else {
-        // ★★★ 올려베기: 금빛 역반달 + 대상마다 X
-        crescentFx(h.x, h.y - 6, 42, 1.0, -2.4, a.dir, MASTERY_GOLD, 5, 0.32);
-        for (const t of a.targets(i)) { xslashFx(t.x, t.y, 20, a.color, 0.45); burst(t.x, t.y, 22, ['#ffffff', a.color, MASTERY_GOLD], 170); }
-        ringFx(a.px(), MASTERY_GOLD, 1.2, 0.45);
-        impact({ stop: 0.1, shake: 0.3 });
+      const m = a.mast, g = gripOf(a);
+      if (m === 0) { crescentFx(g.x, g.y, 22, -2.6, 1.0, a.dir, '#dfe6f0', 2, 0.2); return; }
+      if (m === 1) {
+        if (i === 0) { crescentFx(g.x, g.y, 30, -2.6, 1.0, a.dir, '#bcd6ff', 3, 0.28); ringFx(a.px(), 'rgba(160,200,255,0.9)', 0.6, 0.35); impact({ stop: 0.05, shake: 0.12 }); }
+        else { waveFx(a, g.x, g.y + 4, 120, '#8fb4ff', 0.36); impact({ shake: 0.08 }); }
+        return;
       }
+      if (m === 2) {
+        if (i === 0) {
+          // 대검이 땅을 찍는다: 양옆으로 무거운 흙 파도
+          for (const s of [-1, 1]) for (let j = 0; j < 10; j++) parts.push({ x: a.px() + a.dir * 14, y: groundY() - 2, vx: s * rand(60, 160), vy: rand(-120, -30), g: 420, size: 3, color: j % 2 ? '#8a7a68' : '#c9b38a', life: 0.55, t: 0 });
+          impact({ stop: 0.12, shake: 0.35 });
+        } else {
+          rockSpikesFx(a, a.px() + a.dir * 18, 5, 15, 1.1);
+          impact({ shake: 0.18 });
+        }
+        return;
+      }
+      if (i === 0) { crescentFx(g.x, g.y, 28, -2.6, 1.0, a.dir, '#cfe0ff', 3, 0.24); impact({ stop: 0.04, shake: 0.1 }); return; }
+      const x = a.skyX != null ? a.skyX : a.tx();
+      craterFx(x);
+      for (let j = 0; j < 24; j++) parts.push({ x: x + rand(-6, 6), y: groundY() - 4, vx: rand(-180, 180), vy: rand(-260, -80), g: 520, size: Math.random() < 0.3 ? 4 : 3, color: j % 3 ? '#8a7a68' : '#dfe7f3', life: rand(0.5, 0.9), t: 0 });
+      impact({ stop: 0.18, shake: 0.55 });
     },
-    // 반달 자국 두 겹: 두꺼운 직업색 + 늦게 따라오는 가는 강철빛. 검풍은 가로로 스친 자국, 올려베기는 금빛 역반달
     marks(a, t, pow, i) {
-      if (i === 1) { slashMarkFx(t.x, t.y + rand(-4, 4), a.dir > 0 ? 0 : Math.PI, 44, a.color, 3, 0.3); return; }
-      if (i === 2) { crescentMarkFx(t.x + a.dir * 4, t.y + 2, 24, 1.9, -1.2, 8, MASTERY_GOLD, 0.55, 0, a.dir); return; }
+      const m = a.mast;
+      if (m === 0) { crescentMarkFx(t.x - a.dir * 4, t.y, 18, -2.0, 1.1, 4, '#dfe6f0', 0.4, 0, a.dir); return; }
+      if (m === 1 && i === 1) return;
+      if (m === 2) { if (i === 0) for (const dy of [-5, 4]) crescentMarkFx(t.x - a.dir * 4, t.y + dy, 28, -2.1, 1.3, 11, '#9aa6b8', 0.6, 0, a.dir); return; }
+      if (m >= 3 && i === 1) return;
       crescentMarkFx(t.x - a.dir * 6, t.y - 2, 26, -2.1, 1.25, 9, a.color, 0.6, 0, a.dir);
-      crescentMarkFx(t.x - a.dir * 2, t.y + 2, 19, -1.9, 1.1, 4, '#cfe0ff', 0.5, 0.05, a.dir);
     },
     kb: 14,
   },
@@ -1138,82 +1681,84 @@ const SKILL_FX = {
     kb: 6,
   },
 
-  // ── 성기사: 심판의 일격 — 성검을 하늘로, 대상 위로 빛기둥 ──
-  //  Lv1 가는 기둥 / ★ 범위 +30%·굵은 기둥과 불꽃 / ★★ 흰 빛기둥이 한 번 더 내리꽂힌다
-  //  ★★★ 성검을 다시 들어 흩어진 빛을 대상 위로 모으고 → 거대한 금빛 기둥이 터지며 적을 띄운다
+  // ── 성기사: 심판의 일격 ──
+  //  Lv1 「심판의 빛」 가느다란 빛줄기가 지그재그로 깜박이며 내리친다
+  //  ★ 「심판의 일격」 빛기둥이 내리꽂히고, 맞은 적 머리 위에 금빛 낙인이 한동안 돈다
+  //  ★★ 「심판의 성검」 대상 위 하늘에 성검 세 자루가 떠올라 하나씩 박힌다
+  //  ★★★ 「대천사 강림」 기사 뒤로 날개를 편 거대한 빛의 기사가 나타나 같은 자세로 함께 내리친다 — 하늘이 열린 듯한 빛
   judgment: {
     pose(u, a) {
-      const t = u * (a.k ? a.k.dur : 1);
-      if (a.mast >= 3 && t >= 0.78) {
-        if (t < 1.0) { const r = easeOut(segU(t, 0.78, 1.0)); return { wa: mix(0.85, -1.75, r), sy: 1 + 0.1 * r, skew: mix(0.28, -0.15, r), dx: 7 * (1 - r), lift: 18 * r + Math.sin(clock * 10) * r }; }
-        if (t < 1.105) { const d = easeIn(segU(t, 1.0, 1.105)); return { wa: mix(-1.75, 0.95, d), skew: mix(-0.15, 0.45, d), dx: 9 * d, lift: 18 * (1 - d), sy: mix(1.1, 0.82, d), sx: mix(1, 1.14, d) }; }
-        if (t < 1.18) return { wa: 0.95, skew: 0.42, dx: 9, sy: 0.84, sx: 1.1 };
-        const r = easeOut(segU(t, 1.18, 1.3));
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 1);
+      if (m >= 3) {
+        if (t < 0.78) return judgmentBase(t);
+        if (t < 1.2) { const r = easeOut(segU(t, 0.78, 1.2)); return { wa: mix(0.85, -1.75, r), sy: 1 + 0.1 * r, skew: mix(0.28, -0.15, r), dx: 7 * (1 - r), lift: 16 * r + Math.sin(clock * 8) * r }; }
+        if (t < 1.31) { const d = easeIn(segU(t, 1.2, 1.31)); return { wa: mix(-1.75, 0.95, d), skew: mix(-0.15, 0.45, d), dx: 9 * d, lift: 16 * (1 - d), sy: mix(1.1, 0.82, d), sx: mix(1, 1.14, d) }; }
+        if (t < 1.4) return { wa: 0.95, skew: 0.42, dx: 9, sy: 0.84, sx: 1.1 };
+        const r = easeOut(segU(t, 1.4, 1.6));
         return { wa: mix(0.95, -1.0, r), skew: 0.42 * (1 - r), dx: 9 * (1 - r) };
       }
-      return judgmentBase(Math.min(1, t));
+      const p = judgmentBase(Math.min(1, u));
+      if (m === 0) p.lift = (p.lift || 0) * 0.3;
+      return p;
     },
     tick(a, u) {
       const t = u * a.k.dur;
-      if (((t > 0.05 && t < 0.45) || (a.mast >= 3 && t > 0.8 && t < 1.05)) && Math.random() < 0.6) {
-        const h = hand(a);
-        parts.push({ x: h.x + rand(-10, 10), y: h.y - rand(0, 20), vx: rand(-10, 10), vy: rand(-80, -40), g: -20, size: 2, color: Math.random() < 0.5 ? '#ffd257' : '#ffffff', life: 0.5, t: 0 });
-      }
+      if (!a.mast || !((t > 0.05 && t < 0.45) || (a.mast >= 3 && t > 0.8 && t < 1.2)) || Math.random() > 0.6) return;
+      const h = hand(a);
+      parts.push({ x: h.x + rand(-10, 10), y: h.y - rand(0, 20), vx: rand(-10, 10), vy: rand(-80, -40), g: -20, size: 2, color: Math.random() < 0.5 ? '#ffd257' : '#ffffff', life: 0.5, t: 0 });
     },
     cues: (a) => {
-      const d = a.k.dur;
-      const list = [
-        [0.2 / d, (a) => { const h = hand(a); starFx(h.x, h.y - 26, 10, '#fff3b0', 0.4); }],
-        [0.3 / d, (a) => {
-          for (const t of a.targets()) {
-            aFx(a, 0, 0.3, (u) => { ctx.save(); ctx.globalAlpha = 0.5 + u * 0.5; ctx.fillStyle = '#ffd257'; ctx.fillRect(Math.round(t.x) - 1, 0, 2, groundY()); ctx.restore(); });
-            ringFx(t.x, '#ffd257', 0.5, 0.3);
-          }
-        }],
-      ];
-      // ★★★ 빛 모으기: 대상 위에서 빛 구슬이 커지다가 내려찍는 순간 터진다
-      if (a.mast >= 3) list.push([0.8 / d, (a) => { for (const t of a.targets()) lightOrbFx(a, t.x, groundY() - 54, MASTERY_GOLD, 1.105 - 0.8, 1.2); starFx(hand(a).x, hand(a).y - 28, 12, MASTERY_GOLD, 0.4); }]);
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [[0.45, (a) => { const h = hand(a); parts.push({ x: h.x, y: h.y - 20, vx: 0, vy: -20, g: 0, size: 2, color: '#fff3b0', life: 0.3, t: 0 }); }]];
+      const list = [[0.2 / d, (a) => { const h = hand(a); starFx(h.x, h.y - 26, 10, '#fff3b0', 0.4); }]];
+      if (m === 1 || m >= 3) list.push([0.3 / d, (a) => {
+        for (const t of a.targets()) {
+          aFx(a, 0, 0.3, (u) => { ctx.save(); ctx.globalAlpha = 0.5 + u * 0.5; ctx.fillStyle = '#ffd257'; ctx.fillRect(Math.round(t.x) - 1, 0, 2, groundY()); ctx.restore(); });
+          ringFx(t.x, '#ffd257', 0.5, 0.3);
+        }
+      }]);
+      if (m === 2) list.push([0.3 / d, (a) => {
+        // 성검 셋: 떨어질 시각은 타격 시점과 같다
+        a.swordX = a.tx();
+        [-14, 0, 14].forEach((off, j) => holySwordFx(a.swordX + off * a.dir, a.k.hits[j][0] * d - 0.3, 1.4));
+      }]);
+      if (m >= 3) list.push([0.01, (a) => archangelFx(a, d - 0.05, a.k.hits[1][0] * d)]);
       return list;
     },
     hit(a, i) {
-      const s = a.k.stage || 0;
-      if (i === 0) {
-        for (const t of a.targets(i)) {
-          pillarFx(t.x, '#ffd257', s ? 44 : 28, 0.6);
-          ringFx(t.x, '#ffd257', s ? 1.2 : 0.8, 0.6);
-          ringFx(t.x, '#ffffff', 0.6, 0.4);
-          burst(t.x, groundY() - 10, s ? 30 : 18, ['#ffd257', '#ffffff', '#fff3b0'], 170, 3, 250);
-          if (s >= 1) for (const sd of [-1, 1]) streakFx(t.x, groundY() - 2, t.x + sd * 30, groundY() - 2, '#ffd257', 3, 0.3);
-        }
-        impact({ stop: 0.1, shake: s ? 0.3 : 0.2 });
-      } else if (i === 1) {
-        // ★★ 두 번째 빛기둥: 흰 심이 굵은 기둥이 살짝 옆에 한 번 더
-        for (const t of a.targets(i)) {
-          pillarFx(t.x + a.dir * 6, '#ffffff', 34, 0.5);
-          pillarFx(t.x + a.dir * 6, '#fff3b0', 18, 0.4);
-          holyCrossFx(t.x, t.y - 8, 24, 0.7);
-          burst(t.x, t.y, 20, ['#ffffff', '#ffd257'], 150);
-        }
-        impact({ stop: 0.06, shake: 0.22 });
-      } else {
-        // ★★★ 대폭발: 금빛 거대 기둥 + 겹고리 + 큰 성호, 적이 떠오른다
-        for (const t of a.targets(i)) {
-          pillarFx(t.x, MASTERY_GOLD, 90, 0.85);
-          pillarFx(t.x, '#ffffff', 30, 0.55);
-          ringFx(t.x, MASTERY_GOLD, 2.2, 0.75);
-          ringFx(t.x, '#ffffff', 1.4, 0.5);
-          holyCrossFx(t.x, t.y - 12, 32, 0.9);
-          burst(t.x, groundY() - 14, 50, [MASTERY_GOLD, '#ffffff', '#ffd257'], 230, 3, 220);
-        }
-        impact({ stop: 0.16, shake: 0.45 });
+      const m = a.mast;
+      if (m === 0) { for (const t of a.targets(i)) lightRayFx(t.x); impact({ shake: 0.08 }); return; }
+      if (m === 2) {
+        const off = [-14, 0, 14][i] * a.dir, x = (a.swordX != null ? a.swordX : a.tx()) + off;
+        swordImpactFx(x);
+        burst(x, groundY() - 6, i === 2 ? 22 : 10, ['#ffd257', '#ffffff'], i === 2 ? 160 : 100);
+        impact({ stop: i === 2 ? 0.1 : 0.03, shake: i === 2 ? 0.3 : 0.12 });
+        return;
       }
+      if (m >= 3 && i === 1) {
+        for (const t of a.targets(i)) heavenStrikeFx(t.x);
+        impact({ stop: 0.18, shake: 0.5 });
+        return;
+      }
+      for (const t of a.targets(i)) {
+        pillarFx(t.x, '#ffd257', 44, 0.6);
+        ringFx(t.x, '#ffd257', 1.2, 0.6);
+        burst(t.x, groundY() - 10, 26, ['#ffd257', '#ffffff', '#fff3b0'], 170, 3, 250);
+        if (m === 1) brandFx(t.x, (t.top != null ? t.top : t.y - 20) - 10);
+      }
+      impact({ stop: 0.1, shake: 0.3 });
     },
-    marks(a, t, pow, i) { holyCrossFx(t.x, t.y - 4, i === 2 ? 24 : 18, 0.75); },
+    marks(a, t, pow, i) {
+      if (a.mast === 0) return;
+      if (a.mast === 2) { if (i === 2) holyCrossFx(t.x, t.y - 4, 18, 0.7); return; }
+      holyCrossFx(t.x, t.y - 4, a.mast >= 3 && i === 1 ? 28 : 18, 0.75);
+    },
     kb: 16,
   },
 
-  // ── 성기사: 성역 — 성검을 땅에 꽂아 황금 돔 ──
-  //  Lv1 작은 돔 3초 / ★ 4초·돔이 커짐 / ★★ 회복 +50%·돔 둘레를 성호 룬이 돌고 초록빛 회복 / ★★★ 금빛 이중 돔과 양옆 빛기둥, 끝날 때 성광 폭발
+  // ── 성기사: 성역 ──
+  //  Lv1 「성광」 발밑에 빛의 원만 / ★ 「성역」 황금 돔 / ★★ 「성채」 돔 둘레에 돌기둥 넷이 솟아 적을 밀어낸다
+  //  ★★★ 「성전」 금빛 성당이 세워지고 1초마다 종이 울린다 — 끝날 때 빛으로 무너지며 성광이 터진다
   sanctuary: {
     pose(u) {
       if (u < 0.35) { const r = segU(u, 0, 0.35); return { wa: mix(-1.0, -1.57, easeOut(r)), lift: 12 * Math.sin(Math.PI * r) }; }
@@ -1221,81 +1766,41 @@ const SKILL_FX = {
       return { wa: 1.57, sy: mix(0.86, 0.96, segU(u, 0.5, 1)) };
     },
     cues: [[0.48, (a) => {
-      const h = hand(a), k = a.k, s = k.stage || 0;
-      ringFx(h.x, '#ffd257', 1.2 + 0.2 * s, 0.6);
-      debris(h.x, 10, ['#c9b38a', '#ffd257']);
+      const k = a.k, s = k.stage || 0, h = hand(a), life = k.dur * 0.52 + k.ward.dur;
+      if (s === 0) { lightCircleFx(a, life); return; }
       impact({ stop: 0.06, shake: 0.15 });
-      if (s >= 2) for (let j = 0; j < 12; j++) parts.push({ x: a.x() + rand(-14, 14), y: groundY() - rand(4, 30), vx: rand(-15, 15), vy: rand(-70, -35), g: -15, size: 3, color: j % 2 ? '#7dffb0' : '#ffffff', life: 0.8, t: 0, add: true });
-      // 돔: 시전자를 따라다니며 보호막이 사라질 때까지 남는다
-      const [RX, RY] = [[28, 38], [34, 46], [40, 52], [46, 58]][s];
-      const life = k.dur * 0.52 + k.ward.dur;
-      aFx(a, 0, life, (u) => {
-        const x = a.x(), gy = groundY();
-        const grow = Math.min(1, u * life / 0.25), fade = u > 0.9 ? (1 - u) / 0.1 : 1;
-        const rx = RX * easeOut(grow), ry = RY * easeOut(grow);
-        ctx.save();
-        ctx.globalAlpha = fade * (0.85 + 0.15 * Math.sin(clock * 6));
-        ctx.fillStyle = s >= 3 ? 'rgba(255,235,160,0.16)' : s ? 'rgba(255,215,90,0.13)' : 'rgba(220,205,150,0.07)';
-        ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.fill();
-        // Lv1 은 가는 선 하나, ★부터 빛 번짐과 안쪽 반사광
-        ctx.strokeStyle = s >= 3 ? MASTERY_GOLD : s ? '#ffd257' : '#d8c890'; ctx.lineWidth = s ? 2 : 1; ctx.shadowColor = '#ffd257'; ctx.shadowBlur = s ? 10 : 0;
-        ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.stroke();
-        if (s) {
-          ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.ellipse(x, gy, rx * 0.8, ry * 0.85, 0, Math.PI * 1.1, Math.PI * 1.5); ctx.stroke();
-        }
-        if (s >= 3) {
-          // 안쪽 두 번째 막 + 돔 양옆의 가는 빛기둥
-          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.globalAlpha *= 0.8;
-          ctx.beginPath(); ctx.ellipse(x, gy, rx * 0.62, ry * 0.7, 0, Math.PI, 0); ctx.stroke();
-          ctx.shadowBlur = 0;
-          ctx.fillStyle = 'rgba(255,240,184,0.35)';
-          for (const sd of [-1, 1]) ctx.fillRect(Math.round(x + sd * rx) - 1, gy - ry - 30, 2, ry + 30);
-        }
-        ctx.shadowBlur = 0;
-        if (s >= 2) {
-          // 돔 둘레를 도는 성호 룬 6개
-          ctx.fillStyle = '#fff3b0'; ctx.globalAlpha = fade * 0.9;
-          for (let j = 0; j < 6; j++) {
-            const ang = Math.PI + ((clock * 0.9 + j / 6) % 1) * Math.PI;
-            const px = Math.round(x + Math.cos(ang) * rx), py = Math.round(gy + Math.sin(ang) * ry);
-            ctx.fillRect(px - 1, py - 3, 2, 6); ctx.fillRect(px - 3, py - 1, 6, 2);
-          }
-        }
-        ctx.restore();
-      }, null, () => {
-        if (Math.random() < 0.35 + 0.1 * s) parts.push({ x: a.x() + rand(-RX + 6, RX - 6), y: groundY() - 2, vx: 0, vy: rand(-60, -30), g: -10, size: 2, color: s >= 2 && Math.random() < 0.4 ? '#7dffb0' : Math.random() < 0.5 ? '#ffd257' : '#ffffff', life: 0.7, t: 0 });
-      });
+      if (s === 1) { ringFx(h.x, '#ffd257', 1.2, 0.6); debris(h.x, 10, ['#c9b38a', '#ffd257']); domeFx(a, life); return; }
+      for (let j = 0; j < 14; j++) parts.push({ x: a.x() + rand(-16, 16), y: groundY() - rand(4, 34), vx: rand(-15, 15), vy: rand(-70, -35), g: -15, size: 3, color: j % 2 ? '#7dffb0' : '#ffffff', life: 0.8, t: 0, add: true });
+      if (s === 2) rampartFx(a, life); else cathedralFx(a, life);
     }]],
-    // ★★★ 보호막이 끝나는 순간: 돔이 성광으로 터진다 (피해는 skills.js tickSkills)
-    finish(a) {
+    hit(a) {
+      // ★★·★★★ 기둥·성당이 솟으며 둘레의 적을 밀어낸다: 바닥을 따라 바깥으로 번지는 흙먼지
       const x = a.x(), gy = groundY();
-      pillarFx(x, MASTERY_GOLD, 80, 0.8);
-      pillarFx(x, '#ffffff', 26, 0.5);
-      ringFx(x, MASTERY_GOLD, 2.4, 0.7);
-      ringFx(x, '#ffffff', 1.5, 0.5);
-      for (const sd of [-1, 1]) holyCrossFx(x + sd * 36, gy - 30, 20, 0.7, 0.05);
-      burst(x, gy - 24, 44, [MASTERY_GOLD, '#ffffff', '#ffd257'], 220, 3, 160);
-      impact({ stop: 0.1, shake: 0.35 });
+      for (const s of [-1, 1]) for (let j = 0; j < 8; j++) parts.push({ x: x + s * 30, y: gy - 2, vx: s * rand(80, 150), vy: rand(-50, -10), g: 200, size: 2, color: j % 2 ? '#c9b38a' : '#fff3b0', life: 0.4, t: 0 });
     },
-    kb: 3,
+    finish(a) { cathedralFallFx(a); },
+    kb: 18,
   },
 
-  // ── 검성: 질풍난무 — 대상 앞뒤를 지그재그로 꿰뚫고 오가며 베고, 뛰어올라 X자로 내리꽂는다 ──
-  // 지나간 자리마다 붉은 잔상이 촤라락 남는다 (tick). 위치는 '대상까지 거리' 기준이라 결투·레이드에서도 같은 모양
-  //  Lv1 난무 4회 / ★ 5회 · 검흔이 두 겹 / ★★ 6회 · X가 커짐 / ★★★ 6회 + 높이 솟구쳐 내려찍는 마무리 일격 (땅이 갈라지고 금빛 X)
+  // ── 검성: 질풍난무 ──
+  //  Lv1 「삼연참」 제자리에서 쌍검을 번갈아 세 번 — 돌진도 잔상도 없다
+  //  ★ 「질풍난무」 적 앞뒤를 지그재그로 꿰뚫고 오가며 5번 베고 뛰어올라 X자 (붉은 잔상·속도선)
+  //  ★★ 「질풍난무·분신」 검붉은 그림자 분신이 대상 너머에서 거울처럼 함께 난무한다 (6회)
+  //  ★★★ 「월하난무」 분신 셋 — X자 순간 하단바가 검붉게 멎고 칼자국이 허공에 걸려 있다가, 솟구쳐 내려찍는 마무리 일격에 한꺼번에 부서진다
   gale: {
     pose(u, a) {
+      if (a.k && a.k.trio) return galeTrioPose(u * a.k.dur);
       const P = galePlanOf(a), D = Math.max(16, (a.tx() - a.x()) * a.dir);
       const G = galeAt(u * P.dur, D, P);
       const f = G.pos > D ? -1 : 1;                       // 늘 대상 쪽을 본다 (대상 너머면 뒤돈다)
       return { ...G.body, dx: G.pos * f, facing: f };
     },
     tick(a, u, dt) {
-      // 빠르게 움직이는 동안: 지나온 길에 가는 속도선 세 줄 + 0.03초마다 옅은 잔상 하나
+      if (a.k.trio) return;
+      // 빠르게 움직이는 동안: 지나온 길에 가는 속도선 세 줄 + 옅은 잔상
       const P = galePlanOf(a), D = Math.max(16, (a.tx() - a.x()) * a.dir), G = galeAt(u * P.dur, D, P);
       const sx = a.x() + a.dir * G.pos, lift = G.body.lift || 0;
-      if (a.mast && G.fast && a.prevX != null && Math.abs(sx - a.prevX) > 1.5) {
+      if (G.fast && a.prevX != null && Math.abs(sx - a.prevX) > 1.5) {
         const x0 = a.prevX, gy = groundY();
         for (const [h, c, w] of [[12, '#ffffff', 1], [24, '#ff4d4d', 2], [36, '#ffffff', 1]]) streakFx(x0, gy - h - lift, sx, gy - h - lift, c, w, 0.16);
       }
@@ -1307,69 +1812,82 @@ const SKILL_FX = {
       a.prevX = sx; a.prevLift = lift;
       a.ghostT = (a.ghostT || 0) - dt;
       if (!G.fast || a.ghostT > 0) return;
-      a.ghostT = [0.08, 0.05, 0.03, 0.03][a.mast];
+      a.ghostT = 0.035;
       ghostFx(a, sx, (G.pos > D ? -1 : 1) * a.dir, '#ff4d4d', 0.2, { ...G.body }, 0.28);
     },
     cues: (a) => {
+      if (a.k.trio) return [[0.05, (a) => { parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * 30, vy: -20, g: 200, size: 2, color: '#a8946a', life: 0.3, t: 0 }); }]];
       const P = galePlanOf(a), d = P.dur;
       const list = [
         [0.078 / d, (a) => { burst(a.x(), groundY() - 4, 10, ['#c9b38a', '#a8946a'], 80, 3, 300); }],
         [(P.stops[P.stops.length - 1] + 0.05) / d, (a) => { burst(a.px(), groundY() - 4, 8, ['#c9b38a', '#a8946a'], 80, 3, 300); }],
       ];
+      if (a.k.clones) list.push([0.001, (a) => shadowClonesFx(a, a.k.clones)]);
       if (P.fin) {
-        list.push([(P.hold + 0.02) / d, (a) => {
-          debris(a.px(), 12, ['#c9b38a', '#ff4d4d'], 1.2);
-          ringFx(a.px(), '#ff4d4d', 0.9, 0.35);
-        }]);
-        list.push([P.fin.top / d, (a) => { const h = hand(a); starFx(h.x, h.y - 10, 14, MASTERY_GOLD, 0.3); starFx(h.x, h.y - 10, 8, '#ffffff', 0.2); }]);
+        list.push([P.x / d, (a) => timeStopFx(a, 0, P.fin.hit - P.x, a.tx(), a.ty())]);
+        list.push([P.fin.top / d, (a) => { const h = hand(a); starFx(h.x, h.y - 10, 14, MASTERY_GOLD, 0.3); }]);
       }
       return list;
     },
     hit(a, i) {
-      const P = galePlanOf(a), s = a.k.stage || 0, nS = P.stops.length, t = a.targets(i)[0];
+      const t = a.targets(i)[0];
+      if (a.k.trio) {
+        nickFx(t.x, t.y + [-4, 2, 0][i], [-0.8, 0.8, 0.25][i] + (a.dir < 0 ? Math.PI : 0), i === 2 ? 0.32 : 0.25);
+        impact({ stop: i === 2 ? 0.04 : 0.015, shake: 0.05 });
+        return;
+      }
+      const P = galePlanOf(a), nS = P.stops.length, clone = a.k.clones;
       if (i < nS) {
         const ang = rand(-0.9, 0.9) + (i % 2 ? Math.PI / 2 : 0);
-        slashMarkFx(t.x, t.y, ang, 48, '#ff4d4d', s ? 4 : 3, 0.3, 0, rand(-6, 6));
-        if (s >= 1) slashMarkFx(t.x, t.y, ang + 0.18, 36, '#ffffff', 1.5, 0.22, 0.03);
+        slashMarkFx(t.x, t.y, ang, 48, '#ff4d4d', 4, 0.3, 0, rand(-6, 6));
+        // 분신의 칼자국: 거울 방향의 검붉은 자국이 한 박자 늦게
+        if (clone) slashMarkFx(t.x, t.y, Math.PI - ang, 44, '#6a0a18', 5, 0.3, 0.05, rand(-6, 6));
         burst(t.x, t.y, 6, ['#ffffff', '#ff4d4d'], 90);
         impact({ stop: 0.02, shake: 0.06 });
         return;
       }
       if (i === nS) {
         for (const tt of a.targets(i)) {
-          xslashFx(tt.x, tt.y, s >= 2 ? 26 : 20, '#ff3040', 0.4);
+          xslashFx(tt.x, tt.y, 22, '#ff3040', 0.4);
+          if (clone) xslashFx(tt.x, tt.y, 30, '#6a0a18', 0.45);
           burst(tt.x, tt.y, 24, ['#ffffff', '#ff4d4d', '#1a1b22'], 160);
         }
         ringFx(a.px(), '#ff4d4d', 0.8, 0.4);
         impact({ stop: 0.12, shake: 0.3 });
         return;
       }
-      // ★★★ 마무리 일격: 세로로 내리그은 거대한 붉은 베기, 금빛 X, 땅이 양옆으로 갈라진다
-      const x = a.px();
+      // ★★★ 마무리 일격: 세로로 내리그은 거대한 붉은 베기 (멈춰 있던 칼자국은 timeStopFx 가 이 순간 부순다)
       for (const tt of a.targets(i)) {
         slashMarkFx(tt.x, tt.y - 14, Math.PI / 2, 96, '#ff3040', 8, 0.55, 0, 4);
         slashMarkFx(tt.x, tt.y - 14, Math.PI / 2, 70, '#ffffff', 2, 0.4, 0.04, 4);
-        xslashFx(tt.x, tt.y, 30, MASTERY_GOLD, 0.5);
         burst(tt.x, tt.y, 40, ['#ffffff', '#ff4d4d', MASTERY_GOLD, '#1a1b22'], 220);
       }
-      groundCrackFx(x, 70, '#ff3040', 0.8);
-      debris(x, 18, ['#c9b38a', '#a8946a', '#ff4d4d'], 1.8);
-      ringFx(x, '#ff3040', 1.8, 0.6);
-      ringFx(x, MASTERY_GOLD, 1.1, 0.5);
+      debris(a.px(), 18, ['#c9b38a', '#a8946a', '#ff4d4d'], 1.8);
+      ringFx(a.px(), '#ff3040', 1.8, 0.6);
       impact({ stop: 0.16, shake: 0.45 });
     },
+    marks(a, t, pow, i, n) { if (!a.k.trio) weaponMarks(a, t, pow, i, n); },
     kb: 6,
   },
 
-  // ── 검성: 일섬 — 숨죽인 발도, 섬광, 늦게 터지는 베기 ──
-  //  Lv1 짧은 섬광 / ★ 늦게 따라오는 잔상이 한 번 더 벤다 / ★★ 범위가 넓어지고, 터질 때 화면 가로로 칼바람이 뻗으며 크게 밀쳐 낸다
-  //  ★★★ 지나간 자리에서 돌아서서 다시 발도 — 되돌아오는 금빛 섬광으로 이중 일섬, 대상 뒤로 붉은 달이 뜬다
+  // ── 검성: 일섬 ──
+  //  Lv1 「발도」 제자리에서 칼을 뽑으며 앞을 한 번 — 납작한 칼빛 호 하나
+  //  ★ 「일섬」 숨죽인 자세에서 섬광처럼 대상을 꿰뚫고 지나가며 벤다 (붉은 칼날선·잔상)
+  //  ★★ 「일섬·납도」 지나간 자리에서 칼을 거두는 순간 "딸깍" — 하단바 끝에서 끝까지 검선이 그어지고 지나친 적이 모두 늦게 갈라진다
+  //  ★★★ 「적월일섬」 붉은 보름달이 뜨고, 하단바가 핏빛으로 가라앉은 채 돌아서서 되돌아오는 이중 일섬
   iaido: {
     pose(u, a) {
-      const t = u * (a.k ? a.k.dur : 1.4), D = Math.max(20, Math.abs(a.tx() - a.x()) + 34);
+      const m = a.mast || 0, t = u * (a.k ? a.k.dur : 1.4), D = Math.max(20, Math.abs(a.tx() - a.x()) + 34);
+      if (m === 0 && a.k) {
+        if (t < 0.3) { const s = easeOut(segU(t, 0, 0.3)); return { sy: 1 - 0.1 * s, skew: 0.12 * s, wa: mix(-1.0, 2.5, s), wa2: mix(-0.5, 2.7, s) }; }
+        if (t < 0.45) { const d = easeOut(segU(t, 0.3, 0.45)); return { wa: mix(2.5, 0.1, d), wa2: mix(2.7, 0.4, d), skew: mix(0.12, 0.3, d), dx: 6 * d, sy: 0.92 }; }
+        if (t < 0.62) return { wa: 0.1, wa2: 0.4, skew: 0.3, dx: 6, sy: 0.92 };
+        const r = easeOut(segU(t, 0.62, 0.9));
+        return { wa: mix(0.1, -1.0, r), wa2: mix(0.4, -0.6, r), skew: 0.3 * (1 - r), dx: 6 * (1 - r) };
+      }
       if (t < 0.63) { const s = easeOut(segU(t, 0, 0.21)); return { sy: 1 - 0.12 * s, skew: 0.15 * s, wa: mix(-1.0, 2.5, s), wa2: mix(-0.5, 2.7, s) }; }
       if (t < 0.728) { const d = easeOut(segU(t, 0.63, 0.728)); return { dx: D * d, skew: 0.4, wa: 0.15, wa2: 0.35, sy: 0.9, alpha: 0.4 + 0.6 * d }; }
-      if (a.mast >= 3) {
+      if (m >= 3) {
         // 뒤돈 자세의 dx 는 facing 이 곱해지므로 부호를 뒤집어 같은 자리를 가리킨다
         if (t < 1.2) return { dx: D, skew: 0.25, wa: 0.15, wa2: 0.35, sy: 0.92 };
         if (t < 1.45) { const k = easeOut(segU(t, 1.2, 1.45)); return { dx: -D, facing: -1, sy: 1 - 0.12 * k, skew: 0.15 * k, wa: mix(0.15, 2.5, k), wa2: mix(0.35, 2.7, k) }; }
@@ -1378,66 +1896,75 @@ const SKILL_FX = {
         const r = easeOut(segU(t, 1.78, 1.9));
         return { dx: 0, facing: r < 0.5 ? -1 : 1, wa: mix(0.15, -1.0, r), wa2: mix(0.35, -0.6, r) };
       }
-      if (t < 1.19) return { dx: D, skew: 0.25, wa: 0.15, wa2: 0.35, sy: 0.92 };
-      const r = easeOut(segU(t, 1.19, 1.4));
-      return { dx: D * (1 - r), wa: mix(0.15, -1.0, r), wa2: mix(0.35, -0.6, r) };
+      // ★★ 납도: 지나간 자리에서 칼을 천천히 거두었다가(1.24초 딸깍) 돌아온다
+      const back = m === 2 ? 1.3 : 1.19;
+      if (t < back) {
+        if (m === 2 && t > 1.0) { const k = easeIn(segU(t, 1.0, 1.24)); return { dx: D, skew: mix(0.25, 0.05, k), wa: mix(0.15, 2.3, k), wa2: mix(0.35, 2.6, k), sy: mix(0.92, 1, k) }; }
+        return { dx: D, skew: 0.25, wa: 0.15, wa2: 0.35, sy: 0.92 };
+      }
+      const r = easeOut(segU(t, back, 1.4));
+      return { dx: D * (1 - r), wa: mix(m === 2 ? 2.3 : 0.15, -1.0, r), wa2: mix(m === 2 ? 2.6 : 0.35, -0.6, r) };
     },
     cues: (a) => {
-      const d = a.k.dur, s = a.k.stage || 0;
+      const d = a.k.dur, m = a.mast;
+      if (m === 0) return [[0.2 / d, (a) => { const h = hand(a); parts.push({ x: h.x - a.dir * 6, y: h.y + 3, vx: 0, vy: -15, g: 0, size: 2, color: '#ffffff', life: 0.25, t: 0 }); }]];
       const list = [
         [0.448 / d, (a) => { const h = hand(a); starFx(h.x - a.dir * 12, h.y + 4, 12, '#ffffff', 0.3); }],
         [0.644 / d, (a) => {
-          const y = groundY() - 26, x = a.x(), far = Math.abs(a.tx() - x) + (s ? 60 : 36);
+          const y = groundY() - 26, x = a.x(), far = Math.abs(a.tx() - x) + 60;
           razorFx(x, x + a.dir * far, y, '#ff3040', 0.5, 0, false);
-          for (let i = a.mast ? 1 : 3; i <= 3; i++) ghostFx(a, x + a.dir * (Math.abs(a.tx() - x) + 34) * (i / 4), a.dir, '#ff4d4d', 0.3, { wa: 0.15, skew: 0.4 });
+          for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * (Math.abs(a.tx() - x) + 34) * (i / 4), a.dir, '#ff4d4d', 0.3, { wa: 0.15, skew: 0.4 });
         }],
       ];
-      if (a.mast >= 3) {
-        list.push([1.3 / d, (a) => { const h = hand(a); starFx(h.x + a.dir * 12, h.y + 4, 14, MASTERY_GOLD, 0.3); }]);
+      if (m === 2) list.push([1.24 / d, (a) => sheatheFx(a, groundY() - 26)]);
+      if (m >= 3) {
+        list.push([0.01, (a) => bloodMoonFx(a, d - 0.02, 1.2, 1.66)]);
+        list.push([1.3 / d, (a) => { const h = hand(a); starFx(h.x + a.dir * 12, h.y + 4, 14, '#ff8090', 0.3); }]);
         list.push([1.46 / d, (a) => {
-          // 되돌아오는 섬광: 대상 너머에서 출발점까지 금빛 칼날 선과 잔상
+          // 되돌아오는 섬광: 대상 너머에서 출발점까지 핏빛 칼날 선과 잔상
           const y = groundY() - 26, x = a.x(), D = Math.abs(a.tx() - x) + 34;
-          razorFx(x + a.dir * (D + 20), x - a.dir * 20, y + 4, MASTERY_GOLD, 0.55, 0, false);
-          for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * D * (1 - i / 4), -a.dir, MASTERY_GOLD, 0.3, { wa: 0.15, skew: 0.4 });
+          razorFx(x + a.dir * (D + 20), x - a.dir * 20, y + 4, '#ff6070', 0.55, 0, false);
+          for (let i = 1; i <= 3; i++) ghostFx(a, x + a.dir * D * (1 - i / 4), -a.dir, '#ff2030', 0.3, { wa: 0.15, skew: 0.4 });
         }]);
       }
       return list;
     },
     hit(a, i) {
-      const s = a.k.stage || 0;
-      if (i === 0) {
-        for (const t of a.targets(i)) burst(t.x, t.y, s ? 30 : 20, ['#ffffff', '#ff3040', '#1a1b22'], 190, 3);
-        if (s >= 2) {
-          // 칼바람: 터지는 높이에서 화면 가로로 길게
-          const x = a.tx(), y = groundY() - 24;
-          razorFx(x - 150, x + 150, y, '#ff3040', 0.55, 0.02, false);
-          razorFx(x - 110, x + 110, y - 10, '#ffffff', 0.4, 0.05, false);
-        }
-        impact({ stop: 0.18, shake: s >= 2 ? 0.45 : 0.4 });
-      } else if (i === 1) {
-        // 늦게 따라오는 잔상의 한 번 더 베기
+      const m = a.mast;
+      if (m === 0) { for (const t of a.targets(i)) drawArcFx(a, t.x - a.dir * 6, t.y + 2); impact({ stop: 0.03, shake: 0.08 }); return; }
+      if (m === 2 && i === 1) {
+        // 납도: 지나친 적이 위아래로 늦게 갈라진다 — 세로 틈이 벌어지며 붉은 빛이 샌다
         for (const t of a.targets(i)) {
-          ghostFx(a, t.x - a.dir * 10, a.dir, '#ff4d4d', 0.25, { wa: 0.9, wa2: 1.1, skew: 0.4 }, 0.45);
-          slashMarkFx(t.x, t.y, a.dir > 0 ? -0.5 : Math.PI + 0.5, 40, '#ff4d4d', 3, 0.3);
-          burst(t.x, t.y, 10, ['#ffffff', '#ff4d4d'], 110);
+          skFx(null, 0, 0.45, (u) => {
+            const gap = 1 + 5 * easeOut(Math.min(1, u / 0.3)), h = 22;
+            ctx.save(); ctx.globalAlpha = 1 - u;
+            ctx.fillStyle = '#ff3040'; ctx.fillRect(t.x - gap / 2, t.y - h, gap, h * 2);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(t.x - 0.5, t.y - h, 1, h * 2);
+            ctx.restore();
+          });
+          burst(t.x, t.y, 26, ['#ffffff', '#ff3040', '#1a1b22'], 190, 3);
         }
-        impact({ stop: 0.03, shake: 0.1 });
-      } else {
-        // ★★★ 두 번째 일섬이 터진다: 대상 뒤로 붉은 달 + 금빛 X
+        impact({ stop: 0.16, shake: 0.4 });
+        return;
+      }
+      if (m >= 3 && i === 2) {
+        // 두 번째 일섬이 터진다: 대상 위로 달빛 X
         for (const t of a.targets(i)) {
-          crescentMarkFx(t.x, t.y - 6, 34, -1.0, 2.2, 10, '#ff3040', 0.7, 0, -a.dir);
-          xslashFx(t.x, t.y, 26, MASTERY_GOLD, 0.5);
-          burst(t.x, t.y, 40, ['#ffffff', '#ff3040', MASTERY_GOLD, '#1a1b22'], 220, 3);
+          xslashFx(t.x, t.y, 26, '#ff6070', 0.5);
+          burst(t.x, t.y, 40, ['#ffffff', '#ff3040', '#ff9aa4', '#1a1b22'], 220, 3);
         }
         impact({ stop: 0.2, shake: 0.5 });
+        return;
       }
+      if (m >= 3 && i === 1) { for (const t of a.targets(i)) burst(t.x, t.y, 10, ['#ffffff', '#ff4d4d'], 110); return; }
+      for (const t of a.targets(i)) burst(t.x, t.y, 28, ['#ffffff', '#ff3040', '#1a1b22'], 190, 3);
+      impact({ stop: 0.18, shake: 0.4 });
     },
-    // 머리카락처럼 가는 선이 그어졌다가 늦게 위아래로 벌어지며 터진다 (★★★ 두 번째는 금빛 두 겹)
+    // 머리카락처럼 가는 선이 그어졌다가 늦게 위아래로 벌어지며 터진다
     marks(a, t, pow, i) {
-      if (i === 1) return;
-      const w = a.k.stage ? 42 : 30, col = i === 2 ? MASTERY_GOLD : '#ff3040';
-      razorFx(t.x - w, t.x + w, t.y, col, 0.7);
-      razorFx(t.x - w * 0.62, t.x + w * 0.62, t.y - 9, col, 0.6, 0.05);
+      if (a.mast === 0 || (a.mast === 2 && i === 1) || (a.mast >= 3 && i === 1)) return;
+      razorFx(t.x - 42, t.x + 42, t.y, '#ff3040', 0.7);
+      razorFx(t.x - 26, t.x + 26, t.y - 9, '#ff3040', 0.6, 0.05);
     },
     kb: 20,
   },
@@ -1720,7 +2247,11 @@ const SKILL_FX = {
 
 // ───────────────────────── 그리기 ─────────────────────────
 function drawSkillFx() {
-  for (const f of skfx) if (f.draw && clock >= f.at) f.draw(f.life ? Math.min(1, (clock - f.at) / f.life) : 1);
+  for (const f of skfx) if (f.draw && !f.back && clock >= f.at) f.draw(f.life ? Math.min(1, (clock - f.at) / f.life) : 1);
+}
+// 뒤 레이어 연출 (backFx): 기사·몬스터보다 먼저 그린다
+function drawSkillFxBack() {
+  for (const f of skfx) if (f.draw && f.back && clock >= f.at) f.draw(f.life ? Math.min(1, (clock - f.at) / f.life) : 1);
 }
 
 // 2차 스킬 이름 띠 (화면 전체를 덮는 연출은 쓰지 않는다)
@@ -1748,7 +2279,7 @@ function drawScreenFx() {
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
   ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-  const label = `${k.icon} ${k.name}${cutin.star || ''}`;
+  const label = `${k.icon} ${cutin.name || k.name}${cutin.star || ''}`;
   ctx.strokeText(label, cx, y + h / 2 + 1);
   ctx.fillStyle = cutin.color;
   ctx.fillText(label, cx, y + h / 2 + 1);
