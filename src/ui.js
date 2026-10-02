@@ -906,6 +906,24 @@ function gearRow(it) {
 
 // 위: 캐릭터와 장착 슬롯(갑옷 위 · 무기 왼쪽 아래 · 반지 오른쪽 아래) + 고른 것의 세부 정보
 // 아래: 창고(장착 중 제외) 리스트 + 일괄 판매
+// 기사 능력치 한눈에 보기. 숫자에 마우스를 올리면 실제로 어떤 효과인지 풀어서 보여 준다
+function heroStatsPanel(st) {
+  const pct = (v) => `${Math.round(v * 100)}%`;
+  const stage = S.stage || 1;
+  const other = 1 - (1 - st.guard) / (1 - st.defRed);   // 직업·장비 쪽 피해 감소 (방어 훈련 몫을 뺀 것)
+  const rows = [
+    ['⚔️ 공격력', fmt(st.atk), '한 대 칠 때 들어가는 기본 피해예요. 훈련·레벨이 절대값을 쌓고 장비·대장간·직업이 %로 곱해져요.'],
+    ['❤️ 체력', fmt(st.maxHp), '버틸 수 있는 피해량이에요.'],
+    ['🛡️ 방어', fmt(st.def), `지금 ${stage} 스테이지 몬스터 기준으로 받는 피해를 ${pct(st.defRed)} 경감해요.\n올릴수록 효율이 조금씩 줄고, 깊은 스테이지일수록 같은 방어의 효과가 줄어들어요.`],
+    ['🧱 피해 감소', pct(st.guard), `몬스터에게 받는 피해를 총 ${pct(st.guard)} 덜 받아요 (최대 85%).\n· 방어 ${pct(st.defRed)}${other > 0.0005 ? `\n· 직업·장비 ${pct(other)}` : ''}\n둘은 곱으로 합쳐져요.`],
+    ['💨 공격 속도', `${st.aspd.toFixed(2)}/초`, `1초에 ${st.aspd.toFixed(2)}번 공격해요.`],
+    ['🎯 치명타', pct(st.crit), `${pct(st.crit)} 확률로 치명타가 터지고, 치명타는 ${Math.round(st.critMult * 100)}% 피해를 줘요 (최대 확률 80%).`],
+  ];
+  if (st.heal > 0) rows.push(['💚 타격 회복', pct(st.heal), `때릴 때마다 최대 체력의 ${pct(st.heal)}만큼 회복해요.`]);
+  return `<div class="gstats">${rows.map(([k, v, tip]) =>
+    `<div class="gsrow" data-tip="${esc(tip)}"><span>${k}</span><b>${v}</b></div>`).join('')}</div>`;
+}
+
 function viewGear() {
   const st = stats(true);
   const slots = Object.keys(GEAR_SLOTS);
@@ -935,10 +953,13 @@ function viewGear() {
 
   const html = `
     <div class="gpanel">
-      <div class="gstage">
-        <canvas class="gchar"></canvas>
-        ${slots.map(gearSlotBtn).join('')}
-        <div class="gpow">전투력 <b>${fmt(powerOf(st))}</b></div>
+      <div class="gleft">
+        <div class="gstage">
+          <canvas class="gchar"></canvas>
+          ${slots.map(gearSlotBtn).join('')}
+          <div class="gpow">전투력 <b>${fmt(powerOf(st))}</b></div>
+        </div>
+        ${heroStatsPanel(st)}
       </div>
       <div class="gdetail ${sel.slot && gearUi.last && gearUi.last.slot === sel.slot && gearUi.last.fresh ? 'flash-' + gearUi.last.result : ''}">
         ${sel.it ? itemDetail(sel.it) : slotDetail(sel.slot)}
