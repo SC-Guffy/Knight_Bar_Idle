@@ -5,6 +5,7 @@ const $ = (id) => document.getElementById(id);
 let campOpen = false;
 let acctOpen = false;                 // 계정 창 (첫 실행 닉네임 입력 · 계정 변경)
 let campTab = 'report';
+let reportSeen = null;     // 원정 보고 탭에서 이미 본 보고 (레드닷을 끄는 데만 씀, 보고 자체는 창을 닫을 때 지움)
 let revealed = [];                    // 이번에 캠프 창에서 챙긴 전리품들 [{ it, got, fresh }]
 let openAllTimer = null;
 const departOpts = { charm: false, elixir: false };
@@ -93,7 +94,11 @@ function tickLive(root = document) {
     el.style.width = (100 * Math.max(0, Math.min(1, r))) + '%';
   });
   const go = root.querySelector('[data-action="depart"]');
-  if (go) go.disabled = !!departBlocker();
+  if (go) {
+    go.disabled = !!departBlocker();
+    // 휴식이 끝나 바로 떠날 수 있으면 출정 버튼에도 레드닷 (가방에 상자가 남아 있으면 모두 열기가 먼저) (캠프 전체 점에는 넣지 않는다 — 말풍선 🚩 가 이미 알림)
+    go.classList.toggle('rd', !departBlocker() && !S.bag.length && S.stamina >= maxStamina() - 0.5);
+  }
 }
 
 // ───────────────────────── HUD ─────────────────────────
@@ -774,7 +779,7 @@ const gearBetter = (slot) => bestLoadout()[slot] !== S.gear.eq[slot];
 function campDots() {
   refillTickets();
   return {
-    report: S.bag.length > 0 || !!S.report,
+    report: S.bag.length > 0 || (!!S.report && S.report !== reportSeen),
     town: Object.keys(BUILDINGS).some(canBuild),
     train: TRAINING.some(canTrain),
     gear: Object.keys(GEAR_SLOTS).some(gearBetter),
@@ -1507,6 +1512,7 @@ function openRaidChestAt(i) {
 
 function renderCamp() {
   if (!campOpen) return;
+  if (campTab === 'report') reportSeen = S.report;
   const dots = campDots();
   const tabs = [
     ['report', '📜 원정 보고', S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
