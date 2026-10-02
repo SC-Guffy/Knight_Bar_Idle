@@ -457,12 +457,25 @@ function updateTower(dt, gdt) {
       if (towerWalk(TW_START_X, WALK_SPEED * 1.6, dt)) {
         knight.facing = 1;
         const floor = S.tower.run.floor, m = towerMonster(floor);
-        monsters = [makeMonster(m.type, m.boss, toWorld(TW_SPAWN_X), m)];
+        monsters = [makeMonster(m.type, m.boss, toWorld(TW_SPAWN_X), { ...m, atk0: m.atk, rage: 1 })];
+        tw.ft = 0;
         if (m.boss) showBanner(`🗼 ${floor}F 보스! ${MONSTERS[m.type].name}`, '#ff5a5a');
         tw.sub = 'fight';
       }
       break;
     case 'fight':
+      // 광폭화: 오래 끌수록 몬스터 공격력이 치솟는다 (tower.js towerRage)
+      if (knight.fighting && S.tower.run) {
+        const was = towerRage(tw.ft);
+        tw.ft += dt;
+        const rage = towerRage(tw.ft);
+        for (const m of monsters) if (!m.dying && m.atk0) { m.rage = rage; m.atk = m.atk0 * rage; }
+        if (was === 1 && rage > 1) showBanner('😡 광폭화!', '#ff5a5a');
+        else if (Math.floor(Math.log2(was)) < Math.floor(Math.log2(rage))) {
+          const m = monsters.find((o) => !o.dying);
+          if (m) addFloater(`😡 공격력 ×${Math.round(rage)}`, toScreen(m.x), groundY() - 56, '#ff5a5a', 12);
+        }
+      }
       fightTick(dt, st, () => {
         if (monsters.some((m) => !m.dying)) { knight.x += WALK_SPEED * dt; knight.walkT += dt; return; }
         const r = clearTowerFloor();
@@ -1592,7 +1605,9 @@ function drawMonster(m) {
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.fillRect(Math.round(x - sw / 2), groundY() - 1, Math.round(sw), 2);
 
-  if (hue) ctx.filter = `hue-rotate(${hue}deg)`;
+  // 탑 광폭화: 붉은 기운이 맥박처럼 번진다
+  const rage = m.rage > 1 && !m.dying ? `drop-shadow(0 0 ${2 + Math.sin(clock * 10) * 1.5 + Math.min(3, Math.log2(m.rage))}px #ff2a2a)` : '';
+  if (hue || rage) ctx.filter = `${hue ? `hue-rotate(${hue}deg)` : ''} ${rage}`.trim();
   const opt = { flash: m.flash > 0, alpha: alpha * (def.alpha || 1), sx: pose.sx, sy: pose.sy, skew: pose.skew };
   if (m.killed) { opt.sx *= 1.15; opt.sy *= 0.9; }
   drawSprite(rows, def.pal || {}, x, bottom - (m.dying && !m.killed ? m.dying * 20 : 0), scale, opt);

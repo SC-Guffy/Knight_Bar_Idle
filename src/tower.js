@@ -11,7 +11,8 @@
 // 규칙
 //  - 원정과 같은 스태미나를 같은 속도(STAMINA_DRAIN)로 쓴다. 스태미나가 바닥나거나 쓰러지거나 후퇴하면 끝.
 //  - 시작은 체크포인트(깬 10층 단위 다음 층)부터. 층마다 정예 몬스터 1마리, 10층마다 보스.
-//  - 층 난이도는 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER. 정예는 체력 ×TOWER_ELITE_HP · 공격력 ×TOWER_ELITE_ATK, 보스는 체력 ×TOWER_BOSS_HP.
+//  - 층 난이도는 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER. 정예는 체력 ×TOWER_ELITE_HP · 공격력 ×TOWER_ELITE_ATK, 보스는 체력 ×TOWER_BOSS_HP · 공격력 ×TOWER_BOSS_ATK.
+//  - 한 층에서 TOWER_ENRAGE_SEC 초 넘게 싸우면 몬스터가 광폭화해 공격력이 계속 두 배씩 오른다 (towerRage) → 못 넘는 층은 금방 쓰러져 끝난다.
 //  - 보상: 처치 골드·경험치(원정과 같은 눈금) + 📖 비전서 — 한 번의 도전에서 TOWER_TOME_EVERY 층 깰 때마다 1권(하루 TOWER_DAILY_TOMES 권까지)
 //          + 10층 단위 첫 돌파 때 묶음(towerFirstTomes). 오프라인 진행은 없다(앱을 껐다 켜면 그 층에서 끝낸 것으로 정산).
 
@@ -42,8 +43,11 @@ function towerMonster(floor) {
   const st = monsterStats(stage, boss);
   const pool = monsterPool(stage);
   const type = boss ? zoneOf(stage).boss : pool[Math.floor(Math.random() * pool.length)];
-  return boss ? { type, ...st, hp: st.hp * TOWER_BOSS_HP } : { type, ...st, hp: st.hp * TOWER_ELITE_HP, atk: st.atk * TOWER_ELITE_ATK, gold: st.gold * 3, exp: st.exp * 3 };
+  return boss ? { type, ...st, hp: st.hp * TOWER_BOSS_HP, atk: st.atk * TOWER_BOSS_ATK } : { type, ...st, hp: st.hp * TOWER_ELITE_HP, atk: st.atk * TOWER_ELITE_ATK, gold: st.gold * 3, exp: st.exp * 3 };
 }
+
+// 한 층에서 t초 싸웠을 때 몬스터 공격력 배율 (광폭화)
+const towerRage = (t) => (t < TOWER_ENRAGE_SEC ? 1 : Math.pow(2, (t - TOWER_ENRAGE_SEC) / TOWER_ENRAGE_DOUBLE));
 
 function towerBlocker() {
   if (!towerUnlocked()) return `스테이지 ${TOWER_UNLOCK_STAGE} 도달 시 열려요`;

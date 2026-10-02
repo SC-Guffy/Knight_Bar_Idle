@@ -1584,7 +1584,7 @@ function viewTower() {
     <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 반복 비전서 ${day}/${TOWER_DAILY_TOMES} · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
     ${guideFlow('tower')}
     ${S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
-    <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세집니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 바닥까지 떨어져 캠프로 돌아옵니다.
+    <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 바닥까지 떨어져 캠프로 돌아옵니다.
       체크포인트(10층 단위)부터 시작해요. 한 번의 도전에서 ${TOWER_TOME_EVERY}층을 깰 때마다 📖 1권(하루 ${TOWER_DAILY_TOMES}권까지), 10층 단위를 처음 넘으면 📖 묶음.</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
