@@ -830,7 +830,7 @@ function campDots() {
     class: anyClassReady() || canLevelSkill(),
     raid: S.raid.chests.length > 0 || !!raidUi.room,
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
-    tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerBlocker() === '' && towerDayTomes() < TOWER_DAILY_TOMES,
+    tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerBlocker() === '' && towerDayTomes() < towerDailyCap(),
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
@@ -1586,7 +1586,7 @@ function towerResultHtml(L) {
       <div class="reason">${TOWER_REASON[L.reason] || '도전 끝'}${L.cleared ? ` — ${L.start}F → ${top}F, <b>${L.cleared}개 층</b> 돌파` : ` — ${L.start}F 를 넘지 못했어요`}</div>
       ${rec}
       <div class="stats">
-        ${cell('📖 비전서', `+${fmt(L.tomes)}권`)}
+        ${cell('📖 비전서', `+${fmt(L.tomes)}권${L.sweep ? ` <small>(소탕 ${L.sweep})</small>` : ''}`)}
         ${cell('🗼 돌파', `${L.cleared}층`)}
         ${cell('⚔️ 처치', fmt(L.kills || 0))}
         ${cell('⏱ 시간', L.dur ? fmtTime(L.dur) : '-')}
@@ -1607,15 +1607,15 @@ function viewTower() {
       <div class="eff">${TOWER_REASON[L.reason] || ''} — ${L.start}F 에서 시작해 ${L.cleared}개 층 돌파 (${L.cleared ? `${L.start + L.cleared - 1}F 까지` : '돌파 없음'})</div>
       <div class="eff"><i class="gc"></i> ${fmt(L.gold)} · ✨ ${fmt(L.exp)} · 📖 ${L.tomes}${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')}` : ''}</div></div></div>` : '';
   return `
-    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 층 비전서 ${towerDayTomes()}/${TOWER_DAILY_TOMES} · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
+    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 탑 비전서 ${towerDayTomes()}/${towerDailyCap()} · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 바닥까지 떨어져 캠프로 돌아옵니다.
-      체크포인트(10층 단위)부터 시작해요. <b>층을 깰 때마다 📖 비전서 1권</b>(하루 ${TOWER_DAILY_TOMES}권까지), 10층 단위를 처음 넘으면 📖 묶음.</div>
+      체크포인트(10층 단위)부터 시작하고, 그 아래층은 <b>바로 소탕해 층마다 📖 1권</b>. 올라가며 깬 층도 <b>층마다 📖 1권</b> — 합쳐서 하루 ${TOWER_DAILY_BASE} + 최고 층 권까지(높이 오를수록 하루 몫이 늘어요). 10층 단위를 처음 넘으면 📖 묶음.</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
       <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
-      <div class="act"><button class="go compact${rd(blocker === '' && towerDayTomes() < TOWER_DAILY_TOMES)}" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 도전</button>
+      <div class="act"><button class="go compact${rd(blocker === '' && towerDayTomes() < towerDailyCap())}" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 도전</button>
         <div class="blocker">${blocker}</div></div></div>
     ${last}`;
 }
@@ -1704,6 +1704,7 @@ const ACTIONS = {
     if (!startTower()) return;
     closeCamp();
     beginTowerView();
+    if (S.tower.run.sweep) showBanner(`🗼 ${S.tower.run.start - 1}F 까지 소탕 — 📖 +${S.tower.run.sweep}`, '#c9a7ff');
     save();
     renderHud();
   },

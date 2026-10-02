@@ -4,8 +4,8 @@
 //    best: 지금까지 깬 가장 높은 층 (0 = 아직 없음),
 //    paid: 첫 돌파 묶음을 받은 가장 높은 10층 단위 (난이도 개편 전 기록을 옮길 때 같은 묶음을 두 번 주지 않게),
 //    curve: 층 난이도 곡선 버전 (TOWER_CURVE 와 다르면 best 를 새 곡선으로 옮긴다),
-//    day, dayTomes: 오늘(자정 기준) 층 보상으로 받은 비전서 수 (TOWER_DAILY_TOMES 까지),
-//    run: 진행 중인 도전 { start 시작 층, floor 지금 층, cleared 이번에 깬 층 수, kills, gold, exp, tomes, firsts: [첫 돌파 층],
+//    day, dayTomes: 오늘(자정 기준) 층 보상으로 받은 비전서 수 (towerDailyCap 까지),
+//    run: 진행 중인 도전 { start 시작 층, sweep 아래층 소탕으로 받은 비전서, floor 지금 층, cleared 이번에 깬 층 수, kills, gold, exp, tomes, firsts: [첫 돌파 층],
 //          t0 시작 시각, lv0 시작 레벨, best0 시작 전 최고 층 } | null,
 //    last: 마지막 도전 결과 { start, reached, cleared, kills, gold, exp, tomes, firsts, reason, best, best0, dur, levels, at,
 //          seen: false 면 아직 정산 화면을 안 봄 (캠프를 열면 탑 탭에 정산이 뜬다) } | null,
@@ -15,7 +15,8 @@
 //  - 시작은 체크포인트(깬 10층 단위 다음 층)부터. 층마다 정예 몬스터 1마리, 10층마다 보스.
 //  - 층 난이도는 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER. 정예는 체력 ×TOWER_ELITE_HP · 공격력 ×TOWER_ELITE_ATK, 보스는 체력 ×TOWER_BOSS_HP · 공격력 ×TOWER_BOSS_ATK.
 //  - 한 층에서 TOWER_ENRAGE_SEC 초 넘게 싸우면 몬스터가 광폭화해 공격력이 계속 두 배씩 오른다 (towerRage) → 못 넘는 층은 금방 쓰러져 끝난다.
-//  - 보상: 처치 골드·경험치(정예라 원정 몬스터의 3배) + 📖 비전서 — 층을 깰 때마다 1권 (하루 TOWER_DAILY_TOMES 권까지)
+//  - 보상: 처치 골드·경험치(정예라 원정 몬스터의 3배) + 📖 비전서 — 층을 깰 때마다 1권, 시작할 때 체크포인트 아래층 소탕으로 층마다 1권
+//          (둘 다 합쳐 하루 towerDailyCap 권까지)
 //          + 10층 단위 첫 돌파 때 묶음(towerFirstTomes). 오프라인 진행은 없다(앱을 껐다 켜면 그 층에서 끝낸 것으로 정산).
 
 const TOWER_CURVE = 2;   // 1: 스테이지 10 + 층×2 (0.10.0) → 2: 25 + 층×3
@@ -61,7 +62,10 @@ function towerBlocker() {
 function startTower() {
   if (towerBlocker()) return false;
   const start = towerCheckpoint();
-  S.tower.run = { start, floor: start, cleared: 0, kills: 0, gold: 0, exp: 0, tomes: 0, firsts: [], t0: Date.now(), lv0: S.level, best0: S.tower.best };
+  // 체크포인트 아래층은 소탕: 층마다 1권 (하루 한도 안에서)
+  const sweep = Math.max(0, Math.min(start - 1, towerDailyCap() - towerDayTomes()));
+  S.tower.dayTomes += sweep; S.tomes += sweep;
+  S.tower.run = { start, floor: start, cleared: 0, kills: 0, gold: 0, exp: 0, tomes: sweep, sweep, firsts: [], t0: Date.now(), lv0: S.level, best0: S.tower.best };
   S.phase = 'tower';
   S.hp = stats().maxHp;
   return true;
@@ -82,7 +86,7 @@ function clearTowerFloor() {
   const r = S.tower.run, f = r.floor;
   r.cleared++;
   let tomes = 0, first = false, record = false;
-  if (towerDayTomes() < TOWER_DAILY_TOMES) { S.tower.dayTomes++; tomes++; }
+  if (towerDayTomes() < towerDailyCap()) { S.tower.dayTomes++; tomes++; }
   if (f > S.tower.best) {
     if (!r.record) { r.record = true; record = S.tower.best > 0; }
     S.tower.best = f;
@@ -99,7 +103,7 @@ function endTower(reason) {
   if (!r) return null;
   const at = Date.now();
   S.tower.last = {
-    start: r.start, reached: r.floor, cleared: r.cleared, kills: r.kills || 0, gold: r.gold, exp: r.exp, tomes: r.tomes, firsts: r.firsts,
+    start: r.start, reached: r.floor, cleared: r.cleared, sweep: r.sweep || 0, kills: r.kills || 0, gold: r.gold, exp: r.exp, tomes: r.tomes, firsts: r.firsts,
     reason, best: S.tower.best, best0: r.best0 ?? S.tower.best, dur: r.t0 && reason !== 'offline' ? (at - r.t0) / 1000 : 0, levels: r.lv0 ? S.level - r.lv0 : 0, at, seen: false,
   };
   S.tower.run = null;
