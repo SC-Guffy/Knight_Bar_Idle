@@ -37,6 +37,7 @@ function freshState() {
     raid: freshRaid(),                      // 보스 레이드: 입장권·처치 상자·마지막 정산 (raid.js)
     season: freshSeason(),                  // 결투 시즌: 받은 시즌 보상 (season.js)
     tower: freshTower(),                    // 도전의 탑: 최고 층·진행 중인 도전 (tower.js)
+    guide: {},                              // 처음 하는 일 안내(FTUE)에서 이미 본 단계 (ui.js guideTick)
     lastSeen: Date.now(),
   };
 }

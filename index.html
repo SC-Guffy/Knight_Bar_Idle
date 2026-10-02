@@ -148,6 +148,16 @@
   #campBody { padding: 4px 18px 16px; overflow-y: auto; flex: 1; min-height: 200px; }
   #campBody h3 { font-size: 14px; margin: 14px 0 8px; }
   .hint, .empty { color: var(--muted); margin-bottom: 10px; }
+  /* 처음 하는 일 안내 (ui.js guideFlow·guideTick): 탑 → 비전서 → 스킬 강화 흐름, 지금 할 일 말풍선, 눌러야 할 버튼 맥동 */
+  .gflow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 8px; font-size: 12px; }
+  .gflow span { padding: 3px 9px; border-radius: 12px; background: rgba(255,255,255,0.06); color: var(--muted); }
+  .gflow span.on { background: rgba(201,167,255,0.22); color: #f0e6ff; box-shadow: inset 0 0 0 1px rgba(201,167,255,0.5); }
+  .gflow i { font-style: normal; color: var(--muted); }
+  .gtip { margin: 0 0 8px; padding: 7px 10px; border-radius: 8px; font-size: 12.5px; background: rgba(201,167,255,0.1); border-left: 3px solid #c9a7ff; }
+  .gtip.big { font-size: 13px; background: rgba(255,210,90,0.12); border-left-color: #ffd257; }
+  .gtip .lnk { all: unset; cursor: pointer; color: #e2d2ff; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+  .btn.gpulse { animation: gpulse 1.2s ease-in-out infinite; }
+  @keyframes gpulse { 50% { box-shadow: 0 0 0 4px rgba(255,210,90,0.45); } }
   .boxes .empty { grid-column: 1 / -1; }
   .reason { margin-bottom: 10px; }
   .reason em { color: var(--muted); font-style: normal; }

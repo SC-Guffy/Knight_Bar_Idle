@@ -62,7 +62,8 @@ function startCast(owner, id, a, queue = false) {
     return a.x() + (p.dx || 0) * (p.facing || 1) * a.dir;
   };
   casts.push({ owner, id, k, fx, t: 0, a, hi: 0, ci: 0, next: [], squash: 0, hist: [] });
-  const star = a.mast ? ' ' + MASTERY[a.mast].star : '';
+  // 숙련도를 키운 스킬은 이름 옆에 레벨과 단계 별을 붙여서, 먹인 비전서가 전투에 보이게 한다
+  const star = (a.lv > 1 ? ` Lv${a.lv}` : '') + (a.mast ? ' ' + MASTERY[a.mast].star : '');
   if (skillTier(k) >= 2 || a.mast >= 3) cutin = { k, color: a.color, t: 0, cx: a.x(), star };
   else addFloater(`${k.icon} ${k.name}${star}`, a.x(), groundY() - 72, a.color, 12);
 }

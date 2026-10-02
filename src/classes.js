@@ -418,8 +418,9 @@ const MASTERY = [
   { lv: 20, name: '달인', star: '★★', desc: '쿨타임이 크게 줄고, 발밑에 빛 고리가 돌고 잔상이 짙어진다' },
   { lv: 30, name: '극의', star: '★★★', desc: '쿨타임이 크게 줄고, 이펙트가 금빛으로 물들고 이름 띠와 마무리 섬광이 붙는다' },
 ];
-// L → L+1 에 필요한 경험치. Lv10 까지 772, Lv20 까지 3,757, Lv30 까지 9,340 (비전서 약 934권)
-const skillNeed = (L) => Math.round(12 * Math.pow(L, 1.2));
+// L → L+1 에 필요한 경험치. Lv10 까지 770, Lv20 까지 3,755, Lv30 까지 9,338 (비전서 약 934권).
+// Lv1 → 2 만 비전서 1권으로 오른다: 탑에서 처음 받은 비전서 한 권으로 바로 강화를 해 보게 (FTUE)
+const skillNeed = (L) => (L === 1 ? TOME_EXP : Math.round(12 * Math.pow(L, 1.2)));
 const masteryOf = (lv) => Math.min(3, Math.floor(lv / 10));
 const skillProg = (lv) => 0.7 * (lv - 1) / (SKILL_MAX - 1) + 0.1 * masteryOf(lv);
 // 쿨타임 배수 (SKILLS 의 cd 에 곱한다)

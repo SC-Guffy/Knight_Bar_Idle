@@ -167,7 +167,7 @@ function openCamp(tab) {
   if (raidActive()) { skipRaid(); return; }   // 레이드는 끝나면서 정산 화면(레이드 탭)을 연다
   campOpen = true;
   revealed = [];
-  campTab = typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : raidUi.room ? 'raid' : 'town';
+  campTab = typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : raidUi.room ? 'raid' : guideTab() || 'town';
   if (window.bar) window.bar.setCampMode(true);
   interactive = true;
   $('camp').hidden = false;
@@ -450,7 +450,7 @@ function viewMastery() {
     const nextM = MASTERY[m + 1];
     const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k.cls, lv)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k.cls, lv)).toFixed(2)}`;
     const tag = m ? `<span class="mtag m${m}">${MASTERY[m].star} ${MASTERY[m].name}</span>` : '';
-    const btn = (n, label, dot = false) => `<button class="btn${rd(dot)}" data-action="tome" data-id="${k.id}" data-n="${n}" ${S.tomes < 1 ? 'disabled' : ''}>${label}</button>`;
+    const btn = (n, label, dot = false) => `<button class="btn${rd(dot)}${dot && guidePendingFeed() && k === list.find((x) => skillLvOf(S.mast[x.id] || 0).lv < SKILL_MAX) ? ' gpulse' : ''}" data-action="tome" data-id="${k.id}" data-n="${n}" ${S.tomes < 1 ? 'disabled' : ''}>${label}</button>`;
     return `
       <div class="mskill m${m}">
         <span class="sicon">${k.icon}</span>
@@ -462,7 +462,10 @@ function viewMastery() {
         <div class="act">${max ? '<span class="small">최고 단계</span>' : `${btn(1, '📖 1권')}${btn(10, '📖 10권')}${btn(need, `⏫ 레벨업 ${need}권`, S.tomes >= need)}`}</div>
       </div>`;
   }).join('');
-  return `${head}<div class="hint">숙련도가 오를수록 쿨타임이 줄고(Lv30 에 Lv1 의 40%) 한 방이 세져요(Lv30 에 1.4배). Lv10·20·30 을 넘으면 크게 오르고 스킬 연출이 바뀝니다. 2차 전직 때 1차 스킬에 쓴 비전서는 돌려받아요.</div>${rows}`;
+  const guide = guidePendingFeed()
+    ? `<div class="gtip big">👉 처음이라면 <b>⏫ 레벨업</b> 버튼을 눌러 보세요 — 비전서를 먹인 만큼 쿨타임이 바로 줄고 위력이 올라요. Lv10·20·30 을 넘을 때마다 연출도 바뀝니다.</div>`
+    : S.tomes === 0 ? `<div class="gtip">📖 비전서는 ${towerUnlocked() ? '<button class="lnk" data-action="tab" data-tab="tower">🗼 도전의 탑</button>에서 가장 많이 얻어요 (원정 보스·레이드 상자·결투 시즌에서도)' : `🗼 도전의 탑(스테이지 ${TOWER_UNLOCK_STAGE}에 열림)·원정 보스·레이드 상자·결투 시즌에서 얻어요`}</div>` : '';
+  return `${head}${guideFlow('class')}${guide}<div class="hint">숙련도가 오를수록 쿨타임이 줄고(Lv30 에 Lv1 의 40%) 한 방이 세져요(Lv30 에 1.4배). Lv10·20·30 을 넘으면 크게 오르고 스킬 연출이 바뀝니다. 2차 전직 때 1차 스킬에 쓴 비전서는 돌려받아요.</div>${rows}`;
 }
 
 function reqChips(id) {
@@ -822,7 +825,7 @@ function campDots() {
     class: anyClassReady() || canLevelSkill(),
     raid: S.raid.chests.length > 0 || !!raidUi.room,
     // 탑: 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
-    tower: towerBlocker() === '' && towerDayTomes() < TOWER_DAILY_TOMES,
+    tower: towerUnlocked() && !S.guide.towerSeen || towerBlocker() === '' && towerDayTomes() < TOWER_DAILY_TOMES,
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
@@ -1534,6 +1537,35 @@ function viewRaidLobby() {
     <div class="bgrid">${bosses}</div>`;
 }
 
+// ───────────────────────── 처음 하는 일 안내 (FTUE) ─────────────────────────
+// 도전의 탑 → 📖 비전서 → ⚜️ 스킬 강화 가 한 줄로 이어지도록, 처음 한 번씩만 짚어 준다. 본 단계는 S.guide 에 남긴다.
+//  towerIntro 탑이 열린 순간 배너·안내 / towerSeen 탑 탭을 열어 봄 / tomeIntro 첫 비전서를 얻음 / fed 처음 스킬에 먹임
+// 캠프를 열 때 기본 탭도 지금 할 일 쪽으로 (guideTab): 탑을 아직 안 봤으면 탑, 비전서를 들고 한 번도 안 먹였으면 전직.
+const guidePendingFeed = () => S.tomes > 0 && !S.guide.fed && skillsOf(S.cls).length > 0;
+function guideTab() {
+  if (guidePendingFeed()) return 'class';
+  if (towerUnlocked() && !S.guide.towerSeen) return 'tower';
+  return null;
+}
+function guideTick() {
+  const g = S.guide;
+  if (!g.towerIntro && towerUnlocked() && S.phase === 'camp' && !modalOpen()) {
+    g.towerIntro = 1;
+    showBanner('🗼 도전의 탑 개방!', '#c9a7ff');
+    toast('🗼 도전의 탑이 열렸어요 — 탑을 오르면 📖 비전서를 얻고, 비전서로 스킬을 강화하면 쿨타임이 줄고 위력이 올라요. 캠프 → 🗼 탑', 10000);
+    save();
+  }
+  if (!g.tomeIntro && S.tomes > 0) {
+    g.tomeIntro = 1;
+    if (skillsOf(S.cls).length) toast('📖 첫 비전서! 캠프 → ⚜️ 전직 탭에서 스킬에 먹이면 쿨타임이 줄고 위력이 올라요', 9000);
+    else toast('📖 첫 비전서! 1차 전직 후 스킬을 익히면 ⚜️ 전직 탭에서 비전서로 강화할 수 있어요', 9000);
+    save();
+  }
+}
+// 탑 → 비전서 → 스킬 강화 흐름을 한 줄로 (탑 탭·숙련도 패널 맨 위)
+const guideFlow = (here) => `<div class="gflow">${[['tower', '🗼 탑 오르기'], ['tome', '📖 비전서 획득'], ['class', '⚜️ 스킬 강화 (쿨타임↓ 위력↑)']]
+  .map(([k, t]) => `<span class="${k === here ? 'on' : ''}">${t}</span>`).join('<i>→</i>')}</div>`;
+
 // ───────────────────────── 도전의 탑 ─────────────────────────
 const TOWER_REASON = { down: '💀 쓰러졌습니다', stamina: '😮‍💨 스태미나가 바닥났습니다', retreat: '⬇️ 후퇴했습니다', offline: '🌙 앱이 꺼져서 그 층에서 멈췄습니다' };
 function viewTower() {
@@ -1547,7 +1579,9 @@ function viewTower() {
       <div class="eff">${TOWER_REASON[L.reason] || ''} — ${L.start}F 에서 시작해 ${L.cleared}개 층 돌파 (${L.start + L.cleared - 1 >= L.start ? `${L.start + L.cleared - 1}F 까지` : '돌파 없음'})</div>
       <div class="eff"><i class="gc"></i> ${fmt(L.gold)} · ✨ ${fmt(L.exp)} · 📖 ${L.tomes}${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')}` : ''}</div></div></div>` : '';
   return `
-    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 반복 비전서 ${day}/${TOWER_DAILY_TOMES}</small></h3>
+    <h3>🗼 도전의 탑 <small>최고 <b>${t.best}F</b> · 오늘 반복 비전서 ${day}/${TOWER_DAILY_TOMES} · 가진 비전서 ${fmt(S.tomes)}권</small></h3>
+    ${guideFlow('tower')}
+    ${S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 바닥까지 떨어져 캠프로 돌아옵니다.
       체크포인트(10층 단위)부터 시작해요. 한 번의 도전에서 5층을 깰 때마다 📖 1권(하루 ${TOWER_DAILY_TOMES}권까지), 10층 단위를 처음 넘으면 📖 묶음.</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
@@ -1647,7 +1681,11 @@ const ACTIONS = {
   },
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),
-  'tab': (el) => { campTab = el.dataset.tab; $('campBody').scrollTop = 0; },
+  'tab': (el) => {
+    campTab = el.dataset.tab;
+    if (campTab === 'tower' && towerUnlocked()) S.guide.towerSeen = 1;
+    $('campBody').scrollTop = 0;
+  },
   'rank-sort': (el) => { rank.sort = el.dataset.sort; },
   'season-tiers': () => { seasonUi.tiers = !seasonUi.tiers; },
   'rank-refresh': () => { loadRanking(true); if (rank.sort === 'duel') loadSeason(true); },
@@ -1733,9 +1771,15 @@ const ACTIONS = {
     toast(`${ZONES[i].icon} ${ZONES[i].name} ${S.stage}스테이지에서 출정합니다`);
   },
   'tome': (el) => {
-    const k = SKILLS[el.dataset.id], r = feedTomes(k.id, Number(el.dataset.n));
+    const k = SKILLS[el.dataset.id], first = !S.guide.fed, r = feedTomes(k.id, Number(el.dataset.n));
     if (!r) return;
+    S.guide.fed = 1;
     const m = masteryOf(r.to);
+    if (first && r.to > r.from) {
+      toast(`⚡ ${k.name} Lv ${r.to}! 쿨타임 ${skillCdOf(k, r.from)}초 → ${skillCdOf(k, r.to)}초 · 위력 ×${(skillMult(k) * skillPowAt(k.cls, r.from)).toFixed(2)} → ×${(skillMult(k) * skillPowAt(k.cls, r.to)).toFixed(2)} — 다음 원정·탑·결투부터 바로 적용돼요. Lv10 ★숙련을 목표로 탑에서 비전서를 더 모아 보세요`, 12000);
+      save();
+      return;
+    }
     if (m > masteryOf(r.from)) {
       showBanner(`${k.icon} ${k.name} — ${MASTERY[m].star} ${MASTERY[m].name} 도달!`, mixHex(heroClass().look.fx, MASTERY_GOLD, m >= 3 ? 0.45 : 0));
       toast(`${MASTERY[m].star} ${k.name} ${MASTERY[m].name} — ${MASTERY[m].desc}`, 6000);
@@ -2030,7 +2074,7 @@ document.addEventListener('keydown', (e) => {
 hooks.onTowerEnd = (r) => {
   renderHud();
   if (!r) return;
-  toast(`🗼 ${TOWER_REASON[r.reason] || '도전 끝'} — ${r.cleared}개 층 돌파${r.tomes ? ` · 📖 +${r.tomes}` : ''} (최고 ${r.best}F)`, 7000);
+  toast(`🗼 ${TOWER_REASON[r.reason] || '도전 끝'} — ${r.cleared}개 층 돌파${r.tomes ? ` · 📖 +${r.tomes}` : ''} (최고 ${r.best}F)${r.tomes && skillsOf(S.cls).length ? ' — 캠프 → ⚜️ 전직 탭에서 스킬 강화!' : ''}`, 8000);
 };
 hooks.onArrive = () => {
   const r = S.report;
@@ -2184,6 +2228,7 @@ function boot() {
     slow += dt;
     if (slow > 0.25) {
       slow = 0;
+      guideTick();
       renderHud();
       if (campOpen) tickLive($('campModal'));
       updateTray();
