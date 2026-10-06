@@ -5,6 +5,7 @@
 // rating·wins·losses·attacks 는 season 시즌의 결투 기록이다 (server/season.js).
 // 결투 시즌 정산: 시즌 = { id, settledAt, players, top: [{ nickname, cls, level, rating, wins, losses }] },
 //   시즌 보상 = { key, season, rank, total, rating, wins, losses } — 받아 가면(ack) 지운다
+// 명예의 전당: 전체 초기화 직전 순위 = { id, at, players, stage: [최고 스테이지 순 10명], duel: [이번 결투 시즌 3명] } — 초기화해도 지우지 않는다
 // 월드 보스(server/worldboss.js): 하루 = { day, boss, maxHp, hp, diff, est, spawnedAt, killedAt },
 //   기사별 피해 = { day, key, nickname, cls, dmg, tries, claimed } — 날이 지나면 지분만큼 보상을 받아 가고(claimed) 남겨 둔다
 
@@ -37,6 +38,8 @@ class FileStore {
     try { this.sdb = JSON.parse(fs.readFileSync(this.seasonFile, 'utf8')); } catch { this.sdb = { seasons: [], rewards: [] }; }
     this.sdb.wb = this.sdb.wb || [];
     this.sdb.wbHits = this.sdb.wbHits || [];
+    this.hallFile = path.join(dir, 'hall.json');
+    try { this.hdb = JSON.parse(fs.readFileSync(this.hallFile, 'utf8')); } catch { this.hdb = []; }
     this.timer = null;
   }
   async init() {}
@@ -81,6 +84,13 @@ class FileStore {
   async ackRewards(key, seasons) {
     this.sdb.rewards = this.sdb.rewards.filter(r => !(r.key === key && seasons.includes(r.season)));
     this.persist();
+  }
+
+  // ── 명예의 전당 ──
+  async hall() { return this.hdb; }
+  async addHall(entry) {
+    this.hdb.push({ ...entry, id: this.hdb.length + 1 });
+    fs.writeFileSync(this.hallFile, JSON.stringify(this.hdb));
   }
 
   // ── 월드 보스 ──
@@ -205,7 +215,14 @@ class PgStore {
         claimed boolean NOT NULL DEFAULT false,
         PRIMARY KEY (day, key)
       );
-      CREATE INDEX IF NOT EXISTS world_boss_hits_dmg ON world_boss_hits (day, dmg DESC);`);
+      CREATE INDEX IF NOT EXISTS world_boss_hits_dmg ON world_boss_hits (day, dmg DESC);
+      CREATE TABLE IF NOT EXISTS hall_of_fame (
+        id serial PRIMARY KEY,
+        at bigint NOT NULL,
+        players int NOT NULL,
+        stage jsonb NOT NULL,
+        duel jsonb NOT NULL
+      );`);
   }
   row(r) {
     if (!r) return null;
@@ -290,6 +307,14 @@ class PgStore {
     await this.pool.query('DELETE FROM season_rewards WHERE key=$1 AND season = ANY($2::int[])', [key, seasons]);
   }
 
+  // ── 명예의 전당 ──
+  async hall() {
+    return (await this.pool.query('SELECT * FROM hall_of_fame ORDER BY id')).rows.map(r => ({ id: r.id, at: Number(r.at), players: r.players, stage: r.stage, duel: r.duel }));
+  }
+  async addHall(e) {
+    await this.pool.query('INSERT INTO hall_of_fame (at, players, stage, duel) VALUES ($1,$2,$3,$4)', [e.at, e.players, JSON.stringify(e.stage), JSON.stringify(e.duel)]);
+  }
+
   // ── 월드 보스 ──
   async activeProfiles(since, minBest) {
     return (await this.pool.query('SELECT profile FROM accounts WHERE updated_at >= $1 AND best >= $2', [since, minBest])).rows.map(r => r.profile);
@@ -355,7 +380,7 @@ class PgStore {
   async wbAck(key, days) {
     await this.pool.query('UPDATE world_boss_hits SET claimed = true WHERE key=$1 AND day = ANY($2::int[])', [key, days]);
   }
-  // 전체 초기화: 계정·시즌 기록을 모두 지운다
+  // 전체 초기화: 계정·시즌 기록을 모두 지운다 (명예의 전당은 남긴다)
   async wipe() {
     await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards, world_boss, world_boss_hits');
   }

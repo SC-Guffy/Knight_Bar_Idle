@@ -208,7 +208,7 @@ const routes = {
         me = { ...publicInfo(a), rank: ranked ? await store.rankOf(f, sort, season) : null };
       } catch {}
     }
-    return { sort, players, me, total: await store.count(season), ...(season ? { season: seasonRange(season) } : {}) };
+    return { sort, players, me, total: await store.count(season), hall: await store.hall(), ...(season ? { season: seasonRange(season) } : {}) };
   },
 
   // 결투 시즌: 이번 시즌 정보와 내 기록, 지난 시즌 결과, 아직 안 받아 간 시즌 보상
@@ -546,7 +546,7 @@ const wbRoutes = {
 Object.assign(routes, wbRoutes);
 
 // ───────────────────────── 관리자: 전체 초기화 ─────────────────────────
-// 모든 계정(닉네임 포함)·세이브·시즌 기록을 지운다. Render 환경 변수 ADMIN_KEY 가 있어야 열린다.
+// 모든 계정(닉네임 포함)·세이브·시즌 기록을 지운다. 지우기 직전 순위는 명예의 전당(hall_of_fame)에 남기고, 그건 지우지 않는다. Render 환경 변수 ADMIN_KEY 가 있어야 열린다.
 //   curl -X POST https://knight-bar.onrender.com/api/admin/reset -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" -d '{"confirm":"RESET"}'
 // 접속 중인 기사는 다음 서버 요청 때 401(gone)을 받고 이 기기의 기록이 지워진 채 닉네임 만들기 화면으로 간다.
 routes['POST /api/admin/reset'] = async (req) => {
@@ -557,6 +557,16 @@ routes['POST /api/admin/reset'] = async (req) => {
   const body = await readJson(req);
   if (body.confirm !== 'RESET') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"RESET"})');
   const removed = await store.count();
+  // 지우기 전에 이번 시즌 순위를 명예의 전당에 남긴다 (기사가 있을 때만)
+  if (removed) {
+    await settleSeasons();
+    const hallView = (a) => ({ nickname: a.nickname, cls: a.cls, level: a.level, best: a.best, power: a.power, rating: a.rating, wins: a.wins, losses: a.losses });
+    await store.addHall({
+      at: Date.now(), players: removed,
+      stage: (await store.top('stage', 10, 0)).map(hallView),
+      duel: (await store.top('duel', 3, seasonAt())).map(hallView),
+    });
+  }
   await store.wipe();
   rooms.clear(); roomOf.clear(); authCache.clear(); lastDuel.clear(); lastWb.clear();
   settledThrough = -1;

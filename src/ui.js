@@ -1238,7 +1238,29 @@ function viewRank() {
       결투 점수는 3일마다 바뀌는 시즌마다 1000점에서 다시 시작하고, 시즌이 끝나면 직접 결투를 1번 이상 건 기사에게 순위별 보상을 줘요.</div>
     ${rank.sort === 'duel' ? viewSeason() : ''}
     ${lastDuel ? `<div class="reason ${lastDuel.won ? '' : 'warn'}">최근 결투 — ${esc(duelResultText(lastDuel))}</div>` : ''}
-    <div class="rlist">${body}</div>`;
+    <div class="rlist">${body}</div>
+    ${viewHall(d && d.hall)}`;
+}
+
+// 명예의 전당: 전체 초기화 직전에 서버가 남긴 지난 시즌 순위 (server/index.js admin reset). 최근 시즌이 위로.
+// 시즌 번호는 기록을 남기기 시작한 시즌 3부터 센다
+const HALL_FIRST_SEASON = 3;
+let hallOpen = null;          // 펼친 시즌 id
+function viewHall(hall) {
+  if (!hall || !hall.length) return '';
+  const medal = ['🥇', '🥈', '🥉'];
+  const rows = hall.slice().reverse().map((h) => {
+    const n = HALL_FIRST_SEASON + h.id - 1, open = hallOpen === h.id;
+    const top3 = h.stage.slice(0, 3).map((p, i) => `<span class="chip">${medal[i]} ${esc(p.nickname)} <small>🏰${p.best}</small></span>`).join('');
+    const more = open ? `
+      <div class="hdet">
+        ${h.stage.map((p, i) => `<div class="hrow"><span class="rk r${i + 1}">${i + 1}</span><b>${esc(p.nickname)}</b><small>${clsOf(p.cls).icon} ${clsOf(p.cls).name} · Lv ${p.level} · 🏰 ${p.best} · 전투력 ${fmt(p.power)}</small></div>`).join('')}
+        ${h.duel.length ? `<div class="hrow"><small>⚔️ 마지막 결투 시즌</small> ${h.duel.map((p, i) => `${medal[i]} ${esc(p.nickname)} <small>${p.rating}점</small>`).join(' · ')}</div>` : ''}
+      </div>` : '';
+    return `<div class="hall"><button class="lnk" data-action="hall" data-id="${h.id}">${open ? '▾' : '▸'} 시즌 ${n}</button>
+      <small>${fmtDate(h.at)} · ${h.players}명</small><span class="chips">${top3}</span>${more}</div>`;
+  }).join('');
+  return `<h3>🏛️ 명예의 전당 <small>시즌이 끝날 때(전체 초기화 직전)의 순위</small></h3>${rows}`;
 }
 
 // ───────────────────────── 결투 ─────────────────────────
@@ -1881,6 +1903,7 @@ const ACTIONS = {
     $('campBody').scrollTop = 0;
   },
   'rank-sort': (el) => { rank.sort = el.dataset.sort; },
+  'hall': (el) => { const id = Number(el.dataset.id); hallOpen = hallOpen === id ? null : id; },
   'season-tiers': () => { seasonUi.tiers = !seasonUi.tiers; },
   'rank-refresh': () => { loadRanking(true); if (rank.sort === 'duel') loadSeason(true); },
   'duel': (el) => startDuel(el.dataset.nick),
