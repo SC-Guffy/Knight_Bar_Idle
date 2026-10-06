@@ -1025,7 +1025,7 @@ function viewGear() {
       <span class="small">판매할 등급</span>${gradeChips}${setChip}
       <span class="sellgo">${sellBtn}</span>
     </div>
-    <div class="hint">장착 중인 장비는 일괄 판매에서 빠져요. 🔗 세트 장비는 세트 칩을 체크했을 때만 팔려요.</div>`;
+    <div class="hint">장착 중인 장비는 일괄 판매에서 빠져요. 🔗 세트 장비는 세트 칩을 체크했을 때만 팔려요. 원정에선 영웅까지 — 전설 이상은 🐉 레이드 처치 상자에서만 나와요.</div>`;
 
   const html = `
     <div class="gpanel">

@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.10.24';
+const GAME_VERSION = '0.10.25';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -109,8 +109,8 @@ const SUPPLY_GRADE = { lunch: 0, potion: 0, charm: 2, elixir: 2, protect: 3 };
 
 // ───────────────────────── 전리품 등급 ─────────────────────────
 // 장비·골동품 공통. stat: 장비 능력치 배수, sell: 판매가(몬스터 골드 배수), res: 골동품 재화 배수
-// 원정 1회(상자 약 13개, 보스 3마리 기준) 장비 기대치: 영웅 4~5회에 1개, 전설 약 40회에 1개 (부적을 쓰면 약 20회)
-//  그 위로 신화 약 270회 · 초월 약 1,600회 · 태초 약 10,000회에 1개 (부적은 모두 2배)
+// 장비 수급은 둘로 나뉜다: 원정은 일반~영웅(짜바리 위주, 영웅은 가끔 터지는 대박), 전설 이상은 레이드 처치 상자에서만.
+// 원정 1회(상자 약 13개, 보스 3마리 기준) 장비 기대치: 영웅 4~5회에 1개 (부적을 쓰면 2배)
 const GRADES = [
   { name: '일반', color: '#b8bcc6', w: 64,  stat: 1,   sell: 3,  res: 1 },
   { name: '고급', color: '#5fcf5a', w: 26,  stat: 1.5, sell: 6,  res: 2 },
@@ -125,6 +125,8 @@ const GRADES = [
 const SET_GRADE = { name: '세트', color: '#3dffa8' };
 // 일괄 판매 등급 필터 기본값: 일반~영웅만 체크
 const SELL_FILTER_DEFAULT = [true, true, true, true, false, false, false, false];
+// 원정 상자가 나올 수 있는 가장 높은 등급 (영웅). 그 위 등급의 w 는 레이드·옛 세이브 상자에만 쓰인다
+const EXPEDITION_GRADE_MAX = 3;
 const CHARM_BONUS = [0.5, 1, 1.6, 2, 2, 2, 2, 2];     // 행운의 부적: 등급별 가중치 배수 (전설 이상은 2배까지만)
 
 // ───────────────────────── 전리품 상자 ─────────────────────────
@@ -1237,7 +1239,8 @@ const GEAR_SPR = {
 // id·stage 는 server/raid.js 의 RAID_BOSSES 와 같아야 한다. stage: 입장에 필요한 최고 스테이지 (보스 능력치 기준이기도 함)
 //  spr·pal: 레이드 전용 도트(SPR.rb_*)와 색 · hit·aoe: 평타·광역기 연출 종류(world.js RAID_FX) · fx: 연출 색 · skill: 광역기 이름
 //  chest: 처치 상자 — n 내용물 수, w 등급(GRADES 순서)별 가중치, sig 고유 장비가 하나 섞일 확률, spr·pal 상자 모양
-//   등급은 보스를 따라 한 칸씩 오른다: 슬라임 킹 희귀 위주(가끔 전설) → … → 마왕 신화 위주(가끔 태초).
+//   전설 이상 장비는 여기서만 나온다. 첫 보스부터 원정 최고 등급(영웅) 위주로 시작해 보스를 따라 한 칸씩 오른다:
+//   슬라임 킹 영웅 위주(전설 15%) → 리치 킹 영웅·전설 반반 → 화염룡 전설 위주 → 마왕 신화 위주(초월·태초 가끔).
 //   고유 장비는 잘 안 나온다(sig 3~6%). 보스를 처음 잡으면 첫 처치 상자에는 그 보스의 고유 장비가 반드시 하나 들어 있다
 //  set: 그 보스 고유 장비 3부위(무기·갑옷·장신구) 세트. 같은 보스 것을 2부위·3부위 끼면 효과가 붙는다 (SPECIAL_STATS 키)
 const RAID_BOSSES = {
@@ -1245,43 +1248,43 @@ const RAID_BOSSES = {
     pal: { y: '#ffd257', R: '#ff3b4b', B: '#3dffa8', g: '#1f4f9a', G: '#4aa3ff', L: '#d8f0ff', W: '#ffffff', K: '#0d1630', m: '#ff6b8a' },
     set: { name: '슬라임 왕가', 2: { hpPct: 0.08 }, 3: { atkPct: 0.08, aspdPct: 0.05 } },
     desc: '초원의 슬라임들이 모이고 모여 왕이 되었다. 뛰어오를 때마다 땅이 흔들린다.',
-    chest: { name: '슬라임 킹의 보물상자', n: [3, 3], w: [0, 30, 52, 16, 2, 0, 0, 0], sig: 0.06, spr: 'chest',
+    chest: { name: '슬라임 킹의 보물상자', n: [3, 3], w: [0, 0, 25, 60, 15, 0, 0, 0], sig: 0.06, spr: 'chest',
       pal: { B: '#2a5fa8', b: '#173a6b', W: '#4aa3ff', H: '#ffd257', G: '#ffd257', J: '#bfe3ff' } } },
   goblinchief: { name: '고블린 족장', icon: '👺', stage: 20, spr: 'rb_goblinchief', hit: 'axe', aoe: 'whirl', fx: ['#c9a227', '#e8d9a8'], skill: '약탈의 회오리',
     pal: { f: '#e0443c', o: '#ff9f1c', y: '#ffd257', I: '#c9d1dd', h: '#7a4a22', g: '#4a6b1f', G: '#8fae3c', Y: '#ffd257', K: '#1b1d27', W: '#f4f1e8', b: '#4a2a14', B: '#7a2a2a' },
     set: { name: '약탈자의 긍지', 2: { atkPct: 0.1 }, 3: { crit: 0.04, goldPct: 0.2 } },
     desc: '초원의 고블린 부족을 하나로 묶은 족장. 빼앗은 보물이 동굴 천장까지 쌓여 있다.',
-    chest: { name: '족장의 약탈품 궤짝', n: [3, 3], w: [0, 10, 50, 33, 7, 0, 0, 0], sig: 0.05, spr: 'chest',
+    chest: { name: '족장의 약탈품 궤짝', n: [3, 3], w: [0, 0, 10, 55, 32, 3, 0, 0], sig: 0.05, spr: 'chest',
       pal: { B: '#6b4420', b: '#3a2410', W: '#8fae3c', H: '#ffd257', G: '#ffd257', J: '#e0443c' } } },
   lichking: { name: '리치 킹', icon: '💀', stage: 40, spr: 'rb_lichking', hit: 'skull', aoe: 'deathwave', fx: ['#7dffb0', '#b38bff'], skill: '죽음의 파동',
     pal: { y: '#ffd257', R: '#ff4d6d', O: '#7dffb0', o: '#e8fff0', p: '#1b1030', k: '#0d0818', W: '#e9e4d4', K: '#0d0818', P: '#3a2463', G: '#7dffb0', s: '#5e3818' },
     set: { name: '불사의 군주', 2: { hpPct: 0.12 }, 3: { guard: 0.06, heal: 0.01 } },
     desc: '묘지의 모든 망자를 거느린 왕. 쓰러뜨려도 성물함이 남아 있는 한 다시 일어난다.',
-    chest: { name: '리치 킹의 관', n: [3, 4], w: [0, 0, 30, 50, 18, 2, 0, 0], sig: 0.05, spr: 'jewelbox',
+    chest: { name: '리치 킹의 관', n: [3, 4], w: [0, 0, 0, 45, 45, 10, 0, 0], sig: 0.05, spr: 'jewelbox',
       pal: { B: '#2a1a4a', b: '#150d26', W: '#4a2a6b', H: '#7dffb0', G: '#7dffb0', J: '#ff4d6d' } } },
   boglord: { name: '늪의 군주', icon: '🐊', stage: 60, spr: 'rb_boglord', hit: 'bite', aoe: 'fog', fx: ['#8a6fb8', '#c9b3ff'], skill: '독안개 포효',
     pal: { r: '#6b8f3a', y: '#c9b3ff', c: '#2f4f2a', C: '#4a6b3a', Y: '#d9b3ff', K: '#1b1d27', W: '#f4f1e8', l: '#8a9a5a', t: '#2f4f2a' },
     set: { name: '늪의 지배자', 2: { aspdPct: 0.08 }, 3: { hpPct: 0.15, expPct: 0.15 } },
     desc: '독안개 늪 한가운데 웅크린 거대한 악어. 숨을 내쉴 때마다 늪 전체가 보랏빛으로 물든다.',
-    chest: { name: '늪 군주의 이끼 궤', n: [3, 4], w: [0, 0, 10, 50, 34, 6, 0, 0], sig: 0.04, spr: 'chest',
+    chest: { name: '늪 군주의 이끼 궤', n: [3, 4], w: [0, 0, 0, 25, 55, 19, 1, 0], sig: 0.04, spr: 'chest',
       pal: { B: '#3a5a2a', b: '#1f3315', W: '#8fd8a8', H: '#8a6fb8', G: '#c9b3ff', J: '#ffd257' } } },
   flamedragon: { name: '화염룡', icon: '🐉', stage: 80, spr: 'rb_flamedragon', hit: 'fireball', aoe: 'breath', fx: ['#ff7a1f', '#ffe066'], skill: '화염 숨결',
     pal: { w: '#7a1414', W: '#ff7a1f', h: '#2a1d1d', d: '#b8321f', Y: '#ffe066', K: '#1b0d0a', b: '#ffb13b', t: '#8a1414' },
     set: { name: '화염룡의 분노', 2: { atkPct: 0.15 }, 3: { crit: 0.05, critMult: 0.5 } },
     desc: '화산 동굴 가장 깊은 곳에서 잠든 고룡. 깨어나는 순간 동굴 전체가 용광로가 된다.',
-    chest: { name: '화염룡의 보물궤', n: [4, 4], w: [0, 0, 0, 40, 45, 14, 1, 0], sig: 0.04, spr: 'chest',
+    chest: { name: '화염룡의 보물궤', n: [4, 4], w: [0, 0, 0, 10, 50, 35, 5, 0], sig: 0.04, spr: 'chest',
       pal: { B: '#b3263e', b: '#6e1424', W: '#ff6b81', H: '#ffd257', G: '#ffd257', J: '#ff9f1c' } } },
   frostgiant: { name: '서리 거인', icon: '🧊', stage: 100, spr: 'rb_frostgiant', hit: 'boulder', aoe: 'icicles', fx: ['#9fe8ff', '#ffffff'], skill: '빙하 내려찍기',
     pal: { I: '#9fe8ff', w: '#e8f6ff', b: '#6a8cc8', E: '#5ad1ff', W: '#ffffff' },
     set: { name: '만년설 거인', 2: { hpPct: 0.2 }, 3: { atkPct: 0.15, guard: 0.08 } },
     desc: '설원의 끝에서 산맥을 베개 삼아 자는 거인. 한 걸음에 눈사태가 난다.',
-    chest: { name: '서리 거인의 얼음 성궤', n: [4, 4], w: [0, 0, 0, 15, 50, 30, 5, 0], sig: 0.035, spr: 'jewelbox',
+    chest: { name: '서리 거인의 얼음 성궤', n: [4, 4], w: [0, 0, 0, 0, 40, 45, 14, 1], sig: 0.035, spr: 'jewelbox',
       pal: { B: '#8fbfe0', b: '#3f6f9a', W: '#e8f6ff', H: '#ffffff', G: '#ffffff', J: '#1b6fd1' } } },
   demonking: { name: '마왕', icon: '😈', stage: 130, spr: 'rb_demonking', hit: 'darkorb', aoe: 'hellfire', fx: ['#c06bff', '#ff3b4b'], skill: '멸망의 흑염',
     pal: { h: '#e9e4d4', y: '#ffd257', R: '#ff3b4b', d: '#5a0f2a', W: '#f4f1e8', K: '#150a20', c: '#150a20', C: '#3a1a4a', J: '#c06bff' },
     set: { name: '마왕의 권능', 2: { atkPct: 0.2, hpPct: 0.15 }, 3: { aspdPct: 0.15, crit: 0.08, critMult: 0.5, guard: 0.05 } },
     desc: '마왕성의 옥좌에 앉은 모든 어둠의 주인. 그가 일어서면 하늘이 꺼진다.',
-    chest: { name: '마왕의 옥좌 보고', n: [4, 5], w: [0, 0, 0, 0, 40, 45, 13, 2], sig: 0.03, spr: 'jewelbox',
+    chest: { name: '마왕의 옥좌 보고', n: [4, 5], w: [0, 0, 0, 0, 20, 50, 25, 5], sig: 0.03, spr: 'jewelbox',
       pal: { B: '#2a1540', b: '#150a20', W: '#c06bff', H: '#ffd257', G: '#ffd257', J: '#ff3b4b' } } },
 };
 

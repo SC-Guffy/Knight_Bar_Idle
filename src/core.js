@@ -316,8 +316,9 @@ function tryPotion() {
 
 // ───────────────────────── 전리품 ─────────────────────────
 // 전리품 상자 등급. 보스는 일반 등급이 안 나오고, 행운의 부적은 좋은 등급 가중치를 올린다. 내용물은 gear.js 의 openBox
+// 원정 상자 등급: 영웅까지만 (전설 이상은 레이드 처치 상자에서만 나온다)
 function rollGrade(boss, charm) {
-  const w = GRADES.map((g, i) => (boss && i === 0 ? 0 : g.w) * (charm ? CHARM_BONUS[i] : 1));
+  const w = GRADES.map((g, i) => (boss && i === 0 || i > EXPEDITION_GRADE_MAX ? 0 : g.w) * (charm ? CHARM_BONUS[i] : 1));
   let r = Math.random() * w.reduce((a, b) => a + b, 0);
   for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; }
   return 0;
