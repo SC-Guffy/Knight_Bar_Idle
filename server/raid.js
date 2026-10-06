@@ -20,9 +20,13 @@ const RAID_BOSSES = {
 const SMASH_EVERY = 4;      // 평타 네 번째마다 강타
 const CC_HP = 1;            // 넉백·기절로 잃는 딜 시간을 메우려면 낮춘다 (0.8 이면 승률이 예전과 거의 같다). 1 = 메우지 않음 — 예전보다 어렵다
 const MAX_PARTY = 4;
-// 인원수별 보정: 보스를 (보스 스테이지 × 이 비율)만큼 더 깊은 스테이지의 능력치로 키운다 (체력·공격력 모두).
-//  혼자서는 입장 스테이지의 약 2배 레벨이어야 겨우 잡고(80렙 → 리치 킹), 4명이면 입장 스테이지와 같은 레벨이 장비·훈련을 잘 챙겨야 겨우 잡는다
-const PARTY_STAGE = [1.25, 0.75, 0.45, 0.24];   // 클라이언트 src/data.js 의 RAID_PARTY_STAGE 와 같아야 함 (보상 계산)
+// 보스는 (입장 스테이지 × SOLO_MULT − 인원 보정) 스테이지의 능력치로 싸운다 (체력·공격력 모두).
+//  혼자 기준: 장비·훈련을 잘 챙긴 기사가 입장 스테이지의 약 1.7~1.9배 레벨이면 혼자 겨우 잡는다 (리치 킹 69렙, 화염룡 150렙)
+//  인원 보정은 스테이지 '차이'로 준다 — 같은 레벨 기사가 늘어도 실제로는 +3.5(2인)·+6.4(3인)·+8.5(4인) 스테이지만큼만 세지므로
+//  그보다 조금 넉넉하게. 예전엔 비율(보스 스테이지 × 0.24~1.25)이라 리치 킹 1인→2인이 20스테이지나 쉬워져 고렙 한 명이 끌어 주면 6초 만에 끝났다
+//  클라이언트 src/data.js 의 RAID_SOLO_MULT·RAID_PARTY_GAP 와 같아야 함 (보상 계산)
+const SOLO_MULT = 2;
+const PARTY_GAP = [0, 5, 9, 13];
 
 const START = 300;          // 보스 위치(px). 기사는 0 에서 출발하고 뒷사람은 조금씩 뒤에서 시작
 const KNIGHT_GAP = 12;      // 출발 간격
@@ -50,7 +54,7 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 // 클라이언트 data.js 의 monsterStats(필드 보스) 와 같은 기준
 function bossStats(id, n) {
-  const b = RAID_BOSSES[id], s = b.stage * (1 + PARTY_STAGE[Math.max(0, Math.min(MAX_PARTY, n) - 1)]);
+  const b = RAID_BOSSES[id], s = b.stage * SOLO_MULT - PARTY_GAP[Math.max(0, Math.min(MAX_PARTY, n) - 1)];
   return {
     hp: 14 * Math.pow(1.23, s - 1) * 7.5 * b.hp * CC_HP,
     atk: 3 * Math.pow(1.17, s - 1) * 1.68 * b.atk,

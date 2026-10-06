@@ -62,8 +62,7 @@ function settleRaid(result, nick) {
   const f = result.fight, b = RAID_BOSSES[result.boss], mvp = f.mvp === me;
   const mult = (f.won ? 1 : RAID_FAIL_MULT) * (mvp ? RAID_MVP_MULT : 1);
   // 재화·경험치는 인원수만큼 강해진 보스의 스테이지 기준 (적은 인원으로 어렵게 잡을수록 많이). 단 내 최고 스테이지를 넘지는 않는다
-  const n = Math.max(1, Math.min(RAID_PARTY_STAGE.length, result.members.length));
-  const rs = Math.max(b.stage, Math.min(S.best, Math.round(b.stage * (1 + RAID_PARTY_STAGE[n - 1]))));
+  const rs = Math.max(b.stage, Math.min(S.best, Math.round(raidStageOf(b, result.members.length))));
   const ms = monsterStats(rs, true), scale = 1 + (rs - 1) * 0.04;
   const reward = {
     gold: Math.round(ms.gold * 8 * mult * goldMult()),
