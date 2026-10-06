@@ -2064,14 +2064,26 @@ const RAID_KB_SEC = 0.35;     // 맞고 날아가는 시간(실제 초)
 const RAID_BOSS_LEFT = 30;    // 보스 몸 왼쪽 끝 = 보스 위치 - 30 (server/raid.js 의 BOSS_HALF)
 
 const raidActive = () => !!raidPlay;
+// 레이드 보스 또는 월드 보스(res.world) — 둘 다 같은 모양의 연출 항목을 가진다
+const raidDef = (id) => RAID_BOSSES[id] || WORLD_BOSSES[id];
+// 결판 배너. 월드 보스는 혼자 30초 동안 피해를 넣는 도전이라 '실패'가 아니라 넣은 피해를 보여 준다
+function raidEndBanner(d) {
+  const f = d.f;
+  if (d.res.world) {
+    if (f.won) return showBanner(`👑 ${raidDef(f.boss).name} 처치!`, '#ffd257');
+    return showBanner(`${f.timeout ? '⏳' : '💀'} 피해 ${fmt(d.res.dealt)}`, f.timeout ? '#ffd257' : '#ff8080');
+  }
+  showBanner(f.won ? '👑 RAID CLEAR!' : f.timeout ? '⏳ TIME OVER' : '💀 RAID FAILED', f.won ? '#ffd257' : '#ff8080');
+}
 function playRaid(res, onEnd) {
   const f = res.fight;
   raidPlay = {
     res, f, onEnd, t0: clock, speed: Math.max(1, f.dur / RAID_PLAY_SEC), shown: 0, x0: CAMP_X + 60,
-    hpB: f.maxB, hpK: f.knights.map((k) => k.max), last: {}, hitK: {}, bossHit: -1, act: null, dead: {}, doneAt: null,
+    // 월드 보스는 모두가 함께 깎던 체력(이번 도전 전 남은 체력)에서 시작한다
+    hpB: res.world ? res.hp + res.dealt : f.maxB, hpK: f.knights.map((k) => k.max), last: {}, hitK: {}, bossHit: -1, act: null, dead: {}, doneAt: null,
     fx: [], wind: 0, windIdx: -1, dark: 0, pt: 0, kb: {}, warn: null, flash: null, slowUntil: 0, slowRate: 1, stopUntil: 0,
   };
-  showBanner(`⚔️ ${RAID_BOSSES[f.boss].name} 레이드!`, '#ff9f1c');
+  showBanner(res.world ? `🌍 월드 보스 ${raidDef(f.boss).name}!` : `⚔️ ${RAID_BOSSES[f.boss].name} 레이드!`, res.world ? '#c06bff' : '#ff9f1c');
 }
 const raidTime = () => raidPlay.pt;
 // 재생 시각을 흘린다: 평소엔 speed 배, 보스 기술 직후엔 느리게, 터지는 순간엔 잠깐 멈춤
@@ -2100,7 +2112,7 @@ const raidRushing = (i, pt = raidTime()) => {
 function raidKnock(i, t, x, st, heavy = false) {
   const d = raidPlay;
   if (x == null || d.dead[i] != null) return;
-  const from = raidKnightX(i), gy = groundY(), frost = RAID_BOSSES[d.f.boss].aoe === 'icicles';
+  const from = raidKnightX(i), gy = groundY(), frost = raidDef(d.f.boss).aoe === 'icicles';
   // 연출은 맞는 순간(기록 시각보다 조금 늦다)부터 센다. 빨리 감기 때문에 기절이 너무 짧게 보이지 않도록 실제 0.6초는 서 있게 한다
   const rate = clock < d.slowUntil ? d.slowRate : d.speed;
   d.kb[i] = { t: Math.max(t, raidTime()), x, st: Math.max(st || 0, (0.6 + 0.06) * rate), from, at: clock, h: heavy ? 30 : 16 };
@@ -2111,7 +2123,7 @@ const raidKnightY = () => groundY() - 22;
 
 // 보스 도트 크기·위치. 왼쪽 끝을 보스 위치 - 30 에 맞추고 오른쪽으로 크게 그린다
 function raidBossGeom() {
-  const def = RAID_BOSSES[raidPlay.f.boss], rows = SPR[def.spr][0];
+  const def = raidDef(raidPlay.f.boss), rows = SPR[def.spr][0];
   const scale = Math.max(3, Math.min(7, Math.floor(100 / rows.length)));
   const w = rows[0].length * scale, h = rows.length * scale, left = raidBossX() - RAID_BOSS_LEFT;
   return { def, rows, scale, w, h, left, cx: left + w / 2 };
@@ -2443,7 +2455,7 @@ function raidSmash(e, def) {
 function updateRaid(dt) {
   advanceRaidTime(dt);
   const d = raidPlay, f = d.f, pt = raidTime(), gy = groundY();
-  const def = RAID_BOSSES[f.boss], g = raidBossGeom();
+  const def = raidDef(f.boss), g = raidBossGeom();
   while (d.shown < f.events.length && f.events[d.shown].t <= pt) {
     const e = f.events[d.shown++];
     if (e.k != null && e.s && SKILLS[e.s]) {
@@ -2519,12 +2531,12 @@ function updateRaid(dt) {
 
   if (pt >= f.dur && d.doneAt == null) {
     d.doneAt = clock;
-    showBanner(f.won ? '👑 RAID CLEAR!' : f.timeout ? '⏳ TIME OVER' : '💀 RAID FAILED', f.won ? '#ffd257' : '#ff8080');
+    raidEndBanner(d);
     if (f.won) {
       burst(g.cx, gy - g.h / 2, 50, def.fx.concat('#ffd257', '#ffffff'), 180, 3, 250);
       for (let i = 0; i < 14; i++) coins.push({ x: g.cx, y: gy - 20, vx: rand(-90, 90), vy: rand(-200, -100), t: 0, fly: false });
     }
-    addFloater('👑 MVP', raidKnightX(f.mvp, pt), gy - 88, '#ffd257', 14);
+    if (!d.res.world) addFloater('👑 MVP', raidKnightX(f.mvp, pt), gy - 88, '#ffd257', 14);
   }
   if (d.doneAt != null && clock - d.doneAt > RAID_HOLD_SEC) endRaid();
 }
@@ -2539,7 +2551,7 @@ function endRaid() {
 // 캠프 창을 여는 등 끝까지 보지 않을 때
 function skipRaid() {
   if (!raidPlay) return;
-  if (raidPlay.doneAt == null) showBanner(raidPlay.f.won ? '👑 RAID CLEAR!' : '💀 RAID FAILED', raidPlay.f.won ? '#ffd257' : '#ff8080');
+  if (raidPlay.doneAt == null) raidEndBanner(raidPlay);
   endRaid();
 }
 
@@ -2671,7 +2683,7 @@ function drawRaid() {
     else if (!dead && raidRushing(i, pt)) Object.assign(pose, { mode: 'walk', walkT: clock * 2, swing: -1 });
     if (sp) drawCastTrail(`raid-${i}`, m.cls, gy, 1);
     drawHero(ctx, m.cls, x, gy, pose);
-    if (stun) drawRaidStun(x, gy, RAID_BOSSES[f.boss].aoe === 'icicles', i);
+    if (stun) drawRaidStun(x, gy, raidDef(f.boss).aoe === 'icicles', i);
     const wpn = WEAPONS[c.weapon];
     if (!dead && !sp && L && wpn.kind === 'ranged' && s < 0.14) {
       const x0 = x + 16, x1 = g.left + 6, ax = x0 + (x1 - x0) * (s / 0.14);
@@ -2681,7 +2693,7 @@ function drawRaid() {
     // 이름표가 겹치지 않게 번갈아 높이를 다르게 한다
     const top = gy - 58 - (i % 2) * 14;
     drawHpBar(x, top, 26, d.hpK[i] / k.max, me ? '#5fcf5a' : '#7cc4ff');
-    label(`${done && f.mvp === i ? '👑' : c.icon} ${m.nickname}`, x, top - 4, me ? '#ffd257' : '#f3efe6');
+    label(`${done && !d.res.world && f.mvp === i ? '👑' : c.icon} ${m.nickname}`, x, top - 4, me ? '#ffd257' : '#f3efe6');
   });
 
   if (d.warn && d.dead[d.warn.i] == null && Math.floor(clock * 12) % 2 === 0) {

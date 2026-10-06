@@ -59,10 +59,17 @@ function bossStats(id, n) {
 
 // profiles: sanitizeProfile 을 거친 파티원 프로필 (방에 들어온 순서)
 function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) {
-  const rng = mulberry32(seed);
-  const def = RAID_BOSSES[bossId];
   const bs = bossStats(bossId, profiles.length);
-  const boss = { hp: bs.hp, max: bs.hp, atk: bs.atk, cd: 1.2, aoe: def.aoeEvery * 0.8, swings: 0 };
+  return simulateBossFight(bossId, RAID_BOSSES[bossId], { hp: bs.hp, max: bs.hp, atk: bs.atk }, profiles, seed);
+}
+
+// 보스 하나와 기사들의 전투. 레이드와 월드 보스(server/worldboss.js)가 함께 쓴다.
+//  def: 보스 패턴 (RAID_BOSSES 항목 모양) · bs: { hp 지금 체력, max 최대 체력, atk } — 월드 보스는 모두가 함께 깎는 체력이라 hp < max 로 시작한다
+//  o: { maxT 제한 시간, enrageT 광폭화 시각 }
+function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 ** 32) >>> 0, o = {}) {
+  const rng = mulberry32(seed);
+  const maxT = o.maxT || MAX_T, enrageT = o.enrageT || ENRAGE_T;
+  const boss = { hp: bs.hp, max: bs.max, atk: bs.atk, cd: 1.2, aoe: def.aoeEvery * 0.8, swings: 0 };
   const ks = profiles.map((p, i) => ({
     p, i, x: -i * KNIGHT_GAP, hp: p.maxHp * KNIGHT_HP_MULT, max: p.maxHp * KNIGHT_HP_MULT,
     reach: p.range + BOSS_HALF + i * 18,       // 같은 사거리끼리 겹치지 않게 뒷사람은 조금 뒤에 선다 (멈춘 뒤엔 사거리를 다시 따지지 않아 전투 결과와는 무관)
@@ -108,7 +115,7 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
   };
 
   const strike = (k, mult) => {
-    const dmg = boss.atk * mult * (t > ENRAGE_T ? 2 : 1) * (0.9 + rng() * 0.2) * (1 - k.p.guard) * wardCut(k, t);
+    const dmg = boss.atk * mult * (t > enrageT ? 2 : 1) * (0.9 + rng() * 0.2) * (1 - k.p.guard) * wardCut(k, t);
     const d = Math.min(k.hp, dmg);
     k.hp -= d; k.taken += d;
     return Math.round(dmg);
@@ -123,7 +130,7 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
     for (const k of ks) if (k.alive && k.hp <= 0) { k.alive = false; events.push({ t: round1(t), die: k.i }); }
   };
 
-  while (t < MAX_T && boss.hp > 0 && ks.some((k) => k.alive)) {
+  while (t < maxT && boss.hp > 0 && ks.some((k) => k.alive)) {
     for (const k of ks) {
       if (!k.alive || boss.hp <= 0) continue;
       const dist = START - k.x;
@@ -200,4 +207,4 @@ function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) 
   };
 }
 
-module.exports = { RAID_BOSSES, MAX_PARTY, simulateRaid };
+module.exports = { RAID_BOSSES, MAX_PARTY, simulateRaid, simulateBossFight, mulberry32 };

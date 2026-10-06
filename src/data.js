@@ -1982,3 +1982,72 @@ Object.assign(SPR, {
     '...cccc......cccc...',
   ]],
 });
+
+// ───────────────────────── 월드 보스 ─────────────────────────
+// 하루에 한 마리가 나타나고 서버의 모든 기사가 체력 하나를 함께 깎는다 (server/worldboss.js). 보상 규칙은 src/worldboss.js.
+// id 는 server/worldboss.js 의 WORLD_BOSSES 와 같아야 한다. 연출 항목(hit·aoe·fx·skill)은 RAID_BOSSES 와 같은 모양이라 레이드 재생(world.js playRaid)을 그대로 쓴다
+const WORLD_BOSSES = {
+  behemoth: { name: '대지의 베헤모스', icon: '🦣', spr: 'wb_behemoth', hit: 'boulder', aoe: 'quake', fx: ['#c98b4a', '#7dffb0'], skill: '대지 붕괴',
+    pal: { d: '#5a3e2e', D: '#8a6244', h: '#e9e4d4', W: '#f4f1e8', Y: '#ffe066', K: '#1b1d27', r: '#5fcf8a', k: '#2e1d10', t: '#5a3e2e' },
+    desc: '등에 숲을 짊어지고 걷는 산만 한 짐승. 발을 구를 때마다 대륙이 갈라진다.' },
+  hydra: { name: '아홉 머리 히드라', icon: '🐍', spr: 'wb_hydra', hit: 'bite', aoe: 'fog', fx: ['#7dd84a', '#c9b3ff'], skill: '맹독의 숨',
+    pal: { g: '#2f7a4a', L: '#9fd88a', Y: '#ffe066', K: '#1b1d27', r: '#ff4d6d', k: '#1f4a2e', t: '#2f7a4a' },
+    desc: '머리 하나를 베면 둘이 자란다. 늪 전체가 이 괴물의 숨결로 썩어 간다.' },
+  voidwyrm: { name: '공허룡', icon: '🌌', spr: 'wb_voidwyrm', hit: 'darkorb', aoe: 'breath', fx: ['#c06bff', '#ff4dff'], skill: '공허의 숨결',
+    pal: { v: '#2a1840', w: '#3a1a5a', W: '#8a4fd1', h: '#c9c9c9', Y: '#ff4dff', K: '#0d0818', J: '#c06bff', t: '#2a1840' },
+    desc: '별과 별 사이의 어둠에서 태어난 용. 날갯짓 한 번에 하늘의 빛이 꺼진다.' },
+};
+
+// 월드 보스 도트 (모두 왼쪽 = 기사 쪽을 본다). 글자 색은 WORLD_BOSSES[보스].pal
+Object.assign(SPR, {
+  wb_behemoth: [[
+    '...........r...r...r.....',
+    '.........rrrrrrrrrrrr....',
+    '.hh....ddddddddddddddd...',
+    'h..h..ddddddddddddddddd..',
+    'h...hddddddddddddddddddd.',
+    '...dddddddddddddddddddd..',
+    '.ddYKddddDDDDDDDDDddddd..',
+    'ddddddddDDDDDDDDDDDDddddt',
+    'dddddddDDDDDDDDDDDDDDddtt',
+    'WdWddddDDDDDDDDDDDDDDdt..',
+    '.W.ddddDDDDDDDDDDDDDdddt.',
+    '...ddddddddddddddddddd...',
+    '....ddd..ddd....ddd.ddd..',
+    '....ddd..ddd....ddd.ddd..',
+    '...kkkk.kkkk...kkkk.kkkk.',
+  ]],
+  wb_hydra: [[
+    '..ggg.......ggg.........',
+    '.gYgKg.....gYgKg........',
+    '.ggggg..ggg.gggg........',
+    '.rr..g.gYgKg..gg........',
+    '.....g.ggggg..g.........',
+    '.....gg.rgg..gg.........',
+    '......gg.gg.gg..........',
+    '.......ggggggg.....ttt..',
+    '.....gggggggggggg.tt....',
+    '....gggLLLLLLLggggtt....',
+    '....ggLLLLLLLLLgggt.....',
+    '....ggLLLLLLLLLggg......',
+    '.....ggLLLLLLLggg.......',
+    '......ggggggggg.........',
+    '.....gg.gg..gg.gg.......',
+    '....kkk.kk..kk.kkk......',
+  ]],
+  wb_voidwyrm: [[
+    '...............ww.......',
+    '..............wWw.......',
+    '......hh.....wWWw...ww..',
+    '.....vvvv...wWWWw..wWw..',
+    '....vYvvvv.wWWWWwwwWWw..',
+    '...vvvvvvvvvvvvvvvvvvw..',
+    '..KKvvvvvvvvvvvvvvvvvv..',
+    '...KKvvvvvJJJJJJvvvvvv..',
+    '.......vvJJJJJJJJvvvvvt.',
+    '.......vvvJJJJJJvvvvvtt.',
+    '........vvvvvvvvvvvv.tt.',
+    '.........vv..vv..vv...t.',
+    '........vvv.vvv.vvv.....',
+  ]],
+});

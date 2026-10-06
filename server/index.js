@@ -1,5 +1,5 @@
 'use strict';
-// Knight Bar 서버: 계정(닉네임) · 세이브 동기화 · 랭킹 · 결투(시즌) · 보스 레이드 로비.
+// Knight Bar 서버: 계정(닉네임) · 세이브 동기화 · 랭킹 · 결투(시즌) · 보스 레이드 로비 · 월드 보스.
 // 의존성은 pg 하나뿐이라 http 모듈로 직접 라우팅한다.
 
 const http = require('http');
@@ -8,6 +8,7 @@ const { openStore, TakenError } = require('./store');
 const { simulateDuel, eloDelta } = require('./duel');
 const { RAID_BOSSES, MAX_PARTY, simulateRaid } = require('./raid');
 const { START_RATING, seasonAt, seasonRange, fresh } = require('./season');
+const WB = require('./worldboss');
 
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 256 * 1024;
@@ -473,6 +474,77 @@ const raidRoutes = {
 };
 Object.assign(routes, raidRoutes);
 
+// ───────────────────────── 월드 보스 ─────────────────────────
+// 오늘의 보스는 그날 처음 누군가 볼 때 나타난다 (server/worldboss.js spawnBoss). 활동 중인 기사가 아무도 없으면 아직 나타나지 않는다
+let wbSpawning = null;
+async function todayBoss(day = WB.dayAt()) {
+  const b = await store.wbGet(day);
+  if (b) return b;
+  if (!wbSpawning) {
+    wbSpawning = (async () => {
+      const profiles = (await store.activeProfiles(Date.now() - WB.WB_ACTIVE_MS, WB.WB_UNLOCK)).map((p) => sanitizeProfile(p));
+      if (!profiles.length) return null;
+      const row = WB.spawnBoss(day, await store.wbLatestBefore(day), profiles);
+      console.log(`월드 보스 ${day}: ${row.boss} 체력 ${row.maxHp.toExponential(3)} (어림 ${row.est.toExponential(3)} × 난이도 ${row.diff.toFixed(2)}, 기사 ${profiles.length}명)`);
+      return store.wbCreate(row);
+    })().finally(() => { wbSpawning = null; });
+  }
+  return wbSpawning;
+}
+const wbView = (b) => b && { id: b.boss, maxHp: b.maxHp, hp: b.hp, spawnedAt: b.spawnedAt, killedAt: b.killedAt };
+const lastWb = new Map();    // key → 마지막 도전 시각
+
+const wbRoutes = {
+  // 오늘의 보스 · 내 피해와 남은 도전 · 피해 순위 · 아직 안 받아 간 지난 보상
+  'GET /api/worldboss': async (req) => {
+    const a = await authLite(req);
+    const day = WB.dayAt();
+    const b = await todayBoss(day);
+    const [mine, top, stats, pending] = await Promise.all([store.wbMine(day, a.key), store.wbTop(day, 10), store.wbStats(day), store.wbPending(a.key, day)]);
+    return {
+      day, endsAt: WB.dayEnd(day), now: Date.now(), next: WB.bossOfDay(day + 1),
+      boss: wbView(b) || { id: WB.bossOfDay(day), maxHp: 0, hp: 0, spawnedAt: null, killedAt: null },
+      tries: WB.WB_TRIES, mine: mine ? { dmg: mine.dmg, tries: mine.tries } : { dmg: 0, tries: 0 },
+      top, total: stats.total, players: stats.players, pending,
+    };
+  },
+
+  // 도전: 저장된 최신 능력치로 WB_SEC 초 동안 싸우고, 넣은 피해를 모두의 보스 체력에서 깎는다
+  'POST /api/worldboss/attack': async (req) => {
+    const a = await auth(req);
+    const p = sanitizeProfile(a.profile);
+    if (p.best < WB.WB_UNLOCK) throw new HttpError(403, `최고 스테이지 ${WB.WB_UNLOCK} 이상이어야 도전할 수 있어요`);
+    const since = Date.now() - (lastWb.get(a.key) || 0);
+    if (since < WB.WB_COOLDOWN_MS) throw new HttpError(429, `${Math.ceil((WB.WB_COOLDOWN_MS - since) / 1000)}초 뒤에 다시 도전할 수 있어요`);
+    const day = WB.dayAt();
+    const b = await todayBoss(day);
+    if (!b) throw new HttpError(409, '아직 월드 보스가 나타나지 않았어요');
+    if (b.hp <= 0) throw new HttpError(409, '오늘의 월드 보스는 이미 쓰러졌어요. 내일 새 보스가 나타나요');
+    const mine = await store.wbMine(day, a.key);
+    if (mine && mine.tries >= WB.WB_TRIES) throw new HttpError(409, '오늘 도전을 모두 썼어요');
+    lastWb.set(a.key, Date.now());
+    const fight = WB.worldFight(b.boss, p, b.hp, b.maxHp);
+    const r = await store.wbHit(day, { key: a.key, nickname: a.nickname, cls: p.cls }, fight.contrib[0].dmg, WB.WB_TRIES, Date.now());
+    if (!r) throw new HttpError(409, '오늘 도전을 모두 썼거나 보스가 이미 쓰러졌어요');
+    if (r.kill) console.log(`월드 보스 ${day} 처치: ${a.nickname}`);
+    return {
+      id: `wb-${day}-${a.key}-${r.tries}`, day, boss: b.boss, dealt: r.dealt, kill: r.kill, hp: r.hp, maxHp: b.maxHp,
+      mine: { dmg: r.dmg, tries: r.tries }, tries: WB.WB_TRIES,
+      members: [{ nickname: a.nickname, cls: p.cls, level: p.level }], fight,
+    };
+  },
+
+  // 지난 보상을 세이브에 넣었으면 받은 것으로 표시한다
+  'POST /api/worldboss/ack': async (req) => {
+    const a = await auth(req);
+    const body = await readJson(req);
+    const days = (Array.isArray(body.days) ? body.days : []).map(Number).filter(Number.isInteger).slice(0, 60);
+    if (days.length) await store.wbAck(a.key, days);
+    return { ok: true };
+  },
+};
+Object.assign(routes, wbRoutes);
+
 // ───────────────────────── 관리자: 전체 초기화 ─────────────────────────
 // 모든 계정(닉네임 포함)·세이브·시즌 기록을 지운다. Render 환경 변수 ADMIN_KEY 가 있어야 열린다.
 //   curl -X POST https://knight-bar.onrender.com/api/admin/reset -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" -d '{"confirm":"RESET"}'
@@ -486,7 +558,7 @@ routes['POST /api/admin/reset'] = async (req) => {
   if (body.confirm !== 'RESET') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"RESET"})');
   const removed = await store.count();
   await store.wipe();
-  rooms.clear(); roomOf.clear(); authCache.clear(); lastDuel.clear();
+  rooms.clear(); roomOf.clear(); authCache.clear(); lastDuel.clear(); lastWb.clear();
   settledThrough = -1;
   console.log(`전체 초기화: 계정 ${removed}개 삭제`);
   return { ok: true, removed };

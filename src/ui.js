@@ -59,7 +59,7 @@ const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 
 function campStatus() {
   if (duelActive()) return { icon: '⚔️', text: '결투 중' };
-  if (raidActive()) return { icon: '🐉', text: '레이드 중' };
+  if (raidActive()) return raidPlay.res.world ? { icon: '🌍', text: '월드 보스' } : { icon: '🐉', text: '레이드 중' };
   if (raidUi.room) return { icon: '🐉', text: raidUi.room.state === 'open' ? `레이드 대기 ${raidUi.room.members.length}/4` : '레이드 정산' };
   if (S.report || S.bag.length) return { icon: '❗', text: '정산 대기' };
   if (S.stamina < maxStamina() - 0.5) return { icon: '💤', text: `휴식 ${Math.floor((100 * S.stamina) / maxStamina())}%` };
@@ -246,9 +246,9 @@ function paintGearIcons(root) {
   root.querySelectorAll('canvas[data-gi]').forEach((cv) => paint(cv, cv.dataset.gi, GEAR_ITEMS[cv.dataset.gi]));
   root.querySelectorAll('canvas[data-bx]').forEach((cv) => paint(cv, 'box' + cv.dataset.bx, LOOT_BOXES[cv.dataset.bx]));
   root.querySelectorAll('canvas[data-rb]').forEach((cv) => paint(cv, 'rbox' + cv.dataset.rb, RAID_BOSSES[cv.dataset.rb].chest));
-  // 레이드 보스 초상: 몬스터 도트 첫 프레임을 캔버스 크기에 맞춰 찍는다
+  // 레이드·월드 보스 초상: 몬스터 도트 첫 프레임을 캔버스 크기에 맞춰 찍는다
   root.querySelectorAll('canvas[data-boss]').forEach((cv) => {
-    const def = RAID_BOSSES[cv.dataset.boss], rows = SPR[def.spr][0];
+    const def = raidDef(cv.dataset.boss), rows = SPR[def.spr][0];
     cv.width = rows[0].length + 2; cv.height = rows.length + 2;
     const g = cv.getContext('2d');
     drawSprite(rows, def.pal, cv.width / 2, cv.height - 1, 1, {}, g);
@@ -850,7 +850,7 @@ function campDots() {
     train: TRAINING.some(canTrain),
     gear: Object.keys(GEAR_SLOTS).some((k) => gearBetter(k) || gearCanEnh(k)),
     class: anyClassReady() || canLevelSkill(),
-    raid: S.raid.chests.length > 0 || !!raidUi.room,
+    raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot(),
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '' && towerDayTomes() < towerDailyCap(),
   };
@@ -1569,6 +1569,126 @@ function viewRaidLobby() {
     <div class="bgrid">${bosses}</div>`;
 }
 
+// ───────────────────────── 월드 보스 ─────────────────────────
+// 하루 한 마리, 서버의 모든 기사가 체력 하나를 함께 깎는다 (server/worldboss.js · src/worldboss.js).
+// 도전하면 서버가 30초 전투를 계산해 돌려주고, 캠프 앞 하단바에서 레이드처럼 재생한다(world.js playRaid, res.world).
+// 지난 날의 보상은 접속해 있을 때(입장 직후·10분마다·레이드 탭) 받아서 세이브에 넣고, 저장한 뒤에 받았다고 알린다.
+const wbUi = { data: null, at: 0, loading: false, error: null, busy: false };
+const WB_CHECK_EVERY = 10 * 60 * 1000;
+
+function loadWorldBoss(force = false) {
+  if (wbUi.loading || !activeNick() || !saveKey) return;
+  if (!force && wbUi.data && Date.now() - wbUi.at < 20000) return;
+  wbUi.loading = true;
+  const who = activeNick();
+  fetchWorldBoss()
+    .then((d) => {
+      if (activeNick() !== who || !saveKey) return;
+      wbUi.data = d; wbUi.at = Date.now(); wbUi.error = null;
+      return takeWbRewards(d.pending || []);
+    }, (e) => { wbUi.error = e.message; })
+    .finally(() => { wbUi.loading = false; if (campOpen && campTab === 'raid') renderCamp(); renderHud(); });
+}
+setInterval(() => loadWorldBoss(true), WB_CHECK_EVERY);
+
+async function takeWbRewards(rows) {
+  if (!rows.length) return;
+  const got = rows.map(claimWbReward).filter(Boolean);
+  save();
+  if (got.length) {
+    const L = got[got.length - 1], b = WORLD_BOSSES[L.boss];
+    toast(`🌍 월드 보스 보상 — ${b ? b.name : ''} ${L.killed ? '처치 ✅' : '생존'} · 피해 ${L.players}명 중 ${L.rank}위 · ${wbRewardText(L.reward, false)}`, 10000);
+    renderHud();
+  }
+  await pushSave(true);
+  if (!sync.error) await ackWorldBoss(rows.map((r) => r.day)).catch(() => {});
+}
+
+function wbRewardText(r, html = true) {
+  const parts = [html ? gainText(r) : `골드 ${fmt(r.gold)} · 🪵 ${fmt(r.wood)} · 🪨 ${fmt(r.ore)} · 💎 ${fmt(r.mana)}`, `💠 ${r.stones}`, `📖 ${r.tomes}`];
+  if (r.chests) parts.push(`🎁 ${html ? esc(RAID_BOSSES[r.boss].chest.name) : RAID_BOSSES[r.boss].chest.name}`);
+  return parts.join(' · ');
+}
+
+// 지금 도전할 수 있는가 — 막히면 이유
+function wbBlocker() {
+  const d = wbUi.data;
+  if (!wbUnlocked()) return `최고 스테이지 ${WB_UNLOCK} 필요`;
+  if (!d) return '불러오는 중';
+  if (!d.boss.maxHp) return '아직 나타나지 않았어요';
+  if (d.boss.hp <= 0) return '오늘은 이미 쓰러졌어요';
+  if (d.mine.tries >= d.tries) return '오늘 도전을 모두 썼어요';
+  if (S.phase !== 'camp') return '캠프에서만 도전할 수 있어요';
+  if (raidActive() || duelActive()) return '다른 전투를 보는 중';
+  return '';
+}
+const wbDot = () => wbUnlocked() && !!wbUi.data && wbBlocker() === '';
+
+function wbAttack() {
+  if (wbUi.busy || wbBlocker()) return;
+  wbUi.busy = true;
+  renderCamp();
+  const who = activeNick();
+  attackWorldBoss().then((r) => {
+    if (who !== activeNick()) return;
+    const d = wbUi.data;
+    if (d) { d.boss.hp = r.hp; d.mine = r.mine; if (r.kill) d.boss.killedAt = Date.now(); }
+    wbUi.at = 0;
+    if (r.kill) toast(`👑 ${WORLD_BOSSES[r.boss].name}에게 마지막 일격! 내일 모두가 처치 보상을 받아요`, 8000);
+    closeCamp();
+    skipDuel();
+    playRaid({ ...r, world: true }, () => { openCamp('raid'); loadWorldBoss(true); renderHud(); });
+  }, (e) => {
+    toast(`⚠️ ${e.message}`, 5000);
+    loadWorldBoss(true);
+  }).finally(() => { wbUi.busy = false; });
+}
+
+function viewWorldBoss() {
+  loadWorldBoss();
+  const d = wbUi.data;
+  if (!wbUnlocked()) {
+    return `<div class="reason">🌍 <b>월드 보스</b> — 최고 스테이지 ${WB_UNLOCK}에 도달하면 열려요. 하루 한 마리, 모든 기사가 함께 체력을 깎고 넣은 피해만큼 보상을 받아요.</div>`;
+  }
+  if (!d) {
+    return `<div class="reason">🌍 월드 보스 ${wbUi.error ? `— ⚠️ ${esc(wbUi.error)} <button class="btn" data-action="wb-refresh">다시 시도</button>` : '불러오는 중…'}</div>`;
+  }
+  const b = WORLD_BOSSES[d.boss.id], alive = d.boss.maxHp > 0 && d.boss.hp > 0;
+  const ratio = d.boss.maxHp ? d.boss.hp / d.boss.maxHp : 1;
+  const share = d.total > 0 ? d.mine.dmg / d.total : 0;
+  const left = Math.max(0, d.tries - d.mine.tries), why = wbBlocker();
+  const top = Math.max(1, ...d.top.map((x) => x.dmg));
+  const rows = d.top.slice(0, 5).map((x, i) => {
+    const me = x.nickname === activeNick(), c = clsOf(x.cls);
+    return `<div class="wbrow ${me ? 'me' : ''}"><span class="wbrk">${i + 1}</span><span class="wbnm">${c.icon} ${esc(x.nickname)}</span>
+      <span class="cbar"><span style="width:${(100 * x.dmg) / top}%"></span><em>${fmt(x.dmg)}</em></span></div>`;
+  }).join('');
+  const L = S.wb.last && Date.now() - S.wb.last.at < 36 * 3600 * 1000 ? S.wb.last : null;
+  const state = !d.boss.maxHp ? '아직 나타나지 않았어요'
+    : alive ? `<b>${(ratio * 100).toFixed(ratio < 0.01 ? 2 : 1)}%</b> 남음` : '👑 처치! 내일 모두가 처치 보상을 받아요';
+  return `
+    <div class="shead">
+      <h3>🌍 월드 보스 <small>하루 한 마리 · 모두가 함께 깎는 체력</small></h3>
+      <span class="chips"><span class="chip">⏳ ${fmtLeft(d.endsAt - Date.now())}</span><span class="chip ${left ? 'ok' : ''}">⚔️ 도전 ${left}/${d.tries}</span></span>
+    </div>
+    <div class="rboss wb ${alive ? '' : 'dead'}">
+      ${bossPortrait(d.boss.id)}
+      <div class="info">
+        <b>${b.icon} ${b.name}</b> <small>광역기 「${b.skill}」 · 다음 보스 ${WORLD_BOSSES[d.next].icon} ${WORLD_BOSSES[d.next].name}</small>
+        <div class="wbhp"><span style="width:${Math.max(0, ratio) * 100}%"></span><em>${state}</em></div>
+        <div class="eff">참가 ${d.players}명 · 내 피해 <b>${fmt(d.mine.dmg)}</b>${d.mine.dmg ? ` (지분 ${(share * 100).toFixed(share < 0.01 ? 2 : 1)}%)` : ''}</div>
+      </div>
+      <div class="act">
+        <button class="go compact${rd(!why)}" data-action="wb-attack" ${why || wbUi.busy ? 'disabled' : ''} title="${esc(why)}">⚔️ 도전</button>
+        <small class="blocker">${why && why !== '오늘 도전을 모두 썼어요' ? esc(why) : ''}</small>
+      </div>
+    </div>
+    ${rows ? `<div class="wbtop">${rows}</div>` : ''}
+    <div class="hint" title="한 번 도전하면 30초 동안 혼자 싸워요. 20초가 지나면 보스가 광폭해져서 체력·방어가 약하면 먼저 쓰러져요.&#10;보상 = 참여 기본 몫 + 피해 지분 몫 (평균의 3배까지). 재화는 내 최고 스테이지 기준이에요.&#10;보스 체력은 기사들이 세질수록 함께 늘어나요.">
+      30초 도전 · 내일 접속하면 <b>피해 지분만큼 보상</b>, 잡았으면 📖·💠·🎁 추가 <span class="small">ⓘ</span>
+      ${L ? `<br>🎁 지난 보상 (${WORLD_BOSSES[L.boss] ? WORLD_BOSSES[L.boss].name : ''} ${L.killed ? '처치' : '생존'} · ${L.players}명 중 ${L.rank}위) — ${wbRewardText(L.reward)}` : ''}</div>`;
+}
+
 // ───────────────────────── 처음 하는 일 안내 (FTUE) ─────────────────────────
 // 도전의 탑 → 📖 비전서 → ⚜️ 스킬 강화 가 한 줄로 이어지도록, 처음 한 번씩만 짚어 준다. 본 단계는 S.guide 에 남긴다.
 //  towerIntro 탑이 열린 순간 배너·안내 / towerSeen 탑 탭을 열어 봄 / tomeIntro 첫 비전서를 얻음 / fed 처음 스킬에 먹임
@@ -1585,6 +1705,12 @@ function guideTick() {
     g.towerIntro = 1;
     showBanner('🗼 도전의 탑 개방!', '#c9a7ff');
     toast('🗼 도전의 탑이 열렸어요 — 탑을 오르면 📖 비전서를 얻고, 비전서로 스킬을 강화하면 쿨타임이 줄고 위력이 올라요. 캠프 → 🗼 탑', 10000);
+    save();
+  }
+  if (!g.wbIntro && g.towerSeen && wbUnlocked() && S.phase === 'camp' && !modalOpen()) {
+    g.wbIntro = 1;
+    toast('🌍 월드 보스가 열렸어요 — 하루 한 마리, 모든 기사가 함께 체력을 깎고 넣은 피해만큼 다음 날 보상을 받아요. 캠프 → 🐉 레이드', 10000);
+    loadWorldBoss(true);
     save();
   }
   if (!g.tomeIntro && S.tomes > 0) {
@@ -1654,7 +1780,7 @@ function viewTower() {
 function viewRaid() {
   refillTickets();
   raidPoll();
-  return `${viewRaidResult()}${viewRaidChests()}${raidUi.room ? viewRaidRoom() : viewRaidLobby()}`;
+  return `${viewWorldBoss()}${viewRaidResult()}${viewRaidChests()}${raidUi.room ? viewRaidRoom() : viewRaidLobby()}`;
 }
 
 function openRaidChestAt(i) {
@@ -1756,6 +1882,8 @@ const ACTIONS = {
   'season-tiers': () => { seasonUi.tiers = !seasonUi.tiers; },
   'rank-refresh': () => { loadRanking(true); if (rank.sort === 'duel') loadSeason(true); },
   'duel': (el) => startDuel(el.dataset.nick),
+  'wb-attack': () => wbAttack(),
+  'wb-refresh': () => { wbUi.error = null; loadWorldBoss(true); },
   'raid-refresh': () => { raidUi.at = 0; raidUi.error = null; raidPoll(true); },
   'raid-ticket': () => { if (buyTicket()) toast(`🎟️ 레이드 입장권을 샀어요 (${S.raid.tickets}장)`); },
   'raid-create': (el) => raidRequest(() => createRaid(el.dataset.boss), `🐉 ${RAID_BOSSES[el.dataset.boss].name} 레이드 방을 열었어요`),
@@ -2085,7 +2213,7 @@ async function enterAccount(nick, known) {
   if (known !== undefined) {
     saveKey = key;
     applyState(known && (known.lastSeen || 0) >= localSeen ? known : local);
-    pushSave(true).then(() => loadSeason(true));
+    pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); });
     return;
   }
   const remote = fetchMe().then((r) => r.state, (e) => {
@@ -2099,7 +2227,7 @@ async function enterAccount(nick, known) {
     remote.then((st) => {
       if (activeNick() !== nick) return;
       if (st && (st.lastSeen || 0) > localSeen) { applyState(st); toast('☁️ 다른 기기에서 진행한 기록을 불러왔어요'); }
-      pushSave(true).then(() => loadSeason(true));
+      pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); });
     });
     return;
   }
@@ -2112,7 +2240,7 @@ async function enterAccount(nick, known) {
   applyState(st || null);
   if (st) toast('☁️ 기록을 불러왔어요', 2500);
   else toast(`⚠️ 기록을 불러오지 못했어요 (${sync.error}) — 새 기록으로 시작합니다`, 7000);
-  pushSave(true).then(() => loadSeason(true));
+  pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); });
 }
 
 document.addEventListener('click', (e) => {

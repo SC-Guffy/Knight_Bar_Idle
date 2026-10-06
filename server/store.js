@@ -5,6 +5,8 @@
 // rating·wins·losses·attacks 는 season 시즌의 결투 기록이다 (server/season.js).
 // 결투 시즌 정산: 시즌 = { id, settledAt, players, top: [{ nickname, cls, level, rating, wins, losses }] },
 //   시즌 보상 = { key, season, rank, total, rating, wins, losses } — 받아 가면(ack) 지운다
+// 월드 보스(server/worldboss.js): 하루 = { day, boss, maxHp, hp, diff, est, spawnedAt, killedAt },
+//   기사별 피해 = { day, key, nickname, cls, dmg, tries, claimed } — 날이 지나면 지분만큼 보상을 받아 가고(claimed) 남겨 둔다
 
 const fs = require('fs');
 const path = require('path');
@@ -33,6 +35,8 @@ class FileStore {
     fs.mkdirSync(dir, { recursive: true });
     try { this.db = JSON.parse(fs.readFileSync(this.file, 'utf8')); } catch { this.db = {}; }
     try { this.sdb = JSON.parse(fs.readFileSync(this.seasonFile, 'utf8')); } catch { this.sdb = { seasons: [], rewards: [] }; }
+    this.sdb.wb = this.sdb.wb || [];
+    this.sdb.wbHits = this.sdb.wbHits || [];
     this.timer = null;
   }
   async init() {}
@@ -78,10 +82,58 @@ class FileStore {
     this.sdb.rewards = this.sdb.rewards.filter(r => !(r.key === key && seasons.includes(r.season)));
     this.persist();
   }
+
+  // ── 월드 보스 ──
+  async activeProfiles(since, minBest) {
+    return Object.values(this.db).filter(a => a.updatedAt >= since && a.best >= minBest).map(a => a.profile);
+  }
+  async wbGet(day) { return this.sdb.wb.find(x => x.day === day) || null; }
+  async wbLatestBefore(day) { return this.sdb.wb.filter(x => x.day < day).sort((a, b) => b.day - a.day)[0] || null; }
+  async wbCreate(row) {
+    if (!this.sdb.wb.some(x => x.day === row.day)) { this.sdb.wb.push({ ...row }); this.persist(); }
+    return this.wbGet(row.day);
+  }
+  async wbMine(day, key) { return this.sdb.wbHits.find(h => h.day === day && h.key === key) || null; }
+  // 피해를 반영한다. 남은 체력보다 많이 넣을 수는 없고, 오늘 도전을 다 썼으면 null
+  async wbHit(day, acc, dmg, maxTries, now) {
+    const b = await this.wbGet(day);
+    let h = await this.wbMine(day, acc.key);
+    if (!b || b.hp <= 0 || (h && h.tries >= maxTries)) return null;
+    const dealt = Math.min(dmg, b.hp);
+    b.hp -= dealt;
+    const kill = b.hp <= 0 && !b.killedAt;
+    if (kill) { b.hp = 0; b.killedAt = now; }
+    if (!h) { h = { day, key: acc.key, nickname: acc.nickname, cls: acc.cls, dmg: 0, tries: 0, claimed: false }; this.sdb.wbHits.push(h); }
+    h.dmg += dealt; h.tries++; h.nickname = acc.nickname; h.cls = acc.cls;
+    this.persist();
+    return { dealt, hp: b.hp, kill, dmg: h.dmg, tries: h.tries };
+  }
+  async wbTop(day, limit) {
+    return this.sdb.wbHits.filter(h => h.day === day).sort((a, b) => b.dmg - a.dmg).slice(0, limit)
+      .map(h => ({ nickname: h.nickname, cls: h.cls, dmg: h.dmg, tries: h.tries }));
+  }
+  async wbStats(day) {
+    const hs = this.sdb.wbHits.filter(h => h.day === day);
+    return { total: hs.reduce((a, h) => a + h.dmg, 0), players: hs.length };
+  }
+  // 아직 안 받아 간 지난 날의 보상 재료: 내 피해·순위와 그날 전체 피해·참가 인원·처치 여부
+  async wbPending(key, today) {
+    const out = [];
+    for (const h of this.sdb.wbHits.filter(x => x.key === key && x.day < today && !x.claimed)) {
+      const b = await this.wbGet(h.day), st = await this.wbStats(h.day);
+      const rank = this.sdb.wbHits.filter(x => x.day === h.day && x.dmg > h.dmg).length + 1;
+      out.push({ day: h.day, boss: b ? b.boss : null, dmg: h.dmg, rank, total: st.total, players: st.players, killed: !!(b && b.killedAt) });
+    }
+    return out.sort((a, b) => a.day - b.day);
+  }
+  async wbAck(key, days) {
+    for (const h of this.sdb.wbHits) if (h.key === key && days.includes(h.day)) h.claimed = true;
+    this.persist();
+  }
   // 전체 초기화: 계정·시즌 기록을 모두 지운다
   async wipe() {
     this.db = {};
-    this.sdb = { seasons: [], rewards: [] };
+    this.sdb = { seasons: [], rewards: [], wb: [], wbHits: [] };
     this.flush();
   }
 }
@@ -132,7 +184,28 @@ class PgStore {
         wins int NOT NULL,
         losses int NOT NULL,
         PRIMARY KEY (key, season)
-      );`);
+      );
+      CREATE TABLE IF NOT EXISTS world_boss (
+        day int PRIMARY KEY,
+        boss text NOT NULL,
+        max_hp double precision NOT NULL,
+        hp double precision NOT NULL,
+        diff double precision NOT NULL,
+        est double precision NOT NULL,
+        spawned_at bigint NOT NULL,
+        killed_at bigint
+      );
+      CREATE TABLE IF NOT EXISTS world_boss_hits (
+        day int NOT NULL,
+        key text NOT NULL,
+        nickname text NOT NULL,
+        cls text NOT NULL DEFAULT 'squire',
+        dmg double precision NOT NULL DEFAULT 0,
+        tries int NOT NULL DEFAULT 0,
+        claimed boolean NOT NULL DEFAULT false,
+        PRIMARY KEY (day, key)
+      );
+      CREATE INDEX IF NOT EXISTS world_boss_hits_dmg ON world_boss_hits (day, dmg DESC);`);
   }
   row(r) {
     if (!r) return null;
@@ -216,9 +289,75 @@ class PgStore {
   async ackRewards(key, seasons) {
     await this.pool.query('DELETE FROM season_rewards WHERE key=$1 AND season = ANY($2::int[])', [key, seasons]);
   }
+
+  // ── 월드 보스 ──
+  async activeProfiles(since, minBest) {
+    return (await this.pool.query('SELECT profile FROM accounts WHERE updated_at >= $1 AND best >= $2', [since, minBest])).rows.map(r => r.profile);
+  }
+  wbRow(r) {
+    return r ? { day: r.day, boss: r.boss, maxHp: Number(r.max_hp), hp: Number(r.hp), diff: Number(r.diff), est: Number(r.est),
+      spawnedAt: Number(r.spawned_at), killedAt: r.killed_at == null ? null : Number(r.killed_at) } : null;
+  }
+  async wbGet(day) { return this.wbRow((await this.pool.query('SELECT * FROM world_boss WHERE day=$1', [day])).rows[0]); }
+  async wbLatestBefore(day) { return this.wbRow((await this.pool.query('SELECT * FROM world_boss WHERE day<$1 ORDER BY day DESC LIMIT 1', [day])).rows[0]); }
+  async wbCreate(b) {
+    await this.pool.query(
+      `INSERT INTO world_boss (day, boss, max_hp, hp, diff, est, spawned_at, killed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,NULL)
+       ON CONFLICT (day) DO NOTHING`, [b.day, b.boss, b.maxHp, b.hp, b.diff, b.est, b.spawnedAt]);
+    return this.wbGet(b.day);
+  }
+  async wbMine(day, key) {
+    const r = (await this.pool.query('SELECT dmg, tries FROM world_boss_hits WHERE day=$1 AND key=$2', [day, key])).rows[0];
+    return r ? { dmg: Number(r.dmg), tries: r.tries } : null;
+  }
+  // 한 트랜잭션에서 보스 체력을 잠그고 피해를 반영한다. 남은 체력보다 많이 넣을 수는 없고, 오늘 도전을 다 썼으면 null
+  async wbHit(day, acc, dmg, maxTries, now) {
+    const c = await this.pool.connect();
+    try {
+      await c.query('BEGIN');
+      const b = this.wbRow((await c.query('SELECT * FROM world_boss WHERE day=$1 FOR UPDATE', [day])).rows[0]);
+      const h = (await c.query('SELECT dmg, tries FROM world_boss_hits WHERE day=$1 AND key=$2 FOR UPDATE', [day, acc.key])).rows[0];
+      if (!b || b.hp <= 0 || (h && h.tries >= maxTries)) { await c.query('ROLLBACK'); return null; }
+      const dealt = Math.min(dmg, b.hp), hp = Math.max(0, b.hp - dealt), kill = hp <= 0 && !b.killedAt;
+      await c.query('UPDATE world_boss SET hp=$2, killed_at=coalesce(killed_at, $3) WHERE day=$1', [day, hp, kill ? now : null]);
+      const r = (await c.query(
+        `INSERT INTO world_boss_hits (day, key, nickname, cls, dmg, tries) VALUES ($1,$2,$3,$4,$5,1)
+         ON CONFLICT (day, key) DO UPDATE SET dmg = world_boss_hits.dmg + $5, tries = world_boss_hits.tries + 1, nickname = $3, cls = $4
+         RETURNING dmg, tries`, [day, acc.key, acc.nickname, acc.cls, dealt])).rows[0];
+      await c.query('COMMIT');
+      return { dealt, hp, kill, dmg: Number(r.dmg), tries: r.tries };
+    } catch (e) {
+      await c.query('ROLLBACK').catch(() => {});
+      throw e;
+    } finally {
+      c.release();
+    }
+  }
+  async wbTop(day, limit) {
+    return (await this.pool.query('SELECT nickname, cls, dmg, tries FROM world_boss_hits WHERE day=$1 ORDER BY dmg DESC LIMIT $2', [day, limit]))
+      .rows.map(r => ({ nickname: r.nickname, cls: r.cls, dmg: Number(r.dmg), tries: r.tries }));
+  }
+  async wbStats(day) {
+    const r = (await this.pool.query('SELECT coalesce(sum(dmg), 0) AS total, count(*) AS players FROM world_boss_hits WHERE day=$1', [day])).rows[0];
+    return { total: Number(r.total), players: Number(r.players) };
+  }
+  // 아직 안 받아 간 지난 날의 보상 재료: 내 피해·순위와 그날 전체 피해·참가 인원·처치 여부
+  async wbPending(key, today) {
+    const r = await this.pool.query(
+      `SELECT h.day, b.boss, h.dmg, b.killed_at,
+         (SELECT count(*) FROM world_boss_hits x WHERE x.day = h.day AND x.dmg > h.dmg) + 1 AS rank,
+         (SELECT coalesce(sum(dmg), 0) FROM world_boss_hits x WHERE x.day = h.day) AS total,
+         (SELECT count(*) FROM world_boss_hits x WHERE x.day = h.day) AS players
+       FROM world_boss_hits h LEFT JOIN world_boss b ON b.day = h.day
+       WHERE h.key = $1 AND h.day < $2 AND NOT h.claimed ORDER BY h.day`, [key, today]);
+    return r.rows.map(x => ({ day: x.day, boss: x.boss, dmg: Number(x.dmg), rank: Number(x.rank), total: Number(x.total), players: Number(x.players), killed: x.killed_at != null }));
+  }
+  async wbAck(key, days) {
+    await this.pool.query('UPDATE world_boss_hits SET claimed = true WHERE key=$1 AND day = ANY($2::int[])', [key, days]);
+  }
   // 전체 초기화: 계정·시즌 기록을 모두 지운다
   async wipe() {
-    await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards');
+    await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards, world_boss, world_boss_hits');
   }
 }
 

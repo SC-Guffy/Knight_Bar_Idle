@@ -531,6 +531,23 @@
   .rboss .info { flex: 1; min-width: 0; }
   .rboss .eff { color: var(--muted); font-size: 12px; margin-top: 3px; }
   .rboss .sigs { justify-content: flex-start; margin-top: 4px; }
+  .shead .chips { margin-top: 0; }
+  .rboss.wb { background: linear-gradient(90deg, rgba(192, 107, 255, .14), var(--soft) 60%); }
+  .rboss.wb.dead { background: linear-gradient(90deg, rgba(255, 210, 87, .14), var(--soft) 60%); }
+  .rboss.wb .act { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: none; }
+  .rboss.wb .blocker { color: var(--muted); font-size: 11px; max-width: 110px; text-align: center; }
+  .wbhp { position: relative; height: 14px; margin-top: 6px; border-radius: 5px; background: rgba(0,0,0,.35); overflow: hidden; }
+  .wbhp span { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #8a2be2, #ff4dff); }
+  .rboss.wb.dead .wbhp span { background: none; }
+  .wbhp em { position: relative; font-style: normal; font-size: 11px; padding-left: 6px; line-height: 14px; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
+  .wbtop { display: grid; gap: 3px; margin: -2px 0 8px; }
+  .wbrow { display: grid; grid-template-columns: 18px minmax(0, 130px) 1fr; align-items: center; gap: 8px; padding: 2px 10px; font-size: 12px; }
+  .wbrow.me { color: var(--accent); }
+  .wbrk { color: var(--muted); text-align: right; }
+  .wbnm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wbrow .cbar { height: 12px; }
+  .wbrow .cbar span { background: linear-gradient(90deg, #6a3ab0, #c06bff); }
+  .wbrow .cbar em { line-height: 12px; font-size: 10.5px; }
   .segs.wrap { flex-wrap: wrap; margin-bottom: 8px; }
   .seg:disabled { opacity: .4; cursor: default; }
   .seg.on:disabled { opacity: 1; }
@@ -644,6 +661,7 @@
 <script src="src/raid.js"></script>
 <script src="src/season.js"></script>
 <script src="src/tower.js"></script>
+<script src="src/worldboss.js"></script>
 <script src="src/core.js"></script>
 <script src="src/net.js"></script>
 <script src="src/world.js"></script>

@@ -124,6 +124,14 @@ async function requestDuel(opponent) {
 const fetchSeason = () => api('GET', '/api/season', null, { token: activeToken(), timeout: 70000 });
 const ackSeason = (seasons) => api('POST', '/api/season/ack', { seasons }, { token: activeToken() });
 
+// 월드 보스: 오늘의 보스·내 피해·순위·아직 안 받은 지난 보상 / 도전 (저장된 최신 능력치로 싸우도록 먼저 올린다) / 보상 받음 표시
+const fetchWorldBoss = () => api('GET', '/api/worldboss', null, { token: activeToken(), timeout: 70000 });
+async function attackWorldBoss() {
+  await pushSave(true);
+  return api('POST', '/api/worldboss/attack', {}, { token: activeToken(), timeout: 70000 });
+}
+const ackWorldBoss = (days) => api('POST', '/api/worldboss/ack', { days }, { token: activeToken() });
+
 // ───────────────────────── 보스 레이드 로비 ─────────────────────────
 // 방 상태는 서버 메모리에 있고, 방에 있는 동안 주기적으로 물어봐서 파티원·준비·출정 결과를 받는다 (ui.js 의 raidPoll)
 const raidCall = (method, path, body, timeout = 20000) => api(method, path, body, { token: activeToken(), timeout });
