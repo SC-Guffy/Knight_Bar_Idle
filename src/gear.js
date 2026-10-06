@@ -127,6 +127,8 @@ function gearStatText(st) {
   if (st.hpUp != null) return `❤️ +${Math.round(st.hpUp * 100)}%`;
   return `💥 +${(st.crit * 100).toFixed(1)}% · 피해 +${Math.round(st.critMult * 100)}%`;
 }
+// 장비를 팔면 골드와 함께 💠 강화석이 나온다 (등급별 고정)
+const gearSellStones = (it) => GEAR_STONES[it.g];
 const gearSellPrice = (it) => Math.floor(monsterStats(it.s, false).gold * GRADES[it.g].sell * it.roll);
 
 // stats() 가 합치는 장착 장비 보너스 (고유 장비의 특수 효과 포함)
@@ -269,28 +271,30 @@ function bulkSellList() {
 }
 function sellGear(list) {
   const ids = new Set(list.filter((x) => !isEquipped(x)).map((x) => x.id));
-  let gold = 0;
+  let gold = 0, stones = 0;
   S.gear.inv = S.gear.inv.filter((x) => {
     if (!ids.has(x.id)) return true;
-    gold += gearSellPrice(x);
+    gold += gearSellPrice(x); stones += gearSellStones(x);
     return false;
   });
-  S.gold += gold;
-  return { n: ids.size, gold };
+  S.gold += gold; S.stones += stones;
+  return { n: ids.size, gold, stones };
 }
 
 // ───────────────────────── 강화 ─────────────────────────
-const enhanceCostOf = (slot) => enhanceCost(S.gear.enh[slot], S.best);
+const enhanceCostOf = (slot) => enhanceCost(S.gear.enh[slot]);
 function enhanceBlocker(slot) {
   const L = S.gear.enh[slot];
   if (L >= ENHANCE_MAX) return '최대 강화';
   if (S.phase !== 'camp') return '캠프에서만 강화할 수 있어요';
   const c = enhanceCostOf(slot);
-  if (S.gold < c.gold) return '골드 부족';
+  if (S.stones < c.stone) return '강화석 부족';
   if (S.mats.ore < c.ore) return '철광석 부족';
   if (S.mats.mana < c.mana) return '마력석 부족';
   return '';
 }
+// 지금 바로 강화할 수 있는가 (레드닷)
+const canEnhance = (slot) => !enhanceBlocker(slot);
 // 결과: { result: 'up'|'keep'|'down'|'reset'|'saved', from, to }
 // protect=true 면 하락·초기화가 나왔을 때 보호 주문서가 대신 부서진다 ('saved')
 function enhance(slot, protect = false) {
@@ -299,7 +303,7 @@ function enhance(slot, protect = false) {
   const e = ENHANCE[from];
   const c = enhanceCostOf(slot);
   const oldMax = stats().maxHp;
-  S.gold -= c.gold; S.mats.ore -= c.ore; S.mats.mana -= c.mana;
+  S.stones -= c.stone; S.mats.ore -= c.ore; S.mats.mana -= c.mana;
 
   let result;
   if (Math.random() < e.rate) {

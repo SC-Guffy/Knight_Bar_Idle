@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.10.23';
+const GAME_VERSION = '0.10.24';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -422,14 +422,20 @@ const ENHANCE = [
 ];
 // 강화 단계가 장비 능력치에 곱하는 배율
 const enhanceMultAt = (L) => 1 + 0.12 * L + 0.004 * L * L;
-// L → L+1 비용. 골드는 최고 스테이지의 몬스터 골드 기준, 마력석은 +10부터
-function enhanceCost(L, bestStage) {
+// L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)과 겹치지 않는다. 철광석은 늘, 마력석은 +10부터
+// 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 90개 · +15 약 650개 (부위마다)
+function enhanceCost(L) {
   return {
-    gold: Math.floor(monsterStats(bestStage, false).gold * 8 * Math.pow(1.17, L)),
+    stone: Math.floor(2 * Math.pow(1.17, L)),
     ore: Math.floor(4 * Math.pow(1.2, L)),
     mana: L >= 10 ? Math.floor(2 * Math.pow(1.22, L - 10)) : 0,
   };
 }
+// 💠 강화석 획득: 원정 보스 처치마다 BOSS_STONES 개, 장비를 팔면 등급별로 GEAR_STONES 개 (원정 1회 약 15~20개)
+const BOSS_STONES = 3;
+const GEAR_STONES = [1, 2, 4, 10, 25, 60, 150, 400];
+// 강화석이 생기기 전 세이브에 처음 한 번 넣어 주는 양 (+0 → +5 를 바로 해 볼 수 있을 만큼)
+const STONE_GIFT = 20;
 
 // ───────────────────────── 골동품 ─────────────────────────
 // 챙기면 바로 팔려서 재화가 된다. amt 는 등급 res 배수가 곱해지는 기본량 (gold 는 몬스터 골드 배수)

@@ -284,6 +284,7 @@ function viewReport() {
       ${cell('✨ 경험치', fmt(r.xp) + (r.levels ? ` · Lv +${r.levels}` : ''))}
       ${cell('🧪 물약 사용', r.potions)}
       ${cell('⚠️ 위기', r.crises + (r.deaths ? ` · 쓰러짐 ${r.deaths}` : ''))}
+      ${r.stones ? cell('💠 강화석', r.stones) : ''}
       ${r.tomes ? cell('📖 비전서', r.tomes) : ''}
     </div>` : '<div class="empty">새 원정 보고가 없습니다.</div>';
 
@@ -839,13 +840,15 @@ const canBuild = (id) => !S.build && S.bld[id] < BUILD_MAX && canAfford(buildCos
 const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= 2 * trainCost(u);
 // 자동 장착하면 더 강해지는 부위(세트 효과 포함)
 const gearBetter = (slot) => bestLoadout()[slot] !== S.gear.eq[slot];
+// 강화석은 강화에만 쓰니 비용이 모이면 바로 찍는다 (장비를 낀 부위만 — 빈 부위 강화는 급하지 않다)
+const gearCanEnh = (slot) => !!equipped(slot) && canEnhance(slot);
 function campDots() {
   refillTickets();
   return {
     report: S.bag.length > 0 || (!!S.report && S.report !== reportSeen),
     town: Object.keys(BUILDINGS).some(canBuild),
     train: TRAINING.some(canTrain),
-    gear: Object.keys(GEAR_SLOTS).some(gearBetter),
+    gear: Object.keys(GEAR_SLOTS).some((k) => gearBetter(k) || gearCanEnh(k)),
     class: anyClassReady() || canLevelSkill(),
     raid: S.raid.chests.length > 0 || !!raidUi.room,
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
@@ -909,7 +912,7 @@ function gearSlotBtn(slot) {
   return `
     <button class="gsbtn s-${slot} ${gearSel().slot === slot ? 'on' : ''}${last}" data-action="gear-sel-slot" data-slot="${slot}"
       style="--c:${it ? gearGrade(it).color : 'rgba(255,255,255,.18)'}" title="${def.name}">
-      <span class="gsbox${rd(gearBetter(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
+      <span class="gsbox${rd(gearBetter(slot) || gearCanEnh(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
       <span class="gsname ${it ? gnClass(it) : ''}">${it ? gearName(it) : def.name}</span>
     </button>`;
 }
@@ -923,6 +926,8 @@ const gearInfo = (it) => `
   ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
   <div class="gdesc">${gearDesc(it)}</div>`;
 
+// 가진 💠 강화석 (강화 화면 우상단 칩)
+const stoneChip = () => `<span class="stchip${S.stones ? '' : ' none'}" title="가진 강화석 — 원정 보스를 잡거나 장비를 팔면 얻어요">💠 <b>${fmt(S.stones)}</b></span>`;
 // 장착 슬롯 세부: 낀 장비 + 부위 강화
 function slotDetail(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot), L = S.gear.enh[slot];
@@ -936,8 +941,8 @@ function slotDetail(slot) {
     const c = enhanceCostOf(slot), blocker = enhanceBlocker(slot);
     enh = `
       <div class="odds">+${L} → +${L + 1} · ${enhOdds(L)}</div>
-      <div class="costs">${costChip('<i class="gc"></i>', c.gold, S.gold)}${costChip('🪨', c.ore, S.mats.ore)}${costChip('💎', c.mana, S.mats.mana)}</div>
-      <button class="btn enh" data-action="enhance" data-slot="${slot}" ${blocker || enhFx ? 'disabled' : ''}>${enhFx && enhFx.slot === slot && !enhFx.res ? '✨ 강화 중…' : '⚒️ 강화'}</button>
+      <div class="costs">${costChip('💠', c.stone, S.stones)}${costChip('🪨', c.ore, S.mats.ore)}${costChip('💎', c.mana, S.mats.mana)}</div>
+      <button class="btn enh${rd(gearCanEnh(slot) && !enhFx)}" data-action="enhance" data-slot="${slot}" ${blocker || enhFx ? 'disabled' : ''}>${enhFx && enhFx.slot === slot && !enhFx.res ? '✨ 강화 중…' : '⚒️ 강화'}</button>
       <button class="chk ${gearUi.protect ? 'on' : ''}" data-action="gear-protect" ${S.items.protect ? '' : 'disabled'}>
         ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화 때만 소모</small></button>`;
   }
@@ -945,7 +950,7 @@ function slotDetail(slot) {
   const res = last ? `<div class="enhres ${last.result} ${last.fresh ? 'fresh' : ''}">${ENH_RESULT[last.result](last)}</div>` : '';
   const top = S.gear.top[slot] > L ? ` <small>최고 +${S.gear.top[slot]}</small>` : '';
   return `
-    <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b>${top}</div>
+    <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b>${top}${stoneChip()}</div>
     ${item}
     <div class="genh">${enh}${res}</div>`;
 }
@@ -960,7 +965,7 @@ function itemDetail(it) {
     ${cur ? `<div class="small">지금 낀 장비: <span class="gn g${cur.g}">${gearName(cur)}</span> ${gearStatText(gearStat(cur))}</div>` : ''}
     <div class="gacts">
       <button class="btn enh" data-action="equip" data-id="${it.id}">장착</button>
-      <button class="btn" data-action="gear-sell-one" data-id="${it.id}">판매 <i class="gc"></i> ${fmt(gearSellPrice(it))}</button>
+      <button class="btn" data-action="gear-sell-one" data-id="${it.id}">판매 <i class="gc"></i> ${fmt(gearSellPrice(it))} · 💠 ${gearSellStones(it)}</button>
     </div>`;
 }
 
@@ -1004,6 +1009,7 @@ function viewGear() {
   const f = S.gear.sellG;
   const sellList = bulkSellList();
   const sellGold = sellList.reduce((a, x) => a + gearSellPrice(x), 0);
+  const sellStones = sellList.reduce((a, x) => a + gearSellStones(x), 0);
   const rare = sellList.filter((x) => x.g >= 4 || isSetGear(x)).length;
   const gradeChips = GRADES.map((G, i) => {
     const n = inv.filter((x) => x.g === i && !isSetGear(x)).length;
@@ -1013,7 +1019,7 @@ function viewGear() {
   const setChip = `<button class="gchip ${S.gear.sellSet ? 'on' : ''}" data-action="gear-sell-set" style="--c:${SET_GRADE.color}">${S.gear.sellSet ? '☑' : '☐'} 🔗 ${SET_GRADE.name}${setN ? ` <small>${setN}</small>` : ''}</button>`;
   const sellBtn = gearUi.sellAsk
     ? `<button class="btn warn" data-action="gear-sell">정말 ${sellList.length}개 팔까요?${rare ? ` (전설 이상·세트 ${rare}개)` : ''}</button>`
-    : `<button class="btn" data-action="gear-sell" ${sellList.length ? '' : 'disabled'}>💰 일괄 판매 ${sellList.length}개 · <i class="gc"></i> ${fmt(sellGold)}</button>`;
+    : `<button class="btn" data-action="gear-sell" ${sellList.length ? '' : 'disabled'}>💰 일괄 판매 ${sellList.length}개 · <i class="gc"></i> ${fmt(sellGold)} · 💠 ${fmt(sellStones)}</button>`;
   const sellBar = `
     <div class="sellbar">
       <span class="small">판매할 등급</span>${gradeChips}${setChip}
@@ -1802,7 +1808,7 @@ const ACTIONS = {
     const it = gearById(Number(el.dataset.id));
     if (!it) return;
     const r = sellGear([it]);
-    if (r.n) toast(`💰 ${gearName(it)}을(를) ${fmt(r.gold)} 골드에 팔았어요`);
+    if (r.n) toast(`💰 ${gearName(it)}을(를) 팔았어요 — 골드 ${fmt(r.gold)} · 💠 강화석 ${r.stones}`);
   },
   'gear-auto': () => { const n = autoEquip(); toast(n ? `✨ ${n}부위 장비를 바꿔 꼈어요` : '이미 가장 좋은 장비를 끼고 있어요'); },
   'gear-auto-toggle': () => { S.gear.auto = !S.gear.auto; if (S.gear.auto) autoEquip(); },
@@ -1811,7 +1817,7 @@ const ACTIONS = {
     if (!gearUi.sellAsk) { gearUi.sellAsk = true; return; }
     gearUi.sellAsk = false;
     const r = sellGear(bulkSellList());
-    if (r.n) toast(`💰 장비 ${r.n}개를 ${fmt(r.gold)} 골드에 팔았어요`);
+    if (r.n) toast(`💰 장비 ${r.n}개를 팔았어요 — 골드 ${fmt(r.gold)} · 💠 강화석 ${fmt(r.stones)}`);
   },
   'gear-sell-grade': (el) => { const g = Number(el.dataset.g); S.gear.sellG[g] = !S.gear.sellG[g]; },
   'gear-sell-set': () => { S.gear.sellSet = !S.gear.sellSet; },

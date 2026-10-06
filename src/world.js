@@ -188,6 +188,7 @@ function hitMonster(m, mult = 1, o = {}) {
   // 상자·비전서는 실제로 필드에 떨어지고 기사가 주워 간다 (src/drops.js). 내용물은 캠프에서 열 때 공개
   if (r.loot) spawnDrop('box', r.loot.g, sx, monsterMidY(m), m.boss);
   if (r.tome) spawnDrop('tome', 0, sx, monsterMidY(m), false, { dist: r.loot ? rand(-14, -4) : rand(16, 28), delay: r.loot ? 0.12 : 0, pop: 1.15 });
+  if (m.boss) addFloater(`💠 강화석 +${BOSS_STONES}`, sx, monsterTop(m) - 18, '#8fd8ff', 13, true);
   if (m.boss) { showBanner('STAGE CLEAR!'); save(); }
   if (bagFull()) endExpedition('bag');
 }

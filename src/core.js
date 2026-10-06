@@ -30,6 +30,7 @@ function freshState() {
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed)
     mastV: 3,                               // 3: mast 가 권수, 레벨당 최대 10권 (2: 최대 20권, 1: 옛 경험치, 1권 = 10)
     tomes: 0,                               // 📖 비전서
+    stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
     phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -80,6 +81,11 @@ function migrate(o) {
     if (s.mast[id] > SKILL_TOME_MAX) { s.tomes += s.mast[id] - SKILL_TOME_MAX; s.mast[id] = SKILL_TOME_MAX; }
   }
   s.mastV = 3;
+  // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
+  if (!('stones' in o)) {
+    s.stones = STONE_GIFT;
+    if (!s.notice) s.notice = `💠 강화석 도입 — 장비 강화는 이제 골드 대신 강화석을 써요. 원정 보스·장비 판매로 얻고, 시작 선물로 ${STONE_GIFT}개를 드렸어요`;
+  }
   if (s.train.boss) s.train.fortune = (s.train.fortune || 0) + s.train.boss;
   delete s.train.boss;
   s.gear.inv.forEach(fixGearItem);
@@ -332,7 +338,7 @@ function startExpedition({ charm = false, elixir = false } = {}) {
   S.trip = {
     start: Date.now(), dur: 0, kills: 0, bosses: 0, gold: 0, xp: 0, levels: 0,
     stageFrom: S.stage, stageTo: S.stage, boxes: GRADES.map(() => 0),
-    potions: 0, crises: 0, deaths: 0, tomes: 0, bossFail: false, reason: null, buffs: { charm, elixir },
+    potions: 0, crises: 0, deaths: 0, tomes: 0, stones: 0, bossFail: false, reason: null, buffs: { charm, elixir },
   };
   S.run.kills = 0; S.run.farm = false; S.run.cleared = false;
   S.hp = stats().maxHp;
@@ -366,7 +372,7 @@ function arriveCamp(silent = false) {
   if (S.report) {
     // 이전 보고를 안 봤으면 합친다
     const r = S.report;
-    for (const k of ['dur', 'kills', 'bosses', 'gold', 'xp', 'levels', 'potions', 'crises', 'deaths', 'tomes']) r[k] = (r[k] || 0) + (t[k] || 0);
+    for (const k of ['dur', 'kills', 'bosses', 'gold', 'xp', 'levels', 'potions', 'crises', 'deaths', 'tomes', 'stones']) r[k] = (r[k] || 0) + (t[k] || 0);
     t.boxes.forEach((n, i) => { r.boxes[i] = (r.boxes[i] || 0) + n; });
     r.stageTo = t.stageTo; r.reason = t.reason; r.bossFail = r.bossFail || t.bossFail;
     r.trips = (r.trips || 1) + 1;
@@ -387,6 +393,7 @@ function rewardKill(m) {
   const gold = m.gold * goldMult(), exp = m.exp * expMult();
   S.gold += gold; t.gold += gold;
   t.kills++; if (m.boss) t.bosses++;
+  if (m.boss) { S.stones += BOSS_STONES; t.stones = (t.stones || 0) + BOSS_STONES; }
   t.xp += exp;
   t.levels += gainExp(exp);
   let loot = null;
