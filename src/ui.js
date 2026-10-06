@@ -329,31 +329,29 @@ function viewReport() {
 }
 
 function viewTown() {
-  const cards = Object.entries(BUILDINGS).map(([id, b]) => {
-    const lv = S.bld[id];
-    let act;
-    if (S.build && S.build.id === id) {
-      act = `<div class="prog"><div data-bar="build"></div></div><div class="small">건설 중 · <span data-live="buildLeft"></span></div>`;
-    } else if (lv >= BUILD_MAX) {
-      act = '<div class="small">최대 레벨</div>';
-    } else {
-      const c = buildCost(id, lv);
-      act = `<div class="costs">${costChip('<i class="gc"></i>', c.gold, S.gold)}${costChip('🪵', c.wood, S.mats.wood)}${costChip('🪨', c.ore, S.mats.ore)}${costChip('💎', c.mana, S.mats.mana)}</div>
-        <button class="btn${rd(canBuild(id))}" data-action="build" data-id="${id}" ${S.build || !canAfford(c) ? 'disabled' : ''}>
-          ${S.build ? '다른 건물 건설 중' : `건설 · ${fmtTime(buildTimeAt(lv))}`}</button>`;
-    }
-    return `
-      <div class="card">
-        <div class="ic">${b.icon}</div>
-        <div class="info">
-          <b>${b.name} <small>Lv ${lv}</small></b>
-          <div class="eff">${b.effect(lv)}</div>
-          ${lv < BUILD_MAX ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
-        </div>
-        <div class="act">${act}</div>
-      </div>`;
-  }).join('');
-  return `<h3>🏘 마을</h3><div class="hint">한 번에 한 건물만 지을 수 있고, 원정 중에도 공사는 계속됩니다.</div>${cards}`;
+  const id = townSel(), b = BUILDINGS[id], lv = S.bld[id];
+  let act;
+  if (S.build && S.build.id === id) {
+    act = `<div class="prog"><div data-bar="build"></div></div><div class="small">건설 중 · <span data-live="buildLeft"></span></div>`;
+  } else if (lv >= BUILD_MAX) {
+    act = '<div class="small">최대 레벨</div>';
+  } else {
+    const c = buildCost(id, lv);
+    act = `<div class="costs">${costChip('<i class="gc"></i>', c.gold, S.gold)}${costChip('🪵', c.wood, S.mats.wood)}${costChip('🪨', c.ore, S.mats.ore)}${costChip('💎', c.mana, S.mats.mana)}</div>
+      <button class="btn${rd(canBuild(id))}" data-action="build" data-id="${id}" ${S.build || !canAfford(c) ? 'disabled' : ''}>
+        ${S.build ? `${BUILDINGS[S.build.id].name} 건설 중` : `건설 · ${fmtTime(buildTimeAt(lv))}`}</button>`;
+  }
+  return `<div class="shead"><h3>🏘 마을</h3><small>건물을 눌러 고르세요 · 한 번에 한 건물만, 원정 중에도 공사는 계속돼요</small></div>
+    <canvas class="town"></canvas>
+    <div class="card tsel">
+      <div class="ic">${b.icon}</div>
+      <div class="info">
+        <b>${b.name} <small>Lv ${lv}</small></b>
+        <div class="eff">${b.effect(lv)}</div>
+        ${lv < BUILD_MAX ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
+      </div>
+      <div class="act">${act}</div>
+    </div>`;
 }
 
 function viewTrain() {
@@ -1829,6 +1827,7 @@ function renderCamp() {
   tickLive($('campModal'));
   paintGearIcons($('campModal'));
   if (campTab === 'gear') drawGearHero();      // 다시 그린 직후 한 프레임 비지 않게
+  if (campTab === 'town') drawTown();
 }
 
 // ───────────────────────── 행동 ─────────────────────────
@@ -2424,6 +2423,7 @@ function boot() {
     render();
     if (campOpen && campTab === 'class') drawClassPreviews();
     if (campOpen && campTab === 'gear') drawGearHero();
+    if (campOpen && campTab === 'town') drawTown();
     slow += dt;
     if (slow > 0.25) {
       slow = 0;
