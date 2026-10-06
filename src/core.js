@@ -38,6 +38,7 @@ function freshState() {
     report: null,                           // 확인 안 한 원정 기록
     raid: freshRaid(),                      // 보스 레이드: 입장권·처치 상자·마지막 정산 (raid.js)
     season: freshSeason(),                  // 결투 시즌: 받은 시즌 보상 (season.js)
+    duelSeen: 0,                            // 받은 결투(우편함)에서 읽은 마지막 기록 id (ui.js inbox)
     tower: freshTower(),                    // 도전의 탑: 최고 층·진행 중인 도전 (tower.js)
     wb: freshWb(),                          // 월드 보스: 받은 보상·마지막 정산 (worldboss.js)
     guide: {},                              // 처음 하는 일 안내(FTUE)에서 이미 본 단계 (ui.js guideTick)

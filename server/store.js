@@ -8,6 +8,8 @@
 // 명예의 전당: 전체 초기화 직전 순위 = { id, at, players, stage: [최고 스테이지 순 10명], duel: [이번 결투 시즌 3명] } — 초기화해도 지우지 않는다
 // 월드 보스(server/worldboss.js): 하루 = { day, boss, maxHp, hp, diff, est, spawnedAt, killedAt },
 //   기사별 피해 = { day, key, nickname, cls, dmg, tries, claimed } — 날이 지나면 지분만큼 보상을 받아 가고(claimed) 남겨 둔다
+// 받은 결투(우편함): { id, at, defender, attacker, nickname, cls, level, won(방어 성공), delta, rating(방어자의 결투 뒤 점수) }
+//   — 도전받은 기사가 나중에 접속해서 누가 걸었고 어떻게 됐는지 본다. 기사마다 최근 것만 보여 주고 오래된 건 지운다
 
 const fs = require('fs');
 const path = require('path');
@@ -26,6 +28,8 @@ class TakenError extends Error {}
 // 시즌 순위에 오르는 기사: 그 시즌에 직접 결투를 1번 이상 건 기사
 const inSeason = (s) => (a) => a.season === s && a.attacks > 0;
 const TOP_KEEP = 10;
+const DUEL_LOG_KEEP_MS = 14 * 24 * 3600 * 1000;
+const DUEL_LOG_FILE_MAX = 3000;
 const topView = (a) => ({ nickname: a.nickname, cls: a.cls, level: a.level, rating: a.rating, wins: a.wins, losses: a.losses });
 
 // ───────────────────────── JSON 파일 ─────────────────────────
@@ -38,6 +42,7 @@ class FileStore {
     try { this.sdb = JSON.parse(fs.readFileSync(this.seasonFile, 'utf8')); } catch { this.sdb = { seasons: [], rewards: [] }; }
     this.sdb.wb = this.sdb.wb || [];
     this.sdb.wbHits = this.sdb.wbHits || [];
+    this.sdb.duelLog = this.sdb.duelLog || [];
     this.hallFile = path.join(dir, 'hall.json');
     try { this.hdb = JSON.parse(fs.readFileSync(this.hallFile, 'utf8')); } catch { this.hdb = []; }
     this.timer = null;
@@ -140,10 +145,22 @@ class FileStore {
     for (const h of this.sdb.wbHits) if (h.key === key && days.includes(h.day)) h.claimed = true;
     this.persist();
   }
+  // ── 받은 결투 ──
+  async addDuelLog(e) {
+    const log = this.sdb.duelLog, id = (log.length ? log[log.length - 1].id : 0) + 1;
+    log.push({ ...e, id });
+    const old = Date.now() - DUEL_LOG_KEEP_MS;
+    this.sdb.duelLog = log.filter(x => x.at >= old).slice(-DUEL_LOG_FILE_MAX);
+    this.persist();
+  }
+  async duelInbox(key, limit) {
+    return this.sdb.duelLog.filter(x => x.defender === key).slice(-limit).reverse();
+  }
+
   // 전체 초기화: 계정·시즌 기록을 모두 지운다
   async wipe() {
     this.db = {};
-    this.sdb = { seasons: [], rewards: [], wb: [], wbHits: [] };
+    this.sdb = { seasons: [], rewards: [], wb: [], wbHits: [], duelLog: [] };
     this.flush();
   }
 }
@@ -216,6 +233,19 @@ class PgStore {
         PRIMARY KEY (day, key)
       );
       CREATE INDEX IF NOT EXISTS world_boss_hits_dmg ON world_boss_hits (day, dmg DESC);
+      CREATE TABLE IF NOT EXISTS duel_log (
+        id serial PRIMARY KEY,
+        at bigint NOT NULL,
+        defender text NOT NULL,
+        attacker text NOT NULL,
+        nickname text NOT NULL,
+        cls text NOT NULL,
+        level int NOT NULL,
+        won boolean NOT NULL,
+        delta int NOT NULL,
+        rating int NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS duel_log_def ON duel_log (defender, id DESC);
       CREATE TABLE IF NOT EXISTS hall_of_fame (
         id serial PRIMARY KEY,
         at bigint NOT NULL,
@@ -380,9 +410,21 @@ class PgStore {
   async wbAck(key, days) {
     await this.pool.query('UPDATE world_boss_hits SET claimed = true WHERE key=$1 AND day = ANY($2::int[])', [key, days]);
   }
+  // ── 받은 결투 ──
+  async addDuelLog(e) {
+    await this.pool.query(
+      'INSERT INTO duel_log (at, defender, attacker, nickname, cls, level, won, delta, rating) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      [e.at, e.defender, e.attacker, e.nickname, e.cls, e.level, e.won, e.delta, e.rating]);
+    // 오래된 기록은 가끔 한 번씩 지운다
+    if (Math.random() < 0.02) await this.pool.query('DELETE FROM duel_log WHERE at < $1', [Date.now() - DUEL_LOG_KEEP_MS]);
+  }
+  async duelInbox(key, limit) {
+    return (await this.pool.query('SELECT * FROM duel_log WHERE defender=$1 ORDER BY id DESC LIMIT $2', [key, limit])).rows
+      .map(r => ({ id: r.id, at: Number(r.at), attacker: r.attacker, nickname: r.nickname, cls: r.cls, level: r.level, won: r.won, delta: r.delta, rating: r.rating }));
+  }
   // 전체 초기화: 계정·시즌 기록을 모두 지운다 (명예의 전당은 남긴다)
   async wipe() {
-    await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards, world_boss, world_boss_hits');
+    await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards, world_boss, world_boss_hits, duel_log');
   }
 }
 

@@ -120,6 +120,9 @@ async function requestDuel(opponent) {
   return api('POST', '/api/duels', { opponent }, { token: activeToken(), timeout: 70000 });
 }
 
+// 받은 결투(우편함): 다른 기사가 나에게 건 최근 결투들 (새 것부터)
+const fetchDuelInbox = () => api('GET', '/api/duels/inbox', null, { token: activeToken(), timeout: 70000 });
+
 // 결투 시즌: 이번 시즌 정보 · 내 기록 · 지난 시즌 결과 · 아직 안 받은 시즌 보상
 const fetchSeason = () => api('GET', '/api/season', null, { token: activeToken(), timeout: 70000 });
 const ackSeason = (seasons) => api('POST', '/api/season/ack', { seasons }, { token: activeToken() });

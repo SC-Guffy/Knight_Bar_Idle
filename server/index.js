@@ -13,6 +13,7 @@ const WB = require('./worldboss');
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 256 * 1024;
 const DUEL_COOLDOWN_MS = 5000;
+const DUEL_INBOX_MAX = 30;      // 받은 결투(우편함)에 보여 줄 최근 기록 수
 
 const store = openStore();
 
@@ -234,6 +235,12 @@ const routes = {
     return { ok: true };
   },
 
+  // 받은 결투(우편함): 다른 기사가 나에게 건 최근 결투들. 클라이언트가 접속해 있는 동안 1분마다 물어본다
+  'GET /api/duels/inbox': async (req) => {
+    const a = await authLite(req);
+    return { list: (await store.duelInbox(a.key, DUEL_INBOX_MAX)).map(({ id, at, nickname, cls, level, won, delta, rating }) => ({ id, at, nickname, cls, level, won, delta, rating })) };
+  },
+
   // 결투. 서버가 두 기사의 프로필로 싸움을 계산하고, 결과 기록을 돌려준다.
   'POST /api/duels': async (req) => {
     const me = await auth(req);
@@ -258,6 +265,11 @@ const routes = {
     const opRating = Math.max(0, b.rating + (won ? -d : d));
     await store.update(me.key, { season, attacks: a.attacks + 1, rating: myRating, wins: a.wins + (won ? 1 : 0), losses: a.losses + (won ? 0 : 1) });
     await store.update(op.key, { season, attacks: b.attacks, rating: opRating, wins: b.wins + (won ? 0 : 1), losses: b.losses + (won ? 1 : 0) });
+    // 도전받은 쪽 우편함에 남긴다 (기록을 못 남겨도 결투 결과는 그대로 돌려준다)
+    await store.addDuelLog({
+      at: Date.now(), defender: op.key, attacker: me.key, nickname: me.nickname, cls: pa.cls, level: pa.level,
+      won: !won, delta: d, rating: opRating,
+    }).catch((e) => console.error('duel log', e));
 
     return {
       won, delta: d, season,

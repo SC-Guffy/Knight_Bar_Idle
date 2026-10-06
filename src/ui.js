@@ -180,6 +180,7 @@ function closeCamp() {
   if (!campOpen) return;
   clearInterval(openAllTimer); openAllTimer = null;
   campOpen = false;
+  inbox.newAfter = null;
   S.report = null;                     // 창을 닫으면 보고는 읽은 것으로 처리
   if (towerResultViewed && S.tower.last) S.tower.last.seen = true;   // 탑 정산도 본 채로 닫았으면 읽은 것으로
   towerResultViewed = false;
@@ -855,6 +856,7 @@ function campDots() {
     train: TRAINING.some(canTrain),
     gear: Object.keys(GEAR_SLOTS).some((k) => gearBetter(k) || gearCanEnh(k)),
     class: anyClassReady() || canLevelSkill(),
+    rank: inboxUnread() > 0,
     raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot(),
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '',
@@ -1240,6 +1242,7 @@ function viewRank() {
     </div>
     <div class="hint">결투는 서로의 저장된 능력치로 자동으로 싸우고, 캠프 앞 하단바에서 벌어져요. 이기면 상대의 결투 점수를 가져오고, 상대가 접속해 있지 않아도 도전할 수 있어요.
       결투 점수는 3일마다 바뀌는 시즌마다 1000점에서 다시 시작하고, 시즌이 끝나면 직접 결투를 1번 이상 건 기사에게 순위별 보상을 줘요.</div>
+    ${viewInbox()}
     ${rank.sort === 'duel' ? viewSeason() : ''}
     ${lastDuel ? `<div class="reason ${lastDuel.won ? '' : 'warn'}">최근 결투 — ${esc(duelResultText(lastDuel))}</div>` : ''}
     <div class="rlist">${body}</div>
@@ -1265,6 +1268,75 @@ function viewHall(hall) {
       <small>${fmtDate(h.at)} · ${h.players}명</small><span class="chips">${top3}</span>${more}</div>`;
   }).join('');
   return `<h3>🏛️ 명예의 전당 <small>시즌이 끝날 때(전체 초기화 직전)의 순위</small></h3>${rows}`;
+}
+
+// ───────────────────────── 받은 결투 (우편함) ─────────────────────────
+// 다른 기사가 나에게 건 결투는 서버 우편함(GET /api/duels/inbox)에 남는다. 접속해 있는 동안(입장 직후·1분마다) 물어봐서
+// 새로 온 게 있으면 토스트로 알리고, 랭킹 탭 점·숫자로 표시한다. 랭킹 탭을 보면 읽은 것으로 친다 (S.duelSeen = 마지막 id).
+const inbox = { list: null, loading: false, error: null, told: 0, newAfter: null, more: false };
+const INBOX_CHECK_EVERY = 60 * 1000;
+const INBOX_SHOW = 5;
+const inboxUnread = () => (inbox.list ? inbox.list.filter((m) => m.id > S.duelSeen).length : 0);
+
+function loadInbox() {
+  if (inbox.loading || !activeNick() || !saveKey) return;
+  inbox.loading = true;
+  const who = activeNick();
+  fetchDuelInbox()
+    .then((d) => {
+      if (activeNick() !== who || !saveKey) return;
+      inbox.list = d.list || []; inbox.error = null;
+      tellInbox();
+    }, (e) => { inbox.error = e.message; })
+    .finally(() => { inbox.loading = false; if (campOpen) renderCamp(); renderHud(); });
+}
+setInterval(loadInbox, INBOX_CHECK_EVERY);
+
+// 아직 알리지 않은 새 결투를 토스트 한 번으로 알린다 (결투를 보는 중이면 끝난 뒤 다음 확인 때)
+function tellInbox() {
+  if (duelActive() || raidActive()) return;
+  const fresh = inbox.list.filter((m) => m.id > Math.max(S.duelSeen, inbox.told));
+  if (!fresh.length) return;
+  inbox.told = fresh[0].id;
+  if (campOpen && campTab === 'rank') return;          // 지금 우편함을 보고 있다
+  const win = fresh.filter((m) => m.won).length, sum = fresh.reduce((a, m) => a + (m.won ? m.delta : -m.delta), 0);
+  const m = fresh[0];
+  toast(fresh.length === 1
+    ? `📬 받은 결투 — ${m.nickname}(Lv ${m.level}) · ${m.won ? `🛡️ 방어 성공! 결투 점수 +${m.delta}` : `💀 패배… 결투 점수 -${m.delta}`} · 🏆 랭킹 탭에서 확인`
+    : `📬 받은 결투 ${fresh.length}건 — 방어 ${win} · 패배 ${fresh.length - win} · 결투 점수 ${sum >= 0 ? '+' : ''}${sum} · 🏆 랭킹 탭에서 확인`, 9000);
+}
+
+const fmtAgo = (t) => {
+  const m = Math.floor((Date.now() - t) / 60000);
+  return m < 1 ? '방금' : m < 60 ? `${m}분 전` : m < 24 * 60 ? `${Math.floor(m / 60)}시간 전` : fmtDate(t);
+};
+
+function viewInbox() {
+  if (!inbox.list) { loadInbox(); return ''; }
+  // 탭을 연 순간의 '새 결투' 경계를 기억해 두고 읽음 처리한다 (다시 그려도 NEW 표시는 탭을 떠날 때까지 남는다)
+  if (inbox.newAfter == null) inbox.newAfter = S.duelSeen;
+  if (inbox.list.length && inbox.list[0].id > S.duelSeen) { S.duelSeen = inbox.list[0].id; save(); }
+  const L = inbox.list;
+  if (!L.length) return '';
+  const fresh = L.filter((m) => m.id > inbox.newAfter);
+  const shown = inbox.more ? L : L.slice(0, Math.max(INBOX_SHOW, fresh.length));
+  const row = (m) => {
+    const c = clsOf(m.cls);
+    return `
+      <div class="mrow ${m.won ? '' : 'lost'}">
+        <small class="mt">${fmtAgo(m.at)}</small>
+        <span class="mnm"><b>${esc(m.nickname)}</b> <small>${c.icon} Lv ${m.level}</small>${m.id > inbox.newAfter ? ' <span class="mnew">NEW</span>' : ''}</span>
+        <span class="mres">${m.won ? '🛡️ 방어' : '💀 패배'} <small>${m.won ? '+' : '-'}${m.delta} → ${m.rating}</small></span>
+        ${m.won ? '' : `<button class="btn duel" data-action="duel" data-nick="${esc(m.nickname)}" ${duelBusy || duelActive() ? 'disabled' : ''}>⚔️ 복수</button>`}
+      </div>`;
+  };
+  const win = L.filter((m) => m.won).length;
+  return `
+    <div class="inbox">
+      <div class="shd"><b>📬 받은 결투</b><small>${fresh.length ? `<b class="warn">새 결투 ${fresh.length}건</b> · ` : ''}최근 ${L.length}건 · 방어 ${win} · 패배 ${L.length - win}</small></div>
+      ${shown.map(row).join('')}
+      ${L.length > shown.length || inbox.more ? `<button class="lnk" data-action="inbox-more">${inbox.more ? '▴ 접기' : `▾ ${L.length - shown.length}건 더 보기`}</button>` : ''}
+    </div>`;
 }
 
 // ───────────────────────── 결투 ─────────────────────────
@@ -1823,6 +1895,7 @@ function openRaidChestAt(i) {
 function renderCamp() {
   if (!campOpen) return;
   if (campTab === 'report') reportSeen = S.report;
+  if (campTab !== 'rank') inbox.newAfter = null;     // 우편함 NEW 표시는 랭킹 탭을 떠나면 지운다
   const dots = campDots();
   const tabs = [
     ['report', '📜 원정 보고', S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
@@ -1831,7 +1904,7 @@ function renderCamp() {
     ['shop', '🎒 보급품', ''],
     ['gear', '🗡️ 장비', dots.gear ? DOT : ''],
     ['class', '⚜️ 전직', dots.class ? DOT : ''],
-    ['rank', '🏆 랭킹', ''],
+    ['rank', '🏆 랭킹', inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
     ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
     ['tower', '🗼 탑', dots.tower ? DOT : ''],
   ];
@@ -1911,6 +1984,7 @@ const ACTIONS = {
   'season-tiers': () => { seasonUi.tiers = !seasonUi.tiers; },
   'rank-refresh': () => { loadRanking(true); if (rank.sort === 'duel') loadSeason(true); },
   'duel': (el) => startDuel(el.dataset.nick),
+  'inbox-more': () => { inbox.more = !inbox.more; renderCamp(); },
   'wb-attack': () => wbAttack(),
   'wb-refresh': () => { wbUi.error = null; loadWorldBoss(true); },
   'raid-refresh': () => { raidUi.at = 0; raidUi.error = null; raidPoll(true); },
@@ -2191,6 +2265,7 @@ function resetWorld() {
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null });
   casts = []; skfx = []; cutin = null; hitstop = 0;
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
+  Object.assign(inbox, { list: null, error: null, told: 0, newAfter: null, more: false });
   rank.data = null; seasonUi.data = null; seasonUi.at = 0; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
   raidPlay = null; Object.assign(raidUi, { rooms: null, at: 0, room: null, error: null, revealed: [], showResult: false, key: '' });
 }
@@ -2243,7 +2318,7 @@ async function enterAccount(nick, known) {
   if (known !== undefined) {
     saveKey = key;
     applyState(known && (known.lastSeen || 0) >= localSeen ? known : local);
-    pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); });
+    pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); loadInbox(); });
     return;
   }
   const remote = fetchMe().then((r) => r.state, (e) => {
@@ -2257,7 +2332,7 @@ async function enterAccount(nick, known) {
     remote.then((st) => {
       if (activeNick() !== nick) return;
       if (st && (st.lastSeen || 0) > localSeen) { applyState(st); toast('☁️ 다른 기기에서 진행한 기록을 불러왔어요'); }
-      pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); });
+      pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); loadInbox(); });
     });
     return;
   }
@@ -2270,7 +2345,7 @@ async function enterAccount(nick, known) {
   applyState(st || null);
   if (st) toast('☁️ 기록을 불러왔어요', 2500);
   else toast(`⚠️ 기록을 불러오지 못했어요 (${sync.error}) — 새 기록으로 시작합니다`, 7000);
-  pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); });
+  pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); loadInbox(); });
 }
 
 document.addEventListener('click', (e) => {
