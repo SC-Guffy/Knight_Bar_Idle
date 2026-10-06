@@ -390,7 +390,7 @@ const CLASSES = {
   // ── 3차 (2차마다 하나). 1차 스킬 자리를 궁극기가 대신한다 (숙련도는 그 1차 스킬 것을 그대로 쓴다, SKILLS 의 mastOf) ──
   archon: {
     tier: 3, from: 'paladin', name: '성좌기사', icon: '🌟', weapon: 'starBlade',
-    mods: { atk: 2.12, hp: 2.4, aspd: 1.1, crit: 0.08, guard: 0.3, heal: 0.025 },
+    mods: { atk: 2.03, hp: 2.4, aspd: 1.1, crit: 0.08, guard: 0.3, heal: 0.025 },
     desc: '별자리를 두른 성기사. 하늘의 성좌를 불러 내려 전장을 심판한다.',
     look: {
       body: BODY.archon, fx: '#9fd8ff',
@@ -402,7 +402,7 @@ const CLASSES = {
   },
   swordsaint: {
     tier: 3, from: 'blademaster', name: '검신', icon: '🌸', weapon: 'moonBlades',
-    mods: { atk: 1.81, hp: 1.7, aspd: 2.2, crit: 0.28, critMult: 0.8 },
+    mods: { atk: 1.74, hp: 1.7, aspd: 2.2, crit: 0.28, critMult: 0.8 },
     desc: '검의 끝에 닿은 자. 칼을 뽑는 순간 전장 전체가 갈라진다.',
     look: {
       body: BODY.swordsaint, fx: '#ff6a8a',
@@ -412,7 +412,7 @@ const CLASSES = {
   },
   dragonlord: {
     tier: 3, from: 'dragoon', name: '용황', icon: '🐲', weapon: 'wyrmSpear',
-    mods: { atk: 3.14, hp: 2.1, aspd: 0.95, crit: 0.14 },
+    mods: { atk: 3, hp: 2.1, aspd: 0.95, crit: 0.14 },
     desc: '용들의 왕이 된 기병. 창을 들면 하늘에서 용황이 내려온다.',
     look: {
       body: BODY.dragonlord, fx: '#ff4dd2',
@@ -422,7 +422,7 @@ const CLASSES = {
   },
   warlord: {
     tier: 3, from: 'halberdier', name: '전쟁군주', icon: '⚒️', weapon: 'doomAxe',
-    mods: { atk: 3.33, hp: 2.5, aspd: 0.85, crit: 0.1 },
+    mods: { atk: 3.18, hp: 2.5, aspd: 0.85, crit: 0.1 },
     desc: '전쟁 그 자체가 된 거인. 도끼창을 내리찍으면 땅이 끝까지 무너진다.',
     look: {
       body: BODY.warlord, fx: '#ff7a2a',
@@ -432,7 +432,7 @@ const CLASSES = {
   },
   deadeye: {
     tier: 3, from: 'marksman', name: '신궁', icon: '☀️', weapon: 'sunBow',
-    mods: { atk: 2.73, hp: 1.55, aspd: 0.85, crit: 0.4, critMult: 0.8 },
+    mods: { atk: 2.61, hp: 1.55, aspd: 0.85, crit: 0.4, critMult: 0.8 },
     desc: '태양을 쏘아 떨어뜨렸다는 궁수. 시위를 당기면 하늘이 열린다.',
     look: {
       body: BODY.deadeye, fx: '#ffe066',
@@ -442,7 +442,7 @@ const CLASSES = {
   },
   voidArcher: {
     tier: 3, from: 'arcaneArcher', name: '차원궁사', icon: '🌀', weapon: 'voidBow',
-    mods: { atk: 1.8, hp: 1.55, aspd: 1.45, crit: 0.14 },
+    mods: { atk: 1.72, hp: 1.55, aspd: 1.45, crit: 0.14 },
     desc: '차원의 틈을 활시위로 삼는다. 화살 네 발이 공간을 찢으며 날아간다.',
     look: {
       body: BODY.voidArcher, fx: '#ff4dff',
@@ -699,10 +699,10 @@ const SKILLS = {
   },
 
   // ── 3차 궁극기: 1차 스킬 자리를 대신한다 (mastOf — 숙련도는 그 1차 스킬 것을 그대로 이어 쓴다) ──
-  // 쿨타임이 아주 길고(Lv1 81초 · Lv30 32초), 하단바 전체를 쓰는 화면 연출이 있는 한 방. 연출은 src/ult/*.js
+  // 쿨타임이 길고 숙련도로 조금만 준다 (cdSpan: Lv1 60초 → Lv30 40초 — 다른 스킬의 ×3.0 → ×1.2 곡선 대신). 하단바 전체를 쓰는 화면 연출이 있는 한 방. 연출은 src/ult/*.js
   //  ult: true — 시전하는 동안 하단바 전체를 덮는 연출을 허락한다 (skills.js 의 '화면 전체를 쓰지 않는다' 규칙의 예외)
   starJudgment: {
-    cls: 'archon', mastOf: 'steelCleave', ult: true, name: '성좌 강림', icon: '🌟', lv: 100, cd: 20, dur: 2.6, area: 'all', radius: 230,
+    cls: 'archon', mastOf: 'steelCleave', ult: true, name: '성좌 강림', icon: '🌟', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
     hits: [...evenHits(5, 0.45, 0.07, 1), [0.86, 4]],
     stages: [
       { dur: 2.3, hits: [...evenHits(3, 0.5, 0.1, 1), [0.85, 3]] },
@@ -720,7 +720,7 @@ const SKILLS = {
     desc: '하늘의 성좌를 불러 내려 하단바 전체에 별을 떨어뜨린다.',
   },
   thousandCuts: {
-    cls: 'swordsaint', mastOf: 'steelCleave', ult: true, name: '천검', icon: '🌸', lv: 100, cd: 20, dur: 2.4, area: 'all', radius: 230,
+    cls: 'swordsaint', mastOf: 'steelCleave', ult: true, name: '천검', icon: '🌸', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.4, area: 'all', radius: 230,
     hits: [...evenHits(8, 0.4, 0.05, 0.6), [0.9, 4]],
     stages: [
       { dur: 2.0, hits: [...evenHits(4, 0.42, 0.08, 0.8), [0.88, 3]] },
@@ -738,7 +738,7 @@ const SKILLS = {
     desc: '보이지 않는 속도로 하단바 전체를 수십 번 벤 뒤, 칼을 거두는 순간 모두 갈라진다. 반드시 치명타.', crit: true,
   },
   dragonEmperor: {
-    cls: 'dragonlord', mastOf: 'piercingThrust', ult: true, name: '용황 강림', icon: '🐲', lv: 100, cd: 20, dur: 2.8, area: 'all', radius: 230,
+    cls: 'dragonlord', mastOf: 'piercingThrust', ult: true, name: '용황 강림', icon: '🐲', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
     hits: [...evenHits(8, 0.45, 0.05, 0.6), [0.9, 4]],
     stages: [
       { dur: 2.3, hits: [...evenHits(4, 0.5, 0.08, 0.8), [0.88, 3]] },
@@ -756,7 +756,7 @@ const SKILLS = {
     desc: '창을 하늘로 치켜들어 용황을 불러 내린다. 거대한 용이 하단바를 휘감아 날며 모든 적을 태운다.',
   },
   worldBreaker: {
-    cls: 'warlord', mastOf: 'piercingThrust', ult: true, name: '천붕', icon: '⚒️', lv: 100, cd: 20, dur: 2.6, area: 'all', radius: 230,
+    cls: 'warlord', mastOf: 'piercingThrust', ult: true, name: '천붕', icon: '⚒️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
     hits: [[0.55, 3], ...evenHits(4, 0.65, 0.05, 1), [0.9, 3]],
     stages: [
       { dur: 2.2, hits: [[0.6, 3], [0.8, 2]] },
@@ -774,7 +774,7 @@ const SKILLS = {
     desc: '하늘이 무너지듯 내리찍어 하단바 끝까지 땅을 무너뜨린다.',
   },
   sunArrow: {
-    cls: 'deadeye', mastOf: 'rapidFire', ult: true, name: '태양 관통', icon: '☀️', lv: 100, cd: 20, dur: 2.6, area: 'all', radius: 260, crit: true,
+    cls: 'deadeye', mastOf: 'rapidFire', ult: true, name: '태양 관통', icon: '☀️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 260, crit: true,
     hits: [[0.75, 3], ...evenHits(4, 0.8, 0.03, 0.75)],
     stages: [
       { dur: 2.2, hits: [[0.75, 3]] },
@@ -792,7 +792,7 @@ const SKILLS = {
     desc: '하늘의 태양을 꿰뚫어 그 빛으로 하단바 끝까지 관통한다. 반드시 치명타.',
   },
   dimensionCollapse: {
-    cls: 'voidArcher', mastOf: 'rapidFire', ult: true, name: '차원 붕괴', icon: '🌀', lv: 100, cd: 20, dur: 2.8, area: 'all', radius: 230,
+    cls: 'voidArcher', mastOf: 'rapidFire', ult: true, name: '차원 붕괴', icon: '🌀', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
     hits: [...evenHits(10, 0.4, 0.04, 0.5), [0.9, 4]],
     stages: [
       { dur: 2.3, hits: [...evenHits(5, 0.45, 0.06, 0.6), [0.86, 3]] },
@@ -862,8 +862,8 @@ const SKILL_DMG = {
   swordsman: 2.28, lancer: 2.34, ranger: 2.30,
   paladin: 1.92, blademaster: 1.82, marksman: 1.81, arcaneArcher: 1.80,
   dragoon: 1.70, halberdier: 1.75,
-  // 3차 궁극기: Lv30 이면 그 직업 전체 DPS 를 +25% (Lv1 +10%). 3차 직업 전체는 2차보다 약 1.4배 (궁극기 포함, 공격력 보정으로 맞춤)
-  archon: 1.26, swordsaint: 1.24, dragonlord: 1.23, warlord: 0.97, deadeye: 0.94, voidArcher: 2.42,
+  // 3차 궁극기: Lv30 이면 그 직업 전체 DPS 를 +25% (Lv1 +17%). 3차 직업 전체는 2차보다 약 1.4배 (궁극기 포함, 공격력 보정으로 맞춤)
+  archon: 1.5, swordsaint: 1.48, dragonlord: 1.47, warlord: 1.16, deadeye: 1.12, voidArcher: 2.87,
 };
 // 2차 직업이 물려받은 1차 스킬의 위력 배수. 1차 스킬을 그대로 얹으면 직업마다 DPS 가 +15~43%(Lv30) 로 들쭉날쭉해서,
 // 계승 스킬이 2차 직업의 전체 DPS 를 Lv1 +5% → Lv30 +10% 만큼 올리도록 직업마다 맞췄다 (스킬 비중이 큰 직업일수록 낮다)
@@ -898,7 +898,9 @@ const inheritBoost = (k, owner) => {
   return Math.max(1, INHERIT_HIT / (skillMult(k) * (SKILL_DMG[k.cls] || 2) * SKILL_DMG_LV1 * INHERIT_DMG[owner] * SKILL_POW_UP));
 };
 // 쿨타임(초). owner 는 쓰는 기사의 직업 (물려받은 스킬이면 inheritBoost 만큼 길어진다)
-const skillCdOf = (k, lv, owner = k.cls) => Math.round(k.cd * skillCdAt(lv) * SKILL_CD_UP * inheritBoost(k, owner) * 10) / 10;
+const skillCdOf = (k, lv, owner = k.cls) => k.cdSpan
+  ? Math.round((k.cdSpan[0] + (k.cdSpan[1] - k.cdSpan[0]) * skillProg(lv)) * 10) / 10
+  : Math.round(k.cd * skillCdAt(lv) * SKILL_CD_UP * inheritBoost(k, owner) * 10) / 10;
 // 한 방 위력 배수 (SKILLS 배율에 곱한다). k 는 스킬, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG·inheritBoost 를 곱한다)
 const skillPowAt = (k, lv, owner = k.cls) =>
   (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1);
