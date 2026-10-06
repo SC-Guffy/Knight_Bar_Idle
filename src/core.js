@@ -28,7 +28,7 @@ function freshState() {
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed)
-    mastV: 4,                               // 4: mast 가 권수, 레벨당 최대 30권 (3: 최대 10권, 2: 최대 20권, 1: 옛 경험치, 1권 = 10)
+    mastV: 5,                               // 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
     phase: 'camp',                          // camp | expedition | returning | tower
@@ -77,16 +77,16 @@ function migrate(o) {
   if (!o.mast && !s.notice) s.notice = '📖 스킬 숙련도 도입 — 스킬 한 방은 세졌지만 쿨타임이 3배로 길어졌어요. 비전서를 먹여 Lv30까지 키우면 쿨타임이 줄고 위력이 오릅니다 (전직 탭)';
   // 숙련도가 경험치(1권 = 10) → 비전서 권수로: 먹였던 권수 그대로 옮긴다 (요구량이 줄어서 레벨은 오른다)
   if (o.mast && (o.mastV || 1) < 2) for (const id of Object.keys(s.mast)) s.mast[id] = Math.min(SKILL_TOME_MAX, Math.round(s.mast[id] / 10));
-  // 요구량이 바뀌면(mastV 2: 레벨당 최대 20권, 3: 10권 → 4: 30권) 지금 레벨과 칸 비율은 그대로 두고 새 곡선의 누적 권수로 옮긴다
-  if (o.mast && (o.mastV || 1) < 4) {
-    const oldMax = o.mastV === 3 ? 10 : 20;
+  // 요구량이 바뀌면(mastV 2: 레벨당 최대 20권, 3: 10권, 4: 30권 → 5: 15권) 지금 레벨과 칸 비율은 그대로 두고 새 곡선의 누적 권수로 옮긴다
+  if (o.mast && (o.mastV || 1) < 5) {
+    const oldMax = { 3: 10, 4: 30 }[o.mastV] || 20;
     for (const id of Object.keys(s.mast)) {
       let lv = 1, left = s.mast[id];
       while (lv < SKILL_MAX && left >= skillNeedWith(oldMax, lv)) { left -= skillNeedWith(oldMax, lv); lv++; }
       s.mast[id] = lv >= SKILL_MAX ? SKILL_TOME_MAX : skillTomesAt(lv) + Math.floor(left / skillNeedWith(oldMax, lv) * skillNeed(lv));
     }
   }
-  s.mastV = 4;
+  s.mastV = 5;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
