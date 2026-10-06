@@ -244,7 +244,8 @@ function tcSplitFx(a, life, tf) {
   const y = Math.min(a.ty(), groundY() - 28), D = a.k.dur, t0 = tcSplitT(a);
   aFx(a, 0, life, (u) => {
     const t = t0 + u * life, open = t < tf ? easeOut(clamp01((t - t0) / 0.12)) : 1 - clamp01((t - tf) / 0.05);
-    if (open > 0.01) {
+    // 탑 안(탑 캔버스)에서는 화면 복사를 하지 않는다 — 틈의 빛줄기만 남는다
+    if (open > 0.01 && !(typeof towerInside === 'function' && towerInside())) {
       const off = 24 * open * a.dir, gap = 3 + 6 * open;
       const cv = ctx.canvas, m = ctx.getTransform();
       if (tcCv.width !== cv.width || tcCv.height !== cv.height) { tcCv.width = cv.width; tcCv.height = cv.height; }
