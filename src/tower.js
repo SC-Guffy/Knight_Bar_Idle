@@ -19,13 +19,16 @@
 //          (둘 다 합쳐 하루 towerDailyCap 권까지)
 //          + 10층 단위 첫 돌파 때 묶음(towerFirstTomes). 오프라인 진행은 없다(앱을 껐다 켜면 그 층에서 끝낸 것으로 정산).
 
-const TOWER_CURVE = 2;   // 1: 스테이지 10 + 층×2 (0.10.0) → 2: 25 + 층×3
+const TOWER_CURVE = 3;   // 1: 스테이지 10 + 층×2 (0.10.0) → 2: 25 + 층×3 (0.10.3) → 3: 25 + 층×2 (후반이 너무 가팔라서 완화)
+// 곡선 버전별 층 → 스테이지 (옛 기록을 옮길 때 쓴다)
+const TOWER_CURVE_STAGE = { 1: (f) => 10 + f * 2, 2: (f) => 25 + f * 3 };
 const freshTower = () => ({ best: 0, paid: 0, curve: TOWER_CURVE, day: '', dayTomes: 0, run: null, last: null });
 // 옛 곡선의 최고 층을 같은 스테이지 급의 새 층으로 옮긴다 (체크포인트가 감당 못 할 높이가 되지 않게)
 function migrateTower(t) {
   if (t.curve === TOWER_CURVE) return;
   t.paid = Math.max(t.paid || 0, Math.floor((t.best || 0) / 10) * 10);
-  t.best = Math.max(0, Math.floor((10 + (t.best || 0) * 2 - TOWER_STAGE0) / TOWER_STAGE_PER));
+  const old = TOWER_CURVE_STAGE[t.curve] || TOWER_CURVE_STAGE[1];
+  t.best = Math.max(0, Math.floor((old(t.best || 0) - TOWER_STAGE0) / TOWER_STAGE_PER));
   t.curve = TOWER_CURVE;
 }
 

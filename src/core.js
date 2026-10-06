@@ -28,7 +28,7 @@ function freshState() {
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed)
-    mastV: 2,                               // 2: mast 가 권수 (1: 옛 경험치, 1권 = 10)
+    mastV: 3,                               // 3: mast 가 권수, 레벨당 최대 10권 (2: 최대 20권, 1: 옛 경험치, 1권 = 10)
     tomes: 0,                               // 📖 비전서
     phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
@@ -74,8 +74,12 @@ function migrate(o) {
   // 스킬 숙련도 도입: 모두 Lv1 에서 시작한다 (Lv1 은 예전 스킬 배율의 ×0.85)
   if (!o.mast && !s.notice) s.notice = '📖 스킬 숙련도 도입 — 스킬 한 방은 세졌지만 쿨타임이 3배로 길어졌어요. 비전서를 먹여 Lv30까지 키우면 쿨타임이 줄고 위력이 오릅니다 (전직 탭)';
   // 숙련도가 경험치(1권 = 10) → 비전서 권수로: 먹였던 권수 그대로 옮긴다 (요구량이 줄어서 레벨은 오른다)
-  if (o.mast && o.mastV !== 2) for (const id of Object.keys(s.mast)) s.mast[id] = Math.min(SKILL_TOME_MAX, Math.round(s.mast[id] / 10));
-  s.mastV = 2;
+  if (o.mast && (o.mastV || 1) < 2) for (const id of Object.keys(s.mast)) s.mast[id] = Math.min(SKILL_TOME_MAX, Math.round(s.mast[id] / 10));
+  // 요구량 완화(레벨당 최대 20 → 10권): 먹인 권수는 그대로라 레벨이 오르고, 새 만렙을 넘는 몫은 비전서로 돌려준다
+  if (o.mast && (o.mastV || 1) < 3) for (const id of Object.keys(s.mast)) {
+    if (s.mast[id] > SKILL_TOME_MAX) { s.tomes += s.mast[id] - SKILL_TOME_MAX; s.mast[id] = SKILL_TOME_MAX; }
+  }
+  s.mastV = 3;
   if (s.train.boss) s.train.fortune = (s.train.fortune || 0) + s.train.boss;
   delete s.train.boss;
   s.gear.inv.forEach(fixGearItem);
