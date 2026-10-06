@@ -1567,6 +1567,13 @@ function viewRaidRoom() {
   }
   const mine = room.members.find((m) => m.nickname === activeNick());
   const allReady = room.members.every((m) => m.host || m.ready);
+  // 입장권이 없으면 로비로 나가지 않고 여기서 바로 산다
+  let buy = '';
+  if (!ticket && room.state === 'open') {
+    const p = ticketPrice(), tb = ticketBlocker();
+    buy = `<span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip('💎', p.mana, S.mats.mana)}</span>
+      <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">🎟 입장권 구매</button>`;
+  }
   let acts;
   if (room.state === 'done') {
     acts = meHost
@@ -1574,12 +1581,12 @@ function viewRaidRoom() {
       : '<span class="small">방장이 다시 도전하면 대기실이 다시 열려요</span>';
   } else if (meHost) {
     const why = !ticket ? '입장권이 없어요' : !allReady ? '모두 준비하면 출정할 수 있어요' : '';
-    acts = `<span class="blocker">${why}</span>
+    acts = `<span class="blocker">${why}</span>${buy}
       <button class="go compact" data-action="raid-start" ${why || raidUi.busy ? 'disabled' : ''}>🐉 출정</button>`;
   } else {
     acts = mine && mine.ready
       ? '<button class="btn" data-action="raid-ready" data-on="0">준비 취소</button>'
-      : `<span class="blocker">${ticket ? '' : '입장권이 없어요'}</span><button class="go compact" data-action="raid-ready" data-on="1" ${ticket && !raidUi.busy ? '' : 'disabled'}>✅ 준비</button>`;
+      : `<span class="blocker">${ticket ? '' : '입장권이 없어요'}</span>${buy}<button class="go compact" data-action="raid-ready" data-on="1" ${ticket && !raidUi.busy ? '' : 'disabled'}>✅ 준비</button>`;
   }
   const bossSeg = meHost && room.state === 'open'
     ? `<div class="segs wrap">${Object.keys(RAID_BOSSES).map((id) => {
