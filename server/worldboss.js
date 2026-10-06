@@ -17,6 +17,8 @@ const WB_COOLDOWN_MS = 8000;      // 도전 간격 (재생이 끝나기 전에 �
 const WB_ACTIVE_MS = 36 * 3600 * 1000;   // 이 시간 안에 세이브를 올린 기사를 '활동 중'으로 보고 체력 어림에 넣는다
 const DIFF_START = 1.6;           // 첫날 난이도 배수 — 시즌 초반엔 다 같이 도전을 다 써도 못 잡을 만큼 세다
 const DIFF_MIN = 0.25, DIFF_MAX = 6;
+// 체력 배수: 어림 × 난이도에 한 번 더 곱한다. 2026-10-06 시즌3 첫 보스가 모두 한 번씩 때리자 잡혀서 10배로 올림
+const WB_HP_MULT = 10;
 // 보스 공격력: 도전하는 기사의 최고 스테이지 레이드 보스와 같은 눈금 × WB_ATK. 체력은 모두가 함께 깎는 하나지만,
 // 공격력은 기사마다 자기 수준에 맞춰 때린다 (약한 기사가 한 방에 죽거나 강한 기사가 아무 위협도 못 느끼지 않게).
 // 5배면 훈련·장비를 잘 챙긴 기사는 30초를 다 버티고, 대충 키운 기사는 광폭화 뒤 22~29초에 쓰러져 피해를 15~25% 덜 넣는다
@@ -66,7 +68,7 @@ function spawnBoss(day, prev, profiles, now = Date.now()) {
     diff = Math.max(DIFF_MIN, Math.min(DIFF_MAX, diff));
   }
   const est = profiles.reduce((a, p) => a + expectedDamage(id, p) * WB_TRIES, 0);
-  const maxHp = Math.max(1000, est * diff);
+  const maxHp = Math.max(1000, est * diff) * WB_HP_MULT;
   return { day, boss: id, maxHp, hp: maxHp, diff, est, spawnedAt: now, killedAt: null };
 }
 
