@@ -17,7 +17,23 @@ const WEAPONS = {
   longbow:     { name: '장궁',   kind: 'ranged', range: 230, targets: 1, shots: 1, size: 15, wood: '#3b2a1a', arrow: { speed: 760, color: '#f4f1e8', trail: '255,255,220' } },
   arcaneBow:   { name: '마력궁', kind: 'ranged', range: 170, targets: 3, shots: 3, shotMult: 0.45, size: 12, wood: '#3a55b0', glow: '#6ff3ff',
     arrow: { speed: 360, color: '#6ff3ff', magic: true } },
+  // 마법사 지팡이 (원거리): staff = { len 자루 칸, wood, head, orb 구슬색, glowRgb } — 그리는 법은 world.js drawStaff.
+  // arrow.shape 'ice' 얼음창 / magic 마력탄(rgb 꼬리색, size 크기) · splash: 맞은 자리 radius(px) 안의 다른 적도 mult 배율로 (화염)
+  wand:        { name: '견습 지팡이', kind: 'ranged', range: 150, targets: 1, shots: 1, staff: { len: 7, wood: '#8a5a2b', head: '#c9a227', orb: '#9fd8ff', glowRgb: '159,216,255' },
+    arrow: { speed: 400, color: '#cfe8ff', magic: true, rgb: '159,216,255' } },
+  flameStaff:  { name: '화염 지팡이', kind: 'ranged', range: 160, targets: 1, shots: 1, splash: { radius: 40, mult: 0.5 }, glow: '#ff7a2a',
+    staff: { len: 8, wood: '#5a2a14', head: '#ffb13b', orb: '#ff6a1f', glowRgb: '255,120,40' },
+    arrow: { speed: 340, color: '#ff8a3a', magic: true, rgb: '255,140,60', size: 1.4 } },
+  frostStaff:  { name: '서리 지팡이', kind: 'ranged', range: 175, targets: 1, shots: 1, glow: '#9fe8ff',
+    staff: { len: 8, wood: '#3f6f9a', head: '#e8f6ff', orb: '#9fe8ff', glowRgb: '159,232,255' },
+    arrow: { speed: 560, color: '#e8f8ff', shape: 'ice', rgb: '159,232,255' } },
   // ── 3차 ──
+  infernoStaff: { name: '겁화의 지팡이', kind: 'ranged', range: 170, targets: 1, shots: 1, splash: { radius: 52, mult: 0.55 }, glow: '#ff3b1f',
+    staff: { len: 9, wood: '#2a0e08', head: '#ffd257', orb: '#ff3b1f', glowRgb: '255,80,30' },
+    arrow: { speed: 360, color: '#ff5a2a', magic: true, rgb: '255,100,40', size: 1.7 } },
+  glacierStaff: { name: '빙하의 홀', kind: 'ranged', range: 190, targets: 1, shots: 1, glow: '#cff6ff',
+    staff: { len: 9, wood: '#1b3f6a', head: '#ffffff', orb: '#cff6ff', glowRgb: '200,245,255' },
+    arrow: { speed: 640, color: '#ffffff', shape: 'ice', rgb: '200,245,255' } },
   starBlade:   { name: '성좌검', kind: 'melee',  motion: 'swing',  range: 18, targets: 1, len: 10, blade: '#fffbe6', hilt: '#9fd8ff', trail: '200,230,255', glow: '#cfe8ff' },
   moonBlades:  { name: '월광쌍검', kind: 'melee', motion: 'dual',  range: 16, targets: 1, len: 8,  blade: '#ffe0e8', hilt: '#5a0a18', trail: '255,90,130', glow: '#ff4d6d' },
   wyrmSpear:   { name: '용황창', kind: 'melee',  motion: 'thrust', range: 40, targets: 3, len: 19, shaft: '#1a0a28', tip: '#ffb0f0', trail: '255,120,220', glow: '#ff4dd2' },
@@ -187,6 +203,52 @@ const BODY = {
     '.gLLLcLLLg.',
     '..bbbcbbb..',
     '.gLLLLLLLg.',
+  ],
+  // ── 마법사 계열 (뾰족 모자 · 로브) ──
+  mage: [
+    '.....P.....',
+    '....PPp....',
+    '...PPppp...',
+    '..ppppppp..',
+    '.ppyyyyypp.',
+    '...sesss...',
+    '...sssss...',
+    '..rRRyRRr..',
+    '.rRRRyRRRr.',
+    '.rRRRyRRRr.',
+    '.rRRRRRRRr.',
+    '..bbbybbb..',
+    '..rRRRRRr..',
+  ],
+  pyromancer: [
+    '.....f.....',
+    '....fPp....',
+    '...PPppp...',
+    '..ppppppp..',
+    '.ppfyfyfpp.',
+    '...sesss...',
+    '...sssss...',
+    '..rRfRfRr..',
+    '.rRRRfRRRr.',
+    '.rRRfffRRr.',
+    '.rRRRfRRRr.',
+    '..bbbfbbb..',
+    '.rRRRRRRRr.',
+  ],
+  cryomancer: [
+    '...c...c...',
+    '....cPc....',
+    '...PPppp...',
+    '..ppppppp..',
+    '.ppcycycpp.',
+    '...sesss...',
+    '...sssss...',
+    '..rRRcRRr..',
+    '.rRRcccRRr.',
+    '.rRRRcRRRr.',
+    '.rRRRRRRRr.',
+    '..bbbcbbb..',
+    '.rRRRRRRRr.',
   ],
   // ── 3차 ──
   archon: [
@@ -387,6 +449,37 @@ const CLASSES = {
     },
   },
 
+  // ── 마법사 계열: 지팡이로 마력탄을 쏜다 (원거리). 화염은 맞은 자리 주변까지 태우고, 냉기는 멀리서 빠르고 날카롭게 ──
+  mage: {
+    tier: 1, from: 'squire', name: '마법사', icon: '🪄', weapon: 'wand',
+    mods: { atk: 1.37, hp: 0.95, aspd: 1.05, crit: 0.08 },
+    desc: '지팡이로 마력탄을 쏜다. 몸은 약하지만 멀리서 강하게 때린다.',
+    look: {
+      body: BODY.mage, fx: '#9fd8ff',
+      pal: { P: '#3a55b0', p: '#26398a', y: '#ffd257', s: '#f0c29a', e: '#1b1d27', r: '#26398a', R: '#3a55b0', b: '#5a3a1a', l: '#26398a', k: '#1a2450' },
+    },
+  },
+  pyromancer: {
+    tier: 2, from: 'mage', name: '화염술사', icon: '🔥', weapon: 'flameStaff',
+    mods: { atk: 2.54, hp: 1.15, aspd: 1.0, crit: 0.1 },
+    desc: '불덩이를 던진다. 맞은 자리에서 터져 주변 적까지 함께 태운다.',
+    look: {
+      body: BODY.pyromancer, fx: '#ff7a2a',
+      pal: { P: '#a8281a', p: '#7a1a10', f: '#ffb13b', y: '#ffd257', s: '#f0c29a', e: '#1b1d27', r: '#5a1a10', R: '#a8281a', b: '#2a1008', l: '#5a1a10', k: '#2a1008' },
+      cape: { style: 'cloak', color: '#5a1a10' },
+    },
+  },
+  cryomancer: {
+    tier: 2, from: 'mage', name: '빙결술사', icon: '❄️', weapon: 'frostStaff',
+    mods: { atk: 2.29, hp: 1.3, aspd: 1.1, crit: 0.14, guard: 0.1 },
+    desc: '얼음창을 멀리서 빠르게 꽂는다. 서리 갑옷이 받는 피해를 줄인다.',
+    look: {
+      body: BODY.cryomancer, fx: '#9fe8ff',
+      pal: { P: '#e8f6ff', p: '#8fbfe0', c: '#5ad1ff', y: '#ffffff', s: '#f0d8e0', e: '#1b6fd1', r: '#3f6f9a', R: '#8fbfe0', b: '#1b3f6a', l: '#3f6f9a', k: '#1b3f6a' },
+      cape: { style: 'cloak', color: '#1b3f6a' },
+    },
+  },
+
   // ── 3차 (2차마다 하나). 1차 스킬 자리를 궁극기가 대신한다 (숙련도는 그 1차 스킬 것을 그대로 쓴다, SKILLS 의 mastOf) ──
   archon: {
     tier: 3, from: 'paladin', name: '성좌기사', icon: '🌟', weapon: 'starBlade',
@@ -448,6 +541,27 @@ const CLASSES = {
       body: BODY.voidArcher, fx: '#ff4dff',
       pal: { g: '#1a0a30', G: '#3a1a6a', s: '#e8c8f0', e: '#ff4dff', L: '#2a1250', c: '#ff8aff', b: '#12081c', l: '#2a1250', k: '#12081c' },
       cape: { style: 'cloak', color: '#2a0a4a' },
+    },
+  },
+  archmage: {
+    tier: 3, from: 'pyromancer', name: '대마도사', icon: '☄️', weapon: 'infernoStaff',
+    mods: { atk: 2.93, hp: 1.5, aspd: 1.05, crit: 0.12 },
+    desc: '불의 근원에 닿은 마도사. 지팡이를 들면 하늘에서 겁화가 쏟아진다.',
+    look: {
+      body: BODY.pyromancer, fx: '#ff3b1f',
+      pal: { P: '#1a0a0a', p: '#3a0e0a', f: '#ffd257', y: '#ff3b1f', s: '#f0c29a', e: '#ff3b1f', r: '#2a0a08', R: '#6a140c', b: '#ffd257', l: '#2a0a08', k: '#1a0606' },
+      cape: { style: 'cape', color: '#8a1a0c' },
+      halo: true,
+    },
+  },
+  frostlord: {
+    tier: 3, from: 'cryomancer', name: '빙결의 군주', icon: '🧊', weapon: 'glacierStaff',
+    mods: { atk: 2.62, hp: 1.75, aspd: 1.15, crit: 0.18, guard: 0.15 },
+    desc: '만년설을 다스리는 군주. 숨을 내쉬면 전장의 시간까지 얼어붙는다.',
+    look: {
+      body: BODY.cryomancer, fx: '#cff6ff',
+      pal: { P: '#ffffff', p: '#cfe8ff', c: '#9fe8ff', y: '#5ad1ff', s: '#e8e0f0', e: '#5ad1ff', r: '#1b3f6a', R: '#cfe8ff', b: '#0e2240', l: '#1b3f6a', k: '#0e2240' },
+      cape: { style: 'cape', color: '#e8f6ff' },
     },
   },
 };
@@ -698,6 +812,73 @@ const SKILLS = {
     desc: '하늘에 마법진을 열어 별빛 화살을 쏟아붓는다.',
   },
 
+  // ── 마법사 계열 ──
+  manaBurst: {
+    cls: 'mage', name: '마력 폭발', icon: '🪄', lv: 25, cd: 8, dur: 0.75, area: 'single',
+    hits: [[0.55, 2.5]],
+    stages: [
+      { dur: 0.6, hits: [[0.6, 1]] },
+      {},
+      { dur: 0.9, area: 'all', radius: 44, hits: [[0.5, 1.4], [0.7, 1.1, { area: 'all', radius: 44 }]] },
+      { dur: 1.3, area: 'all', radius: 60, hits: [[0.35, 0.6], [0.5, 0.6], [0.82, 1.8, { area: 'all', radius: 70 }]] },
+    ],
+    stageName: ['마력탄', '마력 폭발', '마력 폭풍', '비전 붕괴'],
+    stageDesc: ['지팡이 끝에서 큰 마력탄 한 발', '적 앞에서 마력 구체가 부풀었다 터진다', '마법진이 적 발밑에 펼쳐지고 두 번 연달아 폭발한다', '공중에 비전 고리 셋이 겹쳐 돌다가 하나로 붕괴하며 크게 터진다'],
+    desc: '지팡이 끝에 마력을 모아 적 앞에서 터뜨린다.',
+  },
+  meteor: {
+    cls: 'pyromancer', name: '메테오', icon: '☄️', lv: 60, cd: 11, dur: 1.2, area: 'all', radius: 60,
+    hits: [[0.7, 4]],
+    stages: [
+      { dur: 0.9, radius: 40, hits: [[0.65, 1]] },
+      {},
+      { dur: 1.5, radius: 70, hits: [[0.55, 1], [0.68, 1], [0.8, 1.4]] },
+      { dur: 1.8, radius: 90, hits: [[0.72, 2.6], [0.86, 1.0, { area: 'all', radius: 110 }]] },
+    ],
+    stageName: ['불덩이 낙하', '메테오', '유성우', '겁화 운석'],
+    stageDesc: ['하늘에서 작은 불덩이 하나가 떨어진다', '불타는 운석이 꼬리를 끌며 내리꽂혀 불꽃이 튄다', '운석 셋이 차례로 떨어지고 땅에 불길이 남는다', '하늘을 가리는 거대한 운석이 떨어져 — 충격파와 함께 용암이 튄다'],
+    desc: '지팡이를 하늘로 들어 불타는 운석을 떨어뜨린다.',
+  },
+  flameVortex: {
+    cls: 'pyromancer', name: '화염 회오리', icon: '🌪️', lv: 70, cd: 15, dur: 1.6, area: 'all', radius: 50,
+    hits: evenHits(6, 0.3, 0.1, 0.7),
+    stages: [
+      { dur: 1.0, radius: 30, hits: evenHits(3, 0.35, 0.15, 0.7) },
+      {},
+      { dur: 1.9, radius: 60, hits: evenHits(9, 0.25, 0.07, 0.6) },
+      { dur: 2.2, radius: 80, hits: [...evenHits(8, 0.22, 0.06, 0.5), [0.86, 2]] },
+    ],
+    stageName: ['불기둥', '화염 회오리', '쌍둥이 회오리', '화염 폭풍'],
+    stageDesc: ['적 발밑에서 불기둥이 솟는다', '불의 회오리가 적을 감싸 돌며 태운다', '회오리 둘이 양쪽에서 휘감아 하나로 합쳐진다', '하늘까지 닿는 화염 폭풍이 일어 — 마지막에 위에서부터 터져 내린다'],
+    desc: '적 발밑에서 불의 회오리를 일으켜 감싸 태운다.',
+  },
+  iceLance: {
+    cls: 'cryomancer', name: '얼음창', icon: '🧊', lv: 60, cd: 10, dur: 1.0, area: 'line', reach: 1.3, crit: true,
+    hits: [[0.55, 2.4]],
+    stages: [
+      { dur: 0.7, reach: 1.0, hits: [[0.6, 1]] },
+      {},
+      { dur: 1.3, reach: 1.4, hits: [[0.45, 1], [0.6, 1], [0.75, 1]] },
+      { dur: 1.7, reach: 2, hits: [[0.4, 0.6], [0.5, 0.6], [0.6, 0.6], [0.7, 0.6], [0.85, 1.6]] },
+    ],
+    stageName: ['얼음 화살', '얼음창', '얼음창 일제', '빙창 폭우'],
+    stageDesc: ['날카로운 얼음 조각 하나를 쏜다', '굵은 얼음창이 일직선을 꿰뚫고, 맞은 자리에 서리가 핀다', '등 뒤에 얼음창 셋이 떠올라 차례로 날아간다', '하늘 가득 얼음창이 맺혀 쏟아지고 — 마지막 거대한 빙창이 꽂히며 깨진다'],
+    desc: '굵은 얼음창을 쏘아 일직선의 적을 꿰뚫는다. 반드시 치명타.',
+  },
+  blizzard: {
+    cls: 'cryomancer', name: '블리자드', icon: '🌨️', lv: 70, cd: 15, dur: 2.0, area: 'all', radius: 80,
+    hits: evenHits(8, 0.2, 0.09, 0.5),
+    stages: [
+      { dur: 1.2, radius: 50, hits: evenHits(4, 0.25, 0.15, 0.5) },
+      {},
+      { dur: 2.2, radius: 90, hits: evenHits(10, 0.18, 0.075, 0.5) },
+      { dur: 2.5, radius: 110, hits: [...evenHits(8, 0.18, 0.07, 0.4), [0.88, 2]] },
+    ],
+    stageName: ['서리 바람', '블리자드', '빙설 폭풍', '영구 동토'],
+    stageDesc: ['차가운 바람에 서리가 흩날린다', '눈보라가 몰아쳐 주변 적을 계속 얼린다', '하늘이 흐려지고 우박이 섞인 폭풍이 넓게 몰아친다', '땅이 통째로 얼어붙고 — 마지막에 얼음 결정이 솟구치며 산산이 깨진다'],
+    desc: '주변에 눈보라를 일으켜 적을 계속 얼린다.',
+  },
+
   // ── 3차 궁극기: 1차 스킬 자리를 대신한다 (mastOf — 숙련도는 그 1차 스킬 것을 그대로 이어 쓴다) ──
   // 쿨타임이 길고 숙련도로 조금만 준다 (cdSpan: Lv1 60초 → Lv30 40초 — 다른 스킬의 ×3.0 → ×1.2 곡선 대신). 하단바 전체를 쓰는 화면 연출이 있는 한 방. 연출은 src/ult/*.js
   //  ult: true — 시전하는 동안 하단바 전체를 덮는 연출을 허락한다 (skills.js 의 '화면 전체를 쓰지 않는다' 규칙의 예외)
@@ -809,6 +990,42 @@ const SKILLS = {
     ],
     desc: '차원을 찢는 화살로 하단바에 블랙홀을 열어 모든 적을 빨아들이고 터뜨린다.',
   },
+  apocalypse: {
+    cls: 'archmage', mastOf: 'manaBurst', ult: true, name: '종언의 겁화', icon: '☄️', lv: 100, cd: 20, cdSpan: [60, 40], area: 'all', radius: 230,
+    dur: 2.7, hits: [...evenHits(6, 0.45, 0.06, 0.8), [0.9, 4]],
+    stages: [
+      { dur: 2.3, hits: [...evenHits(3, 0.5, 0.1, 1), [0.86, 3]] },
+      {},
+      { dur: 3.0, hits: [...evenHits(10, 0.38, 0.04, 0.6), [0.9, 4]] },
+      { dur: 3.4, hits: [...evenHits(10, 0.3, 0.035, 0.5), [0.74, 2], [0.92, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['화염 강하', '종언의 겁화', '태양 붕괴', '세계의 끝'],
+    stageDesc: [
+      '하단바 위 하늘이 붉게 타오르고 불의 비가 쏟아진다',
+      '하늘에 거대한 마법진이 열려 겁화의 운석들이 하단바 전체에 쏟아진다',
+      '하늘의 태양이 금이 가며 무너져 — 태양 조각이 불타며 하단바 곳곳에 떨어진다',
+      '하단바가 통째로 불바다가 되고 하늘이 갈라져 — 하얀 겁화가 하단바를 끝에서 끝까지 삼킨다',
+    ],
+    desc: '하늘을 불태워 하단바 전체에 겁화를 쏟아붓는다.',
+  },
+  absoluteZero: {
+    cls: 'frostlord', mastOf: 'manaBurst', ult: true, name: '절대영도', icon: '🧊', lv: 100, cd: 20, cdSpan: [60, 40], area: 'all', radius: 230, crit: true,
+    dur: 2.7, hits: [[0.55, 1.5], ...evenHits(5, 0.62, 0.05, 0.7), [0.92, 4]],
+    stages: [
+      { dur: 2.3, hits: [[0.6, 1.5], [0.86, 3]] },
+      {},
+      { dur: 3.0, hits: [[0.5, 1.5], ...evenHits(8, 0.58, 0.035, 0.5), [0.92, 4]] },
+      { dur: 3.4, hits: [[0.45, 1], ...evenHits(8, 0.52, 0.03, 0.4), [0.8, 2], [0.94, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['빙결', '절대영도', '시간 동결', '영원의 겨울'],
+    stageDesc: [
+      '하단바에 서리가 번지며 적이 얼음 덩어리에 갇혔다가 깨진다',
+      '온도가 사라지듯 하단바 전체가 새하얗게 얼어붙고 — 얼음이 한꺼번에 산산이 부서진다',
+      '하단바의 시간이 멈춘 듯 모든 것이 푸른 정지 화면이 되고, 얼음 결정이 하나씩 솟다가 동시에 깨진다',
+      '하늘에서 거대한 얼음 결정이 내려와 하단바 전체를 덮는 빙하가 되고 — 빙하가 통째로 부서지며 눈보라가 휩쓴다',
+    ],
+    desc: '하단바 전체를 절대영도로 얼려 모든 적을 한꺼번에 부순다. 반드시 치명타.',
+  },
 };
 for (const id in SKILLS) SKILLS[id].id = id;
 // 대상 하나가 받는 총 피해 배율 (보호막 지속 피해 포함)
@@ -862,13 +1079,15 @@ const SKILL_DMG = {
   swordsman: 2.28, lancer: 2.34, ranger: 2.30,
   paladin: 1.92, blademaster: 1.82, marksman: 1.81, arcaneArcher: 1.80,
   dragoon: 1.70, halberdier: 1.75,
+  // 마법사 계열: 같은 차수 다른 직업들의 평균 DPS 에 맞춤 (화염술사는 범위 피해가 있어 0.95배)
+  mage: 2.3, pyromancer: 1.8, cryomancer: 1.8,
   // 3차 궁극기: Lv30 이면 그 직업 전체 DPS 를 +25% (Lv1 +17%). 3차 직업 전체는 2차보다 약 1.4배 (궁극기 포함, 공격력 보정으로 맞춤)
-  archon: 1.5, swordsaint: 1.48, dragonlord: 1.47, warlord: 1.16, deadeye: 1.12, voidArcher: 2.87,
+  archon: 1.5, swordsaint: 1.48, dragonlord: 1.47, warlord: 1.16, deadeye: 1.12, voidArcher: 2.87, archmage: 1.58, frostlord: 0.91,
 };
 // 2차 직업이 물려받은 1차 스킬의 위력 배수. 1차 스킬을 그대로 얹으면 직업마다 DPS 가 +15~43%(Lv30) 로 들쭉날쭉해서,
 // 계승 스킬이 2차 직업의 전체 DPS 를 Lv1 +5% → Lv30 +10% 만큼 올리도록 직업마다 맞췄다 (스킬 비중이 큰 직업일수록 낮다)
 const INHERIT_DMG = {
-  paladin: 0.46, blademaster: 0.77, dragoon: 0.49, halberdier: 0.43, marksman: 0.35, arcaneArcher: 0.74,
+  paladin: 0.46, blademaster: 0.77, dragoon: 0.49, halberdier: 0.43, marksman: 0.35, arcaneArcher: 0.74, pyromancer: 0.32, cryomancer: 0.37,
 };
 // 숙련 단계 (Lv10·20·30). 이름과, 그 단계에서 바뀌는 모습
 const MASTERY = [
@@ -918,7 +1137,7 @@ const SKILL_TOME_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed
 // 트리 화면 배치 순서
 const CLASS_TREE = [
   ['squire'],
-  ['swordsman', 'lancer', 'ranger'],
-  ['paladin', 'blademaster', 'dragoon', 'halberdier', 'marksman', 'arcaneArcher'],
-  ['archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher'],
+  ['swordsman', 'lancer', 'ranger', 'mage'],
+  ['paladin', 'blademaster', 'dragoon', 'halberdier', 'marksman', 'arcaneArcher', 'pyromancer', 'cryomancer'],
+  ['archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'],
 ];

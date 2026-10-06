@@ -670,7 +670,17 @@ function update(dt) {
     const step = sh.w.arrow.speed * dt;
     sh.trail.push([sh.x, sh.y]);
     if (sh.trail.length > 8) sh.trail.shift();
-    if (dist <= step) { hitMonster(sh.m, sh.mult); sh.done = true; continue; }
+    if (dist <= step) {
+      hitMonster(sh.m, sh.mult);
+      // 화염 계열: 맞은 자리 주변의 다른 적도 splash 배율로 (원정에서만 — 결투·레이드는 상대가 하나라 상관없다)
+      const sp = sh.w.splash;
+      if (sp) {
+        for (const o of monsters) if (o !== sh.m && !o.dying && Math.abs(toScreen(o.x) - tx) <= sp.radius) hitMonster(o, sh.mult * sp.mult, { kb: 6, color: sh.w.arrow.color });
+        burst(tx, ty, 10, [sh.w.arrow.color, '#ffe066', '#ffffff'], 90, 2, 120);
+        effects.push({ type: 'ring', x: tx, y: groundY() - 2, t: 0, color: sh.w.arrow.color });
+      }
+      sh.done = true; continue;
+    }
     sh.x += (dx / dist) * step; sh.y += (dy / dist) * step;
     sh.a = Math.atan2(dy, dx);
   }
@@ -1111,6 +1121,28 @@ function drawBow(g, w, hx, hy, pull, arrow = true) {
   g.restore();
 }
 
+// 마법사 지팡이: 손(hx, hy)에서 ang 방향으로 자루가 뻗고 끝에 마력 구슬. 자루 아래쪽도 손 뒤로 조금 나온다.
+// charge(0~13, 활의 시위 당김 자리)만큼 구슬이 커지고 빛난다. w.staff = { len 칸, wood, head 장식색, orb 구슬색, glowRgb }
+const staffAngle = (bowA) => -1.25 + bowA * 1.6;      // 평소엔 앞으로 비스듬히 세워 들고, bowA 가 음수면 더 치켜든다
+function drawStaff(g, w, hx, hy, ang, charge = 0) {
+  const st = w.staff, L = st.len * PX, back = 3 * PX;
+  g.save();
+  g.translate(hx, hy); g.rotate(ang);
+  g.fillStyle = st.wood; g.fillRect(-back, -PX / 2, L + back, PX);                  // 자루
+  g.fillStyle = st.head; g.fillRect(L - PX, -PX * 1.5, PX, PX * 3);                // 머리 장식 (갈래)
+  g.fillRect(L, -PX * 1.5, PX * 1.5, PX * 0.7); g.fillRect(L, PX * 0.8, PX * 1.5, PX * 0.7);
+  const k = Math.min(1, charge / 12), R = PX * (1.1 + 0.9 * k), ox = L + PX * 1.6;
+  g.shadowColor = st.orb; g.shadowBlur = 6 + 10 * k;
+  g.fillStyle = st.orb; g.fillRect(Math.round(ox - R), Math.round(-R), Math.round(R * 2), Math.round(R * 2));
+  g.fillStyle = '#ffffff'; g.fillRect(Math.round(ox - R * 0.4), Math.round(-R * 0.6), Math.max(1, Math.round(R * 0.6)), Math.max(1, Math.round(R * 0.6)));
+  if (k > 0.05) {
+    g.shadowBlur = 0;
+    g.fillStyle = `rgba(${st.glowRgb},${0.25 * k})`;
+    g.beginPath(); g.arc(ox, 0, R * 2.6, 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+}
+
 // ───────────────────────── 평타 모션 ─────────────────────────
 // 무기만 돌리지 않고 팔과 몸이 같이 움직인다: 예비동작(감속) → 잠깐 멈춤 → 타격(가속, 몸이 앞으로 실림) → 여운 → 제자리.
 // 직업(무기)마다 모션이 다르고, 전직할수록 커지고 화려해진다:
@@ -1264,11 +1296,51 @@ const HERO_ATK = {
       { s: 0.47, h: [-0.5, -6],  bowA: -0.75, pull: 0,  dx: -4, skew: -0.18, sy: 1.04, lift: 3, e: 'o' },
       { s: 0.75, h: [0, -4.5],   bowA: -0.4,  pull: 0,  dx: -2, skew: -0.08, lift: 1,  e: 'o' }) },
   ],
+  // ── 마법사: 지팡이를 치켜들었다가(bowA 음수) 앞으로 내뻗으며(bowA 양수) 쏜다. pull 은 지팡이 끝에 모이는 마력 ──
+  wand: [
+    { burst: [0.45, '159,216,255', 0.9], keys: atkKeys(BOW_REST,
+      { s: 0.2,  h: [-0.5, -1.5], bowA: -0.45, pull: 5,  dx: -1, skew: -0.06, sy: 1.02, e: 'o' },
+      { s: 0.4,  h: [-0.6, -1.6], bowA: -0.5,  pull: 9,  dx: -1, skew: -0.08, sy: 1.03 },
+      { s: 0.47, h: [1.5, -0.5],  bowA: 0.35,  pull: 0,  dx: 3,  skew: 0.1,   sy: 0.97, e: 'i' },
+      { s: 0.72, h: [0.8, -0.3],  bowA: 0.15,  pull: 0,  dx: 1,  skew: 0.04,  e: 'o' }) },
+    { burst: [0.45, '159,216,255', 1], keys: atkKeys(BOW_REST,
+      { s: 0.2,  h: [-1, -3.5],   bowA: -0.95, pull: 5,  dx: -1, skew: -0.1,  sy: 1.04, e: 'o' },
+      { s: 0.4,  h: [-1, -3.7],   bowA: -1.0,  pull: 10, dx: -1, skew: -0.12, sy: 1.05 },
+      { s: 0.47, h: [1.2, 0],     bowA: 0.3,   pull: 0,  dx: 3,  skew: 0.12,  sy: 0.95, e: 'i' },
+      { s: 0.72, h: [0.6, -0.2],  bowA: 0.1,   pull: 0,  dx: 1,  skew: 0.05,  e: 'o' }) },
+  ],
+  // ── 화염술사: 몸을 뒤로 젖혀 불을 크게 모았다가 내던진다 ↔ 지팡이를 머리 위에서 돌려 내려찍듯 던진다 ──
+  flameStaff: [
+    { charge: [0.1, 0.45, '255,140,60'], burst: [0.45, '255,140,60', 1.3], keys: atkKeys(BOW_REST,
+      { s: 0.2,  h: [-1.5, -2.5], bowA: -0.7,  pull: 6,  dx: -3, skew: -0.14, sy: 1.04, e: 'o' },
+      { s: 0.42, h: [-1.7, -2.8], bowA: -0.8,  pull: 13, dx: -4, skew: -0.18, sy: 1.05 },
+      { s: 0.47, h: [2, -0.5],    bowA: 0.4,   pull: 0,  dx: 4,  skew: 0.16,  sy: 0.95, e: 'i' },
+      { s: 0.75, h: [1, -0.3],    bowA: 0.15,  pull: 0,  dx: 2,  skew: 0.06,  e: 'o' }) },
+    { charge: [0.1, 0.45, '255,140,60'], burst: [0.45, '255,190,90', 1.5], keys: atkKeys(BOW_REST,
+      { s: 0.2,  h: [0, -5],      bowA: -1.3,  pull: 7,  dx: -1, skew: -0.1,  sy: 1.06, lift: 3, e: 'o' },
+      { s: 0.42, h: [-0.5, -5.3], bowA: -1.5,  pull: 13, dx: -2, skew: -0.14, sy: 1.07, lift: 4 },
+      { s: 0.47, h: [1.8, 0.5],   bowA: 0.45,  pull: 0,  dx: 4,  skew: 0.18,  sy: 0.92, lift: 0, e: 'i' },
+      { s: 0.75, h: [0.8, 0],     bowA: 0.15,  pull: 0,  dx: 2,  skew: 0.06,  e: 'o' }) },
+  ],
+  // ── 빙결술사: 짧게 겨눠 빠르게 쏜다 ↔ 지팡이를 앞으로 곧게 뻗어 얼음창을 날린다, 청백 섬광 ──
+  frostStaff: [
+    { charge: [0.12, 0.44, '159,232,255'], burst: [0.45, '200,245,255', 1.1], keys: atkKeys(BOW_REST,
+      { s: 0.22, h: [0, -2],      bowA: -0.3,  pull: 6,  dx: -1, skew: -0.05, sy: 1.02, e: 'o' },
+      { s: 0.42, h: [0, -2.1],    bowA: -0.25, pull: 12, dx: -1, skew: -0.06, sy: 1.02 },
+      { s: 0.47, h: [2, -1.5],    bowA: 0.05,  pull: 0,  dx: 3,  skew: 0.08,  e: 'i' },
+      { s: 0.7,  h: [1, -1],      bowA: 0,     pull: 0,  dx: 1,  e: 'o' }) },
+    { charge: [0.12, 0.44, '159,232,255'], burst: [0.45, '255,255,255', 1.3], keys: atkKeys(BOW_REST,
+      { s: 0.22, h: [-1, -3],     bowA: -0.6,  pull: 6,  dx: -2, skew: -0.1,  sy: 1.04, lift: 2, e: 'o' },
+      { s: 0.42, h: [-1.2, -3.2], bowA: -0.65, pull: 12, dx: -2, skew: -0.12, sy: 1.05, lift: 3 },
+      { s: 0.47, h: [2.5, -2],    bowA: -0.05, pull: 0,  dx: 5,  skew: 0.12,  sy: 0.97, lift: 1, e: 'i' },
+      { s: 0.72, h: [1.2, -1.2],  bowA: 0,     pull: 0,  dx: 2,  skew: 0.04,  e: 'o' }) },
+  ],
 };
 // 3차 무기의 평타는 2차 무기의 연속기를 그대로 쓴다 (무기 생김새·색만 다르다)
 Object.assign(HERO_ATK, {
   starBlade: HERO_ATK.holySword, moonBlades: HERO_ATK.dualBlades, wyrmSpear: HERO_ATK.dragonSpear,
   doomAxe: HERO_ATK.halberd, sunBow: HERO_ATK.longbow, voidBow: HERO_ATK.arcaneBow,
+  infernoStaff: HERO_ATK.flameStaff, glacierStaff: HERO_ATK.frostStaff,
 });
 const ATK_EASE = { o: (u) => 1 - (1 - u) ** 3, i: (u) => u * u, l: (u) => u };
 for (const id in WEAPONS) WEAPONS[id].id = id;
@@ -1308,6 +1380,8 @@ function heroRig(w, x, bodyBottom, pose, atk) {
     r.bowA = atk ? atk.bowA : pose.bowA || 0;
     r.pull = atk ? atk.pull : pose.pull || 0;
     r.arrow = !atk || atk.s < 0.45;                          // 놓은 뒤엔 화살이 날아가고 없다
+    // 지팡이(마법사)는 한 손으로 쥔다: bowA 는 지팡이를 치켜든 각도, pull 은 지팡이 끝에 모이는 마력
+    if (w.staff) { r.grip = r.fh; return r; }
     // 활은 줌통(활대 가운데)을 쥐고, 시위 당기는 손은 시위 가운데 — 둘 다 활 기울기를 따라 돈다
     const c = Math.cos(r.bowA), sn = Math.sin(r.bowA), gx = w.size * 0.375;
     r.grip = [r.fh[0] + gx * c, r.fh[1] + gx * sn];
@@ -1399,7 +1473,10 @@ function drawAtkFx(g, w, r, atk) {
   if (at != null && s >= at && s < at + 0.16) {
     const u = (s - at) / 0.16, k = 1 - u;
     let px, py;
-    if (w.kind === 'ranged') {
+    if (w.staff) {
+      const L = (w.staff.len + 1.6) * PX, ang = staffAngle(r.bowA);
+      px = r.fh[0] + Math.cos(ang) * L; py = r.fh[1] + Math.sin(ang) * L;
+    } else if (w.kind === 'ranged') {
       const L = w.size * 0.375 + 6;
       px = r.fh[0] + Math.cos(r.bowA) * L; py = r.fh[1] + Math.sin(r.bowA) * L;
     } else {
@@ -1427,7 +1504,9 @@ const easeOutQ = (u) => 1 - (1 - u) * (1 - u);
 function drawWeapon(g, w, r) {
   g.save();
   if (w.glow) { g.shadowColor = w.glow; g.shadowBlur = 8; }
-  if (w.kind === 'ranged') {
+  if (w.staff) {
+    drawStaff(g, w, r.fh[0], r.fh[1], staffAngle(r.bowA), r.pull);
+  } else if (w.kind === 'ranged') {
     g.translate(r.fh[0], r.fh[1]); g.rotate(r.bowA); g.translate(-r.fh[0], -r.fh[1]);
     drawBow(g, w, r.fh[0], r.fh[1], r.pull, r.arrow);
   } else if (w.motion === 'thrust' || w.motion === 'sweep') {
@@ -1440,6 +1519,7 @@ function drawWeapon(g, w, r) {
 
 // 캠프에서 쉬는 동안 무기는 옆에 세워 둔다
 function drawRestingWeapon(g, w, x, gy) {
+  if (w.staff) { drawStaff(g, w, x - 2, gy - 2, -Math.PI / 2 - 0.08, 0); return; }
   if (w.kind === 'ranged') { drawBow(g, w, x - 2, gy - w.size - 1, 0); return; }
   if (w.motion === 'thrust' || w.motion === 'sweep') { drawPole(g, w, x, gy - 2, -Math.PI / 2); return; }
   drawBlade(g, w, x, gy - (w.len + 3) * PX, Math.PI / 2);
@@ -1611,17 +1691,31 @@ function drawShots() {
   for (const sh of shots) {
     if (sh.delay > 0) continue;
     const a = sh.w.arrow;
+    if (a.shape === 'ice') {
+      // 얼음창: 뾰족한 결정이 날아가고 뒤로 서리 가루
+      sh.trail.forEach(([tx, ty], i) => { ctx.fillStyle = `rgba(${a.rgb},${((i + 1) / sh.trail.length) * 0.4})`; ctx.fillRect(tx - 1, ty - 1, 2, 2); });
+      ctx.save();
+      ctx.translate(sh.x, sh.y); ctx.rotate(sh.a);
+      ctx.shadowColor = a.color; ctx.shadowBlur = 8;
+      ctx.fillStyle = a.color;
+      ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-3, -3); ctx.lineTo(-9, 0); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(-4, -1, 8, 1);
+      ctx.restore();
+      continue;
+    }
     if (a.magic) {
+      // 마력탄 (rgb: 꼬리 색, size: 크기 — 화염탄은 크고 붉다)
+      const rgb = a.rgb || '111,243,255', z = a.size || 1;
       sh.trail.forEach(([tx, ty], i) => {
-        ctx.fillStyle = `rgba(111,243,255,${((i + 1) / sh.trail.length) * 0.5})`;
+        ctx.fillStyle = `rgba(${rgb},${((i + 1) / sh.trail.length) * 0.5})`;
         ctx.fillRect(tx - 1.5, ty - 1.5, 3, 3);
       });
       ctx.save();
       ctx.shadowColor = a.color; ctx.shadowBlur = 10;
       ctx.fillStyle = a.color; ctx.globalAlpha = 0.5;
-      ctx.beginPath(); ctx.arc(sh.x, sh.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sh.x, sh.y, 4 * z, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 1;
-      ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5 * z, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       continue;
     }

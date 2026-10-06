@@ -239,7 +239,7 @@
 
   /* ── 전직 트리 ── */
   .tree { display: flex; flex-direction: column; gap: 16px; margin-bottom: 14px; }
-  .crow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .crow { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; }
   .cnode { all: unset; box-sizing: border-box; cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
     padding: 6px 4px 7px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); }
   .cnode:hover { background: var(--soft-hover); }
@@ -673,6 +673,13 @@
 <script src="src/ult/worldBreaker.js"></script>
 <script src="src/ult/sunArrow.js"></script>
 <script src="src/ult/dimensionCollapse.js"></script>
+<script src="src/mage/manaBurst.js"></script>
+<script src="src/mage/meteor.js"></script>
+<script src="src/mage/flameVortex.js"></script>
+<script src="src/mage/iceLance.js"></script>
+<script src="src/mage/blizzard.js"></script>
+<script src="src/ult/apocalypse.js"></script>
+<script src="src/ult/absoluteZero.js"></script>
 <script src="src/ui.js"></script>
 </body>
 </html>
