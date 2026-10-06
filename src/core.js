@@ -145,8 +145,8 @@ const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reve
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[id] || 0).lv;
-const skillPow = (id) => skillPowAt(SKILLS[id].cls, skillLv(id), S.cls);
-const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id));
+const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls);
+const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls);
 // 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null
 function feedTomes(id, n) {
   const k = SKILLS[id];

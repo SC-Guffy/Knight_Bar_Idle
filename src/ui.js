@@ -433,7 +433,7 @@ function skillList(id) {
     const inh = k.cls !== id;              // 1차에서 물려받은 스킬
     const on = mine && S.level >= k.lv;
     // 숙련도를 반영한 값 (내 직업은 지금 숙련도, 다른 직업은 처음 익혔을 때인 Lv1)
-    const pow = mine ? skillPow(k.id) : skillPowAt(k.cls, 1, id), mult = skillMult(k) * pow, hitN = k.hits.length, cd = mine ? skillCd(k.id) : skillCdOf(k, 1);
+    const pow = mine ? skillPow(k.id) : skillPowAt(k, 1, id), mult = skillMult(k) * pow, hitN = k.hits.length, cd = mine ? skillCd(k.id) : skillCdOf(k, 1, id);
     const dmg = k.ward ? `초당 ×${+(k.ward.tick * pow).toFixed(2)}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
@@ -456,7 +456,7 @@ function viewMastery() {
     const total = S.mast[k.id] || 0, s = skillLvOf(total), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
     const need = max ? 0 : s.need - s.have;
     const nextM = MASTERY[m + 1];
-    const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k.cls, lv, S.cls)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k.cls, lv, S.cls)).toFixed(2)}`;
+    const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k, lv, S.cls)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k, lv, S.cls)).toFixed(2)}`;
     const tag = m ? `<span class="mtag m${m}">${MASTERY[m].star} ${MASTERY[m].name}</span>` : '';
     const locked = S.level < k.lv;
     const all = Math.min(S.tomes, SKILL_TOME_MAX - total);   // 전부 쓰기: 가진 만큼 (만렙에서 남는 건 안 씀)
@@ -480,7 +480,7 @@ function viewMastery() {
           <div class="mtitle"><b>${skillNameAt(k, s.lv)}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${locked ? ` <span class="mlock">🔒 캐릭터 Lv ${k.lv}에 사용 가능</span>` : ''}</div>
           ${max ? '' : `<div class="mseg"><div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div>
             <span class="mnum"><b>${s.have}</b>/${s.need}</span></div>`}
-          <small class="mstat">${max ? '' : '다음 레벨 · '}쿨타임 ${skillCdOf(k, s.lv)}초${max ? '' : ` → <b>${skillCdOf(k, s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}</small>
+          <small class="mstat">${max ? '' : '다음 레벨 · '}쿨타임 ${skillCdOf(k, s.lv, S.cls)}초${max ? '' : ` → <b>${skillCdOf(k, s.lv + 1, S.cls)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}</small>
           ${evo}
         </div>
         <div class="act">${btns}</div>
@@ -1826,7 +1826,7 @@ const ACTIONS = {
     S.guide.fed = 1;
     const m = masteryOf(r.to);
     if (first && r.to > r.from) {
-      toast(`⚡ ${k.name} Lv ${r.to}! 쿨타임 ${skillCdOf(k, r.from)}초 → ${skillCdOf(k, r.to)}초 · 위력 ×${(skillMult(k) * skillPowAt(k.cls, r.from, S.cls)).toFixed(2)} → ×${(skillMult(k) * skillPowAt(k.cls, r.to, S.cls)).toFixed(2)} — 다음 원정·탑·결투부터 바로 적용돼요. Lv10 ★숙련을 목표로 탑에서 비전서를 더 모아 보세요`, 12000);
+      toast(`⚡ ${k.name} Lv ${r.to}! 쿨타임 ${skillCdOf(k, r.from, S.cls)}초 → ${skillCdOf(k, r.to, S.cls)}초 · 위력 ×${(skillMult(k) * skillPowAt(k, r.from, S.cls)).toFixed(2)} → ×${(skillMult(k) * skillPowAt(k, r.to, S.cls)).toFixed(2)} — 다음 원정·탑·결투부터 바로 적용돼요. Lv10 ★숙련을 목표로 탑에서 비전서를 더 모아 보세요`, 12000);
       save();
       return;
     }

@@ -247,8 +247,8 @@ function tryCastSkill(st, target) {
         const list = skillTargets(hk, stats());
         if (list.length) focus = list[0];
         for (const m of list) {
-          // 여러 번 나눠 때리는 스킬은 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다
-          hitMonster(m, k.hits[i][1] * skillPow(id), { crit: k.crit, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 6 && i < k.hits.length - 1 });
+          // 여러 번 나눠 때리는 스킬은 (2타부터) 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다
+          hitMonster(m, k.hits[i][1] * skillPow(id), { crit: k.crit, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1 });
           if ((fx.launch || hk.launch) && !m.boss) m.air = 0;
         }
       },

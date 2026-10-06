@@ -602,10 +602,18 @@ const masteryOf = (lv) => Math.min(3, Math.floor(lv / 10));
 const skillProg = (lv) => 0.7 * (lv - 1) / (SKILL_MAX - 1) + 0.1 * masteryOf(lv);
 // 쿨타임 배수 (SKILLS 의 cd 에 곱한다)
 const skillCdAt = (lv) => SKILL_CD_LV1 + (SKILL_CD_MAX - SKILL_CD_LV1) * skillProg(lv);
-const skillCdOf = (k, lv) => Math.round(k.cd * skillCdAt(lv) * 10) / 10;
-// 한 방 위력 배수 (SKILLS 배율에 곱한다). cls 는 스킬의 직업, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG 를 곱한다)
-const skillPowAt = (cls, lv, owner = cls) =>
-  (SKILL_DMG[cls] || 2) * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv)) * (owner !== cls ? INHERIT_DMG[owner] || 1 : 1);
+// 물려받은 1차 스킬의 한 방 최저선 (Lv1 총 배율). INHERIT_DMG 만 곱하면 한 방이 평타 치명(×2.5~3)보다 작아지는 직업이 있어서,
+// 그 아래면 위력을 여기까지 올리고 쿨타임도 같은 배수로 늘린다 — 가끔 터지지만 확실히 센 한 방, 전체 DPS 몫은 그대로
+const INHERIT_HIT = 3.5;
+const inheritBoost = (k, owner) => {
+  if (owner === k.cls || !INHERIT_DMG[owner]) return 1;
+  return Math.max(1, INHERIT_HIT / (skillMult(k) * (SKILL_DMG[k.cls] || 2) * SKILL_DMG_LV1 * INHERIT_DMG[owner]));
+};
+// 쿨타임(초). owner 는 쓰는 기사의 직업 (물려받은 스킬이면 inheritBoost 만큼 길어진다)
+const skillCdOf = (k, lv, owner = k.cls) => Math.round(k.cd * skillCdAt(lv) * inheritBoost(k, owner) * 10) / 10;
+// 한 방 위력 배수 (SKILLS 배율에 곱한다). k 는 스킬, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG·inheritBoost 를 곱한다)
+const skillPowAt = (k, lv, owner = k.cls) =>
+  (SKILL_DMG[k.cls] || 2) * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1);
 // 누적 비전서 → { lv, have 이번 레벨에 먹인 권수, need 이번 레벨에 필요한 권수 }
 function skillLvOf(total) {
   let lv = 1, left = total;
