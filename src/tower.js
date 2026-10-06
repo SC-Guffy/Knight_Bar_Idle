@@ -5,7 +5,7 @@
 //    paid: 첫 돌파 묶음을 받은 가장 높은 10층 단위 (난이도 개편 전 기록을 옮길 때 같은 묶음을 두 번 주지 않게),
 //    curve: 층 난이도 곡선 버전 (TOWER_CURVE 와 다르면 best 를 새 곡선으로 옮긴다),
 //    day, dayTomes: 오늘(자정 기준) 층 보상으로 받은 비전서 수 (towerDailyCap 까지),
-//    sweepDay: 마지막으로 소탕한 날 (하루 한 번, 탑에 들어가지 않고 캠프 탭 버튼으로 최고 층만큼 비전서),
+//    tixDay, tixUsed: 오늘(자정 기준) 쓴 입장권 수 — 하루 TOWER_TICKETS 장, 도전 입장이나 소탕에 1장씩,
 //    run: 진행 중인 도전 { start 시작 층, floor 지금 층, cleared 이번에 깬 층 수, kills, gold, exp, tomes, firsts: [첫 돌파 층],
 //          t0 시작 시각, lv0 시작 레벨, best0 시작 전 최고 층 } | null,
 //    last: 마지막 도전 결과 { start, reached, cleared, kills, gold, exp, tomes, firsts, reason, best, best0, dur, levels, at,
@@ -18,12 +18,12 @@
 //  - 한 층에서 TOWER_ENRAGE_SEC 초 넘게 싸우면 몬스터가 광폭화해 공격력이 계속 두 배씩 오른다 (towerRage) → 못 넘는 층은 금방 쓰러져 끝난다.
 //  - 보상: 처치 골드·경험치(정예라 원정 몬스터의 3배) + 📖 비전서 — 층을 깰 때마다 1권 (하루 towerDailyCap 권까지)
 //          + 10층 단위 첫 돌파 때 묶음(towerFirstTomes). 오프라인 진행은 없다(앱을 껐다 켜면 그 층에서 끝낸 것으로 정산).
-//  - 소탕: 하루 한 번, 버튼만 누르면 최고 층 수만큼 📖 (층 보상 한도와 따로). 입장·스태미나 없음
+//  - 입장권: 하루 TOWER_TICKETS 장. 도전 입장 1장, 또는 소탕 1장(입장·스태미나 없이 최고 층 수만큼 📖, 층 보상 한도와 따로)
 
 const TOWER_CURVE = 3;   // 1: 스테이지 10 + 층×2 (0.10.0) → 2: 25 + 층×3 (0.10.3) → 3: 25 + 층×2 (후반이 너무 가팔라서 완화)
 // 곡선 버전별 층 → 스테이지 (옛 기록을 옮길 때 쓴다)
 const TOWER_CURVE_STAGE = { 1: (f) => 10 + f * 2, 2: (f) => 25 + f * 3 };
-const freshTower = () => ({ best: 0, paid: 0, curve: TOWER_CURVE, day: '', dayTomes: 0, sweepDay: '', run: null, last: null });
+const freshTower = () => ({ best: 0, paid: 0, curve: TOWER_CURVE, day: '', dayTomes: 0, tixDay: '', tixUsed: 0, run: null, last: null });
 // 옛 곡선의 최고 층을 같은 스테이지 급의 새 층으로 옮긴다 (체크포인트가 감당 못 할 높이가 되지 않게)
 function migrateTower(t) {
   if (t.curve === TOWER_CURVE) return;
@@ -59,6 +59,7 @@ const towerRage = (t) => (t < TOWER_ENRAGE_SEC ? 1 : Math.pow(2, (t - TOWER_ENRA
 function towerBlocker() {
   if (!towerUnlocked()) return `스테이지 ${TOWER_UNLOCK_STAGE} 도달 시 열려요`;
   if (S.phase !== 'camp') return '캠프에서만 도전할 수 있어요';
+  if (towerTickets() <= 0) return '오늘 입장권을 다 썼어요 (자정에 충전)';
   if (S.stamina < minDepartStamina()) return `스태미나 ${minDepartStamina()} 이상 필요 (휴식 중)`;
   return '';
 }
@@ -66,17 +67,24 @@ function towerBlocker() {
 function startTower() {
   if (towerBlocker()) return false;
   const start = towerCheckpoint();
+  useTowerTicket();
   S.tower.run = { start, floor: start, cleared: 0, kills: 0, gold: 0, exp: 0, tomes: 0, firsts: [], t0: Date.now(), lv0: S.level, best0: S.tower.best };
   S.phase = 'tower';
   S.hp = stats().maxHp;
   return true;
 }
 
-// 소탕: 하루 한 번, 최고 층 수만큼 비전서를 바로 받는다
-const towerSweepReady = () => towerUnlocked() && S.tower.best > 0 && S.tower.sweepDay !== todayKey();
+// 오늘 남은 입장권
+function towerTickets() {
+  if (S.tower.tixDay !== todayKey()) { S.tower.tixDay = todayKey(); S.tower.tixUsed = 0; }
+  return Math.max(0, TOWER_TICKETS - S.tower.tixUsed);
+}
+const useTowerTicket = () => { towerTickets(); S.tower.tixUsed++; };
+// 소탕: 입장권 1장으로 최고 층 수만큼 비전서를 바로 받는다
+const towerSweepReady = () => towerUnlocked() && S.tower.best > 0 && towerTickets() > 0 && !S.tower.run;
 function sweepTower() {
   if (!towerSweepReady()) return 0;
-  S.tower.sweepDay = todayKey();
+  useTowerTicket();
   S.tomes += S.tower.best;
   return S.tower.best;
 }

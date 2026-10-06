@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.10.25';
+const GAME_VERSION = '0.10.26';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -35,9 +35,10 @@ const TOWER_BOSS_ATK = 1.6;
 const TOWER_ENRAGE_SEC = 10;          // 한 층에서 이만큼 싸우면 광폭화: 그 뒤 TOWER_ENRAGE_DOUBLE 초마다 공격력 2배씩 (10초 ×1, 15초 ×4, 20초 ×16, 25초 ×64…)
 const TOWER_ENRAGE_DOUBLE = 2.5;
 // 탑 비전서: 올라가며 깬 층 하나에 1권, 하루 TOWER_DAILY_BASE + 최고 층 권까지 (높이 오를수록 하루 몫이 는다. 10층 단위 첫 돌파 묶음은 따로·제한 없음).
-//  여기에 하루 한 번 소탕 버튼으로 최고 층 수만큼 따로 받는다 (tower.js sweepTower).
+//  입장권은 하루 TOWER_TICKETS 장 — 도전 입장 또는 소탕(입장 없이 최고 층 수만큼 📖, 위 한도와 따로)에 1장씩 (tower.js)
 //  숙련도는 스킬 하나 Lv30 에 169권 — 최고 15층이면 하루 소탕 15 + 등반 35권
 const TOWER_DAILY_BASE = 20;
+const TOWER_TICKETS = 3;
 const towerDailyCap = () => TOWER_DAILY_BASE + S.tower.best;
 const BOSS_TOME_DROP = 0.15;          // 원정 보스가 📖 비전서를 떨굴 확률 (스킬 숙련도, classes.js)
 const POTION_AT = 0.3;                // 체력 30% 이하에서 물약 자동 사용
