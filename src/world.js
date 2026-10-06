@@ -50,6 +50,9 @@ let groundZone = -1;       // grass/decor 를 만든 필드
 const DECOR_KINDS = {
   meadow: ['flower'], grave: ['tomb', 'cross', 'tomb'], swamp: ['reed', 'reed', 'puddle'],
   volcano: ['rock', 'ember', 'rock'], snow: ['drift', 'pine'], castle: ['spike', 'torch'],
+  abyss: ['rift', 'obsidian', 'rift'], sky: ['cloud', 'floatrock', 'cloud'], desert: ['cactus', 'bones', 'dune'],
+  deep: ['coral', 'kelp', 'bubble'], fairy: ['glowcap', 'firefly', 'fern'], ruins: ['gear', 'pillar', 'spark'],
+  crystal: ['cluster', 'gem', 'cluster'], storm: ['rod', 'crag', 'gust'], cosmos: ['star', 'meteor', 'nebula'],
 };
 function makeGrass() {
   groundZone = zoneIndex(S.stage);
@@ -841,6 +844,178 @@ function drawDecor(d, gy) {
       box('#4a3a52', 0, 18, 4, 18);
       box('#ff5a1f', -1, 24, 6, 6);
       box('#ffd257', 0, 23 + Math.round(f), 4, 3);
+      break;
+    }
+    // 🌑 심연의 균열
+    case 'rift': {
+      const f = 0.5 + 0.5 * Math.sin(clock * 3 + r * 20);
+      box('#120c20', -4, 1, 22, 2);
+      box(`rgba(125, 249, 255, ${0.35 + f * 0.5})`, 2, 1, 10, 1);
+      box(`rgba(125, 249, 255, ${f * 0.6})`, 6, 3 + Math.round(f * 3), 2, 1);
+      break;
+    }
+    case 'obsidian': {
+      const h = 10 + Math.round(r * 6);
+      box('#2a1d40', 0, h, 4, h);
+      box('#3a2a55', 4, h - 4, 3, h - 4);
+      box('#8a6fb8', 1, h - 1, 1, 3);
+      break;
+    }
+    // ☁️ 천공의 섬
+    case 'cloud':
+      box('rgba(255, 255, 255, 0.85)', 0, 5, 22, 5);
+      box('rgba(255, 255, 255, 0.85)', 4, 9, 10, 4);
+      box('rgba(190, 214, 240, 0.8)', 0, 1, 22, 1);
+      break;
+    case 'floatrock': {
+      const y = 22 + Math.round(Math.sin(clock * 1.5 + r * 10) * 2);
+      box('#8a7a6a', 0, y, 10, 3);
+      box('#6a5a4a', 2, y - 3, 6, 2);
+      box('rgba(88, 170, 70, 0.9)', 0, y + 1, 10, 1);
+      break;
+    }
+    // 🏜️ 모래폭풍 사막
+    case 'cactus': {
+      const h = 14 + Math.round(r * 6);
+      box('#4a8a3a', 4, h, 4, h);
+      box('#4a8a3a', 0, h - 4, 2, 6);
+      box('#4a8a3a', 0, h - 8, 4, 2);
+      box('#4a8a3a', 10, h - 2, 2, 5);
+      box('#4a8a3a', 8, h - 5, 4, 2);
+      box('#6aaa4a', 5, h, 1, h - 2);
+      break;
+    }
+    case 'bones':
+      box('#e9e4d4', 0, 5, 6, 4);
+      box('#1b1d27', 1, 4, 1, 1);
+      box('#1b1d27', 3, 4, 1, 1);
+      box('#d8ccb0', 8, 2, 8, 2);
+      break;
+    case 'dune':
+      box('rgba(222, 186, 116, 0.9)', 0, 3, 26, 3);
+      box('rgba(222, 186, 116, 0.9)', 6, 5, 12, 2);
+      break;
+    // 🌊 심해 신전
+    case 'coral':
+      box('#ff8fb1', 4, 12, 3, 12);
+      box('#ff8fb1', 0, 9, 2, 6);
+      box('#ff8fb1', 0, 9, 5, 2);
+      box('#ff8fb1', 9, 8, 2, 5);
+      box('#ff8fb1', 6, 6, 5, 2);
+      box('#ffc0d0', 4, 12, 3, 1);
+      break;
+    case 'kelp': {
+      const h = 18 + Math.round(r * 8);
+      for (let y = 0; y < h; y += 3) box('#2f8a5a', Math.round(Math.sin(clock * 2 + y * 0.3 + r * 10) * 2), y + 3, 2, 3);
+      break;
+    }
+    case 'bubble': {
+      const t = (clock * 0.6 + r) % 1;
+      box('#3a6a8a', 0, 3, 10, 3);
+      box('rgba(180, 230, 255, 0.7)', 3 + Math.round(Math.sin(t * 9) * 2), 6 + Math.round(t * 30), 2, 2);
+      box('rgba(180, 230, 255, 0.5)', 6, 6 + Math.round(((t + 0.5) % 1) * 30), 1, 1);
+      break;
+    }
+    // 🍄 요정의 숲
+    case 'glowcap': {
+      const f = 0.5 + 0.5 * Math.sin(clock * 2 + r * 20);
+      box('#e0f0ff', 3, 6, 2, 6);
+      box(`rgba(110, 170, 255, ${0.7 + f * 0.3})`, 0, 9, 8, 3);
+      box(`rgba(200, 240, 255, ${f * 0.8})`, 2, 9, 2, 1);
+      break;
+    }
+    case 'firefly':
+      for (let i = 0; i < 3; i++) {
+        const a = clock * 0.8 + r * 10 + i * 2.1;
+        box(`rgba(220, 255, 140, ${0.4 + 0.6 * Math.max(0, Math.sin(a * 2.3))})`, i * 7 + Math.round(Math.sin(a) * 3), 14 + i * 4 + Math.round(Math.cos(a * 1.3) * 3), 2, 2);
+      }
+      break;
+    case 'fern':
+      box('#3d8b5a', 4, 10, 2, 10);
+      box('#5fbf7a', 0, 8, 4, 2);
+      box('#5fbf7a', 6, 6, 4, 2);
+      box('#5fbf7a', 1, 4, 3, 2);
+      break;
+    // ⚙️ 고대 기계 유적
+    case 'gear':
+      box('#6a5e4e', 1, 7, 12, 7);
+      box('#6a5e4e', 5, 10, 4, 3);
+      box('#6a5e4e', -1, 5, 2, 3);
+      box('#6a5e4e', 13, 5, 2, 3);
+      box('#8a7a62', 2, 7, 10, 1);
+      box('#3a342c', 5, 4, 4, 2);
+      break;
+    case 'pillar': {
+      const h = 14 + Math.round(r * 10);
+      box('#8a8070', 0, h, 8, h);
+      box('#a89c88', -1, 3, 10, 3);
+      box('#6a6050', 5, h, 3, 3);
+      box('#6a6050', 2, h - 6, 1, 4);
+      break;
+    }
+    case 'spark': {
+      const on = Math.sin(clock * 7 + r * 30) > 0.6;
+      box('#5a5e6a', 0, 4, 16, 4);
+      box('#3a3d48', 6, 6, 4, 6);
+      if (on) { box('#5ad1ff', 7, 9, 2, 2); box('#bff0ff', 9, 11, 1, 1); }
+      break;
+    }
+    // 💎 수정 동굴
+    case 'cluster': {
+      const h = 10 + Math.round(r * 6);
+      box('#9f7ae8', 3, h, 4, h);
+      box('#c06bff', 0, h - 5, 3, h - 5);
+      box('#7ab8ff', 7, h - 3, 3, h - 3);
+      box('#ffe0f8', 4, h - 1, 1, 3);
+      break;
+    }
+    case 'gem': {
+      const f = Math.max(0, Math.sin(clock * 4 + r * 20));
+      box('#ff8fe0', 0, 3, 4, 3);
+      box('#9fe8ff', 6, 2, 3, 2);
+      if (f > 0.7) { box('#ffffff', 1, 6, 1, 3); box('#ffffff', 0, 5, 3, 1); }
+      break;
+    }
+    // ⚡ 폭풍의 봉우리
+    case 'rod': {
+      const on = Math.sin(clock * 6 + r * 30) > 0.8;
+      box('#5a6070', 3, 24, 2, 24);
+      box('#8a90a0', 2, 25, 4, 2);
+      if (on) { box('#ffe066', 2, 29, 2, 3); box('#ffe066', 4, 27, 2, 2); box('#fff8c0', 3, 26, 1, 1); }
+      break;
+    }
+    case 'crag':
+      box('#4a5062', 0, 6, 16, 6);
+      box('#4a5062', 2, 10, 5, 4);
+      box('#4a5062', 8, 15, 4, 9);
+      box('#4a5062', 12, 9, 3, 3);
+      box('#6a7290', 8, 15, 1, 6);
+      box('#6a7290', 2, 10, 1, 3);
+      break;
+    case 'gust': {
+      const t = (clock * 0.9 + r) % 1;
+      box(`rgba(220, 230, 255, ${0.5 * Math.sin(t * Math.PI)})`, -Math.round(t * 30), 12 + Math.round(r * 10), 14, 1);
+      box(`rgba(220, 230, 255, ${0.35 * Math.sin(t * Math.PI)})`, 6 - Math.round(t * 30), 8 + Math.round(r * 10), 10, 1);
+      break;
+    }
+    // 🌌 별의 끝
+    case 'star': {
+      const f = 0.5 + 0.5 * Math.sin(clock * 3 + r * 40);
+      const y = 18 + Math.round(r * 16);
+      box(`rgba(255, 243, 160, ${0.3 + f * 0.7})`, 0, y, 2, 2);
+      if (f > 0.8) { box('rgba(255, 243, 160, 0.6)', -2, y - 1, 6, 1); box('rgba(255, 243, 160, 0.6)', 1, y + 2, 1, 6); }
+      break;
+    }
+    case 'meteor':
+      box('#3a3050', 0, 6, 12, 6);
+      box('#5a4a78', 2, 8, 6, 2);
+      box('#ff9f6a', 8, 3, 2, 1);
+      box('#ff9f6a', 3, 2, 1, 1);
+      break;
+    case 'nebula': {
+      const f = 0.5 + 0.5 * Math.sin(clock * 1.2 + r * 10);
+      box(`rgba(192, 107, 255, ${0.25 + f * 0.2})`, -4, 2, 28, 2);
+      box(`rgba(90, 209, 255, ${0.2 + (1 - f) * 0.2})`, 4, 3, 14, 1);
       break;
     }
   }

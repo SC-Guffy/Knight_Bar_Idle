@@ -1072,9 +1072,11 @@ function viewShop() {
 }
 
 // 필드 선택: 앞 필드의 마지막 보스를 잡아야 다음 필드가 열린다
+// 열린 필드와 바로 다음 잠긴 필드 하나만 보여 준다 (그 뒤 필드는 열릴 때까지 숨김)
 function viewFields() {
   const cur = zoneIndex(S.stage);
-  return ZONES.map((z, i) => {
+  const shown = ZONES.findIndex((z, i) => !zoneUnlocked(i, S.best));
+  return ZONES.slice(0, shown < 0 ? ZONES.length : shown + 1).map((z, i) => {
     const open = zoneUnlocked(i, S.best), done = zoneCleared(i, S.best);
     const range = z.to === Infinity ? `${z.from}~` : `${z.from}~${z.to}`;
     const state = !open ? '🔒 잠김' : done ? '✅ 클리어' : '⚔️ 도전 중';
