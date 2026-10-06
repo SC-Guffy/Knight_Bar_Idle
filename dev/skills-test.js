@@ -107,7 +107,7 @@ function run() {
     const lv = STAGE_LV[st];
     let exp = 0;
     for (let L = 1; L < lv; L++) exp += skillNeed(L);
-    for (const k of skillsOf(T.cls)) S.mast[k.id] = exp;
+    for (const k of skillsOf(T.cls)) S.mast[mastKey(k.id)] = exp;
     knight.ward = null;
   }
   function setClass(id) {

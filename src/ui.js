@@ -452,9 +452,9 @@ function viewMastery() {
       <small>칸 1개 = 비전서 1권 · 칸을 다 채우면 레벨 업 · Lv 10·20·30 에서 기술 진화</small></div>
     <span class="mchip${S.tomes ? '' : ' none'}" title="가진 비전서">📖 <b>${fmt(S.tomes)}</b><small>권 보유</small></span></div>`;
   if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요.</div>`;
-  const firstOpen = list.find((x) => skillLvOf(S.mast[x.id] || 0).lv < SKILL_MAX);
+  const firstOpen = list.find((x) => skillLvOf(S.mast[mastKey(x.id)] || 0).lv < SKILL_MAX);
   const rows = list.map((k) => {
-    const total = S.mast[k.id] || 0, s = skillLvOf(total), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
+    const total = S.mast[mastKey(k.id)] || 0, s = skillLvOf(total), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
     const need = max ? 0 : s.need - s.have;
     const nextM = MASTERY[m + 1];
     const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k, lv, S.cls)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k, lv, S.cls)).toFixed(2)}`;

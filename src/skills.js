@@ -20,12 +20,16 @@
 //
 // 1차와 2차의 차이: 1차는 직업색 이펙트 하나 + 가벼운 흔들림. 2차는 이름 띠(컷인), 히트스톱, 검흔 여러 겹, 잔상·마법진·지형 연출.
 // 바탕화면 위에 떠 있는 게임이라 화면 전체를 번쩍이거나 어둡게 하지 않는다. 화려함은 타격 지점(검흔·불꽃)과 기사 주변에서만 낸다.
+// 예외: 3차 궁극기(SKILLS 의 ult)는 쿨타임이 아주 긴 대신 하단바 전체를 쓰는 연출을 한다 — 시전하는 동안 위아래 검은 띠(레터박스)가
+// 내려오고 큰 이름 컷인이 지나가며, 연출(src/ult/*.js)이 하단바 전체를 어둡게 하거나 덮어도 된다. 그래도 하단바 띠 밖(바탕화면)은 건드리지 않는다.
 
 let hitstop = 0;          // 남은 정지 시간(초). 큰 타격 순간 화면 전체를 아주 잠깐 멈춘다 (world.js update)
 let casts = [];           // 진행 중인 시전 { owner, id, k, fx, t, a, hi, ci }
 let skfx = [];            // 스킬 이펙트 조각 { owner, at, life, draw(u), tick(u, dt), end() } — u 는 0→1 진행
 let cutin = null;         // 2차 스킬 이름 띠 { k, color, t }
 let shakeAmp = 0;         // 화면 흔들림 세기(px). 0 이면 기본(3px), 최대 6px
+let ultIntro = null;      // 3차 궁극기 컷인 { name, icon, color, star, cx, t }
+let ultBars = 0;          // 궁극기 레터박스 띠 (0→1, 궁극기 시전 중에만 내려온다)
 
 const clamp01 = (u) => Math.max(0, Math.min(1, u));
 const segU = (u, a, b) => clamp01((u - a) / (b - a));
@@ -75,7 +79,8 @@ function startCast(owner, id, a, queue = false) {
   casts.push({ owner, id, k, fx, t: 0, a, hi: 0, ci: 0, next: [], squash: 0, hist: [] });
   // 숙련도를 키운 스킬은 이름 옆에 레벨과 단계 별을 붙여서, 먹인 비전서가 전투에 보이게 한다
   const star = (a.lv > 1 ? ` Lv${a.lv}` : '') + (a.mast ? ' ' + MASTERY[a.mast].star : '');
-  if (a.mast >= 3 || (skillTier(k) >= 2 && a.mast >= 2)) cutin = { k, name: a.name, color: a.color, t: 0, cx: a.x(), star };
+  if (k.ult) ultIntro = { name: a.name, icon: k.icon, color: a.color, star, cx: a.x(), t: 0 };
+  else if (a.mast >= 3 || (skillTier(k) >= 2 && a.mast >= 2)) cutin = { k, name: a.name, color: a.color, t: 0, cx: a.x(), star };
   else addFloater(`${k.icon} ${a.name}${star}`, a.x(), groundY() - 72, a.color, 12);
 }
 function endCast(owner) {
@@ -187,6 +192,9 @@ function updateCasts(dt) {
   skfx = skfx.filter((f) => !f.done);
   if (shake <= 0) shakeAmp = 0;
   if (cutin && (cutin.t += dt) > 1.2) cutin = null;
+  if (ultIntro && (ultIntro.t += dt) > 1.3) ultIntro = null;
+  const ulting = casts.some((c) => c.k.ult);
+  ultBars = Math.max(0, Math.min(1, ultBars + (ulting ? dt / 0.18 : -dt / 0.3)));
 }
 
 // ───────────────────────── 원정에서 쓰기 ─────────────────────────
@@ -3287,8 +3295,57 @@ function drawSkillFxBack() {
   for (const f of skfx) if (f.draw && f.back && clock >= f.at) f.draw(f.life ? Math.min(1, (clock - f.at) / f.life) : 1);
 }
 
+// 3차 궁극기: 하단바 위아래 레터박스 + 큰 이름 컷인 (하단바 띠 안에서만)
+const ULT_BAR = 16;
+function drawUltScreen() {
+  if (ultBars > 0) {
+    const h = Math.round(ULT_BAR * easeOut(ultBars));
+    ctx.fillStyle = '#05060a';
+    ctx.fillRect(0, 0, W, h);
+    ctx.fillRect(0, H - h, W, h);
+  }
+  const u = ultIntro;
+  if (!u) return;
+  // 사선 빛줄기가 화면을 가로지르고 → 이름이 크게 박혔다가 → 옆으로 흩어지며 빠진다
+  const t = u.t, inA = easeOut(Math.min(1, t / 0.18)), outA = t > 1.0 ? Math.max(0, 1 - (t - 1.0) / 0.3) : 1;
+  const cy = 46, band = 34;
+  ctx.save();
+  ctx.globalAlpha = 0.9 * outA;
+  const sweep = (1 - inA) * W * 0.6;
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, 'rgba(5,6,10,0)'); grad.addColorStop(0.15, 'rgba(5,6,10,0.88)'); grad.addColorStop(0.85, 'rgba(5,6,10,0.88)'); grad.addColorStop(1, 'rgba(5,6,10,0)');
+  ctx.translate(sweep, 0);
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.moveTo(0, cy - band / 2 + 6); ctx.lineTo(W, cy - band / 2 - 6); ctx.lineTo(W, cy + band / 2 - 6); ctx.lineTo(0, cy + band / 2 + 6); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = u.color;
+  ctx.fillRect(0, cy - band / 2 - 1, W, 2);
+  ctx.fillRect(0, cy + band / 2 - 1, W, 2);
+  // 빛줄기 몇 가닥이 빠르게 흐른다
+  for (let i = 0; i < 6; i++) {
+    const x = ((t * 900 + i * 197) % (W + 200)) - 100;
+    ctx.globalAlpha = 0.35 * outA;
+    ctx.fillRect(x, cy - band / 2 + 4 + i * 5, 60 + i * 14, 1);
+  }
+  ctx.globalAlpha = outA;
+  const pop = 1 + 0.25 * Math.max(0, 1 - t / 0.12);
+  ctx.font = `900 ${Math.round(22 * pop)}px -apple-system, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  const label = `${u.icon} ${u.name}${u.star || ''}`, x = Math.max(160, Math.min(W - 160, u.cx + 120));
+  ctx.shadowColor = u.color; ctx.shadowBlur = 14;
+  ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.strokeText(label, x - sweep, cy + 1);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(label, x - sweep, cy + 1);
+  ctx.shadowBlur = 0;
+  ctx.font = 'bold 10px -apple-system, sans-serif';
+  ctx.fillStyle = u.color;
+  ctx.fillText('ULTIMATE', x - sweep, cy - 15);
+  ctx.restore();
+}
+
 // 2차 스킬 이름 띠 (화면 전체를 덮는 연출은 쓰지 않는다)
 function drawScreenFx() {
+  drawUltScreen();
   if (!cutin) return;
   // 띠가 옆에서 미끄러져 들어와 잠깐 멈췄다가 빠진다
   const t = cutin.t, k = cutin.k;

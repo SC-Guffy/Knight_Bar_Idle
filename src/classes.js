@@ -17,12 +17,22 @@ const WEAPONS = {
   longbow:     { name: '장궁',   kind: 'ranged', range: 230, targets: 1, shots: 1, size: 15, wood: '#3b2a1a', arrow: { speed: 760, color: '#f4f1e8', trail: '255,255,220' } },
   arcaneBow:   { name: '마력궁', kind: 'ranged', range: 170, targets: 3, shots: 3, shotMult: 0.45, size: 12, wood: '#3a55b0', glow: '#6ff3ff',
     arrow: { speed: 360, color: '#6ff3ff', magic: true } },
+  // ── 3차 ──
+  starBlade:   { name: '성좌검', kind: 'melee',  motion: 'swing',  range: 18, targets: 1, len: 10, blade: '#fffbe6', hilt: '#9fd8ff', trail: '200,230,255', glow: '#cfe8ff' },
+  moonBlades:  { name: '월광쌍검', kind: 'melee', motion: 'dual',  range: 16, targets: 1, len: 8,  blade: '#ffe0e8', hilt: '#5a0a18', trail: '255,90,130', glow: '#ff4d6d' },
+  wyrmSpear:   { name: '용황창', kind: 'melee',  motion: 'thrust', range: 40, targets: 3, len: 19, shaft: '#1a0a28', tip: '#ffb0f0', trail: '255,120,220', glow: '#ff4dd2' },
+  doomAxe:     { name: '종말의 도끼창', kind: 'melee', motion: 'sweep', range: 44, targets: 9, len: 19, shaft: '#3a1a10', tip: '#ffb070', trail: '255,110,40', glow: '#ff7a2a' },
+  sunBow:      { name: '태양궁', kind: 'ranged', range: 260, targets: 1, shots: 1, size: 16, wood: '#c9a227', glow: '#ffe066',
+    arrow: { speed: 980, color: '#fffbe0', trail: '255,230,120' } },
+  voidBow:     { name: '공허궁', kind: 'ranged', range: 190, targets: 4, shots: 4, shotMult: 0.42, size: 13, wood: '#2a1050', glow: '#ff4dff',
+    arrow: { speed: 380, color: '#ff8aff', magic: true } },
 };
 
 // ───────────────────────── 전직 조건 ─────────────────────────
 const CLASS_REQ = {
   1: { level: 20, mana: 0, gold: 500 },      // 첫 전직은 마력석 없이 — 초반엔 마력석이 거의 안 모인다
   2: { level: 50, mana: 40, gold: 50000 },
+  3: { level: 100, mana: 150, gold: 5e10 },
 };
 
 // ───────────────────────── 직업별 몸통 스프라이트 (11×13, 오른쪽을 봄) ─────────────────────────
@@ -178,6 +188,97 @@ const BODY = {
     '..bbbcbbb..',
     '.gLLLLLLLg.',
   ],
+  // ── 3차 ──
+  archon: [
+    '..y..y..y..',
+    '...yyyyy...',
+    '...hhhhh...',
+    '.whHHHHHh..',
+    'wwhHvvvvh..',
+    '.whHHHHHh..',
+    '...hhhhh...',
+    '.aaAAAAAaa.',
+    'aAAAAyAAAAa',
+    '.aAyyyyyAa.',
+    '.aAAAyAAAa.',
+    '..bbbybbb..',
+    '..aAAAAAa..',
+  ],
+  swordsaint: [
+    '.n.......n.',
+    '.nn.....nn.',
+    '..nhhhhhn..',
+    '..hHHHHHh..',
+    '..hHvvvvh..',
+    '..hHHRHHh..',
+    '...hhhhh...',
+    '..aARARAa..',
+    '.aARAAARAa.',
+    '.aAARARAAa.',
+    '.aAAARAAAa.',
+    '..bbbRbbb..',
+    '..aARARAa..',
+  ],
+  dragonlord: [
+    'nn.......nn',
+    '.nnhhhhhnn.',
+    '..nhHHHhn..',
+    '..hHHHHHhh.',
+    '..hHHvvvHh.',
+    '..hHHHHHh..',
+    '...hhhhh...',
+    '.aaAAAAAaa.',
+    'aAAAAyAAAAa',
+    '.ayAAyAAya.',
+    '.aAAAyAAAa.',
+    '..bbbybbb..',
+    '..aAAAAAa..',
+  ],
+  warlord: [
+    '.n.......n.',
+    '.nnhhhhhnn.',
+    '..hHHHHHh..',
+    '..hHHHHHh..',
+    '..hvvvvvh..',
+    '..hHHyHHh..',
+    '..hhhhhhh..',
+    'aaAAAAAAAaa',
+    'aAAyAyAyAAa',
+    'aaAAAyAAAaa',
+    '.aAAAAAAAa.',
+    '..bbbybbb..',
+    '..aAAAAAa..',
+  ],
+  deadeye: [
+    '.....y.....',
+    '....ggg....',
+    '...gGGGg...',
+    '..gGGGGGg..',
+    '..gGGmeme..',
+    '..gGGmmmm..',
+    '...gGmmm...',
+    '..gLLyLLg..',
+    '.gLLLyLLLg.',
+    '.gLyyyyyLg.',
+    '.gLLLyLLLg.',
+    '..bbbbbbb..',
+    '.gLLLLLLLg.',
+  ],
+  voidArcher: [
+    '...c...c...',
+    '....ccc....',
+    '...gGGGg...',
+    '..gGGGGGg..',
+    '..gGGsese..',
+    '..gGGssss..',
+    '...gGsss...',
+    '..gLLcLLg..',
+    '.gLLcccLLg.',
+    '.gLcLcLcLg.',
+    '.gLLcccLLg.',
+    '..bbbcbbb..',
+    '.gLLLcLLLg.',
+  ],
 };
 
 // ───────────────────────── 직업 ─────────────────────────
@@ -283,6 +384,70 @@ const CLASSES = {
       body: BODY.arcaneArcher, fx: '#6ff3ff',
       pal: { g: '#1f2f6a', G: '#3a55b0', s: '#f0c29a', e: '#35e0ff', L: '#2a3f8a', c: '#6ff3ff', b: '#1a2450', l: '#2a3f8a', k: '#1a2450' },
       cape: { style: 'cloak', color: '#26398a' },
+    },
+  },
+
+  // ── 3차 (2차마다 하나). 1차 스킬 자리를 궁극기가 대신한다 (숙련도는 그 1차 스킬 것을 그대로 쓴다, SKILLS 의 mastOf) ──
+  archon: {
+    tier: 3, from: 'paladin', name: '성좌기사', icon: '🌟', weapon: 'starBlade',
+    mods: { atk: 2.12, hp: 2.4, aspd: 1.1, crit: 0.08, guard: 0.3, heal: 0.025 },
+    desc: '별자리를 두른 성기사. 하늘의 성좌를 불러 내려 전장을 심판한다.',
+    look: {
+      body: BODY.archon, fx: '#9fd8ff',
+      pal: { h: '#8fa8c8', H: '#f4f8ff', a: '#7f9cc8', A: '#eaf2ff', y: '#9fd8ff', v: '#1b2a4a', b: '#3a4f7a', w: '#ffffff', l: '#7f9cc8', k: '#3a4f7a' },
+      cape: { style: 'cape', color: '#1f2f5a' },
+      halo: true,
+      shield: { face: '#eaf2ff', rim: '#9fd8ff', emblem: '#3d7bff' },
+    },
+  },
+  swordsaint: {
+    tier: 3, from: 'blademaster', name: '검신', icon: '🌸', weapon: 'moonBlades',
+    mods: { atk: 1.81, hp: 1.7, aspd: 2.2, crit: 0.28, critMult: 0.8 },
+    desc: '검의 끝에 닿은 자. 칼을 뽑는 순간 전장 전체가 갈라진다.',
+    look: {
+      body: BODY.swordsaint, fx: '#ff6a8a',
+      pal: { n: '#ffd0dc', h: '#14141a', H: '#2a2a34', v: '#ff6a8a', a: '#f4f1e8', A: '#ffffff', R: '#c4203c', b: '#5a0a18', l: '#2a2b33', k: '#5a0a18' },
+      cape: { style: 'scarf', color: '#ff6a8a' },
+    },
+  },
+  dragonlord: {
+    tier: 3, from: 'dragoon', name: '용황', icon: '🐲', weapon: 'wyrmSpear',
+    mods: { atk: 3.14, hp: 2.1, aspd: 0.95, crit: 0.14 },
+    desc: '용들의 왕이 된 기병. 창을 들면 하늘에서 용황이 내려온다.',
+    look: {
+      body: BODY.dragonlord, fx: '#ff4dd2',
+      pal: { n: '#ffe066', h: '#1a0a28', H: '#5a1a6a', v: '#ff4dd2', a: '#1f0f30', A: '#4a1f6a', y: '#ff9fe8', b: '#12081c', l: '#2a1240', k: '#12081c' },
+      cape: { style: 'cape', color: '#8a1f6a' },
+    },
+  },
+  warlord: {
+    tier: 3, from: 'halberdier', name: '전쟁군주', icon: '⚒️', weapon: 'doomAxe',
+    mods: { atk: 3.33, hp: 2.5, aspd: 0.85, crit: 0.1 },
+    desc: '전쟁 그 자체가 된 거인. 도끼창을 내리찍으면 땅이 끝까지 무너진다.',
+    look: {
+      body: BODY.warlord, fx: '#ff7a2a',
+      pal: { n: '#e9e4d4', h: '#3a3e48', H: '#6a707c', v: '#ff5a1f', a: '#5a2410', A: '#a8481a', y: '#ffd257', b: '#2a1408', l: '#3a3e48', k: '#2a1408' },
+      cape: { style: 'cape', color: '#7a1a10' },
+    },
+  },
+  deadeye: {
+    tier: 3, from: 'marksman', name: '신궁', icon: '☀️', weapon: 'sunBow',
+    mods: { atk: 2.73, hp: 1.55, aspd: 0.85, crit: 0.4, critMult: 0.8 },
+    desc: '태양을 쏘아 떨어뜨렸다는 궁수. 시위를 당기면 하늘이 열린다.',
+    look: {
+      body: BODY.deadeye, fx: '#ffe066',
+      pal: { g: '#5a4a1a', G: '#8a7a3a', m: '#2a2416', e: '#ffe066', L: '#6a5a2a', y: '#ffd257', b: '#2a2016', l: '#4a3e22', k: '#2a2016' },
+      cape: { style: 'cloak', color: '#c9a227' },
+    },
+  },
+  voidArcher: {
+    tier: 3, from: 'arcaneArcher', name: '차원궁사', icon: '🌀', weapon: 'voidBow',
+    mods: { atk: 1.8, hp: 1.55, aspd: 1.45, crit: 0.14 },
+    desc: '차원의 틈을 활시위로 삼는다. 화살 네 발이 공간을 찢으며 날아간다.',
+    look: {
+      body: BODY.voidArcher, fx: '#ff4dff',
+      pal: { g: '#1a0a30', G: '#3a1a6a', s: '#e8c8f0', e: '#ff4dff', L: '#2a1250', c: '#ff8aff', b: '#12081c', l: '#2a1250', k: '#12081c' },
+      cape: { style: 'cloak', color: '#2a0a4a' },
     },
   },
 };
@@ -532,6 +697,118 @@ const SKILLS = {
     stageDesc: ['하늘로 쏜 화살이 별똥처럼 세 발 떨어진다', '하늘에 마법진을 열어 별빛 화살을 쏟는다', '하늘에 별이 하나씩 켜져 별자리로 이어지고 — 별마다 화살이 떨어진다', '하단바가 밤하늘로 물들고 오로라가 흐르다 — 거대한 별이 떨어져 부서진다'],
     desc: '하늘에 마법진을 열어 별빛 화살을 쏟아붓는다.',
   },
+
+  // ── 3차 궁극기: 1차 스킬 자리를 대신한다 (mastOf — 숙련도는 그 1차 스킬 것을 그대로 이어 쓴다) ──
+  // 쿨타임이 아주 길고(Lv1 81초 · Lv30 32초), 하단바 전체를 쓰는 화면 연출이 있는 한 방. 연출은 src/ult/*.js
+  //  ult: true — 시전하는 동안 하단바 전체를 덮는 연출을 허락한다 (skills.js 의 '화면 전체를 쓰지 않는다' 규칙의 예외)
+  starJudgment: {
+    cls: 'archon', mastOf: 'steelCleave', ult: true, name: '성좌 강림', icon: '🌟', lv: 100, cd: 20, dur: 2.6, area: 'all', radius: 230,
+    hits: [...evenHits(5, 0.45, 0.07, 1), [0.86, 4]],
+    stages: [
+      { dur: 2.3, hits: [...evenHits(3, 0.5, 0.1, 1), [0.85, 3]] },
+      {},
+      { dur: 2.9, hits: [...evenHits(12, 0.36, 0.036, 0.5), [0.88, 4]] },
+      { dur: 3.3, hits: [...evenHits(12, 0.3, 0.032, 0.5), [0.72, 2], [0.9, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['성좌의 빛', '성좌 강림', '십이성좌', '창세의 빛'],
+    stageDesc: [
+      '하단바가 밤하늘로 물들고 별 셋이 떨어진 뒤 큰 별 하나가 내리꽂힌다',
+      '별들이 선으로 이어져 거대한 기사 성좌가 떠오르고, 성좌의 검이 하단바를 내리긋는다',
+      '열두 성좌가 차례로 켜지며 별비가 쏟아지고, 마지막에 성좌들이 한 점으로 모여 터진다',
+      '하늘이 갈라져 새하얀 창세의 빛이 쏟아진다 — 모든 별이 한 번에 떨어지고 빛기둥이 하단바 전체를 덮는다',
+    ],
+    desc: '하늘의 성좌를 불러 내려 하단바 전체에 별을 떨어뜨린다.',
+  },
+  thousandCuts: {
+    cls: 'swordsaint', mastOf: 'steelCleave', ult: true, name: '천검', icon: '🌸', lv: 100, cd: 20, dur: 2.4, area: 'all', radius: 230,
+    hits: [...evenHits(8, 0.4, 0.05, 0.6), [0.9, 4]],
+    stages: [
+      { dur: 2.0, hits: [...evenHits(4, 0.42, 0.08, 0.8), [0.88, 3]] },
+      {},
+      { dur: 2.8, hits: [...evenHits(14, 0.3, 0.035, 0.4), [0.9, 4]] },
+      { dur: 3.2, hits: [...evenHits(16, 0.26, 0.03, 0.35), [0.82, 1.5], [0.93, 5]] },
+    ],
+    stageName: ['천검', '천검·만화', '천검·벚꽃폭풍', '무명검·천지개벽'],
+    stageDesc: [
+      '모습이 사라지고 하단바 위에 검선 네 줄이 그어진 뒤, 칼을 거두는 순간 한꺼번에 갈라진다',
+      '하단바가 흑백으로 멎은 듯 가라앉고, 수십 갈래 검선이 사방에서 그어진 뒤 한 번에 터진다',
+      '벚꽃잎이 폭풍처럼 몰아치고 꽃잎 하나하나가 칼날이 되어 하단바를 가득 메운다',
+      '하단바가 위아래로 두 동강 나며 어긋났다가 — 칼집에 칼이 들어가는 소리와 함께 다시 붙고, 그 틈으로 빛이 터진다',
+    ],
+    desc: '보이지 않는 속도로 하단바 전체를 수십 번 벤 뒤, 칼을 거두는 순간 모두 갈라진다. 반드시 치명타.', crit: true,
+  },
+  dragonEmperor: {
+    cls: 'dragonlord', mastOf: 'piercingThrust', ult: true, name: '용황 강림', icon: '🐲', lv: 100, cd: 20, dur: 2.8, area: 'all', radius: 230,
+    hits: [...evenHits(8, 0.45, 0.05, 0.6), [0.9, 4]],
+    stages: [
+      { dur: 2.3, hits: [...evenHits(4, 0.5, 0.08, 0.8), [0.88, 3]] },
+      {},
+      { dur: 3.0, hits: [...evenHits(12, 0.38, 0.04, 0.5), [0.9, 4]] },
+      { dur: 3.4, hits: [...evenHits(10, 0.3, 0.035, 0.5), [0.75, 2], [0.92, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['흑룡 소환', '용황 강림', '쌍룡 강림', '용신의 심판'],
+    stageDesc: [
+      '창을 하늘로 치켜들면 흑룡 한 마리가 하단바를 가로질러 날며 불을 뿜는다',
+      '하늘이 갈라지고 거대한 용황이 하단바 위를 휘감아 날며 보랏빛 불길로 전부 태운다',
+      '용황 둘이 양쪽 끝에서 마주 날아와 교차하며 불길을 쏟고, 하단바가 불바다가 된다',
+      '하단바보다 큰 용신의 눈이 하늘에 떠오르고 — 용신의 숨결이 하늘에서 내리꽂혀 땅 전체가 녹아내린다',
+    ],
+    desc: '창을 하늘로 치켜들어 용황을 불러 내린다. 거대한 용이 하단바를 휘감아 날며 모든 적을 태운다.',
+  },
+  worldBreaker: {
+    cls: 'warlord', mastOf: 'piercingThrust', ult: true, name: '천붕', icon: '⚒️', lv: 100, cd: 20, dur: 2.6, area: 'all', radius: 230,
+    hits: [[0.55, 3], ...evenHits(4, 0.65, 0.05, 1), [0.9, 3]],
+    stages: [
+      { dur: 2.2, hits: [[0.6, 3], [0.8, 2]] },
+      {},
+      { dur: 2.9, hits: [[0.5, 2.5], ...evenHits(6, 0.6, 0.04, 0.8), [0.9, 3]] },
+      { dur: 3.3, hits: [[0.45, 2], ...evenHits(6, 0.55, 0.035, 0.6), [0.8, 2], [0.93, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['대지 분쇄', '천붕', '천붕지열', '종말의 일격'],
+    stageDesc: [
+      '하늘 높이 뛰어올랐다가 내려찍어 하단바 끝까지 땅을 쪼갠다',
+      '하늘이 무너지듯 거대한 도끼창 그림자가 떨어지고, 하단바 전체가 흔들리며 땅이 들썩인다',
+      '내려찍은 자리에서 균열이 하단바 끝까지 달리며 용암 기둥이 줄줄이 솟구친다',
+      '하단바 위에 거인의 도끼가 나타나 내리찍고 — 땅이 통째로 뒤집히며 파편이 하늘로 솟았다가 쏟아진다',
+    ],
+    desc: '하늘이 무너지듯 내리찍어 하단바 끝까지 땅을 무너뜨린다.',
+  },
+  sunArrow: {
+    cls: 'deadeye', mastOf: 'rapidFire', ult: true, name: '태양 관통', icon: '☀️', lv: 100, cd: 20, dur: 2.6, area: 'all', radius: 260, crit: true,
+    hits: [[0.75, 3], ...evenHits(4, 0.8, 0.03, 0.75)],
+    stages: [
+      { dur: 2.2, hits: [[0.75, 3]] },
+      {},
+      { dur: 2.9, hits: [[0.7, 2.5], ...evenHits(6, 0.76, 0.03, 0.6)] },
+      { dur: 3.3, hits: [[0.62, 1.5], [0.78, 2], ...evenHits(6, 0.82, 0.02, 0.5), [0.95, 3]] },
+    ],
+    stageName: ['일점 사격', '태양 관통', '천벌의 화살', '태양 낙하'],
+    stageDesc: [
+      '하단바가 숨을 죽인 듯 어두워지고, 조준선이 모인 한 점으로 빛의 화살이 하단바를 꿰뚫는다',
+      '하늘을 향해 쏜 화살이 태양을 꿰뚫고 — 태양빛이 굵은 광선이 되어 하단바 끝까지 관통한다',
+      '하늘 가득 화살 그림자가 떠오르고 태양 광선이 하단바를 쓸고 지나가며 화살비가 따라 쏟아진다',
+      '하단바 위로 거대한 태양이 떨어져 내려와 — 빛이 하단바 전체를 하얗게 태우고 열기가 일렁인다',
+    ],
+    desc: '하늘의 태양을 꿰뚫어 그 빛으로 하단바 끝까지 관통한다. 반드시 치명타.',
+  },
+  dimensionCollapse: {
+    cls: 'voidArcher', mastOf: 'rapidFire', ult: true, name: '차원 붕괴', icon: '🌀', lv: 100, cd: 20, dur: 2.8, area: 'all', radius: 230,
+    hits: [...evenHits(10, 0.4, 0.04, 0.5), [0.9, 4]],
+    stages: [
+      { dur: 2.3, hits: [...evenHits(5, 0.45, 0.06, 0.6), [0.86, 3]] },
+      {},
+      { dur: 3.0, hits: [...evenHits(14, 0.35, 0.035, 0.4), [0.9, 4]] },
+      { dur: 3.4, hits: [...evenHits(14, 0.3, 0.03, 0.35), [0.78, 1.5], [0.93, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['공허탄', '차원 균열', '블랙홀', '사건의 지평선'],
+    stageDesc: [
+      '공허를 머금은 화살이 하단바 한가운데서 터져 보랏빛 균열이 번진다',
+      '하단바에 차원의 균열이 지그재그로 찢어지고, 균열 속 공허가 적을 빨아들이며 찢는다',
+      '하단바 한가운데 블랙홀이 열려 주변 빛과 파편이 휘어 빨려 들어가다가 터진다',
+      '하단바 전체가 음화처럼 뒤집히고 시공간이 소용돌이친다 — 모든 것이 한 점으로 접혔다가 하얀 빛으로 펼쳐진다',
+    ],
+    desc: '차원을 찢는 화살로 하단바에 블랙홀을 열어 모든 적을 빨아들이고 터뜨린다.',
+  },
 };
 for (const id in SKILLS) SKILLS[id].id = id;
 // 대상 하나가 받는 총 피해 배율 (보호막 지속 피해 포함)
@@ -558,12 +835,16 @@ const skillNameAt = (k, lv = 1) => (k.stageName ? k.stageName[Math.min(3, Math.f
 const hitRange = (k, i) => (k.hits[i] && k.hits[i][2] ? { ...k, ...k.hits[i][2] } : k);
 // 그 직업만의 스킬 (해금 레벨 순)
 const classSkillsOf = (cls) => Object.values(SKILLS).filter((k) => k.cls === cls).sort((a, b) => a.lv - b.lv);
-// 쓸 수 있는 스킬: 2차 직업은 1차 스킬을 물려받는다 (숙련도도 그대로). 해금 레벨 순
+// 쓸 수 있는 스킬: 2차 직업은 1차 스킬을 물려받는다 (숙련도도 그대로). 3차 직업은 2차 스킬을 물려받고,
+// 1차 스킬 자리는 궁극기가 대신한다 (mastOf). 해금 레벨 순
 const skillsOf = (cls) => {
   const out = [];
   for (let c = cls; c; c = CLASSES[c].from) out.push(...classSkillsOf(c));
-  return out.sort((a, b) => a.lv - b.lv);
+  const gone = new Set(out.map((k) => k.mastOf).filter(Boolean));
+  return out.filter((k) => !gone.has(k.id)).sort((a, b) => a.lv - b.lv);
 };
+// 숙련도(S.mast)를 기록하는 스킬 id. 궁극기는 대신한 1차 스킬의 숙련도를 그대로 이어 쓴다
+const mastKey = (id) => (SKILLS[id] && SKILLS[id].mastOf) || id;
 
 // ───────────────────────── 스킬 숙련도 ─────────────────────────
 // 📖 비전서로만 오른다 (쓴다고 오르지 않는다). 경험치 없이 비전서 권수 그대로 — 다음 레벨까지 1~30권. 숙련도가 오르면 **쿨타임이 줄고 한 방이 세진다** (둘을 함께 쓴다).
@@ -581,6 +862,8 @@ const SKILL_DMG = {
   swordsman: 2.28, lancer: 2.34, ranger: 2.30,
   paladin: 1.92, blademaster: 1.82, marksman: 1.81, arcaneArcher: 1.80,
   dragoon: 1.70, halberdier: 1.75,
+  // 3차 궁극기: Lv30 이면 그 직업 전체 DPS 를 +25% (Lv1 +10%). 3차 직업 전체는 2차보다 약 1.4배 (궁극기 포함, 공격력 보정으로 맞춤)
+  archon: 1.26, swordsaint: 1.24, dragonlord: 1.23, warlord: 0.97, deadeye: 0.94, voidArcher: 2.42,
 };
 // 2차 직업이 물려받은 1차 스킬의 위력 배수. 1차 스킬을 그대로 얹으면 직업마다 DPS 가 +15~43%(Lv30) 로 들쭉날쭉해서,
 // 계승 스킬이 2차 직업의 전체 DPS 를 Lv1 +5% → Lv30 +10% 만큼 올리도록 직업마다 맞췄다 (스킬 비중이 큰 직업일수록 낮다)
@@ -635,4 +918,5 @@ const CLASS_TREE = [
   ['squire'],
   ['swordsman', 'lancer', 'ranger'],
   ['paladin', 'blademaster', 'dragoon', 'halberdier', 'marksman', 'arcaneArcher'],
+  ['archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher'],
 ];

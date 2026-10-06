@@ -156,24 +156,24 @@ function stats(base = false) {
 const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id);
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
-const skillLv = (id) => skillLvOf(S.mast[id] || 0).lv;
+const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0).lv;
 const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls);
 const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls);
 // 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null
 function feedTomes(id, n) {
   const k = SKILLS[id];
   if (!k || !skillsOf(S.cls).includes(k)) return null;
-  const have = S.mast[id] || 0;
+  const key = mastKey(id), have = S.mast[key] || 0;
   const used = Math.min(n, S.tomes, SKILL_TOME_MAX - have);
   if (used <= 0) return null;
   const from = skillLv(id);
   S.tomes -= used;
-  S.mast[id] = have + used;
+  S.mast[key] = have + used;
   return { used, from, to: skillLv(id) };
 }
 // 지금 가진 비전서로 레벨을 하나라도 올릴 수 있는 내 스킬이 있는가 (레드닷)
 const canLevelSkill = () => skillsOf(S.cls).some((k) => {
-  const s = skillLvOf(S.mast[k.id] || 0);
+  const s = skillLvOf(S.mast[mastKey(k.id)] || 0);
   return s.lv < SKILL_MAX && S.tomes >= s.need - s.have;
 });
 
