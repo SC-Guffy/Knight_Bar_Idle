@@ -368,11 +368,15 @@ function viewTrain() {
         <span class="cost">${maxed ? (lv >= u.max ? 'MAX' : '훈련장 필요') : '<i class="gc"></i> ' + fmt(cost)}</span>
       </button>`;
   }).join('');
+  const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u));
   const c = heroClass(), w = heroWeapon();
   const next = Object.keys(CLASSES).filter(id => CLASSES[id].from === S.cls);
   const nextLine = next.length ? `다음 전직: Lv ${CLASS_REQ[CLASSES[next[0]].tier].level}` : '최종 직업';
   return `
-    <h3>🎯 훈련 <small>최대 Lv ${cap} (훈련장 Lv ${S.bld.training})</small></h3>
+    <div class="shead">
+      <h3>🎯 훈련 <small>최대 Lv ${cap} (훈련장 Lv ${S.bld.training})</small></h3>
+      <button class="btn" data-action="train-all" ${anyTrain ? '' : 'disabled'}>⚡ 골고루 올리기</button>
+    </div>
     <div class="tgrid">${cards}</div>
     <h3>🗡 직업 · 무기</h3>
     <div class="card">
@@ -1954,6 +1958,7 @@ const ACTIONS = {
   },
   'build': (el) => startBuild(el.dataset.id),
   'train': (el) => doTrain(el.dataset.id),
+  'train-all': () => { const n = doTrainAll(); if (n) toast(`🎯 훈련 ${n}단계 올렸어요`, 2500); },
   'buy': (el) => buySupply(el.dataset.id),
   'eat': eatLunch,
   'equip': (el) => { const id = Number(el.dataset.id); if (equipGear(id)) gearUi.sel = { slot: gearById(id).slot }; },

@@ -239,6 +239,16 @@ function doTrain(id) {
   if (id === 'hp') S.hp += stats().maxHp - oldMax;
   return true;
 }
+// 골드가 되는 데까지 다음 단계가 가장 싼 훈련부터 하나씩 올린다 → 네 훈련에 드는 골드가 대충 고르게 나뉜다
+function doTrainAll() {
+  let n = 0;
+  for (;;) {
+    const u = TRAINING.filter(x => S.train[x.id] < trainMax(x) && S.gold >= trainCost(x))
+      .sort((a, b) => trainCost(a) - trainCost(b))[0];
+    if (!u || !doTrain(u.id)) return n;
+    n++;
+  }
+}
 
 // ───────────────────────── 전직 ─────────────────────────
 function classPath(id = S.cls) {
