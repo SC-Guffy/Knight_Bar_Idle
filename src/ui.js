@@ -438,7 +438,7 @@ function skillList(id) {
     const dmg = k.ward ? `초당 ×${+(k.ward.tick * pow).toFixed(2)}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
-      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id)) : k.name}</b> <small>${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id)) : k.name}</b> <small>${k.ult ? `💥 궁극기 · ${SKILLS[k.mastOf].name} 숙련도 이어받음 · ` : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
         <span class="sdesc">${k.desc}</span></span>
     </div>`;
   }).join('')}</div>`;
@@ -490,7 +490,10 @@ function viewMastery() {
   const guide = guidePendingFeed()
     ? `<div class="gtip big">👉 <b>📖 1권 쓰기</b>를 눌러 보세요 — 칸이 차면 레벨이 오르고, 쿨타임이 바로 줄고 위력이 올라요.</div>`
     : S.tomes === 0 ? `<div class="gtip">📖 비전서는 ${towerUnlocked() ? '<button class="lnk" data-action="tab" data-tab="tower">🗼 도전의 탑</button>에서 가장 많이 얻어요 (원정 보스·레이드 상자·결투 시즌에서도)' : `🗼 도전의 탑(스테이지 ${TOWER_UNLOCK_STAGE}에 열림)·원정 보스·레이드 상자·결투 시즌에서 얻어요`}</div>` : '';
-  return `${head}${guideFlow('class')}${guide}${rows}<div class="hint">1차 스킬은 2차 전직 뒤에도 숙련도 그대로 써요 (2차 직업에선 위력이 조금 줄어요).</div>`;
+  const note = heroClass().tier >= 3
+    ? '3차 궁극기는 대신한 1차 스킬의 숙련도를 그대로 이어받아요. 2차 스킬은 숙련도 그대로 제 위력을 내요.'
+    : '1차 스킬은 2차 전직 뒤에도 숙련도 그대로 써요 (2차 직업에선 위력이 조금 줄어요). 3차 전직하면 궁극기가 그 자리를 숙련도째 이어받아요.';
+  return `${head}${guideFlow('class')}${guide}${rows}<div class="hint">${note}</div>`;
 }
 
 function reqChips(id) {

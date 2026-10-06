@@ -1265,6 +1265,11 @@ const HERO_ATK = {
       { s: 0.75, h: [0, -4.5],   bowA: -0.4,  pull: 0,  dx: -2, skew: -0.08, lift: 1,  e: 'o' }) },
   ],
 };
+// 3차 무기의 평타는 2차 무기의 연속기를 그대로 쓴다 (무기 생김새·색만 다르다)
+Object.assign(HERO_ATK, {
+  starBlade: HERO_ATK.holySword, moonBlades: HERO_ATK.dualBlades, wyrmSpear: HERO_ATK.dragonSpear,
+  doomAxe: HERO_ATK.halberd, sunBow: HERO_ATK.longbow, voidBow: HERO_ATK.arcaneBow,
+});
 const ATK_EASE = { o: (u) => 1 - (1 - u) ** 3, i: (u) => u * u, l: (u) => u };
 for (const id in WEAPONS) WEAPONS[id].id = id;
 // 이 무기의 n 번째 평타 모션 (연속기는 차례로 돈다)
