@@ -3339,7 +3339,7 @@ function drawUltScreen() {
   ctx.shadowBlur = 0;
   ctx.font = 'bold 10px -apple-system, sans-serif';
   ctx.fillStyle = u.color;
-  ctx.fillText('ULTIMATE', x - sweep, cy - 15);
+  ctx.fillText('ULTIMATE', x - sweep, cy - band / 2 - 7);       // 이름 띠 바로 위 (레터박스 아래)
   ctx.restore();
 }
 

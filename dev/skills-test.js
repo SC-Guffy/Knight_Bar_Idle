@@ -112,7 +112,7 @@ function run() {
   }
   function setClass(id) {
     T.cls = id;
-    S.cls = id; S.level = 99; S.phase = 'test';
+    S.cls = id; S.level = 120; S.phase = 'test';
     setStage(T.stage);
     S.hp = stats().maxHp;
     casts = []; skfx = []; cutin = null; hitstop = 0; floaters = []; parts = []; effects = []; shots = [];
