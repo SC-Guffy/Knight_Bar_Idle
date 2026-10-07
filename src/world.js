@@ -73,7 +73,8 @@ function showBanner(text, color = '#ffd257') { banner = { text, color, t: 0 }; }
 // 서버 확성기: 하단바 위쪽을 오른쪽에서 왼쪽으로 흘러가는 소식 한 줄 (한 번에 하나씩, 밀린 건 줄 서서)
 const SHOUT_SPEED = 200;        // px/s
 let shouts = [], shoutNow = null;
-function pushShout(text, color) { if (shouts.length < 10) shouts.push({ text, color }); }
+// parts: [[글자, 색 | 'rainbow'], …] — 조각마다 색이 다르다 (ui.js 의 shoutText)
+function pushShout(parts) { if (shouts.length < 10) shouts.push({ parts }); }
 function updateShout(dt) {
   if (!shoutNow && shouts.length) shoutNow = { ...shouts.shift(), x: W + 10, w: 0 };
   if (!shoutNow) return;
@@ -84,12 +85,21 @@ function drawShout() {
   if (!shoutNow) return;
   ctx.font = 'bold 15px -apple-system, sans-serif';
   ctx.textAlign = 'left';
-  shoutNow.w = ctx.measureText(shoutNow.text).width;
-  const x = Math.round(shoutNow.x), y = 52;     // HUD(위 6~34px) 바로 아래
   ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-  ctx.strokeText(shoutNow.text, x, y);
-  ctx.fillStyle = shoutNow.color;
-  ctx.fillText(shoutNow.text, x, y);
+  const y = 52, hue = performance.now() / 3;     // HUD(위 6~34px) 바로 아래
+  let x = Math.round(shoutNow.x);
+  for (const [t, c] of shoutNow.parts) {
+    // 무지개: 글자마다 색이 흐른다
+    for (const piece of c === 'rainbow' ? [...t] : [t]) {
+      ctx.strokeText(piece, x, y);
+      ctx.fillStyle = c === 'rainbow' ? `hsl(${(hue + (x - shoutNow.x) * 9) % 360}, 100%, 66%)` : c;
+      if (c === 'rainbow') { ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 8; }
+      ctx.fillText(piece, x, y);
+      ctx.shadowBlur = 0;
+      x += ctx.measureText(piece).width;
+    }
+  }
+  shoutNow.w = x - shoutNow.x;
   ctx.textAlign = 'center';
 }
 

@@ -1312,12 +1312,16 @@ function tellInbox() {
 // 누군가 +20 이상 강화에 성공하거나 강화가 초기화되면 모든 기사의 하단바 위로 소식이 흘러간다 (world.js 의 pushShout)
 const SHOUT_CHECK_EVERY = 15 * 1000;
 const shoutFeed = { after: 0, busy: false };
+// 조각마다 색을 따로: 닉네임은 하늘색, 강화 단계는 높을수록 금 → 주황 → 분홍 → 무지개(+25), 성공은 초록, 초기화는 빨강·잃은 단계는 회색으로 꺼짐
+const SHOUT_COL = { text: '#e6e6ee', nick: '#7cc4ff', good: '#7dffb0', bad: '#ff6b6b', lost: '#8a8a96' };
+const shoutLvCol = (L) => L >= ENHANCE_MAX ? 'rainbow' : L >= 24 ? '#ff5ac8' : L >= 22 ? '#ff9f1c' : L >= 20 ? '#ffd257' : '#e0b070';
 function shoutText(m) {
   const g = GEAR_SLOTS[m.slot] || { name: '장비', icon: '⚒️' };
-  if (m.result === 'reset') return { text: `📢 ${m.nickname}님의 ${g.icon} ${g.name} +${m.from} 강화가… +0 으로 초기화됐습니다 😭`, color: '#ff7a7a' };
-  return m.to >= ENHANCE_MAX
-    ? { text: `📢 ${m.nickname}님이 ${g.icon} ${g.name} 최대 강화 +${m.to} 달성!! 🎉🎉`, color: '#ff9f1c' }
-    : { text: `📢 ${m.nickname}님이 ${g.icon} ${g.name} +${m.to} 강화에 성공했습니다! 🎉`, color: '#ffd257' };
+  const C = SHOUT_COL, head = [['📢 ', C.text], [m.nickname, C.nick]];
+  if (m.result === 'reset') return [...head, ['님의 ', C.text], [`${g.icon} ${g.name} `, C.text], [`+${m.from}`, shoutLvCol(m.from)],
+    [' → ', C.text], ['+0', C.lost], [' 강화가 ', C.text], ['초기화', C.bad], ['됐습니다… 😭', C.text]];
+  if (m.to >= ENHANCE_MAX) return [...head, ['님이 ', C.text], [`${g.icon} ${g.name} `, C.text], ['최대 강화 ', C.good], [`+${m.to}`, 'rainbow'], [' 달성!! 🎉🎉', C.good]];
+  return [...head, ['님이 ', C.text], [`${g.icon} ${g.name} `, C.text], [`+${m.to}`, shoutLvCol(m.to)], [' 강화에 ', C.text], ['성공', C.good], ['했습니다! 🎉', C.text]];
 }
 function loadShouts() {
   if (shoutFeed.busy) return;
@@ -1327,8 +1331,7 @@ function loadShouts() {
       for (const m of d.list || []) {
         if (m.id <= shoutFeed.after) continue;
         shoutFeed.after = m.id;
-        const t = shoutText(m);
-        pushShout(t.text, t.color);
+        pushShout(shoutText(m));
       }
     }, () => {})
     .finally(() => { shoutFeed.busy = false; });
