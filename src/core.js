@@ -29,8 +29,8 @@ function freshState() {
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed)
-    mastV: 6,                               // 6: 별은 진화 버튼으로 단다(star) · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
-    star: {},                               // 스킬 별: 스킬 id → { n 단 별 수 0~3 (진화 버튼, 위력·쿨타임), use 적용한 모습 0~n (기술 형태·연출) }
+    mastV: 7,                               // 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
     gearV: 5,                               // 5: 무기·갑옷 위력 레벨 = 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
@@ -91,15 +91,11 @@ function migrate(o) {
       s.mast[id] = lv >= SKILL_MAX ? SKILL_TOME_MAX : skillTomesAt(lv) + Math.floor(left / skillNeedWith(oldMax, lv) * skillNeed(lv));
     }
   }
-  // mastV 6: Lv10·20·30 에 자동으로 붙던 별이 진화 버튼으로 바뀌었다 — 이미 닿은 별은 단 것으로 쳐서 위력이 떨어지지 않게 한다
-  if (o.mast && (o.mastV || 1) < 6) {
-    for (const id of Object.keys(s.mast)) {
-      const n = masteryOf(skillLvOf(s.mast[id]).lv);
-      if (n) s.star[id] = { n, use: n };
-    }
-    if (Object.keys(s.star).length && !s.notice) s.notice = '⚡ 스킬 탭이 전직에서 분리됐어요 — 이제 Lv10·20·30 의 별은 ✨ 진화 버튼으로 직접 달고, 단 별 안에서 몇 성의 모습으로 쓸지 고를 수 있어요. 지금까지 닿은 별은 그대로 달아 드렸어요';
+  // mastV 7: 별(자동 → 진화 버튼)이 ⭐ 포인트를 찍는 스킬 트리로 바뀌었다. 포인트는 모두 미배분으로 시작한다 (트리에서 다시 찍는다)
+  if (o.mast && (o.mastV || 1) < 7 && Object.keys(s.mast).some((id) => skillLvOf(s.mast[id]).lv >= TREE_PT_EVERY) && !s.notice) {
+    s.notice = '⚡ 스킬 트리 도입 — 스킬 Lv5 마다 ⭐ 포인트가 1개 생기고, 스킬 탭의 트리에서 공격·쿨타임 특화와 진화(별) 노드에 찍어요. 지금 가진 포인트를 찍어 주세요 (되돌리기는 무료)';
   }
-  s.mastV = 6;
+  s.mastV = 7;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -217,27 +213,58 @@ const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reve
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0).lv;
-// 스킬 별 (S.star): n 은 진화 버튼으로 단 별 수 (위력·쿨타임 +10%/별), use 는 전투에서 쓰는 모습의 단계 (0~n, 기술 형태·연출만)
-const starOf = (id) => S.star[mastKey(id)] || { n: 0, use: 0 };
-const skillStar = (id) => starOf(id).n;
-const skillStage = (id) => Math.min(starOf(id).n, starOf(id).use);
-const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillStar(id));
-const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillStar(id));
-// 다음 별을 달 수 있는가: 레벨이 Lv10·20·30 에 닿았고 아직 안 달았다
-const canEvolve = (id) => skillStar(id) < masteryOf(skillLv(id));
-const canEvolveAny = () => skillsOf(S.cls).some((k) => canEvolve(k.id));
-// 별 하나를 단다 (진화). 새 모습을 바로 적용한다. 단 별 수 또는 null
-function evolveSkill(id) {
-  if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canEvolve(id)) return null;
-  const n = skillStar(id) + 1;
-  S.star[mastKey(id)] = { n, use: n };
-  return n;
+// 스킬 트리 (S.tree, classes.js SKILL_TREE): 숙련도 Lv5 마다 ⭐ 포인트 1. n 은 노드별 찍은 Lv, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
+const treeOf = (id) => S.tree[mastKey(id)] || { n: {}, use: 0 };
+const nodeLv = (id, nid) => treeOf(id).n[nid] || 0;
+const skillPts = (id) => Math.floor(skillLv(id) / TREE_PT_EVERY);
+const skillSpent = (id) => Object.values(treeOf(id).n).reduce((a, b) => a + b, 0);
+const skillPtsLeft = (id) => skillPts(id) - skillSpent(id);
+// 트리가 주는 보너스 { star 단 별 수, pow 공격 특화 Lv 합, cd 쿨타임 특화 Lv 합 } (classes.js skillPowAt·skillCdOf 의 b)
+function skillBonus(id) {
+  const n = treeOf(id).n, b = { star: 0, pow: 0, cd: 0 };
+  for (const nid in n) {
+    const nd = TREE_NODES[nid];
+    if (!nd || !n[nid]) continue;
+    if (nd.kind === 'star') b.star++;
+    else if (nd.kind === 'pow') b.pow += n[nid];
+    else if (nd.kind === 'cd') b.cd += n[nid];
+  }
+  return b;
+}
+const skillStar = (id) => skillBonus(id).star;
+const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
+const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
+const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
+// 노드 상태: max(다 찍음) · on(찍는 중) · open(찍을 수 있음) · closed(같은 단계의 다른 노드를 골라서 닫힘) · locked(윗 단계가 비었음)
+function nodeState(id, nid) {
+  const nd = TREE_NODES[nid], lv = nodeLv(id, nid);
+  if (nd.kind === 'learn' || lv >= nd.max) return 'max';
+  if (lv > 0) return 'on';
+  if (SKILL_TREE[nd.tier].some((o) => o.id !== nid && nodeLv(id, o.id) > 0)) return 'closed';
+  if (!SKILL_TREE[nd.tier - 1].some((o) => o.kind === 'learn' || nodeLv(id, o.id) > 0)) return 'locked';
+  return 'open';
+}
+const canInvest = (id, nid) => skillPtsLeft(id) > 0 && (nodeState(id, nid) === 'on' || nodeState(id, nid) === 'open');
+const canInvestAny = () => skillsOf(S.cls).some((k) => skillPtsLeft(k.id) > 0 && Object.keys(TREE_NODES).some((nid) => canInvest(k.id, nid)));
+// 노드에 포인트 1 을 찍는다. 진화 노드면 새 모습을 바로 적용한다. 찍은 뒤 노드 Lv 또는 0
+function investNode(id, nid) {
+  if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canInvest(id, nid)) return 0;
+  const key = mastKey(id), t = S.tree[key] || (S.tree[key] = { n: {}, use: 0 });
+  t.n[nid] = (t.n[nid] || 0) + 1;
+  if (TREE_NODES[nid].kind === 'star') t.use = skillStar(id);
+  return t.n[nid];
+}
+// 찍은 포인트를 모두 되돌린다 (무료)
+function resetTree(id) {
+  if (!SKILLS[id] || !skillSpent(id)) return false;
+  S.tree[mastKey(id)] = { n: {}, use: 0 };
+  return true;
 }
 // 전투에서 쓸 모습을 고른다 (0 ~ 단 별 수)
 function setSkillStar(id, use) {
-  const st = starOf(id);
-  if (!SKILLS[id] || use < 0 || use > st.n || use === st.use) return false;
-  S.star[mastKey(id)] = { n: st.n, use };
+  const t = treeOf(id);
+  if (!SKILLS[id] || use < 0 || use > skillStar(id) || use === t.use) return false;
+  S.tree[mastKey(id)] = { n: t.n, use };
   return true;
 }
 // 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null

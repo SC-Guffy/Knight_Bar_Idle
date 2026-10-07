@@ -1070,8 +1070,9 @@ const mastKey = (id) => (SKILLS[id] && SKILLS[id].mastOf) || id;
 //  - 한 방 위력: SKILLS 배율 × SKILL_DMG[직업] × (Lv1 1/1.4 → Lv30 1). Lv30 이면 그 직업의 전체 DPS 가 도입 전보다 +25% 가 되도록 직업마다 정했다.
 //    스킬 비중이 큰 직업(용기병·할버디어 ~50%)일수록 낮고 1차(~25%)는 높다 — 그래야 다 키웠을 때 모든 직업의 성장이 같다.
 //    그 결과 전체 DPS(도입 전 = 100%)는 Lv1 79~94%, Lv10 86~99%, Lv20 99~107%, Lv30 125%. 스킬 비중이 큰 직업일수록 Lv1 이 낮다.
-//  - 성장의 70% 는 레벨마다 고르게, 30% 는 별(★)마다 10% 씩. 별은 Lv10·20·30 에 닿았을 때 스킬 탭의 ✨ 진화 버튼을 눌러서 단다 (S.star[key].n).
-//    단 별 안에서 몇 성의 모습으로 쓸지는 따로 고른다 (S.star[key].use) — 기술의 모양·연출(stages·stageName)만 바뀌고 위력·쿨타임은 단 별(n) 기준.
+//  - 성장의 70% 는 레벨마다 고르게, 30% 는 별(★)마다 10% 씩. 별은 아래 스킬 트리의 진화 노드에 ⭐ 포인트를 찍어서 단다 (S.tree[key].n).
+//    단 별 안에서 몇 성의 모습으로 쓸지는 따로 고른다 (S.tree[key].use) — 기술의 모양·연출(stages·stageName)만 바뀌고 위력·쿨타임은 단 별 기준.
+//  - 트리의 특화 노드: ⚔️ 공격 특화는 한 방 위력 ×(1 + TREE_POW·Lv), ⏱️ 쿨타임 특화는 쿨타임 ×(1 − TREE_CD·Lv) (아래 스킬 트리)
 //  - 보호막(성역)의 지속·감소·회복 수치는 그대로이고 지속 피해만 위력 배율을 받는다.
 const SKILL_MAX = 30;
 const SKILL_CD_LV1 = 3.0;
@@ -1120,13 +1121,21 @@ const inheritBoost = (k, owner) => {
   if (owner === k.cls || !INHERIT_DMG[owner]) return 1;
   return Math.max(1, INHERIT_HIT / (skillMult(k) * (SKILL_DMG[k.cls] || 2) * SKILL_DMG_LV1 * INHERIT_DMG[owner] * SKILL_POW_UP));
 };
-// 쿨타임(초). owner 는 쓰는 기사의 직업 (물려받은 스킬이면 inheritBoost 만큼 길어진다). star 는 단 별 수
-const skillCdOf = (k, lv, owner = k.cls, star) => k.cdSpan
-  ? Math.round((k.cdSpan[0] + (k.cdSpan[1] - k.cdSpan[0]) * skillProg(lv, star)) * 10) / 10
-  : Math.round(k.cd * skillCdAt(lv, star) * SKILL_CD_UP * inheritBoost(k, owner) * 10) / 10;
-// 한 방 위력 배수 (SKILLS 배율에 곱한다). k 는 스킬, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG·inheritBoost 를 곱한다). star 는 단 별 수
-const skillPowAt = (k, lv, owner = k.cls, star) =>
-  (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv, star)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1);
+// 트리 보너스 b: { star 단 별 수, pow 공격 특화 Lv 합, cd 쿨타임 특화 Lv 합 } — 숫자만 주면 별 수로 본다 (없으면 레벨로 가능한 최대 별, 특화 0)
+const treeBonus = (b) => (typeof b === 'number' ? { star: b } : b || {});
+// 쿨타임(초). owner 는 쓰는 기사의 직업 (물려받은 스킬이면 inheritBoost 만큼 길어진다)
+const skillCdOf = (k, lv, owner = k.cls, b) => {
+  const t = treeBonus(b), m = 1 - TREE_CD * (t.cd || 0);
+  return k.cdSpan
+    ? Math.round((k.cdSpan[0] + (k.cdSpan[1] - k.cdSpan[0]) * skillProg(lv, t.star)) * m * 10) / 10
+    : Math.round(k.cd * skillCdAt(lv, t.star) * SKILL_CD_UP * inheritBoost(k, owner) * m * 10) / 10;
+};
+// 한 방 위력 배수 (SKILLS 배율에 곱한다). k 는 스킬, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG·inheritBoost 를 곱한다)
+const skillPowAt = (k, lv, owner = k.cls, b) => {
+  const t = treeBonus(b);
+  return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv, t.star)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1)
+    * (1 + TREE_POW * (t.pow || 0));
+};
 // 누적 비전서 → { lv, have 이번 레벨에 먹인 권수, need 이번 레벨에 필요한 권수 }
 function skillLvOf(total) {
   let lv = 1, left = total;
@@ -1137,6 +1146,26 @@ function skillLvOf(total) {
 const skillTomesAt = (lv) => { let n = 0; for (let L = 1; L < lv; L++) n += skillNeed(L); return n; };
 // 만렙까지 필요한 누적 비전서
 const SKILL_TOME_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed(i + 1)).reduce((a, b) => a + b, 0);
+
+// ───────────────────────── 스킬 트리 ─────────────────────────
+// 스킬마다 위→아래 1-2-1-2-1 노드 트리 (스킬 탭). 숙련도 Lv5 마다 ⭐ 포인트 1 (Lv30 이면 6 = 노드 레벨 합과 같다).
+//  1단 📗 습득(익히면 자동) → 2단 ⚔️ 공격 특화 I / ⏱️ 쿨타임 특화 I (둘 중 하나, Lv2) → 3단 진화 ★ → 4단 특화 II (하나, Lv2) → 5단 진화 ★★
+//  윗 단계에 찍은 노드가 하나라도 있어야 다음 단계를 찍을 수 있고, 같은 단계의 두 특화는 하나를 고르면 다른 쪽이 닫힌다. 되돌리기는 무료 (core.js resetTree).
+//  ★★★ 은 트리를 1-2-1-2-1-2-1 로 늘릴 때 (TREE_STARS)
+const TREE_PT_EVERY = 5;
+const TREE_POW = 0.06;    // 공격 특화 Lv 당 한 방 위력 +6% (Lv2 ×2단 = +24%)
+const TREE_CD = 0.05;     // 쿨타임 특화 Lv 당 쿨타임 -5% (Lv2 ×2단 = -20%, DPS +25%)
+const TREE_STARS = 2;
+const SKILL_TREE = [
+  [{ id: 'learn', kind: 'learn', name: '습득', icon: '📗', max: 1 }],
+  [{ id: 'pow1', kind: 'pow', name: '공격 특화 I', icon: '⚔️', max: 2 }, { id: 'cd1', kind: 'cd', name: '쿨타임 특화 I', icon: '⏱️', max: 2 }],
+  [{ id: 'star1', kind: 'star', star: 1, name: '진화 ★', max: 1 }],
+  [{ id: 'pow2', kind: 'pow', name: '공격 특화 II', icon: '⚔️', max: 2 }, { id: 'cd2', kind: 'cd', name: '쿨타임 특화 II', icon: '⏱️', max: 2 }],
+  [{ id: 'star2', kind: 'star', star: 2, name: '진화 ★★', max: 1 }],
+];
+const TREE_NODES = {};
+SKILL_TREE.forEach((tier, t) => tier.forEach((nd) => { nd.tier = t; TREE_NODES[nd.id] = nd; }));
+const TREE_PTS_MAX = Math.floor(SKILL_MAX / TREE_PT_EVERY);
 
 // 트리 화면 배치 순서
 const CLASS_TREE = [
