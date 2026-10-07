@@ -990,22 +990,6 @@ function reforgeLine(slot) {
   </div>`;
 }
 
-// 장신구 공명 한 줄: 지금 단계 · 다음 단계 치명 피해 · 비용 (공명로가 없으면 안내만)
-function resonanceLine() {
-  const R = S.gear.res || 0, lv = forgeFacLv('resonance');
-  if (!lv) return '<div class="small rfline">💫 마을 대장간에 공명로를 지으면 💎 마력석으로 장신구 부위의 치명 피해를 올릴 수 있어요</div>';
-  const cap = resonanceCap(), blocker = resonanceBlocker(), pct = (r) => Math.round(r * RESONANCE_CRIT_MULT * 100);
-  if (R >= cap) return `<div class="small rfline">💫 공명 ${R}단계 (치명 피해 +${pct(R)}%) — 공명로 한도예요 (마을 대장간에서 공명로를 올리면 ${resonanceCapAt(lv + 1)}단계까지)</div>`;
-  let n = 0, m = 0;
-  while (R + n < cap && m + resonanceCost(R + n) <= S.mats.mana) { m += resonanceCost(R + n); n++; }
-  return `<div class="rfline">
-    <span class="small">💫 공명 ${R} → <b>${R + 1}</b>단계 · 치명 피해 +${pct(R)}% → +${pct(R + 1)}% <small>(한도 ${cap})</small></span>
-    <span class="costs">${costChip('💎', resonanceCost(R), S.mats.mana)}</span>
-    <button class="btn" data-action="resonate" data-n="1" ${blocker ? `disabled title="${blocker}"` : ''}>공명</button>
-    ${n > 1 ? `<button class="btn" data-action="resonate" data-n="${n}" title="💎 ${fmt(m)} 써서 ${n}단계">${n}단계</button>` : ''}
-  </div>`;
-}
-
 // 각인 한 줄: 편차를 각인대 범위에서 다시 굴린다 (각인대가 없으면 안내만)
 function potentialLine(it) {
   if (!it) return '';
@@ -1045,7 +1029,7 @@ function slotDetail(slot) {
   return `
     <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b>${top}${slot in S.gear.lvl ? ` <small>· 아이템 Lv ${slotLv(slot)}</small>` : ''}${stoneChip()}</div>
     ${item}
-    ${reforgeLine(slot)}${slot === 'ring' ? resonanceLine() : ''}${potentialLine(it)}
+    ${reforgeLine(slot)}${potentialLine(it)}
     <div class="genh">${enh}${res}</div>`;
 }
 
@@ -2218,7 +2202,6 @@ const ACTIONS = {
   'build': (el) => startBuild(el.dataset.id),
   'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },
   'potential': (el) => { const r = rerollPotential(Number(el.dataset.id)); if (r) toast(`🔮 각인 — 편차 ×${r.from.toFixed(2)} → ×${r.to.toFixed(2)}${r.to > r.from ? ' ▲' : r.to < r.from ? ' ▼' : ''}`); },
-  'resonate': (el) => { const r = resonate(Number(el.dataset.n) || 1); if (r) toast(`💫 공명 ${r.from} → ${r.to}단계 · 치명 피해 +${Math.round(r.to * RESONANCE_CRIT_MULT * 100)}% (💎 ${fmt(r.mana)})`); },
   'reforge': (el) => { const r = reforge(el.dataset.slot); if (r) toast(`🔥 ${GEAR_SLOTS[el.dataset.slot].name} 재련 — 아이템 Lv ${r.from} → ${r.to}`); },
   'train': (el) => doTrain(el.dataset.id),
   'train-all': () => { const n = doTrainAll(); if (n) toast(`🎯 훈련 ${n}단계 올렸어요`, 2500); },

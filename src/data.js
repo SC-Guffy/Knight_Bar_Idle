@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.13.1';
+const GAME_VERSION = '0.13.2';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -108,8 +108,6 @@ const FORGE_FAC = {
     effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },
   potential: { name: '각인대', icon: '🔮', desc: '장비의 편차(roll)를 다시 굴려요 — Lv 이 오를수록 범위가 좋아져요',
     effect: (lv) => (lv ? `편차 ×${potentialRangeAt(lv).map((v) => v.toFixed(2)).join('~')}` : '아직 없음') },
-  resonance: { name: '공명로', icon: '💫', desc: '💎 마력석으로 장신구 부위를 공명시켜 치명 피해를 올려요 (부위에 붙어서 장신구를 바꿔도 유지)',
-    effect: (lv) => (lv ? `공명 한도 ${resonanceCapAt(lv)}단계` : '아직 없음') },
 };
 // 강화 확률을 올려 주는 시설은 두지 않는다 (강화는 아껴서 풀어야 하는 성장 — 0.12.2 의 연마대는 0.12.3 에서 빠짐, core.js migrate 가 환급)
 // 분해대: 판매 강화석 ×(1 + 0.1·Lv) (Lv20 ×3)
@@ -119,13 +117,7 @@ const salvageMultAt = (lv) => 1 + 0.1 * lv;
 const potentialRangeAt = (lv) => [0.9 + 0.01 * lv, 1.1 + 0.005 * lv];
 // 각인 1회 비용: 💠 강화석 (그 등급 판매량만큼) + 💎 마력석
 const potentialCost = (g) => ({ stone: GEAR_STONES[g], mana: 2 + 2 * g });
-// 공명로: 장신구 부위의 공명 단계(S.gear.res)를 마력석으로 올린다 — 무기·갑옷의 재련(골드)에 짝을 이루는 장신구 성장이자 남는 마력석의 소모처.
-//  단계마다 치명 피해 +5%p (장신구를 끼고 있을 때), 한도 = 공명로 Lv × 6, 단계 R → R+1 비용 💎 5 × 1.12^R (누적 20단계 약 360 · 40단계 약 3,900)
-//  전체 진행 봇(7일·12회): 남던 마력석 약 4,800 → 약 560 으로 소모, 7일 공명 약 43단계(치명 피해 +215%), 진행 속도·강화는 그대로
-const RESONANCE_PER_LV = 6;
-const resonanceCapAt = (lv) => RESONANCE_PER_LV * lv;
-const RESONANCE_CRIT_MULT = 0.05;
-const resonanceCost = (R) => Math.ceil(5 * Math.pow(1.12, R));
+// 건물·시설은 능력치를 직접 주지 않는다 (0.13.1 의 공명로는 0.13.2 에서 빠짐, core.js migrate 가 환급)
 // 13: 전체 진행 봇(원정·레이드·탑·월드 보스, 10회 중앙값)에서 예전(0.11.13) 진행 속도와 가장 비슷 — 15 는 48시간에 약 20스테이지 빨랐다
 const REFORGE_PER_LV = 13;
 const reforgeCapAt = (lv) => REFORGE_PER_LV * lv;

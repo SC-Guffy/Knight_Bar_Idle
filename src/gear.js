@@ -11,7 +11,6 @@
 const freshGear = () => ({
   inv: [], eq: { weapon: null, armor: null, ring: null }, enh: { weapon: 0, armor: 0, ring: 0 }, top: { weapon: 0, armor: 0, ring: 0 }, seq: 0,
   lvl: { weapon: 1, armor: 1 },
-  res: 0,                // 장신구 부위 공명 단계 (대장간 공명로, 치명 피해)
   auto: true,            // 전리품을 챙길 때 더 좋은 장비를 자동 장착
   sellG: SELL_FILTER_DEFAULT.slice(),   // 일괄 판매에 넣을 등급
   sellSet: false,                        // 세트 장비도 일괄 판매에 넣을지 (기본은 뺀다)
@@ -147,7 +146,6 @@ function gearBonus() {
     if (sp) for (const k of Object.keys(sp)) out[k] += sp[k];
   }
   for (const s of raidSets()) for (const t of s.tiers) if (t.on) for (const k of Object.keys(t.sp)) out[k] += t.sp[k];
-  if (equipped('ring')) out.critMult += RESONANCE_CRIT_MULT * (S.gear.res || 0);
   return out;
 }
 
@@ -221,7 +219,7 @@ function loadoutValue(eq) {
 let loadoutCache = { key: '', eq: null };
 function bestLoadout() {
   // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
-  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${JSON.stringify(S.gear.lvl)}|${S.gear.res}`;
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${JSON.stringify(S.gear.lvl)}`;
   if (loadoutCache.key === key) return loadoutCache.eq;
   const slots = Object.keys(GEAR_SLOTS);
   const cands = slots.map((slot) => {
@@ -397,22 +395,4 @@ function rerollPotential(id) {
   it.roll = Math.round((lo + Math.random() * (hi - lo)) * 100) / 100;
   keepHpRatio(oldMax);
   return { from, to: it.roll };
-}
-
-// ───────────────────────── 공명로 (장신구 공명, 💎 마력석) ─────────────────────────
-const resonanceCap = () => resonanceCapAt(forgeFacLv('resonance'));
-function resonanceBlocker() {
-  if (!forgeFacLv('resonance')) return '마을 대장간에서 💫 공명로를 먼저 지어야 해요';
-  if ((S.gear.res || 0) >= resonanceCap()) return `공명 한도 ${resonanceCap()}단계 — 마을 대장간에서 💫 공명로를 올리세요`;
-  if (S.phase !== 'camp') return '캠프에서만 공명할 수 있어요';
-  if (S.mats.mana < resonanceCost(S.gear.res || 0)) return '마력석 부족';
-  return '';
-}
-// 공명: 최대 n단계까지 마력석이 되는 만큼 올린다. { from, to, mana } 또는 null
-function resonate(n = 1) {
-  if (resonanceBlocker()) return null;
-  const from = S.gear.res || 0;
-  let mana = 0;
-  while (n-- > 0 && !resonanceBlocker()) { const c = resonanceCost(S.gear.res || 0); S.mats.mana -= c; mana += c; S.gear.res = (S.gear.res || 0) + 1; }
-  return { from, to: S.gear.res, mana };
 }

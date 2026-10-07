@@ -127,6 +127,15 @@ function migrate(o) {
   // gearV 4: 재련 한도가 재련로 Lv × 15 로 바뀌었다 — 예전 대장간 Lv 만큼 재련로를 올려 둔다
   if ((o.gearV || 1) < 4) s.forge.reforge = Math.max(s.forge.reforge || 1, Math.min(BUILD_MAX, s.bld.forge || 1));
   s.gearV = 4;
+  // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
+  if (s.forge.resonance || s.gear.res) {
+    const back = { gold: 0, ore: 0, mana: 0 };
+    for (let r = 0; r < (s.gear.res || 0); r++) back.mana += Math.ceil(5 * Math.pow(1.12, r));
+    for (let i = 0; i < (s.forge.resonance || 0); i++) { const c = forgeFacCost('resonance', i); back.gold += c.gold; back.ore += c.ore; back.mana += c.mana; }
+    s.gold += back.gold; s.mats.ore += back.ore; s.mats.mana += back.mana;
+    delete s.forge.resonance; delete s.gear.res;
+    s.notice = `💫 공명로가 빠졌어요 — 건물이 능력치를 직접 주지 않도록 정리했어요. 쓴 마력석 ${fmt(back.mana)} · 골드 ${fmt(back.gold)} · 철광석 ${fmt(back.ore)}을 돌려드렸어요`;
+  }
   // 연마대(0.12.2, 강화 성공 확률 보너스)가 빠졌다: 올린 데 쓴 재화를 돌려준다
   if (s.forge.anvil) {
     const back = { gold: 0, ore: 0, mana: 0 };
