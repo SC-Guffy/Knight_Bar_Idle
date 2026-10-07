@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.12.5';
+const GAME_VERSION = '0.12.6';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -117,7 +117,8 @@ const salvageMultAt = (lv) => 1 + 0.1 * lv;
 const potentialRangeAt = (lv) => [0.9 + 0.01 * lv, 1.1 + 0.005 * lv];
 // 각인 1회 비용: 💠 강화석 (그 등급 판매량만큼) + 💎 마력석
 const potentialCost = (g) => ({ stone: GEAR_STONES[g], mana: 2 + 2 * g });
-const REFORGE_PER_LV = 15;
+// 13: 전체 진행 봇(원정·레이드·탑·월드 보스, 10회 중앙값)에서 예전(0.11.13) 진행 속도와 가장 비슷 — 15 는 48시간에 약 20스테이지 빨랐다
+const REFORGE_PER_LV = 13;
 const reforgeCapAt = (lv) => REFORGE_PER_LV * lv;
 // 시설 lv → lv+1 비용
 function forgeFacCost(id, lv) {
