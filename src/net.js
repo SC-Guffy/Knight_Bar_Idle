@@ -148,3 +148,7 @@ const setRaidBoss = (boss) => raidCall('POST', '/api/raids/boss', { boss });
 const kickRaid = (nickname) => raidCall('POST', '/api/raids/kick', { nickname });
 const startRaid = () => raidCall('POST', '/api/raids/start', {}, 70000);
 const againRaid = () => raidCall('POST', '/api/raids/again', {});
+
+// 서버 확성기: +20 이상 강화 성공 · 초기화를 모두에게 알린다 / after 이후 소식 받기 (ui.js 의 loadShouts)
+const postShout = (body) => api('POST', '/api/shouts', body, { token: activeToken() });
+const fetchShouts = (after) => api('GET', `/api/shouts?after=${after}`, null, { timeout: 70000 });

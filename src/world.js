@@ -70,6 +70,29 @@ function addFloater(text, x, y, color, size = 12, pop = false) {
 }
 function showBanner(text, color = '#ffd257') { banner = { text, color, t: 0 }; }
 
+// 서버 확성기: 하단바 위쪽을 오른쪽에서 왼쪽으로 흘러가는 소식 한 줄 (한 번에 하나씩, 밀린 건 줄 서서)
+const SHOUT_SPEED = 200;        // px/s
+let shouts = [], shoutNow = null;
+function pushShout(text, color) { if (shouts.length < 10) shouts.push({ text, color }); }
+function updateShout(dt) {
+  if (!shoutNow && shouts.length) shoutNow = { ...shouts.shift(), x: W + 10, w: 0 };
+  if (!shoutNow) return;
+  shoutNow.x -= SHOUT_SPEED * dt;
+  if (shoutNow.w && shoutNow.x + shoutNow.w < -10) shoutNow = null;
+}
+function drawShout() {
+  if (!shoutNow) return;
+  ctx.font = 'bold 15px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  shoutNow.w = ctx.measureText(shoutNow.text).width;
+  const x = Math.round(shoutNow.x), y = 52;     // HUD(위 6~34px) 바로 아래
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.strokeText(shoutNow.text, x, y);
+  ctx.fillStyle = shoutNow.color;
+  ctx.fillText(shoutNow.text, x, y);
+  ctx.textAlign = 'center';
+}
+
 // ───────────────────────── 몬스터 ─────────────────────────
 function spriteOf(m) {
   const def = MONSTERS[m.type];
@@ -720,6 +743,7 @@ function update(dt) {
   updateDrops(dt);
 
   if (banner) { banner.t += dt; if (banner.t > 2.2) banner = null; }
+  updateShout(dt);
 }
 
 // 원정이 끝나면 남은 몬스터는 사라지고 기사는 돌아선다
@@ -2000,6 +2024,7 @@ function drawFx() {
     ctx.fillText(banner.text, bx, by);
     ctx.globalAlpha = 1;
   }
+  drawShout();
 }
 // 떠오르는 글자. tw: 탑 안에서 생긴 글자(탑 캔버스의 층 좌표)만 / 아니면 하단바 글자만
 function drawFloaters(tw) {

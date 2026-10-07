@@ -700,6 +700,7 @@ function resolveEnhanceFx(slot, protect) {
   if (!r) { enhFx = null; if (campOpen) renderCamp(); return; }     // 그 사이 출정 등으로 강화할 수 없게 됐다
   gearUi.last = { slot, ...r, fresh: true };
   if (r.result === 'up' && r.to % 5 === 0) toast(`⚒️ ${GEAR_SLOTS[slot].name} +${r.to} 달성!`);
+  if ((r.result === 'up' && r.to >= 20) || r.result === 'reset') postShout({ slot, result: r.result, from: r.from, to: r.to }).then(loadShouts, () => {});
   const up = r.result === 'up', big = up && r.to % 5 === 0;
   const bad = r.result === 'down' || r.result === 'reset';
   const col = up ? ['#fff', '#ffd257', '#7dffb0'] : r.result === 'saved' ? ['#7cc4ff', '#cfe8ff'] : r.result === 'keep' ? ['#9a9aa8', '#c8c8d0'] : ['#b02a2a', '#4a4650', '#6e2020', '#2a262e'];
@@ -1306,6 +1307,34 @@ function tellInbox() {
     ? `📬 받은 결투 — ${m.nickname}(Lv ${m.level}) · ${m.won ? `🛡️ 방어 성공! 결투 점수 +${m.delta}` : `💀 패배… 결투 점수 -${m.delta}`} · 🏆 랭킹 탭에서 확인`
     : `📬 받은 결투 ${fresh.length}건 — 방어 ${win} · 패배 ${fresh.length - win} · 결투 점수 ${sum >= 0 ? '+' : ''}${sum} · 🏆 랭킹 탭에서 확인`, 9000);
 }
+
+// ───────────────────────── 서버 확성기 ─────────────────────────
+// 누군가 +20 이상 강화에 성공하거나 강화가 초기화되면 모든 기사의 하단바 위로 소식이 흘러간다 (world.js 의 pushShout)
+const SHOUT_CHECK_EVERY = 15 * 1000;
+const shoutFeed = { after: 0, busy: false };
+function shoutText(m) {
+  const g = GEAR_SLOTS[m.slot] || { name: '장비', icon: '⚒️' };
+  if (m.result === 'reset') return { text: `📢 ${m.nickname}님의 ${g.icon} ${g.name} +${m.from} 강화가… +0 으로 초기화됐습니다 😭`, color: '#ff7a7a' };
+  return m.to >= ENHANCE_MAX
+    ? { text: `📢 ${m.nickname}님이 ${g.icon} ${g.name} 최대 강화 +${m.to} 달성!! 🎉🎉`, color: '#ff9f1c' }
+    : { text: `📢 ${m.nickname}님이 ${g.icon} ${g.name} +${m.to} 강화에 성공했습니다! 🎉`, color: '#ffd257' };
+}
+function loadShouts() {
+  if (shoutFeed.busy) return;
+  shoutFeed.busy = true;
+  fetchShouts(shoutFeed.after)
+    .then((d) => {
+      for (const m of d.list || []) {
+        if (m.id <= shoutFeed.after) continue;
+        shoutFeed.after = m.id;
+        const t = shoutText(m);
+        pushShout(t.text, t.color);
+      }
+    }, () => {})
+    .finally(() => { shoutFeed.busy = false; });
+}
+setInterval(loadShouts, SHOUT_CHECK_EVERY);
+loadShouts();
 
 const fmtAgo = (t) => {
   const m = Math.floor((Date.now() - t) / 60000);

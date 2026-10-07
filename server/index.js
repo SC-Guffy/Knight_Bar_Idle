@@ -586,6 +586,39 @@ routes['POST /api/admin/reset'] = async (req) => {
   return { ok: true, removed };
 };
 
+// ───────────────────────── 서버 확성기 ─────────────────────────
+// +20 이상 강화 성공 · 강화 초기화를 모든 기사의 하단바에 흘려 보낸다. 지나가는 소식이라 메모리에만 두고 잠깐 뒤 버린다.
+// id 는 밀리초 시각(겹치면 +1) — 서버가 다시 켜져도 클라이언트의 "이 id 이후" 가 꼬이지 않게
+const SHOUT_KEEP_MS = 2 * 60 * 1000;
+const SHOUT_MAX = 50;
+const SHOUT_SLOTS = ['weapon', 'armor', 'ring'];
+const shouts = [];
+const lastShout = new Map();       // 계정 key → 마지막 확성기 시각
+let shoutSeq = 0;
+
+routes['POST /api/shouts'] = async (req) => {
+  const a = await authLite(req);
+  const b = await readJson(req);
+  const from = Math.floor(Number(b.from)), to = Math.floor(Number(b.to));
+  const ok = SHOUT_SLOTS.includes(b.slot) && (
+    (b.result === 'up' && to >= 20 && to <= 25 && from === to - 1) ||
+    (b.result === 'reset' && from >= 16 && from <= 25 && to === 0));
+  if (!ok) throw new HttpError(400, '확성기에 올릴 소식이 아니에요');
+  const now = Date.now();
+  if (now - (lastShout.get(a.key) || 0) < 2000) return { ok: true };   // 강화 연출보다 빠를 수 없다
+  lastShout.set(a.key, now);
+  shoutSeq = Math.max(now, shoutSeq + 1);
+  shouts.push({ id: shoutSeq, at: now, nickname: a.nickname, slot: b.slot, result: b.result, from, to });
+  if (shouts.length > SHOUT_MAX) shouts.shift();
+  return { ok: true };
+};
+
+// after: 이미 받은 마지막 id (처음엔 0 → 최근 2분 것)
+routes['GET /api/shouts'] = async (_req, url) => {
+  const after = Number(url.searchParams.get('after')) || 0, since = Date.now() - SHOUT_KEEP_MS;
+  return { list: shouts.filter((s) => s.id > after && s.at > since) };
+};
+
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204);
   const url = new URL(req.url, 'http://x');
