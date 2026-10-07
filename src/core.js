@@ -116,6 +116,14 @@ function migrate(o) {
     if ((o.gearV || 1) >= 2) s.notice = '🔥 아이템 레벨이 장비에서 부위로 옮겨졌어요 — 이제 같은 부위 장비는 등급이 곧 서열이에요. 무기·갑옷 레벨은 대장간 재련(장비 탭)으로 올려요. 지금 낀 장비의 레벨을 그대로 옮겨 드렸어요';
   }
   s.gearV = 3;
+  // 연마대(0.12.2, 강화 성공 확률 보너스)가 빠졌다: 올린 데 쓴 재화를 돌려준다
+  if (s.forge.anvil) {
+    const back = { gold: 0, ore: 0, mana: 0 };
+    for (let i = 0; i < s.forge.anvil; i++) { const c = forgeFacCost('anvil', i); back.gold += c.gold; back.ore += c.ore; back.mana += c.mana; }
+    s.gold += back.gold; s.mats.ore += back.ore; s.mats.mana += back.mana;
+    delete s.forge.anvil;
+    s.notice = `⚒️ 연마대가 빠졌어요 — 강화는 아껴서 키우는 성장이라 확률 보너스를 없앴어요. 쓴 골드 ${fmt(back.gold)} · 철광석 ${fmt(back.ore)} · 마력석 ${fmt(back.mana)}을 돌려드렸어요`;
+  }
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
   return s;

@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.12.2';
+const GAME_VERSION = '0.12.3';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -104,15 +104,12 @@ function buildCost(id, lv) {
 const FORGE_FAC = {
   reforge: { name: '재련로', icon: '🔥', desc: '무기·갑옷 부위의 아이템 레벨을 올려요 — 그 부위에 끼는 장비 모두에 적용돼요',
     effect: (lv) => (reforgeGapAt(lv) ? `재련 한도 최고 스테이지 −${reforgeGapAt(lv)}` : '재련 한도 = 최고 스테이지') },
-  anvil: { name: '연마대', icon: '⚒️', desc: '장비 강화 성공 확률을 올려 줘요',
-    effect: (lv) => (lv ? `강화 성공 +${+(ENH_ASSIST_PER * lv * 100).toFixed(1)}%p` : '아직 없음') },
   salvage: { name: '분해대', icon: '🧰', desc: '장비를 팔 때 나오는 💠 강화석이 늘어나요',
     effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },
   potential: { name: '각인대', icon: '🔮', desc: '장비의 편차(roll)를 다시 굴려요 — Lv 이 오를수록 범위가 좋아져요',
     effect: (lv) => (lv ? `편차 ×${potentialRangeAt(lv).map((v) => v.toFixed(2)).join('~')}` : '아직 없음') },
 };
-// 연마대: 강화 성공 확률 +0.5%p/Lv (Lv20 +10%p, 100% 를 넘지 않음)
-const ENH_ASSIST_PER = 0.005;
+// 강화 확률을 올려 주는 시설은 두지 않는다 (강화는 아껴서 풀어야 하는 성장 — 0.12.2 의 연마대는 0.12.3 에서 빠짐, core.js migrate 가 환급)
 // 분해대: 판매 강화석 ×(1 + 0.1·Lv) (Lv20 ×3)
 const salvageMultAt = (lv) => 1 + 0.1 * lv;
 // 각인대: 다시 굴린 편차의 범위 [0.9 + 0.01·Lv, 1.1 + 0.005·Lv] (Lv20 1.10~1.20).

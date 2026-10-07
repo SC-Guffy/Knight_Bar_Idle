@@ -295,8 +295,6 @@ function enhanceBlocker(slot) {
   if (S.mats.mana < c.mana) return '마력석 부족';
   return '';
 }
-// 연마대 보너스가 붙은 성공 확률
-const enhRate = (L) => Math.min(1, ENHANCE[L].rate + ENH_ASSIST_PER * forgeFacLv('anvil'));
 // 지금 바로 강화할 수 있는가 (레드닷)
 const canEnhance = (slot) => !enhanceBlocker(slot);
 // 이 단계에서 실패하면 하락·초기화가 나올 수 있는가 (보호 주문서를 쓸 수 있는 단계)
@@ -315,7 +313,7 @@ function enhance(slot, protect = false) {
   if (used) S.items.protect--;
 
   let result;
-  if (Math.random() < enhRate(from)) {
+  if (Math.random() < e.rate) {
     result = 'up';
   } else {
     const r = Math.random();

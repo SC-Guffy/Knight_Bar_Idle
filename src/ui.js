@@ -891,12 +891,12 @@ function campDots() {
 const campHasDot = () => Object.values(campDots()).some(Boolean);
 
 function enhOdds(L) {
-  const e = ENHANCE[L], rate = enhRate(L), fail = 1 - rate;
+  const e = ENHANCE[L], fail = 1 - e.rate;
   const pct = (v) => (v * 100 < 1 && v > 0 ? (v * 100).toFixed(1) : Math.round(v * 100)) + '%';
   const risk = [];
   if (e.down) risk.push(`<span class="warn">하락 ${pct(fail * e.down)}</span>`);
   if (e.reset) risk.push(`<span class="bad">초기화 ${pct(fail * e.reset)}</span>`);
-  return `성공 <b>${pct(rate)}</b>${rate > e.rate ? ` <small>(⚒️ +${pct(rate - e.rate)})</small>` : ''}${risk.length ? ' · ' + risk.join(' · ') : ' · 실패해도 유지'}`;
+  return `성공 <b>${pct(e.rate)}</b>${risk.length ? ' · ' + risk.join(' · ') : ' · 실패해도 유지'}`;
 }
 
 // 장비 화면 위쪽에 서 있는 내 캐릭터 (<canvas class="gchar">, 장비 탭이 열려 있는 동안 매 프레임 그림)
