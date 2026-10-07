@@ -99,11 +99,8 @@ function buildCost(id, lv) {
 
 // ───────────────────────── 대장간 시설 ─────────────────────────
 // 대장간은 능력치를 주지 않고 장비를 다루는 시설을 품는다. 시설마다 따로 올리고(재화 즉시 소모), 대장간 Lv 이 시설의 최대 Lv 이다.
-// 재련로: 무기·갑옷 '부위'의 아이템 레벨을 올린다 (강화 단계처럼 부위에 붙어서, 그 부위에 끼는 장비 모두에 적용).
-//  한도 = min(최고 스테이지, 재련로 Lv × REFORGE_PER_LV) — 훈련장 → 훈련 최대 Lv 처럼 건물 공사가 진행 속도를 묶는다. 처음부터 Lv1 로 지어져 있다
+// 무기·갑옷의 위력 레벨은 훈련(공격력·체력)이 정한다 — 0.12 의 재련·재련로는 0.13.3 에서 훈련에 합쳐졌다 (core.js migrate 가 옮김·환급)
 const FORGE_FAC = {
-  reforge: { name: '재련로', icon: '🔥', desc: '무기·갑옷 부위의 아이템 레벨을 올려요 — 그 부위에 끼는 장비 모두에 적용돼요',
-    effect: (lv) => `재련 한도 아이템 Lv ${reforgeCapAt(lv)}` },
   salvage: { name: '분해대', icon: '🧰', desc: '장비를 팔 때 나오는 💠 강화석이 늘어나요',
     effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },
   potential: { name: '각인대', icon: '🔮', desc: '장비의 편차(roll)를 다시 굴려요 — Lv 이 오를수록 범위가 좋아져요',
@@ -118,9 +115,6 @@ const potentialRangeAt = (lv) => [0.9 + 0.01 * lv, 1.1 + 0.005 * lv];
 // 각인 1회 비용: 💠 강화석 (그 등급 판매량만큼) + 💎 마력석
 const potentialCost = (g) => ({ stone: GEAR_STONES[g], mana: 2 + 2 * g });
 // 건물·시설은 능력치를 직접 주지 않는다 (0.13.1 의 공명로는 0.13.2 에서 빠짐, core.js migrate 가 환급)
-// 13: 전체 진행 봇(원정·레이드·탑·월드 보스, 10회 중앙값)에서 예전(0.11.13) 진행 속도와 가장 비슷 — 15 는 48시간에 약 20스테이지 빨랐다
-const REFORGE_PER_LV = 13;
-const reforgeCapAt = (lv) => REFORGE_PER_LV * lv;
 // 시설 lv → lv+1 비용
 function forgeFacCost(id, lv) {
   return {
@@ -130,9 +124,6 @@ function forgeFacCost(id, lv) {
     mana: lv >= 3 ? Math.floor(5 * Math.pow(1.6, lv - 3)) : 0,
   };
 }
-// 부위 아이템 레벨 L → L+1 재련 비용: 골드만 (예전 훈련이 하던 골드 소모를 넘겨받는다) — 그 스테이지 몬스터 REFORGE_GOLD 마리 몫
-const REFORGE_GOLD = 60;
-const reforgeStepCost = (L) => ({ gold: Math.floor(monsterStats(L + 1, false).gold * REFORGE_GOLD), ore: 0 });
 
 // ───────────────────────── 재화 / 보급품 ─────────────────────────
 const MATERIALS = {
@@ -452,8 +443,8 @@ const SPECIAL_STATS = {
 };
 // 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)
 const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
-// 무기 공격력·갑옷 체력은 절대값이다: 부위 아이템 레벨(S.gear.lvl, 재련로로 올림)을 따라 커지고(gearAtkAt·gearHpAt), 등급 stat·편차·강화 배율이 곱해진다.
-//  아이템 레벨이 장비가 아니라 부위에 붙어 있어서 같은 부위 장비끼리는 등급이 곧 서열이다 (편차 ±10% 로는 한 등급을 못 넘는다).
+// 무기 공격력·갑옷 체력은 절대값이다: 위력 레벨(공격력·체력 훈련으로 정해짐, trainGearLvAt)을 따라 커지고(gearAtkAt·gearHpAt),
+//  등급 stat·편차·강화 배율이 곱해진다. 레벨이 장비가 아니라 훈련에 붙어 있어서 같은 부위 장비끼리는 등급이 곧 서열이다 (편차 ±10% 로는 한 등급을 못 넘는다).
 //  공격력은 스테이지마다 ×1.225, 체력은 ×1.18 — 몬스터 체력(×1.23)보다 조금 느려서 깊이 갈수록 등급·강화가 벽을 넘게 해 준다
 const gearAtkAt = (s) => 6.5 * Math.pow(1.225, s);
 const gearHpAt = (s) => 30 * Math.pow(1.18, s);
@@ -533,15 +524,19 @@ const CURIOS = {
 };
 
 // ───────────────────────── 훈련 (골드) ─────────────────────────
-// 훈련은 초반을 끌어 주는 성장이다: 처음엔 단계마다 ×1.286 로 크게 오르다가 TRAIN_SAT 근처에서 포화해
-//  공격력은 약 2,200 · 체력은 약 13,000 에서 멈춘다 (스테이지 30~40 무렵). 그 뒤 절대값 성장은 장비(아이템 레벨)의 몫이고,
-//  훈련은 단계마다 TRAIN_PCT 만큼만 % 로 더해 준다 (Lv 100 에서 +50%).
-//  스테이지 속도(훈련 ≈ 0.66 × 스테이지)로 키우면 공격력 중 훈련 몫이 스테이지 10 약 65% · 20 약 33% · 35 약 5% · 50 이후 0%
-const TRAIN_GROW = 1.286, TRAIN_SAT = 120, TRAIN_PCT = 0.005;
+// 공격력·체력 훈련은 두 가지를 한다
+//  1) 맨몸 능력치: 처음엔 단계마다 ×1.286 로 크게 오르다가 TRAIN_SAT 근처에서 포화 (공격력 약 2,200 · 체력 약 13,000) — 장비가 약한 초반을 끌어 준다
+//  2) 무기·갑옷 위력 레벨: 공격력 훈련 → 무기 레벨, 체력 훈련 → 갑옷 레벨 (trainGearLvAt, gear.js gearLvOf).
+//     낀 장비의 등급·편차·강화가 여기에 그대로 곱해지므로 후반 힘의 대부분은 장비에서 나온다 (등급 한 칸 ≈ 1.45배, 강화 +25 ≈ 6.5배).
+//  위력 레벨 = 1 + 0.6·t + 0.007·t² (훈련 10 → 8 · 30 → 25 · 50 → 49 · 90 → 112) — 초반엔 맨몸 훈련이 끌고 뒤로 갈수록 장비가 커진다.
+//  훈련 최대 Lv 은 훈련장 Lv × 10. 전체 진행 봇(7일·12회)에서 예전(0.11.13)과 같은 속도: 6/12/24/48/96/168h 60/74/92/112/135/156 (예전 67/79/93/110/140/157)
+const TRAIN_GROW = 1.286, TRAIN_SAT = 120;
+const trainGearLvAt = (t) => 1 + 0.6 * t + 0.007 * t * t;
+// 위력 레벨 L 에 닿는 최소 훈련 단계 (예전 재련 레벨을 훈련으로 옮길 때)
+const trainForGearLv = (L) => Math.max(0, Math.ceil((-0.6 + Math.sqrt(0.36 + 0.028 * Math.max(0, L - 1))) / 0.014));
 const trainSat = (t) => (Math.pow(TRAIN_GROW, t) - 1) / (1 + Math.pow(TRAIN_GROW, t) / TRAIN_SAT);
 const trainAtkAt = (t) => 6 + 18 * trainSat(t);
 const trainHpAt = (t) => 40 + 110 * trainSat(t);
-const trainPctAt = (t) => 1 + TRAIN_PCT * t;
 const TRAINING = [
   { id: 'atk',  name: '⚔️ 공격력', max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
   { id: 'hp',   name: '🛡️ 체력',   max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },

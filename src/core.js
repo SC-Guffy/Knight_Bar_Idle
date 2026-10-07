@@ -23,7 +23,7 @@ function freshState() {
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
-    forge: { reforge: 1 },                  // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
+    forge: {},                              // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
@@ -33,7 +33,7 @@ function freshState() {
     star: {},                               // 스킬 별: 스킬 id → { n 단 별 수 0~3 (진화 버튼, 위력·쿨타임), use 적용한 모습 0~n (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
-    gearV: 4,                               // 3: 아이템 레벨이 부위(S.gear.lvl)에 붙음 · 2: 장비마다 s 절대값 · 1: 등급 %
+    gearV: 5,                               // 5: 무기·갑옷 위력 레벨 = 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
     phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -115,6 +115,7 @@ function migrate(o) {
     for (const c of s.raid.chests || []) c.s = Math.max(c.s || 1, s.best || 1);
     s.notice = '⚖️ 성장 개편 — 이제 공격력·체력은 장비가 책임지고, 훈련은 초반을 끌어 주다가 % 보너스로 바뀌어요. 무기·갑옷 부위의 아이템 레벨은 대장간 🔥 재련(장비 탭)으로 올려요. 같은 부위 장비는 등급이 곧 서열이에요';
   }
+  s.gear.lvl = s.gear.lvl || { weapon: 1, armor: 1 };
   // gearV 3: 아이템 레벨이 장비 → 부위로. 지금 낀 장비의 레벨을 그 부위 레벨로 옮긴다 (재련로도 최소 Lv1)
   if ((o.gearV || 1) < 3) {
     for (const slot of ['weapon', 'armor']) {
@@ -126,7 +127,19 @@ function migrate(o) {
   }
   // gearV 4: 재련 한도가 재련로 Lv × 15 로 바뀌었다 — 예전 대장간 Lv 만큼 재련로를 올려 둔다
   if ((o.gearV || 1) < 4) s.forge.reforge = Math.max(s.forge.reforge || 1, Math.min(BUILD_MAX, s.bld.forge || 1));
-  s.gearV = 4;
+  // gearV 5: 재련이 훈련에 합쳐졌다 — 무기 레벨은 공격력 훈련, 갑옷 레벨은 체력 훈련이 정한다 (data.js trainGearLvAt).
+  //  재련한 부위 레벨만큼 훈련 단계를 올려 주고(힘이 줄지 않게), 재련로를 올리는 데 쓴 재화를 돌려준다
+  if ((o.gearV || 1) < 5) {
+    const conv = (L) => trainForGearLv(L || 1);
+    const up = { atk: Math.max(0, conv(s.gear.lvl.weapon) - s.train.atk), hp: Math.max(0, conv(s.gear.lvl.armor) - s.train.hp) };
+    s.train.atk += up.atk; s.train.hp += up.hp;
+    const back = { gold: 0, ore: 0, mana: 0 };
+    for (let i = 1; i < (s.forge.reforge || 0); i++) { const c = forgeFacCost('reforge', i); back.gold += c.gold; back.ore += c.ore; back.mana += c.mana; }
+    s.gold += back.gold; s.mats.ore += back.ore; s.mats.mana += back.mana;
+    if ((o.gearV || 1) >= 3) s.notice = `🎯 재련이 훈련에 합쳐졌어요 — 이제 공격력 훈련이 무기 위력을, 체력 훈련이 갑옷 위력을 올려요.${up.atk || up.hp ? ` 재련한 만큼 훈련을 올려 드렸어요 (공격력 +${up.atk} · 체력 +${up.hp})` : ''}${back.ore ? `, 재련로에 쓴 재화(골드 ${fmt(back.gold)} · 철광석 ${fmt(back.ore)} · 마력석 ${fmt(back.mana)})도 돌려드렸어요` : ''}`;
+  }
+  delete s.gear.lvl; delete s.forge.reforge;
+  s.gearV = 5;
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
   if (s.forge.resonance || s.gear.res) {
     const back = { gold: 0, ore: 0, mana: 0 };
@@ -183,11 +196,11 @@ function stats(base = false) {
   const c = heroClass(), w = WEAPONS[c.weapon], m = c.mods;
   const t = S.train;
   const gb = gearBonus();
-  // 절대값 = 기본·훈련·레벨 + 무기 공격력 / 갑옷 체력 (아이템 레벨). 여기에 훈련 %·직업·특수 효과 배율이 곱해진다
+  // 절대값 = 기본·훈련·레벨 + 무기 공격력 / 갑옷 체력 (위력 레벨 = 훈련). 여기에 직업·특수 효과 배율이 곱해진다
   let atk = (trainAtkAt(t.atk) + (S.level - 1) * 1.5 + gb.atk)
-    * trainPctAt(t.atk) * (m.atk || 1) * (1 + gb.atkPct);
+    * (m.atk || 1) * (1 + gb.atkPct);
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
-  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8 + gb.hp) * trainPctAt(t.hp) * (m.hp || 1) * (1 + gb.hpPct);
+  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1) * (1 + gb.hpPct);
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
   const defRed = defRedAt(t.def);

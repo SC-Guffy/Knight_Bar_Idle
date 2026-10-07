@@ -5,12 +5,11 @@
 //  - 장비 창고:   S.gear.inv = [{ id, slot, g, s, t, roll }]   (t = GEAR_ITEMS 키, roll = 능력치 편차)
 //  - 장착:        S.gear.eq = { weapon: id|null, armor, ring }
 //  - 강화 단계:   S.gear.enh = { weapon: 0.., armor, ring }  — 부위에 붙어 있어서 장비를 바꿔도 유지
-//  - 아이템 레벨: S.gear.lvl = { weapon: 1.., armor }       — 부위에 붙어 있다 (대장간 재련로로 올림). 장비의 s 는 판매가에만 쓴다
+//  - 위력 레벨:   무기 = 공격력 훈련, 갑옷 = 체력 훈련 (gearLvOf). 장비의 s 는 판매가에만 쓴다
 //  - 최고 기록:   S.gear.top = { weapon: 0.., armor, ring }  — 초기화돼도 남는 부위별 최고 강화 단계
 
 const freshGear = () => ({
   inv: [], eq: { weapon: null, armor: null, ring: null }, enh: { weapon: 0, armor: 0, ring: 0 }, top: { weapon: 0, armor: 0, ring: 0 }, seq: 0,
-  lvl: { weapon: 1, armor: 1 },
   auto: true,            // 전리품을 챙길 때 더 좋은 장비를 자동 장착
   sellG: SELL_FILTER_DEFAULT.slice(),   // 일괄 판매에 넣을 등급
   sellSet: false,                        // 세트 장비도 일괄 판매에 넣을지 (기본은 뺀다)
@@ -100,8 +99,10 @@ const gearById = (id) => S.gear.inv.find((x) => x.id === id) || null;
 const equipped = (slot) => gearById(S.gear.eq[slot]);
 const isEquipped = (it) => S.gear.eq[it.slot] === it.id;
 
-// enh·lvl: 적용할 강화 단계·아이템 레벨 (기본은 그 부위의 현재 값). 능력치는 부위 아이템 레벨·등급·roll 로 정해진다
-function gearStat(it, enh = S.gear.enh[it.slot], lvl = slotLv(it.slot)) {
+// 무기·갑옷 위력 레벨: 무기 = 공격력 훈련, 갑옷 = 체력 훈련 (data.js trainGearLvAt). 장신구는 레벨 없음 → 1
+const gearLvOf = (slot) => (slot === 'weapon' ? trainGearLvAt(S.train.atk) : slot === 'armor' ? trainGearLvAt(S.train.hp) : 1);
+// enh·lvl: 적용할 강화 단계·위력 레벨 (기본은 지금 값). 능력치는 위력 레벨·등급·roll 로 정해진다
+function gearStat(it, enh = S.gear.enh[it.slot], lvl = gearLvOf(it.slot)) {
   const b = gearBase(it.slot, it.g, it.roll, lvl);
   const m = enhanceMultAt(enh), soft = softEnhMultAt(enh);
   const out = {};
@@ -219,7 +220,7 @@ function loadoutValue(eq) {
 let loadoutCache = { key: '', eq: null };
 function bestLoadout() {
   // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
-  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${JSON.stringify(S.gear.lvl)}`;
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}`;
   if (loadoutCache.key === key) return loadoutCache.eq;
   const slots = Object.keys(GEAR_SLOTS);
   const cands = slots.map((slot) => {
@@ -341,39 +342,6 @@ function upgradeForgeFac(id) {
   S.forge[id] = forgeFacLv(id) + 1;
   return true;
 }
-// 부위 아이템 레벨 (장신구는 없음 → 1)
-const slotLv = (slot) => (S.gear.lvl && S.gear.lvl[slot]) || 1;
-// 재련로로 올릴 수 있는 부위 아이템 레벨 상한
-const reforgeCap = () => Math.max(1, Math.min(S.best || 1, reforgeCapAt(forgeFacLv('reforge'))));
-// 이 부위를 지금 재화로 올릴 수 있는 만큼: { from, to, cap, cost } — 한 단계도 못 올리면 to === from
-function reforgePlan(slot) {
-  const from = slotLv(slot), cap = reforgeCap(), cost = { gold: 0, ore: 0 };
-  let to = from;
-  while (to < cap) {
-    const c = reforgeStepCost(to);
-    if (S.gold < cost.gold + c.gold || S.mats.ore < cost.ore + c.ore) break;
-    cost.gold += c.gold; cost.ore += c.ore; to++;
-  }
-  return { from, to, cap, cost };
-}
-function reforgeBlocker(slot) {
-  if (!(slot in S.gear.lvl)) return '장신구는 아이템 레벨이 없어요';
-  if (slotLv(slot) >= reforgeCap()) return reforgeCap() < (S.best || 1) ? `재련 한도 Lv ${reforgeCap()} — 마을 대장간에서 🔥 재련로를 올리세요` : `최고 스테이지(Lv ${reforgeCap()})까지 올라가 있어요`;
-  if (S.phase !== 'camp') return '캠프에서만 재련할 수 있어요';
-  if (reforgePlan(slot).to === slotLv(slot)) return '재화 부족';
-  return '';
-}
-// 재련: 부위 아이템 레벨을 재화가 되는 만큼(한도까지) 한 번에 올린다. { from, to } 또는 null
-function reforge(slot) {
-  if (reforgeBlocker(slot)) return null;
-  const p = reforgePlan(slot), oldMax = stats().maxHp;
-  S.gold -= p.cost.gold; S.mats.ore -= p.cost.ore;
-  S.gear.lvl[slot] = p.to;
-  keepHpRatio(oldMax);
-  return { from: p.from, to: p.to };
-}
-// 레드닷: 한도까지 3레벨 이상 남았고 지금 3레벨 이상 올릴 수 있을 때만 (스테이지마다 깜빡이지 않게)
-const canReforge = (slot) => slot in S.gear.lvl && S.phase === 'camp' && reforgePlan(slot).to - slotLv(slot) >= 3;
 
 // ───────────────────────── 각인대 (편차 다시 굴리기) ─────────────────────────
 function potentialBlocker(it) {
