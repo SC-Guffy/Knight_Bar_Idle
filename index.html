@@ -367,6 +367,25 @@
   .mrow .mnm small, .mrow .mres small { color: var(--muted); }
   .mrow .mres { flex-shrink: 0; white-space: nowrap; }
   .mrow .btn.duel { padding: 2px 8px; font-size: 11px; flex-shrink: 0; }
+  /* 우편함: 캠프 창 머리의 📬 버튼 → campTab 'mail' */
+  .mailbtn { all: unset; cursor: pointer; height: 26px; padding: 0 7px; border-radius: 7px; line-height: 26px; position: relative; }
+  .mailbtn:hover, .mailbtn.on { background: var(--soft-hover); }
+  .mailbtn i { position: absolute; top: -5px; right: -6px; font-style: normal; padding: 0 5px; border-radius: 999px; background: var(--dot); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; }
+  .mailbox { display: flex; flex-direction: column; gap: 4px; }
+  .mailbox .shd { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
+  .mailbox .shd small { color: var(--muted); }
+  .mailbox .warn { color: var(--accent); }
+  .mail { border-radius: 8px; background: var(--soft); }
+  .mail:not(.got) { box-shadow: inset 3px 0 0 var(--accent); }
+  .mail .mhd { all: unset; cursor: pointer; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; width: 100%; box-sizing: border-box; padding: 6px 12px; }
+  .mail .mhd small { color: var(--muted); }
+  .mail.got .mtl { color: var(--muted); }
+  .mail .mbd { padding: 0 12px 10px; line-height: 1.6; }
+  .mail .mbd p { margin: 0 0 6px; }
+  .mail .mrw { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .mail .mrw .chip { font-size: 12px; padding: 2px 8px; }
+  .mail .mrw .btn { margin-left: auto; }
+  .mail .mdone { margin-left: auto; color: #9fd49a; font-size: 12px; }
   .mnew { margin-left: 4px; padding: 0 5px; border-radius: 5px; background: var(--accent); color: #2a1a00; font-size: 10px; font-weight: 800; }
   .stiers { font-size: 12px; }
   .stiers .lnk { all: unset; cursor: pointer; color: var(--text); margin-right: 6px; }

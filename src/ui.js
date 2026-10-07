@@ -857,6 +857,7 @@ function campDots() {
     gear: Object.keys(GEAR_SLOTS).some((k) => gearBetter(k) || gearCanEnh(k)),
     class: anyClassReady() || canLevelSkill(),
     rank: inboxUnread() > 0,
+    mail: mailUnclaimed() > 0,
     raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot(),
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '',
@@ -1336,6 +1337,43 @@ function viewInbox() {
       <div class="shd"><b>📬 받은 결투</b><small>${fresh.length ? `<b class="warn">새 결투 ${fresh.length}건</b> · ` : ''}최근 ${L.length}건 · 방어 ${win} · 패배 ${L.length - win}</small></div>
       ${shown.map(row).join('')}
       ${L.length > shown.length || inbox.more ? `<button class="lnk" data-action="inbox-more">${inbox.more ? '▴ 접기' : `▾ ${L.length - shown.length}건 더 보기`}</button>` : ''}
+    </div>`;
+}
+
+// ───────────────────────── 우편함 ─────────────────────────
+// 모두에게 보내는 우편(data.js MAIL). 캠프 창 머리의 📬 버튼으로 연다. 펼친 우편은 mailUi.open (기본: 안 받은 첫 우편)
+const mailUi = { open: null };
+function mailRewardText(r = {}) {
+  const out = Object.entries(r.items || {}).map(([k, n]) => `${SUPPLIES[k].icon} ${SUPPLIES[k].name} ×${n}`);
+  if (r.gold) out.push(`<i class="gc"></i> ${fmt(r.gold)}`);
+  if (r.stones) out.push(`💠 강화석 ×${r.stones}`);
+  if (r.tomes) out.push(`📖 비전서 ×${r.tomes}`);
+  return out;
+}
+function viewMail() {
+  const L = mailList();
+  if (!L.length) return '<p class="empty">📭 받은 우편이 없어요</p>';
+  const open = mailUi.open || (L.find((m) => !mailGot(m)) || L[0]).id;
+  const left = (m) => { const d = Math.ceil((m.until - Date.now()) / 86400000); return d <= 1 ? '오늘까지' : `${d}일 남음`; };
+  return `
+    <div class="mailbox">
+      <div class="shd"><b>📬 우편함</b><small>${mailUnclaimed() ? `<b class="warn">안 받은 우편 ${mailUnclaimed()}통</b> · ` : ''}기간이 지나면 사라져요</small></div>
+      ${L.map((m) => {
+        const got = mailGot(m), on = m.id === open;
+        return `
+        <div class="mail ${on ? 'on' : ''} ${got ? 'got' : ''}">
+          <button class="mhd" data-action="mail-open" data-id="${m.id}">
+            <span class="mtl">${got ? '📭' : '📩'} <b>${esc(m.title)}</b>${got ? '' : ' <span class="mnew">NEW</span>'}</span>
+            <small>${esc(m.from)} · ${fmtDate(m.at).split(' ')[0]} · ${left(m)}</small>
+          </button>
+          ${on ? `
+          <div class="mbd">
+            ${m.body.map((t) => `<p>${esc(t)}</p>`).join('')}
+            <div class="mrw">${mailRewardText(m.reward).map((t) => `<span class="chip">${t}</span>`).join('')}
+              ${got ? '<span class="mdone">✔ 받았어요</span>' : `<button class="btn rd" data-action="mail-claim" data-id="${m.id}">🎁 받기</button>`}</div>
+          </div>` : ''}
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -1915,7 +1953,7 @@ function renderCamp() {
     ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
     ['tower', '🗼 탑', dots.tower ? DOT : ''],
   ];
-  const view = { report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid, tower: viewTower }[campTab]();
+  const view = { mail: viewMail, report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid, tower: viewTower }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
   $('campModal').innerHTML = `
     <header>
@@ -1924,6 +1962,7 @@ function renderCamp() {
         <span><i class="gc"></i> <b data-live="gold"></b></span><span>🪵 <b data-live="wood"></b></span>
         <span>🪨 <b data-live="ore"></b></span><span>💎 <b data-live="mana"></b></span>
       </div>
+      <button class="mailbtn ${campTab === 'mail' ? 'on' : ''}" data-action="tab" data-tab="mail" title="우편함">📬${mailUnclaimed() ? `<i>${mailUnclaimed()}</i>` : ''}</button>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
     </header>
     <nav>${tabs.map(([id, label, badge]) => `<button class="${id === campTab ? 'on' : ''}" data-action="tab" data-tab="${id}">${label}${badge}</button>`).join('')}${window.bar ? `<button class="autohide ${autoHide ? 'on' : ''}" data-action="autohide" title="켜면 마우스가 하단바를 벗어나고 잠시 뒤 기사·HUD 가 숨고, 하단바에 마우스를 올리면 다시 보여요">🫥 자동 숨기기 ${autoHide ? '켬' : '끔'}</button>` : ''}<span class="ver">v${GAME_VERSION}</span></nav>
@@ -1992,6 +2031,11 @@ const ACTIONS = {
   'rank-refresh': () => { loadRanking(true); if (rank.sort === 'duel') loadSeason(true); },
   'duel': (el) => startDuel(el.dataset.nick),
   'inbox-more': () => { inbox.more = !inbox.more; renderCamp(); },
+  'mail-open': (el) => { mailUi.open = el.dataset.id; },
+  'mail-claim': (el) => {
+    const m = MAIL.find((x) => x.id === el.dataset.id);
+    if (m && claimMail(m.id)) toast(`🎁 우편 보상을 받았어요 — ${mailRewardText(m.reward).join(' · ')}`);
+  },
   'wb-attack': () => wbAttack(),
   'wb-refresh': () => { wbUi.error = null; loadWorldBoss(true); },
   'raid-refresh': () => { raidUi.at = 0; raidUi.error = null; raidPoll(true); },
@@ -2306,6 +2350,7 @@ function applyState(o) {
   resetWorld();
   catchUp();
   if (S.notice) { toast(S.notice, 10000); delete S.notice; }
+  else if (mailUnclaimed()) toast(`📬 우편 ${mailUnclaimed()}통이 도착했어요 — 캠프 창 오른쪽 위 📬 에서 받아 가세요`, 8000);
   save();
   renderHud();
 }
