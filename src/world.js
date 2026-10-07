@@ -195,7 +195,7 @@ function monsterMidY(m) {
 function hitMonster(m, mult = 1, o = {}) {
   const st = stats();
   const crit = o.crit || Math.random() < st.crit;
-  const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
+  const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1) * (m.boss && dgActive() ? 1 + dgFx().bossDmg : 1);
   m.hp -= dmg;
   m.flash = o.color ? 0.13 : 0.08;
   m.hurt = 1;
@@ -216,6 +216,7 @@ function hitMonster(m, mult = 1, o = {}) {
   m.killed = true;
   shatter(m);
   if (S.phase === 'tower') { towerKillReward(m); return; }
+  if (S.phase === 'dungeon') { dgKill(m); return; }
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -354,6 +355,7 @@ function advanceMonsterAttack(m, dt, st) {
   if (S.hp > 0 && S.hp < st.maxHp * 0.25 && !knight.crisis) { knight.crisis = true; if (S.trip) S.trip.crises++; }
   if (S.hp > 0) return false;
   if (S.phase === 'tower') { towerKnightDown(); return true; }
+  if (S.phase === 'dungeon') { dgViewDown(); return true; }
   addFloater(`💀 스태미나 -${DEFEAT_STAMINA}`, toScreen(knight.x), groundY() - 50, '#ff9f9f', 12);
   knightDefeated(!!m.boss);
   knight.down = DEFEAT_DOWN_SEC;
@@ -660,6 +662,178 @@ function drawTowerBody(g) {
   g.fillRect(0, 0, 2, Math.min(tcH, g0 - 26)); g.fillRect(TOWER_W - 2, 0, 2, tcH);
 }
 
+// ───────────────────────── 갈림길 던전 ─────────────────────────
+// 규칙(방·카드·보상)은 src/dungeon.js, 고르는 화면(문·카드·귀환문)은 ui.js renderDungeonPick. 여기는 하단바 연출:
+// 캠프에서 빛에 싸여 사라짐 → 어두운 돌바닥 위 왼쪽에 나타남 → 방마다 오른쪽에서 몬스터가 나오고, 고를 때는 멈춰 선다
+// → 다음 방으로 갈 때는 오른쪽으로 걸어 나가 빛에 싸였다가 다시 왼쪽에 나타난다 → 끝나면 귀환 빛으로 캠프.
+// sub: warpOut 캠프에서 사라짐 | stand 고르는 중·다음 일 기다림 | fight 방 전투 | walkOut 다음 방으로 | home 귀환 빛
+let dv = null;
+const DG_KX = 90;                   // 방에서 기사가 서는 화면 x
+const DG_MOB_X = 330;               // 첫 몬스터 화면 x
+const dgInside = () => !!dv && dv.sub !== 'warpOut';
+
+function beginDungeonView() {
+  dv = { sub: 'warpOut', t: 0, hold: 0, msgs: [] };
+  monsters = []; shots = []; lapReady = false;
+  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, ward: null });
+  warpKnight('out');
+}
+function endDungeonView() { dv = null; }
+// 결과 한 줄을 기사 머리 위에 (dungeon.js 가 돌려준 { text, sub, gain, bad, big, card })
+function dgShow(res) {
+  if (!res) return;
+  const x = toScreen(knight.x);
+  if (res.big) showBanner(res.text, '#ffd257');
+  else addFloater(res.text, x, groundY() - 66, res.bad ? '#ff8f8f' : '#ffffff', 13, true);
+  if (res.sub) addFloater(res.sub, x, groundY() - 82, res.bad ? '#ffb0b0' : '#9fffc0', 12);
+  const run = S.dg.run;
+  if (run && run.synergy) {
+    showBanner(`🌟 ${DG_RES[run.synergy].name} 시너지! 잭팟 방이 나타나요`, '#ffd257');
+    run.synergy = null;
+  }
+}
+// 고르기 (화면 클릭·방침 공통)
+function dgPickView(i) {
+  const run = S.dg.run;
+  if (!dv || !run || !run.prompt) return;
+  const kind = run.prompt.kind;
+  const res = dgChoose(i);
+  if (res && res.end || !S.dg.run) { dgShow(res); dgViewEnd(); return; }
+  dgShow(res);
+  // 문을 골랐으면 그 방으로 걸어 들어간다
+  if (kind === 'fork') { dv.sub = 'walkOut'; dv.t = 0; }
+  save();
+}
+// 끝: 귀환 빛에 싸여 캠프로 (endDungeon 은 이미 불렸다)
+function dgViewEnd() {
+  if (!dv) return;
+  dv.res = S.dg.last;
+  monsters.forEach((m) => { if (!m.dying) m.dying = 0.001; m.anim = null; });
+  knight.fighting = false; knight.pending = false; knight.ward = null;
+  endCast('hero');
+  shots = [];
+  dv.sub = 'home'; dv.t = 0; dv.hold = dv.res && dv.res.reason === 'down' ? 1 : 0.6;
+  save();
+}
+function dgViewDown() {
+  knight.down = 1.2;
+  addFloater('💀 쓰러졌다!', toScreen(knight.x), groundY() - 60, '#ff8f8f', 13);
+  endDungeon('down');
+  dgViewEnd();
+}
+function dgRetreat() {
+  if (!S.dg.run) return;
+  endDungeon('retreat');
+  addFloater('✨ 후퇴!', toScreen(knight.x), groundY() - 60, '#ffd257', 12);
+  dgViewEnd();
+}
+function dgSpawn(f) {
+  const pool = monsterPool(f.stage);
+  monsters = f.mobs.map((st, i) => {
+    const type = st.boss ? zoneOf(f.stage).boss : pool[Math.floor(Math.random() * pool.length)];
+    const m = makeMonster(type, !!st.boss, toWorld(DG_MOB_X + i * 56), st);
+    m.engaged = true;                 // 방에 들어오면 다 같이 덤빈다
+    if (f.kind === 'elite') m.elite = true;
+    return m;
+  });
+  if (f.kind === 'boss') showBanner(`👑 구간 ${S.dg.run.sec + 1} 보스! ${MONSTERS[monsters[0].type].name}`, '#ff5a5a');
+  else if (f.kind === 'elite') showBanner('🔥 정예 둥지', '#ff9f1c');
+  f.spawned = true;
+}
+
+function updateDungeon(dt) {
+  if (!dv) beginDungeonView();
+  const st = stats(), run = S.dg.run;
+  knight.down = Math.max(0, knight.down - dt);
+  switch (dv.sub) {
+    case 'warpOut':
+      if ((dv.t += dt) >= WARP_SEC) {
+        clearTowerFx();
+        Object.assign(knight, { x: toWorld(DG_KX - 40), facing: 1 });
+        warpKnight('in');
+        dv.sub = 'stand';
+        showBanner('⛏️ 갈림길 던전', '#c9a7ff');
+      }
+      break;
+    case 'stand':
+      if (!run) { dgViewEnd(); break; }
+      if (towerWalk(DG_KX, WALK_SPEED * 1.6, dt) === false) break;
+      knight.facing = 1;
+      if (run.prompt) {
+        // 방침 '바로 자동 선택'이면 잠깐 보여 주고 고른다
+        run.prompt.left -= dt;
+        if (S.dg.pol.fast && run.prompt.left > 0.7 && run.prompt.left < (run.prompt.kind === 'gate' ? DG_GATE_SEC : DG_PICK_SEC) - 0.5) run.prompt.left = 0.7;
+        if (run.prompt.left <= 0) dgPickView(dgAutoPick());
+      } else if (run.fight) {
+        if (!run.fight.spawned) dgSpawn(run.fight);
+        dv.sub = 'fight';
+      }
+      break;
+    case 'fight':
+      if (!run) { dgViewEnd(); break; }
+      fightTick(dt, st, () => {
+        if (monsters.some((m) => !m.dying)) { knight.x += WALK_SPEED * dt; knight.walkT += dt; return; }
+        const res = dgRoomCleared();
+        dgShow(res);
+        if (res && res.end || !S.dg.run) { dgViewEnd(); return; }
+        dv.sub = 'stand';
+        save();
+      });
+      break;
+    case 'walkOut':
+      // 오른쪽으로 걸어 나가 빛에 싸였다가 다음 방 왼쪽에 나타난다
+      dv.t += dt;
+      if (!knight.warp) { knight.x += WALK_SPEED * 1.6 * dt; knight.walkT += dt; }
+      if (dv.t > 0.7 && !knight.warp) warpKnight('out');
+      if (knight.warp && knight.warp.dir === 'out' && knight.warp.t >= WARP_SEC) {
+        clearTowerFx();
+        monsters = [];
+        Object.assign(knight, { x: toWorld(DG_KX - 40), facing: 1 });
+        warpKnight('in');
+        dv.sub = 'stand';
+      }
+      break;
+    case 'home':
+      dv.t += dt;
+      if (dv.t >= dv.hold && !knight.warp) warpKnight('out');
+      if (knight.warp && knight.warp.dir === 'out' && knight.warp.t >= WARP_SEC) {
+        const res = dv.res;
+        clearTowerFx();
+        monsters = [];
+        endDungeonView();
+        S.phase = 'camp';
+        Object.assign(knight, { x: toWorld(CAMP_X), facing: 1, down: 0, fighting: false });
+        warpKnight('in');
+        hooks.onDungeonEnd(res);
+        save();
+      }
+      break;
+  }
+}
+
+// 던전 바닥: 어두운 돌바닥 + 벽 횃불
+function drawDungeonGround() {
+  const gy = groundY();
+  ctx.fillStyle = 'rgba(20, 16, 28, 0.55)';
+  ctx.fillRect(0, gy - 70, W, 70);
+  ctx.fillStyle = 'rgba(70, 64, 82, 0.95)';
+  ctx.fillRect(0, gy, W, 3);
+  ctx.fillStyle = 'rgba(40, 36, 50, 0.9)';
+  ctx.fillRect(0, gy + 3, W, H - gy - 3);
+  ctx.fillStyle = 'rgba(90, 84, 104, 0.5)';
+  for (let x = (clock * 0) % 24; x < W; x += 24) ctx.fillRect(Math.round(x), gy + 4, 1, H - gy - 4);
+  for (let x = 60; x < W; x += 260) {
+    const fl = 0.75 + 0.25 * Math.sin(clock * 9 + x);
+    const glow = ctx.createRadialGradient(x, gy - 48, 1, x, gy - 48, 34);
+    glow.addColorStop(0, `rgba(255,160,60,${0.35 * fl})`);
+    glow.addColorStop(1, 'rgba(255,160,60,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 34, gy - 82, 68, 68);
+    ctx.fillStyle = '#5a4630'; ctx.fillRect(x - 1, gy - 46, 3, 10);
+    ctx.fillStyle = fl > 0.9 ? '#ffe066' : '#ff9f1c'; ctx.fillRect(x - 2, gy - 52, 5, 6);
+  }
+}
+
 function update(dt) {
   // 큰 타격 순간엔 화면 전체를 아주 잠깐 멈춘다 (히트스톱)
   if (hitstop > 0) { hitstop -= dt; return; }
@@ -677,9 +851,11 @@ function update(dt) {
     if (knight.swing >= 1) knight.swing = -1;
   }
 
+  if (dv && S.phase !== 'dungeon') endDungeonView();      // 절전·불러오기로 던전이 정산된 뒤
   if (S.phase === 'expedition') updateExpedition(dt, gdt);
   else if (S.phase === 'returning') updateReturning(dt);
   else if (S.phase === 'tower') updateTower(dt, gdt);
+  else if (S.phase === 'dungeon') { updateDungeon(dt); advanceCamp(gdt); }
   else advanceCamp(gdt);
   if (duelPlay) updateDuel();
   if (raidPlay) updateRaid(dt);
@@ -697,7 +873,7 @@ function update(dt) {
 
   for (const sh of shots) {
     if (sh.delay > 0) { sh.delay -= dt; continue; }
-    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'tower' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
+    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'tower' && S.phase !== 'dungeon' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
     const tx = toScreen(sh.m.x), ty = monsterMidY(sh.m);
     const dx = tx - sh.x, dy = ty - sh.y, dist = Math.hypot(dx, dy);
     const step = sh.w.arrow.speed * dt;
@@ -803,6 +979,7 @@ function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false
 
 function drawGround() {
   if (!showGround) return;
+  if (dgInside()) { drawDungeonGround(); return; }
   if (groundZone !== zoneIndex(S.stage)) makeGrass();
   const gr = ZONES[groundZone].ground;
   const gy = groundY();
@@ -1066,6 +1243,7 @@ function drawDecor(d, gy) {
 }
 
 function drawCamp() {
+  if (dgInside()) return;
   const gy = groundY();
   drawSprite(SPR.tent, PAL, 26, gy, PX);
 

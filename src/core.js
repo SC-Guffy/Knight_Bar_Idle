@@ -11,6 +11,7 @@ const hooks = {
   onSave: () => {},
   onAccountGone: () => {},
   onTowerEnd: (_result) => {},
+  onDungeonEnd: (_result) => {},
 };
 
 // ───────────────────────── 상태 / 저장 ─────────────────────────
@@ -33,7 +34,7 @@ function freshState() {
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
     gearV: 4,                               // 3: 아이템 레벨이 부위(S.gear.lvl)에 붙음 · 2: 장비마다 s 절대값 · 1: 등급 %
-    phase: 'camp',                          // camp | expedition | returning | tower
+    phase: 'camp',                          // camp | expedition | returning | tower | dungeon
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
     trip: null,                             // 진행 중인 원정 기록
@@ -43,6 +44,7 @@ function freshState() {
     mail: { got: [] },                      // 우편함: 보상을 받은 우편 id (data.js MAIL)
     duelSeen: 0,                            // 받은 결투(우편함)에서 읽은 마지막 기록 id (ui.js inbox)
     tower: freshTower(),                    // 도전의 탑: 최고 층·진행 중인 도전 (tower.js)
+    dg: freshDungeon(),                     // 갈림길 던전: 입장권·완주 기록·방침·진행 중인 도전 (dungeon.js)
     wb: freshWb(),                          // 월드 보스: 받은 보상·마지막 정산 (worldboss.js)
     guide: {},                              // 처음 하는 일 안내(FTUE)에서 이미 본 단계 (ui.js guideTick)
     lastSeen: Date.now(),
@@ -173,11 +175,14 @@ function stats(base = false) {
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
   const defRed = defRedAt(t.def);
+  // 갈림길 던전 안: 카드·정비·저주 (dungeon.js dgFx). 랭킹·결투용(base)에는 넣지 않는다
+  const dg = !base && dgActive() ? dgFx() : null;
+  if (dg) atk *= 1 + dg.atk;
   return {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
     // 받는 피해 감소: 직업·장비(최대 60%)와 방어 훈련을 곱으로 합친다 (최대 85%)
-    guard: Math.min(0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed)), defRed,
+    guard: Math.min(dg ? 0.95 : 0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed) * (dg ? Math.max(0.2, 1 + dg.taken) : 1)), defRed,
     heal: Math.min(0.1, (m.heal || 0) + gb.heal), skills: unlockedSkills(),
   };
 }
@@ -367,6 +372,7 @@ function eatLunch() {
 }
 // 원정 중 체력이 낮으면 물약 자동 사용
 function tryPotion() {
+  if (S.phase === 'dungeon') return false;      // 던전에선 체력이 자원이라 물약을 못 쓴다
   const max = stats().maxHp;
   if (S.hp >= max * POTION_AT || S.items.potion <= 0) return false;
   S.items.potion--;
@@ -500,8 +506,9 @@ function knightDefeated(atBoss) {
 
 // 캠프에서 흐르는 시간: 휴식
 function advanceCamp(sec) {
+  if (S.phase !== 'camp' && S.phase !== 'dungeon') return;
+  S.stamina = Math.min(maxStamina(), S.stamina + (maxStamina() / restSecAt(S.bld.inn)) * sec);   // 던전은 스태미나를 안 써서 그동안에도 쉰다
   if (S.phase !== 'camp') return;
-  S.stamina = Math.min(maxStamina(), S.stamina + (maxStamina() / restSecAt(S.bld.inn)) * sec);
   const max = stats().maxHp;
   S.hp = Math.min(max, S.hp + max * CAMP_HEAL_PER_SEC * sec);
 }
@@ -512,6 +519,7 @@ function simulate(sec) {
   advanceBuild(sec);
   // 탑은 오프라인으로 진행하지 않는다: 멈춰 있던 동안(앱을 껐거나 절전) 그 층에서 끝낸 것으로 정산
   if (S.phase === 'tower') { endTower('offline'); S.phase = 'camp'; }
+  if (S.phase === 'dungeon') { endDungeon('offline'); S.phase = 'camp'; }
   if (S.phase === 'returning') arriveCamp(true);
   let t = sec;
   let guard = 0;

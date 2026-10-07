@@ -119,10 +119,11 @@ function renderHud() {
   $('status').textContent =
     S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / STAMINA_DRAIN)}`
       : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / STAMINA_DRAIN)}` : '✨ 귀환 중')
+      : S.phase === 'dungeon' ? (S.dg.run ? `⛏️ 구간 ${S.dg.run.sec + 1}` : '✨ 귀환 중')
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`;
 
-  const key = S.phase + (S.build ? 'b' : '') + (S.tower.run ? 'r' : '');
+  const key = S.phase + (S.build ? 'b' : '') + (S.tower.run ? 'r' : '') + (S.dg.run ? 'd' : '');
   if (key !== panelKey) {
     panelKey = key;
     const build = S.build ? '<div class="pline" data-live="build"></div>' : '';
@@ -136,11 +137,17 @@ function renderHud() {
         ${build}
         <button class="pbtn" data-action="tower-retreat">⬇️ 후퇴</button>`
       : S.phase === 'tower' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
+      : S.phase === 'dungeon' && S.dg.run ? `
+        <div class="pline">⛏️ 갈림길 던전 · 배낭은 나와야 내 것 (후퇴하면 절반)</div>
+        ${build}
+        <button class="pbtn" data-action="dg-retreat">⬇️ 후퇴 (배낭 절반)</button>`
+      : S.phase === 'dungeon' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
       : S.phase === 'returning' ? `<div class="pline">캠프로 돌아가는 중…</div>${build}`
       : `<div class="pline" data-live="campStatus"></div>${build}
          <button class="pbtn" data-action="open-camp">🏕 캠프 열기</button>`;
   }
   tickLive($('hud'));
+  renderDungeonPick();
   const todo = S.phase === 'camp' && !modalOpen() && !duelActive() && !raidActive() && campHasDot();
   document.querySelector('#hud .bar').classList.toggle('rd', todo);
   const openBtn = document.querySelector('#panelBody [data-action="open-camp"]');
@@ -168,7 +175,7 @@ function openCamp(tab) {
   if (raidActive()) { skipRaid(); return; }   // 레이드는 끝나면서 정산 화면(레이드 탭)을 연다
   campOpen = true;
   revealed = [];
-  campTab = typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : raidUi.room ? 'raid' : guideTab() || 'town';
+  campTab = typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : raidUi.room ? 'raid' : guideTab() || 'town';
   if (window.bar) window.bar.setCampMode(true);
   interactive = true;
   $('camp').hidden = false;
@@ -184,6 +191,8 @@ function closeCamp() {
   S.report = null;                     // 창을 닫으면 보고는 읽은 것으로 처리
   if (towerResultViewed && S.tower.last) S.tower.last.seen = true;   // 탑 정산도 본 채로 닫았으면 읽은 것으로
   towerResultViewed = false;
+  if (dgResultViewed && S.dg.last) S.dg.last.seen = true;
+  dgResultViewed = false;
   $('camp').hidden = true;
   interactive = false;
   if (window.bar) window.bar.setCampMode(false);
@@ -886,6 +895,8 @@ function campDots() {
     raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot(),
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '',
+    // 던전: 처음 열렸거나, 안 본 결과가 있거나, 입장권이 남았을 때
+    dungeon: dgUnlocked() && (!S.guide.dgSeen || dgResultPending() || dgTickets() > 0),
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
@@ -1941,6 +1952,12 @@ function guideTick() {
     loadWorldBoss(true);
     save();
   }
+  if (!g.dgIntro && dgUnlocked() && S.phase === 'camp' && !modalOpen()) {
+    g.dgIntro = 1;
+    showBanner('⛏️ 갈림길 던전 개방!', '#ffd257');
+    toast('⛏️ 갈림길 던전이 열렸어요 — 문을 골라 🪵 목재 · 🪨 철광석 같은 재화를 집중해서 모으는 곳이에요. 캠프 → ⛏️ 던전', 10000);
+    save();
+  }
   if (!g.tomeIntro && S.tomes > 0) {
     g.tomeIntro = 1;
     if (skillsOf(S.cls).length) toast('📖 첫 비전서! 캠프 → ⚜️ 전직 탭에서 스킬에 먹이면 쿨타임이 줄고 위력이 올라요', 9000);
@@ -2014,6 +2031,118 @@ function viewTower() {
     ${last}`;
 }
 
+// ───────────────────────── 갈림길 던전 ─────────────────────────
+// 규칙은 src/dungeon.js, 하단바 연출은 world.js updateDungeon. 여기는 고르는 화면(하단바 위 #dgPick)과 캠프 탭.
+const DG_REASON = { exit: '🚪 귀환문으로 나왔어요', clear: '🏆 완주했어요', down: '💀 쓰러졌어요', retreat: '⬇️ 후퇴했어요', offline: '🌙 앱이 꺼져서 멈췄어요' };
+const DG_FAM_CLASS = { res: 'f-res', fight: 'f-fight', trade: 'f-trade', luck: 'f-luck' };
+const dgResultPending = () => !!S.dg.last && S.dg.last.seen === false;
+let dgResultViewed = false;
+// 배낭·보상 한 줄: 🪵 1.2만 · 💠 34
+const dgResText = (bag, empty = '비어 있음') => DG_RES_IDS.filter((r) => bag[r] > 0).map((r) => `${DG_RES[r].icon} ${fmt(bag[r])}`).join(' · ') || empty;
+// 내 카드 요약: 재화 카드는 개수(3장이면 시너지), 나머지는 아이콘
+function dgCardsText(run) {
+  const res = DG_RES_IDS.filter((r) => dgResCards(r, run)).map((r) => `<span class="${dgSynergy(r, run) ? 'syn' : ''}">${DG_RES[r].icon}${dgResCards(r, run)}</span>`);
+  const other = run.cards.filter((id) => !DG_RES[DG_CARDS[id].tag]).map((id) => `<span title="${esc(DG_CARDS[id].name + ' — ' + DG_CARDS[id].desc)}">${DG_CARDS[id].icon}</span>`);
+  return [...res, ...other].join('') || '없음';
+}
+
+// 하단바 위 고르는 화면. 내용이 바뀔 때만 다시 만들고, 남은 시간 막대만 매번 줄인다
+let dgPickKey = '';
+function renderDungeonPick() {
+  const box = $('dgPick'), info = $('dgInfo');
+  const run = S.phase === 'dungeon' ? S.dg.run : null;
+  const p = run && dgInside() && dv.sub === 'stand' ? run.prompt : null;
+  info.hidden = !run || !dgInside();
+  if (run && !info.hidden) {
+    const html = `<span class="dchip">⛏️ ${DG_DIFFS[run.diff].name} · 구간 ${run.sec + 1}/${DG_SECTIONS} · 방 ${Math.min(run.ri + (run.room && run.room.id !== 'boss' ? 1 : 0), DG_ROOMS)}/${DG_ROOMS}</span>
+      <span class="dchip bag" title="배낭 — 나와야 내 것이 돼요 (쓰러지면 절반)">🎒 ${dgResText(run.bag)}</span>
+      <span class="dchip cards" title="카드">🃏 ${dgCardsText(run)}</span>${run.keys ? `<span class="dchip">🗝️ ${run.keys}</span>` : ''}`;
+    if (info.innerHTML !== html) info.innerHTML = html;
+  }
+  if (!p) { if (dgPickKey) { box.innerHTML = ''; box.hidden = true; dgPickKey = ''; } return; }
+  const key = run.rooms + ':' + run.sec + ':' + run.ri + ':' + p.kind + ':' + JSON.stringify(p.opts) + ':' + Math.round(S.hp / stats().maxHp * 20);
+  if (key !== dgPickKey) {
+    dgPickKey = key;
+    box.hidden = false;
+    box.innerHTML = dgPickHtml(run, p);
+  }
+  const bar = box.querySelector('.dgtime > div');
+  if (bar) bar.style.width = (100 * Math.max(0, p.left) / (p.kind === 'gate' ? DG_GATE_SEC : DG_PICK_SEC)) + '%';
+}
+function dgPickHtml(run, p) {
+  const auto = dgAutoPick();
+  const btn = (i, cls, inner, off) => `<button class="interactive ${cls}${i === auto ? ' auto' : ''}" data-action="dg-pick" data-i="${i}" ${off ? 'disabled' : ''}>${inner}</button>`;
+  const q = (title, sub) => `<div class="dgq"><b>${title}</b><small>${sub}</small><div class="dgtime"><div></div></div></div>`;
+  const polText = `방침: ${DG_RES[S.dg.pol.target].icon} 우선 — 테두리가 방침이 고를 것`;
+  if (p.kind === 'fork') {
+    return q('어느 문으로?', polText) + p.opts.map((d, i) => {
+      const fam = DG_ROOMS_DEF[d.id].fam;
+      return btn(i, `dgdoor ${DG_FAM_CLASS[fam]}${d.res === S.dg.pol.target ? ' tgt' : ''}`, `<span class="ic">${dgDoorIcon(d)}</span><b>${dgDoorName(d)}</b><small>${dgDoorDesc(d)}</small><i>${DG_FAMS[fam]}</i>`);
+    }).join('');
+  }
+  if (p.kind === 'card') {
+    const title = { boss: '👑 보스 보상 — 카드 한 장', elite: '🔥 정예 보상 — 카드 한 장', unknown: '🃏 카드 한 장' }[p.why] || '카드 한 장';
+    return q(title, polText) + p.opts.map((o, i) => {
+      if (o.reroll) return btn(i, 'dgopt slim', `<b>🔄 다시 뽑기</b><small>${run.rerolls}번 남음</small>`);
+      if (o.skip) return btn(i, 'dgopt slim', '<b>건너뛰기</b>');
+      const c = DG_CARDS[o.card], resTag = DG_RES[c.tag];
+      const n = resTag ? dgResCards(c.tag, run) : 0;
+      const syn = resTag ? (n + 1 >= 3 ? `<em>${n + 1}/3 — 시너지 완성! 잭팟 방</em>` : `<em>${resTag.icon} ${n + 1}/3 → 잭팟 방</em>`) : '';
+      return btn(i, `dgcard r${c.rar}`, `<span class="tag">${resTag ? resTag.icon + ' ' + resTag.name : { fight: '⚔️ 전투', trade: '🛒 거래', gamble: '🎰 도박' }[c.tag]} · ${DG_RAR[c.rar].name}</span><b>${c.icon} ${c.name}</b><small>${c.desc}</small>${syn}`);
+    }).join('');
+  }
+  if (p.kind === 'gate') {
+    const fx = dgFx(run), win = dgWinChance(run), mult = fx.allin ? DG_ALLIN_MULT : DG_BOSS_MULT;
+    const lose = fx.allin ? '전부 잃음' : '절반 잃음';
+    return q(`🚪 귀환문 — 구간 ${run.sec + 1} 보스 앞`, `체력 ${Math.round(100 * Math.max(0, S.hp) / stats().maxHp)}% · 방침: 승률 ${Math.round(S.dg.pol.gate * 100)}% 미만이면 나감`)
+      + btn(0, 'dgopt wide', `<b>🎒 들고 나가기</b><small>${dgResText(run.bag)} 확정</small>`)
+      + btn(1, 'dgopt wide risk', `<b>👑 보스 도전 · 예상 승률 ${Math.round(win * 100)}%</b><small>이기면 배낭 ×${mult} + 보물 + 카드 · 지면 ${lose}</small>`);
+  }
+  const room = p.room, def = DG_ROOMS_DEF[room.id];
+  return q(`${def.icon} ${dgDoorName(room)}`, def.desc) + p.opts.map((o, i) => btn(i, 'dgopt', `<b>${o.label}</b><small>${o.desc || ''}</small>`, o.off)).join('');
+}
+
+function dgResultHtml(L) {
+  const lost = DG_RES_IDS.some((r) => L.lost[r] > 0);
+  return `
+    <div class="treport" style="margin-bottom:10px">
+      <div class="reason">${DG_REASON[L.reason] || '도전 끝'} — ${DG_DIFFS[L.diff].name} · 보스 ${L.bosses}/${DG_SECTIONS}${L.first ? ' · 🎉 첫 완주!' : ''}</div>
+      <div class="dgline">받음 <b>${dgResText(L.got, '없음')}</b>${lost ? ` <span class="bad">· 잃음 ${dgResText(L.lost)}</span>` : ''}</div>
+      <div class="dgline small">방 ${L.rooms}개 · 처치 ${fmt(L.kills)} · 카드 ${L.cards.length}장${L.dur ? ` · ${fmtTime(L.dur)}` : ''}</div>
+    </div>`;
+}
+function viewDungeon() {
+  const d = S.dg, pol = d.pol;
+  if (!dgUnlocked()) return `<div class="mhead"><div><h3>⛏️ 갈림길 던전</h3><small>스테이지 ${DG_UNLOCK_STAGE}에 열려요</small></div></div>
+    <div class="hint">갈림길마다 문을 골라 원하는 재화를 집중해서 모으는 던전이에요. 🪵 목재 · 🪨 철광석을 가장 많이 얻는 곳이에요.</div>`;
+  const fresh = dgResultPending();
+  if (fresh) dgResultViewed = true;
+  const sel = Math.min(pol.diff || 0, DG_DIFFS.length - 1);
+  const blocker = dgBlocker(sel);
+  const L = dgLimitStage();
+  const diffs = DG_DIFFS.map((x, i) => {
+    const open = dgDiffOpen(i);
+    return `<button class="pchip${i === sel ? ' on' : ''}" data-action="dg-diff" data-i="${i}" ${open ? '' : 'disabled'} title="${open ? `스테이지 ${Math.max(1, L + x.off)} 급 몬스터` : esc(dgBlocker(i))}">${open ? '' : '🔒 '}${x.name} <small>×${x.mult}</small>${d.clr[x.id] ? ' ✓' : ''}</button>`;
+  }).join('');
+  const targets = DG_RES_IDS.map((r) => `<button class="pchip${pol.target === r ? ' on' : ''}" data-action="dg-target" data-r="${r}">${DG_RES[r].icon} ${DG_RES[r].name}</button>`).join('');
+  const gates = [0.8, 0.6, 0.4].map((g) => `<button class="pchip${pol.gate === g ? ' on' : ''}" data-action="dg-gate" data-g="${g}">${Math.round(g * 100)}%</button>`).join('');
+  const locked = Object.keys(DG_ROOMS_DEF).filter((id) => id !== 'jackpot' && !dgRoomOpen(id));
+  const nextOpen = locked.length ? (() => { const need = Math.min(...locked.map((id) => DG_ROOMS_DEF[id].need)); return `${DG_DIFFS[need].name} 완주 시 새 방: ${locked.filter((id) => DG_ROOMS_DEF[id].need === need).map((id) => DG_ROOMS_DEF[id].icon + ' ' + DG_ROOMS_DEF[id].name).join(' · ')}`; })() : '모든 방이 열렸어요';
+  return `
+    <div class="mhead"><div><h3>⛏️ 갈림길 던전</h3>
+      <small>🎟 입장권 <b>${dgTickets()}/${DG_TICKETS}</b> · 완주 ${DG_DIFFS.filter((x) => d.clr[x.id]).map((x) => x.name).join(' · ') || '아직 없음'}</small></div></div>
+    ${fresh ? dgResultHtml(d.last) : ''}
+    <div class="hint">갈림길마다 문을 골라 원하는 재화를 모으고, 보스를 잡을 때마다 카드를 한 장씩 모아요. 체력은 저절로 차지 않고, 배낭은 나와야 내 것이에요 — 귀환문에서 나가면 100%, 쓰러지면 절반.</div>
+    <div class="dgrow"><span class="lbl">난이도</span>${diffs}</div>
+    <div class="dgrow"><span class="lbl">목표 재화</span>${targets}</div>
+    <div class="dgrow"><span class="lbl">방침</span>
+      <button class="pchip${pol.risky ? '' : ' on'}" data-action="dg-risky" data-v="0">전투 방 피함</button><button class="pchip${pol.risky ? ' on' : ''}" data-action="dg-risky" data-v="1">전투 방 감수</button>
+      <span class="sep"></span><span class="lbl">승률</span>${gates}<span class="small">미만이면 귀환</span>
+      <span class="sep"></span><button class="pchip${pol.fast ? ' on' : ''}" data-action="dg-fast">⚡ 바로 자동 선택</button></div>
+    <div class="dgrow small">${nextOpen} · 목표 재화 문이 두 배로 자주 나와요. 고르지 않으면 ${DG_PICK_SEC}초 뒤 방침대로 골라요.</div>
+    <div class="act" style="margin-top:8px"><button class="go compact${rd(blocker === '')}" data-action="dg-start" ${blocker ? 'disabled' : ''}>⛏️ ${DG_DIFFS[sel].name} 입장 <small>🎟1</small></button> <span class="blocker">${blocker}</span></div>`;
+}
+
 function viewRaid() {
   refillTickets();
   raidPoll();
@@ -2045,15 +2174,16 @@ function renderCamp() {
     ['rank', '🏆 랭킹', inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
     ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
     ['tower', '🗼 탑', dots.tower ? DOT : ''],
+    ['dungeon', '⛏️ 던전', dots.dungeon ? DOT : ''],
   ];
-  const view = { mail: viewMail, report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid, tower: viewTower }[campTab]();
+  const view = { mail: viewMail, report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid, tower: viewTower, dungeon: viewDungeon }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
   $('campModal').innerHTML = `
     <header>
       <h2>🏕 ${esc(activeNick())}의 캠프 <small class="sync" data-live="sync"></small></h2>
       <div class="res">
-        <span><i class="gc"></i> <b data-live="gold"></b></span><span>🪵 <b data-live="wood"></b></span>
-        <span>🪨 <b data-live="ore"></b></span><span>💎 <b data-live="mana"></b></span>
+        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 갈림길 던전 숲길에서 가장 많이 (원정 골동품에서도 조금)">🪵 <b data-live="wood"></b></span>
+        <span title="철광석 — ⛏️ 갈림길 던전 갱도에서 가장 많이 (원정 골동품에서도 조금)">🪨 <b data-live="ore"></b></span><span title="마력석 — ⛏️ 갈림길 던전 수정굴 · 레이드 · 원정 골동품">💎 <b data-live="mana"></b></span>
       </div>
       <button class="mailbtn ${campTab === 'mail' ? 'on' : ''}" data-action="tab" data-tab="mail" title="우편함">📬${mailUnclaimed() ? `<i>${mailUnclaimed()}</i>` : ''}</button>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
@@ -2117,11 +2247,26 @@ const ACTIONS = {
     save();
     renderHud();
   },
+  'dg-start': () => {
+    if (!startDungeon(Math.min(S.dg.pol.diff || 0, DG_DIFFS.length - 1))) return;
+    closeCamp();
+    beginDungeonView();
+    save();
+    renderHud();
+  },
+  'dg-pick': (el) => dgPickView(Number(el.dataset.i)),
+  'dg-retreat': () => { dgRetreat(); renderHud(); },
+  'dg-diff': (el) => { S.dg.pol.diff = Number(el.dataset.i); },
+  'dg-target': (el) => { S.dg.pol.target = el.dataset.r; },
+  'dg-risky': (el) => { S.dg.pol.risky = el.dataset.v === '1'; },
+  'dg-gate': (el) => { S.dg.pol.gate = Number(el.dataset.g); },
+  'dg-fast': () => { S.dg.pol.fast = !S.dg.pol.fast; },
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),
   'tab': (el) => {
     campTab = el.dataset.tab;
     if (campTab === 'tower' && towerUnlocked()) S.guide.towerSeen = 1;
+    if (campTab === 'dungeon' && dgUnlocked()) S.guide.dgSeen = 1;
     $('campBody').scrollTop = 0;
   },
   'rank-sort': (el) => { rank.sort = el.dataset.sort; },
@@ -2413,6 +2558,8 @@ function resetWorld() {
   // 탑은 이어서 하지 않는다: 다시 불러오면 그 층에서 끝낸 것으로 정산
   if (S.phase === 'tower') { endTower('offline'); S.phase = 'camp'; }
   if (tw) endTowerView();
+  if (S.phase === 'dungeon') { endDungeon('offline'); S.phase = 'camp'; }
+  if (dv) endDungeonView();
   monsters = []; coins = []; floaters = []; shots = []; effects = []; drops = [];
   lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null });
@@ -2530,6 +2677,11 @@ hooks.onTowerEnd = (r) => {
   renderHud();
   if (!r) return;
   toast(`🗼 ${TOWER_REASON[r.reason] || '도전 끝'} — ${r.cleared}개 층 돌파${r.tomes ? ` · 📖 +${r.tomes}` : ''} · 기사를 클릭해 정산을 확인하세요`, 8000);
+};
+hooks.onDungeonEnd = (r) => {
+  renderHud();
+  if (!r) return;
+  toast(`⛏️ ${DG_REASON[r.reason] || '던전 끝'} — ${dgResText(r.got, '받은 게 없어요')} · 기사를 클릭해 정산을 확인하세요`, 8000);
 };
 hooks.onArrive = () => {
   const r = S.report;
@@ -2678,6 +2830,7 @@ function boot() {
     if (saveKey) update(Math.min(dt, 0.1));
     else clock += dt;
     render();
+    if (S.phase === 'dungeon') renderDungeonPick();
     if (campOpen && campTab === 'class') drawClassPreviews();
     if (campOpen && campTab === 'gear') drawGearHero();
     if (campOpen && campTab === 'town') drawTown();
