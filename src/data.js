@@ -449,8 +449,9 @@ const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
 //  레벨마다 공격력 ×GEAR_ATK_GROW · 체력 ×GEAR_HP_GROW — 몬스터(체력 ×1.23 · 공격력 ×1.17 / 스테이지)보다 조금 느려서,
 //  레벨만 올라서는 깊이 못 가고 좋은 등급(레이드)·강화가 벽을 넘게 해 준다
 const GEAR_ATK_GROW = 1.2, GEAR_HP_GROW = 1.16;
-const gearAtkAt = (lv) => 0.4 * Math.pow(GEAR_ATK_GROW, lv);
-const gearHpAt = (lv) => 4 * Math.pow(GEAR_HP_GROW, lv);
+// 기본값(0.1 · 1)은 플레이 시간 기준: 0.4 · 4 였을 때보다 같은 지점에 닿는 데 약 2배 걸린다 (다음 시즌 플탐 늘리기, 진행 봇 14일·16회)
+const gearAtkAt = (lv) => 0.1 * Math.pow(GEAR_ATK_GROW, lv);
+const gearHpAt = (lv) => 1 * Math.pow(GEAR_HP_GROW, lv);
 function gearBase(slot, g, roll, s) {
   const k = GRADES[g].stat * roll;
   if (slot === 'weapon') return { atk: gearAtkAt(s) * k, aspdPct: WEAPON_ASPD[g] * roll };
@@ -528,12 +529,12 @@ const CURIOS = {
 
 // ───────────────────────── 훈련 (골드) ─────────────────────────
 // 공격력·체력 훈련은 맨몸 능력치다: 처음엔 단계마다 ×1.286 로 크게 오르다가 TRAIN_SAT 근처에서 포화해
-//  공격력 약 2,200 · 체력 약 13,000 에서 멈춘다 — 장비가 약한 초반을 끌어 주고, 중후반엔 장비(레벨 × 등급 × 강화)에 묻혀 미미해진다.
+//  공격력 약 1,100 · 체력 약 6,600 에서 멈춘다 — 장비가 약한 초반을 끌어 주고, 중후반엔 장비(레벨 × 등급 × 강화)에 묻혀 미미해진다.
 //  훈련장을 올려도 무기·갑옷은 세지지 않는다 (골드·건물로 힘을 사지 못하게)
 const TRAIN_GROW = 1.286, TRAIN_SAT = 120;
 const trainSat = (t) => (Math.pow(TRAIN_GROW, t) - 1) / (1 + Math.pow(TRAIN_GROW, t) / TRAIN_SAT);
-const trainAtkAt = (t) => 6 + 18 * trainSat(t);
-const trainHpAt = (t) => 40 + 110 * trainSat(t);
+const trainAtkAt = (t) => 6 + 9 * trainSat(t);
+const trainHpAt = (t) => 40 + 55 * trainSat(t);
 const TRAINING = [
   { id: 'atk',  name: '⚔️ 공격력', max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
   { id: 'hp',   name: '🛡️ 체력',   max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },
