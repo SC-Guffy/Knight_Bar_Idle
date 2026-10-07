@@ -465,50 +465,66 @@ function skillList(id) {
     const dmg = k.ward ? `초당 ×${+(k.ward.tick * pow).toFixed(2)}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
-      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id)) : k.name}</b> <small>${k.ult ? `💥 궁극기 · ${SKILLS[k.mastOf].name} 숙련도 이어받음 · ` : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id), skillStage(k.id)) : k.name}</b> <small>${k.ult ? `💥 궁극기 · ${SKILLS[k.mastOf].name} 숙련도 이어받음 · ` : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
         <span class="sdesc">${k.desc}</span></span>
     </div>`;
   }).join('')}</div>`;
 }
 
-// 스킬 숙련도: 지금 직업의 스킬에 📖 비전서를 먹여서 Lv30 까지 키운다 (classes.js SKILL_MAX·MASTERY)
-function viewMastery() {
+// ⚡ 스킬 탭 (전직과 분리): 지금 직업의 스킬에 📖 비전서를 먹여 Lv30 까지 키운다 (classes.js SKILL_MAX).
+//  - Lv10·20·30 에 닿으면 ✨ 진화 버튼이 뜨고, 눌러야 별이 달린다 (core.js evolveSkill — 위력·쿨타임 +10%/별)
+//  - 단 별 안에서 전투에 쓸 모습(0~n성)을 별 띠를 클릭해 고른다 (setSkillStar — 기술 형태·연출만 바뀌고 위력은 단 별 기준)
+//  - 「비주얼 확인」을 누르면 아래 기사가 고른 모습으로 한 번 시전한다 (skills.js previewSkill)
+function viewSkill() {
   const list = skillsOf(S.cls);
-  // 보유 비전서를 맨 위에 크게: 지금 몇 권 있고, 어떻게 쓰는지
-  const head = `<div class="mhead"><div><h3>📖 스킬 숙련도</h3>
-      <small>칸 1개 = 비전서 1권 · 칸을 다 채우면 레벨 업 · Lv 10·20·30 에서 기술 진화</small></div>
+  const head = `<div class="mhead"><div><h3>⚡ 스킬</h3>
+      <small>칸 1개 = 비전서 1권 · 칸을 다 채우면 레벨 업 · Lv 10·20·30 에 닿으면 ✨ 진화로 별을 달아요</small></div>
     <span class="mchip${S.tomes ? '' : ' none'}" title="가진 비전서">📖 <b>${fmt(S.tomes)}</b><small>권 보유</small></span></div>`;
   if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요.</div>`;
   const firstOpen = list.find((x) => skillLvOf(S.mast[mastKey(x.id)] || 0).lv < SKILL_MAX);
+  const camp = S.phase === 'camp';
   const rows = list.map((k) => {
-    const total = S.mast[mastKey(k.id)] || 0, s = skillLvOf(total), m = masteryOf(s.lv), max = s.lv >= SKILL_MAX;
+    const total = S.mast[mastKey(k.id)] || 0, s = skillLvOf(total), max = s.lv >= SKILL_MAX;
+    const n = skillStar(k.id), use = skillStage(k.id), ready = canEvolve(k.id);
     const need = max ? 0 : s.need - s.have;
-    const nextM = MASTERY[m + 1];
-    const mt = (lv) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k, lv, S.cls)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k, lv, S.cls)).toFixed(2)}`;
-    const tag = m ? `<span class="mtag m${m}">${MASTERY[m].star} ${MASTERY[m].name}</span>` : '';
+    const nextM = MASTERY[n + 1];
+    const mt = (lv, star = n) => k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k, lv, S.cls, star)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k, lv, S.cls, star)).toFixed(2)}`;
+    const cd = (lv, star = n) => skillCdOf(k, lv, S.cls, star);
+    const tag = n ? `<span class="mtag m${n}">${MASTERY[n].star} ${MASTERY[n].name}</span>` : '';
     const locked = S.level < k.lv;
     const all = Math.min(S.tomes, SKILL_TOME_MAX - total);   // 전부 쓰기: 가진 만큼 (만렙에서 남는 건 안 씀)
     const ups = skillLvOf(total + all).lv - s.lv;
     const pulse = guidePendingFeed() && k === firstOpen ? ' gpulse' : '';
-    const btns = max ? '<span class="mmax">★★★ 최고 단계</span>' : `
+    const btns = max ? `<span class="mmax">Lv ${SKILL_MAX} 만렙</span>` : `
       <button class="btn mb1${rd(S.tomes >= need)}${pulse}" data-action="tome" data-id="${k.id}" data-n="1" ${S.tomes < 1 ? 'disabled' : ''}>1권 쓰기</button>
       <button class="btn mball" data-action="tome" data-id="${k.id}" data-n="${all}" ${all < 1 ? 'disabled' : ''} title="${all ? `비전서 ${all}권을 모두 넣어요${ups ? ` (Lv +${ups})` : ''}` : ''}">전부 쓰기${all ? ` <small>${all}${ups ? ` · Lv+${ups}` : ''}</small>` : ''}</button>`;
-    // 다음 진화(Lv10·20·30)를 크게: 거기까지 남은 권수와 바뀌는 모습
-    const toNext = nextM ? skillTomesAt(nextM.lv) - total : 0;
-    const evo = nextM ? `
-      <div class="mevo" title="${k.stageDesc ? k.stageDesc[m + 1] : nextM.desc}">
+    // 별 띠: 단 별은 ★ (적용 중인 단계까지 켜짐), 안 단 별은 ☆. 클릭하면 그 단계의 모습으로 — 켜진 맨 끝 별을 다시 누르면 한 단계 아래로
+    const stars = `<span class="stars" title="전투에 쓸 모습을 고르세요 — 단 별 안에서, 위력·쿨타임은 그대로">${[1, 2, 3].map((i) => {
+      const to = i === use ? i - 1 : i;
+      const tip = i > n ? `Lv ${MASTERY[i].lv} 에 닿으면 ✨ 진화로 달 수 있어요` : `${to ? `${MASTERY[to].star} 「${skillNameAt(k, s.lv, to)}」` : `별 없는 「${skillNameAt(k, s.lv, 0)}」`} 모습으로`;
+      return `<button class="${i <= n ? (i <= use ? 'on' : 'have') : 'lock'}" data-action="star" data-id="${k.id}" data-s="${to}" ${i > n ? 'disabled' : ''} title="${tip}">${i <= n ? '★' : '☆'}</button>`;
+    }).join('')}</span>`;
+    const prev = `<button class="btn mprev" data-action="preview" data-id="${k.id}" ${camp ? '' : 'disabled'} title="${camp ? '아래 기사가 지금 고른 모습으로 한 번 시전해요 (피해 없음)' : '캠프에 있을 때만 볼 수 있어요'}">▶ 비주얼 확인</button>`;
+    // 진화: 닿았으면 버튼 (누르면 별이 달리고 모습이 바뀐다), 아니면 다음 별까지 남은 권수와 바뀌는 모습
+    const toNext = nextM ? Math.max(0, skillTomesAt(nextM.lv) - total) : 0;
+    const evo = !nextM ? '' : ready ? `
+      <div class="mevo ready">
+        <button class="btn evo gpulse" data-action="evolve" data-id="${k.id}" title="쿨타임 ${cd(s.lv)}초 → ${cd(s.lv, n + 1)}초 · 위력 ${mt(s.lv)} → ${mt(s.lv, n + 1)}">✨ 진화 — ${nextM.star} ${nextM.name}</button>
+        <span class="mevo-t">${k.stageName ? `<b>「${k.stageName[n + 1]}」</b> ${k.stageDesc[n + 1]}` : nextM.desc}</span>
+      </div>` : `
+      <div class="mevo" title="${k.stageDesc ? k.stageDesc[n + 1] : nextM.desc}">
         <span class="mevo-s">${nextM.star} Lv ${nextM.lv}</span>
-        <span class="mevo-t">${k.stageName ? `<b>「${k.stageName[m + 1]}」</b> ${k.stageDesc[m + 1]}` : nextM.desc}</span>
+        <span class="mevo-t">${k.stageName ? `<b>「${k.stageName[n + 1]}」</b> ${k.stageDesc[n + 1]}` : nextM.desc}</span>
         <span class="mevo-n">${toNext}권 남음</span>
-      </div>` : '';
+      </div>`;
     return `
-      <div class="mskill m${m}${locked ? ' locked' : ''}">
+      <div class="mskill m${n}${locked ? ' locked' : ''}">
         <span class="sicon">${k.icon}</span>
         <div class="mbody">
-          <div class="mtitle"><b>${skillNameAt(k, s.lv)}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${locked ? ` <span class="mlock">🔒 캐릭터 Lv ${k.lv}에 사용 가능</span>` : ''}</div>
+          <div class="mtitle"><b>${skillNameAt(k, s.lv, use)}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${stars}${locked ? ` <span class="mlock">🔒 캐릭터 Lv ${k.lv}에 사용 가능</span>` : ''}${prev}</div>
           ${max ? '' : `<div class="mseg"><div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div>
             <span class="mnum"><b>${s.have}</b>/${s.need}</span></div>`}
-          <small class="mstat">${max ? '' : '다음 레벨 · '}쿨타임 ${skillCdOf(k, s.lv, S.cls)}초${max ? '' : ` → <b>${skillCdOf(k, s.lv + 1, S.cls)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}</small>
+          <small class="mstat">${max ? '' : '다음 레벨 · '}쿨타임 ${cd(s.lv)}초${max ? '' : ` → <b>${cd(s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}</small>
           ${evo}
         </div>
         <div class="act">${btns}</div>
@@ -516,11 +532,13 @@ function viewMastery() {
   }).join('');
   const guide = guidePendingFeed()
     ? `<div class="gtip big">👉 <b>📖 1권 쓰기</b>를 눌러 보세요 — 칸이 차면 레벨이 오르고, 쿨타임이 바로 줄고 위력이 올라요.</div>`
+    : canEvolveAny() && !S.guide.evolved ? `<div class="gtip big">✨ 별을 달 수 있어요 — <b>진화</b>를 누르면 기술이 다음 모습으로 진화하고 쿨타임·위력이 한 번에 뛰어요.</div>`
     : S.tomes === 0 ? `<div class="gtip">📖 비전서는 ${towerUnlocked() ? '<button class="lnk" data-action="tab" data-tab="tower">🗼 도전의 탑</button>에서 가장 많이 얻어요 (원정 보스·레이드 상자·결투 시즌에서도)' : `🗼 도전의 탑(스테이지 ${TOWER_UNLOCK_STAGE}에 열림)·원정 보스·레이드 상자·결투 시즌에서 얻어요`}</div>` : '';
-  const note = heroClass().tier >= 3
-    ? '3차 궁극기는 대신한 1차 스킬의 숙련도를 그대로 이어받아요. 2차 스킬은 숙련도 그대로 제 위력을 내요.'
-    : '1차 스킬은 2차 전직 뒤에도 숙련도 그대로 써요 (2차 직업에선 위력이 조금 줄어요). 3차 전직하면 궁극기가 그 자리를 숙련도째 이어받아요.';
-  return `${head}${guideFlow('class')}${guide}${rows}<div class="hint">${note}</div>`;
+  const note = (heroClass().tier >= 3
+    ? '3차 궁극기는 대신한 1차 스킬의 숙련도·별을 그대로 이어받아요. 2차 스킬은 숙련도 그대로 제 위력을 내요.'
+    : '1차 스킬은 2차 전직 뒤에도 숙련도·별 그대로 써요 (2차 직업에선 위력이 조금 줄어요). 3차 전직하면 궁극기가 그 자리를 숙련도째 이어받아요.')
+    + ' 별 띠에서 고른 모습은 기술의 형태·연출만 바꾸고, 위력·쿨타임은 단 별 기준이에요.';
+  return `${head}${guideFlow('skill')}${guide}${rows}<div class="hint">${note}</div>`;
 }
 
 function reqChips(id) {
@@ -564,7 +582,6 @@ function viewClass() {
   const req = c.tier && st !== 'current' && st !== 'done' ? `<div class="req">조건 ${reqChips(id)}</div>` : '';
 
   return `
-    ${viewMastery()}
     <h3>⚜️ 전직 <small>현재 ${heroClass().icon} ${heroClass().name}</small></h3>
     <div class="tree">${tree}</div>
     <div class="cdetail">
@@ -880,7 +897,8 @@ function campDots() {
     town: Object.keys(BUILDINGS).some(canBuild),
     train: TRAINING.some(canTrain),
     gear: Object.keys(GEAR_SLOTS).some((k) => gearBetter(k) || gearCanEnh(k) || canReforge(k)),
-    class: anyClassReady() || canLevelSkill(),
+    skill: canLevelSkill() || canEvolveAny(),
+    class: anyClassReady(),
     rank: inboxUnread() > 0,
     mail: mailUnclaimed() > 0,
     raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot(),
@@ -1918,12 +1936,12 @@ function viewWorldBoss() {
 }
 
 // ───────────────────────── 처음 하는 일 안내 (FTUE) ─────────────────────────
-// 도전의 탑 → 📖 비전서 → ⚜️ 스킬 강화 가 한 줄로 이어지도록, 처음 한 번씩만 짚어 준다. 본 단계는 S.guide 에 남긴다.
-//  towerIntro 탑이 열린 순간 배너·안내 / towerSeen 탑 탭을 열어 봄 / tomeIntro 첫 비전서를 얻음 / fed 처음 스킬에 먹임
-// 캠프를 열 때 기본 탭도 지금 할 일 쪽으로 (guideTab): 탑을 아직 안 봤으면 탑, 비전서를 들고 한 번도 안 먹였으면 전직.
+// 도전의 탑 → 📖 비전서 → ⚡ 스킬 강화 가 한 줄로 이어지도록, 처음 한 번씩만 짚어 준다. 본 단계는 S.guide 에 남긴다.
+//  towerIntro 탑이 열린 순간 배너·안내 / towerSeen 탑 탭을 열어 봄 / tomeIntro 첫 비전서를 얻음 / fed 처음 스킬에 먹임 / evolved 처음 진화함
+// 캠프를 열 때 기본 탭도 지금 할 일 쪽으로 (guideTab): 탑을 아직 안 봤으면 탑, 비전서를 들고 한 번도 안 먹였으면 스킬.
 const guidePendingFeed = () => S.tomes > 0 && !S.guide.fed && skillsOf(S.cls).length > 0;
 function guideTab() {
-  if (guidePendingFeed()) return 'class';
+  if (guidePendingFeed()) return 'skill';
   if (towerUnlocked() && !S.guide.towerSeen) return 'tower';
   return null;
 }
@@ -1943,13 +1961,13 @@ function guideTick() {
   }
   if (!g.tomeIntro && S.tomes > 0) {
     g.tomeIntro = 1;
-    if (skillsOf(S.cls).length) toast('📖 첫 비전서! 캠프 → ⚜️ 전직 탭에서 스킬에 먹이면 쿨타임이 줄고 위력이 올라요', 9000);
-    else toast('📖 첫 비전서! 1차 전직 후 스킬을 익히면 ⚜️ 전직 탭에서 비전서로 강화할 수 있어요', 9000);
+    if (skillsOf(S.cls).length) toast('📖 첫 비전서! 캠프 → ⚡ 스킬 탭에서 스킬에 먹이면 쿨타임이 줄고 위력이 올라요', 9000);
+    else toast('📖 첫 비전서! 1차 전직 후 스킬을 익히면 ⚡ 스킬 탭에서 비전서로 강화할 수 있어요', 9000);
     save();
   }
 }
 // 탑 → 비전서 → 스킬 강화 흐름을 한 줄로 (탑 탭·숙련도 패널 맨 위)
-const guideFlow = (here) => `<div class="gflow">${[['tower', '🗼 탑 오르기'], ['tome', '📖 비전서 획득'], ['class', '⚜️ 스킬 강화 (쿨타임↓ 위력↑)']]
+const guideFlow = (here) => `<div class="gflow">${[['tower', '🗼 탑 오르기'], ['tome', '📖 비전서 획득'], ['skill', '⚡ 스킬 강화 (쿨타임↓ 위력↑)']]
   .map(([k, t]) => `<span class="${k === here ? 'on' : ''}">${t}</span>`).join('<i>→</i>')}</div>`;
 
 // ───────────────────────── 도전의 탑 ─────────────────────────
@@ -1975,7 +1993,7 @@ function towerResultHtml(L) {
         ${cell('<i class="gc"></i> 골드', fmt(L.gold))}
         ${cell('✨ 경험치', fmt(L.exp) + (L.levels ? ` · Lv +${L.levels}` : ''))}
       </div>
-      ${L.tomes && skillsOf(S.cls).length ? `<div class="gtip">📖 지금 비전서 ${fmt(S.tomes)}권 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
+      ${L.tomes && skillsOf(S.cls).length ? `<div class="gtip">📖 지금 비전서 ${fmt(S.tomes)}권 — <button class="lnk" data-action="tab" data-tab="skill">⚡ 스킬 탭에서 스킬 강화하기 →</button></div>` : ''}
       <div class="act" style="margin-top:6px"><button class="go compact" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 다시 도전 (${towerCheckpoint()}F 부터 · 🎟 ${towerTickets()}장 남음)</button>${blocker ? ` <span class="blocker">${blocker}</span>` : ''}</div>
     </div>`;
 }
@@ -2003,7 +2021,7 @@ function viewTower() {
       ${t.best ? `<button class="go compact${rd(towerSweepReady())}" data-action="tower-sweep" ${towerSweepReady() ? '' : 'disabled'}>🧹 소탕 ${towerTickets() ? `📖 +${t.best} <small>🎟1</small>` : '· 입장권 없음'}</button>` : ''}</div>
     ${towerUnlocked() ? towerBuyRow() : ''}
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
-    ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
+    ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="skill">⚡ 스킬 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
       체크포인트(10층 단위)부터 시작하고, 깬 층마다 <b>📖 1권</b>. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${TOWER_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
@@ -2041,12 +2059,13 @@ function renderCamp() {
     ['train', '🎯 훈련', dots.train ? DOT : ''],
     ['shop', '🎒 보급품', ''],
     ['gear', '🗡️ 장비', dots.gear ? DOT : ''],
+    ['skill', '⚡ 스킬', dots.skill ? DOT : ''],
     ['class', '⚜️ 전직', dots.class ? DOT : ''],
     ['rank', '🏆 랭킹', inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
     ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
     ['tower', '🗼 탑', dots.tower ? DOT : ''],
   ];
-  const view = { mail: viewMail, report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, class: viewClass, rank: viewRank, raid: viewRaid, tower: viewTower }[campTab]();
+  const view = { mail: viewMail, report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, skill: viewSkill, class: viewClass, rank: viewRank, raid: viewRaid, tower: viewTower }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
   $('campModal').innerHTML = `
     <header>
@@ -2231,13 +2250,36 @@ const ACTIONS = {
       save();
       return;
     }
-    if (m > masteryOf(r.from)) {
-      // 단계 돌파: 기술 이름이 진화한다
-      const from = skillNameAt(k, r.from), to = skillNameAt(k, r.to);
-      showBanner(from !== to ? `${k.icon} 「${from}」 → 「${to}」` : `${k.icon} ${k.name} — ${MASTERY[m].star} ${MASTERY[m].name} 도달!`, mixHex(heroClass().look.fx, MASTERY_GOLD, m >= 3 ? 0.45 : 0));
-      toast(`${MASTERY[m].star} ${MASTERY[m].name} — 「${to}」 ${k.stageDesc ? k.stageDesc[m] : MASTERY[m].desc}`, 9000);
+    if (m > masteryOf(r.from) && m > skillStar(k.id)) {
+      // 별을 달 수 있는 레벨에 닿았다 — 별은 ✨ 진화 버튼을 눌러야 달린다
+      toast(`${k.icon} ${k.name} Lv ${r.to} — ${MASTERY[m].star} ${MASTERY[m].name} 진화 가능! ✨ 진화를 누르면 「${skillNameAt(k, r.to, m)}」(으)로 바뀌고 쿨타임·위력이 한 번에 뛰어요`, 9000);
     } else if (r.to > r.from) toast(`${k.icon} ${k.name} Lv ${r.to}!`);
     save();
+  },
+  // ✨ 진화: 별 하나를 달고(core.js evolveSkill) 이름 띠 배너 + 아래 기사가 새 모습을 한 번 보여 준다
+  'evolve': (el) => {
+    const k = SKILLS[el.dataset.id], lv = skillLv(k.id), before = skillStar(k.id);
+    const cd0 = skillCd(k.id), pw0 = skillMult(k) * skillPow(k.id);
+    const n = evolveSkill(k.id);
+    if (!n) return;
+    S.guide.evolved = 1;
+    const from = skillNameAt(k, lv, before), to = skillNameAt(k, lv, n);
+    showBanner(from !== to ? `${k.icon} 「${from}」 → 「${to}」` : `${k.icon} ${k.name} — ${MASTERY[n].star} ${MASTERY[n].name}!`, mixHex(heroClass().look.fx, MASTERY_GOLD, n >= 3 ? 0.45 : 0));
+    toast(`${MASTERY[n].star} ${MASTERY[n].name} — 「${to}」 ${k.stageDesc ? k.stageDesc[n] : MASTERY[n].desc} · 쿨타임 ${cd0}초 → ${skillCd(k.id)}초 · 위력 ×${pw0.toFixed(2)} → ×${(skillMult(k) * skillPow(k.id)).toFixed(2)}`, 10000);
+    previewSkill(k.id, n);
+    save();
+  },
+  // 별 띠: 전투에 쓸 모습(0~단 별 수)을 고른다 — 고른 모습을 바로 한 번 보여 준다
+  'star': (el) => {
+    const id = el.dataset.id;
+    if (!setSkillStar(id, Number(el.dataset.s))) return;
+    previewSkill(id, skillStage(id));
+    save();
+  },
+  // ▶ 비주얼 확인: 아래 기사가 고른 모습으로 한 번 시전 (캠프에서만)
+  'preview': (el) => {
+    const id = el.dataset.id;
+    if (!previewSkill(id, skillStage(id))) toast('캠프에 있을 때만 볼 수 있어요 — 원정·탑에서 돌아온 뒤 다시 눌러 주세요');
   },
   'class-sel': (el) => { classSel = el.dataset.id; classConfirm = null; },
   'class-ask': (el) => { classConfirm = el.dataset.id; },

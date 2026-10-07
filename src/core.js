@@ -29,7 +29,8 @@ function freshState() {
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed)
-    mastV: 5,                               // 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    mastV: 6,                               // 6: 별은 진화 버튼으로 단다(star) · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    star: {},                               // 스킬 별: 스킬 id → { n 단 별 수 0~3 (진화 버튼, 위력·쿨타임), use 적용한 모습 0~n (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
     gearV: 4,                               // 3: 아이템 레벨이 부위(S.gear.lvl)에 붙음 · 2: 장비마다 s 절대값 · 1: 등급 %
@@ -90,7 +91,15 @@ function migrate(o) {
       s.mast[id] = lv >= SKILL_MAX ? SKILL_TOME_MAX : skillTomesAt(lv) + Math.floor(left / skillNeedWith(oldMax, lv) * skillNeed(lv));
     }
   }
-  s.mastV = 5;
+  // mastV 6: Lv10·20·30 에 자동으로 붙던 별이 진화 버튼으로 바뀌었다 — 이미 닿은 별은 단 것으로 쳐서 위력이 떨어지지 않게 한다
+  if (o.mast && (o.mastV || 1) < 6) {
+    for (const id of Object.keys(s.mast)) {
+      const n = masteryOf(skillLvOf(s.mast[id]).lv);
+      if (n) s.star[id] = { n, use: n };
+    }
+    if (Object.keys(s.star).length && !s.notice) s.notice = '⚡ 스킬 탭이 전직에서 분리됐어요 — 이제 Lv10·20·30 의 별은 ✨ 진화 버튼으로 직접 달고, 단 별 안에서 몇 성의 모습으로 쓸지 고를 수 있어요. 지금까지 닿은 별은 그대로 달아 드렸어요';
+  }
+  s.mastV = 6;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -186,8 +195,29 @@ const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reve
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0).lv;
-const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls);
-const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls);
+// 스킬 별 (S.star): n 은 진화 버튼으로 단 별 수 (위력·쿨타임 +10%/별), use 는 전투에서 쓰는 모습의 단계 (0~n, 기술 형태·연출만)
+const starOf = (id) => S.star[mastKey(id)] || { n: 0, use: 0 };
+const skillStar = (id) => starOf(id).n;
+const skillStage = (id) => Math.min(starOf(id).n, starOf(id).use);
+const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillStar(id));
+const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillStar(id));
+// 다음 별을 달 수 있는가: 레벨이 Lv10·20·30 에 닿았고 아직 안 달았다
+const canEvolve = (id) => skillStar(id) < masteryOf(skillLv(id));
+const canEvolveAny = () => skillsOf(S.cls).some((k) => canEvolve(k.id));
+// 별 하나를 단다 (진화). 새 모습을 바로 적용한다. 단 별 수 또는 null
+function evolveSkill(id) {
+  if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canEvolve(id)) return null;
+  const n = skillStar(id) + 1;
+  S.star[mastKey(id)] = { n, use: n };
+  return n;
+}
+// 전투에서 쓸 모습을 고른다 (0 ~ 단 별 수)
+function setSkillStar(id, use) {
+  const st = starOf(id);
+  if (!SKILLS[id] || use < 0 || use > st.n || use === st.use) return false;
+  S.star[mastKey(id)] = { n: st.n, use };
+  return true;
+}
 // 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null
 function feedTomes(id, n) {
   const k = SKILLS[id];
@@ -211,7 +241,7 @@ function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
   let busy = 0, extra = 0;
   for (const id of st.skills || []) {
-    const k = skillAt(id, skillLv(id));
+    const k = skillAt(id, skillLv(id), skillStage(id));
     const cd = skillCd(id);
     busy += k.dur / cd;
     extra += (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id) / cd;
@@ -229,8 +259,9 @@ function profile() {
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal,
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     skills: st.skills.map((id) => {
-      const k = skillAt(id, skillLv(id));
-      return { id, lv: skillLv(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
+      const k = skillAt(id, skillLv(id), skillStage(id));
+      // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
     }),
   };
 }

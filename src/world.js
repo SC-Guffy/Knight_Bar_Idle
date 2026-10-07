@@ -1693,7 +1693,8 @@ function drawKnight() {
   ctx.fillRect(x + (sp ? (sp.dx || 0) * (sp.facing || knight.facing) : 0) - shadowW / 2, gy - 1, shadowW, 2);
 
   const pose = {
-    mode: S.phase === 'camp' ? 'sit' : knight.fighting ? 'fight' : 'walk',
+    // 캠프에선 앉아 있지만, 스킬 탭 「비주얼 확인」으로 시전 중이면 일어나서 쓴다
+    mode: S.phase === 'camp' ? (sp ? 'fight' : 'sit') : knight.fighting ? 'fight' : 'walk',
     walkT: knight.walkT, swing: knight.swing, combo: knight.combo, facing: knight.facing, t: clock,
     flash: knight.flash > 0,
     alpha: (knight.down > 0 ? 0.35 + 0.25 * Math.sin(clock * 12) : 1) * vis,
@@ -2090,7 +2091,7 @@ function updateDuel() {
       const who = e.by === 'a' ? d.res.me : d.res.opponent;
       startCast(`duel-${e.by}`, e.sk, {
         x: () => duelX(e.by, duelTime()), dir: e.by === 'a' ? 1 : -1, tx: () => duelX(target, duelTime()), ty: () => groundY() - 24,
-        cls: who.cls, lv: e.sl,
+        cls: who.cls, lv: e.sl, star: e.ss,
         onHit: (i, n) => {
           d.hit[target] = clock;
           if (i === n - 1) addFloater((e.crit ? '💥' : '') + fmt(e.dmg), duelX(target, duelTime()) + rand(-8, 8), groundY() - 76, e.crit ? '#ffb13b' : CLASSES[who.cls].look.fx, 18, true);
@@ -2598,7 +2599,7 @@ function updateRaid(dt) {
       d.hpK[i] = e.h;
       startCast(`raid-${i}`, e.s, {
         x: () => raidKnightX(i), dir: 1, tx: () => raidBossGeom().left + 12, ty: () => groundY() - raidBossGeom().h * 0.5,
-        cls, lv: e.sl,
+        cls, lv: e.sl, star: e.ss,
         onHit: (j, n) => {
           d.bossHit = clock;
           if (j < n - 1) return;

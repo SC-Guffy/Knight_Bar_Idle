@@ -8,7 +8,8 @@
 //   tick(a, u, dt)  매 프레임 연출 (불꽃·기 모으기)
 //   kb: 원정에서 맞은 적이 밀려나는 거리 · launch: 맞은 적을 공중에 띄운다
 // a(시전 정보): { owner, id, k, cls, color, dir 바라보는 쪽, x() 시전자 화면 x, tx()·ty() 대상 위치, targets() [{x, y}], u, onHit, onEnd,
-//               lv 스킬 숙련도(없으면 내 기사는 내 숙련도, 남은 1), mast 숙련 단계 0~3 (classes.js MASTERY) }
+//               lv 스킬 숙련도(없으면 내 기사는 내 숙련도, 남은 1), star 적용한 별 단계(없으면 내 기사는 skillStage, 남은 레벨로 가능한 최대),
+//               mast 숙련 단계 0~3 = star (classes.js MASTERY) — 기술 형태(stages)·연출 세기·이름이 이걸 따른다 }
 //
 // 숙련 단계(Lv10·20·30)마다 연출이 진화한다 — Lv1 은 수수하게 시작해서 단계마다 화려해진다:
 //   공통 세기 fxVis (MASTERY_VIS): 시전 중 나오는 모든 연출 도구(검흔·고리·빛기둥·파편·히트스톱·흔들림)의 크기·개수에 곱한다
@@ -60,13 +61,15 @@ function startCast(owner, id, a, queue = false) {
   casts = casts.filter((c) => c.owner !== owner);      // 남아 있는 이펙트(성역 돔 등)는 그대로 둔다
   // 숙련 단계마다 기술의 모양이 다르다 (classes.js stages): 타격 횟수·시전 시간·마무리 일격
   const lv = a.lv || (owner === 'hero' ? skillLv(id) : 1);
-  const k = skillAt(id, lv), fx = SKILL_FX[id];
+  // 적용한 별 단계: 내 기사는 스킬 탭에서 고른 모습, 재생은 기록의 단계 (옛 기록엔 없다 → 레벨로 가능한 최대)
+  const stage = a.star != null ? a.star : owner === 'hero' ? skillStage(id) : masteryOf(lv);
+  const k = skillAt(id, lv, stage), fx = SKILL_FX[id];
   Object.assign(a, { owner, id, k, u: 0, color: CLASSES[a.cls || S.cls].look.fx });
   a.cls = a.cls || S.cls;
   a.lv = lv;
-  a.mast = masteryOf(a.lv);
+  a.mast = Math.max(0, Math.min(3, stage));
   a.vis = MASTERY_VIS[a.mast];
-  a.name = skillNameAt(k, lv);              // 단계마다 진화하는 기술 이름 (classes.js stageName)
+  a.name = skillNameAt(k, lv, a.mast);      // 단계마다 진화하는 기술 이름 (classes.js stageName)
   if (a.mast >= 3) a.color = mixHex(a.color, MASTERY_GOLD, 0.45);
   else if (a.mast < 2) a.color = mixHex(a.color, MASTERY_FADE[0], MASTERY_FADE[1 + a.mast]);
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
@@ -235,12 +238,12 @@ function tickSkills(dt, st) {
 function tryCastSkill(st, target) {
   for (const id of st.skills) {
     if ((knight.cds[id] || 0) > 0) continue;
-    const k = skillAt(id, skillLv(id)), fx = SKILL_FX[id];
+    const k = skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
     knight.cds[id] = skillCd(id);
     knight.swing = -1;
     let focus = target;
     const a = {
-      cls: S.cls, dir: 1,
+      cls: S.cls, dir: 1, star: skillStage(id),
       x: () => toScreen(knight.x),
       tx: () => toScreen(focus.x) + focus.kb,
       ty: () => monsterMidY(focus),
@@ -272,6 +275,21 @@ function tryCastSkill(st, target) {
     return true;
   }
   return false;
+}
+
+// 스킬 탭 「비주얼 확인」: 캠프에 앉아 있는 기사가 그 스킬을 stage(별 단계)의 모습으로 한 번 시전한다. 피해·쿨타임 없음.
+// 대상은 앞쪽 허공 — 연출만 보인다. 캠프(phase camp)에서만
+function previewSkill(id, stage) {
+  if (!SKILLS[id] || S.phase !== 'camp') return false;
+  const dir = knight.facing || 1;
+  const a = {
+    cls: S.cls, dir, star: stage, lv: skillLv(id),
+    x: () => toScreen(knight.x),
+    tx: () => toScreen(knight.x) + dir * 72,
+    ty: () => groundY() - 20,
+  };
+  startCast('hero', id, a);
+  return true;
 }
 
 // 공중에 떠 있는 동안은 몬스터 공격이 빗나간다

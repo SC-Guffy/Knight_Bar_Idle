@@ -88,7 +88,7 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
   const flush = () => {
     for (const k of ks) {
       if (!k.acc) continue;
-      events.push({ t: round1(t), k: k.i, d: Math.round(k.acc.d), c: k.acc.c, l: k.acc.l, ...(k.acc.s ? { s: k.acc.s, sl: k.acc.sl } : {}), bh: Math.max(0, Math.round(boss.hp)), h: Math.max(0, Math.round(k.hp)) });
+      events.push({ t: round1(t), k: k.i, d: Math.round(k.acc.d), c: k.acc.c, l: k.acc.l, ...(k.acc.s ? { s: k.acc.s, sl: k.acc.sl, ...(k.acc.ss != null ? { ss: k.acc.ss } : {}) } : {}), bh: Math.max(0, Math.round(boss.hp)), h: Math.max(0, Math.round(k.hp)) });
       k.acc = null;
     }
     lastFlush = t;
@@ -115,7 +115,7 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
     k.acc.d += dmg;
     if (crit) k.acc.c = 1;
     if (kind === 'leap') k.acc.l = 1;
-    if (sk) { k.acc.s = sk.id; k.acc.sl = sk.lv; flush(); }
+    if (sk) { k.acc.s = sk.id; k.acc.sl = sk.lv; k.acc.ss = sk.st; flush(); }
   };
 
   const strike = (k, mult) => {
