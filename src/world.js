@@ -752,7 +752,7 @@ function updateDungeon(dt) {
         Object.assign(knight, { x: toWorld(DG_KX - 40), facing: 1 });
         warpKnight('in');
         dv.sub = 'stand';
-        showBanner('⛏️ 갈림길 던전', '#c9a7ff');
+        showBanner('⛏️ 재료의 미궁', '#c9a7ff');
       }
       break;
     case 'stand':

@@ -81,6 +81,22 @@
   .pchip.on { border-color: var(--accent); background: rgba(255, 177, 59, .14); box-shadow: inset 0 0 0 1px var(--accent); }
   .pchip:disabled { opacity: .45; cursor: default; }
   .pchip small { color: var(--muted); font-size: 10.5px; }
+  /* 🗺️ 도전 탭 (ui.js viewSub): 가로로 긴 콘텐츠 카드 — 왼쪽 미리보기 캔버스, 오른쪽 제목·설명·칩 */
+  .scard { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: stretch; gap: 14px; width: 100%; margin-bottom: 8px;
+    border-radius: 12px; background: var(--soft); border: 1px solid var(--line); overflow: hidden; position: relative; transition: background .12s, transform .12s; }
+  .scard:hover { background: var(--soft-hover); transform: translateY(-1px); }
+  .scard .sprev { width: 220px; height: 96px; flex-shrink: 0; display: block; background: #15121d; }
+  .scard .info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 10px 0; }
+  .scard .info b { font-size: 14px; }
+  .scard .info i.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dot); margin-left: 6px; vertical-align: 1px; }
+  .scard .eff { color: var(--muted); font-size: 12px; }
+  .scard .chips { margin-top: 3px; }
+  .scard .arrow { align-self: center; width: 36px; text-align: center; color: var(--muted); font-size: 22px; }
+  .scard.locked .sprev { filter: grayscale(.6) brightness(.8); }
+  .scard.soon { cursor: default; opacity: .65; }
+  .scard.soon:hover { background: var(--soft); transform: none; }
+  .subback { all: unset; cursor: pointer; display: inline-block; margin: 10px 0 -8px; color: var(--muted); font-size: 12px; }
+  .subback:hover { color: var(--text); }
   .dgline { font-size: 12.5px; margin: 3px 0; }
   .dgline .bad { color: var(--bad); }
   #hud { position: absolute; top: 6px; left: 10px; width: 470px; }
