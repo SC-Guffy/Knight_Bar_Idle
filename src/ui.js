@@ -9,8 +9,12 @@ let campTab = 'report';
 let subView = null;
 // 탑·던전은 도전 탭 안의 카드라, 옛 탭 이름으로 열어도 그 카드를 펼친 도전 탭으로 간다
 const SUB_TABS = { tower: 1, dungeon: 1 };
+// 🧑 캐릭터 탭: 장비·스킬·전직을 서브탭으로 품는다. sub 는 펼쳐 둔 서브탭, tree 는 전직 트리를 펼쳤는가 (null 이면 전직 가능할 때만)
+const charUi = { sub: 'gear', tree: null };
+const CHAR_SUBS = { gear: '🗡️ 장비', skill: '⚡ 스킬', class: '⚜️ 전직' };
 function normalizeTab(tab) {
   if (tab === 'shop') return 'report';          // 보급품은 🏠 홈 안으로 들어갔다
+  if (CHAR_SUBS[tab]) { charUi.sub = tab; return 'char'; }   // 장비·스킬·전직은 캐릭터 탭 안으로
   if (tab === 'train') { townUi.sel = 'training'; return 'town'; }   // 훈련은 마을의 훈련장 안으로
   if (SUB_TABS[tab]) { subView = tab; return 'sub'; }
   if (tab === 'sub') subView = null;
@@ -606,6 +610,23 @@ function reqChips(id) {
   return chip(S.level >= req.level, `Lv ${req.level}`) + (req.mana ? chip(S.mats.mana >= req.mana, `💎 ${req.mana}`) : '') + chip(S.gold >= req.gold, `<i class="gc"></i> ${fmt(req.gold)}`);
 }
 
+// ───────────────────────── 🧑 캐릭터 탭 ─────────────────────────
+// 위에 기사 요약 띠(모습·닉네임·직업·Lv·전투력)와 서브탭(장비 · 스킬 · 전직), 아래에 고른 서브탭의 내용.
+// 레드닷은 서브탭마다 따로 (campDots 의 gear·skill·class), 탭 줄에는 셋 중 하나라도 있으면
+function viewChar() {
+  const dots = campDots(), c = heroClass(), st = stats(true);
+  const subs = Object.entries(CHAR_SUBS).map(([k, t]) => `<button class="csub${charUi.sub === k ? ' on' : ''}" data-action="char-sub" data-k="${k}">${t}${dots[k] ? DOT : ''}</button>`).join('');
+  const head = `
+    <div class="chead">
+      <canvas class="cprev mini" data-cls="${S.cls}"></canvas>
+      <div class="cinfo"><b>${esc(activeNick())}</b><small>${c.icon} ${c.name} · Lv ${S.level} · 💪 전투력 ${fmt(powerOf(st))}</small></div>
+      <nav class="csubs">${subs}</nav>
+    </div>`;
+  return head + { gear: viewGear, skill: viewSkill, class: viewClass }[charUi.sub]();
+}
+
+// ⚜️ 전직: 평소엔 현재 직업 카드 + 다음 전직 한 줄만 (전직은 세 번뿐인 이벤트라 늘 큰 자리를 차지하지 않는다).
+// 트리는 「펼치기」로, 전직 조건을 채우면(ready) 자동으로 펼쳐진다
 function viewClass() {
   if (!classSel || !CLASSES[classSel]) {
     const next = Object.keys(CLASSES).filter(id => CLASSES[id].from === S.cls);
@@ -640,8 +661,27 @@ function viewClass() {
   }
   const req = c.tier && st !== 'current' && st !== 'done' ? `<div class="req">조건 ${reqChips(id)}</div>` : '';
 
+  // 현재 직업 카드 + 다음 전직 후보 칩 (누르면 트리를 펼치고 그 직업을 고른다)
+  const cur = heroClass(), nexts = Object.keys(CLASSES).filter((x) => CLASSES[x].from === S.cls);
+  const ready = anyClassReady(), open = charUi.tree == null ? ready : charUi.tree;
+  const nextChips = nexts.length
+    ? nexts.map((x) => { const ns = classState(x); return `<button class="nchip ${ns}${rd(ns === 'ready')}" data-action="class-open" data-id="${x}">${CLASSES[x].icon} ${CLASSES[x].name}${ns === 'ready' ? ' · 전직 가능!' : ''}</button>`; }).join('')
+    : '<span class="chip">최종 직업</span>';
+  const nextReq = nexts.length ? `<span class="req">조건 ${reqChips(nexts[0])}</span>` : '';
+  const card = `
+    <div class="ccard">
+      <canvas class="cprev big" data-cls="${S.cls}"></canvas>
+      <div class="info">
+        <b>${cur.icon} ${cur.name}</b> <small>${cur.tier ? cur.tier + '차 직업' : '기본'} · ${WEAPONS[cur.weapon].name}</small>
+        <div class="eff">${cur.desc}</div>
+        <div class="chips">${modChips(S.cls) || '<span class="small">기본 능력치</span>'}</div>
+        <div class="cnext"><span class="lbl">다음 전직</span>${nextChips}${nextReq}</div>
+      </div>
+      <div class="act"><button class="btn${rd(ready && !open)}" data-action="class-tree">${open ? '트리 접기' : '⚜️ 전직 트리 펼치기'}</button></div>
+    </div>`;
+  if (!open) return card;
   return `
-    <h3>⚜️ 전직 <small>현재 ${heroClass().icon} ${heroClass().name}</small></h3>
+    ${card}
     <div class="tree">${tree}</div>
     <div class="cdetail">
       <canvas class="cprev big" data-cls="${id}"></canvas>
@@ -836,7 +876,7 @@ function drawEnhanceFx() {
   const now = performance.now();
   if (fx.res && (now - fx.t1) / 1000 > ENH_BURST) return;    // 마지막 장면은 비우고 끝 (정리는 resolveEnhanceFx 의 타이머)
   requestAnimationFrame(drawEnhanceFx);
-  const box = campOpen && campTab === 'gear' && document.querySelector(`.gsbtn.s-${fx.slot} .gsbox`);
+  const box = campOpen && campTab === 'char' && document.querySelector(`.gsbtn.s-${fx.slot} .gsbox`);
   if (!box) return;
   const bb = box.getBoundingClientRect(), cx = bb.left + bb.width / 2, cy = bb.top + bb.height / 2;
   g.globalCompositeOperation = 'lighter';
@@ -2388,14 +2428,12 @@ function renderCamp() {
   const tabs = [
     ['report', '🏠 홈', S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
     ['town', '🏘 마을', S.build ? '<i class="info">🔨</i>' : dots.town ? DOT : ''],
-    ['gear', '🗡️ 장비', dots.gear ? DOT : ''],
-    ['skill', '⚡ 스킬', dots.skill ? DOT : ''],
-    ['class', '⚜️ 전직', dots.class ? DOT : ''],
+    ['char', '🧑 캐릭터', dots.gear || dots.skill || dots.class ? DOT : ''],
     ['rank', '🏆 랭킹', inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
     ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
     ['sub', '🗺️ 도전', dots.tower || dots.dungeon ? DOT : ''],
   ];
-  const view = { mail: viewMail, report: viewReport, town: viewTown, gear: viewGear, skill: viewSkill, class: viewClass, rank: viewRank, raid: viewRaid, sub: viewSub }[campTab]();
+  const view = { mail: viewMail, report: viewReport, town: viewTown, char: viewChar, rank: viewRank, raid: viewRaid, sub: viewSub }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
   $('campModal').innerHTML = `
     <header>
@@ -2413,7 +2451,7 @@ function renderCamp() {
   $('campBody').scrollTop = scroll;
   tickLive($('campModal'));
   paintGearIcons($('campModal'));
-  if (campTab === 'gear') drawGearHero();      // 다시 그린 직후 한 프레임 비지 않게
+  if (campTab === 'char') { drawGearHero(); drawClassPreviews(); }      // 다시 그린 직후 한 프레임 비지 않게
   if (campTab === 'town') drawTown();
   if (campTab === 'sub') drawSubPreviews();
 }
@@ -2635,6 +2673,9 @@ const ACTIONS = {
     const id = el.dataset.id;
     if (!previewSkill(id, skillStage(id))) toast('캠프에 있을 때만 볼 수 있어요 — 원정·탑에서 돌아온 뒤 다시 눌러 주세요');
   },
+  'char-sub': (el) => { charUi.sub = el.dataset.k; $('campBody').scrollTop = 0; },
+  'class-tree': () => { const ready = anyClassReady(), open = charUi.tree == null ? ready : charUi.tree; charUi.tree = !open; },
+  'class-open': (el) => { classSel = el.dataset.id; classConfirm = null; charUi.tree = true; },
   'class-sel': (el) => { classSel = el.dataset.id; classConfirm = null; },
   'class-ask': (el) => { classConfirm = el.dataset.id; },
   'class-cancel': () => { classConfirm = null; },
@@ -3082,9 +3123,8 @@ function boot() {
     else clock += dt;
     render();
     if (S.phase === 'dungeon') renderDungeonPick();
-    if (campOpen && campTab === 'class') drawClassPreviews();
+    if (campOpen && campTab === 'char') { drawClassPreviews(); drawGearHero(); }
     if (campOpen && campTab === 'sub' && !subView) drawSubPreviews();
-    if (campOpen && campTab === 'gear') drawGearHero();
     if (campOpen && campTab === 'town') drawTown();
     slow += dt;
     if (slow > 0.25) {
