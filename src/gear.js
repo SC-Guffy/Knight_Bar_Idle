@@ -5,10 +5,12 @@
 //  - 장비 창고:   S.gear.inv = [{ id, slot, g, s, t, roll }]   (t = GEAR_ITEMS 키, roll = 능력치 편차)
 //  - 장착:        S.gear.eq = { weapon: id|null, armor, ring }
 //  - 강화 단계:   S.gear.enh = { weapon: 0.., armor, ring }  — 부위에 붙어 있어서 장비를 바꿔도 유지
+//  - 아이템 레벨: S.gear.lvl = { weapon: 1.., armor }       — 부위에 붙어 있다 (대장간 재련로로 올림). 장비의 s 는 판매가에만 쓴다
 //  - 최고 기록:   S.gear.top = { weapon: 0.., armor, ring }  — 초기화돼도 남는 부위별 최고 강화 단계
 
 const freshGear = () => ({
   inv: [], eq: { weapon: null, armor: null, ring: null }, enh: { weapon: 0, armor: 0, ring: 0 }, top: { weapon: 0, armor: 0, ring: 0 }, seq: 0,
+  lvl: { weapon: 1, armor: 1 },
   auto: true,            // 전리품을 챙길 때 더 좋은 장비를 자동 장착
   sellG: SELL_FILTER_DEFAULT.slice(),   // 일괄 판매에 넣을 등급
   sellSet: false,                        // 세트 장비도 일괄 판매에 넣을지 (기본은 뺀다)
@@ -98,9 +100,9 @@ const gearById = (id) => S.gear.inv.find((x) => x.id === id) || null;
 const equipped = (slot) => gearById(S.gear.eq[slot]);
 const isEquipped = (it) => S.gear.eq[it.slot] === it.id;
 
-// enh: 적용할 강화 단계 (기본은 그 부위의 현재 단계). 능력치는 아이템 레벨(s)·등급·roll 로 정해진다
-function gearStat(it, enh = S.gear.enh[it.slot]) {
-  const b = gearBase(it.slot, it.g, it.roll, it.s || 1);
+// enh·lvl: 적용할 강화 단계·아이템 레벨 (기본은 그 부위의 현재 값). 능력치는 부위 아이템 레벨·등급·roll 로 정해진다
+function gearStat(it, enh = S.gear.enh[it.slot], lvl = slotLv(it.slot)) {
+  const b = gearBase(it.slot, it.g, it.roll, lvl);
   const m = enhanceMultAt(enh), soft = softEnhMultAt(enh);
   const out = {};
   for (const k of Object.keys(b)) out[k] = b[k] * (SOFT_ENH[k] ? soft : m);
@@ -339,31 +341,36 @@ function upgradeForgeFac(id) {
   S.forge[id] = forgeFacLv(id) + 1;
   return true;
 }
-// 재련로로 올릴 수 있는 아이템 레벨 상한 (재련로가 없으면 0)
-const reforgeCap = () => Math.floor((S.best || 1) * reforgeReachAt(forgeFacLv('reforge')));
-// 이 장비를 재련하면 { to, cost } — 올릴 게 없으면 null
-function reforgePlan(it) {
-  const to = reforgeCap();
-  if (!it || it.slot === 'ring' || to <= (it.s || 1)) return null;
-  return { to, cost: reforgeCost(it.g, it.s || 1, to) };
+// 부위 아이템 레벨 (장신구는 없음 → 1)
+const slotLv = (slot) => (S.gear.lvl && S.gear.lvl[slot]) || 1;
+// 재련로로 올릴 수 있는 부위 아이템 레벨 상한
+const reforgeCap = () => Math.max(1, (S.best || 1) - reforgeGapAt(forgeFacLv('reforge')));
+// 이 부위를 지금 재화로 올릴 수 있는 만큼: { from, to, cap, cost } — 한 단계도 못 올리면 to === from
+function reforgePlan(slot) {
+  const from = slotLv(slot), cap = reforgeCap(), cost = { gold: 0, ore: 0 };
+  let to = from;
+  while (to < cap) {
+    const c = reforgeStepCost(to);
+    if (S.gold < cost.gold + c.gold || S.mats.ore < cost.ore + c.ore) break;
+    cost.gold += c.gold; cost.ore += c.ore; to++;
+  }
+  return { from, to, cap, cost };
 }
-function reforgeBlocker(it) {
-  if (!it || it.slot === 'ring') return '장신구는 아이템 레벨이 없어요';
-  if (!forgeFacLv('reforge')) return '마을 대장간에서 🔥 재련로를 먼저 지어야 해요';
-  const p = reforgePlan(it);
-  if (!p) return `재련로 한도(Lv ${reforgeCap()})까지 올라가 있어요`;
+function reforgeBlocker(slot) {
+  if (!(slot in S.gear.lvl)) return '장신구는 아이템 레벨이 없어요';
+  if (slotLv(slot) >= reforgeCap()) return `재련 한도 Lv ${reforgeCap()} — 최고 스테이지를 올리거나 재련로를 키우세요`;
   if (S.phase !== 'camp') return '캠프에서만 재련할 수 있어요';
-  if (S.mats.ore < p.cost.ore) return '철광석 부족';
-  if (S.mats.mana < p.cost.mana) return '마력석 부족';
+  if (reforgePlan(slot).to === slotLv(slot)) return '재화 부족';
   return '';
 }
-// 재련: 아이템 레벨을 재련로 한도까지 한 번에 올린다. { from, to } 또는 null
-function reforge(id) {
-  const it = gearById(id);
-  if (reforgeBlocker(it)) return null;
-  const p = reforgePlan(it), from = it.s || 1, oldMax = stats().maxHp;
-  S.mats.ore -= p.cost.ore; S.mats.mana -= p.cost.mana;
-  it.s = p.to;
+// 재련: 부위 아이템 레벨을 재화가 되는 만큼(한도까지) 한 번에 올린다. { from, to } 또는 null
+function reforge(slot) {
+  if (reforgeBlocker(slot)) return null;
+  const p = reforgePlan(slot), oldMax = stats().maxHp;
+  S.gold -= p.cost.gold; S.mats.ore -= p.cost.ore;
+  S.gear.lvl[slot] = p.to;
   keepHpRatio(oldMax);
-  return { from, to: p.to };
+  return { from: p.from, to: p.to };
 }
+// 레드닷: 한도까지 3레벨 이상 남았고 지금 3레벨 이상 올릴 수 있을 때만 (스테이지마다 깜빡이지 않게)
+const canReforge = (slot) => slot in S.gear.lvl && S.phase === 'camp' && reforgePlan(slot).to - slotLv(slot) >= 3;

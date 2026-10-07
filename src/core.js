@@ -23,7 +23,7 @@ function freshState() {
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
-    forge: { reforge: 0 },                  // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
+    forge: { reforge: 1 },                  // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
@@ -32,7 +32,7 @@ function freshState() {
     mastV: 5,                               // 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
-    gearV: 2,                               // 2: 무기·갑옷 능력치가 아이템 레벨(s) 절대값 (1: 등급 % — 레이드 장비 s 가 입장 스테이지)
+    gearV: 3,                               // 3: 아이템 레벨이 부위(S.gear.lvl)에 붙음 · 2: 장비마다 s 절대값 · 1: 등급 %
     phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -104,9 +104,18 @@ function migrate(o) {
   if ((o.gearV || 1) < 2) {
     for (const it of s.gear.inv) if (it.g >= 4 || isSetGear(it)) it.s = Math.max(it.s || 1, s.best || 1);
     for (const c of s.raid.chests || []) c.s = Math.max(c.s || 1, s.best || 1);
-    s.notice = '⚖️ 성장 개편 — 이제 공격력·체력은 장비(아이템 레벨)가 책임지고, 훈련은 초반을 끌어 주다가 % 보너스로 바뀌어요. 대장간은 🔥 재련로(장비 아이템 레벨 올리기)로 바뀌었어요. 가진 전설·세트 장비는 최고 스테이지 레벨로 맞춰 드렸어요';
+    s.notice = '⚖️ 성장 개편 — 이제 공격력·체력은 장비가 책임지고, 훈련은 초반을 끌어 주다가 % 보너스로 바뀌어요. 무기·갑옷 부위의 아이템 레벨은 대장간 🔥 재련(장비 탭)으로 올려요. 같은 부위 장비는 등급이 곧 서열이에요';
   }
-  s.gearV = 2;
+  // gearV 3: 아이템 레벨이 장비 → 부위로. 지금 낀 장비의 레벨을 그 부위 레벨로 옮긴다 (재련로도 최소 Lv1)
+  if ((o.gearV || 1) < 3) {
+    for (const slot of ['weapon', 'armor']) {
+      const it = s.gear.inv.find((x) => x.id === s.gear.eq[slot]);
+      s.gear.lvl[slot] = Math.max(s.gear.lvl[slot] || 1, it ? it.s || 1 : 1);
+    }
+    s.forge.reforge = Math.max(1, s.forge.reforge || 0);
+    if ((o.gearV || 1) >= 2) s.notice = '🔥 아이템 레벨이 장비에서 부위로 옮겨졌어요 — 이제 같은 부위 장비는 등급이 곧 서열이에요. 무기·갑옷 레벨은 대장간 재련(장비 탭)으로 올려요. 지금 낀 장비의 레벨을 그대로 옮겨 드렸어요';
+  }
+  s.gearV = 3;
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
   return s;

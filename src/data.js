@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.12.0';
+const GAME_VERSION = '0.12.1';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -99,12 +99,13 @@ function buildCost(id, lv) {
 
 // ───────────────────────── 대장간 시설 ─────────────────────────
 // 대장간은 능력치를 주지 않고 장비를 다루는 시설을 품는다. 시설마다 따로 올리고(재화 즉시 소모), 대장간 Lv 이 시설의 최대 Lv 이다.
-// 재련로: 장비의 아이템 레벨(s)을 최고 스테이지 × reforgeReachAt(lv) 까지 끌어올린다 (Lv1 62% … Lv20 100%)
+// 재련로: 무기·갑옷 '부위'의 아이템 레벨을 올린다 (강화 단계처럼 부위에 붙어서, 그 부위에 끼는 장비 모두에 적용).
+//  한도 = 최고 스테이지 − reforgeGapAt(lv) (Lv1 −5 · Lv2 −4 … Lv10 부터 최고 스테이지까지). 처음부터 Lv1 로 지어져 있다
 const FORGE_FAC = {
-  reforge: { name: '재련로', icon: '🔥', desc: '아끼는 장비의 아이템 레벨을 최고 스테이지 쪽으로 끌어올려요',
-    effect: (lv) => (lv ? `최고 스테이지의 ${Math.round(reforgeReachAt(lv) * 100)}%까지 재련` : '아직 없음') },
+  reforge: { name: '재련로', icon: '🔥', desc: '무기·갑옷 부위의 아이템 레벨을 올려요 — 그 부위에 끼는 장비 모두에 적용돼요',
+    effect: (lv) => (reforgeGapAt(lv) ? `재련 한도 최고 스테이지 −${reforgeGapAt(lv)}` : '재련 한도 = 최고 스테이지') },
 };
-const reforgeReachAt = (lv) => (lv > 0 ? Math.min(1, 0.6 + 0.02 * lv) : 0);
+const reforgeGapAt = (lv) => Math.max(0, 5 - Math.floor(lv / 2));
 // 시설 lv → lv+1 비용
 function forgeFacCost(id, lv) {
   return {
@@ -114,11 +115,8 @@ function forgeFacCost(id, lv) {
     mana: lv >= 3 ? Math.floor(5 * Math.pow(1.6, lv - 3)) : 0,
   };
 }
-// 재련 비용: 올리는 레벨 수 × 목표 스테이지 배율 × 등급 배율 (철광석·마력석)
-function reforgeCost(g, from, to) {
-  const n = Math.max(0, to - from), k = n * (1 + (to - 1) * 0.04) * (1 + g) / 2;
-  return { ore: Math.ceil(4 * k), mana: Math.ceil(k) };
-}
+// 부위 아이템 레벨 L → L+1 재련 비용: 골드는 그 스테이지 몬스터 15마리 몫, 철광석은 천천히 늘어난다
+const reforgeStepCost = (L) => ({ gold: Math.floor(monsterStats(L + 1, false).gold * 15), ore: Math.ceil(6 * (1 + 0.04 * L)) });
 
 // ───────────────────────── 재화 / 보급품 ─────────────────────────
 const MATERIALS = {
@@ -438,7 +436,8 @@ const SPECIAL_STATS = {
 };
 // 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)
 const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
-// 무기 공격력·갑옷 체력은 절대값이다: 아이템 레벨(떨어진 스테이지 s)을 따라 커지고(gearAtkAt·gearHpAt), 등급 stat·편차·강화 배율이 곱해진다.
+// 무기 공격력·갑옷 체력은 절대값이다: 부위 아이템 레벨(S.gear.lvl, 재련로로 올림)을 따라 커지고(gearAtkAt·gearHpAt), 등급 stat·편차·강화 배율이 곱해진다.
+//  아이템 레벨이 장비가 아니라 부위에 붙어 있어서 같은 부위 장비끼리는 등급이 곧 서열이다 (편차 ±10% 로는 한 등급을 못 넘는다).
 //  공격력은 스테이지마다 ×1.225, 체력은 ×1.18 — 몬스터 체력(×1.23)보다 조금 느려서 깊이 갈수록 등급·강화가 벽을 넘게 해 준다
 const gearAtkAt = (s) => 6.5 * Math.pow(1.225, s);
 const gearHpAt = (s) => 30 * Math.pow(1.18, s);

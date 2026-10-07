@@ -879,7 +879,7 @@ function campDots() {
     report: S.bag.length > 0 || (!!S.report && S.report !== reportSeen),
     town: Object.keys(BUILDINGS).some(canBuild),
     train: TRAINING.some(canTrain),
-    gear: Object.keys(GEAR_SLOTS).some((k) => gearBetter(k) || gearCanEnh(k)),
+    gear: Object.keys(GEAR_SLOTS).some((k) => gearBetter(k) || gearCanEnh(k) || canReforge(k)),
     class: anyClassReady() || canLevelSkill(),
     rank: inboxUnread() > 0,
     mail: mailUnclaimed() > 0,
@@ -945,7 +945,7 @@ function gearSlotBtn(slot) {
   return `
     <button class="gsbtn s-${slot} ${gearSel().slot === slot ? 'on' : ''}${last}" data-action="gear-sel-slot" data-slot="${slot}"
       style="--c:${it ? gearGrade(it).color : 'rgba(255,255,255,.18)'}" title="${def.name}">
-      <span class="gsbox${rd(gearBetter(slot) || gearCanEnh(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
+      <span class="gsbox${rd(gearBetter(slot) || gearCanEnh(slot) || canReforge(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
       <span class="gsname ${it ? gnClass(it) : ''}">${it ? gearName(it) : def.name}</span>
     </button>`;
 }
@@ -953,25 +953,22 @@ function gearSlotBtn(slot) {
 const gearInfo = (it) => `
   <div class="gtop" style="--c:${gearGrade(it).color}">
     ${gearIcon(it, 'big')}
-    <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''}${gearIlvText(it)}</small></div>
+    <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''}</small></div>
   </div>
   ${gearSpecialText(it) ? `<div class="gsp">✦ 고유 효과 — ${gearSpecialText(it)}</div>` : ''}
   ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
   <div class="gdesc">${gearDesc(it)}</div>`;
 
-// 아이템 레벨 (= 떨어진 스테이지, 재련으로 올림). 장신구는 레벨이 없다
-const gearIlvText = (it) => (it.slot === 'ring' ? '' : ` · Lv ${it.s || 1}`);
-// 재련 버튼 한 줄: 재련로 한도까지 올리면 능력치가 어떻게 되는지와 비용
-function reforgeLine(it) {
-  if (!it || it.slot === 'ring') return '';
-  if (!forgeFacLv('reforge')) return '<div class="small rfline">🔥 마을 대장간에 재련로를 지으면 아이템 레벨을 최고 스테이지 쪽으로 올릴 수 있어요</div>';
-  const p = reforgePlan(it), blocker = reforgeBlocker(it);
-  if (!p) return forgeFacLv('reforge') ?`<div class="small rfline">🔥 재련 한도 Lv ${reforgeCap()} — 최고 스테이지가 오르거나 재련로를 올리면 더 올릴 수 있어요</div>` : '';
-  const next = { ...it, s: p.to };
+// 부위 재련 한 줄: 재화가 되는 만큼(한도까지) 올렸을 때의 능력치와 비용
+function reforgeLine(slot) {
+  if (!(slot in S.gear.lvl)) return '';
+  const lv = slotLv(slot), p = reforgePlan(slot), blocker = reforgeBlocker(slot), it = equipped(slot);
+  if (lv >= p.cap) return `<div class="small rfline">🔥 아이템 Lv ${lv} — 재련 한도예요 (최고 스테이지를 올리거나 마을 대장간의 재련로를 키우면 더 올라가요)</div>`;
+  const to = Math.max(p.to, lv + 1), c = p.to > lv ? p.cost : reforgeStepCost(lv);
   return `<div class="rfline">
-    <span class="small">🔥 재련 Lv ${it.s || 1} → <b>${p.to}</b> · ${gearStatText(gearStat(next))}</span>
-    <span class="costs">${costChip('🪨', p.cost.ore, S.mats.ore)}${costChip('💎', p.cost.mana, S.mats.mana)}</span>
-    <button class="btn" data-action="reforge" data-id="${it.id}" ${blocker ? `disabled title="${blocker}"` : ''}>재련</button>
+    <span class="small">🔥 아이템 Lv ${lv} → <b>${to}</b>${p.to < p.cap ? ` <small>(한도 ${p.cap})</small>` : ''}${it ? ` · ${gearStatText(gearStat(it, undefined, to))}` : ''}</span>
+    <span class="costs">${costChip('<i class="gc"></i>', c.gold, S.gold)}${costChip('🪨', c.ore, S.mats.ore)}</span>
+    <button class="btn${rd(canReforge(slot))}" data-action="reforge" data-slot="${slot}" ${blocker ? `disabled title="${blocker}"` : ''}>재련</button>
   </div>`;
 }
 
@@ -981,7 +978,7 @@ const stoneChip = () => `<span class="stchip${S.stones ? '' : ' none'}" title="�
 function slotDetail(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot), L = S.gear.enh[slot];
   const item = it
-    ? `${gearInfo(it)}<div class="gstat">${gearStatText(gearStat(it))}${L < ENHANCE_MAX ? ` <small>→ +${L + 1} ${gearStatText(gearStat(it, L + 1))}</small>` : ''}</div>${reforgeLine(it)}`
+    ? `${gearInfo(it)}<div class="gstat">${gearStatText(gearStat(it))}${L < ENHANCE_MAX ? ` <small>→ +${L + 1} ${gearStatText(gearStat(it, L + 1))}</small>` : ''}</div>`
     : `<div class="gtop"><div class="gicon big empty"></div><div class="gname empty">${def.name} 비어 있음</div></div><div class="gstat small">강화 단계는 장비를 끼면 적용돼요</div>`;
   let enh;
   if (L >= ENHANCE_MAX) {
@@ -999,8 +996,9 @@ function slotDetail(slot) {
   const res = last ? `<div class="enhres ${last.result} ${last.fresh ? 'fresh' : ''}">${ENH_RESULT[last.result](last)}</div>` : '';
   const top = S.gear.top[slot] > L ? ` <small>최고 +${S.gear.top[slot]}</small>` : '';
   return `
-    <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b>${top}${stoneChip()}</div>
+    <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b>${top}${slot in S.gear.lvl ? ` <small>· 아이템 Lv ${slotLv(slot)}</small>` : ''}${stoneChip()}</div>
     ${item}
+    ${reforgeLine(slot)}
     <div class="genh">${enh}${res}</div>`;
 }
 
@@ -1011,8 +1009,7 @@ function itemDetail(it) {
     <div class="ghead"><span>📦 창고</span></div>
     ${gearInfo(it)}
     <div class="gstat">${gearStatText(gearStat(it))} <span class="gcmp">${gearCmp(it)}</span></div>
-    ${cur ? `<div class="small">지금 낀 장비: <span class="gn g${cur.g}">${gearName(cur)}</span>${gearIlvText(cur)} ${gearStatText(gearStat(cur))}</div>` : ''}
-    ${reforgeLine(it)}
+    ${cur ? `<div class="small">지금 낀 장비: <span class="gn g${cur.g}">${gearName(cur)}</span> ${gearStatText(gearStat(cur))}</div>` : ''}
     <div class="gacts">
       <button class="btn enh" data-action="equip" data-id="${it.id}">장착</button>
       <button class="btn" data-action="gear-sell-one" data-id="${it.id}">판매 <i class="gc"></i> ${fmt(gearSellPrice(it))} · 💠 ${gearSellStones(it)}</button>
@@ -1023,7 +1020,7 @@ function gearRow(it) {
   return `
     <button class="gitem ${gearUi.sel.id === it.id ? 'sel' : ''}" data-action="gear-sel-item" data-id="${it.id}" style="--c:${gearGrade(it).color}">
       ${gearIcon(it)}
-      <span class="gi"><span class="gname ${gnClass(it)}">${gearName(it)}</span><span class="small">${gearKindText(it)}${gearIlvText(it)}</span></span>
+      <span class="gi"><span class="gname ${gnClass(it)}">${gearName(it)}</span><span class="small">${gearKindText(it)}</span></span>
       <span class="gstat">${gearStatText(gearStat(it))}</span>
       <span class="gcmp">${gearCmp(it)}</span>
     </button>`;
@@ -2171,7 +2168,7 @@ const ACTIONS = {
   },
   'build': (el) => startBuild(el.dataset.id),
   'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },
-  'reforge': (el) => { const r = reforge(Number(el.dataset.id)); if (r) toast(`🔥 재련 완료 — 아이템 레벨 ${r.from} → ${r.to}`); },
+  'reforge': (el) => { const r = reforge(el.dataset.slot); if (r) toast(`🔥 ${GEAR_SLOTS[el.dataset.slot].name} 재련 — 아이템 Lv ${r.from} → ${r.to}`); },
   'train': (el) => doTrain(el.dataset.id),
   'train-all': () => { const n = doTrainAll(); if (n) toast(`🎯 훈련 ${n}단계 올렸어요`, 2500); },
   'buy': (el) => buySupply(el.dataset.id),
