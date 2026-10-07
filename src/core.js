@@ -23,6 +23,7 @@ function freshState() {
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
+    forge: { reforge: 0 },                  // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
@@ -31,6 +32,7 @@ function freshState() {
     mastV: 5,                               // 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
+    gearV: 2,                               // 2: 무기·갑옷 능력치가 아이템 레벨(s) 절대값 (1: 등급 % — 레이드 장비 s 가 입장 스테이지)
     phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -97,6 +99,14 @@ function migrate(o) {
   if (s.train.boss) s.train.fortune = (s.train.fortune || 0) + s.train.boss;
   delete s.train.boss;
   s.gear.inv.forEach(fixGearItem);
+  // 성장 개편(gearV 2): 장비가 아이템 레벨 절대값이 됐다. 예전 레이드 상자 장비(전설 이상·세트)는 s 가 보스 입장 스테이지라
+  //  너무 낮아지므로 최고 스테이지로 올려 준다. 훈련 단계는 그대로 두고 새 공식만 적용한다
+  if ((o.gearV || 1) < 2) {
+    for (const it of s.gear.inv) if (it.g >= 4 || isSetGear(it)) it.s = Math.max(it.s || 1, s.best || 1);
+    for (const c of s.raid.chests || []) c.s = Math.max(c.s || 1, s.best || 1);
+    s.notice = '⚖️ 성장 개편 — 이제 공격력·체력은 장비(아이템 레벨)가 책임지고, 훈련은 초반을 끌어 주다가 % 보너스로 바뀌어요. 대장간은 🔥 재련로(장비 아이템 레벨 올리기)로 바뀌었어요. 가진 전설·세트 장비는 최고 스테이지 레벨로 맞춰 드렸어요';
+  }
+  s.gearV = 2;
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
   return s;
@@ -130,27 +140,25 @@ function resetState() {
 const heroClass = () => CLASSES[S.cls] || CLASSES.squire;
 const heroWeapon = () => WEAPONS[heroClass().weapon];
 
-// 모든 전투 수치는 여기 한 곳에서 합친다 (레벨·훈련·대장간·직업·무기·장비·원정 버프).
+// 모든 전투 수치는 여기 한 곳에서 합친다 (레벨·훈련·직업·무기·장비·원정 버프).
 // base=true 면 원정 버프(영약)를 빼고 계산한다 (랭킹·결투용)
 function stats(base = false) {
   const c = heroClass(), w = WEAPONS[c.weapon], m = c.mods;
   const t = S.train;
   const gb = gearBonus();
-  // 절대값(훈련·레벨)에 장비 %(무기·갑옷)와 대장간·직업·특수 효과 배율이 곱해진다
-  let atk = (trainAtkAt(t.atk) + (S.level - 1) * 1.5)
-    * (1 + gb.atkUp) * forgeMultAt(S.bld.forge) * (m.atk || 1) * (1 + gb.atkPct);
+  // 절대값 = 기본·훈련·레벨 + 무기 공격력 / 갑옷 체력 (아이템 레벨). 여기에 훈련 %·직업·특수 효과 배율이 곱해진다
+  let atk = (trainAtkAt(t.atk) + (S.level - 1) * 1.5 + gb.atk)
+    * trainPctAt(t.atk) * (m.atk || 1) * (1 + gb.atkPct);
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
-  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8) * (1 + gb.hpUp) * (m.hp || 1) * (1 + gb.hpPct);
+  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8 + gb.hp) * trainPctAt(t.hp) * (m.hp || 1) * (1 + gb.hpPct);
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
-  // 방어 효과는 원정에선 지금 스테이지 몬스터 기준, 결투·레이드용(base)은 최고 스테이지 기준
-  //  (낮은 필드에 서 있기만 해도 서버에 올라가는 방어가 상한까지 뛰지 않게)
-  const def = defAt(t.def), defRed = defRedAt(def, (base ? S.best : S.stage) || 1);
+  const defRed = defRedAt(t.def);
   return {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
     // 받는 피해 감소: 직업·장비(최대 60%)와 방어 훈련을 곱으로 합친다 (최대 85%)
-    guard: Math.min(0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed)), def, defRed,
+    guard: Math.min(0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed)), defRed,
     heal: Math.min(0.1, (m.heal || 0) + gb.heal), skills: unlockedSkills(),
   };
 }

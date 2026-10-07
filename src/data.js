@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.11.13';
+const GAME_VERSION = '0.12.0';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -65,7 +65,6 @@ const trainCapAt = (lv) => 10 * lv;
 const maxStaminaAt = (lv) => Math.round(20 * Math.pow(1.3, lv - 1)) * 5;
 const restSecAt = (lv) => 180 * Math.pow(1.1, lv - 1);          // 0 → 최대 스태미나까지 (Lv1 3분 · Lv20 약 18분)
 const bagCapAt = (lv) => 20 + 6 * (lv - 1);                     // 가방이 들 수 있는 무게 (상자마다 무게가 다름)
-const forgeMultAt = (lv) => Math.pow(1.3, lv - 1);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
 
 const BUILDINGS = {
@@ -83,7 +82,7 @@ const BUILDINGS = {
   },
   forge: {
     name: '대장간', icon: '⚒️', mul: { gold: 1.2, wood: 0.4, ore: 1.6, mana: 1.4 },
-    effect: (lv) => `공격력 ×${forgeMultAt(lv).toFixed(2)}`,
+    effect: (lv) => `대장간 시설 최대 Lv ${lv}`,
   },
 };
 
@@ -96,6 +95,29 @@ function buildCost(id, lv) {
     // 마력석은 Lv5 → 6 부터 (초반 마력석은 전직·강화 몫으로 남도록), 오르는 폭도 목재·철광석보다 완만하게
     mana: lv >= 5 ? Math.floor(4 * Math.pow(1.7, lv - 5) * m.mana) : 0,
   };
+}
+
+// ───────────────────────── 대장간 시설 ─────────────────────────
+// 대장간은 능력치를 주지 않고 장비를 다루는 시설을 품는다. 시설마다 따로 올리고(재화 즉시 소모), 대장간 Lv 이 시설의 최대 Lv 이다.
+// 재련로: 장비의 아이템 레벨(s)을 최고 스테이지 × reforgeReachAt(lv) 까지 끌어올린다 (Lv1 62% … Lv20 100%)
+const FORGE_FAC = {
+  reforge: { name: '재련로', icon: '🔥', desc: '아끼는 장비의 아이템 레벨을 최고 스테이지 쪽으로 끌어올려요',
+    effect: (lv) => (lv ? `최고 스테이지의 ${Math.round(reforgeReachAt(lv) * 100)}%까지 재련` : '아직 없음') },
+};
+const reforgeReachAt = (lv) => (lv > 0 ? Math.min(1, 0.6 + 0.02 * lv) : 0);
+// 시설 lv → lv+1 비용
+function forgeFacCost(id, lv) {
+  return {
+    gold: Math.floor(150 * Math.pow(1.75, lv)),
+    wood: 0,
+    ore: Math.floor(20 * Math.pow(1.7, lv)),
+    mana: lv >= 3 ? Math.floor(5 * Math.pow(1.6, lv - 3)) : 0,
+  };
+}
+// 재련 비용: 올리는 레벨 수 × 목표 스테이지 배율 × 등급 배율 (철광석·마력석)
+function reforgeCost(g, from, to) {
+  const n = Math.max(0, to - from), k = n * (1 + (to - 1) * 0.04) * (1 + g) / 2;
+  return { ore: Math.ceil(4 * k), mana: Math.ceil(k) };
 }
 
 // ───────────────────────── 재화 / 보급품 ─────────────────────────
@@ -416,11 +438,14 @@ const SPECIAL_STATS = {
 };
 // 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)
 const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
-// 무기 공격력·갑옷 체력은 등급 stat 의 절반만큼 % (영웅 +160% · 태초 +685%), 강화 배율이 그대로 곱해진다
-function gearBase(slot, g, roll) {
+// 무기 공격력·갑옷 체력은 절대값이다: 아이템 레벨(떨어진 스테이지 s)을 따라 커지고(gearAtkAt·gearHpAt), 등급 stat·편차·강화 배율이 곱해진다.
+//  공격력은 스테이지마다 ×1.225, 체력은 ×1.18 — 몬스터 체력(×1.23)보다 조금 느려서 깊이 갈수록 등급·강화가 벽을 넘게 해 준다
+const gearAtkAt = (s) => 6.5 * Math.pow(1.225, s);
+const gearHpAt = (s) => 30 * Math.pow(1.18, s);
+function gearBase(slot, g, roll, s) {
   const k = GRADES[g].stat * roll;
-  if (slot === 'weapon') return { atkUp: 0.5 * k, aspdPct: WEAPON_ASPD[g] * roll };
-  if (slot === 'armor') return { hpUp: 0.5 * k };
+  if (slot === 'weapon') return { atk: gearAtkAt(s) * k, aspdPct: WEAPON_ASPD[g] * roll };
+  if (slot === 'armor') return { hp: gearHpAt(s) * k };
   return { crit: 0.02 * k, critMult: 0.2 * k };
 }
 // 강화가 공속·치명에는 단계당 4%만 곱해진다 (+25 에서 2배)
@@ -492,22 +517,25 @@ const CURIOS = {
 };
 
 // ───────────────────────── 훈련 (골드) ─────────────────────────
-// 공격력·체력 훈련이 절대값 성장의 중심이다: 단계마다 ×1.286 (스테이지를 따라 비용이 1.32배씩 오르는 것과 맞춘 값)
-const TRAIN_GROW = 1.286;
-const trainAtkAt = (t) => 6 * Math.pow(TRAIN_GROW, t);
-const trainHpAt = (t) => 40 * Math.pow(TRAIN_GROW, t);
+// 훈련은 초반을 끌어 주는 성장이다: 처음엔 단계마다 ×1.286 로 크게 오르다가 TRAIN_SAT 근처에서 포화해
+//  공격력은 약 2,200 · 체력은 약 13,000 에서 멈춘다 (스테이지 30~40 무렵). 그 뒤 절대값 성장은 장비(아이템 레벨)의 몫이고,
+//  훈련은 단계마다 TRAIN_PCT 만큼만 % 로 더해 준다 (Lv 100 에서 +50%).
+//  스테이지 속도(훈련 ≈ 0.66 × 스테이지)로 키우면 공격력 중 훈련 몫이 스테이지 10 약 65% · 20 약 33% · 35 약 5% · 50 이후 0%
+const TRAIN_GROW = 1.286, TRAIN_SAT = 120, TRAIN_PCT = 0.005;
+const trainSat = (t) => (Math.pow(TRAIN_GROW, t) - 1) / (1 + Math.pow(TRAIN_GROW, t) / TRAIN_SAT);
+const trainAtkAt = (t) => 6 + 18 * trainSat(t);
+const trainHpAt = (t) => 40 + 110 * trainSat(t);
+const trainPctAt = (t) => 1 + TRAIN_PCT * t;
 const TRAINING = [
   { id: 'atk',  name: '⚔️ 공격력', max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
   { id: 'hp',   name: '🛡️ 체력',   max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },
-  { id: 'def',  name: '🛡️ 방어',   max: Infinity, base: 15, grow: 1.3,  show: (st) => fmt(st.def) },
+  { id: 'def',  name: '🛡️ 방어',   max: Infinity, base: 15, grow: 1.3,  show: (st) => `-${Math.round(st.defRed * 100)}%` },
   { id: 'fortune', name: '💰 수완', max: Infinity, base: 15, grow: 1.3, show: () => `+${Math.round(fortuneBonus() * 100)}%` },
 ];
-// 방어: 훈련이 절대값을 쌓고(공격력·체력과 같은 ×1.286), 받는 피해 감소 = 방어 / (방어 + DEF_K × 그 스테이지 몬스터 공격력).
-//  올릴수록 효율이 떨어져 100%에는 닿지 않고, 깊은 스테이지일수록 같은 방어의 효과가 줄어든다.
-//  스테이지 속도에 맞춰 훈련하면 대략 20~50% (Lv 6 @10스테이지 22% · Lv 26 @40 34% · Lv 57 @88 40%)
-const defAt = (t) => 10 * (Math.pow(TRAIN_GROW, t) - 1);
-const DEF_K = 10;
-const defRedAt = (def, stage) => def / (def + DEF_K * monsterStats(stage, false).atk);
+// 방어: 받는 피해 감소 = DEF_MAX × 단계 / (단계 + DEF_HALF). 스테이지와 상관없고 올릴수록 효율이 떨어져 DEF_MAX(50%)에는 닿지 않는다
+//  (Lv 6 14% · Lv 26 32% · Lv 57 40% · Lv 100 43%)
+const DEF_MAX = 0.5, DEF_HALF = 15;
+const defRedAt = (t) => DEF_MAX * t / (t + DEF_HALF);
 // 수완: 골드·경험치 획득 Lv 당 +3% (몬스터 처치와 레이드 보상에 적용)
 const FORTUNE_PER_LV = 0.03;
 // 예전 훈련(공속·치명)은 없어졌다. 예전 세이브에 남은 단계는 쓴 골드를 돌려준다 (core.js migrate)

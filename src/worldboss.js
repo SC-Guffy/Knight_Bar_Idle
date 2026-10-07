@@ -44,7 +44,7 @@ function claimWbReward(row) {
   S.mats.wood += reward.wood; S.mats.ore += reward.ore; S.mats.mana += reward.mana;
   S.stones += reward.stones;
   S.tomes += reward.tomes;
-  for (let i = 0; i < reward.chests; i++) S.raid.chests.push({ k: 'rbox', b: reward.boss, s: RAID_BOSSES[reward.boss].stage });
+  for (let i = 0; i < reward.chests; i++) S.raid.chests.push({ k: 'rbox', b: reward.boss, s: Math.max(RAID_BOSSES[reward.boss].stage, S.best || 1) });
   S.wb.last = { ...row, reward, at: Date.now() };
   return S.wb.last;
 }

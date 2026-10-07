@@ -77,7 +77,8 @@ function settleRaid(result, nick) {
     S.raid.tickets = Math.max(0, S.raid.tickets - 1);
     reward.first = !S.raid.kills[result.boss];
     S.raid.kills[result.boss] = (S.raid.kills[result.boss] || 0) + 1;
-    S.raid.chests.push({ k: 'rbox', b: result.boss, s: b.stage, ...(reward.first ? { first: 1 } : {}) });
+    // 상자 장비의 아이템 레벨 = 실제로 싸운 스테이지 (내 최고 스테이지를 넘지 않음)
+    S.raid.chests.push({ k: 'rbox', b: result.boss, s: rs, ...(reward.first ? { first: 1 } : {}) });
   }
 
   S.raid.last = {

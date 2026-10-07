@@ -352,7 +352,31 @@ function viewTown() {
         ${lv < BUILD_MAX ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
       </div>
       <div class="act">${act}</div>
+    </div>${id === 'forge' ? Object.keys(FORGE_FAC).map(forgeFacRow).join('') : ''}`;
+}
+
+// 대장간 시설 한 줄: 이름·Lv·효과 → 다음 효과 · 비용 · 올리기
+function forgeFacRow(id) {
+  const f = FORGE_FAC[id], lv = forgeFacLv(id), blocker = forgeFacBlocker(id);
+  const maxed = lv >= BUILD_MAX, c = forgeFacCost(id, lv);
+  return `
+    <div class="fac" title="${esc(f.desc)}">
+      <span class="fname">${f.icon} ${f.name} <small>Lv ${lv}/${S.bld.forge}</small></span>
+      <span class="feff">${f.effect(lv)}${maxed ? '' : ` → <b>${f.effect(lv + 1)}</b>`}</span>
+      ${maxed ? '' : `<span class="costs">${costChip('<i class="gc"></i>', c.gold, S.gold)}${costChip('🪨', c.ore, S.mats.ore)}${costChip('💎', c.mana, S.mats.mana)}</span>
+      <button class="btn${rd(!blocker)}" data-action="forge-up" data-id="${id}" ${blocker ? `disabled title="${blocker}"` : ''}>${lv ? '올리기' : '짓기'}</button>`}
     </div>`;
+}
+
+// 훈련을 한 단계 더 올리면 늘어나는 양 (공격력·체력은 지금 능력치 대비 %, 방어는 피해 감소 %p)
+function trainNextText(u, st) {
+  if (u.id === 'fortune') return `+${Math.round(FORTUNE_PER_LV * 100)}%`;
+  S.train[u.id]++;
+  const nx = stats();
+  S.train[u.id]--;
+  if (u.id === 'def') return `+${((nx.defRed - st.defRed) * 100).toFixed(1)}%p`;
+  const k = u.id === 'atk' ? 'atk' : 'maxHp', d = nx[k] / st[k] - 1;
+  return `+${d >= 0.1 ? Math.round(d * 100) : (d * 100).toFixed(1)}%`;
 }
 
 function viewTrain() {
@@ -365,7 +389,7 @@ function viewTrain() {
       <button class="tcard${rd(canTrain(u))}" data-action="train" data-id="${u.id}" ${maxed || S.gold < cost ? 'disabled' : ''}>
         <span class="nm">${u.name}</span>
         <span class="val">${u.show(st)}</span>
-        <span class="small">Lv ${lv} / ${max === Infinity ? '∞' : max}</span>
+        <span class="small">Lv ${lv} / ${max === Infinity ? '∞' : max}${maxed ? '' : ` · 다음 ${trainNextText(u, st)}`}</span>
         <span class="cost">${maxed ? (lv >= u.max ? 'MAX' : '훈련장 필요') : '<i class="gc"></i> ' + fmt(cost)}</span>
       </button>`;
   }).join('');
@@ -375,7 +399,7 @@ function viewTrain() {
   const nextLine = next.length ? `다음 전직: Lv ${CLASS_REQ[CLASSES[next[0]].tier].level}` : '최종 직업';
   return `
     <div class="shead">
-      <h3>🎯 훈련 <small>최대 Lv ${cap} (훈련장 Lv ${S.bld.training})</small></h3>
+      <h3>🎯 훈련 <small>최대 Lv ${cap} (훈련장 Lv ${S.bld.training}) · 초반 성장을 끌어 주고, 이후엔 단계마다 +${TRAIN_PCT * 100}%</small></h3>
       <button class="btn" data-action="train-all" ${anyTrain ? '' : 'disabled'}>⚡ 골고루 올리기</button>
     </div>
     <div class="tgrid">${cards}</div>
@@ -383,7 +407,7 @@ function viewTrain() {
     <div class="card">
       <div class="ic">${c.icon}</div>
       <div class="info"><b>${c.name} · ${w.name}</b>
-        <div class="eff">대장간 보정 ×${forgeMultAt(S.bld.forge).toFixed(2)} · DPS ${fmt(dpsOf(st))} · ${nextLine}</div></div>
+        <div class="eff">DPS ${fmt(dpsOf(st))} · ${nextLine}</div></div>
       <div class="act"><button class="btn${rd(anyClassReady())}" data-action="tab" data-tab="class">⚜️ 전직 트리</button></div>
     </div>`;
 }
@@ -929,11 +953,27 @@ function gearSlotBtn(slot) {
 const gearInfo = (it) => `
   <div class="gtop" style="--c:${gearGrade(it).color}">
     ${gearIcon(it, 'big')}
-    <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''}</small></div>
+    <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''}${gearIlvText(it)}</small></div>
   </div>
   ${gearSpecialText(it) ? `<div class="gsp">✦ 고유 효과 — ${gearSpecialText(it)}</div>` : ''}
   ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
   <div class="gdesc">${gearDesc(it)}</div>`;
+
+// 아이템 레벨 (= 떨어진 스테이지, 재련으로 올림). 장신구는 레벨이 없다
+const gearIlvText = (it) => (it.slot === 'ring' ? '' : ` · Lv ${it.s || 1}`);
+// 재련 버튼 한 줄: 재련로 한도까지 올리면 능력치가 어떻게 되는지와 비용
+function reforgeLine(it) {
+  if (!it || it.slot === 'ring') return '';
+  if (!forgeFacLv('reforge')) return '<div class="small rfline">🔥 마을 대장간에 재련로를 지으면 아이템 레벨을 최고 스테이지 쪽으로 올릴 수 있어요</div>';
+  const p = reforgePlan(it), blocker = reforgeBlocker(it);
+  if (!p) return forgeFacLv('reforge') ?`<div class="small rfline">🔥 재련 한도 Lv ${reforgeCap()} — 최고 스테이지가 오르거나 재련로를 올리면 더 올릴 수 있어요</div>` : '';
+  const next = { ...it, s: p.to };
+  return `<div class="rfline">
+    <span class="small">🔥 재련 Lv ${it.s || 1} → <b>${p.to}</b> · ${gearStatText(gearStat(next))}</span>
+    <span class="costs">${costChip('🪨', p.cost.ore, S.mats.ore)}${costChip('💎', p.cost.mana, S.mats.mana)}</span>
+    <button class="btn" data-action="reforge" data-id="${it.id}" ${blocker ? `disabled title="${blocker}"` : ''}>재련</button>
+  </div>`;
+}
 
 // 가진 💠 강화석 (강화 화면 우상단 칩)
 const stoneChip = () => `<span class="stchip${S.stones ? '' : ' none'}" title="가진 강화석 — 원정 보스를 잡거나 장비를 팔면 얻어요">💠 <b>${fmt(S.stones)}</b></span>`;
@@ -941,7 +981,7 @@ const stoneChip = () => `<span class="stchip${S.stones ? '' : ' none'}" title="�
 function slotDetail(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot), L = S.gear.enh[slot];
   const item = it
-    ? `${gearInfo(it)}<div class="gstat">${gearStatText(gearStat(it))}${L < ENHANCE_MAX ? ` <small>→ +${L + 1} ${gearStatText(gearStat(it, L + 1))}</small>` : ''}</div>`
+    ? `${gearInfo(it)}<div class="gstat">${gearStatText(gearStat(it))}${L < ENHANCE_MAX ? ` <small>→ +${L + 1} ${gearStatText(gearStat(it, L + 1))}</small>` : ''}</div>${reforgeLine(it)}`
     : `<div class="gtop"><div class="gicon big empty"></div><div class="gname empty">${def.name} 비어 있음</div></div><div class="gstat small">강화 단계는 장비를 끼면 적용돼요</div>`;
   let enh;
   if (L >= ENHANCE_MAX) {
@@ -971,7 +1011,8 @@ function itemDetail(it) {
     <div class="ghead"><span>📦 창고</span></div>
     ${gearInfo(it)}
     <div class="gstat">${gearStatText(gearStat(it))} <span class="gcmp">${gearCmp(it)}</span></div>
-    ${cur ? `<div class="small">지금 낀 장비: <span class="gn g${cur.g}">${gearName(cur)}</span> ${gearStatText(gearStat(cur))}</div>` : ''}
+    ${cur ? `<div class="small">지금 낀 장비: <span class="gn g${cur.g}">${gearName(cur)}</span>${gearIlvText(cur)} ${gearStatText(gearStat(cur))}</div>` : ''}
+    ${reforgeLine(it)}
     <div class="gacts">
       <button class="btn enh" data-action="equip" data-id="${it.id}">장착</button>
       <button class="btn" data-action="gear-sell-one" data-id="${it.id}">판매 <i class="gc"></i> ${fmt(gearSellPrice(it))} · 💠 ${gearSellStones(it)}</button>
@@ -982,7 +1023,7 @@ function gearRow(it) {
   return `
     <button class="gitem ${gearUi.sel.id === it.id ? 'sel' : ''}" data-action="gear-sel-item" data-id="${it.id}" style="--c:${gearGrade(it).color}">
       ${gearIcon(it)}
-      <span class="gi"><span class="gname ${gnClass(it)}">${gearName(it)}</span><span class="small">${gearKindText(it)}</span></span>
+      <span class="gi"><span class="gname ${gnClass(it)}">${gearName(it)}</span><span class="small">${gearKindText(it)}${gearIlvText(it)}</span></span>
       <span class="gstat">${gearStatText(gearStat(it))}</span>
       <span class="gcmp">${gearCmp(it)}</span>
     </button>`;
@@ -996,9 +1037,9 @@ function heroStatsPanel(st) {
   const stage = S.stage || 1;
   const other = 1 - (1 - st.guard) / (1 - st.defRed);   // 직업·장비 쪽 피해 감소 (방어 훈련 몫을 뺀 것)
   const rows = [
-    ['⚔️ 공격력', fmt(st.atk), '한 대 칠 때 들어가는 기본 피해예요. 훈련·레벨이 절대값을 쌓고 장비·대장간·직업이 %로 곱해져요.'],
+    ['⚔️ 공격력', fmt(st.atk), '한 대 칠 때 들어가는 기본 피해예요. 무기(아이템 레벨·등급·강화)와 훈련·레벨이 절대값을 쌓고, 훈련 %·직업이 곱해져요.\n훈련은 초반에 크게 오르다 멈추니, 깊이 갈수록 장비가 힘의 대부분이에요.'],
     ['❤️ 체력', fmt(st.maxHp), '버틸 수 있는 피해량이에요.'],
-    ['🛡️ 방어', fmt(st.def), `지금 ${stage} 스테이지 몬스터 기준으로 받는 피해를 ${pct(st.defRed)} 경감해요.\n올릴수록 효율이 조금씩 줄고, 깊은 스테이지일수록 같은 방어의 효과가 줄어들어요.`],
+    ['🛡️ 방어', `-${pct(st.defRed)}`, `방어 훈련으로 받는 피해를 ${pct(st.defRed)} 경감해요.\n올릴수록 효율이 줄고 ${Math.round(DEF_MAX * 100)}%에는 닿지 않아요.`],
     ['🧱 피해 감소', pct(st.guard), `몬스터에게 받는 피해를 총 ${pct(st.guard)} 덜 받아요 (최대 85%).\n· 방어 ${pct(st.defRed)}${other > 0.0005 ? `\n· 직업·장비 ${pct(other)}` : ''}\n둘은 곱으로 합쳐져요.`],
     ['💨 공격 속도', `${st.aspd.toFixed(2)}/초`, `1초에 ${st.aspd.toFixed(2)}번 공격해요.`],
     ['🎯 치명타', pct(st.crit), `${pct(st.crit)} 확률로 치명타가 터지고, 치명타는 ${Math.round(st.critMult * 100)}% 피해를 줘요 (최대 확률 80%).`],
@@ -2129,6 +2170,8 @@ const ACTIONS = {
     }, 110);
   },
   'build': (el) => startBuild(el.dataset.id),
+  'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },
+  'reforge': (el) => { const r = reforge(Number(el.dataset.id)); if (r) toast(`🔥 재련 완료 — 아이템 레벨 ${r.from} → ${r.to}`); },
   'train': (el) => doTrain(el.dataset.id),
   'train-all': () => { const n = doTrainAll(); if (n) toast(`🎯 훈련 ${n}단계 올렸어요`, 2500); },
   'buy': (el) => buySupply(el.dataset.id),

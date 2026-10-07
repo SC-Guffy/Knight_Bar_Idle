@@ -98,9 +98,9 @@ const gearById = (id) => S.gear.inv.find((x) => x.id === id) || null;
 const equipped = (slot) => gearById(S.gear.eq[slot]);
 const isEquipped = (it) => S.gear.eq[it.slot] === it.id;
 
-// enh: 적용할 강화 단계 (기본은 그 부위의 현재 단계). 능력치는 등급·roll 로만 정해진다
+// enh: 적용할 강화 단계 (기본은 그 부위의 현재 단계). 능력치는 아이템 레벨(s)·등급·roll 로 정해진다
 function gearStat(it, enh = S.gear.enh[it.slot]) {
-  const b = gearBase(it.slot, it.g, it.roll);
+  const b = gearBase(it.slot, it.g, it.roll, it.s || 1);
   const m = enhanceMultAt(enh), soft = softEnhMultAt(enh);
   const out = {};
   for (const k of Object.keys(b)) out[k] = b[k] * (SOFT_ENH[k] ? soft : m);
@@ -110,7 +110,7 @@ function gearStat(it, enh = S.gear.enh[it.slot]) {
 // 고유 장비의 특수 효과는 대략 그만큼 점수를 올려 준다 (골드·경험치는 전투력이 아니라 조금만)
 function gearScore(it) {
   const st = gearStat(it, 0);
-  const base = it.slot === 'ring' ? st.crit * 2.5 + st.critMult * 0.3 : it.slot === 'weapon' ? (1 + st.atkUp) * (1 + st.aspdPct) : 1 + st.hpUp;
+  const base = it.slot === 'ring' ? st.crit * 2.5 + st.critMult * 0.3 : it.slot === 'weapon' ? st.atk * (1 + st.aspdPct) : st.hp;
   const sp = GEAR_ITEMS[it.t].sp;
   if (!sp) return base;
   let k = 1;
@@ -123,8 +123,8 @@ function gearSpecialText(it) {
   return sp ? Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v)}`).join(' · ') : '';
 }
 function gearStatText(st) {
-  if (st.atkUp != null) return `⚔️ +${Math.round(st.atkUp * 100)}%${st.aspdPct ? ` · 💨 +${Math.round(st.aspdPct * 100)}%` : ''}`;
-  if (st.hpUp != null) return `❤️ +${Math.round(st.hpUp * 100)}%`;
+  if (st.atk != null) return `⚔️ ${fmt(st.atk)}${st.aspdPct ? ` · 💨 +${Math.round(st.aspdPct * 100)}%` : ''}`;
+  if (st.hp != null) return `❤️ ${fmt(st.hp)}`;
   return `💥 +${(st.crit * 100).toFixed(1)}% · 피해 +${Math.round(st.critMult * 100)}%`;
 }
 // 장비를 팔면 골드와 함께 💠 강화석이 나온다 (등급별 고정)
@@ -133,7 +133,7 @@ const gearSellPrice = (it) => Math.floor(monsterStats(it.s, false).gold * GRADES
 
 // stats() 가 합치는 장착 장비 보너스 (고유 장비의 특수 효과 포함)
 function gearBonus() {
-  const out = { atkUp: 0, hpUp: 0, crit: 0, critMult: 0 };
+  const out = { atk: 0, hp: 0, crit: 0, critMult: 0 };
   for (const k of Object.keys(SPECIAL_STATS)) if (!(k in out)) out[k] = 0;
   for (const slot of Object.keys(GEAR_SLOTS)) {
     const it = equipped(slot);
@@ -217,7 +217,7 @@ function loadoutValue(eq) {
 let loadoutCache = { key: '', eq: null };
 function bestLoadout() {
   // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
-  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${S.bld.forge}`;
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}`;
   if (loadoutCache.key === key) return loadoutCache.eq;
   const slots = Object.keys(GEAR_SLOTS);
   const cands = slots.map((slot) => {
@@ -322,4 +322,48 @@ function enhance(slot, protect = false) {
   S.gear.top[slot] = Math.max(S.gear.top[slot] || 0, S.gear.enh[slot]);
   keepHpRatio(oldMax);
   return { result, from, to: S.gear.enh[slot], used };
+}
+
+// ───────────────────────── 대장간 시설 · 재련 ─────────────────────────
+const forgeFacLv = (id) => (S.forge && S.forge[id]) || 0;
+function forgeFacBlocker(id) {
+  const lv = forgeFacLv(id);
+  if (lv >= S.bld.forge) return lv >= BUILD_MAX ? '최대 Lv' : '대장간 Lv 이 더 필요해요';
+  if (!canAfford(forgeFacCost(id, lv))) return '재화 부족';
+  return '';
+}
+function upgradeForgeFac(id) {
+  if (!FORGE_FAC[id] || forgeFacBlocker(id)) return false;
+  const c = forgeFacCost(id, forgeFacLv(id));
+  S.gold -= c.gold; S.mats.ore -= c.ore; S.mats.mana -= c.mana;
+  S.forge[id] = forgeFacLv(id) + 1;
+  return true;
+}
+// 재련로로 올릴 수 있는 아이템 레벨 상한 (재련로가 없으면 0)
+const reforgeCap = () => Math.floor((S.best || 1) * reforgeReachAt(forgeFacLv('reforge')));
+// 이 장비를 재련하면 { to, cost } — 올릴 게 없으면 null
+function reforgePlan(it) {
+  const to = reforgeCap();
+  if (!it || it.slot === 'ring' || to <= (it.s || 1)) return null;
+  return { to, cost: reforgeCost(it.g, it.s || 1, to) };
+}
+function reforgeBlocker(it) {
+  if (!it || it.slot === 'ring') return '장신구는 아이템 레벨이 없어요';
+  if (!forgeFacLv('reforge')) return '마을 대장간에서 🔥 재련로를 먼저 지어야 해요';
+  const p = reforgePlan(it);
+  if (!p) return `재련로 한도(Lv ${reforgeCap()})까지 올라가 있어요`;
+  if (S.phase !== 'camp') return '캠프에서만 재련할 수 있어요';
+  if (S.mats.ore < p.cost.ore) return '철광석 부족';
+  if (S.mats.mana < p.cost.mana) return '마력석 부족';
+  return '';
+}
+// 재련: 아이템 레벨을 재련로 한도까지 한 번에 올린다. { from, to } 또는 null
+function reforge(id) {
+  const it = gearById(id);
+  if (reforgeBlocker(it)) return null;
+  const p = reforgePlan(it), from = it.s || 1, oldMax = stats().maxHp;
+  S.mats.ore -= p.cost.ore; S.mats.mana -= p.cost.mana;
+  it.s = p.to;
+  keepHpRatio(oldMax);
+  return { from, to: p.to };
 }
