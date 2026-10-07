@@ -97,6 +97,12 @@
   .scard.soon:hover { background: var(--soft); transform: none; }
   .subback { all: unset; cursor: pointer; display: inline-block; margin: 10px 0 -8px; color: var(--muted); font-size: 12px; }
   .subback:hover { color: var(--text); }
+  /* 🏠 홈 탭의 보급품 줄 (ui.js viewSupplies) */
+  .sup { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 9px; background: var(--soft); margin-bottom: 5px; }
+  .sup .ic { font-size: 18px; width: 24px; text-align: center; }
+  .sup b { white-space: nowrap; }
+  .sup .eff { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sup .act { display: flex; gap: 5px; flex-shrink: 0; }
   .dgline { font-size: 12.5px; margin: 3px 0; }
   .dgline .bad { color: var(--bad); }
   #hud { position: absolute; top: 6px; left: 10px; width: 470px; }
