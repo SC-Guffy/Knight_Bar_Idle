@@ -375,8 +375,14 @@ function trainNextText(u, st) {
   const nx = stats();
   S.train[u.id]--;
   if (u.id === 'def') return `+${((nx.defRed - st.defRed) * 100).toFixed(1)}%p`;
-  const k = u.id === 'atk' ? 'atk' : 'maxHp', d = nx[k] / st[k] - 1;
+  const d = trainGain(u, st, nx);
   return `+${d >= 0.1 ? Math.round(d * 100) : (d * 100).toFixed(1)}%`;
+}
+// 공격력·체력 훈련 한 단계가 지금 능력치를 몇 % 올리는지 (맨몸 단련이라 장비가 커지는 중후반엔 0 에 가깝다)
+function trainGain(u, st = stats(), nx) {
+  if (!nx) { S.train[u.id]++; nx = stats(); S.train[u.id]--; }
+  const k = u.id === 'atk' ? 'atk' : 'maxHp';
+  return nx[k] / st[k] - 1;
 }
 
 function viewTrain() {
@@ -399,7 +405,7 @@ function viewTrain() {
   const nextLine = next.length ? `다음 전직: Lv ${CLASS_REQ[CLASSES[next[0]].tier].level}` : '최종 직업';
   return `
     <div class="shead">
-      <h3>🎯 훈련 <small>최대 Lv ${cap} (훈련장 Lv ${S.bld.training}) · ⚔️ 공격력 훈련 = 무기 위력 · 🛡️ 체력 훈련 = 갑옷 위력</small></h3>
+      <h3>🎯 훈련 <small>최대 Lv ${cap} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — 초반을 끌어 주고, 중후반 힘은 장비가 책임져요</small></h3>
       <button class="btn" data-action="train-all" ${anyTrain ? '' : 'disabled'}>⚡ 골고루 올리기</button>
     </div>
     <div class="tgrid">${cards}</div>
@@ -930,7 +936,8 @@ const DOT = '<i class="dot"></i>';
 const rd = (on) => (on ? ' rd' : '');
 const canBuild = (id) => !S.build && S.bld[id] < BUILD_MAX && canAfford(buildCost(id, S.bld[id]));
 // 훈련은 골드가 쌓이면 늘 할 수 있어서, 다음 단계 비용의 2배가 모였을 때만 찍는다 (버튼은 비용만 있으면 눌림)
-const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= 2 * trainCost(u);
+// 레드닷: 골드가 넉넉하고, 공격력·체력은 한 단계가 1% 이상 올려 줄 때만 (중후반엔 장비가 힘의 대부분이라 재촉하지 않는다)
+const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= 2 * trainCost(u) && (u.id !== 'atk' && u.id !== 'hp' || trainGain(u) >= 0.01);
 // 자동 장착하면 더 강해지는 부위(세트 효과 포함)
 const gearBetter = (slot) => bestLoadout()[slot] !== S.gear.eq[slot];
 // 강화석은 강화에만 쓰니 비용이 모이면 바로 찍는다 (장비를 낀 부위만 — 빈 부위 강화는 급하지 않다)
@@ -1022,11 +1029,10 @@ const gearInfo = (it) => `
   ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
   <div class="gdesc">${gearDesc(it)}</div>`;
 
-// 무기·갑옷 위력 레벨 안내 한 줄 (훈련이 올린다)
+// 무기·갑옷 기본 위력 안내 한 줄 (기사 레벨을 따라 커진다)
 function gearLvLine(slot) {
   if (slot === 'ring') return '';
-  const tr = slot === 'weapon' ? 'atk' : 'hp';
-  return `<div class="small rfline">🎯 위력 Lv ${Math.round(gearLvOf(slot))} — ${slot === 'weapon' ? '⚔️ 공격력' : '🛡️ 체력'} 훈련(Lv ${S.train[tr]})이 올려요 <button class="lnk" data-action="tab" data-tab="train">훈련 탭</button></div>`;
+  return `<div class="small rfline">✨ 기본 위력 Lv ${gearLvOf(slot)} — 기사 레벨을 따라 커지고, 등급·편차·강화가 곱해져요</div>`;
 }
 
 // 각인 한 줄: 편차를 각인대 범위에서 다시 굴린다 (각인대가 없으면 안내만)

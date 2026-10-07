@@ -33,7 +33,7 @@ function freshState() {
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
-    gearV: 5,                               // 5: 무기·갑옷 위력 레벨 = 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
+    gearV: 6,                               // 6: 무기·갑옷 기본 위력 = 기사 레벨 · 5: 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
     phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -123,19 +123,16 @@ function migrate(o) {
   }
   // gearV 4: 재련 한도가 재련로 Lv × 15 로 바뀌었다 — 예전 대장간 Lv 만큼 재련로를 올려 둔다
   if ((o.gearV || 1) < 4) s.forge.reforge = Math.max(s.forge.reforge || 1, Math.min(BUILD_MAX, s.bld.forge || 1));
-  // gearV 5: 재련이 훈련에 합쳐졌다 — 무기 레벨은 공격력 훈련, 갑옷 레벨은 체력 훈련이 정한다 (data.js trainGearLvAt).
-  //  재련한 부위 레벨만큼 훈련 단계를 올려 주고(힘이 줄지 않게), 재련로를 올리는 데 쓴 재화를 돌려준다
+  // gearV 5: 재련·재련로가 없어졌다 — 재련로를 올리는 데 쓴 재화를 돌려준다 (Lv1 은 처음부터 지어져 있던 것)
   if ((o.gearV || 1) < 5) {
-    const conv = (L) => trainForGearLv(L || 1);
-    const up = { atk: Math.max(0, conv(s.gear.lvl.weapon) - s.train.atk), hp: Math.max(0, conv(s.gear.lvl.armor) - s.train.hp) };
-    s.train.atk += up.atk; s.train.hp += up.hp;
     const back = { gold: 0, ore: 0, mana: 0 };
     for (let i = 1; i < (s.forge.reforge || 0); i++) { const c = forgeFacCost('reforge', i); back.gold += c.gold; back.ore += c.ore; back.mana += c.mana; }
     s.gold += back.gold; s.mats.ore += back.ore; s.mats.mana += back.mana;
-    if ((o.gearV || 1) >= 3) s.notice = `🎯 재련이 훈련에 합쳐졌어요 — 이제 공격력 훈련이 무기 위력을, 체력 훈련이 갑옷 위력을 올려요.${up.atk || up.hp ? ` 재련한 만큼 훈련을 올려 드렸어요 (공격력 +${up.atk} · 체력 +${up.hp})` : ''}${back.ore ? `, 재련로에 쓴 재화(골드 ${fmt(back.gold)} · 철광석 ${fmt(back.ore)} · 마력석 ${fmt(back.mana)})도 돌려드렸어요` : ''}`;
   }
   delete s.gear.lvl; delete s.forge.reforge;
-  s.gearV = 5;
+  // gearV 6: 무기·갑옷 기본 위력이 훈련 → 기사 레벨을 따라 커진다. 훈련 단계는 그대로 (이제 맨몸 능력치만)
+  if ((o.gearV || 1) >= 3 && (o.gearV || 1) < 6) s.notice = '⚔️ 장비 성장 정리 — 이제 무기·갑옷의 기본 위력은 기사 레벨을 따라 커지고, 등급·편차·강화가 곱해져요. 훈련은 맨몸 단련이라 초반을 끌어 주고 중후반엔 장비가 힘의 대부분이에요 (훈련장을 올려도 장비는 세지지 않아요)';
+  s.gearV = 6;
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
   if (s.forge.resonance || s.gear.res) {
     const back = { gold: 0, ore: 0, mana: 0 };

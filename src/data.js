@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.14.0';
+const GAME_VERSION = '0.14.1';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -443,11 +443,14 @@ const SPECIAL_STATS = {
 };
 // 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)
 const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
-// 무기 공격력·갑옷 체력은 절대값이다: 위력 레벨(공격력·체력 훈련으로 정해짐, trainGearLvAt)을 따라 커지고(gearAtkAt·gearHpAt),
-//  등급 stat·편차·강화 배율이 곱해진다. 레벨이 장비가 아니라 훈련에 붙어 있어서 같은 부위 장비끼리는 등급이 곧 서열이다 (편차 ±10% 로는 한 등급을 못 넘는다).
-//  공격력은 스테이지마다 ×1.225, 체력은 ×1.18 — 몬스터 체력(×1.23)보다 조금 느려서 깊이 갈수록 등급·강화가 벽을 넘게 해 준다
-const gearAtkAt = (s) => 6.5 * Math.pow(1.225, s);
-const gearHpAt = (s) => 30 * Math.pow(1.18, s);
+// 무기 공격력·갑옷 체력은 절대값이다 — 중후반 성장의 중심. 기본 위력은 착용한 기사의 레벨을 따라 커지고(gearAtkAt·gearHpAt),
+//  등급 stat·편차·강화 배율이 곱해진다. 레벨은 경험치로만 오르고(골드·건물로 못 산다) 내 모든 장비가 같은 레벨을 쓰므로,
+//  같은 부위 장비끼리는 등급이 곧 서열이다 (편차 ±10% 로는 한 등급을 못 넘는다).
+//  레벨마다 공격력 ×GEAR_ATK_GROW · 체력 ×GEAR_HP_GROW — 몬스터(체력 ×1.23 · 공격력 ×1.17 / 스테이지)보다 조금 느려서,
+//  레벨만 올라서는 깊이 못 가고 좋은 등급(레이드)·강화가 벽을 넘게 해 준다
+const GEAR_ATK_GROW = 1.2, GEAR_HP_GROW = 1.16;
+const gearAtkAt = (lv) => 0.4 * Math.pow(GEAR_ATK_GROW, lv);
+const gearHpAt = (lv) => 4 * Math.pow(GEAR_HP_GROW, lv);
 function gearBase(slot, g, roll, s) {
   const k = GRADES[g].stat * roll;
   if (slot === 'weapon') return { atk: gearAtkAt(s) * k, aspdPct: WEAPON_ASPD[g] * roll };
@@ -524,16 +527,10 @@ const CURIOS = {
 };
 
 // ───────────────────────── 훈련 (골드) ─────────────────────────
-// 공격력·체력 훈련은 두 가지를 한다
-//  1) 맨몸 능력치: 처음엔 단계마다 ×1.286 로 크게 오르다가 TRAIN_SAT 근처에서 포화 (공격력 약 2,200 · 체력 약 13,000) — 장비가 약한 초반을 끌어 준다
-//  2) 무기·갑옷 위력 레벨: 공격력 훈련 → 무기 레벨, 체력 훈련 → 갑옷 레벨 (trainGearLvAt, gear.js gearLvOf).
-//     낀 장비의 등급·편차·강화가 여기에 그대로 곱해지므로 후반 힘의 대부분은 장비에서 나온다 (등급 한 칸 ≈ 1.45배, 강화 +25 ≈ 6.5배).
-//  위력 레벨 = 1 + 0.6·t + 0.007·t² (훈련 10 → 8 · 30 → 25 · 50 → 49 · 90 → 112) — 초반엔 맨몸 훈련이 끌고 뒤로 갈수록 장비가 커진다.
-//  훈련 최대 Lv 은 훈련장 Lv × 10. 전체 진행 봇(7일·12회)에서 예전(0.11.13)과 같은 속도: 6/12/24/48/96/168h 60/74/92/112/135/156 (예전 67/79/93/110/140/157)
+// 공격력·체력 훈련은 맨몸 능력치다: 처음엔 단계마다 ×1.286 로 크게 오르다가 TRAIN_SAT 근처에서 포화해
+//  공격력 약 2,200 · 체력 약 13,000 에서 멈춘다 — 장비가 약한 초반을 끌어 주고, 중후반엔 장비(레벨 × 등급 × 강화)에 묻혀 미미해진다.
+//  훈련장을 올려도 무기·갑옷은 세지지 않는다 (골드·건물로 힘을 사지 못하게)
 const TRAIN_GROW = 1.286, TRAIN_SAT = 120;
-const trainGearLvAt = (t) => 1 + 0.6 * t + 0.007 * t * t;
-// 위력 레벨 L 에 닿는 최소 훈련 단계 (예전 재련 레벨을 훈련으로 옮길 때)
-const trainForGearLv = (L) => Math.max(0, Math.ceil((-0.6 + Math.sqrt(0.36 + 0.028 * Math.max(0, L - 1))) / 0.014));
 const trainSat = (t) => (Math.pow(TRAIN_GROW, t) - 1) / (1 + Math.pow(TRAIN_GROW, t) / TRAIN_SAT);
 const trainAtkAt = (t) => 6 + 18 * trainSat(t);
 const trainHpAt = (t) => 40 + 110 * trainSat(t);

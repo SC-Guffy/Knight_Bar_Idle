@@ -5,7 +5,7 @@
 //  - 장비 창고:   S.gear.inv = [{ id, slot, g, s, t, roll }]   (t = GEAR_ITEMS 키, roll = 능력치 편차)
 //  - 장착:        S.gear.eq = { weapon: id|null, armor, ring }
 //  - 강화 단계:   S.gear.enh = { weapon: 0.., armor, ring }  — 부위에 붙어 있어서 장비를 바꿔도 유지
-//  - 위력 레벨:   무기 = 공격력 훈련, 갑옷 = 체력 훈련 (gearLvOf). 장비의 s 는 판매가에만 쓴다
+//  - 기본 위력:   무기·갑옷은 착용한 기사의 레벨을 따라 커진다 (gearLvOf). 장비의 s 는 판매가에만 쓴다
 //  - 최고 기록:   S.gear.top = { weapon: 0.., armor, ring }  — 초기화돼도 남는 부위별 최고 강화 단계
 
 const freshGear = () => ({
@@ -99,8 +99,8 @@ const gearById = (id) => S.gear.inv.find((x) => x.id === id) || null;
 const equipped = (slot) => gearById(S.gear.eq[slot]);
 const isEquipped = (it) => S.gear.eq[it.slot] === it.id;
 
-// 무기·갑옷 위력 레벨: 무기 = 공격력 훈련, 갑옷 = 체력 훈련 (data.js trainGearLvAt). 장신구는 레벨 없음 → 1
-const gearLvOf = (slot) => (slot === 'weapon' ? trainGearLvAt(S.train.atk) : slot === 'armor' ? trainGearLvAt(S.train.hp) : 1);
+// 무기·갑옷 기본 위력 레벨 = 기사 레벨 (모든 장비가 같은 레벨 → 같은 부위는 등급이 곧 서열). 장신구는 레벨 없음 → 1
+const gearLvOf = (slot) => (slot === 'ring' ? 1 : S.level);
 // enh·lvl: 적용할 강화 단계·위력 레벨 (기본은 지금 값). 능력치는 위력 레벨·등급·roll 로 정해진다
 function gearStat(it, enh = S.gear.enh[it.slot], lvl = gearLvOf(it.slot)) {
   const b = gearBase(it.slot, it.g, it.roll, lvl);
