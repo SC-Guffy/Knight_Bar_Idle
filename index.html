@@ -37,6 +37,74 @@
   body.faded #tc { opacity: 0; }
   body.tower #hud.right { right: 160px; }
 
+  /* 갈림길 던전 (ui.js renderDungeonPick): 하단바 위에 문·카드·귀환문. 계열 색 = 재화 노랑 · 전투 빨강 · 거래 파랑 · 운 보라 */
+  #dgInfo { position: absolute; top: 6px; right: 10px; display: flex; gap: 5px; max-width: calc(100% - 500px); flex-wrap: wrap; justify-content: flex-end; pointer-events: none; }
+  .dchip { padding: 3px 9px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); font-size: 11.5px; white-space: nowrap; }
+  .dchip.bag { border-color: rgba(255, 210, 87, .45); }
+  .dchip.cards span { margin-right: 4px; }
+  .dchip.cards span.syn { color: #ffd257; font-weight: 700; }
+  #dgPick { position: absolute; left: 200px; bottom: 8px; display: flex; align-items: flex-end; gap: 7px; }
+  #dgPick button { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 2px; background: var(--glass-strong);
+    border: 1.5px solid var(--line); transition: transform .12s, background .12s; position: relative; }
+  #dgPick button:hover { transform: translateY(-3px); background: rgba(34, 32, 48, .97); }
+  #dgPick button:disabled { opacity: .4; cursor: default; transform: none; }
+  #dgPick button b { font-size: 12px; }
+  #dgPick button small { font-size: 10.5px; color: var(--muted); line-height: 1.3; }
+  #dgPick button.auto { box-shadow: 0 0 0 2px rgba(255, 255, 255, .55); }
+  .dgq { display: flex; flex-direction: column; gap: 2px; width: 150px; padding: 6px 9px; border-radius: 9px; background: var(--glass); border: 1px solid var(--line); }
+  .dgq b { font-size: 12px; } .dgq small { font-size: 10.5px; color: var(--muted); }
+  .dgtime { height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; margin-top: 3px; }
+  .dgtime > div { height: 100%; background: #ffd257; }
+  #dgPick .dgdoor { width: 118px; height: 92px; padding: 8px 8px 6px; border-radius: 46px 46px 8px 8px; align-items: center; text-align: center; justify-content: flex-end; }
+  #dgPick .dgdoor .ic { font-size: 20px; line-height: 1; }
+  #dgPick .dgdoor i { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 9.5px; opacity: .75; }
+  #dgPick .dgdoor.f-res { border-color: rgba(255, 210, 87, .7) !important; }
+  #dgPick .dgdoor.f-fight { border-color: rgba(255, 107, 107, .75) !important; }
+  #dgPick .dgdoor.f-trade { border-color: rgba(111, 182, 255, .75) !important; }
+  #dgPick .dgdoor.f-luck { border-color: rgba(201, 167, 255, .8) !important; }
+  #dgPick .dgdoor.tgt b { color: #ffd257; }
+  #dgPick .dgcard { width: 150px; height: 96px; padding: 7px 9px; border-radius: 10px; }
+  #dgPick .dgcard .tag { font-size: 10px; color: var(--muted); }
+  #dgPick .dgcard em { font-style: normal; font-size: 10px; color: #ffd257; margin-top: auto; }
+  #dgPick .dgcard.r1 { border-color: rgba(74, 163, 255, .8) !important; }
+  #dgPick .dgcard.r2 { border-color: #ff9f1c !important; box-shadow: 0 0 12px rgba(255, 159, 28, .45); animation: dgShine 1.6s ease-in-out infinite; }
+  @keyframes dgShine { 50% { box-shadow: 0 0 20px rgba(255, 159, 28, .75); } }
+  #dgPick .dgopt { width: 150px; min-height: 56px; padding: 7px 9px; border-radius: 10px; justify-content: center; }
+  #dgPick .dgopt.slim { width: 84px; }
+  #dgPick .dgopt.wide { width: 230px; min-height: 66px; }
+  #dgPick .dgopt.risk { border-color: rgba(255, 107, 107, .75) !important; }
+  .dgrow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+  .dgrow .lbl { color: var(--muted); font-size: 11.5px; min-width: 58px; }
+  .dgrow .sep { width: 10px; }
+  .pchip { all: unset; cursor: pointer; padding: 3px 10px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-size: 12px; white-space: nowrap; }
+  .pchip:hover { background: var(--soft-hover); }
+  .pchip.on { border-color: var(--accent); background: rgba(255, 177, 59, .14); box-shadow: inset 0 0 0 1px var(--accent); }
+  .pchip:disabled { opacity: .45; cursor: default; }
+  .pchip small { color: var(--muted); font-size: 10.5px; }
+  /* 🗺️ 도전 탭 (ui.js viewSub): 가로로 긴 콘텐츠 카드 — 왼쪽 미리보기 캔버스, 오른쪽 제목·설명·칩 */
+  .scard { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: stretch; gap: 14px; width: 100%; margin-bottom: 8px;
+    border-radius: 12px; background: var(--soft); border: 1px solid var(--line); overflow: hidden; position: relative; transition: background .12s, transform .12s; }
+  .scard:hover { background: var(--soft-hover); transform: translateY(-1px); }
+  .scard .sprev { width: 220px; height: 96px; flex-shrink: 0; display: block; background: #15121d; }
+  .scard .info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 10px 0; }
+  .scard .info b { font-size: 14px; }
+  .scard .info i.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dot); margin-left: 6px; vertical-align: 1px; }
+  .scard .eff { color: var(--muted); font-size: 12px; }
+  .scard .chips { margin-top: 3px; }
+  .scard .arrow { align-self: center; width: 36px; text-align: center; color: var(--muted); font-size: 22px; }
+  .scard.locked .sprev { filter: grayscale(.6) brightness(.8); }
+  .scard.soon { cursor: default; opacity: .65; }
+  .scard.soon:hover { background: var(--soft); transform: none; }
+  .subback { all: unset; cursor: pointer; display: inline-block; margin: 10px 0 -8px; color: var(--muted); font-size: 12px; }
+  .subback:hover { color: var(--text); }
+  /* 🏠 홈 탭의 보급품 줄 (ui.js viewSupplies) */
+  .sup { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 9px; background: var(--soft); margin-bottom: 5px; }
+  .sup .ic { font-size: 18px; width: 24px; text-align: center; }
+  .sup b { white-space: nowrap; }
+  .sup .eff { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sup .act { display: flex; gap: 5px; flex-shrink: 0; }
+  .dgline { font-size: 12.5px; margin: 3px 0; }
+  .dgline .bad { color: var(--bad); }
   #hud { position: absolute; top: 6px; left: 10px; width: 470px; }
   #hud.right { left: auto; right: 10px; }
   .bar { display: flex; align-items: center; gap: 9px; padding: 5px 10px; border-radius: 10px; cursor: pointer;
@@ -262,6 +330,27 @@
   .cnode.ready { animation: glow 1.6s ease-in-out infinite; }
   @keyframes glow { 50% { box-shadow: 0 0 12px rgba(125, 255, 176, .45); } }
   .cprev { width: 84px; height: 72px; display: block; }
+  /* 🧑 캐릭터 탭: 요약 띠 + 서브탭 (ui.js viewChar), 전직 카드 (viewClass) */
+  .chead { display: flex; align-items: center; gap: 12px; margin: 10px 0 10px; padding: 6px 12px 6px 6px; border-radius: 12px; background: var(--soft); }
+  .cprev.mini { width: 72px; height: 62px; flex: none; }
+  .chead .cinfo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .chead .cinfo b { font-size: 14px; }
+  .chead .cinfo small { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+  .chead .csubs { margin-left: auto; display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: rgba(0,0,0,.25); }
+  .csub { all: unset; cursor: pointer; position: relative; padding: 5px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  .csub:hover { color: var(--text); }
+  .csub.on { color: var(--text); background: var(--soft-hover); box-shadow: inset 0 0 0 1px var(--line); }
+  .csub i.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--dot); margin-left: 5px; vertical-align: 1px; }
+  .ccard { display: flex; gap: 14px; align-items: center; padding: 10px 14px; margin-bottom: 12px; border-radius: 12px; background: var(--soft); }
+  .ccard .info { flex: 1; min-width: 0; }
+  .ccard .eff { color: var(--muted); margin-top: 3px; }
+  .ccard .cnext { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 8px; font-size: 12px; }
+  .ccard .cnext .lbl { color: var(--muted); margin-right: 2px; }
+  .ccard .cnext .req { margin-top: 0; }
+  .ccard .act { flex-shrink: 0; }
+  .nchip { all: unset; cursor: pointer; position: relative; padding: 3px 9px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.07); border: 1px solid var(--line); }
+  .nchip:hover { background: var(--soft-hover); }
+  .nchip.ready { color: #7dffb0; border-color: rgba(125,255,176,.5); font-weight: 700; }
   .cprev.big { width: 140px; height: 110px; flex: none; }
   .cname { font-weight: 700; font-size: 12px; white-space: nowrap; }
   .cstate { font-size: 10.5px; color: var(--muted); }
@@ -748,6 +837,8 @@
     <div class="panel"><div id="panelBody"></div></div>
   </div>
 
+  <div id="dgInfo" hidden></div>
+  <div id="dgPick" hidden></div>
   <button id="bubble" class="interactive" data-action="open-camp" hidden></button>
   <div id="toast"></div>
 </div>
@@ -759,6 +850,7 @@
 <script src="src/season.js"></script>
 <script src="src/tower.js"></script>
 <script src="src/worldboss.js"></script>
+<script src="src/dungeon.js"></script>
 <script src="src/core.js"></script>
 <script src="src/net.js"></script>
 <script src="src/world.js"></script>

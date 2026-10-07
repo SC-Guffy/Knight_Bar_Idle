@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.14.2';
+const GAME_VERSION = '0.16.0';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -99,7 +99,7 @@ function buildCost(id, lv) {
 
 // ───────────────────────── 대장간 시설 ─────────────────────────
 // 대장간은 능력치를 주지 않고 장비를 다루는 시설을 품는다. 시설마다 따로 올리고(재화 즉시 소모), 대장간 Lv 이 시설의 최대 Lv 이다.
-// 무기·갑옷의 위력 레벨은 훈련(공격력·체력)이 정한다 — 0.12 의 재련·재련로는 0.13.3 에서 훈련에 합쳐졌다 (core.js migrate 가 옮김·환급)
+// 무기·갑옷의 기본 위력은 기사 레벨이 정한다 (data.js gearAtkAt) — 0.12 의 재련·재련로는 0.13.3 에서 없어졌다 (core.js migrate 가 환급)
 const FORGE_FAC = {
   salvage: { name: '분해대', icon: '🧰', desc: '장비를 팔 때 나오는 💠 강화석이 늘어나요',
     effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },

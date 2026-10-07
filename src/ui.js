@@ -5,6 +5,21 @@ const $ = (id) => document.getElementById(id);
 let campOpen = false;
 let acctOpen = false;                 // 계정 창 (첫 실행 닉네임 입력 · 계정 변경)
 let campTab = 'report';
+// 🗺️ 도전 탭: 서브 콘텐츠 카드 목록(null)이거나 그중 하나를 펼친 상태('tower' | 'dungeon')
+let subView = null;
+// 탑·던전은 도전 탭 안의 카드라, 옛 탭 이름으로 열어도 그 카드를 펼친 도전 탭으로 간다
+const SUB_TABS = { tower: 1, dungeon: 1 };
+// 🧑 캐릭터 탭: 장비·스킬·전직을 서브탭으로 품는다. sub 는 펼쳐 둔 서브탭, tree 는 전직 트리를 펼쳤는가 (null 이면 전직 가능할 때만)
+const charUi = { sub: 'gear', tree: null };
+const CHAR_SUBS = { gear: '🗡️ 장비', skill: '⚡ 스킬', class: '⚜️ 전직' };
+function normalizeTab(tab) {
+  if (tab === 'shop') return 'report';          // 보급품은 🏠 홈 안으로 들어갔다
+  if (CHAR_SUBS[tab]) { charUi.sub = tab; return 'char'; }   // 장비·스킬·전직은 캐릭터 탭 안으로
+  if (tab === 'train') { townUi.sel = 'training'; return 'town'; }   // 훈련은 마을의 훈련장 안으로
+  if (SUB_TABS[tab]) { subView = tab; return 'sub'; }
+  if (tab === 'sub') subView = null;
+  return tab;
+}
 let reportSeen = null;     // 원정 보고 탭에서 이미 본 보고 (레드닷을 끄는 데만 씀, 보고 자체는 창을 닫을 때 지움)
 let revealed = [];                    // 이번에 캠프 창에서 챙긴 전리품들 [{ it, got, fresh }]
 let openAllTimer = null;
@@ -119,10 +134,11 @@ function renderHud() {
   $('status').textContent =
     S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / STAMINA_DRAIN)}`
       : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / STAMINA_DRAIN)}` : '✨ 귀환 중')
+      : S.phase === 'dungeon' ? (S.dg.run ? `⛏️ 구간 ${S.dg.run.sec + 1}` : '✨ 귀환 중')
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`;
 
-  const key = S.phase + (S.build ? 'b' : '') + (S.tower.run ? 'r' : '');
+  const key = S.phase + (S.build ? 'b' : '') + (S.tower.run ? 'r' : '') + (S.dg.run ? 'd' : '');
   if (key !== panelKey) {
     panelKey = key;
     const build = S.build ? '<div class="pline" data-live="build"></div>' : '';
@@ -136,11 +152,17 @@ function renderHud() {
         ${build}
         <button class="pbtn" data-action="tower-retreat">⬇️ 후퇴</button>`
       : S.phase === 'tower' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
+      : S.phase === 'dungeon' && S.dg.run ? `
+        <div class="pline">⛏️ 재료의 미궁 · 배낭은 나와야 내 것 (후퇴하면 절반)</div>
+        ${build}
+        <button class="pbtn" data-action="dg-retreat">⬇️ 후퇴 (배낭 절반)</button>`
+      : S.phase === 'dungeon' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
       : S.phase === 'returning' ? `<div class="pline">캠프로 돌아가는 중…</div>${build}`
       : `<div class="pline" data-live="campStatus"></div>${build}
          <button class="pbtn" data-action="open-camp">🏕 캠프 열기</button>`;
   }
   tickLive($('hud'));
+  renderDungeonPick();
   const todo = S.phase === 'camp' && !modalOpen() && !duelActive() && !raidActive() && campHasDot();
   document.querySelector('#hud .bar').classList.toggle('rd', todo);
   const openBtn = document.querySelector('#panelBody [data-action="open-camp"]');
@@ -168,7 +190,8 @@ function openCamp(tab) {
   if (raidActive()) { skipRaid(); return; }   // 레이드는 끝나면서 정산 화면(레이드 탭)을 연다
   campOpen = true;
   revealed = [];
-  campTab = typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : raidUi.room ? 'raid' : guideTab() || 'town';
+  campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : raidUi.room ? 'raid' : guideTab() || 'town');
+  markSubSeen();
   if (window.bar) window.bar.setCampMode(true);
   interactive = true;
   $('camp').hidden = false;
@@ -184,6 +207,8 @@ function closeCamp() {
   S.report = null;                     // 창을 닫으면 보고는 읽은 것으로 처리
   if (towerResultViewed && S.tower.last) S.tower.last.seen = true;   // 탑 정산도 본 채로 닫았으면 읽은 것으로
   towerResultViewed = false;
+  if (dgResultViewed && S.dg.last) S.dg.last.seen = true;
+  dgResultViewed = false;
   $('camp').hidden = true;
   interactive = false;
   if (window.bar) window.bar.setCampMode(false);
@@ -324,9 +349,11 @@ function viewReport() {
       <h3>🎒 가방 <small>상자 ${S.bag.length}개 · ⚖️ ${bagWeight()} / ${bagCap()}</small></h3>
       <button class="btn${rd(S.bag.length)}" data-action="claim-all" ${S.bag.length ? '' : 'disabled'}>모두 열기</button>
     </div>
-    <div class="hint">상자를 눌러 열면 내용물이 나옵니다. 장비는 창고로 가고, 골동품은 팔려서 재화가 되고, 소비 아이템은 보급품에 더해집니다.</div>
+    <div class="hint">상자를 눌러 열면 내용물이 나옵니다. 장비는 창고로 가고, 골동품은 팔려서 재화가 되고, 소비 아이템은 아래 보급품에 더해집니다.</div>
     <div class="boxes">${opened}${closed || (opened ? '' : '<div class="empty">가방이 비어 있습니다.</div>')}</div>
-    ${revealed.length ? `<div class="gain">획득 합계 — ${sumLine || '없음'}${sum.gear ? ` <button class="btn${rd(Object.keys(GEAR_SLOTS).some(gearBetter))}" data-action="tab" data-tab="gear">🗡️ 장비 보기</button>` : ''}</div>` : ''}`;
+    ${revealed.length ? `<div class="gain">획득 합계 — ${sumLine || '없음'}${sum.gear ? ` <button class="btn${rd(Object.keys(GEAR_SLOTS).some(gearBetter))}" data-action="tab" data-tab="gear">🗡️ 장비 보기</button>` : ''}</div>` : ''}
+    <h3>🎒 보급품 <small>가격은 최고 스테이지에 따라 올라요 · 원정 가방에서도 가끔 나와요</small></h3>
+    ${viewSupplies()}`;
 }
 
 function viewTown() {
@@ -352,7 +379,7 @@ function viewTown() {
         ${lv < BUILD_MAX ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
       </div>
       <div class="act">${act}</div>
-    </div>${id === 'forge' ? Object.keys(FORGE_FAC).map(forgeFacRow).join('') : ''}`;
+    </div>${id === 'forge' ? Object.keys(FORGE_FAC).map(forgeFacRow).join('') : id === 'training' ? viewTraining() : ''}`;
 }
 
 // 대장간 시설 한 줄: 이름·Lv·효과 → 다음 효과 · 비용 · 올리기
@@ -385,7 +412,8 @@ function trainGain(u, st = stats(), nx) {
   return nx[k] / st[k] - 1;
 }
 
-function viewTrain() {
+// 훈련장을 골랐을 때 건물 카드 아래에 붙는 훈련 칸 (옛 훈련 탭)
+function viewTraining() {
   const st = stats();
   const cap = trainCapAt(S.bld.training);
   const cards = TRAINING.map((u) => {
@@ -400,22 +428,12 @@ function viewTrain() {
       </button>`;
   }).join('');
   const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u));
-  const c = heroClass(), w = heroWeapon();
-  const next = Object.keys(CLASSES).filter(id => CLASSES[id].from === S.cls);
-  const nextLine = next.length ? `다음 전직: Lv ${CLASS_REQ[CLASSES[next[0]].tier].level}` : '최종 직업';
   return `
     <div class="shead">
       <h3>🎯 훈련 <small>최대 Lv ${cap} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — 초반을 끌어 주고, 중후반 힘은 장비가 책임져요</small></h3>
-      <button class="btn" data-action="train-all" ${anyTrain ? '' : 'disabled'}>⚡ 골고루 올리기</button>
+      <button class="btn${rd(TRAINING.some(canTrain))}" data-action="train-all" ${anyTrain ? '' : 'disabled'}>⚡ 골고루 올리기</button>
     </div>
-    <div class="tgrid">${cards}</div>
-    <h3>🗡 직업 · 무기</h3>
-    <div class="card">
-      <div class="ic">${c.icon}</div>
-      <div class="info"><b>${c.name} · ${w.name}</b>
-        <div class="eff">DPS ${fmt(dpsOf(st))} · ${nextLine}</div></div>
-      <div class="act"><button class="btn${rd(anyClassReady())}" data-action="tab" data-tab="class">⚜️ 전직 트리</button></div>
-    </div>`;
+    <div class="tgrid">${cards}</div>`;
 }
 
 // ───────────────────────── 전직 ─────────────────────────
@@ -598,6 +616,23 @@ function reqChips(id) {
   return chip(S.level >= req.level, `Lv ${req.level}`) + (req.mana ? chip(S.mats.mana >= req.mana, `💎 ${req.mana}`) : '') + chip(S.gold >= req.gold, `<i class="gc"></i> ${fmt(req.gold)}`);
 }
 
+// ───────────────────────── 🧑 캐릭터 탭 ─────────────────────────
+// 위에 기사 요약 띠(모습·닉네임·직업·Lv·전투력)와 서브탭(장비 · 스킬 · 전직), 아래에 고른 서브탭의 내용.
+// 레드닷은 서브탭마다 따로 (campDots 의 gear·skill·class), 탭 줄에는 셋 중 하나라도 있으면
+function viewChar() {
+  const dots = campDots(), c = heroClass(), st = stats(true);
+  const subs = Object.entries(CHAR_SUBS).map(([k, t]) => `<button class="csub${charUi.sub === k ? ' on' : ''}" data-action="char-sub" data-k="${k}">${t}${dots[k] ? DOT : ''}</button>`).join('');
+  const head = `
+    <div class="chead">
+      <canvas class="cprev mini" data-cls="${S.cls}"></canvas>
+      <div class="cinfo"><b>${esc(activeNick())}</b><small>${c.icon} ${c.name} · Lv ${S.level} · 💪 전투력 ${fmt(powerOf(st))}</small></div>
+      <nav class="csubs">${subs}</nav>
+    </div>`;
+  return head + { gear: viewGear, skill: viewSkill, class: viewClass }[charUi.sub]();
+}
+
+// ⚜️ 전직: 평소엔 현재 직업 카드 + 다음 전직 한 줄만 (전직은 세 번뿐인 이벤트라 늘 큰 자리를 차지하지 않는다).
+// 트리는 「펼치기」로, 전직 조건을 채우면(ready) 자동으로 펼쳐진다
 function viewClass() {
   if (!classSel || !CLASSES[classSel]) {
     const next = Object.keys(CLASSES).filter(id => CLASSES[id].from === S.cls);
@@ -632,8 +667,27 @@ function viewClass() {
   }
   const req = c.tier && st !== 'current' && st !== 'done' ? `<div class="req">조건 ${reqChips(id)}</div>` : '';
 
+  // 현재 직업 카드 + 다음 전직 후보 칩 (누르면 트리를 펼치고 그 직업을 고른다)
+  const cur = heroClass(), nexts = Object.keys(CLASSES).filter((x) => CLASSES[x].from === S.cls);
+  const ready = anyClassReady(), open = charUi.tree == null ? ready : charUi.tree;
+  const nextChips = nexts.length
+    ? nexts.map((x) => { const ns = classState(x); return `<button class="nchip ${ns}${rd(ns === 'ready')}" data-action="class-open" data-id="${x}">${CLASSES[x].icon} ${CLASSES[x].name}${ns === 'ready' ? ' · 전직 가능!' : ''}</button>`; }).join('')
+    : '<span class="chip">최종 직업</span>';
+  const nextReq = nexts.length ? `<span class="req">조건 ${reqChips(nexts[0])}</span>` : '';
+  const card = `
+    <div class="ccard">
+      <canvas class="cprev big" data-cls="${S.cls}"></canvas>
+      <div class="info">
+        <b>${cur.icon} ${cur.name}</b> <small>${cur.tier ? cur.tier + '차 직업' : '기본'} · ${WEAPONS[cur.weapon].name}</small>
+        <div class="eff">${cur.desc}</div>
+        <div class="chips">${modChips(S.cls) || '<span class="small">기본 능력치</span>'}</div>
+        <div class="cnext"><span class="lbl">다음 전직</span>${nextChips}${nextReq}</div>
+      </div>
+      <div class="act"><button class="btn${rd(ready && !open)}" data-action="class-tree">${open ? '트리 접기' : '⚜️ 전직 트리 펼치기'}</button></div>
+    </div>`;
+  if (!open) return card;
   return `
-    <h3>⚜️ 전직 <small>현재 ${heroClass().icon} ${heroClass().name}</small></h3>
+    ${card}
     <div class="tree">${tree}</div>
     <div class="cdetail">
       <canvas class="cprev big" data-cls="${id}"></canvas>
@@ -828,7 +882,7 @@ function drawEnhanceFx() {
   const now = performance.now();
   if (fx.res && (now - fx.t1) / 1000 > ENH_BURST) return;    // 마지막 장면은 비우고 끝 (정리는 resolveEnhanceFx 의 타이머)
   requestAnimationFrame(drawEnhanceFx);
-  const box = campOpen && campTab === 'gear' && document.querySelector(`.gsbtn.s-${fx.slot} .gsbox`);
+  const box = campOpen && campTab === 'char' && document.querySelector(`.gsbtn.s-${fx.slot} .gsbox`);
   if (!box) return;
   const bb = box.getBoundingClientRect(), cx = bb.left + bb.width / 2, cy = bb.top + bb.height / 2;
   g.globalCompositeOperation = 'lighter';
@@ -946,8 +1000,7 @@ function campDots() {
   refillTickets();
   return {
     report: S.bag.length > 0 || (!!S.report && S.report !== reportSeen),
-    town: Object.keys(BUILDINGS).some(canBuild),
-    train: TRAINING.some(canTrain),
+    town: Object.keys(BUILDINGS).some(townTodo),       // 건설 · 훈련장의 훈련 · 대장간 시설 (town.js townTodo)
     gear: Object.keys(GEAR_SLOTS).some((k) => gearBetter(k) || gearCanEnh(k)),
     skill: canLevelSkill() || canInvestAny(),
     class: anyClassReady(),
@@ -956,6 +1009,8 @@ function campDots() {
     raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot(),
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '',
+    // 던전: 처음 열렸거나, 안 본 결과가 있거나, 입장권이 남았을 때
+    dungeon: dgUnlocked() && (!S.guide.dgSeen || dgResultPending() || dgTickets() > 0),
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
@@ -1180,19 +1235,19 @@ function viewGear() {
   return html;
 }
 
-function viewShop() {
-  const rows = Object.entries(SUPPLIES).map(([id, s]) => {
+// 🏠 홈 탭 아래쪽의 보급품 (옛 보급품 탭). 한 줄에 아이콘 · 이름 · 보유 칩 · 효과 · 버튼
+function viewSupplies() {
+  return Object.entries(SUPPLIES).map(([id, s]) => {
     const p = supplyPrice(id);
-    let extra = '';
-    if (id === 'lunch') extra = `<button class="btn" data-action="eat" ${S.items.lunch && S.stamina < maxStamina() ? '' : 'disabled'}>먹기</button>`;
+    const extra = id === 'lunch' ? `<button class="btn" data-action="eat" ${S.items.lunch && S.stamina < maxStamina() ? '' : 'disabled'}>먹기</button>` : '';
     return `
-      <div class="card">
-        <div class="ic">${s.icon}</div>
-        <div class="info"><b>${s.name} <small>보유 ${S.items[id]}</small></b><div class="eff">${s.desc}</div></div>
-        <div class="act row">${extra}<button class="btn" data-action="buy" data-id="${id}" ${S.gold < p ? 'disabled' : ''}>구매 <i class="gc"></i> ${fmt(p)}</button></div>
+      <div class="sup">
+        <span class="ic">${s.icon}</span>
+        <b>${s.name}</b><span class="chip ${S.items[id] ? '' : 'lack'}">보유 ${S.items[id]}</span>
+        <span class="eff">${s.desc}</span>
+        <span class="act">${extra}<button class="btn" data-action="buy" data-id="${id}" ${S.gold < p ? 'disabled' : ''}>구매 <i class="gc"></i> ${fmt(p)}</button></span>
       </div>`;
   }).join('');
-  return `<h3>🎒 보급품</h3><div class="hint">가격은 최고 스테이지에 따라 오릅니다. 원정 가방에서도 가끔 나옵니다.</div>${rows}`;
 }
 
 // 필드 선택: 앞 필드의 마지막 보스를 잡아야 다음 필드가 열린다
@@ -1994,13 +2049,19 @@ function guideTick() {
   if (!g.towerIntro && towerUnlocked() && S.phase === 'camp' && !modalOpen()) {
     g.towerIntro = 1;
     showBanner('🗼 도전의 탑 개방!', '#c9a7ff');
-    toast('🗼 도전의 탑이 열렸어요 — 탑을 오르면 📖 비전서를 얻고, 비전서로 스킬을 강화하면 쿨타임이 줄고 위력이 올라요. 캠프 → 🗼 탑', 10000);
+    toast('🗼 도전의 탑이 열렸어요 — 탑을 오르면 📖 비전서를 얻고, 비전서로 스킬을 강화하면 쿨타임이 줄고 위력이 올라요. 캠프 → 🗺️ 도전 → 🗼 도전의 탑', 10000);
     save();
   }
   if (!g.wbIntro && g.towerSeen && wbUnlocked() && S.phase === 'camp' && !modalOpen()) {
     g.wbIntro = 1;
     toast('🌍 월드 보스가 열렸어요 — 하루 한 마리, 모든 기사가 함께 체력을 깎고 넣은 피해만큼 다음 날 보상을 받아요. 캠프 → 🐉 레이드', 10000);
     loadWorldBoss(true);
+    save();
+  }
+  if (!g.dgIntro && dgUnlocked() && S.phase === 'camp' && !modalOpen()) {
+    g.dgIntro = 1;
+    showBanner('⛏️ 재료의 미궁 개방!', '#ffd257');
+    toast('⛏️ 재료의 미궁이 열렸어요 — 문을 골라 🪵 목재 · 🪨 철광석 같은 재화를 집중해서 모으는 곳이에요. 캠프 → 🗺️ 도전 → ⛏️ 재료의 미궁', 10000);
     save();
   }
   if (!g.tomeIntro && S.tomes > 0) {
@@ -2076,6 +2137,279 @@ function viewTower() {
     ${last}`;
 }
 
+// ───────────────────────── 재료의 미궁 (갈림길 던전) ─────────────────────────
+// 규칙은 src/dungeon.js, 하단바 연출은 world.js updateDungeon. 여기는 고르는 화면(하단바 위 #dgPick)과 캠프 탭.
+const DG_REASON = { exit: '🚪 귀환문으로 나왔어요', clear: '🏆 완주했어요', down: '💀 쓰러졌어요', retreat: '⬇️ 후퇴했어요', offline: '🌙 앱이 꺼져서 멈췄어요' };
+const DG_FAM_CLASS = { res: 'f-res', fight: 'f-fight', trade: 'f-trade', luck: 'f-luck' };
+const dgResultPending = () => !!S.dg.last && S.dg.last.seen === false;
+let dgResultViewed = false;
+// 배낭·보상 한 줄: 🪵 1.2만 · 💠 34
+const dgResText = (bag, empty = '비어 있음') => DG_RES_IDS.filter((r) => bag[r] > 0).map((r) => `${DG_RES[r].icon} ${fmt(bag[r])}`).join(' · ') || empty;
+// 내 카드 요약: 재화 카드는 개수(3장이면 시너지), 나머지는 아이콘
+function dgCardsText(run) {
+  const res = DG_RES_IDS.filter((r) => dgResCards(r, run)).map((r) => `<span class="${dgSynergy(r, run) ? 'syn' : ''}">${DG_RES[r].icon}${dgResCards(r, run)}</span>`);
+  const other = run.cards.filter((id) => !DG_RES[DG_CARDS[id].tag]).map((id) => `<span title="${esc(DG_CARDS[id].name + ' — ' + DG_CARDS[id].desc)}">${DG_CARDS[id].icon}</span>`);
+  return [...res, ...other].join('') || '없음';
+}
+
+// 하단바 위 고르는 화면. 내용이 바뀔 때만 다시 만들고, 남은 시간 막대만 매번 줄인다
+let dgPickKey = '';
+function renderDungeonPick() {
+  const box = $('dgPick'), info = $('dgInfo');
+  const run = S.phase === 'dungeon' ? S.dg.run : null;
+  const p = run && dgInside() && dv.sub === 'stand' ? run.prompt : null;
+  info.hidden = !run || !dgInside();
+  if (run && !info.hidden) {
+    const html = `<span class="dchip">⛏️ ${DG_DIFFS[run.diff].name} · 구간 ${run.sec + 1}/${DG_SECTIONS} · 방 ${Math.min(run.ri + (run.room && run.room.id !== 'boss' ? 1 : 0), DG_ROOMS)}/${DG_ROOMS}</span>
+      <span class="dchip bag" title="배낭 — 나와야 내 것이 돼요 (쓰러지면 절반)">🎒 ${dgResText(run.bag)}</span>
+      <span class="dchip cards" title="카드">🃏 ${dgCardsText(run)}</span>${run.keys ? `<span class="dchip">🗝️ ${run.keys}</span>` : ''}`;
+    if (info.innerHTML !== html) info.innerHTML = html;
+  }
+  if (!p) { if (dgPickKey) { box.innerHTML = ''; box.hidden = true; dgPickKey = ''; } return; }
+  const key = run.rooms + ':' + run.sec + ':' + run.ri + ':' + p.kind + ':' + JSON.stringify(p.opts) + ':' + Math.round(S.hp / stats().maxHp * 20);
+  if (key !== dgPickKey) {
+    dgPickKey = key;
+    box.hidden = false;
+    box.innerHTML = dgPickHtml(run, p);
+  }
+  const bar = box.querySelector('.dgtime > div');
+  if (bar) bar.style.width = (100 * Math.max(0, p.left) / (p.kind === 'gate' ? DG_GATE_SEC : DG_PICK_SEC)) + '%';
+}
+function dgPickHtml(run, p) {
+  const auto = dgAutoPick();
+  const btn = (i, cls, inner, off) => `<button class="interactive ${cls}${i === auto ? ' auto' : ''}" data-action="dg-pick" data-i="${i}" ${off ? 'disabled' : ''}>${inner}</button>`;
+  const q = (title, sub) => `<div class="dgq"><b>${title}</b><small>${sub}</small><div class="dgtime"><div></div></div></div>`;
+  const polText = `방침: ${DG_RES[S.dg.pol.target].icon} 우선 — 테두리가 방침이 고를 것`;
+  if (p.kind === 'fork') {
+    return q('어느 문으로?', polText) + p.opts.map((d, i) => {
+      const fam = DG_ROOMS_DEF[d.id].fam;
+      return btn(i, `dgdoor ${DG_FAM_CLASS[fam]}${d.res === S.dg.pol.target ? ' tgt' : ''}`, `<span class="ic">${dgDoorIcon(d)}</span><b>${dgDoorName(d)}</b><small>${dgDoorDesc(d)}</small><i>${DG_FAMS[fam]}</i>`);
+    }).join('');
+  }
+  if (p.kind === 'card') {
+    const title = { boss: '👑 보스 보상 — 카드 한 장', elite: '🔥 정예 보상 — 카드 한 장', unknown: '🃏 카드 한 장' }[p.why] || '카드 한 장';
+    return q(title, polText) + p.opts.map((o, i) => {
+      if (o.reroll) return btn(i, 'dgopt slim', `<b>🔄 다시 뽑기</b><small>${run.rerolls}번 남음</small>`);
+      if (o.skip) return btn(i, 'dgopt slim', '<b>건너뛰기</b>');
+      const c = DG_CARDS[o.card], resTag = DG_RES[c.tag];
+      const n = resTag ? dgResCards(c.tag, run) : 0;
+      const syn = resTag ? (n + 1 >= 3 ? `<em>${n + 1}/3 — 시너지 완성! 잭팟 방</em>` : `<em>${resTag.icon} ${n + 1}/3 → 잭팟 방</em>`) : '';
+      return btn(i, `dgcard r${c.rar}`, `<span class="tag">${resTag ? resTag.icon + ' ' + resTag.name : { fight: '⚔️ 전투', trade: '🛒 거래', gamble: '🎰 도박' }[c.tag]} · ${DG_RAR[c.rar].name}</span><b>${c.icon} ${c.name}</b><small>${c.desc}</small>${syn}`);
+    }).join('');
+  }
+  if (p.kind === 'gate') {
+    const fx = dgFx(run), win = dgWinChance(run), mult = fx.allin ? DG_ALLIN_MULT : DG_BOSS_MULT;
+    const lose = fx.allin ? '전부 잃음' : '절반 잃음';
+    return q(`🚪 귀환문 — 구간 ${run.sec + 1} 보스 앞`, `체력 ${Math.round(100 * Math.max(0, S.hp) / stats().maxHp)}% · 방침: 승률 ${Math.round(S.dg.pol.gate * 100)}% 미만이면 나감`)
+      + btn(0, 'dgopt wide', `<b>🎒 들고 나가기</b><small>${dgResText(run.bag)} 확정</small>`)
+      + btn(1, 'dgopt wide risk', `<b>👑 보스 도전 · 예상 승률 ${Math.round(win * 100)}%</b><small>이기면 배낭 ×${mult} + 보물 + 카드 · 지면 ${lose}</small>`);
+  }
+  const room = p.room, def = DG_ROOMS_DEF[room.id];
+  return q(`${def.icon} ${dgDoorName(room)}`, def.desc) + p.opts.map((o, i) => btn(i, 'dgopt', `<b>${o.label}</b><small>${o.desc || ''}</small>`, o.off)).join('');
+}
+
+function dgResultHtml(L) {
+  const lost = DG_RES_IDS.some((r) => L.lost[r] > 0);
+  return `
+    <div class="treport" style="margin-bottom:10px">
+      <div class="reason">${DG_REASON[L.reason] || '도전 끝'} — ${DG_DIFFS[L.diff].name} · 보스 ${L.bosses}/${DG_SECTIONS}${L.first ? ' · 🎉 첫 완주!' : ''}</div>
+      <div class="dgline">받음 <b>${dgResText(L.got, '없음')}</b>${lost ? ` <span class="bad">· 잃음 ${dgResText(L.lost)}</span>` : ''}</div>
+      <div class="dgline small">방 ${L.rooms}개 · 처치 ${fmt(L.kills)} · 카드 ${L.cards.length}장${L.dur ? ` · ${fmtTime(L.dur)}` : ''}</div>
+    </div>`;
+}
+function viewDungeon() {
+  const d = S.dg, pol = d.pol;
+  if (!dgUnlocked()) return `<div class="mhead"><div><h3>⛏️ 재료의 미궁</h3><small>스테이지 ${DG_UNLOCK_STAGE}에 열려요</small></div></div>
+    <div class="hint">갈림길마다 문을 골라 원하는 재화를 집중해서 모으는 던전이에요. 🪵 목재 · 🪨 철광석을 가장 많이 얻는 곳이에요.</div>`;
+  const fresh = dgResultPending();
+  if (fresh) dgResultViewed = true;
+  const sel = Math.min(pol.diff || 0, DG_DIFFS.length - 1);
+  const blocker = dgBlocker(sel);
+  const L = dgLimitStage();
+  const diffs = DG_DIFFS.map((x, i) => {
+    const open = dgDiffOpen(i);
+    return `<button class="pchip${i === sel ? ' on' : ''}" data-action="dg-diff" data-i="${i}" ${open ? '' : 'disabled'} title="${open ? `스테이지 ${Math.max(1, L + x.off)} 급 몬스터` : esc(dgBlocker(i))}">${open ? '' : '🔒 '}${x.name} <small>×${x.mult}</small>${d.clr[x.id] ? ' ✓' : ''}</button>`;
+  }).join('');
+  const targets = DG_RES_IDS.map((r) => `<button class="pchip${pol.target === r ? ' on' : ''}" data-action="dg-target" data-r="${r}">${DG_RES[r].icon} ${DG_RES[r].name}</button>`).join('');
+  const gates = [0.8, 0.6, 0.4].map((g) => `<button class="pchip${pol.gate === g ? ' on' : ''}" data-action="dg-gate" data-g="${g}">${Math.round(g * 100)}%</button>`).join('');
+  const locked = Object.keys(DG_ROOMS_DEF).filter((id) => id !== 'jackpot' && !dgRoomOpen(id));
+  const nextOpen = locked.length ? (() => { const need = Math.min(...locked.map((id) => DG_ROOMS_DEF[id].need)); return `${DG_DIFFS[need].name} 완주 시 새 방: ${locked.filter((id) => DG_ROOMS_DEF[id].need === need).map((id) => DG_ROOMS_DEF[id].icon + ' ' + DG_ROOMS_DEF[id].name).join(' · ')}`; })() : '모든 방이 열렸어요';
+  return `
+    <div class="mhead"><div><h3>⛏️ 재료의 미궁</h3>
+      <small>🎟 입장권 <b>${dgTickets()}/${DG_TICKETS}</b> · 완주 ${DG_DIFFS.filter((x) => d.clr[x.id]).map((x) => x.name).join(' · ') || '아직 없음'}</small></div></div>
+    ${fresh ? dgResultHtml(d.last) : ''}
+    <div class="hint">갈림길마다 문을 골라 원하는 재화를 모으고, 보스를 잡을 때마다 카드를 한 장씩 모아요. 체력은 저절로 차지 않고, 배낭은 나와야 내 것이에요 — 귀환문에서 나가면 100%, 쓰러지면 절반.</div>
+    <div class="dgrow"><span class="lbl">난이도</span>${diffs}</div>
+    <div class="dgrow"><span class="lbl">목표 재화</span>${targets}</div>
+    <div class="dgrow"><span class="lbl">방침</span>
+      <button class="pchip${pol.risky ? '' : ' on'}" data-action="dg-risky" data-v="0">전투 방 피함</button><button class="pchip${pol.risky ? ' on' : ''}" data-action="dg-risky" data-v="1">전투 방 감수</button>
+      <span class="sep"></span><span class="lbl">승률</span>${gates}<span class="small">미만이면 귀환</span>
+      <span class="sep"></span><button class="pchip${pol.fast ? ' on' : ''}" data-action="dg-fast">⚡ 바로 자동 선택</button></div>
+    <div class="dgrow small">${nextOpen} · 목표 재화 문이 두 배로 자주 나와요. 고르지 않으면 ${DG_PICK_SEC}초 뒤 방침대로 골라요.</div>
+    <div class="act" style="margin-top:8px"><button class="go compact${rd(blocker === '')}" data-action="dg-start" ${blocker ? 'disabled' : ''}>⛏️ ${DG_DIFFS[sel].name} 입장 <small>🎟1</small></button> <span class="blocker">${blocker}</span></div>`;
+}
+
+// ───────────────────────── 🗺️ 도전 탭: 서브 콘텐츠 카드 ─────────────────────────
+// 탑·미궁처럼 입장권으로 들어가는 콘텐츠를 가로로 긴 카드 하나씩으로 묶는다. 카드 왼쪽은 그 콘텐츠의 움직이는 미리보기(canvas.sprev,
+// 매 프레임 drawSubPreviews), 오른쪽은 제목·한 줄 설명·상태 칩. 누르면 그 콘텐츠 화면(viewTower·viewDungeon)을 펼친다.
+// 새 콘텐츠는 SUB_CARDS 에 한 줄 보태고 view·칩·미리보기만 붙이면 된다. 마지막 카드는 늘 "Coming Soon".
+const SUB_CARDS = [
+  { k: 'tower', icon: '🗼', name: '도전의 탑', desc: '층마다 정예 하나, 10층마다 보스 — 오를수록 📖 비전서',
+    unlocked: () => towerUnlocked(), lockText: () => `스테이지 ${TOWER_UNLOCK_STAGE}에 열려요`, dot: (d) => d.tower, view: () => viewTower(),
+    chips: () => {
+      const t = S.tower, out = [];
+      if (towerResultPending()) out.push(['📜 정산 보기', 'ok']);
+      out.push([`🎟 ${towerTickets()}장`, towerTickets() ? '' : 'lack']);
+      out.push([t.best ? `최고 ${t.best}F` : '아직 오르지 않음', '']);
+      if (towerSweepReady()) out.push([`🧹 소탕 📖 +${t.best}`, 'ok']);
+      return out;
+    } },
+  { k: 'dungeon', icon: '⛏️', name: '재료의 미궁', desc: '문을 골라 🪵 🪨 💎 같은 재화를 집중해서 모으는 던전 — 배낭은 나와야 내 것',
+    unlocked: () => dgUnlocked(), lockText: () => `스테이지 ${DG_UNLOCK_STAGE}에 열려요`, dot: (d) => d.dungeon, view: () => viewDungeon(),
+    chips: () => {
+      const d = S.dg, out = [], clr = DG_DIFFS.filter((x) => d.clr[x.id]);
+      if (dgResultPending()) out.push(['📜 결과 보기', 'ok']);
+      out.push([`🎟 ${dgTickets()}장`, dgTickets() ? '' : 'lack']);
+      out.push([clr.length ? `완주 ${clr[clr.length - 1].name}` : '아직 완주 없음', '']);
+      return out;
+    } },
+];
+const subCard = (k) => SUB_CARDS.find((c) => c.k === k);
+// 카드를 펼쳐 보면 FTUE 의 "봤다" 표시
+function markSubSeen() {
+  if (campTab !== 'sub') return;
+  if (subView === 'tower' && towerUnlocked()) S.guide.towerSeen = 1;
+  if (subView === 'dungeon' && dgUnlocked()) S.guide.dgSeen = 1;
+}
+function viewSub() {
+  const c = subView && subCard(subView);
+  if (c) return `<button class="subback" data-action="sub-back">‹ 도전 목록</button>${c.view()}`;
+  const dots = campDots();
+  const cards = SUB_CARDS.map((x) => {
+    const open = x.unlocked();
+    const chips = open ? x.chips().map(([t, cls]) => `<span class="chip ${cls}">${t}</span>`).join('') : `<span class="chip">🔒 ${x.lockText()}</span>`;
+    return `
+      <button class="scard${open ? '' : ' locked'}" data-action="sub-open" data-k="${x.k}">
+        <canvas class="sprev" data-k="${x.k}"></canvas>
+        <div class="info"><b>${x.icon} ${x.name}${open && x.dot(dots) ? DOT : ''}</b><div class="eff">${x.desc}</div><div class="chips">${chips}</div></div>
+        <span class="arrow">›</span></button>`;
+  }).join('');
+  return `
+    <div class="mhead"><div><h3>🗺️ 도전</h3><small>입장권으로 들어가는 특별 콘텐츠 — 카드를 눌러 들어가요</small></div></div>
+    ${cards}
+    <button class="scard soon" disabled>
+      <canvas class="sprev" data-k="soon"></canvas>
+      <div class="info"><b>???</b><div class="eff">다음 콘텐츠를 준비하고 있어요</div><div class="chips"><span class="chip">Coming Soon</span></div></div>
+      <span class="arrow"></span></button>`;
+}
+
+// 카드 미리보기. 하단바와 같은 그리기 함수(drawHero·drawSprite)로 그 콘텐츠의 한 장면을 작게 되풀이한다
+function drawSubPreviews() {
+  const dpr = window.devicePixelRatio || 1;
+  document.querySelectorAll('canvas.sprev').forEach((cv) => {
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w) return;
+    const pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+    if (cv.width !== pw) { cv.width = pw; cv.height = ph; }
+    const g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, w, h);
+    const draw = { tower: drawSubTower, dungeon: drawSubDungeon, soon: drawSubSoon }[cv.dataset.k];
+    if (draw) draw(g, w, h);
+  });
+}
+// 미리보기 안의 기사: 평타를 되풀이하거나 걷는다
+function subHero(g, x, gy, mode) {
+  let swing = (clock % 1.4); if (swing >= 1) swing = -1;
+  drawHero(g, S.cls, x, gy, mode === 'walk' ? { mode: 'walk', walkT: clock, t: clock } : { mode: 'fight', swing, combo: Math.floor(clock / 1.4), t: clock, walkT: 0 });
+}
+function subMonster(g, type, x, gy, scale, flip) {
+  const def = MONSTERS[type]; if (!def) return;
+  const frames = SPR[def.spr || type]; if (!frames) return;
+  const rows = frames[Math.floor(clock * (def.fps || 3)) % frames.length];
+  const fly = def.fly ? def.fly + Math.sin(clock * 4) * 4 : 0;
+  drawSprite(rows, def.pal || {}, x, gy - fly, scale, { flip, alpha: def.alpha || 1 }, g);
+}
+function subLock(g, w, h) {
+  g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(0, 0, w, h);
+  g.font = '22px -apple-system, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('🔒', w / 2, h / 2);
+}
+// 🗼 탑: 벽돌 벽 한 층, 왼쪽 횃불·가운데 창·오른쪽 사다리, 기사가 정예(보스 층이면 보스)와 싸운다
+function drawSubTower(g, w, h) {
+  const gy = h - 8, cp = towerCheckpoint(), boss = towerBossFloor(cp), stage = towerStage(cp);
+  g.fillStyle = 'rgba(30,27,40,1)'; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(255,255,255,0.05)';
+  for (let row = 0; row < gy; row += 10) {
+    g.fillRect(0, row, w, 1);
+    for (let x = (row / 10) % 2 ? 0 : 12; x < w; x += 24) g.fillRect(x, row, 1, 10);
+  }
+  g.fillStyle = 'rgba(120,150,220,0.18)'; g.fillRect(w / 2 - 4, 16, 8, 22); g.fillRect(w / 2 - 2, 14, 4, 2);
+  const fl = 0.6 + 0.4 * Math.sin(clock * 9);
+  g.fillStyle = '#5a4030'; g.fillRect(14, 30, 2, 8);
+  g.fillStyle = `rgba(255,170,60,${0.7 * fl})`; g.fillRect(13, 26, 4, 4);
+  g.fillStyle = `rgba(255,230,140,${fl})`; g.fillRect(14, 27, 2, 2);
+  const lx = w - 22;
+  g.fillStyle = '#7a5530'; g.fillRect(lx - 5, 0, 2, gy); g.fillRect(lx + 4, 0, 2, gy);
+  for (let y = 4; y < gy; y += 8) g.fillRect(lx - 5, y, 11, 2);
+  g.fillStyle = boss ? '#7a3b46' : '#575066'; g.fillRect(0, gy, w, 4);
+  g.fillStyle = boss ? '#b05a66' : '#8a8298'; g.fillRect(0, gy, w, 1);
+  g.fillStyle = '#2a2636'; g.fillRect(0, gy + 4, w, h - gy - 4);
+  g.font = 'bold 10px -apple-system, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.fillStyle = S.tower.best >= cp ? '#ffd257' : boss ? '#ff8080' : 'rgba(255,255,255,0.55)';
+  g.fillText(`${boss ? '👑' : ''}${cp}F`, 22, 12);
+  const type = boss ? zoneOf(stage).boss : monsterPool(stage)[0];
+  subMonster(g, type, Math.round(w * 0.62), gy, boss ? PX * 2 : PX, false);
+  subHero(g, Math.round(w * 0.34), gy, 'fight');
+  if (!towerUnlocked()) subLock(g, w, h);
+}
+// ⛏️ 미궁: 어두운 돌바닥과 횃불, 오른쪽에 재화 문 세 개, 기사가 문 쪽으로 걸어간다
+function drawSubDungeon(g, w, h) {
+  const gy = h - 10;
+  g.fillStyle = '#17131f'; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(70,64,82,0.95)'; g.fillRect(0, gy, w, 3);
+  g.fillStyle = 'rgba(40,36,50,0.9)'; g.fillRect(0, gy + 3, w, h - gy - 3);
+  g.fillStyle = 'rgba(90,84,104,0.5)';
+  for (let x = 0; x < w; x += 24) g.fillRect(x, gy + 4, 1, h - gy - 4);
+  const doors = [['🪵', 'rgba(255,210,87,.75)'], ['🪨', 'rgba(255,107,107,.75)'], ['💎', 'rgba(111,182,255,.75)']];
+  doors.forEach(([ic, col], i) => {
+    const dx = Math.round(w * 0.56 + i * 38), dw = 26, dh = 44, top = gy - dh;
+    g.fillStyle = '#0c0a12';
+    g.beginPath(); g.moveTo(dx - dw / 2, gy); g.lineTo(dx - dw / 2, top + dw / 2); g.arc(dx, top + dw / 2, dw / 2, Math.PI, 0); g.lineTo(dx + dw / 2, gy); g.closePath(); g.fill();
+    g.strokeStyle = col; g.lineWidth = 1.5; g.stroke();
+    g.font = '12px -apple-system, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#fff'; g.fillText(ic, dx, top + 18);
+  });
+  for (const x of [Math.round(w * 0.1), Math.round(w * 0.45)]) {
+    const fl = 0.75 + 0.25 * Math.sin(clock * 9 + x);
+    const glow = g.createRadialGradient(x, gy - 40, 1, x, gy - 40, 30);
+    glow.addColorStop(0, `rgba(255,160,60,${0.35 * fl})`); glow.addColorStop(1, 'rgba(255,160,60,0)');
+    g.fillStyle = glow; g.fillRect(x - 30, gy - 70, 60, 60);
+    g.fillStyle = '#5a4630'; g.fillRect(x - 1, gy - 38, 3, 10);
+    g.fillStyle = fl > 0.9 ? '#ffe066' : '#ff9f1c'; g.fillRect(x - 2, gy - 44, 5, 6);
+  }
+  subHero(g, Math.round(w * 0.28), gy, 'walk');
+  if (!dgUnlocked()) subLock(g, w, h);
+}
+// ??? : 안개 속에 물음표가 떠다닌다
+function drawSubSoon(g, w, h) {
+  g.fillStyle = '#121019'; g.fillRect(0, 0, w, h);
+  const fog = g.createLinearGradient(0, 0, 0, h);
+  fog.addColorStop(0, 'rgba(201,167,255,0.02)'); fog.addColorStop(1, 'rgba(201,167,255,0.12)');
+  g.fillStyle = fog; g.fillRect(0, 0, w, h);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let i = 0; i < 5; i++) {
+    const x = w * (0.15 + i * 0.175), y = h * 0.5 + Math.sin(clock * 0.8 + i * 1.3) * 14;
+    g.font = `${12 + (i % 3) * 6}px -apple-system, sans-serif`;
+    g.fillStyle = `rgba(243,239,230,${0.12 + 0.1 * Math.sin(clock * 1.5 + i)})`;
+    g.fillText('?', x, y);
+  }
+  g.font = 'bold 26px -apple-system, sans-serif';
+  g.fillStyle = `rgba(201,167,255,${0.35 + 0.15 * Math.sin(clock * 2)})`;
+  g.fillText('?', w / 2, h / 2);
+}
+
 function viewRaid() {
   refillTickets();
   raidPoll();
@@ -2098,25 +2432,21 @@ function renderCamp() {
   if (campTab !== 'rank') inbox.newAfter = null;     // 우편함 NEW 표시는 랭킹 탭을 떠나면 지운다
   const dots = campDots();
   const tabs = [
-    ['report', '📜 원정 보고', S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
+    ['report', '🏠 홈', S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
     ['town', '🏘 마을', S.build ? '<i class="info">🔨</i>' : dots.town ? DOT : ''],
-    ['train', '🎯 훈련', dots.train ? DOT : ''],
-    ['shop', '🎒 보급품', ''],
-    ['gear', '🗡️ 장비', dots.gear ? DOT : ''],
-    ['skill', '⚡ 스킬', dots.skill ? DOT : ''],
-    ['class', '⚜️ 전직', dots.class ? DOT : ''],
+    ['char', '🧑 캐릭터', dots.gear || dots.skill || dots.class ? DOT : ''],
     ['rank', '🏆 랭킹', inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
     ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
-    ['tower', '🗼 탑', dots.tower ? DOT : ''],
+    ['sub', '🗺️ 도전', dots.tower || dots.dungeon ? DOT : ''],
   ];
-  const view = { mail: viewMail, report: viewReport, town: viewTown, train: viewTrain, gear: viewGear, shop: viewShop, skill: viewSkill, class: viewClass, rank: viewRank, raid: viewRaid, tower: viewTower }[campTab]();
+  const view = { mail: viewMail, report: viewReport, town: viewTown, char: viewChar, rank: viewRank, raid: viewRaid, sub: viewSub }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
   $('campModal').innerHTML = `
     <header>
       <h2>🏕 ${esc(activeNick())}의 캠프 <small class="sync" data-live="sync"></small></h2>
       <div class="res">
-        <span><i class="gc"></i> <b data-live="gold"></b></span><span>🪵 <b data-live="wood"></b></span>
-        <span>🪨 <b data-live="ore"></b></span><span>💎 <b data-live="mana"></b></span>
+        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁 숲길에서 가장 많이 (원정 골동품에서도 조금)">🪵 <b data-live="wood"></b></span>
+        <span title="철광석 — ⛏️ 재료의 미궁 갱도에서 가장 많이 (원정 골동품에서도 조금)">🪨 <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 수정굴 · 레이드 · 원정 골동품">💎 <b data-live="mana"></b></span>
       </div>
       <button class="mailbtn ${campTab === 'mail' ? 'on' : ''}" data-action="tab" data-tab="mail" title="우편함">📬${mailUnclaimed() ? `<i>${mailUnclaimed()}</i>` : ''}</button>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
@@ -2127,8 +2457,9 @@ function renderCamp() {
   $('campBody').scrollTop = scroll;
   tickLive($('campModal'));
   paintGearIcons($('campModal'));
-  if (campTab === 'gear') drawGearHero();      // 다시 그린 직후 한 프레임 비지 않게
+  if (campTab === 'char') { drawGearHero(); drawClassPreviews(); }      // 다시 그린 직후 한 프레임 비지 않게
   if (campTab === 'town') drawTown();
+  if (campTab === 'sub') drawSubPreviews();
 }
 
 // ───────────────────────── 행동 ─────────────────────────
@@ -2180,13 +2511,29 @@ const ACTIONS = {
     save();
     renderHud();
   },
+  'dg-start': () => {
+    if (!startDungeon(Math.min(S.dg.pol.diff || 0, DG_DIFFS.length - 1))) return;
+    closeCamp();
+    beginDungeonView();
+    save();
+    renderHud();
+  },
+  'dg-pick': (el) => dgPickView(Number(el.dataset.i)),
+  'dg-retreat': () => { dgRetreat(); renderHud(); },
+  'dg-diff': (el) => { S.dg.pol.diff = Number(el.dataset.i); },
+  'dg-target': (el) => { S.dg.pol.target = el.dataset.r; },
+  'dg-risky': (el) => { S.dg.pol.risky = el.dataset.v === '1'; },
+  'dg-gate': (el) => { S.dg.pol.gate = Number(el.dataset.g); },
+  'dg-fast': () => { S.dg.pol.fast = !S.dg.pol.fast; },
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),
   'tab': (el) => {
-    campTab = el.dataset.tab;
-    if (campTab === 'tower' && towerUnlocked()) S.guide.towerSeen = 1;
+    campTab = normalizeTab(el.dataset.tab);
+    markSubSeen();
     $('campBody').scrollTop = 0;
   },
+  'sub-open': (el) => { subView = el.dataset.k; markSubSeen(); $('campBody').scrollTop = 0; },
+  'sub-back': () => { subView = null; $('campBody').scrollTop = 0; },
   'rank-sort': (el) => { rank.sort = el.dataset.sort; },
   'hall': (el) => { const id = Number(el.dataset.id); hallOpen = hallOpen === id ? null : id; },
   'season-tiers': () => { seasonUi.tiers = !seasonUi.tiers; },
@@ -2332,6 +2679,9 @@ const ACTIONS = {
     const id = el.dataset.id;
     if (!previewSkill(id, skillStage(id))) toast('캠프에 있을 때만 볼 수 있어요 — 원정·탑에서 돌아온 뒤 다시 눌러 주세요');
   },
+  'char-sub': (el) => { charUi.sub = el.dataset.k; $('campBody').scrollTop = 0; },
+  'class-tree': () => { const ready = anyClassReady(), open = charUi.tree == null ? ready : charUi.tree; charUi.tree = !open; },
+  'class-open': (el) => { classSel = el.dataset.id; classConfirm = null; charUi.tree = true; },
   'class-sel': (el) => { classSel = el.dataset.id; classConfirm = null; },
   'class-ask': (el) => { classConfirm = el.dataset.id; },
   'class-cancel': () => { classConfirm = null; },
@@ -2506,6 +2856,8 @@ function resetWorld() {
   // 탑은 이어서 하지 않는다: 다시 불러오면 그 층에서 끝낸 것으로 정산
   if (S.phase === 'tower') { endTower('offline'); S.phase = 'camp'; }
   if (tw) endTowerView();
+  if (S.phase === 'dungeon') { endDungeon('offline'); S.phase = 'camp'; }
+  if (dv) endDungeonView();
   monsters = []; coins = []; floaters = []; shots = []; effects = []; drops = [];
   lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null });
@@ -2623,6 +2975,11 @@ hooks.onTowerEnd = (r) => {
   renderHud();
   if (!r) return;
   toast(`🗼 ${TOWER_REASON[r.reason] || '도전 끝'} — ${r.cleared}개 층 돌파${r.tomes ? ` · 📖 +${r.tomes}` : ''} · 기사를 클릭해 정산을 확인하세요`, 8000);
+};
+hooks.onDungeonEnd = (r) => {
+  renderHud();
+  if (!r) return;
+  toast(`⛏️ ${DG_REASON[r.reason] || '던전 끝'} — ${dgResText(r.got, '받은 게 없어요')} · 기사를 클릭해 정산을 확인하세요`, 8000);
 };
 hooks.onArrive = () => {
   const r = S.report;
@@ -2771,8 +3128,9 @@ function boot() {
     if (saveKey) update(Math.min(dt, 0.1));
     else clock += dt;
     render();
-    if (campOpen && campTab === 'class') drawClassPreviews();
-    if (campOpen && campTab === 'gear') drawGearHero();
+    if (S.phase === 'dungeon') renderDungeonPick();
+    if (campOpen && campTab === 'char') { drawClassPreviews(); drawGearHero(); }
+    if (campOpen && campTab === 'sub' && !subView) drawSubPreviews();
     if (campOpen && campTab === 'town') drawTown();
     slow += dt;
     if (slow > 0.25) {

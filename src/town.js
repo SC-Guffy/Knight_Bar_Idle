@@ -14,9 +14,17 @@ const TOWN_LAYOUT = {
   storage: { x: 104, y: 2 },
 };
 const townTier = (lv) => (lv < 5 ? 0 : lv < 10 ? 1 : lv < 15 ? 2 : 3);
+// 이 건물에 지금 할 수 있는 일이 있는가 — 건설, 훈련장의 훈련, 대장간의 시설 올리기. 마을 탭 레드닷·건물 이름표의 점·기본 선택이 모두 이걸 본다
+// (안의 버튼이 빨갛게 뛰면 탭·이름표에도 점이 있어야 한다는 원칙)
+function townTodo(id) {
+  if (canBuild(id)) return true;
+  if (id === 'training') return TRAINING.some(canTrain);
+  if (id === 'forge') return Object.keys(FORGE_FAC).some((f) => forgeFacBlocker(f) === '');
+  return false;
+}
 function townSel() {
   if (!townUi.sel || !BUILDINGS[townUi.sel]) {
-    townUi.sel = S.build ? S.build.id : Object.keys(BUILDINGS).find(canBuild) || 'training';
+    townUi.sel = S.build ? S.build.id : Object.keys(BUILDINGS).find(townTodo) || 'training';
   }
   return townUi.sel;
 }
@@ -645,7 +653,7 @@ function drawTownTag(g, id, x, y, t) {
     const k = 1 - S.build.remain / S.build.total;
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x0 + 7, y0 + th - 3, tw - 14, 2);
     g.fillStyle = sel ? '#1a1206' : '#ffd257'; g.fillRect(x0 + 7, y0 + th - 3, (tw - 14) * k, 2);
-  } else if (canBuild(id)) {
+  } else if (townTodo(id)) {
     g.fillStyle = '#ff3b30';
     g.beginPath(); g.arc(x0 + tw - 2, y0 + 2, 4, 0, Math.PI * 2); g.fill();
   }
