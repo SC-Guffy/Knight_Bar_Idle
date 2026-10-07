@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.11.5';
+const GAME_VERSION = '0.11.6';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -387,7 +387,7 @@ const softEnhMultAt = (L) => 1 + 0.04 * L;
 // ───────────────────────── 강화 ─────────────────────────
 // 강화 단계는 부위(무기·갑옷·반지)에 붙어 있어서 장비를 바꿔 껴도 유지된다.
 // ENHANCE[L] = L → L+1 시도. 실패하면 down 확률로 한 단계 하락, reset 확률로 +0 초기화, 나머지는 유지.
-// 0에서 시작한 기대 시도 횟수 (보호 주문서 없이): +10 약 18회 · +15 약 70회 · +20 약 700회 · +25 약 48,000회
+// 0에서 시작한 기대 시도 횟수 (보호 주문서 없이): +10 약 15회 · +15 약 35회 · +20 약 110회 · +25 약 1,200회
 const ENHANCE_MAX = 25;
 const ENHANCE = [
   // +1 ~ +5: 실패해도 유지
@@ -396,35 +396,35 @@ const ENHANCE = [
   { rate: 0.85, down: 0,    reset: 0 },
   { rate: 0.80, down: 0,    reset: 0 },
   { rate: 0.75, down: 0,    reset: 0 },
-  // +6 ~ +10: 실패하면 절반쯤 하락
-  { rate: 0.70, down: 0.4,  reset: 0 },
-  { rate: 0.65, down: 0.45, reset: 0 },
-  { rate: 0.60, down: 0.5,  reset: 0 },
-  { rate: 0.55, down: 0.5,  reset: 0 },
-  { rate: 0.50, down: 0.55, reset: 0 },
-  // +11 ~ +15: 실패하면 대부분 하락
-  { rate: 0.46, down: 0.6,  reset: 0 },
-  { rate: 0.43, down: 0.6,  reset: 0 },
-  { rate: 0.40, down: 0.65, reset: 0 },
-  { rate: 0.37, down: 0.65, reset: 0 },
-  { rate: 0.35, down: 0.7,  reset: 0 },
+  // +6 ~ +10: 실패해도 대부분 유지, 가끔 하락
+  { rate: 0.70, down: 0.12, reset: 0 },
+  { rate: 0.65, down: 0.14, reset: 0 },
+  { rate: 0.60, down: 0.16, reset: 0 },
+  { rate: 0.55, down: 0.18, reset: 0 },
+  { rate: 0.50, down: 0.2,  reset: 0 },
+  // +11 ~ +15: 실패하면 4번에 1번꼴로 하락
+  { rate: 0.46, down: 0.22, reset: 0 },
+  { rate: 0.43, down: 0.24, reset: 0 },
+  { rate: 0.40, down: 0.26, reset: 0 },
+  { rate: 0.37, down: 0.28, reset: 0 },
+  { rate: 0.35, down: 0.3,  reset: 0 },
   // +16 ~ +20: 하락 + 초기화 위험
-  { rate: 0.33, down: 0.6,  reset: 0.02 },
-  { rate: 0.31, down: 0.6,  reset: 0.025 },
-  { rate: 0.29, down: 0.6,  reset: 0.03 },
-  { rate: 0.27, down: 0.6,  reset: 0.035 },
-  { rate: 0.25, down: 0.6,  reset: 0.04 },
+  { rate: 0.33, down: 0.25, reset: 0.02 },
+  { rate: 0.31, down: 0.25, reset: 0.025 },
+  { rate: 0.29, down: 0.25, reset: 0.03 },
+  { rate: 0.27, down: 0.25, reset: 0.035 },
+  { rate: 0.25, down: 0.25, reset: 0.04 },
   // +21 ~ +25: 초기화 위험 큼
-  { rate: 0.24, down: 0.5,  reset: 0.05 },
-  { rate: 0.22, down: 0.5,  reset: 0.055 },
-  { rate: 0.20, down: 0.5,  reset: 0.06 },
-  { rate: 0.18, down: 0.5,  reset: 0.065 },
-  { rate: 0.16, down: 0.5,  reset: 0.07 },
+  { rate: 0.24, down: 0.25, reset: 0.05 },
+  { rate: 0.22, down: 0.25, reset: 0.055 },
+  { rate: 0.20, down: 0.25, reset: 0.06 },
+  { rate: 0.18, down: 0.25, reset: 0.065 },
+  { rate: 0.16, down: 0.25, reset: 0.07 },
 ];
 // 강화 단계가 장비 능력치에 곱하는 배율
 const enhanceMultAt = (L) => 1 + 0.12 * L + 0.004 * L * L;
 // L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)과 겹치지 않는다. 철광석은 늘, 마력석은 +10부터
-// 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 90개 · +15 약 650개 (부위마다)
+// 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 75개 · +15 약 320개 (부위마다)
 function enhanceCost(L) {
   return {
     stone: Math.floor(2 * Math.pow(1.17, L)),
