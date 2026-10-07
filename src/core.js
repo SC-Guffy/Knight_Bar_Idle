@@ -32,7 +32,7 @@ function freshState() {
     mastV: 5,                               // 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
-    gearV: 3,                               // 3: 아이템 레벨이 부위(S.gear.lvl)에 붙음 · 2: 장비마다 s 절대값 · 1: 등급 %
+    gearV: 4,                               // 3: 아이템 레벨이 부위(S.gear.lvl)에 붙음 · 2: 장비마다 s 절대값 · 1: 등급 %
     phase: 'camp',                          // camp | expedition | returning | tower
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -115,7 +115,9 @@ function migrate(o) {
     s.forge.reforge = Math.max(1, s.forge.reforge || 0);
     if ((o.gearV || 1) >= 2) s.notice = '🔥 아이템 레벨이 장비에서 부위로 옮겨졌어요 — 이제 같은 부위 장비는 등급이 곧 서열이에요. 무기·갑옷 레벨은 대장간 재련(장비 탭)으로 올려요. 지금 낀 장비의 레벨을 그대로 옮겨 드렸어요';
   }
-  s.gearV = 3;
+  // gearV 4: 재련 한도가 재련로 Lv × 15 로 바뀌었다 — 예전 대장간 Lv 만큼 재련로를 올려 둔다
+  if ((o.gearV || 1) < 4) s.forge.reforge = Math.max(s.forge.reforge || 1, Math.min(BUILD_MAX, s.bld.forge || 1));
+  s.gearV = 4;
   // 연마대(0.12.2, 강화 성공 확률 보너스)가 빠졌다: 올린 데 쓴 재화를 돌려준다
   if (s.forge.anvil) {
     const back = { gold: 0, ore: 0, mana: 0 };

@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.12.3';
+const GAME_VERSION = '0.12.4';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -100,10 +100,10 @@ function buildCost(id, lv) {
 // ───────────────────────── 대장간 시설 ─────────────────────────
 // 대장간은 능력치를 주지 않고 장비를 다루는 시설을 품는다. 시설마다 따로 올리고(재화 즉시 소모), 대장간 Lv 이 시설의 최대 Lv 이다.
 // 재련로: 무기·갑옷 '부위'의 아이템 레벨을 올린다 (강화 단계처럼 부위에 붙어서, 그 부위에 끼는 장비 모두에 적용).
-//  한도 = 최고 스테이지 − reforgeGapAt(lv) (Lv1 −5 · Lv2 −4 … Lv10 부터 최고 스테이지까지). 처음부터 Lv1 로 지어져 있다
+//  한도 = min(최고 스테이지, 재련로 Lv × REFORGE_PER_LV) — 훈련장 → 훈련 최대 Lv 처럼 건물 공사가 진행 속도를 묶는다. 처음부터 Lv1 로 지어져 있다
 const FORGE_FAC = {
   reforge: { name: '재련로', icon: '🔥', desc: '무기·갑옷 부위의 아이템 레벨을 올려요 — 그 부위에 끼는 장비 모두에 적용돼요',
-    effect: (lv) => (reforgeGapAt(lv) ? `재련 한도 최고 스테이지 −${reforgeGapAt(lv)}` : '재련 한도 = 최고 스테이지') },
+    effect: (lv) => `재련 한도 아이템 Lv ${reforgeCapAt(lv)}` },
   salvage: { name: '분해대', icon: '🧰', desc: '장비를 팔 때 나오는 💠 강화석이 늘어나요',
     effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },
   potential: { name: '각인대', icon: '🔮', desc: '장비의 편차(roll)를 다시 굴려요 — Lv 이 오를수록 범위가 좋아져요',
@@ -117,7 +117,8 @@ const salvageMultAt = (lv) => 1 + 0.1 * lv;
 const potentialRangeAt = (lv) => [0.9 + 0.01 * lv, 1.1 + 0.005 * lv];
 // 각인 1회 비용: 💠 강화석 (그 등급 판매량만큼) + 💎 마력석
 const potentialCost = (g) => ({ stone: GEAR_STONES[g], mana: 2 + 2 * g });
-const reforgeGapAt = (lv) => Math.max(0, 5 - Math.floor(lv / 2));
+const REFORGE_PER_LV = 15;
+const reforgeCapAt = (lv) => REFORGE_PER_LV * lv;
 // 시설 lv → lv+1 비용
 function forgeFacCost(id, lv) {
   return {
@@ -127,8 +128,9 @@ function forgeFacCost(id, lv) {
     mana: lv >= 3 ? Math.floor(5 * Math.pow(1.6, lv - 3)) : 0,
   };
 }
-// 부위 아이템 레벨 L → L+1 재련 비용: 골드는 그 스테이지 몬스터 15마리 몫, 철광석은 천천히 늘어난다
-const reforgeStepCost = (L) => ({ gold: Math.floor(monsterStats(L + 1, false).gold * 15), ore: Math.ceil(6 * (1 + 0.04 * L)) });
+// 부위 아이템 레벨 L → L+1 재련 비용: 골드만 (예전 훈련이 하던 골드 소모를 넘겨받는다) — 그 스테이지 몬스터 REFORGE_GOLD 마리 몫
+const REFORGE_GOLD = 60;
+const reforgeStepCost = (L) => ({ gold: Math.floor(monsterStats(L + 1, false).gold * REFORGE_GOLD), ore: 0 });
 
 // ───────────────────────── 재화 / 보급품 ─────────────────────────
 const MATERIALS = {

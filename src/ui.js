@@ -963,7 +963,7 @@ const gearInfo = (it) => `
 function reforgeLine(slot) {
   if (!(slot in S.gear.lvl)) return '';
   const lv = slotLv(slot), p = reforgePlan(slot), blocker = reforgeBlocker(slot), it = equipped(slot);
-  if (lv >= p.cap) return `<div class="small rfline">🔥 아이템 Lv ${lv} — 재련 한도예요 (최고 스테이지를 올리거나 마을 대장간의 재련로를 키우면 더 올라가요)</div>`;
+  if (lv >= p.cap) return `<div class="small rfline">🔥 아이템 Lv ${lv} — ${p.cap < (S.best || 1) ? `재련로 한도예요 (마을 대장간에서 🔥 재련로를 올리면 Lv ${reforgeCapAt(forgeFacLv('reforge') + 1)}까지)` : '최고 스테이지까지 올라가 있어요'}</div>`;
   const to = Math.max(p.to, lv + 1), c = p.to > lv ? p.cost : reforgeStepCost(lv);
   return `<div class="rfline">
     <span class="small">🔥 아이템 Lv ${lv} → <b>${to}</b>${p.to < p.cap ? ` <small>(한도 ${p.cap})</small>` : ''}${it ? ` · ${gearStatText(gearStat(it, undefined, to))}` : ''}</span>

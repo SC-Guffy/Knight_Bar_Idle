@@ -344,7 +344,7 @@ function upgradeForgeFac(id) {
 // 부위 아이템 레벨 (장신구는 없음 → 1)
 const slotLv = (slot) => (S.gear.lvl && S.gear.lvl[slot]) || 1;
 // 재련로로 올릴 수 있는 부위 아이템 레벨 상한
-const reforgeCap = () => Math.max(1, (S.best || 1) - reforgeGapAt(forgeFacLv('reforge')));
+const reforgeCap = () => Math.max(1, Math.min(S.best || 1, reforgeCapAt(forgeFacLv('reforge'))));
 // 이 부위를 지금 재화로 올릴 수 있는 만큼: { from, to, cap, cost } — 한 단계도 못 올리면 to === from
 function reforgePlan(slot) {
   const from = slotLv(slot), cap = reforgeCap(), cost = { gold: 0, ore: 0 };
@@ -358,7 +358,7 @@ function reforgePlan(slot) {
 }
 function reforgeBlocker(slot) {
   if (!(slot in S.gear.lvl)) return '장신구는 아이템 레벨이 없어요';
-  if (slotLv(slot) >= reforgeCap()) return `재련 한도 Lv ${reforgeCap()} — 최고 스테이지를 올리거나 재련로를 키우세요`;
+  if (slotLv(slot) >= reforgeCap()) return reforgeCap() < (S.best || 1) ? `재련 한도 Lv ${reforgeCap()} — 마을 대장간에서 🔥 재련로를 올리세요` : `최고 스테이지(Lv ${reforgeCap()})까지 올라가 있어요`;
   if (S.phase !== 'camp') return '캠프에서만 재련할 수 있어요';
   if (reforgePlan(slot).to === slotLv(slot)) return '재화 부족';
   return '';
