@@ -1895,6 +1895,14 @@ function towerResultHtml(L) {
       <div class="act" style="margin-top:6px"><button class="go compact" data-action="tower-start" ${blocker ? 'disabled' : ''}>🗼 다시 도전 (${towerCheckpoint()}F 부터 · 🎟 ${towerTickets()}장 남음)</button>${blocker ? ` <span class="blocker">${blocker}</span>` : ''}</div>
     </div>`;
 }
+// 입장권 구매 한 줄: 가격 칩 + 구매 버튼
+function towerBuyRow() {
+  const p = towerTicketPrice(), tb = towerTicketBlocker(), n = towerTicketsBoughtToday();
+  return `
+    <div class="tbuy">🎟 입장권 구매 <small>오늘 ${n}장 샀어요</small>
+      <span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip('💎', p.mana, S.mats.mana)}</span>
+      <button class="btn" data-action="tower-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button></div>`;
+}
 function viewTower() {
   const t = S.tower, blocker = towerBlocker(), cp = towerCheckpoint();
   const nextFirst = Math.floor(t.best / 10) * 10 + 10;
@@ -1907,12 +1915,13 @@ function viewTower() {
       <div class="eff"><i class="gc"></i> ${fmt(L.gold)} · ✨ ${fmt(L.exp)} · 📖 ${L.tomes}${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')}` : ''}</div></div></div>` : '';
   return `
     <div class="mhead"><div><h3>🗼 도전의 탑</h3>
-      <small>🎟 입장권 <b>${towerTickets()}/${TOWER_TICKETS}</b> · 최고 <b>${t.best}F</b> · 가진 비전서 ${fmt(S.tomes)}권</small></div>
-      ${t.best ? `<button class="go compact${rd(towerSweepReady())}" data-action="tower-sweep" ${towerSweepReady() ? '' : 'disabled'}>🧹 소탕 ${towerTickets() ? `📖 +${t.best} <small>🎟1</small>` : '· 내일 다시'}</button>` : ''}</div>
+      <small>🎟 입장권 <b>${towerFreeTickets()}/${TOWER_TICKETS}</b>${t.tixExtra ? ` + 구매 <b>${t.tixExtra}</b>` : ''} · 최고 <b>${t.best}F</b> · 가진 비전서 ${fmt(S.tomes)}권</small></div>
+      ${t.best ? `<button class="go compact${rd(towerSweepReady())}" data-action="tower-sweep" ${towerSweepReady() ? '' : 'disabled'}>🧹 소탕 ${towerTickets() ? `📖 +${t.best} <small>🎟1</small>` : '· 입장권 없음'}</button>` : ''}</div>
+    ${towerUnlocked() ? towerBuyRow() : ''}
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="class">⚜️ 전직 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
-      체크포인트(10층 단위)부터 시작하고, 깬 층마다 <b>📖 1권</b>. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장.</div>
+      체크포인트(10층 단위)부터 시작하고, 깬 층마다 <b>📖 1권</b>. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${TOWER_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
       <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
@@ -2004,6 +2013,12 @@ const ACTIONS = {
   'open-camp': openCamp,
   'recall': () => { endExpedition('manual'); save(); },
   'tower-retreat': () => { towerEndRun('retreat'); renderHud(); },
+  'tower-ticket': () => {
+    if (!buyTowerTicket()) return;
+    toast(`🎟 탑 입장권을 샀어요 (지금 ${towerTickets()}장)`);
+    save();
+    renderCamp();
+  },
   'tower-sweep': () => {
     const n = sweepTower();
     if (!n) return;
