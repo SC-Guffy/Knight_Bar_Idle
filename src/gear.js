@@ -130,7 +130,7 @@ function gearStatText(st) {
   return `💥 +${(st.crit * 100).toFixed(1)}% · 피해 +${Math.round(st.critMult * 100)}%`;
 }
 // 장비를 팔면 골드와 함께 💠 강화석이 나온다 (등급별 고정)
-const gearSellStones = (it) => GEAR_STONES[it.g];
+const gearSellStones = (it) => Math.floor(GEAR_STONES[it.g] * salvageMultAt(forgeFacLv('salvage')));
 const gearSellPrice = (it) => Math.floor(monsterStats(it.s, false).gold * GRADES[it.g].sell * it.roll);
 
 // stats() 가 합치는 장착 장비 보너스 (고유 장비의 특수 효과 포함)
@@ -219,7 +219,7 @@ function loadoutValue(eq) {
 let loadoutCache = { key: '', eq: null };
 function bestLoadout() {
   // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
-  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}`;
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${JSON.stringify(S.gear.lvl)}`;
   if (loadoutCache.key === key) return loadoutCache.eq;
   const slots = Object.keys(GEAR_SLOTS);
   const cands = slots.map((slot) => {
@@ -295,6 +295,8 @@ function enhanceBlocker(slot) {
   if (S.mats.mana < c.mana) return '마력석 부족';
   return '';
 }
+// 연마대 보너스가 붙은 성공 확률
+const enhRate = (L) => Math.min(1, ENHANCE[L].rate + ENH_ASSIST_PER * forgeFacLv('anvil'));
 // 지금 바로 강화할 수 있는가 (레드닷)
 const canEnhance = (slot) => !enhanceBlocker(slot);
 // 이 단계에서 실패하면 하락·초기화가 나올 수 있는가 (보호 주문서를 쓸 수 있는 단계)
@@ -313,7 +315,7 @@ function enhance(slot, protect = false) {
   if (used) S.items.protect--;
 
   let result;
-  if (Math.random() < e.rate) {
+  if (Math.random() < enhRate(from)) {
     result = 'up';
   } else {
     const r = Math.random();
@@ -374,3 +376,25 @@ function reforge(slot) {
 }
 // 레드닷: 한도까지 3레벨 이상 남았고 지금 3레벨 이상 올릴 수 있을 때만 (스테이지마다 깜빡이지 않게)
 const canReforge = (slot) => slot in S.gear.lvl && S.phase === 'camp' && reforgePlan(slot).to - slotLv(slot) >= 3;
+
+// ───────────────────────── 각인대 (편차 다시 굴리기) ─────────────────────────
+function potentialBlocker(it) {
+  if (!it) return '장비를 골라 주세요';
+  if (!forgeFacLv('potential')) return '마을 대장간에서 🔮 각인대를 먼저 지어야 해요';
+  if (S.phase !== 'camp') return '캠프에서만 각인할 수 있어요';
+  const c = potentialCost(it.g);
+  if (S.stones < c.stone) return '강화석 부족';
+  if (S.mats.mana < c.mana) return '마력석 부족';
+  return '';
+}
+// 편차를 각인대 범위에서 새로 굴린다 (낮게 나와도 그대로 바뀐다). { from, to } 또는 null
+function rerollPotential(id) {
+  const it = gearById(id);
+  if (potentialBlocker(it)) return null;
+  const c = potentialCost(it.g), [lo, hi] = potentialRangeAt(forgeFacLv('potential')), oldMax = stats().maxHp;
+  S.stones -= c.stone; S.mats.mana -= c.mana;
+  const from = it.roll;
+  it.roll = Math.round((lo + Math.random() * (hi - lo)) * 100) / 100;
+  keepHpRatio(oldMax);
+  return { from, to: it.roll };
+}

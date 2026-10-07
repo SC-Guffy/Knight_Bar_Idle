@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.12.1';
+const GAME_VERSION = '0.12.2';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -104,7 +104,22 @@ function buildCost(id, lv) {
 const FORGE_FAC = {
   reforge: { name: '재련로', icon: '🔥', desc: '무기·갑옷 부위의 아이템 레벨을 올려요 — 그 부위에 끼는 장비 모두에 적용돼요',
     effect: (lv) => (reforgeGapAt(lv) ? `재련 한도 최고 스테이지 −${reforgeGapAt(lv)}` : '재련 한도 = 최고 스테이지') },
+  anvil: { name: '연마대', icon: '⚒️', desc: '장비 강화 성공 확률을 올려 줘요',
+    effect: (lv) => (lv ? `강화 성공 +${+(ENH_ASSIST_PER * lv * 100).toFixed(1)}%p` : '아직 없음') },
+  salvage: { name: '분해대', icon: '🧰', desc: '장비를 팔 때 나오는 💠 강화석이 늘어나요',
+    effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },
+  potential: { name: '각인대', icon: '🔮', desc: '장비의 편차(roll)를 다시 굴려요 — Lv 이 오를수록 범위가 좋아져요',
+    effect: (lv) => (lv ? `편차 ×${potentialRangeAt(lv).map((v) => v.toFixed(2)).join('~')}` : '아직 없음') },
 };
+// 연마대: 강화 성공 확률 +0.5%p/Lv (Lv20 +10%p, 100% 를 넘지 않음)
+const ENH_ASSIST_PER = 0.005;
+// 분해대: 판매 강화석 ×(1 + 0.1·Lv) (Lv20 ×3)
+const salvageMultAt = (lv) => 1 + 0.1 * lv;
+// 각인대: 다시 굴린 편차의 범위 [0.9 + 0.01·Lv, 1.1 + 0.005·Lv] (Lv20 1.10~1.20).
+//  최고 1.2 / 최저 0.9 = 1.33 배라 등급 한 칸(약 1.45배)은 여전히 못 넘는다 → 등급 서열 유지
+const potentialRangeAt = (lv) => [0.9 + 0.01 * lv, 1.1 + 0.005 * lv];
+// 각인 1회 비용: 💠 강화석 (그 등급 판매량만큼) + 💎 마력석
+const potentialCost = (g) => ({ stone: GEAR_STONES[g], mana: 2 + 2 * g });
 const reforgeGapAt = (lv) => Math.max(0, 5 - Math.floor(lv / 2));
 // 시설 lv → lv+1 비용
 function forgeFacCost(id, lv) {
@@ -221,9 +236,9 @@ const LOOT_KIND_W = { gear: 40, curio: 45, use: 15 };
 const LOOT_KIND_W_BOSS = { gear: 65, curio: 25, use: 10 };
 
 // ───────────────────────── 장비 ─────────────────────────
-// 절대값은 훈련·레벨이 쌓고, 장비는 그 위에 %를 곱한다. 능력치는 등급(과 roll)으로만 정해지고 강화 단계(부위별)가 곱해진다.
+// 무기·갑옷은 부위 아이템 레벨(재련)을 따라 커지는 절대값, 장신구는 % 다. 같은 부위에선 등급(과 roll)으로만 서열이 정해지고 강화 단계(부위별)가 곱해진다.
 //  드랍된 스테이지(s)는 판매가에만 쓴다 — 등급이 높으면 언제 주웠든 항상 더 세다.
-//  무기: 공격력 % · 갑옷: 체력 % · 장신구(반지·왕관 등): 치명 확률 + 치명 피해
+//  무기: 공격력 · 갑옷: 체력 · 장신구(반지·왕관 등): 치명 확률 + 치명 피해
 const GEAR_SLOTS = {
   weapon: { name: '무기', icon: '🗡️' },
   armor:  { name: '갑옷', icon: '🛡️' },

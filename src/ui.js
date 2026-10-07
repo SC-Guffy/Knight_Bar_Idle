@@ -891,12 +891,12 @@ function campDots() {
 const campHasDot = () => Object.values(campDots()).some(Boolean);
 
 function enhOdds(L) {
-  const e = ENHANCE[L], fail = 1 - e.rate;
+  const e = ENHANCE[L], rate = enhRate(L), fail = 1 - rate;
   const pct = (v) => (v * 100 < 1 && v > 0 ? (v * 100).toFixed(1) : Math.round(v * 100)) + '%';
   const risk = [];
   if (e.down) risk.push(`<span class="warn">하락 ${pct(fail * e.down)}</span>`);
   if (e.reset) risk.push(`<span class="bad">초기화 ${pct(fail * e.reset)}</span>`);
-  return `성공 <b>${pct(e.rate)}</b>${risk.length ? ' · ' + risk.join(' · ') : ' · 실패해도 유지'}`;
+  return `성공 <b>${pct(rate)}</b>${rate > e.rate ? ` <small>(⚒️ +${pct(rate - e.rate)})</small>` : ''}${risk.length ? ' · ' + risk.join(' · ') : ' · 실패해도 유지'}`;
 }
 
 // 장비 화면 위쪽에 서 있는 내 캐릭터 (<canvas class="gchar">, 장비 탭이 열려 있는 동안 매 프레임 그림)
@@ -953,7 +953,7 @@ function gearSlotBtn(slot) {
 const gearInfo = (it) => `
   <div class="gtop" style="--c:${gearGrade(it).color}">
     ${gearIcon(it, 'big')}
-    <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''}</small></div>
+    <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''} · 편차 ×${it.roll.toFixed(2)}</small></div>
   </div>
   ${gearSpecialText(it) ? `<div class="gsp">✦ 고유 효과 — ${gearSpecialText(it)}</div>` : ''}
   ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
@@ -969,6 +969,19 @@ function reforgeLine(slot) {
     <span class="small">🔥 아이템 Lv ${lv} → <b>${to}</b>${p.to < p.cap ? ` <small>(한도 ${p.cap})</small>` : ''}${it ? ` · ${gearStatText(gearStat(it, undefined, to))}` : ''}</span>
     <span class="costs">${costChip('<i class="gc"></i>', c.gold, S.gold)}${costChip('🪨', c.ore, S.mats.ore)}</span>
     <button class="btn${rd(canReforge(slot))}" data-action="reforge" data-slot="${slot}" ${blocker ? `disabled title="${blocker}"` : ''}>재련</button>
+  </div>`;
+}
+
+// 각인 한 줄: 편차를 각인대 범위에서 다시 굴린다 (각인대가 없으면 안내만)
+function potentialLine(it) {
+  if (!it) return '';
+  const lv = forgeFacLv('potential');
+  if (!lv) return '';
+  const [lo, hi] = potentialRangeAt(lv), c = potentialCost(it.g), blocker = potentialBlocker(it);
+  return `<div class="rfline">
+    <span class="small">🔮 각인 — 편차 ×${it.roll.toFixed(2)} → ×${lo.toFixed(2)}~${hi.toFixed(2)} 중 무작위</span>
+    <span class="costs">${costChip('💠', c.stone, S.stones)}${costChip('💎', c.mana, S.mats.mana)}</span>
+    <button class="btn" data-action="potential" data-id="${it.id}" ${blocker ? `disabled title="${blocker}"` : ''}>각인</button>
   </div>`;
 }
 
@@ -998,7 +1011,7 @@ function slotDetail(slot) {
   return `
     <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b>${top}${slot in S.gear.lvl ? ` <small>· 아이템 Lv ${slotLv(slot)}</small>` : ''}${stoneChip()}</div>
     ${item}
-    ${reforgeLine(slot)}
+    ${reforgeLine(slot)}${potentialLine(it)}
     <div class="genh">${enh}${res}</div>`;
 }
 
@@ -1010,6 +1023,7 @@ function itemDetail(it) {
     ${gearInfo(it)}
     <div class="gstat">${gearStatText(gearStat(it))} <span class="gcmp">${gearCmp(it)}</span></div>
     ${cur ? `<div class="small">지금 낀 장비: <span class="gn g${cur.g}">${gearName(cur)}</span> ${gearStatText(gearStat(cur))}</div>` : ''}
+    ${potentialLine(it)}
     <div class="gacts">
       <button class="btn enh" data-action="equip" data-id="${it.id}">장착</button>
       <button class="btn" data-action="gear-sell-one" data-id="${it.id}">판매 <i class="gc"></i> ${fmt(gearSellPrice(it))} · 💠 ${gearSellStones(it)}</button>
@@ -2168,6 +2182,7 @@ const ACTIONS = {
   },
   'build': (el) => startBuild(el.dataset.id),
   'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },
+  'potential': (el) => { const r = rerollPotential(Number(el.dataset.id)); if (r) toast(`🔮 각인 — 편차 ×${r.from.toFixed(2)} → ×${r.to.toFixed(2)}${r.to > r.from ? ' ▲' : r.to < r.from ? ' ▼' : ''}`); },
   'reforge': (el) => { const r = reforge(el.dataset.slot); if (r) toast(`🔥 ${GEAR_SLOTS[el.dataset.slot].name} 재련 — 아이템 Lv ${r.from} → ${r.to}`); },
   'train': (el) => doTrain(el.dataset.id),
   'train-all': () => { const n = doTrainAll(); if (n) toast(`🎯 훈련 ${n}단계 올렸어요`, 2500); },
