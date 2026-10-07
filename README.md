@@ -249,6 +249,7 @@ python3 -m http.server 8765
 | `src/world.js` | 하단바 실시간 전투·이동·렌더링, 결투·레이드 재생 |
 | `src/skills.js` | 직업 스킬: 원정에서 쓰기(쿨타임·대상·피해)와 모든 전투가 함께 쓰는 모션·이펙트·히트스톱 |
 | `dev/skills.html` | 개발용 스킬 모션 테스트 페이지 (게임·앱 빌드에 포함되지 않음) |
+| `dev/progress-bot.js` | 개발용 진행 봇 — `node dev/progress-bot.js --days 5 --seeds 12 [--rev A --rev B]` 로 며칠치 진행을 돌려 재화 수입·지출과 스테이지 도달 시각을 비교 (밸런스 변경 전후 점검용) |
 | `src/net.js` | 서버 통신: 계정(닉네임·토큰), 세이브 동기화, 랭킹, 결투 요청, 레이드 로비 |
 | `src/ui.js` | HUD, 캠프 창(랭킹·레이드 로비·정산 포함), 계정 창, 알림, 부팅/메인 루프 |
 | `server/index.js` | 서버 API (의존성은 `pg` 하나) |
