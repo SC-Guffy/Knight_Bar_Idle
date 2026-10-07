@@ -1,0 +1,178 @@
+/* ── 픽셀 판타지 스킨 (1단계 시안) ──
+   index.html 의 기본 스타일 위에 덮어쓴다. 프레임은 src/skin/*.svg (dev/make-skin.js 가 만든 9-slice),
+   색·폰트는 여기서. 이 파일의 <link> 한 줄을 빼면 기본 스타일로 돌아간다. */
+/* 갈무리11 (quiple/galmuri v2.40.4, SIL OFL 1.1 — Galmuri-LICENSE.txt). 11px 격자 픽셀 폰트 */
+@font-face { font-family: "Galmuri11"; src: url(Galmuri11.woff2) format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Galmuri11"; src: url(Galmuri11-Bold.woff2) format("woff2"); font-weight: 600 800; font-display: block; }
+:root {
+  --px-ink: #0b0a14;      /* 외곽선 */
+  --px-bg: #1b1a2b;       /* 창 바탕(어두운 남보라 돌) */
+  --px-bg2: #262538;      /* 카드·버튼 면 */
+  --px-bg3: #343250;      /* 떠오른 면(hover) */
+  --px-hi: #4a4768;
+  --px-gold: #8f8aa8; --px-gold-l: #b9b4cc; --px-gold-d: #5e5a78;   /* 포인트 선 색(바랜 은회색). 이름은 그대로 둔다 */
+  --px-paper: #ebe7dc;    /* 글자색 */
+  --px-font: "Galmuri11", "Galmuri9", "DungGeunMo", "NeoDunggeunmo", "Neo둥근모", "DOSMyungjo", -apple-system, "Apple SD Gothic Neo", sans-serif;
+
+  --glass: rgba(27, 26, 43, .94);
+  --glass-strong: var(--px-bg);
+  --line: var(--px-ink);
+  --soft: var(--px-bg2);
+  --soft-hover: var(--px-bg3);
+  --text: var(--px-paper);
+  --muted: #9c98ad;
+  --gold: #e0c472;
+  --accent: #d9924a;
+}
+html, body { font-family: var(--px-font); font-size: 12px; }
+button, input { font-family: var(--px-font); }
+h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
+#campModal h2, #acctModal h2, #guideModal h2 { color: var(--px-paper); }
+#campBody h3, .abody h3, .gbody h3 { color: var(--px-gold-l); }
+
+/* 둥근 모서리는 전부 각지게 (금화·레드닷·스킬 트리 원형 노드만 예외) */
+#barLayer *:not(.gc), #campModal *:not(.gc):not(.tnode button), #acctModal *, #guideModal *, #webPromo * { border-radius: 0 !important; }
+
+/* ── 프레임 공통: 9-slice SVG. 색은 배경, 틀은 border-image ── */
+.px-panel { border: 6px solid transparent; border-image: url(frame-panel.svg) 6 / 6px; image-rendering: pixelated; background-clip: padding-box; }
+.px-thin  { border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background-clip: padding-box; }
+.px-stone { border: 4px solid transparent; border-image: url(frame-stone.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box; }
+.px-btn   { border: 4px solid transparent; border-image: url(frame-btn.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box; }
+.px-gold  { border: 4px solid transparent; border-image: url(frame-gold.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box; }
+.px-gauge { border: 2px solid transparent; border-image: url(frame-gauge.svg) 2 / 2px; image-rendering: pixelated; background-clip: padding-box; }
+
+/* 큰 창·HUD 패널 */
+#campModal, #acctModal, #guideModal, #hud .panel {
+  border: 12px solid transparent; border-image: url(frame-panel.svg) 6 / 12px round; image-rendering: pixelated; background-clip: padding-box;
+  background-color: var(--px-bg); box-shadow: 6px 6px 0 rgba(0, 0, 0, .45);   /* 프레임 픽셀을 2배로 키워 나뭇결이 보이게 */
+}
+#hud .panel { margin-top: 6px; padding: 6px 8px; }
+#campModal header, #acctModal header, #guideModal header { padding: 6px 10px 6px; }
+#campModal nav, #guideModal nav { padding: 0 6px; border-bottom: 2px solid var(--px-hi); gap: 2px; }
+#campModal nav button, #guideModal nav button { padding: 7px 5px; margin-bottom: -2px; border: 2px solid transparent; border-bottom: 0; color: var(--muted); }
+#campModal nav button:hover, #guideModal nav button:hover { color: var(--text); }
+#campModal nav button.on, #guideModal nav button.on { color: var(--px-gold-l); background: var(--px-bg2); border-color: var(--px-gold-d);
+  box-shadow: inset 0 2px 0 var(--px-gold-l), 0 2px 0 var(--px-bg2); }
+#campModal footer { background: #121120; border-top: 2px solid var(--px-ink); }
+#campBody, .abody, .gbody { scrollbar-color: var(--px-gold-d) var(--px-ink); }
+
+/* HUD 바 */
+.bar { gap: 8px; padding: 4px 9px; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated;
+  background-clip: padding-box; background-color: var(--glass); transition: none; }
+#hud:hover .bar { background-color: var(--px-bg); }
+#status { color: var(--px-gold-l); }
+
+/* 게이지: 2px 잉크 틀 + 두 톤 픽셀 채움 */
+.meter, .prog, .cbar, .wbhp, .meter.big { height: 8px; border: 2px solid transparent; border-image: url(frame-gauge.svg) 2 / 2px; image-rendering: pixelated;
+  background-clip: padding-box; background-color: #121120; }
+.meter { height: 7px; }
+.meter.big { height: 9px; }
+.cbar, .wbhp { height: 16px; }
+.wbrow .cbar { height: 12px; }
+.meter > div, .prog > div, .cbar span, .wbhp span { transition: width .2s; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35), inset 0 -2px 0 rgba(0, 0, 0, .28); }
+#hpfill { background: #c4463f; }
+#stfill, .stbar { background: #c99c3a; }
+#xpfill { background: #4a7fc0; opacity: 1; }
+.prog > div { background: #5fcf5a; }
+.cbar span { background: #f08c1a; }
+.crow2:not(.mvp) .cbar span { background: #3d8bff; }
+.wbhp span { background: #a43cf0; }
+.wbrow .cbar span { background: #8a4fd6; }
+.mskill .mseg .cells i { border-radius: 0; box-shadow: inset 0 0 0 1px var(--px-ink); }
+.mskill .mseg .cells i.on { background: #b79bff; box-shadow: inset 0 0 0 1px var(--px-ink), inset 0 2px 0 rgba(255,255,255,.35); }
+.mskill.m3 .mseg .cells i.on { background: #ffd86a; }
+
+/* 버튼: 잉크 테두리 + 2px 베벨, 누르면 베벨 반전 */
+.btn, .pbtn, .seg, .tcard, .field, .box, .cnode, .skchip, .gchip, .chk, .x, .mailbtn, .gbtn, #webPromo .dls a, .cmd button, .tpts .treset, .mskill .mprev, #campModal nav .autohide, .lnk.gbtn {
+  border: 4px solid transparent; border-image: url(frame-btn.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box;
+  background-color: var(--px-bg2); color: var(--text); font-weight: 600; transition: none;
+}
+.btn, .pbtn, .seg, .skchip, .gchip, .chk, .gbtn, #webPromo .dls a, .cmd button, .tpts .treset, .mskill .mprev, #campModal nav .autohide { padding: 3px 9px; }
+.pbtn { padding: 4px; }
+.x, .mailbtn { width: 24px; height: 22px; line-height: 22px; padding: 0; }
+.mailbtn { width: auto; padding: 0 6px; }
+.btn:hover, .pbtn:hover, .seg:hover, .tcard:hover, .field:hover, .box:hover, .cnode:hover, .skchip:hover, .gchip:hover, .chk:hover, .x:hover, .mailbtn:hover, .gbtn:hover, #webPromo .dls a:hover, .tpts .treset:not(:disabled):hover, .mskill .mprev:not(:disabled):hover, #campModal nav .autohide:hover {
+  background-color: var(--px-bg3); color: var(--text); transform: none; }
+.btn:active, .pbtn:active, .seg:active, .tcard:active, .field:active, .box:active, .cnode:active, .skchip:active, .gchip:active, .chk:active, .gbtn:active, .cmd button:active {
+  border-image: url(frame-btn-down.svg) 4 / 4px; transform: translateY(1px); }
+.btn:disabled, .tcard:disabled, .field:disabled, .seg:disabled, .chk:disabled { opacity: .45; }
+.seg.on, .chk.on, .skchip.on, .gchip.on, .field.on, .cnode.sel, .mailbtn.on, #campModal nav .autohide.on {
+  background-color: #3a3858; color: var(--px-gold-l); box-shadow: inset 0 0 0 1px var(--px-gold); }
+.field.on { border-image: url(frame-gold.svg) 4 / 4px; }
+.cnode.sel { border-image: url(frame-gold.svg) 4 / 4px; box-shadow: none; }
+.box { border-color: transparent; box-shadow: inset 0 0 0 2px var(--c); }
+.box.opened:hover { background-color: var(--px-bg2); }
+.gchip { color: var(--muted); }
+.gchip.on { color: var(--c); background-color: color-mix(in srgb, var(--c) 18%, var(--px-bg2)); box-shadow: inset 0 0 0 1px var(--c); }
+.btn.enh { background-color: #5a3a14; }
+.btn.enh:hover { background-color: #7a4f1a; }
+.btn.warn { background-color: #5a1f1f; }
+.btn.warn:hover { background-color: #7a2a2a; }
+.mskill .act .mb1 { background-color: #3b2f5c; }
+.mskill .act .mb1:hover { background-color: #4e3f78; }
+.cmd button, #webPromo .dls a.rec { background-color: #b07a2a; color: #15100a; }
+
+/* 황금 버튼(출발·도전·주요 행동): 황동 베벨 + 하드 그림자 */
+.go { border: 4px solid transparent; border-image: url(frame-gold.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box;
+  background: #b07a2a; color: #15100a; box-shadow: 0 3px 0 var(--px-ink); text-shadow: 0 1px 0 rgba(255, 240, 200, .25); padding: 7px 22px; }
+.go.compact { padding: 5px 13px; }
+.go:hover { filter: brightness(1.08); }
+.go:active { transform: translateY(3px); box-shadow: none; }
+
+/* 카드·칸: 돌 베벨 */
+.card, .cell, .cdetail, .gdetail, .gstats, .gstage, .mskill, .rrow, .rboss, .season, .rres, .bcard, .pslot, .gitem, .mail, .mrow, .hall, .rmrow, .skill, .fac, .tree-sk, .gain, .tip, .cmd, .warnbox, .gtip, .inbox .mrow, .crow2, .stier.on, .gflow span {
+  border: 4px solid transparent; border-image: url(frame-stone.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box; background-color: var(--px-bg2); }
+.card { padding: 8px 10px; }
+.cell { padding: 5px 7px; }
+.gitem { border-left: 4px solid var(--c); border-image: none; }
+.gitem.sel { background-color: var(--px-bg3); box-shadow: inset 0 0 0 1px var(--c); }
+.gitem:hover, .rrow.me, .pslot.ready { background-color: var(--px-bg3); }
+.rrow.me, .crow2.me, .pslot.me { box-shadow: inset 0 0 0 1px var(--px-gold); }
+.season { box-shadow: inset 0 0 0 1px var(--px-gold-d); }
+.rres.won { border-image: url(frame-gold.svg) 4 / 4px; background: #2e2a24; }
+.gtip { border-left: 4px solid #a98ccf; border-image: none; background-color: #2a2444; }
+.gtip.big { border-left-color: var(--gold); background-color: #2e2a24; }
+.gain { color: var(--gold); background-color: #2e2a24; }
+.warnbox { background-color: #3a1c22; }
+.mrow, .mail:not(.got) { box-shadow: none; border-left: 4px solid #6fcf8a; border-image: none; }
+.mrow.lost { border-left-color: #e8655a; }
+.mail:not(.got) { border-left-color: var(--accent); }
+.mail.got { border-left: 4px solid var(--px-hi); border-image: none; }
+.gstage { background: radial-gradient(ellipse at 50% 62%, rgba(224, 196, 114, .1), transparent 60%), #121120; }
+.gsbox { background: color-mix(in srgb, var(--c) 16%, #121120); border: 2px solid var(--c); box-shadow: 2px 2px 0 var(--px-ink); }
+.gsbox .lvl { background: var(--px-ink); border: 1px solid var(--c); }
+.gicon.big, .gicon.empty { border-radius: 0; }
+.gicon.empty { border: 2px dashed var(--px-hi); }
+canvas.town { outline: 2px solid var(--px-ink); outline-offset: 0; box-shadow: 0 0 0 4px #3e3c52, 0 0 0 6px var(--px-ink); margin: 6px 6px 14px; width: calc(100% - 12px); }
+
+/* 칩·배지 */
+.chip, .mchip, .stchip, .lvl, .tnode .tlv, .mnew, .mvpchip, .mskill .mtag, .mskill .mevo-n, .mrow .mt, #campModal nav i, .sync { border-radius: 0; }
+.chip { background: var(--px-ink); box-shadow: inset 0 0 0 1px var(--px-hi); padding: 1px 6px; }
+.mchip { background: #2a2444; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #6f58a8; }
+.stchip { background: #1e2a3a; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #3f7fa8; }
+.lvl { background: var(--px-ink); box-shadow: inset 0 0 0 1px var(--px-hi); }
+#campModal nav i { box-shadow: 0 0 0 1px var(--px-ink); }
+.tnode button { box-shadow: inset 0 0 0 2px var(--px-ink), 0 0 0 2px var(--px-hi); }
+
+/* 입력창 */
+.frow input, .code { background: var(--px-ink); border: 2px solid var(--px-hi); box-shadow: inset 2px 2px 0 #000; }
+.frow input:focus { border-color: var(--px-gold); }
+
+/* 말풍선·토스트 */
+#bubble { background: var(--px-paper); border: 2px solid var(--px-ink); box-shadow: 2px 2px 0 var(--px-ink); width: 28px; height: 26px; line-height: 22px; }
+#bubble::after { border: 0; left: 8px; bottom: -6px; width: 4px; height: 4px; background: var(--px-paper); box-shadow: 0 0 0 2px var(--px-ink); }
+#toast { border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background-clip: padding-box;
+  background-color: var(--px-bg); padding: 4px 11px; }
+.rd:not(#bubble)::after, #bubble.rd::before { border-radius: 0; width: 8px; height: 8px; box-shadow: 0 0 0 2px var(--px-ink); }
+
+/* 웹 배경·상단 띠 */
+body.web { background: #0f0e1a; background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 24px); }
+#webPromo { background: var(--px-bg); border-bottom: 2px solid var(--px-ink); box-shadow: inset 0 -2px 0 #3e3c52; }
+#webPromo .dls a { padding: 5px 9px; }
+#camp, #acct, #guide { background: rgba(6, 6, 12, .55); }
+/* HUD 패널의 행동 버튼은 패널 너비를 꽉 채우는 띠로 (button 은 display:block 이어도 내용 너비만 차지한다) */
+.pbtn { width: 100%; box-sizing: border-box; }
+/* 토스트가 길면 줄을 바꾼다 (픽셀 폰트가 넓어 한 줄이면 화면 밖으로 나간다) */
+#toast { white-space: normal; max-width: min(640px, 90vw); text-align: center; line-height: 1.4; }
+#campModal, #acctModal, #guideModal { box-sizing: border-box; }
+#campBody { padding: 4px 10px 12px; }
