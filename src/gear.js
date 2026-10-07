@@ -295,8 +295,11 @@ function enhanceBlocker(slot) {
 }
 // 지금 바로 강화할 수 있는가 (레드닷)
 const canEnhance = (slot) => !enhanceBlocker(slot);
-// 결과: { result: 'up'|'keep'|'down'|'reset'|'saved', from, to }
-// protect=true 면 하락·초기화가 나왔을 때 보호 주문서가 대신 부서진다 ('saved')
+// 이 단계에서 실패하면 하락·초기화가 나올 수 있는가 (보호 주문서를 쓸 수 있는 단계)
+const enhRisky = (L) => !!(ENHANCE[L] && (ENHANCE[L].down || ENHANCE[L].reset));
+// 결과: { result: 'up'|'keep'|'down'|'reset'|'saved', from, to, used }
+// protect=true 면 결과와 상관없이 보호 주문서를 1장 쓰고(used), 하락·초기화가 나오면 막아 준다 ('saved').
+// 실패해도 유지되는 단계(+0~+4 → +5)에선 쓸 일이 없어서 소모하지 않는다
 function enhance(slot, protect = false) {
   if (enhanceBlocker(slot)) return null;
   const from = S.gear.enh[slot];
@@ -304,6 +307,8 @@ function enhance(slot, protect = false) {
   const c = enhanceCostOf(slot);
   const oldMax = stats().maxHp;
   S.stones -= c.stone; S.mats.ore -= c.ore; S.mats.mana -= c.mana;
+  const used = protect && S.items.protect > 0 && enhRisky(from);
+  if (used) S.items.protect--;
 
   let result;
   if (Math.random() < e.rate) {
@@ -311,10 +316,10 @@ function enhance(slot, protect = false) {
   } else {
     const r = Math.random();
     result = r < e.reset ? 'reset' : r < e.reset + e.down ? 'down' : 'keep';
-    if (result !== 'keep' && protect && S.items.protect > 0) { S.items.protect--; result = 'saved'; }
+    if (result !== 'keep' && used) result = 'saved';
   }
   S.gear.enh[slot] = result === 'up' ? from + 1 : result === 'down' ? from - 1 : result === 'reset' ? 0 : from;
   S.gear.top[slot] = Math.max(S.gear.top[slot] || 0, S.gear.enh[slot]);
   keepHpRatio(oldMax);
-  return { result, from, to: S.gear.enh[slot] };
+  return { result, from, to: S.gear.enh[slot], used };
 }

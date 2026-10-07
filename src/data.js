@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.11.8';
+const GAME_VERSION = '0.11.9';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -101,7 +101,7 @@ const SUPPLIES = {
   potion: { name: '회복 물약',  icon: '🧪', price: 20, w: 40, desc: '원정 중 체력 30% 이하에서 자동 사용 (쓰러짐 방지)' },
   charm:  { name: '행운의 부적', icon: '🍀', price: 60, w: 12, desc: '이번 원정 동안 좋은 등급의 전리품이 더 잘 나옴' },
   elixir: { name: '투지의 영약', icon: '🔥', price: 60, w: 13, desc: '이번 원정 동안 공격력 +30%' },
-  protect: { name: '보호 주문서', icon: '📜', price: 400, w: 4, desc: '강화 실패로 단계가 떨어지거나 초기화될 때 대신 부서져서 막아 줌' },
+  protect: { name: '보호 주문서', icon: '📜', price: 400, w: 4, desc: '강화할 때 1장 써서, 실패로 단계가 떨어지거나 초기화되는 걸 막아 줌' },
 };
 // ───────────────────────── 우편함 ─────────────────────────
 // 모든 기사에게 보내는 우편. id 는 한 번 정하면 바꾸지 않는다 (받았는지를 S.mail.got 에 id 로 남긴다).

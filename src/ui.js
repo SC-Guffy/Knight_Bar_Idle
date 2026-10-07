@@ -666,8 +666,8 @@ const gearUi = { sel: { slot: 'weapon' }, sellAsk: false, protect: false, last: 
 const GEAR_LIST_MAX = 120;                     // 창고가 아주 커져도 한 번에 그리는 개수
 
 const ENH_RESULT = {
-  up: (r) => `✨ 성공! +${r.to}`,
-  keep: () => '💨 실패 — 단계 유지',
+  up: (r) => `✨ 성공! +${r.to}${r.used ? ' <small>· 📜 -1</small>' : ''}`,
+  keep: (r) => `💨 실패 — 단계 유지${r.used ? ' <small>· 📜 -1</small>' : ''}`,
   down: (r) => `💔 실패 — +${r.from} → +${r.to} 하락`,
   reset: (r) => `💥 실패 — +${r.from} → +0 초기화`,
   saved: () => '📜 보호 주문서가 부서지며 단계를 지켰다',
@@ -951,8 +951,8 @@ function slotDetail(slot) {
       <div class="odds">+${L} → +${L + 1} · ${enhOdds(L)}</div>
       <div class="costs">${costChip('💠', c.stone, S.stones)}${costChip('🪨', c.ore, S.mats.ore)}${costChip('💎', c.mana, S.mats.mana)}</div>
       <button class="btn enh${rd(gearCanEnh(slot) && !enhFx)}" data-action="enhance" data-slot="${slot}" ${blocker || enhFx ? 'disabled' : ''}>${enhFx && enhFx.slot === slot && !enhFx.res ? '✨ 강화 중…' : '⚒️ 강화'}</button>
-      <button class="chk ${gearUi.protect ? 'on' : ''}" data-action="gear-protect" ${S.items.protect ? '' : 'disabled'}>
-        ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화 때만 소모</small></button>`;
+      <button class="chk ${gearUi.protect ? 'on' : ''}" data-action="gear-protect" ${S.items.protect && enhRisky(L) ? '' : 'disabled'}>
+        ${gearUi.protect && S.items.protect && enhRisky(L) ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · ${enhRisky(L) ? '강화할 때마다 1장 소모' : '이 단계는 실패해도 유지'}</small></button>`;
   }
   const last = gearUi.last && gearUi.last.slot === slot ? gearUi.last : null;
   const res = last ? `<div class="enhres ${last.result} ${last.fresh ? 'fresh' : ''}">${ENH_RESULT[last.result](last)}</div>` : '';
