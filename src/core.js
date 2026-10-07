@@ -24,16 +24,17 @@ function freshState() {
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
-    forge: { reforge: 1 },                  // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
+    forge: {},                              // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed)
-    mastV: 5,                               // 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    mastV: 7,                               // 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
-    gearV: 4,                               // 3: 아이템 레벨이 부위(S.gear.lvl)에 붙음 · 2: 장비마다 s 절대값 · 1: 등급 %
+    gearV: 5,                               // 5: 무기·갑옷 위력 레벨 = 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
     phase: 'camp',                          // camp | expedition | returning | tower | dungeon
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -92,7 +93,11 @@ function migrate(o) {
       s.mast[id] = lv >= SKILL_MAX ? SKILL_TOME_MAX : skillTomesAt(lv) + Math.floor(left / skillNeedWith(oldMax, lv) * skillNeed(lv));
     }
   }
-  s.mastV = 5;
+  // mastV 7: 별(자동 → 진화 버튼)이 ⭐ 포인트를 찍는 스킬 트리로 바뀌었다. 포인트는 모두 미배분으로 시작한다 (트리에서 다시 찍는다)
+  if (o.mast && (o.mastV || 1) < 7 && Object.keys(s.mast).some((id) => skillLvOf(s.mast[id]).lv >= TREE_PT_EVERY) && !s.notice) {
+    s.notice = '⚡ 스킬 트리 도입 — 스킬 Lv5 마다 ⭐ 포인트가 1개 생기고, 스킬 탭의 트리에서 공격·쿨타임 특화와 진화(별) 노드에 찍어요. 지금 가진 포인트를 찍어 주세요 (되돌리기는 무료)';
+  }
+  s.mastV = 7;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -108,6 +113,7 @@ function migrate(o) {
     for (const c of s.raid.chests || []) c.s = Math.max(c.s || 1, s.best || 1);
     s.notice = '⚖️ 성장 개편 — 이제 공격력·체력은 장비가 책임지고, 훈련은 초반을 끌어 주다가 % 보너스로 바뀌어요. 무기·갑옷 부위의 아이템 레벨은 대장간 🔥 재련(장비 탭)으로 올려요. 같은 부위 장비는 등급이 곧 서열이에요';
   }
+  s.gear.lvl = s.gear.lvl || { weapon: 1, armor: 1 };
   // gearV 3: 아이템 레벨이 장비 → 부위로. 지금 낀 장비의 레벨을 그 부위 레벨로 옮긴다 (재련로도 최소 Lv1)
   if ((o.gearV || 1) < 3) {
     for (const slot of ['weapon', 'armor']) {
@@ -119,7 +125,28 @@ function migrate(o) {
   }
   // gearV 4: 재련 한도가 재련로 Lv × 15 로 바뀌었다 — 예전 대장간 Lv 만큼 재련로를 올려 둔다
   if ((o.gearV || 1) < 4) s.forge.reforge = Math.max(s.forge.reforge || 1, Math.min(BUILD_MAX, s.bld.forge || 1));
-  s.gearV = 4;
+  // gearV 5: 재련이 훈련에 합쳐졌다 — 무기 레벨은 공격력 훈련, 갑옷 레벨은 체력 훈련이 정한다 (data.js trainGearLvAt).
+  //  재련한 부위 레벨만큼 훈련 단계를 올려 주고(힘이 줄지 않게), 재련로를 올리는 데 쓴 재화를 돌려준다
+  if ((o.gearV || 1) < 5) {
+    const conv = (L) => trainForGearLv(L || 1);
+    const up = { atk: Math.max(0, conv(s.gear.lvl.weapon) - s.train.atk), hp: Math.max(0, conv(s.gear.lvl.armor) - s.train.hp) };
+    s.train.atk += up.atk; s.train.hp += up.hp;
+    const back = { gold: 0, ore: 0, mana: 0 };
+    for (let i = 1; i < (s.forge.reforge || 0); i++) { const c = forgeFacCost('reforge', i); back.gold += c.gold; back.ore += c.ore; back.mana += c.mana; }
+    s.gold += back.gold; s.mats.ore += back.ore; s.mats.mana += back.mana;
+    if ((o.gearV || 1) >= 3) s.notice = `🎯 재련이 훈련에 합쳐졌어요 — 이제 공격력 훈련이 무기 위력을, 체력 훈련이 갑옷 위력을 올려요.${up.atk || up.hp ? ` 재련한 만큼 훈련을 올려 드렸어요 (공격력 +${up.atk} · 체력 +${up.hp})` : ''}${back.ore ? `, 재련로에 쓴 재화(골드 ${fmt(back.gold)} · 철광석 ${fmt(back.ore)} · 마력석 ${fmt(back.mana)})도 돌려드렸어요` : ''}`;
+  }
+  delete s.gear.lvl; delete s.forge.reforge;
+  s.gearV = 5;
+  // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
+  if (s.forge.resonance || s.gear.res) {
+    const back = { gold: 0, ore: 0, mana: 0 };
+    for (let r = 0; r < (s.gear.res || 0); r++) back.mana += Math.ceil(5 * Math.pow(1.12, r));
+    for (let i = 0; i < (s.forge.resonance || 0); i++) { const c = forgeFacCost('resonance', i); back.gold += c.gold; back.ore += c.ore; back.mana += c.mana; }
+    s.gold += back.gold; s.mats.ore += back.ore; s.mats.mana += back.mana;
+    delete s.forge.resonance; delete s.gear.res;
+    s.notice = `💫 공명로가 빠졌어요 — 건물이 능력치를 직접 주지 않도록 정리했어요. 쓴 마력석 ${fmt(back.mana)} · 골드 ${fmt(back.gold)} · 철광석 ${fmt(back.ore)}을 돌려드렸어요`;
+  }
   // 연마대(0.12.2, 강화 성공 확률 보너스)가 빠졌다: 올린 데 쓴 재화를 돌려준다
   if (s.forge.anvil) {
     const back = { gold: 0, ore: 0, mana: 0 };
@@ -167,11 +194,11 @@ function stats(base = false) {
   const c = heroClass(), w = WEAPONS[c.weapon], m = c.mods;
   const t = S.train;
   const gb = gearBonus();
-  // 절대값 = 기본·훈련·레벨 + 무기 공격력 / 갑옷 체력 (아이템 레벨). 여기에 훈련 %·직업·특수 효과 배율이 곱해진다
+  // 절대값 = 기본·훈련·레벨 + 무기 공격력 / 갑옷 체력 (위력 레벨 = 훈련). 여기에 직업·특수 효과 배율이 곱해진다
   let atk = (trainAtkAt(t.atk) + (S.level - 1) * 1.5 + gb.atk)
-    * trainPctAt(t.atk) * (m.atk || 1) * (1 + gb.atkPct);
+    * (m.atk || 1) * (1 + gb.atkPct);
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
-  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8 + gb.hp) * trainPctAt(t.hp) * (m.hp || 1) * (1 + gb.hpPct);
+  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1) * (1 + gb.hpPct);
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
   const defRed = defRedAt(t.def);
@@ -191,8 +218,60 @@ const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reve
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0).lv;
-const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls);
-const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls);
+// 스킬 트리 (S.tree, classes.js SKILL_TREE): 숙련도 Lv5 마다 ⭐ 포인트 1. n 은 노드별 찍은 Lv, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
+const treeOf = (id) => S.tree[mastKey(id)] || { n: {}, use: 0 };
+const nodeLv = (id, nid) => treeOf(id).n[nid] || 0;
+const skillPts = (id) => Math.floor(skillLv(id) / TREE_PT_EVERY);
+const skillSpent = (id) => Object.values(treeOf(id).n).reduce((a, b) => a + b, 0);
+const skillPtsLeft = (id) => skillPts(id) - skillSpent(id);
+// 트리가 주는 보너스 { star 단 별 수, pow 공격 특화 Lv 합, cd 쿨타임 특화 Lv 합 } (classes.js skillPowAt·skillCdOf 의 b)
+function skillBonus(id) {
+  const n = treeOf(id).n, b = { star: 0, pow: 0, cd: 0 };
+  for (const nid in n) {
+    const nd = TREE_NODES[nid];
+    if (!nd || !n[nid]) continue;
+    if (nd.kind === 'star') b.star++;
+    else if (nd.kind === 'pow') b.pow += n[nid];
+    else if (nd.kind === 'cd') b.cd += n[nid];
+  }
+  return b;
+}
+const skillStar = (id) => skillBonus(id).star;
+const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
+const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
+const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
+// 노드 상태: max(다 찍음) · on(찍는 중) · open(찍을 수 있음) · closed(같은 단계의 다른 노드를 골라서 닫힘) · locked(윗 단계가 비었음)
+function nodeState(id, nid) {
+  const nd = TREE_NODES[nid], lv = nodeLv(id, nid);
+  if (nd.kind === 'learn' || lv >= nd.max) return 'max';
+  if (lv > 0) return 'on';
+  if (SKILL_TREE[nd.tier].some((o) => o.id !== nid && nodeLv(id, o.id) > 0)) return 'closed';
+  if (!SKILL_TREE[nd.tier - 1].some((o) => o.kind === 'learn' || nodeLv(id, o.id) > 0)) return 'locked';
+  return 'open';
+}
+const canInvest = (id, nid) => skillPtsLeft(id) > 0 && (nodeState(id, nid) === 'on' || nodeState(id, nid) === 'open');
+const canInvestAny = () => skillsOf(S.cls).some((k) => skillPtsLeft(k.id) > 0 && Object.keys(TREE_NODES).some((nid) => canInvest(k.id, nid)));
+// 노드에 포인트 1 을 찍는다. 진화 노드면 새 모습을 바로 적용한다. 찍은 뒤 노드 Lv 또는 0
+function investNode(id, nid) {
+  if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canInvest(id, nid)) return 0;
+  const key = mastKey(id), t = S.tree[key] || (S.tree[key] = { n: {}, use: 0 });
+  t.n[nid] = (t.n[nid] || 0) + 1;
+  if (TREE_NODES[nid].kind === 'star') t.use = skillStar(id);
+  return t.n[nid];
+}
+// 찍은 포인트를 모두 되돌린다 (무료)
+function resetTree(id) {
+  if (!SKILLS[id] || !skillSpent(id)) return false;
+  S.tree[mastKey(id)] = { n: {}, use: 0 };
+  return true;
+}
+// 전투에서 쓸 모습을 고른다 (0 ~ 단 별 수)
+function setSkillStar(id, use) {
+  const t = treeOf(id);
+  if (!SKILLS[id] || use < 0 || use > skillStar(id) || use === t.use) return false;
+  S.tree[mastKey(id)] = { n: t.n, use };
+  return true;
+}
 // 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null
 function feedTomes(id, n) {
   const k = SKILLS[id];
@@ -216,7 +295,7 @@ function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
   let busy = 0, extra = 0;
   for (const id of st.skills || []) {
-    const k = skillAt(id, skillLv(id));
+    const k = skillAt(id, skillLv(id), skillStage(id));
     const cd = skillCd(id);
     busy += k.dur / cd;
     extra += (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id) / cd;
@@ -234,8 +313,9 @@ function profile() {
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal,
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     skills: st.skills.map((id) => {
-      const k = skillAt(id, skillLv(id));
-      return { id, lv: skillLv(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
+      const k = skillAt(id, skillLv(id), skillStage(id));
+      // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
     }),
   };
 }

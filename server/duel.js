@@ -77,7 +77,7 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
       me.hp = Math.min(me.max, me.hp + me.max * sk.ward.heal);
     }
     events.push({
-      t: round1(t), by: side, kind, ...(sk ? { sk: sk.id, sl: sk.lv } : {}),
+      t: round1(t), by: side, kind, ...(sk ? { sk: sk.id, sl: sk.lv, ...(sk.st != null ? { ss: sk.st } : {}) } : {}),
       dmg: Math.round(dmg), crit, hpA: Math.max(0, Math.round(a.hp)), hpB: Math.max(0, Math.round(b.hp)),
     });
   };

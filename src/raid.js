@@ -3,8 +3,8 @@
 // 로비(방 목록·준비·출정)와 전투 계산은 서버가 하고(server/raid.js), 여기서는 받은 결과로 내 보상만 정산한다.
 //  S.raid = {
 //    tickets: 보유 입장권, freeDay: 무료 충전을 마지막으로 받은 날, buyDay·bought: 오늘(buyDay) 산 장수 — 살수록 비싸진다,
-//    chests: 아직 안 연 처치 상자 [{ k: 'rbox', b: 보스 id, s: 스테이지, first: 첫 처치 상자면 1 }],
-//    kills: 보스별 처치 횟수 { 보스 id: n } — 처음 잡으면 첫 처치 상자(비전서 5권)를 준다 — 고유 장비는 첫 처치여도 확률대로만,
+//    chests: 아직 안 연 처치 상자 [{ k: 'rbox', b: 보스 id, s: 스테이지 }],
+//    kills: 보스별 처치 횟수 { 보스 id: n } (보스 카드에 표시용. 첫 처치 보너스 같은 건 없다 — 0.13.3 에서 뺌),
 //    claimed: 이미 정산한 결과 id (같은 결과를 두 번 받지 않도록), last: 마지막 정산 화면 내용
 //  }
 
@@ -75,10 +75,9 @@ function settleRaid(result, nick) {
   reward.levels = gainExp(reward.exp);
   if (f.won) {
     S.raid.tickets = Math.max(0, S.raid.tickets - 1);
-    reward.first = !S.raid.kills[result.boss];
     S.raid.kills[result.boss] = (S.raid.kills[result.boss] || 0) + 1;
     // 상자 장비의 아이템 레벨 = 실제로 싸운 스테이지 (내 최고 스테이지를 넘지 않음)
-    S.raid.chests.push({ k: 'rbox', b: result.boss, s: rs, ...(reward.first ? { first: 1 } : {}) });
+    S.raid.chests.push({ k: 'rbox', b: result.boss, s: rs });
   }
 
   S.raid.last = {
@@ -90,7 +89,7 @@ function settleRaid(result, nick) {
 }
 
 // ───────────────────────── 처치 상자 ─────────────────────────
-// 내용물은 전부 장비. 등급은 보스마다 정한 가중치(chest.w)로 뽑고, chest.sig 확률로 그 보스의 고유 장비가 하나 섞인다 (첫 처치 상자도 예외 없이 확률대로)
+// 내용물은 전부 장비. 등급은 보스마다 정한 가중치(chest.w)로 뽑고, chest.sig 확률로 그 보스의 고유 장비가 하나 섞인다
 function rollRaidGear(g, s) {
   const slot = pickWeighted(GEAR_SLOTS, () => 1);
   const pool = gearItemsOf(slot, g);
@@ -122,8 +121,8 @@ function claimRaidChest(i) {
   const c = S.raid.chests.splice(i, 1)[0];
   if (!c) return [];
   const got = openRaidChest(c).map((it) => ({ it, got: claimLoot(it) }));
-  // 📖 비전서 (스킬 숙련도): 상자마다 1~2권, 그 보스의 첫 처치 상자는 5권
-  got.tomes = c.first ? 5 : 1 + (Math.random() < 0.5 ? 1 : 0);
+  // 📖 비전서 (스킬 숙련도): 상자마다 1~2권
+  got.tomes = 1 + (Math.random() < 0.5 ? 1 : 0);
   S.tomes += got.tomes;
   return got;
 }
