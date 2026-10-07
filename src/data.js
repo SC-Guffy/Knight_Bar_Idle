@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.12.4';
+const GAME_VERSION = '0.12.5';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -509,7 +509,8 @@ const enhanceMultAt = (L) => 1 + 0.12 * L + 0.004 * L * L;
 function enhanceCost(L) {
   return {
     stone: Math.floor(2 * Math.pow(1.17, L)),
-    ore: Math.floor(4 * Math.pow(1.2, L)),
+    // 철광석은 건물과 나눠 쓰므로 가볍게 (×4 였을 땐 강화를 먼저 하면 건물을 못 올려 진행이 멈췄다 — 강화를 묶는 건 💠 강화석)
+    ore: Math.floor(2 * Math.pow(1.2, L)),
     mana: L >= 10 ? Math.floor(2 * Math.pow(1.22, L - 10)) : 0,
   };
 }
