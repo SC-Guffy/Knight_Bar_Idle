@@ -105,8 +105,9 @@
   .sup .act { display: flex; gap: 5px; flex-shrink: 0; }
   .dgline { font-size: 12.5px; margin: 3px 0; }
   .dgline .bad { color: var(--bad); }
-  #hud { position: absolute; top: 6px; left: 10px; width: 470px; }
+  #hud { position: absolute; top: 6px; left: 10px; width: 470px; transition: width .2s; }
   #hud.right { left: auto; right: 10px; }
+  #hud.act { width: 548px; }     /* 바에 귀환·후퇴 버튼이 붙으면 그만큼 넓어진다 (ui.js renderHud) */
   .bar { display: flex; align-items: center; gap: 9px; padding: 5px 10px; border-radius: 10px; cursor: pointer;
     background: var(--glass); border: 1px solid var(--line); transition: background .15s; white-space: nowrap; }
   #hud:hover .bar { background: rgba(18, 18, 26, .9); }
@@ -123,10 +124,14 @@
     background: radial-gradient(circle at 35% 30%, #fff6c2 0 16%, #ffd54a 17% 52%, #e6a400 53% 100%);
     box-shadow: inset 0 0 0 1px #a86f00, inset 0 0 0 2.5px rgba(255, 236, 150, .55); }
   #status { min-width: 92px; }
+  /* 바 안의 명령 버튼: 원정 중엔 🏕 귀환, 탑·미궁 도전 중엔 ⬇️ 후퇴. 그 외엔 숨고 바가 줄어든다 */
+  #hbtn { padding: 3px 9px; font-size: 12.5px; flex-shrink: 0; }
+  #hbtn:hover { background: rgba(255,255,255,.22); }
 
   .panel { display: none; margin-top: 4px; padding: 8px 10px; border-radius: 10px; background: var(--glass-strong); border: 1px solid var(--line); }
   #hud:hover .panel { display: block; }
   .pline { color: var(--muted); margin-bottom: 6px; }
+  .pline:last-child { margin-bottom: 0; }
   .pline b { color: var(--text); }
   .pbtn { all: unset; cursor: pointer; display: block; text-align: center; padding: 6px; border-radius: 7px;
     background: var(--soft); border: 1px solid var(--line); font-weight: 600; }
@@ -833,6 +838,7 @@
       <span>🎒 <b id="bag"></b></span>
       <span><b id="stage"></b></span>
       <span class="gold"><i class="gc"></i> <b id="gold">0</b></span>
+      <button id="hbtn" class="btn" hidden></button>
     </div>
     <div class="panel"><div id="panelBody"></div></div>
   </div>

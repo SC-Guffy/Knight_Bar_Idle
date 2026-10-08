@@ -138,6 +138,16 @@ function renderHud() {
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`;
 
+  // 바 안의 명령 버튼 — 귀환·후퇴할 수 있는 상황에만 보이고, 없으면 바가 그만큼 줄어든다 (#hud.act)
+  const cmd = S.phase === 'expedition' ? ['recall', '🏕 귀환', '귀환 명령 — 지금 원정을 마치고 캠프로']
+    : S.phase === 'tower' && S.tower.run ? ['tower-retreat', '⬇️ 후퇴', '이 층에서 후퇴해 캠프로']
+    : S.phase === 'dungeon' && S.dg.run ? ['dg-retreat', '⬇️ 후퇴', '후퇴 — 배낭의 절반만 가지고 캠프로']
+    : null;
+  const hb = $('hbtn');
+  hb.hidden = !cmd;
+  if (cmd) { hb.dataset.action = cmd[0]; hb.textContent = cmd[1]; hb.title = cmd[2]; }
+  $('hud').classList.toggle('act', !!cmd);
+
   const key = S.phase + (S.build ? 'b' : '') + (S.tower.run ? 'r' : '') + (S.dg.run ? 'd' : '');
   if (key !== panelKey) {
     panelKey = key;
@@ -145,17 +155,14 @@ function renderHud() {
     $('panelBody').innerHTML =
       S.phase === 'expedition' ? `
         <div class="pline">⏳ 남은 원정 <b data-live="expLeft"></b> · 처치 <b data-live="expKills"></b> · 📦 <b data-live="expBoxes"></b></div>
-        ${build}
-        <button class="pbtn" data-action="recall">🏕 귀환 명령</button>`
+        ${build}`
       : S.phase === 'tower' && S.tower.run ? `
         <div class="pline">🗼 도전의 탑 <b data-live="towerFloor"></b> · ⏳ <b data-live="expLeft"></b> · 📖 <b data-live="towerTomes"></b></div>
-        ${build}
-        <button class="pbtn" data-action="tower-retreat">⬇️ 후퇴</button>`
+        ${build}`
       : S.phase === 'tower' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
       : S.phase === 'dungeon' && S.dg.run ? `
         <div class="pline">⛏️ 재료의 미궁 · 배낭은 나와야 내 것 (후퇴하면 절반)</div>
-        ${build}
-        <button class="pbtn" data-action="dg-retreat">⬇️ 후퇴 (배낭 절반)</button>`
+        ${build}`
       : S.phase === 'dungeon' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
       : S.phase === 'returning' ? `<div class="pline">캠프로 돌아가는 중…</div>${build}`
       : `<div class="pline" data-live="campStatus"></div>${build}
