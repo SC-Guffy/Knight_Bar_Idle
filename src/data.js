@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.17.8';
+const GAME_VERSION = '0.18.0';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -82,7 +82,7 @@ const BUILDINGS = {
   },
   forge: {
     name: '대장간', icon: '⚒️', mul: { gold: 1.2, wood: 0.4, ore: 1.6, mana: 1.4 },
-    effect: (lv) => `대장간 시설 최대 Lv ${lv}`,
+    effect: (lv) => `⚒️ 부위 강화 · 시설 최대 Lv ${lv}`,
   },
 };
 
@@ -100,20 +100,35 @@ function buildCost(id, lv) {
 // ───────────────────────── 대장간 시설 ─────────────────────────
 // 대장간은 능력치를 주지 않고 장비를 다루는 시설을 품는다. 시설마다 따로 올리고(재화 즉시 소모), 대장간 Lv 이 시설의 최대 Lv 이다.
 // 무기·갑옷의 기본 위력은 기사 레벨이 정한다 (data.js gearAtkAt) — 0.12 의 재련·재련로는 0.13.3 에서 없어졌다 (core.js migrate 가 환급)
+// 부위 강화(S.gear.enh)도 대장간 화면에서 한다 — 시설 Lv 과는 무관하고 💠 강화석만 묶는다 (ui.js viewForge)
 const FORGE_FAC = {
-  salvage: { name: '분해대', icon: '🧰', desc: '장비를 팔 때 나오는 💠 강화석이 늘어나요',
+  salvage: { name: '분해대', icon: '🧰', desc: '장비를 분해할 때 나오는 💠 강화석이 늘어나요',
     effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },
-  potential: { name: '각인대', icon: '🔮', desc: '장비의 편차(roll)를 다시 굴려요 — Lv 이 오를수록 범위가 좋아져요',
-    effect: (lv) => (lv ? `편차 ×${potentialRangeAt(lv).map((v) => v.toFixed(2)).join('~')}` : '아직 없음') },
+  enchant: { name: '마법부여대', icon: '✨', desc: '장비에 부가 옵션(공격력 % · 골드 획득 % 등) 하나를 붙여요 — Lv 이 오를수록 수치가 좋아져요',
+    effect: (lv) => (lv ? `옵션 품질 ${Math.round(enchantQualAt(lv) * 100)}~100%` : '아직 없음') },
 };
 // 강화 확률을 올려 주는 시설은 두지 않는다 (강화는 아껴서 풀어야 하는 성장 — 0.12.2 의 연마대는 0.12.3 에서 빠짐, core.js migrate 가 환급)
 // 분해대: 판매 강화석 ×(1 + 0.1·Lv) (Lv20 ×3)
 const salvageMultAt = (lv) => 1 + 0.1 * lv;
-// 각인대: 다시 굴린 편차의 범위 [0.9 + 0.01·Lv, 1.1 + 0.005·Lv] (Lv20 1.10~1.20).
-//  최고 1.2 / 최저 0.9 = 1.33 배라 등급 한 칸(약 1.45배)은 여전히 못 넘는다 → 등급 서열 유지
-const potentialRangeAt = (lv) => [0.9 + 0.01 * lv, 1.1 + 0.005 * lv];
-// 각인 1회 비용: 💠 강화석 (그 등급 판매량만큼) + 💎 마력석
-const potentialCost = (g) => ({ stone: GEAR_STONES[g], mana: 2 + 2 * g });
+// 마법부여대 (0.18, 0.13~0.17 의 각인대(편차 다시 굴리기)를 대신한다 — core.js migrate 가 Lv 을 옮김)
+//  장비 하나에 부가 옵션 { k, v } 하나를 붙인다 (it.en). 옵션은 SPECIAL_STATS 키, 값은 lo~hi 사이.
+//  품질 q 를 [enchantQualAt(Lv), 1] 에서 균등하게 굴려 v = lo + (hi − lo)·q — Lv1 은 바닥 4%, Lv20 은 바닥 80% (최소값이 올라가 꽝이 줄어든다)
+//  다시 부여하면 이전 옵션은 사라진다. 능력치는 장비에 붙고 시설은 행동만 열어 주므로 "건물은 능력치를 직접 주지 않는다" 원칙과 맞다.
+//  공격력·체력 % 는 부위 3개를 다 최대로 받아도 ×1.36 — 등급 한 칸(약 1.45배)은 못 넘는다 → 등급 서열 유지
+const ENCHANT_OPTS = {
+  atkPct:   { lo: 0.03,  hi: 0.12 },
+  hpPct:    { lo: 0.03,  hi: 0.12 },
+  crit:     { lo: 0.01,  hi: 0.04 },
+  critMult: { lo: 0.05,  hi: 0.25 },
+  guard:    { lo: 0.02,  hi: 0.08 },
+  heal:     { lo: 0.002, hi: 0.01 },
+  goldPct:  { lo: 0.05,  hi: 0.25 },
+  expPct:   { lo: 0.05,  hi: 0.25 },
+};
+const enchantQualAt = (lv) => Math.min(1, 0.04 * lv);
+const enchantValueAt = (k, q) => { const o = ENCHANT_OPTS[k]; return Math.round((o.lo + (o.hi - o.lo) * q) * 10000) / 10000; };
+// 마법부여 1회 비용: 💠 강화석 (그 등급 판매량만큼) + 💎 마력석
+const enchantCost = (g) => ({ stone: GEAR_STONES[g], mana: 2 + 2 * g });
 // 건물·시설은 능력치를 직접 주지 않는다 (0.13.1 의 공명로는 0.13.2 에서 빠짐, core.js migrate 가 환급)
 // 시설 lv → lv+1 비용
 function forgeFacCost(id, lv) {

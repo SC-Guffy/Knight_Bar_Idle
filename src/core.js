@@ -148,7 +148,13 @@ function migrate(o) {
   delete s.gear.lvl; delete s.forge.reforge;
   // gearV 6: 무기·갑옷 기본 위력이 훈련 → 기사 레벨을 따라 커진다. 훈련 단계는 그대로 (이제 맨몸 능력치만)
   if ((o.gearV || 1) >= 3 && (o.gearV || 1) < 6) s.notice = '⚔️ 장비 성장 정리 — 이제 무기·갑옷의 기본 위력은 기사 레벨을 따라 커지고, 등급·편차·강화가 곱해져요. 훈련은 맨몸 단련이라 초반을 끌어 주고 중후반엔 장비가 힘의 대부분이에요 (훈련장을 올려도 장비는 세지지 않아요)';
-  s.gearV = 6;
+  // gearV 7 (0.18): 각인대(편차 다시 굴리기) → 마법부여대(부가 옵션). 비용 공식이 같아 Lv 을 그대로 옮긴다. 부위 강화는 장비 탭 → 마을 대장간으로
+  if ((o.gearV || 1) < 7) {
+    if (s.forge.potential) s.forge.enchant = Math.max(s.forge.enchant || 0, s.forge.potential);
+    s.notice = `⚒️ 대장간 정리 — 부위 강화는 이제 마을 → 대장간에서 해요. 🔮 각인대는 ✨ 마법부여대로 바뀌어 장비에 공격력 % · 골드 획득 % 같은 부가 옵션을 붙여요${s.forge.potential ? ` (각인대 Lv ${s.forge.potential}을 그대로 옮겨 드렸어요)` : ''}`;
+  }
+  delete s.forge.potential;
+  s.gearV = 7;
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
   if (s.forge.resonance || s.gear.res) {
     const back = { gold: 0, ore: 0, mana: 0 };

@@ -19,7 +19,7 @@ const townTier = (lv) => (lv < 5 ? 0 : lv < 10 ? 1 : lv < 15 ? 2 : 3);
 function townTodo(id) {
   if (canBuild(id)) return true;
   if (id === 'training') return TRAINING.some(canTrain);
-  if (id === 'forge') return Object.keys(FORGE_FAC).some((f) => forgeFacBlocker(f) === '');
+  if (id === 'forge') return Object.keys(GEAR_SLOTS).some(gearCanEnh) || Object.keys(FORGE_FAC).some((f) => forgeFacBlocker(f) === '');   // 부위 강화 · 시설
   return false;
 }
 function townSel() {

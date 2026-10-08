@@ -2,7 +2,7 @@
 // 장비·전리품·강화 규칙. core.js 처럼 DOM을 모르고 S 상태만 바꾼다.
 //  - 가방:        상자 { k: 'box', g, s, boss } — 캠프에서 열면 아래 전리품들이 나온다 (openBox)
 //  - 전리품:      { k: 'gear', slot, g, s, t, roll } | { k: 'curio', id, g, s } | { k: 'use', id }
-//  - 장비 창고:   S.gear.inv = [{ id, slot, g, s, t, roll }]   (t = GEAR_ITEMS 키, roll = 능력치 편차)
+//  - 장비 창고:   S.gear.inv = [{ id, slot, g, s, t, roll, en? }]   (t = GEAR_ITEMS 키, roll = 능력치 편차, en = 마법부여 옵션 { k, v })
 //  - 장착:        S.gear.eq = { weapon: id|null, armor, ring }
 //  - 강화 단계:   S.gear.enh = { weapon: 0.., armor, ring }  — 부위에 붙어 있어서 장비를 바꿔도 유지
 //  - 기본 위력:   무기·갑옷은 착용한 기사의 레벨을 따라 커진다 (gearLvOf). 장비의 s 는 판매가에만 쓴다
@@ -110,12 +110,12 @@ function gearStat(it, enh = S.gear.enh[it.slot], lvl = gearLvOf(it.slot)) {
   return out;
 }
 // 같은 부위 장비끼리 비교하는 점수 (장신구는 치명 확률과 피해를 기대 피해 증가로 환산)
-// 고유 장비의 특수 효과는 대략 그만큼 점수를 올려 준다 (골드·경험치는 전투력이 아니라 조금만)
+// 고유 장비의 특수 효과와 마법부여 옵션은 대략 그만큼 점수를 올려 준다 (골드·경험치는 전투력이 아니라 조금만)
 function gearScore(it) {
   const st = gearStat(it, 0);
   const base = it.slot === 'ring' ? st.crit * 2.5 + st.critMult * 0.3 : it.slot === 'weapon' ? st.atk * (1 + st.aspdPct) : st.hp;
-  const sp = GEAR_ITEMS[it.t].sp;
-  if (!sp) return base;
+  const sp = { ...(GEAR_ITEMS[it.t].sp || {}) };
+  if (it.en) sp[it.en.k] = (sp[it.en.k] || 0) + it.en.v;
   let k = 1;
   for (const [key, v] of Object.entries(sp)) k += key === 'heal' ? v * 10 : key === 'goldPct' || key === 'expPct' ? v * 0.3 : key === 'crit' ? v * 3 : v;
   return base * k;
@@ -125,6 +125,8 @@ function gearSpecialText(it) {
   const sp = GEAR_ITEMS[it.t] && GEAR_ITEMS[it.t].sp;
   return sp ? Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v)}`).join(' · ') : '';
 }
+// 마법부여 옵션 글 (없으면 '')
+const gearEnchantText = (it) => (it && it.en && SPECIAL_STATS[it.en.k] ? `${SPECIAL_STATS[it.en.k].name} ${SPECIAL_STATS[it.en.k].fmt(it.en.v)}` : '');
 function gearStatText(st) {
   if (st.atk != null) return `⚔️ ${fmt(st.atk)}${st.aspdPct ? ` · 💨 +${Math.round(st.aspdPct * 100)}%` : ''}`;
   if (st.hp != null) return `❤️ ${fmt(st.hp)}`;
@@ -145,9 +147,25 @@ function gearBonus() {
     for (const k of Object.keys(st)) out[k] += st[k];
     const sp = GEAR_ITEMS[it.t].sp;
     if (sp) for (const k of Object.keys(sp)) out[k] += sp[k];
+    if (it.en && it.en.k in out) out[it.en.k] += it.en.v;
   }
   for (const s of raidSets()) for (const t of s.tiers) if (t.on) for (const k of Object.keys(t.sp)) out[k] += t.sp[k];
   return out;
+}
+
+// 장착 장비·세트가 stats() 에 더하는 양을 출처별로 나눈 것 (상태창 툴팁용). [{ name, st: { atk?, hp?, crit?, …, atkPct?, goldPct? … } }]
+function gearBonusParts() {
+  const parts = [];
+  for (const slot of Object.keys(GEAR_SLOTS)) {
+    const it = equipped(slot);
+    if (!it) continue;
+    parts.push({ name: `${GEAR_SLOTS[slot].icon} ${gearName(it)} +${S.gear.enh[slot]}`, st: gearStat(it) });
+    const sp = GEAR_ITEMS[it.t].sp;
+    if (sp) parts.push({ name: `✦ ${gearName(it)} 고유 효과`, st: { ...sp } });
+    if (it.en) parts.push({ name: `✨ ${GEAR_SLOTS[slot].name} 마법부여`, st: { [it.en.k]: it.en.v } });
+  }
+  for (const s of raidSets()) for (const t of s.tiers) if (t.on) parts.push({ name: `🔗 ${RAID_BOSSES[s.boss].set.name} 세트 ${t.need}부위`, st: { ...t.sp } });
+  return parts;
 }
 
 // ───────────────────────── 레이드 세트 ─────────────────────────
@@ -220,7 +238,7 @@ function loadoutValue(eq) {
 let loadoutCache = { key: '', eq: null };
 function bestLoadout() {
   // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
-  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}`;
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}${x.en ? x.en.k + x.en.v : ''}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}`;
   if (loadoutCache.key === key) return loadoutCache.eq;
   const slots = Object.keys(GEAR_SLOTS);
   const cands = slots.map((slot) => {
@@ -343,24 +361,25 @@ function upgradeForgeFac(id) {
   return true;
 }
 
-// ───────────────────────── 각인대 (편차 다시 굴리기) ─────────────────────────
-function potentialBlocker(it) {
+// ───────────────────────── 마법부여대 (부가 옵션 붙이기) ─────────────────────────
+function enchantBlocker(it) {
   if (!it) return '장비를 골라 주세요';
-  if (!forgeFacLv('potential')) return '마을 대장간에서 🔮 각인대를 먼저 지어야 해요';
-  if (S.phase !== 'camp') return '캠프에서만 각인할 수 있어요';
-  const c = potentialCost(it.g);
+  if (!forgeFacLv('enchant')) return '마을 대장간에서 ✨ 마법부여대를 먼저 지어야 해요';
+  if (S.phase !== 'camp') return '캠프에서만 마법을 부여할 수 있어요';
+  const c = enchantCost(it.g);
   if (S.stones < c.stone) return '강화석 부족';
   if (S.mats.mana < c.mana) return '마력석 부족';
   return '';
 }
-// 편차를 각인대 범위에서 새로 굴린다 (낮게 나와도 그대로 바뀐다). { from, to } 또는 null
-function rerollPotential(id) {
+// 옵션을 무작위로 하나 골라 마법부여대 품질 범위에서 값을 굴려 붙인다 (이전 옵션은 사라진다). { from, to } 또는 null
+function enchantGear(id) {
   const it = gearById(id);
-  if (potentialBlocker(it)) return null;
-  const c = potentialCost(it.g), [lo, hi] = potentialRangeAt(forgeFacLv('potential')), oldMax = stats().maxHp;
+  if (enchantBlocker(it)) return null;
+  const c = enchantCost(it.g), q0 = enchantQualAt(forgeFacLv('enchant')), oldMax = stats().maxHp;
   S.stones -= c.stone; S.mats.mana -= c.mana;
-  const from = it.roll;
-  it.roll = Math.round((lo + Math.random() * (hi - lo)) * 100) / 100;
+  const from = it.en || null;
+  const keys = Object.keys(ENCHANT_OPTS), k = keys[Math.floor(Math.random() * keys.length)];
+  it.en = { k, v: enchantValueAt(k, q0 + Math.random() * (1 - q0)) };
   keepHpRatio(oldMax);
-  return { from, to: it.roll };
+  return { from, to: it.en };
 }
