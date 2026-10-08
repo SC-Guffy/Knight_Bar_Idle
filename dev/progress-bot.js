@@ -7,7 +7,7 @@
 // 수치는 '24시간 켜 둔 봇' 기준이라 실제 플레이어보다 빠르다. 변경 전후의 차이를 보는 용도다.
 const vm = require('vm'), fs = require('fs'), path = require('path'), cp = require('child_process');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['data', 'classes', 'gear', 'raid', 'season', 'tower', 'worldboss', 'core'];
+const FILES = ['data', 'classes', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'core'];
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140];
 
 function makeGame(rev) {
@@ -19,7 +19,9 @@ function makeGame(rev) {
   ctx.window = ctx; ctx.globalThis = ctx;
   vm.createContext(ctx);
   for (const f of FILES) {
-    const src = rev ? cp.execFileSync('git', ['show', `${rev}:src/${f}.js`], { cwd: ROOT, encoding: 'utf8' }) : fs.readFileSync(path.join(ROOT, 'src', f + '.js'), 'utf8');
+    let src;
+    if (rev) { try { src = cp.execFileSync('git', ['show', `${rev}:src/${f}.js`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { continue; } } // 그 커밋에 아직 없는 파일(예: 0.12.0 이전의 dungeon.js)은 건너뜀
+    else src = fs.readFileSync(path.join(ROOT, 'src', f + '.js'), 'utf8');
     vm.runInContext(src, ctx, { filename: f + '.js' });
   }
   return ctx;
