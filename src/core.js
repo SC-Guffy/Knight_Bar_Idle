@@ -106,7 +106,12 @@ function migrate(o) {
   if (o.mast && (o.mastV || 1) < 9 && Object.keys(s.tree || {}).some((id) => SKILLS[id] && SKILLS[id].right && Object.values(s.tree[id].n || {}).some((n) => n > 0)) && !s.notice) {
     s.notice = '⚔️ 강철 베기 트리 개편 — 레벨로 저절로 오르던 위력·쿨타임이 없어지고 전부 노드로 자라요. 왼쪽은 ⚔️ 피해, 오른쪽은 ⏱️ 쿨타임·💥 치명·🩸 흡혈 중 고르기. 찍었던 쿨타임 특화 포인트는 돌려드렸으니 스킬 탭에서 다시 찍어 주세요';
   }
-  s.mastV = 9;
+  // mastV 10: 모든 스킬이 트리 V2 — 나머지 스킬도 right 를 받았고, 4단 오른쪽은 스킬마다 다른 고유 특수(spec)가 됐다 (강철 베기의 옛 💥 치명 자리도 🗡️ 처형으로).
+  //  옛 쿨타임 특화(cd1·cd2·cd3) 포인트는 트리에 없어 자동으로 돌아오고, 같은 자리(r2)에 찍어 둔 칸은 그대로 새 효과를 낸다
+  if (o.mast && (o.mastV || 1) < 10 && Object.keys(s.tree || {}).some((id) => SKILLS[id] && Object.values(s.tree[id].n || {}).some((n) => n > 0)) && !s.notice) {
+    s.notice = '⚡ 스킬 트리 개편 — 이제 모든 스킬이 레벨 대신 노드로만 자라요. 왼쪽은 ⚔️ 피해, 오른쪽은 ⏱️ 쿨타임·💥 치명·🩸 흡혈에 더해 2구간엔 스킬마다 다른 고유 특수(처형·기절·화상·속사…)가 있어요. 찍었던 쿨타임 특화 포인트는 돌려드렸으니 스킬 탭에서 다시 살펴봐 주세요';
+  }
+  s.mastV = 10;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -247,6 +252,8 @@ function skillBonus(id) {
 }
 // V2 오른쪽 효과의 지금 값 (쿨타임 비율·치명 확률·흡혈 비율·철벽 감소율). V1 스킬은 0
 const skillRight = (id, key) => rightVal(SKILLS[id], key, skillBonus(id));
+// 고유 특수(classes.js SPEC_TYPES)의 지금 상태 { type, v 지금 값, ...k.spec 인자 } — 한 칸도 안 찍었으면 null
+const skillSpec = (id) => { const k = SKILLS[id], v = k.spec ? skillRight(id, 'spec') : 0; return v ? { ...k.spec, v } : null; };
 const skillStar = (id) => skillBonus(id).star;
 const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
 const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
@@ -317,7 +324,8 @@ function dpsOf(st) {
     const cd = skillCd(id), cp = skillRight(id, 'crit');
     busy += k.dur / cd;
     const hitV = k.crit ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
-    extra += hitV * skillMult(k) * skillPow(id) / cd;
+    // 고유 특수는 평균 피해로 환산해 넣는다 (classes.js specEv — 처형·보스 등 상황형은 일부만, 기절·골드 같은 운영형은 0)
+    extra += hitV * skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) / cd;
   }
   return perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra;
 }
@@ -334,9 +342,10 @@ function profile() {
     skills: st.skills.map((id) => {
       const k = skillAt(id, skillLv(id), skillStage(id));
       // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
-      // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다
+      // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다.
+      // 고유 특수(spec)는 서버가 모르는 상황형 효과라 평균 피해 배율(classes.js specEv)로 환산해 mult 에 녹인다 — 결투·레이드에선 그만큼 세진 한 방
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
-      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit,
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)), crit: !!k.crit,
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
         ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : wd ? { ward: { dur: TREE_RIGHT.ward.dur, guard: wd, heal: 0 } } : {}) };
     }),
@@ -561,7 +570,7 @@ const expMult = () => 1 + fortuneBonus() + gearBonus().expPct;
 
 function rewardKill(m) {
   const t = S.trip;
-  const gold = m.gold * goldMult(), exp = m.exp * expMult();
+  const gold = m.gold * goldMult() * (1 + (m.goldBonus || 0)), exp = m.exp * expMult();   // goldBonus: 고유 특수 💰 (skills.js 가 처치 직전에 붙인다)
   S.gold += gold; t.gold += gold;
   t.kills++; if (m.boss) t.bosses++;
   if (m.boss) { S.stones += BOSS_STONES; t.stones = (t.stones || 0) + BOSS_STONES; }

@@ -490,7 +490,7 @@ function treeSummary(k, b) {
   if (b.pow) out.push(`⚔️ +${treePct(TREE2_POW * b.pow)}%`);
   for (const key of k.right || []) {
     const v = rightVal(k, key, b);
-    if (v) out.push(`${TREE_RIGHT[key].icon} ${key === 'cd' ? `-${treePct(v)}%` : key === 'crit' ? `+${treePct(v)}%` : `${treePct(v)}%`}`);
+    if (v) out.push(rightShort(k, key, v));
   }
   return out.join(' · ');
 }
@@ -499,13 +499,12 @@ function nodeEffect(k, nd, nl) {
   const full = nl >= nd.max;
   if (nd.kind === 'pow') { const p = k.right ? TREE2_POW : TREE_POW; return `⚔️ +${treePct(p * nl)}%`; }
   if (nd.kind === 'cd') return `⏱️ -${treePct(TREE_CD * nl)}%`;
-  const R = TREE_RIGHT[nd.key], v = R.full * nl / nd.max;
-  return `${R.icon} ${nd.key === 'cd' ? `-${treePct(v)}%` : nd.key === 'crit' ? `+${treePct(v)}%` : `${treePct(v)}%`}`;
+  return rightShort(k, nd.key, rightDef(k, nd.key).full * nl / nd.max);
 }
 const nodeMaxEffect = (k, nd) => nodeEffect(k, nd, nd.max);
 
 // 스킬 하나의 성장 로드맵 (시안 F): 좌→우 구간 칸 셋 [1구간 Lv1→10] [2구간 Lv10→20] [3구간 Lv20→30], 칸 경계에 진화 이정표 ★·★★·★★★.
-//  칸 = 머리(구간·찍은 포인트) + 레벨 진행 바 + 링 노드 둘(피해 / 보조 효과, 링 테두리가 10칸 게이지, 클릭 = ⭐ 1 투자).
+//  칸 = 머리(구간·찍은 포인트) + 레벨 진행 바 + 링 노드 둘(피해 / 보조 효과, 원이 피자 조각처럼 10칸 게이지로 늘 차 보임 — index.html .sg .ring::before, 클릭 = ⭐ 1 투자).
 //  상태: done(이정표를 넘음, 금) · cur(찍는 중, 파랑) · lock(조건 미달, 어둡게 + 머리에 모자란 조건). 이정표는 포인트 없이 Lv·찍은 포인트 조건만.
 function treeHtml(k) {
   const id = k.id, lv = skillLv(id), b = skillBonus(id), left = skillPtsLeft(id), tree = skillTreeOf(k), spent = skillSpent(id);
@@ -518,9 +517,10 @@ function treeHtml(k) {
     if (nd.kind === 'star') return `${nd.name}: 「${skillNameAt(k, lv, nd.star)}」 ${k.stageDesc ? k.stageDesc[nd.star] : MASTERY[nd.star].desc}${k.right ? '' : ` · 쿨타임·위력 +10% 성장 (${cd(b)} → ${cd({ ...b, star: nd.star })} · ${mt(b)} → ${mt({ ...b, star: nd.star })})`}${why}`;
     if (nd.kind === 'pow') { const p = k.right ? TREE2_POW : TREE_POW; return `${nd.name}: 한 방 위력 +${treePct(p)}%/칸, ${nd.max}칸 +${treePct(p * nd.max)}% (지금 ${mt(b)}${nl < nd.max ? ` → ${mt({ ...b, pow: b.pow + 1 })}` : ''})${why}`; }
     if (nd.kind === 'right') {
-      const R = TREE_RIGHT[nd.key], cur = R.full * nl / nd.max, nxt = R.full * (nl + 1) / nd.max;
+      const R = rightDef(k, nd.key), cur = R.full * nl / nd.max, nxt = R.full * (nl + 1) / nd.max;
       const now = nd.key === 'cd' ? `${cd(b)}` : R.desc(cur), next = nd.key === 'cd' ? cd({ ...b, right: { ...b.right, cd: (nl + 1) / nd.max } }) : R.desc(nxt);
-      return `${nd.name}: ${R.desc(R.full)} 까지, ${nd.max}칸 (지금 ${now}${nl < nd.max ? ` → ${next}` : ''})${why}`;
+      const uniq = nd.key === 'spec' ? ' · 이 스킬만의 고유 특수' : '';
+      return `${nd.name}${uniq}: ${R.desc(R.full)} 까지, ${nd.max}칸 (지금 ${now}${nl < nd.max ? ` → ${next}` : ''})${why}`;
     }
     return `${nd.name}: 쿨타임 -${treePct(TREE_CD)}%/칸, ${nd.max}칸 -${treePct(TREE_CD * nd.max)}% (지금 ${cd(b)}${nl < nd.max ? ` → ${cd({ ...b, cd: b.cd + 1 })}` : ''})${why}`;
   };
@@ -2613,7 +2613,7 @@ const ACTIONS = {
       showBanner(from !== to ? `${k.icon} 「${from}」 → 「${to}」` : `${k.icon} ${k.name} — ${MASTERY[n].star} ${MASTERY[n].name}!`, mixHex(heroClass().look.fx, MASTERY_GOLD, 0));
       toast(`${MASTERY[n].star} ${MASTERY[n].name} — 「${to}」 ${k.stageDesc ? k.stageDesc[n] : MASTERY[n].desc}${k.right ? '' : ` · 쿨타임 ${cd0}초 → ${cd1}초 · 위력 ×${pw0.toFixed(2)} → ×${pw1.toFixed(2)}`}`, 10000);
       previewSkill(k.id, n);
-    } else if (nd.kind === 'right' && nd.key !== 'cd') toast(`${nd.icon} ${nd.name} ${nl}/${nd.max} — ${TREE_RIGHT[nd.key].desc(skillRight(k.id, nd.key))}`, 4000);
+    } else if (nd.kind === 'right' && nd.key !== 'cd') toast(`${nd.icon} ${nd.name} ${nl}/${nd.max} — ${rightDef(k, nd.key).desc(skillRight(k.id, nd.key))}`, 4000);
     else toast(`${nd.icon} ${nd.name} ${nl}/${nd.max} — 쿨타임 ${cd0}초 → ${cd1}초 · 위력 ×${pw0.toFixed(2)} → ×${pw1.toFixed(2)}`, 4000);
     save();
   },

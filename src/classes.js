@@ -612,13 +612,16 @@ const SKILLS = {
       { dur: 0.8, hits: [[0.44, 1.8, { area: 'all', radius: 40 }], [0.6, 1.0, { area: 'line', reach: 3.5 }]] },
       { dur: 1.25, hits: [[0.28, 0.9], [0.8, 2.4, { area: 'all', radius: 64 }]] },
     ],
-    right: ['cd', 'crit', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (TREE_RIGHT)
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'exec', name: '처형', icon: '🗡️', full: 0.6, thr: 0.3 },
     stageName: ['강철 베기', '강철 검풍', '강철 대검', '천강검'],
     stageDesc: ['제자리에서 내려벤다', '검이 빛나며 초승달 검풍을 날린다', '검이 거대한 강철 대검으로 변해 내려찍고, 땅에서 바위 송곳이 솟는다', '검을 하늘로 치켜들면 거대한 강철 검이 떨어져 꽂힌다'],
     desc: '검을 머리 위로 치켜들었다가 크게 내려벤다.',
   },
   piercingThrust: {
     cls: 'lancer', name: '관통 찌르기', icon: '🔱', lv: 25, cd: 9, dur: 0.65, area: 'line', reach: 1.6,
+    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'overkill', name: '관통', icon: '➡️', full: 0.5 },
     hits: [[0.45, 2.3]],
     stages: [
       { dur: 0.55, reach: 1.0, hits: [[0.5, 1]] },
@@ -632,6 +635,8 @@ const SKILLS = {
   },
   rapidFire: {
     cls: 'ranger', name: '연사', icon: '🏹', lv: 25, cd: 8, dur: 0.8, area: 'single',
+    right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'haste', name: '속사', icon: '💨', full: 0.4, dur: 4 },
     hits: evenHits(4, 0.25, 0.15, 0.7),
     stages: [
       { dur: 0.6, hits: [[0.4, 1], [0.66, 1]] },
@@ -647,6 +652,8 @@ const SKILLS = {
   // ── 성기사 ──
   judgment: {
     cls: 'paladin', name: '심판의 일격', icon: '⚡', lv: 60, cd: 10, dur: 1.0, area: 'all', radius: 60,
+    right: ['crit', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'solo', name: '단죄', icon: '⚖️', full: 0.6 },
     hits: [[0.6, 4]],
     stages: [
       { radius: 40 },
@@ -660,6 +667,8 @@ const SKILLS = {
   },
   sanctuary: {
     cls: 'paladin', name: '성역', icon: '🛡️', lv: 70, cd: 18, dur: 0.9, area: 'all', radius: 40,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'chain', name: '가호', icon: '✨', full: 0.3 },
     hits: [], ward: { dur: 4, guard: 0.5, heal: 0.2, tick: 0.5 },
     stages: [
       { ward: { dur: 3 } },
@@ -675,6 +684,8 @@ const SKILLS = {
   // ── 검성 ──
   gale: {
     cls: 'blademaster', name: '질풍난무', icon: '🌪️', lv: 60, cd: 10, dur: 1.3, area: 'all', radius: 40,
+    right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'crowd', name: '난무', icon: '🍃', full: 0.5 },
     hits: [...evenHits(6, 0.15, 0.09, 0.5), [0.86, 1.2]],
     stages: [
       { dur: 0.75, trio: true, hits: [[0.3, 1], [0.48, 1], [0.66, 1.2]] },
@@ -688,6 +699,8 @@ const SKILLS = {
   },
   iaido: {
     cls: 'blademaster', name: '일섬', icon: '🌙', lv: 70, cd: 15, dur: 1.4, area: 'all', radius: 200, crit: true,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'refund', name: '거합', icon: '🔁', full: 0.15 },
     hits: [[0.78, 4]],
     stages: [
       { dur: 0.9, radius: 60, hits: [[0.5, 1]] },
@@ -704,6 +717,8 @@ const SKILLS = {
   // 용기병은 예전부터 도약이 직업의 핵심이라 전직하자마자 쓴다 (도약을 스킬로 옮기며 Lv50~59 가 약해지지 않도록)
   dragonFall: {
     cls: 'dragoon', name: '용추락', icon: '☄️', lv: 0, cd: 8, dur: 1.1, area: 'all', radius: 80, air: [0.15, 0.72],
+    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'stun', name: '충격파', icon: '💫', full: 1.5 },
     hits: [[0.72, 3]],
     stages: [
       { dur: 0.8, radius: 40, air: [0.15, 0.6], hits: [[0.62, 1]] },
@@ -717,6 +732,8 @@ const SKILLS = {
   },
   dragonBreath: {
     cls: 'dragoon', name: '용의 숨결', icon: '🔥', lv: 70, cd: 14, dur: 1.8, area: 'line', reach: 2.2,
+    right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'dot', name: '화상', icon: '🔥', full: 0.6, dur: 3 },
     hits: evenHits(8, 0.25, 0.08, 0.5),
     stages: [
       { dur: 1.0, reach: 1.2, hits: evenHits(4, 0.3, 0.12, 0.5) },
@@ -732,6 +749,8 @@ const SKILLS = {
   // ── 할버디어 ──
   whirlwind: {
     cls: 'halberdier', name: '대회전', icon: '🌀', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 30,
+    right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'stack', name: '회전 가속', icon: '🌀', full: 0.5 },
     hits: [[0.38, 1.4], [0.78, 1.4]],
     stages: [
       { dur: 0.6, radius: 20, hits: [[0.5, 1]] },
@@ -745,6 +764,8 @@ const SKILLS = {
   },
   earthSplitter: {
     cls: 'halberdier', name: '대지 가르기', icon: '⛰️', lv: 70, cd: 15, dur: 1.4, area: 'line', reach: 4,
+    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'range', name: '균열 확장', icon: '↔️', full: 0.5 },
     hits: [[0.6, 4]],
     stages: [
       { dur: 0.9, reach: 1.6, hits: [[0.55, 1]] },
@@ -760,6 +781,8 @@ const SKILLS = {
   // ── 저격수 ──
   headshot: {
     cls: 'marksman', name: '헤드샷', icon: '🎯', lv: 60, cd: 12, dur: 1.1, area: 'single', crit: true,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'first', name: '선제 사격', icon: '🎯', full: 0.7 },
     hits: [[0.75, 2.2]],
     stages: [
       { dur: 0.8, hits: [[0.6, 1]] },
@@ -773,6 +796,8 @@ const SKILLS = {
   },
   armorPiercer: {
     cls: 'marksman', name: '철갑 관통탄', icon: '💥', lv: 70, cd: 16, dur: 1.2, area: 'line', reach: 3,
+    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'vuln', name: '철갑 파쇄', icon: '🩻', full: 0.3, dur: 4 },
     hits: [[0.6, 3]],
     stages: [
       { dur: 0.9, reach: 2, hits: [[0.6, 1]] },
@@ -788,6 +813,8 @@ const SKILLS = {
   // ── 마궁수 ──
   homingBolts: {
     cls: 'arcaneArcher', name: '유도 마탄', icon: '✴️', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 60,
+    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'double', name: '분열', icon: '✴️', full: 0.3 },
     hits: evenHits(6, 0.6, 0.05, 0.8),
     stages: [
       { dur: 0.8, hits: [[0.55, 1], [0.65, 1]] },
@@ -801,6 +828,8 @@ const SKILLS = {
   },
   starfall: {
     cls: 'arcaneArcher', name: '별빛 화살비', icon: '🌠', lv: 70, cd: 16, dur: 2.2, area: 'all', radius: 200,
+    right: ['crit', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'gold', name: '별의 축복', icon: '💰', full: 0.5 },
     hits: evenHits(10, 0.35, 0.06, 0.7),
     stages: [
       { dur: 1.2, radius: 120, hits: evenHits(3, 0.45, 0.12, 0.7) },
@@ -816,6 +845,8 @@ const SKILLS = {
   // ── 마법사 계열 ──
   manaBurst: {
     cls: 'mage', name: '마력 폭발', icon: '🪄', lv: 25, cd: 8, dur: 0.75, area: 'single',
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'lowhp', name: '광폭 마력', icon: '🔮', full: 0.6 },
     hits: [[0.55, 2.5]],
     stages: [
       { dur: 0.6, hits: [[0.6, 1]] },
@@ -829,6 +860,8 @@ const SKILLS = {
   },
   meteor: {
     cls: 'pyromancer', name: '메테오', icon: '☄️', lv: 60, cd: 11, dur: 1.2, area: 'all', radius: 60,
+    right: ['crit', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'boss', name: '천체 충돌', icon: '🪨', full: 0.6 },
     hits: [[0.7, 4]],
     stages: [
       { dur: 0.9, radius: 40, hits: [[0.65, 1]] },
@@ -842,6 +875,8 @@ const SKILLS = {
   },
   flameVortex: {
     cls: 'pyromancer', name: '화염 회오리', icon: '🌪️', lv: 70, cd: 15, dur: 1.6, area: 'all', radius: 50,
+    right: ['leech', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'crowd', name: '불길 확산', icon: '🔥', full: 0.5 },
     hits: evenHits(6, 0.3, 0.1, 0.7),
     stages: [
       { dur: 1.0, radius: 30, hits: evenHits(3, 0.35, 0.15, 0.7) },
@@ -855,6 +890,8 @@ const SKILLS = {
   },
   iceLance: {
     cls: 'cryomancer', name: '얼음창', icon: '🧊', lv: 60, cd: 10, dur: 1.0, area: 'line', reach: 1.3, crit: true,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'stun', name: '빙결', icon: '❄️', full: 1.5 },
     hits: [[0.55, 2.4]],
     stages: [
       { dur: 0.7, reach: 1.0, hits: [[0.6, 1]] },
@@ -868,6 +905,8 @@ const SKILLS = {
   },
   blizzard: {
     cls: 'cryomancer', name: '블리자드', icon: '🌨️', lv: 70, cd: 15, dur: 2.0, area: 'all', radius: 80,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'vuln', name: '동상', icon: '🥶', full: 0.25, dur: 4 },
     hits: evenHits(8, 0.2, 0.09, 0.5),
     stages: [
       { dur: 1.2, radius: 50, hits: evenHits(4, 0.25, 0.15, 0.5) },
@@ -885,6 +924,8 @@ const SKILLS = {
   //  ult: true — 시전하는 동안 하단바 전체를 덮는 연출을 허락한다 (skills.js 의 '화면 전체를 쓰지 않는다' 규칙의 예외)
   starJudgment: {
     cls: 'archon', mastOf: 'steelCleave', ult: true, name: '성좌 강림', icon: '🌟', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 강철 베기 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'chain', name: '성좌의 섭리', icon: '✨', full: 0.3 },
     hits: [...evenHits(5, 0.45, 0.07, 1), [0.86, 4]],
     stages: [
       { dur: 2.3, hits: [...evenHits(3, 0.5, 0.1, 1), [0.85, 3]] },
@@ -903,6 +944,8 @@ const SKILLS = {
   },
   thousandCuts: {
     cls: 'swordsaint', mastOf: 'steelCleave', ult: true, name: '천검', icon: '🌸', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.4, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 강철 베기 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'exec', name: '극의', icon: '🗡️', full: 1.0, thr: 0.3 },
     hits: [...evenHits(8, 0.4, 0.05, 0.6), [0.9, 4]],
     stages: [
       { dur: 2.0, hits: [...evenHits(4, 0.42, 0.08, 0.8), [0.88, 3]] },
@@ -921,6 +964,8 @@ const SKILLS = {
   },
   dragonEmperor: {
     cls: 'dragonlord', mastOf: 'piercingThrust', ult: true, name: '용황 강림', icon: '🐲', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 관통 찌르기 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'stun', name: '용황의 위압', icon: '💫', full: 2 },
     hits: [...evenHits(8, 0.45, 0.05, 0.6), [0.9, 4]],
     stages: [
       { dur: 2.3, hits: [...evenHits(4, 0.5, 0.08, 0.8), [0.88, 3]] },
@@ -939,6 +984,8 @@ const SKILLS = {
   },
   worldBreaker: {
     cls: 'warlord', mastOf: 'piercingThrust', ult: true, name: '천붕', icon: '⚒️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 관통 찌르기 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'boss', name: '천붕', icon: '🪨', full: 0.8 },
     hits: [[0.55, 3], ...evenHits(4, 0.65, 0.05, 1), [0.9, 3]],
     stages: [
       { dur: 2.2, hits: [[0.6, 3], [0.8, 2]] },
@@ -957,6 +1004,8 @@ const SKILLS = {
   },
   sunArrow: {
     cls: 'deadeye', mastOf: 'rapidFire', ult: true, name: '태양 관통', icon: '☀️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 260, crit: true,
+    right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 연사 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'dot', name: '태양 화상', icon: '☀️', full: 0.6, dur: 3 },
     hits: [[0.75, 3], ...evenHits(4, 0.8, 0.03, 0.75)],
     stages: [
       { dur: 2.2, hits: [[0.75, 3]] },
@@ -975,6 +1024,8 @@ const SKILLS = {
   },
   dimensionCollapse: {
     cls: 'voidArcher', mastOf: 'rapidFire', ult: true, name: '차원 붕괴', icon: '🌀', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
+    right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 연사 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'vuln', name: '차원 균열', icon: '🌀', full: 0.3, dur: 5 },
     hits: [...evenHits(10, 0.4, 0.04, 0.5), [0.9, 4]],
     stages: [
       { dur: 2.3, hits: [...evenHits(5, 0.45, 0.06, 0.6), [0.86, 3]] },
@@ -993,6 +1044,8 @@ const SKILLS = {
   },
   apocalypse: {
     cls: 'archmage', mastOf: 'manaBurst', ult: true, name: '종언의 겁화', icon: '☄️', lv: 100, cd: 20, cdSpan: [60, 40], area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 마력 폭발 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'crowd', name: '겁화', icon: '🔥', full: 0.6 },
     dur: 2.7, hits: [...evenHits(6, 0.45, 0.06, 0.8), [0.9, 4]],
     stages: [
       { dur: 2.3, hits: [...evenHits(3, 0.5, 0.1, 1), [0.86, 3]] },
@@ -1011,6 +1064,8 @@ const SKILLS = {
   },
   absoluteZero: {
     cls: 'frostlord', mastOf: 'manaBurst', ult: true, name: '절대영도', icon: '🧊', lv: 100, cd: 20, cdSpan: [60, 40], area: 'all', radius: 230, crit: true,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 마력 폭발 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'stun', name: '절대 정지', icon: '❄️', full: 2.5 },
     dur: 2.7, hits: [[0.55, 1.5], ...evenHits(5, 0.62, 0.05, 0.7), [0.92, 4]],
     stages: [
       { dur: 2.3, hits: [[0.6, 1.5], [0.86, 3]] },
@@ -1182,11 +1237,15 @@ const TREE_PTS_MAX = SKILL_MAX;
 // 트리 비율 표시용: 0.008 → "0.8", 0.01 → "1"
 const treePct = (x) => +(x * 100).toFixed(1);
 
-// ───────────────────────── 스킬 트리 V2 (right 가 있는 스킬) ─────────────────────────
+// ───────────────────────── 스킬 트리 V2 (right 가 있는 스킬 — 지금은 모든 스킬) ─────────────────────────
 // 레벨로 오르는 기본 성장(위력·쿨타임·별 +10%)이 없고 성장은 전부 노드다. 레벨은 ⭐ 포인트와 진화 조건만 준다.
 //  왼쪽은 언제나 ⚔️ 피해(칸당 +TREE2_POW), 오른쪽은 스킬마다 k.right = ['cd', 'crit', 'leech'] 처럼 2·4·6단에 고른 공용 풀(TREE_RIGHT) 효과.
 //  풀 효과는 노드를 다 채웠을 때의 값(full)이고 찍은 칸 비율만큼 낸다. 칸 수·진화 조건(lv·min)은 V1 SKILL_TREE 와 같다.
 //  새 스킬·직업은 right 키 3개만 적으면 되고, 효과 구현은 전투 공통 경로(skills.js tryCastSkill · world.js hitMonster · 서버 duel/raid)에 한 번이다.
+//  4단(r2)은 모든 스킬이 'spec' — 그 스킬만의 고유 특수(k.spec, 아래 SPEC_TYPES). 2·6단(r1·r3)은 공용 풀에서 둘.
+//  고를 때 주의: crit: true(항상 치명) 스킬엔 'crit' 이 무의미하다. 3차 궐기(mastOf)는 1차 스킬의 트리(S.tree 의 r1·r2·r3)를 그대로 이어받으니
+//  r1·r3 은 1차와 같은 키를 두고, r2 의 고유 특수만 궐기 것으로 바뀐다 (찍은 칸은 그대로 새 효과를 낸다).
+//  V1 분기(right 없는 스킬)는 코드에만 남아 있고 지금 데이터에선 쓰는 스킬이 없다.
 //  수치 틀: 피해 30칸 = ×1.78 (V1 의 Lv30 ×1.4 × 트리 +27% 와 같은 선). 쿨타임은 V1 Lv1 3.0 → Lv30 1.2 대신 1.6 고정에서 시작하고 쿨타임 노드로 ×0.7 까지.
 const TREE2_POW = 0.026;
 const TREE2_CD = 1.6;
@@ -1194,10 +1253,50 @@ const TREE_RIGHT = {
   cd:    { name: '쿨타임', icon: '⏱️', full: 0.3,  desc: (v) => `쿨타임 -${treePct(v)}%` },
   crit:  { name: '치명',   icon: '💥', full: 0.2,  desc: (v) => `스킬 치명 확률 +${treePct(v)}%` },
   leech: { name: '흡혈',   icon: '🩸', full: 0.09, desc: (v) => `스킬 피해의 ${treePct(v)}% 를 체력으로` },
-  ward:  { name: '철벽',   icon: '🛡️', full: 0.45, dur: 4, desc: (v) => `시전 뒤 4초간 받는 피해 -${treePct(v)}%` },
+  ward:  { name: '철벽',   icon: '🛡️', full: 0.45, dur: 4, desc: (v) => `시전 뒤 4초간 받는 피해 -${treePct(v)}%` },   // 풀에 남겨 둔 예비 — 지금 쓰는 스킬 없음 (방어는 피해 노드와 저울질이 안 돼서 고유 특수로 바꿨다)
+};
+// ───────── 고유 특수 노드 (right 의 'spec') ─────────
+// 스킬마다 하나씩 다른 효과 k.spec = { type, name, icon, full, ...인자 }. 피해 노드와 진짜로 저울질되게 전부 공격·운영형이다 (방어 없음).
+//  type 은 공용 구현(아래 SPEC_TYPES, 효과는 skills.js tryCastSkill · world.js hitMonster·몬스터 틱·fightTick · core.js rewardKill 에 한 번씩)이고,
+//  값 v = full × 찍은 칸 비율. ev 는 결투·레이드·전투력 계산에 쓰는 평균 피해 환산 비율(v 의 몇 배를 피해 배율로 보는가; 운영형은 0).
+//  desc 는 툴팁 한 줄, fmt 는 짧은 표기(pct+ "+60%", pct "30%", sec "1.5초").
+const SPEC_TYPES = {
+  exec:     { fmt: 'pct+', ev: 0.3,  desc: (v, s) => `체력 ${treePct(s.thr)}% 이하 적에게 피해 +${treePct(v)}%` },
+  boss:     { fmt: 'pct+', ev: 0.3,  desc: (v) => `보스에게 피해 +${treePct(v)}%` },
+  first:    { fmt: 'pct+', ev: 0.3,  desc: (v) => `아직 안 맞은(체력 가득) 적에게 피해 +${treePct(v)}%` },
+  solo:     { fmt: 'pct+', ev: 0.4,  desc: (v) => `적 하나만 맞으면 피해 +${treePct(v)}%` },
+  crowd:    { fmt: 'pct+', ev: 0.5,  desc: (v) => `맞은 적 1마리당 피해 +${treePct(v / 5)}% (5마리 +${treePct(v)}%)` },
+  lowhp:    { fmt: 'pct+', ev: 0.25, desc: (v) => `내 체력 50% 아래서 피해 최대 +${treePct(v)}% (낮을수록 크게)` },
+  double:   { fmt: 'pct',  ev: 1,    desc: (v) => `${treePct(v)}% 확률로 피해 2배` },
+  stack:    { fmt: 'pct+', ev: 0.6,  desc: (v) => `12초 안에 다시 쓰면 피해 +${treePct(v / 5)}% 씩 겹침 (최대 5겹 +${treePct(v)}%)` },
+  vuln:     { fmt: 'pct+', ev: 0.6,  desc: (v, s) => `맞은 적이 ${s.dur}초간 받는 모든 피해 +${treePct(v)}% (평타 포함)` },
+  dot:      { fmt: 'pct+', ev: 1,    desc: (v, s) => `맞은 적에게 ${s.dur}초에 걸쳐 스킬 피해의 ${treePct(v)}% 를 추가로` },
+  stun:     { fmt: 'sec',  ev: 0,    desc: (v) => `맞은 적이 ${v.toFixed(1)}초 멈춤 (보스는 절반)` },
+  refund:   { fmt: 'pct',  ev: 0.5,  desc: (v) => `처치할 때마다 이 스킬 쿨타임 ${treePct(v)}% 환급` },
+  haste:    { fmt: 'pct+', ev: 0.3,  desc: (v, s) => `시전 뒤 ${s.dur}초간 평타 속도 +${treePct(v)}%` },
+  chain:    { fmt: 'pct',  ev: 0.4,  desc: (v) => `시전 시 다른 스킬 쿨타임 ${treePct(v)}% 감소` },
+  range:    { fmt: 'pct+', ev: 0.3,  desc: (v) => `기술 범위 +${treePct(v)}%` },
+  overkill: { fmt: 'pct',  ev: 0.3,  desc: (v) => `처치 시 넘친 피해의 ${treePct(v)}% 를 다음 적에게` },
+  gold:     { fmt: 'pct+', ev: 0,    desc: (v) => `이 스킬로 처치한 적의 골드 +${treePct(v)}%` },
+};
+// 오른쪽 키의 효과 정의 { name, icon, full, desc(v) } — 'spec' 은 그 스킬의 k.spec, 나머지는 공용 풀
+const rightDef = (k, key) => {
+  if (key !== 'spec') return TREE_RIGHT[key];
+  const s = k.spec, T = SPEC_TYPES[s.type];
+  return { name: s.name, icon: s.icon, full: s.full, type: s.type, fmt: T.fmt, desc: (v) => T.desc(v, s) };
+};
+// 짧은 표기: ⏱️ -15% · 💥 +4.4% · 🗡️ +30% · 💫 0.8초
+const rightShort = (k, key, v) => {
+  const R = rightDef(k, key);
+  if (key === 'cd') return `${R.icon} -${treePct(v)}%`;
+  if (key === 'crit') return `${R.icon} +${treePct(v)}%`;
+  if (key === 'leech' || key === 'ward') return `${R.icon} ${treePct(v)}%`;
+  return `${R.icon} ${R.fmt === 'sec' ? `${v.toFixed(1)}초` : R.fmt === 'pct' ? `${treePct(v)}%` : `+${treePct(v)}%`}`;
 };
 // 오른쪽 효과의 지금 값: full × 찍은 칸 비율 (b.right[key] = 칸/최대)
-const rightVal = (k, key, b) => (k.right && TREE_RIGHT[key] ? TREE_RIGHT[key].full * ((treeBonus(b).right || {})[key] || 0) : 0);
+const rightVal = (k, key, b) => (k.right && rightDef(k, key) ? rightDef(k, key).full * ((treeBonus(b).right || {})[key] || 0) : 0);
+// 고유 특수의 평균 피해 환산 배율 (결투·레이드 프로필의 mult, 전투력 dpsOf) — 1 + v × ev
+const specEv = (k, b) => (k.spec ? 1 + rightVal(k, 'spec', b) * SPEC_TYPES[k.spec.type].ev : 1);
 const tree2Cache = {};
 // 이 스킬의 트리 (V1 은 공용 SKILL_TREE, V2 는 right 로 만든 트리)
 function skillTreeOf(k) {
@@ -1207,7 +1306,7 @@ function skillTreeOf(k) {
     if (nd.kind !== 'pow' && nd.kind !== 'cd') return nd;
     const n = Math.floor((t + 1) / 2), base = { max: nd.max, lv: nd.lv, min: nd.min, tier: t };
     if (nd.kind === 'pow') return { ...base, id: 'pow' + n, kind: 'pow', name: '피해', icon: '⚔️' };
-    const key = k.right[n - 1], R = TREE_RIGHT[key];
+    const key = k.right[n - 1], R = rightDef(k, key);
     return { ...base, id: 'r' + n, kind: 'right', key, name: R.name, icon: R.icon };
   }));
   return (tree2Cache[k.id] = tiers);

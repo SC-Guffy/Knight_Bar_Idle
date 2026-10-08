@@ -202,7 +202,8 @@ function updateCasts(dt) {
 
 // ───────────────────────── 원정에서 쓰기 ─────────────────────────
 function skillTargets(k, st) {
-  const reach = k.area === 'line' ? st.range * (k.reach || 1) : k.area === 'all' ? st.range + (k.radius || 60) : st.range;
+  // k.rangeUp: ↔️ 고유 특수 범위 확장 비율 (tryCastSkill 이 사본에 붙인다)
+  const reach = (k.area === 'line' ? st.range * (k.reach || 1) : k.area === 'all' ? st.range + (k.radius || 60) : st.range) * (1 + (k.rangeUp || 0));
   const list = monsters
     .filter((m) => !m.dying && aheadDist(knight.x, m.x) <= reach + monsterWidth(m) / 2 + 2)
     .sort((p, q) => aheadDist(knight.x, p.x) - aheadDist(knight.x, q.x));
@@ -212,15 +213,22 @@ function skillTargets(k, st) {
 // 쿨타임과 성역 보호막은 원정 내내 흐른다
 function tickSkills(dt, st) {
   for (const id of st.skills) if (knight.cds[id] > 0) knight.cds[id] -= dt;
+  if (knight.haste && (knight.haste.left -= dt) <= 0) knight.haste = null;   // 💨 고유 특수 가속 (world.js 평타 타이머가 읽는다)
   const w = knight.ward;
   if (!w) return;
   w.left -= dt;
   w.acc += dt;
   if (w.acc >= 1 && w.tick) {       // tick 0 = 트리 V2 🛡️ 철벽 (피해 감소만)
     w.acc -= 1;
+    let dealt = 0;
     for (const m of skillTargets({ area: 'all', radius: 40 }, st)) {
-      hitMonster(m, w.tick, { kb: 3, color: '#ffd257' });
+      dealt += hitMonster(m, w.tick, { kb: 3, color: '#ffd257' }) || 0;
       burst(toScreen(m.x), monsterMidY(m), 8, ['#ffd257', '#fff3b0'], 70, 2, -40);
+    }
+    // 🩸 흡혈 (트리 V2): 보호막의 초당 피해도 일부를 체력으로
+    if (w.lc && dealt > 0) {
+      const max = stats().maxHp, h = Math.min(max - S.hp, dealt * w.lc);
+      if (h > 0) { S.hp += h; addFloater(`🩸 +${fmt(h)}`, toScreen(knight.x), groundY() - 66, '#ff8aa0', 12); }
     }
   }
   if (w.left > 0) return;
@@ -238,10 +246,26 @@ function tickSkills(dt, st) {
 function tryCastSkill(st, target) {
   for (const id of st.skills) {
     if ((knight.cds[id] || 0) > 0) continue;
-    const k = skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
-    // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 (core.js skillRight)
-    const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
-    knight.cds[id] = skillCd(id);
+    const k0 = skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
+    // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 · 고유 특수 (core.js skillRight · skillSpec, 종류는 classes.js SPEC_TYPES)
+    const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward'), sp = skillSpec(id);
+    const spT = (t) => (sp && sp.type === t ? sp.v : 0);     // 이 스킬의 특수가 t 종류면 지금 값, 아니면 0
+    // ↔️ 범위: 사거리·반경을 늘린 사본으로 대상을 고른다 (skillTargets 의 rangeUp, hitRange 가 펼쳐 넘긴다)
+    const k = spT('range') ? { ...k0, rangeUp: sp.v } : k0;
+    const cdNow = skillCd(id);
+    knight.cds[id] = cdNow;
+    // 🌀 겹침: 12초 안에 다시 쓰면 한 겹씩 쌓이고(최대 5), 이번 시전은 지금까지 쌓인 겹 수만큼 세다
+    let stackMul = 1;
+    if (spT('stack')) {
+      knight.stacks = knight.stacks || {};
+      const s = knight.stacks[id], n = s && clock - s.t < 12 ? Math.min(5, s.n + 1) : 0;
+      knight.stacks[id] = { n, t: clock };
+      stackMul = 1 + sp.v * n / 5;
+      if (n) addFloater(`${sp.icon} ${n}겹`, toScreen(knight.x), groundY() - 80, '#bfe9ff', 12);
+    }
+    // 💨 가속(시전 뒤 잠깐 평타가 빨라진다, world.js 평타 타이머) · ✨ 연계(다른 스킬 쿨타임을 당긴다)는 시전 즉시
+    if (spT('haste')) knight.haste = { left: sp.dur, v: sp.v };
+    if (spT('chain')) for (const o of st.skills) if (o !== id && knight.cds[o] > 0) knight.cds[o] = Math.max(0, knight.cds[o] - skillCd(o) * sp.v);
     knight.swing = -1;
     let focus = target;
     const a = {
@@ -259,11 +283,39 @@ function tryCastSkill(st, target) {
         const hk = hitRange(k, i);
         const list = skillTargets(hk, stats());
         if (list.length) focus = list[0];
-        let dealt = 0;
+        // 고유 특수 — 이 타격 전체의 배율: 🍃 맞은 마리당 · ⚖️ 하나만 맞으면 · 🔮 내 체력이 낮을수록 · ✴️ 확률 2배 · 🌀 겹침
+        let mul = stackMul;
+        if (spT('crowd')) mul *= 1 + sp.v * Math.min(5, list.length) / 5;
+        if (spT('solo') && list.length === 1) mul *= 1 + sp.v;
+        if (spT('lowhp')) mul *= 1 + sp.v * Math.max(0, Math.min(1, (0.5 - S.hp / stats().maxHp) / 0.5));
+        const dbl = spT('double') && Math.random() < sp.v;
+        if (dbl) mul *= 2;
+        let dealt = 0, over = 0, kills = 0;
         for (const m of list) {
-          // 여러 번 나눠 때리는 스킬은 (2타부터) 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다
-          dealt += hitMonster(m, k.hits[i][1] * skillPow(id), { crit: k.crit, critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1 }) || 0;
+          if (spT('gold')) m.goldBonus = sp.v;       // 💰 처치하면 core.js rewardKill 이 읽는다
+          // 여러 번 나눠 때리는 스킬은 (2타부터) 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다.
+          // 한 마리마다 다른 보정(🗡️ 처형 · 🪨 보스 · 🎯 안 맞은 적)은 hitMonster 가 그 적의 상태를 보고 곱한다
+          const d = hitMonster(m, k.hits[i][1] * skillPow(id) * mul, {
+            crit: k.crit, critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1,
+            exec: spT('exec') ? { thr: sp.thr, v: sp.v } : null, bossBonus: spT('boss'), first: spT('first'),
+          }) || 0;
+          dealt += d;
+          if (m.hp <= 0) { kills++; over += -m.hp; }
+          else {
+            // 맞고 살아 있는 적에게 남는 효과: 🩻 취약(받는 모든 피해 ↑) · 🔥 지속 피해(이 타격 피해의 일부를 나눠서) · 💫 기절(움직임·공격 멈춤, 보스 절반)
+            if (spT('vuln')) m.vuln = { left: sp.dur, v: sp.v };
+            if (spT('dot') && d > 0) m.dot = { left: sp.dur, per: d * sp.v / sp.dur, acc: 0, color: a.color };
+            if (spT('stun')) m.stun = Math.max(m.stun || 0, m.boss ? sp.v / 2 : sp.v);
+          }
           if ((fx.launch || hk.launch) && !m.boss) m.air = 0;
+        }
+        if (dbl && dealt > 0) addFloater(`${sp.icon} 2배!`, toScreen(focus.x), monsterTop(focus) - 24, '#ffd257', 13, true);
+        // 🔁 환급: 처치한 수만큼 이 스킬 쿨타임을 돌려받는다
+        if (spT('refund') && kills) knight.cds[id] = Math.max(0, knight.cds[id] - cdNow * sp.v * kills);
+        // ➡️ 관통: 넘친 피해의 일부가 아직 살아 있는 가장 가까운 적에게 (치명 없이)
+        if (spT('overkill') && over > 0) {
+          const next = monsters.filter((m) => !m.dying && m.hp > 0).sort((p, q) => aheadDist(knight.x, p.x) - aheadDist(knight.x, q.x))[0];
+          if (next) hitMonster(next, over * sp.v / stats().atk, { nocrit: true, kb: 6, color: a.color });
         }
         // 🩸 흡혈: 이 타격으로 입힌 피해의 일부를 체력으로
         if (lc && dealt > 0) {
@@ -278,7 +330,8 @@ function tryCastSkill(st, target) {
           return;
         }
         const max = stats().maxHp;
-        knight.ward = { left: k.ward.dur, guard: k.ward.guard, tick: k.ward.tick * skillPow(id), acc: 0, finish: (k.ward.finish || 0) * skillPow(id), a };
+        // 보호막 스킬(성역)의 트리 V2: 🛡️ 철벽은 보호막 감소율에 더해지고(최대 90%), 🩸 흡혈은 보호막 초당 피해에도 적용 (tickSkills)
+        knight.ward = { left: k.ward.dur, guard: Math.min(0.9, k.ward.guard + wd), tick: k.ward.tick * skillPow(id), acc: 0, finish: (k.ward.finish || 0) * skillPow(id), lc, a };
         S.hp = Math.min(max, S.hp + max * k.ward.heal);
         addFloater(`💚 +${fmt(max * k.ward.heal)}`, toScreen(knight.x), groundY() - 66, '#7dffb0', 13);
       },

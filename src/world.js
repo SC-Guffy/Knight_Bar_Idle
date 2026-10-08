@@ -195,7 +195,12 @@ function monsterMidY(m) {
 // 입힌 피해를 돌려준다 (스킬 흡혈용). o.critPlus: 이 타격만의 치명 확률 보정 (트리 V2 💥 치명)
 function hitMonster(m, mult = 1, o = {}) {
   const st = stats();
-  const crit = o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0));
+  // 고유 특수 보정 (skills.js tryCastSkill): 🗡️ 처형(체력 비율 이하) · 🪨 보스 · 🎯 아직 안 맞은 적 · 🩻 취약(이 적이 받는 모든 피해, 평타 포함)
+  if (o.exec && m.hp <= m.maxHp * o.exec.thr) mult *= 1 + o.exec.v;
+  if (o.bossBonus && m.boss) mult *= 1 + o.bossBonus;
+  if (o.first && m.hp >= m.maxHp) mult *= 1 + o.first;
+  if (m.vuln) mult *= 1 + m.vuln.v;
+  const crit = o.nocrit ? false : o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0));   // nocrit: 지속 피해·관통처럼 이미 굴린 피해
   const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
   m.flash = o.color ? 0.13 : 0.08;
@@ -293,8 +298,9 @@ function fightTick(dt, st, onFree) {
     const d = aheadDist(knight.x, m.x);
     if (d <= reachTo(m) + 4) m.engaged = true;
     const stop = Math.max(monsterReach(m), prev + 16);
-    m.moving = m.engaged && d > stop && !m.anim;
-    if (m.engaged && d > stop) m.x -= Math.min(MONSTER_SPEED * dt, d - stop);
+    const stunned = m.stun > 0;                       // 💫 고유 특수 기절: 제자리에 멈춘다 (공격도 아래에서 막는다)
+    m.moving = m.engaged && d > stop && !m.anim && !stunned;
+    if (m.engaged && d > stop && !stunned) m.x -= Math.min(MONSTER_SPEED * dt, d - stop);
     prev = aheadDist(knight.x, m.x);
   }
 
@@ -314,7 +320,7 @@ function fightTick(dt, st, onFree) {
     if (!knight.pending && tryCastSkill(st, target)) {
       // 스킬부터
     } else if (knight.atkTimer <= 0 && !knight.pending) {
-      knight.atkTimer = 1 / st.aspd;
+      knight.atkTimer = 1 / (st.aspd * (1 + (knight.haste ? knight.haste.v : 0)));   // 💨 고유 특수 가속 (skills.js 가 걸고 tickSkills 가 지운다)
       knight.swing = 0;
       knight.combo = (knight.combo || 0) + 1;            // 연속기 직업은 평타마다 모션을 번갈아 쓴다
       knight.pending = true;
@@ -328,6 +334,7 @@ function fightTick(dt, st, onFree) {
   // 공격은 예비동작 → 타격 → 복귀 모션으로 재생하고, 피해는 타격 프레임에 들어간다
   for (const m of monsters) {
     if (m.dying || S.phase !== phase || knight.down > 0) continue;
+    if (m.stun > 0) { m.anim = null; continue; }           // 💫 기절: 휘두르던 것도 멈추고 새 공격도 못 한다
     if (m.anim && advanceMonsterAttack(m, dt, st)) break;   // true = 기사가 쓰러짐
     if (aheadDist(knight.x, m.x) > monsterReach(m) + 1) continue;
     m.atkTimer -= dt;
@@ -1029,6 +1036,14 @@ function update(dt) {
     m.kb = Math.max(0, m.kb - dt * 40);
     m.hurt = Math.max(0, m.hurt - dt * 4);
     if (m.air != null && (m.air += dt) > 0.6) m.air = null;   // 스킬에 띄워진 시간
+    // 고유 특수가 남긴 상태 (skills.js tryCastSkill): 💫 기절 · 🩻 취약 · 🔥 지속 피해(0.5초마다, 숫자는 끝날 때 합쳐서)
+    if (m.stun > 0) m.stun -= dt;
+    if (m.vuln && (m.vuln.left -= dt) <= 0) m.vuln = null;
+    if (m.dot && !m.dying) {
+      m.dot.left -= dt; m.dot.acc += dt;
+      if (m.dot.acc >= 0.5) { m.dot.acc -= 0.5; hitMonster(m, m.dot.per * 0.5 / stats().atk, { nocrit: true, kb: 0, color: m.dot.color || '#ff9f43', quiet: m.dot.left > 0 }); }
+      if (m.dot.left <= 0) m.dot = null;
+    }
     if (m.dying) m.dying += dt;
   }
   monsters = monsters.filter(m => !m.dying || m.dying < 0.5);
