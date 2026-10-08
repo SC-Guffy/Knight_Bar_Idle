@@ -56,15 +56,21 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 #campBody, .abody, .gbody { scrollbar-color: var(--px-gold-d) var(--px-ink); }
 
 /* HUD 바 */
-.bar { gap: 8px; padding: 4px 9px; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated;
+.bar { gap: 8px; padding: 2px 9px; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated;
   background-clip: padding-box; background-color: var(--glass); transition: none; }
 #hud:hover .bar { background-color: var(--px-bg); }
 #status { color: var(--px-gold-l); }
+/* 바 안 명령 버튼: 프레임을 2px 로 줄여 바 높이를 늘리지 않는다 */
+#hbtn { border-width: 2px; border-image: url(frame-btn.svg) 4 / 2px; padding: 1px 6px; }
+#hbtn:active { border-image: url(frame-btn-down.svg) 4 / 2px; }
 
 /* 게이지: 2px 잉크 틀 + 두 톤 픽셀 채움 */
 .meter, .prog, .cbar, .wbhp, .meter.big { height: 8px; border: 2px solid transparent; border-image: url(frame-gauge.svg) 2 / 2px; image-rendering: pixelated;
   background-clip: padding-box; background-color: #121120; }
 .meter { height: 7px; }
+/* HUD 바의 게이지는 1px 틀 + 5px 채움, 간격 1px — 바 높이를 53px → 35px 로 줄여 레이드·결투 화면을 덜 가린다 */
+#hud .meter { height: 5px; border-width: 1px; border-image: url(frame-gauge.svg) 2 / 1px; }
+#hud .meters { gap: 1px; }
 .meter.big { height: 9px; }
 .cbar, .wbhp { height: 16px; }
 .wbrow .cbar { height: 12px; }

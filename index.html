@@ -105,9 +105,12 @@
   .sup .act { display: flex; gap: 5px; flex-shrink: 0; }
   .dgline { font-size: 12.5px; margin: 3px 0; }
   .dgline .bad { color: var(--bad); }
-  #hud { position: absolute; top: 6px; left: 10px; width: 470px; transition: width .2s; }
+  #hud { position: absolute; top: 6px; left: 10px; width: 470px; transition: width .2s, transform .4s; }
   #hud.right { left: auto; right: 10px; }
   #hud.act { width: 548px; }     /* 바에 귀환·후퇴 버튼이 붙으면 그만큼 넓어진다 (ui.js renderHud) */
+  /* 레이드·결투는 캠프 옆(왼쪽)에서 싸우므로 그동안 HUD 를 반대편으로 밀어 싸움을 가리지 않게 (ui.js renderHud) */
+  #hud.away { transform: translateX(calc(100vw - 100% - 20px)); }
+  #hud.right.away { transform: translateX(calc(-100vw + 100% + 20px)); }
   .bar { display: flex; align-items: center; gap: 9px; padding: 5px 10px; border-radius: 10px; cursor: pointer;
     background: var(--glass); border: 1px solid var(--line); transition: background .15s; white-space: nowrap; }
   #hud:hover .bar { background: rgba(18, 18, 26, .9); }
@@ -125,7 +128,7 @@
     box-shadow: inset 0 0 0 1px #a86f00, inset 0 0 0 2.5px rgba(255, 236, 150, .55); }
   #status { min-width: 92px; }
   /* 바 안의 명령 버튼: 원정 중엔 🏕 귀환, 탑·미궁 도전 중엔 ⬇️ 후퇴. 그 외엔 숨고 바가 줄어든다 */
-  #hbtn { padding: 3px 9px; font-size: 12.5px; flex-shrink: 0; }
+  #hbtn { padding: 0 8px; line-height: 17px; font-size: 12.5px; flex-shrink: 0; }   /* 게이지 높이(≈18px) 안에 들어가 바가 세로로 커지지 않게 */
   #hbtn:hover { background: rgba(255,255,255,.22); }
 
 

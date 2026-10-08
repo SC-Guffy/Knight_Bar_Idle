@@ -140,6 +140,8 @@ function renderHud() {
   hb.hidden = !cmd;
   if (cmd) { hb.dataset.action = cmd[0]; hb.textContent = cmd[1]; hb.title = cmd[2]; }
   $('hud').classList.toggle('act', !!cmd);
+  // 레이드·결투 연출 중엔 HUD 를 반대편으로 밀어 싸움을 가리지 않는다 (#hud.away)
+  $('hud').classList.toggle('away', (raidActive() || duelActive()) && !modalOpen());
 
   tickLive($('hud'));
   renderDungeonPick();
