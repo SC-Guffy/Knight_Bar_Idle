@@ -31,7 +31,7 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 #campBody h3, .abody h3, .gbody h3 { color: var(--px-gold-l); }
 
 /* 둥근 모서리는 전부 각지게 (금화·레드닷·스킬 트리 원형 노드만 예외) */
-#barLayer *:not(.gc), #campModal *:not(.gc):not(.tnode button), #acctModal *, #guideModal *, #webPromo * { border-radius: 0 !important; }
+#barLayer *:not(.gc), #campModal *:not(.gc):not(.tdoor button), #acctModal *, #guideModal *, #webPromo * { border-radius: 0 !important; }
 
 /* ── 프레임 공통: 9-slice SVG. 색은 배경, 틀은 border-image ── */
 .px-panel { border: 6px solid transparent; border-image: url(frame-panel.svg) 6 / 6px; image-rendering: pixelated; background-clip: padding-box; }
@@ -150,13 +150,13 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 canvas.town { outline: 2px solid var(--px-ink); outline-offset: 0; box-shadow: 0 0 0 4px #3e3c52, 0 0 0 6px var(--px-ink); margin: 6px 6px 14px; width: calc(100% - 12px); }
 
 /* 칩·배지 */
-.chip, .mchip, .stchip, .lvl, .tnode .tlv, .mskill .srem, .mskill .srem button, .mnew, .mvpchip, .mskill .mtag, .mskill .mevo-n, .mrow .mt, #campModal nav i, .sync { border-radius: 0; }
+.chip, .mchip, .stchip, .lvl, .tplus, .trow .tbar i, .mskill .srem, .mskill .srem button, .mnew, .mvpchip, .mskill .mtag, .mskill .mevo-n, .mrow .mt, #campModal nav i, .sync { border-radius: 0; }
 .chip { background: var(--px-ink); box-shadow: inset 0 0 0 1px var(--px-hi); padding: 1px 6px; }
 .mchip { background: #2a2444; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #6f58a8; }
 .stchip { background: #1e2a3a; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #3f7fa8; }
 .lvl { background: var(--px-ink); box-shadow: inset 0 0 0 1px var(--px-hi); }
 #campModal nav i { box-shadow: 0 0 0 1px var(--px-ink); }
-.tnode button { box-shadow: inset 0 0 0 2px var(--px-ink), 0 0 0 2px var(--px-hi); }
+.tdoor button { box-shadow: inset 0 0 0 2px var(--px-ink), 0 0 0 2px var(--px-hi); }
 
 /* 입력창 */
 .frow input, .code { background: var(--px-ink); border: 2px solid var(--px-hi); box-shadow: inset 2px 2px 0 #000; }

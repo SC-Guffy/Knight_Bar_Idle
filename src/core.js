@@ -224,13 +224,13 @@ const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reve
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0).lv;
-// 스킬 트리 (S.tree, classes.js SKILL_TREE): 숙련도 레벨이 오를 때마다 ⭐ 포인트 1 (Lv30 = 29). n 은 노드별 찍은 칸, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
+// 스킬 트리 (S.tree, classes.js SKILL_TREE): ⭐ 포인트 = 숙련도 레벨 (Lv1 부터 1, Lv30 = 30). 진화 문(star)은 포인트를 쓰지 않는다. n 은 노드별 찍은 칸, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
 const treeOf = (id) => S.tree[mastKey(id)] || { n: {}, use: 0 };
 const nodeLv = (id, nid) => treeOf(id).n[nid] || 0;
-const skillPts = (id) => skillLv(id) - 1;
+const skillPts = (id) => skillLv(id);
 // 이 스킬 트리의 노드 정의 (classes.js treeNodesOf — V1 공용, V2 는 스킬마다). 트리에 없는 노드 id(개편 전 잔재)는 없는 것으로 본다
 const nodeDef = (id, nid) => treeNodesOf(SKILLS[id])[nid];
-const skillSpent = (id) => { const n = treeOf(id).n; let s = 0; for (const nid in n) if (nodeDef(id, nid)) s += n[nid]; return s; };
+const skillSpent = (id) => { const n = treeOf(id).n; let s = 0; for (const nid in n) { const nd = nodeDef(id, nid); if (nd && nd.kind !== 'star') s += n[nid]; } return s; };
 const skillPtsLeft = (id) => skillPts(id) - skillSpent(id);
 // 트리가 주는 보너스 { star 단 별 수, pow 피해 칸 합, cd 쿨타임 특화 칸 합(V1), right { key: 찍은 칸/최대 }(V2) } (classes.js skillPowAt·skillCdOf·rightVal 의 b)
 function skillBonus(id) {
@@ -266,9 +266,10 @@ function nodeState(id, nid) {
   if (lv > 0) return 'on';
   return nodeLock(id, nid) ? 'locked' : 'open';
 }
-const canInvest = (id, nid) => skillPtsLeft(id) > 0 && (nodeState(id, nid) === 'on' || nodeState(id, nid) === 'open');
+// 진화 문은 포인트 없이도 열 수 있다 (조건만)
+const canInvest = (id, nid) => { const nd = nodeDef(id, nid); if (!nd) return false; const st = nodeState(id, nid); return (nd.kind === 'star' || skillPtsLeft(id) > 0) && (st === 'on' || st === 'open'); };
 const canInvestAny = () => skillsOf(S.cls).some((k) => skillPtsLeft(k.id) > 0 && Object.keys(treeNodesOf(k)).some((nid) => canInvest(k.id, nid)));
-// 노드에 포인트 1 을 찍는다. 진화 노드면 새 모습을 바로 적용한다. 찍은 뒤 노드 Lv 또는 0
+// 노드에 포인트 1 을 찍는다 (진화 문은 포인트를 안 쓴다). 진화 노드면 새 모습을 바로 적용한다. 찍은 뒤 노드 Lv 또는 0
 function investNode(id, nid) {
   if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canInvest(id, nid)) return 0;
   const key = mastKey(id), t = S.tree[key] || (S.tree[key] = { n: {}, use: 0 });

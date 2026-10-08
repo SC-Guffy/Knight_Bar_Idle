@@ -1159,26 +1159,26 @@ const skillTomesAt = (lv) => { let n = 0; for (let L = 1; L < lv; L++) n += skil
 const SKILL_TOME_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed(i + 1)).reduce((a, b) => a + b, 0);
 
 // ───────────────────────── 스킬 트리 ─────────────────────────
-// 스킬마다 위→아래 1-2-1-2-1-2-1 노드 트리 (스킬 탭). 숙련도 레벨이 오를 때마다 ⭐ 포인트 1 (Lv30 이면 29 = 노드 칸 합과 같다).
-//  1단 📗 습득(익히면 자동) → 2단 ⚔️ 공격 특화 I / ⏱️ 쿨타임 특화 I (둘에 나눠 찍는다, 각 8칸) → 3단 진화 ★ → 4단 특화 II (각 9칸) → 5단 진화 ★★
-//  → 6단 특화 III (각 9칸) → 7단 진화 ★★★
-//  노드마다 여는 조건은 둘: lv 스킬 숙련도 레벨, min 이 트리에 지금까지 찍은 포인트 합 (어느 노드든). 둘 다 닿으면 열린다 — 어디에 찍든 자유.
-//  진화는 ★ Lv10·8개 · ★★ Lv20·18개 · ★★★ Lv30·28개 (MASTERY 의 Lv10·20·30 과 같다). 되돌리기는 무료 (core.js resetTree).
-const TREE_POW = 0.01;    // 공격 특화 칸 당 한 방 위력 +1% (26칸 = +26%)
-const TREE_CD = 0.008;    // 쿨타임 특화 칸 당 쿨타임 -0.8% (26칸 = -20.8%, DPS +26%)
+// 스킬마다 좌→우 3단계 띠 (스킬 탭, ui.js treeHtml). ⭐ 포인트 = 숙련도 레벨 (Lv1 부터 1, Lv30 이면 30).
+//  단계마다 노드 둘: ⚔️ 공격 특화 / ⏱️ 쿨타임 특화 (둘에 나눠 찍는다, 각 10칸) — 단계 사이의 진화 ★·★★·★★★ 는 포인트를 쓰지 않는 문이다.
+//  노드마다 여는 조건은 둘: lv 스킬 숙련도 레벨, min 이 트리에 지금까지 찍은 포인트 합 (어느 노드든, 진화는 안 센다). 둘 다 닿으면 열린다.
+//  진화 문은 ★ Lv10·10점 · ★★ Lv20·20점 · ★★★ Lv30·30점 — 레벨과 포인트 수가 같아서 직관적이다 (MASTERY 의 Lv10·20·30). 되돌리기는 무료 (core.js resetTree).
+//  배열 모양은 예전 위→아래 트리 그대로 [습득]·[특화 둘]·[★]·[특화 둘]·[★★]·[특화 둘]·[★★★] — 홀수 칸이 단계, 짝수 칸이 문.
+const TREE_POW = 0.01;    // 공격 특화 칸 당 한 방 위력 +1% (30칸 = +30%)
+const TREE_CD = 0.007;    // 쿨타임 특화 칸 당 쿨타임 -0.7% (30칸 = -21%, DPS +27%)
 const TREE_STARS = 3;
 const SKILL_TREE = [
   [{ id: 'learn', kind: 'learn', name: '습득', icon: '📗', max: 1 }],
-  [{ id: 'pow1', kind: 'pow', name: '공격 특화 I', icon: '⚔️', max: 8, lv: 2, min: 0 }, { id: 'cd1', kind: 'cd', name: '쿨타임 특화 I', icon: '⏱️', max: 8, lv: 2, min: 0 }],
-  [{ id: 'star1', kind: 'star', star: 1, name: '진화 ★', max: 1, lv: 10, min: 8 }],
-  [{ id: 'pow2', kind: 'pow', name: '공격 특화 II', icon: '⚔️', max: 9, lv: 10, min: 9 }, { id: 'cd2', kind: 'cd', name: '쿨타임 특화 II', icon: '⏱️', max: 9, lv: 10, min: 9 }],
-  [{ id: 'star2', kind: 'star', star: 2, name: '진화 ★★', max: 1, lv: 20, min: 18 }],
-  [{ id: 'pow3', kind: 'pow', name: '공격 특화 III', icon: '⚔️', max: 9, lv: 20, min: 19 }, { id: 'cd3', kind: 'cd', name: '쿨타임 특화 III', icon: '⏱️', max: 9, lv: 20, min: 19 }],
-  [{ id: 'star3', kind: 'star', star: 3, name: '진화 ★★★', max: 1, lv: 30, min: 28 }],
+  [{ id: 'pow1', kind: 'pow', name: '공격 특화', icon: '⚔️', max: 10, lv: 1, min: 0 }, { id: 'cd1', kind: 'cd', name: '쿨타임 특화', icon: '⏱️', max: 10, lv: 1, min: 0 }],
+  [{ id: 'star1', kind: 'star', star: 1, name: '진화 ★', max: 1, lv: 10, min: 10 }],
+  [{ id: 'pow2', kind: 'pow', name: '공격 특화', icon: '⚔️', max: 10, lv: 10, min: 10 }, { id: 'cd2', kind: 'cd', name: '쿨타임 특화', icon: '⏱️', max: 10, lv: 10, min: 10 }],
+  [{ id: 'star2', kind: 'star', star: 2, name: '진화 ★★', max: 1, lv: 20, min: 20 }],
+  [{ id: 'pow3', kind: 'pow', name: '공격 특화', icon: '⚔️', max: 10, lv: 20, min: 20 }, { id: 'cd3', kind: 'cd', name: '쿨타임 특화', icon: '⏱️', max: 10, lv: 20, min: 20 }],
+  [{ id: 'star3', kind: 'star', star: 3, name: '진화 ★★★', max: 1, lv: 30, min: 30 }],
 ];
 const TREE_NODES = {};
 SKILL_TREE.forEach((tier, t) => tier.forEach((nd) => { nd.tier = t; TREE_NODES[nd.id] = nd; }));
-const TREE_PTS_MAX = SKILL_MAX - 1;
+const TREE_PTS_MAX = SKILL_MAX;
 // 트리 비율 표시용: 0.008 → "0.8", 0.01 → "1"
 const treePct = (x) => +(x * 100).toFixed(1);
 
@@ -1187,8 +1187,8 @@ const treePct = (x) => +(x * 100).toFixed(1);
 //  왼쪽은 언제나 ⚔️ 피해(칸당 +TREE2_POW), 오른쪽은 스킬마다 k.right = ['cd', 'crit', 'leech'] 처럼 2·4·6단에 고른 공용 풀(TREE_RIGHT) 효과.
 //  풀 효과는 노드를 다 채웠을 때의 값(full)이고 찍은 칸 비율만큼 낸다. 칸 수·진화 조건(lv·min)은 V1 SKILL_TREE 와 같다.
 //  새 스킬·직업은 right 키 3개만 적으면 되고, 효과 구현은 전투 공통 경로(skills.js tryCastSkill · world.js hitMonster · 서버 duel/raid)에 한 번이다.
-//  수치 틀: 피해 26칸 = ×1.78 (V1 의 Lv30 ×1.4 × 트리 +26% 와 같은 선). 쿨타임은 V1 Lv1 3.0 → Lv30 1.2 대신 1.6 고정에서 시작하고 쿨타임 노드로 ×0.7 까지.
-const TREE2_POW = 0.03;
+//  수치 틀: 피해 30칸 = ×1.78 (V1 의 Lv30 ×1.4 × 트리 +27% 와 같은 선). 쿨타임은 V1 Lv1 3.0 → Lv30 1.2 대신 1.6 고정에서 시작하고 쿨타임 노드로 ×0.7 까지.
+const TREE2_POW = 0.026;
 const TREE2_CD = 1.6;
 const TREE_RIGHT = {
   cd:    { name: '쿨타임', icon: '⏱️', full: 0.3,  desc: (v) => `쿨타임 -${treePct(v)}%` },
