@@ -198,7 +198,6 @@ function hitMonster(m, mult = 1, o = {}) {
   const crit = o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0));
   const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
-  if (m.boss && S.phase === 'dungeon' && m.hp > 0) for (const c of dgBossHit(1 - m.hp / m.maxHp)) dgChunkSpawn(c, m);   // 보스 자루에서 덩어리가 튀어나온다
   m.flash = o.color ? 0.13 : 0.08;
   m.hurt = 1;
   const kb = o.kb != null ? o.kb : heroWeapon().motion === 'sweep' ? 10 : 5;
@@ -218,7 +217,7 @@ function hitMonster(m, mult = 1, o = {}) {
   m.killed = true;
   shatter(m);
   if (S.phase === 'tower') { towerKillReward(m); return dmg; }
-  if (S.phase === 'dungeon') { dgKill(m).forEach((c, i) => dgChunkSpawn(c, m, i)); return dmg; }
+  if (S.phase === 'dungeon') { dgKill(m); return dmg; }
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -665,154 +664,36 @@ function drawTowerBody(g) {
   g.fillRect(0, 0, 2, Math.min(tcH, g0 - 26)); g.fillRect(TOWER_W - 2, 0, 2, tcH);
 }
 
-// ───────────────────────── 재료의 미궁 ─────────────────────────
-// 규칙(방·덩어리·보상)은 src/dungeon.js, 보스 보상을 고르는 화면은 ui.js renderDungeonPick. 여기는 하단바 연출:
-// 캠프에서 빛에 싸여 사라짐 → 어두운 돌바닥 위 왼쪽에 나타남 → 방마다 오른쪽에서 몬스터가 나오고, 잡을 때마다 돌덩이가 떨어져 깨지며 덩어리가 나온다
-// (dgChunks) → 보스는 맞을 때마다 자루에서 덩어리가 튀고, 오래 끌면 삼킨다 → 다음 방으로 갈 때는 오른쪽으로 걸어 나가 빛에 싸였다가 다시 왼쪽에 나타난다
-// → 보스를 잡으면 멈춰 서서 카드를 고른다 → 끝나면 귀환 빛으로 캠프.
-// sub: warpOut 캠프에서 사라짐 | stand 카드 고르는 중·다음 일 기다림 | fight 방 전투 | walkOut 다음 방으로 | home 귀환 빛
+// ───────────────────────── 재료의 미궁 (보스 러시 + 슬롯머신) ─────────────────────────
+// 규칙(보스·슬롯 결과·보상)은 src/dungeon.js. 여기는 하단바 연출:
+// 캠프에서 빛에 싸여 사라짐 → 어두운 돌바닥 위 왼쪽에 나타남 → 오른쪽에서 보스가 나와 싸움 → 잡으면 슬롯머신이 땅에서 올라와 세 칸이 돌고
+// 하나씩 멈춘다 (앞 둘이 같으면 셋째는 뜸을 들인다) → 결과대로 재화 아이콘이 쏟아져 바닥에 튀다 HUD 배낭으로 날아간다 → 기사는 오른쪽으로 걸어
+// 나가 빛에 싸였다가 다시 왼쪽에 나타나고 다음 보스 → 쓰러지거나 나가면 귀환 빛으로 캠프.
+// sub: warpOut 캠프에서 사라짐 | stand 보스 기다림 | fight 보스전 | slot 슬롯머신 | walkOut 다음 보스로 | home 귀환 빛
 let dv = null;
-let dgChunks = [];                  // 떨어진 돌덩이 연출 (규칙상 배낭엔 깨질 때 들어간다)
-const DG_KX = 90;                   // 방에서 기사가 서는 화면 x
-const DG_MOB_X = 330;               // 첫 몬스터 화면 x
+let sv = null;                      // 슬롯머신 연출 { t, reels[{ final, stopAt, stopped, bounce, phase }], tier, paidAt, doneAt, rise }
+let slotFx = [];                    // 쏟아지는 재화 아이콘
+const DG_KX = 90;                   // 기사가 서는 화면 x
+const DG_MOB_X = 330;               // 보스 화면 x
+const SLOT_X = 300, SLOT_W = 124, SLOT_H = 92;      // 슬롯머신 자리·크기 (바닥에 붙는다)
+const SLOT_SPIN = 16;               // 돌 때 초당 그림 수
 const dgInside = () => !!dv && dv.sub !== 'warpOut';
 
 function beginDungeonView() {
-  dv = { sub: 'warpOut', t: 0, hold: 0, msgs: [] };
-  monsters = []; shots = []; lapReady = false; dgChunks = [];
+  dv = { sub: 'warpOut', t: 0, hold: 0 };
+  sv = null; slotFx = [];
+  monsters = []; shots = []; lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, ward: null });
   warpKnight('out');
 }
-function endDungeonView() { dv = null; dgChunks = []; }
-// 결과 한 줄을 기사 머리 위에 (dungeon.js 가 돌려준 { text, sub, bad, big, small })
+function endDungeonView() { dv = null; sv = null; slotFx = []; }
+// 결과 한 줄을 기사 머리 위에 (dungeon.js 가 돌려준 { text, sub, bad, big })
 function dgShow(res) {
   if (!res) return;
   const x = toScreen(knight.x);
-  if (res.small) { addFloater(res.text, x, groundY() - 60, '#9fffc0', 11); return; }
   if (res.big) showBanner(res.text, res.bad ? '#ff8f8f' : '#ffd257');
   else addFloater(res.text, x, groundY() - 66, res.bad ? '#ff8f8f' : '#ffffff', 13, true);
   if (res.sub) addFloater(res.sub, x, groundY() - 82, res.bad ? '#ffb0b0' : '#9fffc0', 12);
-}
-
-// ── 돌덩이: 몬스터 자리에서 튀어나와 땅에 떨어지고(air) → 잠깐 흔들리다(ground) → 쩍 갈라지며(crack) 크기가 공개돼 배낭에 들어가고(reveal)
-//    → HUD 배낭 칩으로 날아간다(fly). 크기는 깨질 때까지 돌의 크기로만 짐작할 수 있다 (소·중은 거의 같아 보인다)
-const DG_ROCK = { s: { r: 5, col: '#b3afc2', dark: '#7a7690' }, m: { r: 6, col: '#c6c1d6', dark: '#8b86a2' }, l: { r: 8, col: '#dccb96', dark: '#9c8a55', glow: '#ffe9a8' }, xl: { r: 11, col: '#ffd257', dark: '#b08a2a', glow: '#ffd257' } };
-function dgChunkSpawn(c, m, i = 0) {
-  const gy = groundY(), sx = toScreen(m.x), sy = monsterMidY(m);
-  const landX = Math.max(14, Math.min(W - 14, sx + rand(-10, 26) + i * 14));
-  const vy = -rand(200, 280);
-  const T = (-vy + Math.sqrt(vy * vy + 2 * DROP_GRAV * Math.max(0, gy - sy))) / DROP_GRAV;
-  dgChunks.push({ c, x: sx, y: sy, vx: (landX - sx) / T, vy, st: 'air', t: 0, bounced: false, rot: rand(0, 6), vr: rand(-8, 8), seed: Math.random(), delay: i * 0.08 });
-}
-// HUD 의 배낭 칩 위치 (하단바 좌표). 없으면 기사 머리 위
-function dgBagTarget() {
-  const el = document.querySelector('#dgInfo .dchip.bag'), layer = document.getElementById('barLayer');
-  if (el && layer && !document.body.classList.contains('faded')) {
-    const r = el.getBoundingClientRect(), l = layer.getBoundingClientRect();
-    if (r.width) return { x: r.left - l.left + 12, y: r.top - l.top + r.height / 2, el };
-  }
-  return { x: toScreen(knight.x), y: groundY() - 40, el: null };
-}
-function updateDgChunks(dt) {
-  if (!dgChunks.length) return;
-  const gy = groundY(), run = S.dg.run;
-  for (const d of dgChunks) {
-    if (d.delay > 0) { d.delay -= dt; continue; }
-    d.t += dt;
-    const rk = DG_ROCK[d.c.size];
-    if (d.st === 'air') {
-      d.vy += DROP_GRAV * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.rot += d.vr * dt;
-      if (d.y >= gy && d.vy > 0) {
-        d.y = gy;
-        if (!d.bounced) { d.bounced = true; d.vy = -Math.min(120, d.vy * 0.3); d.vx *= 0.4; dust(d.x, gy, 3 + (rk.r > 7 ? 4 : 0), 1); }
-        else { d.st = 'ground'; d.vy = 0; d.vx = 0; d.rot = 0; d.t = 0; }
-      }
-    } else if (d.st === 'ground') {
-      if (d.t >= 0.35) { d.st = 'crack'; d.t = 0; }
-    } else if (d.st === 'crack') {
-      if (d.t >= 0.3) dgChunkReveal(d);
-    } else if (d.st === 'reveal') {
-      if (d.t >= (d.c.size === 'xl' ? 0.8 : 0.45)) { d.st = 'fly'; d.t = 0; d.x0 = d.x; d.y0 = d.y; }
-    } else if (d.st === 'fly') {
-      const tg = dgBagTarget(), u = Math.min(1, d.t / 0.5), e = u * u;
-      d.x = d.x0 + (tg.x - d.x0) * e; d.y = d.y0 + (tg.y - d.y0) * e - Math.sin(u * Math.PI) * 24;
-      if (u >= 1) { d.done = true; if (tg.el && tg.el.animate) tg.el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18)', offset: 0.3 }, { transform: 'scale(1)' }], { duration: 260 }); }
-    }
-    // 던전이 끝났으면(정산됨) 남은 돌은 조용히 치운다
-    if (!run && d.st !== 'fly') d.done = true;
-  }
-  dgChunks = dgChunks.filter((d) => !d.done);
-}
-// 쩍: 파편이 튀고 크기·양이 공개된다. 여기서 배낭에 들어간다
-function dgChunkReveal(d) {
-  const c = d.c, rk = DG_ROCK[c.size], gy = groundY(), res = DG_RES[c.res], size = DG_CHUNK_BY[c.size];
-  dgApplyChunk(c);
-  d.st = 'reveal'; d.t = 0; d.y = gy;
-  burst(d.x, gy - rk.r, 4 + rk.r, [rk.col, rk.dark, c.size === 'xl' ? '#ffffff' : rk.col], 60 + rk.r * 8, 2, 300);
-  const big = c.size === 'l' || c.size === 'xl';
-  addFloater(`${res.icon} ${size.name} +${fmt(c.amt)}`, d.x, gy - rk.r * 2 - 14, c.size === 'xl' ? '#ffd257' : big ? '#ffe9a8' : '#dcdce6', big ? 14 : 11, big);
-  if (c.size === 'xl') { shake = Math.max(shake, 0.3); showBanner(`🌟 ${res.name} 특대 덩어리!`, '#ffd257'); effects.push({ type: 'ring', x: d.x, y: gy, t: 0, life: 0.6, size: 0.8, color: 'rgba(255,210,87,0.8)' }); }
-  else if (c.size === 'l') effects.push({ type: 'ring', x: d.x, y: gy, t: 0, life: 0.4, size: 0.4, color: 'rgba(255,233,168,0.7)' });
-}
-function drawDgChunks() {
-  if (!dgChunks.length) return;
-  const gy = groundY();
-  for (const d of dgChunks) {
-    if (d.delay > 0) continue;
-    const rk = DG_ROCK[d.c.size], r = rk.r;
-    if (d.st === 'reveal' || d.st === 'fly') {
-      // 공개된 덩어리: 재화 아이콘이 톡 튀어 올랐다가 배낭으로
-      const pop = d.st === 'reveal' ? 1 + 0.5 * Math.max(0, 1 - d.t / 0.2) : 1 - Math.min(1, d.t / 0.5) * 0.5;
-      const y = d.st === 'reveal' ? gy - r - 6 - Math.sin(Math.min(1, d.t / 0.3) * Math.PI) * 10 : d.y;
-      ctx.save();
-      ctx.font = `${Math.round((10 + r) * pop)}px -apple-system, sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      if (rk.glow) { ctx.shadowColor = rk.glow; ctx.shadowBlur = d.c.size === 'xl' ? 14 : 8; }
-      ctx.fillText(DG_RES[d.c.res].icon, Math.round(d.x), Math.round(y));
-      ctx.restore();
-      continue;
-    }
-    // 돌덩이: 각진 다각형. 땅에선 그림자, 갈라질 땐 떨리며 금이 간다
-    const jit = d.st === 'crack' ? Math.sin(d.t * 70) * (1 + r * 0.15) : d.st === 'ground' ? Math.sin(d.t * 30) * 0.6 : 0;
-    const cx = Math.round(d.x + jit), cy = Math.round((d.st === 'air' ? d.y : gy) - r);
-    if (d.st !== 'air') { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(cx - r, gy - 1, r * 2, 2); }
-    if (rk.glow) {
-      ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      const gr = r * 2.2 * (1 + 0.15 * Math.sin(clock * 5 + d.seed * 9));
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, gr);
-      g.addColorStop(0, d.c.size === 'xl' ? 'rgba(255,210,87,0.45)' : 'rgba(255,233,168,0.3)'); g.addColorStop(1, 'rgba(255,210,87,0)');
-      ctx.fillStyle = g; ctx.fillRect(cx - gr, cy - gr, gr * 2, gr * 2);
-      ctx.restore();
-    }
-    ctx.save();
-    ctx.translate(cx, cy);
-    if (d.st === 'air') ctx.rotate(d.rot);
-    const pts = [[-r, r * 0.7], [-r * 0.9, -r * 0.3], [-r * 0.3, -r], [r * 0.5, -r * 0.8], [r, -r * 0.1], [r * 0.8, r * 0.7]];
-    ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
-    ctx.fillStyle = rk.col; ctx.fill();
-    ctx.lineWidth = 1.5; ctx.strokeStyle = '#14151c'; ctx.stroke();
-    ctx.fillStyle = rk.dark; ctx.fillRect(-r * 0.3, -r * 0.2, r * 0.5, r * 0.3);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-r * 0.6, -r * 0.7, r * 0.4, r * 0.25);
-    if (d.st === 'crack') {
-      // 금: 가운데를 지나는 번개 모양 선이 점점 벌어진다
-      const k = Math.min(1, d.t / 0.3);
-      ctx.strokeStyle = '#0b0a10'; ctx.lineWidth = 1 + k * 1.5;
-      ctx.beginPath(); ctx.moveTo(-r * 0.2, -r); ctx.lineTo(r * 0.15, -r * 0.3); ctx.lineTo(-r * 0.15, r * 0.2); ctx.lineTo(r * 0.2, r * 0.8); ctx.stroke();
-      if (k > 0.5) { ctx.strokeStyle = rk.glow || '#ffffff'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-r * 0.2, -r); ctx.lineTo(r * 0.15, -r * 0.3); ctx.lineTo(-r * 0.15, r * 0.2); ctx.stroke(); }
-    }
-    ctx.restore();
-  }
-}
-// 보상 고르기 (화면 클릭·자동 공통)
-function dgPickView(i) {
-  const run = S.dg.run;
-  if (!dv || !run || !run.prompt) return;
-  const res = dgChoose(i);
-  if (res && res.end || !S.dg.run) { dgShow(res); dgViewEnd(); return; }
-  dgShow(res);
-  // 골랐으면 다음 구간으로 걸어 나간다
-  dv.sub = 'walkOut'; dv.t = 0;
-  save();
 }
 // 끝: 귀환 빛에 싸여 캠프로 (endDungeon 은 이미 불렸다)
 function dgViewEnd() {
@@ -821,7 +702,8 @@ function dgViewEnd() {
   monsters.forEach((m) => { if (!m.dying) m.dying = 0.001; m.anim = null; });
   knight.fighting = false; knight.pending = false; knight.ward = null;
   endCast('hero');
-  shots = [];
+  shots = []; sv = null;
+  slotFx.forEach((f) => { if (f.st !== 'fly') slotFly(f); });
   dv.sub = 'home'; dv.t = 0; dv.hold = dv.res && dv.res.reason === 'down' ? 1 : 0.6;
   save();
 }
@@ -838,17 +720,185 @@ function dgRetreat() {
   dgViewEnd();
 }
 function dgSpawn(f) {
-  const pool = monsterPool(f.stage);
   monsters = f.mobs.map((st, i) => {
-    const type = st.boss ? zoneOf(f.stage).boss : pool[Math.floor(Math.random() * pool.length)];
-    const m = makeMonster(type, !!st.boss, toWorld(DG_MOB_X + i * 56), st);
-    m.engaged = true;                 // 방에 들어오면 다 같이 덤빈다
+    const m = makeMonster(zoneOf(f.stage).boss, true, toWorld(DG_MOB_X + i * 56), st);
+    m.engaged = true;
     return m;
   });
-  const run = S.dg.run;
-  if (f.kind === 'boss') showBanner(`👑 구간 ${run.sec + 1} 보스! ${MONSTERS[monsters[0].type].name}`, '#ff5a5a');
-  else addFloater(`${DG_RES[run.room.res].icon} ${DG_RES[run.room.res].room}${run.room.vein ? ' — 🌟 특대 광맥!' : ''}`, toScreen(knight.x), groundY() - 66, run.room.vein ? '#ffd257' : '#c9a7ff', 12, !!run.room.vein);
+  showBanner(`👑 보스 ${S.dg.run.k + 1} · ${MONSTERS[monsters[0].type].name}`, '#ff5a5a');
   f.spawned = true;
+}
+
+// ── 슬롯머신 ──
+// 세 칸은 1.0 · 1.8 · 2.7초에 멈춘다. 앞 둘이 같으면 셋째는 3.9초까지 뜸을 들인다 (퍼펙트든 아니든 — 그게 긴장이다)
+function beginSlot(slot) {
+  const stops = [1.0, 1.8, slot.reels[0] === slot.reels[1] ? 3.9 : 2.7];
+  sv = { t: 0, tier: slot.tier, reels: slot.reels.map((final, i) => ({ final, stopAt: stops[i], stopped: false, bounce: 0, phase: Math.random() * 6 })), paidAt: 0, doneAt: 0, rise: 0 };
+  slotFx = [];
+}
+function updateSlot(dt) {
+  const run = S.dg.run, slot = run && run.slot;
+  if (!sv || !slot) { dv.sub = 'walkOut'; dv.t = 0; return; }
+  sv.t += dt;
+  sv.rise = Math.min(1, sv.t / 0.35);
+  const gy = groundY();
+  for (let i = 0; i < 3; i++) {
+    const r = sv.reels[i];
+    if (r.stopped) { r.bounce = Math.max(0, r.bounce - dt * 4); continue; }
+    // 멈추기 직전엔 느려진다
+    const left = r.stopAt - sv.t;
+    r.phase += dt * SLOT_SPIN * (left < 0.5 ? Math.max(0.25, left / 0.5) : 1);
+    if (sv.t >= r.stopAt) {
+      r.stopped = true; r.phase = DG_RES_IDS.indexOf(r.final); r.bounce = 1;
+      burst(SLOT_X - 38 + i * 38, gy - 58, 5, ['#ffffff', '#ffd257'], 60, 2, 200);
+      if (i === 2) shake = Math.max(shake, sv.tier === 'perfect' ? 0.5 : sv.tier === 'pair' ? 0.15 : 0.05);
+    }
+  }
+  if (!sv.paidAt && sv.reels.every((r) => r.stopped)) {
+    sv.paidAt = sv.t;
+    dgSlotPayout(slot, run);
+    slotPour(slot);
+    const main = slot.reels.find((r) => slot.reels.filter((x) => x === r).length >= 2);
+    if (slot.tier === 'perfect') { showBanner(`🌟 PERFECT!! ${DG_RES[main].icon} ${DG_RES[main].name} 대량!`, '#ffd257'); hitstop = Math.max(hitstop, 0.08); }
+    else if (slot.tier === 'pair') showBanner(`🎉 2연속! ${DG_RES[main].icon} ${DG_RES[main].name} 중량`, '#9fffc0');
+    else addFloater('3종 소량', SLOT_X, gy - SLOT_H - 14, '#ffffff', 12, true);
+    addFloater(dgSlotText(slot), SLOT_X, gy - SLOT_H - 30, slot.tier === 'perfect' ? '#ffd257' : '#9fffc0', slot.tier === 'perfect' ? 14 : 12);
+    sv.doneAt = sv.t + (slot.tier === 'perfect' ? 3.2 : slot.tier === 'pair' ? 2.4 : 1.8);
+    save();
+  }
+  if (sv.doneAt && sv.t >= sv.doneAt) {
+    sv = null;
+    dgNextBoss();
+    dv.sub = 'walkOut'; dv.t = 0;
+  }
+}
+// 보상만큼 재화 아이콘이 받침에서 쏟아진다 — 양이 아니라 등급에 따라 개수 (퍼펙트는 우수수)
+function slotPour(slot) {
+  const gy = groundY(), tier = slot.tier;
+  const per = { diff: 3, pair: 9, perfect: 36 }[tier];
+  const list = [];
+  for (const r of Object.keys(slot.payout)) {
+    const main = slot.reels.filter((x) => x === r).length >= 2;
+    const n = tier === 'diff' ? per : main ? per : 2;
+    for (let i = 0; i < n; i++) list.push(r);
+  }
+  list.sort(() => Math.random() - 0.5);
+  list.forEach((r, i) => slotFx.push({ r, x: SLOT_X + rand(-14, 14), y: gy - 10, vx: rand(-120, 120), vy: rand(-320, -140), st: 'fall', t: 0, delay: i * (tier === 'perfect' ? 0.035 : 0.06), hold: rand(1.0, 1.7) + (tier === 'perfect' ? 0.6 : 0), size: tier === 'perfect' ? 14 : 12, rot: rand(-1, 1) }));
+}
+function slotFly(f) {
+  f.st = 'fly'; f.t = 0; f.x0 = f.x; f.y0 = f.y;
+}
+// HUD 의 배낭 칩 위치 (하단바 좌표). 없으면 기사 머리 위
+function dgBagTarget() {
+  const el = document.querySelector('#dgInfo .dchip.bag'), layer = document.getElementById('barLayer');
+  if (el && layer && !document.body.classList.contains('faded')) {
+    const r = el.getBoundingClientRect(), l = layer.getBoundingClientRect();
+    if (r.width) return { x: r.left - l.left + 12, y: r.top - l.top + r.height / 2, el };
+  }
+  return { x: toScreen(knight.x), y: groundY() - 40, el: null };
+}
+function updateSlotFx(dt) {
+  if (!slotFx.length) return;
+  const gy = groundY();
+  for (const f of slotFx) {
+    if (f.delay > 0) { f.delay -= dt; continue; }
+    f.t += dt;
+    if (f.st === 'fall') {
+      f.vy += 760 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.vx * dt * 0.02;
+      if (f.y >= gy - 2 && f.vy > 0) { f.y = gy - 2; f.vy = -f.vy * 0.45; f.vx *= 0.7; if (Math.abs(f.vy) < 30) f.vy = 0; }
+      if (f.x < 8) { f.x = 8; f.vx = Math.abs(f.vx); } else if (f.x > W - 8) { f.x = W - 8; f.vx = -Math.abs(f.vx); }
+      if (f.t >= f.hold) slotFly(f);
+    } else {
+      const tg = dgBagTarget(), u = Math.min(1, f.t / 0.5), e = u * u;
+      f.x = f.x0 + (tg.x - f.x0) * e; f.y = f.y0 + (tg.y - f.y0) * e - Math.sin(u * Math.PI) * 30;
+      if (u >= 1) { f.done = true; if (tg.el && tg.el.animate && Math.random() < 0.3) tg.el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.15)', offset: 0.3 }, { transform: 'scale(1)' }], { duration: 220 }); }
+    }
+  }
+  slotFx = slotFx.filter((f) => !f.done);
+}
+function drawSlotFx() {
+  if (!slotFx.length) return;
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const f of slotFx) {
+    if (f.delay > 0) continue;
+    const k = f.st === 'fly' ? 1 - Math.min(1, f.t / 0.5) * 0.4 : 1;
+    ctx.font = `${Math.round(f.size * k)}px -apple-system, sans-serif`;
+    ctx.save(); ctx.translate(Math.round(f.x), Math.round(f.y - f.size / 2)); ctx.rotate(f.st === 'fall' ? f.rot * 0.3 : 0);
+    ctx.fillText(DG_RES[f.r].icon, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+// 슬롯머신: 남보라 몸통에 은회색 테, 위에 전구 줄, 가운데 창 세 개, 오른쪽 레버, 아래 받침
+function drawSlotMachine() {
+  if (!sv || !dgInside()) return;
+  const gy = groundY(), x0 = SLOT_X - SLOT_W / 2, h = SLOT_H * sv.rise, top = gy - h;
+  const perfect = sv.tier === 'perfect' && sv.paidAt;
+  ctx.save();
+  // 몸통
+  ctx.fillStyle = '#1a1426'; ctx.fillRect(x0 - 2, top - 2, SLOT_W + 4, h + 2);
+  ctx.fillStyle = '#3b2f5a'; ctx.fillRect(x0, top, SLOT_W, h);
+  ctx.fillStyle = '#4a3c70'; ctx.fillRect(x0, top, SLOT_W, 6);
+  ctx.fillStyle = '#c9c4d6'; ctx.fillRect(x0, top + 6, SLOT_W, 2); ctx.fillRect(x0, gy - 14, SLOT_W, 2);
+  // 받침(재화가 나오는 입)
+  ctx.fillStyle = '#0f0c18'; ctx.fillRect(x0 + 18, gy - 11, SLOT_W - 36, 7);
+  if (h < SLOT_H * 0.9) { ctx.restore(); return; }
+  // 전구 줄: 돌 땐 번갈아, 멈추면 결과색으로 숨 쉬듯, 퍼펙트는 무지개
+  const n = 9;
+  for (let i = 0; i < n; i++) {
+    const lx = x0 + 8 + i * ((SLOT_W - 16) / (n - 1));
+    let col;
+    if (perfect) col = `hsl(${(clock * 400 + i * 40) % 360}, 100%, 65%)`;
+    else if (sv.paidAt) col = (Math.floor(clock * 4) + i) % 3 === 0 ? '#ffd257' : '#6a5a40';
+    else col = (Math.floor(clock * 8) + i) % 2 === 0 ? '#ff9f1c' : '#5a4630';
+    ctx.fillStyle = col; ctx.fillRect(Math.round(lx) - 2, top + 10, 4, 4);
+  }
+  // 창 세 개
+  ctx.font = '18px -apple-system, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const ww = 32, wh = 40, wy = top + 20;
+  for (let i = 0; i < 3; i++) {
+    const r = sv.reels[i], wx = x0 + 10 + i * (ww + 6);
+    ctx.fillStyle = '#0f0c18'; ctx.fillRect(wx - 2, wy - 2, ww + 4, wh + 4);
+    ctx.fillStyle = r.stopped ? (perfect ? '#fff3c4' : '#f4efe2') : '#e6e0d2'; ctx.fillRect(wx, wy, ww, wh);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(wx, wy, ww, wh); ctx.clip();
+    const cx = wx + ww / 2, cy = wy + wh / 2;
+    if (r.stopped) {
+      const b = Math.sin(r.bounce * Math.PI) * 4;
+      ctx.fillStyle = '#000';
+      ctx.fillText(DG_RES[r.final].icon, cx, cy + 1 + b);
+    } else {
+      // 돌아가는 띠: 그림 3개가 아래로 흐른다 (잔상 한 장)
+      const p = r.phase, idx = Math.floor(p), off = (p - idx) * wh;
+      ctx.fillStyle = '#000';
+      for (let j = -1; j <= 1; j++) {
+        const id = DG_RES_IDS[((idx + j) % 6 + 6) % 6];
+        ctx.globalAlpha = 0.85;
+        ctx.fillText(DG_RES[id].icon, cx, cy + 1 - j * wh + off);
+        ctx.globalAlpha = 0.25;
+        ctx.fillText(DG_RES[id].icon, cx, cy + 1 - j * wh + off - 10);
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+    // 유리 반사
+    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(wx, wy, ww, 6);
+    // 멈춘 칸이 앞 칸과 같으면 금테
+    if (r.stopped && i > 0 && sv.reels[i - 1].stopped && sv.reels[i - 1].final === r.final) { ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 2; ctx.strokeRect(wx - 1, wy - 1, ww + 2, wh + 2); }
+  }
+  // 레버: 처음 0.5초 동안 당겨진다
+  const lx = x0 + SLOT_W + 4, pull = !sv.paidAt && sv.t < 0.5 ? Math.sin(Math.min(1, sv.t / 0.5) * Math.PI) : 0;
+  ctx.fillStyle = '#c9c4d6'; ctx.fillRect(lx, top + 30 + pull * 22, 3, 26 - pull * 10);
+  ctx.fillStyle = '#ff6b6b'; ctx.fillRect(lx - 2, top + 26 + pull * 22, 7, 7);
+  // 퍼펙트: 창 둘레로 빛
+  if (perfect) {
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(SLOT_X, wy + wh / 2, 10, SLOT_X, wy + wh / 2, 90);
+    g.addColorStop(0, `rgba(255,210,87,${0.25 + 0.15 * Math.sin(clock * 10)})`); g.addColorStop(1, 'rgba(255,210,87,0)');
+    ctx.fillStyle = g; ctx.fillRect(SLOT_X - 90, wy - 50, 180, 140);
+  }
+  ctx.restore();
 }
 
 function updateDungeon(dt) {
@@ -869,35 +919,31 @@ function updateDungeon(dt) {
       if (!run) { dgViewEnd(); break; }
       if (towerWalk(DG_KX, WALK_SPEED * 1.6, dt) === false) break;
       knight.facing = 1;
-      if (run.prompt) {
-        // '바로 자동 선택'이면 잠깐 보여 주고 고른다
-        run.prompt.left -= dt;
-        if (S.dg.pol.fast && run.prompt.left > 0.7 && run.prompt.left < DG_PICK_SEC - 0.5) run.prompt.left = 0.7;
-        if (run.prompt.left <= 0) dgPickView(dgAutoPick());
-      } else if (run.fight) {
+      if (run.fight) {
         if (!run.fight.spawned) dgSpawn(run.fight);
         dv.sub = 'fight';
-      }
+      } else if (run.slot && !run.slot.paid) { beginSlot(run.slot); dv.sub = 'slot'; dv.t = 0; }
+      else dgNextBoss();
       break;
     case 'fight':
       if (!run) { dgViewEnd(); break; }
-      if (run.sack) {
-        const lost = dgSackLeak(dt);
-        if (lost) { const b = monsters.find((m) => m.boss && !m.dying); addFloater(`😋 덩어리 ${lost}개를 삼켰다`, b ? toScreen(b.x) : toScreen(knight.x) + 120, (b ? monsterTop(b) : groundY() - 60) - 10, '#ff8f8f', 12, true); }
-      }
       fightTick(dt, st, () => {
         if (monsters.some((m) => !m.dying)) { knight.x += WALK_SPEED * dt; knight.walkT += dt; return; }
-        if (dgChunks.some((d) => d.st !== 'fly' && d.t < 3)) return;        // 마지막 돌덩이가 깨질 때까지 서서 본다
-        const res = dgRoomCleared();
+        const res = dgBossCleared();
         dgShow(res);
-        if (res && res.end || !S.dg.run) { dgViewEnd(); return; }
-        // 보상을 고를 땐 멈춰 서고, 아니면 다음 방으로 걸어 나간다
-        dv.sub = S.dg.run.prompt ? 'stand' : 'walkOut'; dv.t = 0;
+        if (!S.dg.run) { dgViewEnd(); return; }
+        beginSlot(S.dg.run.slot);
+        dv.sub = 'slot'; dv.t = 0;
         save();
       });
       break;
+    case 'slot':
+      if (!run) { dgViewEnd(); break; }
+      knight.facing = 1;
+      updateSlot(dt);
+      break;
     case 'walkOut':
-      // 오른쪽으로 걸어 나가 빛에 싸였다가 다음 방 왼쪽에 나타난다
+      // 오른쪽으로 걸어 나가 빛에 싸였다가 다음 보스 앞 왼쪽에 나타난다
       dv.t += dt;
       if (!knight.warp) { knight.x += WALK_SPEED * 1.6 * dt; knight.walkT += dt; }
       if (dv.t > 0.7 && !knight.warp) warpKnight('out');
@@ -1043,7 +1089,7 @@ function update(dt) {
   }
   coins = coins.filter(c => !c.fly || c.ft < 1);
   updateDrops(dt);
-  updateDgChunks(dt);
+  updateSlotFx(dt);
 
   if (banner) { banner.t += dt; if (banner.t > 2.2) banner = null; }
   updateShout(dt);
@@ -3178,11 +3224,12 @@ function drawActors() {
   drawDropsBack();
   for (const m of monsters) drawMonster(m);
   drawDropsFront();
-  drawDgChunks();
+  drawSlotMachine();
   drawAuras();
   if (duelPlay) drawDuel(); else if (raidPlay) drawRaid(); else drawKnight();
   drawShots();
   drawEffects();
   drawSkillFx();
   drawParts();
+  drawSlotFx();
 }

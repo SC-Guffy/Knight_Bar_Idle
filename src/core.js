@@ -45,7 +45,7 @@ function freshState() {
     mail: { got: [] },                      // 우편함: 보상을 받은 우편 id (data.js MAIL)
     duelSeen: 0,                            // 받은 결투(우편함)에서 읽은 마지막 기록 id (ui.js inbox)
     tower: freshTower(),                    // 도전의 탑: 최고 층·진행 중인 도전 (tower.js)
-    dg: freshDungeon(),                     // 재료의 미궁: 입장권·완주 기록·난이도·진행 중인 도전 (dungeon.js)
+    dg: freshDungeon(),                     // 재료의 미궁(보스 러시+슬롯): 입장권·최고 기록·진행 중인 도전 (dungeon.js)
     wb: freshWb(),                          // 월드 보스: 받은 보상·마지막 정산 (worldboss.js)
     guide: {},                              // 처음 하는 일 안내(FTUE)에서 이미 본 단계 (ui.js guideTick)
     lastSeen: Date.now(),
@@ -208,7 +208,7 @@ function stats(base = false) {
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
   const defRed = defRedAt(t.def);
-  // 재료의 미궁 안: 🛡️ 방어력 증가 보상 (dungeon.js dgFx). 랭킹·결투용(base)에는 넣지 않는다
+  // 재료의 미궁 안 배율 (dungeon.js dgFx — 지금은 0). 랭킹·결투용(base)에는 넣지 않는다
   const dg = !base && dgActive() ? dgFx() : null;
   if (dg) atk *= 1 + dg.atk;
   return {

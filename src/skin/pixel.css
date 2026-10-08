@@ -200,12 +200,10 @@ body.web { background: #0f0e1a; background-image: repeating-linear-gradient(0deg
 .pchip.static:hover { background-color: transparent; color: inherit; }
 .nchip.ready { color: #7dffb0; box-shadow: inset 0 0 0 1px rgba(125, 255, 176, .5); }
 .pchip:disabled { opacity: .45; }
-/* 던전 보스 보상 버튼: 각진 픽셀 버튼. 도박의 붉은 테두리는 그대로 */
+/* 던전 고르기 버튼(지금은 안 쓰지만 틀은 둔다): 각진 픽셀 버튼 */
 #dgPick button { border: 4px solid transparent; border-image: url(frame-btn.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box;
   background-color: var(--px-bg); box-shadow: 4px 4px 0 rgba(0, 0, 0, .45); }
 #dgPick button:hover { background-color: var(--px-bg2); transform: translateY(-3px); }
-#dgPick .dgcard.r1, #dgPick .dgcard.r2, #dgPick .dgopt.risk {
-  border-image: none; border-width: 2px; padding: 9px; }
 #dgPick button.auto { box-shadow: 0 0 0 2px var(--px-gold-l), 4px 4px 0 rgba(0, 0, 0, .45); }
 .dgtime { height: 4px; background: var(--px-ink); }
 .dgtime > div { background: var(--gold); }

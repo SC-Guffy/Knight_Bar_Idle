@@ -127,7 +127,7 @@ function renderHud() {
   $('status').textContent =
     S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / STAMINA_DRAIN)}`
       : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / STAMINA_DRAIN)}` : '✨ 귀환 중')
-      : S.phase === 'dungeon' ? (S.dg.run ? `⛏️ 구간 ${S.dg.run.sec + 1}` : '✨ 귀환 중')
+      : S.phase === 'dungeon' ? (S.dg.run ? `👑 보스 ${S.dg.run.k + (S.dg.run.fight ? 1 : 0)}` : '✨ 귀환 중')
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`;
 
@@ -2065,7 +2065,7 @@ function guideTick() {
   if (!g.dgIntro && dgUnlocked() && S.phase === 'camp' && !modalOpen()) {
     g.dgIntro = 1;
     showBanner('⛏️ 재료의 미궁 개방!', '#ffd257');
-    toast('⛏️ 재료의 미궁이 열렸어요 — 돌덩이를 깨 🪵 목재 · 🪨 철광석 같은 재화 덩어리를 줍는 곳이에요. 쓰러져도 모은 건 다 가져가요. 캠프 → 🗺️ 도전 → ⛏️ 재료의 미궁', 10000);
+    toast('⛏️ 재료의 미궁이 열렸어요 — 보스를 잡을 때마다 🎰 슬롯머신을 돌려 🪵 목재 · 🪨 철광석 같은 재화를 받는 보스 러시예요. 쓰러져도 모은 건 다 가져가요. 캠프 → 🗺️ 도전 → ⛏️ 재료의 미궁', 10000);
     save();
   }
   if (!g.tomeIntro && S.tomes > 0) {
@@ -2141,90 +2141,53 @@ function viewTower() {
     ${last}`;
 }
 
-// ───────────────────────── 재료의 미궁 ─────────────────────────
-// 규칙은 src/dungeon.js, 하단바 연출은 world.js updateDungeon. 여기는 보스 보상 고르는 화면(하단바 위 #dgPick)과 캠프 탭.
-const DG_REASON = { clear: '🏆 완주했어요', down: '💀 쓰러졌어요 — 모은 자원은 다 챙겼어요', retreat: '🎒 나왔어요', offline: '🌙 앱이 꺼져서 멈췄어요' };
-const DG_CARD_TAG = { 0: '', 1: 'r1', 2: 'r2' };
+// ───────────────────────── 재료의 미궁 (보스 러시 + 슬롯머신) ─────────────────────────
+// 규칙은 src/dungeon.js, 하단바 연출(보스·슬롯머신)은 world.js updateDungeon. 여기는 하단바 위 상태 칩(#dgInfo)과 캠프 탭. 고를 것은 없다
+const DG_REASON = { down: '💀 쓰러졌어요 — 모은 자원은 다 챙겼어요', retreat: '🎒 나왔어요', offline: '🌙 앱이 꺼져서 멈췄어요' };
 const dgResultPending = () => !!S.dg.last && S.dg.last.seen === false;
 let dgResultViewed = false;
 // 배낭·보상 한 줄: 🪵 1.2만 · 💠 34
 const dgResText = (bag, empty = '비어 있음') => DG_RES_IDS.filter((r) => bag[r] > 0).map((r) => `${DG_RES[r].icon} ${fmt(bag[r])}`).join(' · ') || empty;
-// 고른 카드 요약: 💰🛡️🧲 (같은 카드는 ×n)
-function dgCardsText(ids) {
-  const n = {};
-  for (const id of ids || []) n[id] = (n[id] || 0) + 1;
-  return Object.keys(n).map((id) => `<span class="${DG_CARD_TAG[DG_CARDS[id].rar]}" title="${esc(DG_CARDS[id].name + ' — ' + DG_CARDS[id].desc)}">${DG_CARDS[id].icon}${n[id] > 1 ? '×' + n[id] : ''}</span>`).join('');
-}
-// 주운 덩어리 요약: 소 12 · 중 5 · 대 1
-const dgChunksText = (ch) => DG_CHUNKS.filter((c) => ch[c.id]).map((c) => `${c.name} ${ch[c.id]}`).join(' · ') || '없음';
+// 슬롯 결과 요약: 🌟 퍼펙트 1 · 🎉 2연속 4 · 3종 3
+const dgSpinsText = (sp) => [sp.perfect ? `🌟 퍼펙트 ${sp.perfect}` : '', sp.pair ? `🎉 2연속 ${sp.pair}` : '', sp.diff ? `3종 ${sp.diff}` : ''].filter(Boolean).join(' · ') || '없음';
 
-// 하단바 위 고르는 화면. 내용이 바뀔 때만 다시 만들고, 남은 시간 막대만 매번 줄인다
-let dgPickKey = '';
+// 하단바 위 상태 칩. 바뀔 때만 다시 만든다
 function renderDungeonPick() {
   const box = $('dgPick'), info = $('dgInfo');
   const run = S.phase === 'dungeon' ? S.dg.run : null;
-  const p = run && dgInside() && dv.sub === 'stand' ? run.prompt : null;
+  if (!box.hidden) { box.hidden = true; box.innerHTML = ''; }
   info.hidden = !run || !dgInside();
-  if (run && !info.hidden) {
-    const boss = run.room && run.room.id === 'boss', sk = run.sack;
-    const html = `<span class="dchip">⛏️ ${DG_DIFFS[run.diff].name} · 구간 ${run.sec + 1}/${DG_SECTIONS} · ${boss ? '👑 보스' : `방 ${Math.min(run.ri + 1, DG_ROOMS)}/${DG_ROOMS}${run.room ? ` ${DG_RES[run.room.res].icon} ${dgRoomName(run.room)}` : ''}`}</span>
-      ${sk ? `<span class="dchip sack${sk.lost ? ' lost' : ''}" title="보스 자루 — 체력 10% 깎일 때마다 하나씩 튀어나와요. ${sk.noLeak ? '큰 자루라 삼키지 않아요' : `${DG_SACK_LEAK_AT}초 뒤부터 ${DG_SACK_LEAK_EVERY}초마다 하나씩 삼켜요`}">👜 자루 ${sk.items.length}/${sk.total}${sk.lost ? ` · 삼킴 ${sk.lost}` : ''}</span>` : ''}
-      <span class="dchip bag" title="배낭 — 어떻게 끝나든 모두 가져가요 (도박·보물 지도만 잃을 수 있어요)">🎒 ${dgResText(run.bag)}</span>${run.cards && run.cards.length ? `<span class="dchip cards" title="고른 카드">${dgCardsText(run.cards)}</span>` : ''}`;
-    if (info.innerHTML !== html) info.innerHTML = html;
-  }
-  if (!p) { if (dgPickKey) { box.innerHTML = ''; box.hidden = true; dgPickKey = ''; } return; }
-  const key = run.rooms + ':' + run.sec + ':' + p.kind + ':' + JSON.stringify(p.opts) + ':' + Math.round(S.hp / stats().maxHp * 20);
-  if (key !== dgPickKey) {
-    dgPickKey = key;
-    box.hidden = false;
-    box.innerHTML = dgPickHtml(run, p);
-  }
-  const bar = box.querySelector('.dgtime > div');
-  if (bar) bar.style.width = (100 * Math.max(0, p.left) / DG_PICK_SEC) + '%';
-}
-function dgPickHtml(run, p) {
-  const auto = dgAutoPick();
-  const btn = (i, cls, inner) => `<button class="interactive ${cls}${i === auto ? ' auto' : ''}" data-action="dg-pick" data-i="${i}">${inner}</button>`;
-  const q = (title, sub) => `<div class="dgq"><b>${title}</b><small>${sub}</small><div class="dgtime"><div></div></div></div>`;
-  const hp = Math.round(100 * Math.max(0, S.hp) / stats().maxHp);
-  return q(p.final ? '👑 마지막 보스 — 카드 한 장' : `👑 구간 ${run.sec + 1} 보스 — 카드 한 장`, `체력 ${hp}%${p.final ? ' · 고르면 귀환해요' : ' · 흰 테두리 = 자동'}`)
-    + p.opts.map((o, i) => {
-      const c = DG_CARDS[o.id];
-      return btn(i, `dgcard ${DG_CARD_TAG[c.rar]}${c.risk ? ' risk' : ''}`, `<span class="tag">${DG_RAR[c.rar].name}${c.risk ? ' · 잃을 수 있음' : ''}</span><b>${c.icon} ${c.name}</b><small>${c.desc}</small>`);
-    }).join('');
+  if (!run || info.hidden) return;
+  const sp = run.spins || { diff: 0, pair: 0, perfect: 0 };
+  const html = `<span class="dchip">👑 보스 ${run.k + (run.fight ? 1 : 0)}${run.fight ? ` · 스테이지 ${run.fight.stage}` : ''} · 보상 ×${(1 + DG_BOSS_BONUS * Math.max(0, run.k - (run.fight ? 0 : 1))).toFixed(2).replace(/\.?0+$/, '')}</span>
+    <span class="dchip bag" title="배낭 — 어떻게 끝나든 모두 가져가요">🎒 ${dgResText(run.bag)}</span>${sp.pair || sp.perfect ? `<span class="dchip cards" title="슬롯 결과">${sp.perfect ? `<span class="r2">🌟${sp.perfect}</span>` : ''}${sp.pair ? `<span>🎉${sp.pair}</span>` : ''}</span>` : ''}`;
+  if (info.innerHTML !== html) info.innerHTML = html;
 }
 
 function dgResultHtml(L) {
   return `
     <div class="treport" style="margin-bottom:10px">
-      <div class="reason">${DG_REASON[L.reason] || '도전 끝'} — ${DG_DIFFS[L.diff].name} · 보스 ${L.bosses}/${DG_SECTIONS}${L.first ? ' · 🎉 첫 완주!' : ''}</div>
-      <div class="dgline">받음 <b>${dgResText(L.got, '없음')}</b>${L.mapMult && L.mapMult !== 1 ? ` <span class="${L.mapMult > 1 ? '' : 'bad'}">· 🗺️ 보물 지도 ×${L.mapMult}</span>` : ''}</div>
-      <div class="dgline small">덩어리 ${dgChunksText(L.chunks || {})} · 처치 ${fmt(L.kills)}${L.cards && L.cards.length ? ` · 카드 <span class="dgcards">${dgCardsText(L.cards)}</span>` : ''}${L.dur ? ` · ${fmtTime(L.dur)}` : ''}</div>
+      <div class="reason">${DG_REASON[L.reason] || '도전 끝'} — 👑 보스 ${L.bosses}마리${L.best ? ' · 🎉 신기록!' : ''}</div>
+      <div class="dgline">받음 <b>${dgResText(L.got, '없음')}</b></div>
+      <div class="dgline small">🎰 ${dgSpinsText(L.spins || {})}${L.dur ? ` · ${fmtTime(L.dur)}` : ''}</div>
     </div>`;
 }
 function viewDungeon() {
-  const d = S.dg, pol = d.pol;
+  const d = S.dg;
   if (!dgUnlocked()) return `<div class="mhead"><div><h3>⛏️ 재료의 미궁</h3><small>스테이지 ${DG_UNLOCK_STAGE}에 열려요</small></div></div>
-    <div class="hint">쭉 밀고 나가며 몬스터가 떨어뜨리는 돌덩이를 깨 재화 덩어리(소·중·대·특대)를 줍는 던전이에요. 🪵 목재 · 🪨 철광석을 가장 많이 얻는 곳이에요.</div>`;
+    <div class="hint">보스를 한 마리씩 잡을 때마다 🎰 슬롯머신을 돌려 재화를 받는 보스 러시예요. 🪵 목재 · 🪨 철광석을 가장 많이 얻는 곳이에요.</div>`;
   const fresh = dgResultPending();
   if (fresh) dgResultViewed = true;
-  const sel = Math.min(pol.diff || 0, DG_DIFFS.length - 1);
-  const blocker = dgBlocker(sel);
-  const L = dgLimitStage();
-  const diffs = DG_DIFFS.map((x, i) => {
-    const open = dgDiffOpen(i);
-    return `<button class="pchip${i === sel ? ' on' : ''}" data-action="dg-diff" data-i="${i}" ${open ? '' : 'disabled'} title="${open ? `스테이지 ${Math.max(1, L + x.off)} 급 몬스터` : esc(dgBlocker(i))}">${open ? '' : '🔒 '}${x.name} <small>×${x.mult}</small>${d.clr[x.id] ? ' ✓' : ''}</button>`;
-  }).join('');
-  const cards = [0, 1, 2].map((r) => `<span class="dgcards ${DG_CARD_TAG[r]}" title="${DG_RAR[r].name} ${DG_RAR[r].w}%">${DG_CARD_IDS.filter((id) => DG_CARDS[id].rar === r && !DG_CARDS[id].finalOnly).map((id) => `<span title="${esc(DG_CARDS[id].name + ' — ' + DG_CARDS[id].desc)}">${DG_CARDS[id].icon}</span>`).join('')}</span>`).join('<span class="sep"></span>');
+  const blocker = dgBlocker();
+  const L = dgLimitStage(), s0 = Math.max(1, L + DG_OFF0);
+  const tiers = DG_SLOT_TIER_IDS.map((id) => { const t = DG_SLOT_TIERS[id]; return `<span class="pchip static" title="${t.big ? `맞춘 재화 ${t.big}칸${t.small ? ` + 나머지 ${t.small}칸` : ''}` : `세 재화 ${t.small}칸씩`}">${id === 'perfect' ? '🌟' : id === 'pair' ? '🎉' : '🎲'} ${t.name} <small>${t.w}%</small></span>`; }).join('');
   return `
     <div class="mhead"><div><h3>⛏️ 재료의 미궁</h3>
-      <small>🎟 입장권 <b>${dgTickets()}/${DG_TICKETS}</b> · 완주 ${DG_DIFFS.filter((x) => d.clr[x.id]).map((x) => x.name).join(' · ') || '아직 없음'}</small></div></div>
+      <small>🎟 입장권 <b>${dgTickets()}/${DG_TICKETS}</b> · 최고 기록 👑 ${d.best || 0}마리 · 통산 🌟 퍼펙트 ${d.perfects || 0}</small></div></div>
     ${fresh ? dgResultHtml(d.last) : ''}
-    <div class="hint">구간 ${DG_SECTIONS}개를 쭉 밀고 나가요. 몬스터가 떨어뜨린 돌덩이를 깨면 그 방 재화의 덩어리(소·중·대·특대)가 나오고, 보스는 자루를 메고 있어서 때릴 때마다 덩어리가 튀어요 (오래 끌면 삼켜요). 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요 — 잃는 건 🎲 도박·🗺️ 보물 지도뿐.</div>
-    <div class="dgrow"><span class="lbl">난이도</span>${diffs}</div>
-    <div class="dgrow"><span class="lbl">보스 카드</span><span class="small">3장 중 1장 ·</span>${cards}<span class="small">(아이콘에 마우스를 올리면 설명)</span></div>
-    <div class="dgrow"><span class="lbl">자동</span><button class="pchip${pol.fast ? ' on' : ''}" data-action="dg-fast">⚡ 카드 바로 자동 선택</button><span class="small">체력이 반 아래면 회복 계열, 아니면 잃을 수 있는 카드를 뺀 첫 장 · 안 고르면 ${DG_PICK_SEC}초 뒤 이대로</span></div>
-    <div class="act" style="margin-top:8px"><button class="go compact${rd(blocker === '')}" data-action="dg-start" ${blocker ? 'disabled' : ''}>⛏️ ${DG_DIFFS[sel].name} 입장 <small>🎟1</small></button> <span class="blocker">${blocker}</span></div>`;
+    <div class="hint">보스가 한 마리씩 나와요. 잡을 때마다 🎰 슬롯머신을 한 번 돌리고, 보스는 한 마리마다 1 스테이지씩 세져요 (지금 첫 보스 스테이지 ${s0}, 내 전투력에 맞춰요). 슬롯 보상은 보스를 잡을수록 ×${1 + DG_BOSS_BONUS}씩 커지고, 보스를 잡으면 체력이 ${Math.round(DG_HEAL * 100)}% 차요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요.</div>
+    <div class="dgrow"><span class="lbl">슬롯</span>${tiers}<span class="small">— 3칸이 멈추면 그림대로 재화가 쏟아져요</span></div>
+    <div class="act" style="margin-top:8px"><button class="go compact${rd(blocker === '')}" data-action="dg-start" ${blocker ? 'disabled' : ''}>⛏️ 입장 <small>🎟1</small></button> <span class="blocker">${blocker}</span></div>`;
 }
 
 // ───────────────────────── 🗺️ 도전 탭: 서브 콘텐츠 카드 ─────────────────────────
@@ -2242,13 +2205,13 @@ const SUB_CARDS = [
       if (towerSweepReady()) out.push([`🧹 소탕 📖 +${t.best}`, 'ok']);
       return out;
     } },
-  { k: 'dungeon', icon: '⛏️', name: '재료의 미궁', desc: '돌덩이를 깨 🪵 🪨 💎 재화 덩어리를 줍는 던전 — 보스는 자루를 메고 있고, 잡으면 카드 한 장',
+  { k: 'dungeon', icon: '⛏️', name: '재료의 미궁', desc: '보스 러시 — 보스를 잡을 때마다 🎰 슬롯머신을 돌려 🪵 🪨 💎 재화를 받아요. 3연속이면 우수수',
     unlocked: () => dgUnlocked(), lockText: () => `스테이지 ${DG_UNLOCK_STAGE}에 열려요`, dot: (d) => d.dungeon, view: () => viewDungeon(),
     chips: () => {
-      const d = S.dg, out = [], clr = DG_DIFFS.filter((x) => d.clr[x.id]);
+      const d = S.dg, out = [];
       if (dgResultPending()) out.push(['📜 결과 보기', 'ok']);
       out.push([`🎟 ${dgTickets()}장`, dgTickets() ? '' : 'lack']);
-      out.push([clr.length ? `완주 ${clr[clr.length - 1].name}` : '아직 완주 없음', '']);
+      out.push([d.best ? `최고 👑 ${d.best}마리` : '아직 기록 없음', '']);
       return out;
     } },
 ];
@@ -2342,7 +2305,7 @@ function drawSubTower(g, w, h) {
   subHero(g, Math.round(w * 0.34), gy, 'fight');
   if (!towerUnlocked()) subLock(g, w, h);
 }
-// ⛏️ 미궁: 어두운 돌바닥과 횃불, 오른쪽 바닥에 재화 덩어리 세 개, 기사가 그쪽으로 걸어간다
+// ⛏️ 미궁: 어두운 돌바닥과 횃불, 오른쪽에 작은 슬롯머신(그림이 돌아간다), 기사가 그쪽으로 걸어간다
 function drawSubDungeon(g, w, h) {
   const gy = h - 10;
   g.fillStyle = '#17131f'; g.fillRect(0, 0, w, h);
@@ -2350,16 +2313,23 @@ function drawSubDungeon(g, w, h) {
   g.fillStyle = 'rgba(40,36,50,0.9)'; g.fillRect(0, gy + 3, w, h - gy - 3);
   g.fillStyle = 'rgba(90,84,104,0.5)';
   for (let x = 0; x < w; x += 24) g.fillRect(x, gy + 4, 1, h - gy - 4);
-  // 바닥에 떨어진 재화 덩어리 소·중·대 — 살짝 떠올랐다 내려앉는다
-  const chunks = [['🪵', 7, 'rgba(255,210,87,.8)'], ['🪨', 10, 'rgba(200,200,220,.8)'], ['💎', 14, 'rgba(111,182,255,.8)']];
-  chunks.forEach(([ic, r, col], i) => {
-    const cx = Math.round(w * 0.56 + i * 40), bob = Math.abs(Math.sin(clock * 2.2 + i)) * 3, cy = gy - r - bob;
-    g.fillStyle = '#0c0a12';
-    g.beginPath(); g.moveTo(cx - r, cy + r); g.lineTo(cx - r * 0.8, cy - r * 0.4); g.lineTo(cx, cy - r); g.lineTo(cx + r * 0.9, cy - r * 0.3); g.lineTo(cx + r, cy + r); g.closePath(); g.fill();
-    g.strokeStyle = col; g.lineWidth = 1.5; g.stroke();
-    g.font = `${8 + r * 0.5}px -apple-system, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillStyle = '#fff'; g.fillText(ic, cx, cy + 1);
-  });
+  // 작은 슬롯머신: 남보라 몸통, 전구 줄, 창 세 개에 재화 그림이 돌아간다
+  const mw = 78, mh = 54, mx = Math.round(w * 0.72) - mw / 2, my = gy - mh;
+  g.fillStyle = '#1a1426'; g.fillRect(mx - 2, my - 2, mw + 4, mh + 2);
+  g.fillStyle = '#3b2f5a'; g.fillRect(mx, my, mw, mh);
+  g.fillStyle = '#c9c4d6'; g.fillRect(mx, my + 5, mw, 1); g.fillRect(mx, gy - 8, mw, 1);
+  for (let i = 0; i < 6; i++) { g.fillStyle = (Math.floor(clock * 8) + i) % 2 ? '#ff9f1c' : '#5a4630'; g.fillRect(mx + 6 + i * 13, my + 8, 3, 3); }
+  g.font = '11px -apple-system, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let i = 0; i < 3; i++) {
+    const wx = mx + 6 + i * 23, wy = my + 15, ww = 20, wh = 24;
+    g.fillStyle = '#f4efe2'; g.fillRect(wx, wy, ww, wh);
+    g.save(); g.beginPath(); g.rect(wx, wy, ww, wh); g.clip();
+    const p = clock * (5 + i * 1.3) + i * 2, idx = Math.floor(p), off = (p - idx) * wh;
+    g.fillStyle = '#000';
+    for (let j = -1; j <= 1; j++) g.fillText(DG_RES[DG_RES_IDS[((idx + j) % 6 + 6) % 6]].icon, wx + ww / 2, wy + wh / 2 + 1 - j * wh + off);
+    g.restore();
+  }
+  g.fillStyle = '#c9c4d6'; g.fillRect(mx + mw + 3, my + 18, 2, 16); g.fillStyle = '#ff6b6b'; g.fillRect(mx + mw + 1, my + 15, 6, 6);
   for (const x of [Math.round(w * 0.1), Math.round(w * 0.45)]) {
     const fl = 0.75 + 0.25 * Math.sin(clock * 9 + x);
     const glow = g.createRadialGradient(x, gy - 40, 1, x, gy - 40, 30);
@@ -2491,16 +2461,13 @@ const ACTIONS = {
     renderHud();
   },
   'dg-start': () => {
-    if (!startDungeon(Math.min(S.dg.pol.diff || 0, DG_DIFFS.length - 1))) return;
+    if (!startDungeon()) return;
     closeCamp();
     beginDungeonView();
     save();
     renderHud();
   },
-  'dg-pick': (el) => dgPickView(Number(el.dataset.i)),
   'dg-retreat': () => { dgRetreat(); renderHud(); },
-  'dg-diff': (el) => { S.dg.pol.diff = Number(el.dataset.i); },
-  'dg-fast': () => { S.dg.pol.fast = !S.dg.pol.fast; },
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),
   'tab': (el) => {
