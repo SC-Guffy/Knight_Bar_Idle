@@ -68,7 +68,8 @@ function addFloater(text, x, y, color, size = 12, pop = false) {
   if (towerInside()) return floaters.push({ text, x, y, color, size, pop, t: 0, tw: true });
   floaters.push({ text, x, y, color, size, t: 0, pop });
 }
-function showBanner(text, color = '#ffd257') { banner = { text, color, t: 0 }; }
+// size: 글자 크기(기본 20, 더 크면 처음 0.25초 동안 튀어 들어온다) · dur: 머무는 초 · color 'rainbow' 는 무지개로 돈다
+function showBanner(text, color = '#ffd257', size = 20, dur = 2.2) { banner = { text, color, t: 0, size, dur }; }
 
 // 서버 확성기: 하단바 위쪽을 오른쪽에서 왼쪽으로 흘러가는 소식 한 줄 (한 번에 하나씩, 밀린 건 줄 서서)
 const SHOUT_SPEED = 200;        // px/s
@@ -738,9 +739,19 @@ function dgSpawn(f) {
 
 // ── 슬롯머신 ──
 // 세 칸은 1.0 · 1.8 · 2.7초에 멈춘다. 앞 둘이 같으면 셋째는 3.9초까지 뜸을 들인다 (퍼펙트든 아니든 — 그게 긴장이다)
+// 당첨 연출은 등급마다 확실히 다르다 (SLOT_WIN):
+//   3종   — 조용히. 셋째 칸이 톡 멈추고 재화 몇 개가 떨어진다
+//   2연속 — 둘째 칸이 첫째와 같으면 "리치" (전구 빨강·노랑, 셋째 창에서 불꽃, 기계가 부르르). 맞추면 연둣빛 섬광 → 기계가 깡충깡충 → 맞춘 칸에 빛 띠·맥박 테 → 종이가루 두 번
+//   퍼펙트 — 잭팟. 히트스톱 → 흰 섬광 → 긴 흔들림 → 기계 뒤 무지개 광선 회전 → 바닥 금빛 → 폭죽이 하단바 여기저기 → 종이가루 여섯 번 → 금빛 여운. 머무는 시간도 길다
+// flash: 섬광 초 · shake: 흔들림 초 · stop: 히트스톱 초 · hop: 뛰는 시간/높이/빠르기 · waves: 종이가루 뿌리는 시각(당첨 뒤 초) · confetti: 한 번에 몇 장 · done: 다음 보스로 가기까지
+const SLOT_WIN = {
+  pair:    { flash: 0.3, flashCol: '190,255,210', shake: 0.3, stop: 0.05, hop: 0.9, hopH: 5, hopHz: 10, waves: [0, 0.35], confetti: 26, cols: ['#9fffc0', '#ffffff', '#ffd257', '#5ee0ff'], done: 2.8 },
+  perfect: { flash: 0.5, flashCol: '255,255,255', shake: 0.7, stop: 0.16, hop: 1.8, hopH: 8, hopHz: 13, waves: [0, 0.3, 0.6, 1.0, 1.5, 2.1], confetti: 40, cols: ['#ff5a5a', '#ffd257', '#9fffc0', '#5ee0ff', '#d59fff', '#ffffff'], done: 4.2 },
+};
+const slotWinX = (i) => SLOT_X - 36 + i * 38;            // i번째 창의 가운데 x (drawSlotMachine 의 창 배치와 맞춘다)
 function beginSlot(slot) {
   const stops = [1.0, 1.8, slot.reels[0] === slot.reels[1] ? 3.9 : 2.7];
-  sv = { t: 0, tier: slot.tier, reels: slot.reels.map((final, i) => ({ final, stopAt: stops[i], stopped: false, bounce: 0, phase: Math.random() * 6 })), paidAt: 0, doneAt: 0, rise: 0 };
+  sv = { t: 0, tier: slot.tier, reels: slot.reels.map((final, i) => ({ final, stopAt: stops[i], stopped: false, bounce: 0, phase: Math.random() * 6 })), paidAt: 0, doneAt: 0, rise: 0, reach: 0, sparkAt: 0, waves: [], fwAt: 0 };
   slotFx = [];
 }
 function updateSlot(dt) {
@@ -757,21 +768,47 @@ function updateSlot(dt) {
     r.phase += dt * SLOT_SPIN * (left < 0.5 ? Math.max(0.25, left / 0.5) : 1);
     if (sv.t >= r.stopAt) {
       r.stopped = true; r.phase = DG_RES_IDS.indexOf(r.final); r.bounce = 1;
-      burst(SLOT_X - 38 + i * 38, gy - 58, 5, ['#ffffff', '#ffd257'], 60, 2, 200);
-      if (i === 2) shake = Math.max(shake, sv.tier === 'perfect' ? 0.5 : sv.tier === 'pair' ? 0.15 : 0.05);
+      burst(slotWinX(i), gy - 58, 5, ['#ffffff', '#ffd257'], 60, 2, 200);
+      // 둘째 칸이 첫째와 같으면 리치 — 셋째 칸이 멈출 때까지 전구가 빨갛게 깜빡이고 셋째 창에서 불꽃이 튄다
+      if (i === 1 && sv.reels[0].final === r.final) {
+        sv.reach = sv.t;
+        shake = Math.max(shake, 0.12);
+        addFloater('🔥 리치!', SLOT_X, gy - SLOT_H - 14, '#ff9f1c', 13, true);
+      }
+      if (i === 2 && !SLOT_WIN[sv.tier]) shake = Math.max(shake, 0.05);
     }
+  }
+  if (sv.reach && !sv.reels[2].stopped && sv.t >= sv.sparkAt) {
+    sv.sparkAt = sv.t + 0.1;
+    burst(slotWinX(2) + rand(-12, 12), gy - 58 + rand(-16, 16), 2, ['#ff9f1c', '#ffe066'], 50, 2, 150);
   }
   if (!sv.paidAt && sv.reels.every((r) => r.stopped)) {
     sv.paidAt = sv.t;
     dgSlotPayout(slot, run);
     slotPour(slot);
-    const main = slot.reels.find((r) => slot.reels.filter((x) => x === r).length >= 2);
-    if (slot.tier === 'perfect') { showBanner(`🌟 PERFECT!! ${DG_RES[main].icon} ${DG_RES[main].name} 대량!`, '#ffd257'); hitstop = Math.max(hitstop, 0.08); }
-    else if (slot.tier === 'pair') showBanner(`🎉 2연속! ${DG_RES[main].icon} ${DG_RES[main].name} 중량`, '#9fffc0');
+    const main = slot.reels.find((r) => slot.reels.filter((x) => x === r).length >= 2), win = SLOT_WIN[slot.tier];
+    if (slot.tier === 'perfect') showBanner(`🌟 JACKPOT!! ${DG_RES[main].icon} ${DG_RES[main].name} 대량!`, 'rainbow', 30, 3.6);
+    else if (slot.tier === 'pair') showBanner(`🎉 2연속! ${DG_RES[main].icon} ${DG_RES[main].name} 중량`, '#9fffc0', 25, 2.6);
     else addFloater('3종 소량', SLOT_X, gy - SLOT_H - 14, '#ffffff', 12, true);
     addFloater(dgSlotText(slot), SLOT_X, gy - SLOT_H - 30, slot.tier === 'perfect' ? '#ffd257' : '#9fffc0', slot.tier === 'perfect' ? 14 : 12);
-    sv.doneAt = sv.t + (slot.tier === 'perfect' ? 3.2 : slot.tier === 'pair' ? 2.4 : 1.8);
+    if (win) {
+      shake = Math.max(shake, win.shake);
+      hitstop = Math.max(hitstop, win.stop);
+      sv.waves = win.waves.map((d) => sv.paidAt + d);
+      sv.fwAt = slot.tier === 'perfect' ? sv.paidAt + 0.4 : 0;
+    }
+    sv.doneAt = sv.t + (win ? win.done : 1.8);
     save();
+  }
+  // 당첨 뒤: 종이가루 물결 · 퍼펙트는 하단바 여기저기 폭죽과 잔진동
+  const win = SLOT_WIN[sv.tier];
+  if (win && sv.paidAt) {
+    while (sv.waves.length && sv.t >= sv.waves[0]) { sv.waves.shift(); slotConfetti(win); }
+    if (sv.fwAt && sv.t >= sv.fwAt && sv.t < sv.doneAt - 0.6) {
+      sv.fwAt = sv.t + 0.3;
+      burst(rand(40, W - 40), rand(gy - 140, gy - 70), 14, win.cols, 110, 3, 120);
+      shake = Math.max(shake, 0.08);
+    }
   }
   if (sv.doneAt && sv.t >= sv.doneAt) {
     sv = null;
@@ -779,10 +816,18 @@ function updateSlot(dt) {
     dv.sub = 'walkOut'; dv.t = 0;
   }
 }
+// 종이가루: 기계 꼭대기에서 위로 흩뿌려져 천천히 떨어진다 (burst 의 파편보다 크고 오래 남는다)
+function slotConfetti(win) {
+  const top = groundY() - SLOT_H;
+  for (let i = 0; i < win.confetti; i++) {
+    const a = rand(-Math.PI * 0.85, -Math.PI * 0.15), v = rand(120, 260);
+    parts.push({ x: SLOT_X + rand(-SLOT_W / 2, SLOT_W / 2), y: top + rand(0, 10), vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 220, size: 2 + Math.floor(Math.random() * 3), color: win.cols[i % win.cols.length], life: rand(0.9, 1.5), t: 0 });
+  }
+}
 // 보상만큼 재화 아이콘이 받침에서 쏟아진다 — 양이 아니라 등급에 따라 개수 (퍼펙트는 우수수)
 function slotPour(slot) {
   const gy = groundY(), tier = slot.tier;
-  const per = { diff: 3, pair: 9, perfect: 36 }[tier];
+  const per = { diff: 3, pair: 12, perfect: 48 }[tier];
   const list = [];
   for (const r of Object.keys(slot.payout)) {
     const main = slot.reels.filter((x) => x === r).length >= 2;
@@ -790,7 +835,7 @@ function slotPour(slot) {
     for (let i = 0; i < n; i++) list.push(r);
   }
   list.sort(() => Math.random() - 0.5);
-  list.forEach((r, i) => slotFx.push({ r, x: SLOT_X + rand(-14, 14), y: gy - 10, vx: rand(-120, 120), vy: rand(-320, -140), st: 'fall', t: 0, delay: i * (tier === 'perfect' ? 0.035 : 0.06), hold: rand(1.0, 1.7) + (tier === 'perfect' ? 0.6 : 0), size: tier === 'perfect' ? 14 : 12, rot: rand(-1, 1) }));
+  list.forEach((r, i) => slotFx.push({ r, x: SLOT_X + rand(-14, 14), y: gy - 10, vx: rand(-120, 120), vy: rand(-320, -140), st: 'fall', t: 0, delay: i * (tier === 'perfect' ? 0.035 : 0.06), hold: rand(1.0, 1.7) + (tier === 'perfect' ? 0.6 : tier === 'pair' ? 0.3 : 0), size: tier === 'perfect' ? 14 : 12, rot: rand(-1, 1) }));
 }
 function slotFly(f) {
   f.st = 'fly'; f.t = 0; f.x0 = f.x; f.y0 = f.y;
@@ -838,11 +883,22 @@ function drawSlotFx() {
   ctx.restore();
 }
 // 슬롯머신: 남보라 몸통에 은회색 테, 위에 전구 줄, 가운데 창 세 개, 오른쪽 레버, 아래 받침
+// 슬롯머신: 남보라 몸통에 은회색 테, 위에 전구 줄, 가운데 창 세 개, 오른쪽 레버, 아래 받침
+// 리치 중엔 부르르 떨고, 당첨하면 깡충 뛰며 맞춘 창에 빛 띠가 쓸고 지나간다. 퍼펙트는 뒤에서 무지개 광선이 돌고 화면이 금빛으로 물든다 (SLOT_WIN)
 function drawSlotMachine() {
   if (!sv || !dgInside()) return;
-  const gy = groundY(), x0 = SLOT_X - SLOT_W / 2, h = SLOT_H * sv.rise, top = gy - h;
-  const perfect = sv.tier === 'perfect' && sv.paidAt;
+  const gy = groundY(), x0 = SLOT_X - SLOT_W / 2, h = SLOT_H * sv.rise;
+  const win = sv.paidAt ? SLOT_WIN[sv.tier] : null, perfect = !!win && sv.tier === 'perfect', pair = !!win && sv.tier === 'pair';
+  const since = sv.paidAt ? sv.t - sv.paidAt : 0;
+  const reach = !!sv.reach && !sv.reels[2].stopped;
   ctx.save();
+  if (perfect) drawJackpotRays(gy - 52, since, win.done);
+  // 당첨: 기계가 깡충깡충 뛴다 · 리치: 부르르 떤다
+  let ox = 0, oy = 0;
+  if (win && since < win.hop) oy = -Math.abs(Math.sin(since * win.hopHz)) * win.hopH * (1 - since / win.hop);
+  if (reach) { ox = rand(-1, 1); oy = rand(-1, 1); }
+  ctx.translate(Math.round(ox), Math.round(oy));
+  const top = gy - h;
   // 몸통
   ctx.fillStyle = '#1a1426'; ctx.fillRect(x0 - 2, top - 2, SLOT_W + 4, h + 2);
   ctx.fillStyle = '#3b2f5a'; ctx.fillRect(x0, top, SLOT_W, h);
@@ -851,28 +907,32 @@ function drawSlotMachine() {
   // 받침(재화가 나오는 입)
   ctx.fillStyle = '#0f0c18'; ctx.fillRect(x0 + 18, gy - 11, SLOT_W - 36, 7);
   if (h < SLOT_H * 0.9) { ctx.restore(); return; }
-  // 전구 줄: 돌 땐 번갈아, 멈추면 결과색으로 숨 쉬듯, 퍼펙트는 무지개
+  // 전구 줄: 돌 땐 번갈아 · 리치면 빨강·노랑 빠르게 · 2연속은 초록·금 달리는 불 · 퍼펙트는 큰 무지개 · 3종은 금빛으로 숨 쉬듯
   const n = 9;
   for (let i = 0; i < n; i++) {
     const lx = x0 + 8 + i * ((SLOT_W - 16) / (n - 1));
-    let col;
-    if (perfect) col = `hsl(${(clock * 400 + i * 40) % 360}, 100%, 65%)`;
+    let col, sz = 4;
+    if (perfect) { col = `hsl(${(clock * 600 + i * 40) % 360}, 100%, 65%)`; sz = 6; }
+    else if (pair) { const k = (Math.floor(clock * 12) + i) % 3; col = k === 0 ? '#9fffc0' : k === 1 ? '#ffd257' : '#2e4a36'; }
     else if (sv.paidAt) col = (Math.floor(clock * 4) + i) % 3 === 0 ? '#ffd257' : '#6a5a40';
+    else if (reach) col = (Math.floor(clock * 14) + i) % 2 === 0 ? '#ff4040' : '#ffe066';
     else col = (Math.floor(clock * 8) + i) % 2 === 0 ? '#ff9f1c' : '#5a4630';
-    ctx.fillStyle = col; ctx.fillRect(Math.round(lx) - 2, top + 10, 4, 4);
+    ctx.fillStyle = col; ctx.fillRect(Math.round(lx) - sz / 2, top + 12 - sz / 2, sz, sz);
   }
   // 창 세 개
   ctx.font = '18px -apple-system, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const ww = 32, wh = 40, wy = top + 20;
+  const hitOf = (i) => !!win && sv.reels.filter((r) => r.final === sv.reels[i].final).length >= 2;    // 당첨에 보탠 칸
   for (let i = 0; i < 3; i++) {
-    const r = sv.reels[i], wx = x0 + 10 + i * (ww + 6);
+    const r = sv.reels[i], wx = x0 + 10 + i * (ww + 6), hit = hitOf(i);
     ctx.fillStyle = '#0f0c18'; ctx.fillRect(wx - 2, wy - 2, ww + 4, wh + 4);
-    ctx.fillStyle = r.stopped ? (perfect ? '#fff3c4' : '#f4efe2') : '#e6e0d2'; ctx.fillRect(wx, wy, ww, wh);
+    ctx.fillStyle = r.stopped ? (perfect ? '#fff3c4' : hit ? '#e9ffef' : '#f4efe2') : '#e6e0d2'; ctx.fillRect(wx, wy, ww, wh);
     ctx.save();
     ctx.beginPath(); ctx.rect(wx, wy, ww, wh); ctx.clip();
     const cx = wx + ww / 2, cy = wy + wh / 2;
     if (r.stopped) {
-      const b = Math.sin(r.bounce * Math.PI) * 4;
+      // 당첨 칸의 그림은 계속 콩콩 뛴다
+      const b = Math.sin(r.bounce * Math.PI) * 4 - (hit ? Math.abs(Math.sin(since * (perfect ? 12 : 9))) * 3 : 0);
       ctx.fillStyle = '#000';
       ctx.fillText(DG_RES[r.final].icon, cx, cy + 1 + b);
     } else {
@@ -888,22 +948,67 @@ function drawSlotMachine() {
       }
       ctx.globalAlpha = 1;
     }
+    // 당첨 칸: 빛 띠가 비스듬히 쓸고 지나간다 (퍼펙트는 되풀이)
+    if (hit) {
+      const k = perfect ? (since % 0.9) / 0.9 : Math.min(1, since / 0.7);
+      if (k < 1) {
+        const sx = wx - 16 + (ww + 32) * k;
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.beginPath(); ctx.moveTo(sx, wy); ctx.lineTo(sx + 9, wy); ctx.lineTo(sx - 5, wy + wh); ctx.lineTo(sx - 14, wy + wh); ctx.closePath(); ctx.fill();
+      }
+    }
     ctx.restore();
     // 유리 반사
     ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(wx, wy, ww, 6);
-    // 멈춘 칸이 앞 칸과 같으면 금테
-    if (r.stopped && i > 0 && sv.reels[i - 1].stopped && sv.reels[i - 1].final === r.final) { ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 2; ctx.strokeRect(wx - 1, wy - 1, ww + 2, wh + 2); }
+    // 테: 당첨 칸은 맥박치는 굵은 테(퍼펙트 금 · 2연속 초록↔금) · 리치 중 셋째 칸은 금테가 두근거린다 · 그 외엔 앞 칸과 같으면 금테
+    if (hit) {
+      const p = 0.5 + 0.5 * Math.sin(since * 16);
+      ctx.strokeStyle = perfect ? '#ffd257' : p > 0.5 ? '#9fffc0' : '#ffd257'; ctx.lineWidth = 2 + p * 2;
+      ctx.strokeRect(wx - 1, wy - 1, ww + 2, wh + 2);
+    } else if (reach && i === 2) {
+      ctx.strokeStyle = `rgba(255,210,87,${0.4 + 0.6 * (0.5 + 0.5 * Math.sin(clock * 18))})`; ctx.lineWidth = 2;
+      ctx.strokeRect(wx - 1, wy - 1, ww + 2, wh + 2);
+    } else if (r.stopped && i > 0 && sv.reels[i - 1].stopped && sv.reels[i - 1].final === r.final) {
+      ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 2; ctx.strokeRect(wx - 1, wy - 1, ww + 2, wh + 2);
+    }
   }
   // 레버: 처음 0.5초 동안 당겨진다
   const lx = x0 + SLOT_W + 4, pull = !sv.paidAt && sv.t < 0.5 ? Math.sin(Math.min(1, sv.t / 0.5) * Math.PI) : 0;
   ctx.fillStyle = '#c9c4d6'; ctx.fillRect(lx, top + 30 + pull * 22, 3, 26 - pull * 10);
   ctx.fillStyle = '#ff6b6b'; ctx.fillRect(lx - 2, top + 26 + pull * 22, 7, 7);
-  // 퍼펙트: 창 둘레로 빛
-  if (perfect) {
+  // 당첨: 창 둘레로 빛 (퍼펙트는 금빛 크게, 2연속은 연둣빛 작게)
+  if (win) {
     ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createRadialGradient(SLOT_X, wy + wh / 2, 10, SLOT_X, wy + wh / 2, 90);
-    g.addColorStop(0, `rgba(255,210,87,${0.25 + 0.15 * Math.sin(clock * 10)})`); g.addColorStop(1, 'rgba(255,210,87,0)');
-    ctx.fillStyle = g; ctx.fillRect(SLOT_X - 90, wy - 50, 180, 140);
+    const rad = perfect ? 90 : 60, rgb = perfect ? '255,210,87' : '159,255,192';
+    const g = ctx.createRadialGradient(SLOT_X, wy + wh / 2, 10, SLOT_X, wy + wh / 2, rad);
+    g.addColorStop(0, `rgba(${rgb},${(perfect ? 0.3 : 0.18) + 0.15 * Math.sin(clock * 10)})`); g.addColorStop(1, `rgba(${rgb},0)`);
+    ctx.fillStyle = g; ctx.fillRect(SLOT_X - rad, wy - 50, rad * 2, 140);
+  }
+  ctx.restore();
+  // 당첨 순간 화면이 번쩍 (2연속은 연둣빛 짧게 · 퍼펙트는 흰빛 길게) · 퍼펙트는 그 뒤로 금빛 여운이 남는다
+  if (win && since < win.flash) {
+    ctx.save(); ctx.globalAlpha = (1 - since / win.flash) * 0.75; ctx.fillStyle = `rgb(${win.flashCol})`; ctx.fillRect(-40, -40, W + 80, H + 80); ctx.restore();
+  }
+  if (perfect) {
+    const a = Math.max(0, 1 - since / (win.done - 0.4)) * (0.10 + 0.05 * Math.sin(clock * 9));
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a; ctx.fillStyle = '#ffd257'; ctx.fillRect(-40, -40, W + 80, H + 80); ctx.restore();
+  }
+}
+// 잭팟 광선: 기계 뒤에서 무지개 쐐기 12개가 천천히 돌며 퍼진다. 바닥도 금빛으로 달아오른다. 끝날 즈음엔 잦아든다
+function drawJackpotRays(cy, since, done) {
+  const grow = Math.min(1, since / 0.4) * Math.min(1, Math.max(0, (done - since) / 0.6)), len = 130 * grow, n = 12;
+  if (grow <= 0) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const gy = groundY();
+  const g = ctx.createRadialGradient(SLOT_X, gy, 5, SLOT_X, gy, 140);
+  g.addColorStop(0, `rgba(255,210,87,${0.35 * grow})`); g.addColorStop(1, 'rgba(255,210,87,0)');
+  ctx.fillStyle = g; ctx.fillRect(SLOT_X - 140, gy - 60, 280, 70);
+  ctx.translate(SLOT_X, cy); ctx.rotate(since * 0.8);
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * Math.PI * 2, w = (Math.PI / n) * 0.55;
+    ctx.fillStyle = `hsla(${(i * 30 + since * 120) % 360}, 100%, 65%, ${0.22 * grow * (0.7 + 0.3 * Math.sin(since * 10 + i))})`;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, len, a0 - w, a0 + w); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
 }
@@ -1106,7 +1211,7 @@ function update(dt) {
   updateDrops(dt);
   updateSlotFx(dt);
 
-  if (banner) { banner.t += dt; if (banner.t > 2.2) banner = null; }
+  if (banner) { banner.t += dt; if (banner.t > (banner.dur || 2.2)) banner = null; }
   updateShout(dt);
 }
 
@@ -2378,16 +2483,18 @@ function drawFx() {
   drawDropsTop();
 
   if (banner) {
-    const a = banner.t < 0.3 ? banner.t / 0.3 : banner.t > 1.8 ? (2.2 - banner.t) / 0.4 : 1;
+    const dur = banner.dur || 2.2;
+    const a = banner.t < 0.3 ? banner.t / 0.3 : banner.t > dur - 0.4 ? (dur - banner.t) / 0.4 : 1;
     ctx.globalAlpha = Math.max(0, a);
-    ctx.font = 'bold 20px -apple-system, sans-serif';
-    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    const size = banner.size || 20, pop = size > 20 && banner.t < 0.25 ? 1 + 0.45 * (1 - banner.t / 0.25) : 1;
+    ctx.font = `bold ${Math.round(size * pop)}px -apple-system, sans-serif`;
+    ctx.lineWidth = size > 20 ? 5 : 4; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
     // 결투 중엔 두 기사 사이, 레이드 중엔 파티와 보스 사이, 탑 안에 있으면 탑 바로 왼쪽
     const cx = duelPlay ? duelPlay.x0 + duelPlay.res.fight.start / 2 : raidPlay ? raidPlay.x0 + raidPlay.f.start * 0.55
       : towerInside() ? W - TOWER_W - 130 : toScreen(knight.x) + 40;
     const bx = Math.min(W - 60, Math.max(60, cx)), by = groundY() - 78;
     ctx.strokeText(banner.text, bx, by);
-    ctx.fillStyle = banner.color;
+    ctx.fillStyle = banner.color === 'rainbow' ? `hsl(${Math.floor(clock * 420) % 360}, 100%, 72%)` : banner.color;
     ctx.fillText(banner.text, bx, by);
     ctx.globalAlpha = 1;
   }
