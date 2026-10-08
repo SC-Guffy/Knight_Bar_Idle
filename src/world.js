@@ -195,7 +195,7 @@ function monsterMidY(m) {
 function hitMonster(m, mult = 1, o = {}) {
   const st = stats();
   const crit = o.crit || Math.random() < st.crit;
-  const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1) * (m.boss && dgActive() ? 1 + dgFx().bossDmg : 1);
+  const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
   m.flash = o.color ? 0.13 : 0.08;
   m.hurt = 1;
@@ -216,7 +216,7 @@ function hitMonster(m, mult = 1, o = {}) {
   m.killed = true;
   shatter(m);
   if (S.phase === 'tower') { towerKillReward(m); return; }
-  if (S.phase === 'dungeon') { dgKill(m); return; }
+  if (S.phase === 'dungeon') { dgChunkShow(dgKill(m), m); return; }
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -662,11 +662,11 @@ function drawTowerBody(g) {
   g.fillRect(0, 0, 2, Math.min(tcH, g0 - 26)); g.fillRect(TOWER_W - 2, 0, 2, tcH);
 }
 
-// ───────────────────────── 갈림길 던전 ─────────────────────────
-// 규칙(방·카드·보상)은 src/dungeon.js, 고르는 화면(문·카드·귀환문)은 ui.js renderDungeonPick. 여기는 하단바 연출:
-// 캠프에서 빛에 싸여 사라짐 → 어두운 돌바닥 위 왼쪽에 나타남 → 방마다 오른쪽에서 몬스터가 나오고, 고를 때는 멈춰 선다
-// → 다음 방으로 갈 때는 오른쪽으로 걸어 나가 빛에 싸였다가 다시 왼쪽에 나타난다 → 끝나면 귀환 빛으로 캠프.
-// sub: warpOut 캠프에서 사라짐 | stand 고르는 중·다음 일 기다림 | fight 방 전투 | walkOut 다음 방으로 | home 귀환 빛
+// ───────────────────────── 재료의 미궁 ─────────────────────────
+// 규칙(방·덩어리·보상)은 src/dungeon.js, 보스 보상을 고르는 화면은 ui.js renderDungeonPick. 여기는 하단바 연출:
+// 캠프에서 빛에 싸여 사라짐 → 어두운 돌바닥 위 왼쪽에 나타남 → 방마다 오른쪽에서 몬스터가 나오고, 잡을 때마다 덩어리가 머리 위로 뜬다
+// → 다음 방으로 갈 때는 오른쪽으로 걸어 나가 빛에 싸였다가 다시 왼쪽에 나타난다 → 보스를 잡으면 멈춰 서서 보상을 고른다 → 끝나면 귀환 빛으로 캠프.
+// sub: warpOut 캠프에서 사라짐 | stand 보상 고르는 중·다음 일 기다림 | fight 방 전투 | walkOut 다음 방으로 | home 귀환 빛
 let dv = null;
 const DG_KX = 90;                   // 방에서 기사가 서는 화면 x
 const DG_MOB_X = 330;               // 첫 몬스터 화면 x
@@ -679,29 +679,31 @@ function beginDungeonView() {
   warpKnight('out');
 }
 function endDungeonView() { dv = null; }
-// 결과 한 줄을 기사 머리 위에 (dungeon.js 가 돌려준 { text, sub, gain, bad, big, card })
+// 결과 한 줄을 기사 머리 위에 (dungeon.js 가 돌려준 { text, sub, bad, big })
 function dgShow(res) {
   if (!res) return;
   const x = toScreen(knight.x);
-  if (res.big) showBanner(res.text, '#ffd257');
+  if (res.big) showBanner(res.text, res.bad ? '#ff8f8f' : '#ffd257');
   else addFloater(res.text, x, groundY() - 66, res.bad ? '#ff8f8f' : '#ffffff', 13, true);
   if (res.sub) addFloater(res.sub, x, groundY() - 82, res.bad ? '#ffb0b0' : '#9fffc0', 12);
-  const run = S.dg.run;
-  if (run && run.synergy) {
-    showBanner(`🌟 ${DG_RES[run.synergy].name} 시너지! 잭팟 방이 나타나요`, '#ffd257');
-    run.synergy = null;
-  }
 }
-// 고르기 (화면 클릭·방침 공통)
+// 주운 덩어리를 몬스터 자리에 띄운다 (dgKill 이 돌려준 { res, size, amt }). 대·특대는 크게, 특대는 배너까지
+function dgChunkShow(c, m) {
+  if (!c) return;
+  const big = c.size.id === 'l' || c.size.id === 'xl';
+  const sx = toScreen(m.x), col = c.size.id === 'xl' ? '#ffd257' : big ? '#ffe9a8' : '#9fffc0';
+  addFloater(`${DG_RES[c.res].icon} ${c.size.name} +${fmt(c.amt)}`, sx + rand(-6, 6), monsterTop(m) - 20, col, big ? 14 : 12, big);
+  if (c.size.id === 'xl') showBanner(`🌟 ${DG_RES[c.res].name} 특대 덩어리!`, '#ffd257');
+}
+// 보상 고르기 (화면 클릭·자동 공통)
 function dgPickView(i) {
   const run = S.dg.run;
   if (!dv || !run || !run.prompt) return;
-  const kind = run.prompt.kind;
   const res = dgChoose(i);
   if (res && res.end || !S.dg.run) { dgShow(res); dgViewEnd(); return; }
   dgShow(res);
-  // 문을 골랐으면 그 방으로 걸어 들어간다
-  if (kind === 'fork') { dv.sub = 'walkOut'; dv.t = 0; }
+  // 골랐으면 다음 구간으로 걸어 나간다
+  dv.sub = 'walkOut'; dv.t = 0;
   save();
 }
 // 끝: 귀환 빛에 싸여 캠프로 (endDungeon 은 이미 불렸다)
@@ -724,7 +726,7 @@ function dgViewDown() {
 function dgRetreat() {
   if (!S.dg.run) return;
   endDungeon('retreat');
-  addFloater('✨ 후퇴!', toScreen(knight.x), groundY() - 60, '#ffd257', 12);
+  addFloater('✨ 나가기!', toScreen(knight.x), groundY() - 60, '#ffd257', 12);
   dgViewEnd();
 }
 function dgSpawn(f) {
@@ -733,11 +735,11 @@ function dgSpawn(f) {
     const type = st.boss ? zoneOf(f.stage).boss : pool[Math.floor(Math.random() * pool.length)];
     const m = makeMonster(type, !!st.boss, toWorld(DG_MOB_X + i * 56), st);
     m.engaged = true;                 // 방에 들어오면 다 같이 덤빈다
-    if (f.kind === 'elite') m.elite = true;
     return m;
   });
-  if (f.kind === 'boss') showBanner(`👑 구간 ${S.dg.run.sec + 1} 보스! ${MONSTERS[monsters[0].type].name}`, '#ff5a5a');
-  else if (f.kind === 'elite') showBanner('🔥 정예 둥지', '#ff9f1c');
+  const run = S.dg.run;
+  if (f.kind === 'boss') showBanner(`👑 구간 ${run.sec + 1} 보스! ${MONSTERS[monsters[0].type].name}`, '#ff5a5a');
+  else addFloater(`${DG_RES[run.room.res].icon} ${DG_RES[run.room.res].room} — ${DG_RES[run.room.res].name} 덩어리`, toScreen(knight.x), groundY() - 66, '#c9a7ff', 12);
   f.spawned = true;
 }
 
@@ -760,9 +762,9 @@ function updateDungeon(dt) {
       if (towerWalk(DG_KX, WALK_SPEED * 1.6, dt) === false) break;
       knight.facing = 1;
       if (run.prompt) {
-        // 방침 '바로 자동 선택'이면 잠깐 보여 주고 고른다
+        // '바로 자동 선택'이면 잠깐 보여 주고 고른다
         run.prompt.left -= dt;
-        if (S.dg.pol.fast && run.prompt.left > 0.7 && run.prompt.left < (run.prompt.kind === 'gate' ? DG_GATE_SEC : DG_PICK_SEC) - 0.5) run.prompt.left = 0.7;
+        if (S.dg.pol.fast && run.prompt.left > 0.7 && run.prompt.left < DG_PICK_SEC - 0.5) run.prompt.left = 0.7;
         if (run.prompt.left <= 0) dgPickView(dgAutoPick());
       } else if (run.fight) {
         if (!run.fight.spawned) dgSpawn(run.fight);
@@ -776,7 +778,8 @@ function updateDungeon(dt) {
         const res = dgRoomCleared();
         dgShow(res);
         if (res && res.end || !S.dg.run) { dgViewEnd(); return; }
-        dv.sub = 'stand';
+        // 보상을 고를 땐 멈춰 서고, 아니면 다음 방으로 걸어 나간다
+        dv.sub = S.dg.run.prompt ? 'stand' : 'walkOut'; dv.t = 0;
         save();
       });
       break;

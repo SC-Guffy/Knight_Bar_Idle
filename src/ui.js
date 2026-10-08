@@ -134,7 +134,7 @@ function renderHud() {
   // 바 안의 명령 버튼 — 귀환·후퇴할 수 있는 상황에만 보이고, 없으면 바가 그만큼 줄어든다 (#hud.act)
   const cmd = S.phase === 'expedition' ? ['recall', '🏕 귀환', '귀환 명령 — 지금 원정을 마치고 캠프로']
     : S.phase === 'tower' && S.tower.run ? ['tower-retreat', '⬇️ 후퇴', '이 층에서 후퇴해 캠프로']
-    : S.phase === 'dungeon' && S.dg.run ? ['dg-retreat', '⬇️ 후퇴', '후퇴 — 배낭의 절반만 가지고 캠프로']
+    : S.phase === 'dungeon' && S.dg.run ? ['dg-retreat', '🎒 나가기', '지금 나가기 — 모은 자원을 모두 가지고 캠프로']
     : null;
   const hb = $('hbtn');
   hb.hidden = !cmd;
@@ -2050,7 +2050,7 @@ function guideTick() {
   if (!g.dgIntro && dgUnlocked() && S.phase === 'camp' && !modalOpen()) {
     g.dgIntro = 1;
     showBanner('⛏️ 재료의 미궁 개방!', '#ffd257');
-    toast('⛏️ 재료의 미궁이 열렸어요 — 문을 골라 🪵 목재 · 🪨 철광석 같은 재화를 집중해서 모으는 곳이에요. 캠프 → 🗺️ 도전 → ⛏️ 재료의 미궁', 10000);
+    toast('⛏️ 재료의 미궁이 열렸어요 — 쭉 밀고 나가며 🪵 목재 · 🪨 철광석 같은 재화 덩어리를 줍는 곳이에요. 쓰러져도 모은 건 다 가져가요. 캠프 → 🗺️ 도전 → ⛏️ 재료의 미궁', 10000);
     save();
   }
   if (!g.tomeIntro && S.tomes > 0) {
@@ -2126,20 +2126,17 @@ function viewTower() {
     ${last}`;
 }
 
-// ───────────────────────── 재료의 미궁 (갈림길 던전) ─────────────────────────
-// 규칙은 src/dungeon.js, 하단바 연출은 world.js updateDungeon. 여기는 고르는 화면(하단바 위 #dgPick)과 캠프 탭.
-const DG_REASON = { exit: '🚪 귀환문으로 나왔어요', clear: '🏆 완주했어요', down: '💀 쓰러졌어요', retreat: '⬇️ 후퇴했어요', offline: '🌙 앱이 꺼져서 멈췄어요' };
-const DG_FAM_CLASS = { res: 'f-res', fight: 'f-fight', trade: 'f-trade', luck: 'f-luck' };
+// ───────────────────────── 재료의 미궁 ─────────────────────────
+// 규칙은 src/dungeon.js, 하단바 연출은 world.js updateDungeon. 여기는 보스 보상 고르는 화면(하단바 위 #dgPick)과 캠프 탭.
+const DG_REASON = { clear: '🏆 완주했어요', down: '💀 쓰러졌어요 — 모은 자원은 다 챙겼어요', retreat: '🎒 나왔어요', offline: '🌙 앱이 꺼져서 멈췄어요' };
 const dgResultPending = () => !!S.dg.last && S.dg.last.seen === false;
 let dgResultViewed = false;
 // 배낭·보상 한 줄: 🪵 1.2만 · 💠 34
 const dgResText = (bag, empty = '비어 있음') => DG_RES_IDS.filter((r) => bag[r] > 0).map((r) => `${DG_RES[r].icon} ${fmt(bag[r])}`).join(' · ') || empty;
-// 내 카드 요약: 재화 카드는 개수(3장이면 시너지), 나머지는 아이콘
-function dgCardsText(run) {
-  const res = DG_RES_IDS.filter((r) => dgResCards(r, run)).map((r) => `<span class="${dgSynergy(r, run) ? 'syn' : ''}">${DG_RES[r].icon}${dgResCards(r, run)}</span>`);
-  const other = run.cards.filter((id) => !DG_RES[DG_CARDS[id].tag]).map((id) => `<span title="${esc(DG_CARDS[id].name + ' — ' + DG_CARDS[id].desc)}">${DG_CARDS[id].icon}</span>`);
-  return [...res, ...other].join('') || '없음';
-}
+// 고른 보상 요약: 💰×2 🛡️×1
+const dgBoonsText = (boons) => DG_BOON_IDS.filter((id) => boons[id]).map((id) => `<span title="${esc(DG_BOONS[id].name)}">${DG_BOONS[id].icon}×${boons[id]}</span>`).join('');
+// 주운 덩어리 요약: 소 12 · 중 5 · 대 1
+const dgChunksText = (ch) => DG_CHUNKS.filter((c) => ch[c.id]).map((c) => `${c.name} ${ch[c.id]}`).join(' · ') || '없음';
 
 // 하단바 위 고르는 화면. 내용이 바뀔 때만 다시 만들고, 남은 시간 막대만 매번 줄인다
 let dgPickKey = '';
@@ -2149,67 +2146,47 @@ function renderDungeonPick() {
   const p = run && dgInside() && dv.sub === 'stand' ? run.prompt : null;
   info.hidden = !run || !dgInside();
   if (run && !info.hidden) {
-    const html = `<span class="dchip">⛏️ ${DG_DIFFS[run.diff].name} · 구간 ${run.sec + 1}/${DG_SECTIONS} · 방 ${Math.min(run.ri + (run.room && run.room.id !== 'boss' ? 1 : 0), DG_ROOMS)}/${DG_ROOMS}</span>
-      <span class="dchip bag" title="배낭 — 나와야 내 것이 돼요 (쓰러지면 절반)">🎒 ${dgResText(run.bag)}</span>
-      <span class="dchip cards" title="카드">🃏 ${dgCardsText(run)}</span>${run.keys ? `<span class="dchip">🗝️ ${run.keys}</span>` : ''}`;
+    const boss = run.room && run.room.id === 'boss';
+    const html = `<span class="dchip">⛏️ ${DG_DIFFS[run.diff].name} · 구간 ${run.sec + 1}/${DG_SECTIONS} · ${boss ? '👑 보스' : `방 ${Math.min(run.ri + 1, DG_ROOMS)}/${DG_ROOMS}${run.room ? ` ${DG_RES[run.room.res].icon} ${dgRoomName(run.room)}` : ''}`}</span>
+      <span class="dchip bag" title="배낭 — 어떻게 끝나든 모두 가져가요 (도박에 걸 때만 잃어요)">🎒 ${dgResText(run.bag)}</span>${DG_BOON_IDS.some((id) => run.boons[id]) ? `<span class="dchip cards" title="고른 보상">${dgBoonsText(run.boons)}</span>` : ''}`;
     if (info.innerHTML !== html) info.innerHTML = html;
   }
   if (!p) { if (dgPickKey) { box.innerHTML = ''; box.hidden = true; dgPickKey = ''; } return; }
-  const key = run.rooms + ':' + run.sec + ':' + run.ri + ':' + p.kind + ':' + JSON.stringify(p.opts) + ':' + Math.round(S.hp / stats().maxHp * 20);
+  const key = run.rooms + ':' + run.sec + ':' + p.kind + ':' + JSON.stringify(p.opts) + ':' + Math.round(S.hp / stats().maxHp * 20);
   if (key !== dgPickKey) {
     dgPickKey = key;
     box.hidden = false;
     box.innerHTML = dgPickHtml(run, p);
   }
   const bar = box.querySelector('.dgtime > div');
-  if (bar) bar.style.width = (100 * Math.max(0, p.left) / (p.kind === 'gate' ? DG_GATE_SEC : DG_PICK_SEC)) + '%';
+  if (bar) bar.style.width = (100 * Math.max(0, p.left) / DG_PICK_SEC) + '%';
 }
 function dgPickHtml(run, p) {
   const auto = dgAutoPick();
-  const btn = (i, cls, inner, off) => `<button class="interactive ${cls}${i === auto ? ' auto' : ''}" data-action="dg-pick" data-i="${i}" ${off ? 'disabled' : ''}>${inner}</button>`;
+  const btn = (i, cls, inner) => `<button class="interactive ${cls}${i === auto ? ' auto' : ''}" data-action="dg-pick" data-i="${i}">${inner}</button>`;
   const q = (title, sub) => `<div class="dgq"><b>${title}</b><small>${sub}</small><div class="dgtime"><div></div></div></div>`;
-  const polText = `방침: ${DG_RES[S.dg.pol.target].icon} 우선 — 테두리가 방침이 고를 것`;
-  if (p.kind === 'fork') {
-    return q('어느 문으로?', polText) + p.opts.map((d, i) => {
-      const fam = DG_ROOMS_DEF[d.id].fam;
-      return btn(i, `dgdoor ${DG_FAM_CLASS[fam]}${d.res === S.dg.pol.target ? ' tgt' : ''}`, `<span class="ic">${dgDoorIcon(d)}</span><b>${dgDoorName(d)}</b><small>${dgDoorDesc(d)}</small><i>${DG_FAMS[fam]}</i>`);
+  const hp = Math.round(100 * Math.max(0, S.hp) / stats().maxHp);
+  return q(p.final ? '👑 마지막 보스 처치 — 보상 하나' : `👑 구간 ${run.sec + 1} 보스 처치 — 보상 하나`, `체력 ${hp}%${p.final ? ' · 고르면 귀환해요' : ' · 흰 테두리 = 자동'}`)
+    + p.opts.map((o, i) => {
+      const b = DG_BOONS[o.id];
+      let desc = b.desc;
+      if (o.id === 'def' && run.boons.def) desc += ` · 지금 −${Math.round(100 * (1 - Math.pow(1 - DG_DEF_RED, run.boons.def)))}%`;
+      return btn(i, `dgopt boon${b.risk ? ' risk' : ''}`, `<b>${b.icon} ${b.name}</b><small>${desc}</small>`);
     }).join('');
-  }
-  if (p.kind === 'card') {
-    const title = { boss: '👑 보스 보상 — 카드 한 장', elite: '🔥 정예 보상 — 카드 한 장', unknown: '🃏 카드 한 장' }[p.why] || '카드 한 장';
-    return q(title, polText) + p.opts.map((o, i) => {
-      if (o.reroll) return btn(i, 'dgopt slim', `<b>🔄 다시 뽑기</b><small>${run.rerolls}번 남음</small>`);
-      if (o.skip) return btn(i, 'dgopt slim', '<b>건너뛰기</b>');
-      const c = DG_CARDS[o.card], resTag = DG_RES[c.tag];
-      const n = resTag ? dgResCards(c.tag, run) : 0;
-      const syn = resTag ? (n + 1 >= 3 ? `<em>${n + 1}/3 — 시너지 완성! 잭팟 방</em>` : `<em>${resTag.icon} ${n + 1}/3 → 잭팟 방</em>`) : '';
-      return btn(i, `dgcard r${c.rar}`, `<span class="tag">${resTag ? resTag.icon + ' ' + resTag.name : { fight: '⚔️ 전투', trade: '🛒 거래', gamble: '🎰 도박' }[c.tag]} · ${DG_RAR[c.rar].name}</span><b>${c.icon} ${c.name}</b><small>${c.desc}</small>${syn}`);
-    }).join('');
-  }
-  if (p.kind === 'gate') {
-    const fx = dgFx(run), win = dgWinChance(run), mult = fx.allin ? DG_ALLIN_MULT : DG_BOSS_MULT;
-    const lose = fx.allin ? '전부 잃음' : '절반 잃음';
-    return q(`🚪 귀환문 — 구간 ${run.sec + 1} 보스 앞`, `체력 ${Math.round(100 * Math.max(0, S.hp) / stats().maxHp)}% · 방침: 승률 ${Math.round(S.dg.pol.gate * 100)}% 미만이면 나감`)
-      + btn(0, 'dgopt wide', `<b>🎒 들고 나가기</b><small>${dgResText(run.bag)} 확정</small>`)
-      + btn(1, 'dgopt wide risk', `<b>👑 보스 도전 · 예상 승률 ${Math.round(win * 100)}%</b><small>이기면 배낭 ×${mult} + 보물 + 카드 · 지면 ${lose}</small>`);
-  }
-  const room = p.room, def = DG_ROOMS_DEF[room.id];
-  return q(`${def.icon} ${dgDoorName(room)}`, def.desc) + p.opts.map((o, i) => btn(i, 'dgopt', `<b>${o.label}</b><small>${o.desc || ''}</small>`, o.off)).join('');
 }
 
 function dgResultHtml(L) {
-  const lost = DG_RES_IDS.some((r) => L.lost[r] > 0);
   return `
     <div class="treport" style="margin-bottom:10px">
       <div class="reason">${DG_REASON[L.reason] || '도전 끝'} — ${DG_DIFFS[L.diff].name} · 보스 ${L.bosses}/${DG_SECTIONS}${L.first ? ' · 🎉 첫 완주!' : ''}</div>
-      <div class="dgline">받음 <b>${dgResText(L.got, '없음')}</b>${lost ? ` <span class="bad">· 잃음 ${dgResText(L.lost)}</span>` : ''}</div>
-      <div class="dgline small">방 ${L.rooms}개 · 처치 ${fmt(L.kills)} · 카드 ${L.cards.length}장${L.dur ? ` · ${fmtTime(L.dur)}` : ''}</div>
+      <div class="dgline">받음 <b>${dgResText(L.got, '없음')}</b></div>
+      <div class="dgline small">덩어리 ${dgChunksText(L.chunks || {})} · 처치 ${fmt(L.kills)}${L.boons && DG_BOON_IDS.some((id) => L.boons[id]) ? ` · 보상 ${dgBoonsText(L.boons)}` : ''}${L.dur ? ` · ${fmtTime(L.dur)}` : ''}</div>
     </div>`;
 }
 function viewDungeon() {
   const d = S.dg, pol = d.pol;
   if (!dgUnlocked()) return `<div class="mhead"><div><h3>⛏️ 재료의 미궁</h3><small>스테이지 ${DG_UNLOCK_STAGE}에 열려요</small></div></div>
-    <div class="hint">갈림길마다 문을 골라 원하는 재화를 집중해서 모으는 던전이에요. 🪵 목재 · 🪨 철광석을 가장 많이 얻는 곳이에요.</div>`;
+    <div class="hint">쭉 밀고 나가며 몬스터가 떨어뜨리는 재화 덩어리(소·중·대·특대)를 줍는 던전이에요. 🪵 목재 · 🪨 철광석을 가장 많이 얻는 곳이에요.</div>`;
   const fresh = dgResultPending();
   if (fresh) dgResultViewed = true;
   const sel = Math.min(pol.diff || 0, DG_DIFFS.length - 1);
@@ -2219,22 +2196,15 @@ function viewDungeon() {
     const open = dgDiffOpen(i);
     return `<button class="pchip${i === sel ? ' on' : ''}" data-action="dg-diff" data-i="${i}" ${open ? '' : 'disabled'} title="${open ? `스테이지 ${Math.max(1, L + x.off)} 급 몬스터` : esc(dgBlocker(i))}">${open ? '' : '🔒 '}${x.name} <small>×${x.mult}</small>${d.clr[x.id] ? ' ✓' : ''}</button>`;
   }).join('');
-  const targets = DG_RES_IDS.map((r) => `<button class="pchip${pol.target === r ? ' on' : ''}" data-action="dg-target" data-r="${r}">${DG_RES[r].icon} ${DG_RES[r].name}</button>`).join('');
-  const gates = [0.8, 0.6, 0.4].map((g) => `<button class="pchip${pol.gate === g ? ' on' : ''}" data-action="dg-gate" data-g="${g}">${Math.round(g * 100)}%</button>`).join('');
-  const locked = Object.keys(DG_ROOMS_DEF).filter((id) => id !== 'jackpot' && !dgRoomOpen(id));
-  const nextOpen = locked.length ? (() => { const need = Math.min(...locked.map((id) => DG_ROOMS_DEF[id].need)); return `${DG_DIFFS[need].name} 완주 시 새 방: ${locked.filter((id) => DG_ROOMS_DEF[id].need === need).map((id) => DG_ROOMS_DEF[id].icon + ' ' + DG_ROOMS_DEF[id].name).join(' · ')}`; })() : '모든 방이 열렸어요';
+  const boons = DG_BOON_IDS.map((id) => `<span class="pchip static" title="${esc(DG_BOONS[id].desc)}">${DG_BOONS[id].icon} ${DG_BOONS[id].name}</span>`).join('');
   return `
     <div class="mhead"><div><h3>⛏️ 재료의 미궁</h3>
       <small>🎟 입장권 <b>${dgTickets()}/${DG_TICKETS}</b> · 완주 ${DG_DIFFS.filter((x) => d.clr[x.id]).map((x) => x.name).join(' · ') || '아직 없음'}</small></div></div>
     ${fresh ? dgResultHtml(d.last) : ''}
-    <div class="hint">갈림길마다 문을 골라 원하는 재화를 모으고, 보스를 잡을 때마다 카드를 한 장씩 모아요. 체력은 저절로 차지 않고, 배낭은 나와야 내 것이에요 — 귀환문에서 나가면 100%, 쓰러지면 절반.</div>
+    <div class="hint">구간 ${DG_SECTIONS}개를 쭉 밀고 나가요. 몬스터를 잡을 때마다 그 방 재화의 덩어리(소·중·대·특대)를 줍고, 보스는 특대를 확정으로 떨어뜨려요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요 — 잃는 건 🎲 도박에 걸었을 때뿐.</div>
     <div class="dgrow"><span class="lbl">난이도</span>${diffs}</div>
-    <div class="dgrow"><span class="lbl">목표 재화</span>${targets}</div>
-    <div class="dgrow"><span class="lbl">방침</span>
-      <button class="pchip${pol.risky ? '' : ' on'}" data-action="dg-risky" data-v="0">전투 방 피함</button><button class="pchip${pol.risky ? ' on' : ''}" data-action="dg-risky" data-v="1">전투 방 감수</button>
-      <span class="sep"></span><span class="lbl">승률</span>${gates}<span class="small">미만이면 귀환</span>
-      <span class="sep"></span><button class="pchip${pol.fast ? ' on' : ''}" data-action="dg-fast">⚡ 바로 자동 선택</button></div>
-    <div class="dgrow small">${nextOpen} · 목표 재화 문이 두 배로 자주 나와요. 고르지 않으면 ${DG_PICK_SEC}초 뒤 방침대로 골라요.</div>
+    <div class="dgrow"><span class="lbl">보스 보상</span>${boons}<span class="small">중 하나</span></div>
+    <div class="dgrow"><span class="lbl">자동</span><button class="pchip${pol.fast ? ' on' : ''}" data-action="dg-fast">⚡ 보상 바로 자동 선택</button><span class="small">체력이 반 아래면 회복, 낮으면 방어, 아니면 증폭 (도박은 안 해요) · 안 고르면 ${DG_PICK_SEC}초 뒤 이대로</span></div>
     <div class="act" style="margin-top:8px"><button class="go compact${rd(blocker === '')}" data-action="dg-start" ${blocker ? 'disabled' : ''}>⛏️ ${DG_DIFFS[sel].name} 입장 <small>🎟1</small></button> <span class="blocker">${blocker}</span></div>`;
 }
 
@@ -2253,7 +2223,7 @@ const SUB_CARDS = [
       if (towerSweepReady()) out.push([`🧹 소탕 📖 +${t.best}`, 'ok']);
       return out;
     } },
-  { k: 'dungeon', icon: '⛏️', name: '재료의 미궁', desc: '문을 골라 🪵 🪨 💎 같은 재화를 집중해서 모으는 던전 — 배낭은 나와야 내 것',
+  { k: 'dungeon', icon: '⛏️', name: '재료의 미궁', desc: '쭉 밀고 나가며 🪵 🪨 💎 재화 덩어리를 줍는 던전 — 보스를 잡으면 보상 하나를 골라요',
     unlocked: () => dgUnlocked(), lockText: () => `스테이지 ${DG_UNLOCK_STAGE}에 열려요`, dot: (d) => d.dungeon, view: () => viewDungeon(),
     chips: () => {
       const d = S.dg, out = [], clr = DG_DIFFS.filter((x) => d.clr[x.id]);
@@ -2353,7 +2323,7 @@ function drawSubTower(g, w, h) {
   subHero(g, Math.round(w * 0.34), gy, 'fight');
   if (!towerUnlocked()) subLock(g, w, h);
 }
-// ⛏️ 미궁: 어두운 돌바닥과 횃불, 오른쪽에 재화 문 세 개, 기사가 문 쪽으로 걸어간다
+// ⛏️ 미궁: 어두운 돌바닥과 횃불, 오른쪽 바닥에 재화 덩어리 세 개, 기사가 그쪽으로 걸어간다
 function drawSubDungeon(g, w, h) {
   const gy = h - 10;
   g.fillStyle = '#17131f'; g.fillRect(0, 0, w, h);
@@ -2361,14 +2331,15 @@ function drawSubDungeon(g, w, h) {
   g.fillStyle = 'rgba(40,36,50,0.9)'; g.fillRect(0, gy + 3, w, h - gy - 3);
   g.fillStyle = 'rgba(90,84,104,0.5)';
   for (let x = 0; x < w; x += 24) g.fillRect(x, gy + 4, 1, h - gy - 4);
-  const doors = [['🪵', 'rgba(255,210,87,.75)'], ['🪨', 'rgba(255,107,107,.75)'], ['💎', 'rgba(111,182,255,.75)']];
-  doors.forEach(([ic, col], i) => {
-    const dx = Math.round(w * 0.56 + i * 38), dw = 26, dh = 44, top = gy - dh;
+  // 바닥에 떨어진 재화 덩어리 소·중·대 — 살짝 떠올랐다 내려앉는다
+  const chunks = [['🪵', 7, 'rgba(255,210,87,.8)'], ['🪨', 10, 'rgba(200,200,220,.8)'], ['💎', 14, 'rgba(111,182,255,.8)']];
+  chunks.forEach(([ic, r, col], i) => {
+    const cx = Math.round(w * 0.56 + i * 40), bob = Math.abs(Math.sin(clock * 2.2 + i)) * 3, cy = gy - r - bob;
     g.fillStyle = '#0c0a12';
-    g.beginPath(); g.moveTo(dx - dw / 2, gy); g.lineTo(dx - dw / 2, top + dw / 2); g.arc(dx, top + dw / 2, dw / 2, Math.PI, 0); g.lineTo(dx + dw / 2, gy); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx - r, cy + r); g.lineTo(cx - r * 0.8, cy - r * 0.4); g.lineTo(cx, cy - r); g.lineTo(cx + r * 0.9, cy - r * 0.3); g.lineTo(cx + r, cy + r); g.closePath(); g.fill();
     g.strokeStyle = col; g.lineWidth = 1.5; g.stroke();
-    g.font = '12px -apple-system, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillStyle = '#fff'; g.fillText(ic, dx, top + 18);
+    g.font = `${8 + r * 0.5}px -apple-system, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#fff'; g.fillText(ic, cx, cy + 1);
   });
   for (const x of [Math.round(w * 0.1), Math.round(w * 0.45)]) {
     const fl = 0.75 + 0.25 * Math.sin(clock * 9 + x);
@@ -2434,8 +2405,8 @@ function renderCamp() {
     <header>
       <h2>🏕 ${esc(activeNick())}의 캠프 <small class="sync" data-live="sync"></small></h2>
       <div class="res">
-        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁 숲길에서 가장 많이 (원정 골동품에서도 조금)">🪵 <b data-live="wood"></b></span>
-        <span title="철광석 — ⛏️ 재료의 미궁 갱도에서 가장 많이 (원정 골동품에서도 조금)">🪨 <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 수정굴 · 레이드 · 원정 골동품">💎 <b data-live="mana"></b></span>
+        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁에서 가장 많이 (원정 골동품에서도 조금)">🪵 <b data-live="wood"></b></span>
+        <span title="철광석 — ⛏️ 재료의 미궁에서 가장 많이 (원정 골동품에서도 조금)">🪨 <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 · 레이드 · 원정 골동품">💎 <b data-live="mana"></b></span>
       </div>
       <button class="mailbtn ${campTab === 'mail' ? 'on' : ''}" data-action="tab" data-tab="mail" title="우편함">📬${mailUnclaimed() ? `<i>${mailUnclaimed()}</i>` : ''}</button>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
@@ -2510,9 +2481,6 @@ const ACTIONS = {
   'dg-pick': (el) => dgPickView(Number(el.dataset.i)),
   'dg-retreat': () => { dgRetreat(); renderHud(); },
   'dg-diff': (el) => { S.dg.pol.diff = Number(el.dataset.i); },
-  'dg-target': (el) => { S.dg.pol.target = el.dataset.r; },
-  'dg-risky': (el) => { S.dg.pol.risky = el.dataset.v === '1'; },
-  'dg-gate': (el) => { S.dg.pol.gate = Number(el.dataset.g); },
   'dg-fast': () => { S.dg.pol.fast = !S.dg.pol.fast; },
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),

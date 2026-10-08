@@ -55,21 +55,9 @@
   .dgq b { font-size: 12px; } .dgq small { font-size: 10.5px; color: var(--muted); }
   .dgtime { height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; margin-top: 3px; }
   .dgtime > div { height: 100%; background: #ffd257; }
-  #dgPick .dgdoor { width: 118px; height: 92px; padding: 8px 8px 6px; border-radius: 46px 46px 8px 8px; align-items: center; text-align: center; justify-content: flex-end; }
-  #dgPick .dgdoor .ic { font-size: 20px; line-height: 1; }
-  #dgPick .dgdoor i { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 9.5px; opacity: .75; }
-  #dgPick .dgdoor.f-res { border-color: rgba(255, 210, 87, .7) !important; }
-  #dgPick .dgdoor.f-fight { border-color: rgba(255, 107, 107, .75) !important; }
-  #dgPick .dgdoor.f-trade { border-color: rgba(111, 182, 255, .75) !important; }
-  #dgPick .dgdoor.f-luck { border-color: rgba(201, 167, 255, .8) !important; }
-  #dgPick .dgdoor.tgt b { color: #ffd257; }
-  #dgPick .dgcard { width: 150px; height: 96px; padding: 7px 9px; border-radius: 10px; }
-  #dgPick .dgcard .tag { font-size: 10px; color: var(--muted); }
-  #dgPick .dgcard em { font-style: normal; font-size: 10px; color: #ffd257; margin-top: auto; }
-  #dgPick .dgcard.r1 { border-color: rgba(74, 163, 255, .8) !important; }
-  #dgPick .dgcard.r2 { border-color: #ff9f1c !important; box-shadow: 0 0 12px rgba(255, 159, 28, .45); animation: dgShine 1.6s ease-in-out infinite; }
-  @keyframes dgShine { 50% { box-shadow: 0 0 20px rgba(255, 159, 28, .75); } }
   #dgPick .dgopt { width: 150px; min-height: 56px; padding: 7px 9px; border-radius: 10px; justify-content: center; }
+  #dgPick .dgopt.boon { width: 138px; min-height: 62px; }
+  #dgPick .dgopt.boon b { font-size: 13px; }
   #dgPick .dgopt.slim { width: 84px; }
   #dgPick .dgopt.wide { width: 230px; min-height: 66px; }
   #dgPick .dgopt.risk { border-color: rgba(255, 107, 107, .75) !important; }
@@ -80,6 +68,8 @@
   .pchip:hover { background: var(--soft-hover); }
   .pchip.on { border-color: var(--accent); background: rgba(255, 177, 59, .14); box-shadow: inset 0 0 0 1px var(--accent); }
   .pchip:disabled { opacity: .45; cursor: default; }
+  .pchip.static { cursor: default; }
+  .pchip.static:hover { background: var(--soft); }
   .pchip small { color: var(--muted); font-size: 10.5px; }
   /* 🗺️ 도전 탭 (ui.js viewSub): 가로로 긴 콘텐츠 카드 — 왼쪽 미리보기 캔버스, 오른쪽 제목·설명·칩 */
   .scard { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: stretch; gap: 14px; width: 100%; margin-bottom: 8px;

@@ -197,15 +197,15 @@ body.web { background: #0f0e1a; background-image: repeating-linear-gradient(0deg
 .subback { padding: 2px 8px; margin: 10px 0 -4px; }
 .csub:hover, .pchip:hover, .nchip:hover, .subback:hover { background-color: var(--px-bg3); color: var(--text); }
 .csub.on, .pchip.on { background-color: #3a3858; color: var(--px-gold-l); box-shadow: inset 0 0 0 1px var(--px-gold); }
+.pchip.static:hover { background-color: transparent; color: inherit; }
 .nchip.ready { color: #7dffb0; box-shadow: inset 0 0 0 1px rgba(125, 255, 176, .5); }
 .pchip:disabled { opacity: .45; }
-/* 던전 갈림길 버튼: 문(아치)도 각진 픽셀 문으로. 테마 색 테두리는 그대로 */
+/* 던전 보스 보상 버튼: 각진 픽셀 버튼. 도박의 붉은 테두리는 그대로 */
 #dgPick button { border: 4px solid transparent; border-image: url(frame-btn.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box;
   background-color: var(--px-bg); box-shadow: 4px 4px 0 rgba(0, 0, 0, .45); }
 #dgPick button:hover { background-color: var(--px-bg2); transform: translateY(-3px); }
-#dgPick .dgdoor.f-res, #dgPick .dgdoor.f-fight, #dgPick .dgdoor.f-trade, #dgPick .dgdoor.f-luck, #dgPick .dgcard.r1, #dgPick .dgcard.r2, #dgPick .dgopt.risk {
+#dgPick .dgopt.risk {
   border-image: none; border-width: 2px; padding: 9px; }
-#dgPick .dgdoor.f-res, #dgPick .dgdoor.f-fight, #dgPick .dgdoor.f-trade, #dgPick .dgdoor.f-luck { padding: 10px 10px 8px; }
 #dgPick button.auto { box-shadow: 0 0 0 2px var(--px-gold-l), 4px 4px 0 rgba(0, 0, 0, .45); }
 .dgtime { height: 4px; background: var(--px-ink); }
 .dgtime > div { background: var(--gold); }
