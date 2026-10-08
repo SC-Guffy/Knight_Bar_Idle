@@ -1148,24 +1148,28 @@ const skillTomesAt = (lv) => { let n = 0; for (let L = 1; L < lv; L++) n += skil
 const SKILL_TOME_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed(i + 1)).reduce((a, b) => a + b, 0);
 
 // ───────────────────────── 스킬 트리 ─────────────────────────
-// 스킬마다 위→아래 1-2-1-2-1 노드 트리 (스킬 탭). 숙련도 Lv5 마다 ⭐ 포인트 1 (Lv30 이면 6 = 노드 레벨 합과 같다).
-//  1단 📗 습득(익히면 자동) → 2단 ⚔️ 공격 특화 I / ⏱️ 쿨타임 특화 I (둘 중 하나, Lv2) → 3단 진화 ★ → 4단 특화 II (하나, Lv2) → 5단 진화 ★★
-//  윗 단계에 찍은 노드가 하나라도 있어야 다음 단계를 찍을 수 있고, 같은 단계의 두 특화는 하나를 고르면 다른 쪽이 닫힌다. 되돌리기는 무료 (core.js resetTree).
-//  ★★★ 은 트리를 1-2-1-2-1-2-1 로 늘릴 때 (TREE_STARS)
-const TREE_PT_EVERY = 5;
-const TREE_POW = 0.06;    // 공격 특화 Lv 당 한 방 위력 +6% (Lv2 ×2단 = +24%)
-const TREE_CD = 0.05;     // 쿨타임 특화 Lv 당 쿨타임 -5% (Lv2 ×2단 = -20%, DPS +25%)
-const TREE_STARS = 2;
+// 스킬마다 위→아래 1-2-1-2-1-2-1 노드 트리 (스킬 탭). 숙련도 레벨이 오를 때마다 ⭐ 포인트 1 (Lv30 이면 29 = 노드 칸 합과 같다).
+//  1단 📗 습득(익히면 자동) → 2단 ⚔️ 공격 특화 I / ⏱️ 쿨타임 특화 I (둘 중 하나, 8칸) → 3단 진화 ★ → 4단 특화 II (하나, 9칸) → 5단 진화 ★★
+//  → 6단 특화 III (하나, 9칸) → 7단 진화 ★★★
+//  특화 노드는 윗 단계(습득·진화)가 켜져 있으면 열리고, 진화 노드는 윗 단계 특화를 끝까지 찍어야 열린다 — 그래서 ★ Lv10 · ★★ Lv20 · ★★★ Lv30 (MASTERY 와 같다).
+//  같은 단계의 두 특화는 하나를 고르면 다른 쪽이 닫힌다. 되돌리기는 무료 (core.js resetTree).
+const TREE_POW = 0.01;    // 공격 특화 칸 당 한 방 위력 +1% (26칸 = +26%)
+const TREE_CD = 0.008;    // 쿨타임 특화 칸 당 쿨타임 -0.8% (26칸 = -20.8%, DPS +26%)
+const TREE_STARS = 3;
 const SKILL_TREE = [
   [{ id: 'learn', kind: 'learn', name: '습득', icon: '📗', max: 1 }],
-  [{ id: 'pow1', kind: 'pow', name: '공격 특화 I', icon: '⚔️', max: 2 }, { id: 'cd1', kind: 'cd', name: '쿨타임 특화 I', icon: '⏱️', max: 2 }],
+  [{ id: 'pow1', kind: 'pow', name: '공격 특화 I', icon: '⚔️', max: 8 }, { id: 'cd1', kind: 'cd', name: '쿨타임 특화 I', icon: '⏱️', max: 8 }],
   [{ id: 'star1', kind: 'star', star: 1, name: '진화 ★', max: 1 }],
-  [{ id: 'pow2', kind: 'pow', name: '공격 특화 II', icon: '⚔️', max: 2 }, { id: 'cd2', kind: 'cd', name: '쿨타임 특화 II', icon: '⏱️', max: 2 }],
+  [{ id: 'pow2', kind: 'pow', name: '공격 특화 II', icon: '⚔️', max: 9 }, { id: 'cd2', kind: 'cd', name: '쿨타임 특화 II', icon: '⏱️', max: 9 }],
   [{ id: 'star2', kind: 'star', star: 2, name: '진화 ★★', max: 1 }],
+  [{ id: 'pow3', kind: 'pow', name: '공격 특화 III', icon: '⚔️', max: 9 }, { id: 'cd3', kind: 'cd', name: '쿨타임 특화 III', icon: '⏱️', max: 9 }],
+  [{ id: 'star3', kind: 'star', star: 3, name: '진화 ★★★', max: 1 }],
 ];
 const TREE_NODES = {};
 SKILL_TREE.forEach((tier, t) => tier.forEach((nd) => { nd.tier = t; TREE_NODES[nd.id] = nd; }));
-const TREE_PTS_MAX = Math.floor(SKILL_MAX / TREE_PT_EVERY);
+const TREE_PTS_MAX = SKILL_MAX - 1;
+// 트리 비율 표시용: 0.008 → "0.8", 0.01 → "1"
+const treePct = (x) => +(x * 100).toFixed(1);
 
 // 트리 화면 배치 순서
 const CLASS_TREE = [

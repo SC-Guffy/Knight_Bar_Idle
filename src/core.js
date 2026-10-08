@@ -94,10 +94,15 @@ function migrate(o) {
     }
   }
   // mastV 7: 별(자동 → 진화 버튼)이 ⭐ 포인트를 찍는 스킬 트리로 바뀌었다. 포인트는 모두 미배분으로 시작한다 (트리에서 다시 찍는다)
-  if (o.mast && (o.mastV || 1) < 7 && Object.keys(s.mast).some((id) => skillLvOf(s.mast[id]).lv >= TREE_PT_EVERY) && !s.notice) {
+  if (o.mast && (o.mastV || 1) < 7 && Object.keys(s.mast).some((id) => skillLvOf(s.mast[id]).lv >= 5) && !s.notice) {
     s.notice = '⚡ 스킬 트리 도입 — 스킬 Lv5 마다 ⭐ 포인트가 1개 생기고, 스킬 탭의 트리에서 공격·쿨타임 특화와 진화(별) 노드에 찍어요. 지금 가진 포인트를 찍어 주세요 (되돌리기는 무료)';
   }
-  s.mastV = 7;
+  // mastV 8: ⭐ 포인트가 Lv5 마다 1 → 레벨마다 1 로 늘고 트리가 1-2-1-2-1-2-1(★★★까지)이 됐다. 칸당 효과가 바뀌어서 찍은 트리는 비우고 다시 찍게 한다
+  if (o.mast && (o.mastV || 1) < 8 && Object.keys(s.tree || {}).some((id) => Object.values(s.tree[id].n || {}).some((n) => n > 0))) {
+    s.tree = {};
+    if (!s.notice) s.notice = '⭐ 스킬 포인트 개편 — 이제 스킬 레벨이 오를 때마다 포인트가 1개씩 생겨요 (Lv30 = 29개). 트리가 ★★★까지 늘어나며 칸당 효과가 바뀌어서 찍었던 포인트를 모두 되돌렸어요. 스킬 탭에서 다시 찍어 주세요 (되돌리기는 무료)';
+  }
+  s.mastV = 8;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -215,10 +220,10 @@ const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reve
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0).lv;
-// 스킬 트리 (S.tree, classes.js SKILL_TREE): 숙련도 Lv5 마다 ⭐ 포인트 1. n 은 노드별 찍은 Lv, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
+// 스킬 트리 (S.tree, classes.js SKILL_TREE): 숙련도 레벨이 오를 때마다 ⭐ 포인트 1 (Lv30 = 29). n 은 노드별 찍은 칸, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
 const treeOf = (id) => S.tree[mastKey(id)] || { n: {}, use: 0 };
 const nodeLv = (id, nid) => treeOf(id).n[nid] || 0;
-const skillPts = (id) => Math.floor(skillLv(id) / TREE_PT_EVERY);
+const skillPts = (id) => skillLv(id) - 1;
 const skillSpent = (id) => Object.values(treeOf(id).n).reduce((a, b) => a + b, 0);
 const skillPtsLeft = (id) => skillPts(id) - skillSpent(id);
 // 트리가 주는 보너스 { star 단 별 수, pow 공격 특화 Lv 합, cd 쿨타임 특화 Lv 합 } (classes.js skillPowAt·skillCdOf 의 b)
@@ -237,14 +242,16 @@ const skillStar = (id) => skillBonus(id).star;
 const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
 const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
 const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
-// 노드 상태: max(다 찍음) · on(찍는 중) · open(찍을 수 있음) · closed(같은 단계의 다른 노드를 골라서 닫힘) · locked(윗 단계가 비었음)
+// 노드 상태: max(다 찍음) · on(찍는 중) · open(찍을 수 있음) · closed(같은 단계의 다른 노드를 골라서 닫힘) · locked(윗 단계가 아직)
+//  특화 노드는 윗 단계(습득·진화)가 켜져 있으면 열리고, 진화 노드는 윗 단계 특화를 끝까지 찍어야 열린다
 function nodeState(id, nid) {
   const nd = TREE_NODES[nid], lv = nodeLv(id, nid);
   if (nd.kind === 'learn' || lv >= nd.max) return 'max';
   if (lv > 0) return 'on';
   if (SKILL_TREE[nd.tier].some((o) => o.id !== nid && nodeLv(id, o.id) > 0)) return 'closed';
-  if (!SKILL_TREE[nd.tier - 1].some((o) => o.kind === 'learn' || nodeLv(id, o.id) > 0)) return 'locked';
-  return 'open';
+  const above = SKILL_TREE[nd.tier - 1];
+  const ok = nd.kind === 'star' ? above.some((o) => nodeLv(id, o.id) >= o.max) : above.some((o) => o.kind === 'learn' || nodeLv(id, o.id) > 0);
+  return ok ? 'open' : 'locked';
 }
 const canInvest = (id, nid) => skillPtsLeft(id) > 0 && (nodeState(id, nid) === 'on' || nodeState(id, nid) === 'open');
 const canInvestAny = () => skillsOf(S.cls).some((k) => skillPtsLeft(k.id) > 0 && Object.keys(TREE_NODES).some((nid) => canInvest(k.id, nid)));
