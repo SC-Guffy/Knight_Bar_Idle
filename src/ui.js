@@ -563,12 +563,13 @@ function viewSkill() {
   const btns = max ? `<span class="mmax">Lv ${SKILL_MAX} 만렙</span>` : `
     <button class="btn mb1${rd(S.tomes >= need)}${pulse}" data-action="tome" data-id="${k.id}" data-n="1" ${S.tomes < 1 ? 'disabled' : ''}>1권 쓰기</button>
     <button class="btn mball" data-action="tome" data-id="${k.id}" data-n="${all}" ${all < 1 ? 'disabled' : ''} title="${all ? `비전서 ${all}권을 모두 넣어요${ups ? ` (Lv +${ups})` : ''}` : ''}">전부 쓰기${all ? ` <small>${all}${ups ? ` · Lv+${ups}` : ''}</small>` : ''}</button>`;
-  // 별 띠: 단 별은 ★ (적용 중인 단계까지 켜짐), 안 단 별은 ☆. 클릭하면 그 단계의 모습으로 — 켜진 맨 끝 별을 다시 누르면 한 단계 아래로
-  const stars = `<span class="stars" title="전투에 쓸 모습을 고르세요 — 단 별 안에서, 위력·쿨타임은 그대로">${Array.from({ length: TREE_STARS }, (_, j) => j + 1).map((i) => {
-    const to = i === use ? i - 1 : i;
-    const tip = i > n ? `트리의 진화 ${MASTERY[i].star} 노드를 찍으면 달려요` : `${to ? `${MASTERY[to].star} 「${skillNameAt(k, s.lv, to)}」` : `별 없는 「${skillNameAt(k, s.lv, 0)}」`} 모습으로`;
-    return `<button class="${i <= n ? (i <= use ? 'on' : 'have') : 'lock'}" data-action="star" data-id="${k.id}" data-s="${to}" ${i > n ? 'disabled' : ''} title="${tip}">${i <= n ? '★' : '☆'}</button>`;
-  }).join('')}</span>`;
+  // 모습 리모컨 ‹ ★★☆ ›: 전투에 쓸 모습(0~단 별 수)을 이전·다음 버튼으로 고른다. 단 별은 ★ (적용 중인 단계까지 켜짐), 안 단 별은 ☆
+  const stageName = (i) => (i ? `${MASTERY[i].star} 「${skillNameAt(k, s.lv, i)}」` : `별 없는 「${skillNameAt(k, s.lv, 0)}」`);
+  const starsHtml = Array.from({ length: TREE_STARS }, (_, j) => j + 1).map((i) => `<i class="${i <= n ? (i <= use ? 'on' : 'have') : 'lock'}">${i <= n ? '★' : '☆'}</i>`).join('');
+  const stars = `<span class="srem" title="전투에 쓸 모습 — 단 별 안에서 고르고, 위력·쿨타임은 트리 기준 그대로">
+    <button data-action="star" data-id="${k.id}" data-s="${use - 1}" ${use > 0 ? '' : 'disabled'} title="${use > 0 ? `이전 모습: ${stageName(use - 1)}` : '가장 수수한 모습이에요'}">‹</button>
+    <span class="stars">${starsHtml}</span>
+    <button data-action="star" data-id="${k.id}" data-s="${use + 1}" ${use < n ? '' : 'disabled'} title="${use < n ? `다음 모습: ${stageName(use + 1)}` : n < TREE_STARS ? `트리의 진화 ${MASTERY[n + 1].star} 노드를 찍으면 다음 모습이 열려요` : '마지막 모습이에요'}">›</button></span>`;
   const prev = `<button class="btn mprev" data-action="preview" data-id="${k.id}" ${camp ? '' : 'disabled'} title="${camp ? '아래 기사가 지금 고른 모습으로 한 번 시전해요 (피해 없음)' : '캠프에 있을 때만 볼 수 있어요'}">▶ 비주얼 확인</button>`;
   // ⭐ 포인트 줄: 남은/전체 · 다음 포인트까지 · 되돌리기
   const pts = skillPts(k.id), left = skillPtsLeft(k.id);
@@ -579,7 +580,7 @@ function viewSkill() {
     <div class="mskill m${n}${locked ? ' locked' : ''} tree-card">
       <span class="sicon">${k.icon}</span>
       <div class="mbody">
-        <div class="mtitle"><b>${skillNameAt(k, s.lv, use)}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${stars}${locked ? ` <span class="mlock">🔒 캐릭터 Lv ${k.lv}에 사용 가능</span>` : ''}${prev}</div>
+        <div class="mtitle"><b>${skillNameAt(k, s.lv, use)}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${locked ? ` <span class="mlock">🔒 캐릭터 Lv ${k.lv}에 사용 가능</span>` : ''}${stars}${prev}</div>
         ${max ? '' : `<div class="mseg"><div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div>
           <span class="mnum"><b>${s.have}</b>/${s.need}</span></div>`}
         <small class="mstat">${max ? '' : '다음 레벨 · '}쿨타임 ${cd(s.lv)}초${max ? '' : ` → <b>${cd(s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}${b.pow || b.cd ? ` <span class="tbon">${b.pow ? `⚔️ +${treePct(TREE_POW * b.pow)}%` : ''}${b.pow && b.cd ? ' · ' : ''}${b.cd ? `⏱️ -${treePct(TREE_CD * b.cd)}%` : ''}</span>` : ''}</small>
@@ -2624,7 +2625,7 @@ const ACTIONS = {
     toast(`↩ ${SKILLS[el.dataset.id].name} 트리를 되돌렸어요 — ⭐ ${skillPtsLeft(el.dataset.id)} 포인트를 다시 찍을 수 있어요`);
     save();
   },
-  // 별 띠: 전투에 쓸 모습(0~단 별 수)을 고른다 — 고른 모습을 바로 한 번 보여 준다
+  // 모습 리모컨 ‹ ›: 전투에 쓸 모습(0~단 별 수)을 고른다 — 고른 모습을 바로 한 번 보여 준다
   'star': (el) => {
     const id = el.dataset.id;
     if (!setSkillStar(id, Number(el.dataset.s))) return;

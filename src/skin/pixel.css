@@ -150,7 +150,7 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 canvas.town { outline: 2px solid var(--px-ink); outline-offset: 0; box-shadow: 0 0 0 4px #3e3c52, 0 0 0 6px var(--px-ink); margin: 6px 6px 14px; width: calc(100% - 12px); }
 
 /* 칩·배지 */
-.chip, .mchip, .stchip, .lvl, .tnode .tlv, .mnew, .mvpchip, .mskill .mtag, .mskill .mevo-n, .mrow .mt, #campModal nav i, .sync { border-radius: 0; }
+.chip, .mchip, .stchip, .lvl, .tnode .tlv, .mskill .srem, .mskill .srem button, .mnew, .mvpchip, .mskill .mtag, .mskill .mevo-n, .mrow .mt, #campModal nav i, .sync { border-radius: 0; }
 .chip { background: var(--px-ink); box-shadow: inset 0 0 0 1px var(--px-hi); padding: 1px 6px; }
 .mchip { background: #2a2444; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #6f58a8; }
 .stchip { background: #1e2a3a; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #3f7fa8; }

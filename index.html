@@ -404,13 +404,16 @@
   .mskill .mmax { color: #fff0b8; font-weight: 700; text-align: center; font-size: 12px; }
   /* 스킬 탭: 별 띠(전투에 쓸 모습 고르기) · 비주얼 확인 · 진화 버튼 */
   .mskill .mtitle { display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px; }
-  .mskill .stars { display: inline-flex; gap: 1px; margin-left: 6px; }
-  .mskill .stars button { all: unset; cursor: pointer; font-size: 14px; line-height: 16px; padding: 0 1px; color: rgba(255,255,255,0.22); transition: color .15s, transform .15s; }
-  .mskill .stars button.on { color: #ffd257; text-shadow: 0 0 6px rgba(255,210,90,0.6); }
-  .mskill .stars button.have { color: rgba(255,210,90,0.38); }
-  .mskill .stars button.lock { cursor: default; }
-  .mskill .stars button:not(:disabled):hover { transform: scale(1.25); color: #fff0b8; }
-  .mskill .mprev { margin-left: auto; padding: 2px 8px; font-size: 11px; font-weight: 500; color: var(--muted); background: rgba(255,255,255,0.05); }
+  /* 모습 리모컨 ‹ ★★☆ › — 비주얼 확인 왼쪽 */
+  .mskill .srem { display: inline-flex; align-items: center; margin-left: auto; margin-right: 6px; border-radius: 999px; background: rgba(255,255,255,0.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+  .mskill .srem button { all: unset; cursor: pointer; width: 22px; height: 20px; text-align: center; font-size: 15px; line-height: 20px; font-weight: 700; color: var(--text); border-radius: 999px; transition: background .15s, color .15s; }
+  .mskill .srem button:not(:disabled):hover { background: rgba(255,210,90,0.2); color: #fff0b8; }
+  .mskill .srem button:disabled { color: rgba(255,255,255,0.18); cursor: default; }
+  .mskill .stars { display: inline-flex; gap: 1px; padding: 0 2px; }
+  .mskill .stars i { font-style: normal; font-size: 14px; line-height: 16px; padding: 0 1px; color: rgba(255,255,255,0.22); transition: color .15s; }
+  .mskill .stars i.on { color: #ffd257; text-shadow: 0 0 6px rgba(255,210,90,0.6); }
+  .mskill .stars i.have { color: rgba(255,210,90,0.38); }
+  .mskill .mprev { padding: 2px 8px; font-size: 11px; font-weight: 500; color: var(--muted); background: rgba(255,255,255,0.05); }
   .mskill .mprev:not(:disabled):hover { color: var(--text); background: rgba(255,255,255,0.12); }
   .mskill .mprev:disabled { opacity: .4; cursor: default; }
   .mskill .mstat .tbon { margin-left: 6px; color: #ffd257; }
