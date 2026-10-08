@@ -1198,7 +1198,6 @@ const TREE_RIGHT = {
 };
 // 오른쪽 효과의 지금 값: full × 찍은 칸 비율 (b.right[key] = 칸/최대)
 const rightVal = (k, key, b) => (k.right && TREE_RIGHT[key] ? TREE_RIGHT[key].full * ((treeBonus(b).right || {})[key] || 0) : 0);
-const ROMAN = ['', 'I', 'II', 'III'];
 const tree2Cache = {};
 // 이 스킬의 트리 (V1 은 공용 SKILL_TREE, V2 는 right 로 만든 트리)
 function skillTreeOf(k) {
@@ -1207,9 +1206,9 @@ function skillTreeOf(k) {
   const tiers = SKILL_TREE.map((tier, t) => tier.map((nd) => {
     if (nd.kind !== 'pow' && nd.kind !== 'cd') return nd;
     const n = Math.floor((t + 1) / 2), base = { max: nd.max, lv: nd.lv, min: nd.min, tier: t };
-    if (nd.kind === 'pow') return { ...base, id: 'pow' + n, kind: 'pow', name: '피해 ' + ROMAN[n], icon: '⚔️' };
+    if (nd.kind === 'pow') return { ...base, id: 'pow' + n, kind: 'pow', name: '피해', icon: '⚔️' };
     const key = k.right[n - 1], R = TREE_RIGHT[key];
-    return { ...base, id: 'r' + n, kind: 'right', key, name: R.name + ' ' + ROMAN[n], icon: R.icon };
+    return { ...base, id: 'r' + n, kind: 'right', key, name: R.name, icon: R.icon };
   }));
   return (tree2Cache[k.id] = tiers);
 }
