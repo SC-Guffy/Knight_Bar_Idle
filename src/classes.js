@@ -1149,21 +1149,21 @@ const SKILL_TOME_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed
 
 // ───────────────────────── 스킬 트리 ─────────────────────────
 // 스킬마다 위→아래 1-2-1-2-1-2-1 노드 트리 (스킬 탭). 숙련도 레벨이 오를 때마다 ⭐ 포인트 1 (Lv30 이면 29 = 노드 칸 합과 같다).
-//  1단 📗 습득(익히면 자동) → 2단 ⚔️ 공격 특화 I / ⏱️ 쿨타임 특화 I (둘 중 하나, 8칸) → 3단 진화 ★ → 4단 특화 II (하나, 9칸) → 5단 진화 ★★
-//  → 6단 특화 III (하나, 9칸) → 7단 진화 ★★★
-//  특화 노드는 윗 단계(습득·진화)가 켜져 있으면 열리고, 진화 노드는 윗 단계 특화를 끝까지 찍어야 열린다 — 그래서 ★ Lv10 · ★★ Lv20 · ★★★ Lv30 (MASTERY 와 같다).
-//  같은 단계의 두 특화는 하나를 고르면 다른 쪽이 닫힌다. 되돌리기는 무료 (core.js resetTree).
+//  1단 📗 습득(익히면 자동) → 2단 ⚔️ 공격 특화 I / ⏱️ 쿨타임 특화 I (둘에 나눠 찍는다, 각 8칸) → 3단 진화 ★ → 4단 특화 II (각 9칸) → 5단 진화 ★★
+//  → 6단 특화 III (각 9칸) → 7단 진화 ★★★
+//  노드마다 여는 조건은 둘: lv 스킬 숙련도 레벨, min 이 트리에 지금까지 찍은 포인트 합 (어느 노드든). 둘 다 닿으면 열린다 — 어디에 찍든 자유.
+//  진화는 ★ Lv10·8개 · ★★ Lv20·18개 · ★★★ Lv30·28개 (MASTERY 의 Lv10·20·30 과 같다). 되돌리기는 무료 (core.js resetTree).
 const TREE_POW = 0.01;    // 공격 특화 칸 당 한 방 위력 +1% (26칸 = +26%)
 const TREE_CD = 0.008;    // 쿨타임 특화 칸 당 쿨타임 -0.8% (26칸 = -20.8%, DPS +26%)
 const TREE_STARS = 3;
 const SKILL_TREE = [
   [{ id: 'learn', kind: 'learn', name: '습득', icon: '📗', max: 1 }],
-  [{ id: 'pow1', kind: 'pow', name: '공격 특화 I', icon: '⚔️', max: 8 }, { id: 'cd1', kind: 'cd', name: '쿨타임 특화 I', icon: '⏱️', max: 8 }],
-  [{ id: 'star1', kind: 'star', star: 1, name: '진화 ★', max: 1 }],
-  [{ id: 'pow2', kind: 'pow', name: '공격 특화 II', icon: '⚔️', max: 9 }, { id: 'cd2', kind: 'cd', name: '쿨타임 특화 II', icon: '⏱️', max: 9 }],
-  [{ id: 'star2', kind: 'star', star: 2, name: '진화 ★★', max: 1 }],
-  [{ id: 'pow3', kind: 'pow', name: '공격 특화 III', icon: '⚔️', max: 9 }, { id: 'cd3', kind: 'cd', name: '쿨타임 특화 III', icon: '⏱️', max: 9 }],
-  [{ id: 'star3', kind: 'star', star: 3, name: '진화 ★★★', max: 1 }],
+  [{ id: 'pow1', kind: 'pow', name: '공격 특화 I', icon: '⚔️', max: 8, lv: 2, min: 0 }, { id: 'cd1', kind: 'cd', name: '쿨타임 특화 I', icon: '⏱️', max: 8, lv: 2, min: 0 }],
+  [{ id: 'star1', kind: 'star', star: 1, name: '진화 ★', max: 1, lv: 10, min: 8 }],
+  [{ id: 'pow2', kind: 'pow', name: '공격 특화 II', icon: '⚔️', max: 9, lv: 10, min: 9 }, { id: 'cd2', kind: 'cd', name: '쿨타임 특화 II', icon: '⏱️', max: 9, lv: 10, min: 9 }],
+  [{ id: 'star2', kind: 'star', star: 2, name: '진화 ★★', max: 1, lv: 20, min: 18 }],
+  [{ id: 'pow3', kind: 'pow', name: '공격 특화 III', icon: '⚔️', max: 9, lv: 20, min: 19 }, { id: 'cd3', kind: 'cd', name: '쿨타임 특화 III', icon: '⏱️', max: 9, lv: 20, min: 19 }],
+  [{ id: 'star3', kind: 'star', star: 3, name: '진화 ★★★', max: 1, lv: 30, min: 28 }],
 ];
 const TREE_NODES = {};
 SKILL_TREE.forEach((tier, t) => tier.forEach((nd) => { nd.tier = t; TREE_NODES[nd.id] = nd; }));

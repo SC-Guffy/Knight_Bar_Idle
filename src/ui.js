@@ -477,7 +477,8 @@ function skillList(id) {
 
 // ⚡ 스킬 탭 (전직과 분리): 지금 직업의 스킬에 📖 비전서를 먹여 Lv30 까지 키우고 (classes.js SKILL_MAX),
 // 숙련도 레벨마다 생기는 ⭐ 포인트를 위→아래 1-2-1-2-1-2-1 노드 트리에 찍는다 (classes.js SKILL_TREE, core.js investNode).
-//  - 2·4·6단: ⚔️ 공격 특화 / ⏱️ 쿨타임 특화 중 하나 (8·9·9칸) · 3·5·7단: 진화 ★·★★·★★★ (기술이 다음 모습으로, 위력·쿨타임 +10%) — 윗 특화를 다 찍어야 열린다
+//  - 2·4·6단: ⚔️ 공격 특화 / ⏱️ 쿨타임 특화 (둘에 나눠 찍음, 각 8·9·9칸) · 3·5·7단: 진화 ★·★★·★★★ (기술이 다음 모습으로, 위력·쿨타임 +10%)
+//  - 노드마다 스킬 레벨(lv)·트리에 찍은 포인트 합(min) 조건이 있고 둘 다 닿으면 열린다 (core.js nodeLock)
 //  - 단 별 안에서 전투에 쓸 모습(0~n성)을 별 띠를 클릭해 고른다 (setSkillStar — 기술 형태·연출만 바뀌고 위력은 단 별 기준)
 //  - 「비주얼 확인」을 누르면 아래 기사가 고른 모습으로 한 번 시전한다 (skills.js previewSkill)
 let skillSel = null;      // 트리를 펼쳐 둔 스킬 id
@@ -494,14 +495,20 @@ function treeLink(prevN, curN, lit) {
   return `<svg class="tlink" viewBox="0 0 ${W} ${H}">${d}</svg>`;
 }
 
+// 잠긴 노드의 칸 표시: 모자란 조건 하나 — 🔒 Lv N 또는 ⭐ 지금/필요
+const lockTag = (id, nd, st) => {
+  if (st !== 'locked') return '';
+  const lock = nodeLock(id, nd.id);
+  return lock.lv ? `🔒 Lv ${lock.lv}` : `⭐ ${skillSpent(id)}/${lock.min}`;
+};
 // 스킬 하나의 트리
 function treeHtml(k) {
   const id = k.id, lv = skillLv(id), b = skillBonus(id), left = skillPtsLeft(id);
   const mt = (bb) => (k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k, lv, S.cls, bb)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k, lv, S.cls, bb)).toFixed(2)}`);
   const cd = (bb) => `${skillCdOf(k, lv, S.cls, bb)}초`;
   const tip = (nd, st, nl) => {
-    const sib = SKILL_TREE[nd.tier].find((o) => o.id !== nd.id);
-    const why = st === 'closed' ? ` — 같은 단계에서 ${sib.name}을(를) 골라서 닫혔어요 (되돌리기로 다시 열 수 있어요)` : st === 'locked' ? (nd.kind === 'star' ? ' — 윗 단계 특화를 끝까지 찍어야 열려요' : ' — 윗 단계 진화를 먼저 찍어야 해요') : st === 'max' ? ' — 다 찍었어요' : left ? ' — 클릭해서 ⭐ 1 투자' : ' — ⭐ 포인트가 없어요';
+    const lock = nodeLock(id, nd.id);
+    const why = st === 'locked' ? (lock.lv ? ` — 스킬 Lv ${lock.lv}에 열려요 (지금 Lv ${lv}${nd.min ? `, 트리에 ⭐ ${nd.min}개 이상 찍어야` : ''})` : ` — 트리에 ⭐ ${lock.min}개를 찍으면 열려요 (지금 ${skillSpent(id)}/${lock.min})`) : st === 'max' ? ' — 다 찍었어요' : left ? ' — 클릭해서 ⭐ 1 투자' : ' — ⭐ 포인트가 없어요';
     if (nd.kind === 'learn') return '스킬을 익히면 자동으로 켜져요';
     if (nd.kind === 'star') return `${nd.name}: 「${skillNameAt(k, lv, nd.star)}」 ${k.stageDesc ? k.stageDesc[nd.star] : MASTERY[nd.star].desc} · 쿨타임·위력 +10% 성장 (${cd(b)} → ${cd({ ...b, star: nd.star })} · ${mt(b)} → ${mt({ ...b, star: nd.star })})${why}`;
     if (nd.kind === 'pow') return `${nd.name}: 한 방 위력 +${treePct(TREE_POW)}%/칸, ${nd.max}칸 +${treePct(TREE_POW * nd.max)}% (지금 ${mt(b)}${nl < nd.max ? ` → ${mt({ ...b, pow: b.pow + 1 })}` : ''})${why}`;
@@ -513,7 +520,7 @@ function treeHtml(k) {
       const name = nd.kind === 'star' ? `${MASTERY[nd.star].star} ${skillNameAt(k, lv, nd.star)}` : nd.name;
       return `<div class="tnode ${st}${nd.kind === 'star' ? ' star' : ''}">
         <button data-action="node" data-id="${id}" data-node="${nd.id}" ${can ? '' : 'disabled'} title="${esc(tip(nd, st, nl))}">${nd.kind === 'star' ? k.icon : nd.icon}</button>
-        <span class="tmeta"><span class="tname">${name}</span><span class="tlv">${nd.kind === 'learn' ? '자동' : nd.kind === 'star' ? (nl ? '진화' : '⭐ 1') : `${nl}/${nd.max}`}</span></span></div>`;
+        <span class="tmeta"><span class="tname">${name}</span><span class="tlv">${nd.kind === 'learn' ? '자동' : lockTag(id, nd, st) || (nd.kind === 'star' ? (nl ? '진화' : '⭐ 1') : `${nl}/${nd.max}`)}</span></span></div>`;
     }).join('');
     if (!t) return `<div class="ttier">${nodes}</div>`;
     const prev = SKILL_TREE[t - 1], on = (nd) => nd.kind === 'learn' || nodeLv(id, nd.id) > 0;
@@ -580,7 +587,7 @@ function viewSkill() {
     ${treeHtml(k)}`;
   const guide = guidePendingFeed()
     ? `<div class="gtip big">👉 <b>📖 1권 쓰기</b>를 눌러 보세요 — 칸이 차면 레벨이 오르고, 쿨타임이 바로 줄고 위력이 올라요.</div>`
-    : canInvestAny() && !S.guide.node ? `<div class="gtip big">⭐ 스킬 포인트가 생겼어요 — 레벨이 오를 때마다 1개씩 생기니 트리에서 빛나는 노드를 눌러 투자해 보세요. 공격·쿨타임 특화는 둘 중 하나만 고를 수 있고, 특화를 다 찍으면 진화(별)가 열려요 (되돌리기는 무료).</div>`
+    : canInvestAny() && !S.guide.node ? `<div class="gtip big">⭐ 스킬 포인트가 생겼어요 — 레벨이 오를 때마다 1개씩 생기니 트리에서 빛나는 노드를 눌러 투자해 보세요. 공격·쿨타임 특화에 나눠 찍을 수 있고, 노드마다 적힌 스킬 레벨·찍은 포인트 수에 닿으면 열려요 (되돌리기는 무료).</div>`
     : S.tomes === 0 ? `<div class="gtip">📖 비전서는 ${towerUnlocked() ? '<button class="lnk" data-action="tab" data-tab="tower">🗼 도전의 탑</button>에서 가장 많이 얻어요 (원정 보스·레이드 상자·결투 시즌에서도)' : `🗼 도전의 탑(스테이지 ${TOWER_UNLOCK_STAGE}에 열림)·원정 보스·레이드 상자·결투 시즌에서 얻어요`}</div>` : '';
   const note = (heroClass().tier >= 3
     ? '3차 궁극기는 대신한 1차 스킬의 숙련도·트리를 그대로 이어받아요. 2차 스킬은 숙련도 그대로 제 위력을 내요.'

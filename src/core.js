@@ -242,16 +242,20 @@ const skillStar = (id) => skillBonus(id).star;
 const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
 const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
 const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
-// 노드 상태: max(다 찍음) · on(찍는 중) · open(찍을 수 있음) · closed(같은 단계의 다른 노드를 골라서 닫힘) · locked(윗 단계가 아직)
-//  특화 노드는 윗 단계(습득·진화)가 켜져 있으면 열리고, 진화 노드는 윗 단계 특화를 끝까지 찍어야 열린다
+// 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
+function nodeLock(id, nid) {
+  const nd = TREE_NODES[nid];
+  if (nd.kind === 'learn') return null;
+  if (skillLv(id) < nd.lv) return { lv: nd.lv };
+  if (skillSpent(id) < nd.min) return { min: nd.min };
+  return null;
+}
+// 노드 상태: max(다 찍음) · on(찍는 중) · open(찍을 수 있음) · locked(스킬 레벨 또는 투자 합이 모자람)
 function nodeState(id, nid) {
   const nd = TREE_NODES[nid], lv = nodeLv(id, nid);
   if (nd.kind === 'learn' || lv >= nd.max) return 'max';
   if (lv > 0) return 'on';
-  if (SKILL_TREE[nd.tier].some((o) => o.id !== nid && nodeLv(id, o.id) > 0)) return 'closed';
-  const above = SKILL_TREE[nd.tier - 1];
-  const ok = nd.kind === 'star' ? above.some((o) => nodeLv(id, o.id) >= o.max) : above.some((o) => o.kind === 'learn' || nodeLv(id, o.id) > 0);
-  return ok ? 'open' : 'locked';
+  return nodeLock(id, nid) ? 'locked' : 'open';
 }
 const canInvest = (id, nid) => skillPtsLeft(id) > 0 && (nodeState(id, nid) === 'on' || nodeState(id, nid) === 'open');
 const canInvestAny = () => skillsOf(S.cls).some((k) => skillPtsLeft(k.id) > 0 && Object.keys(TREE_NODES).some((nid) => canInvest(k.id, nid)));
