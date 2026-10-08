@@ -83,12 +83,6 @@ function campStatus() {
 
 // data-live="키" 요소는 틱마다 LIVE[키]() 로 글자만 갱신한다 (버튼을 다시 만들지 않도록)
 const LIVE = {
-  expLeft: () => fmtTime(S.stamina / STAMINA_DRAIN),
-  expKills: () => (S.trip ? S.trip.kills : 0),
-  expBoxes: () => (S.trip ? S.trip.boxes.reduce((a, b) => a + b, 0) : 0),
-  towerFloor: () => (S.tower.run ? `${S.tower.run.floor}F` : '-'),
-  towerTomes: () => (S.tower.run ? S.tower.run.tomes : 0),
-  build: () => (S.build ? `🔨 ${BUILDINGS[S.build.id].name} Lv ${S.bld[S.build.id] + 1} 건설 중 · ${fmtTime(S.build.remain)}` : ''),
   buildLeft: () => (S.build ? fmtTime(S.build.remain) : ''),
   gold: () => fmt(S.gold),
   wood: () => fmt(S.mats.wood),
@@ -97,7 +91,6 @@ const LIVE = {
   stamina: () => `${Math.floor(S.stamina)} / ${maxStamina()} · 약 ${fmtTime(S.stamina / STAMINA_DRAIN)} 원정`,
   hpLine: () => `❤️ ${fmt(S.hp)} / ${fmt(stats().maxHp)}`,
   blocker: () => departBlocker() || '',
-  campStatus: () => campStatus().text,
   sync: () => (!activeNick() ? '' : sync.error ? `⚠️ ${sync.error} — 이 기기에 저장 중` : sync.lastOk ? '☁️ 서버에 저장됨' : '☁️ 연결 중…'),
 };
 function tickLive(root = document) {
@@ -119,7 +112,7 @@ function tickLive(root = document) {
 }
 
 // ───────────────────────── HUD ─────────────────────────
-let panelKey = '';
+// 바 한 줄이 전부다 — 호버로 펼쳐지는 패널은 없고, 명령은 바 안의 버튼(#hbtn), 캠프는 바를 클릭해 연다
 function renderHud() {
   const st = stats();
   $('cls').textContent = heroClass().icon;
@@ -148,32 +141,10 @@ function renderHud() {
   if (cmd) { hb.dataset.action = cmd[0]; hb.textContent = cmd[1]; hb.title = cmd[2]; }
   $('hud').classList.toggle('act', !!cmd);
 
-  const key = S.phase + (S.build ? 'b' : '') + (S.tower.run ? 'r' : '') + (S.dg.run ? 'd' : '');
-  if (key !== panelKey) {
-    panelKey = key;
-    const build = S.build ? '<div class="pline" data-live="build"></div>' : '';
-    $('panelBody').innerHTML =
-      S.phase === 'expedition' ? `
-        <div class="pline">⏳ 남은 원정 <b data-live="expLeft"></b> · 처치 <b data-live="expKills"></b> · 📦 <b data-live="expBoxes"></b></div>
-        ${build}`
-      : S.phase === 'tower' && S.tower.run ? `
-        <div class="pline">🗼 도전의 탑 <b data-live="towerFloor"></b> · ⏳ <b data-live="expLeft"></b> · 📖 <b data-live="towerTomes"></b></div>
-        ${build}`
-      : S.phase === 'tower' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
-      : S.phase === 'dungeon' && S.dg.run ? `
-        <div class="pline">⛏️ 재료의 미궁 · 배낭은 나와야 내 것 (후퇴하면 절반)</div>
-        ${build}`
-      : S.phase === 'dungeon' ? `<div class="pline">✨ 캠프로 귀환하는 중…</div>${build}`
-      : S.phase === 'returning' ? `<div class="pline">캠프로 돌아가는 중…</div>${build}`
-      : `<div class="pline" data-live="campStatus"></div>${build}
-         <button class="pbtn" data-action="open-camp">🏕 캠프 열기</button>`;
-  }
   tickLive($('hud'));
   renderDungeonPick();
   const todo = S.phase === 'camp' && !modalOpen() && !duelActive() && !raidActive() && campHasDot();
   document.querySelector('#hud .bar').classList.toggle('rd', todo);
-  const openBtn = document.querySelector('#panelBody [data-action="open-camp"]');
-  if (openBtn) openBtn.classList.toggle('rd', todo);
 
   // 캠프 말풍선
   const bubble = $('bubble');

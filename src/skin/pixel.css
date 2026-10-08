@@ -42,11 +42,10 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 .px-gauge { border: 2px solid transparent; border-image: url(frame-gauge.svg) 2 / 2px; image-rendering: pixelated; background-clip: padding-box; }
 
 /* 큰 창·HUD 패널 */
-#campModal, #acctModal, #guideModal, #hud .panel {
+#campModal, #acctModal, #guideModal {
   border: 12px solid transparent; border-image: url(frame-panel.svg) 6 / 12px round; image-rendering: pixelated; background-clip: padding-box;
   background-color: var(--px-bg); box-shadow: 6px 6px 0 rgba(0, 0, 0, .45);   /* 프레임 픽셀을 2배로 키워 나뭇결이 보이게 */
 }
-#hud .panel { margin-top: 6px; padding: 6px 8px; }
 #campModal header, #acctModal header, #guideModal header { padding: 6px 10px 6px; }
 #campModal nav, #guideModal nav { padding: 0 6px; border-bottom: 2px solid var(--px-hi); gap: 2px; }
 #campModal nav button, #guideModal nav button { padding: 7px 5px; margin-bottom: -2px; border: 2px solid transparent; border-bottom: 0; color: var(--muted); }
@@ -83,17 +82,16 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 .mskill.m3 .mseg .cells i.on { background: #ffd86a; }
 
 /* 버튼: 잉크 테두리 + 2px 베벨, 누르면 베벨 반전 */
-.btn, .pbtn, .seg, .tcard, .field, .box, .cnode, .skchip, .gchip, .chk, .x, .mailbtn, .gbtn, #webPromo .dls a, .cmd button, .tpts .treset, .mskill .mprev, #campModal nav .autohide, .lnk.gbtn {
+.btn, .seg, .tcard, .field, .box, .cnode, .skchip, .gchip, .chk, .x, .mailbtn, .gbtn, #webPromo .dls a, .cmd button, .tpts .treset, .mskill .mprev, #campModal nav .autohide, .lnk.gbtn {
   border: 4px solid transparent; border-image: url(frame-btn.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box;
   background-color: var(--px-bg2); color: var(--text); font-weight: 600; transition: none;
 }
-.btn, .pbtn, .seg, .skchip, .gchip, .chk, .gbtn, #webPromo .dls a, .cmd button, .tpts .treset, .mskill .mprev, #campModal nav .autohide { padding: 3px 9px; }
-.pbtn { padding: 4px; }
+.btn, .seg, .skchip, .gchip, .chk, .gbtn, #webPromo .dls a, .cmd button, .tpts .treset, .mskill .mprev, #campModal nav .autohide { padding: 3px 9px; }
 .x, .mailbtn { width: 24px; height: 22px; line-height: 22px; padding: 0; }
 .mailbtn { width: auto; padding: 0 6px; }
-.btn:hover, .pbtn:hover, .seg:hover, .tcard:hover, .field:hover, .box:hover, .cnode:hover, .skchip:hover, .gchip:hover, .chk:hover, .x:hover, .mailbtn:hover, .gbtn:hover, #webPromo .dls a:hover, .tpts .treset:not(:disabled):hover, .mskill .mprev:not(:disabled):hover, #campModal nav .autohide:hover {
+.btn:hover, .seg:hover, .tcard:hover, .field:hover, .box:hover, .cnode:hover, .skchip:hover, .gchip:hover, .chk:hover, .x:hover, .mailbtn:hover, .gbtn:hover, #webPromo .dls a:hover, .tpts .treset:not(:disabled):hover, .mskill .mprev:not(:disabled):hover, #campModal nav .autohide:hover {
   background-color: var(--px-bg3); color: var(--text); transform: none; }
-.btn:active, .pbtn:active, .seg:active, .tcard:active, .field:active, .box:active, .cnode:active, .skchip:active, .gchip:active, .chk:active, .gbtn:active, .cmd button:active {
+.btn:active, .seg:active, .tcard:active, .field:active, .box:active, .cnode:active, .skchip:active, .gchip:active, .chk:active, .gbtn:active, .cmd button:active {
   border-image: url(frame-btn-down.svg) 4 / 4px; transform: translateY(1px); }
 .btn:disabled, .tcard:disabled, .field:disabled, .seg:disabled, .chk:disabled { opacity: .45; }
 .seg.on, .chk.on, .skchip.on, .gchip.on, .field.on, .cnode.sel, .mailbtn.on, #campModal nav .autohide.on {
@@ -171,7 +169,6 @@ body.web { background: #0f0e1a; background-image: repeating-linear-gradient(0deg
 #webPromo .dls a { padding: 5px 9px; }
 #camp, #acct, #guide { background: rgba(6, 6, 12, .55); }
 /* HUD 패널의 행동 버튼은 패널 너비를 꽉 채우는 띠로 (button 은 display:block 이어도 내용 너비만 차지한다) */
-.pbtn { width: 100%; box-sizing: border-box; }
 /* 토스트가 길면 줄을 바꾼다 (픽셀 폰트가 넓어 한 줄이면 화면 밖으로 나간다) */
 #toast { white-space: normal; max-width: min(640px, 90vw); text-align: center; line-height: 1.4; }
 #campModal, #acctModal, #guideModal { box-sizing: border-box; }
