@@ -495,11 +495,11 @@ function treeLink(prevN, curN, lit) {
   return `<svg class="tlink" viewBox="0 0 ${W} ${H}">${d}</svg>`;
 }
 
-// 잠긴 노드의 칸 표시: 모자란 조건 하나 — 🔒 Lv N 또는 ⭐ 지금/필요
+// 잠긴 노드의 칸 표시: 진화 노드는 포인트 진행(⭐ 지금/필요 — 레벨은 왼쪽 눈금이 보여 준다), 특화 노드는 모자란 조건 하나 (🔒 Lv N 또는 ⭐ 지금/필요)
 const lockTag = (id, nd, st) => {
   if (st !== 'locked') return '';
   const lock = nodeLock(id, nd.id);
-  return lock.lv ? `🔒 Lv ${lock.lv}` : `⭐ ${skillSpent(id)}/${lock.min}`;
+  return nd.kind === 'star' || !lock.lv ? `⭐ ${Math.min(skillSpent(id), nd.min)}/${nd.min}` : `🔒 Lv ${lock.lv}`;
 };
 // 스킬 하나의 트리
 function treeHtml(k) {
@@ -522,10 +522,13 @@ function treeHtml(k) {
         <button data-action="node" data-id="${id}" data-node="${nd.id}" ${can ? '' : 'disabled'} title="${esc(tip(nd, st, nl))}">${nd.kind === 'star' ? k.icon : nd.icon}</button>
         <span class="tmeta"><span class="tname">${name}</span><span class="tlv">${nd.kind === 'learn' ? '자동' : lockTag(id, nd, st) || (nd.kind === 'star' ? (nl ? '진화' : '⭐ 1') : `${nl}/${nd.max}`)}</span></span></div>`;
     }).join('');
+    // 진화 줄엔 왼쪽에 레벨 눈금 (Lv 10·20·30) — 스킬이 그 레벨에 닿으면 켜지고, 진화까지 찍으면 금빛
+    const star = tier[0].kind === 'star' ? tier[0] : null;
+    const gate = star ? `<span class="tgate${lv >= star.lv ? ' lit' : ''}${nodeLv(id, star.id) ? ' done' : ''}"><b>Lv ${star.lv}</b><i></i></span>` : '';
     if (!t) return `<div class="ttier">${nodes}</div>`;
     const prev = SKILL_TREE[t - 1], on = (nd) => nd.kind === 'learn' || nodeLv(id, nd.id) > 0;
     const lit = prev.length === 1 ? tier.map(on) : prev.map((p) => on(p) && on(tier[0]));
-    return `${treeLink(prev.length, tier.length, lit)}<div class="ttier">${nodes}</div>`;
+    return `${treeLink(prev.length, tier.length, lit)}<div class="ttier">${gate}${nodes}</div>`;
   }).join('');
   return `<div class="tree-sk">${rows}</div>`;
 }
