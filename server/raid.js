@@ -97,13 +97,17 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
   const hit = (k, kind, sk) => {
     // 스킬은 따로 기록해야 재생할 때 연출이 제때 나온다
     if (sk) flush();
-    const crit = (sk && sk.crit) || rng() < k.p.crit;
+    const crit = (sk && sk.crit) || rng() < k.p.crit + ((sk && sk.cp) || 0);   // cp: 스킬 치명 확률 보정 (트리 V2)
     const base = kind === 'leap' ? k.p.leap.mult : sk ? sk.mult : k.p.shots * k.p.shotMult;
     const dmg = Math.min(boss.hp, k.p.atk * base * (crit ? k.p.critMult : 1) * (0.9 + rng() * 0.2));
     boss.hp -= dmg;
     k.dmg += dmg;
     if (k.p.heal) {
       const h = Math.min(k.max - k.hp, k.max * k.p.heal);
+      k.hp += h; k.heal += h;
+    }
+    if (sk && sk.lc) {                 // lc: 스킬 흡혈 (트리 V2)
+      const h = Math.min(k.max - k.hp, dmg * sk.lc);
       k.hp += h; k.heal += h;
     }
     if (sk && sk.ward) {

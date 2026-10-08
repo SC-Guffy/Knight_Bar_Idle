@@ -216,7 +216,7 @@ function tickSkills(dt, st) {
   if (!w) return;
   w.left -= dt;
   w.acc += dt;
-  if (w.acc >= 1) {
+  if (w.acc >= 1 && w.tick) {       // tick 0 = 트리 V2 🛡️ 철벽 (피해 감소만)
     w.acc -= 1;
     for (const m of skillTargets({ area: 'all', radius: 40 }, st)) {
       hitMonster(m, w.tick, { kb: 3, color: '#ffd257' });
@@ -239,6 +239,8 @@ function tryCastSkill(st, target) {
   for (const id of st.skills) {
     if ((knight.cds[id] || 0) > 0) continue;
     const k = skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
+    // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 (core.js skillRight)
+    const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
     knight.cds[id] = skillCd(id);
     knight.swing = -1;
     let focus = target;
@@ -257,14 +259,24 @@ function tryCastSkill(st, target) {
         const hk = hitRange(k, i);
         const list = skillTargets(hk, stats());
         if (list.length) focus = list[0];
+        let dealt = 0;
         for (const m of list) {
           // 여러 번 나눠 때리는 스킬은 (2타부터) 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다
-          hitMonster(m, k.hits[i][1] * skillPow(id), { crit: k.crit, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1 });
+          dealt += hitMonster(m, k.hits[i][1] * skillPow(id), { crit: k.crit, critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1 }) || 0;
           if ((fx.launch || hk.launch) && !m.boss) m.air = 0;
+        }
+        // 🩸 흡혈: 이 타격으로 입힌 피해의 일부를 체력으로
+        if (lc && dealt > 0) {
+          const max = stats().maxHp, h = Math.min(max - S.hp, dealt * lc);
+          if (h > 0) { S.hp += h; addFloater(`🩸 +${fmt(h)}`, toScreen(knight.x), groundY() - 66, '#ff8aa0', 12); }
         }
       },
       onEnd: () => {
-        if (!k.ward) return;
+        if (!k.ward) {
+          // 🛡️ 철벽: 시전 뒤 잠깐 받는 피해가 준다 (성역의 보호막 틀을 빌린다, 지속 피해 없음)
+          if (wd) knight.ward = { left: TREE_RIGHT.ward.dur, guard: wd, tick: 0, acc: 0, finish: 0, a };
+          return;
+        }
         const max = stats().maxHp;
         knight.ward = { left: k.ward.dur, guard: k.ward.guard, tick: k.ward.tick * skillPow(id), acc: 0, finish: (k.ward.finish || 0) * skillPow(id), a };
         S.hp = Math.min(max, S.hp + max * k.ward.heal);

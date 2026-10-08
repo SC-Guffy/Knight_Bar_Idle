@@ -478,6 +478,7 @@ function skillList(id) {
 // ⚡ 스킬 탭 (전직과 분리): 지금 직업의 스킬에 📖 비전서를 먹여 Lv30 까지 키우고 (classes.js SKILL_MAX),
 // 숙련도 레벨마다 생기는 ⭐ 포인트를 위→아래 1-2-1-2-1-2-1 노드 트리에 찍는다 (classes.js SKILL_TREE, core.js investNode).
 //  - 2·4·6단: ⚔️ 공격 특화 / ⏱️ 쿨타임 특화 (둘에 나눠 찍음, 각 8·9·9칸) · 3·5·7단: 진화 ★·★★·★★★ (기술이 다음 모습으로, 위력·쿨타임 +10%)
+//  - 트리 V2(right 가 있는 스킬, classes.js skillTreeOf): 왼쪽 ⚔️ 피해 · 오른쪽 스킬마다 고른 효과(TREE_RIGHT). 레벨·별의 수치 성장은 없고 전부 노드
 //  - 노드마다 스킬 레벨(lv)·트리에 찍은 포인트 합(min) 조건이 있고 둘 다 닿으면 열린다 (core.js nodeLock)
 //  - 단 별 안에서 전투에 쓸 모습(0~n성)을 별 띠를 클릭해 고른다 (setSkillStar — 기술 형태·연출만 바뀌고 위력은 단 별 기준)
 //  - 「비주얼 확인」을 누르면 아래 기사가 고른 모습으로 한 번 시전한다 (skills.js previewSkill)
@@ -495,6 +496,16 @@ function treeLink(prevN, curN, lit) {
   return `<svg class="tlink" viewBox="0 0 ${W} ${H}">${d}</svg>`;
 }
 
+// V2 트리에서 지금 켜진 효과 한 줄: ⚔️ +12% · ⏱️ -15% · 💥 +4.4% …
+function treeSummary(k, b) {
+  const out = [];
+  if (b.pow) out.push(`⚔️ +${treePct(TREE2_POW * b.pow)}%`);
+  for (const key of k.right || []) {
+    const v = rightVal(k, key, b);
+    if (v) out.push(`${TREE_RIGHT[key].icon} ${key === 'cd' ? `-${treePct(v)}%` : key === 'crit' ? `+${treePct(v)}%` : `${treePct(v)}%`}`);
+  }
+  return out.join(' · ');
+}
 // 잠긴 노드의 칸 표시: 진화 노드는 포인트 진행(⭐ 지금/필요 — 레벨은 왼쪽 눈금이 보여 준다), 특화 노드는 모자란 조건 하나 (🔒 Lv N 또는 ⭐ 지금/필요)
 const lockTag = (id, nd, st) => {
   if (st !== 'locked') return '';
@@ -511,10 +522,16 @@ function treeHtml(k) {
     const why = st === 'locked' ? (lock.lv ? ` — 스킬 Lv ${lock.lv}에 열려요 (지금 Lv ${lv}${nd.min ? `, 트리에 ⭐ ${nd.min}개 이상 찍어야` : ''})` : ` — 트리에 ⭐ ${lock.min}개를 찍으면 열려요 (지금 ${skillSpent(id)}/${lock.min})`) : st === 'max' ? ' — 다 찍었어요' : left ? ' — 클릭해서 ⭐ 1 투자' : ' — ⭐ 포인트가 없어요';
     if (nd.kind === 'learn') return '스킬을 익히면 자동으로 켜져요';
     if (nd.kind === 'star') return `${nd.name}: 「${skillNameAt(k, lv, nd.star)}」 ${k.stageDesc ? k.stageDesc[nd.star] : MASTERY[nd.star].desc} · 쿨타임·위력 +10% 성장 (${cd(b)} → ${cd({ ...b, star: nd.star })} · ${mt(b)} → ${mt({ ...b, star: nd.star })})${why}`;
-    if (nd.kind === 'pow') return `${nd.name}: 한 방 위력 +${treePct(TREE_POW)}%/칸, ${nd.max}칸 +${treePct(TREE_POW * nd.max)}% (지금 ${mt(b)}${nl < nd.max ? ` → ${mt({ ...b, pow: b.pow + 1 })}` : ''})${why}`;
+    if (nd.kind === 'pow') { const p = k.right ? TREE2_POW : TREE_POW; return `${nd.name}: 한 방 위력 +${treePct(p)}%/칸, ${nd.max}칸 +${treePct(p * nd.max)}% (지금 ${mt(b)}${nl < nd.max ? ` → ${mt({ ...b, pow: b.pow + 1 })}` : ''})${why}`; }
+    if (nd.kind === 'right') {
+      const R = TREE_RIGHT[nd.key], cur = R.full * nl / nd.max, nxt = R.full * (nl + 1) / nd.max;
+      const now = nd.key === 'cd' ? `${cd(b)}` : R.desc(cur), next = nd.key === 'cd' ? cd({ ...b, right: { ...b.right, cd: (nl + 1) / nd.max } }) : R.desc(nxt);
+      return `${nd.name}: ${R.desc(R.full)} 까지, ${nd.max}칸 (지금 ${now}${nl < nd.max ? ` → ${next}` : ''})${why}`;
+    }
     return `${nd.name}: 쿨타임 -${treePct(TREE_CD)}%/칸, ${nd.max}칸 -${treePct(TREE_CD * nd.max)}% (지금 ${cd(b)}${nl < nd.max ? ` → ${cd({ ...b, cd: b.cd + 1 })}` : ''})${why}`;
   };
-  const rows = SKILL_TREE.map((tier, t) => {
+  const tree = skillTreeOf(k);
+  const rows = tree.map((tier, t) => {
     const nodes = tier.map((nd) => {
       const st = nodeState(id, nd.id), nl = nodeLv(id, nd.id), can = canInvest(id, nd.id);
       const name = nd.kind === 'star' ? `${MASTERY[nd.star].star} ${skillNameAt(k, lv, nd.star)}` : nd.name;
@@ -526,7 +543,7 @@ function treeHtml(k) {
     const star = tier[0].kind === 'star' ? tier[0] : null;
     const gate = star ? `<span class="tgate${lv >= star.lv ? ' lit' : ''}${nodeLv(id, star.id) ? ' done' : ''}"><b>Lv ${star.lv}</b><i></i></span>` : '';
     if (!t) return `<div class="ttier">${nodes}</div>`;
-    const prev = SKILL_TREE[t - 1], on = (nd) => nd.kind === 'learn' || nodeLv(id, nd.id) > 0;
+    const prev = tree[t - 1], on = (nd) => nd.kind === 'learn' || nodeLv(id, nd.id) > 0;
     const lit = prev.length === 1 ? tier.map(on) : prev.map((p) => on(p) && on(tier[0]));
     return `${treeLink(prev.length, tier.length, lit)}<div class="ttier">${gate}${nodes}</div>`;
   }).join('');
@@ -583,7 +600,9 @@ function viewSkill() {
         <div class="mtitle"><b>${skillNameAt(k, s.lv, use)}</b> <span class="mlv">Lv ${s.lv}</span>${tag}${locked ? ` <span class="mlock">🔒 캐릭터 Lv ${k.lv}에 사용 가능</span>` : ''}${stars}${prev}</div>
         ${max ? '' : `<div class="mseg"><div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div>
           <span class="mnum"><b>${s.have}</b>/${s.need}</span></div>`}
-        <small class="mstat">${max ? '' : '다음 레벨 · '}쿨타임 ${cd(s.lv)}초${max ? '' : ` → <b>${cd(s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}${b.pow || b.cd ? ` <span class="tbon">${b.pow ? `⚔️ +${treePct(TREE_POW * b.pow)}%` : ''}${b.pow && b.cd ? ' · ' : ''}${b.cd ? `⏱️ -${treePct(TREE_CD * b.cd)}%` : ''}</span>` : ''}</small>
+        <small class="mstat">${k.right
+          ? `쿨타임 ${cd(s.lv)}초 · 위력 ${mt(s.lv)}${treeSummary(k, b) ? ` <span class="tbon">${treeSummary(k, b)}</span>` : ''} · <span class="tnote">${max ? '' : '레벨업 = ⭐ 1 · '}성장은 전부 트리에서</span>`
+          : `${max ? '' : '다음 레벨 · '}쿨타임 ${cd(s.lv)}초${max ? '' : ` → <b>${cd(s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}${b.pow || b.cd ? ` <span class="tbon">${b.pow ? `⚔️ +${treePct(TREE_POW * b.pow)}%` : ''}${b.pow && b.cd ? ' · ' : ''}${b.cd ? `⏱️ -${treePct(TREE_CD * b.cd)}%` : ''}</span>` : ''}`}</small>
       </div>
       <div class="act">${btns}</div>
     </div>
@@ -2598,6 +2617,11 @@ const ACTIONS = {
     S.guide.fed = 1;
     skillSel = k.id;
     const got = skillPts(k.id) - pts0;
+    if (first && r.to > r.from && k.right) {
+      toast(`⚡ ${k.name} Lv ${r.to}! ⭐ 스킬 포인트 +${got} — 이 스킬은 레벨이 아니라 트리로 자라요. 아래 트리의 빛나는 노드(⚔️ 피해 또는 오른쪽 효과)에 찍어 보세요`, 12000);
+      save();
+      return;
+    }
     if (first && r.to > r.from) {
       toast(`⚡ ${k.name} Lv ${r.to}! 쿨타임 ${skillCdOf(k, r.from, S.cls)}초 → ${skillCdOf(k, r.to, S.cls)}초 · 위력 ×${(skillMult(k) * skillPowAt(k, r.from, S.cls)).toFixed(2)} → ×${(skillMult(k) * skillPowAt(k, r.to, S.cls)).toFixed(2)} — 다음 원정·탑·결투부터 바로 적용돼요. 레벨이 오를 때마다 ⭐ 스킬 포인트가 1개 생기니 아래 트리의 빛나는 노드에 찍어 보세요`, 12000);
       save();
@@ -2610,7 +2634,7 @@ const ACTIONS = {
   'skill-sel': (el) => { skillSel = el.dataset.id; },
   // 트리 노드에 ⭐ 1 투자 (core.js investNode). 진화 노드면 이름 띠 배너 + 아래 기사가 새 모습을 한 번 보여 준다
   'node': (el) => {
-    const k = SKILLS[el.dataset.id], nd = TREE_NODES[el.dataset.node], lv = skillLv(k.id), before = skillStar(k.id);
+    const k = SKILLS[el.dataset.id], nd = nodeDef(k.id, el.dataset.node), lv = skillLv(k.id), before = skillStar(k.id);
     const cd0 = skillCd(k.id), pw0 = skillMult(k) * skillPow(k.id);
     const nl = investNode(k.id, nd.id);
     if (!nl) return;
@@ -2621,7 +2645,8 @@ const ACTIONS = {
       showBanner(from !== to ? `${k.icon} 「${from}」 → 「${to}」` : `${k.icon} ${k.name} — ${MASTERY[n].star} ${MASTERY[n].name}!`, mixHex(heroClass().look.fx, MASTERY_GOLD, 0));
       toast(`${MASTERY[n].star} ${MASTERY[n].name} — 「${to}」 ${k.stageDesc ? k.stageDesc[n] : MASTERY[n].desc} · 쿨타임 ${cd0}초 → ${cd1}초 · 위력 ×${pw0.toFixed(2)} → ×${pw1.toFixed(2)}`, 10000);
       previewSkill(k.id, n);
-    } else toast(`${nd.icon} ${nd.name} Lv ${nl} — 쿨타임 ${cd0}초 → ${cd1}초 · 위력 ×${pw0.toFixed(2)} → ×${pw1.toFixed(2)}`, 6000);
+    } else if (nd.kind === 'right' && nd.key !== 'cd') toast(`${nd.icon} ${nd.name} ${nl}/${nd.max} — ${TREE_RIGHT[nd.key].desc(skillRight(k.id, nd.key))}`, 6000);
+    else toast(`${nd.icon} ${nd.name} ${nl}/${nd.max} — 쿨타임 ${cd0}초 → ${cd1}초 · 위력 ×${pw0.toFixed(2)} → ×${pw1.toFixed(2)}`, 6000);
     save();
   },
   'tree-reset': (el) => {

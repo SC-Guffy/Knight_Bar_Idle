@@ -51,6 +51,8 @@ function sanitizeProfile(p = {}) {
       id: s.id.slice(0, 24), lv: Math.floor(num(s.lv, 1, 30, 1)),   // 스킬 숙련도 (재생 연출용, 피해는 mult 에 이미 반영)
       ...(s.st != null ? { st: Math.floor(num(s.st, 0, 3, 0)) } : {}),  // 적용한 별 단계 0~3 (재생이 그 모습으로 시전)
       cd: num(s.cd, 2, 150, 10), dur: num(s.dur, 0, 4, 1), mult: num(s.mult, 0, 300, 1), crit: !!s.crit,
+      // 트리 V2: cp 치명 확률 보정, lc 흡혈 비율 (src/classes.js TREE_RIGHT)
+      ...(s.cp ? { cp: num(s.cp, 0, 0.5, 0) } : {}), ...(s.lc ? { lc: num(s.lc, 0, 0.3, 0) } : {}),
       ...(s.ward && typeof s.ward === 'object'
         ? { ward: { dur: num(s.ward.dur, 0, 8, 0), guard: num(s.ward.guard, 0, 0.8, 0), heal: num(s.ward.heal, 0, 0.5, 0) } } : {}),
     }));

@@ -192,9 +192,10 @@ function monsterMidY(m) {
 }
 
 // mult: 연발 화살·스킬 등 피해 배율. o: 스킬 타격 { crit 치명 확정, kb 밀려나는 거리, color 숫자 색 }
+// 입힌 피해를 돌려준다 (스킬 흡혈용). o.critPlus: 이 타격만의 치명 확률 보정 (트리 V2 💥 치명)
 function hitMonster(m, mult = 1, o = {}) {
   const st = stats();
-  const crit = o.crit || Math.random() < st.crit;
+  const crit = o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0));
   const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
   if (m.boss && S.phase === 'dungeon' && m.hp > 0) for (const c of dgBossHit(1 - m.hp / m.maxHp)) dgChunkSpawn(c, m);   // 보스 자루에서 덩어리가 튀어나온다
@@ -211,13 +212,13 @@ function hitMonster(m, mult = 1, o = {}) {
     m.skAcc = 0; m.skCrit = false;
     addFloater((anyCrit ? '💥' : '') + fmt(total), toScreen(m.x) + rand(-6, 6), monsterTop(m) - 4 - (o.color ? rand(0, 10) : 0), anyCrit ? '#ffb13b' : o.color || '#ffffff', size + (o.color ? 2 : 0), !!o.color);
   }
-  if (m.hp > 0) return;
+  if (m.hp > 0) return dmg;
 
   m.dying = 0.001;
   m.killed = true;
   shatter(m);
-  if (S.phase === 'tower') { towerKillReward(m); return; }
-  if (S.phase === 'dungeon') { dgKill(m).forEach((c, i) => dgChunkSpawn(c, m, i)); return; }
+  if (S.phase === 'tower') { towerKillReward(m); return dmg; }
+  if (S.phase === 'dungeon') { dgKill(m).forEach((c, i) => dgChunkSpawn(c, m, i)); return dmg; }
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -229,6 +230,7 @@ function hitMonster(m, mult = 1, o = {}) {
   if (m.boss) addFloater(`💠 강화석 +${BOSS_STONES}`, sx, monsterTop(m) - 18, '#8fd8ff', 13, true);
   if (m.boss) { showBanner('STAGE CLEAR!'); save(); }
   if (bagFull()) endExpedition('bag');
+  return dmg;
 }
 
 // ───────────────────────── 업데이트 ─────────────────────────

@@ -102,7 +102,11 @@ function migrate(o) {
     s.tree = {};
     if (!s.notice) s.notice = '⭐ 스킬 포인트 개편 — 이제 스킬 레벨이 오를 때마다 포인트가 1개씩 생겨요 (Lv30 = 29개). 트리가 ★★★까지 늘어나며 칸당 효과가 바뀌어서 찍었던 포인트를 모두 되돌렸어요. 스킬 탭에서 다시 찍어 주세요 (되돌리기는 무료)';
   }
-  s.mastV = 8;
+  // mastV 9: 강철 베기가 트리 V2 — 레벨로 오르던 위력·쿨타임이 사라지고 전부 노드. 옛 쿨타임 특화(cd1·cd2·cd3)는 트리에 없어 포인트가 자동으로 돌아온다
+  if (o.mast && (o.mastV || 1) < 9 && Object.keys(s.tree || {}).some((id) => SKILLS[id] && SKILLS[id].right && Object.values(s.tree[id].n || {}).some((n) => n > 0)) && !s.notice) {
+    s.notice = '⚔️ 강철 베기 트리 개편 — 레벨로 저절로 오르던 위력·쿨타임이 없어지고 전부 노드로 자라요. 왼쪽은 ⚔️ 피해, 오른쪽은 ⏱️ 쿨타임·💥 치명·🩸 흡혈 중 고르기. 찍었던 쿨타임 특화 포인트는 돌려드렸으니 스킬 탭에서 다시 찍어 주세요';
+  }
+  s.mastV = 9;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -224,27 +228,32 @@ const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0).lv;
 const treeOf = (id) => S.tree[mastKey(id)] || { n: {}, use: 0 };
 const nodeLv = (id, nid) => treeOf(id).n[nid] || 0;
 const skillPts = (id) => skillLv(id) - 1;
-const skillSpent = (id) => Object.values(treeOf(id).n).reduce((a, b) => a + b, 0);
+// 이 스킬 트리의 노드 정의 (classes.js treeNodesOf — V1 공용, V2 는 스킬마다). 트리에 없는 노드 id(개편 전 잔재)는 없는 것으로 본다
+const nodeDef = (id, nid) => treeNodesOf(SKILLS[id])[nid];
+const skillSpent = (id) => { const n = treeOf(id).n; let s = 0; for (const nid in n) if (nodeDef(id, nid)) s += n[nid]; return s; };
 const skillPtsLeft = (id) => skillPts(id) - skillSpent(id);
-// 트리가 주는 보너스 { star 단 별 수, pow 공격 특화 Lv 합, cd 쿨타임 특화 Lv 합 } (classes.js skillPowAt·skillCdOf 의 b)
+// 트리가 주는 보너스 { star 단 별 수, pow 피해 칸 합, cd 쿨타임 특화 칸 합(V1), right { key: 찍은 칸/최대 }(V2) } (classes.js skillPowAt·skillCdOf·rightVal 의 b)
 function skillBonus(id) {
-  const n = treeOf(id).n, b = { star: 0, pow: 0, cd: 0 };
+  const n = treeOf(id).n, b = { star: 0, pow: 0, cd: 0, right: {} };
   for (const nid in n) {
-    const nd = TREE_NODES[nid];
+    const nd = nodeDef(id, nid);
     if (!nd || !n[nid]) continue;
     if (nd.kind === 'star') b.star++;
     else if (nd.kind === 'pow') b.pow += n[nid];
     else if (nd.kind === 'cd') b.cd += n[nid];
+    else if (nd.kind === 'right') b.right[nd.key] = n[nid] / nd.max;
   }
   return b;
 }
+// V2 오른쪽 효과의 지금 값 (쿨타임 비율·치명 확률·흡혈 비율·철벽 감소율). V1 스킬은 0
+const skillRight = (id, key) => rightVal(SKILLS[id], key, skillBonus(id));
 const skillStar = (id) => skillBonus(id).star;
 const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
 const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
 const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
 // 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
 function nodeLock(id, nid) {
-  const nd = TREE_NODES[nid];
+  const nd = nodeDef(id, nid);
   if (nd.kind === 'learn') return null;
   if (skillLv(id) < nd.lv) return { lv: nd.lv };
   if (skillSpent(id) < nd.min) return { min: nd.min };
@@ -252,19 +261,19 @@ function nodeLock(id, nid) {
 }
 // 노드 상태: max(다 찍음) · on(찍는 중) · open(찍을 수 있음) · locked(스킬 레벨 또는 투자 합이 모자람)
 function nodeState(id, nid) {
-  const nd = TREE_NODES[nid], lv = nodeLv(id, nid);
+  const nd = nodeDef(id, nid), lv = nodeLv(id, nid);
   if (nd.kind === 'learn' || lv >= nd.max) return 'max';
   if (lv > 0) return 'on';
   return nodeLock(id, nid) ? 'locked' : 'open';
 }
 const canInvest = (id, nid) => skillPtsLeft(id) > 0 && (nodeState(id, nid) === 'on' || nodeState(id, nid) === 'open');
-const canInvestAny = () => skillsOf(S.cls).some((k) => skillPtsLeft(k.id) > 0 && Object.keys(TREE_NODES).some((nid) => canInvest(k.id, nid)));
+const canInvestAny = () => skillsOf(S.cls).some((k) => skillPtsLeft(k.id) > 0 && Object.keys(treeNodesOf(k)).some((nid) => canInvest(k.id, nid)));
 // 노드에 포인트 1 을 찍는다. 진화 노드면 새 모습을 바로 적용한다. 찍은 뒤 노드 Lv 또는 0
 function investNode(id, nid) {
   if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canInvest(id, nid)) return 0;
   const key = mastKey(id), t = S.tree[key] || (S.tree[key] = { n: {}, use: 0 });
   t.n[nid] = (t.n[nid] || 0) + 1;
-  if (TREE_NODES[nid].kind === 'star') t.use = skillStar(id);
+  if (nodeDef(id, nid).kind === 'star') t.use = skillStar(id);
   return t.n[nid];
 }
 // 찍은 포인트를 모두 되돌린다 (무료)
@@ -304,9 +313,10 @@ function dpsOf(st) {
   let busy = 0, extra = 0;
   for (const id of st.skills || []) {
     const k = skillAt(id, skillLv(id), skillStage(id));
-    const cd = skillCd(id);
+    const cd = skillCd(id), cp = skillRight(id, 'crit');
     busy += k.dur / cd;
-    extra += (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id) / cd;
+    const hitV = k.crit ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
+    extra += hitV * skillMult(k) * skillPow(id) / cd;
   }
   return perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra;
 }
@@ -323,7 +333,11 @@ function profile() {
     skills: st.skills.map((id) => {
       const k = skillAt(id, skillLv(id), skillStage(id));
       // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
-      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit, ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : {}) };
+      // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다
+      const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id), crit: !!k.crit,
+        ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
+        ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : wd ? { ward: { dur: TREE_RIGHT.ward.dur, guard: wd, heal: 0 } } : {}) };
     }),
   };
 }

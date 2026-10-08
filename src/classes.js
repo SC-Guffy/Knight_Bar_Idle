@@ -612,6 +612,7 @@ const SKILLS = {
       { dur: 0.8, hits: [[0.44, 1.8, { area: 'all', radius: 40 }], [0.6, 1.0, { area: 'line', reach: 3.5 }]] },
       { dur: 1.25, hits: [[0.28, 0.9], [0.8, 2.4, { area: 'all', radius: 64 }]] },
     ],
+    right: ['cd', 'crit', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (TREE_RIGHT)
     stageName: ['강철 베기', '강철 검풍', '강철 대검', '천강검'],
     stageDesc: ['제자리에서 내려벤다', '검이 빛나며 초승달 검풍을 날린다', '검이 거대한 강철 대검으로 변해 내려찍고, 땅에서 바위 송곳이 솟는다', '검을 하늘로 치켜들면 거대한 강철 검이 떨어져 꽂힌다'],
     desc: '검을 머리 위로 치켜들었다가 크게 내려벤다.',
@@ -1125,7 +1126,15 @@ const inheritBoost = (k, owner) => {
 const treeBonus = (b) => (typeof b === 'number' ? { star: b } : b || {});
 // 쿨타임(초). owner 는 쓰는 기사의 직업 (물려받은 스킬이면 inheritBoost 만큼 길어진다)
 const skillCdOf = (k, lv, owner = k.cls, b) => {
-  const t = treeBonus(b), m = 1 - TREE_CD * (t.cd || 0);
+  const t = treeBonus(b);
+  if (k.right) {
+    // V2: 레벨·별로 줄지 않고 TREE2_CD 에서 시작, 쿨타임 노드(right cd)가 있으면 그만큼 더 준다
+    const m = 1 - rightVal(k, 'cd', t), p0 = (SKILL_CD_LV1 - TREE2_CD) / (SKILL_CD_LV1 - SKILL_CD_MAX);
+    return k.cdSpan
+      ? Math.round((k.cdSpan[0] + (k.cdSpan[1] - k.cdSpan[0]) * p0) * m * 10) / 10
+      : Math.round(k.cd * TREE2_CD * SKILL_CD_UP * inheritBoost(k, owner) * m * 10) / 10;
+  }
+  const m = 1 - TREE_CD * (t.cd || 0);
   return k.cdSpan
     ? Math.round((k.cdSpan[0] + (k.cdSpan[1] - k.cdSpan[0]) * skillProg(lv, t.star)) * m * 10) / 10
     : Math.round(k.cd * skillCdAt(lv, t.star) * SKILL_CD_UP * inheritBoost(k, owner) * m * 10) / 10;
@@ -1133,6 +1142,8 @@ const skillCdOf = (k, lv, owner = k.cls, b) => {
 // 한 방 위력 배수 (SKILLS 배율에 곱한다). k 는 스킬, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG·inheritBoost 를 곱한다)
 const skillPowAt = (k, lv, owner = k.cls, b) => {
   const t = treeBonus(b);
+  // V2: Lv1 기준 위력에서 시작해 ⚔️ 피해 노드 칸만큼만 오른다 (레벨·별은 수치 0)
+  if (k.right) return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * SKILL_DMG_LV1 * (1 + TREE2_POW * (t.pow || 0)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1);
   return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv, t.star)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1)
     * (1 + TREE_POW * (t.pow || 0));
 };
@@ -1170,6 +1181,44 @@ SKILL_TREE.forEach((tier, t) => tier.forEach((nd) => { nd.tier = t; TREE_NODES[n
 const TREE_PTS_MAX = SKILL_MAX - 1;
 // 트리 비율 표시용: 0.008 → "0.8", 0.01 → "1"
 const treePct = (x) => +(x * 100).toFixed(1);
+
+// ───────────────────────── 스킬 트리 V2 (right 가 있는 스킬) ─────────────────────────
+// 레벨로 오르는 기본 성장(위력·쿨타임·별 +10%)이 없고 성장은 전부 노드다. 레벨은 ⭐ 포인트와 진화 조건만 준다.
+//  왼쪽은 언제나 ⚔️ 피해(칸당 +TREE2_POW), 오른쪽은 스킬마다 k.right = ['cd', 'crit', 'leech'] 처럼 2·4·6단에 고른 공용 풀(TREE_RIGHT) 효과.
+//  풀 효과는 노드를 다 채웠을 때의 값(full)이고 찍은 칸 비율만큼 낸다. 칸 수·진화 조건(lv·min)은 V1 SKILL_TREE 와 같다.
+//  새 스킬·직업은 right 키 3개만 적으면 되고, 효과 구현은 전투 공통 경로(skills.js tryCastSkill · world.js hitMonster · 서버 duel/raid)에 한 번이다.
+//  수치 틀: 피해 26칸 = ×1.78 (V1 의 Lv30 ×1.4 × 트리 +26% 와 같은 선). 쿨타임은 V1 Lv1 3.0 → Lv30 1.2 대신 1.6 고정에서 시작하고 쿨타임 노드로 ×0.7 까지.
+const TREE2_POW = 0.03;
+const TREE2_CD = 1.6;
+const TREE_RIGHT = {
+  cd:    { name: '쿨타임', icon: '⏱️', full: 0.3,  desc: (v) => `쿨타임 -${treePct(v)}%` },
+  crit:  { name: '치명',   icon: '💥', full: 0.2,  desc: (v) => `스킬 치명 확률 +${treePct(v)}%` },
+  leech: { name: '흡혈',   icon: '🩸', full: 0.09, desc: (v) => `스킬 피해의 ${treePct(v)}% 를 체력으로` },
+  ward:  { name: '철벽',   icon: '🛡️', full: 0.45, dur: 4, desc: (v) => `시전 뒤 4초간 받는 피해 -${treePct(v)}%` },
+};
+// 오른쪽 효과의 지금 값: full × 찍은 칸 비율 (b.right[key] = 칸/최대)
+const rightVal = (k, key, b) => (k.right && TREE_RIGHT[key] ? TREE_RIGHT[key].full * ((treeBonus(b).right || {})[key] || 0) : 0);
+const ROMAN = ['', 'I', 'II', 'III'];
+const tree2Cache = {};
+// 이 스킬의 트리 (V1 은 공용 SKILL_TREE, V2 는 right 로 만든 트리)
+function skillTreeOf(k) {
+  if (!k.right) return SKILL_TREE;
+  if (tree2Cache[k.id]) return tree2Cache[k.id];
+  const tiers = SKILL_TREE.map((tier, t) => tier.map((nd) => {
+    if (nd.kind !== 'pow' && nd.kind !== 'cd') return nd;
+    const n = Math.floor((t + 1) / 2), base = { max: nd.max, lv: nd.lv, min: nd.min, tier: t };
+    if (nd.kind === 'pow') return { ...base, id: 'pow' + n, kind: 'pow', name: '피해 ' + ROMAN[n], icon: '⚔️' };
+    const key = k.right[n - 1], R = TREE_RIGHT[key];
+    return { ...base, id: 'r' + n, kind: 'right', key, name: R.name + ' ' + ROMAN[n], icon: R.icon };
+  }));
+  return (tree2Cache[k.id] = tiers);
+}
+const treeNodesCache = {};
+const treeNodesOf = (k) => {
+  if (!k.right) return TREE_NODES;
+  if (!treeNodesCache[k.id]) { const m = {}; for (const tier of skillTreeOf(k)) for (const nd of tier) m[nd.id] = nd; treeNodesCache[k.id] = m; }
+  return treeNodesCache[k.id];
+};
 
 // 트리 화면 배치 순서
 const CLASS_TREE = [

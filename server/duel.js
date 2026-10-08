@@ -65,13 +65,14 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
 
   // sk: 쓰는 스킬 (kind === 'skill')
   const hit = (me, op, side, kind, sk) => {
-    const crit = (sk && sk.crit) || rng() < me.p.crit;
+    const crit = (sk && sk.crit) || rng() < me.p.crit + ((sk && sk.cp) || 0);   // cp: 스킬 치명 확률 보정 (트리 V2)
     const base = kind === 'leap' ? me.p.leap.mult : sk ? sk.mult : me.p.shots * me.p.shotMult;
     const dmg = me.p.atk * base * (crit ? me.p.critMult : 1) * (0.9 + rng() * 0.2) * (1 - op.p.guard) * wardCut(op, t);
     op.hp -= dmg;
     me.dealt += dmg;
     bigHit = Math.max(bigHit, dmg / op.max);
     if (me.p.heal) me.hp = Math.min(me.max, me.hp + me.max * me.p.heal);
+    if (sk && sk.lc) me.hp = Math.min(me.max, me.hp + dmg * sk.lc);      // lc: 스킬 흡혈 (트리 V2)
     if (sk && sk.ward) {
       me.ward = { until: t + sk.dur + sk.ward.dur, guard: sk.ward.guard };
       me.hp = Math.min(me.max, me.hp + me.max * sk.ward.heal);
