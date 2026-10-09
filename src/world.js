@@ -2166,6 +2166,24 @@ function drawHero(g, id, x, gy, pose) {
   const x0 = x;
   x += Math.round(pose.dx || 0);          // 스킬 돌진·평타 디딤 (바라보는 쪽으로)
 
+  // 전신 프레임 모드 (3번 방식): look.frames = { idle: 프레임, atk: [[{ sprite, until, anchor }, …] 동작마다] } 가 있으면
+  // 평타·대기는 뼈대 대신 그 프레임을 컷으로 재생한다 (스킬 자세·걷기·앉기는 그대로 뼈대). sprite 는 46×30 손도트(외곽선 포함), anchor 는 몸 중심 칸
+  const FRM = look.frames;
+  if (FRM && !sit && !walking && pose.wa == null && pose.pull == null && !pose.tint && !pose.onlyWeapon) {
+    const base = gy - (pose.lift || 0), fpal = FRM.pal || pal;
+    let fr = FRM.idle;
+    if (pose.mode === 'fight' && pose.swing >= 0 && FRM.atk && FRM.atk.length) {
+      const list = FRM.atk[(pose.combo || 0) % FRM.atk.length];
+      fr = list.find((f) => pose.swing < f.until) || list[list.length - 1];
+    }
+    if (fr) {
+      const C = PX * (fr.sprite.px || 1), cx = x + (fr.sprite[0].length / 2 - (fr.anchor != null ? fr.anchor : fr.sprite[0].length / 2)) * C;
+      drawSprite(fr.sprite, fpal, cx, base, C, opt, g);
+      g.restore();
+      return;
+    }
+  }
+
   if (sit) {
     drawRestingWeapon(g, w, x - 17, gy);
     const bodyBottom = gy - 2 * PX - (Math.floor(t * 1.2) % 2);

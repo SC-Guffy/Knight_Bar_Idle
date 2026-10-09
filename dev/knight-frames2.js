@@ -207,5 +207,13 @@
   ];
   for (const f of FRAMES) { const o = outline(f.rows); o.px = 0.5; f.sprite = o; }
   const EXTRA = { c: '#2f5fc4', L: '#c9d1dd', A: '#8c95a6', a: '#5a6172', S: '#3d7bff', s: '#2a55b8', W: '#f4f8ff', w: '#c9d8ff', G: '#3d7bff', n: '#4a3220', m: '#9fb8ff', T: '#2f5fc4' };
-  window.knightFrames2 = { FRAMES, pal: () => Object.assign({}, heroPal('swordsman'), EXTRA) };
+  const pal = () => Object.assign({}, heroPal('swordsman'), EXTRA);
+  // 검사에 꽂기: 평타는 [내려베기: 예비 0~0.3, 타격 ~0.5, 팔로스루 ~1] ↔ [찌르기: 예비 ~0.32, 찌르기 ~1]. anchor 는 몸 중심 칸(+1 외곽선)
+  const fr = (i, until, anchor) => ({ sprite: FRAMES[i].sprite, until, anchor: anchor + 1 });
+  const apply = () => {
+    CLASSES.swordsman.look.frames = { pal: pal(), idle: fr(0, 1, 16), atk: [[fr(1, 0.3, 17), fr(2, 0.5, 16), fr(3, 1, 15)], [fr(4, 0.32, 16), fr(5, 1, 20)]] };
+    return CLASSES.swordsman.look.frames;
+  };
+  const remove = () => { delete CLASSES.swordsman.look.frames; };
+  window.knightFrames2 = { FRAMES, pal, apply, remove };
 })();
