@@ -1578,7 +1578,24 @@ function heroPal(id) {
 }
 
 // w.wide(대검): 날이 두 칸 두께에 가운데 능선, 양손 손잡이가 길고 가드도 넓다
+// w.slab(쇳덩이 대검): 너비 네 칸의 검은 널빤지 — 아래쪽에 밝은 날 선(edge), 끝은 비스듬히 뭉툭, 손잡이가 아주 길다
 function drawBlade(g, w, hx, hy, angle, len = w.len) {
+  if (w.slab) {
+    const th = PX * 3.6, grip = PX * 4.5, L = PX * len;
+    g.save();
+    g.translate(hx, hy);
+    g.rotate(angle);
+    g.fillStyle = '#2a2018'; g.fillRect(-grip, -PX * 0.7, grip, PX * 1.4);                 // 긴 손잡이
+    g.fillStyle = '#4a3a30'; for (let i = 1; i < grip / 3; i += 2) g.fillRect(-i * 3, -PX * 0.7, 1.5, PX * 1.4);   // 감은 가죽
+    g.fillStyle = w.hilt; g.fillRect(-PX * 0.5, -PX * 2.2, PX * 1.2, PX * 4.4);           // 작은 가드
+    g.fillStyle = w.blade;
+    g.beginPath(); g.moveTo(PX, -th / 2); g.lineTo(L - PX * 1.5, -th / 2); g.lineTo(L + PX, th * 0.1); g.lineTo(L, th / 2); g.lineTo(PX, th / 2); g.closePath(); g.fill();
+    g.fillStyle = w.edge || '#9aa0ac'; g.fillRect(PX, th / 2 - 1.5, L - PX, 1.5);          // 날 선
+    g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(PX, -th / 2, L - PX * 1.5, 1.5);   // 등 쪽 빛
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(PX * 3, -th / 2 + 3, 2, th - 6); g.fillRect(PX * 9, -th / 2 + 3, 2, th - 6);   // 긁힌 자국
+    g.restore();
+    return;
+  }
   const th = w.wide ? PX * 2 : PX, grip = w.wide ? PX * 3 : PX * 2, gd = w.wide ? 2 : 1.5;
   g.save();
   g.translate(hx, hy);
@@ -1869,17 +1886,18 @@ const HERO_ATK = {
   ],
 };
 // ── 새 2차 ──
+const GS_REST = { ...SWORD_REST, wa: -2.35 };      // 대검: 어깨에 걸친 채 쉰다
 Object.assign(HERO_ATK, {
   // 대검전사: 머리 뒤까지 넘겨 온몸으로 내려찍기 ↔ 허리를 돌려 수평으로 크게 휩쓸기 (느리고 무겁게, 주황 섬광)
   greatsword: [
-    { trail: [0.22, 0.6], burst: [0.37, '255,140,90', 1.5], keys: atkKeys(SWORD_REST,
+    { trail: [0.22, 0.6], burst: [0.37, '255,140,90', 1.5], keys: atkKeys(GS_REST,
       { s: 0.2,  h: [-1.5, -6],   wa: -2.9,  dx: -3,   skew: -0.18, sy: 1.06, e: 'o' },
       { s: 0.27, h: [-1.7, -6.2], wa: -3.0,  dx: -3.5, skew: -0.2,  sy: 1.07 },
       { s: 0.32, h: [1, -4.5],    wa: -1.3,  dx: 1,    skew: 0,     sy: 1,    lift: 3, e: 'i' },
       { s: 0.38, h: [2, 1],       wa: 1.15,  dx: 7,    skew: 0.28,  sy: 0.84, e: 'l' },
       { s: 0.6,  h: [1.5, 1.5],   wa: 1.25,  dx: 6,    skew: 0.22,  sy: 0.9,  e: 'o' }) },
-    { trail: [0.22, 0.58], burst: [0.37, '255,140,90', 1.3], keys: atkKeys(SWORD_REST,
-      { s: 0.2,  h: [-2.5, -2],   wa: -0.3,  dx: -4,   skew: -0.16, sy: 0.94, e: 'o' },
+    { trail: [0.22, 0.58], burst: [0.37, '255,140,90', 1.3], keys: atkKeys(GS_REST,
+      { s: 0.2,  h: [-2.5, -2],   wa: -2.6,  dx: -4,   skew: -0.16, sy: 0.94, e: 'o' },
       { s: 0.27, h: [-2.7, -2],   wa: -0.25, dx: -4.5, skew: -0.18, sy: 0.93 },
       { s: 0.32, h: [0, -2],      wa: -0.1,  dx: 1,    skew: 0.05,  sy: 0.96, e: 'i' },
       { s: 0.38, h: [2, -1.5],    wa: 0.1,   dx: 7,    skew: 0.26,  sy: 0.92, e: 'l' },
@@ -1930,6 +1948,7 @@ Object.assign(HERO_ATK, {
   starBlade: HERO_ATK.holySword, moonBlades: HERO_ATK.dualBlades, wyrmSpear: HERO_ATK.dragonSpear,
   doomAxe: HERO_ATK.halberd, sunBow: HERO_ATK.longbow, voidBow: HERO_ATK.arcaneBow,
   infernoStaff: HERO_ATK.flameStaff, glacierStaff: HERO_ATK.frostStaff,
+  doomBlade: HERO_ATK.greatsword, holyLance: HERO_ATK.lance, siegeBallista: HERO_ATK.ballista, tempestStaff: HERO_ATK.stormStaff,
 });
 const ATK_EASE = { o: (u) => 1 - (1 - u) ** 3, i: (u) => u * u, l: (u) => u };
 for (const id in WEAPONS) WEAPONS[id].id = id;
@@ -1984,7 +2003,7 @@ function heroRig(w, x, bodyBottom, pose, atk) {
     return r;
   }
   r.fh = [hx + off[0] * PX, hy + off[1] * PX];
-  const rest = w.motion === 'thrust' ? -1.3 : w.motion === 'sweep' ? -1.35 : -1.0;
+  const rest = w.rest != null ? w.rest : w.motion === 'thrust' ? -1.3 : w.motion === 'sweep' ? -1.35 : -1.0;
   r.wa = atk ? atk.wa : pose.wa != null ? pose.wa : rest + wob;
   r.ext = atk ? atk.ext || 0 : pose.wa != null ? pose.ext || 0 : 0;
   if (w.motion === 'dual') {
@@ -2016,6 +2035,7 @@ function drawFist(g, col, p) {
 const heroArmCache = {};
 function heroArmCols(id, look, pal) {
   if (heroArmCache[id]) return heroArmCache[id];
+  if (look.arm) return (heroArmCache[id] = look.arm);
   const row = look.body[8], i = row.search(/[^.]/);
   return (heroArmCache[id] = [pal[row[i]] || PAL.a, pal[row[i + 1]] || PAL.A]);
 }
@@ -2138,7 +2158,20 @@ function drawCape(g, cape, x, top, bottom, ground, t, moving) {
     }
     return;
   }
-  const hemY = cape.style === 'cloak' ? ground - 2 : bottom + 2 * PX;
+  const hemY = cape.style === 'cloak' ? ground - 2 : cape.style === 'torn' ? ground - 4 : bottom + 2 * PX;
+  if (cape.style === 'torn') {
+    // 찢어진 망토: 넓게 펄럭이고 아랫단이 들쭉날쭉 갈라져 있다
+    g.beginPath();
+    g.moveTo(x - 2 * PX, shoulderY); g.lineTo(x + PX, shoulderY); g.lineTo(x - PX, hemY - 6);
+    const tears = 6;
+    for (let i = 0; i <= tears; i++) {
+      const f = i / tears, tx = x - PX - (4 * PX + wave) * f - Math.sin(t * 7 + i * 1.7) * 1.5, ty = hemY - (i % 2 ? 7 + (i % 3) * 3 : 0) - f * 3;
+      g.lineTo(tx, ty);
+    }
+    g.closePath(); g.fill();
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - 3 * PX, shoulderY + PX, 2, hemY - shoulderY - PX * 3);
+    return;
+  }
   g.beginPath();
   g.moveTo(x - 2 * PX, shoulderY);
   g.lineTo(x + PX, shoulderY);

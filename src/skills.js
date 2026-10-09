@@ -106,7 +106,7 @@ function castPose(owner) {
 function restPose(cls) {
   const w = WEAPONS[CLASSES[cls].weapon];
   if (w.kind === 'ranged') return { pull: 0, bowA: 0 };
-  return { wa: w.motion === 'thrust' ? -1.3 : w.motion === 'sweep' ? -1.35 : -1.0, wa2: -0.6, ext: 0 };
+  return { wa: w.rest != null ? w.rest : w.motion === 'thrust' ? -1.3 : w.motion === 'sweep' ? -1.35 : -1.0, wa2: -0.6, ext: 0 };
 }
 const POSE_DEF = { dx: 0, lift: 0, sx: 1, sy: 1, skew: 0, wa: null, wa2: null, ext: 0, pull: 0, bowA: 0, alpha: 1 };
 function blendPose(from, to, w) {

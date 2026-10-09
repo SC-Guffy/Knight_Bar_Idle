@@ -84,11 +84,11 @@ function gsSlamLine(a, x0, far, col = GS_COL.main) {
 // 횡참의 기본 자세 (★): 등 뒤로 넘겼다가 허리를 돌려 수평으로 휘두른다. sw 는 휘두르는 순간(0~1 비율)
 function gsCleaveBase(u, sw = 0.55) {
   const w0 = sw - 0.18, w1 = sw + 0.04;
-  if (u < w0) { const w = easeOut(segU(u, 0, w0)); return { wa: mix(-1.0, -2.9, w), skew: -0.25 * w, sy: 1 - 0.08 * w, dx: -4 * w }; }
+  if (u < w0) { const w = easeOut(segU(u, 0, w0)); return { wa: mix(-2.35, -2.9, w), skew: -0.25 * w, sy: 1 - 0.08 * w, dx: -4 * w }; }
   if (u < w1) { const d = easeIn(segU(u, w0, w1)); return { wa: mix(-2.9, 0.35, d), skew: mix(-0.25, 0.35, d), sy: mix(0.92, 0.9, d), dx: mix(-4, 7, d), lift: 5 * Math.sin(Math.PI * d) }; }
   if (u < w1 + 0.2) { const h = segU(u, w1, w1 + 0.2); return { wa: 0.35 + 0.15 * h, skew: 0.35 - 0.1 * h, sy: mix(0.9, 1, h), dx: 7 }; }
   const r = easeOut(segU(u, w1 + 0.2, 1));
-  return { wa: mix(0.5, -1.0, r), skew: 0.25 * (1 - r), dx: 7 * (1 - r) };
+  return { wa: mix(0.5, -2.35, r), skew: 0.25 * (1 - r), dx: 7 * (1 - r) };
 }
 
 Object.assign(SKILL_FX, {
@@ -96,10 +96,10 @@ Object.assign(SKILL_FX, {
     pose(u, a) {
       const m = a.mast || 0, d = a.k ? a.k.dur : 1.1, t = u * d;
       if (m === 0) {
-        if (t < 0.28) { const w = easeOut(t / 0.28); return { wa: mix(-1.0, -2.3, w), skew: -0.12 * w, dx: -2 * w }; }
-        if (t < 0.42) { const s = easeIn(segU(t, 0.28, 0.42)); return { wa: mix(-2.3, 0.3, s), skew: mix(-0.12, 0.25, s), dx: mix(-2, 4, s) }; }
+        if (t < 0.28) { const w = easeOut(t / 0.28); return { wa: mix(-2.35, -2.6, w), skew: -0.12 * w, dx: -2 * w }; }
+        if (t < 0.42) { const s = easeIn(segU(t, 0.28, 0.42)); return { wa: mix(-2.6, 0.3, s), skew: mix(-0.12, 0.25, s), dx: mix(-2, 4, s) }; }
         if (t < 0.6) return { wa: 0.3, skew: 0.25, dx: 4 };
-        const r = easeOut(segU(t, 0.6, 0.8)); return { wa: mix(0.3, -1.0, r), skew: 0.25 * (1 - r), dx: 4 * (1 - r) };
+        const r = easeOut(segU(t, 0.6, 0.8)); return { wa: mix(0.3, -2.35, r), skew: 0.25 * (1 - r), dx: 4 * (1 - r) };
       }
       if (m === 1) return gsCleaveBase(u, 0.55);
       if (m === 2) {
@@ -108,7 +108,7 @@ Object.assign(SKILL_FX, {
         if (t < 0.95) { const s = segU(t, 0.7, 0.95); return { facing: -1, wa: mix(0.5, -2.6, easeOut(s)), skew: -0.2, sy: 0.94, dx: -(7 + 4 * s) }; }
         if (t < 1.08) { const s = easeIn(segU(t, 0.95, 1.08)); return { wa: mix(-2.9, 0.35, s), skew: mix(-0.25, 0.35, s), dx: mix(11, 16, s), lift: 5 * Math.sin(Math.PI * s) }; }
         if (t < 1.25) return { wa: 0.4, skew: 0.3, dx: 16 };
-        const r = easeOut(segU(t, 1.25, 1.5)); return { wa: mix(0.4, -1.0, r), skew: 0.3 * (1 - r), dx: 16 * (1 - r) };
+        const r = easeOut(segU(t, 1.25, 1.5)); return { wa: mix(0.4, -2.35, r), skew: 0.3 * (1 - r), dx: 16 * (1 - r) };
       }
       // ★★★: 빠른 횡참 둘(0.8·1.04) → 대검을 머리 위로 천천히 (1.1~1.58) → 단두대 낙하(1.72) → 복귀
       if (t < 0.86) return gsCleaveBase(t / 1.1, 0.72);
@@ -116,7 +116,7 @@ Object.assign(SKILL_FX, {
       if (t < 1.58) { const s = easeOut(segU(t, 1.1, 1.58)); return { wa: mix(0.5, -1.62, s), skew: -0.12 * s, sy: 1 + 0.08 * s, dx: 7 - 3 * s, lift: 4 * s + Math.sin(clock * 9) * s }; }
       if (t < 1.72) { const s = easeIn(segU(t, 1.58, 1.72)); return { wa: mix(-1.62, 1.25, s), skew: mix(-0.12, 0.42, s), sy: mix(1.08, 0.82, s), sx: mix(1, 1.1, s), dx: mix(4, 12, s), lift: 4 * (1 - s) }; }
       if (t < 1.86) return { wa: 1.25, skew: 0.42, sy: 0.82, sx: 1.1, dx: 12 };
-      const r = easeOut(segU(t, 1.86, 2.0)); return { wa: mix(1.25, -1.0, r), skew: 0.42 * (1 - r), sy: mix(0.82, 1, r), sx: mix(1.1, 1, r), dx: 12 * (1 - r) };
+      const r = easeOut(segU(t, 1.86, 2.0)); return { wa: mix(1.25, -2.35, r), skew: 0.42 * (1 - r), sy: mix(0.82, 1, r), sx: mix(1.1, 1, r), dx: 12 * (1 - r) };
     },
     cues: (a) => {
       const d = a.k.dur, m = a.mast, hits = a.k.hits;
@@ -165,35 +165,35 @@ Object.assign(SKILL_FX, {
     pose(u, a) {
       const m = a.mast || 0, d = a.k ? a.k.dur : 1.5, t = u * d;
       if (m === 0) {
-        if (t < 0.3) { const c = easeOut(t / 0.3); return { sy: 1 - 0.1 * c, skew: -0.2 * c, dx: -4 * c, wa: -1.0 }; }
-        if (t < 0.52) { const s = easeOut(segU(t, 0.3, 0.52)); return { sy: 0.92, skew: mix(-0.2, 0.35, s), dx: mix(-4, 24, s), wa: -0.6 }; }
-        if (t < 0.72) { const r = segU(t, 0.52, 0.72); return { skew: 0.35 - 0.1 * r, dx: 24 - 4 * r, wa: -0.6, sy: 0.92 + 0.08 * r }; }
-        const r = easeOut(segU(t, 0.72, 1)); return { dx: 20 * (1 - r), skew: 0.25 * (1 - r), wa: mix(-0.6, -1.0, r) };
+        if (t < 0.3) { const c = easeOut(t / 0.3); return { sy: 1 - 0.1 * c, skew: -0.2 * c, dx: -4 * c, wa: -2.35 }; }
+        if (t < 0.52) { const s = easeOut(segU(t, 0.3, 0.52)); return { sy: 0.92, skew: mix(-0.2, 0.35, s), dx: mix(-4, 24, s), wa: -2.5 }; }
+        if (t < 0.72) { const r = segU(t, 0.52, 0.72); return { skew: 0.35 - 0.1 * r, dx: 24 - 4 * r, wa: -2.5, sy: 0.92 + 0.08 * r }; }
+        const r = easeOut(segU(t, 0.72, 1)); return { dx: 20 * (1 - r), skew: 0.25 * (1 - r), wa: mix(-2.5, -2.35, r) };
       }
       if (m === 1) {
-        if (t < 0.3) { const c = easeOut(t / 0.3); return { sy: 1 - 0.12 * c, skew: -0.25 * c, dx: -5 * c, wa: mix(-1.0, 1.3, c) }; }
+        if (t < 0.3) { const c = easeOut(t / 0.3); return { sy: 1 - 0.12 * c, skew: -0.25 * c, dx: -5 * c, wa: mix(-2.35, 1.3, c) }; }
         if (t < 0.78) { const s = easeOut(segU(t, 0.3, 0.78)); return { sy: 0.9, skew: 0.4, dx: mix(-5, 48, s), wa: 1.3 + Math.sin(clock * 40) * 0.04 }; }
         if (t < 0.95) { const s = segU(t, 0.78, 0.95); return { sy: 0.9, skew: 0.4 - 0.1 * s, dx: 48, wa: 1.3 }; }
         if (t < 1.08) { const s = easeIn(segU(t, 0.95, 1.08)); return { sy: mix(0.9, 1.1, s), skew: mix(0.3, -0.1, s), dx: 48 + 4 * s, wa: mix(1.3, -2.2, s), lift: 12 * s }; }
         if (t < 1.25) { const h = segU(t, 1.08, 1.25); return { sy: 1.1 - 0.1 * h, skew: -0.1, dx: 52, wa: -2.2, lift: 12 * (1 - h) }; }
-        const r = easeOut(segU(t, 1.25, 1.5)); return { dx: 52 * (1 - r), wa: mix(-2.2, -1.0, r), skew: -0.1 * (1 - r) };
+        const r = easeOut(segU(t, 1.25, 1.5)); return { dx: 52 * (1 - r), wa: mix(-2.2, -2.35, r), skew: -0.1 * (1 - r) };
       }
       if (m === 2) {
-        if (t < 0.3) { const c = easeOut(t / 0.3); return { sy: 1 - 0.12 * c, skew: -0.25 * c, dx: -5 * c, wa: mix(-1.0, 1.3, c) }; }
+        if (t < 0.3) { const c = easeOut(t / 0.3); return { sy: 1 - 0.12 * c, skew: -0.25 * c, dx: -5 * c, wa: mix(-2.35, 1.3, c) }; }
         if (t < 1.0) { const s = easeOut(segU(t, 0.3, 1.0)); return { sy: 0.9, skew: 0.42, dx: mix(-5, 88, s), wa: 1.3 + Math.sin(clock * 40) * 0.04 }; }
         if (t < 1.25) { const s = easeOut(segU(t, 1.0, 1.25)); return { sy: 1 + 0.08 * s, skew: mix(0.42, -0.15, s), dx: 88 + 6 * s, wa: mix(1.3, -2.6, s), lift: 28 * Math.sin((Math.PI / 2) * s) }; }
         if (t < 1.4) { const s = easeIn(segU(t, 1.25, 1.4)); return { sy: mix(1.08, 0.82, s), sx: mix(1, 1.1, s), skew: mix(-0.15, 0.42, s), dx: 94 + 4 * s, wa: mix(-2.6, 1.15, s), lift: 28 * (1 - s) }; }
         if (t < 1.58) return { sy: 0.82, sx: 1.1, skew: 0.42, dx: 98, wa: 1.15 };
-        const r = easeOut(segU(t, 1.58, 1.8)); return { dx: 98 * (1 - r), wa: mix(1.15, -1.0, r), skew: 0.42 * (1 - r), sy: mix(0.82, 1, r), sx: mix(1.1, 1, r) };
+        const r = easeOut(segU(t, 1.58, 1.8)); return { dx: 98 * (1 - r), wa: mix(1.15, -2.35, r), skew: 0.42 * (1 - r), sy: mix(0.82, 1, r), sx: mix(1.1, 1, r) };
       }
       // ★★★ 패왕 돌격: 길게 웅크렸다가 하단바를 가로질러 달리고(0.35~1.35), 높이 솟구쳐(1.5~1.85) 거대 대검으로 내리찍는다(1.98)
-      if (t < 0.35) { const c = easeOut(t / 0.35); return { sy: 1 - 0.16 * c, sx: 1 + 0.06 * c, skew: -0.3 * c, dx: -8 * c, wa: mix(-1.0, 1.3, c) }; }
+      if (t < 0.35) { const c = easeOut(t / 0.35); return { sy: 1 - 0.16 * c, sx: 1 + 0.06 * c, skew: -0.3 * c, dx: -8 * c, wa: mix(-2.35, 1.3, c) }; }
       if (t < 1.35) { const s = easeOut(segU(t, 0.35, 1.35)); return { sy: 0.88, skew: 0.45, dx: mix(-8, 130, s), wa: 1.3 + Math.sin(clock * 40) * 0.05 }; }
-      if (t < 1.5) { const s = segU(t, 1.35, 1.5); return { sy: 0.88 + 0.04 * s, skew: 0.45 - 0.3 * s, dx: 130 + 4 * s, wa: mix(1.3, -1.0, s) }; }
-      if (t < 1.85) { const s = easeOut(segU(t, 1.5, 1.85)); return { sy: 1.1, skew: -0.15, dx: 134 + 8 * s, wa: mix(-1.0, -2.8, s), lift: 64 * Math.sin((Math.PI / 2) * s) }; }
+      if (t < 1.5) { const s = segU(t, 1.35, 1.5); return { sy: 0.88 + 0.04 * s, skew: 0.45 - 0.3 * s, dx: 130 + 4 * s, wa: mix(1.3, -2.0, s) }; }
+      if (t < 1.85) { const s = easeOut(segU(t, 1.5, 1.85)); return { sy: 1.1, skew: -0.15, dx: 134 + 8 * s, wa: mix(-2.0, -2.8, s), lift: 64 * Math.sin((Math.PI / 2) * s) }; }
       if (t < 1.98) { const s = easeIn(segU(t, 1.85, 1.98)); return { sy: mix(1.1, 0.8, s), sx: mix(1, 1.12, s), skew: mix(-0.15, 0.45, s), dx: 142 + 6 * s, wa: mix(-2.8, 1.25, s), lift: 64 * (1 - s) }; }
       if (t < 2.14) return { sy: 0.8, sx: 1.12, skew: 0.45, dx: 148, wa: 1.25 };
-      const r = easeOut(segU(t, 2.14, 2.3)); return { dx: 148 * (1 - r), wa: mix(1.25, -1.0, r), skew: 0.45 * (1 - r), sy: mix(0.8, 1, r), sx: mix(1.12, 1, r) };
+      const r = easeOut(segU(t, 2.14, 2.3)); return { dx: 148 * (1 - r), wa: mix(1.25, -2.35, r), skew: 0.45 * (1 - r), sy: mix(0.8, 1, r), sx: mix(1.12, 1, r) };
     },
     // 돌진하는 동안 대검 끝이 땅을 긁어 불티가 튄다 (★ 이상), ★★★ 는 잔상도 남긴다
     tick(a, u, dt) {

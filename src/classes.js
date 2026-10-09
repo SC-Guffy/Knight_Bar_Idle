@@ -30,13 +30,22 @@ const WEAPONS = {
   // ── 새 2차 (2026-10 추가): 대검전사·랜서·석궁사수·뇌전술사 ──
   // wide: 날이 두 칸 두께인 양손 대검 (world.js drawBlade) · lance: 원뿔 창날 + 손 보호판 (drawPole) · crossbow: 가로로 든 석궁 (drawCrossbow, pull 은 시위를 당긴 거리)
   // splash.max: 번지는 적 수 상한 · splash.arc: 맞은 적에서 다음 적으로 번개 줄이 튄다 (world.js 화살 처리). arrow.shape 'bolt' 는 지팡이 끝에서 대상까지 꺾인 번개 줄
-  greatsword:  { name: '대검',   kind: 'melee',  motion: 'swing',  range: 20, targets: 3, len: 13, wide: true, blade: '#d8dde8', hilt: '#7a2a1a', trail: '255,140,90', glow: '#ff8a5c' },
+  // slab: 너비가 몸통만 한 쇳덩이 대검 (drawBlade), rest: 평소 무기 각도 — 어깨 뒤로 걸쳐 멘다 (heroRig·restPose)
+  greatsword:  { name: '대검',   kind: 'melee',  motion: 'swing',  range: 20, targets: 3, len: 16, wide: true, slab: true, rest: -2.35, blade: '#2e3038', edge: '#9aa0ac', hilt: '#4a3a30', trail: '200,200,210', glow: '#ff8a5c' },
   lance:       { name: '돌격창', kind: 'melee',  motion: 'thrust', range: 32, targets: 2, len: 16, lance: true, shaft: '#7a5a3a', tip: '#e8edf5', trail: '200,225,255', glow: '#9fd8ff' },
   ballista:    { name: '거대 석궁', kind: 'ranged', range: 200, targets: 1, shots: 1, size: 14, crossbow: true, wood: '#5a3a1e', steel: '#9a9aa6',
     arrow: { speed: 900, color: '#e8d9b0', trail: '230,210,160', bolt: true } },
   stormStaff:  { name: '뇌전 지팡이', kind: 'ranged', range: 165, targets: 1, shots: 1, glow: '#b7e3ff', splash: { radius: 70, mult: 0.4, max: 2, arc: true },
     staff: { len: 8, wood: '#2a2a44', head: '#ffe066', orb: '#b7e3ff', glowRgb: '183,227,255' },
     arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '183,227,255' } },
+  // ── 새 2차의 3차 (평타 모션은 2차 것을 그대로, world.js HERO_ATK 별칭) ──
+  doomBlade:     { name: '파천대검', kind: 'melee',  motion: 'swing',  range: 22, targets: 3, len: 18, wide: true, slab: true, rest: -2.35, blade: '#1a0c0c', edge: '#ff8a5c', hilt: '#2a1010', trail: '255,110,60', glow: '#ff5a2a' },
+  holyLance:     { name: '천마창',   kind: 'melee',  motion: 'thrust', range: 36, targets: 3, len: 18, lance: true, shaft: '#c9a227', tip: '#ffffff', trail: '220,235,255', glow: '#cfe8ff' },
+  siegeBallista: { name: '공성 석궁', kind: 'ranged', range: 240, targets: 1, shots: 1, size: 16, crossbow: true, wood: '#2a1a10', steel: '#c9c2b4',
+    arrow: { speed: 1000, color: '#ffe8c0', trail: '255,220,160', bolt: true } },
+  tempestStaff:  { name: '뇌제의 홀', kind: 'ranged', range: 175, targets: 1, shots: 1, glow: '#e0f0ff', splash: { radius: 90, mult: 0.45, max: 3, arc: true },
+    staff: { len: 9, wood: '#1a1a30', head: '#ffffff', orb: '#e0f0ff', glowRgb: '220,240,255' },
+    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '220,240,255' } },
   // ── 3차 ──
   infernoStaff: { name: '겁화의 지팡이', kind: 'ranged', range: 170, targets: 1, shots: 1, splash: { radius: 52, mult: 0.55 }, glow: '#ff3b1f',
     staff: { len: 9, wood: '#2a0e08', head: '#ffd257', orb: '#ff3b1f', glowRgb: '255,80,30' },
@@ -261,13 +270,13 @@ const BODY = {
     '.rRRRRRRRr.',
   ],
   // ── 새 2차 ──
-  // 대검전사: 투구 없이 붉은 머리띠, 양어깨를 덮는 넓은 갑옷
+  // 대검전사: 투구 없이 검은 머리카락(h), 눈 위 흉터(n), 양어깨를 덮는 넓은 검은 갑옷
   greatswordsman: [
-    '...........',
-    '...nnnnn...',
+    '....h.h.h..',
+    '...hhhhh...',
+    '..hhhhhhh..',
     '..hHHHHHh..',
-    '..hHHHHHh..',
-    '..hHvvvvh..',
+    '..hHnvvvh..',
     '..hHHHHHh..',
     '...HHHHH...',
     'aaAAAAAAAaa',
@@ -562,8 +571,9 @@ const CLASSES = {
     desc: '양손 거대 대검. 느리지만 한 번 휘두르면 앞의 적 셋이 한꺼번에 갈라진다.',
     look: {
       body: BODY.greatswordsman, fx: '#ff8a5c',
-      pal: { n: '#e0303a', h: '#3a2a22', H: '#f0c29a', v: '#1b1d27', a: '#5a3a2a', A: '#8c5a3a', y: '#c9c2b4', b: '#2a1a12', l: '#4a4e5a', k: '#2a1a12' },
-      cape: { style: 'cape', color: '#7a2a1a' },
+      pal: { n: '#c9856a', h: '#15151a', H: '#f0c29a', v: '#1b1d27', a: '#1a1a22', A: '#3a3c48', y: '#6a6f7a', b: '#2a1a12', l: '#2a2b33', k: '#15151a' },
+      cape: { style: 'torn', color: '#0e0e14' },
+      arm: ['#f0c29a', '#d8a07a'],       // 맨팔 (world.js heroArmCols)
     },
   },
   cavalier: {
@@ -595,6 +605,52 @@ const CLASSES = {
       body: BODY.electromancer, fx: '#b7e3ff',
       pal: { P: '#3a3a6a', p: '#26264a', c: '#ffe066', y: '#b7e3ff', s: '#f0c29a', e: '#ffe066', r: '#26264a', R: '#3a3a6a', b: '#1a1a30', l: '#26264a', k: '#1a1a30' },
       cape: { style: 'cloak', color: '#1a1a30' },
+    },
+  },
+
+  // ── 새 2차의 3차 (2026-10 추가) ──
+  tyrant: {
+    tier: 3, from: 'greatswordsman', name: '파천검왕', icon: '👑', weapon: 'doomBlade',
+    mods: { atk: 3.3, hp: 2.3, aspd: 0.8, crit: 0.1, critMult: 0.5 },
+    desc: '하늘을 가른 대검의 왕. 검을 들면 세계가 둘로 갈라진다.',
+    look: {
+      body: BODY.greatswordsman, fx: '#ff5a2a',
+      pal: { n: '#c9856a', h: '#0a0a0e', H: '#f0c29a', v: '#ff5a2a', a: '#120a0a', A: '#3a1414', y: '#ff5a2a', b: '#1a0a0a', l: '#1a1014', k: '#0a0a0e' },
+      cape: { style: 'torn', color: '#160608' },
+      arm: ['#f0c29a', '#d8a07a'],
+    },
+  },
+  skyGeneral: {
+    tier: 3, from: 'cavalier', name: '천마장군', icon: '🏇', weapon: 'holyLance',
+    mods: { atk: 2.6, hp: 2.7, aspd: 1.0, crit: 0.1, guard: 0.25 },
+    desc: '빛의 천마 군단을 이끄는 장군. 창을 들면 하늘의 기병대가 함께 달린다.',
+    look: {
+      body: BODY.cavalier, fx: '#cfe8ff',
+      pal: { r: '#ffd257', h: '#c9c2b4', H: '#ffffff', v: '#1b2a4a', a: '#1f3f7a', A: '#4a7ad6', y: '#ffd257', b: '#2a2a40', l: '#8c95a6', k: '#2a2a40' },
+      cape: { style: 'cape', color: '#f4f1e8' },
+      halo: true,
+      shield: { face: '#ffffff', rim: '#c9a227', emblem: '#3d7bff' },
+    },
+  },
+  siegeMaster: {
+    tier: 3, from: 'arbalest', name: '공성포수', icon: '🏰', weapon: 'siegeBallista',
+    mods: { atk: 3.5, hp: 1.9, aspd: 0.65, crit: 0.18, critMult: 0.6 },
+    desc: '성벽을 무너뜨리는 포수. 한 발이 요새를 통째로 무너뜨린다.',
+    look: {
+      body: BODY.arbalest, fx: '#ffb86b',
+      pal: { g: '#5a3a1e', G: '#8a5a30', m: '#1a1a1a', e: '#ff5a2a', L: '#6a4a2a', y: '#ffd257', b: '#2a1a10', l: '#4a3a28', k: '#1e1810' },
+      cape: { style: 'cloak', color: '#5a3a1e' },
+    },
+  },
+  thunderEmperor: {
+    tier: 3, from: 'electromancer', name: '뇌제', icon: '⛈️', weapon: 'tempestStaff',
+    mods: { atk: 2.7, hp: 1.6, aspd: 1.25, crit: 0.2 },
+    desc: '천둥을 다스리는 황제. 홀을 들면 하늘 전체가 벼락이 된다.',
+    look: {
+      body: BODY.electromancer, fx: '#e0f0ff',
+      pal: { P: '#1a1a40', p: '#10102a', c: '#ffffff', y: '#e0f0ff', s: '#f0c29a', e: '#ffffff', r: '#10102a', R: '#1a1a40', b: '#ffe066', l: '#10102a', k: '#0a0a1a' },
+      cape: { style: 'cape', color: '#2a2a6a' },
+      halo: true,
     },
   },
 
@@ -1165,6 +1221,88 @@ const SKILLS = {
     desc: '지팡이를 치켜들어 적 위에 벼락을 떨어뜨린다.',
   },
 
+  // ── 새 3차 궁극기 (연출 src/ult/skyBreak.js · cavalryLegion.js · siegeBarrage.js · thunderJudgment.js) ──
+  skyBreak: {
+    cls: 'tyrant', mastOf: 'steelCleave', ult: true, name: '파천참', icon: '👑', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],     // 강철 베기 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'exec', name: '참수', icon: '🗡️', full: 1.0, thr: 0.35 },
+    hits: [[0.6, 3], ...evenHits(4, 0.7, 0.05, 0.8), [0.92, 4]],
+    stages: [
+      { dur: 2.2, hits: [[0.65, 3], [0.9, 3]] },
+      {},
+      { dur: 2.9, hits: [[0.5, 2], ...evenHits(8, 0.6, 0.035, 0.6), [0.92, 4]] },
+      { dur: 3.3, hits: [[0.45, 2], ...evenHits(8, 0.55, 0.035, 0.5), [0.8, 2], [0.94, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['파천참', '파천·천지절단', '파천·백검난무', '세계참'],
+    stageDesc: [
+      '높이 뛰어올라 거대 대검으로 하단바를 내리그으면 땅이 끝까지 갈라지고, 균열을 따라 불길이 솟는다',
+      '하단바 위에 하늘만 한 대검의 그림자가 떠올라 가로로 휘둘러지고 — 하늘과 땅이 어긋났다가 맞물린다',
+      '하늘에서 수십 자루의 대검이 비처럼 쏟아져 꽂히고, 마지막에 거대한 날이 떨어져 전부 쓸어 낸다',
+      '하단바가 세로로 둘로 갈라져 양쪽으로 벌어지고 — 틈으로 빛이 쏟아지다 닫히며 모든 것을 띄운다',
+    ],
+    desc: '하늘을 가르는 일격. 대검이 하단바를 끝까지 갈라 모든 적을 벤다.',
+  },
+  cavalryLegion: {
+    cls: 'skyGeneral', mastOf: 'piercingThrust', ult: true, name: '천마군단', icon: '🏇', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'crit'],     // 관통 찌르기 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'stun', name: '군단의 위압', icon: '💫', full: 2 },
+    hits: [...evenHits(8, 0.45, 0.05, 0.6), [0.9, 4]],
+    stages: [
+      { dur: 2.3, hits: [...evenHits(4, 0.5, 0.08, 0.8), [0.88, 3]] },
+      {},
+      { dur: 3.0, hits: [...evenHits(12, 0.38, 0.04, 0.5), [0.9, 4]] },
+      { dur: 3.4, hits: [...evenHits(10, 0.3, 0.035, 0.5), [0.75, 2], [0.92, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['천마 돌격', '천마군단', '천공 기병대', '신성 군단의 진격'],
+    stageDesc: [
+      '빛의 천마를 타고 하단바를 끝까지 가로질러 돌격하고, 뒤따라 충격파가 땅을 쓸고 간다',
+      '하늘에서 빛의 기병대가 줄지어 내려와 기사와 함께 하단바를 가로지른다',
+      '기병대가 하늘을 날며 창을 내리꽂고, 빛의 창이 비처럼 하단바에 쏟아진다',
+      '하단바 전체가 황금빛으로 물들고 거대한 천마 군단의 그림자가 지나가며 — 마지막 창 한 자루가 땅에 박혀 모두 띄운다',
+    ],
+    desc: '빛의 천마 군단을 불러 하단바를 가로질러 돌격한다. 맞은 적은 위압에 멈춘다.',
+  },
+  siegeBarrage: {
+    cls: 'siegeMaster', mastOf: 'rapidFire', ult: true, name: '대공성포', icon: '🏰', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
+    right: ['leech', 'spec', 'cd'],     // 연사 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'boss', name: '성벽 파괴', icon: '🏰', full: 1.0 },
+    hits: [[0.55, 3], ...evenHits(5, 0.65, 0.05, 0.6), [0.92, 4]],
+    stages: [
+      { dur: 2.2, hits: [[0.6, 3], [0.88, 3]] },
+      {},
+      { dur: 2.9, hits: [...evenHits(10, 0.45, 0.04, 0.5), [0.9, 4]] },
+      { dur: 3.3, hits: [[0.5, 2], ...evenHits(8, 0.58, 0.035, 0.5), [0.8, 2], [0.93, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['공성 노포', '대공성포', '화포 일제 사격', '요새 붕괴'],
+    stageDesc: [
+      '옆에 거대한 공성 노포를 세워 굵은 살을 하단바 끝까지 쏘고, 둘째 살이 적 앞에서 터진다',
+      '기사만 한 공성포가 세워지고 — 불타는 포탄 살이 하단바를 가로질러 거대한 폭발을 일으킨다',
+      '공성포가 돌며 포탄을 하늘로 연달아 쏘아 올려, 하단바 전체에 폭발이 쏟아진다',
+      '하단바 끝에 적의 요새 실루엣이 솟고 — 대공성포 일격에 요새가 무너지며 돌과 불이 하단바 전체를 덮는다',
+    ],
+    desc: '거대한 공성포를 세워 하단바 전체에 포탄을 퍼붓는다. 보스에게 특히 강하다.',
+  },
+  thunderJudgment: {
+    cls: 'thunderEmperor', mastOf: 'manaBurst', ult: true, name: '뇌제 강림', icon: '⛈️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.7, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],     // 마력 폭발 트리를 이어받음 (r1·r3 같은 자리)
+    spec: { type: 'stun', name: '뇌제의 위압', icon: '💫', full: 2.5 },
+    hits: [[0.5, 1.5], ...evenHits(6, 0.58, 0.05, 0.6), [0.92, 4]],
+    stages: [
+      { dur: 2.3, hits: [[0.55, 1.5], [0.86, 3]] },
+      {},
+      { dur: 3.0, hits: [[0.45, 1.5], ...evenHits(10, 0.55, 0.035, 0.5), [0.92, 4]] },
+      { dur: 3.4, hits: [[0.4, 1], ...evenHits(8, 0.5, 0.035, 0.4), [0.78, 2], [0.94, 5, { area: 'all', radius: 260, launch: true }]] },
+    ],
+    stageName: ['뇌제의 벼락', '뇌제 강림', '만뢰', '천둥의 왕좌'],
+    stageDesc: [
+      '하단바 하늘이 먹구름으로 덮이고 거대한 벼락 한 줄기가 적을 꿰뚫은 뒤, 땅을 따라 번개가 양끝까지 번진다',
+      '번개로 된 뇌제의 형상이 하늘에 떠올라 손을 내리치면 하단바 전체에 벼락이 쏟아진다',
+      '하단바 하늘 끝에서 끝까지 번개가 그물처럼 얽히고, 수십 줄기 벼락이 땅을 두드린다',
+      '하늘에 번개의 왕좌가 나타나 하단바가 하얗게 멎고 — 왕좌에서 내리는 거대한 벼락 기둥이 모든 것을 띄운다',
+    ],
+    desc: '하늘 전체를 벼락으로 바꿔 하단바의 모든 적을 내리친다. 맞은 적은 위압에 멈춘다.',
+  },
+
   // ── 3차 궁극기: 1차 스킬 자리를 대신한다 (mastOf — 숙련도는 그 1차 스킬 것을 그대로 이어 쓴다) ──
   // 쿨타임이 길고 숙련도로 조금만 준다 (cdSpan: Lv1 60초 → Lv30 40초 — 다른 스킬의 ×3.0 → ×1.2 곡선 대신). 하단바 전체를 쓰는 화면 연출이 있는 한 방. 연출은 src/ult/*.js
   //  ult: true — 시전하는 동안 하단바 전체를 덮는 연출을 허락한다 (skills.js 의 '화면 전체를 쓰지 않는다' 규칙의 예외)
@@ -1386,6 +1524,7 @@ const SKILL_DMG = {
   dragoon: 1.70, halberdier: 1.75,
   // 새 2차: 같은 차수 평균에 맞춤 (돌격·보호막처럼 스킬 비중이 큰 랜서는 조금 낮게)
   greatswordsman: 1.74, cavalier: 1.68, arbalest: 1.76, electromancer: 1.8,
+  tyrant: 1.45, skyGeneral: 1.4, siegeMaster: 1.3, thunderEmperor: 1.5,
   // 마법사 계열: 같은 차수 다른 직업들의 평균 DPS 에 맞춤 (화염술사는 범위 피해가 있어 0.95배)
   mage: 2.3, pyromancer: 1.8, cryomancer: 1.8,
   // 3차 궁극기: Lv30 이면 그 직업 전체 DPS 를 +25% (Lv1 +17%). 3차 직업 전체는 2차보다 약 1.4배 (궁극기 포함, 공격력 보정으로 맞춤)
