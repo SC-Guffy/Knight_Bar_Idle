@@ -1779,28 +1779,35 @@ function heroAtk(mo, s) {
 // atk(평타 자세)가 있으면 그 손 위치·무기 각도를 쓰고, 없으면 기본 손 자리에 스킬 자세(pose.wa 등)나 평소 각도
 function heroRig(w, x, bodyBottom, pose, atk) {
   const r = heroRigRaw(w, x, bodyBottom, pose, atk);
+  if (!r.bh) {
+    // 무기를 안 쥔 뒷팔(왼팔)은 늘 있다: 앞팔과 반대로 균형을 잡는다 — 앞손이 올라가면 뒷손은 앞·아래로, 앞손이 앞으로 나가면 뒷손은 뒤로.
+    // 걷는 동안은 다리와 엇갈려 흔들린다
+    const h = r.grip || r.fh, fx = h[0] - r.fs[0], fy = h[1] - r.fs[1];
+    const sw = pose.mode === 'walk' && !atk ? Math.sin((pose.walkT || 0) * 8 + Math.PI) : 0;
+    // 쉴 땐 몸 옆에 거의 곧게 늘어뜨리고(살짝 뒤), 앞손이 움직이면 그 반대로 균형
+    r.bh = reachClamp(r.bs, [r.bs[0] - 0.6 * PX - fx * 0.35 + sw * 2.6 * PX, Math.max(r.bs[1] + 1.5 * PX, r.bs[1] + 5.2 * PX - fy * 0.3 - Math.abs(sw) * 0.8 * PX)]);
+    r.bAuto = true;                                          // 몸 뒤에 그린다 (주먹까지)
+  }
   r.fe = elbowOf(r.fs, r.grip || r.fh);
-  if (r.bh) r.be = elbowOf(r.bs, r.bh);
+  r.be = elbowOf(r.bs, r.bh);
   return r;
 }
 function heroRigRaw(w, x, bodyBottom, pose, atk) {
   const sy = pose.sy || 1, k = pose.skew || 0;
-  const shY = bodyBottom - 5 * PX * sy, shX = x + k * 4.5 * PX * sy;
+  // 어깨는 몸통 양 끝 (앞어깨 = 바라보는 쪽). 몸이 기울면 어깨도 같이 간다
+  const shY = bodyBottom - 5.2 * PX * sy, shX = x + k * 4.5 * PX * sy;
   const hx = x + 4 * PX + Math.round(k * 3 * PX), hy = bodyBottom - 3 * PX;
   const off = atk ? atk.h : [0, 0];
-  const r = { fs: [shX + 1.5 * PX, shY], bs: [shX - 1.5 * PX, shY] };
+  const r = { fs: [shX + 3.2 * PX, shY], bs: [shX - 3.2 * PX, shY] };
   // 무기 흔들림: 걸을 땐 다리에 맞춰 크게, 서 있을 땐 숨쉬기에 맞춰 아주 조금
   const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : Math.sin((pose.t || 0) * 2.6) * 0.025;
-  // 걷는 동안 무기를 안 쥔 뒷팔은 다리와 엇갈려 흔들린다 (뒷손이 따로 없는 직업만)
-  const armSw = pose.mode === 'walk' && !atk ? Math.sin((pose.walkT || 0) * 8 + Math.PI) : 0;
-  const armSwing = armSw ? [shX - 1.2 * PX + armSw * 2.4 * PX, shY + 3.8 * PX - Math.abs(armSw) * 0.6 * PX] : null;
   if (w.kind === 'ranged') {
     r.fh = [hx + PX + off[0] * PX, hy + off[1] * PX];
     r.bowA = atk ? atk.bowA : pose.bowA || 0;
     r.pull = atk ? atk.pull : pose.pull || 0;
     r.arrow = !atk || atk.s < 0.45;                          // 놓은 뒤엔 화살이 날아가고 없다
     // 지팡이(마법사)는 한 손으로 쥔다: bowA 는 지팡이를 치켜든 각도, pull 은 지팡이 끝에 모이는 마력
-    if (w.staff) { r.grip = r.fh; if (armSwing) r.bh = armSwing; return r; }
+    if (w.staff) { r.grip = r.fh; return r; }
     if (w.crossbow) {
       const c = Math.cos(r.bowA), sn = Math.sin(r.bowA), back = 7 + r.pull * 0.6;
       r.grip = r.fh;
@@ -1811,7 +1818,6 @@ function heroRigRaw(w, x, bodyBottom, pose, atk) {
     const c = Math.cos(r.bowA), sn = Math.sin(r.bowA), gx = w.size * 0.375;
     r.grip = [r.fh[0] + gx * c, r.fh[1] + gx * sn];
     if (r.pull > 1) r.bh = [r.fh[0] - r.pull * c, r.fh[1] - r.pull * sn];
-    else if (armSwing) r.bh = armSwing;
     return r;
   }
   r.fh = [hx + off[0] * PX, hy + off[1] * PX];
@@ -1826,20 +1832,30 @@ function heroRigRaw(w, x, bodyBottom, pose, atk) {
     // 양손 무기: 뒷손은 앞손보다 창대 아래쪽을 쥔다 (창이 미끄러져 나가면 같이 밀려 나간다)
     const d = r.ext - 2.5 * PX;
     r.bh = [r.fh[0] + Math.cos(r.wa) * d, r.fh[1] + Math.sin(r.wa) * d];
-  } else if (armSwing) r.bh = armSwing;
+  } else if (w.twoHand) {
+    // 양손 대검: 뒷손은 긴 손잡이의 아래쪽을 쥔다
+    r.bh = [r.fh[0] - Math.cos(r.wa) * 2.2 * PX, r.fh[1] - Math.sin(r.wa) * 2.2 * PX];
+  }
   return r;
 }
 
 // 팔꿈치 자리: 어깨 s 에서 손 h 까지 윗팔·아랫팔 길이가 정해져 있고, 팔꿈치는 몸 뒤쪽·아래쪽으로 꺾인다 (기사는 늘 +x 를 본다)
-const ARM_UP = 3.4 * PX, ARM_LOW = 3.4 * PX;
+// 팔꿈치 방향: 손이 어깨보다 위(검을 치켜듦)면 팔꿈치는 앞·위로 나가고, 손이 아래(늘어뜨림·내려침)면 뒤·아래로 꺾인다
+const ARM_UP = 2.9 * PX, ARM_LOW = 2.9 * PX, ARM_REACH = ARM_UP + ARM_LOW;
 function elbowOf(s, h) {
   const dx = h[0] - s[0], dy = h[1] - s[1], d = Math.hypot(dx, dy) || 0.001;
-  if (d >= ARM_UP + ARM_LOW - 0.5) { const f = ARM_UP / (ARM_UP + ARM_LOW); return [s[0] + dx * f, s[1] + dy * f]; }
+  if (d >= ARM_REACH - 0.5) { const f = ARM_UP / ARM_REACH; return [s[0] + dx * f, s[1] + dy * f]; }
   const a = (ARM_UP * ARM_UP - ARM_LOW * ARM_LOW + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, ARM_UP * ARM_UP - a * a));
   const mx = s[0] + dx * a / d, my = s[1] + dy * a / d, nx = -dy / d, ny = dx / d;
   const e1 = [mx + nx * hh, my + ny * hh], e2 = [mx - nx * hh, my - ny * hh];
-  const score = (e) => -(e[0] - mx) + (e[1] - my) * 0.6;
+  const up = dy < -0.8 * PX;
+  const score = (e) => (up ? -(e[1] - my) + (e[0] - mx) * 0.5 : (e[1] - my) * 0.6 - (e[0] - mx));
   return score(e1) >= score(e2) ? e1 : e2;
+}
+// 손 목표가 팔 길이보다 멀면 닿는 데까지만
+function reachClamp(s, h, max = ARM_REACH - 0.3) {
+  const dx = h[0] - s[0], dy = h[1] - s[1], d = Math.hypot(dx, dy);
+  return d <= max ? h : [s[0] + dx * max / d, s[1] + dy * max / d];
 }
 // 두 마디 팔: 어깨→팔꿈치→손. 팔꿈치에 한 칸 관절
 function drawArm2(g, col, s, h, e) {
@@ -2089,7 +2105,7 @@ function drawHero(g, id, x, gy, pose) {
     const dual = w.motion === 'dual' && w.kind !== 'ranged';
     if (body && look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
     // 몸 뒤: 뒷팔 (쌍검은 뒷손 칼까지)
-    if (body && rig.bh) drawArm2(g, armC, rig.bs, rig.bh, rig.be);
+    if (body && rig.bh) { drawArm2(g, armC, rig.bs, rig.bh, rig.be); if (rig.bAuto) drawFist(g, fistC, rig.bh); }
     if (dual) {
       if (weapon) {
         g.save();
@@ -2119,7 +2135,7 @@ function drawHero(g, id, x, gy, pose) {
       if (atk) { drawAtkTrail(g, w, x0, base0, legs.length * legsPx, atk.mo, atk.s, false); drawAtkFx(g, w, rig, atk); }
     }
     if (body) {
-      if (rig.bh && !dual) drawFist(g, fistC, rig.bh);
+      if (rig.bh && !dual && !rig.bAuto) drawFist(g, fistC, rig.bh);
       const hand = rig.grip || rig.fh;
       drawArm2(g, armC, rig.fs, hand, rig.fe);
       drawFist(g, fistC, hand);

@@ -31,7 +31,7 @@ const WEAPONS = {
   // wide: 날이 두 칸 두께인 양손 대검 (world.js drawBlade) · lance: 원뿔 창날 + 손 보호판 (drawPole) · crossbow: 가로로 든 석궁 (drawCrossbow, pull 은 시위를 당긴 거리)
   // splash.max: 번지는 적 수 상한 · splash.arc: 맞은 적에서 다음 적으로 번개 줄이 튄다 (world.js 화살 처리). arrow.shape 'bolt' 는 지팡이 끝에서 대상까지 꺾인 번개 줄
   // slab: 너비가 몸통만 한 쇳덩이 대검 (drawBlade), rest: 평소 무기 각도 — 어깨 뒤로 걸쳐 멘다 (heroRig·restPose)
-  greatsword:  { name: '대검',   kind: 'melee',  motion: 'swing',  range: 20, targets: 3, len: 16, wide: true, slab: true, rest: -2.35, blade: '#2e3038', edge: '#9aa0ac', hilt: '#4a3a30', trail: '200,200,210', glow: '#ff8a5c' },
+  greatsword:  { name: '대검',   kind: 'melee',  motion: 'swing',  range: 20, targets: 3, len: 16, wide: true, slab: true, twoHand: true, rest: -2.35, blade: '#2e3038', edge: '#9aa0ac', hilt: '#4a3a30', trail: '200,200,210', glow: '#ff8a5c' },
   lance:       { name: '돌격창', kind: 'melee',  motion: 'thrust', range: 32, targets: 2, len: 16, lance: true, shaft: '#7a5a3a', tip: '#e8edf5', trail: '200,225,255', glow: '#9fd8ff' },
   ballista:    { name: '거대 석궁', kind: 'ranged', range: 200, targets: 1, shots: 1, size: 14, crossbow: true, wood: '#5a3a1e', steel: '#9a9aa6',
     arrow: { speed: 900, color: '#e8d9b0', trail: '230,210,160', bolt: true } },
@@ -39,7 +39,7 @@ const WEAPONS = {
     staff: { len: 8, wood: '#2a2a44', head: '#ffe066', orb: '#b7e3ff', glowRgb: '183,227,255' },
     arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '183,227,255' } },
   // ── 새 2차의 3차 (평타 모션은 2차 것을 그대로, world.js HERO_ATK 별칭) ──
-  doomBlade:     { name: '파천대검', kind: 'melee',  motion: 'swing',  range: 22, targets: 3, len: 18, wide: true, slab: true, rest: -2.35, blade: '#1a0c0c', edge: '#ff8a5c', hilt: '#2a1010', trail: '255,110,60', glow: '#ff5a2a' },
+  doomBlade:     { name: '파천대검', kind: 'melee',  motion: 'swing',  range: 22, targets: 3, len: 18, wide: true, slab: true, twoHand: true, rest: -2.35, blade: '#1a0c0c', edge: '#ff8a5c', hilt: '#2a1010', trail: '255,110,60', glow: '#ff5a2a' },
   holyLance:     { name: '천마창',   kind: 'melee',  motion: 'thrust', range: 36, targets: 3, len: 18, lance: true, shaft: '#c9a227', tip: '#ffffff', trail: '220,235,255', glow: '#cfe8ff' },
   siegeBallista: { name: '공성 석궁', kind: 'ranged', range: 240, targets: 1, shots: 1, size: 16, crossbow: true, wood: '#2a1a10', steel: '#c9c2b4',
     arrow: { speed: 1000, color: '#ffe8c0', trail: '255,220,160', bolt: true } },
