@@ -1785,7 +1785,7 @@ function heroRig(w, x, bodyBottom, pose, atk) {
     const h = r.grip || r.fh, fx = h[0] - r.fs[0], fy = h[1] - r.fs[1];
     const sw = pose.mode === 'walk' && !atk ? Math.sin((pose.walkT || 0) * 8 + Math.PI) : 0;
     // 쉴 땐 몸 옆에 거의 곧게 늘어뜨리고(살짝 뒤), 앞손이 움직이면 그 반대로 균형
-    r.bh = reachClamp(r.bs, [r.bs[0] + 0.2 * PX - fx * 0.35 + sw * 2.6 * PX, Math.max(r.bs[1] + 1.5 * PX, r.bs[1] + 5.0 * PX - fy * 0.3 - Math.abs(sw) * 0.8 * PX)]);
+    r.bh = reachClamp(r.bs, [r.bs[0] + 0.6 * PX - fx * 0.3 + sw * 2.2 * PX, Math.max(r.bs[1] + 1.5 * PX, r.bs[1] + 4.2 * PX - fy * 0.25 - Math.abs(sw) * 0.6 * PX)], ARM_REACH * 0.8);
     r.bAuto = true;                                          // 몸 뒤에 그린다 (주먹까지)
   }
   r.fe = elbowOf(r.fs, r.grip || r.fh);
@@ -1798,7 +1798,7 @@ function heroRigRaw(w, x, bodyBottom, pose, atk) {
   const shY = bodyBottom - 5.2 * PX * sy, shX = x + k * 4.5 * PX * sy;
   const hx = x + 4 * PX + Math.round(k * 3 * PX), hy = bodyBottom - 3 * PX;
   const off = atk ? atk.h : [0, 0];
-  const r = { fs: [shX + 3.2 * PX, shY], bs: [shX - 3.2 * PX, shY] };
+  const r = { fs: [shX + 3.2 * PX, shY], bs: [shX - 2.0 * PX, shY + 0.4 * PX] };
   // 무기 흔들림: 걸을 땐 다리에 맞춰 크게, 서 있을 땐 숨쉬기에 맞춰 아주 조금
   const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : Math.sin((pose.t || 0) * 2.6) * 0.025;
   if (w.kind === 'ranged') {
@@ -2140,7 +2140,7 @@ function drawHero(g, id, x, gy, pose) {
     const dual = w.motion === 'dual' && w.kind !== 'ranged';
     if (body && look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
     // 몸 뒤: 뒷팔 (쌍검은 뒷손 칼까지)
-    if (body && rig.bh) { drawArm2(g, armC, rig.bs, rig.bh, rig.be, rig.bAuto ? -1 : 0); if (rig.bAuto) drawFist(g, fistC, rig.bh, -1); }
+    if (body && rig.bh) { drawArm2(g, armC, rig.bs, rig.bh, rig.be, rig.bAuto ? -1 : 0); if (rig.bAuto) drawFist(g, fistC, rig.bh, -1); drawShoulderCap(g, spriteShadeCol(armC, -1), rig.bs); }
     if (dual) {
       if (weapon) {
         g.save();
