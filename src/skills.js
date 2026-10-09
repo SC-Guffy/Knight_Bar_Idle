@@ -1042,7 +1042,7 @@ function backFx(a, delay, life, draw, end, tick) { aFx(a, delay, life, draw, end
 function gripOf(a) {
   const p = castPose(a.owner) || {}, sy = p.sy || 1, k = p.skew || 0;
   const face = p.facing != null ? p.facing : a.dir;
-  const legs = SPR.knightLegs[0].length;
+  const legs = sprCells(SPR.knightLegs[0]);
   const wa = p.wa != null ? p.wa : -1.0;
   return {
     x: a.px() + face * (4 * PX + Math.round(k * 3 * PX)),

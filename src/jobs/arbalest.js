@@ -20,7 +20,7 @@ function abMuzzle(a) {
   const face = p.facing != null ? p.facing : a.dir;
   const w = WEAPONS[CLASSES[a.cls].weapon], L = (w.size || 14) * 0.9 + 12;
   const hx = a.px() + face * (5 * PX + Math.round(k * 3 * PX));
-  const hy = groundY() - (p.lift || 0) - SPR.knightLegs[0].length * PX * sy - 3 * PX;
+  const hy = groundY() - (p.lift || 0) - sprCells(SPR.knightLegs[0]) * PX * sy - 3 * PX;
   const ang = p.bowA || 0;
   return { x: hx + face * Math.cos(ang) * L, y: hy + Math.sin(ang) * L, ang: face > 0 ? ang : Math.PI - ang };
 }

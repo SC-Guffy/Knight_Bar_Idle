@@ -1246,8 +1246,38 @@ hooks.onLevelUp = () => addFloater('LEVEL UP!', toScreen(knight.x), groundY() - 
 // ───────────────────────── 렌더 ─────────────────────────
 // g: 그릴 캔버스 (기본은 하단바, 전직 미리보기는 자기 캔버스). 알파는 현재 값에 곱한다.
 // sx·sy: 가로·세로 늘림(발밑 기준), skew: 높이 1px 당 가로로 밀리는 양 — 줄 단위로 밀어 도트가 계단처럼 기운다
+// 고해상 스프라이트(rows.px) 의 자동 명암: 위가 비면 밝게(+1), 아래나 오른쪽이 비면 어둡게(-1). 한 번 계산해 rows._sh 에 둔다
+function spriteShadeMap(rows) {
+  if (rows._sh) return rows._sh;
+  const h = rows.length, w = rows[0].length, m = [];
+  const at = (r, c) => (r < 0 || c < 0 || r >= h || c >= w ? '.' : rows[r][c]);
+  const gap = (ch) => ch === '.' || ch === '#';
+  for (let r = 0; r < h; r++) {
+    const row = [];
+    for (let c = 0; c < w; c++) {
+      const ch = at(r, c);
+      row.push(gap(ch) ? 0 : gap(at(r - 1, c)) ? 1 : gap(at(r + 1, c)) || gap(at(r, c + 1)) ? -1 : 0);
+    }
+    m.push(row);
+  }
+  return (rows._sh = m);
+}
+const spriteShadeCache = new Map();
+function spriteShadeCol(col, dir) {
+  if (typeof col !== 'string' || col[0] !== '#' || col.length !== 7) return col;
+  const key = col + dir;
+  let v = spriteShadeCache.get(key);
+  if (v) return v;
+  const n = parseInt(col.slice(1), 16);
+  let r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
+  if (dir > 0) { r += (255 - r) * 0.3; gg += (255 - gg) * 0.3; b += (255 - b) * 0.3; } else { r *= 0.72; gg *= 0.72; b *= 0.72; }
+  v = `rgb(${r | 0},${gg | 0},${b | 0})`;
+  spriteShadeCache.set(key, v);
+  return v;
+}
 function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false, tint = null, alpha = 1, sx = 1, sy = 1, skew = 0 } = {}, g = ctx) {
   const h = rows.length, w = rows[0].length;
+  const sh = rows.px && !flash && !tint ? spriteShadeMap(rows) : null;
   const cw = scale * sx, chh = scale * sy;
   const ox = cx - (w * cw) / 2;
   const prevAlpha = g.globalAlpha;
@@ -1262,7 +1292,9 @@ function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false
       if (ch === '.') continue;
       const cc = flip ? w - 1 - c : c;
       const x0 = Math.round(ox + cc * cw) + shift, x1 = Math.round(ox + (cc + 1) * cw) + shift;
-      g.fillStyle = flash ? '#ffffff' : tint || (pal[ch] || PAL[ch]);
+      let col = flash ? '#ffffff' : tint || (pal[ch] || PAL[ch]);
+      if (sh && sh[r][c]) col = spriteShadeCol(col, sh[r][c]);
+      g.fillStyle = col;
       g.fillRect(x0, y0, x1 - x0, y1 - y0);
     }
   }
@@ -1982,14 +2014,18 @@ function heroRig(w, x, bodyBottom, pose, atk) {
   const hx = x + 4 * PX + Math.round(k * 3 * PX), hy = bodyBottom - 3 * PX;
   const off = atk ? atk.h : [0, 0];
   const r = { fs: [shX + 1.5 * PX, shY], bs: [shX - 1.5 * PX, shY] };
-  const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : 0;
+  // 무기 흔들림: 걸을 땐 다리에 맞춰 크게, 서 있을 땐 숨쉬기에 맞춰 아주 조금
+  const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : Math.sin((pose.t || 0) * 2.6) * 0.025;
+  // 걷는 동안 무기를 안 쥔 뒷팔은 다리와 엇갈려 흔들린다 (뒷손이 따로 없는 직업만)
+  const armSw = pose.mode === 'walk' && !atk ? Math.sin((pose.walkT || 0) * 8 + Math.PI) : 0;
+  const armSwing = armSw ? [shX - 1.2 * PX + armSw * 2.4 * PX, shY + 3.8 * PX - Math.abs(armSw) * 0.6 * PX] : null;
   if (w.kind === 'ranged') {
     r.fh = [hx + PX + off[0] * PX, hy + off[1] * PX];
     r.bowA = atk ? atk.bowA : pose.bowA || 0;
     r.pull = atk ? atk.pull : pose.pull || 0;
     r.arrow = !atk || atk.s < 0.45;                          // 놓은 뒤엔 화살이 날아가고 없다
     // 지팡이(마법사)는 한 손으로 쥔다: bowA 는 지팡이를 치켜든 각도, pull 은 지팡이 끝에 모이는 마력
-    if (w.staff) { r.grip = r.fh; return r; }
+    if (w.staff) { r.grip = r.fh; if (armSwing) r.bh = armSwing; return r; }
     if (w.crossbow) {
       const c = Math.cos(r.bowA), sn = Math.sin(r.bowA), back = 7 + r.pull * 0.6;
       r.grip = r.fh;
@@ -2000,6 +2036,7 @@ function heroRig(w, x, bodyBottom, pose, atk) {
     const c = Math.cos(r.bowA), sn = Math.sin(r.bowA), gx = w.size * 0.375;
     r.grip = [r.fh[0] + gx * c, r.fh[1] + gx * sn];
     if (r.pull > 1) r.bh = [r.fh[0] - r.pull * c, r.fh[1] - r.pull * sn];
+    else if (armSwing) r.bh = armSwing;
     return r;
   }
   r.fh = [hx + off[0] * PX, hy + off[1] * PX];
@@ -2014,7 +2051,7 @@ function heroRig(w, x, bodyBottom, pose, atk) {
     // 양손 무기: 뒷손은 앞손보다 창대 아래쪽을 쥔다 (창이 미끄러져 나가면 같이 밀려 나간다)
     const d = r.ext - 2.5 * PX;
     r.bh = [r.fh[0] + Math.cos(r.wa) * d, r.fh[1] + Math.sin(r.wa) * d];
-  }
+  } else if (armSwing) r.bh = armSwing;
   return r;
 }
 
@@ -2036,8 +2073,8 @@ const heroArmCache = {};
 function heroArmCols(id, look, pal) {
   if (heroArmCache[id]) return heroArmCache[id];
   if (look.arm) return (heroArmCache[id] = look.arm);
-  const row = look.body[8], i = row.search(/[^.]/);
-  return (heroArmCache[id] = [pal[row[i]] || PAL.a, pal[row[i + 1]] || PAL.A]);
+  const row = look.body[Math.round(look.body.length * 8.5 / 13) - (look.body.px ? 1 : 0)], i = row.search(/[^.#]/), j = look.body.px ? i + 2 : i + 1;
+  return (heroArmCache[id] = [pal[row[i]] || PAL.a, pal[row[j]] || PAL.A]);
 }
 
 // 무기 끝 잔상: 지난 몇 프레임의 무기 끝을 이어 띠로 그린다 (창은 끝이 지나간 직선)
@@ -2211,13 +2248,23 @@ function drawHero(g, id, x, gy, pose) {
   const look = c.look, w = WEAPONS[c.weapon], pal = heroPal(c === CLASSES[id] ? id : 'squire');
   const t = pose.t || 0;
   const sit = pose.mode === 'sit', walking = pose.mode === 'walk';
-  const step = Math.floor((pose.walkT || 0) * 8) % 2;
+  const step = Math.floor((pose.walkT || 0) * 8) % SPR.knightLegs.length;
   const opt = { flash: !!pose.flash, tint: pose.tint || null };
   // 평타 중이면 몸(dx·skew·sy)과 손·무기를 평타 자세로 (스킬 자세가 있으면 스킬이 우선)
   // combo: 몇 번째 평타인지 — 연속기 직업은 이걸로 모션을 번갈아 고른다
   const atk = pose.mode === 'fight' && pose.swing >= 0 && pose.wa == null && pose.pull == null ? heroAtk(heroAtkOf(w, pose.combo), pose.swing) : null;
   const base0 = gy - (pose.lift || 0);
-  if (atk) pose = { ...pose, dx: (pose.dx || 0) + atk.dx, skew: atk.skew, sy: atk.sy, lift: (pose.lift || 0) + atk.lift };
+  if (atk) {
+    // 타격 순간(burst 시점) 몸이 찌그러졌다 펴지는 반동
+    const hitS = atk.mo.burst ? atk.mo.burst[0] : w.kind === 'ranged' ? 0.45 : 0.35, sq = Math.max(0, 1 - Math.abs(pose.swing - hitS) / 0.1);
+    pose = { ...pose, dx: (pose.dx || 0) + atk.dx, skew: atk.skew, sy: atk.sy * (1 - 0.07 * sq), sx: 1 + 0.06 * sq, lift: (pose.lift || 0) + atk.lift };
+  } else if (pose.wa == null && pose.pull == null && !sit) {
+    // 평소 자세: 직업별 서는 법(body2.js STANCE) + 숨쉬기 + 걷는 동안 들썩임·앞으로 기울기
+    const st = look.stance || {}, idle = !walking, breath = 1 + (idle ? 0.012 * Math.sin(t * 2.6) : 0);
+    const hover = idle ? (st.hover || 0) + (st.bob || 0) * Math.sin(t * 2.2) : 0;
+    const stepLift = walking ? (step % 2 ? 1.5 : 0) : 0;
+    pose = { ...pose, skew: (pose.skew || 0) + (st.skew || 0) + (walking ? 0.05 : 0), sy: (pose.sy || 1) * (st.sy || 1) * breath, dx: (pose.dx || 0) + (idle ? st.dx || 0 : 0), lift: (pose.lift || 0) + hover + stepLift };
+  }
   g.save();
   g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;
   if (pose.facing < 0) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0); }
@@ -2227,19 +2274,19 @@ function drawHero(g, id, x, gy, pose) {
   if (sit) {
     drawRestingWeapon(g, w, x - 17, gy);
     const bodyBottom = gy - 2 * PX - (Math.floor(t * 1.2) % 2);
-    const top = bodyBottom - look.body.length * PX;
+    const top = bodyBottom - look.body.length * PX * (look.body.px || 1);
     if (look.cape) drawCape(g, look.cape, x, top, bodyBottom, gy, t, false);
-    drawSprite(SPR.knightSit, pal, x + 2, gy - PX, PX, opt, g);
-    drawSprite(look.body, pal, x, bodyBottom, PX, opt, g);
+    drawSprite(SPR.knightSit, pal, x + 2, gy - PX, PX * (SPR.knightSit.px || 1), opt, g);
+    drawSprite(look.body, pal, x, bodyBottom, PX * (look.body.px || 1), opt, g);
     if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
     if (look.halo) drawHalo(g, x, top, t);
   } else {
     // 스킬 자세: sy 웅크림·늘어남, sx 가로 늘림, skew 앞(+)/뒤(-)로 기울임 — 몸통만 기운다
     const sy = pose.sy || 1, sx = pose.sx || 1;
     const base = gy - (pose.lift || 0);
-    const legs = SPR.knightLegs[walking ? step : 0];
-    const bodyBottom = base - legs.length * PX * sy - (walking ? step : 0);
-    const top = bodyBottom - look.body.length * PX * sy;
+    const legs = SPR.knightLegs[walking ? step : 0], legsPx = PX * (legs.px || 1), bodyPx = PX * (look.body.px || 1);
+    const bodyBottom = base - legs.length * legsPx * sy;
+    const top = bodyBottom - look.body.length * bodyPx * sy;
     const rig = heroRig(w, x, bodyBottom, pose, atk);
     const body = !pose.onlyWeapon, weapon = !pose.tint;      // onlyWeapon: 모션 잔상용으로 무기만 · tint: 한 색 잔상은 몸만
     const [armC, fistC] = opt.flash ? ['#ffffff', '#ffffff'] : opt.tint ? [opt.tint, opt.tint] : heroArmCols(c === CLASSES[id] ? id : 'squire', look, pal);
@@ -2253,20 +2300,20 @@ function drawHero(g, id, x, gy, pose) {
         if (w.glow) { g.shadowColor = w.glow; g.shadowBlur = 8; }
         drawBlade(g, w, rig.bh[0], rig.bh[1], rig.wb, w.len - 1);
         g.restore();
-        if (atk) drawAtkTrail(g, w, x0, base0, legs.length * PX, atk.mo, atk.s, true);
+        if (atk) drawAtkTrail(g, w, x0, base0, legs.length * legsPx, atk.mo, atk.s, true);
       }
       if (body) drawFist(g, fistC, rig.bh);
     }
     if (body) {
-      drawSprite(legs, pal, x, base, PX, { ...opt, sx, sy }, g);
-      drawSprite(look.body, pal, x, bodyBottom, PX, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
+      drawSprite(legs, pal, x, base, legsPx, { ...opt, sx, sy }, g);
+      drawSprite(look.body, pal, x, bodyBottom, bodyPx, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
       if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
       if (look.halo) drawHalo(g, x, top, t);
     }
     // 몸 앞: 무기 → 잔상 → 무기를 쥔 손과 앞팔
     if (weapon) {
       drawWeapon(g, w, rig);
-      if (atk) { drawAtkTrail(g, w, x0, base0, legs.length * PX, atk.mo, atk.s, false); drawAtkFx(g, w, rig, atk); }
+      if (atk) { drawAtkTrail(g, w, x0, base0, legs.length * legsPx, atk.mo, atk.s, false); drawAtkFx(g, w, rig, atk); }
     }
     if (body) {
       if (rig.bh && !dual) drawFist(g, fistC, rig.bh);

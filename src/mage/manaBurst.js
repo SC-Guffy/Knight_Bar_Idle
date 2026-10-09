@@ -13,7 +13,7 @@ function mbTip(a) {
   const face = p.facing != null ? p.facing : a.dir;
   const ang = staffAngle(p.bowA || 0), L = (st.len + 1.6) * PX;
   const hx = a.px() + face * (5 * PX + Math.round(k * 3 * PX));
-  const hy = groundY() - (p.lift || 0) - SPR.knightLegs[0].length * PX * sy - 3 * PX;
+  const hy = groundY() - (p.lift || 0) - sprCells(SPR.knightLegs[0]) * PX * sy - 3 * PX;
   return { x: hx + face * Math.cos(ang) * L, y: hy + Math.sin(ang) * L };
 }
 // 자세 키프레임 [[u, {bowA, pull, dx, lift, skew, sy}]] 사이를 부드럽게 잇는다
