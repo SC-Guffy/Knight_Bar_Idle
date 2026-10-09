@@ -2131,6 +2131,145 @@ function drawHalo(g, x, top, t) {
 }
 
 // pose: { mode: walk|fight|sit, walkT, swing, facing, flash, alpha, t, lift }
+// ── 컷 모드 (절충안) ──
+// 평타 한 번을 4~5컷으로 끊어 컷마다 자세를 든다. 팔·다리는 손도트 그림(limbs.js ARM_CUT·LEG_CUT), 칼·망토·스미어도 같은 1.5px 도트 격자로 찍고,
+// 머리·몸통은 기존 몸 그림에 컷의 기울기·비틀기(정면/옆 그림)·머리 숙임을 입힌다. 컷 표는 src/motion/*.js 의 mo.cuts / mo.ready
+function cutLayout(w, x, gy, pose, cut, breath = 1) {
+  const C = PX / 2;
+  const xx = Math.round(x + (pose.dx || 0) + (cut.dx || 0));
+  const base = gy - (pose.lift || 0) - (cut.lift || 0);
+  const lg = LEG_CUT[cut.legs] || LEG_CUT.stand;
+  const bodyBottom = base - (lg.rows.length - lg.hip[1]) * C;            // 다리 그림 높이만큼 몸이 뜬다 (런지면 낮아진다)
+  const sy = (cut.sy || 1) * breath, skew = cut.skew || 0, sx = cut.sx || 1;
+  const r = heroRigRaw(w, xx, bodyBottom, { sy, skew, sx, mode: 'fight' }, null);
+  const fa = ARM_CUT[cut.fa] || ARM_CUT.rest, ba = ARM_CUT[cut.ba] || ARM_CUT.bRest;
+  const hand = [r.fs[0] + fa.vec[0] * C, r.fs[1] + fa.vec[1] * C];
+  return { x: xx, base, lg, bodyBottom, sy, skew, sx, fs: r.fs, bs: r.bs, fa, ba, hand, wa: cut.wa };
+}
+// 칸 묶음 그리기: 외곽선(4방향 이웃이 빈 칸)을 먼저, 그 위에 색. cells: Map 'i,j' → 색, 칸 (i, j) 의 가운데가 (ox + i·C, oy + j·C)
+function drawCellSet(g, cells, ox, oy, outlined = true) {
+  const C = PX / 2;
+  const put = (i, j) => { const x0 = Math.round(ox + (i - 0.5) * C), x1 = Math.round(ox + (i + 0.5) * C), y0 = Math.round(oy + (j - 0.5) * C), y1 = Math.round(oy + (j + 0.5) * C); g.fillRect(x0, y0, x1 - x0, y1 - y0); };
+  if (outlined) {
+    g.fillStyle = PAL['#'];
+    const done = new Set();
+    for (const key of cells.keys()) {
+      const [i, j] = key.split(',').map(Number);
+      for (const [a, b] of [[i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]]) {
+        const k2 = a + ',' + b;
+        if (!cells.has(k2) && !done.has(k2)) { done.add(k2); put(a, b); }
+      }
+    }
+  }
+  for (const [key, col] of cells) { const [i, j] = key.split(',').map(Number); g.fillStyle = col; put(i, j); }
+}
+// 칼: 손 칸을 가운데로 하는 격자에 픽셀 직선(긴 축으로 한 칸씩)으로 날을 찍는다 — 날은 두 줄(빛 쪽 줄 밝게, 다른 줄 그늘), 손 앞에 가로 가드, 끝은 흰 한 칸
+function drawBladeCells(g, w, h, ang, len, white = false) {
+  const cs = Math.cos(ang), sn = Math.sin(ang), L = len * 2, cells = new Map(), m = Math.max(Math.abs(cs), Math.abs(sn));
+  const bladeC = white ? '#ffffff' : w.blade, shadeC = white ? '#ffffff' : spriteShadeCol(w.blade, -1), hiltC = white ? '#ffffff' : w.hilt;
+  const xMajor = Math.abs(cs) >= Math.abs(sn), off = xMajor ? [0, -1] : [-1, 0];          // 빛 쪽 줄: 가로 날은 위, 세로 날은 왼쪽
+  const line = (d0, d1, f) => {                                                           // 손에서 d0~d1 칸 거리 구간을 긴 축으로 한 칸씩
+    const n = Math.round((d1 - d0) * m);
+    for (let k = 0; k <= n; k++) { const d = d0 + (d1 - d0) * (n ? k / n : 0); f(Math.round(cs * d), Math.round(sn * d), k, n); }
+  };
+  line(-3, -1, (i, j) => cells.set(i + ',' + j, white ? '#ffffff' : '#4a3220'));          // 손잡이 (주먹 뒤로 조금)
+  line(2.2, L + 1, (i, j) => {
+    cells.set(i + ',' + j, shadeC);
+    if (w.wide) cells.set((i - off[0]) + ',' + (j - off[1]), shadeC);
+    const k2 = (i + off[0]) + ',' + (j + off[1]); if (!cells.has(k2) || cells.get(k2) === shadeC) cells.set(k2, bladeC);
+  });
+  { const ti = Math.round(cs * (L + 2)), tj = Math.round(sn * (L + 2)); cells.set(ti + ',' + tj, '#ffffff'); }
+  const gi = cs * 1.6, gj = sn * 1.6;                                                       // 가드: 날과 직각으로 다섯 칸
+  for (let q = -2; q <= 2; q++) cells.set(Math.round(gi - sn * q) + ',' + Math.round(gj + cs * q), hiltC);
+  if (w.glow && !white) {
+    g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = w.glow; g.globalAlpha *= 0.3; g.lineWidth = PX * 2.5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(h[0] + cs * PX * 1.5, h[1] + sn * PX * 1.5); g.lineTo(h[0] + cs * (L + 1) * PX / 2, h[1] + sn * (L + 1) * PX / 2); g.stroke(); g.restore();
+  }
+  drawCellSet(g, cells, h[0], h[1], true);
+}
+// 스미어: 앞 컷에서 이 컷까지 칼이 지나온 자리 중 뒤쪽(t0 부터)·바깥쪽(칼 길이 45% 부터)을 꽉 채운 초승달로 찍는다.
+//  새 쪽 절반은 흰색, 옛 쪽은 무기 잔상 색으로 옅어진다. tipOnly 면 칼끝 자리만 (찌르기 줄)
+function drawCutSmear(g, w, h0, a0, h1, a1, len, tipOnly = false) {
+  const C = PX / 2, L = len * 2, age = new Map();
+  const t0 = tipOnly ? 0 : 0.4, uMin = tipOnly ? L - 2 : L * 0.45;
+  const span = Math.abs(a1 - a0) * (L + 2) + Math.hypot(h1[0] - h0[0], h1[1] - h0[1]) / C, N = Math.max(12, Math.ceil(span * 2.5));
+  for (let s = 0; s <= N; s++) {
+    const t = t0 + (1 - t0) * s / N, hx = h0[0] + (h1[0] - h0[0]) * t, hy = h0[1] + (h1[1] - h0[1]) * t, a = a0 + (a1 - a0) * t;
+    for (let u = uMin; u <= L + 1.5; u += 0.4) {
+      const i = Math.round((hx + Math.cos(a) * u * C - h1[0]) / C), j = Math.round((hy + Math.sin(a) * u * C - h1[1]) / C), k = i + ',' + j;
+      const tt = (t - t0) / (1 - t0);
+      if (!age.has(k) || age.get(k) < tt) age.set(k, tt);
+    }
+  }
+  const cells = new Map(), rgb = w.trail || '255,255,255';
+  for (const [k, t] of age) cells.set(k, t > 0.5 ? 'rgba(255,255,255,0.9)' : `rgba(${rgb},${(0.3 + 0.55 * t / 0.5).toFixed(2)})`);
+  drawCellSet(g, cells, h1[0], h1[1], false);
+}
+// 망토 (cape 형): 목 뒤에 붙어 아래로 늘어지고, flow(0~1)만큼 목을 축으로 뒤·위로 젖혀 날린다. 뒷자락은 부풀고 아랫단은 들쭉날쭉
+function drawCapeCells(g, color, nx, ny, bodyBottom, flow, white = false) {
+  const C = PX / 2, th = flow * 1.2, ct = Math.cos(th), st = Math.sin(th);
+  const len = (bodyBottom - ny) / C + 3;                                     // 목에서 아랫단까지 (칸)
+  const rot = ([px, py]) => [px * ct - py * st, px * st + py * ct];        // 아래(+y)를 뒤(-x)로 젖힌다
+  const poly = [[2, 0.5], [-7, 0.5], rot([-10 - 2.5 * flow, len * 0.5]), rot([-11 - 2 * flow, len]), rot([-7.5, len - 1.4]), rot([-4.5, len]), rot([-1, len - 0.6])];
+  const inside = (x, y) => { let c = false; for (let a = 0, b = poly.length - 1; a < poly.length; b = a++) { const [xa, ya] = poly[a], [xb, yb] = poly[b]; if ((ya > y) !== (yb > y) && x < (xb - xa) * (y - ya) / (yb - ya) + xa) c = !c; } return c; };
+  const xs = poly.map((p) => p[0]), ys = poly.map((p) => p[1]), cells = new Map();
+  const base = white ? '#ffffff' : color, dark = white ? '#ffffff' : spriteShadeCol(color, -1), light = white ? '#ffffff' : spriteShadeCol(color, 1);
+  for (let j = Math.floor(Math.min(...ys)); j <= Math.ceil(Math.max(...ys)); j++) for (let i = Math.floor(Math.min(...xs)); i <= Math.ceil(Math.max(...xs)); i++) {
+    if (!inside(i, j)) continue;
+    const ux = i * ct + j * st, uy = -i * st + j * ct;                      // 젖히기 전 자리: 접힌 주름(가운데 세로 줄)·어깨 쪽 밝은 띠
+    cells.set(i + ',' + j, uy < 2 ? light : (Math.abs(ux + 4.5 + uy * 0.12) < 0.6 || Math.abs(ux + 8 + uy * 0.2) < 0.6) && uy > 3 ? dark : base);
+  }
+  drawCellSet(g, cells, Math.round(nx), Math.round(ny), true);
+}
+function drawHeroCut(g, cid, look, w, pal, x, gy, pose, mo, ci) {
+  const t = pose.t || 0, white = !!pose.flash, C = PX / 2;
+  const cut = ci >= 0 ? mo.cuts[ci] : mo.ready;
+  const breath = ci < 0 ? 1 + 0.012 * Math.sin(t * 2.6) : 1;
+  g.save();
+  g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;
+  if (pose.facing < 0) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0); }
+  const Ly = cutLayout(w, x, gy, pose, cut, breath);
+  const opt = { flash: white, tint: null };
+  const legC = pal.l || PAL.l, bootC = pal.k || PAL.k;
+  const [armC, fistC] = white ? ['#ffffff', '#ffffff'] : heroArmCols(cid, look, pal);
+  // 몸 그림 (정면/옆/등)과 부위 자리 — 머리·몸통은 코드가 기울인다
+  const view = look.views ? (Ly.sx < 0.86 ? look.views.back : Ly.sx < 0.95 ? look.views.side : null) : null;
+  const P = bodyParts(view || look.body), bodyPx = PX * (look.body.px || 1), chh = bodyPx * Ly.sy, skew = Ly.skew;
+  const pelvisTop = Ly.bodyBottom - P.pelvis.length * chh, neckY = pelvisTop - P.torso.length * chh;
+  const pskew = skew * 0.25, pshift = pskew * (P.pelvis.length - 0.5) * chh, cshift = pshift + skew * (P.torso.length - 0.5) * chh;
+  const hskew = cut.hs ? cut.hs : skew * 0.7, hd = cut.hd || [0, 0];
+  const hdx = hd[0] * PX + cshift, hdy = hd[1] * PX + Math.abs(skew) * 0.5 * PX;
+  const tsx = view ? 1 : Math.min(Ly.sx, 1.04), hsx = view ? 0.9 : Math.min(Ly.sx, 1.04);
+  const top = Ly.bodyBottom - look.body.length * bodyPx * Ly.sy;
+  // 1 망토 (몸 뒤) — 컷마다 펄럭임이 정해져 있고, 전투 대기에선 두 컷으로 살랑인다
+  if (look.cape) {
+    const flow = ci < 0 ? (cut.cape || 0) + 0.06 * (Math.floor(t * 2.5) % 2) : cut.cape || 0;
+    if (look.cape.style === 'cape') drawCapeCells(g, look.cape.color, Ly.x + cshift * 0.9, neckY + 1.5 * C, Ly.bodyBottom, flow, white);
+    else drawCape(g, look.cape, Ly.x, top, Ly.bodyBottom, Ly.base, t, true);
+  }
+  // 2 뒷팔 (한 단계 어둡게) → 3 다리 → 4 골반·가슴·머리
+  drawArmSprite(g, Ly.ba, Ly.bs[0], Ly.bs[1], armC, fistC, -1);
+  drawShoulderCap(g, white ? '#ffffff' : spriteShadeCol(armC, -1), Ly.bs);
+  drawLegSprite(g, Ly.lg, Ly.x, Ly.bodyBottom, legC, bootC, white);
+  drawSprite(P.pelvis, pal, Ly.x, Ly.bodyBottom, bodyPx, { ...opt, sx: 1, sy: Ly.sy, skew: pskew }, g);
+  drawSprite(P.torso, pal, Ly.x + pshift, pelvisTop, bodyPx, { ...opt, sx: tsx, sy: Ly.sy, skew }, g);
+  drawSprite(P.head, pal, Ly.x + hdx, neckY + hdy, bodyPx, { ...opt, sx: hsx, sy: Ly.sy, skew: hskew }, g);
+  if (look.shield) drawShield(g, look.shield, Ly.x - 4 * PX, Ly.bodyBottom - 4 * PX);
+  if (look.halo) drawHalo(g, Ly.x, top, t);
+  // 5 스미어 → 칼 → 앞팔 (손이 칼자루를 덮는다)
+  const hitCut = !!cut.smear;
+  if (cut.smear && ci > 0) {
+    const P0 = cutLayout(w, x, gy, pose, mo.cuts[ci - 1]);
+    drawCutSmear(g, w, P0.hand, P0.wa, Ly.hand, Ly.wa, w.len, cut.smear === 'tip');
+  }
+  if (w.slab || w.motion !== 'swing') drawWeapon(g, w, { fh: Ly.hand, wa: Ly.wa, ext: 0, stretch: hitCut ? 1.12 : 1 });
+  else drawBladeCells(g, w, Ly.hand, Ly.wa, w.len * (hitCut ? 1.12 : 1), white);
+  if (ci >= 0) drawAtkFx(g, w, { fh: Ly.hand, wa: Ly.wa, ext: 0 }, { mo, s: pose.swing });
+  drawArmSprite(g, Ly.fa, Ly.fs[0], Ly.fs[1], armC, fistC, 0);
+  drawShoulderCap(g, armC, Ly.fs);
+  g.restore();
+}
+
 function drawHero(g, id, x, gy, pose) {
   const c = CLASSES[id] || CLASSES.squire;
   const look = c.look, w = WEAPONS[c.weapon], pal = heroPal(c === CLASSES[id] ? id : 'squire');
@@ -2138,6 +2277,15 @@ function drawHero(g, id, x, gy, pose) {
   const sit = pose.mode === 'sit', walking = pose.mode === 'walk';
   const step = Math.floor((pose.walkT || 0) * 8) % SPR.knightLegs.length;
   const opt = { flash: !!pose.flash, tint: pose.tint || null };
+  // 컷 모드 (절충안): 이 무기의 평타 모션에 cuts 가 있으면 평타와 전투 대기를 컷으로 그린다 (스킬 자세·걷기·앉기는 아래 뼈대 그대로)
+  if (pose.mode === 'fight' && pose.wa == null && pose.pull == null && pose.skew == null && pose.sy == null && pose.sx == null && !pose.tint && !pose.onlyWeapon && look.body.px) {
+    const moC = pose.swing >= 0 ? heroAtkOf(w, pose.combo) : (HERO_ATK[w.id] || [])[0];
+    if (moC && moC.cuts) {
+      const ci = pose.swing >= 0 ? Math.max(0, moC.cuts.findIndex((k) => pose.swing < k.until)) : -1;
+      drawHeroCut(g, c === CLASSES[id] ? id : 'squire', look, w, pal, x, gy, pose, moC, ci);
+      return;
+    }
+  }
   // 평타 중이면 몸(dx·skew·sy)과 손·무기를 평타 자세로 (스킬 자세가 있으면 스킬이 우선)
   // combo: 몇 번째 평타인지 — 연속기 직업은 이걸로 모션을 번갈아 고른다
   // 평타는 프레임 바이 프레임: 한 번 휘두르기를 mo.frames(기본 8)컷으로 끊어, 컷 가운데 시점의 자세를 컷 내내 든다 (홀드) — 예비동작은 길게, 타격은 한 컷, 팔로스루 한 컷
@@ -2165,24 +2313,6 @@ function drawHero(g, id, x, gy, pose) {
   if (pose.facing < 0) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0); }
   const x0 = x;
   x += Math.round(pose.dx || 0);          // 스킬 돌진·평타 디딤 (바라보는 쪽으로)
-
-  // 전신 프레임 모드 (3번 방식): look.frames = { idle: 프레임, atk: [[{ sprite, until, anchor }, …] 동작마다] } 가 있으면
-  // 평타·대기는 뼈대 대신 그 프레임을 컷으로 재생한다 (스킬 자세·걷기·앉기는 그대로 뼈대). sprite 는 46×30 손도트(외곽선 포함), anchor 는 몸 중심 칸
-  const FRM = look.frames;
-  if (FRM && !sit && !walking && pose.wa == null && pose.pull == null && !pose.tint && !pose.onlyWeapon) {
-    const base = gy - (pose.lift || 0), fpal = FRM.pal || pal;
-    let fr = FRM.idle;
-    if (pose.mode === 'fight' && pose.swing >= 0 && FRM.atk && FRM.atk.length) {
-      const list = FRM.atk[(pose.combo || 0) % FRM.atk.length];
-      fr = list.find((f) => pose.swing < f.until) || list[list.length - 1];
-    }
-    if (fr) {
-      const C = PX * (fr.sprite.px || 1), cx = x + (fr.sprite[0].length / 2 - (fr.anchor != null ? fr.anchor : fr.sprite[0].length / 2)) * C;
-      drawSprite(fr.sprite, fpal, cx, base, C, opt, g);
-      g.restore();
-      return;
-    }
-  }
 
   if (sit) {
     drawRestingWeapon(g, w, x - 17, gy);

@@ -158,3 +158,325 @@ function drawArmSprite(g, p, sx, sy, armC, fistC, shade = 0) {
   }
   return [sx + p.vec[0] * C, sy + p.vec[1] * C];
 }
+
+// ── 평타 컷 레이어 (절충안, dev/cut-sprites-gen.py 가 굽는다 — 이 블록 안은 손으로 고쳐도 되지만, 다시 구우면 FIX 에 적은 칸만 남는다) ──
+// ARM_CUT: 앞팔·뒷팔 그림 { sh 어깨 칸, hd 손 칸, rows } · LEG_CUT: 두 다리 그림 { hip 골반 아래 가운데(칸 모서리), g 땅까지 칸, rows }
+//  다리 글자: l/m/n 앞다리(가운데·빛·그늘) · p/q 뒷다리 · k/K 앞 부츠 · j 뒷 부츠
+const ARM_CUT = {
+  rest: { sh: [1.5, 0.5], hd: [5, 9], rows: [
+    '.LA....',
+    'LAAa...',
+    '.AAa...',
+    '.AAa...',
+    '.AAa...',
+    '.AAa...',
+    '.AAA...',
+    '..AAA..',
+    '...ASSS',
+    '....SSS',
+    '....sSs',
+  ] },
+  raise: { sh: [0.5, 0.5], hd: [5, 1], rows: [
+    'LA..SSS',
+    'AAA.SSS',
+    'AAALsSs',
+    'AAAAa..',
+    'LALAa..',
+    'LAAa...',
+    '.Aa....',
+  ] },
+  windup: { sh: [1.5, 12.5], hd: [1, 1], rows: [
+    'SSS...',
+    'SSS...',
+    'sSs...',
+    '.AAA..',
+    '..AAA.',
+    '...AA.',
+    '...AAA',
+    '...LAa',
+    '...LAa',
+    '..LAa.',
+    '..LAa.',
+    '.LAa..',
+    '.LAa..',
+    '.Aa...',
+  ] },
+  strike: { sh: [0.5, 0.5], hd: [10, 5], rows: [
+    'LAL.........',
+    'AAAAL.......',
+    '.AAAAL......',
+    '..aAAAAL....',
+    '....aAAAASSS',
+    '.......aASSS',
+    '.........sSs',
+  ] },
+  follow: { sh: [0.5, 0.5], hd: [8, 8], rows: [
+    'LAA.......',
+    'AAA.......',
+    'AAAA......',
+    '.AAA......',
+    '..AAA.....',
+    '..AAAA....',
+    '...AAAAL..',
+    '.....AASSS',
+    '.......SSS',
+    '.......sSs',
+  ] },
+  recover: { sh: [0.5, 0.5], hd: [5, 8], rows: [
+    'LA.....',
+    'AAa....',
+    'AAA....',
+    'AAA....',
+    'LAA....',
+    'LAA....',
+    '.AAA...',
+    '.aAASSS',
+    '...ASSS',
+    '....sSs',
+  ] },
+  lowBack: { sh: [5.5, 0.5], hd: [1, 9], rows: [
+    '....LLA',
+    '....LAa',
+    '...LAAa',
+    '..LLAa.',
+    '..LAa..',
+    '..Aa...',
+    '.LAa...',
+    '.LA....',
+    'SSS....',
+    'SSS....',
+    'sSs....',
+  ] },
+  scoop: { sh: [0.5, 5.5], hd: [10, 1], rows: [
+    '.........SSS',
+    '........LSSS',
+    '.......LAsSs',
+    '.....LLAa...',
+    '.LLLLLAa....',
+    'LAAAAAa.....',
+    'AAaaa.......',
+  ] },
+  high: { sh: [0.5, 11.5], hd: [4, 1], rows: [
+    '...SSS',
+    '...SSS',
+    '...sSs',
+    '..LAa.',
+    '..LAa.',
+    '..LA..',
+    '..AA..',
+    '.LAa..',
+    '.LAa..',
+    'LAA...',
+    'LAa...',
+    'LAa...',
+    'Aa....',
+  ] },
+  chamber: { sh: [3.5, 0.5], hd: [5, 6], rows: [
+    '..LLA..',
+    '..LAa..',
+    '.LAAa..',
+    'LAAa...',
+    'LAL....',
+    'AAAASSS',
+    '..aASSS',
+    '....sSs',
+  ] },
+  thrust: { sh: [0.5, 0.5], hd: [11, 1], rows: [
+    'LALLLLLLL.SSS',
+    'AAAAAAAAAASSS',
+    '.aaaaaaaaasSs',
+  ] },
+  bRest: { sh: [1.5, 0.5], hd: [1, 11], rows: [
+    '.LA',
+    'LAA',
+    'LAA',
+    'LAA',
+    'LAa',
+    'LAa',
+    'LAa',
+    'LAa',
+    'LA.',
+    'LA.',
+    'SSS',
+    'SSS',
+    'sSs',
+  ] },
+  bGuard: { sh: [0.5, 0.5], hd: [6, 8], rows: [
+    'LA......',
+    'AAA.....',
+    'AAA.....',
+    '.AAA....',
+    '.AAA....',
+    '..AAA...',
+    '..AAAA..',
+    '...AASSS',
+    '.....SSS',
+    '.....sSs',
+  ] },
+  bFling: { sh: [8.5, 0.5], hd: [1, 7], rows: [
+    '.......LLA',
+    '.....LLAAa',
+    '....LLAAa.',
+    '...LAAaa..',
+    '..LAaa....',
+    '.LAa......',
+    'SSS.......',
+    'SSS.......',
+    'sSs.......',
+  ] },
+  bFlingHigh: { sh: [9.5, 0.5], hd: [1, 5], rows: [
+    '.......LLLA',
+    '.....LLAAAa',
+    '...LLAAaaa.',
+    '..LLAaa....',
+    'SSSAa......',
+    'SSS........',
+    'sSs........',
+  ] },
+  bRecover: { sh: [3.5, 0.5], hd: [1, 10], rows: [
+    '...LA',
+    '..LAA',
+    '..LAa',
+    '..LAa',
+    '..AA.',
+    '.LAa.',
+    '.LAa.',
+    '.LA..',
+    '.AA..',
+    'SSS..',
+    'SSS..',
+    'sSs..',
+  ] },
+  bPoint: { sh: [0.5, 0.5], hd: [9, 3], rows: [
+    'LALL.......',
+    'AAAALL.....',
+    '.aAAAAAASSS',
+    '....aaaaSSS',
+    '........sSs',
+  ] },
+  bBack: { sh: [9.5, 3.5], hd: [1, 1], rows: [
+    'SSS........',
+    'SSSLLLL....',
+    'sSsAAAAALL.',
+    '....aaAAAAA',
+    '.......aaAa',
+  ] },
+};
+const LEG_CUT = {
+  stand: { hip: [6, 2], g: 7.0, rows: [
+    '.ppp....mll..',
+    '.ppq....mln..',
+    '.ppq....mll..',
+    '.ppq....mlln.',
+    '.ppq....mlln.',
+    '.ppq....mlln.',
+    '.ppq....mll..',
+    'jjjjj...KKKkk',
+    'jjjjj...KKKkk',
+  ] },
+  set: { hip: [7, 2], g: 7.0, rows: [
+    '..ppp....mll...',
+    '..ppq....mlln..',
+    '.pppq....mlln..',
+    '.pppq....mlln..',
+    '.pppq.....mll..',
+    '.ppqq.....mlln.',
+    '.ppq......mlln.',
+    'jjjjj.....KKKKk',
+    'jjjjj.....KKKKk',
+  ] },
+  load: { hip: [6, 2], g: 6.5, rows: [
+    '.ppp....mll.....',
+    '.pppq...mlll....',
+    '.pppp...lllll...',
+    '..pppp...lllln..',
+    '..pppq....llll..',
+    '.pppqq.....mll..',
+    'jjjj.......mKKkk',
+    'jjjj........KKkk',
+    'jjjj........KKkk',
+  ] },
+  lunge: { hip: [10, 2], g: 5.5, rows: [
+    '.....ppp....mlll.....',
+    '....pppq....mlllll...',
+    '...ppppq....lllllln..',
+    '..ppppq......llllln..',
+    '.ppppq..........mll..',
+    'jjjjq...........KKKkk',
+    'jjjj............KKKkk',
+    'jjjj............KKKkk',
+  ] },
+  lungeDeep: { hip: [12, 2], g: 5.0, rows: [
+    '.......ppp....mllll.....',
+    '......pppq....mllllll...',
+    '....ppppqq....llllllln..',
+    '...ppppqq.......lllmln..',
+    '.pppppq............mln..',
+    'jjjjj..............KKKkk',
+    'jjjjj..............KKKkk',
+  ] },
+  crouch: { hip: [6, 2], g: 6.0, rows: [
+    '.ppp....mll...',
+    '.pppp...mllll.',
+    '.ppppp..llllll',
+    '..pppp...lllln',
+    '..pppq.....mln',
+    'ppppq.....mlln',
+    'jjjj......KKKK',
+    'jjjj......KKKK',
+  ] },
+  rise: { hip: [8, 2], g: 7.5, rows: [
+    '...ppp....mll....',
+    '...ppq....mlln...',
+    '...ppq....mlln...',
+    '...ppp....mlll...',
+    '..pppp.....mlln..',
+    'pppppq.....mlln..',
+    'jjjqq.......mln..',
+    'jjj.........KKKkk',
+    '............KKKkk',
+    '............KKKkk',
+  ] },
+  recover: { hip: [7, 2], g: 6.8, rows: [
+    '..ppp....mll...',
+    '..ppq....mlln..',
+    '..ppq....mlln..',
+    '..ppq....mlll..',
+    '.pppq.....mlln.',
+    '.pppq.....mlln.',
+    '.ppq.......mln.',
+    'jjjjj......KKKk',
+    'jjjjj......KKKk',
+  ] },
+};
+// ── 평타 컷 레이어 끝 ──
+
+// 컷 레이어 정리: 팔은 ARM_POSES 와 같은 규칙(외곽선·닻 +1·어깨→손 벡터), 다리는 아래쪽 외곽선 없이(발이 땅에 닿게) 위·옆만 두른다
+for (const k in ARM_CUT) {
+  const p = ARM_CUT[k], w = Math.max(...p.rows.map((r) => r.length));
+  p.name = k;
+  p.rows = outline(p.rows.map((r) => r.padEnd(w, '.')));
+  p.sh = [p.sh[0] + 1, p.sh[1] + 1]; p.hd = [p.hd[0] + 1, p.hd[1] + 1];
+  p.vec = [p.hd[0] - p.sh[0], p.hd[1] - p.sh[1]];
+}
+for (const k in LEG_CUT) {
+  const p = LEG_CUT[k], w = Math.max(...p.rows.map((r) => r.length));
+  p.rows = outline(p.rows.map((r) => r.padEnd(w, '.')), false);
+  p.hip = [p.hip[0] + 1, p.hip[1] + 1];
+}
+// 두 다리 그림을 골반 아래 가운데(hx, hy)에 붙여 그린다. legC 다리 색, bootC 부츠 색, white: 피격 번쩍임
+function drawLegSprite(g, p, hx, hy, legC, bootC, white = false) {
+  const C = PX / 2, sh = spriteShadeCol, back = sh(legC, -1);
+  const col = white ? null : { l: legC, m: sh(legC, 1), n: back, p: back, q: sh(back, -1), k: bootC, K: sh(bootC, 1), j: sh(bootC, -1), '#': PAL['#'] };
+  const ox = hx - p.hip[0] * C, oy = hy - p.hip[1] * C;
+  for (let r = 0; r < p.rows.length; r++) {
+    const row = p.rows[r];
+    for (let c = 0; c < row.length; c++) {
+      const ch = row[c];
+      if (ch === '.') continue;
+      g.fillStyle = white ? (ch === '#' ? PAL['#'] : '#ffffff') : col[ch] || legC;
+      const x0 = Math.round(ox + c * C), x1 = Math.round(ox + (c + 1) * C), y0 = Math.round(oy + r * C), y1 = Math.round(oy + (r + 1) * C);
+      g.fillRect(x0, y0, x1 - x0, y1 - y0);
+    }
+  }
+}
