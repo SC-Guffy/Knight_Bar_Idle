@@ -27,6 +27,16 @@ const WEAPONS = {
   frostStaff:  { name: '서리 지팡이', kind: 'ranged', range: 175, targets: 1, shots: 1, glow: '#9fe8ff',
     staff: { len: 8, wood: '#3f6f9a', head: '#e8f6ff', orb: '#9fe8ff', glowRgb: '159,232,255' },
     arrow: { speed: 560, color: '#e8f8ff', shape: 'ice', rgb: '159,232,255' } },
+  // ── 새 2차 (2026-10 추가): 대검전사·랜서·석궁사수·뇌전술사 ──
+  // wide: 날이 두 칸 두께인 양손 대검 (world.js drawBlade) · lance: 원뿔 창날 + 손 보호판 (drawPole) · crossbow: 가로로 든 석궁 (drawCrossbow, pull 은 시위를 당긴 거리)
+  // splash.max: 번지는 적 수 상한 · splash.arc: 맞은 적에서 다음 적으로 번개 줄이 튄다 (world.js 화살 처리). arrow.shape 'bolt' 는 지팡이 끝에서 대상까지 꺾인 번개 줄
+  greatsword:  { name: '대검',   kind: 'melee',  motion: 'swing',  range: 20, targets: 3, len: 13, wide: true, blade: '#d8dde8', hilt: '#7a2a1a', trail: '255,140,90', glow: '#ff8a5c' },
+  lance:       { name: '돌격창', kind: 'melee',  motion: 'thrust', range: 32, targets: 2, len: 16, lance: true, shaft: '#7a5a3a', tip: '#e8edf5', trail: '200,225,255', glow: '#9fd8ff' },
+  ballista:    { name: '거대 석궁', kind: 'ranged', range: 200, targets: 1, shots: 1, size: 14, crossbow: true, wood: '#5a3a1e', steel: '#9a9aa6',
+    arrow: { speed: 900, color: '#e8d9b0', trail: '230,210,160', bolt: true } },
+  stormStaff:  { name: '뇌전 지팡이', kind: 'ranged', range: 165, targets: 1, shots: 1, glow: '#b7e3ff', splash: { radius: 70, mult: 0.4, max: 2, arc: true },
+    staff: { len: 8, wood: '#2a2a44', head: '#ffe066', orb: '#b7e3ff', glowRgb: '183,227,255' },
+    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '183,227,255' } },
   // ── 3차 ──
   infernoStaff: { name: '겁화의 지팡이', kind: 'ranged', range: 170, targets: 1, shots: 1, splash: { radius: 52, mult: 0.55 }, glow: '#ff3b1f',
     staff: { len: 9, wood: '#2a0e08', head: '#ffd257', orb: '#ff3b1f', glowRgb: '255,80,30' },
@@ -247,6 +257,71 @@ const BODY = {
     '.rRRcccRRr.',
     '.rRRRcRRRr.',
     '.rRRRRRRRr.',
+    '..bbbcbbb..',
+    '.rRRRRRRRr.',
+  ],
+  // ── 새 2차 ──
+  // 대검전사: 투구 없이 붉은 머리띠, 양어깨를 덮는 넓은 갑옷
+  greatswordsman: [
+    '...........',
+    '...nnnnn...',
+    '..hHHHHHh..',
+    '..hHHHHHh..',
+    '..hHvvvvh..',
+    '..hHHHHHh..',
+    '...HHHHH...',
+    'aaAAAAAAAaa',
+    'aAAyAAAyAAa',
+    '.aAAAyAAAa.',
+    '.aAAAAAAAa.',
+    '..bbbybbb..',
+    '..aAAAAAa..',
+  ],
+  // 랜서: 깃털 장식의 닫힌 면갑 투구 (눈 틈만 보인다)
+  cavalier: [
+    '....rrr....',
+    '...rrrrr...',
+    '...hhhhh...',
+    '..hHHHHHh..',
+    '..hHvvvvh..',
+    '..hhhhhhh..',
+    '...hhhhh...',
+    '..aAAAAAa..',
+    '.aAAyAyAAa.',
+    '.aAAAyAAAa.',
+    '.aAAAAAAAa.',
+    '..bbbybbb..',
+    '..aAAAAAa..',
+  ],
+  // 석궁사수: 두건 + 고글 + 얼굴 가리개, 가슴에 비스듬한 탄띠
+  arbalest: [
+    '...........',
+    '....ggg....',
+    '...gGGGg...',
+    '..gGGGGGg..',
+    '..gGGmeme..',
+    '..gGGmmmm..',
+    '...gGmmm...',
+    '..gLLLLLg..',
+    '.gLyLLLLLg.',
+    '.gLLyLLLLg.',
+    '.gLLLyLLLg.',
+    '..bbbbbbb..',
+    '.gLLLLLLLg.',
+  ],
+  // 뇌전술사: 모자 끝에 번개 장식, 로브에 지그재그 번개 무늬
+  electromancer: [
+    '.....c.....',
+    '....cPc....',
+    '...PPcpp...',
+    '..ppppppp..',
+    '.ppycycypp.',
+    '...sesss...',
+    '...sssss...',
+    '..rRRcRRr..',
+    '.rRRcRcRRr.',
+    '.rRRRcRRRr.',
+    '.rRRcRRRRr.',
     '..bbbcbbb..',
     '.rRRRRRRRr.',
   ],
@@ -477,6 +552,49 @@ const CLASSES = {
       body: BODY.cryomancer, fx: '#9fe8ff',
       pal: { P: '#e8f6ff', p: '#8fbfe0', c: '#5ad1ff', y: '#ffffff', s: '#f0d8e0', e: '#1b6fd1', r: '#3f6f9a', R: '#8fbfe0', b: '#1b3f6a', l: '#3f6f9a', k: '#1b3f6a' },
       cape: { style: 'cloak', color: '#1b3f6a' },
+    },
+  },
+
+  // ── 새 2차 (계열마다 세 번째 갈래, 2026-10 추가). 3차는 아직 없다 — 트리는 여기서 끝난다 ──
+  greatswordsman: {
+    tier: 2, from: 'swordsman', name: '대검전사', icon: '🪓', weapon: 'greatsword',
+    mods: { atk: 2.9, hp: 1.75, aspd: 0.75, crit: 0.08, critMult: 0.3 },
+    desc: '양손 거대 대검. 느리지만 한 번 휘두르면 앞의 적 셋이 한꺼번에 갈라진다.',
+    look: {
+      body: BODY.greatswordsman, fx: '#ff8a5c',
+      pal: { n: '#e0303a', h: '#3a2a22', H: '#f0c29a', v: '#1b1d27', a: '#5a3a2a', A: '#8c5a3a', y: '#c9c2b4', b: '#2a1a12', l: '#4a4e5a', k: '#2a1a12' },
+      cape: { style: 'cape', color: '#7a2a1a' },
+    },
+  },
+  cavalier: {
+    tier: 2, from: 'lancer', name: '랜서', icon: '🐎', weapon: 'lance',
+    mods: { atk: 2.3, hp: 2.0, aspd: 0.95, crit: 0.08, guard: 0.2 },
+    desc: '돌격창과 방패. 받는 피해가 줄고, 돌격하면 일직선의 적이 쓰러진다.',
+    look: {
+      body: BODY.cavalier, fx: '#9fd8ff',
+      pal: { r: '#e0443c', h: '#7f8a9c', H: '#d8dde8', v: '#1b1d27', a: '#2f4f8a', A: '#5b82d6', y: '#ffd257', b: '#3a2a1a', l: '#7f8a9c', k: '#3a3f4c' },
+      cape: { style: 'cape', color: '#2f4f8a' },
+      shield: { face: '#d8dde8', rim: '#3a5a9e', emblem: '#e0443c' },
+    },
+  },
+  arbalest: {
+    tier: 2, from: 'ranger', name: '석궁사수', icon: '🔩', weapon: 'ballista',
+    mods: { atk: 3.0, hp: 1.45, aspd: 0.62, crit: 0.14, critMult: 0.4 },
+    desc: '기사만 한 거대 석궁. 아주 느리지만 한 발이 포탄처럼 무겁다.',
+    look: {
+      body: BODY.arbalest, fx: '#ffb86b',
+      pal: { g: '#3a2a1e', G: '#5a4030', m: '#2a2a2a', e: '#ffb86b', L: '#4a3a2a', y: '#c9a227', b: '#2a1a10', l: '#3a3028', k: '#1e1810' },
+      cape: { style: 'cloak', color: '#3a2a1e' },
+    },
+  },
+  electromancer: {
+    tier: 2, from: 'mage', name: '뇌전술사', icon: '⚡', weapon: 'stormStaff',
+    mods: { atk: 2.3, hp: 1.1, aspd: 1.2, crit: 0.16 },
+    desc: '번개를 쏜다. 맞은 적에서 둘에게 더 튀고, 빠르고 치명타가 잦다.',
+    look: {
+      body: BODY.electromancer, fx: '#b7e3ff',
+      pal: { P: '#3a3a6a', p: '#26264a', c: '#ffe066', y: '#b7e3ff', s: '#f0c29a', e: '#ffe066', r: '#26264a', R: '#3a3a6a', b: '#1a1a30', l: '#26264a', k: '#1a1a30' },
+      cape: { style: 'cloak', color: '#1a1a30' },
     },
   },
 
@@ -919,6 +1037,134 @@ const SKILLS = {
     desc: '주변에 눈보라를 일으켜 적을 계속 얼린다.',
   },
 
+  // ── 대검전사: 횡으로 크게 휘두르는 참격 + 땅을 끌며 달리는 돌진 (연출 src/jobs/greatswordsman.js) ──
+  wideCleave: {
+    cls: 'greatswordsman', name: '대검 횡참', icon: '🌊', lv: 60, cd: 9, dur: 1.1, area: 'line', reach: 2,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'exec', name: '단두', icon: '🗡️', full: 0.7, thr: 0.35 },
+    hits: [[0.55, 3.2]],
+    stages: [
+      { dur: 0.8, area: 'all', radius: 30, hits: [[0.5, 1]] },
+      {},
+      { dur: 1.5, hits: [[0.42, 1.4], [0.72, 1.8, { area: 'line', reach: 2.5 }]] },
+      { dur: 2.0, reach: 3, hits: [[0.4, 0.8], [0.52, 0.8], [0.86, 2.4, { area: 'line', reach: 4, launch: true }]] },
+    ],
+    stageName: ['횡베기', '대검 횡참', '왕복 횡참', '단두대'],
+    stageDesc: ['제자리에서 대검을 옆으로 한 번 휘두른다', '크게 돌려 휘둘러 앞쪽 일직선을 가르고, 붉은 참격파가 날아간다', '휘두른 반동으로 돌아서서 한 번 더 — 왕복 두 번 베고 참격파도 둘', '대검이 하늘을 가릴 만큼 커져 — 천천히 들렸다가 단두대처럼 떨어져 앞을 전부 가른다'],
+    desc: '대검을 크게 돌려 휘둘러 앞쪽 일직선의 적을 한꺼번에 가른다.',
+  },
+  ramCharge: {
+    cls: 'greatswordsman', name: '돌진 격돌', icon: '💢', lv: 70, cd: 15, dur: 1.5, area: 'line', reach: 3,
+    right: ['crit', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'stun', name: '격돌', icon: '💫', full: 1.5 },
+    hits: [[0.5, 1.6], [0.72, 2.4, { area: 'all', radius: 50, launch: true }]],
+    stages: [
+      { dur: 1.0, reach: 1.2, hits: [[0.55, 1]] },
+      {},
+      { dur: 1.8, reach: 4, hits: [[0.45, 1.2], [0.56, 0.8, { area: 'line', reach: 4 }], [0.78, 2.0, { area: 'all', radius: 60, launch: true }]] },
+      { dur: 2.3, reach: 6, hits: [[0.42, 0.6], [0.5, 0.6], [0.58, 0.6], [0.86, 2.8, { area: 'all', radius: 90, launch: true }]] },
+    ],
+    stageName: ['어깨 들이받기', '돌진 격돌', '철벽 돌파', '패왕 돌격'],
+    stageDesc: ['짧게 달려들어 어깨로 들이받는다', '대검을 땅에 끌며 불꽃을 튀기고 돌진해 — 올려베어 적을 띄운다', '돌진이 길어지고 지나간 땅이 갈라지며, 마지막에 대검을 내리꽂아 충격파', '잔상을 끌며 하단바를 가로질러 돌진하고 — 거대한 대검을 내리찍어 모두 띄운다'],
+    desc: '대검을 땅에 끌며 돌진해 일직선의 적을 들이받고, 올려베어 띄운다.',
+  },
+
+  // ── 랜서: 방패를 앞세운 돌격 + 방패로 세우는 장벽 (연출 src/jobs/cavalier.js) ──
+  cavalryCharge: {
+    cls: 'cavalier', name: '기병 돌격', icon: '🐎', lv: 60, cd: 10, dur: 1.2, area: 'line', reach: 3,
+    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'first', name: '선봉', icon: '🚩', full: 0.7 },
+    hits: [[0.5, 3.4]],
+    stages: [
+      { dur: 0.8, reach: 1.3, hits: [[0.5, 1]] },
+      {},
+      { dur: 1.7, hits: [[0.38, 1.6], [0.76, 1.8, { area: 'line', reach: 3.5 }]] },
+      { dur: 2.1, reach: 6, hits: [[0.5, 1.2], [0.58, 0.6, { area: 'line', reach: 6 }], [0.66, 0.6, { area: 'line', reach: 6 }], [0.84, 2.2, { area: 'all', radius: 80, launch: true }]] },
+    ],
+    stageName: ['찌르기 돌진', '기병 돌격', '왕복 돌격', '천마 돌격'],
+    stageDesc: ['창을 내리고 짧게 달려들어 찌른다', '방패를 앞세우고 흙먼지를 일으키며 돌진해 일직선을 꿰뚫는다', '지나친 뒤 돌아서서 반대쪽으로 한 번 더 돌진한다', '빛의 천마가 발밑에 나타나 — 하단바를 가로질러 달리며 모두 날려 버린다'],
+    desc: '방패를 앞세우고 돌진해 일직선의 적을 창으로 꿰뚫는다.',
+  },
+  shieldWall: {
+    cls: 'cavalier', name: '방패 벽', icon: '🛡️', lv: 70, cd: 18, dur: 1.0, area: 'all', radius: 40,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'solo', name: '일기토', icon: '⚔️', full: 0.6 },
+    hits: [[0.5, 1.5]], ward: { dur: 4, guard: 0.45, heal: 0.12, tick: 0.35 },
+    stages: [
+      { ward: { dur: 3, guard: 0.4, heal: 0.1 }, hits: [[0.5, 1]] },
+      {},
+      { dur: 1.3, ward: { dur: 4, heal: 0.18 }, hits: [[0.45, 1], [0.7, 1, { area: 'all', radius: 50 }]] },
+      { dur: 1.6, ward: { dur: 5, heal: 0.2, finish: 1.2 }, hits: [[0.4, 0.8], [0.6, 0.8, { area: 'all', radius: 55 }], [0.8, 1.2, { area: 'all', radius: 60, launch: true }]] },
+    ],
+    stageName: ['방패 들기', '방패 벽', '철옹성', '불굴의 성벽'],
+    stageDesc: ['방패를 들어 올려 밀쳐 낸다 — 3초 보호', '방패를 땅에 박아 푸른 장벽을 세운다 — 4초 보호, 안의 적을 계속 밀친다', '방패 강타 두 번, 둘레에 방패 벽이 둘러선다', '거대한 성벽 방패가 솟아 적을 밀어내고 — 끝날 때 무너지며 충격파'],
+    desc: '방패를 땅에 박아 장벽을 세운다. 받는 피해 -45%, 체력 회복, 안의 적은 계속 밀린다.',
+  },
+
+  // ── 석궁사수: 폭약을 단 살 + 탄창을 돌려 쏘는 연사 (연출 src/jobs/arbalest.js) ──
+  blastBolt: {
+    cls: 'arbalest', name: '폭열탄', icon: '💣', lv: 60, cd: 10, dur: 1.1, area: 'all', radius: 50,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'boss', name: '공성', icon: '🏰', full: 0.6 },
+    hits: [[0.6, 3.4]],
+    stages: [
+      { dur: 0.8, area: 'single', hits: [[0.55, 1]] },
+      {},
+      { dur: 1.5, radius: 60, hits: [[0.55, 1.4], [0.68, 1.0, { area: 'all', radius: 60 }], [0.8, 1.0, { area: 'all', radius: 60 }]] },
+      { dur: 2.0, radius: 90, hits: [[0.25, 0.6], [0.8, 2.8, { area: 'all', radius: 110, launch: true }]] },
+    ],
+    stageName: ['무거운 한 발', '폭열탄', '산탄 폭열탄', '공성 폭격'],
+    stageDesc: ['묵직한 쇠뇌 살 한 발', '폭약을 단 살이 맞은 자리에서 터져 주변을 함께 날린다', '살이 공중에서 셋으로 갈라져 차례로 터진다', '거대한 폭탄 살을 하늘 높이 쏘아 올려 — 떨어지며 버섯구름처럼 터진다'],
+    desc: '폭약을 단 쇠뇌 살을 쏜다. 맞은 자리에서 터져 주변 적까지 날린다.',
+  },
+  boltStorm: {
+    cls: 'arbalest', name: '다연장 사격', icon: '🔩', lv: 70, cd: 16, dur: 1.6, area: 'all', radius: 50,
+    right: ['crit', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'refund', name: '재장전', icon: '🔁', full: 0.15 },
+    hits: evenHits(5, 0.3, 0.12, 0.8),
+    stages: [
+      { dur: 0.9, area: 'single', hits: [[0.4, 1], [0.6, 1]] },
+      {},
+      { dur: 2.0, radius: 70, hits: evenHits(8, 0.42, 0.065, 0.6) },
+      { dur: 2.4, radius: 90, hits: [...evenHits(8, 0.3, 0.06, 0.4), [0.86, 2.4, { area: 'line', reach: 6, launch: true }]] },
+    ],
+    stageName: ['이연발', '다연장 사격', '쇠비', '강철 폭풍'],
+    stageDesc: ['살 두 발을 잇달아', '석궁의 탄창을 돌려 다섯 발을 연달아 쏜다', '하늘로 쏜 살이 쇠비가 되어 적 머리 위로 쏟아진다', '석궁이 통째로 돌며 사방에 살을 뿌리고 — 마지막에 거대한 살이 일직선을 꿰어 박는다'],
+    desc: '석궁의 탄창을 돌려 쇠뇌 살 다섯 발을 연달아 쏜다.',
+  },
+
+  // ── 뇌전술사: 적 사이를 건너뛰는 번개 + 하늘에서 떨어지는 벼락 (연출 src/mage/chainLightning.js · thunderstorm.js) ──
+  chainLightning: {
+    cls: 'electromancer', name: '연쇄 번개', icon: '⚡', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 70,
+    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'double', name: '과부하', icon: '⚡', full: 0.3 },
+    hits: [[0.5, 1.4], [0.58, 1.0], [0.66, 1.0]],
+    stages: [
+      { dur: 0.7, area: 'single', hits: [[0.55, 1]] },
+      {},
+      { dur: 1.6, radius: 80, hits: evenHits(5, 0.4, 0.11, 0.7) },
+      { dur: 2.0, radius: 100, hits: [[0.45, 0.6], [0.55, 0.6], [0.65, 0.6], [0.86, 2.2, { area: 'all', radius: 110, launch: true }]] },
+    ],
+    stageName: ['전격', '연쇄 번개', '뇌전 구체', '뇌신의 손'],
+    stageDesc: ['지팡이 끝에서 번개 한 줄기', '번개가 적 사이를 세 번 건너뛴다', '구전(球電)이 떠올라 앞으로 굴러가며 주변에 계속 번개를 튀긴다', '하늘에서 번개로 된 거대한 손이 내려와 — 움켜쥐고 터뜨린다'],
+    desc: '지팡이에서 번개를 쏘아 적 사이를 건너뛰게 한다.',
+  },
+  thunderstorm: {
+    cls: 'electromancer', name: '낙뢰', icon: '🌩️', lv: 70, cd: 15, dur: 1.8, area: 'all', radius: 80,
+    right: ['crit', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
+    spec: { type: 'stun', name: '감전', icon: '💫', full: 1.5 },
+    hits: evenHits(4, 0.4, 0.14, 1.0),
+    stages: [
+      { dur: 1.0, area: 'single', hits: [[0.6, 1]] },
+      {},
+      { dur: 2.2, radius: 100, hits: evenHits(7, 0.35, 0.085, 0.6) },
+      { dur: 2.6, radius: 120, hits: [...evenHits(6, 0.3, 0.07, 0.45), [0.88, 2.4, { area: 'all', radius: 140, launch: true }]] },
+    ],
+    stageName: ['벼락', '낙뢰', '뇌운', '뇌제의 심판'],
+    stageDesc: ['하늘에서 벼락 한 줄기가 떨어진다', '지팡이를 치켜들면 벼락 넷이 차례로 내리꽂힌다', '머리 위에 먹구름이 모여 번개가 비처럼 쏟아진다', '하늘이 하얗게 갈라지고 — 거대한 뇌전 기둥이 내리꽂혀 모두 띄운다'],
+    desc: '지팡이를 치켜들어 적 위에 벼락을 떨어뜨린다.',
+  },
+
   // ── 3차 궁극기: 1차 스킬 자리를 대신한다 (mastOf — 숙련도는 그 1차 스킬 것을 그대로 이어 쓴다) ──
   // 쿨타임이 길고 숙련도로 조금만 준다 (cdSpan: Lv1 60초 → Lv30 40초 — 다른 스킬의 ×3.0 → ×1.2 곡선 대신). 하단바 전체를 쓰는 화면 연출이 있는 한 방. 연출은 src/ult/*.js
   //  ult: true — 시전하는 동안 하단바 전체를 덮는 연출을 허락한다 (skills.js 의 '화면 전체를 쓰지 않는다' 규칙의 예외)
@@ -1138,6 +1384,8 @@ const SKILL_DMG = {
   swordsman: 2.28, lancer: 2.34, ranger: 2.30,
   paladin: 1.92, blademaster: 1.82, marksman: 1.81, arcaneArcher: 1.80,
   dragoon: 1.70, halberdier: 1.75,
+  // 새 2차: 같은 차수 평균에 맞춤 (돌격·보호막처럼 스킬 비중이 큰 랜서는 조금 낮게)
+  greatswordsman: 1.74, cavalier: 1.68, arbalest: 1.76, electromancer: 1.8,
   // 마법사 계열: 같은 차수 다른 직업들의 평균 DPS 에 맞춤 (화염술사는 범위 피해가 있어 0.95배)
   mage: 2.3, pyromancer: 1.8, cryomancer: 1.8,
   // 3차 궁극기: Lv30 이면 그 직업 전체 DPS 를 +25% (Lv1 +17%). 3차 직업 전체는 2차보다 약 1.4배 (궁극기 포함, 공격력 보정으로 맞춤)
@@ -1147,6 +1395,7 @@ const SKILL_DMG = {
 // 계승 스킬이 2차 직업의 전체 DPS 를 Lv1 +5% → Lv30 +10% 만큼 올리도록 직업마다 맞췄다 (스킬 비중이 큰 직업일수록 낮다)
 const INHERIT_DMG = {
   paladin: 0.46, blademaster: 0.77, dragoon: 0.49, halberdier: 0.43, marksman: 0.35, arcaneArcher: 0.74, pyromancer: 0.32, cryomancer: 0.37,
+  greatswordsman: 0.45, cavalier: 0.5, arbalest: 0.38, electromancer: 0.35,
 };
 // 숙련 단계(별). lv 는 그 별을 달 수 있게 되는 레벨 (진화 버튼은 스킬 탭). 이름과, 그 단계에서 바뀌는 모습
 const MASTERY = [
@@ -1318,10 +1567,3 @@ const treeNodesOf = (k) => {
   return treeNodesCache[k.id];
 };
 
-// 트리 화면 배치 순서
-const CLASS_TREE = [
-  ['squire'],
-  ['swordsman', 'lancer', 'ranger', 'mage'],
-  ['paladin', 'blademaster', 'dragoon', 'halberdier', 'marksman', 'arcaneArcher', 'pyromancer', 'cryomancer'],
-  ['archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'],
-];

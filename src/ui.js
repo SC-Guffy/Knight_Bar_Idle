@@ -436,6 +436,15 @@ function classMasked(id) {
   const st = classState(id);
   return st === 'future' || (st === 'closed' && !classPath().includes(CLASSES[id].from));
 }
+// 트리에 보이는 직업: 거쳐 온 길 + 지금 직업 + 그 아래 가지만. 다른 계열(닫힌 직업)은 아예 그리지 않는다.
+//  - 견습 기사(1차 전직 전)는 1차 선택지 4개만 — 2·3차는 1차를 고르고 나서 그 계열만 보인다
+//  - 1차 이후엔 두 단계 앞(다음 선택지 + 그 뒤의 ??? 실루엣)까지
+function classShown(id) {
+  if (classPath().includes(id)) return true;
+  const ahead = CLASSES[id].tier - heroClass().tier;
+  return classPath(id).includes(S.cls) && ahead <= (S.cls === 'squire' ? 1 : 2);
+}
+const classKids = (id) => Object.keys(CLASSES).filter((x) => CLASSES[x].from === id && classShown(x));
 const anyClassReady = () => Object.keys(CLASSES).some(id => CLASSES[id].from === S.cls && classBlocker(id) === '');
 
 function modChips(id) {
@@ -561,9 +570,10 @@ function viewSkill() {
   if (!skillSel || !list.some((x) => x.id === skillSel)) skillSel = (list.find((x) => skillPtsLeft(x.id) > 0) || firstOpen || list[0]).id;
   const camp = S.phase === 'camp';
   // 스킬 고르기 칩: 이름(적용한 모습) · Lv · 남은 포인트
+  // 레드닷은 "이 스킬 트리에 지금 찍을 노드가 있다"일 때만. 비전서는 어느 스킬에나 똑같이 쓸 수 있어서 칩마다 찍으면 정보가 없다
+  // (비전서 쪽은 📖 보유 칩 · 「1권 쓰기」 버튼 점 · 탭 점이 맡는다)
   const chips = `<div class="skchips">${list.map((x) => {
-    const lv = skillLv(x.id), pts = skillPtsLeft(x.id), s = skillLvOf(S.mast[mastKey(x.id)] || 0);
-    const dot = pts > 0 || (s.lv < SKILL_MAX && S.tomes >= s.need - s.have);
+    const lv = skillLv(x.id), pts = skillPtsLeft(x.id), dot = canInvestSkill(x.id);
     return `<button class="skchip${x.id === skillSel ? ' on' : ''}${rd(dot)}" data-action="skill-sel" data-id="${x.id}">${x.icon} ${skillNameAt(x, lv, skillStage(x.id))} <small>Lv ${lv}</small>${pts ? `<span class="pt">⭐ ${pts}</span>` : ''}</button>`;
   }).join('')}</div>`;
 
@@ -644,7 +654,7 @@ function viewChar() {
 // ⚜️ 전직: 평소엔 현재 직업 카드 + 다음 전직 한 줄만 (전직은 세 번뿐인 이벤트라 늘 큰 자리를 차지하지 않는다).
 // 트리는 「펼치기」로, 전직 조건을 채우면(ready) 자동으로 펼쳐진다
 function viewClass() {
-  if (!classSel || !CLASSES[classSel]) {
+  if (!classSel || !CLASSES[classSel] || !classShown(classSel)) {
     const next = Object.keys(CLASSES).filter(id => CLASSES[id].from === S.cls);
     classSel = next.find(id => classBlocker(id) === '') || next[0] || S.cls;
   }
@@ -657,7 +667,11 @@ function viewClass() {
         <span class="cstate">${CLASS_STATE_LABEL[st]}</span>
       </button>`;
   };
-  const tree = CLASS_TREE.map(row => `<div class="crow">${row.map(node).join('')}</div>`).join('');
+  // 중첩 ul/li — 연결선은 index.html .ctree 의 ::before/::after 가 부모→자식으로 잇는다
+  const sub = (x) => { const ks = classKids(x); return `<li>${node(x)}${ks.length ? `<ul>${ks.map(sub).join('')}</ul>` : ''}</li>`; };
+  const tree = `<ul class="ctree">${sub('squire')}</ul>`;
+  const line = classPath()[1];
+  const treeNote = line ? `${CLASSES[line].icon} ${CLASSES[line].name} 계열 — 다른 계열은 닫혔어요` : '1차 직업을 고르면 그 계열의 2·3차 트리가 열려요';
 
   const id = classSel, c = CLASSES[id], st = classState(id), w = WEAPONS[c.weapon];
   const hidden = classMasked(id);
@@ -698,7 +712,7 @@ function viewClass() {
   if (!open) return card;
   return `
     ${card}
-    <div class="tree">${tree}</div>
+    <div class="tree">${tree}<div class="small tnote">${treeNote}</div></div>
     <div class="cdetail">
       <canvas class="cprev big" data-cls="${id}"></canvas>
       <div class="info">

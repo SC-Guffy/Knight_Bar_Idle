@@ -237,7 +237,8 @@ function tickSkills(dt, st) {
   if (w.finish) {
     for (const m of skillTargets({ area: 'all', radius: 56 }, st)) hitMonster(m, w.finish, { kb: 16, color: '#fff3b0' });
     fxVis = MASTERY_VIS[3];
-    if (SKILL_FX.sanctuary.finish) SKILL_FX.sanctuary.finish(w.a);
+    const wfx = w.a && SKILL_FX[w.a.id];          // 보호막 스킬마다 자기 마무리 연출 (성역 성당 붕괴 · 방패 벽 성벽 붕괴)
+    if (wfx && wfx.finish) wfx.finish(w.a);
     fxVis = 1;
   }
 }
