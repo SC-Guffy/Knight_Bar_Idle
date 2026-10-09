@@ -2203,7 +2203,17 @@ function drawHero(g, id, x, gy, pose) {
     if (body && look.cape && capeBehind) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
     // 몸 뒤: 뒷팔 (쌍검은 뒷손 칼까지)
     const bsh = rig.bAuto ? -1 : 0;
-    if (body && rig.bh) { drawArm2(g, armC, rig.bs, rig.bh, rig.be, bsh); if (rig.bAuto) drawFist(g, fistC, rig.bh, bsh); drawShoulderCap(g, bsh ? spriteShadeCol(armC, -1) : armC, rig.bs); }
+    if (body && rig.bh) {
+      if (rig.bAuto) { const bp = armPoseFor(rig.bh[0] - rig.bs[0], rig.bh[1] - rig.bs[1]); drawArmSprite(g, bp, rig.bs[0], rig.bs[1], armC, fistC, -1); }   // 손그림 팔 (limbs.js)
+      else drawArm2(g, armC, rig.bs, rig.bh, rig.be, bsh);                                                                                           // 무기를 함께 쥔 뒷손은 창대·시위를 따라간다
+      drawShoulderCap(g, bsh ? spriteShadeCol(armC, -1) : armC, rig.bs);
+    }
+    // 앞팔은 손그림 자세 중 가장 가까운 것을 고르고, 무기를 그 그림의 손에 맞춰 붙인다 (손 위치를 먼저 확정)
+    const hand0 = rig.grip || rig.fh, fp = armPoseFor(hand0[0] - rig.fs[0], hand0[1] - rig.fs[1]), snapped = [rig.fs[0] + fp.vec[0] * PX / 2, rig.fs[1] + fp.vec[1] * PX / 2];
+    { const ddx = snapped[0] - hand0[0], ddy = snapped[1] - hand0[1];
+      if (rig.grip) rig.grip = snapped;
+      rig.fh = [rig.fh[0] + ddx, rig.fh[1] + ddy];
+      if (rig.bh && !rig.bAuto && w.motion !== 'dual') rig.bh = [rig.bh[0] + ddx, rig.bh[1] + ddy]; }
     if (dual) {
       if (weapon) {
         g.save();
@@ -2245,9 +2255,7 @@ function drawHero(g, id, x, gy, pose) {
     }
     if (body) {
       if (rig.bh && !dual && !rig.bAuto) drawFist(g, fistC, rig.bh);
-      const hand = rig.grip || rig.fh;
-      drawArm2(g, armC, rig.fs, hand, rig.fe);
-      drawFist(g, fistC, hand);
+      drawArmSprite(g, fp, rig.fs[0], rig.fs[1], armC, fistC, 0);
       drawShoulderCap(g, armC, rig.fs);
     }
   }
