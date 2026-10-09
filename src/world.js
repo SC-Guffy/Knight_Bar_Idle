@@ -1785,7 +1785,7 @@ function heroRig(w, x, bodyBottom, pose, atk) {
     const h = r.grip || r.fh, fx = h[0] - r.fs[0], fy = h[1] - r.fs[1];
     const sw = pose.mode === 'walk' && !atk ? Math.sin((pose.walkT || 0) * 8 + Math.PI) : 0;
     // 쉴 땐 몸 옆에 거의 곧게 늘어뜨리고(살짝 뒤), 앞손이 움직이면 그 반대로 균형
-    r.bh = reachClamp(r.bs, [r.bs[0] - 0.6 * PX - fx * 0.35 + sw * 2.6 * PX, Math.max(r.bs[1] + 1.5 * PX, r.bs[1] + 5.2 * PX - fy * 0.3 - Math.abs(sw) * 0.8 * PX)]);
+    r.bh = reachClamp(r.bs, [r.bs[0] + 0.2 * PX - fx * 0.35 + sw * 2.6 * PX, Math.max(r.bs[1] + 1.5 * PX, r.bs[1] + 5.0 * PX - fy * 0.3 - Math.abs(sw) * 0.8 * PX)]);
     r.bAuto = true;                                          // 몸 뒤에 그린다 (주먹까지)
   }
   r.fe = elbowOf(r.fs, r.grip || r.fh);
@@ -1848,8 +1848,8 @@ function elbowOf(s, h) {
   const a = (ARM_UP * ARM_UP - ARM_LOW * ARM_LOW + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, ARM_UP * ARM_UP - a * a));
   const mx = s[0] + dx * a / d, my = s[1] + dy * a / d, nx = -dy / d, ny = dx / d;
   const e1 = [mx + nx * hh, my + ny * hh], e2 = [mx - nx * hh, my - ny * hh];
-  const up = dy < -0.8 * PX;
-  const score = (e) => (up ? -(e[1] - my) + (e[0] - mx) * 0.5 : (e[1] - my) * 0.6 - (e[0] - mx));
+  const up = dy < -0.8 * PX, close = d < ARM_REACH * 0.55;
+  const score = (e) => (up ? -(e[1] - my) + (e[0] - mx) * 0.5 : close ? (e[1] - my) - Math.abs(e[0] - mx) * 0.3 : (e[1] - my) * 0.6 - (e[0] - mx));
   return score(e1) >= score(e2) ? e1 : e2;
 }
 // 손 목표가 팔 길이보다 멀면 닿는 데까지만
@@ -1858,13 +1858,45 @@ function reachClamp(s, h, max = ARM_REACH - 0.3) {
   return d <= max ? h : [s[0] + dx * max / d, s[1] + dy * max / d];
 }
 // 두 마디 팔: 어깨→팔꿈치→손. 팔꿈치에 한 칸 관절
-function drawArm2(g, col, s, h, e) {
-  if (!e) { drawArm(g, col, s, h); return; }
-  drawArm(g, col, s, e);
-  drawArm(g, col, e, h);
-  g.fillStyle = col;
-  g.fillRect(Math.round(e[0] - PX / 2) - 1, Math.round(e[1] - PX / 2) - 1, PX + 2, PX + 2);
+// 살이 있는 팔: 어깨→팔꿈치→손을 두께 있는 띠로, 몸통과 같은 1.5px 도트 격자에 맞춰 칠한다 (윗팔이 굵고 손목으로 갈수록 가늘다).
+// 둘레 외곽선, 위쪽은 밝고 아래쪽은 어둡게(몸통 명암과 같은 규칙), 팔꿈치·어깨는 둥글다. shade -1 이면 뒷팔(전체를 한 단계 어둡게 해 뒤로 물러나 보이게)
+function drawLimb(g, col, s, e, h, shade = 0) {
+  const C = PX / 2, pts = e ? [s, e, h] : [s, h];
+  const rad = [1.35 * C, 1.1 * C, 0.85 * C];                     // 어깨·팔꿈치·손목 반지름 (칸)
+  const minX = Math.min(...pts.map((p) => p[0])) - 3 * C, maxX = Math.max(...pts.map((p) => p[0])) + 3 * C;
+  const minY = Math.min(...pts.map((p) => p[1])) - 3 * C, maxY = Math.max(...pts.map((p) => p[1])) + 3 * C;
+  const i0 = Math.floor(minX / C), i1 = Math.ceil(maxX / C), j0 = Math.floor(minY / C), j1 = Math.ceil(maxY / C);
+  const base = shade < 0 ? spriteShadeCol(col, -1) : col, light = spriteShadeCol(base, 1), dark = spriteShadeCol(base, -1);
+  const cells = [];
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const cx = (i + 0.5) * C, cy = (j + 0.5) * C;
+    let best = Infinity, side = 0, r = 0;
+    for (let k = 0; k + 1 < pts.length; k++) {
+      const a = pts[k], b = pts[k + 1], dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((cx - a[0]) * dx + (cy - a[1]) * dy) / L2));
+      const px = a[0] + dx * t, py = a[1] + dy * t, d = Math.hypot(cx - px, cy - py);
+      const rr = (pts.length === 3 ? [rad[k], rad[k + 1]] : [rad[0], rad[2]]), rt = rr[0] + (rr[1] - rr[0]) * t;
+      if (d - rt < best - r) { best = d; r = rt; side = (cx - px) * dy - (cy - py) * dx > 0 ? 1 : -1; }   // side: 띠의 위/아래
+    }
+    if (best <= r) cells.push([i, j, best > r * 0.45 ? (side * (pts[pts.length - 1][0] >= pts[0][0] ? 1 : -1) < 0 ? 1 : -1) : 0]);
+    else if (best <= r + C) cells.push([i, j, 9]);
+  }
+  const put = (i, j) => { const x0 = Math.round(i * C), x1 = Math.round((i + 1) * C), y0 = Math.round(j * C), y1 = Math.round((j + 1) * C); g.fillRect(x0, y0, x1 - x0, y1 - y0); };
+  g.fillStyle = PAL['#'];
+  for (const [i, j, k] of cells) if (k === 9) put(i, j);
+  for (const kind of [0, 1, -1]) { g.fillStyle = kind === 0 ? base : kind > 0 ? light : dark; for (const [i, j, k] of cells) if (k === kind) put(i, j); }
 }
+// 어깨 덮개: 팔이 갑옷 아래에서 나오게 어깨 위에 둥근 판
+function drawShoulderCap(g, col, s) {
+  const C = PX / 2;
+  g.fillStyle = PAL['#'];
+  g.fillRect(Math.round(s[0] - 2.5 * C), Math.round(s[1] - 2.5 * C), Math.round(5 * C), Math.round(4 * C));
+  g.fillStyle = col;
+  g.fillRect(Math.round(s[0] - 2 * C), Math.round(s[1] - 2 * C), Math.round(4 * C), Math.round(3 * C));
+  g.fillStyle = spriteShadeCol(col, 1);
+  g.fillRect(Math.round(s[0] - 1.5 * C), Math.round(s[1] - 2 * C), Math.round(3 * C), Math.round(C));
+}
+function drawArm2(g, col, s, h, e, shade = 0) { drawLimb(g, col, s, e, h, shade); }
 // 팔: 어깨에서 손까지 도트 한 칸 굵기로 잇는다 (한 경로로 채워서 반투명일 때 겹친 곳이 진해지지 않게)
 function drawArm(g, col, a, b) {
   const dx = b[0] - a[0], dy = b[1] - a[1];
@@ -1874,9 +1906,12 @@ function drawArm(g, col, a, b) {
   for (let i = 0; i <= n; i++) g.rect(Math.round(a[0] + (dx * i) / n - PX / 2), Math.round(a[1] + (dy * i) / n - PX / 2), PX, PX);
   g.fill();
 }
-function drawFist(g, col, p) {
-  g.fillStyle = col;
-  g.fillRect(Math.round(p[0] - 2), Math.round(p[1] - 2), 4, 4);
+// 주먹: 외곽선을 두른 둥근 2×2 칸 (손목보다 조금 굵다)
+function drawFist(g, col, p, shade = 0) {
+  const C = PX / 2, x = Math.round(p[0] - 1.5 * C), y = Math.round(p[1] - 1.5 * C), w = Math.round(3 * C);
+  g.fillStyle = PAL['#']; g.fillRect(x - 1, y, w + 2, w); g.fillRect(x, y - 1, w, w + 2);
+  g.fillStyle = shade < 0 ? spriteShadeCol(col, -1) : col; g.fillRect(x, y, w, w);
+  g.fillStyle = spriteShadeCol(shade < 0 ? spriteShadeCol(col, -1) : col, 1); g.fillRect(x, y, w, 1);
 }
 // 팔 색: 몸통 어깨 줄의 바깥 테두리 색(팔)과 그 안쪽 색(주먹)
 const heroArmCache = {};
@@ -2105,7 +2140,7 @@ function drawHero(g, id, x, gy, pose) {
     const dual = w.motion === 'dual' && w.kind !== 'ranged';
     if (body && look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
     // 몸 뒤: 뒷팔 (쌍검은 뒷손 칼까지)
-    if (body && rig.bh) { drawArm2(g, armC, rig.bs, rig.bh, rig.be); if (rig.bAuto) drawFist(g, fistC, rig.bh); }
+    if (body && rig.bh) { drawArm2(g, armC, rig.bs, rig.bh, rig.be, rig.bAuto ? -1 : 0); if (rig.bAuto) drawFist(g, fistC, rig.bh, -1); }
     if (dual) {
       if (weapon) {
         g.save();
@@ -2139,6 +2174,7 @@ function drawHero(g, id, x, gy, pose) {
       const hand = rig.grip || rig.fh;
       drawArm2(g, armC, rig.fs, hand, rig.fe);
       drawFist(g, fistC, hand);
+      drawShoulderCap(g, armC, rig.fs);
     }
   }
   g.restore();
