@@ -2196,7 +2196,9 @@ function drawHero(g, id, x, gy, pose) {
       drawLeg(g, legC, bootC, hipF, kneeF, footF, 0);
       if (look.body.px) {
         // 골반 / 가슴 / 머리를 따로: 골반은 다리 위에 그대로, 가슴은 기울고(skew), 머리는 더 숙여진다(hskew). 비틀기(sx)는 가슴·머리 폭을 줄인다
-        const P = bodyParts(look.body), skew = pose.skew || 0, hskew = pose.hskew != null ? pose.hskew : skew * 0.7;
+        // 가슴 여러 장(body2.js BODY2_VIEWS): 비틀기 값으로 고른다 — 등이 보이게 돌면 back, 가슴이 열리면 front
+        const view = look.views ? (sx < 0.93 ? look.views.back : sx > 1.04 ? look.views.front : null) : null;
+        const P = bodyParts(view || look.body), skew = pose.skew || 0, hskew = pose.hskew != null ? pose.hskew : skew * 0.7;
         const chh = bodyPx * sy, pelvisTop = bodyBottom - P.pelvis.length * chh, neckY = pelvisTop - P.torso.length * chh;
         const pskew = skew * 0.25, pshift = pskew * (P.pelvis.length - 0.5) * chh;
         const cshift = pshift + skew * (P.torso.length - 0.5) * chh;
