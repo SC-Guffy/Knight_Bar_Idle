@@ -1275,6 +1275,15 @@ function spriteShadeCol(col, dir) {
   spriteShadeCache.set(key, v);
   return v;
 }
+// 고해상 몸통을 머리/몸통 두 조각으로 (목 = 52% 높이). 명암 지도는 통째 계산한 것을 잘라 쓴다 (경계가 밝아지거나 어두워지지 않게)
+function bodyParts(rows) {
+  if (rows._parts) return rows._parts;
+  const neck = Math.round(rows.length * 0.52), sh = spriteShadeMap(rows);
+  const head = rows.slice(0, neck), torso = rows.slice(neck);
+  head.px = rows.px; torso.px = rows.px;
+  head._sh = sh.slice(0, neck); torso._sh = sh.slice(neck);
+  return (rows._parts = { head, torso, neck });
+}
 function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false, tint = null, alpha = 1, sx = 1, sy = 1, skew = 0 } = {}, g = ctx) {
   const h = rows.length, w = rows[0].length;
   const sh = rows.px && !flash && !tint ? spriteShadeMap(rows) : null;
@@ -1735,253 +1744,13 @@ function drawStaff(g, w, hx, hy, ang, charge = 0) {
 // 모션: keys · trail·btrail 무기 끝(뒷손 칼) 잔상 구간 · burst [시점, 'r,g,b', 크기] 무기 끝(활은 활 앞) 섬광
 //       charge [시작, 끝, 'r,g,b'] 시위 당기는 손에 모이는 마력
 // HERO_ATK[무기 id] 는 모션 배열 — 평타마다 차례로 돌아가며 쓴다
-const SWORD_REST = { h: [0, 0], wa: -1.0, dx: 0, skew: 0, sy: 1, lift: 0 };
-const POLE_REST = { h: [0, 0], wa: -1.3, ext: 0, dx: 0, skew: 0, sy: 1, lift: 0 };
-const BOW_REST = { h: [0, 0], bowA: 0, pull: 0, dx: 0, skew: 0, sy: 1, lift: 0 };
+// 공통 키: hs 머리 기울기(+앞으로 숙임, 0 이면 몸 기울기를 따라감) · hd 머리 이동 [x, y] 칸 · sx 몸통 비틀기(가로 줄임, 1 = 정면)
+const SWORD_REST = { h: [0, 0], wa: -1.0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0] };
+const POLE_REST = { h: [0, 0], wa: -1.3, ext: 0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0] };
+const BOW_REST = { h: [0, 0], bowA: 0, pull: 0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0] };
 const atkKeys = (rest, ...mid) => [{ s: 0, ...rest }, ...mid.map((k) => ({ ...rest, ...k })), { s: 1, ...rest }];
-const HERO_ATK = {
-  // ── 견습 기사: 어깨높이에서 투박하게 내려친다 ──
-  sword: [
-    { trail: [0.27, 0.52], keys: atkKeys(SWORD_REST,
-      { s: 0.2,  h: [-1.5, -3.5], wa: -2.1, dx: -1,  skew: -0.06, sy: 1.02, e: 'o' },
-      { s: 0.27, h: [-1.6, -3.6], wa: -2.2, dx: -1,  skew: -0.07, sy: 1.02 },
-      { s: 0.37, h: [1, 0.5],     wa: 0.55, dx: 2.5, skew: 0.1,   sy: 0.96, e: 'i' },
-      { s: 0.56, h: [0.5, 1],     wa: 0.85, dx: 2,   skew: 0.08,  sy: 0.97, e: 'o' }) },
-  ],
-  // ── 검사: 머리 위에서 내려베기 ↔ 아래에서 올려베기 ──
-  knightSword: [
-    { trail: [0.24, 0.56], keys: atkKeys(SWORD_REST,
-      { s: 0.18, h: [-1, -6],     wa: -2.5,  dx: -2,   skew: -0.12, sy: 1.05, e: 'o' },
-      { s: 0.24, h: [-1.2, -6.2], wa: -2.65, dx: -2.5, skew: -0.14, sy: 1.05 },
-      { s: 0.3,  h: [1.5, -4.5],  wa: -1.1,  dx: 2,    skew: 0.05,  sy: 1,    e: 'i' },
-      { s: 0.36, h: [1.5, 0],     wa: 0.75,  dx: 5,    skew: 0.2,   sy: 0.92, e: 'l' },
-      { s: 0.52, h: [1, 1],       wa: 1.1,   dx: 4,    skew: 0.15,  sy: 0.96, e: 'o' }) },
-    { trail: [0.24, 0.56], keys: atkKeys(SWORD_REST,
-      { s: 0.18, h: [-2.2, 1.5],  wa: 2.5,  dx: -2,   skew: -0.1,  sy: 0.94, e: 'o' },
-      { s: 0.24, h: [-2.4, 1.6],  wa: 2.6,  dx: -2.5, skew: -0.12, sy: 0.93 },
-      { s: 0.3,  h: [0.5, 1.5],   wa: 0.6,  dx: 2,    skew: 0.08,  sy: 0.98, e: 'i' },
-      { s: 0.36, h: [1.5, -2.5],  wa: -1.4, dx: 5,    skew: 0.18,  sy: 1.05, e: 'l' },
-      { s: 0.52, h: [1, -3.5],    wa: -1.9, dx: 4,    skew: 0.12,  sy: 1.03, e: 'o' }) },
-  ],
-  // ── 성기사: 뛰어올라 성검을 내리꽂기 ↔ 크게 올려베기, 타격마다 황금 섬광 ──
-  holySword: [
-    { trail: [0.26, 0.58], burst: [0.35, '255,215,90', 1.2], keys: atkKeys(SWORD_REST,
-      { s: 0.2,  h: [-1.2, -6.5], wa: -2.8, dx: -3,   skew: -0.16, sy: 1.07, e: 'o' },
-      { s: 0.26, h: [-1.3, -6.7], wa: -2.9, dx: -3.5, skew: -0.18, sy: 1.08, lift: 3 },
-      { s: 0.31, h: [1.5, -5],    wa: -1.2, dx: 2,    skew: 0.06,  sy: 1,    lift: 5, e: 'i' },
-      { s: 0.36, h: [2, 0.5],     wa: 1.0,  dx: 7,    skew: 0.26,  sy: 0.86, e: 'l' },
-      { s: 0.58, h: [1.5, 1],     wa: 1.15, dx: 6,    skew: 0.2,   sy: 0.92, e: 'o' }) },
-    { trail: [0.24, 0.58], burst: [0.35, '255,215,90', 1], keys: atkKeys(SWORD_REST,
-      { s: 0.18, h: [-2.5, 1.5],  wa: 2.7,  dx: -3,   skew: -0.14, sy: 0.9,  e: 'o' },
-      { s: 0.24, h: [-2.6, 1.6],  wa: 2.75, dx: -3.5, skew: -0.16, sy: 0.88 },
-      { s: 0.3,  h: [0.5, 1.5],   wa: 0.6,  dx: 3,    skew: 0.1,   sy: 0.98, e: 'i' },
-      { s: 0.36, h: [1.5, -3.5],  wa: -1.6, dx: 7,    skew: 0.2,   sy: 1.08, lift: 5, e: 'l' },
-      { s: 0.56, h: [1, -4.5],    wa: -2.1, dx: 6,    skew: 0.12,  sy: 1.04, lift: 2, e: 'o' }) },
-  ],
-  // ── 검성: 앞손 내려베기 → 뒷손 올려베기 ↔ 두 칼을 함께 X자로 교차해 베기, 붉은 섬광 ──
-  dualBlades: [
-    { trail: [0.21, 0.46], btrail: [0.36, 0.64], burst: [0.34, '255,70,70', 0.9], keys: atkKeys({ ...SWORD_REST, b: [0, 0], wb: -0.6 },
-      { s: 0.16, h: [-1, -5.8],   wa: -2.45, b: [-2, 0],     wb: 2.3,  dx: -1,   skew: -0.1,  sy: 1.03, e: 'o' },
-      { s: 0.21, h: [-1.2, -6],   wa: -2.55, b: [-2.2, 0],   wb: 2.4,  dx: -1.5, skew: -0.12, sy: 1.03 },
-      { s: 0.27, h: [1.5, -4],    wa: -1.0,  b: [-2.2, 0.3], wb: 2.4,  dx: 2,    skew: 0.05,  sy: 1,    e: 'i' },
-      { s: 0.34, h: [1.5, 0.5],   wa: 0.8,   b: [-2, 0.5],   wb: 2.4,  dx: 5,    skew: 0.2,   sy: 0.93, e: 'l' },
-      { s: 0.42, h: [1, 1.5],     wa: 1.2,   b: [0.5, -1],   wb: 0.4,  dx: 6,    skew: 0.16,  sy: 0.98, e: 'i' },
-      { s: 0.5,  h: [0.5, 1.5],   wa: 1.25,  b: [1, -3],     wb: -1.3, dx: 6,    skew: 0.12,  sy: 1.03, e: 'l' },
-      { s: 0.62, h: [0.3, 1],     wa: 1.0,   b: [0.8, -2.5], wb: -1.1, dx: 4,    skew: 0.08,  sy: 1,    e: 'o' }) },
-    { trail: [0.24, 0.52], btrail: [0.24, 0.52], burst: [0.35, '255,70,70', 1.2], keys: atkKeys({ ...SWORD_REST, b: [0, 0], wb: -0.6 },
-      { s: 0.18, h: [-1, -6],     wa: -2.5, b: [2.5, -6],  wb: -0.8, dx: -2,   skew: -0.12, sy: 1.06, e: 'o' },
-      { s: 0.24, h: [-1.2, -6.2], wa: -2.6, b: [2.6, -6.2], wb: -0.7, dx: -2.5, skew: -0.14, sy: 1.07, lift: 2 },
-      { s: 0.36, h: [1.5, 0.5],   wa: 0.9,  b: [0, 1.5],   wb: 2.3,  dx: 7,    skew: 0.24,  sy: 0.88, e: 'i' },
-      { s: 0.56, h: [1, 1],       wa: 1.1,  b: [0, 1.5],   wb: 2.4,  dx: 6,    skew: 0.18,  sy: 0.92, e: 'o' }) },
-  ],
-  // ── 창기사: 가슴높이 찌르기 ↔ 위에서 아래로 내려찌르기 (창대가 손 사이로 미끄러져 나간다) ──
-  spear: [
-    { trail: [0.28, 0.6], keys: atkKeys(POLE_REST,
-      { s: 0.22, h: [-2.5, -1.5], wa: -0.15, ext: -2, dx: -3,   skew: -0.14, sy: 0.93, e: 'o' },
-      { s: 0.28, h: [-2.7, -1.5], wa: -0.12, ext: -3, dx: -3.5, skew: -0.16, sy: 0.92 },
-      { s: 0.36, h: [1.5, -1],    wa: -0.04, ext: 7,  dx: 6,    skew: 0.22,  sy: 1,    e: 'i' },
-      { s: 0.54, h: [1, -0.7],    wa: -0.04, ext: 5,  dx: 5,    skew: 0.18,  sy: 0.98, e: 'o' }) },
-    { trail: [0.28, 0.6], keys: atkKeys(POLE_REST,
-      { s: 0.22, h: [-1.5, -4],   wa: -0.55, ext: -3, dx: -2,   skew: -0.1,  sy: 1.04, e: 'o' },
-      { s: 0.28, h: [-1.7, -4.2], wa: -0.5,  ext: -4, dx: -2.5, skew: -0.12, sy: 1.05 },
-      { s: 0.36, h: [1.5, -1.5],  wa: 0.3,   ext: 7,  dx: 6,    skew: 0.24,  sy: 0.92, e: 'i' },
-      { s: 0.54, h: [1, -1],      wa: 0.3,   ext: 5,  dx: 5,    skew: 0.18,  sy: 0.95, e: 'o' }) },
-  ],
-  // ── 용기병: 창을 한 바퀴 돌려 눕힌 뒤 두 번 연달아 찌르기 ↔ 뛰어올라 내리꽂기, 보라 섬광 ──
-  dragonSpear: [
-    { trail: [0.28, 0.62], burst: [0.36, '190,150,255', 1], keys: atkKeys({ ...POLE_REST, wa: -1.3 },
-      { s: 0.2,  h: [-1.5, -3],   wa: -6.43, ext: -2, dx: -3,   skew: -0.14, sy: 0.95, e: 'o' },
-      { s: 0.27, h: [-2.7, -1.5], wa: -6.41, ext: -3, dx: -4,   skew: -0.18, sy: 0.9 },
-      { s: 0.35, h: [2, -1.2],    wa: -6.32, ext: 10, dx: 8,    skew: 0.26,  sy: 1,    e: 'i' },
-      { s: 0.41, h: [1, -1],      wa: -6.32, ext: 3,  dx: 7,    skew: 0.2,   sy: 0.97, e: 'o' },
-      { s: 0.47, h: [2, -1.2],    wa: -6.32, ext: 11, dx: 9,    skew: 0.26,  sy: 1,    e: 'i' },
-      { s: 0.64, h: [1, -0.7],    wa: -6.32, ext: 5,  dx: 6,    skew: 0.18,  sy: 0.98, e: 'o' },
-      { s: 0.999, wa: -7.58 }) },
-    { trail: [0.27, 0.6], burst: [0.36, '190,150,255', 1.3], keys: atkKeys(POLE_REST,
-      { s: 0.18, h: [-1, -5],     wa: -1.0, ext: -3, dx: -2, skew: -0.1,  sy: 0.88, e: 'o' },
-      { s: 0.27, h: [-1.2, -5.5], wa: -0.6, ext: -4, dx: 0,  skew: -0.08, sy: 1.08, lift: 12 },
-      { s: 0.36, h: [1.5, -1],    wa: 0.65, ext: 9,  dx: 8,  skew: 0.26,  sy: 0.86, lift: 0, e: 'i' },
-      { s: 0.58, h: [1, -0.5],    wa: 0.6,  ext: 6,  dx: 7,  skew: 0.2,   sy: 0.92, e: 'o' }) },
-  ],
-  // ── 할버디어: 머리 뒤까지 넘겨 내려찍기 ↔ 아래에서 뛰어오르며 퍼올리기, 주황 섬광 ──
-  halberd: [
-    { trail: [0.25, 0.6], burst: [0.37, '255,150,60', 1.3], keys: atkKeys({ ...POLE_REST, wa: -1.35 },
-      { s: 0.2,  h: [-1, -5.8],   wa: -2.75, dx: -3,   skew: -0.16, sy: 1.05, e: 'o' },
-      { s: 0.25, h: [-1.2, -6],   wa: -2.85, dx: -3.5, skew: -0.18, sy: 1.05 },
-      { s: 0.31, h: [1, -4.5],    wa: -1.4,  dx: 1,    skew: 0,     sy: 1,    e: 'i' },
-      { s: 0.38, h: [1.5, 0.5],   wa: 0.55,  dx: 6,    skew: 0.24,  sy: 0.88, e: 'l' },
-      { s: 0.56, h: [0.5, 1.5],   wa: 0.95,  dx: 5,    skew: 0.18,  sy: 0.92, e: 'o' }) },
-    { trail: [0.25, 0.6], burst: [0.36, '255,150,60', 1.1], keys: atkKeys({ ...POLE_REST, wa: -1.35 },
-      { s: 0.2,  h: [-2, 1.5],    wa: 2.7,  dx: -3,   skew: -0.14, sy: 0.9,  e: 'o' },
-      { s: 0.25, h: [-2.2, 1.6],  wa: 2.8,  dx: -3.5, skew: -0.16, sy: 0.88 },
-      { s: 0.3,  h: [0.5, 1.5],   wa: 0.7,  dx: 2,    skew: 0.06,  sy: 0.98, e: 'i' },
-      { s: 0.37, h: [1.5, -3],    wa: -1.3, dx: 6,    skew: 0.2,   sy: 1.08, lift: 7, e: 'l' },
-      { s: 0.58, h: [1, -4],      wa: -1.9, dx: 5,    skew: 0.12,  sy: 1.04, lift: 2, e: 'o' }) },
-  ],
-  // ── 레인저: 가슴높이로 당겨 쏘기 ↔ 허리춤에서 몸을 숙여 재빨리 쏘기 ──
-  bow: [
-    { keys: atkKeys(BOW_REST,
-      { s: 0.14, h: [0.5, -2.5], bowA: -0.1,  pull: 2, dx: 0,  skew: -0.03, e: 'o' },
-      { s: 0.44, h: [0.5, -2.7], bowA: -0.06, pull: 9, dx: -1, skew: -0.08, sy: 1.02 },
-      { s: 0.47, h: [0, -3],     bowA: -0.3,  pull: 0, dx: -3, skew: -0.12, e: 'o' },
-      { s: 0.7,  h: [0.2, -2.4], bowA: -0.12, pull: 0, dx: -2, skew: -0.05, e: 'o' }) },
-    { keys: atkKeys(BOW_REST,
-      { s: 0.1,  h: [1, -0.5],   bowA: 0.05, pull: 3, dx: 2,  skew: 0.12, sy: 0.93, e: 'o' },
-      { s: 0.44, h: [1, -0.6],   bowA: 0.03, pull: 7, dx: 2,  skew: 0.14, sy: 0.92 },
-      { s: 0.47, h: [0.5, -1],   bowA: -0.2, pull: 0, dx: -1, skew: 0.02, sy: 0.96, e: 'o' },
-      { s: 0.7,  h: [0.6, -0.8], bowA: -0.05, pull: 0, dx: 0, skew: 0.04, sy: 0.98, e: 'o' }) },
-  ],
-  // ── 저격수: 서서 끝까지 당겨 쏘기 ↔ 무릎 꿇고 조준해 쏘기, 놓는 순간 하얀 섬광과 큰 반동 ──
-  longbow: [
-    { burst: [0.45, '255,255,220', 1], keys: atkKeys(BOW_REST,
-      { s: 0.16, h: [0.5, -3],   bowA: -0.08, pull: 4,  dx: -1, skew: -0.06, sy: 1.02, e: 'o' },
-      { s: 0.44, h: [0.6, -3.1], bowA: -0.04, pull: 13, dx: -2, skew: -0.12, sy: 1.03 },
-      { s: 0.47, h: [-0.5, -3.5], bowA: -0.4, pull: 0,  dx: -6, skew: -0.18, e: 'o' },
-      { s: 0.72, h: [0, -2.8],   bowA: -0.15, pull: 0,  dx: -4, skew: -0.08, e: 'o' }) },
-    { burst: [0.45, '255,255,220', 1], keys: atkKeys(BOW_REST,
-      { s: 0.16, h: [0.5, -0.5], bowA: -0.05, pull: 4,  dx: -1, skew: 0.02,  sy: 0.84, e: 'o' },
-      { s: 0.44, h: [0.6, -0.6], bowA: -0.03, pull: 13, dx: -1, skew: -0.04, sy: 0.83 },
-      { s: 0.47, h: [-0.5, -1],  bowA: -0.35, pull: 0,  dx: -5, skew: -0.14, sy: 0.86, e: 'o' },
-      { s: 0.72, h: [0, -0.6],   bowA: -0.12, pull: 0,  dx: -3, skew: -0.06, sy: 0.88, e: 'o' }) },
-  ],
-  // ── 마궁수: 몸이 떠오르며 시위에 마력을 모아 쏘기 ↔ 활을 머리 위로 치켜들어 쏘기, 청록 마력·섬광 ──
-  arcaneBow: [
-    { charge: [0.1, 0.45, '111,243,255'], burst: [0.45, '111,243,255', 1.1], keys: atkKeys(BOW_REST,
-      { s: 0.16, h: [0.5, -3],   bowA: -0.12, pull: 3,  dx: 0,  skew: -0.04, sy: 1.03, lift: 4, e: 'o' },
-      { s: 0.44, h: [0.6, -3.2], bowA: -0.1,  pull: 10, dx: -1, skew: -0.08, sy: 1.04, lift: 6 },
-      { s: 0.47, h: [0, -3.5],   bowA: -0.35, pull: 0,  dx: -3, skew: -0.12, sy: 1,    lift: 6, e: 'o' },
-      { s: 0.75, h: [0.2, -2.6], bowA: -0.12, pull: 0,  dx: -2, skew: -0.05, lift: 2,  e: 'o' }) },
-    { charge: [0.1, 0.45, '111,243,255'], burst: [0.45, '111,243,255', 1.3], keys: atkKeys(BOW_REST,
-      { s: 0.16, h: [0, -5.5],   bowA: -0.55, pull: 3,  dx: -1, skew: -0.1,  sy: 1.06, lift: 2, e: 'o' },
-      { s: 0.44, h: [0, -5.7],   bowA: -0.5,  pull: 10, dx: -2, skew: -0.14, sy: 1.07, lift: 3 },
-      { s: 0.47, h: [-0.5, -6],  bowA: -0.75, pull: 0,  dx: -4, skew: -0.18, sy: 1.04, lift: 3, e: 'o' },
-      { s: 0.75, h: [0, -4.5],   bowA: -0.4,  pull: 0,  dx: -2, skew: -0.08, lift: 1,  e: 'o' }) },
-  ],
-  // ── 마법사: 지팡이를 치켜들었다가(bowA 음수) 앞으로 내뻗으며(bowA 양수) 쏜다. pull 은 지팡이 끝에 모이는 마력 ──
-  wand: [
-    { burst: [0.45, '159,216,255', 0.9], keys: atkKeys(BOW_REST,
-      { s: 0.2,  h: [-0.5, -1.5], bowA: -0.45, pull: 5,  dx: -1, skew: -0.06, sy: 1.02, e: 'o' },
-      { s: 0.4,  h: [-0.6, -1.6], bowA: -0.5,  pull: 9,  dx: -1, skew: -0.08, sy: 1.03 },
-      { s: 0.47, h: [1.5, -0.5],  bowA: 0.35,  pull: 0,  dx: 3,  skew: 0.1,   sy: 0.97, e: 'i' },
-      { s: 0.72, h: [0.8, -0.3],  bowA: 0.15,  pull: 0,  dx: 1,  skew: 0.04,  e: 'o' }) },
-    { burst: [0.45, '159,216,255', 1], keys: atkKeys(BOW_REST,
-      { s: 0.2,  h: [-1, -3.5],   bowA: -0.95, pull: 5,  dx: -1, skew: -0.1,  sy: 1.04, e: 'o' },
-      { s: 0.4,  h: [-1, -3.7],   bowA: -1.0,  pull: 10, dx: -1, skew: -0.12, sy: 1.05 },
-      { s: 0.47, h: [1.2, 0],     bowA: 0.3,   pull: 0,  dx: 3,  skew: 0.12,  sy: 0.95, e: 'i' },
-      { s: 0.72, h: [0.6, -0.2],  bowA: 0.1,   pull: 0,  dx: 1,  skew: 0.05,  e: 'o' }) },
-  ],
-  // ── 화염술사: 몸을 뒤로 젖혀 불을 크게 모았다가 내던진다 ↔ 지팡이를 머리 위에서 돌려 내려찍듯 던진다 ──
-  flameStaff: [
-    { charge: [0.1, 0.45, '255,140,60'], burst: [0.45, '255,140,60', 1.3], keys: atkKeys(BOW_REST,
-      { s: 0.2,  h: [-1.5, -2.5], bowA: -0.7,  pull: 6,  dx: -3, skew: -0.14, sy: 1.04, e: 'o' },
-      { s: 0.42, h: [-1.7, -2.8], bowA: -0.8,  pull: 13, dx: -4, skew: -0.18, sy: 1.05 },
-      { s: 0.47, h: [2, -0.5],    bowA: 0.4,   pull: 0,  dx: 4,  skew: 0.16,  sy: 0.95, e: 'i' },
-      { s: 0.75, h: [1, -0.3],    bowA: 0.15,  pull: 0,  dx: 2,  skew: 0.06,  e: 'o' }) },
-    { charge: [0.1, 0.45, '255,140,60'], burst: [0.45, '255,190,90', 1.5], keys: atkKeys(BOW_REST,
-      { s: 0.2,  h: [0, -5],      bowA: -1.3,  pull: 7,  dx: -1, skew: -0.1,  sy: 1.06, lift: 3, e: 'o' },
-      { s: 0.42, h: [-0.5, -5.3], bowA: -1.5,  pull: 13, dx: -2, skew: -0.14, sy: 1.07, lift: 4 },
-      { s: 0.47, h: [1.8, 0.5],   bowA: 0.45,  pull: 0,  dx: 4,  skew: 0.18,  sy: 0.92, lift: 0, e: 'i' },
-      { s: 0.75, h: [0.8, 0],     bowA: 0.15,  pull: 0,  dx: 2,  skew: 0.06,  e: 'o' }) },
-  ],
-  // ── 빙결술사: 짧게 겨눠 빠르게 쏜다 ↔ 지팡이를 앞으로 곧게 뻗어 얼음창을 날린다, 청백 섬광 ──
-  frostStaff: [
-    { charge: [0.12, 0.44, '159,232,255'], burst: [0.45, '200,245,255', 1.1], keys: atkKeys(BOW_REST,
-      { s: 0.22, h: [0, -2],      bowA: -0.3,  pull: 6,  dx: -1, skew: -0.05, sy: 1.02, e: 'o' },
-      { s: 0.42, h: [0, -2.1],    bowA: -0.25, pull: 12, dx: -1, skew: -0.06, sy: 1.02 },
-      { s: 0.47, h: [2, -1.5],    bowA: 0.05,  pull: 0,  dx: 3,  skew: 0.08,  e: 'i' },
-      { s: 0.7,  h: [1, -1],      bowA: 0,     pull: 0,  dx: 1,  e: 'o' }) },
-    { charge: [0.12, 0.44, '159,232,255'], burst: [0.45, '255,255,255', 1.3], keys: atkKeys(BOW_REST,
-      { s: 0.22, h: [-1, -3],     bowA: -0.6,  pull: 6,  dx: -2, skew: -0.1,  sy: 1.04, lift: 2, e: 'o' },
-      { s: 0.42, h: [-1.2, -3.2], bowA: -0.65, pull: 12, dx: -2, skew: -0.12, sy: 1.05, lift: 3 },
-      { s: 0.47, h: [2.5, -2],    bowA: -0.05, pull: 0,  dx: 5,  skew: 0.12,  sy: 0.97, lift: 1, e: 'i' },
-      { s: 0.72, h: [1.2, -1.2],  bowA: 0,     pull: 0,  dx: 2,  skew: 0.04,  e: 'o' }) },
-  ],
-};
-// ── 새 2차 ──
+const HERO_ATK = {};                         // 무기 id → 평타 연속기 (src/motion/*.js 가 채운다)
 const GS_REST = { ...SWORD_REST, wa: -2.35 };      // 대검: 어깨에 걸친 채 쉰다
-Object.assign(HERO_ATK, {
-  // 대검전사: 머리 뒤까지 넘겨 온몸으로 내려찍기 ↔ 허리를 돌려 수평으로 크게 휩쓸기 (느리고 무겁게, 주황 섬광)
-  greatsword: [
-    { trail: [0.22, 0.6], burst: [0.37, '255,140,90', 1.5], keys: atkKeys(GS_REST,
-      { s: 0.2,  h: [-1.5, -6],   wa: -2.9,  dx: -3,   skew: -0.18, sy: 1.06, e: 'o' },
-      { s: 0.27, h: [-1.7, -6.2], wa: -3.0,  dx: -3.5, skew: -0.2,  sy: 1.07 },
-      { s: 0.32, h: [1, -4.5],    wa: -1.3,  dx: 1,    skew: 0,     sy: 1,    lift: 3, e: 'i' },
-      { s: 0.38, h: [2, 1],       wa: 1.15,  dx: 7,    skew: 0.28,  sy: 0.84, e: 'l' },
-      { s: 0.6,  h: [1.5, 1.5],   wa: 1.25,  dx: 6,    skew: 0.22,  sy: 0.9,  e: 'o' }) },
-    { trail: [0.22, 0.58], burst: [0.37, '255,140,90', 1.3], keys: atkKeys(GS_REST,
-      { s: 0.2,  h: [-2.5, -2],   wa: -2.6,  dx: -4,   skew: -0.16, sy: 0.94, e: 'o' },
-      { s: 0.27, h: [-2.7, -2],   wa: -0.25, dx: -4.5, skew: -0.18, sy: 0.93 },
-      { s: 0.32, h: [0, -2],      wa: -0.1,  dx: 1,    skew: 0.05,  sy: 0.96, e: 'i' },
-      { s: 0.38, h: [2, -1.5],    wa: 0.1,   dx: 7,    skew: 0.26,  sy: 0.92, e: 'l' },
-      { s: 0.58, h: [1.5, -1],    wa: 0.2,   dx: 6,    skew: 0.2,   sy: 0.95, e: 'o' }) },
-  ],
-  // 랜서: 방패 뒤에서 창을 낮게 눕혀 찌르기 ↔ 어깨 위에서 내려찌르기, 푸른 섬광
-  lance: [
-    { trail: [0.26, 0.6], burst: [0.36, '200,225,255', 1.1], keys: atkKeys(POLE_REST,
-      { s: 0.22, h: [-2.5, -1],   wa: -0.08, ext: -3, dx: -3,   skew: -0.14, sy: 0.94, e: 'o' },
-      { s: 0.28, h: [-2.7, -1],   wa: -0.05, ext: -4, dx: -3.5, skew: -0.16, sy: 0.93 },
-      { s: 0.36, h: [2, -0.8],    wa: 0,     ext: 9,  dx: 7,    skew: 0.24,  sy: 0.96, e: 'i' },
-      { s: 0.56, h: [1.2, -0.6],  wa: 0,     ext: 6,  dx: 5,    skew: 0.18,  sy: 0.97, e: 'o' }) },
-    { trail: [0.26, 0.6], burst: [0.36, '200,225,255', 1.2], keys: atkKeys(POLE_REST,
-      { s: 0.22, h: [-1.5, -4.5], wa: -0.6,  ext: -3, dx: -2,   skew: -0.1,  sy: 1.04, e: 'o' },
-      { s: 0.28, h: [-1.7, -4.7], wa: -0.55, ext: -4, dx: -2.5, skew: -0.12, sy: 1.05 },
-      { s: 0.36, h: [1.5, -1.5],  wa: 0.35,  ext: 8,  dx: 6,    skew: 0.24,  sy: 0.92, e: 'i' },
-      { s: 0.56, h: [1, -1],      wa: 0.3,   ext: 5,  dx: 5,    skew: 0.18,  sy: 0.95, e: 'o' }) },
-  ],
-  // 석궁사수: 어깨에 견착하고 장전(pull)한 뒤 쏘면 큰 반동 ↔ 무릎 꿇고 낮게 쏘기, 놓는 순간 하얀 섬광
-  ballista: [
-    { burst: [0.45, '255,230,180', 1.2], keys: atkKeys(BOW_REST,
-      { s: 0.14, h: [0.5, -2.5], bowA: -0.05, pull: 4,  dx: -1, skew: -0.06, sy: 1.02, e: 'o' },
-      { s: 0.42, h: [0.6, -2.6], bowA: -0.03, pull: 12, dx: -2, skew: -0.1,  sy: 1.03 },
-      { s: 0.47, h: [-1, -3],    bowA: -0.3,  pull: 0,  dx: -7, skew: -0.2,  sy: 1,    e: 'o' },
-      { s: 0.74, h: [0, -2.4],   bowA: -0.1,  pull: 0,  dx: -4, skew: -0.08, e: 'o' }) },
-    { burst: [0.45, '255,230,180', 1.1], keys: atkKeys(BOW_REST,
-      { s: 0.14, h: [0.5, -0.5], bowA: 0,     pull: 4,  dx: -1, skew: 0,     sy: 0.84, e: 'o' },
-      { s: 0.42, h: [0.6, -0.6], bowA: 0.02,  pull: 12, dx: -1, skew: -0.04, sy: 0.83 },
-      { s: 0.47, h: [-0.8, -1],  bowA: -0.25, pull: 0,  dx: -6, skew: -0.16, sy: 0.86, e: 'o' },
-      { s: 0.74, h: [0, -0.6],   bowA: -0.08, pull: 0,  dx: -3, skew: -0.06, sy: 0.88, e: 'o' }) },
-  ],
-  // 뇌전술사: 지팡이를 짧게 치켜들어 번개를 튕기듯 쏜다 ↔ 몸을 돌려 지팡이를 앞으로 내리그으며 쏜다, 청백 섬광
-  stormStaff: [
-    { charge: [0.12, 0.44, '183,227,255'], burst: [0.45, '220,240,255', 1.2], keys: atkKeys(BOW_REST,
-      { s: 0.2,  h: [-0.5, -2.5], bowA: -0.55, pull: 6,  dx: -1, skew: -0.06, sy: 1.03, e: 'o' },
-      { s: 0.4,  h: [-0.6, -2.7], bowA: -0.6,  pull: 12, dx: -1, skew: -0.08, sy: 1.04 },
-      { s: 0.47, h: [1.8, -1],    bowA: 0.2,   pull: 0,  dx: 3,  skew: 0.1,   sy: 0.97, e: 'i' },
-      { s: 0.7,  h: [0.8, -0.6],  bowA: 0.05,  pull: 0,  dx: 1,  skew: 0.04,  e: 'o' }) },
-    { charge: [0.12, 0.44, '183,227,255'], burst: [0.45, '255,255,255', 1.4], keys: atkKeys(BOW_REST,
-      { s: 0.2,  h: [-1, -4.5],   bowA: -1.2,  pull: 6,  dx: -2, skew: -0.12, sy: 1.05, lift: 2, e: 'o' },
-      { s: 0.4,  h: [-1.2, -4.8], bowA: -1.3,  pull: 12, dx: -2, skew: -0.14, sy: 1.06, lift: 3 },
-      { s: 0.47, h: [2, 0],       bowA: 0.45,  pull: 0,  dx: 4,  skew: 0.16,  sy: 0.93, lift: 0, e: 'i' },
-      { s: 0.72, h: [0.8, -0.3],  bowA: 0.1,   pull: 0,  dx: 1,  skew: 0.05,  e: 'o' }) },
-  ],
-});
-// 3차 무기의 평타는 2차 무기의 연속기를 그대로 쓴다 (무기 생김새·색만 다르다)
-Object.assign(HERO_ATK, {
-  starBlade: HERO_ATK.holySword, moonBlades: HERO_ATK.dualBlades, wyrmSpear: HERO_ATK.dragonSpear,
-  doomAxe: HERO_ATK.halberd, sunBow: HERO_ATK.longbow, voidBow: HERO_ATK.arcaneBow,
-  infernoStaff: HERO_ATK.flameStaff, glacierStaff: HERO_ATK.frostStaff,
-  doomBlade: HERO_ATK.greatsword, holyLance: HERO_ATK.lance, siegeBallista: HERO_ATK.ballista, tempestStaff: HERO_ATK.stormStaff,
-});
 const ATK_EASE = { o: (u) => 1 - (1 - u) ** 3, i: (u) => u * u, l: (u) => u };
 for (const id in WEAPONS) WEAPONS[id].id = id;
 // 이 무기의 n 번째 평타 모션 (연속기는 차례로 돈다)
@@ -2009,6 +1778,12 @@ function heroAtk(mo, s) {
 // 몸의 뼈대: 어깨(몸통 9번째 줄 양쪽)와 손. 무기는 손에서 나가고, 팔은 어깨에서 손까지 잇는다.
 // atk(평타 자세)가 있으면 그 손 위치·무기 각도를 쓰고, 없으면 기본 손 자리에 스킬 자세(pose.wa 등)나 평소 각도
 function heroRig(w, x, bodyBottom, pose, atk) {
+  const r = heroRigRaw(w, x, bodyBottom, pose, atk);
+  r.fe = elbowOf(r.fs, r.grip || r.fh);
+  if (r.bh) r.be = elbowOf(r.bs, r.bh);
+  return r;
+}
+function heroRigRaw(w, x, bodyBottom, pose, atk) {
   const sy = pose.sy || 1, k = pose.skew || 0;
   const shY = bodyBottom - 5 * PX * sy, shX = x + k * 4.5 * PX * sy;
   const hx = x + 4 * PX + Math.round(k * 3 * PX), hy = bodyBottom - 3 * PX;
@@ -2055,6 +1830,25 @@ function heroRig(w, x, bodyBottom, pose, atk) {
   return r;
 }
 
+// 팔꿈치 자리: 어깨 s 에서 손 h 까지 윗팔·아랫팔 길이가 정해져 있고, 팔꿈치는 몸 뒤쪽·아래쪽으로 꺾인다 (기사는 늘 +x 를 본다)
+const ARM_UP = 3.4 * PX, ARM_LOW = 3.4 * PX;
+function elbowOf(s, h) {
+  const dx = h[0] - s[0], dy = h[1] - s[1], d = Math.hypot(dx, dy) || 0.001;
+  if (d >= ARM_UP + ARM_LOW - 0.5) { const f = ARM_UP / (ARM_UP + ARM_LOW); return [s[0] + dx * f, s[1] + dy * f]; }
+  const a = (ARM_UP * ARM_UP - ARM_LOW * ARM_LOW + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, ARM_UP * ARM_UP - a * a));
+  const mx = s[0] + dx * a / d, my = s[1] + dy * a / d, nx = -dy / d, ny = dx / d;
+  const e1 = [mx + nx * hh, my + ny * hh], e2 = [mx - nx * hh, my - ny * hh];
+  const score = (e) => -(e[0] - mx) + (e[1] - my) * 0.6;
+  return score(e1) >= score(e2) ? e1 : e2;
+}
+// 두 마디 팔: 어깨→팔꿈치→손. 팔꿈치에 한 칸 관절
+function drawArm2(g, col, s, h, e) {
+  if (!e) { drawArm(g, col, s, h); return; }
+  drawArm(g, col, s, e);
+  drawArm(g, col, e, h);
+  g.fillStyle = col;
+  g.fillRect(Math.round(e[0] - PX / 2) - 1, Math.round(e[1] - PX / 2) - 1, PX + 2, PX + 2);
+}
 // 팔: 어깨에서 손까지 도트 한 칸 굵기로 잇는다 (한 경로로 채워서 반투명일 때 겹친 곳이 진해지지 않게)
 function drawArm(g, col, a, b) {
   const dx = b[0] - a[0], dy = b[1] - a[1];
@@ -2257,7 +2051,9 @@ function drawHero(g, id, x, gy, pose) {
   if (atk) {
     // 타격 순간(burst 시점) 몸이 찌그러졌다 펴지는 반동
     const hitS = atk.mo.burst ? atk.mo.burst[0] : w.kind === 'ranged' ? 0.45 : 0.35, sq = Math.max(0, 1 - Math.abs(pose.swing - hitS) / 0.1);
-    pose = { ...pose, dx: (pose.dx || 0) + atk.dx, skew: atk.skew, sy: atk.sy * (1 - 0.07 * sq), sx: 1 + 0.06 * sq, lift: (pose.lift || 0) + atk.lift };
+    pose = { ...pose, dx: (pose.dx || 0) + atk.dx, skew: atk.skew, sy: atk.sy * (1 - 0.07 * sq), sx: (atk.sx || 1) * (1 + 0.06 * sq), lift: (pose.lift || 0) + atk.lift,
+      hskew: atk.hs ? atk.hs : null, hdx: (atk.hd ? atk.hd[0] : 0) * PX, hdy: (atk.hd ? atk.hd[1] : 0) * PX };
+    if (pose.hskew == null) delete pose.hskew;
   } else if (pose.wa == null && pose.pull == null && !sit) {
     // 평소 자세: 직업별 서는 법(body2.js STANCE) + 숨쉬기 + 걷는 동안 들썩임·앞으로 기울기
     const st = look.stance || {}, idle = !walking, breath = 1 + (idle ? 0.012 * Math.sin(t * 2.6) : 0);
@@ -2293,7 +2089,7 @@ function drawHero(g, id, x, gy, pose) {
     const dual = w.motion === 'dual' && w.kind !== 'ranged';
     if (body && look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
     // 몸 뒤: 뒷팔 (쌍검은 뒷손 칼까지)
-    if (body && rig.bh) drawArm(g, armC, rig.bs, rig.bh);
+    if (body && rig.bh) drawArm2(g, armC, rig.bs, rig.bh, rig.be);
     if (dual) {
       if (weapon) {
         g.save();
@@ -2306,7 +2102,14 @@ function drawHero(g, id, x, gy, pose) {
     }
     if (body) {
       drawSprite(legs, pal, x, base, legsPx, { ...opt, sx, sy }, g);
-      drawSprite(look.body, pal, x, bodyBottom, bodyPx, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
+      if (look.body.px) {
+        // 머리와 몸통을 따로: 머리는 몸 기울기를 따라(또는 hskew 로) 더 숙여지고 hdx·hdy 만큼 움직인다
+        const P = bodyParts(look.body), skew = pose.skew || 0, hskew = pose.hskew != null ? pose.hskew : skew * 0.7;
+        const chh = bodyPx * sy, torsoH = P.torso.length * chh, neckY = bodyBottom - torsoH;
+        const hdx = (pose.hdx || 0) + skew * (P.torso.length - 0.5) * chh, hdy = (pose.hdy || 0) + Math.abs(skew) * 0.5 * PX;
+        drawSprite(P.torso, pal, x, bodyBottom, bodyPx, { ...opt, sx, sy, skew }, g);
+        drawSprite(P.head, pal, x + hdx, neckY + hdy, bodyPx, { ...opt, sx, sy, skew: hskew }, g);
+      } else drawSprite(look.body, pal, x, bodyBottom, bodyPx, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
       if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
       if (look.halo) drawHalo(g, x, top, t);
     }
@@ -2318,7 +2121,7 @@ function drawHero(g, id, x, gy, pose) {
     if (body) {
       if (rig.bh && !dual) drawFist(g, fistC, rig.bh);
       const hand = rig.grip || rig.fh;
-      drawArm(g, armC, rig.fs, hand);
+      drawArm2(g, armC, rig.fs, hand, rig.fe);
       drawFist(g, fistC, hand);
     }
   }
