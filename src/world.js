@@ -1850,6 +1850,8 @@ function elbowOf(s, h) {
   const L = Math.max(d / 2 + 0.05, Math.min(ARM_UP, (d + 1.6 * PX) / 2));
   const a = d / 2, hh = Math.sqrt(Math.max(0, L * L - a * a));
   const mx = s[0] + dx * a / d, my = s[1] + dy * a / d, nx = -dy / d, ny = dx / d;
+  // 손이 어깨 아래 앞쪽(무기를 쥐고 늘어뜨린 팔)이면 윗팔은 어깨에서 곧게 아래로 떨어지고 아랫팔만 앞으로 꺾인다 — 팔꿈치가 몸 안쪽으로 파고들지 않게
+  if (dy > 0.3 * PX && dx > -0.3 * PX) return [s[0] - 0.15 * PX, s[1] + Math.min(L, Math.max(1.0 * PX, d * 0.6))];
   const e1 = [mx + nx * hh, my + ny * hh], e2 = [mx - nx * hh, my - ny * hh];
   const flex = (e) => (e[0] - s[0]) * (h[1] - e[1]) - (e[1] - s[1]) * (h[0] - e[0]);   // 윗팔 × 아랫팔
   return flex(e1) <= flex(e2) ? e1 : e2;
