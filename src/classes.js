@@ -510,7 +510,8 @@ const CLASSES = {
     look: {
       body: BODY.ranger, fx: '#7fd06a',
       // 깃털 모자(g/G·f)·적갈색 머리(n)·흰 셔츠(w)·가죽 조끼(L/M)·화살통 끈(q) — 몸통 도트는 body2.js BODY2_OVERRIDE.ranger
-      pal: { g: '#2f5a2a', G: '#4f8a3c', f: '#f4f1e8', n: '#b86a2a', s: '#f0c29a', e: '#1b1d27', w: '#e8dcc0', L: '#8a5a2b', M: '#b07a3e', q: '#4a2e14', y: '#ffd257', b: '#4a3220', l: '#6b4a2b', k: '#3a2616' },
+      pal: { g: '#2f5a2a', G: '#4f8a3c', f: '#f4f1e8', n: '#b86a2a', s: '#f0c29a', e: '#1b1d27', E: '#ffffff', w: '#e8dcc0', L: '#8a5a2b', M: '#b07a3e', q: '#4a2e14', y: '#ffd257', b: '#4a3220', l: '#6b4a2b', k: '#3a2616' },
+      arm: ['#e8dcc0', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
     },
   },
   marksman: {
@@ -520,7 +521,8 @@ const CLASSES = {
     look: {
       body: BODY.marksman, fx: '#e8e070',
       // 이마의 고글(o/O)·검은 머리(n)·붉은 스카프(c)·깃 세운 코트(G)·가슴 보호대(L/M) — 몸통 도트는 body2.js BODY2_OVERRIDE.marksman
-      pal: { G: '#2f4a35', n: '#2a1e16', o: '#3a3a3a', O: '#ffe066', s: '#f0c29a', e: '#1b1d27', c: '#a8303a', L: '#3b4a3a', M: '#5a6e5c', y: '#c9b36b', b: '#2a2016', l: '#2f3a2e', k: '#1a1a14' },
+      pal: { G: '#2f4a35', n: '#2a1e16', o: '#3a3a3a', O: '#ffe066', s: '#f0c29a', e: '#1b1d27', E: '#ffffff', c: '#a8303a', L: '#3b4a3a', M: '#5a6e5c', y: '#c9b36b', b: '#2a2016', l: '#2f3a2e', k: '#1a1a14' },
+      arm: ['#2f4a35', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#22382a' },
     },
   },
@@ -530,7 +532,8 @@ const CLASSES = {
     desc: '마력 화살 3발을 흩뿌려 여러 적을 동시에 맞힌다.',
     look: {
       body: BODY.arcaneArcher, fx: '#6ff3ff',
-      pal: { g: '#1f2f6a', G: '#3a55b0', s: '#f0c29a', e: '#35e0ff', L: '#2a3f8a', c: '#6ff3ff', b: '#1a2450', l: '#2a3f8a', k: '#1a2450' },
+      pal: { n: '#3a55b0', N: '#7fa0ff', c: '#6ff3ff', s: '#f0c29a', e: '#1b6fd1', E: '#ffffff', G: '#2a3f8a', L: '#1f2f6a', b: '#1a2450', l: '#2a3f8a', k: '#1a2450' },
+      arm: ['#2a3f8a', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#26398a' },
     },
   },
@@ -542,7 +545,8 @@ const CLASSES = {
     desc: '지팡이로 마력탄을 쏜다. 몸은 약하지만 멀리서 강하게 때린다.',
     look: {
       body: BODY.mage, fx: '#9fd8ff',
-      pal: { P: '#3a55b0', p: '#26398a', y: '#ffd257', s: '#f0c29a', e: '#1b1d27', r: '#26398a', R: '#3a55b0', b: '#5a3a1a', l: '#26398a', k: '#1a2450' },
+      pal: { P: '#3a55b0', p: '#26398a', y: '#ffd257', n: '#6a4a2a', s: '#f0c29a', e: '#1b1d27', E: '#ffffff', w: '#e8dcc0', R: '#3a55b0', r: '#26398a', b: '#5a3a1a', l: '#26398a', k: '#1a2450' },
+      arm: ['#3a55b0', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
     },
   },
   pyromancer: {
@@ -551,7 +555,8 @@ const CLASSES = {
     desc: '불덩이를 던진다. 맞은 자리에서 터져 주변 적까지 함께 태운다.',
     look: {
       body: BODY.pyromancer, fx: '#ff7a2a',
-      pal: { P: '#a8281a', p: '#7a1a10', f: '#ffb13b', y: '#ffd257', s: '#f0c29a', e: '#1b1d27', r: '#5a1a10', R: '#a8281a', b: '#2a1008', l: '#5a1a10', k: '#2a1008' },
+      pal: { f: '#ff7a2a', F: '#ffd257', s: '#e8b080', e: '#1b1d27', E: '#ffffff', R: '#a8281a', r: '#7a1a10', c: '#2a0e08', y: '#ffb13b', b: '#2a1008', l: '#5a1a10', k: '#2a1008' },
+      arm: ['#a8281a', '#e8b080'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#5a1a10' },
     },
   },
@@ -561,7 +566,8 @@ const CLASSES = {
     desc: '얼음창을 멀리서 빠르게 꽂는다. 서리 갑옷이 받는 피해를 줄인다.',
     look: {
       body: BODY.cryomancer, fx: '#9fe8ff',
-      pal: { P: '#e8f6ff', p: '#8fbfe0', c: '#5ad1ff', y: '#ffffff', s: '#f0d8e0', e: '#1b6fd1', r: '#3f6f9a', R: '#8fbfe0', b: '#1b3f6a', l: '#3f6f9a', k: '#1b3f6a' },
+      pal: { c: '#9fe8ff', C: '#ffffff', n: '#8fbfe0', N: '#cfe8ff', s: '#f0d8e0', e: '#1b6fd1', E: '#ffffff', w: '#ffffff', W: '#e8f6ff', R: '#8fbfe0', r: '#3f6f9a', b: '#1b3f6a', l: '#3f6f9a', k: '#1b3f6a' },
+      arm: ['#ffffff', '#f0d8e0'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#1b3f6a' },
     },
   },
@@ -596,7 +602,8 @@ const CLASSES = {
     look: {
       body: BODY.arbalest, fx: '#ffb86b',
       // 면갑 올린 투구(h/H)·흉갑(a/A)·붉은 전포(r)·살 탄띠(q/Q) — 몸통 도트는 body2.js BODY2_OVERRIDE.arbalest
-      pal: { h: '#7f8a9c', H: '#c9d1dd', s: '#f0c29a', e: '#1b1d27', a: '#5a6578', A: '#8c95a6', r: '#a8303a', q: '#6a4a2a', Q: '#e8dcc0', y: '#ffd257', b: '#3a2a1a', l: '#4a4e5a', k: '#2a2a30' },
+      pal: { h: '#7f8a9c', H: '#c9d1dd', n: '#8a4a1a', s: '#f0c29a', e: '#1b1d27', E: '#ffffff', a: '#5a6578', A: '#8c95a6', r: '#a8303a', q: '#6a4a2a', Q: '#e8dcc0', y: '#ffd257', b: '#3a2a1a', l: '#4a4e5a', k: '#2a2a30' },
+      arm: ['#5a6578', '#8c95a6'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cape', color: '#7a1a22' },
     },
   },
@@ -606,7 +613,8 @@ const CLASSES = {
     desc: '번개를 쏜다. 맞은 적에서 둘에게 더 튀고, 빠르고 치명타가 잦다.',
     look: {
       body: BODY.electromancer, fx: '#b7e3ff',
-      pal: { P: '#3a3a6a', p: '#26264a', c: '#ffe066', y: '#b7e3ff', s: '#f0c29a', e: '#ffe066', r: '#26264a', R: '#3a3a6a', b: '#1a1a30', l: '#26264a', k: '#1a1a30' },
+      pal: { P: '#3a3a6a', p: '#26264a', c: '#ffe066', n: '#e8c84a', s: '#f0c29a', e: '#1b1d27', E: '#ffffff', y: '#b7e3ff', R: '#3a3a6a', r: '#26264a', b: '#1a1a30', l: '#26264a', k: '#1a1a30' },
+      arm: ['#3a3a6a', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#1a1a30' },
     },
   },
@@ -641,7 +649,8 @@ const CLASSES = {
     desc: '성벽을 무너뜨리는 포수. 한 발이 요새를 통째로 무너뜨린다.',
     look: {
       body: BODY.arbalest, fx: '#ffb86b',
-      pal: { h: '#3a3e48', H: '#6a707c', s: '#f0c29a', e: '#ff5a2a', a: '#2e3038', A: '#4a4e5a', r: '#6a1a22', q: '#4a2e14', Q: '#ffd9a0', y: '#ffd257', b: '#2a1a10', l: '#2e3038', k: '#1a1a20' },
+      pal: { h: '#3a3e48', H: '#6a707c', n: '#2a1a10', s: '#f0c29a', e: '#ff5a2a', E: '#ffffff', a: '#2e3038', A: '#4a4e5a', r: '#6a1a22', q: '#4a2e14', Q: '#ffd9a0', y: '#ffd257', b: '#2a1a10', l: '#2e3038', k: '#1a1a20' },
+      arm: ['#2e3038', '#4a4e5a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cape', color: '#3a0a10' },
     },
   },
@@ -651,7 +660,8 @@ const CLASSES = {
     desc: '천둥을 다스리는 황제. 홀을 들면 하늘 전체가 벼락이 된다.',
     look: {
       body: BODY.electromancer, fx: '#e0f0ff',
-      pal: { P: '#1a1a40', p: '#10102a', c: '#ffffff', y: '#e0f0ff', s: '#f0c29a', e: '#ffffff', r: '#10102a', R: '#1a1a40', b: '#ffe066', l: '#10102a', k: '#0a0a1a' },
+      pal: { y: '#ffd257', C: '#ffffff', w: '#f4f1e8', s: '#f0c29a', e: '#e0f0ff', E: '#ffffff', R: '#1a1a40', r: '#10102a', c: '#e0f0ff', b: '#ffe066', l: '#10102a', k: '#0a0a1a' },
+      arm: ['#1a1a40', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cape', color: '#2a2a6a' },
       halo: true,
     },
@@ -707,7 +717,8 @@ const CLASSES = {
     look: {
       body: BODY.deadeye, fx: '#ffe066',
       // 황금 관(y/Y)·백금발(w)·흰 전포(c/C)·가죽 흉대(L) — 몸통 도트는 body2.js BODY2_OVERRIDE.deadeye
-      pal: { y: '#ffd257', Y: '#fff0b0', w: '#fff4d6', s: '#f0c29a', e: '#1b1d27', c: '#f4f1e8', C: '#d9cfae', L: '#6a5a2a', b: '#2a2016', l: '#4a3e22', k: '#2a2016' },
+      pal: { y: '#ffd257', Y: '#fff0b0', w: '#fff4d6', s: '#f0c29a', e: '#1b1d27', E: '#ffffff', c: '#f4f1e8', C: '#d9cfae', L: '#6a5a2a', b: '#2a2016', l: '#4a3e22', k: '#2a2016' },
+      arm: ['#f4f1e8', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#c9a227' },
     },
   },
@@ -717,7 +728,8 @@ const CLASSES = {
     desc: '차원의 틈을 활시위로 삼는다. 화살 네 발이 공간을 찢으며 날아간다.',
     look: {
       body: BODY.voidArcher, fx: '#ff4dff',
-      pal: { g: '#1a0a30', G: '#3a1a6a', s: '#e8c8f0', e: '#ff4dff', L: '#2a1250', c: '#ff8aff', b: '#12081c', l: '#2a1250', k: '#12081c' },
+      pal: { n: '#1a0a30', N: '#3a1a6a', c: '#ff8aff', s: '#e8c8f0', e: '#ff4dff', E: '#ffffff', G: '#2a1250', L: '#14082a', b: '#12081c', l: '#2a1250', k: '#12081c' },
+      arm: ['#2a1250', '#e8c8f0'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#2a0a4a' },
     },
   },
@@ -727,7 +739,8 @@ const CLASSES = {
     desc: '불의 근원에 닿은 마도사. 지팡이를 들면 하늘에서 겁화가 쏟아진다.',
     look: {
       body: BODY.pyromancer, fx: '#ff3b1f',
-      pal: { P: '#1a0a0a', p: '#3a0e0a', f: '#ffd257', y: '#ff3b1f', s: '#f0c29a', e: '#ff3b1f', r: '#2a0a08', R: '#6a140c', b: '#ffd257', l: '#2a0a08', k: '#1a0606' },
+      pal: { f: '#ff3b1f', F: '#ffd257', s: '#e8b080', e: '#ff3b1f', E: '#ffe066', R: '#2a0a0a', r: '#1a0606', y: '#ffd257', c: '#6a140c', b: '#ffd257', l: '#2a0a08', k: '#1a0606' },
+      arm: ['#2a0a0a', '#e8b080'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cape', color: '#8a1a0c' },
       halo: true,
     },
@@ -738,7 +751,8 @@ const CLASSES = {
     desc: '만년설을 다스리는 군주. 숨을 내쉬면 전장의 시간까지 얼어붙는다.',
     look: {
       body: BODY.cryomancer, fx: '#cff6ff',
-      pal: { P: '#ffffff', p: '#cfe8ff', c: '#9fe8ff', y: '#5ad1ff', s: '#e8e0f0', e: '#5ad1ff', r: '#1b3f6a', R: '#cfe8ff', b: '#0e2240', l: '#1b3f6a', k: '#0e2240' },
+      pal: { c: '#9fe8ff', C: '#ffffff', w: '#ffffff', s: '#e8e0f0', e: '#5ad1ff', E: '#ffffff', W: '#e8f6ff', R: '#cfe8ff', r: '#8fbfe0', y: '#5ad1ff', b: '#0e2240', l: '#1b3f6a', k: '#0e2240' },
+      arm: ['#cfe8ff', '#e8e0f0'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cape', color: '#e8f6ff' },
     },
   },
