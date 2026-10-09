@@ -281,7 +281,9 @@ function nodeState(id, nid) {
 }
 // 진화 문은 포인트 없이도 열 수 있다 (조건만)
 const canInvest = (id, nid) => { const nd = nodeDef(id, nid); if (!nd) return false; const st = nodeState(id, nid); return (nd.kind === 'star' || skillPtsLeft(id) > 0) && (st === 'on' || st === 'open'); };
-const canInvestAny = () => skillsOf(S.cls).some((k) => skillPtsLeft(k.id) > 0 && Object.keys(treeNodesOf(k)).some((nid) => canInvest(k.id, nid)));
+// 이 스킬 트리에 지금 찍을 수 있는 노드가 하나라도 있는가 (안 쓴 ⭐가 있어도 열린 노드가 없으면 false — 레드닷은 이걸로)
+const canInvestSkill = (id) => Object.keys(treeNodesOf(SKILLS[id])).some((nid) => canInvest(id, nid));
+const canInvestAny = () => skillsOf(S.cls).some((k) => canInvestSkill(k.id));
 // 노드에 포인트 1 을 찍는다 (진화 문은 포인트를 안 쓴다). 진화 노드면 새 모습을 바로 적용한다. 찍은 뒤 노드 Lv 또는 0
 function investNode(id, nid) {
   if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canInvest(id, nid)) return 0;
