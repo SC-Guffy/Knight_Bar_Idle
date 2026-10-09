@@ -1846,7 +1846,9 @@ const ARM_UP = 2.9 * PX, ARM_LOW = 2.9 * PX, ARM_REACH = ARM_UP + ARM_LOW;
 function elbowOf(s, h) {
   const dx = h[0] - s[0], dy = h[1] - s[1], d = Math.hypot(dx, dy) || 0.001;
   if (d >= ARM_REACH - 0.5) { const f = ARM_UP / ARM_REACH; return [s[0] + dx * f, s[1] + dy * f]; }
-  const a = (ARM_UP * ARM_UP - ARM_LOW * ARM_LOW + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, ARM_UP * ARM_UP - a * a));
+  // 손이 어깨에 가까우면 팔 마디를 그만큼 짧게 본다(원근으로 접힌 팔) — 팔꿈치가 몸통을 가로질러 튀어나가지 않고 어깨 바로 아래·살짝 뒤에 머문다
+  const L = Math.max(d / 2 + 0.05, Math.min(ARM_UP, (d + 1.6 * PX) / 2));
+  const a = d / 2, hh = Math.sqrt(Math.max(0, L * L - a * a));
   const mx = s[0] + dx * a / d, my = s[1] + dy * a / d, nx = -dy / d, ny = dx / d;
   const e1 = [mx + nx * hh, my + ny * hh], e2 = [mx - nx * hh, my - ny * hh];
   const flex = (e) => (e[0] - s[0]) * (h[1] - e[1]) - (e[1] - s[1]) * (h[0] - e[0]);   // 윗팔 × 아랫팔
