@@ -1278,11 +1278,11 @@ function spriteShadeCol(col, dir) {
 // 고해상 몸통을 머리/몸통 두 조각으로 (목 = 52% 높이). 명암 지도는 통째 계산한 것을 잘라 쓴다 (경계가 밝아지거나 어두워지지 않게)
 function bodyParts(rows) {
   if (rows._parts) return rows._parts;
-  const neck = Math.round(rows.length * 0.52), sh = spriteShadeMap(rows);
-  const head = rows.slice(0, neck), torso = rows.slice(neck);
-  head.px = rows.px; torso.px = rows.px;
-  head._sh = sh.slice(0, neck); torso._sh = sh.slice(neck);
-  return (rows._parts = { head, torso, neck });
+  const neck = Math.round(rows.length * 0.52), belt = Math.round(rows.length * 0.82), sh = spriteShadeMap(rows);
+  const head = rows.slice(0, neck), torso = rows.slice(neck, belt), pelvis = rows.slice(belt);
+  head.px = rows.px; torso.px = rows.px; pelvis.px = rows.px;
+  head._sh = sh.slice(0, neck); torso._sh = sh.slice(neck, belt); pelvis._sh = sh.slice(belt);
+  return (rows._parts = { head, torso, pelvis, neck, belt });
 }
 function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false, tint = null, alpha = 1, sx = 1, sy = 1, skew = 0 } = {}, g = ctx) {
   const h = rows.length, w = rows[0].length;
@@ -1745,9 +1745,10 @@ function drawStaff(g, w, hx, hy, ang, charge = 0) {
 //       charge [시작, 끝, 'r,g,b'] 시위 당기는 손에 모이는 마력
 // HERO_ATK[무기 id] 는 모션 배열 — 평타마다 차례로 돌아가며 쓴다
 // 공통 키: hs 머리 기울기(+앞으로 숙임, 0 이면 몸 기울기를 따라감) · hd 머리 이동 [x, y] 칸 · sx 몸통 비틀기(가로 줄임, 1 = 정면)
-const SWORD_REST = { h: [0, 0], wa: -1.0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0] };
-const POLE_REST = { h: [0, 0], wa: -1.3, ext: 0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0] };
-const BOW_REST = { h: [0, 0], bowA: 0, pull: 0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0] };
+// ff/bf: 앞발·뒷발 [앞으로 x 칸, 위로 y 칸] — 런지·보폭·발 들림. 몸(dx)은 그대로 두고 발만 옮기면 디딤이 된다
+const SWORD_REST = { h: [0, 0], wa: -1.0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0], ff: [0, 0], bf: [0, 0] };
+const POLE_REST = { h: [0, 0], wa: -1.3, ext: 0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0], ff: [0, 0], bf: [0, 0] };
+const BOW_REST = { h: [0, 0], bowA: 0, pull: 0, dx: 0, skew: 0, sy: 1, sx: 1, lift: 0, hs: 0, hd: [0, 0], ff: [0, 0], bf: [0, 0] };
 const atkKeys = (rest, ...mid) => [{ s: 0, ...rest }, ...mid.map((k) => ({ ...rest, ...k })), { s: 1, ...rest }];
 const HERO_ATK = {};                         // 무기 id → 평타 연속기 (src/motion/*.js 가 채운다)
 const GS_REST = { ...SWORD_REST, wa: -2.35 };      // 대검: 어깨에 걸친 채 쉰다
@@ -1798,7 +1799,9 @@ function heroRigRaw(w, x, bodyBottom, pose, atk) {
   const shY = bodyBottom - 5.2 * PX * sy, shX = x + k * 4.5 * PX * sy;
   const hx = x + 4 * PX + Math.round(k * 3 * PX), hy = bodyBottom - 3 * PX;
   const off = atk ? atk.h : [0, 0];
-  const r = { fs: [shX + 3.2 * PX, shY], bs: [shX - 2.0 * PX, shY + 0.4 * PX] };
+  // 비틀기(sx < 1 이면 등이 보이게 돌아감): 앞어깨는 뒤로, 뒷어깨는 앞으로 — 어깨선이 돈다
+  const tw = 1 - (pose.sx || 1);
+  const r = { fs: [shX + (3.2 - 5 * tw) * PX, shY], bs: [shX + (-2.0 + 4 * tw) * PX, shY + 0.4 * PX] };
   // 무기 흔들림: 걸을 땐 다리에 맞춰 크게, 서 있을 땐 숨쉬기에 맞춰 아주 조금
   const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : Math.sin((pose.t || 0) * 2.6) * 0.025;
   if (w.kind === 'ranged') {
@@ -1864,9 +1867,9 @@ function reachClamp(s, h, max = ARM_REACH - 0.3) {
 // 두 마디 팔: 어깨→팔꿈치→손. 팔꿈치에 한 칸 관절
 // 살이 있는 팔: 어깨→팔꿈치→손을 두께 있는 띠로, 몸통과 같은 1.5px 도트 격자에 맞춰 칠한다 (윗팔이 굵고 손목으로 갈수록 가늘다).
 // 둘레 외곽선, 위쪽은 밝고 아래쪽은 어둡게(몸통 명암과 같은 규칙), 팔꿈치·어깨는 둥글다. shade -1 이면 뒷팔(전체를 한 단계 어둡게 해 뒤로 물러나 보이게)
-function drawLimb(g, col, s, e, h, shade = 0) {
+function drawLimb(g, col, s, e, h, shade = 0, radii = [1.35, 1.1, 0.85]) {
   const C = PX / 2, pts = e ? [s, e, h] : [s, h];
-  const rad = [1.35 * C, 1.1 * C, 0.85 * C];                     // 어깨·팔꿈치·손목 반지름 (칸)
+  const rad = radii.map((v) => v * C);                            // 시작·관절·끝 반지름 (칸)
   const minX = Math.min(...pts.map((p) => p[0])) - 3 * C, maxX = Math.max(...pts.map((p) => p[0])) + 3 * C;
   const minY = Math.min(...pts.map((p) => p[1])) - 3 * C, maxY = Math.max(...pts.map((p) => p[1])) + 3 * C;
   const i0 = Math.floor(minX / C), i1 = Math.ceil(maxX / C), j0 = Math.floor(minY / C), j1 = Math.ceil(maxY / C);
@@ -1889,6 +1892,25 @@ function drawLimb(g, col, s, e, h, shade = 0) {
   g.fillStyle = PAL['#'];
   for (const [i, j, k] of cells) if (k === 9) put(i, j);
   for (const kind of [0, 1, -1]) { g.fillStyle = kind === 0 ? base : kind > 0 ? light : dark; for (const [i, j, k] of cells) if (k === kind) put(i, j); }
+}
+// 다리: 골반→무릎→발 두 마디. 무릎은 팔꿈치와 반대로(발이 뒤로 접히게) 꺾이고, 선 자세에선 살짝만 굽는다
+const LEG_UP = 2.1 * PX, LEG_LOW = 2.1 * PX;
+function kneeOf(hip, foot) {
+  const dx = foot[0] - hip[0], dy = foot[1] - hip[1], d = Math.hypot(dx, dy) || 0.001;
+  if (d >= LEG_UP + LEG_LOW - 0.3) return [hip[0] + dx * 0.5 + 0.4 * PX, hip[1] + dy * 0.5];     // 쭉 뻗은 다리: 무릎이 살짝 앞
+  const L = Math.max(d / 2 + 0.05, Math.min(LEG_UP, (d + 1.2 * PX) / 2)), a = d / 2, hh = Math.sqrt(Math.max(0, L * L - a * a));
+  const mx = hip[0] + dx * a / d, my = hip[1] + dy * a / d, nx = -dy / d, ny = dx / d;
+  const e1 = [mx + nx * hh, my + ny * hh], e2 = [mx - nx * hh, my - ny * hh];
+  const flex = (e) => (e[0] - hip[0]) * (foot[1] - e[1]) - (e[1] - hip[1]) * (foot[0] - e[0]);
+  return flex(e1) >= flex(e2) ? e1 : e2;                                                       // 무릎은 앞으로
+}
+// 다리 한 짝: 허벅지 굵고 정강이 가늘게, 발은 앞으로 나온 부츠
+function drawLeg(g, col, boot, hip, knee, foot, shade = 0) {
+  drawLimb(g, col, hip, knee, foot, shade, [1.7, 1.45, 1.2]);
+  const C = PX / 2, bx = Math.round(foot[0] - 1.6 * C), by = Math.round(foot[1] - 1.6 * C), bw = Math.round(4.2 * C), bh = Math.round(2.2 * C);
+  g.fillStyle = PAL['#']; g.fillRect(bx - 1, by, bw + 2, bh); g.fillRect(bx, by - 1, bw, bh + 2);
+  g.fillStyle = shade < 0 ? spriteShadeCol(boot, -1) : boot; g.fillRect(bx, by, bw, bh);
+  g.fillStyle = spriteShadeCol(shade < 0 ? spriteShadeCol(boot, -1) : boot, 1); g.fillRect(bx, by, bw, 1);
 }
 // 어깨 덮개: 팔이 갑옷 아래에서 나오게 어깨 위에 둥근 판
 function drawShoulderCap(g, col, s) {
@@ -2113,7 +2135,7 @@ function drawHero(g, id, x, gy, pose) {
     // 평소 자세: 직업별 서는 법(body2.js STANCE) + 숨쉬기 + 걷는 동안 들썩임·앞으로 기울기
     const st = look.stance || {}, idle = !walking, breath = 1 + (idle ? 0.012 * Math.sin(t * 2.6) : 0);
     const hover = idle ? (st.hover || 0) + (st.bob || 0) * Math.sin(t * 2.2) : 0;
-    const stepLift = walking ? (step % 2 ? 1.5 : 0) : 0;
+    const stepLift = walking ? Math.abs(Math.sin((pose.walkT || 0) * Math.PI * 2 * 1.4)) * 1.2 : 0;
     pose = { ...pose, skew: (pose.skew || 0) + (st.skew || 0) + (walking ? 0.05 : 0), sy: (pose.sy || 1) * (st.sy || 1) * breath, dx: (pose.dx || 0) + (idle ? st.dx || 0 : 0), lift: (pose.lift || 0) + hover + stepLift };
   }
   g.save();
@@ -2135,9 +2157,22 @@ function drawHero(g, id, x, gy, pose) {
     // 스킬 자세: sy 웅크림·늘어남, sx 가로 늘림, skew 앞(+)/뒤(-)로 기울임 — 몸통만 기운다
     const sy = pose.sy || 1, sx = pose.sx || 1;
     const base = gy - (pose.lift || 0);
-    const legs = SPR.knightLegs[walking ? step : 0], legsPx = PX * (legs.px || 1), bodyPx = PX * (look.body.px || 1);
-    const bodyBottom = base - legs.length * legsPx * sy;
+    const legH = sprCells(SPR.knightLegs[0]) * PX * sy, bodyPx = PX * (look.body.px || 1);
+    const bodyBottom = base - legH;
     const top = bodyBottom - look.body.length * bodyPx * sy;
+    // 발 자리: 평타 키(ff/bf) · 걷기(발 궤적: 땅을 딛고 뒤로 밀다 들어서 앞으로) · 서 있기(살짝 벌림)
+    let ff = [0, 0], bf = [0, 0];
+    if (atk) { ff = atk.ff || ff; bf = atk.bf || bf; }
+    else if (pose.ff || pose.bf) { ff = pose.ff || ff; bf = pose.bf || bf; }     // 스킬 자세의 발
+    else if (walking) {
+      const ph = (pose.walkT || 0) * Math.PI * 2 * 1.4;
+      const st = (p) => [2.2 * Math.cos(p), Math.max(0, -Math.sin(p)) * 1.6];
+      ff = st(ph); bf = st(ph + Math.PI);
+    }
+    const hipF = [x + 1.3 * PX + (pose.skew || 0) * 0.6 * PX, bodyBottom - 0.6 * PX], hipB = [x - 1.3 * PX, bodyBottom - 0.4 * PX];
+    const footF = [x + 2.0 * PX + ff[0] * PX, base - ff[1] * PX], footB = [x - 2.0 * PX + bf[0] * PX, base - bf[1] * PX];
+    const kneeF = kneeOf(hipF, footF), kneeB = kneeOf(hipB, footB);
+    const legC = opt.flash ? '#ffffff' : opt.tint || pal.l || PAL.l, bootC = opt.flash ? '#ffffff' : opt.tint || pal.k || PAL.k;
     const rig = heroRig(w, x, bodyBottom, pose, atk);
     const body = !pose.onlyWeapon, weapon = !pose.tint;      // onlyWeapon: 모션 잔상용으로 무기만 · tint: 한 색 잔상은 몸만
     const [armC, fistC] = opt.flash ? ['#ffffff', '#ffffff'] : opt.tint ? [opt.tint, opt.tint] : heroArmCols(c === CLASSES[id] ? id : 'squire', look, pal);
@@ -2151,18 +2186,23 @@ function drawHero(g, id, x, gy, pose) {
         if (w.glow) { g.shadowColor = w.glow; g.shadowBlur = 8; }
         drawBlade(g, w, rig.bh[0], rig.bh[1], rig.wb, w.len - 1);
         g.restore();
-        if (atk) drawAtkTrail(g, w, x0, base0, legs.length * legsPx, atk.mo, atk.s, true);
+        if (atk) drawAtkTrail(g, w, x0, base0, legH, atk.mo, atk.s, true);
       }
       if (body) drawFist(g, fistC, rig.bh);
     }
     if (body) {
-      drawSprite(legs, pal, x, base, legsPx, { ...opt, sx, sy }, g);
+      // 다리: 뒷다리(어둡게) → 앞다리. 골반은 몸통 그림이 덮는다
+      drawLeg(g, legC, bootC, hipB, kneeB, footB, -1);
+      drawLeg(g, legC, bootC, hipF, kneeF, footF, 0);
       if (look.body.px) {
-        // 머리와 몸통을 따로: 머리는 몸 기울기를 따라(또는 hskew 로) 더 숙여지고 hdx·hdy 만큼 움직인다
+        // 골반 / 가슴 / 머리를 따로: 골반은 다리 위에 그대로, 가슴은 기울고(skew), 머리는 더 숙여진다(hskew). 비틀기(sx)는 가슴·머리 폭을 줄인다
         const P = bodyParts(look.body), skew = pose.skew || 0, hskew = pose.hskew != null ? pose.hskew : skew * 0.7;
-        const chh = bodyPx * sy, torsoH = P.torso.length * chh, neckY = bodyBottom - torsoH;
-        const hdx = (pose.hdx || 0) + skew * (P.torso.length - 0.5) * chh, hdy = (pose.hdy || 0) + Math.abs(skew) * 0.5 * PX;
-        drawSprite(P.torso, pal, x, bodyBottom, bodyPx, { ...opt, sx, sy, skew }, g);
+        const chh = bodyPx * sy, pelvisTop = bodyBottom - P.pelvis.length * chh, neckY = pelvisTop - P.torso.length * chh;
+        const pskew = skew * 0.25, pshift = pskew * (P.pelvis.length - 0.5) * chh;
+        const cshift = pshift + skew * (P.torso.length - 0.5) * chh;
+        const hdx = (pose.hdx || 0) + cshift, hdy = (pose.hdy || 0) + Math.abs(skew) * 0.5 * PX;
+        drawSprite(P.pelvis, pal, x, bodyBottom, bodyPx, { ...opt, sx: 1, sy, skew: pskew }, g);
+        drawSprite(P.torso, pal, x + pshift, pelvisTop, bodyPx, { ...opt, sx, sy, skew }, g);
         drawSprite(P.head, pal, x + hdx, neckY + hdy, bodyPx, { ...opt, sx, sy, skew: hskew }, g);
       } else drawSprite(look.body, pal, x, bodyBottom, bodyPx, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
       if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
@@ -2171,7 +2211,7 @@ function drawHero(g, id, x, gy, pose) {
     // 몸 앞: 무기 → 잔상 → 무기를 쥔 손과 앞팔
     if (weapon) {
       drawWeapon(g, w, rig);
-      if (atk) { drawAtkTrail(g, w, x0, base0, legs.length * legsPx, atk.mo, atk.s, false); drawAtkFx(g, w, rig, atk); }
+      if (atk) { drawAtkTrail(g, w, x0, base0, legH, atk.mo, atk.s, false); drawAtkFx(g, w, rig, atk); }
     }
     if (body) {
       if (rig.bh && !dual && !rig.bAuto) drawFist(g, fistC, rig.bh);
