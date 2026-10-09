@@ -509,7 +509,8 @@ const CLASSES = {
     desc: '멀리서 화살을 쏜다. 적이 다가오는 동안 먼저 때린다.',
     look: {
       body: BODY.ranger, fx: '#7fd06a',
-      pal: { g: '#2f5a2a', G: '#4f8a3c', s: '#f0c29a', e: '#1b1d27', L: '#8a5a2b', y: '#d9b36b', b: '#4a3220', l: '#6b4a2b', k: '#3a2616' },
+      // 깃털 모자(g/G·f)·적갈색 머리(n)·흰 셔츠(w)·가죽 조끼(L/M)·화살통 끈(q) — 몸통 도트는 body2.js BODY2_OVERRIDE.ranger
+      pal: { g: '#2f5a2a', G: '#4f8a3c', f: '#f4f1e8', n: '#b86a2a', s: '#f0c29a', e: '#1b1d27', w: '#e8dcc0', L: '#8a5a2b', M: '#b07a3e', q: '#4a2e14', y: '#ffd257', b: '#4a3220', l: '#6b4a2b', k: '#3a2616' },
     },
   },
   marksman: {
@@ -518,7 +519,8 @@ const CLASSES = {
     desc: '아주 먼 거리에서 강력한 한 발. 치명타 확률이 높다.',
     look: {
       body: BODY.marksman, fx: '#e8e070',
-      pal: { g: '#1d2f22', G: '#2f4a35', m: '#3a3a3a', e: '#ffe066', L: '#3b4a3a', y: '#a0a060', b: '#2a2016', l: '#2f3a2e', k: '#1a1a14' },
+      // 이마의 고글(o/O)·검은 머리(n)·붉은 스카프(c)·깃 세운 코트(G)·가슴 보호대(L/M) — 몸통 도트는 body2.js BODY2_OVERRIDE.marksman
+      pal: { G: '#2f4a35', n: '#2a1e16', o: '#3a3a3a', O: '#ffe066', s: '#f0c29a', e: '#1b1d27', c: '#a8303a', L: '#3b4a3a', M: '#5a6e5c', y: '#c9b36b', b: '#2a2016', l: '#2f3a2e', k: '#1a1a14' },
       cape: { style: 'cloak', color: '#22382a' },
     },
   },
@@ -593,8 +595,9 @@ const CLASSES = {
     desc: '기사만 한 거대 석궁. 아주 느리지만 한 발이 포탄처럼 무겁다.',
     look: {
       body: BODY.arbalest, fx: '#ffb86b',
-      pal: { g: '#3a2a1e', G: '#5a4030', m: '#2a2a2a', e: '#ffb86b', L: '#4a3a2a', y: '#c9a227', b: '#2a1a10', l: '#3a3028', k: '#1e1810' },
-      cape: { style: 'cloak', color: '#3a2a1e' },
+      // 면갑 올린 투구(h/H)·흉갑(a/A)·붉은 전포(r)·살 탄띠(q/Q) — 몸통 도트는 body2.js BODY2_OVERRIDE.arbalest
+      pal: { h: '#7f8a9c', H: '#c9d1dd', s: '#f0c29a', e: '#1b1d27', a: '#5a6578', A: '#8c95a6', r: '#a8303a', q: '#6a4a2a', Q: '#e8dcc0', y: '#ffd257', b: '#3a2a1a', l: '#4a4e5a', k: '#2a2a30' },
+      cape: { style: 'cape', color: '#7a1a22' },
     },
   },
   electromancer: {
@@ -638,8 +641,8 @@ const CLASSES = {
     desc: '성벽을 무너뜨리는 포수. 한 발이 요새를 통째로 무너뜨린다.',
     look: {
       body: BODY.arbalest, fx: '#ffb86b',
-      pal: { g: '#5a3a1e', G: '#8a5a30', m: '#1a1a1a', e: '#ff5a2a', L: '#6a4a2a', y: '#ffd257', b: '#2a1a10', l: '#4a3a28', k: '#1e1810' },
-      cape: { style: 'cloak', color: '#5a3a1e' },
+      pal: { h: '#3a3e48', H: '#6a707c', s: '#f0c29a', e: '#ff5a2a', a: '#2e3038', A: '#4a4e5a', r: '#6a1a22', q: '#4a2e14', Q: '#ffd9a0', y: '#ffd257', b: '#2a1a10', l: '#2e3038', k: '#1a1a20' },
+      cape: { style: 'cape', color: '#3a0a10' },
     },
   },
   thunderEmperor: {
@@ -703,7 +706,8 @@ const CLASSES = {
     desc: '태양을 쏘아 떨어뜨렸다는 궁수. 시위를 당기면 하늘이 열린다.',
     look: {
       body: BODY.deadeye, fx: '#ffe066',
-      pal: { g: '#5a4a1a', G: '#8a7a3a', m: '#2a2416', e: '#ffe066', L: '#6a5a2a', y: '#ffd257', b: '#2a2016', l: '#4a3e22', k: '#2a2016' },
+      // 황금 관(y/Y)·백금발(w)·흰 전포(c/C)·가죽 흉대(L) — 몸통 도트는 body2.js BODY2_OVERRIDE.deadeye
+      pal: { y: '#ffd257', Y: '#fff0b0', w: '#fff4d6', s: '#f0c29a', e: '#1b1d27', c: '#f4f1e8', C: '#d9cfae', L: '#6a5a2a', b: '#2a2016', l: '#4a3e22', k: '#2a2016' },
       cape: { style: 'cloak', color: '#c9a227' },
     },
   },

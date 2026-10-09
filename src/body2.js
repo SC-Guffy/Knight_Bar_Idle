@@ -49,8 +49,127 @@ function hiRes(rows, padBottom = true) {
   return out;
 }
 
-// 손으로 다듬은 22×26 몸통 (없으면 자동 확대). 열쇠는 BODY 의 이름
-const BODY2_OVERRIDE = {};
+// 손으로 찍은 22×26 몸통 (없으면 자동 확대). 열쇠는 BODY 의 이름. 외곽선은 자동으로 두른다
+//  팔레트 글자는 classes.js 그 직업의 look.pal 에 맞춘다
+const BODY2_OVERRIDE = {
+  // 레인저: 흰 깃털을 꽂은 초록 모자, 적갈색 머리, 흰 셔츠 위에 가죽 조끼, 어깨에서 내려오는 화살통 끈
+  ranger: [
+    '.......f..............',
+    '......ff.ggggggg......',
+    '.....ff.gGGGGGGGg.....',
+    '....ff.gGGGGGGGGGg....',
+    '......gGGGGGGGGGGg....',
+    '.....gggggggggggggg...',
+    '.....nnnssssssssss....',
+    '....nnnsssssssssss....',
+    '....nnsssseesssees....',
+    '....nnsssseesssees....',
+    '....nnssssssssssss....',
+    '.....nssssssssssss....',
+    '.....nnsssssssssss....',
+    '......sssssssssss.....',
+    '....LLLwwwwwwwwLLL....',
+    '...LLLwwwqwwwwwLLLL...',
+    '...LLLwwqwwwwwwLLLL...',
+    '...LLLMqMMMMMMMLLLL...',
+    '...LLMqMMMMMMMMLLLL...',
+    '...LLqMMMMMMMMMLLLL...',
+    '...LLMMMMMMMMMMLLLL...',
+    '....LMMMMMMMMMMLLL....',
+    '....bbbbbbyybbbbbb....',
+    '....bbbbbbyybbbbbb....',
+    '.....LLLLLLLLLLLL.....',
+    '.....LLLLLLLLLLLL.....',
+  ],
+  // 저격수: 이마에 올린 고글, 검은 머리, 붉은 스카프, 깃을 세운 짙은 초록 코트와 가슴 가죽 보호대
+  marksman: [
+    '......................',
+    '.......nnnnnnn........',
+    '......nnnnnnnnn.......',
+    '.....nnoooooooonn.....',
+    '.....nnoOOOOOOonn.....',
+    '.....nnoooooooonn.....',
+    '.....nnssssssssss.....',
+    '....nnsssssssssss.....',
+    '....nnsssseesssees....',
+    '....nnsssseesssees....',
+    '....nnssssssssssss....',
+    '.....nssssssssssss....',
+    '....cccccsssssscc.....',
+    '...ccccccccccccccc....',
+    '..GGGcccccccccccGGG...',
+    '..GGGGGLLLLLLLLGGGG...',
+    '..GGGGLLLMMLLLLGGGG...',
+    '..GGGGLLMMMMLLLGGGG...',
+    '..GGGGLLMMMMLLLGGGG...',
+    '..GGGGLLLMMLLLLGGGG...',
+    '..GGGGLLLLLLLLLGGGG...',
+    '...GGGLLLLLLLLLGGG....',
+    '...bbbbbbbyybbbbbb....',
+    '...bbbbbbbyybbbbbb....',
+    '....GGGGGGGGGGGGGG....',
+    '....GGGGGGGGGGGGGG....',
+  ],
+  // 신궁: 햇살이 뻗는 황금 관, 백금발, 금테 두른 흰 전포와 가죽 흉대 (태양 문양)
+  deadeye: [
+    '.........y............',
+    '......y..y..y.........',
+    '.......yyyyyyy........',
+    '.....yyYYYYYYYyy......',
+    '.....wwwwwwwwwwww.....',
+    '....wwwwwwwwwwwww.....',
+    '....wwssssssssssw.....',
+    '....wwsssssssssss.....',
+    '....wwsssseesssees....',
+    '....wwsssseesssees....',
+    '....wwssssssssssss....',
+    '.....wssssssssssss....',
+    '.....wwsssssssssss....',
+    '......wwsssssssss.....',
+    '...cccyccccccccyccc...',
+    '..ccccyLLLLLLLLyccccc.',
+    '..cccyLLLLyyLLLLyccc..',
+    '..cccyLLLyyyyLLLyccc..',
+    '..cccyLLLLyyLLLLyccc..',
+    '..cccyLLLLLLLLLLyccc..',
+    '..CcccLLLLLLLLLLcccC..',
+    '...CccLLLLLLLLLLccC...',
+    '....bbbbbbyybbbbbb....',
+    '....bbbbbbyybbbbbb....',
+    '.....cccccccccccc.....',
+    '.....CCCCCCCCCCCC.....',
+  ],
+  // 석궁사수: 면갑을 올린 강철 투구(얼굴이 보인다), 어깨 보호대가 달린 흉갑, 붉은 전포, 가슴을 가로지르는 석궁 살 탄띠
+  arbalest: [
+    '......................',
+    '.......hhhhhhhh.......',
+    '.....hhHHHHHHHHhh.....',
+    '....hHHHHHHHHHHHHh....',
+    '....hHHHHHHHHHHHHh....',
+    '....hhhhhhhhhhhhhhh...',
+    '.....hhssssssssshh....',
+    '.....hhsssssssssshh...',
+    '.....hhssseesssees....',
+    '.....hhssseesssees....',
+    '.....hhsssssssssss....',
+    '......hhhhhhhhhhhh....',
+    '.......hhhhhhhhhh.....',
+    '........ssssssss......',
+    '..aaAAAArrrrrrAAAAaa..',
+    '..aAAAArrqrrrrrAAAAa..',
+    '..aAAAArqQrrrrrAAAAa..',
+    '..aAAAAqQrrrrrrAAAAa..',
+    '...aAAqQrrrrrrrAAAA...',
+    '...aAqQrrrrrrrrAAAA...',
+    '...aAArrrrrrrrrAAAA...',
+    '....aArrrrrrrrrAAA....',
+    '....bbbbbbyybbbbbb....',
+    '....bbbbbbyybbbbbb....',
+    '.....aAAAAAAAAAAa.....',
+    '.....aAAAAAAAAAAa.....',
+  ],
+};
+for (const k in BODY2_OVERRIDE) for (const row of BODY2_OVERRIDE[k]) if (row.length !== 22) throw new Error(`BODY2_OVERRIDE.${k} 행 길이 ${row.length}: ${row}`);
 
 // 걷기 4프레임 (22×6, 외곽선은 자동): 디딤(벌림) → 지남(모음, 뒷발 들림) → 디딤 → 지남(앞발 들림)
 const LEGS2 = [
@@ -80,7 +199,7 @@ const STANCE = {
   const cache = new Map();
   for (const key in BODY) {
     const src = BODY[key];
-    const hi = BODY2_OVERRIDE[key] ? Object.assign(BODY2_OVERRIDE[key].slice(), { px: 0.5 }) : hiRes(src);
+    const hi = BODY2_OVERRIDE[key] ? Object.assign(outline(BODY2_OVERRIDE[key]), { px: 0.5 }) : hiRes(src);
     cache.set(src, hi);
   }
   for (const id in CLASSES) {
