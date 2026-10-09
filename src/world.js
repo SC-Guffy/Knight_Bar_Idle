@@ -1840,7 +1840,8 @@ function heroRigRaw(w, x, bodyBottom, pose, atk) {
 }
 
 // 팔꿈치 자리: 어깨 s 에서 손 h 까지 윗팔·아랫팔 길이가 정해져 있고, 팔꿈치는 몸 뒤쪽·아래쪽으로 꺾인다 (기사는 늘 +x 를 본다)
-// 팔꿈치 방향: 손이 어깨보다 위(검을 치켜듦)면 팔꿈치는 앞·위로 나가고, 손이 아래(늘어뜨림·내려침)면 뒤·아래로 꺾인다
+// 팔꿈치 방향: 관절은 한쪽으로만 접힌다 — 아랫팔은 윗팔에서 늘 몸 앞쪽(시계 방향)으로만 꺾인다 (기사는 +x 를 본다).
+// 두 후보 중 cross(윗팔, 아랫팔) ≤ 0 인 쪽을 고르면 늘어뜨린 팔은 손이 앞으로, 치켜든 팔은 손이 머리 뒤로, 등 뒤로 휘두른 팔은 팔꿈치가 위로 간다
 const ARM_UP = 2.9 * PX, ARM_LOW = 2.9 * PX, ARM_REACH = ARM_UP + ARM_LOW;
 function elbowOf(s, h) {
   const dx = h[0] - s[0], dy = h[1] - s[1], d = Math.hypot(dx, dy) || 0.001;
@@ -1848,9 +1849,8 @@ function elbowOf(s, h) {
   const a = (ARM_UP * ARM_UP - ARM_LOW * ARM_LOW + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, ARM_UP * ARM_UP - a * a));
   const mx = s[0] + dx * a / d, my = s[1] + dy * a / d, nx = -dy / d, ny = dx / d;
   const e1 = [mx + nx * hh, my + ny * hh], e2 = [mx - nx * hh, my - ny * hh];
-  const up = dy < -0.8 * PX, close = d < ARM_REACH * 0.55;
-  const score = (e) => (up ? -(e[1] - my) + (e[0] - mx) * 0.5 : close ? (e[1] - my) - Math.abs(e[0] - mx) * 0.3 : (e[1] - my) * 0.6 - (e[0] - mx));
-  return score(e1) >= score(e2) ? e1 : e2;
+  const flex = (e) => (e[0] - s[0]) * (h[1] - e[1]) - (e[1] - s[1]) * (h[0] - e[0]);   // 윗팔 × 아랫팔
+  return flex(e1) <= flex(e2) ? e1 : e2;
 }
 // 손 목표가 팔 길이보다 멀면 닿는 데까지만
 function reachClamp(s, h, max = ARM_REACH - 0.3) {
