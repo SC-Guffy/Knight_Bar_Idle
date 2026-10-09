@@ -1786,8 +1786,9 @@ function heroRig(w, x, bodyBottom, pose, atk) {
     const h = r.grip || r.fh, fx = h[0] - r.fs[0], fy = h[1] - r.fs[1];
     const sw = pose.mode === 'walk' && !atk ? Math.sin((pose.walkT || 0) * 8 + Math.PI) : 0;
     // 쉴 땐 몸 옆에 거의 곧게 늘어뜨리고(살짝 뒤), 앞손이 움직이면 그 반대로 균형
-    r.bh = reachClamp(r.bs, [r.bs[0] + 0.6 * PX - fx * 0.3 + sw * 2.2 * PX, Math.max(r.bs[1] + 1.5 * PX, r.bs[1] + 4.2 * PX - fy * 0.25 - Math.abs(sw) * 0.6 * PX)], ARM_REACH * 0.8);
-    r.bAuto = true;                                          // 몸 뒤에 그린다 (주먹까지)
+    if (r.view === 'front') r.bh = reachClamp(r.bs, [r.bs[0] - 0.4 * PX - fx * 0.15 + sw * 2.2 * PX, r.bs[1] + 4.8 * PX - fy * 0.2], ARM_REACH * 0.95);
+    else r.bh = reachClamp(r.bs, [r.bs[0] + 0.6 * PX - fx * 0.3 + sw * 2.2 * PX, Math.max(r.bs[1] + 1.5 * PX, r.bs[1] + 4.2 * PX - fy * 0.25 - Math.abs(sw) * 0.6 * PX)], ARM_REACH * 0.8);
+    r.bAuto = true;                                          // 몸 뒤에 그린다 (주먹까지). 정면이면 어둡게 하지 않는다
   }
   r.fe = elbowOf(r.fs, r.grip || r.fh);
   r.be = elbowOf(r.bs, r.bh);
@@ -1800,8 +1801,10 @@ function heroRigRaw(w, x, bodyBottom, pose, atk) {
   const hx = x + 4 * PX + Math.round(k * 3 * PX), hy = bodyBottom - 3 * PX;
   const off = atk ? atk.h : [0, 0];
   // 비틀기(sx < 1 이면 등이 보이게 돌아감): 앞어깨는 뒤로, 뒷어깨는 앞으로 — 어깨선이 돈다
-  const tw = 1 - (pose.sx || 1);
-  const r = { fs: [shX + (3.2 - 5 * tw) * PX, shY], bs: [shX + (-2.0 + 4 * tw) * PX, shY + 0.4 * PX] };
+  const sxv = pose.sx || 1, tw = 1 - sxv, view = sxv < 0.93 ? 'back' : sxv > 1.04 ? 'front' : 'side';
+  const r = view === 'front' ? { fs: [shX + 3.8 * PX, shY], bs: [shX - 3.8 * PX, shY], view }
+    : view === 'back' ? { fs: [shX + 1.6 * PX, shY], bs: [shX - 2.8 * PX, shY + 0.2 * PX], view }
+    : { fs: [shX + (3.2 - 5 * tw) * PX, shY], bs: [shX + (-2.0 + 4 * tw) * PX, shY + 0.4 * PX], view };
   // 무기 흔들림: 걸을 땐 다리에 맞춰 크게, 서 있을 땐 숨쉬기에 맞춰 아주 조금
   const wob = pose.mode === 'walk' ? Math.sin((pose.walkT || 0) * 8) * 0.08 : Math.sin((pose.t || 0) * 2.6) * 0.025;
   if (w.kind === 'ranged') {
@@ -2177,9 +2180,11 @@ function drawHero(g, id, x, gy, pose) {
     const body = !pose.onlyWeapon, weapon = !pose.tint;      // onlyWeapon: 모션 잔상용으로 무기만 · tint: 한 색 잔상은 몸만
     const [armC, fistC] = opt.flash ? ['#ffffff', '#ffffff'] : opt.tint ? [opt.tint, opt.tint] : heroArmCols(c === CLASSES[id] ? id : 'squire', look, pal);
     const dual = w.motion === 'dual' && w.kind !== 'ranged';
-    if (body && look.cape) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
+    const capeBehind = !(rig.view === 'back');
+    if (body && look.cape && capeBehind) drawCape(g, look.cape, x, top, bodyBottom, base, t, walking || pose.mode === 'fight' || pose.wa != null);
     // 몸 뒤: 뒷팔 (쌍검은 뒷손 칼까지)
-    if (body && rig.bh) { drawArm2(g, armC, rig.bs, rig.bh, rig.be, rig.bAuto ? -1 : 0); if (rig.bAuto) drawFist(g, fistC, rig.bh, -1); drawShoulderCap(g, spriteShadeCol(armC, -1), rig.bs); }
+    const frontView = rig.view === 'front', backView = rig.view === 'back', bsh = rig.bAuto && !frontView ? -1 : 0;
+    if (body && rig.bh) { drawArm2(g, armC, rig.bs, rig.bh, rig.be, bsh); if (rig.bAuto) drawFist(g, fistC, rig.bh, bsh); drawShoulderCap(g, bsh ? spriteShadeCol(armC, -1) : armC, rig.bs); }
     if (dual) {
       if (weapon) {
         g.save();
@@ -2203,9 +2208,12 @@ function drawHero(g, id, x, gy, pose) {
         const pskew = skew * 0.25, pshift = pskew * (P.pelvis.length - 0.5) * chh;
         const cshift = pshift + skew * (P.torso.length - 0.5) * chh;
         const hdx = (pose.hdx || 0) + cshift, hdy = (pose.hdy || 0) + Math.abs(skew) * 0.5 * PX;
+        // 시점마다 폭: 정면은 가슴·얼굴이 넓고(sx 1.1·1.12), 등은 좁다(0.95)
+        const tsx = view === look.views?.front ? 1.1 : view === look.views?.back ? 0.95 : sx, hsx = view === look.views?.front ? 1.12 : view === look.views?.back ? 0.95 : sx;
         drawSprite(P.pelvis, pal, x, bodyBottom, bodyPx, { ...opt, sx: 1, sy, skew: pskew }, g);
-        drawSprite(P.torso, pal, x + pshift, pelvisTop, bodyPx, { ...opt, sx, sy, skew }, g);
-        drawSprite(P.head, pal, x + hdx, neckY + hdy, bodyPx, { ...opt, sx, sy, skew: hskew }, g);
+        drawSprite(P.torso, pal, x + pshift, pelvisTop, bodyPx, { ...opt, sx: tsx, sy, skew }, g);
+        drawSprite(P.head, pal, x + hdx, neckY + hdy, bodyPx, { ...opt, sx: hsx, sy, skew: hskew }, g);
+        if (look.cape && !capeBehind) drawCape(g, look.cape, x + 2 * PX, top, bodyBottom, base, t, true);   // 등 시점: 망토가 등을 덮는다
       } else drawSprite(look.body, pal, x, bodyBottom, bodyPx, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
       if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
       if (look.halo) drawHalo(g, x, top, t);

@@ -461,35 +461,35 @@ const STANCE = {
 //  머리는 그대로 두고 몸통 줄만 바꿔 끼운다 (world.js drawHero 가 sx 로 고른다). 없는 직업은 평소 그림 하나만 쓴다
 const BODY2_VIEWS = {
   swordsman: {
-    // 정면: 양 어깨 갑옷이 다 보이고 푸른 전포가 가슴 한가운데, 문장(y)이 정면에
+    // 정면: 몸통이 넓고 양 어깨 갑옷이 좌우 대칭, 푸른 전포가 가슴 한가운데에 문장(y)
     front: [
-      '...aaAAATTTTAAAaa.....',
-      '..aaAAAATTTTAAAAaa....',
-      '..aAAAAATTyyTTAAAAa...',
-      '..aAAAAATTyyTTAAAAa...',
-      '..aAAAAAATTTTAAAAAa...',
-      '..aAAAAAATTTTAAAAAa...',
-      '...aAAAAATTTTAAAAa....',
-      '...aAAAAATTTTAAAAa....',
-      '...bbbbbbbyybbbbbb....',
-      '...bbbbbbbyybbbbbb....',
-      '....aAAAATTTTAAAAa....',
-      '....aAAAATTTTAAAAa....',
+      '..aaaAAATTTTAAAaaa....',
+      '.aaaAAAATTTTAAAAaaa...',
+      '.aAAAAAATTyyTTAAAAAAa.',
+      '.aAAAAAATTyyTTAAAAAAa.',
+      '.aAAAAAAATTTTAAAAAAAa.',
+      '.aAAAAAAATTTTAAAAAAAa.',
+      '..aAAAAAATTTTAAAAAAa..',
+      '..aAAAAAATTTTAAAAAAa..',
+      '..bbbbbbbbyybbbbbbbb..',
+      '..bbbbbbbbyybbbbbbbb..',
+      '...aAAAAATTTTAAAAAa...',
+      '...aAAAAATTTTAAAAAa...',
     ],
-    // 등: 전포 없이 등판 갑옷과 등 가운데 이음선, 벨트 뒤쪽엔 버클이 없다
+    // 등: 몸통이 좁고 전포 없이 등판 갑옷과 등 가운데 이음선, 벨트 뒤쪽엔 버클이 없다
     back: [
-      '....aaAAAAAAAAaa......',
-      '...aaAAAAAAAAAAaa.....',
-      '...aAAAAaaAAAAAAAa....',
-      '...aAAAAaaAAAAAAAa....',
-      '...aAAAAaaAAAAAAAa....',
-      '...aAAAAaaAAAAAAAa....',
-      '....aAAAaaAAAAAAa.....',
-      '....aAAAaaAAAAAAa.....',
-      '....bbbbbbbbbbbbb.....',
-      '....bbbbbbbbbbbbb.....',
-      '.....aAAAAAAAAAAa.....',
-      '.....aAAAAAAAAAAa.....',
+      '.....aaAAAAAAAAaa.....',
+      '....aaAAAAAAAAAAaa....',
+      '....aAAAAaaAAAAAAa....',
+      '....aAAAAaaAAAAAAa....',
+      '....aAAAAaaAAAAAAa....',
+      '....aAAAAaaAAAAAAa....',
+      '.....aAAAaaAAAAAa.....',
+      '.....aAAAaaAAAAAa.....',
+      '.....bbbbbbbbbbbb.....',
+      '.....bbbbbbbbbbbb.....',
+      '......aAAAAAAAAa......',
+      '......aAAAAAAAAa......',
     ],
   },
 };
@@ -506,12 +506,17 @@ function autoViews(torso) {
   const front = torso.map((row) => {
     const r = row.split('');
     for (let c = 0; c < 11; c++) r[c] = r[21 - c];                                     // 대칭
-    const l = r.findIndex((ch) => ch !== '.'), rr = 21 - [...r].reverse().findIndex((ch) => ch !== '.');
-    if (l > 0 && rr < 21 && l < rr) { r[l - 1] = r[l]; r[rr + 1] = r[rr]; }             // 한 칸씩 넓게
+    for (let k = 0; k < 2; k++) {                                                        // 두 칸씩 넓게
+      const l = r.findIndex((ch) => ch !== '.'), rr = 21 - [...r].reverse().findIndex((ch) => ch !== '.');
+      if (l > 0 && rr < 21 && l < rr) { r[l - 1] = r[l]; r[rr + 1] = r[rr]; }
+    }
+    if (r[10] !== '.' && r[10] !== base && r[10] !== edge) { r[9] = r[10]; r[12] = r[11]; }   // 가운데 문장·전포를 넓게
     return r.join('');
   });
   const back = torso.map((row, i) => {
     const r = row.split('').map((ch) => (ch === '.' || ch === base || ch === edge || ch === 'b' ? ch : (i >= 8 && i <= 9 ? 'b' : base)));
+    const l = r.findIndex((ch) => ch !== '.'), rr = 21 - [...r].reverse().findIndex((ch) => ch !== '.');
+    if (l >= 0 && rr - l > 6) { r[l] = '.'; r[rr] = '.'; }                                // 한 칸씩 좁게
     if (i >= 1 && i <= 7) { if (r[10] !== '.') r[10] = edge; if (r[11] !== '.') r[11] = edge; }   // 등 이음선
     return r.join('');
   });
