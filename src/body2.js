@@ -457,26 +457,26 @@ const STANCE = {
 };
 
 // 가슴 여러 장 (몸이 돌아가 보이게): 몸통 12줄(가슴 8 + 골반 4, 22칸)을 보는 각도마다 따로 찍는다.
-//  side = 평소(몸통 그림 그대로) · front = 가슴이 열려 정면에 가깝게(타격, sx > 1.04) · back = 등이 보이게 돌아선(예비동작, sx < 0.93)
-//  머리는 그대로 두고 몸통 줄만 바꿔 끼운다 (world.js drawHero 가 sx 로 고른다). 없는 직업은 평소 그림 하나만 쓴다
+//  평소·타격 = 몸통 그림 그대로(3/4, 가슴이 보인다) · side = 옆모습(예비동작, sx < 0.95: 몸통 폭이 절반, 어깨 하나, 문장이 앞 가장자리로) · back = 등(크게 비틀 때, sx < 0.86)
+//  머리는 그대로 두고 몸통 줄만 바꿔 끼운다 (world.js drawHero 가 sx 로 고른다). 없는 직업은 몸통 그림에서 자동으로 만든다
 const BODY2_VIEWS = {
   swordsman: {
-    // 정면: 몸통이 넓고 양 어깨 갑옷이 좌우 대칭, 푸른 전포가 가슴 한가운데에 문장(y)
-    front: [
-      '..aaaAAATTTTAAAaaa....',
-      '.aaaAAAATTTTAAAAaaa...',
-      '.aAAAAAATTyyTTAAAAAAa.',
-      '.aAAAAAATTyyTTAAAAAAa.',
-      '.aAAAAAAATTTTAAAAAAAa.',
-      '.aAAAAAAATTTTAAAAAAAa.',
-      '..aAAAAAATTTTAAAAAAa..',
-      '..aAAAAAATTTTAAAAAAa..',
-      '..bbbbbbbbyybbbbbbbb..',
-      '..bbbbbbbbyybbbbbbbb..',
-      '...aAAAAATTTTAAAAAa...',
-      '...aAAAAATTTTAAAAAa...',
+    // 옆모습: 가슴 앞쪽만 보여 폭이 절반, 앞 어깨 갑옷 하나, 전포 가장자리에 문장이 반쯤
+    side: [
+      '.......aAATTTAa.......',
+      '......aAAATTTTAa......',
+      '......aAAATTyTAa......',
+      '......aAAATTTTAa......',
+      '......aAAATTTTAa......',
+      '......aAAATTTTAa......',
+      '.......aAATTTTa.......',
+      '.......aAATTTTa.......',
+      '.......bbbbbybb.......',
+      '.......bbbbbybb.......',
+      '.......aAAAAAAa.......',
+      '.......aAAAAAAa.......',
     ],
-    // 등: 몸통이 좁고 전포 없이 등판 갑옷과 등 가운데 이음선, 벨트 뒤쪽엔 버클이 없다
+    // 등: 전포 없이 등판 갑옷과 등 가운데 이음선, 벨트 뒤쪽엔 버클이 없다
     back: [
       '.....aaAAAAAAAAaa.....',
       '....aaAAAAAAAAAAaa....',
@@ -495,23 +495,18 @@ const BODY2_VIEWS = {
 };
 for (const k in BODY2_VIEWS) for (const v in BODY2_VIEWS[k]) { const rows = BODY2_VIEWS[k][v]; if (rows.length !== 12) throw new Error(`BODY2_VIEWS.${k}.${v} 12줄이어야`); for (const row of rows) if (row.length !== 22) throw new Error(`BODY2_VIEWS.${k}.${v} 행 길이 ${row.length}: ${row}`); }
 
-// 손도트가 없는 직업의 정면·등을 몸통 줄(12×22)에서 자동으로 만든다
-//  정면: 오른쪽 절반을 왼쪽으로 거울 복사해 좌우 대칭(문장이 가운데로) + 어깨를 한 칸씩 넓힌다
+// 손도트가 없는 직업의 옆모습·등을 몸통 줄(12×22)에서 자동으로 만든다
+//  옆모습: 몸통의 앞쪽 절반(8~18칸)만 잘라 가운데에 둔다 — 폭이 절반, 앞 어깨 하나, 문장이 앞 가장자리 쪽으로
 //  등: 바탕색(가장 많은 글자)과 테두리색(두 번째)·벨트(b)만 남기고 문장·전포·끈을 바탕색으로 지운 뒤, 등 가운데에 테두리색 이음선
 function autoViews(torso) {
   const W = 22, cnt = {};
   for (const row of torso) for (const ch of row) if (ch !== '.') cnt[ch] = (cnt[ch] || 0) + 1;
   const order = Object.keys(cnt).sort((p, q) => cnt[q] - cnt[p]);
   const base = order[0] || 'A', edge = order[1] || base;
-  const front = torso.map((row) => {
-    const r = row.split('');
-    for (let c = 0; c < 11; c++) r[c] = r[21 - c];                                     // 대칭
-    for (let k = 0; k < 2; k++) {                                                        // 두 칸씩 넓게
-      const l = r.findIndex((ch) => ch !== '.'), rr = 21 - [...r].reverse().findIndex((ch) => ch !== '.');
-      if (l > 0 && rr < 21 && l < rr) { r[l - 1] = r[l]; r[rr + 1] = r[rr]; }
-    }
-    if (r[10] !== '.' && r[10] !== base && r[10] !== edge) { r[9] = r[10]; r[12] = r[11]; }   // 가운데 문장·전포를 넓게
-    return r.join('');
+  const side = torso.map((row) => {
+    const mid = row.slice(8, 19).split('');
+    if (mid[0] !== '.' && mid[0] !== edge) mid[0] = edge;                               // 잘린 뒤쪽 가장자리에 테두리색
+    return '......' + mid.join('') + '.....';
   });
   const back = torso.map((row, i) => {
     const r = row.split('').map((ch) => (ch === '.' || ch === base || ch === edge || ch === 'b' ? ch : (i >= 8 && i <= 9 ? 'b' : base)));
@@ -520,7 +515,7 @@ function autoViews(torso) {
     if (i >= 1 && i <= 7) { if (r[10] !== '.') r[10] = edge; if (r[11] !== '.') r[11] = edge; }   // 등 이음선
     return r.join('');
   });
-  return { front, back };
+  return { side, back };
 }
 
 // CLASSES 가 가리키는 몸통을 고해상 판으로 바꿔 끼운다 (같은 몸통을 쓰는 직업은 같은 판을 공유)
