@@ -308,3 +308,29 @@ function run() {
   // 콘솔·자동 캡처용: skillTest.state 상태, setClass(id), cast(skillId), step(초) 한 번에 진행 후 그리기
   window.skillTest = { state: T, setClass, setStage, cast, step: (sec) => { for (let i = 0; i < Math.round(sec * 60); i++) tick(1 / 60); render(); } };
 }
+
+// 컷 격자 찍기 (평타 컷 작업용): cutShot('파일이름', [{ id: '직업 id', pose: {...drawHero pose}, label: '글' }, …], { cols: 6, scale: 3 })
+//  dev/shots/<파일이름>.png 로 저장된다 (수신기: 127.0.0.1:8798, 세션에서 띄움). 돌려주는 값은 저장 경로
+//  cutStrip(직업 id, 동작 번호) 는 그 동작의 [대기, 컷1, 컷2, …] 항목을 만든다 (컷 가운데 시점)
+window.cutStrip = (id, n) => {
+  const w = WEAPONS[CLASSES[id].weapon], mo = (HERO_ATK[w.id] || [])[n];
+  const out = [{ id, pose: { mode: 'fight', swing: -1, t: 0.3, facing: 1 }, label: `${id} 대기` }];
+  if (mo && mo.cuts) mo.cuts.forEach((k, i) => { const prev = i ? mo.cuts[i - 1].until : 0; out.push({ id, pose: { mode: 'fight', swing: (prev + k.until) / 2, combo: n, t: 0.3, facing: 1 }, label: `${n}-${i + 1} ${k.fa || ''}` }); });
+  return out;
+};
+window.cutShot = async (name, items, { cols = 6, scale = 3, cw = 66, ch = 64 } = {}) => {
+  const rows = Math.ceil(items.length / cols), W = cw * scale, H = ch * scale;
+  const cv = document.createElement('canvas'); cv.width = cols * W; cv.height = rows * H;
+  const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#0d1018'; g.fillRect(0, 0, cv.width, cv.height);
+  items.forEach((it, k) => {
+    const col = k % cols, row = Math.floor(k / cols);
+    g.save(); g.translate(col * W, row * H); g.beginPath(); g.rect(1, 1, W - 2, H - 2); g.clip();
+    g.fillStyle = '#141826'; g.fillRect(1, 1, W - 2, H - 2); g.fillStyle = '#2a3144'; g.fillRect(1, H - 14, W - 2, 1);
+    g.save(); g.translate(Math.round(W * 0.42), H - 14); g.scale(scale / 2, scale / 2);
+    try { drawHero(g, it.id, 0, 0, it.pose); } catch (e) { g.restore(); g.fillStyle = '#ff5a5a'; g.font = '11px sans-serif'; g.fillText(String(e.message).slice(0, 40), 6, 20); g.save(); }
+    g.restore();
+    g.fillStyle = '#8c95a6'; g.font = '11px sans-serif'; g.fillText(it.label || '', 6, H - 3); g.restore();
+  });
+  const r = await fetch('http://127.0.0.1:8798/save?name=' + encodeURIComponent(name), { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: cv.toDataURL('image/png') });
+  return r.text();
+};

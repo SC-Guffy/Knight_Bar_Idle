@@ -4,3 +4,4 @@ server/data/
 *.log
 dist/
 .claude/
+dev/shots/

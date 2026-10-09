@@ -52,6 +52,6 @@
 <div id="blocked">개발 확인용 페이지입니다. 로컬 서버(localhost)에서 열어 주세요.</div>
 
 <!-- 게임 스크립트는 skills-test.js 가 index.html 의 목록을 읽어 같은 순서로 불러온다 (ui.js·net.js 는 빼고) -->
-<script src="skills-test.js"></script>
+<script>document.write('<script src="skills-test.js?t=' + Date.now() + '"><\/script>');</script>
 </body>
 </html>

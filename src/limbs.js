@@ -159,10 +159,50 @@ function drawArmSprite(g, p, sx, sy, armC, fistC, shade = 0) {
   return [sx + p.vec[0] * C, sy + p.vec[1] * C];
 }
 
-// ── 평타 컷 레이어 (절충안, dev/cut-sprites-gen.py 가 굽는다 — 이 블록 안은 손으로 고쳐도 되지만, 다시 구우면 FIX 에 적은 칸만 남는다) ──
-// ARM_CUT: 앞팔·뒷팔 그림 { sh 어깨 칸, hd 손 칸, rows } · LEG_CUT: 두 다리 그림 { hip 골반 아래 가운데(칸 모서리), g 땅까지 칸, rows }
+
+
+// ── 평타 컷 레이어 (절충안) ──
+// ARM_CUT: 앞팔·뒷팔 그림 { sh 어깨 칸, hd 손 칸, rows, vec 어깨→손 } · LEG_CUT: 두 다리 그림 { hip 골반 아래 가운데(칸 모서리), g 땅까지 칸, rows }
 //  다리 글자: l/m/n 앞다리(가운데·빛·그늘) · p/q 뒷다리 · k/K 앞 부츠 · j 뒷 부츠
-const ARM_CUT = {
+//  그림은 dev/cutgen.py 가 구워 addCutSprites(팔, 다리) 로 넣는다 — 이 파일 끝(검 계열·공용 'base')과 src/cuts/*.js(무기 계열별, 이름에 계열 접두사)
+const ARM_CUT = {}, LEG_CUT = {};
+// 팔은 ARM_POSES 와 같은 규칙(외곽선·닻 +1·어깨→손 벡터), 다리는 아래쪽 외곽선 없이(발이 땅에 닿게) 위·옆만 두른다
+function addCutSprites(arms = {}, legs = {}) {
+  for (const k in arms) {
+    const p = arms[k], w = Math.max(...p.rows.map((r) => r.length));
+    p.name = k;
+    p.rows = outline(p.rows.map((r) => r.padEnd(w, '.')));
+    p.sh = [p.sh[0] + 1, p.sh[1] + 1]; p.hd = [p.hd[0] + 1, p.hd[1] + 1];
+    p.vec = [p.hd[0] - p.sh[0], p.hd[1] - p.sh[1]];
+    ARM_CUT[k] = p;
+  }
+  for (const k in legs) {
+    const p = legs[k], w = Math.max(...p.rows.map((r) => r.length));
+    p.name = k;
+    p.rows = outline(p.rows.map((r) => r.padEnd(w, '.')), false);
+    p.hip = [p.hip[0] + 1, p.hip[1] + 1];
+    LEG_CUT[k] = p;
+  }
+}
+// 두 다리 그림을 골반 아래 가운데(hx, hy)에 붙여 그린다. legC 다리 색, bootC 부츠 색, white: 피격 번쩍임
+function drawLegSprite(g, p, hx, hy, legC, bootC, white = false) {
+  const C = PX / 2, sh = spriteShadeCol, back = sh(legC, -1);
+  const col = white ? null : { l: legC, m: sh(legC, 1), n: back, p: back, q: sh(back, -1), k: bootC, K: sh(bootC, 1), j: sh(bootC, -1), '#': PAL['#'] };
+  const ox = hx - p.hip[0] * C, oy = hy - p.hip[1] * C;
+  for (let r = 0; r < p.rows.length; r++) {
+    const row = p.rows[r];
+    for (let c = 0; c < row.length; c++) {
+      const ch = row[c];
+      if (ch === '.') continue;
+      g.fillStyle = white ? (ch === '#' ? PAL['#'] : '#ffffff') : col[ch] || legC;
+      const x0 = Math.round(ox + c * C), x1 = Math.round(ox + (c + 1) * C), y0 = Math.round(oy + r * C), y1 = Math.round(oy + (r + 1) * C);
+      g.fillRect(x0, y0, x1 - x0, y1 - y0);
+    }
+  }
+}
+
+// ── 컷 레이어 base (자동 생성: dev/cutgen.py — 손으로 고칠 칸은 생성기의 FIX 에) ──
+addCutSprites({
   rest: { sh: [1.5, 0.5], hd: [5, 9], rows: [
     '.LA....',
     'LAAa...',
@@ -361,8 +401,7 @@ const ARM_CUT = {
     '....aaAAAAA',
     '.......aaAa',
   ] },
-};
-const LEG_CUT = {
+}, {
   stand: { hip: [6, 2], g: 7.0, rows: [
     '.ppp....mll..',
     '.ppq....mln..',
@@ -448,35 +487,5 @@ const LEG_CUT = {
     'jjjjj......KKKk',
     'jjjjj......KKKk',
   ] },
-};
-// ── 평타 컷 레이어 끝 ──
-
-// 컷 레이어 정리: 팔은 ARM_POSES 와 같은 규칙(외곽선·닻 +1·어깨→손 벡터), 다리는 아래쪽 외곽선 없이(발이 땅에 닿게) 위·옆만 두른다
-for (const k in ARM_CUT) {
-  const p = ARM_CUT[k], w = Math.max(...p.rows.map((r) => r.length));
-  p.name = k;
-  p.rows = outline(p.rows.map((r) => r.padEnd(w, '.')));
-  p.sh = [p.sh[0] + 1, p.sh[1] + 1]; p.hd = [p.hd[0] + 1, p.hd[1] + 1];
-  p.vec = [p.hd[0] - p.sh[0], p.hd[1] - p.sh[1]];
-}
-for (const k in LEG_CUT) {
-  const p = LEG_CUT[k], w = Math.max(...p.rows.map((r) => r.length));
-  p.rows = outline(p.rows.map((r) => r.padEnd(w, '.')), false);
-  p.hip = [p.hip[0] + 1, p.hip[1] + 1];
-}
-// 두 다리 그림을 골반 아래 가운데(hx, hy)에 붙여 그린다. legC 다리 색, bootC 부츠 색, white: 피격 번쩍임
-function drawLegSprite(g, p, hx, hy, legC, bootC, white = false) {
-  const C = PX / 2, sh = spriteShadeCol, back = sh(legC, -1);
-  const col = white ? null : { l: legC, m: sh(legC, 1), n: back, p: back, q: sh(back, -1), k: bootC, K: sh(bootC, 1), j: sh(bootC, -1), '#': PAL['#'] };
-  const ox = hx - p.hip[0] * C, oy = hy - p.hip[1] * C;
-  for (let r = 0; r < p.rows.length; r++) {
-    const row = p.rows[r];
-    for (let c = 0; c < row.length; c++) {
-      const ch = row[c];
-      if (ch === '.') continue;
-      g.fillStyle = white ? (ch === '#' ? PAL['#'] : '#ffffff') : col[ch] || legC;
-      const x0 = Math.round(ox + c * C), x1 = Math.round(ox + (c + 1) * C), y0 = Math.round(oy + r * C), y1 = Math.round(oy + (r + 1) * C);
-      g.fillRect(x0, y0, x1 - x0, y1 - y0);
-    }
-  }
-}
+});
+// ── 컷 레이어 base 끝 ──
