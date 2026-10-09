@@ -240,6 +240,26 @@ function hitMonster(m, mult = 1, o = {}) {
 
 // ───────────────────────── 업데이트 ─────────────────────────
 // 타격 시점에 사거리 안의 적을 때리거나(근접: targets 마리까지) 화살을 쏜다(원거리: shots 발을 나눠서)
+// 원거리 평타가 나가는 자리: 컷 모드면 지금 컷의 무기 끝(지팡이 구슬·활 줌통·석궁 앞), 아니면 null (예전 고정 자리)
+//  무기 계열 파일이 CUT_WEAPON[id].muzzle(w, Ly, cut, r) 로 바꿀 수 있다
+function heroMuzzle(w) {
+  const c = CLASSES[S.cls], look = c && c.look;
+  if (!look || !look.body.px || knight.swing < 0) return null;
+  const mo = heroAtkOf(w, knight.combo);
+  if (!mo || !mo.cuts) return null;
+  const ci = Math.max(0, mo.cuts.findIndex((k) => knight.swing < k.until)), cut = mo.cuts[ci];
+  const x = toScreen(knight.x) - Math.round((knight.recoil || 0) * 3), gy = groundY();
+  const Ly = cutLayout(w, x, gy, { t: clock }, cut, 1, look), r = cutRig(w, Ly, cut), def = CUT_WEAPON[w.id] || {};
+  let p;
+  if (def.muzzle) p = def.muzzle(w, Ly, cut, r);
+  else if (w.staff) { const a = staffAngle(r.bowA), L = (w.staff.len + 1.6) * PX; p = [r.fh[0] + Math.cos(a) * L, r.fh[1] + Math.sin(a) * L]; }
+  else if (w.crossbow) { const L = w.size * 0.9; p = [r.fh[0] + Math.cos(r.bowA) * L, r.fh[1] + Math.sin(r.bowA) * L]; }
+  else p = [r.fh[0], r.fh[1]];
+  if (!p) return null;
+  if ((knight.facing || 1) < 0) p = [2 * x - p[0], p[1]];
+  return p;
+}
+
 function releaseAttack(st) {
   const inRange = monsters
     .filter(m => !m.dying && aheadDist(knight.x, m.x) <= reachTo(m) + 2)
@@ -248,7 +268,8 @@ function releaseAttack(st) {
   if (st.kind === 'ranged') {
     const w = heroWeapon();
     const n = Math.min(inRange.length, st.targets);
-    const hx = toScreen(knight.x) + 5 * PX, hy = groundY() - 6 * PX;
+    const mz = heroMuzzle(w);
+    const hx = mz ? mz[0] : toScreen(knight.x) + 5 * PX, hy = mz ? mz[1] : groundY() - 6 * PX;
     for (let i = 0; i < st.shots; i++) {
       shots.push({ w, m: inRange[i % n], mult: st.shotMult, x: hx, y: hy + (i - (st.shots - 1) / 2) * 3, ox: hx, oy: hy, a: 0, trail: [], delay: i * 0.06 });
     }
@@ -2108,7 +2129,8 @@ function drawCape(g, cape, x, top, bottom, ground, t, moving) {
   g.fillRect(x - 3 * PX, shoulderY + PX, 2, hemY - shoulderY - PX * 2);
 }
 
-function drawShield(g, sh, cx, cy) {
+function drawShield(g, sh, cx, cy, white = false) {
+  if (white) sh = { rim: '#ffffff', face: '#ffffff', emblem: '#ffffff' };       // 피격 번쩍임
   g.fillStyle = sh.rim;
   g.fillRect(cx - 2 * PX, cy - 3 * PX, 4 * PX, 5 * PX);
   g.beginPath(); g.moveTo(cx - 2 * PX, cy + 2 * PX); g.lineTo(cx, cy + 4 * PX); g.lineTo(cx + 2 * PX, cy + 2 * PX); g.fill();
@@ -2248,10 +2270,10 @@ function drawScarfTail(g, cape, G, flow, sway, white = false) {
   if (xl == null) return;
   const base = white ? '#ffffff' : cape.color, dark = white ? '#ffffff' : spriteShadeCol(cape.color, -1);
   const cells = new Map();
-  for (const [len, off, col] of [[9 + flow * 6, 0, base], [7 + flow * 4, 1.6, dark]]) {
+  for (const [len, off, col] of [[10 + flow * 7, 0, base], [8 + flow * 5, 1.6, dark]]) {
     let px = 0, py = off;
     for (let s = 0; s <= len * 3; s++) {
-      const t = s / (len * 3), th = 1.25 - flow * 0.9 + Math.sin(t * 5 + sway * 6 + off) * 0.25 * t;   // 아래(+y)에서 뒤(-x)로
+      const t = s / (len * 3), th = 1.0 + flow * 0.6 + Math.sin(t * 5 + sway * 6 + off) * 0.25 * t;   // 0 아래 · π/2 뒤로 수평 — 날릴수록 뒤로 눕고 끝이 들린다
       for (let v = -0.9; v <= 0.9; v += 0.45) cells.set(Math.round(px + Math.cos(th) * v) + ',' + Math.round(py + Math.sin(th) * v), col);
       px -= Math.sin(th) / 3; py += Math.cos(th) / 3;
     }
@@ -2272,13 +2294,16 @@ function drawScarfTail(g, cape, G, flow, sway, white = false) {
 //  bowA 활·석궁·지팡이 기울기 · pull 시위 당김(px)·지팡이 마력 · arrow 화살을 메겼는지(기본 true)
 //  bgrip 뒷손이 무기 자루를 쥐는 자리 (앞손에서 자루 뒤쪽으로 칸) — 없으면 무기마다 기본 자리(양손 대검·창·석궁은 쥐고, 활은 시위, 쌍검·한손검·지팡이는 빈손)
 //  bfront: 'body' 뒷팔을 몸통 위에(가슴 앞으로 팔을 당길 때) · 'over' 무기 위에 · 없으면 몸 뒤
-//  shield: 'bh' 방패를 뒷손에 든다 (기본은 몸 앞 고정 자리)
-// 무기별로 그리기를 바꾸려면 CUT_WEAPON[무기 id] = { backHand(w, Ly, cut, r), draw(g, w, Ly, cut, white, r), reach(w, cut), smear(g, w, P0, Ly, cut, r) } — 없는 것은 기본
+//  shield: 'bh' 방패를 뒷손에 든다 (기본은 몸 앞 고정 자리) · wlayer: 'head' 무기를 머리보다 먼저(머리 뒤로 지나가는 칼)
+// 무기별로 그리기를 바꾸려면 CUT_WEAPON[무기 id] = { backHand(w, Ly, cut, r), draw(g, w, Ly, cut, white, r, info), reach(w, cut), smear(g, w, P0, Ly, cut, r, info), muzzle(w, Ly, cut, r) } — 없는 것은 기본
+//  info = { cid 직업 id, look, pal, armC 팔 색, fistC 주먹 색 } · muzzle 은 원거리 탄이 나가는 자리
 const CUT_WEAPON = {};
-function cutLayout(w, x, gy, pose, cut, breath = 1) {
+function cutLayout(w, x, gy, pose, cut, breath = 1, look = null) {
   const C = PX / 2;
   const xx = Math.round(x + (pose.dx || 0) + (cut.dx || 0));
-  const base = gy - (pose.lift || 0) - (cut.lift || 0);
+  // 평소 떠 있는 직업(look.stance.hover·bob — 대마도사 등)은 컷에서도 그만큼 떠 있다 (대기 컷에선 오르내림까지)
+  const st = (look && look.stance) || {}, hover = (st.hover || 0) + (breath !== 1 ? (st.bob || 0) * Math.sin((pose.t || 0) * 2.2) : 0);
+  const base = gy - (pose.lift || 0) - (cut.lift || 0) - hover;
   const lg = LEG_CUT[cut.legs] || LEG_CUT.stand;
   const bodyBottom = base - (lg.rows.length - lg.hip[1]) * C;            // 다리 그림 높이만큼 몸이 뜬다 (런지면 낮아진다)
   const sy = (cut.sy || 1) * breath, skew = cut.skew || 0, sx = cut.sx || 1;
@@ -2331,7 +2356,7 @@ function drawHeroCut(g, cid, look, w, pal, x, gy, pose, mo, ci) {
   g.save();
   g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;
   if (pose.facing < 0) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0); }
-  const Ly = cutLayout(w, x, gy, pose, cut, breath);
+  const Ly = cutLayout(w, x, gy, pose, cut, breath, look);
   const r = cutRig(w, Ly, cut);
   const opt = { flash: white, tint: null };
   const legC = pal.l || PAL.l, bootC = pal.k || PAL.k;
@@ -2346,7 +2371,26 @@ function drawHeroCut(g, cid, look, w, pal, x, gy, pose, mo, ci) {
   const backArm = () => {
     drawCutBackArm(g, Ly, bh, armC, fistC, white);
     if (dual && cut.wb != null) { const p = Ly.ba, hb = bh || [Ly.bs[0] + p.vec[0] * C, Ly.bs[1] + p.vec[1] * C]; drawBladeCells(g, w, hb, cut.wb, w.len - 1, white); drawArmSprite(g, p, Ly.bs[0], Ly.bs[1], armC, fistC, -1); }
-    if (look.shield && cut.shield === 'bh') { const p = Ly.ba, hb = bh || [Ly.bs[0] + p.vec[0] * C, Ly.bs[1] + p.vec[1] * C]; drawShield(g, look.shield, hb[0], hb[1]); }
+    if (look.shield && cut.shield === 'bh') { const p = Ly.ba, hb = bh || [Ly.bs[0] + p.vec[0] * C, Ly.bs[1] + p.vec[1] * C]; drawShield(g, look.shield, hb[0], hb[1], white); }
+  };
+  const info = { cid, look, pal, armC, fistC };
+  const drawW = () => {
+    const hitCut = !!cut.smear;
+    if (cut.smear && ci > 0) {
+      g.save(); g.beginPath(); g.rect(-1e4, -1e4, 3e4, 1e4 + gy + 1); g.clip();     // 스미어는 땅선 위에서만
+      const cp = mo.cuts[ci - 1], L0 = cutLayout(w, x, gy, pose, cp, 1, look);
+      if (def.smear) def.smear(g, w, L0, Ly, cut, r, info);
+      else if (w.kind !== 'ranged') {
+        const pole = w.motion === 'thrust' || w.motion === 'sweep';
+        const reach = def.reach ? def.reach(w, cut) : w.len + (pole ? (cut.ext || 0) / PX + 2 : 0);
+        drawCutSmear(g, w, L0.hand, L0.wa, Ly.hand, Ly.wa, reach, cut.smear === 'tip');
+      }
+      g.restore();
+    }
+    r.stretch = hitCut ? 1.12 : 1;
+    if (def.draw) def.draw(g, w, Ly, cut, white, r, info);
+    else if ((w.motion === 'swing' || w.motion === 'dual') && !w.slab && w.kind !== 'ranged') drawBladeCells(g, w, Ly.hand, Ly.wa, w.len * r.stretch, white);
+    else drawWeapon(g, w, r);
   };
   // 1 망토 뒷자락 (컷마다 날림이 정해져 있고, 전투 대기에선 두 컷으로 살랑인다)
   if (look.cape) {
@@ -2360,25 +2404,13 @@ function drawHeroCut(g, cid, look, w, pal, x, gy, pose, mo, ci) {
   drawSprite(G.P.pelvis, pal, Ly.x, Ly.bodyBottom, G.bodyPx, { ...opt, sx: 1, sy: Ly.sy, skew: G.pskew }, g);
   drawSprite(G.P.torso, pal, Ly.x + G.pshift, G.pelvisTop, G.bodyPx, { ...opt, sx: G.tsx, sy: Ly.sy, skew: Ly.skew }, g);
   if (look.cape && look.body.px) drawCapeFront(g, look.cape, G, white);
+  if (cut.wlayer === 'head') drawW();
   drawSprite(G.P.head, pal, Ly.x + hdx, G.neckY + hdy, G.bodyPx, { ...opt, sx: G.hsx, sy: Ly.sy, skew: hskew }, g);
-  if (look.shield && cut.shield !== 'bh') drawShield(g, look.shield, Ly.x - 4 * PX, Ly.bodyBottom - 4 * PX);
+  if (look.shield && cut.shield !== 'bh') drawShield(g, look.shield, Ly.x - 4 * PX, Ly.bodyBottom - 4 * PX, white);
   if (look.halo) drawHalo(g, Ly.x, G.top, t);
   if (backLayer === 'body') backArm();
-  // 5 스미어 → 무기 → (뒷팔 'over') → 앞팔 (손이 자루를 덮는다)
-  const hitCut = !!cut.smear;
-  if (cut.smear && ci > 0) {
-    const cp = mo.cuts[ci - 1], L0 = cutLayout(w, x, gy, pose, cp);
-    if (def.smear) def.smear(g, w, L0, Ly, cut, r);
-    else if (w.kind !== 'ranged') {
-      const pole = w.motion === 'thrust' || w.motion === 'sweep';
-      const reach = def.reach ? def.reach(w, cut) : w.len + (pole ? (cut.ext || 0) / PX + 2 : 0);
-      drawCutSmear(g, w, L0.hand, L0.wa, Ly.hand, Ly.wa, reach, cut.smear === 'tip');
-    }
-  }
-  r.stretch = hitCut ? 1.12 : 1;
-  if (def.draw) def.draw(g, w, Ly, cut, white, r);
-  else if ((w.motion === 'swing' || w.motion === 'dual') && !w.slab && w.kind !== 'ranged') drawBladeCells(g, w, Ly.hand, Ly.wa, w.len * r.stretch, white);
-  else drawWeapon(g, w, r);
+  // 5 스미어 → 무기 → (뒷팔 'over') → 앞팔 (손이 자루를 덮는다). wlayer: 'head' 면 스미어·무기를 머리 전에 그려 머리 뒤로 지나가게 한다
+  if (cut.wlayer !== 'head') drawW();
   if (!idle) drawAtkFx(g, w, r, { mo, s: pose.swing });
   if (backLayer === 'over') backArm();
   drawArmSprite(g, Ly.fa, Ly.fs[0], Ly.fs[1], armC, fistC, 0);
@@ -2576,7 +2608,7 @@ function drawHero(g, id, x, gy, pose) {
         drawSprite(P.head, pal, x + hdx, neckY + hdy, bodyPx, { ...opt, sx: hsx, sy, skew: hskew }, g);
         if (look.cape && !capeBehind) drawCape(g, look.cape, x + 2 * PX, top, bodyBottom, base, t, true);   // 등 시점: 망토가 등을 덮는다
       } else drawSprite(look.body, pal, x, bodyBottom, bodyPx, { ...opt, sx, sy, skew: pose.skew || 0 }, g);
-      if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX);
+      if (look.shield) drawShield(g, look.shield, x - 4 * PX, bodyBottom - 4 * PX, !!opt.flash);
       if (look.halo) drawHalo(g, x, top, t);
     }
     // 몸 앞: 무기 → 잔상 → 무기를 쥔 손과 앞팔

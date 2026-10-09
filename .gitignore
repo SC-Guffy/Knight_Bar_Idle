@@ -5,3 +5,4 @@ server/data/
 dist/
 .claude/
 dev/shots/
+dev/__pycache__/
