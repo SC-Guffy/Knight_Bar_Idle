@@ -12,6 +12,7 @@ const freshWb = () => ({ claimed: [], last: null, seen: '' });
 
 const WB_TRIES = 3;          // 하루 도전 횟수 (server/worldboss.js 와 같아야 함)
 const WB_UNLOCK = 30;        // 최고 스테이지가 이만큼 돼야 도전할 수 있다 (server/worldboss.js 와 같아야 함)
+const WB_ENRAGE = 20;        // 광폭화 시각(초) 기본값 — 보스마다 WORLD_BOSSES[id].rage 가 있으면 그것 (server/worldboss.js 와 같아야 함)
 const WB_REL_MAX = 3;        // 지분 몫은 평균의 3배까지만 쳐 준다 (한두 명이 독식하지 않게)
 const wbUnlocked = () => S.best >= WB_UNLOCK;
 

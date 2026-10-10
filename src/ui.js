@@ -2101,7 +2101,10 @@ function viewWorldBoss() {
   if (!d) {
     return `<div class="reason">🌍 월드 보스 ${wbUi.error ? `— ⚠️ ${esc(wbUi.error)} <button class="btn" data-action="wb-refresh">다시 시도</button>` : '불러오는 중…'}</div>`;
   }
-  const b = WORLD_BOSSES[d.boss.id], alive = d.boss.maxHp > 0 && d.boss.hp > 0;
+  const b = WORLD_BOSSES[d.boss.id], nb = WORLD_BOSSES[d.next], alive = d.boss.maxHp > 0 && d.boss.hp > 0;
+  // 서버가 이 클라이언트보다 새 보스를 내보내면(배포 순서 차이) 이름을 모르니 새로고침을 권한다
+  if (!b) return `<div class="reason">🌍 월드 보스 — 새 보스 정보가 없어요. 게임을 새로고침해 주세요.</div>`;
+  const rage = b.rage || WB_ENRAGE;
   const ratio = d.boss.maxHp ? d.boss.hp / d.boss.maxHp : 1;
   const share = d.total > 0 ? d.mine.dmg / d.total : 0;
   const left = Math.max(0, d.tries - d.mine.tries), why = wbBlocker();
@@ -2122,7 +2125,7 @@ function viewWorldBoss() {
     <div class="rboss wb ${alive ? '' : 'dead'}">
       ${bossPortrait(d.boss.id)}
       <div class="info">
-        <b>${b.icon} ${b.name}</b> <small>광역기 「${b.skill}」 · 다음 보스 ${WORLD_BOSSES[d.next].icon} ${WORLD_BOSSES[d.next].name}</small>
+        <b>${b.icon} ${b.name}</b> <small>광역기 「${b.skill}」 · 😡 ${rage}초 광폭화${b.trait ? ` · ${b.trait}` : ''}${nb ? ` · 다음 보스 ${nb.icon} ${nb.name}` : ''}</small>
         <div class="wbhp"><span style="width:${Math.max(0, ratio) * 100}%"></span><em>${state}</em></div>
         <div class="eff">참가 ${d.players}명 · 내 피해 <b>${fmt(d.mine.dmg)}</b>${d.mine.dmg ? ` (지분 ${(share * 100).toFixed(share < 0.01 ? 2 : 1)}%)` : ''}</div>
       </div>
@@ -2132,7 +2135,7 @@ function viewWorldBoss() {
       </div>
     </div>
     ${rows ? `<div class="wbtop">${rows}</div>` : ''}
-    <div class="hint" title="한 번 도전하면 30초 동안 혼자 싸워요. 20초가 지나면 보스가 광폭해져서 체력·방어가 약하면 먼저 쓰러져요.&#10;보상 = 참여 기본 몫 + 피해 지분 몫 (평균의 3배까지). 재화는 내 최고 스테이지 기준이에요.&#10;보스 체력은 기사들이 세질수록 함께 늘어나요.">
+    <div class="hint" title="한 번 도전하면 30초 동안 혼자 싸워요. ${rage}초가 지나면 보스가 광폭해져서 체력·방어가 약하면 먼저 쓰러져요.&#10;보상 = 참여 기본 몫 + 피해 지분 몫 (평균의 3배까지). 재화는 내 최고 스테이지 기준이에요.&#10;보스 체력은 기사들이 세질수록 함께 늘어나요.">
       30초 도전 · 내일 접속하면 <b>피해 지분만큼 보상</b>, 잡았으면 📖·💠·🎁 추가 <span class="small">ⓘ</span>
       ${L ? `<br>🎁 지난 보상 (${WORLD_BOSSES[L.boss] ? WORLD_BOSSES[L.boss].name : ''} ${L.killed ? '처치' : '생존'} · ${L.players}명 중 ${L.rank}위) — ${wbRewardText(L.reward)}` : ''}</div>`;
 }
