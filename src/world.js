@@ -2945,7 +2945,7 @@ function playDuel(res, onEnd) {
     res, onEnd, t0: clock, speed: Math.max(1, f.dur / DUEL_PLAY_SEC), shown: 0, last: {}, hit: {}, doneAt: null,
     x0: CAMP_X + 70,
   };
-  showBanner(`⚔️ VS ${res.opponent.nickname}`, '#ff9f1c');
+  showBanner(`⚔️ VS ${res.opponent.bot ? '🤖 ' : ''}${res.opponent.nickname}`, '#ff9f1c');
 }
 const duelTime = () => Math.min(duelPlay.res.fight.dur, Math.max(0, clock - duelPlay.t0 - DUEL_ENTER_SEC) * duelPlay.speed);
 
@@ -3049,7 +3049,7 @@ function drawDuel() {
     ctx.textAlign = 'center';
     ctx.lineJoin = 'round';
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-    const label = `${c.icon} ${who.nickname}`;
+    const label = `${c.icon} ${who.bot ? '🤖' : ''}${who.nickname}`;
     ctx.strokeText(label, x, top - 5);
     ctx.fillStyle = side === 'a' ? '#f3efe6' : '#ffc9c9';
     ctx.fillText(label, x, top - 5);
@@ -4081,7 +4081,7 @@ function drawRaid() {
     // 이름표가 겹치지 않게 번갈아 높이를 다르게 한다
     const top = gy - 58 - (i % 2) * 14;
     drawHpBar(x, top, 26, d.hpK[i] / k.max, me ? '#5fcf5a' : '#7cc4ff');
-    label(`${done && !d.res.world && f.mvp === i ? '👑' : c.icon} ${m.nickname}`, x, top - 4, me ? '#ffd257' : '#f3efe6');
+    label(`${done && !d.res.world && f.mvp === i ? '👑' : c.icon} ${m.bot ? '🤖' : ''}${m.nickname}`, x, top - 4, me ? '#ffd257' : '#f3efe6');
   });
 
   if (d.warn && d.dead[d.warn.i] == null && Math.floor(clock * 12) % 2 === 0) {

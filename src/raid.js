@@ -50,6 +50,12 @@ function buyTicket() {
   return true;
 }
 
+// 소수 인원(AI 기사 자리를 반 명으로 친 파티)의 보스 스테이지 — 양옆 인원 사이를 잇는다 (server/raid.js partyGap 과 같음)
+function raidStageAt(b, n) {
+  const lo = Math.floor(n), hi = Math.ceil(n);
+  return lo === hi ? raidStageOf(b, n) : raidStageOf(b, lo) + (raidStageOf(b, hi) - raidStageOf(b, lo)) * (n - lo);
+}
+
 // ───────────────────────── 정산 ─────────────────────────
 // 서버가 보낸 레이드 결과를 내 몫만큼 정산한다: 클리어했을 때만 입장권 1장 소모, 재화(MVP 1.5배), 경험치, 이기면 처치 상자.
 // 이미 정산했거나 내가 그 파티에 없었으면 null
@@ -60,14 +66,16 @@ function settleRaid(result, nick) {
   S.raid.claimed.push(result.id);
   if (S.raid.claimed.length > 30) S.raid.claimed.shift();
   const f = result.fight, b = RAID_BOSSES[result.boss], mvp = f.mvp === me;
-  const mult = (f.won ? 1 : RAID_FAIL_MULT) * (mvp ? RAID_MVP_MULT : 1);
+  // AI 기사(🤖)와 함께면 서버가 보스 세기를 정한 인원(party, AI 자리는 반 명)과 재화·경험치 배율(botMult, AI 한 자리당 -10%)을 같이 보낸다
+  const bot = result.botMult || 1;
+  const mult = (f.won ? 1 : RAID_FAIL_MULT) * (mvp ? RAID_MVP_MULT : 1) * bot;
   // 재화·경험치는 인원수만큼 강해진 보스의 스테이지 기준 (적은 인원으로 어렵게 잡을수록 많이). 단 내 최고 스테이지를 넘지는 않는다
-  const rs = Math.max(b.stage, Math.min(S.best, Math.round(raidStageOf(b, result.members.length))));
+  const rs = Math.max(b.stage, Math.min(S.best, Math.round(raidStageAt(b, result.party || result.members.length))));
   const ms = monsterStats(rs, true), scale = 1 + (rs - 1) * 0.04;
   const reward = {
     gold: Math.round(ms.gold * 8 * mult * goldMult()),
     wood: Math.round(60 * scale * mult), ore: Math.round(45 * scale * mult), mana: Math.round(12 * scale * mult),
-    exp: Math.round(ms.exp * (f.won ? 5 : 1) * expMult()),
+    exp: Math.round(ms.exp * (f.won ? 5 : 1) * bot * expMult()),
     chest: f.won, mvp, mult,
   };
   S.gold += reward.gold;
@@ -82,6 +90,7 @@ function settleRaid(result, nick) {
 
   S.raid.last = {
     id: result.id, boss: result.boss, won: f.won, timeout: f.timeout, dur: f.dur, me, mvp: f.mvp,
+    ...(result.botMult ? { party: result.party, botMult: result.botMult } : {}),
     members: result.members.map((m, i) => ({ ...m, ...f.contrib[i] })),
     reward, at: Date.now(),
   };

@@ -1395,6 +1395,10 @@ function viewDepart() {
 // ───────────────────────── 랭킹 ─────────────────────────
 const rank = { sort: 'stage', data: null, at: 0, loading: false, error: null };
 const clsOf = (id) => CLASSES[id] || CLASSES.squire;
+// AI 기사(server/bots.js) 표시: 서버가 bot: true 를 붙여 준 기사는 어디서든 이름 앞에 🤖 — 진짜 유저인 척하지 않는다
+const BOT_TIP = 'AI 기사 — 유저가 적어도 랭킹·결투·레이드·월드 보스가 비지 않게 서버가 키우는 봇이에요';
+const botTag = (p) => (p && p.bot ? `<span class="botb" title="${BOT_TIP}">🤖</span>` : '');
+const botName = (p) => `${p && p.bot ? '🤖 ' : ''}${p ? p.nickname : ''}`;
 
 // 랭킹 탭을 열 때 불러온다 (15초 안에 불러온 게 있으면 그대로). 내 최신 기록을 먼저 올린다.
 function loadRanking(force = false) {
@@ -1462,9 +1466,10 @@ function viewSeason() {
   loadSeason();
   const d = seasonUi.data;
   if (!d) return seasonUi.error ? `<div class="reason warn">⚠️ 시즌 정보를 불러오지 못했어요 — ${esc(seasonUi.error)}</div>` : '';
+  // me.rank·players 는 AI 기사를 뺀 사람끼리의 순위 (시즌 보상도 이걸로) — 랭킹 목록에서의 자리는 me.rankAll
   const me = d.me, myTier = me.rank ? seasonTier(me.rank, Math.max(d.players, me.rank)) : null;
   const status = me.attacks > 0
-    ? `내 기록 — ⚔️ <b>${me.rating}</b> · ${me.wins}승 ${me.losses}패 · <b>${me.rank}위</b> (지금 끝나면 ${myTier.name})`
+    ? `내 기록 — ⚔️ <b>${me.rating}</b> · ${me.wins}승 ${me.losses}패 · 보상 순위 <b>${me.rank}위</b>${me.rankAll && me.rankAll !== me.rank ? ` <small>(🤖 포함 ${me.rankAll}위)</small>` : ''} (지금 끝나면 ${myTier.name})`
     : `<span class="warn">아직 이번 시즌에 직접 건 결투가 없어요 — 1번 이상 걸어야 순위에 오르고 보상을 받아요 (도전받기만 한 결투는 세지 않아요)</span>`;
   const tiers = SEASON_TIERS.map((t) => `
     <div class="stier ${myTier && myTier.id === t.id ? 'on' : ''}"><b>${t.name}</b><span>${seasonRewardText(seasonReward(t))}</span></div>`).join('');
@@ -1474,7 +1479,7 @@ function viewSeason() {
       ${mine && mine.season === L.id ? `<br>내 보상 — ${seasonTier(mine.rank, mine.total).name} (${mine.rank}위) · ${seasonRewardText(mine.reward)}` : ''}</div>` : '';
   return `
     <div class="season">
-      <div class="shd"><b>⚔️ 결투 시즌 ${d.id}</b><small>${fmtDate(d.endsAt)} 마감 · 남은 시간 ${fmtLeft(d.endsAt - d.now - (Date.now() - seasonUi.at))} · 참가 ${d.players}명</small></div>
+      <div class="shd"><b>⚔️ 결투 시즌 ${d.id}</b><small>${fmtDate(d.endsAt)} 마감 · 남은 시간 ${fmtLeft(d.endsAt - d.now - (Date.now() - seasonUi.at))} · 참가 ${d.players}명${d.bots ? ` <span title="${BOT_TIP}">+ 🤖 ${d.bots}</span> · 보상은 사람끼리 순위` : ''}</small></div>
       <div class="sme">${status}</div>
       <div class="stiers"><button class="lnk" data-action="season-tiers">${seasonUi.tiers ? '▾' : '▸'} 순위별 보상</button>
         <small>내 최고 스테이지 기준 · 상자는 열 수 있는 가장 높은 레이드 보스의 처치 상자</small>${seasonUi.tiers ? tiers : ''}</div>
@@ -1491,9 +1496,9 @@ function viewRank() {
     return `
       <div class="rrow ${me ? 'me' : ''}">
         <span class="rk r${rk}">${rk}</span>
-        <span class="rnm"><b>${esc(p.nickname)}</b><small>${c.icon} ${c.name} · Lv ${p.level}</small></span>
+        <span class="rnm"><b>${botTag(p)}${esc(p.nickname)}</b><small>${c.icon} ${c.name} · Lv ${p.level}</small></span>
         <span class="rv"><small>최고 스테이지</small><b>🏰 ${p.best}</b></span>
-        <span class="rv"><small>전투력</small><b>${fmt(p.power)}</b></span>
+        ${rank.sort === 'tower' ? `<span class="rv"><small>도전의 탑</small><b>🗼 ${p.tower || 0}층</b></span>` : `<span class="rv"><small>전투력</small><b>${fmt(p.power)}</b></span>`}
         <span class="rv"><small>시즌 ${p.wins}승 ${p.losses}패</small><b>⚔️ ${p.rating}</b></span>
         ${me ? '<span class="rme">나</span>'
           : `<button class="btn duel" data-action="duel" data-nick="${esc(p.nickname)}" ${duelBusy || duelActive() ? 'disabled' : ''}>⚔️ 결투</button>`}
@@ -1511,12 +1516,13 @@ function viewRank() {
   }
   return `
     <div class="shead">
-      <h3>🏆 랭킹 <small>${d ? `${rank.sort === 'duel' ? '시즌 참가' : '기사'} ${d.total}명${d.me ? ` · 내 순위 ${d.me.rank ? d.me.rank + '위' : '없음'}` : ''}` : ''}</small></h3>
-      <div class="segs">${seg('stage', '🏰 스테이지')}${seg('duel', '⚔️ 결투 시즌')}
+      <h3>🏆 랭킹 <small>${d ? `${rank.sort === 'duel' ? '시즌 참가' : '기사'} ${d.total}명${d.bots ? ` <span title="${BOT_TIP}">(🤖 AI ${d.bots})</span>` : ''}${d.me ? ` · 내 순위 ${d.me.rank ? d.me.rank + '위' : '없음'}` : ''}` : ''}</small></h3>
+      <div class="segs">${seg('stage', '🏰 스테이지')}${seg('duel', '⚔️ 결투 시즌')}${seg('tower', '🗼 탑')}
         <button class="btn" data-action="rank-refresh" title="새로고침" ${rank.loading ? 'disabled' : ''}>↻</button></div>
     </div>
     <div class="hint">결투는 서로의 저장된 능력치로 자동으로 싸우고, 캠프 앞 하단바에서 벌어져요. 이기면 상대의 결투 점수를 가져오고, 상대가 접속해 있지 않아도 도전할 수 있어요.
-      결투 점수는 3일마다 바뀌는 시즌마다 1000점에서 다시 시작하고, 시즌이 끝나면 직접 결투를 1번 이상 건 기사에게 순위별 보상을 줘요.</div>
+      결투 점수는 3일마다 바뀌는 시즌마다 1000점에서 다시 시작하고, 시즌이 끝나면 직접 결투를 1번 이상 건 기사에게 순위별 보상을 줘요.
+      ${d && d.bots ? `<br>🤖 표시는 서버가 키우는 <b>AI 기사</b>예요. 결투 상대가 되고 가끔 먼저 결투를 걸기도 하지만, 시즌 보상 순위는 AI 를 빼고 사람끼리 매겨요.` : ''}</div>
     ${viewInbox()}
     ${rank.sort === 'duel' ? viewSeason() : ''}
     ${lastDuel ? `<div class="reason ${lastDuel.won ? '' : 'warn'}">최근 결투 — ${esc(duelResultText(lastDuel))}</div>` : ''}
@@ -1577,7 +1583,7 @@ function tellInbox() {
   const win = fresh.filter((m) => m.won).length, sum = fresh.reduce((a, m) => a + (m.won ? m.delta : -m.delta), 0);
   const m = fresh[0];
   toast(fresh.length === 1
-    ? `📬 받은 결투 — ${m.nickname}(Lv ${m.level}) · ${m.won ? `🛡️ 방어 성공! 결투 점수 +${m.delta}` : `💀 패배… 결투 점수 -${m.delta}`} · 🏆 랭킹 탭에서 확인`
+    ? `📬 받은 결투 — ${botName(m)}(Lv ${m.level}) · ${m.won ? `🛡️ 방어 성공! 결투 점수 +${m.delta}` : `💀 패배… 결투 점수 -${m.delta}`} · 🏆 랭킹 탭에서 확인`
     : `📬 받은 결투 ${fresh.length}건 — 방어 ${win} · 패배 ${fresh.length - win} · 결투 점수 ${sum >= 0 ? '+' : ''}${sum} · 🏆 랭킹 탭에서 확인`, 9000);
 }
 
@@ -1590,7 +1596,7 @@ const SHOUT_COL = { text: '#e6e6ee', nick: '#7cc4ff', good: '#7dffb0', bad: '#ff
 const shoutLvCol = (L) => L >= ENHANCE_MAX ? 'rainbow' : L >= 24 ? '#ff5ac8' : L >= 22 ? '#ff9f1c' : L >= 20 ? '#ffd257' : '#e0b070';
 function shoutText(m) {
   const g = GEAR_SLOTS[m.slot] || { name: '장비', icon: '⚒️' };
-  const C = SHOUT_COL, head = [['📢 ', C.text], [m.nickname, C.nick]];
+  const C = SHOUT_COL, head = [['📢 ', C.text], [botName(m), C.nick]];
   if (m.result === 'reset') return [...head, ['님의 ', C.text], [`${g.icon} ${g.name} `, C.text], [`+${m.from}`, shoutLvCol(m.from)],
     [' → ', C.text], ['+0', C.lost], [' 강화가 ', C.text], ['초기화', C.bad], ['됐습니다… 😭', C.text]];
   if (m.to >= ENHANCE_MAX) return [...head, ['님이 ', C.text], [`${g.icon} ${g.name} `, C.text], ['최대 강화 ', C.good], [`+${m.to}`, 'rainbow'], [' 달성!! 🎉🎉', C.good]];
@@ -1631,7 +1637,7 @@ function viewInbox() {
     return `
       <div class="mrow ${m.won ? '' : 'lost'}">
         <small class="mt">${fmtAgo(m.at)}</small>
-        <span class="mnm"><b>${esc(m.nickname)}</b> <small>${c.icon} Lv ${m.level}</small>${m.id > inbox.newAfter ? ' <span class="mnew">NEW</span>' : ''}</span>
+        <span class="mnm"><b>${botTag(m)}${esc(m.nickname)}</b> <small>${c.icon} Lv ${m.level}</small>${m.id > inbox.newAfter ? ' <span class="mnew">NEW</span>' : ''}</span>
         <span class="mres">${m.won ? '🛡️ 방어' : '💀 패배'} <small>${m.won ? '+' : '-'}${m.delta} → ${m.rating}</small></span>
         ${m.won ? '' : `<button class="btn duel" data-action="duel" data-nick="${esc(m.nickname)}" ${duelBusy || duelActive() ? 'disabled' : ''}>⚔️ 복수</button>`}
       </div>`;
@@ -1688,7 +1694,7 @@ let duelBusy = false;        // 서버 응답을 기다리는 중
 let lastDuel = null;         // 마지막 결투 결과 (랭킹 탭 위에 보여 준다)
 
 const duelResultText = (r) =>
-  `${r.won ? '🏆 승리!' : '💀 패배…'} vs ${r.opponent.nickname}${r.fight.timeout ? (r.fight.judge === 'dmg' ? ' (시간 종료 · 체력이 비슷해 가한 피해 판정)' : ' (시간 종료 · 남은 체력 판정)') : ''} — 결투 점수 ${r.me.rating} (${r.won ? '+' : '-'}${r.delta})`;
+  `${r.won ? '🏆 승리!' : '💀 패배…'} vs ${botName(r.opponent)}${r.fight.timeout ? (r.fight.judge === 'dmg' ? ' (시간 종료 · 체력이 비슷해 가한 피해 판정)' : ' (시간 종료 · 남은 체력 판정)') : ''} — 결투 점수 ${r.me.rating} (${r.won ? '+' : '-'}${r.delta})`;
 
 function startDuel(nick) {
   if (duelBusy || duelActive() || raidActive() || S.phase !== 'camp') return;
@@ -1725,10 +1731,13 @@ const raidUi = {
 };
 let raidPollBusy = false;
 const RAID_POLL_MS = 2000;
+const RAID_FILL_HINT_MS = 45000;   // 방장 혼자(빈자리) 이만큼 기다리면 🤖 빈자리 채우기를 권한다
+const RAID_BOT_POWER = 0.8;        // AI 기사 자리의 전투력 = 방장 × 이 값 (server/bots.js 와 같아야 함, 안내 문구용)
 
 const raidTabOpen = () => campOpen && campTab === 'raid';
 function raidRefresh() {
-  const key = JSON.stringify([raidUi.rooms, raidUi.room, raidUi.error]);
+  const r = raidUi.room, waited = !!(r && r.at && r.members.length < 4 && Date.now() - r.at > RAID_FILL_HINT_MS);
+  const key = JSON.stringify([raidUi.rooms, raidUi.room, raidUi.error, waited]);
   if (key === raidUi.key) return;
   raidUi.key = key;
   if (raidTabOpen()) renderCamp();
@@ -1825,7 +1834,7 @@ function viewRaidResult() {
     const c = clsOf(m.cls), mvp = i === L.mvp, me = i === L.me;
     return `
       <div class="crow2 ${me ? 'me' : ''} ${mvp ? 'mvp' : ''}">
-        <span class="rnm"><b>${mvp ? '👑 ' : ''}${esc(m.nickname)}${me ? ' <small>(나)</small>' : ''}</b><small>${c.icon} ${c.name} · Lv ${m.level}</small></span>
+        <span class="rnm"><b>${mvp ? '👑 ' : ''}${botTag(m)}${esc(m.nickname)}${me ? ' <small>(나)</small>' : ''}</b><small>${c.icon} ${c.name} · Lv ${m.level}</small></span>
         <span class="cbar"><span style="width:${(100 * m.dmg) / top}%"></span><em>${m.score}%</em></span>
         <span class="rv"><small>피해량</small><b>${fmt(m.dmg)}</b></span>
         <span class="rv"><small>받아 낸 피해</small><b>${fmt(m.taken)}</b></span>
@@ -1838,7 +1847,7 @@ function viewRaidResult() {
       <div class="rhead">
         ${bossPortrait(L.boss, 'sm')}
         <div class="rtitle"><b>${L.won ? `👑 ${b.name} 처치!` : L.timeout ? `⏳ 시간 초과 — ${b.name}` : `💀 패배 — ${b.name}`}</b>
-          <small>${fmtTime(L.dur)} · ${L.members.length}인 파티 · 기여도 = 피해 75% + 받아 낸 피해 15% + 회복 10%</small></div>
+          <small>${fmtTime(L.dur)} · ${L.members.length}인 파티 · 기여도 = 피해 75% + 받아 낸 피해 15% + 회복 10%${L.botMult ? ` · 🤖 AI ${L.members.filter((m) => m.bot).length}명과 함께 — 보스 ${L.party}인 기준 · 재화·경험치 ×${L.botMult} · MVP 는 사람 중에서` : ''}</small></div>
         <button class="x" data-action="raid-result-close" title="접기">✕</button>
       </div>
       <div class="clist">${rows}</div>
@@ -1895,16 +1904,16 @@ function viewRaidRoom() {
   const slots = [];
   for (let i = 0; i < 4; i++) {
     const m = room.members[i];
-    if (!m) { slots.push('<div class="pslot empty">빈 자리<small>방 목록에서 참가할 수 있어요</small></div>'); continue; }
+    if (!m) { slots.push(`<div class="pslot empty">빈 자리<small>방 목록에서 참가할 수 있어요${meHost && room.state === 'open' ? ' · 🤖 AI 기사로 채울 수도 있어요' : ''}</small></div>`); continue; }
     const c = clsOf(m.cls), me = m.nickname === activeNick();
-    const state = m.host ? '<span class="pst host">👑 방장</span>' : m.ready ? '<span class="pst ok">✅ 준비 완료</span>' : '<span class="pst">⏳ 준비 중</span>';
+    const state = m.host ? '<span class="pst host">👑 방장</span>' : m.bot ? `<span class="pst ok" title="${BOT_TIP}">🤖 AI 기사</span>` : m.ready ? '<span class="pst ok">✅ 준비 완료</span>' : '<span class="pst">⏳ 준비 중</span>';
     slots.push(`
-      <div class="pslot ${me ? 'me' : ''} ${m.ready || m.host ? 'ready' : ''}">
+      <div class="pslot ${me ? 'me' : ''} ${m.ready || m.host ? 'ready' : ''} ${m.bot ? 'bot' : ''}">
         <div class="pic">${c.icon}</div>
-        <b>${esc(m.nickname)}${me ? ' <small>(나)</small>' : ''}</b>
+        <b>${botTag(m)}${esc(m.nickname)}${me ? ' <small>(나)</small>' : ''}</b>
         <small>${c.name} · Lv ${m.level} · 전투력 ${fmt(m.power)}</small>
         ${state}
-        ${meHost && !m.host && room.state === 'open' ? `<button class="chk" data-action="raid-kick" data-nick="${esc(m.nickname)}">내보내기</button>` : ''}
+        ${meHost && !m.host && room.state === 'open' ? `<button class="chk" data-action="raid-kick" data-nick="${esc(m.nickname)}">${m.bot ? '빼기' : '내보내기'}</button>` : ''}
       </div>`);
   }
   const mine = room.members.find((m) => m.nickname === activeNick());
@@ -1923,7 +1932,11 @@ function viewRaidRoom() {
       : '<span class="small">방장이 다시 도전하면 대기실이 다시 열려요</span>';
   } else if (meHost) {
     const why = !ticket ? '입장권이 없어요' : !allReady ? '모두 준비하면 출정할 수 있어요' : '';
-    acts = `<span class="blocker">${why}</span>${buy}
+    // 빈자리 채우기: 언제든 누를 수 있고, 방을 연 지 RAID_FILL_HINT_MS 가 지나도록 안 차면 빨간 점으로 권한다
+    const empty = 4 - room.members.length, waited = room.at && Date.now() - room.at > RAID_FILL_HINT_MS;
+    const fill = empty > 0 ? `<button class="btn${rd(waited)}" data-action="raid-fill" ${raidUi.busy ? 'disabled' : ''}
+      title="빈자리 ${empty}칸을 내 전투력에 맞춘 AI 기사로 채워요. 보스는 AI 자리를 반 명으로 쳐서 세지고, 재화·경험치는 AI 한 자리당 -10%">🤖 빈자리 채우기</button>` : '';
+    acts = `<span class="blocker">${why}</span>${buy}${fill}
       <button class="go compact" data-action="raid-start" ${why || raidUi.busy ? 'disabled' : ''}>🐉 출정</button>`;
   } else {
     acts = mine && mine.ready
@@ -1954,6 +1967,9 @@ function viewRaidRoom() {
     ${bossSeg}
     <div class="pslots">${slots.join('')}</div>
     <div class="ract">${acts}</div>
+    ${meHost && room.state === 'open' && room.members.length < 4 && room.at && Date.now() - room.at > RAID_FILL_HINT_MS
+      ? `<div class="reason">⏳ 파티원을 기다린 지 꽤 됐어요 — <b>🤖 빈자리 채우기</b>로 AI 기사와 바로 출정할 수 있어요 (나중에 사람이 들어오면 AI 자리를 넘겨받아요)</div>` : ''}
+    ${room.members.some((m) => m.bot) ? `<div class="hint">🤖 AI 기사는 내 전투력의 ${Math.round(RAID_BOT_POWER * 100)}%로 싸워요. 보스는 AI 자리를 반 명으로 쳐서 정해지고(혼자 + AI 3 ≈ 2.5인 보스), 재화·경험치는 AI 한 자리당 10% 줄어요. MVP 는 사람 중에서만.</div>` : ''}
     <div class="hint">출정하면 서버가 파티원들의 저장된 능력치로 전투를 계산하고, 모두의 캠프 앞에서 같은 전투가 펼쳐져요. 입장권은 클리어했을 때만 1장 쓰이고, 실패하면 그대로 남아요.
       ${raidUi.error ? `<br><span class="bad">⚠️ ${esc(raidUi.error)}</span>` : ''}</div>`;
 }
@@ -1976,12 +1992,13 @@ function viewRaidLobby() {
   let list;
   if (raidUi.rooms) {
     list = raidUi.rooms.map((r) => {
-      const b = RAID_BOSSES[r.boss], open = raidUnlocked(r.boss), full = r.count >= 4;
+      // AI 기사 자리는 사람이 들어오면 넘겨받으므로 가득 찬 것으로 치지 않는다
+      const b = RAID_BOSSES[r.boss], open = raidUnlocked(r.boss), full = r.count - (r.bots || 0) >= 4;
       return `
         <div class="rmrow">
           ${bossPortrait(r.boss, 'sm')}
           <span class="rnm"><b>${b.icon} ${b.name}</b><small>방장 ${esc(r.host)} · ${r.members.map(esc).join(', ')}</small></span>
-          <span class="rv"><small>인원</small><b>${r.count} / 4</b></span>
+          <span class="rv"><small>인원</small><b>${r.count - (r.bots || 0)} / 4${r.bots ? ` <small title="${BOT_TIP}">+🤖${r.bots}</small>` : ''}</b></span>
           <button class="btn" data-action="raid-join" data-id="${r.id}" ${!open || full || raidUi.busy ? 'disabled' : ''}
             title="${!open ? `최고 스테이지 ${b.stage} 이상이어야 해요` : full ? '가득 찼어요' : ''}">${full ? '가득 참' : !open ? `🔒 ${b.stage}+` : '참가'}</button>
         </div>`;
@@ -2111,7 +2128,7 @@ function viewWorldBoss() {
   const top = Math.max(1, ...d.top.map((x) => x.dmg));
   const rows = d.top.slice(0, 5).map((x, i) => {
     const me = x.nickname === activeNick(), c = clsOf(x.cls);
-    return `<div class="wbrow ${me ? 'me' : ''}"><span class="wbrk">${i + 1}</span><span class="wbnm">${c.icon} ${esc(x.nickname)}</span>
+    return `<div class="wbrow ${me ? 'me' : ''}"><span class="wbrk">${i + 1}</span><span class="wbnm">${c.icon} ${botTag(x)}${esc(x.nickname)}</span>
       <span class="cbar"><span style="width:${(100 * x.dmg) / top}%"></span><em>${fmt(x.dmg)}</em></span></div>`;
   }).join('');
   const L = S.wb.last && Date.now() - S.wb.last.at < 36 * 3600 * 1000 ? S.wb.last : null;
@@ -2127,7 +2144,7 @@ function viewWorldBoss() {
       <div class="info">
         <b>${b.icon} ${b.name}</b> <small>광역기 「${b.skill}」 · 😡 ${rage}초 광폭화${b.trait ? ` · ${b.trait}` : ''}${nb ? ` · 다음 보스 ${nb.icon} ${nb.name}` : ''}</small>
         <div class="wbhp"><span style="width:${Math.max(0, ratio) * 100}%"></span><em>${state}</em></div>
-        <div class="eff">참가 ${d.players}명 · 내 피해 <b>${fmt(d.mine.dmg)}</b>${d.mine.dmg ? ` (지분 ${(share * 100).toFixed(share < 0.01 ? 2 : 1)}%)` : ''}</div>
+        <div class="eff">참가 ${d.players}명${d.bots ? ` <span title="AI 기사도 매일 도전해 함께 깎아요. 보상 지분·순위는 사람끼리만 나눠요">(🤖 AI ${d.bots})</span>` : ''} · 내 피해 <b>${fmt(d.mine.dmg)}</b>${d.mine.dmg ? ` (지분 ${(share * 100).toFixed(share < 0.01 ? 2 : 1)}%)` : ''}</div>
       </div>
       <div class="act">
         <button class="go compact${rd(!why)}" data-action="wb-attack" ${why || wbUi.busy ? 'disabled' : ''} title="${esc(why)}">⚔️ 도전</button>
@@ -2604,6 +2621,7 @@ const ACTIONS = {
   },
   'raid-boss': (el) => raidRequest(() => setRaidBoss(el.dataset.boss)),
   'raid-kick': (el) => raidRequest(() => kickRaid(el.dataset.nick)),
+  'raid-fill': () => raidRequest(withSave(fillRaid), '🤖 빈자리를 AI 기사로 채웠어요'),
   'raid-start': () => { if (S.raid.tickets > 0) raidRequest(withSave(startRaid)); },
   'raid-again': () => raidRequest(againRaid),
   'raid-result': () => { raidUi.showResult = true; },

@@ -343,7 +343,7 @@ const powerOf = (st) => Math.round(Math.sqrt(dpsOf(st) * st.maxHp) * 10);
 function profile() {
   const st = stats(true);
   return {
-    cls: S.cls, level: S.level, best: S.best, power: powerOf(st),
+    cls: S.cls, level: S.level, best: S.best, power: powerOf(st), tower: S.tower ? S.tower.best : 0,   // tower: 🗼 탑 순위
     atk: st.atk, maxHp: st.maxHp, aspd: st.aspd, crit: st.crit, critMult: st.critMult,
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal,
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)

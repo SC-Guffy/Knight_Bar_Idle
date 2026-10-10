@@ -146,6 +146,7 @@ const leaveRaid = () => raidCall('POST', '/api/raids/leave', {});
 const readyRaid = (ready) => raidCall('POST', '/api/raids/ready', { ready });
 const setRaidBoss = (boss) => raidCall('POST', '/api/raids/boss', { boss });
 const kickRaid = (nickname) => raidCall('POST', '/api/raids/kick', { nickname });
+const fillRaid = () => raidCall('POST', '/api/raids/fill', {}, 70000);   // 빈자리를 AI 기사로 (server/bots.js)
 const startRaid = () => raidCall('POST', '/api/raids/start', {}, 70000);
 const againRaid = () => raidCall('POST', '/api/raids/again', {});
 
