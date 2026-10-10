@@ -38,6 +38,11 @@ const MAX_PARTY = 4;
 //  클라이언트 src/data.js 의 RAID_SOLO_MULT·RAID_PARTY_GAP 와 같아야 함 (보상 계산)
 const SOLO_MULT = 2;
 const PARTY_GAP = [0, 5, 9, 13];
+// 소수 인원(AI 기사 자리를 반 명으로 칠 때)은 양옆 인원 사이를 잇는다 (2.5명 = 7스테이지)
+const partyGap = (n) => {
+  const c = Math.max(1, Math.min(MAX_PARTY, n)), lo = Math.floor(c), hi = Math.ceil(c);
+  return PARTY_GAP[lo - 1] + (PARTY_GAP[hi - 1] - PARTY_GAP[lo - 1]) * (c - lo);
+};
 
 const START = 300;          // 보스 위치(px). 기사는 0 에서 출발하고 뒷사람은 조금씩 뒤에서 시작
 const KNIGHT_GAP = 12;      // 출발 간격
@@ -65,7 +70,7 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 // 클라이언트 data.js 의 monsterStats(필드 보스) 와 같은 기준
 function bossStats(id, n) {
-  const b = RAID_BOSSES[id], s = b.stage * SOLO_MULT - PARTY_GAP[Math.max(0, Math.min(MAX_PARTY, n) - 1)];
+  const b = RAID_BOSSES[id], s = b.stage * SOLO_MULT - partyGap(n);
   return {
     hp: 14 * Math.pow(1.23, s - 1) * 7.5 * b.hp * CC_HP,
     atk: 3 * Math.pow(1.17, s - 1) * 1.68 * b.atk,
@@ -73,8 +78,9 @@ function bossStats(id, n) {
 }
 
 // profiles: sanitizeProfile 을 거친 파티원 프로필 (방에 들어온 순서)
-function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0) {
-  const bs = bossStats(bossId, profiles.length);
+// party: 보스 세기를 정하는 인원 (기본 = 파티원 수). AI 기사 자리는 반 명으로 쳐서 소수가 될 수 있다 (server/bots.js)
+function simulateRaid(bossId, profiles, seed = (Math.random() * 2 ** 32) >>> 0, party = profiles.length) {
+  const bs = bossStats(bossId, party);
   return simulateBossFight(bossId, RAID_BOSSES[bossId], { hp: bs.hp, max: bs.hp, atk: bs.atk }, profiles, seed);
 }
 

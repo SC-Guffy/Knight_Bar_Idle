@@ -1,5 +1,5 @@
 'use strict';
-// Knight Bar 서버: 계정(닉네임) · 세이브 동기화 · 랭킹 · 결투(시즌) · 보스 레이드 로비 · 월드 보스.
+// Knight Bar 서버: 계정(닉네임) · 세이브 동기화 · 랭킹 · 결투(시즌) · 보스 레이드 로비 · 월드 보스 · AI 기사(server/bots.js).
 // 의존성은 pg 하나뿐이라 http 모듈로 직접 라우팅한다.
 
 const http = require('http');
@@ -9,6 +9,7 @@ const { simulateDuel, eloDelta } = require('./duel');
 const { RAID_BOSSES, MAX_PARTY, simulateRaid } = require('./raid');
 const { START_RATING, seasonAt, seasonRange, fresh } = require('./season');
 const WB = require('./worldboss');
+const { createBots } = require('./bots');
 
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 256 * 1024;
@@ -73,17 +74,19 @@ function sanitizeProfile(p = {}) {
     heal: num(p.heal, 0, 0.2, 0),
     leap, skills,
     power: Math.floor(num(p.power, 0, 1e300, 0)),
+    tower: Math.floor(num(p.tower, 0, 1e5, 0)),   // 도전의 탑 최고 층 (탑 순위)
   };
 }
 
-// 랭킹·결투 목록에 보여 줄 공개 정보. 결투 기록은 이번 시즌 것 (지난 시즌 값이면 새로 시작한 값으로)
+// 랭킹·결투 목록에 보여 줄 공개 정보. 결투 기록은 이번 시즌 것 (지난 시즌 값이면 새로 시작한 값으로). bot: AI 기사 (클라이언트가 🤖 를 단다)
 const publicInfo = (acc) => {
   const a = fresh(acc);
   return {
-    nickname: a.nickname, cls: a.cls, level: a.level, best: a.best, power: a.power,
-    rating: a.rating, wins: a.wins, losses: a.losses, attacks: a.attacks, updatedAt: a.updatedAt,
+    nickname: a.nickname, cls: a.cls, level: a.level, best: a.best, power: a.power, tower: a.tower || 0,
+    rating: a.rating, wins: a.wins, losses: a.losses, attacks: a.attacks, updatedAt: a.updatedAt, ...(a.isBot ? { bot: true } : {}),
   };
 };
+const HUMANS = { humans: true };
 
 function send(res, status, body) {
   res.writeHead(status, {
@@ -143,11 +146,42 @@ function settleSeasons() {
 }
 setInterval(() => settleSeasons().catch((e) => console.error(e)), 60000).unref();
 
+// ───────────────────────── 결투 ─────────────────────────
+// 결투 하나를 계산하고 기록한다. 사람이 거는 결투(POST /api/duels)와 AI 기사가 거는 결투(server/bots.js)가 함께 쓴다.
+// 지난 시즌을 먼저 정산하고, 두 기사 모두 이번 시즌 기록으로 싸운다. 건 쪽만 attacks 가 늘어 시즌 순위 대상이 된다
+async function runDuel(me, op) {
+  await settleSeasons();
+  const season = seasonAt();
+  const a = fresh(me, season), b = fresh(op, season);
+  const pa = sanitizeProfile(me.profile), pb = sanitizeProfile(op.profile);
+  const fight = simulateDuel(pa, pb);
+  const won = fight.winner === 'a';
+  const d = won ? eloDelta(a.rating, b.rating) : eloDelta(b.rating, a.rating);
+  const myRating = Math.max(0, a.rating + (won ? d : -d));
+  const opRating = Math.max(0, b.rating + (won ? -d : d));
+  await store.update(me.key, { season, attacks: a.attacks + 1, rating: myRating, wins: a.wins + (won ? 1 : 0), losses: a.losses + (won ? 0 : 1) });
+  await store.update(op.key, { season, attacks: b.attacks, rating: opRating, wins: b.wins + (won ? 0 : 1), losses: b.losses + (won ? 1 : 0) });
+  // 도전받은 쪽 우편함에 남긴다 (AI 기사는 우편함을 안 보므로 사람에게만. 기록을 못 남겨도 결투 결과는 그대로 돌려준다)
+  if (!op.isBot) {
+    await store.addDuelLog({
+      at: Date.now(), defender: op.key, attacker: me.key, nickname: me.nickname, cls: pa.cls, level: pa.level,
+      won: !won, delta: d, rating: opRating, bot: !!me.isBot,
+    }).catch((e) => console.error('duel log', e));
+  }
+  return {
+    won, delta: d, season,
+    me: { nickname: me.nickname, cls: pa.cls, level: pa.level, rating: myRating },
+    opponent: { nickname: op.nickname, cls: pb.cls, level: pb.level, rating: opRating, ...(op.isBot ? { bot: true } : {}) },
+    fight,
+  };
+}
+
 // ───────────────────────── 라우트 ─────────────────────────
 const lastDuel = new Map();   // key → 마지막 결투 시각
 
 const routes = {
-  'GET /health': async () => ({ ok: true, players: await store.count() }),
+  // players: 사람 기사 수 (AI 기사는 bots 로 따로)
+  'GET /health': async () => ({ ok: true, players: await store.count(0, HUMANS), bots: (await store.count()) - (await store.count(0, HUMANS)) }),
 
   // 닉네임 사용 가능 여부
   'GET /api/nickname': async (_req, url) => {
@@ -166,7 +200,7 @@ const routes = {
       await store.create({
         key, nickname: nick, tokenHash: hashToken(token),
         state: body.state && typeof body.state === 'object' ? body.state : null, profile,
-        level: profile.level, best: profile.best, power: profile.power, cls: profile.cls,
+        level: profile.level, best: profile.best, power: profile.power, cls: profile.cls, tower: profile.tower,
         rating: START_RATING, wins: 0, losses: 0, season: seasonAt(now), attacks: 0, createdAt: now, updatedAt: now,
       });
     } catch (e) {
@@ -191,15 +225,15 @@ const routes = {
     const now = Date.now();
     await store.update(a.key, {
       state: body.state, profile,
-      level: profile.level, best: profile.best, power: profile.power, cls: profile.cls, updatedAt: now,
+      level: profile.level, best: profile.best, power: profile.power, cls: profile.cls, tower: profile.tower, updatedAt: now,
     });
     return { ok: true, updatedAt: now };
   },
 
-  // 랭킹. 인증 헤더가 있으면 내 순위도 같이 준다.
-  // 결투(duel) 순위는 이번 시즌에 직접 결투를 1번 이상 건 기사만 — 시즌 보상도 이 순위로 준다
+  // 랭킹. 인증 헤더가 있으면 내 순위도 같이 준다. sort: stage 최고 스테이지 · duel 이번 결투 시즌 · tower 도전의 탑 최고 층
+  // 결투(duel) 순위는 이번 시즌에 직접 결투를 1번 이상 건 기사만. 목록·rank 에는 AI 기사도 있고, 시즌 보상은 사람끼리 매긴 prizeRank 로 준다
   'GET /api/ranking': async (req, url) => {
-    const sort = url.searchParams.get('sort') === 'duel' ? 'duel' : 'stage';
+    const q = url.searchParams.get('sort'), sort = q === 'duel' || q === 'tower' ? q : 'stage';
     const limit = Math.floor(num(url.searchParams.get('limit'), 1, 200, 100));
     await settleSeasons();
     const season = sort === 'duel' ? seasonAt() : 0;
@@ -210,21 +244,25 @@ const routes = {
         const a = await auth(req);
         const f = fresh(a);
         const ranked = !season || f.attacks > 0;
-        me = { ...publicInfo(a), rank: ranked ? await store.rankOf(f, sort, season) : null };
+        me = { ...publicInfo(a), rank: ranked ? await store.rankOf(f, sort, season) : null,
+          ...(season && ranked ? { prizeRank: await store.rankOf(f, sort, season, HUMANS) } : {}) };
       } catch {}
     }
-    return { sort, players, me, total: await store.count(season), hall: await store.hall(), ...(season ? { season: seasonRange(season) } : {}) };
+    const total = await store.count(season), humans = await store.count(season, HUMANS);
+    return { sort, players, me, total, bots: total - humans, hall: await store.hall(), ...(season ? { season: seasonRange(season) } : {}) };
   },
 
-  // 결투 시즌: 이번 시즌 정보와 내 기록, 지난 시즌 결과, 아직 안 받아 간 시즌 보상
+  // 결투 시즌: 이번 시즌 정보와 내 기록, 지난 시즌 결과, 아직 안 받아 간 시즌 보상.
+  // 보상 순위는 사람끼리라 players·me.rank 는 AI 기사를 뺀 값 (랭킹 목록에서의 자리는 rankAll)
   'GET /api/season': async (req) => {
     const a = await auth(req);
     await settleSeasons();
     const id = seasonAt(), f = fresh(a, id);
     return {
       ...seasonRange(id), now: Date.now(),
-      players: await store.count(id),
-      me: { rating: f.rating, wins: f.wins, losses: f.losses, attacks: f.attacks, rank: f.attacks > 0 ? await store.rankOf(f, 'duel', id) : null },
+      players: await store.count(id, HUMANS), bots: (await store.count(id)) - (await store.count(id, HUMANS)),
+      me: { rating: f.rating, wins: f.wins, losses: f.losses, attacks: f.attacks,
+        rank: f.attacks > 0 ? await store.rankOf(f, 'duel', id, HUMANS) : null, rankAll: f.attacks > 0 ? await store.rankOf(f, 'duel', id) : null },
       last: id > 1 ? await store.season(id - 1) : null,
       rewards: await store.pendingRewards(a.key),
     };
@@ -242,7 +280,7 @@ const routes = {
   // 받은 결투(우편함): 다른 기사가 나에게 건 최근 결투들. 클라이언트가 접속해 있는 동안 1분마다 물어본다
   'GET /api/duels/inbox': async (req) => {
     const a = await authLite(req);
-    return { list: (await store.duelInbox(a.key, DUEL_INBOX_MAX)).map(({ id, at, nickname, cls, level, won, delta, rating }) => ({ id, at, nickname, cls, level, won, delta, rating })) };
+    return { list: (await store.duelInbox(a.key, DUEL_INBOX_MAX)).map(({ id, at, nickname, cls, level, won, delta, rating, bot }) => ({ id, at, nickname, cls, level, won, delta, rating, ...(bot ? { bot: true } : {}) })) };
   },
 
   // 결투. 서버가 두 기사의 프로필로 싸움을 계산하고, 결과 기록을 돌려준다.
@@ -256,31 +294,7 @@ const routes = {
     const since = Date.now() - (lastDuel.get(me.key) || 0);
     if (since < DUEL_COOLDOWN_MS) throw new HttpError(429, `${Math.ceil((DUEL_COOLDOWN_MS - since) / 1000)}초 뒤에 다시 도전할 수 있어요`);
     lastDuel.set(me.key, Date.now());
-
-    // 지난 시즌을 먼저 정산하고, 두 기사 모두 이번 시즌 기록으로 싸운다. 건 쪽만 attacks 가 늘어 시즌 보상 대상이 된다
-    await settleSeasons();
-    const season = seasonAt();
-    const a = fresh(me, season), b = fresh(op, season);
-    const pa = sanitizeProfile(me.profile), pb = sanitizeProfile(op.profile);
-    const fight = simulateDuel(pa, pb);
-    const won = fight.winner === 'a';
-    const d = won ? eloDelta(a.rating, b.rating) : eloDelta(b.rating, a.rating);
-    const myRating = Math.max(0, a.rating + (won ? d : -d));
-    const opRating = Math.max(0, b.rating + (won ? -d : d));
-    await store.update(me.key, { season, attacks: a.attacks + 1, rating: myRating, wins: a.wins + (won ? 1 : 0), losses: a.losses + (won ? 0 : 1) });
-    await store.update(op.key, { season, attacks: b.attacks, rating: opRating, wins: b.wins + (won ? 0 : 1), losses: b.losses + (won ? 1 : 0) });
-    // 도전받은 쪽 우편함에 남긴다 (기록을 못 남겨도 결투 결과는 그대로 돌려준다)
-    await store.addDuelLog({
-      at: Date.now(), defender: op.key, attacker: me.key, nickname: me.nickname, cls: pa.cls, level: pa.level,
-      won: !won, delta: d, rating: opRating,
-    }).catch((e) => console.error('duel log', e));
-
-    return {
-      won, delta: d, season,
-      me: { nickname: me.nickname, cls: pa.cls, level: pa.level, rating: myRating },
-      opponent: { nickname: op.nickname, cls: pb.cls, level: pb.level, rating: opRating },
-      fight,
-    };
+    return runDuel(me, op);
   },
 };
 
@@ -290,7 +304,8 @@ const routes = {
 // 파티원들은 다음 조회 때 같은 결과를 받아 각자 재생·정산한다.
 const ROOM_IDLE_MS = 90000;        // 이 시간 동안 조회가 없으면 방에서 내보낸다 (웹 버전이 뒤쪽 탭에 있으면 브라우저가 타이머를 1분 간격까지 늦춘다)
 const ROOM_DONE_KEEP_MS = 180000;  // 끝난 방(결과)을 남겨 두는 시간
-const rooms = new Map();           // id → { id, boss, host, members: [{ key, nickname, cls, level, power, best, ready, seen }], state, result, at }
+// 파티원 중 AI 기사는 { key: 'bot:<봇 key>', botKey, bot: true, ready: true, seen: Infinity } — 늘 준비돼 있고, 방장이 나가면 방과 함께 사라진다 (roomOf 에는 안 넣는다)
+const rooms = new Map();           // id → { id, boss, host, members: [{ key, nickname, cls, level, power, best, ready, seen, bot? }], state, result, at }
 const roomOf = new Map();          // 계정 key → 방 id
 let roomSeq = 0;
 
@@ -323,18 +338,20 @@ function roomView(r) {
   const host = r.members.find((m) => m.key === r.host);
   return {
     id: r.id, boss: r.boss, state: r.state, host: host ? host.nickname : null,
-    members: r.members.map((m) => ({ nickname: m.nickname, cls: m.cls, level: m.level, power: m.power, best: m.best, ready: m.ready, host: m.key === r.host })),
-    result: r.result,
+    members: r.members.map((m) => ({ nickname: m.nickname, cls: m.cls, level: m.level, power: m.power, best: m.best, ready: m.ready, host: m.key === r.host, ...(m.bot ? { bot: true } : {}) })),
+    result: r.result, at: r.opened,
   };
 }
 
+// 사람이 하나도 안 남으면 방을 닫는다 (AI 기사끼리는 방에 남지 않는다). 방장이 나가면 남은 사람 중 첫 번째가 방장
 function leaveRoom(key) {
   const r = myRoom(key);
   roomOf.delete(key);
   if (!r) return;
   r.members = r.members.filter((m) => m.key !== key);
-  if (!r.members.length) { rooms.delete(r.id); return; }
-  if (r.host === key) { r.host = r.members[0].key; r.members[0].ready = false; }
+  const people = r.members.filter((m) => !m.bot);
+  if (!people.length) { rooms.delete(r.id); return; }
+  if (r.host === key) { r.host = people[0].key; people[0].ready = false; }
 }
 
 function touch(r, key) {
@@ -370,7 +387,8 @@ const raidRoutes = {
     const me = await authLite(req);
     const list = [...rooms.values()].filter((r) => r.state === 'open').sort((a, b) => b.at - a.at).slice(0, 50).map((r) => {
       const host = r.members.find((m) => m.key === r.host);
-      return { id: r.id, boss: r.boss, host: host ? host.nickname : '', count: r.members.length, members: r.members.map((m) => m.nickname) };
+      return { id: r.id, boss: r.boss, host: host ? host.nickname : '', count: r.members.length, members: r.members.map((m) => m.nickname),
+        bots: r.members.filter((m) => m.bot).length };
     });
     const r = myRoom(me.key);
     touch(r, me.key);
@@ -392,7 +410,7 @@ const raidRoutes = {
     const acc = await store.get(me.key);
     if (sanitizeProfile(acc.profile).best < b.stage) throw new HttpError(403, `최고 스테이지 ${b.stage} 이상이어야 해요`);
     leaveRoom(me.key);
-    const r = { id: String(++roomSeq), boss: body.boss, host: me.key, members: [memberOf(acc)], state: 'open', result: null, at: Date.now() };
+    const r = { id: String(++roomSeq), boss: body.boss, host: me.key, members: [memberOf(acc)], state: 'open', result: null, at: Date.now(), opened: Date.now() };
     rooms.set(r.id, r);
     roomOf.set(me.key, r.id);
     return { room: roomView(r) };
@@ -404,11 +422,13 @@ const raidRoutes = {
     const r = rooms.get(String(body.id));
     if (!r || r.state !== 'open') throw new HttpError(404, '이미 출정했거나 사라진 방이에요');
     if (r.members.some((m) => m.key === me.key)) return { room: roomView(r) };
-    if (r.members.length >= MAX_PARTY) throw new HttpError(409, '방이 가득 찼어요');
+    // 가득 찼어도 AI 기사 자리가 있으면 사람이 그 자리를 넘겨받는다
+    if (r.members.length >= MAX_PARTY && !r.members.some((m) => m.bot)) throw new HttpError(409, '방이 가득 찼어요');
     const acc = await store.get(me.key);
     const b = RAID_BOSSES[r.boss];
     if (sanitizeProfile(acc.profile).best < b.stage) throw new HttpError(403, `최고 스테이지 ${b.stage} 이상이어야 해요`);
     leaveRoom(me.key);
+    if (r.members.length >= MAX_PARTY) r.members.splice(r.members.map((m) => !!m.bot).lastIndexOf(true), 1);
     r.members.push(memberOf(acc));
     roomOf.set(me.key, r.id);
     return { room: roomView(r) };
@@ -450,7 +470,22 @@ const raidRoutes = {
     const body = await readJson(req);
     const r = hostRoom(me);
     const m = r.members.find((x) => x.nickname === body.nickname && x.key !== me.key);
-    if (m) leaveRoom(m.key);
+    if (m && m.bot) r.members = r.members.filter((x) => x !== m);
+    else if (m) leaveRoom(m.key);
+    return { room: roomView(r) };
+  },
+
+  // 방장: 빈자리를 AI 기사로 채운다 (server/bots.js raidMembers — 방장 전투력에 맞춘 봇). 사람이 들어오면 봇 자리를 넘겨받는다
+  'POST /api/raids/fill': async (req) => {
+    const me = await authLite(req);
+    const r = hostRoom(me);
+    const n = MAX_PARTY - r.members.length;
+    if (n <= 0) return { room: roomView(r) };
+    if (!bots.CFG.count) throw new HttpError(409, 'AI 기사가 꺼져 있어요');
+    const host = sanitizeProfile((await store.get(me.key)).profile);
+    const add = await bots.raidMembers(me, host, n, r.members.filter((m) => m.bot).map((m) => m.botKey));
+    if (r.state !== 'open') throw new HttpError(409, '이미 출정한 방이에요');
+    r.members.push(...add.slice(0, MAX_PARTY - r.members.length));
     return { room: roomView(r) };
   },
 
@@ -460,19 +495,24 @@ const raidRoutes = {
     const r = hostRoom(me);
     const waiting = r.members.find((m) => m.key !== r.host && !m.ready);
     if (waiting) throw new HttpError(409, `${waiting.nickname}님이 아직 준비하지 않았어요`);
-    // 저장된 최신 능력치로 싸운다
-    const accs = await Promise.all(r.members.map((m) => store.get(m.key)));
+    // 저장된 최신 능력치로 싸운다. AI 기사 자리는 방장의 최신 전투력에 다시 맞춘다
+    const accs = await Promise.all(r.members.map((m) => store.get(m.bot ? m.botKey : m.key)));
     const b = RAID_BOSSES[r.boss];
-    const profiles = accs.map((a) => sanitizeProfile(a && a.profile));
-    const low = profiles.findIndex((p) => p.best < b.stage);
+    const hostP = sanitizeProfile((accs[r.members.findIndex((m) => m.key === r.host)] || {}).profile);
+    const profiles = accs.map((a, i) => (r.members[i].bot ? sanitizeProfile(a ? bots.raidProfile(a, hostP) : hostP) : sanitizeProfile(a && a.profile)));
+    const low = profiles.findIndex((p, i) => !r.members[i].bot && p.best < b.stage);
     if (low >= 0) throw new HttpError(403, `${r.members[low].nickname}님이 아직 최고 스테이지 ${b.stage}에 못 미쳐요`);
     if (r.state !== 'open') throw new HttpError(409, '이미 출정한 방이에요');
-    const fight = simulateRaid(r.boss, profiles);
+    // AI 기사 자리는 보스 세기에서 반 명으로 치고(party), 재화·경험치를 덜 준다(botMult). MVP 는 사람 중에서만
+    const nb = r.members.filter((m) => m.bot).length, party = bots.raidParty(r.members.length - nb, nb);
+    const fight = simulateRaid(r.boss, profiles, undefined, party);
+    if (nb) fight.mvp = fight.contrib.reduce((best, c, i) => (!r.members[i].bot && (best < 0 || c.score > fight.contrib[best].score) ? i : best), -1);
     r.state = 'done';
     r.at = Date.now();
     r.result = {
       id: `${r.id}-${r.at}`, boss: r.boss,
-      members: r.members.map((m, i) => ({ nickname: m.nickname, cls: profiles[i].cls, level: profiles[i].level })),
+      members: r.members.map((m, i) => ({ nickname: m.nickname, cls: profiles[i].cls, level: profiles[i].level, ...(m.bot ? { bot: true } : {}) })),
+      ...(nb ? { party, botMult: bots.raidRewardMult(nb) } : {}),
       fight,
     };
     return { room: roomView(r) };
@@ -484,7 +524,7 @@ const raidRoutes = {
     const r = myRoom(me.key);
     if (!r || r.host !== me.key) throw new HttpError(403, '방장만 할 수 있어요');
     r.state = 'open'; r.result = null; r.at = Date.now();
-    r.members.forEach((m) => { m.ready = false; });
+    r.members.forEach((m) => { m.ready = !!m.bot; });
     return { room: roomView(r) };
   },
 };
@@ -521,7 +561,8 @@ const wbRoutes = {
       day, endsAt: WB.dayEnd(day), now: Date.now(), next: WB.bossOfDay(day + 1),
       boss: wbView(b) || { id: WB.bossOfDay(day), maxHp: 0, hp: 0, spawnedAt: null, killedAt: null },
       tries: WB.WB_TRIES, mine: mine ? { dmg: mine.dmg, tries: mine.tries } : { dmg: 0, tries: 0 },
-      top, total: stats.total, players: stats.players, pending,
+      // players·total 은 AI 기사 포함 (bots 명). 보상 지분은 사람끼리 (pending 의 total·players·rank)
+      top, total: stats.total, players: stats.players, bots: stats.players - stats.humans, pending,
     };
   },
 
@@ -576,15 +617,17 @@ routes['POST /api/admin/reset'] = async (req) => {
   // 지우기 전에 이번 시즌 순위를 명예의 전당에 남긴다 (기사가 있을 때만)
   if (removed) {
     await settleSeasons();
+    // 명예의 전당은 사람 기록만 (AI 기사는 빼고 순위를 매긴다)
     const hallView = (a) => ({ nickname: a.nickname, cls: a.cls, level: a.level, best: a.best, power: a.power, rating: a.rating, wins: a.wins, losses: a.losses });
     await store.addHall({
-      at: Date.now(), players: removed,
-      stage: (await store.top('stage', 10, 0)).map(hallView),
-      duel: (await store.top('duel', 3, seasonAt())).map(hallView),
+      at: Date.now(), players: await store.count(0, HUMANS),
+      stage: (await store.top('stage', 10, 0, HUMANS)).map(hallView),
+      duel: (await store.top('duel', 3, seasonAt(), HUMANS)).map(hallView),
     });
   }
   await store.wipe();
   rooms.clear(); roomOf.clear(); authCache.clear(); lastDuel.clear(); lastWb.clear();
+  bots.reset();
   settledThrough = -1;
   console.log(`전체 초기화: 계정 ${removed}개 삭제`);
   return { ok: true, removed };
@@ -598,7 +641,15 @@ const SHOUT_MAX = 50;
 const SHOUT_SLOTS = ['weapon', 'armor', 'ring'];
 const shouts = [];
 const lastShout = new Map();       // 계정 key → 마지막 확성기 시각
-let shoutSeq = 0;
+let shoutSeq = 0, lastHumanShout = 0;
+// 소식 하나를 올린다. AI 기사 소식(server/bots.js)은 bot: true — 사람 소식이 최근에 있었으면 봇은 쉰다 (lastHumanShout)
+function pushShout(e) {
+  const now = Date.now();
+  if (!e.bot) lastHumanShout = now;
+  shoutSeq = Math.max(now, shoutSeq + 1);
+  shouts.push({ id: shoutSeq, at: now, nickname: e.nickname, slot: e.slot, result: e.result, from: e.from, to: e.to, ...(e.bot ? { bot: true } : {}) });
+  if (shouts.length > SHOUT_MAX) shouts.shift();
+}
 
 routes['POST /api/shouts'] = async (req) => {
   const a = await authLite(req);
@@ -611,9 +662,7 @@ routes['POST /api/shouts'] = async (req) => {
   const now = Date.now();
   if (now - (lastShout.get(a.key) || 0) < 2000) return { ok: true };   // 강화 연출보다 빠를 수 없다
   lastShout.set(a.key, now);
-  shoutSeq = Math.max(now, shoutSeq + 1);
-  shouts.push({ id: shoutSeq, at: now, nickname: a.nickname, slot: b.slot, result: b.result, from, to });
-  if (shouts.length > SHOUT_MAX) shouts.shift();
+  pushShout({ nickname: a.nickname, slot: b.slot, result: b.result, from, to });
   return { ok: true };
 };
 
@@ -639,8 +688,15 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// ───────────────────────── AI 기사 ─────────────────────────
+const bots = createBots({
+  store, hashToken, START_RATING, seasonAt, WB, runDuel, todayBoss,
+  shout: pushShout, lastHumanShoutAt: () => lastHumanShout,
+});
+
 store.init().then(() => settleSeasons()).then(() => {
   server.listen(PORT, () => console.log(`knight-bar server :${PORT} (${process.env.DATABASE_URL ? 'postgres' : 'file'})`));
+  bots.start().catch((e) => console.error('bots', e));
 });
 
 // 파일 저장소는 종료 직전에 한 번 더 쓴다
