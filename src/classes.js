@@ -555,9 +555,9 @@ const CLASSES = {
     desc: '불덩이를 던진다. 맞은 자리에서 터져 주변 적까지 함께 태운다.',
     look: {
       body: BODY.pyromancer, fx: '#ff7a2a',
-      pal: { f: '#ff7a2a', F: '#ffd257', s: '#e8b080', e: '#1b1d27', E: '#ffffff', R: '#a8281a', r: '#7a1a10', c: '#2a0e08', y: '#ffb13b', b: '#2a1008', l: '#5a1a10', k: '#2a1008' },
-      arm: ['#a8281a', '#e8b080'],       // 팔·주먹 (body2.js 손도트와 짝)
-      cape: { style: 'cloak', color: '#5a1a10' },
+      pal: { f: '#ff7a2a', F: '#ffd257', s: '#e8b080', e: '#1b1d27', E: '#ffffff', R: '#a8281a', r: '#7a1a10', c: '#ff7a2a', y: '#ffb13b', b: '#4a1408', l: '#5a1a10', k: '#2a1008' },
+      arm: ['#e8b080', '#a8281a'],       // 드러낸 팔(살색)·붉은 장갑
+      cape: { style: 'scarf', color: '#ff7a2a' },   // 망토 대신 허리·목에서 휘날리는 불꽃 띠
     },
   },
   cryomancer: {
@@ -566,8 +566,8 @@ const CLASSES = {
     desc: '얼음창을 멀리서 빠르게 꽂는다. 서리 갑옷이 받는 피해를 줄인다.',
     look: {
       body: BODY.cryomancer, fx: '#9fe8ff',
-      pal: { c: '#9fe8ff', C: '#ffffff', n: '#8fbfe0', N: '#cfe8ff', s: '#f0d8e0', e: '#1b6fd1', E: '#ffffff', w: '#ffffff', W: '#e8f6ff', R: '#8fbfe0', r: '#3f6f9a', b: '#1b3f6a', l: '#3f6f9a', k: '#1b3f6a' },
-      arm: ['#ffffff', '#f0d8e0'],       // 팔·주먹 (body2.js 손도트와 짝)
+      pal: { c: '#9fe8ff', C: '#ffffff', H: '#2f5f9a', n: '#cfe8ff', N: '#cfe8ff', s: '#f0d8e0', e: '#1b6fd1', E: '#ffffff', w: '#ffffff', W: '#d6ecff', R: '#8fbfe0', r: '#3f6f9a', b: '#1b3f6a', l: '#3f6f9a', k: '#1b3f6a' },
+      arm: ['#8fbfe0', '#ffffff'],       // 코트 소매·흰 털 벙어리장갑
       cape: { style: 'cloak', color: '#1b3f6a' },
     },
   },
@@ -739,7 +739,7 @@ const CLASSES = {
     desc: '불의 근원에 닿은 마도사. 지팡이를 들면 하늘에서 겁화가 쏟아진다.',
     look: {
       body: BODY.pyromancer, fx: '#ff3b1f',
-      pal: { f: '#ff3b1f', F: '#ffd257', s: '#e8b080', e: '#ff3b1f', E: '#ffe066', R: '#2a0a0a', r: '#1a0606', y: '#ffd257', c: '#6a140c', b: '#ffd257', l: '#2a0a08', k: '#1a0606' },
+      pal: { f: '#ff3b1f', F: '#ffd257', Y: '#fff3b0', s: '#e8b080', e: '#ff3b1f', E: '#ffe066', R: '#2a0a0a', r: '#1a0606', y: '#ffd257', c: '#a8281a', b: '#3a0e08', l: '#2a0a08', k: '#1a0606' },
       arm: ['#2a0a0a', '#e8b080'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cape', color: '#8a1a0c' },
       halo: true,
