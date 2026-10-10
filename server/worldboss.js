@@ -11,7 +11,7 @@ const { simulateBossFight } = require('./raid');
 
 const WB_TRIES = 3;               // 하루 도전 횟수 (클라이언트 src/worldboss.js 의 WB_TRIES 와 같아야 함)
 const WB_SEC = 30;                // 한 번 도전에 싸우는 시간(초)
-const WB_ENRAGE = 20;             // 이 시간이 지나면 보스가 두 배로 때린다 — 체력·방어를 챙겨야 끝까지 버틴다
+const WB_ENRAGE = 20;             // (보스별 rage 가 없으면) 이 시간이 지나면 보스가 두 배로 때린다 — 체력·방어를 챙겨야 끝까지 버틴다
 const WB_UNLOCK = 30;             // 최고 스테이지가 이만큼은 돼야 도전할 수 있다 (클라이언트와 같아야 함)
 const WB_COOLDOWN_MS = 8000;      // 도전 간격 (재생이 끝나기 전에 연달아 누르지 않게)
 const WB_ACTIVE_MS = 36 * 3600 * 1000;   // 이 시간 안에 세이브를 올린 기사를 '활동 중'으로 보고 체력 어림에 넣는다
@@ -28,20 +28,30 @@ const KST = 9 * 3600 * 1000;
 const dayAt = (t = Date.now()) => Math.floor((t + KST) / DAY_MS);
 const dayEnd = (day) => (day + 1) * DAY_MS - KST;
 
-// 보스 패턴 (server/raid.js 의 RAID_BOSSES 와 같은 모양). 이름·외형은 클라이언트 src/data.js 의 WORLD_BOSSES
+// 보스 패턴 (server/raid.js 의 RAID_BOSSES 와 같은 모양). 이름·외형은 클라이언트 src/data.js·src/worldboss-art.js 의 WORLD_BOSSES (id 가 server/raid.js 의 레이드 보스와 겹치면 안 됨)
+//  rage: 광폭화 시각(초, 없으면 WB_ENRAGE). 보스마다 광역기 주기·위력·밀쳐 냄·기절과 광폭화 시각을 달리해 매일 느낌이 다르게.
+//  체력 어림(expectedDamage)이 보스별 패턴으로 따로 돌아서 버티기 어려운 보스는 체력도 그만큼 적게 나온다
 const WORLD_BOSSES = {
-  behemoth:{ atk: 1.0,  aoeEvery: 6,   aoe: 0.85, kb: 60, stun: 1.2, smash: { mult: 2.0, kb: 70, stun: 1.2 } },
-  hydra:   { atk: 0.95, aoeEvery: 5,   aoe: 0.75, kb: 30, stun: 1.5, smash: { mult: 1.9, kb: 40, stun: 1.4 } },
-  voidwyrm:{ atk: 1.05, aoeEvery: 5.5, aoe: 0.9,  kb: 80, stun: 1.0, smash: { mult: 2.1, kb: 80, stun: 1.1 } },
+  behemoth:    { atk: 1.0,  aoeEvery: 6,   aoe: 0.85, kb: 60,  stun: 1.2, smash: { mult: 2.0, kb: 70, stun: 1.2 } },
+  hydra:       { atk: 0.95, aoeEvery: 5,   aoe: 0.75, kb: 30,  stun: 1.5, smash: { mult: 1.9, kb: 40, stun: 1.4 } },
+  voidwyrm:    { atk: 1.05, aoeEvery: 5.5, aoe: 0.9,  kb: 80,  stun: 1.0, smash: { mult: 2.1, kb: 80, stun: 1.1 } },
+  // 시즌5 추가 (레이드 보스와 테마·id 가 겹치지 않게)
+  sporeking:   { atk: 0.95, aoeEvery: 6,   aoe: 0.8,  kb: 10,  stun: 2.0, smash: { mult: 1.8, kb: 30, stun: 1.6 }, rage: 20 },   // 포자에 잠들어 기절이 길다
+  goldmimic:   { atk: 0.9,  aoeEvery: 7,   aoe: 1.0,  kb: 40,  stun: 1.0, smash: { mult: 2.4, kb: 90, stun: 1.4 }, rage: 15 },   // 일찍 광폭, 강타가 무겁다
+  hivequeen:   { atk: 0.95, aoeEvery: 4.5, aoe: 0.65, kb: 25,  stun: 0.8, smash: { mult: 1.8, kb: 50, stun: 1.0 }, rage: 22 },   // 벌떼가 잦지만 약하다
+  ghostship:   { atk: 1.0,  aoeEvery: 8,   aoe: 1.3,  kb: 110, stun: 1.0, smash: { mult: 2.0, kb: 60, stun: 1.2 }, rage: 24 },   // 광역기는 드물지만 아프고 멀리 쓸어 간다, 광폭화가 늦다
 };
-const WB_ORDER = Object.keys(WORLD_BOSSES);
-const bossOfDay = (day) => WB_ORDER[((day % WB_ORDER.length) + WB_ORDER.length) % WB_ORDER.length];
+// 로테이션: WB_ROT_DAY 부터 이 순서로 하루씩. 그날(2026-10-10)은 예전 세 마리 로테이션(day % 3)에서도 베헤모스, 다음 날은 히드라라
+// 바꾸는 날 오늘·내일 보스가 그대로 이어진다. 이미 나타난 날의 보스는 DB(wb 행의 boss)에 남아 있어 순서를 바꿔도 지난 기록은 그대로
+const WB_ORDER = ['behemoth', 'hydra', 'sporeking', 'goldmimic', 'voidwyrm', 'hivequeen', 'ghostship'];
+const WB_ROT_DAY = 20736;
+const bossOfDay = (day) => WB_ORDER[(((day - WB_ROT_DAY) % WB_ORDER.length) + WB_ORDER.length) % WB_ORDER.length];
 
 const bossAtk = (id, p) => 3 * Math.pow(1.17, p.best - 1) * 1.68 * 1.6 * WB_ATK * WORLD_BOSSES[id].atk;
 
 // 한 번 도전. hp: 지금 남은 체력, max: 최대 체력
 function worldFight(id, p, hp, max, seed) {
-  return simulateBossFight(id, WORLD_BOSSES[id], { hp, max, atk: bossAtk(id, p) }, [p], seed, { maxT: WB_SEC, enrageT: WB_ENRAGE });
+  return simulateBossFight(id, WORLD_BOSSES[id], { hp, max, atk: bossAtk(id, p) }, [p], seed, { maxT: WB_SEC, enrageT: WORLD_BOSSES[id].rage || WB_ENRAGE });
 }
 // 이 기사가 한 번 도전하면 넣을 피해 (체력이 끝없는 보스를 상대로, 고정된 시드 몇 개의 평균)
 function expectedDamage(id, p) {
