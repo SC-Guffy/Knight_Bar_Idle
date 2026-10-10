@@ -98,4 +98,6 @@ function main() {
   row('강화석: 판매', (r) => r.inc.saleStones); row('강화석: 원정 보스', (r) => r.inc.bossStones); row('강화석: 강화 지출', (r) => r.spend.enhStone); row('강화석: 남은 것', (r) => r.stones);
   row('철광석: 강화 지출', (r) => r.spend.enhOre); row('철광석: 건물 지출', (r) => r.spend.buildOre); row('철광석: 남은 것', (r) => r.ore);
 }
-main();
+// 다른 개발 스크립트(dev/bot-curve.js)가 게임 vm 을 빌려 쓸 수 있게
+if (require.main === module) main();
+module.exports = { makeGame };
