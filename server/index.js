@@ -60,8 +60,9 @@ function sanitizeProfile(p = {}) {
     cls: typeof p.cls === 'string' ? p.cls.slice(0, 24) : 'squire',
     level: Math.floor(num(p.level, 1, 1e6, 1)),
     best: Math.floor(num(p.best, 1, 1e6, 1)),
-    atk: num(p.atk, 0, 1e30, 5),
-    maxHp: num(p.maxHp, 1, 1e30, 60),
+    // 상한은 넘침만 막는다 — 별의 끝 레이드(300)는 공격력 1e54 쯤이 필요해서 예전 상한 1e30 이면 대왕충(180)부터 못 잡았다
+    atk: num(p.atk, 0, 1e300, 5),
+    maxHp: num(p.maxHp, 1, 1e300, 60),
     aspd: num(p.aspd, 0.1, 20, 0.9),
     crit: num(p.crit, 0, 1, 0.05),
     critMult: num(p.critMult, 1, 10, 2.5),
@@ -71,7 +72,7 @@ function sanitizeProfile(p = {}) {
     guard: num(p.guard, 0, 0.9, 0),
     heal: num(p.heal, 0, 0.2, 0),
     leap, skills,
-    power: Math.floor(num(p.power, 0, 1e30, 0)),
+    power: Math.floor(num(p.power, 0, 1e300, 0)),
   };
 }
 

@@ -16,6 +16,17 @@ const RAID_BOSSES = {
   flamedragon: { stage: 80,  hp: 27, atk: 1.66, aoeEvery: 5.5, aoe: 0.85, kb: 90, stun: 0.9, smash: { mult: 2.0, kb: 60, stun: 1.2 } },
   frostgiant:  { stage: 100, hp: 28, atk: 1.7,  aoeEvery: 5.5, aoe: 0.85, kb: 30, stun: 1.8, smash: { mult: 2.1, kb: 70, stun: 1.3 } },
   demonking:   { stage: 130, hp: 30, atk: 1.75, aoeEvery: 5,   aoe: 0.9,  kb: 70, stun: 1.5, smash: { mult: 2.2, kb: 70, stun: 1.5 } },
+  // 시즌 5: 마왕 뒤로 필드마다 한 마리. 배수는 같은 기울기로 조금씩만 올린다 (보스 세기는 대부분 스테이지가 정한다)
+  //  밀쳐 내는 보스(그리폰·크라켄·콜로서스·정령왕)는 kb 를 크게 stun 을 짧게, 묶어 두는 보스(감시자·대왕충·요정 여왕·거미)는 반대로
+  abysswatcher:  { stage: 140, hp: 31, atk: 1.78, aoeEvery: 5,   aoe: 0.9,  kb: 20,  stun: 1.7, smash: { mult: 2.2,  kb: 50, stun: 1.5 } },
+  skygriffin:    { stage: 160, hp: 32, atk: 1.8,  aoeEvery: 5,   aoe: 0.92, kb: 110, stun: 0.8, smash: { mult: 2.25, kb: 80, stun: 1.2 } },
+  sandworm:      { stage: 180, hp: 33, atk: 1.82, aoeEvery: 4.8, aoe: 0.92, kb: 20,  stun: 1.9, smash: { mult: 2.3,  kb: 60, stun: 1.5 } },
+  kraken:        { stage: 200, hp: 34, atk: 1.85, aoeEvery: 4.8, aoe: 0.95, kb: 100, stun: 1.0, smash: { mult: 2.3,  kb: 70, stun: 1.5 } },
+  fairyqueen:    { stage: 220, hp: 35, atk: 1.87, aoeEvery: 4.6, aoe: 0.95, kb: 15,  stun: 2.0, smash: { mult: 2.35, kb: 50, stun: 1.6 } },
+  colossus:      { stage: 240, hp: 36, atk: 1.9,  aoeEvery: 4.6, aoe: 0.97, kb: 90,  stun: 1.2, smash: { mult: 2.4,  kb: 90, stun: 1.5 } },
+  crystalspider: { stage: 260, hp: 37, atk: 1.92, aoeEvery: 4.4, aoe: 0.97, kb: 25,  stun: 1.9, smash: { mult: 2.45, kb: 60, stun: 1.6 } },
+  stormlord:     { stage: 280, hp: 38, atk: 1.95, aoeEvery: 4.4, aoe: 1,    kb: 100, stun: 1.4, smash: { mult: 2.5,  kb: 80, stun: 1.6 } },
+  starend:       { stage: 300, hp: 40, atk: 2,    aoeEvery: 4.2, aoe: 1,    kb: 80,  stun: 1.6, smash: { mult: 2.6,  kb: 90, stun: 1.7 } },
 };
 const SMASH_EVERY = 4;      // 평타 네 번째마다 강타
 const CC_HP = 1;            // 넉백·기절로 잃는 딜 시간을 메우려면 낮춘다 (0.8 이면 승률이 예전과 거의 같다). 1 = 메우지 않음 — 예전보다 어렵다
