@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>스킬 트리 노드 한눈에 (개발용)</title>
+<!--
+  개발 확인용. 모든 스킬의 성장 로드맵(src/ui.js treeHtml)을 한 페이지에 그려서 노드 구성(⚔️ 피해 · 공용 풀 · 고유 특수)을 한눈에 본다.
+  게임(index.html)은 이 페이지를 불러오지 않고 앱 패키지에도 들어가지 않는다 (package.json build.files 는 src/ 만).
+  로컬에서만:  python3 -m http.server 8765  →  http://localhost:8765/dev/skill-nodes.html
+  상태는 가짜다: 모든 스킬 Lv30, 오른쪽 노드 셋 다 10/10, 진화 ★★★ — 왼쪽 ⚔️ 피해는 0/10 (오른왽 효과가 잘 보이게). ?pow=10 을 붙이면 왼쪽도 채운다.
+  스타일은 index.html 의 <style> 을 그대로 가져와 쓴다 (트리 CSS 가 바뀌어도 이 페이지를 고칠 필요 없음).
+-->
+<style>
+  body { margin: 0; background: #12141c; color: #f3efe6; font: 13px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
+  main { max-width: 800px; margin: 0 auto; padding: 12px 12px 30px; }   /* 한 열 — 캡처 폭(800px)에 맞춘다 */
+  h1 { font-size: 17px; margin: 0 0 2px; }
+  .sub { color: rgba(243,239,230,.6); margin-bottom: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .one { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px 10px; }
+  .one h2 { font-size: 13px; margin: 0 0 2px; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+  .one h2 .c { color: rgba(243,239,230,.55); font-weight: 400; font-size: 11.5px; }
+  .one h2 small { color: rgba(243,239,230,.55); font-weight: 400; }
+  .one .spec { color: #ffe9a8; font-size: 11.5px; margin: 0 0 6px; }
+  .one .spec b { color: #fff; }
+  .cls { grid-column: 1 / -1; margin: 10px 0 -2px; font-size: 12px; color: rgba(243,239,230,.55); border-bottom: 1px solid rgba(255,255,255,.08); padding-bottom: 3px; }
+  #stage { position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  #blocked { display: none; padding: 40px; text-align: center; color: rgba(243,239,230,.6); }
+</style>
+</head>
+<body>
+<main id="app">
+  <h1>⚡ 스킬 트리 노드 한눈에 <small style="color:rgba(243,239,230,.6);font-weight:400">개발용 · 가짜 상태(Lv30 · 오른쪽 10/10 · ★★★)</small></h1>
+  <div class="sub">왼쪽 ⚔️ 피해 노드는 모든 스킬 공통. 오른쪽은 1·3구간 공용 풀(⏱️ 쿨타임 · 💥 치명 · 🩸 흡혈), 2구간은 스킬마다 다른 <b>고유 특수</b> — src/classes.js 각 스킬의 <code>right</code>·<code>spec</code>.</div>
+  <div class="grid" id="grid"></div>
+</main>
+<div id="stage"><canvas id="c"></canvas><span id="gold"></span><div id="barLayer"></div></div>
+<div id="blocked">개발 확인용 페이지입니다. 로컬 서버(localhost)에서 열어 주세요.</div>
+
+<script>
+'use strict';
+(async function boot() {
+  const LOCAL = ['localhost', '127.0.0.1', '[::1]', ''].includes(location.hostname) || location.hostname.endsWith('.localhost');
+  if (!LOCAL) { document.getElementById('app').remove(); document.getElementById('blocked').style.display = 'block'; return; }
+  const html = await (await fetch('../index.html', { cache: 'no-store' })).text();
+  // 게임 스타일 그대로 (트리 .sg 등)
+  for (const m of html.matchAll(/<style>([\s\S]*?)<\/style>/g)) { const st = document.createElement('style'); st.textContent = m[1]; document.head.appendChild(st); }
+  // 게임 스크립트를 index.html 순서대로. ui.js 는 마지막 줄 start() 만 떼고 넣는다 (부팅·메인 루프 없이 treeHtml 만 쓴다).
+  // net.js 도 넣되(ui.js 가 로드 시점에 확성기 등을 읽는다) 주기 동기화(pushSave)는 setInterval 을 막아 꺼 둔다 — 가짜 상태가 계정에 올라가면 안 된다
+  const srcs = [...html.matchAll(/<script src="(src\/[^"]+)"><\/script>/g)].map((m) => m[1]);
+  const realSI = window.setInterval; window.setInterval = () => 0;      // ui.js 의 주기 폴링(시즌·우편·확성기…)·net.js 의 pushSave 는 켜지 않는다
+  const bg = document.createElement('style'); bg.textContent = 'html, body { background: #12141c !important; color: #f3efe6; overflow: auto !important; height: auto !important; }';   // 게임 CSS 는 하단바용이라 overflow hidden — 이 페이지는 스크롤돼야 한다
+  for (const src of srcs) {
+    let text = await (await fetch('../' + src + '?t=' + Date.now(), { cache: 'no-store' })).text();
+    if (src === 'src/ui.js') text = text.replace(/\nstart\(\);\s*$/, '\n');
+    const el = document.createElement('script'); el.textContent = text + `\n//# sourceURL=${src}`; document.body.appendChild(el);
+  }
+  window.setInterval = realSI;
+  document.head.appendChild(bg);
+  renderNodes();
+})();
+
+function renderNodes() {        // 이름을 render 로 두면 world.js 의 render 가 덮어쓴다
+  const pow = Math.max(0, Math.min(10, +(new URLSearchParams(location.search).get('pow') || 0)));
+  // 가짜 상태: 모든 스킬 Lv30(비전서 239권), 오른쪽 셋 10/10, 진화 셋, 왼쪽 ⚔️ 는 pow 칸
+  S = freshState();
+  S.level = 100;
+  for (const k of Object.values(SKILLS)) {
+    S.mast[mastKey(k.id)] = SKILL_TOME_MAX;
+    S.tree[mastKey(k.id)] = { n: { learn: 1, pow1: pow, r1: 10, star1: 1, pow2: pow, r2: 10, star2: 1, pow3: pow, r3: 10, star3: 1 }, use: 3 };
+  }
+  const grid = document.getElementById('grid');
+  // 직업 트리 순서(CLASS_TREE)대로, 직업마다 그 직업의 스킬
+  const order = CLASS_TREE.flat().filter((c) => classSkillsOf(c).length);
+  let html = '';
+  for (const cls of order) {
+    const c = CLASSES[cls];
+    for (const k of classSkillsOf(cls)) {
+      S.cls = cls;                                   // treeHtml 이 S.cls 로 위력을 계산한다
+      const b = skillBonus(k.id), sp = k.spec, v = rightVal(k, 'spec', b);
+      const specLine = sp ? `<div class="spec">${sp.icon} <b>${sp.name}</b> · 고유 특수 — ${SPEC_TYPES[sp.type].desc(v, sp)}</div>` : '';
+      html += `<div class="one"><h2><span class="c">${c.icon} ${c.name} ${c.tier}차</span> ${k.icon} ${k.name} <small>${k.right.map((key) => rightDef(k, key).icon + ' ' + rightDef(k, key).name).join(' · ')}${k.mastOf ? ` · ${SKILLS[k.mastOf].name} 트리 이어받음` : ''}</small></h2>${specLine}${treeHtml(k)}</div>`;
+    }
+  }
+  grid.innerHTML = html;
+}
+</script>
+</body>
+</html>

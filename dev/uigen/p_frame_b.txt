@@ -1,0 +1,6 @@
+A single pixel art game UI window frame (9-slice panel border), front view, perfectly square, centered, filling about 80% of the image.
+Hand-pixeled 16-bit SNES fantasy RPG menu style, crisp hard pixels, no anti-aliasing, no gradients, limited palette.
+Material: dark wood planks border (deep brown-violet tones) reinforced with dark iron bands and iron corner brackets with round rivets, near-black outline (#0b0a14), small warm brass highlights (#b07a2a, #e0c472) only on the corner rivets.
+Ornate CORNERS: iron corner brackets with rivets. The four straight EDGES between corners must be plain and perfectly uniform along their length so they can be stretched.
+Border thickness about 1/8 of the frame width. The interior of the frame is ONE flat solid color #1b1a2b with nothing inside.
+Everything outside the frame is ONE flat solid pure magenta #FF00FF. No text, no icons, no shadow, no perspective.

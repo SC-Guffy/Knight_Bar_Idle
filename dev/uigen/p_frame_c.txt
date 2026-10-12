@@ -1,0 +1,7 @@
+A single pixel art game UI window frame (9-slice panel border) for a medieval fantasy RPG, front view, perfectly square, centered, filling about 85% of the image.
+Hand-pixeled 16-bit SNES era style like classic medieval RPG menus, crisp hard pixels, no anti-aliasing, no gradients, limited palette of about 14 colors, clean pixel clusters.
+Material: thick warm oak wood planks with clear readable wood grain lines and a lighter top-left bevel highlight and darker bottom-right shade, near-black outline (#0b0a14).
+CORNERS: hand-forged dark iron corner brackets (L-shaped) with 3 round rivets each, a little brass highlight on the rivets.
+The four straight EDGES between the corner brackets must be plain wood only and perfectly uniform along their length (no straps, no ornaments in the middle) so they can be tiled.
+Border thickness about 1/10 of the frame width. The interior of the frame is ONE flat solid color #1b1a2b with nothing inside.
+Everything outside the frame is ONE flat solid pure magenta #FF00FF. No text, no icons, no drop shadow, no perspective.
