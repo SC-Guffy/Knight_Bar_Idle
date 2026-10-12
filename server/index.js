@@ -672,6 +672,24 @@ routes['POST /api/admin/reset'] = async (req) => {
   return { ok: true, removed };
 };
 
+// 오늘 월드 보스를 지우고 새로 소환한다 (오늘 도전 기록·횟수도 지워 모두 다시 세 번). 같은 ADMIN_KEY
+//   curl -X POST https://knight-bar.onrender.com/api/admin/wb-respawn -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" -d '{"confirm":"RESPAWN"}'
+routes['POST /api/admin/wb-respawn'] = async (req) => {
+  const key = process.env.ADMIN_KEY;
+  const given = String(req.headers['x-admin-key'] || '');
+  const ok = key && given.length === key.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(key));
+  if (!ok) throw new HttpError(404, '없는 주소입니다');
+  const body = await readJson(req);
+  if (body.confirm !== 'RESPAWN') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"RESPAWN"})');
+  const day = WB.dayAt(), old = await store.wbGet(day);
+  await store.wbDrop(day);
+  lastWb.clear();
+  bots.wbReset();
+  const b = await todayBoss(day);
+  console.log(`월드 보스 ${day} 다시 소환 (이전 ${old ? old.boss + (old.killedAt ? ' 처치됨' : '') : '없음'})`);
+  return { ok: true, day, old: wbView(old), boss: wbView(b) };
+};
+
 // ───────────────────────── 서버 확성기 ─────────────────────────
 // +20 이상 강화 성공 · 강화 초기화를 모든 기사의 하단바에 흘려 보낸다. 지나가는 소식이라 메모리에만 두고 잠깐 뒤 버린다.
 // id 는 밀리초 시각(겹치면 +1) — 서버가 다시 켜져도 클라이언트의 "이 id 이후" 가 꼬이지 않게

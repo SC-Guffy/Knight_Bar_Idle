@@ -289,6 +289,8 @@ function createBots(deps) {
     tick,
     // 전체 초기화 뒤 (봇도 지워졌다 — 다음 tick 에 새 이름으로 다시 만든다)
     reset() { lastChallenged.clear(); humanDuels.length = 0; botShouts.length = 0; wbDay = -1; wbDone.clear(); },
+    // 오늘 월드 보스를 다시 소환했을 때 (봇 도전 횟수 기억을 비운다)
+    wbReset() { wbDay = -1; wbDone.clear(); },
 
     // ── 레이드 ──
     // 방장 host(계정)의 방에 n 명을 채울 봇 파티원. taken: 이미 방에 있는 봇 key. 최고 스테이지가 방장과 가까운 봇부터

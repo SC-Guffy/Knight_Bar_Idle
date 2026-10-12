@@ -139,6 +139,12 @@ class FileStore {
     if (!this.sdb.wb.some(x => x.day === row.day)) { this.sdb.wb.push({ ...row }); this.persist(); }
     return this.wbGet(row.day);
   }
+  // 그날 보스와 도전 기록을 지운다 (관리자 다시 소환)
+  async wbDrop(day) {
+    this.sdb.wb = this.sdb.wb.filter(x => x.day !== day);
+    this.sdb.wbHits = this.sdb.wbHits.filter(h => h.day !== day);
+    this.persist();
+  }
   async wbMine(day, key) { return this.sdb.wbHits.find(h => h.day === day && h.key === key) || null; }
   // 피해를 반영한다. 남은 체력보다 많이 넣을 수는 없고, 오늘 도전을 다 썼으면 null
   async wbHit(day, acc, dmg, maxTries, now) {
@@ -432,6 +438,10 @@ class PgStore {
       `INSERT INTO world_boss (day, boss, max_hp, hp, diff, est, spawned_at, killed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,NULL)
        ON CONFLICT (day) DO NOTHING`, [b.day, b.boss, b.maxHp, b.hp, b.diff, b.est, b.spawnedAt]);
     return this.wbGet(b.day);
+  }
+  async wbDrop(day) {
+    await this.pool.query('DELETE FROM world_boss_hits WHERE day=$1', [day]);
+    await this.pool.query('DELETE FROM world_boss WHERE day=$1', [day]);
   }
   async wbMine(day, key) {
     const r = (await this.pool.query('SELECT dmg, tries FROM world_boss_hits WHERE day=$1 AND key=$2', [day, key])).rows[0];
