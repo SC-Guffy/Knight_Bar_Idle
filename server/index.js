@@ -181,6 +181,8 @@ async function runDuel(me, op) {
 // 클라이언트 버전 (src/data.js GAME_VERSION, 헤더 X-Game-Version). 보상 정산이 클라이언트에서 일어나는 기능은 구멍을 고친 뒤 예전 버전을 막는다
 //   0.19.11: 레이드 실패 보상 0 (예전 버전은 실패해도 재화 25%를 받아 입장권 한 장으로 무한 파밍이 됐다)
 const RAID_MIN_VERSION = '0.19.11';
+//   0.19.12: 운영 차감 반영(0.19.10) + 배포 주소 ?speed= 배속 차단
+const SAVE_MIN_VERSION = '0.19.12';
 const verNum = (v) => String(v || '0').split('.').map((x) => parseInt(x, 10) || 0);
 function versionAtLeast(v, min) {
   const a = verNum(v), b = verNum(min);
@@ -264,6 +266,7 @@ const routes = {
 
   // 세이브 올리기
   'PUT /api/me': async (req) => {
+    requireClient(req, SAVE_MIN_VERSION);   // 운영 차감(penalties)을 모르는·배속 구멍이 있는 예전 버전은 세이브를 못 올린다 — 새로 고치면 로컬 진행은 그대로 올라온다
     const a = await auth(req);
     const body = await readJson(req);
     if (!body.state || typeof body.state !== 'object') throw new HttpError(400, 'state 가 없습니다');
@@ -487,6 +490,7 @@ const raidRoutes = {
 
   // 방 만들기. 들어가 있던 방에서는 나온다
   'POST /api/raids': async (req) => {
+    requireClient(req, RAID_MIN_VERSION);   // 방장만 막으면 예전 버전 파티원이 실패 보상을 받아 간다
     const me = await authLite(req);
     const body = await readJson(req);
     const b = raidBoss(body.boss);
@@ -500,6 +504,7 @@ const raidRoutes = {
   },
 
   'POST /api/raids/join': async (req) => {
+    requireClient(req, RAID_MIN_VERSION);   // 방장만 막으면 예전 버전 파티원이 실패 보상을 받아 간다
     const me = await authLite(req);
     const body = await readJson(req);
     const r = rooms.get(String(body.id));
@@ -525,6 +530,7 @@ const raidRoutes = {
 
   // 준비 / 준비 취소. 준비하기 직전에 클라이언트가 세이브(프로필)를 올려 둔다
   'POST /api/raids/ready': async (req) => {
+    requireClient(req, RAID_MIN_VERSION);   // 방장만 막으면 예전 버전 파티원이 실패 보상을 받아 간다
     const me = await authLite(req);
     const body = await readJson(req);
     const r = myRoom(me.key);
