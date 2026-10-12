@@ -73,7 +73,7 @@ function startTower() {
 
 // 오늘 남은 무료 입장권
 function towerFreeTickets() {
-  if (S.tower.tixDay !== todayKey()) { S.tower.tixDay = todayKey(); S.tower.tixUsed = 0; }
+  if (newDay(S.tower.tixDay)) { S.tower.tixDay = todayKey(); S.tower.tixUsed = 0; }
   return Math.max(0, TOWER_TICKETS - S.tower.tixUsed);
 }
 // 지금 쓸 수 있는 입장권 (무료 + 산 것)
@@ -82,7 +82,7 @@ const towerTickets = () => towerFreeTickets() + (S.tower.tixExtra || 0);
 const useTowerTicket = () => { if (towerFreeTickets() > 0) S.tower.tixUsed++; else S.tower.tixExtra = Math.max(0, S.tower.tixExtra - 1); };
 
 // ── 입장권 구매 ── 오늘 n번째 구매는 TOWER_TICKET_STEPS[n] 배, 표를 넘으면 × TOWER_TICKET_GROW 씩
-const towerTicketsBoughtToday = () => (S.tower.buyDay === todayKey() ? S.tower.bought : 0);
+const towerTicketsBoughtToday = () => (newDay(S.tower.buyDay) ? 0 : S.tower.bought);
 function towerTicketPrice() {
   const n = towerTicketsBoughtToday(), last = TOWER_TICKET_STEPS.length - 1;
   const k = n <= last ? TOWER_TICKET_STEPS[n] : TOWER_TICKET_STEPS[last] * Math.pow(TOWER_TICKET_GROW, n - last);
@@ -104,7 +104,7 @@ function buyTowerTicket() {
   const p = towerTicketPrice();
   S.gold -= p.gold;
   S.mats.mana -= p.mana;
-  if (S.tower.buyDay !== todayKey()) { S.tower.buyDay = todayKey(); S.tower.bought = 0; }
+  if (newDay(S.tower.buyDay)) { S.tower.buyDay = todayKey(); S.tower.bought = 0; }
   S.tower.bought++;
   S.tower.tixExtra = (S.tower.tixExtra || 0) + 1;
   return true;

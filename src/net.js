@@ -21,6 +21,7 @@ async function api(method, path, body, { token, timeout = 20000, keepalive = fal
     const res = await fetch(SERVER + path, {
       method, headers, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal, keepalive,
     });
+    setServerTime(Number(res.headers.get('X-Server-Time')));   // 하루 기준·오프라인 시간은 서버 시각으로 (src/data.js gameNow)
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       // 지금 플레이 중인 기사가 서버에서 지워졌다 (전체 초기화) → ui.js 가 이 기기의 기사를 지우고 처음 화면으로 보낸다
@@ -172,11 +173,12 @@ const fetchMyRaid = () => raidCall('GET', '/api/raids/me');
 const createRaid = (boss) => raidCall('POST', '/api/raids', { boss }, 70000);
 const joinRaid = (id) => raidCall('POST', '/api/raids/join', { id }, 70000);
 const leaveRaid = () => raidCall('POST', '/api/raids/leave', {});
-const readyRaid = (ready) => raidCall('POST', '/api/raids/ready', { ready });
+// 준비·출정 전에 세이브를 올린다 — 서버가 저장된 입장권 수를 확인한다
+const readyRaid = async (ready) => { if (ready) await pushSave(true); return raidCall('POST', '/api/raids/ready', { ready }); };
 const setRaidBoss = (boss) => raidCall('POST', '/api/raids/boss', { boss });
 const kickRaid = (nickname) => raidCall('POST', '/api/raids/kick', { nickname });
 const fillRaid = () => raidCall('POST', '/api/raids/fill', {}, 70000);   // 빈자리를 AI 기사로 (server/bots.js)
-const startRaid = () => raidCall('POST', '/api/raids/start', {}, 70000);
+const startRaid = async () => { await pushSave(true); return raidCall('POST', '/api/raids/start', {}, 70000); };
 const againRaid = () => raidCall('POST', '/api/raids/again', {});
 
 // 서버 확성기: +20 이상 강화 성공 · 초기화를 모두에게 알린다 / after 이후 소식 받기 (ui.js 의 loadShouts)

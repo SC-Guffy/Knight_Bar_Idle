@@ -877,6 +877,7 @@ function startEnhanceFx(slot, protect) {
 function resolveEnhanceFx(slot, protect) {
   const r = enhance(slot, protect);
   if (!r) { enhFx = null; if (campOpen) renderCamp(); return; }     // 그 사이 출정 등으로 강화할 수 없게 됐다
+  save();   // 결과를 보고 강제 종료해 다시 굴리지 못하게 바로 저장
   gearUi.last = { slot, ...r, fresh: true };
   if (r.result === 'up' && r.to % 5 === 0) toast(`⚒️ ${GEAR_SLOTS[slot].name} +${r.to} 달성!`);
   if ((r.result === 'up' && r.to >= 20) || r.result === 'reset') postShout({ slot, result: r.result, from: r.from, to: r.to }).then(loadShouts, () => {});
@@ -1702,8 +1703,11 @@ function viewMail() {
 let duelBusy = false;        // 서버 응답을 기다리는 중
 let lastDuel = null;         // 마지막 결투 결과 (랭킹 탭 위에 보여 준다)
 
+// practice: 점수가 오가지 않는 연습 결투 (서버가 하루 한도·같은 상대 간격에 걸리면 연습으로 돌린다 — 그 이유)
 const duelResultText = (r) =>
-  `${r.won ? '🏆 승리!' : '💀 패배…'} vs ${botName(r.opponent)}${r.fight.timeout ? (r.fight.judge === 'dmg' ? ' (시간 종료 · 체력이 비슷해 가한 피해 판정)' : ' (시간 종료 · 남은 체력 판정)') : ''} — 결투 점수 ${r.me.rating} (${r.won ? '+' : '-'}${r.delta})`;
+  `${r.won ? '🏆 승리!' : '💀 패배…'} vs ${botName(r.opponent)}${r.fight.timeout ? (r.fight.judge === 'dmg' ? ' (시간 종료 · 체력이 비슷해 가한 피해 판정)' : ' (시간 종료 · 남은 체력 판정)') : ''} — ${r.practice
+    ? `연습 결투라 점수는 그대로 (${r.practice})`
+    : `결투 점수 ${r.me.rating} (${r.won ? '+' : '-'}${r.delta})${r.ratedLeft != null && r.ratedLeft <= 10 ? ` · 오늘 점수 결투 ${r.ratedLeft}번 남음` : ''}`}`;
 
 function startDuel(nick) {
   if (duelBusy || duelActive() || raidActive() || S.phase !== 'camp') return;
@@ -2641,6 +2645,7 @@ const ACTIONS = {
     openAllTimer = setInterval(() => {
       if (!S.raid.chests.length || !campOpen) { clearInterval(openAllTimer); openAllTimer = null; save(); return; }
       openRaidChestAt(0);
+      save();   // 하나 열 때마다 저장 (나쁜 결과를 보고 꺼서 되돌리지 못하게)
       renderCamp();
     }, 220);
   },
@@ -2660,6 +2665,7 @@ const ACTIONS = {
     openAllTimer = setInterval(() => {
       if (!S.bag.length || !campOpen) { clearInterval(openAllTimer); openAllTimer = null; save(); return; }
       claimOne(0);
+      save();
       renderCamp();
     }, 110);
   },
@@ -3017,16 +3023,30 @@ hooks.onPenalty = (p) => {
   toast(`⚠️ 운영 조치로 ${parts.join(' · ')} 이(가) 차감됐어요${p.reason ? ` — ${p.reason}` : ''}`, 20000);
 };
 
-// 꺼져 있던 동안의 원정·휴식·건설을 한 번에 계산한다
+// 꺼져 있던 동안의 원정·휴식·건설을 한 번에 계산한다.
+// 비운 시간은 서버 시각으로 잰다: 불러온 직후엔 서버 시각을 아직 모르므로 기다렸다가(onClockKnown) 계산하고,
+// 그사이 화면에서 흐른 시간(단조 시계)은 이미 실시간으로 진행됐으니 뺀다. 탑·미궁·귀환 중이던 건 시간과 상관없이 바로 정리
+const offline = { from: 0, mono: 0, pending: false };
 function catchUp() {
-  const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
+  if (Date.now() - (S.lastSeen || 0) > 5000 && ['tower', 'dungeon', 'returning'].includes(S.phase)) simulate(0);
+  offline.from = S.lastSeen || 0; offline.mono = performance.now(); offline.pending = true;
+  settleOffline();
+}
+function settleOffline() {
+  if (!offline.pending || !srvClock.known || !saveKey) return;
+  offline.pending = false;
+  const away = (gameNow() - offline.from - (performance.now() - offline.mono)) / 1000;
   if (away <= 5) return;
   const wasOut = S.phase !== 'camp';
   const kills0 = S.trip ? S.trip.kills : 0;
   simulate(away * TIME_SCALE);
   if (wasOut && S.phase === 'camp') toast('🌙 자리를 비운 사이 원정이 끝났어요 — 캠프에서 정산하세요', 7000);
   else if (S.phase === 'expedition') toast(`🌙 자리를 비운 사이 ${fmtTime(away)} 동안 ${S.trip.kills - kills0}마리 처치!`, 6000);
+  if (wasOut && S.phase === 'camp') knight.x = toWorld(CAMP_X);
+  monsters = []; lapReady = false;   // 진행이 바뀌었으니 바퀴를 새로 깐다
+  save(); renderHud();
 }
+hooks.onClockKnown = settleOffline;
 
 function applyState(o) {
   loadState(o);

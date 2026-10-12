@@ -80,8 +80,10 @@ function spawnBoss(day, prev, profiles, now = Date.now()) {
     }
     diff = Math.max(DIFF_MIN, Math.min(DIFF_MAX, diff));
   }
-  const est = profiles.reduce((a, p) => a + expectedDamage(id, p) * WB_TRIES, 0);
-  const maxHp = (Math.max(1000, est * diff) * WB_HP_MULT) / (1 - WB_BOT_SHARE);
+  // 어제 기록이 깨져 있으면(NaN·Infinity) 처음 난이도로 되돌린다 — 한 번 깨지면 날마다 그대로 이어지므로
+  if (!Number.isFinite(diff)) diff = DIFF_START;
+  const est = profiles.reduce((a, p) => { const e = expectedDamage(id, p) * WB_TRIES; return Number.isFinite(e) ? a + e : a; }, 0);
+  const maxHp = Math.min(1e300, (Math.max(1000, est * diff) * WB_HP_MULT) / (1 - WB_BOT_SHARE));
   return { day, boss: id, maxHp, hp: maxHp, diff, est, spawnedAt: now, killedAt: null };
 }
 

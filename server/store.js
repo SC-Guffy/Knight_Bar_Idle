@@ -109,7 +109,13 @@ class FileStore {
   async count(season, opt) { return this.pool(season, opt).length; }
   // ── AI 기사 ──
   async bots() { return Object.values(this.db).filter(a => a.isBot); }
-  async removeBots(keys) { for (const k of keys) if (this.db[k] && this.db[k].isBot) delete this.db[k]; this.persist(); }
+  // 봇 계정과 그 봇의 월드 보스 피해 기록을 지운다 (사람이 그 이름을 가져가면 봇 기록을 물려받지 않게)
+  async removeBots(keys) {
+    const gone = keys.filter(k => this.db[k] && this.db[k].isBot);
+    for (const k of gone) delete this.db[k];
+    this.sdb.wbHits = this.sdb.wbHits.filter(h => !(h.bot && gone.includes(h.key)));
+    this.persist();
+  }
   // 최근 활동한 사람 기사 (봇 성장 기준·결투 상대 고르기)
   async humansSince(since) {
     return Object.values(this.db).filter(a => !a.isBot && a.updatedAt >= since)
@@ -420,7 +426,11 @@ class PgStore {
   }
   // ── AI 기사 ──
   async bots() { return (await this.pool.query('SELECT * FROM accounts WHERE is_bot')).rows.map(x => this.row(x)); }
-  async removeBots(keys) { if (keys.length) await this.pool.query('DELETE FROM accounts WHERE is_bot AND key = ANY($1::text[])', [keys]); }
+  async removeBots(keys) {
+    if (!keys.length) return;
+    await this.pool.query('DELETE FROM accounts WHERE is_bot AND key = ANY($1::text[])', [keys]);
+    await this.pool.query('DELETE FROM world_boss_hits WHERE bot AND key = ANY($1::text[])', [keys]);
+  }
   // 최근 활동한 사람 기사 (봇 성장 기준·결투 상대 고르기)
   async humansSince(since) {
     return (await this.pool.query('SELECT key,nickname,best,level,rating,season,attacks,updated_at,tower FROM accounts WHERE NOT is_bot AND updated_at >= $1', [since])).rows

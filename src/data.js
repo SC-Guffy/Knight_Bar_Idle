@@ -10,12 +10,32 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.19.14';
+const GAME_VERSION = '0.19.15';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
 // 로컬(개발 서버·파일)에서만 받는다 — 배포 주소에서 ?speed= 를 받으면 누구나 시간을 N배로 돌려 재화를 찍어 낸다
 const DEV_HOST = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+// ── 게임 시계 ──
+// 하루 충전·오프라인 보상은 기기 시계가 아니라 서버 시각으로 잰다. 서버 응답마다 X-Server-Time 으로 기기 시계와의 차이(skew)를 맞추고(src/net.js),
+// 그 사이 기기 시계가 튀면(바꿨거나 절전에서 깨어남) 단조 시계(performance.now)와 어긋나므로 다음 서버 응답까지 시각을 믿지 않는다(known=false)
+const srvClock = { skew: 0, known: false, wall: Date.now(), mono: performance.now() };
+try { srvClock.skew = Number(localStorage.getItem('kb_clock_skew')) || 0; } catch {}
+function gameNow() {
+  const wall = Date.now(), mono = performance.now();
+  if (Math.abs((wall - srvClock.wall) - (mono - srvClock.mono)) > 5000) srvClock.known = false;
+  srvClock.wall = wall; srvClock.mono = mono;
+  return wall + srvClock.skew;
+}
+function setServerTime(t) {
+  if (!Number.isFinite(t) || t <= 0) return;
+  gameNow();
+  srvClock.skew = t - Date.now();
+  const first = !srvClock.known;
+  srvClock.known = true;
+  try { localStorage.setItem('kb_clock_skew', String(Math.round(srvClock.skew))); } catch {}
+  if (first) hooks.onClockKnown();
+}
 const TIME_SCALE = DEV_HOST ? Math.max(1, Number(new URLSearchParams(location.search).get('speed')) || 1) : 1;
 
 // ───────────────────────── 원정 / 캠프 ─────────────────────────

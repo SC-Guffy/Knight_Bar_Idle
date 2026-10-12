@@ -10,6 +10,7 @@ const hooks = {
   onClassChange: (_id) => {},
   onSave: () => {},
   onPenalty: (_p) => {},
+  onClockKnown: () => {},
   onAccountGone: () => {},
   onTowerEnd: (_result) => {},
   onDungeonEnd: (_result) => {},
@@ -50,7 +51,7 @@ function freshState() {
     wb: freshWb(),                          // 월드 보스: 받은 보상·마지막 정산 (worldboss.js)
     guide: {},                              // 처음 하는 일 안내(FTUE)에서 이미 본 단계 (ui.js guideTick)
     penDone: [],                            // 반영한 운영 차감 id (서버 /api/admin/penalty — 같은 차감을 두 번 빼지 않게)
-    lastSeen: Date.now(),
+    lastSeen: gameNow(),
   };
 }
 
@@ -182,9 +183,12 @@ function migrate(o) {
 // 세이브는 계정(닉네임)마다 따로 둔다. saveKey 가 null 이면(계정 없음) 저장하지 않는다.
 let saveKey = null;
 
+// 서버 시각을 모르는 동안(접속 직후·오프라인·기기 시계가 튄 직후)은 불러온 뒤 실제로 흐른 시간(단조 시계)만큼만 lastSeen 을 민다
+const seenBase = { at: 0, mono: 0 };
 function save() {
   if (!saveKey) return;
-  S.lastSeen = Date.now();
+  const now = gameNow();
+  S.lastSeen = srvClock.known ? now : Math.max(S.lastSeen || 0, seenBase.at + (performance.now() - seenBase.mono));
   try { localStorage.setItem(saveKey, JSON.stringify(S)); } catch {}
   hooks.onSave();
 }
@@ -195,6 +199,7 @@ function readLocalSave(key) {
 function loadState(o) {
   S = freshState();
   try { if (o) S = migrate(o); } catch {}
+  seenBase.at = S.lastSeen || 0; seenBase.mono = performance.now();
   if (S.hp == null) S.hp = stats().maxHp;
 }
 function resetState() {
@@ -483,7 +488,11 @@ function advanceBuild(sec) {
 
 // ───────────────────────── 우편함 ─────────────────────────
 // 지금 우편함에 보이는 우편 (새 것부터)
-const mailList = () => MAIL.filter((m) => Date.now() >= m.at && Date.now() < m.until).sort((a, b) => b.at - a.at);
+// 서버 시각을 확인하기 전엔 비워 둔다 (기기 시계로 예약 우편을 미리·지난 우편을 늦게 받지 못하게)
+const mailList = () => {
+  const now = gameNow();   // 먼저 불러야 시계 튐이 known 에 반영된다
+  return srvClock.known ? MAIL.filter((m) => now >= m.at && now < m.until).sort((a, b) => b.at - a.at) : [];
+};
 const mailGot = (m) => S.mail.got.includes(m.id);
 const mailUnclaimed = () => mailList().filter((m) => !mailGot(m)).length;
 // 우편 보상을 받는다. 받은 우편이면 false

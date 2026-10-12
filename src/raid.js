@@ -10,14 +10,18 @@
 
 const freshRaid = () => ({ tickets: 0, freeDay: '', buyDay: '', bought: 0, chests: [], kills: {}, claimed: [], last: null });
 
-const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
-const ticketsBoughtToday = () => (S.raid.buyDay === todayKey() ? S.raid.bought : 0);
+// 하루 기준은 서버 시각(gameNow)의 날짜. 저장된 날보다 "뒤의 날"이 됐을 때만, 그것도 서버 시각을 확인했을 때만 새날로 친다
+// (기기 날짜를 앞뒤로 바꿔 가며 하루 충전·구매 가격 초기화를 되풀이하지 못하게). 레이드·미궁·탑이 같이 쓴다
+const todayKey = () => { const d = new Date(gameNow()); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+const dayNo = (k) => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(k || ''); return m ? Date.UTC(+m[1], m[2] - 1, +m[3]) / 86400000 : -Infinity; };
+const newDay = (k) => { const t = dayNo(todayKey()); return srvClock.known && t > dayNo(k); };   // todayKey 가 먼저 시계 튐을 감지하게
+const ticketsBoughtToday = () => (newDay(S.raid.buyDay) ? 0 : S.raid.bought);
 const raidUnlocked = (id) => S.best >= RAID_BOSSES[id].stage;
 
 // ───────────────────────── 입장권 ─────────────────────────
 // 하루에 한 번(자정 기준) 입장권이 RAID_TICKET_FREE 장보다 적으면 그만큼 채워 준다. 더 필요하면 재화로 산다
 function refillTickets() {
-  if (S.raid.freeDay === todayKey()) return false;
+  if (!newDay(S.raid.freeDay)) return false;
   S.raid.freeDay = todayKey();
   if (S.raid.tickets >= RAID_TICKET_FREE) return false;
   S.raid.tickets = RAID_TICKET_FREE;
@@ -44,7 +48,7 @@ function buyTicket() {
   const p = ticketPrice();
   S.gold -= p.gold;
   S.mats.mana -= p.mana;
-  if (S.raid.buyDay !== todayKey()) { S.raid.buyDay = todayKey(); S.raid.bought = 0; }
+  if (newDay(S.raid.buyDay)) { S.raid.buyDay = todayKey(); S.raid.bought = 0; }
   S.raid.bought++;
   S.raid.tickets++;
   return true;

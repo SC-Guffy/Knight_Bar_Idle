@@ -60,7 +60,7 @@ const dgRandRes = (except) => dgPickW(DG_RES_IDS.filter((r) => r !== except), (r
 
 // ── 입장권 ──
 function dgTickets() {
-  if (S.dg.tixDay !== todayKey()) { S.dg.tixDay = todayKey(); S.dg.tixUsed = 0; }
+  if (newDay(S.dg.tixDay)) { S.dg.tixDay = todayKey(); S.dg.tixUsed = 0; }
   return Math.max(0, DG_TICKETS - S.dg.tixUsed);
 }
 

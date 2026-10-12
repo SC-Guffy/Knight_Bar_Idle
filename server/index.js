@@ -62,9 +62,10 @@ function sanitizeProfile(p = {}) {
     cls: typeof p.cls === 'string' ? p.cls.slice(0, 24) : 'squire',
     level: Math.floor(num(p.level, 1, 1e6, 1)),
     best: Math.floor(num(p.best, 1, 1e6, 1)),
-    // 상한은 넘침만 막는다 — 별의 끝 레이드(300)는 공격력 1e54 쯤이 필요해서 예전 상한 1e30 이면 대왕충(180)부터 못 잡았다
-    atk: num(p.atk, 0, 1e300, 5),
-    maxHp: num(p.maxHp, 1, 1e300, 60),
+    // 상한은 넘침만 막는다 — 별의 끝 레이드(300)는 공격력 1e54 쯤이 필요해서 예전 상한 1e30 이면 대왕충(180)부터 못 잡았다.
+    // 스테이지 900쯤(몬스터 체력 1e80)까지 여유를 두되, 여러 계정 값을 더하는 월드 보스 체력이 Infinity 가 되지 않게 1e120 으로 막는다
+    atk: num(p.atk, 0, 1e120, 5),
+    maxHp: num(p.maxHp, 1, 1e120, 60),
     aspd: num(p.aspd, 0.1, 20, 0.9),
     crit: num(p.crit, 0, 1, 0.05),
     critMult: num(p.critMult, 1, 10, 2.5),
@@ -74,7 +75,7 @@ function sanitizeProfile(p = {}) {
     guard: num(p.guard, 0, 0.9, 0),
     heal: num(p.heal, 0, 0.2, 0),
     leap, skills,
-    power: Math.floor(num(p.power, 0, 1e300, 0)),
+    power: Math.floor(num(p.power, 0, 1e150, 0)),
     tower: Math.floor(num(p.tower, 0, 1e5, 0)),   // 도전의 탑 최고 층 (탑 순위)
   };
 }
@@ -96,6 +97,8 @@ function send(res, status, body) {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Key, X-Game-Version',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Cache-Control': 'no-store',
+    'X-Server-Time': String(Date.now()),          // 클라이언트 게임 시계 기준 (src/data.js gameNow)
+    'Access-Control-Expose-Headers': 'X-Server-Time',
   });
   res.end(body === undefined ? '' : JSON.stringify(body));
 }
@@ -150,13 +153,22 @@ setInterval(() => settleSeasons().catch((e) => console.error(e)), 60000).unref()
 // ───────────────────────── 결투 ─────────────────────────
 // 결투 하나를 계산하고 기록한다. 사람이 거는 결투(POST /api/duels)와 AI 기사가 거는 결투(server/bots.js)가 함께 쓴다.
 // 지난 시즌을 먼저 정산하고, 두 기사 모두 이번 시즌 기록으로 싸운다. 건 쪽만 attacks 가 늘어 시즌 순위 대상이 된다
-async function runDuel(me, op) {
+// practice: 점수가 오가지 않는 연습 결투 (사람이 건 결투가 하루 한도·같은 상대 간격에 걸렸을 때). 그 이유 문구를 넣는다
+async function runDuel(me, op, practice = '') {
   await settleSeasons();
   const season = seasonAt();
   const a = fresh(me, season), b = fresh(op, season);
   const pa = sanitizeProfile(me.profile), pb = sanitizeProfile(op.profile);
   const fight = simulateDuel(pa, pb);
   const won = fight.winner === 'a';
+  if (practice) {
+    return {
+      won, delta: 0, season, practice,
+      me: { nickname: me.nickname, cls: pa.cls, level: pa.level, rating: a.rating },
+      opponent: { nickname: op.nickname, cls: pb.cls, level: pb.level, rating: b.rating, ...(op.isBot ? { bot: true } : {}) },
+      fight,
+    };
+  }
   const d = won ? eloDelta(a.rating, b.rating) : eloDelta(b.rating, a.rating);
   const myRating = Math.max(0, a.rating + (won ? d : -d));
   const opRating = Math.max(0, b.rating + (won ? -d : d));
@@ -180,10 +192,10 @@ async function runDuel(me, op) {
 // ───────────────────────── 라우트 ─────────────────────────
 // 클라이언트 버전 (src/data.js GAME_VERSION, 헤더 X-Game-Version). 보상 정산이 클라이언트에서 일어나는 기능은 구멍을 고친 뒤 예전 버전을 막는다
 //   0.19.11: 레이드 실패 보상 0 (예전 버전은 실패해도 재화 25%를 받아 입장권 한 장으로 무한 파밍이 됐다)
-const RAID_MIN_VERSION = '0.19.11';
+const RAID_MIN_VERSION = '0.19.15';   // 0.19.15: 출정·준비 전에 세이브를 올려 서버가 입장권을 확인
 //   0.19.12: 운영 차감 반영(0.19.10) + 배포 주소 ?speed= 배속 차단
 //   0.19.13: 운영 지급(gift) 반영 — 예전 버전은 지급을 차감으로 알고 ack 해 버려 선물이 사라진다
-const SAVE_MIN_VERSION = '0.19.13';
+const SAVE_MIN_VERSION = '0.19.15';   // 0.19.15: 날짜·오프라인 시간을 서버 시각으로 (기기 시계 조작 차단)
 const verNum = (v) => String(v || '0').split('.').map((x) => parseInt(x, 10) || 0);
 function versionAtLeast(v, min) {
   const a = verNum(v), b = verNum(min);
@@ -195,6 +207,19 @@ function requireClient(req, min) {
 }
 
 const lastDuel = new Map();   // key → 마지막 결투 시각
+const DUEL_RATED_DAY = 100;              // 하루에 점수가 오가는 결투 수 (넘으면 연습 결투)
+const DUEL_PAIR_MS = 30 * 60 * 1000;     // 같은 상대와 점수가 오가는 간격
+const duelDay = new Map();    // key → { day, n } 오늘 점수 결투 수
+const duelPair = new Map();   // '건 쪽>받은 쪽' → 마지막 점수 결투 시각
+const kstDay = (t = Date.now()) => Math.floor((t + 9 * 3600 * 1000) / 86400000);   // 한국 시간 기준 날짜 번호
+// 메모리 기록이 끝없이 커지지 않게 가끔 지운다
+setInterval(() => {
+  const now = Date.now(), day = kstDay(now);
+  for (const [k, t] of duelPair) if (now - t > DUEL_PAIR_MS) duelPair.delete(k);
+  for (const [k, v] of duelDay) if (v.day !== day) duelDay.delete(k);
+  for (const [k, t] of lastDuel) if (now - t > 600000) lastDuel.delete(k);
+  for (const [k, t] of lastSnap) if (now - t > SNAP_EVERY_MS * 2) lastSnap.delete(k);
+}, 600000).unref();
 
 // ───────────────────────── 운영 기록 ─────────────────────────
 // 부정 의심을 나중에 추적할 수 있게 남긴다 (store.js audit). 기록 실패가 게임 요청을 막지 않게 오류는 로그만 남긴다
@@ -220,10 +245,18 @@ function auditSave(a, st) {
       level: n(st.level), exp: n(st.exp), best: n(st.best), stones: n(st.stones), tomes: n(st.tomes) });
   }
 }
+const ACCOUNT_PER_HOUR = 5;
+const accountMade = new Map();   // IP → 최근 한 시간 안에 기사를 만든 시각들
+// Render 는 프록시 뒤라 실제 주소는 X-Forwarded-For 의 첫 번째
+const clientIp = (req) => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
+setInterval(() => { const now = Date.now(); for (const [ip, ts] of accountMade) if (!ts.some((t) => now - t < 3600000)) accountMade.delete(ip); }, 600000).unref();
 // 사람이 원하는 닉네임을 AI 기사가 쓰고 있으면 봇을 지운다 (그 순번은 다음 틱에 새 이름으로 다시 생긴다)
 async function freeBotName(key) {
   const o = await store.get(key);
-  if (o && o.isBot) await store.removeBots([key]);
+  if (!o || !o.isBot) return;
+  await store.removeBots([key]);
+  // 그 봇이 들어가 있던 레이드 방의 자리도 비운다 (출정 때 사람 계정을 봇으로 읽지 않게)
+  for (const r of rooms.values()) if (r.state === 'open') r.members = r.members.filter((m) => !(m.bot && m.botKey === key));
 }
 
 const routes = {
@@ -241,6 +274,10 @@ const routes = {
   'POST /api/accounts': async (req) => {
     const body = await readJson(req);
     const { nick, key } = nicknameKey(body.nickname);
+    // 한 곳(IP)에서 한 시간에 ACCOUNT_PER_HOUR 개까지 (부계정 대량 생성 방지)
+    const ip = clientIp(req), now0 = Date.now();
+    const made = (accountMade.get(ip) || []).filter((t) => now0 - t < 3600000);
+    if (made.length >= ACCOUNT_PER_HOUR) throw new HttpError(429, '기사를 너무 많이 만들었어요 — 잠시 뒤에 다시 시도해 주세요');
     const token = crypto.randomBytes(24).toString('base64url');
     const now = Date.now();
     const profile = sanitizeProfile(body.profile);
@@ -256,6 +293,7 @@ const routes = {
       if (e instanceof TakenError) throw new HttpError(409, '이미 사용 중인 닉네임이에요');
       throw e;
     }
+    accountMade.set(ip, [...made, now]);
     return { status: 201, body: { nickname: nick, token } };
   },
 
@@ -378,10 +416,18 @@ const routes = {
     if (key === me.key) throw new HttpError(400, '자기 자신과는 결투할 수 없어요');
     const op = await store.get(key);
     if (!op) throw new HttpError(404, '그런 기사는 없어요');
-    const since = Date.now() - (lastDuel.get(me.key) || 0);
+    const now = Date.now(), since = now - (lastDuel.get(me.key) || 0);
     if (since < DUEL_COOLDOWN_MS) throw new HttpError(429, `${Math.ceil((DUEL_COOLDOWN_MS - since) / 1000)}초 뒤에 다시 도전할 수 있어요`);
-    lastDuel.set(me.key, Date.now());
-    return runDuel(me, op);
+    lastDuel.set(me.key, now);
+    // 결투는 언제든 할 수 있지만 점수가 오가는 결투는 하루 DUEL_RATED_DAY 번, 같은 상대와는 DUEL_PAIR_MS 에 한 번 (약한 상대 반복·부계정 져 주기로 점수 찍기 방지)
+    const day = kstDay(), used = duelDay.get(me.key);
+    const n = used && used.day === day ? used.n : 0;
+    const pairKey = `${me.key}>${op.key}`, pairAgo = now - (duelPair.get(pairKey) || 0);
+    const practice = n >= DUEL_RATED_DAY ? `오늘 점수 결투 ${DUEL_RATED_DAY}번을 다 썼어요 (자정에 초기화)`
+      : pairAgo < DUEL_PAIR_MS ? `같은 상대와는 ${DUEL_PAIR_MS / 60000}분에 한 번만 점수가 오가요 · ${Math.ceil((DUEL_PAIR_MS - pairAgo) / 60000)}분 남음` : '';
+    if (!practice) { duelDay.set(me.key, { day, n: n + 1 }); duelPair.set(pairKey, now); }
+    const res = await runDuel(me, op, practice);
+    return { ...res, ratedLeft: DUEL_RATED_DAY - (practice ? n : n + 1) };
   },
 };
 
@@ -414,6 +460,7 @@ function raidBoss(id) {
   if (!Object.prototype.hasOwnProperty.call(RAID_BOSSES, id)) throw new HttpError(400, '그런 보스는 없어요');
   return RAID_BOSSES[id];
 }
+const hasRaidTicket = (a) => !!(a && a.state && a.state.raid && a.state.raid.tickets > 0);
 const memberOf = (a) => {
   const p = sanitizeProfile(a.profile);
   return { key: a.key, nickname: a.nickname, cls: p.cls, level: p.level, power: p.power, best: p.best, ready: false, seen: Date.now() };
@@ -590,9 +637,12 @@ const raidRoutes = {
     const accs = await Promise.all(r.members.map((m) => store.get(m.bot ? m.botKey : m.key)));
     const b = RAID_BOSSES[r.boss];
     const hostP = sanitizeProfile((accs[r.members.findIndex((m) => m.key === r.host)] || {}).profile);
-    const profiles = accs.map((a, i) => (r.members[i].bot ? sanitizeProfile(a ? bots.raidProfile(a, hostP) : hostP) : sanitizeProfile(a && a.profile)));
+    const profiles = accs.map((a, i) => (r.members[i].bot ? sanitizeProfile(a && a.isBot ? bots.raidProfile(a, hostP) : hostP) : sanitizeProfile(a && a.profile)));
     const low = profiles.findIndex((p, i) => !r.members[i].bot && p.best < b.stage);
     if (low >= 0) throw new HttpError(403, `${r.members[low].nickname}님이 아직 최고 스테이지 ${b.stage}에 못 미쳐요`);
+    // 입장권은 클라이언트만 확인하던 것을 서버도 저장된 세이브로 확인한다 (사람 파티원 전원)
+    const broke = r.members.findIndex((m, i) => !m.bot && !hasRaidTicket(accs[i]));
+    if (broke >= 0) throw new HttpError(403, `${r.members[broke].nickname}님의 입장권이 없어요`);
     if (r.state !== 'open') throw new HttpError(409, '이미 출정한 방이에요');
     // AI 기사 자리는 보스 세기에서 반 명으로 치고(party), 재화·경험치를 덜 준다(botMult). MVP 는 사람 중에서만
     const nb = r.members.filter((m) => m.bot).length, party = bots.raidParty(r.members.length - nb, nb);
@@ -634,7 +684,7 @@ function renameInMemory(oldKey, newKey, nickname) {
     roomOf.delete(oldKey);
     roomOf.set(newKey, r.id);
   }
-  for (const map of [lastDuel, lastWb, lastShout]) if (map.has(oldKey)) { map.set(newKey, map.get(oldKey)); map.delete(oldKey); }
+  for (const map of [lastDuel, lastWb, lastShout, duelDay]) if (map.has(oldKey)) { map.set(newKey, map.get(oldKey)); map.delete(oldKey); }
   for (const [h, c] of authCache) if (c.acc.key === oldKey) authCache.delete(h);
 }
 
@@ -826,6 +876,7 @@ routes['GET /api/admin/audit'] = async (req, url) => {
 // id 는 밀리초 시각(겹치면 +1) — 서버가 다시 켜져도 클라이언트의 "이 id 이후" 가 꼬이지 않게
 const SHOUT_KEEP_MS = 2 * 60 * 1000;
 const SHOUT_MAX = 50;
+const SHOUT_WINDOW_MS = 2 * 60 * 1000, SHOUT_PER_WINDOW = 4;
 const SHOUT_SLOTS = ['weapon', 'armor', 'ring'];
 const shouts = [];
 const lastShout = new Map();       // 계정 key → 마지막 확성기 시각
@@ -849,6 +900,9 @@ routes['POST /api/shouts'] = async (req) => {
   if (!ok) throw new HttpError(400, '확성기에 올릴 소식이 아니에요');
   const now = Date.now();
   if (now - (lastShout.get(a.key) || 0) < 2000) return { ok: true };   // 강화 연출보다 빠를 수 없다
+  // 한 기사는 SHOUT_WINDOW_MS 동안 SHOUT_PER_WINDOW 개까지만 (+20 이상 강화는 드물다 — 가짜 소식 도배 방지). 넘으면 조용히 버린다
+  const recent = shouts.filter((x) => !x.bot && x.nickname === a.nickname && now - x.at < SHOUT_WINDOW_MS).length;
+  if (recent >= SHOUT_PER_WINDOW) return { ok: true };
   lastShout.set(a.key, now);
   pushShout({ nickname: a.nickname, slot: b.slot, result: b.result, from, to });
   return { ok: true };
