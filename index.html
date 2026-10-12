@@ -98,7 +98,8 @@
   #hud.away { transform: translateX(calc(100vw - 100% - 20px)); }
   #hud.right.away { transform: translateX(calc(-100vw + 100% + 20px)); }
   .bar { display: flex; align-items: center; gap: 9px; padding: 5px 10px; border-radius: 10px;
-    background: rgba(18, 18, 26, .3); border: 1px solid var(--line); white-space: nowrap; }
+    background: rgba(18, 18, 26, .3); border: 1px solid var(--line); white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 3px rgba(0,0,0,.7); }   /* 반투명 바라 밝은 바탕 위에서도 읽히게 */
   .meters { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 70px; }
   .meter { height: 4px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
   .meter > div { height: 100%; width: 0; transition: width .2s; }

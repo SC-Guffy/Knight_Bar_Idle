@@ -58,7 +58,9 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 /* HUD 바 */
 .bar { gap: 8px; padding: 2px 9px; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated;
   background-clip: padding-box; background-color: rgba(27, 26, 43, .3); transition: none; }
-/* 바는 클릭을 통과시키므로(🏕 버튼만 받음) 반투명으로 뒤가 비쳐 보이게 하고, hover 해도 불투명해지지 않는다 */
+/* 바는 클릭을 통과시키므로(🏕 버튼만 받음) 반투명으로 뒤가 비쳐 보이게 하고, hover 해도 불투명해지지 않는다.
+   대신 밝은 바탕 위에서도 읽히게 글자에 잉크색 1px 픽셀 외곽선 + 아래 그림자 */
+.bar { text-shadow: 1px 0 0 var(--px-ink), -1px 0 0 var(--px-ink), 0 1px 0 var(--px-ink), 0 -1px 0 var(--px-ink), 1px 1px 0 var(--px-ink), 1px 2px 0 var(--px-ink); }
 #status { color: var(--px-gold-l); }
 /* 바 안 명령 버튼: 프레임을 2px 로 줄여 바 높이를 늘리지 않는다 */
 #hbtn { border-width: 2px; border-image: url(frame-btn.svg) 4 / 2px; padding: 1px 6px; }
