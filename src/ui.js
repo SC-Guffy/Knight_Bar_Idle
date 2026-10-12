@@ -35,7 +35,14 @@ function setInteractive(on) {
 }
 const modalOpen = () => campOpen || acctOpen;
 document.addEventListener('mousemove', (e) => { if (!modalOpen()) setInteractive(!!e.target.closest('.interactive')); });
-document.addEventListener('mouseleave', () => { if (!modalOpen()) setInteractive(false); });
+// Windows 는 클릭 통과를 켜고 끌 때마다 커서가 그대로인데도 mouseleave 를 보낸다 — 그걸 믿으면 버튼 위에서 통과가 다시 켜져
+// 마우스를 움직이기 전까지 클릭이 뒤 창으로 샌다. 커서가 아직 버튼 위면 무시한다.
+function overInteractive(x, y) {
+  if (!(x >= 0 && y >= 0 && x < innerWidth && y < innerHeight)) return false;
+  const el = document.elementFromPoint(x, y);
+  return !!(el && el.closest('.interactive'));
+}
+document.addEventListener('mouseleave', (e) => { if (!modalOpen() && !overInteractive(e.clientX, e.clientY)) setInteractive(false); });
 
 // ───────────────────────── 자동 숨기기 (앱 전용 옵션) ─────────────────────────
 // 켜 두면 마우스가 하단바를 벗어나고 잠시 뒤 기사·HUD 가 사라지고, 하단바 위로 가져가면 다시 나타난다.
@@ -139,7 +146,8 @@ function renderHud() {
     : null;
   const hb = $('hbtn');
   hb.hidden = !cmd;
-  if (cmd) { hb.dataset.action = cmd[0]; hb.textContent = cmd[1]; hb.title = cmd[2]; }
+  // 같은 글자를 0.25초마다 다시 넣으면 누르는 도중 버튼 속 글자 노드가 바뀐다 — 바뀔 때만 넣는다
+  if (cmd && hb.dataset.action !== cmd[0]) { hb.dataset.action = cmd[0]; hb.textContent = cmd[1]; hb.title = cmd[2]; }
   $('hud').classList.toggle('act', !!cmd);
   // 레이드·결투 연출 중엔 HUD 를 반대편으로 밀어 싸움을 가리지 않는다 (#hud.away)
   $('hud').classList.toggle('away', (raidActive() || duelActive()) && !modalOpen());
