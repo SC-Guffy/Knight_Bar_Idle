@@ -386,6 +386,12 @@ function gainExp(e) {
 function applyPenalty(p) {
   if (S.penDone.includes(p.id)) return false;
   const d = p.data || {};
+  if (d.gift) {   // 운영 지급 (서버 /api/admin/gift): 보급품을 더한다
+    for (const [k, n] of Object.entries(d.items || {})) if (k in S.items) S.items[k] += n;
+    S.penDone.push(p.id);
+    if (S.penDone.length > 50) S.penDone.shift();
+    return true;
+  }
   S.gold -= d.gold || 0;
   S.mats.wood -= d.wood || 0; S.mats.ore -= d.ore || 0; S.mats.mana -= d.mana || 0;
   S.exp -= d.exp || 0;

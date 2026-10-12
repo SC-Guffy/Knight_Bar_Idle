@@ -182,7 +182,8 @@ async function runDuel(me, op) {
 //   0.19.11: 레이드 실패 보상 0 (예전 버전은 실패해도 재화 25%를 받아 입장권 한 장으로 무한 파밍이 됐다)
 const RAID_MIN_VERSION = '0.19.11';
 //   0.19.12: 운영 차감 반영(0.19.10) + 배포 주소 ?speed= 배속 차단
-const SAVE_MIN_VERSION = '0.19.12';
+//   0.19.13: 운영 지급(gift) 반영 — 예전 버전은 지급을 차감으로 알고 ack 해 버려 선물이 사라진다
+const SAVE_MIN_VERSION = '0.19.13';
 const verNum = (v) => String(v || '0').split('.').map((x) => parseInt(x, 10) || 0);
 function versionAtLeast(v, min) {
   const a = verNum(v), b = verNum(min);
@@ -781,6 +782,31 @@ routes['POST /api/admin/penalty'] = async (req) => {
   const id = await store.addPenalty({ key, at: Date.now(), reason, data });
   audit(key, 'penalty', { id, reason, ...data });
   console.log(`운영 차감 #${id}: ${a.nickname} ${JSON.stringify(data)} (${reason})`);
+  return { ok: true, id, nickname: a.nickname, data, pending: await store.pendingPenalties(key) };
+};
+
+// 운영 지급: 보급품(도시락 등)을 선물한다. 운영 차감과 같은 통로(penalties, data.gift)로 걸어 두고 다음 세이브 동기화 때 클라이언트가 더한다
+//   curl -X POST https://knight-bar.onrender.com/api/admin/gift -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" \
+//     -d '{"confirm":"GIFT","nickname":"닉네임","items":{"lunch":10},"reason":"열심히 하라고"}'
+routes['POST /api/admin/gift'] = async (req) => {
+  requireAdmin(req);
+  const body = await readJson(req);
+  if (body.confirm !== 'GIFT') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"GIFT"})');
+  const { key } = nicknameKey(body.nickname);
+  const a = await store.get(key);
+  if (!a || a.isBot) throw new HttpError(404, '그 닉네임의 기사가 없어요');
+  const items = {};
+  for (const [k, n] of Object.entries(body.items || {})) {
+    const v = Math.round(Number(n) || 0);
+    if (!['lunch', 'potion', 'charm', 'elixir', 'protect'].includes(k) || v < 0 || v > 1000) throw new HttpError(400, `${k} 는 줄 수 없어요`);
+    if (v) items[k] = v;
+  }
+  if (!Object.keys(items).length) throw new HttpError(400, '줄 아이템이 없어요');
+  const reason = String(body.reason || '').slice(0, 100);
+  const data = { gift: true, items };
+  const id = await store.addPenalty({ key, at: Date.now(), reason, data });
+  audit(key, 'gift', { id, reason, ...items });
+  console.log(`운영 지급 #${id}: ${a.nickname} ${JSON.stringify(items)} (${reason})`);
   return { ok: true, id, nickname: a.nickname, data, pending: await store.pendingPenalties(key) };
 };
 

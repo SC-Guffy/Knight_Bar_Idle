@@ -2994,6 +2994,12 @@ hooks.onAccountGone = () => {
 // 운영 차감이 세이브에 반영됐다 (src/net.js applyPenalties)
 hooks.onPenalty = (p) => {
   const d = p.data || {}, parts = [];
+  if (d.gift) {
+    const got = Object.entries(d.items || {}).filter(([k]) => SUPPLIES[k]).map(([k, n]) => `${SUPPLIES[k].icon} ${SUPPLIES[k].name} ${n}개`);
+    renderHud();
+    toast(`🎁 운영자 선물로 ${got.join(' · ')} 을(를) 받았어요${p.reason ? ` — ${p.reason}` : ''}`, 20000);
+    return;
+  }
   if (d.gold) parts.push(`🪙 ${fmt(d.gold)}`);
   if (d.wood) parts.push(`🪵 ${fmt(d.wood)}`);
   if (d.ore) parts.push(`⛰️ ${fmt(d.ore)}`);
