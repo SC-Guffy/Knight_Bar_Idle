@@ -9,6 +9,7 @@ const hooks = {
   onBuilt: (_id) => {},
   onClassChange: (_id) => {},
   onSave: () => {},
+  onPenalty: (_p) => {},
   onAccountGone: () => {},
   onTowerEnd: (_result) => {},
   onDungeonEnd: (_result) => {},
@@ -48,6 +49,7 @@ function freshState() {
     dg: freshDungeon(),                     // 재료의 미궁(보스 러시+슬롯): 입장권·최고 기록·진행 중인 도전 (dungeon.js)
     wb: freshWb(),                          // 월드 보스: 받은 보상·마지막 정산 (worldboss.js)
     guide: {},                              // 처음 하는 일 안내(FTUE)에서 이미 본 단계 (ui.js guideTick)
+    penDone: [],                            // 반영한 운영 차감 id (서버 /api/admin/penalty — 같은 차감을 두 번 빼지 않게)
     lastSeen: Date.now(),
   };
 }
@@ -378,6 +380,21 @@ function gainExp(e) {
   }
   if (ups) { S.hp = stats().maxHp; hooks.onLevelUp(); }
   return ups;
+}
+
+// 운영 차감: 부정으로 얻은 재화·경험치를 뺀다. 재화는 음수까지 내려가고, 경험치가 모자라면 레벨이 내려간다 (Lv 1 아래로는 안 감)
+function applyPenalty(p) {
+  if (S.penDone.includes(p.id)) return false;
+  const d = p.data || {};
+  S.gold -= d.gold || 0;
+  S.mats.wood -= d.wood || 0; S.mats.ore -= d.ore || 0; S.mats.mana -= d.mana || 0;
+  S.exp -= d.exp || 0;
+  while (S.exp < 0 && S.level > 1) { S.level--; S.exp += expToNext(); }
+  if (S.exp < 0) S.exp = 0;
+  S.hp = Math.min(S.hp, stats().maxHp);
+  S.penDone.push(p.id);
+  if (S.penDone.length > 50) S.penDone.shift();
+  return true;
 }
 
 // ───────────────────────── 훈련 ─────────────────────────

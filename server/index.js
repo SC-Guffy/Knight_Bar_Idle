@@ -179,6 +179,31 @@ async function runDuel(me, op) {
 
 // ───────────────────────── 라우트 ─────────────────────────
 const lastDuel = new Map();   // key → 마지막 결투 시각
+
+// ───────────────────────── 운영 기록 ─────────────────────────
+// 부정 의심을 나중에 추적할 수 있게 남긴다 (store.js audit). 기록 실패가 게임 요청을 막지 않게 오류는 로그만 남긴다
+const SNAP_EVERY_MS = 3600 * 1000;
+const lastSnap = new Map();   // key → 마지막 재화 스냅숏 시각
+function audit(key, kind, data) {
+  store.addAudit({ at: Date.now(), key, kind, data }).catch((e) => console.error('audit 기록 실패', e.message));
+}
+// 세이브가 올라올 때: 새 레이드 정산이 있으면 그 보상을, 한 시간에 한 번은 재화·레벨 스냅숏을 남긴다
+function auditSave(a, st) {
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  const last = st.raid && st.raid.last, prev = a.state && a.state.raid && a.state.raid.last;
+  if (last && last.id && (!prev || prev.id !== last.id)) {
+    const r = last.reward || {};
+    audit(a.key, 'raid-reward', { id: String(last.id).slice(0, 80), boss: String(last.boss).slice(0, 40), won: !!last.won,
+      gold: n(r.gold), wood: n(r.wood), ore: n(r.ore), mana: n(r.mana), exp: n(r.exp), mvp: !!r.mvp, chest: !!r.chest });
+  }
+  const now = Date.now();
+  if (now - (lastSnap.get(a.key) || 0) >= SNAP_EVERY_MS) {
+    lastSnap.set(a.key, now);
+    const m = st.mats || {};
+    audit(a.key, 'snap', { gold: n(st.gold), wood: n(m.wood), ore: n(m.ore), mana: n(m.mana),
+      level: n(st.level), exp: n(st.exp), best: n(st.best), stones: n(st.stones), tomes: n(st.tomes) });
+  }
+}
 // 사람이 원하는 닉네임을 AI 기사가 쓰고 있으면 봇을 지운다 (그 순번은 다음 틱에 새 이름으로 다시 생긴다)
 async function freeBotName(key) {
   const o = await store.get(key);
@@ -231,11 +256,23 @@ const routes = {
     if (!body.state || typeof body.state !== 'object') throw new HttpError(400, 'state 가 없습니다');
     const profile = sanitizeProfile(body.profile);
     const now = Date.now();
+    if (!a.isBot) auditSave(a, body.state);
     await store.update(a.key, {
       state: body.state, profile,
       level: profile.level, best: profile.best, power: profile.power, cls: profile.cls, tower: profile.tower, updatedAt: now,
     });
-    return { ok: true, updatedAt: now };
+    // 운영 차감이 걸려 있으면 같이 내려보낸다 — 클라이언트가 빼고 /api/me/penalty/ack 로 알린다 (src/net.js applyPenalties)
+    const penalties = (await store.pendingPenalties(a.key)).map((p) => ({ id: p.id, reason: p.reason, data: p.data }));
+    return { ok: true, updatedAt: now, ...(penalties.length ? { penalties } : {}) };
+  },
+
+  // 운영 차감을 세이브에 반영했으면 끝난 것으로 표시
+  'POST /api/me/penalty/ack': async (req) => {
+    const a = await auth(req);
+    const body = await readJson(req);
+    const ids = (Array.isArray(body.ids) ? body.ids : []).map(Number).filter(Number.isInteger).slice(0, 50);
+    if (ids.length) await store.ackPenalties(a.key, ids);
+    return { ok: true };
   },
 
   // 닉네임 바꾸기 (무료, 하루 한 번). 토큰은 그대로이고, key 를 쓰는 DB 기록과 서버 메모리(레이드 방·쿨다운)를 새 key 로 옮긴다
@@ -267,7 +304,7 @@ const routes = {
   // 결투(duel) 순위는 이번 시즌에 직접 결투를 1번 이상 건 기사만. 목록·rank 에는 AI 기사도 있고, 시즌 보상은 사람끼리 매긴 prizeRank 로 준다
   'GET /api/ranking': async (req, url) => {
     const q = url.searchParams.get('sort'), sort = q === 'duel' || q === 'tower' ? q : 'stage';
-    const limit = Math.floor(num(url.searchParams.get('limit'), 1, 200, 100));
+    const limit = Math.floor(n(url.searchParams.get('limit'), 1, 200, 100));
     await settleSeasons();
     const season = sort === 'duel' ? seasonAt() : 0;
     const players = (await store.top(sort, limit, season)).map(publicInfo);
@@ -548,6 +585,10 @@ const raidRoutes = {
       ...(nb ? { party, botMult: bots.raidRewardMult(nb) } : {}),
       fight,
     };
+    r.members.forEach((m, i) => {
+      if (!m.bot) audit(m.key, 'raid', { id: r.result.id, boss: r.boss, won: !!fight.won, timeout: !!fight.timeout, mvp: fight.mvp === i,
+        party: r.members.map((x) => x.nickname + (x.bot ? '🤖' : '')) });
+    });
     return { room: roomView(r) };
   },
 
@@ -653,11 +694,14 @@ Object.assign(routes, wbRoutes);
 // 모든 계정(닉네임 포함)·세이브·시즌 기록을 지운다. 지우기 직전 순위는 명예의 전당(hall_of_fame)에 남기고, 그건 지우지 않는다. Render 환경 변수 ADMIN_KEY 가 있어야 열린다.
 //   curl -X POST https://knight-bar.onrender.com/api/admin/reset -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" -d '{"confirm":"RESET"}'
 // 접속 중인 기사는 다음 서버 요청 때 401(gone)을 받고 이 기기의 기록이 지워진 채 닉네임 만들기 화면으로 간다.
-routes['POST /api/admin/reset'] = async (req) => {
+function requireAdmin(req) {
   const key = process.env.ADMIN_KEY;
   const given = String(req.headers['x-admin-key'] || '');
   const ok = key && given.length === key.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(key));
   if (!ok) throw new HttpError(404, '없는 주소입니다');
+}
+routes['POST /api/admin/reset'] = async (req) => {
+  requireAdmin(req);
   const body = await readJson(req);
   if (body.confirm !== 'RESET') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"RESET"})');
   const removed = await store.count();
@@ -683,10 +727,7 @@ routes['POST /api/admin/reset'] = async (req) => {
 // 오늘 월드 보스를 지우고 새로 소환한다 (오늘 도전 기록·횟수도 지워 모두 다시 세 번). 같은 ADMIN_KEY
 //   curl -X POST https://knight-bar.onrender.com/api/admin/wb-respawn -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" -d '{"confirm":"RESPAWN"}'
 routes['POST /api/admin/wb-respawn'] = async (req) => {
-  const key = process.env.ADMIN_KEY;
-  const given = String(req.headers['x-admin-key'] || '');
-  const ok = key && given.length === key.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(key));
-  if (!ok) throw new HttpError(404, '없는 주소입니다');
+  requireAdmin(req);
   const body = await readJson(req);
   if (body.confirm !== 'RESPAWN') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"RESPAWN"})');
   const day = WB.dayAt(), old = await store.wbGet(day);
@@ -696,6 +737,42 @@ routes['POST /api/admin/wb-respawn'] = async (req) => {
   const b = await todayBoss(day);
   console.log(`월드 보스 ${day} 다시 소환 (이전 ${old ? old.boss + (old.killedAt ? ' 처치됨' : '') : '없음'})`);
   return { ok: true, day, old: wbView(old), boss: wbView(b) };
+};
+
+// 운영 차감: 부정으로 얻은 재화·경험치를 뺀다. 서버는 걸어 두기만 하고, 그 기사가 다음에 세이브를 올릴 때 클라이언트가 빼고 안내한다
+// (세이브는 클라이언트가 덮어쓰는 구조라 DB 값을 직접 고치면 다음 동기화 때 되돌아간다). 재화는 음수까지 내려간다. 같은 ADMIN_KEY
+//   curl -X POST https://knight-bar.onrender.com/api/admin/penalty -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" \
+//     -d '{"confirm":"PENALTY","nickname":"닉네임","gold":0,"wood":0,"ore":0,"mana":0,"exp":0,"reason":"레이드 실패 보상 반복"}'
+routes['POST /api/admin/penalty'] = async (req) => {
+  requireAdmin(req);
+  const body = await readJson(req);
+  if (body.confirm !== 'PENALTY') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"PENALTY"})');
+  const { key } = nicknameKey(body.nickname);
+  const a = await store.get(key);
+  if (!a || a.isBot) throw new HttpError(404, '그 닉네임의 기사가 없어요');
+  const data = {};
+  for (const k of ['gold', 'wood', 'ore', 'mana', 'exp']) {
+    const v = Math.round(Number(body[k]) || 0);
+    if (v < 0) throw new HttpError(400, `${k} 는 뺄 양을 양수로 넣어 주세요`);
+    if (v) data[k] = v;
+  }
+  if (!Object.keys(data).length) throw new HttpError(400, '뺄 양이 없어요');
+  const reason = String(body.reason || '').slice(0, 100);
+  const id = await store.addPenalty({ key, at: Date.now(), reason, data });
+  audit(key, 'penalty', { id, reason, ...data });
+  console.log(`운영 차감 #${id}: ${a.nickname} ${JSON.stringify(data)} (${reason})`);
+  return { ok: true, id, nickname: a.nickname, data, pending: await store.pendingPenalties(key) };
+};
+
+// 운영 기록 보기: 기사 한 명의 레이드 결과·정산·재화 스냅숏·차감 (새 것부터). kind 로 거를 수 있다 (raid | raid-reward | snap | penalty)
+//   curl "https://knight-bar.onrender.com/api/admin/audit?nickname=닉네임&kind=raid&limit=100" -H "X-Admin-Key: <ADMIN_KEY>"
+routes['GET /api/admin/audit'] = async (req, url) => {
+  requireAdmin(req);
+  const { key } = nicknameKey(url.searchParams.get('nickname'));
+  const kind = url.searchParams.get('kind') || '';
+  const limit = Math.floor(num(url.searchParams.get('limit'), 1, 1000, 200));
+  const log = await store.audit(key, limit, /^[a-z-]{1,20}$/.test(kind) ? kind : '');
+  return { nickname: key, penalties: await store.pendingPenalties(key), log };
 };
 
 // ───────────────────────── 서버 확성기 ─────────────────────────

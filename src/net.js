@@ -116,9 +116,10 @@ async function pushSave(force = false) {
   const body = { state: S, profile: profile() };
   sync.busy = (async () => {
     try {
-      await api('PUT', '/api/me', body, { token, keepalive: true });
+      const r = await api('PUT', '/api/me', body, { token, keepalive: true });
       sync.lastOk = Date.now();
       sync.error = null;
+      if (r && r.penalties && token === activeToken()) applyPenalties(r.penalties, token);
     } catch (e) {
       if (token === activeToken()) sync.dirty = true;
       sync.error = e.message;
@@ -128,6 +129,17 @@ async function pushSave(force = false) {
   sync.busy = null;
 }
 setInterval(() => pushSave(), SYNC_EVERY);
+
+// 운영 차감(서버 /api/admin/penalty): 세이브에서 빼고 안내한 뒤 서버에 반영했다고 알린다. 이미 뺀 id 는 S.penDone 으로 건너뛴다
+function applyPenalties(list, token) {
+  const ids = [];
+  for (const p of list) {
+    if (applyPenalty(p)) hooks.onPenalty(p);
+    ids.push(p.id);
+  }
+  save();
+  api('POST', '/api/me/penalty/ack', { ids }, { token }).catch(() => {});
+}
 
 // ───────────────────────── 랭킹 / 결투 ─────────────────────────
 const fetchRanking = (sort) => api('GET', `/api/ranking?sort=${sort}&limit=100`, null, { token: activeToken(), timeout: 70000 });

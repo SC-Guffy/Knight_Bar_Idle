@@ -11,6 +11,9 @@
 // 명예의 전당: 전체 초기화 직전 순위 = { id, at, players, stage: [최고 스테이지 순 10명], duel: [이번 결투 시즌 3명] } — 초기화해도 지우지 않는다
 // 월드 보스(server/worldboss.js): 하루 = { day, boss, maxHp, hp, diff, est, spawnedAt, killedAt },
 //   기사별 피해 = { day, key, nickname, cls, dmg, tries, claimed, bot } — 날이 지나면 지분만큼 보상을 받아 가고(claimed) 남겨 둔다
+// 운영 기록(audit): { id, at, key, kind, data } — 레이드 결과(raid)·세이브에 올라온 레이드 정산(raid-reward)·한 시간마다 재화 스냅숏(snap)·차감(penalty).
+//   부정 의심이 생기면 /api/admin/audit 로 본다. AUDIT_KEEP_MS 가 지나면 지운다
+// 운영 차감(penalty): { id, key, at, reason, data: { gold, wood, ore, mana, exp }, done } — 다음 세이브 동기화 때 클라이언트가 빼고 ack 한다
 // 받은 결투(우편함): { id, at, defender, attacker, nickname, cls, level, won(방어 성공), delta, rating(방어자의 결투 뒤 점수), bot(건 쪽이 AI 기사) }
 //   — 도전받은 기사가 나중에 접속해서 누가 걸었고 어떻게 됐는지 본다. 기사마다 최근 것만 보여 주고 오래된 건 지운다
 
@@ -36,6 +39,8 @@ const human = (a) => !a.isBot;
 const TOP_KEEP = 10;
 const DUEL_LOG_KEEP_MS = 14 * 24 * 3600 * 1000;
 const DUEL_LOG_FILE_MAX = 3000;
+const AUDIT_KEEP_MS = 30 * 24 * 3600 * 1000;
+const AUDIT_FILE_MAX = 20000;
 const topView = (a) => ({ nickname: a.nickname, cls: a.cls, level: a.level, rating: a.rating, wins: a.wins, losses: a.losses });
 
 // ───────────────────────── JSON 파일 ─────────────────────────
@@ -49,6 +54,8 @@ class FileStore {
     this.sdb.wb = this.sdb.wb || [];
     this.sdb.wbHits = this.sdb.wbHits || [];
     this.sdb.duelLog = this.sdb.duelLog || [];
+    this.sdb.audit = this.sdb.audit || [];
+    this.sdb.penalties = this.sdb.penalties || [];
     this.hallFile = path.join(dir, 'hall.json');
     try { this.hdb = JSON.parse(fs.readFileSync(this.hallFile, 'utf8')); } catch { this.hdb = []; }
     this.timer = null;
@@ -87,6 +94,8 @@ class FileStore {
       if (e.defender === oldKey) e.defender = newKey;
       if (e.attacker === oldKey) Object.assign(e, { attacker: newKey, nickname });
     }
+    for (const x of this.sdb.audit) if (x.key === oldKey) x.key = newKey;
+    for (const x of this.sdb.penalties) if (x.key === oldKey) x.key = newKey;
     this.persist();
   }
   // season 을 주면 그 시즌 순위 대상만 (결투 순위), opt.humans 면 AI 기사를 뺀다
@@ -195,11 +204,33 @@ class FileStore {
   async duelInbox(key, limit) {
     return this.sdb.duelLog.filter(x => x.defender === key).slice(-limit).reverse();
   }
+  // ── 운영 기록·차감 ──
+  async addAudit(e) {
+    const log = this.sdb.audit, id = (log.length ? log[log.length - 1].id : 0) + 1;
+    log.push({ ...e, id });
+    const old = Date.now() - AUDIT_KEEP_MS;
+    this.sdb.audit = log.filter(x => x.at >= old).slice(-AUDIT_FILE_MAX);
+    this.persist();
+  }
+  async audit(key, limit, kind) {
+    return this.sdb.audit.filter(x => x.key === key && (!kind || x.kind === kind)).slice(-limit).reverse();
+  }
+  async addPenalty(p) {
+    const list = this.sdb.penalties, id = (list.length ? list[list.length - 1].id : 0) + 1;
+    list.push({ ...p, id, done: false });
+    this.persist();
+    return id;
+  }
+  async pendingPenalties(key) { return this.sdb.penalties.filter(x => x.key === key && !x.done); }
+  async ackPenalties(key, ids) {
+    for (const x of this.sdb.penalties) if (x.key === key && ids.includes(x.id)) x.done = true;
+    this.persist();
+  }
 
   // 전체 초기화: 계정·시즌 기록을 모두 지운다
   async wipe() {
     this.db = {};
-    this.sdb = { seasons: [], rewards: [], wb: [], wbHits: [], duelLog: [] };
+    this.sdb = { seasons: [], rewards: [], wb: [], wbHits: [], duelLog: [], audit: [], penalties: [] };
     this.flush();
   }
 }
@@ -291,6 +322,23 @@ class PgStore {
       );
       CREATE INDEX IF NOT EXISTS duel_log_def ON duel_log (defender, id DESC);
       ALTER TABLE duel_log ADD COLUMN IF NOT EXISTS bot boolean NOT NULL DEFAULT false;
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id serial PRIMARY KEY,
+        at bigint NOT NULL,
+        key text NOT NULL,
+        kind text NOT NULL,
+        data jsonb NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS audit_log_key ON audit_log (key, id DESC);
+      CREATE TABLE IF NOT EXISTS penalties (
+        id serial PRIMARY KEY,
+        key text NOT NULL,
+        at bigint NOT NULL,
+        reason text NOT NULL DEFAULT '',
+        data jsonb NOT NULL,
+        done boolean NOT NULL DEFAULT false
+      );
+      CREATE INDEX IF NOT EXISTS penalties_key ON penalties (key) WHERE NOT done;
       CREATE TABLE IF NOT EXISTS hall_of_fame (
         id serial PRIMARY KEY,
         at bigint NOT NULL,
@@ -338,6 +386,8 @@ class PgStore {
       await c.query('UPDATE world_boss_hits SET key=$2, nickname=$3 WHERE key=$1', [oldKey, newKey, nickname]);
       await c.query('UPDATE duel_log SET defender=$2 WHERE defender=$1', [oldKey, newKey]);
       await c.query('UPDATE duel_log SET attacker=$2, nickname=$3 WHERE attacker=$1', [oldKey, newKey, nickname]);
+      await c.query('UPDATE audit_log SET key=$2 WHERE key=$1', [oldKey, newKey]);
+      await c.query('UPDATE penalties SET key=$2 WHERE key=$1', [oldKey, newKey]);
       await c.query('COMMIT');
     } catch (e) {
       await c.query('ROLLBACK').catch(() => {});
@@ -508,9 +558,30 @@ class PgStore {
     return (await this.pool.query('SELECT * FROM duel_log WHERE defender=$1 ORDER BY id DESC LIMIT $2', [key, limit])).rows
       .map(r => ({ id: r.id, at: Number(r.at), attacker: r.attacker, nickname: r.nickname, cls: r.cls, level: r.level, won: r.won, delta: r.delta, rating: r.rating, bot: r.bot }));
   }
+  // ── 운영 기록·차감 ──
+  async addAudit(e) {
+    await this.pool.query('INSERT INTO audit_log (at, key, kind, data) VALUES ($1,$2,$3,$4)', [e.at, e.key, e.kind, JSON.stringify(e.data)]);
+    if (Math.random() < 0.01) await this.pool.query('DELETE FROM audit_log WHERE at < $1', [Date.now() - AUDIT_KEEP_MS]);
+  }
+  async audit(key, limit, kind) {
+    const r = await this.pool.query(
+      `SELECT * FROM audit_log WHERE key=$1 ${kind ? 'AND kind=$3' : ''} ORDER BY id DESC LIMIT $2`, kind ? [key, limit, kind] : [key, limit]);
+    return r.rows.map(x => ({ id: x.id, at: Number(x.at), key: x.key, kind: x.kind, data: x.data }));
+  }
+  async addPenalty(p) {
+    return (await this.pool.query('INSERT INTO penalties (key, at, reason, data) VALUES ($1,$2,$3,$4) RETURNING id',
+      [p.key, p.at, p.reason, JSON.stringify(p.data)])).rows[0].id;
+  }
+  async pendingPenalties(key) {
+    return (await this.pool.query('SELECT * FROM penalties WHERE key=$1 AND NOT done ORDER BY id', [key])).rows
+      .map(x => ({ id: x.id, key: x.key, at: Number(x.at), reason: x.reason, data: x.data, done: x.done }));
+  }
+  async ackPenalties(key, ids) {
+    await this.pool.query('UPDATE penalties SET done = true WHERE key=$1 AND id = ANY($2::int[])', [key, ids]);
+  }
   // 전체 초기화: 계정·시즌 기록을 모두 지운다 (명예의 전당은 남긴다)
   async wipe() {
-    await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards, world_boss, world_boss_hits, duel_log');
+    await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards, world_boss, world_boss_hits, duel_log, audit_log, penalties');
   }
 }
 

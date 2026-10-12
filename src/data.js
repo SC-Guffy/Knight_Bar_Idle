@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.19.9';
+const GAME_VERSION = '0.19.10';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -714,6 +714,7 @@ const expToNextAt = (lv) => Math.floor(20 * Math.pow(1.22, lv - 1));
 // K·M·B·T 다음은 aa, ab, … az, ba, … (레이드 후반 보스 체력이 1e57 을 넘어서 ah(1e39) 에서 끝나면 숫자가 길게 찍혔다)
 const FMT_UNITS = ['K', 'M', 'B', 'T'].concat(Array.from({ length: 26 * 26 }, (_, i) => String.fromCharCode(97 + Math.floor(i / 26), 97 + (i % 26))));
 function fmt(n) {
+  if (n < 0) return '-' + fmt(-n);                 // 운영 차감으로 재화가 음수일 수 있다
   if (n < 1000) return String(Math.floor(n));
   let i = -1;
   while (n >= 1000 && i < FMT_UNITS.length - 1) { n /= 1000; i++; }

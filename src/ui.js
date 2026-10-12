@@ -2991,6 +2991,18 @@ hooks.onAccountGone = () => {
   toast('🔄 서버가 새로 시작되어 모든 기사가 초기화됐어요 — 새 닉네임으로 다시 시작해 주세요', 15000);
 };
 
+// 운영 차감이 세이브에 반영됐다 (src/net.js applyPenalties)
+hooks.onPenalty = (p) => {
+  const d = p.data || {}, parts = [];
+  if (d.gold) parts.push(`🪙 ${fmt(d.gold)}`);
+  if (d.wood) parts.push(`🪵 ${fmt(d.wood)}`);
+  if (d.ore) parts.push(`⛰️ ${fmt(d.ore)}`);
+  if (d.mana) parts.push(`💎 ${fmt(d.mana)}`);
+  if (d.exp) parts.push(`✨ ${fmt(d.exp)}`);
+  renderHud();
+  toast(`⚠️ 운영 조치로 ${parts.join(' · ')} 이(가) 차감됐어요${p.reason ? ` — ${p.reason}` : ''}`, 20000);
+};
+
 // 꺼져 있던 동안의 원정·휴식·건설을 한 번에 계산한다
 function catchUp() {
   const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
