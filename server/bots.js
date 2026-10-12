@@ -4,9 +4,10 @@
 //
 //  - 계정: accounts 테이블의 is_bot 행 (server/store.js). 토큰은 아무도 모르는 무작위 해시라 로그인할 수 없고,
 //    state 에는 봇 설정 { bot: { line 3차 직업 계열, slot 실력 순번, g 장비 편차, tw 탑 편차, born } } 만 둔다.
-//  - 성장: 최근 7일 안에 활동한 사람들의 최고 스테이지 중앙값(R) × 봇마다 정해진 배수 k 를 목표로 조금씩 오른다.
-//    k 는 순번(slot)대로 0.5 ~ 1.3 에 깔리는데 아래쪽이 촘촘하다 — 봇 절반쯤이 사람 중앙값 아래, 맨 위 몇 명이 사람 1등 언저리.
-//    목표는 사람 1등 × BOT_TOP_OVER 를 넘지 않고, 한 틱에 1스테이지까지만 오른다 (사람보다 눈에 띄게 빨리 크지 않게).
+//  - 성장: 최근 7일 안에 활동한 사람 1등의 최고 스테이지(T) × 봇마다 정해진 배수 k 를 목표로 조금씩 오른다.
+//    k 는 순번(slot)대로 BOT_BOTTOM ~ BOT_TOP 에 깔리는데 아래쪽이 촘촘하다 — 맨 위 봇은 1등 바로 아래, 나머지는 그 밑으로 넓게.
+//    (예전엔 중앙값 기준이었는데, 잠깐 들어왔다 나간 1스테이지 계정들이 중앙값을 끌어내려 봇이 안 크는 것처럼 보였다 — 10-12)
+//    한 틱에 1스테이지까지만 오른다 (사람보다 눈에 띄게 빨리 크지 않게).
 //    목표보다 BOT_DROP_OVER 배 넘게 앞선 봇은 목표로 내려온다 (기준이 바뀌었거나 사람이 빠졌을 때). 탑 층도 사람 1등 층까지만.
 //    원칙: 봇은 게임을 풍성하게 하는 곁들이일 뿐, 사람의 할거리(순위·보스 처치·결투 점수·닉네임)를 빼앗지 않는다.
 //    사람이 아무도 없으면(초기화 직후) 봇 나이로 하루 10스테이지쯤 (최대 80).
@@ -43,7 +44,8 @@ const DAY = 24 * 3600 * 1000;
 // 레이드 난이도는 파티원 능력치보다 인원 보정(PARTY_GAP, 4인이면 보스가 13스테이지 약해짐)이 거의 다 정해서, 봇을 약하게만 하면(×0.35여도)
 // 혼자 + 봇 3 이 사람 4인 난이도를 그대로 얻는다. 그래서 봇 자리는 보스 보정에서 반 명으로 친다 → 혼자 + 봇 3 = 2.5인 보스 ≈ 사람 3인 파티가 잡는 수준
 const RAID_BOT_POWER = 0.8;
-const BOT_TOP_OVER = 1.05;   // 봇 목표 상한 = 사람 1등 최고 스테이지 × 이것
+const BOT_TOP = 0.98;        // 맨 위 봇 목표 = 사람 1등 최고 스테이지 × 이것 (1등은 사람 몫)
+const BOT_BOTTOM = 0.3;      // 맨 아래 봇 목표 배수
 const BOT_DROP_OVER = 1.1;   // 목표의 이 배를 넘게 앞서 있으면 목표로 내린다
 const RAID_BOT_SEAT = 0.5;
 const RAID_BOT_CUT = 0.1;
@@ -98,8 +100,8 @@ function toProfile(r, best, x) {
 // 장비·훈련 편차 g 를 곱한다 (전투력은 √(DPS×체력) 이라 둘 다 g 배면 전투력도 g 배)
 const scaled = (p, g) => ({ ...p, atk: p.atk * g, maxHp: p.maxHp * g, power: Math.round(p.power * g) });
 
-// 순번 slot(0..n-1) → 사람 중앙값 대비 배수. 아래쪽이 촘촘하다 (n=30 이면 중앙 순번이 ≈0.76, 맨 위 1.3)
-const spread = (slot, n) => (n <= 1 ? 1 : 0.5 + 0.8 * Math.pow(slot / (n - 1), 1.6));
+// 순번 slot(0..n-1) → 사람 1등 대비 배수. 아래쪽이 촘촘하다 (n=30 이면 중앙 순번이 ≈0.53, 맨 위 0.98)
+const spread = (slot, n) => (n <= 1 ? BOT_TOP : BOT_BOTTOM + (BOT_TOP - BOT_BOTTOM) * Math.pow(slot / (n - 1), 1.6));
 // 탑 최고 층: 층 난이도 = 스테이지 25 + 층 × 2 (src/data.js TOWER_STAGE0·TOWER_STAGE_PER) — 정예라 자기 최고 스테이지보다 조금 아래 층까지
 const towerOf = (best, tw) => (best < 30 ? 0 : Math.max(0, Math.floor((best * tw - 30) / 2)));
 
@@ -118,16 +120,14 @@ function createBots(deps) {
   const botShouts = [];               // 봇 확성기 시각 (최근 1시간)
   let wbDay = -1; const wbDone = new Map();   // 오늘 봇별 쓴 도전 수 (DB 를 매번 묻지 않게)
 
-  // { mid: 사람 중앙값, cap: 봇 목표 상한, towerCap: 봇 탑 층 상한 = 사람 1등 층 }
+  // { top: 사람 1등 최고 스테이지, towerCap: 봇 탑 층 상한 = 사람 1등 층 }
   async function reference(now, bots) {
     const hs = await store.humansSince(now - HUMAN_ACTIVE_MS);
     if (hs.length) {
-      const b = hs.map((h) => h.best).sort((x, y) => x - y);
-      const mid = b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2;
-      return { mid, cap: Math.max(1, b[b.length - 1] * BOT_TOP_OVER), towerCap: Math.max(...hs.map((h) => h.tower || 0)) };
+      return { top: Math.max(1, ...hs.map((h) => h.best)), towerCap: Math.max(...hs.map((h) => h.tower || 0)) };
     }
     const born = Math.min(now, ...bots.map((a) => a.state.bot.born));
-    return { mid: Math.min(80, 12 + 10 * (now - born) / DAY), cap: Infinity, towerCap: Infinity };
+    return { top: Math.min(80, 12 + 10 * (now - born) / DAY) / BOT_TOP, towerCap: Infinity };
   }
 
   // 봇 수를 CFG.count 에 맞춘다: 빈 순번을 새 봇으로 채우고, 넘치는 순번은 지운다
@@ -164,7 +164,7 @@ function createBots(deps) {
   async function grow(now, bots) {
     const R = await reference(now, bots);
     for (const a of bots) {
-      const b = a.state.bot, target = Math.max(1, Math.round(Math.min(R.cap, R.mid * spread(b.slot, CFG.count))));
+      const b = a.state.bot, target = Math.max(1, Math.round(R.top * spread(b.slot, CFG.count)));
       let best = a.best;
       const drop = best > 1 && best > target * BOT_DROP_OVER;
       if (best <= 1) best = Math.max(1, Math.round(target * (0.7 + 0.2 * Math.random())));   // 갓 만든 봇은 목표 근처에서 시작
