@@ -116,12 +116,15 @@ const reachTo = (m) => stats().range + monsterWidth(m) / 2;        // 기사 무
 const monsterReach = (m) => MELEE_REACH + monsterWidth(m) / 2;      // 몬스터 공격 사거리
 
 // 스테이지 = 화면 한 바퀴. 바퀴가 시작되면 기사 앞에서 오른쪽 끝까지 몬스터 자리를 정해 두고, 보스 자리는 항상 우하단.
-// 몬스터는 기사가 다가가면 하나씩 나타난다. 쓰러져 파밍 중(farm)이면 보스 없이 잡몹만.
+// 몬스터는 기사가 다가가면 무리(1~3마리)째로 나타난다. 첫 필드는 한 마리씩. 쓰러져 파밍 중(farm)이면 보스 없이 잡몹만.
+// 바퀴당 마릿수는 예전(MOB_GAP 간격 1마리)과 같고 뭉쳐 나올 뿐이라 보상 흐름은 그대로, 여러 마리를 치는 무기·스킬이 빨라진다
 let lapReady = false;                     // false 면 다음 프레임에 현재 위치부터 바퀴를 다시 짠다
-let lapPlan = [];                         // 아직 나타나지 않은 몬스터 [{ type, boss, x }] (x 오름차순)
+let lapPlan = [];                         // 아직 나타나지 않은 몬스터 [{ type, boss, x, g 무리 번호 }] (x 오름차순)
 const bossX = () => toWorld(W - 60);
 const SPAWN_AHEAD = 260;                  // 기사 앞 이 거리 안에 들어온 자리부터 몬스터가 나타남
-const MAX_ALIVE = 2;
+const MAX_ALIVE = 2;                      // 살아 있는 수가 이보다 적어야 다음 무리가 나타난다 (무리는 한꺼번에)
+const PACK_GAP = 18;                      // 무리 안 몬스터 사이 간격(px)
+const packMax = () => (zoneOf(S.stage) === ZONES[0] ? 1 : 3);
 
 function makeMonster(type, boss, x, st = monsterStats(S.stage, boss)) {
   return { type, ...st, maxHp: st.hp, x, born: clock, atkTimer: rand(0.4, 1.0), flash: 0, kb: 0, hurt: 0, anim: null, dying: 0, t: Math.random() * 10 };
@@ -136,27 +139,37 @@ function layoutLap() {
   const boss = !S.run.farm && from < bossX();
   const end = boss ? bossX() - 90 : worldLen() - 30;
   const n = Math.max(0, Math.floor((end - from) / MOB_GAP) + 1);
-  const gap = n ? (end - from) / n : 0;
-  lapPlan = [];
-  for (let i = 0; i < n; i++) {
-    const x = from + gap * (i + 0.5) + rand(-0.2, 0.2) * gap;
-    lapPlan.push({ type: pool[Math.floor(Math.random() * pool.length)], boss: false, x });
+  const packs = [];
+  for (let left = n; left > 0;) {
+    const k = Math.min(left, 1 + Math.floor(Math.random() * packMax()));
+    packs.push(k); left -= k;
   }
-  if (boss) lapPlan.push({ type: zoneOf(S.stage).boss, boss: true, x: bossX() });
+  const gap = packs.length ? (end - from) / packs.length : 0;
+  lapPlan = [];
+  packs.forEach((k, g) => {
+    const cx = from + gap * (g + 0.5) + rand(-0.2, 0.2) * gap;
+    for (let j = 0; j < k; j++) {
+      lapPlan.push({ type: pool[Math.floor(Math.random() * pool.length)], boss: false, x: cx + (j - (k - 1) / 2) * PACK_GAP + rand(-3, 3), g });
+    }
+  });
+  if (boss) lapPlan.push({ type: zoneOf(S.stage).boss, boss: true, x: bossX(), g: packs.length });
   S.run.kills = 0; S.run.cleared = false;
   S.run.total = n + (boss ? 1 : 0);
 }
 
-// 계획된 자리에 기사가 가까워지면 몬스터를 하나씩 등장시킨다
+// 계획된 자리에 기사가 가까워지면 몬스터를 무리째 등장시킨다
 function spawnAhead() {
   let alive = monsters.filter(m => !m.dying).length;
   while (lapPlan.length && alive < MAX_ALIVE && lapPlan[0].x - knight.x <= SPAWN_AHEAD) {
-    const p = lapPlan.shift();
-    monsters.push(makeMonster(p.type, p.boss, p.x));
-    alive++;
-    if (p.boss) {
-      const field = S.stage === zoneOf(S.stage).to;
-      showBanner(`${field ? 'FIELD BOSS' : 'BOSS'}! ${MONSTERS[p.type].name}`, field ? '#ff5a5a' : '#ff9f1c');
+    const g = lapPlan[0].g;
+    while (lapPlan.length && lapPlan[0].g === g) {
+      const p = lapPlan.shift();
+      monsters.push(makeMonster(p.type, p.boss, p.x));
+      alive++;
+      if (p.boss) {
+        const field = S.stage === zoneOf(S.stage).to;
+        showBanner(`${field ? 'FIELD BOSS' : 'BOSS'}! ${MONSTERS[p.type].name}`, field ? '#ff5a5a' : '#ff9f1c');
+      }
     }
   }
 }
