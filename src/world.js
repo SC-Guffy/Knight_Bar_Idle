@@ -1344,12 +1344,36 @@ function drawSprite(rows, pal, cx, bottomY, scale, { flip = false, flash = false
   g.globalAlpha = prevAlpha;
 }
 
+// 필드 원경 (src/bg/<deco>.png, 도트 1칸 = 2px). 위쪽은 이미지에 디더 페이드가 구워져 있다.
+// 이음새가 티 나지 않게 한 장씩 좌우 반전해 이어 붙인다
+const BG_PX = 2;
+const zoneBgs = {};
+function zoneBg(deco) {
+  if (!(deco in zoneBgs)) { const img = new Image(); img.src = `src/bg/${deco}.png`; zoneBgs[deco] = img; }
+  const img = zoneBgs[deco];
+  return img.complete && img.naturalWidth ? img : null;
+}
+for (const z of ZONES) zoneBg(z.ground.deco);   // 필드가 바뀌는 순간 비어 보이지 않게 미리 받아 둔다
+function drawZoneBg(deco, gy) {
+  const img = zoneBg(deco);
+  if (!img) return;
+  const w = img.width * BG_PX, h = img.height * BG_PX, y = gy + 3 - h;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  for (let x = 0, k = 0; x < W; x += w, k++) {
+    if (k % 2) { ctx.save(); ctx.translate(x + w, 0); ctx.scale(-1, 1); ctx.drawImage(img, 0, y, w, h); ctx.restore(); }
+    else ctx.drawImage(img, x, y, w, h);
+  }
+  ctx.restore();
+}
+
 function drawGround() {
   if (!showGround) return;
   if (dgInside()) { drawDungeonGround(); return; }
   if (groundZone !== zoneIndex(S.stage)) makeGrass();
   const gr = ZONES[groundZone].ground;
   const gy = groundY();
+  drawZoneBg(gr.deco, gy);
   ctx.fillStyle = gr.line;
   ctx.fillRect(0, gy, W, 3);
   ctx.fillStyle = gr.soil;

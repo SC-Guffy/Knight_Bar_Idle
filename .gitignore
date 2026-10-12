@@ -6,3 +6,5 @@ dist/
 .claude/
 dev/shots/
 dev/__pycache__/
+dev/bggen/raw/
+dev/bgtest/
