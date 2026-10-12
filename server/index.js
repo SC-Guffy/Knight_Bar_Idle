@@ -317,7 +317,7 @@ const routes = {
   // 결투(duel) 순위는 이번 시즌에 직접 결투를 1번 이상 건 기사만. 목록·rank 에는 AI 기사도 있고, 시즌 보상은 사람끼리 매긴 prizeRank 로 준다
   'GET /api/ranking': async (req, url) => {
     const q = url.searchParams.get('sort'), sort = q === 'duel' || q === 'tower' ? q : 'stage';
-    const limit = Math.floor(n(url.searchParams.get('limit'), 1, 200, 100));
+    const limit = Math.floor(num(url.searchParams.get('limit'), 1, 200, 100));
     await settleSeasons();
     const season = sort === 'duel' ? seasonAt() : 0;
     const players = (await store.top(sort, limit, season)).map(publicInfo);
