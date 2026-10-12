@@ -12,6 +12,7 @@ Claude Code 내장 브라우저(browser pane) 기준이다. 경로는 저장소 
 - **캐시 주의**: `src/*.js` 를 고친 뒤 그냥 새로고침하면 옛 스크립트가 나온다. `await fetch('src/ui.js', {cache:'reload'})` (core.js 등 고친 파일 모두) → `location.reload()` 하고, 새로 추가한 심볼(`typeof 새함수`)로 새 코드인지 확인한다.
 - javascript_tool 에서 전역 재할당(`startCast = fn`)은 조용히 무시된다. `window.startCast = fn` 으로 쓴다. 속성 변경(`S.phase = ...`)은 된다.
 - 숨겨진 브라우저 창은 rAF가 멈춘다. "몇 초 기다렸다 스크린샷" 방식은 거의 진행되지 않는다.
+  화면 갱신도 멈춰서 DOM 을 바꿔도 스크린샷이 옛 화면일 수 있다 → `tabs_select` 로 탭을 앞으로 가져온 뒤 찍는다.
 
 ## 재료의 미궁 (= "보스러쉬", `src/dungeon.js` `startDungeon`)
 
@@ -48,6 +49,17 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 
 - `window.cutStrip(직업 id, 동작 번호)`, `window.cutShot(이름, 항목, {cols, scale, cw, ch})`.
 - cutShot 은 `127.0.0.1:8798/save?name=` 으로 PNG를 보낸다. 받는 쪽은 `python -I dev/shot-recv.py dev/shots` (세션마다 다시 띄운다). 결과는 `dev/shots/<이름>.png` (git 제외).
+
+## UI 도트 아이콘 (`dev/icons.html`)
+
+- `node dev/make-icons.js` 로 `src/skin/icons.svg`·`icons.css` 를 다시 만든 뒤 `http://localhost:<포트>/dev/icons.html` — 이모지와 도트 아이콘을 1×·2×·4×, 캠프 탭 줄 견본으로 비교한다.
+- 스크린샷을 1:1 로 보려면 `resize_window {width: 800, height: 600}` (기본 창은 축소되어 도트가 뭉개져 보인다). 끝나면 `preset: 'desktop'`.
+
+## UI 버튼 상태 견본 (`dev/ui-buttons.html`)
+
+- 계정이 필요 없다. `index.html` 기본 스타일 + `src/skin/pixel.css` 를 불러와 버튼 종류 × 평상시/hover/눌림을 한 화면에 보여준다 (`:hover`/`:active` 규칙을 `.is-hover`/`.is-active` 로 복제).
+- 전후 비교: 고치기 전 CSS 를 `src/skin/` 안에 임시 이름으로 복사해 두고 `?css=<그 이름>` 으로 연다 (상대 경로 SVG 가 그대로 풀린다). 끝나면 복사본을 지운다.
+- 스크린샷이 패널 크기에 맞춰 축소되면 도트가 뭉개진다. 뷰포트를 패널보다 작게(예: 800 폭) 잡아 1:1 로 찍는다.
 
 ## 진짜 로컬 서버 (`server/`)
 

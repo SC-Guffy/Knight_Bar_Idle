@@ -17,7 +17,7 @@
   - 게임 팔레트 양자화, 필요하면 배경을 제거한다.
 - 원본은 `dev/bggen/raw/` 에 둔다 (git 제외). 결과는 `src/bg/<deco>.png` 에 둔다.
 - 화면 적용: `drawZoneBg` 가 2배(`BG_PX`)로 좌우반전 타일링한다.
-- 캐릭터 스프라이트까지 바꾸게 되면 Replicate retro-diffusion 모델 추가를 제안해 둔 상태다 (미결정).
+- 직업 캐릭터 스프라이트는 별도 도구(PixelLab 1순위)로 진행한다: [character-sprites.md](character-sprites.md).
 - [색깔놀이 금지](../../CLAUDE.md) 규칙은 그대로 적용한다.
 
 ## 수용 기준
@@ -49,8 +49,19 @@
   결과 10~24줄(화면 20~48px). 미리보기 `dev/bgtest/low2_ingame.png`. 사용자 확인 → 0.19.19 로 배포.
 - UI 퀄업 방향 확정 (톤 유지, 어긋난 곳 맞추기, 1→4 전부): 1) 이모지 아이콘 → 12~16px 도트 아이콘,
   2) 큰 창 모서리 은색 장식(직접 도트, make-skin.js), 3) 섹션 제목·구분선·창 제목 명판, 4) 주요 버튼 하이라이트·눌림.
+- 2026-10-13: UI 퀄업 1) 이모지 → 도트 아이콘 1단계 시안 (캠프 탭 6개, 직접 도트). 상세·이모지 조사표·남은 단계는 [ui-icons.md](ui-icons.md).
+  `dev/make-icons.js` → `src/skin/icons.svg`·`icons.css`, HTML 은 `ico('이름')`. 사용자 확인 대기.
+- 2026-10-13: UI 퀄업 2)~4) 적용 (단계마다 800x680 1:1 전후 스크린샷으로 사용자 확인). 질감·잔점 없이 기존 은회색 3색 + 잉크만 쓴다.
+  - 2) `make-skin.js` `frame()` 에 `cap` 인자(왼쪽 위 기준 패턴, 세 모서리는 거울상, `'h'` = 판 베벨로 빛은 늘 왼쪽 위).
+    `frame-panel` 네 모서리에 5px 은 판 + 리벳 구멍. 판 안쪽 끝 픽셀은 은 안선(`B`)으로 이어야 선이 안 끊겨 보인다. 슬라이스 6 안이라 변 타일 영향 없음.
+  - 3) 창 제목 글자를 `<span class="ttl">` 로 감싸 은 베벨 명판(`frame-plate.svg`, 2 / 4px). 동기화 문구는 판 밖.
+    명판 때문에 헤더가 넓어져 `.res` 가 두 줄로 갈라졌다 → `.res > span` nowrap, 대신 긴 동기화 문구(오프라인 경고)는 h2 에서 … 말줄임.
+    섹션 제목 밑 2px 구분선(은 머리 6px + 2px 간격 도트 `--px-hi`), `.shead` 는 줄 전체 밑에 긋는다 (`--px-rule`).
+  - 4) `.go`: 안쪽 위 1px 하이라이트·아래 2px 그늘, hover 는 밝기 필터 대신 `#c08a34`, 눌림은 그림자 높이(3px)만큼 내려앉고
+    `frame-gold-down.svg`(베벨 반전) + 위쪽 안 그늘. 비활성 버튼은 hover·눌림에 반응하지 않게(`:disabled:hover` 원래 색, `:not(:disabled):active`),
+    `.x`·`.mailbtn` 에도 눌림 추가. 버튼 상태 견본: `dev/ui-buttons.html` (상태를 클래스로 고정해 한 화면에 비교).
 
-- 2026-10-13: 캐릭터 폴리싱 비용 조사. 대상은 직업 15·필드 몬스터 76·레이드 보스 약 10·월드 보스 3, 합계 약 105종.
+- 2026-10-13: 캐릭터 폴리싱 비용 조사. 대상은 직업 29·필드 몬스터 76·레이드 보스 약 10·월드 보스 3, 합계 약 118종. 이후 [character-sprites.md](character-sprites.md) 로 이어짐.
   현재 모델로 동작 시트를 생성하면 약 $60~70가 들고 프레임 간 일관성이 약하다.
   Retro Diffusion 공식 API(github.com/Retro-Diffusion/api-examples) 조사 결과:
   `rd_advanced_animation__*` 는 시작 프레임(`input_image`, 32~256px)을 받아 walking·idle·attack 등을 장당 $0.14로 만든다.
@@ -60,4 +71,4 @@
 ## 남은 일 / 미정
 
 - 다음 대상: UI 프레임·아이콘 시험 생성 (순서: 배경 → UI → 아이콘).
-- 캐릭터 스프라이트를 교체할지, Replicate를 추가할지는 사용자 결정이 필요하다.
+- 직업 캐릭터 통짜 스프라이트 전환은 [character-sprites.md](character-sprites.md) 로 분리했다 (PixelLab 시험 예정).

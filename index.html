@@ -197,7 +197,7 @@
   #campModal nav .autohide.on { color: #1b1300; background: var(--accent); font-weight: 600; }
   #campModal nav .autohide + .ver { margin-left: 8px; }
   #campModal nav .ver { margin-left: auto; align-self: center; color: var(--muted); font-size: 11px; opacity: .7; }
-  #campModal nav i { font-style: normal; margin-left: 5px; padding: 0 6px; border-radius: 999px; background: var(--dot); color: #fff; font-size: 11px; font-weight: 700; }
+  #campModal nav i:not(.pi) { font-style: normal; margin-left: 5px; padding: 0 6px; border-radius: 999px; background: var(--dot); color: #fff; font-size: 11px; font-weight: 700; }
   #campModal nav i.info { padding: 0; background: none; }
   #campModal nav i.dot { display: inline-block; width: 8px; height: 8px; padding: 0; vertical-align: 6px; margin-left: 3px; }
   /* 레드닷: 지금 누르면 되는 곳 (ui.js 의 campDots). 글을 읽지 않아도 따라갈 수 있게 탭 → 버튼 순으로 찍는다 */
@@ -809,6 +809,7 @@
   @media (max-width: 640px) { .pslots { grid-template-columns: repeat(2, 1fr); } .crow2 { grid-template-columns: 1fr 1fr; } }
 </style>
 <link rel="stylesheet" href="src/skin/pixel.css">
+<link rel="stylesheet" href="src/skin/icons.css">
 </head>
 <body>
 <div id="webPromo" hidden>
@@ -827,7 +828,7 @@
 <div id="guide" hidden>
   <div id="guideModal">
     <header>
-      <h2>🛡️ 처음 실행할 때 경고가 뜨면</h2>
+      <h2><span class="ttl">🛡️ 처음 실행할 때 경고가 뜨면</span></h2>
       <button class="x" data-guide-close title="닫기 (Esc)">✕</button>
     </header>
     <nav><button data-guide-tab="mac">🍎 Mac</button><button data-guide-tab="win">🪟 Windows</button></nav>

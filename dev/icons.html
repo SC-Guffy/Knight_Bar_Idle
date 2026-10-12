@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>UI 도트 아이콘 (개발용)</title>
+<!--
+  개발 확인용. dev/make-icons.js 가 만든 도트 아이콘(src/skin/icons.css · icons.svg)을 원래 이모지와 나란히 1배·2배·4배로 보여 준다. 게임·앱 패키지에는 들어가지 않는다.
+  http://localhost:<포트>/dev/icons.html  (아래 탭 줄은 실제 캠프 창 탭과 같은 스킨을 쓴 견본)
+-->
+<link rel="stylesheet" href="../src/skin/pixel.css">
+<link rel="stylesheet" href="../src/skin/icons.css">
+<style>
+  html, body { margin: 0; background: #0f0e1a; color: var(--px-paper); }
+  main { padding: 16px; }
+  h1 { font-size: 14px; margin: 0 0 12px; }
+  table { border-collapse: collapse; }
+  td, th { padding: 6px 10px; text-align: center; border-bottom: 2px solid var(--px-bg2); }
+  th { color: var(--muted); font-weight: 400; }
+  td.n { text-align: left; color: var(--muted); }
+  .emo { font-size: 14px; }
+  .emo2 { font-size: 28px; }
+  .pi.x4 { width: 56px; height: 56px; }
+  .demo { margin-top: 18px; background: var(--px-bg); padding: 8px; display: inline-block; }
+  .demo nav { display: flex; gap: 2px; padding: 0 6px; border-bottom: 2px solid var(--px-hi); }
+  .demo nav button { all: unset; padding: 7px 5px; margin-bottom: -2px; border: 2px solid transparent; border-bottom: 0; color: var(--muted); }
+  .demo nav button.on { color: var(--px-gold-l); background: var(--px-bg2); border-color: var(--px-gold-d); box-shadow: inset 0 2px 0 var(--px-gold-l), 0 2px 0 var(--px-bg2); }
+  .demo.z2 { zoom: 2; }
+  .demo nav button { white-space: nowrap; }
+  .lbl { color: var(--muted); margin: 14px 0 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>UI 도트 아이콘 — 이모지 비교</h1>
+  <table id="t"><tr><th>이름</th><th>이모지</th><th>도트 1×</th><th>이모지 2×</th><th>도트 2×</th><th>도트 4×</th></tr></table>
+  <div class="lbl">캠프 탭 줄 견본 — 위: 지금(이모지), 아래: 도트 아이콘</div>
+  <div class="demo"><nav id="navE"></nav></div><br>
+  <div class="demo"><nav id="navP"></nav></div>
+  <div class="lbl">같은 줄 2배 (고해상도 화면에서 보이는 모습)</div>
+  <div class="demo z2"><nav class="navE"></nav></div><br>
+  <div class="demo z2"><nav class="navP"></nav></div>
+</main>
+<script>
+  // 아이콘 목록·이모지는 생성된 icons.css 에서 읽는다 (마지막 주석: "이름 이모지 · ...")
+  const ico = (n, c = '') => `<i class="pi ${c} pi-${n}"></i>`;
+  const TAB = { home: '홈', town: '마을', char: '캐릭터', rank: '랭킹', raid: '레이드', sub: '도전' };
+  fetch('../src/skin/icons.css', { cache: 'reload' }).then((r) => r.text()).then((css) => {
+    const emo = Object.fromEntries(css.match(/이모지: (.*) \*\//)[1].split(' · ').map((p) => p.split(' ')));
+    const names = [...css.matchAll(/^\.pi-([\w-]+) /gm)].map((m) => m[1]);
+    const t = document.getElementById('t');
+    for (const n of names) t.insertAdjacentHTML('beforeend', `<tr><td class="n">${n}</td><td class="emo">${emo[n] || ''}</td><td>${ico(n)}</td><td class="emo2">${emo[n] || ''}</td><td>${ico(n, 'x2')}</td><td>${ico(n, 'x4')}</td></tr>`);
+    const tabs = Object.keys(TAB).filter((n) => names.includes(n));
+    document.querySelectorAll('#navE, .navE').forEach((e) => e.innerHTML = tabs.map((n, i) => `<button class="${i ? '' : 'on'}">${emo[n]} ${TAB[n]}</button>`).join(''));
+    document.querySelectorAll('#navP, .navP').forEach((e) => e.innerHTML = tabs.map((n, i) => `<button class="${i ? '' : 'on'}">${ico(n)} ${TAB[n]}</button>`).join(''));
+  });
+</script>
+</body>
+</html>

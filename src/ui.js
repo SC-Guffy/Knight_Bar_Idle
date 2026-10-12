@@ -1026,6 +1026,8 @@ function drawEnhanceFx() {
 // 조건은 모두 "누르면 실제로 되는가"라서, 하고 나면 저절로 사라진다 (봤는지는 따로 기억하지 않는다).
 // 탭의 점 → 그 탭 안의 점 → 누를 버튼 순으로 따라가면 된다. 하단바 HUD·말풍선에는 캠프 전체를 합쳐서 찍는다.
 const DOT = '<i class="dot"></i>';
+// UI 도트 아이콘 (src/skin/icons.css, 그림은 dev/make-icons.js). 이모지 대신 쓴다
+const ico = (n) => `<i class="pi pi-${n}"></i>`;
 const rd = (on) => (on ? ' rd' : '');
 const canBuild = (id) => !S.build && S.bld[id] < BUILD_MAX && canAfford(buildCost(id, S.bld[id]));
 // 훈련은 골드가 쌓이면 늘 할 수 있어서, 다음 단계 비용의 2배가 모였을 때만 찍는다 (버튼은 비용만 있으면 눌림)
@@ -2538,18 +2540,18 @@ function renderCamp() {
   if (campTab !== 'rank') inbox.newAfter = null;     // 우편함 NEW 표시는 랭킹 탭을 떠나면 지운다
   const dots = campDots();
   const tabs = [
-    ['report', '🏠 홈', S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
-    ['town', '🏘 마을', S.build ? '<i class="info">🔨</i>' : dots.town ? DOT : ''],
-    ['char', '🧑 캐릭터', dots.gear || dots.skill || dots.class ? DOT : ''],
-    ['rank', '🏆 랭킹', inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
-    ['raid', '🐉 레이드', S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
-    ['sub', '🗺️ 도전', dots.tower || dots.dungeon ? DOT : ''],
+    ['report', `${ico('home')} 홈`, S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
+    ['town', `${ico('town')} 마을`, S.build ? '<i class="info">🔨</i>' : dots.town ? DOT : ''],
+    ['char', `${ico('char')} 캐릭터`, dots.gear || dots.skill || dots.class ? DOT : ''],
+    ['rank', `${ico('rank')} 랭킹`, inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
+    ['raid', `${ico('raid')} 레이드`, S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
+    ['sub', `${ico('sub')} 도전`, dots.tower || dots.dungeon ? DOT : ''],
   ];
   const view = { mail: viewMail, report: viewReport, town: viewTown, char: viewChar, rank: viewRank, raid: viewRaid, sub: viewSub }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
   $('campModal').innerHTML = `
     <header>
-      <h2>🏕 ${esc(activeNick())}의 캠프 <small class="sync" data-live="sync"></small></h2>
+      <h2><span class="ttl">🏕 ${esc(activeNick())}의 캠프</span> <small class="sync" data-live="sync"></small></h2>
       <div class="res">
         <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁에서 가장 많이 (원정 골동품에서도 조금)">🪵 <b data-live="wood"></b></span>
         <span title="철광석 — ⛏️ 재료의 미궁에서 가장 많이 (원정 골동품에서도 조금)">🪨 <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 · 레이드 · 원정 골동품">💎 <b data-live="mana"></b></span>
@@ -2856,7 +2858,7 @@ function renderAccount() {
     </div>`).join('');
   $('acctModal').innerHTML = `
     <header>
-      <h2>${cur ? '👤 계정 변경' : '⚔️ 기사의 이름을 지어 주세요'}</h2>
+      <h2><span class="ttl">${cur ? '👤 계정 변경' : '⚔️ 기사의 이름을 지어 주세요'}</span></h2>
       <div class="res"></div>
       ${cur ? '<button class="x" data-action="acct-close" title="닫기 (Esc)">✕</button>'
         : window.bar ? '<button class="x" data-action="quit" title="게임 끄기">✕</button>' : ''}

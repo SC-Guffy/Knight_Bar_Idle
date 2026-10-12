@@ -15,17 +15,26 @@ const C = {
   n: '#1c1b2c',   // 흠집
   B: '#8f8aa8',   // 안선(바랜 은회색)
   b: '#5e5a78',   // 안선 그늘
+  L: '#b9b4cc',   // 장식 캡 밝은 면(바랜 은)
   S: '#3a3850',   // 카드 밝은 면
   s: '#121120',   // 카드 그늘
 };
 const hash = (x, y, salt) => { let h = (x * 374761393 + y * 668265263 + salt * 1274126177) >>> 0; h = (h ^ (h >>> 13)) * 1274126177 >>> 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
-function frame(name, size, slice, corner, ring) {
+// cap: 왼쪽 위 모서리에 덮어 그릴 장식 패턴(문자 = C 의 색, '.' = 프레임 그대로, 'h' = 판 베벨). 나머지 세 모서리는 거울상으로 찍는다.
+function frame(name, size, slice, corner, ring, cap) {
   const px = [];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const r = Math.min(x, y, size - 1 - x, size - 1 - y);
     if (r >= slice) continue;
     const cx = Math.min(x, size - 1 - x), cy = Math.min(y, size - 1 - y);
+    let cc = cap && cap[cy] && cap[cy][cx];
+    if (cc === 'h') {                                                  // 베벨: 빛은 어느 모서리에서나 왼쪽 위에서 온다
+      const hi = cap.length - 2, mx = x > size / 2, my = y > size / 2;
+      const lit = cy === (my ? hi : 1) || cx === (mx ? hi : 1), dark = cy === (my ? 1 : hi) || cx === (mx ? 1 : hi);
+      cc = lit && !dark ? 'L' : dark && !lit ? 'b' : 'B';
+    }
+    if (cc && cc !== '.') { px.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="${C[cc]}"/>`); continue; }
     if (cx < corner && cy < corner) continue;                          // 모서리 notch
     const side = (y <= size - 1 - y && y <= x || x <= size - 1 - x && x <= y) && (y === r || x === r) ? 'tl' : 'br';
     const c = ring(r, side, x, y);
@@ -41,7 +50,15 @@ const wood = (s, x, y, salt) => { const h = hash(x, y, salt); return h < .14 ? '
 const ink = (x, y, salt) => (hash(x, y, salt) < .07 ? 'v' : 'K');
 
 // 큰 창·패널: 잉크 1 → 나무 띠 4(결·흠집) → 뼈 안선 1. 32px, slice 6 (가장자리 타일 20px 로 반복이 덜 보인다)
-frame('frame-panel', 32, 6, 2, (r, s, x, y) => (r === 0 ? ink(x, y, 1) : r < 5 ? (r === 1 ? (s === 'tl' ? 'w' : 'v') : wood(s, x, y, 2)) : 'B'));
+// 네 모서리에 바랜 은 캡(5px 판, 밝은 면·그늘 + 가운데 리벳 구멍, 안쪽 끝은 은 안선으로 이어짐). 슬라이스 6 안에 들어가 변 타일에는 영향이 없다
+frame('frame-panel', 32, 6, 2, (r, s, x, y) => (r === 0 ? ink(x, y, 1) : r < 5 ? (r === 1 ? (s === 'tl' ? 'w' : 'v') : wood(s, x, y, 2)) : 'B'), [
+  '..KKKK',
+  '.KhhhK',
+  'KhBBhK',
+  'KhBKhK',
+  'KhhhhK',
+  'KKKKKB',
+]);
 // 작은 띠(HUD 바·토스트): 잉크 → 나무 2 → 뼈. 20px, slice 4
 frame('frame-thin', 20, 4, 1, (r, s, x, y) => (r === 0 ? ink(x, y, 3) : r < 3 ? wood(s, x, y, 4) : 'b'));
 // 가죽 카드(안쪽 칸): 잉크 → 가죽 베벨 2. 10px, slice 4
@@ -51,5 +68,9 @@ frame('frame-btn', 10, 4, 1, (r, s) => (r === 0 ? 'K' : r < 3 ? (s === 'tl' ? 'r
 frame('frame-btn-down', 10, 4, 1, (r, s) => (r === 0 ? 'K' : r < 3 ? (s === 'tl' ? 'rgba(0,0,0,.4)' : 'rgba(255,240,210,.1)') : null));
 // 뼈 테두리 버튼(출발·도전 같은 주요 행동, 고른 칸): 잉크 → 뼈 밝음/그늘 베벨
 frame('frame-gold', 10, 4, 1, (r, s) => (r === 0 ? 'K' : r < 3 ? (s === 'tl' ? 'B' : 'b') : null));
+// 황금 버튼 눌림: 베벨 반전 (위·왼쪽 그늘, 아래·오른쪽 은)
+frame('frame-gold-down', 10, 4, 1, (r, s) => (r === 0 ? 'K' : r < 3 ? (s === 'tl' ? 'b' : 'B') : null));
+// 창 제목 명판: 잉크 → 바랜 은 베벨 1. 6px, slice 2 (화면에선 2배)
+frame('frame-plate', 6, 2, 1, (r, s) => (r === 0 ? 'K' : s === 'tl' ? 'L' : 'b'));
 // 게이지 틀: 잉크 + 안쪽 그늘 1. 6px, slice 2
 frame('frame-gauge', 6, 2, 1, (r, s) => (r === 0 ? 'K' : s === 'tl' ? 's' : null));

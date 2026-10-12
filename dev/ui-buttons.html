@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>버튼 상태 견본</title>
+<!-- 픽셀 스킨 버튼 상태 견본 (개발용). index.html 의 기본 스타일 + src/skin/pixel.css 를 불러와
+     :hover / :active 규칙을 .is-hover / .is-active 로 복제해 상태를 고정해서 보여준다.
+     ?css=<src/skin 안 파일 이름> 으로 다른 스킨 CSS 를 비교할 수 있다. -->
+<style>
+  body { margin: 0; padding: 8px; background: #0f0e1a; }
+  #campModal { position: static; width: 784px; max-height: none; }
+  .row { display: flex; gap: 8px; align-items: center; padding: 8px 4px; }
+  .row > button { flex-shrink: 0; white-space: nowrap; }
+  .row > span { flex-shrink: 0; width: 64px; color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+<div id="campModal"><section id="campBody">
+  <div id="rows"></div>
+</section></div>
+<script>
+(async () => {
+  const css = new URLSearchParams(location.search).get('css') || 'pixel.css';
+  const html = await (await fetch('../index.html', { cache: 'reload' })).text();
+  for (const m of html.matchAll(/<style>([\s\S]*?)<\/style>/g)) {
+    const st = document.createElement('style'); st.textContent = m[1]; document.head.insertBefore(st, document.head.firstChild);
+  }
+  const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = '../src/skin/' + css + '?v=' + Date.now();
+  await new Promise((r) => { link.onload = r; document.head.appendChild(link); });
+  // :hover / :active 규칙을 클래스로 복제 (상태 고정용)
+  const add = [];
+  for (const sh of document.styleSheets) {
+    let rules; try { rules = sh.cssRules; } catch (e) { continue; }
+    for (const ru of rules) if (ru.selectorText && /:hover|:active/.test(ru.selectorText))
+      add.push(ru.cssText.replace(/:hover/g, '.is-hover').replace(/:active/g, '.is-active')
+        .replace(/url\("([^"]+)"\)/g, (m, u) => `url("${new URL(u, sh.href || location.href)}")`));   // 상대 경로는 원래 CSS 기준으로
+  }
+  const st = document.createElement('style'); st.textContent = add.join('\n'); document.head.appendChild(st);
+  const btns = (cls) => `
+    <button class="go">🚩 출정</button><button class="go compact">도전</button><button class="go" disabled>잠김</button>
+    <button class="btn">건설 · 1분</button><button class="btn enh">강화</button><button class="btn warn">버리기</button><button class="btn" disabled>불가</button>
+    <button class="x">✕</button><button class="mailbtn">📬</button>`.replace(/class="/g, `class="${cls} `);
+  document.getElementById('rows').innerHTML = [['평상시', ''], ['hover', 'is-hover'], ['눌림', 'is-hover is-active']]
+    .map(([n, c]) => `<div class="row"><span>${n}</span>${btns(c)}</div>`).join('');
+})();
+</script>
+</body>
+</html>

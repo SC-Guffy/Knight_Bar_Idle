@@ -29,6 +29,20 @@ button, input { font-family: var(--px-font); }
 h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 #campModal h2, #acctModal h2, #guideModal h2 { color: var(--px-paper); }
 #campBody h3, .abody h3, .gbody h3 { color: var(--px-gold-l); }
+/* 창 제목 명판: 제목 글자만 은 베벨 판으로 감싼다 (동기화 표시 small 은 판 밖) */
+#campModal h2 .ttl, #acctModal h2 .ttl, #guideModal h2 .ttl { display: inline-block; padding: 0 4px; border: 4px solid transparent;
+  border-image: url(frame-plate.svg) 2 / 4px; image-rendering: pixelated; background-clip: padding-box; background-color: var(--px-bg2); }
+/* 섹션 제목 밑 구분선: 은색 머리 6px + 2px 간격 도트(남보라 회색). 두께 2px = 창 테두리 도트 한 칸 */
+#campBody h3, .abody h3, .gbody h3, #campBody .shead { --px-rule: linear-gradient(var(--px-gold), var(--px-gold)) 0 100% / 6px 2px no-repeat,
+    repeating-linear-gradient(90deg, var(--px-hi) 0 2px, transparent 2px 4px) 8px 100% / calc(100% - 8px) 2px no-repeat; }
+#campBody h3, .abody h3, .gbody h3 { padding-bottom: 5px; background: var(--px-rule); }
+/* 제목 + 오른쪽 안내가 한 줄인 머리(.shead)는 줄 전체 밑에 긋는다 */
+#campBody .shead { padding-bottom: 5px; margin-bottom: 8px; background: var(--px-rule); }
+#campBody .shead h3 { padding-bottom: 0; margin-bottom: 0; background: none; }
+/* 명판 때문에 제목이 넓어져도 자원 칸(아이콘+숫자)이 두 줄로 갈라지지 않게 */
+#campModal .res > span { white-space: nowrap; }
+/* 오프라인 경고처럼 긴 동기화 문구는 줄을 바꾸지 않고 끝을 … 로 자른다 */
+#campModal header h2 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* 둥근 모서리는 전부 각지게 (금화·레드닷·스킬 트리 원형 노드만 예외) */
 #barLayer *:not(.gc), #campModal *:not(.gc):not(.sg .ring):not(.sg .ms button):not(.sg .ring b), #acctModal *, #guideModal *, #webPromo * { border-radius: 0 !important; }
@@ -99,9 +113,12 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 .mailbtn { width: auto; padding: 0 6px; }
 .btn:hover, .seg:hover, .tcard:hover, .field:hover, .box:hover, .cnode:hover, .skchip:hover, .gchip:hover, .chk:hover, .x:hover, .mailbtn:hover, .gbtn:hover, #webPromo .dls a:hover, .tpts .treset:not(:disabled):hover, .mskill .mprev:not(:disabled):hover, #campModal nav .autohide:hover {
   background-color: var(--px-bg3); color: var(--text); transform: none; }
-.btn:active, .seg:active, .tcard:active, .field:active, .box:active, .cnode:active, .skchip:active, .gchip:active, .chk:active, .gbtn:active, .cmd button:active {
+.btn:not(:disabled):active, .seg:not(:disabled):active, .tcard:not(:disabled):active, .field:not(:disabled):active, .box:active, .cnode:active, .skchip:active, .gchip:active,
+.chk:not(:disabled):active, .gbtn:active, .cmd button:active, .x:active, .mailbtn:active {
   border-image: url(frame-btn-down.svg) 4 / 4px; transform: translateY(1px); }
 .btn:disabled, .tcard:disabled, .field:disabled, .seg:disabled, .chk:disabled { opacity: .45; }
+/* 비활성 버튼은 hover 해도 그대로 (index.html 의 :hover 배경까지 덮는다) */
+.btn:disabled:hover, .tcard:disabled:hover, .field:disabled:hover, .seg:disabled:hover, .chk:disabled:hover { background-color: var(--px-bg2); cursor: default; }
 .seg.on, .chk.on, .skchip.on, .gchip.on, .field.on, .cnode.sel, .mailbtn.on, #campModal nav .autohide.on {
   background-color: #3a3858; color: var(--px-gold-l); box-shadow: inset 0 0 0 1px var(--px-gold); }
 .field.on { border-image: url(frame-gold.svg) 4 / 4px; }
@@ -112,18 +129,26 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 .gchip.on { color: var(--c); background-color: color-mix(in srgb, var(--c) 18%, var(--px-bg2)); box-shadow: inset 0 0 0 1px var(--c); }
 .btn.enh { background-color: #5a3a14; }
 .btn.enh:hover { background-color: #7a4f1a; }
+.btn.enh:disabled:hover { background-color: #5a3a14; }
 .btn.warn { background-color: #5a1f1f; }
 .btn.warn:hover { background-color: #7a2a2a; }
+.btn.warn:disabled:hover { background-color: #5a1f1f; }
 .mskill .act .mb1 { background-color: #3b2f5c; }
 .mskill .act .mb1:hover { background-color: #4e3f78; }
 .cmd button, #webPromo .dls a.rec { background-color: #b07a2a; color: #15100a; }
 
-/* 황금 버튼(출발·도전·주요 행동): 황동 베벨 + 하드 그림자 */
+/* 황금 버튼(출발·도전·주요 행동): 은 베벨 + 하드 그림자 3px. 면 안쪽 위 1px 하이라이트, 아래 2px 그늘 */
 .go { border: 4px solid transparent; border-image: url(frame-gold.svg) 4 / 4px; image-rendering: pixelated; background-clip: padding-box;
-  background: #b07a2a; color: #15100a; box-shadow: 0 3px 0 var(--px-ink); text-shadow: 0 1px 0 rgba(255, 240, 200, .25); padding: 7px 22px; }
+  background: #b07a2a; color: #15100a; box-shadow: 0 3px 0 var(--px-ink), inset 0 1px 0 #e3b964, inset 0 -2px 0 #8e6120;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, .25); padding: 7px 22px; }
 .go.compact { padding: 5px 13px; }
-.go:hover { filter: brightness(1.08); }
-.go:active { transform: translateY(3px); box-shadow: none; }
+/* hover: 밝기 필터 대신 정해진 색 한 단계 */
+.go:hover { filter: none; }
+.go:disabled, .go:disabled:hover { filter: grayscale(1); }
+.go:not(:disabled):hover { background-color: #c08a34; box-shadow: 0 3px 0 var(--px-ink), inset 0 1px 0 #f0cc7c, inset 0 -2px 0 #966624; }
+/* 눌림: 그림자 높이만큼(3px) 내려앉고 베벨 반전, 하이라이트 대신 위쪽 안 그늘 */
+.go:not(:disabled):active { transform: translateY(3px); border-image: url(frame-gold-down.svg) 4 / 4px; background-color: #a06e24;
+  box-shadow: inset 0 2px 0 #7a5218; }
 
 /* 카드·칸: 돌 베벨 */
 .card, .cell, .cdetail, .gdetail, .gstats, .gstage, .mskill, .rrow, .rboss, .season, .rres, .bcard, .pslot, .gitem, .mail, .mrow, .hall, .rmrow, .skill, .fac, .tree-sk, .gain, .tip, .cmd, .warnbox, .gtip, .inbox .mrow, .crow2, .stier.on, .gflow span {
@@ -152,12 +177,12 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 canvas.town { outline: 2px solid var(--px-ink); outline-offset: 0; box-shadow: 0 0 0 4px #3e3c52, 0 0 0 6px var(--px-ink); margin: 6px 6px 14px; width: calc(100% - 12px); }
 
 /* 칩·배지 */
-.chip, .mchip, .stchip, .lvl, .mskill .srem, .mskill .srem button, .mnew, .mvpchip, .mskill .mtag, .mskill .mevo-n, .mrow .mt, #campModal nav i, .sync { border-radius: 0; }
+.chip, .mchip, .stchip, .lvl, .mskill .srem, .mskill .srem button, .mnew, .mvpchip, .mskill .mtag, .mskill .mevo-n, .mrow .mt, #campModal nav i:not(.pi), .sync { border-radius: 0; }
 .chip { background: var(--px-ink); box-shadow: inset 0 0 0 1px var(--px-hi); padding: 1px 6px; }
 .mchip { background: #2a2444; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #6f58a8; }
 .stchip { background: #1e2a3a; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #3f7fa8; }
 .lvl { background: var(--px-ink); box-shadow: inset 0 0 0 1px var(--px-hi); }
-#campModal nav i { box-shadow: 0 0 0 1px var(--px-ink); }
+#campModal nav i:not(.pi) { box-shadow: 0 0 0 1px var(--px-ink); }
 .sg .ms button { box-shadow: inset 0 0 0 2px var(--px-ink), 0 0 0 2px var(--px-hi); }
 
 /* 입력창 */

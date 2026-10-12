@@ -1,0 +1,12 @@
+/* 생성 파일 — 직접 고치지 말고 dev/make-icons.js 를 고친 뒤 node dev/make-icons.js */
+/* UI 도트 아이콘: <i class="pi pi-이름"></i> (src/ui.js ico). 14px 원본, 정수배(.x2)로만 키운다 */
+.pi { display: inline-block; width: 14px; height: 14px; flex: none; vertical-align: -3px; font-style: normal;
+  background: url(icons.svg) no-repeat; background-size: 600% 100%; image-rendering: pixelated; }
+.pi.x2 { width: 28px; height: 28px; vertical-align: -8px; }
+.pi-home { background-position: 0% 0; }
+.pi-town { background-position: 20% 0; }
+.pi-char { background-position: 40% 0; }
+.pi-rank { background-position: 60% 0; }
+.pi-raid { background-position: 80% 0; }
+.pi-sub { background-position: 100% 0; }
+/* 이모지: home 🏠 · town 🏘 · char 🧑 · rank 🏆 · raid 🐉 · sub 🗺️ */
