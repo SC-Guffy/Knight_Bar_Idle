@@ -843,7 +843,7 @@ const SKILLS = {
 
   // ── 성기사 ──
   judgment: {
-    cls: 'paladin', name: '심판의 일격', icon: '⚡', lv: 60, cd: 10, dur: 1.0, area: 'all', radius: 60,
+    cls: 'paladin', name: '심판의 일격', icon: '⚡', lv: 0, cd: 10, dur: 1.0, area: 'all', radius: 60,
     right: ['crit', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'solo', name: '단죄', icon: '⚖️', full: 0.6 },
     hits: [[0.6, 4]],
@@ -875,7 +875,7 @@ const SKILLS = {
 
   // ── 검성 ──
   gale: {
-    cls: 'blademaster', name: '질풍난무', icon: '🌪️', lv: 60, cd: 10, dur: 1.3, area: 'all', radius: 40,
+    cls: 'blademaster', name: '질풍난무', icon: '🌪️', lv: 0, cd: 10, dur: 1.3, area: 'all', radius: 40,
     right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'crowd', name: '난무', icon: '🍃', full: 0.5 },
     hits: [...evenHits(6, 0.15, 0.09, 0.5), [0.86, 1.2]],
@@ -906,7 +906,7 @@ const SKILLS = {
   },
 
   // ── 용기병 ──
-  // 용기병은 예전부터 도약이 직업의 핵심이라 전직하자마자 쓴다 (도약을 스킬로 옮기며 Lv50~59 가 약해지지 않도록)
+  // 2차 직업 첫 스킬은 모두 전직하자마자 쓴다 (lv: 0). 용기병은 도약이 직업의 핵심이라 예전부터 그랬다
   dragonFall: {
     cls: 'dragoon', name: '용추락', icon: '☄️', lv: 0, cd: 8, dur: 1.1, area: 'all', radius: 80, air: [0.15, 0.72],
     right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
@@ -940,7 +940,7 @@ const SKILLS = {
 
   // ── 할버디어 ──
   whirlwind: {
-    cls: 'halberdier', name: '대회전', icon: '🌀', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 30,
+    cls: 'halberdier', name: '대회전', icon: '🌀', lv: 0, cd: 9, dur: 1.0, area: 'all', radius: 30,
     right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'stack', name: '회전 가속', icon: '🌀', full: 0.5 },
     hits: [[0.38, 1.4], [0.78, 1.4]],
@@ -972,7 +972,7 @@ const SKILLS = {
 
   // ── 저격수 ──
   headshot: {
-    cls: 'marksman', name: '헤드샷', icon: '🎯', lv: 60, cd: 12, dur: 1.1, area: 'single', crit: true,
+    cls: 'marksman', name: '헤드샷', icon: '🎯', lv: 0, cd: 12, dur: 1.1, area: 'single', crit: true,
     right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'first', name: '선제 사격', icon: '🎯', full: 0.7 },
     hits: [[0.75, 2.2]],
@@ -1004,7 +1004,7 @@ const SKILLS = {
 
   // ── 마궁수 ──
   homingBolts: {
-    cls: 'arcaneArcher', name: '유도 마탄', icon: '✴️', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 60,
+    cls: 'arcaneArcher', name: '유도 마탄', icon: '✴️', lv: 0, cd: 9, dur: 1.0, area: 'all', radius: 60,
     right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'double', name: '분열', icon: '✴️', full: 0.3 },
     hits: evenHits(6, 0.6, 0.05, 0.8),
@@ -1051,7 +1051,7 @@ const SKILLS = {
     desc: '지팡이 끝에 마력을 모아 적 앞에서 터뜨린다.',
   },
   meteor: {
-    cls: 'pyromancer', name: '메테오', icon: '☄️', lv: 60, cd: 11, dur: 1.2, area: 'all', radius: 60,
+    cls: 'pyromancer', name: '메테오', icon: '☄️', lv: 0, cd: 11, dur: 1.2, area: 'all', radius: 60,
     right: ['crit', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'boss', name: '천체 충돌', icon: '🪨', full: 0.6 },
     hits: [[0.7, 4]],
@@ -1081,7 +1081,7 @@ const SKILLS = {
     desc: '적 발밑에서 불의 회오리를 일으켜 감싸 태운다.',
   },
   iceLance: {
-    cls: 'cryomancer', name: '얼음창', icon: '🧊', lv: 60, cd: 10, dur: 1.0, area: 'line', reach: 1.3, crit: true,
+    cls: 'cryomancer', name: '얼음창', icon: '🧊', lv: 0, cd: 10, dur: 1.0, area: 'line', reach: 1.3, crit: true,
     right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'stun', name: '빙결', icon: '❄️', full: 1.5 },
     hits: [[0.55, 2.4]],
@@ -1113,7 +1113,7 @@ const SKILLS = {
 
   // ── 대검전사: 횡으로 크게 휘두르는 참격 + 땅을 끌며 달리는 돌진 (연출 src/jobs/greatswordsman.js) ──
   wideCleave: {
-    cls: 'greatswordsman', name: '대검 횡참', icon: '🌊', lv: 60, cd: 9, dur: 1.1, area: 'line', reach: 2,
+    cls: 'greatswordsman', name: '대검 횡참', icon: '🌊', lv: 0, cd: 9, dur: 1.1, area: 'line', reach: 2,
     right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'exec', name: '단두', icon: '🗡️', full: 0.7, thr: 0.35 },
     hits: [[0.55, 3.2]],
@@ -1145,7 +1145,7 @@ const SKILLS = {
 
   // ── 랜서: 방패를 앞세운 돌격 + 방패로 세우는 장벽 (연출 src/jobs/cavalier.js) ──
   cavalryCharge: {
-    cls: 'cavalier', name: '기병 돌격', icon: '🐎', lv: 60, cd: 10, dur: 1.2, area: 'line', reach: 3,
+    cls: 'cavalier', name: '기병 돌격', icon: '🐎', lv: 0, cd: 10, dur: 1.2, area: 'line', reach: 3,
     right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'first', name: '선봉', icon: '🚩', full: 0.7 },
     hits: [[0.5, 3.4]],
@@ -1177,7 +1177,7 @@ const SKILLS = {
 
   // ── 석궁사수: 폭약을 단 살 + 탄창을 돌려 쏘는 연사 (연출 src/jobs/arbalest.js) ──
   blastBolt: {
-    cls: 'arbalest', name: '폭열탄', icon: '💣', lv: 60, cd: 10, dur: 1.1, area: 'all', radius: 50,
+    cls: 'arbalest', name: '폭열탄', icon: '💣', lv: 0, cd: 10, dur: 1.1, area: 'all', radius: 50,
     right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'boss', name: '공성', icon: '🏰', full: 0.6 },
     hits: [[0.6, 3.4]],
@@ -1209,7 +1209,7 @@ const SKILLS = {
 
   // ── 뇌전술사: 적 사이를 건너뛰는 번개 + 하늘에서 떨어지는 벼락 (연출 src/mage/chainLightning.js · thunderstorm.js) ──
   chainLightning: {
-    cls: 'electromancer', name: '연쇄 번개', icon: '⚡', lv: 60, cd: 9, dur: 1.0, area: 'all', radius: 70,
+    cls: 'electromancer', name: '연쇄 번개', icon: '⚡', lv: 0, cd: 9, dur: 1.0, area: 'all', radius: 70,
     right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'double', name: '과부하', icon: '⚡', full: 0.3 },
     hits: [[0.5, 1.4], [0.58, 1.0], [0.66, 1.0]],
