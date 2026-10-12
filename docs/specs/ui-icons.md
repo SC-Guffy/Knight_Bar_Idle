@@ -1,6 +1,6 @@
 # UI 도트 아이콘 (이모지 교체)
 
-- 상태: 완료 (0.19.21 — 화면·캔버스의 이모지 전부 도트, 아이콘 184개)
+- 상태: 완료 (0.19.22 — 화면·캔버스의 이모지 전부 도트 + 스킬 40종 고유 배지, 아이콘 224개)
 - 관련 코드: `dev/make-icons.js` (도트 데이터·생성기) → `src/skin/icons.png`·`src/skin/icons.css` (생성물), `src/iconmap.js` (생성물: 이모지 → 이름, 칸 순서), `src/ui.js` `ico()`·`iconize()`, `src/icondraw.js` (캔버스), `dev/icon-art/*.js` (묶음별 그림), `dev/icon-preview.py` (미리보기 PNG), `dev/icons.html` (이모지 비교 페이지)
 - 최종 갱신: 2026-10-13
 
@@ -30,6 +30,11 @@ UI 톤(남보라 바탕 + 바랜 은 선)은 그대로 두고, 이모지만 같�
   - 이모지를 큰 글씨(18~22px)로 보이던 자리(`.card .ic`, `.mskill .sicon`, `.pic` 등)는 `pixel.css` 에서 아이콘을 2배(28px)로.
   - 그림 묶음: UI 기본은 `dev/make-icons.js` `ICONS`, 나머지는 `dev/icon-art/a-status.js`(상태·효과) · `b-gear.js`(무기·직업) · `c-nature.js`(자연·지역) · `d-creature.js`(생물).
     한 아이콘이 이모지 여럿을 맡을 수 있다 (`['📬 📭 📩', …]`).
+  - **스킬 아이콘** (`dev/icon-art/e-skills-1~3.js`, 이름 `sk-<스킬 id>`): 스킬마다 고유 그림. 같은 이모지(☄️ 3개 등)를 나눠 쓰던 스킬도 모두 다르다.
+    스킬 `icon` 을 사용자 영역 문자(U+E000~)로 바꿔서(`classes.js` 끝, 번호표 `SKILL_CP` 는 iconmap.js) 칩·카드·트리·토스트·배너·떠오르는 글자·궁극기 컷인이
+    모두 자동 변환 경로로 고유 아이콘을 받는다. 원래 이모지는 `SKILLS[id].emoji`. 번호는 `dev/icon-art/skill-cp.json` 등록부에 고정 (새 스킬은 다음 번호).
+    모양: 모서리 깎은 12×12 배지, 속성색 2단 바탕 + 기술 모티프. 3차 궁극기는 금테(위·왼쪽 Y, 아래·오른쪽 y).
+  - `iconize`(화면 변환)는 `src/icondraw.js` 에 있다 — ui.js 를 안 싣는 dev/skills.html 에서도 돈다 (icons.css 도 연결).
   - 금화 `.gc` 는 같은 스프라이트의 `gold` 칸을 쓴다 (icons.css 가 `.gc` 도 정의, index.html 의 옛 원형 그라디언트 규칙은 지웠다). `<i class="gc">` 마크업은 그대로.
   - `.mailbtn i` 도 배지 스타일이라 `:not(.pi)` 로 뺐다.
   - `${ico()}` 는 백틱 문자열 안에서만 동작한다. 작은따옴표 문자열 안에 넣으면 글자 그대로 나온다 → 백틱으로 바꾼다.
@@ -85,7 +90,14 @@ UI 톤(남보라 바탕 + 바랜 은 선)은 그대로 두고, 이모지만 같�
   그림 약 130개는 서브 에이전트 4개가 묶음별 파일(`dev/icon-art/a~d`)로 동시에 그리고 미리보기 PNG 로 검수. `blackheart` 는 빨간 heart 를 색만 바꾼 모양이라
   뿔·가시 실루엣으로 다시 그림 (색깔놀이 금지). 스프라이트를 SVG(사각형 수천 개, 635KB) → PNG(11KB) 로 바꿈. 0.19.21 로 배포.
 
+- 2026-10-13: 사용자 "스킬들도 아이콘 개성있게" → 스킬 40종 고유 배지 (서브 에이전트 3개: 1·2차 A / 2차 B / 3차 궁극기). 겹치던 구도
+  (파천참↔강철 베기, 천검↔질풍난무, 절대영도↔블리자드, 다연장↔연사)는 에이전트들이 서로 비교해 바꿈. 연쇄 번개는 꺾쇠처럼 보여 직접 다시 그림.
+  게임 스킬 탭·dev/skills.html 궁극기 컷인에서 확인 (`dev/shots/skills-tab.jpg`, `skills-ult.jpg`, 시트 `rv-skills.png`), 29직업 × 76회 시전 예외 없음. 0.19.22 배포.
+
 ## 남은 일 / 미정
+
+- 새 스킬을 추가하면 `dev/icon-art/e-skills-*.js` 에 `sk-<id>` 배지를 그린다 (없으면 원래 이모지로 보인다).
+- 약한 스킬 그림 후보: `sk-gale`(단순 X), `sk-ramCharge`(투구로 대신), `sk-siegeBarrage`, `sk-worldBreaker`(1배에서 망치가 상자처럼).
 
 - 새 이모지를 UI·데이터에 쓰면 그림도 추가한다 (`dev/icon-art/` 에 넣고 `node dev/make-icons.js`). 빠지면 OS 이모지가 그대로 보일 뿐 깨지지는 않는다.
 - 약한 그림 후보 (사용자 의견에 따라): `loop`(➰), `muscle`, `dragonhead`, `wing`, `coldface`, `croc`.

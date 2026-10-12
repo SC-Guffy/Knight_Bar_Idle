@@ -1028,38 +1028,7 @@ function drawEnhanceFx() {
 const DOT = '<i class="dot"></i>';
 // UI 도트 아이콘 (src/skin/icons.css, 그림은 dev/make-icons.js). 이모지 대신 쓴다
 const ico = (n) => `<i class="pi pi-${n}"></i>`;
-// 화면 글자 속 이모지 → 도트 아이콘. 표 ICON_OF 는 dev/make-icons.js 가 만든 src/iconmap.js.
-// 문서에 글자가 들어올 때마다(MutationObserver, 그리기 전 마이크로태스크) 글자 노드만 훑어 바꾼다 — title 같은 속성·캔버스·입력칸은 그대로.
-// 바꾼 아이콘 안에 원래 이모지를 투명 글자로 남겨서 textContent 비교(tickLive 등)·복사가 그대로 된다. 표에 없는 이모지는 그대로 둔다.
-const ICON_SRC = `(${Object.keys(ICON_OF).join('|')})${String.fromCharCode(0xfe0f)}?`;
-const ICON_RE = new RegExp(ICON_SRC, 'gu'), ICON_HAS = new RegExp(ICON_SRC, 'u');
-const ICON_SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'OPTION', 'TITLE', 'CANVAS']);
-function iconizeText(t) {
-  const p = t.parentNode;
-  if (!p || p.nodeType !== 1 || ICON_SKIP.has(p.nodeName) || p.classList.contains('pi') || !ICON_HAS.test(t.nodeValue)) return;
-  const s = t.nodeValue, f = document.createDocumentFragment();
-  let at = 0;
-  for (const m of s.matchAll(ICON_RE)) {
-    if (m.index > at) f.append(s.slice(at, m.index));
-    const i = document.createElement('i');
-    i.className = `pi pi-${ICON_OF[m[1]]}`;
-    i.textContent = m[0];
-    f.append(i);
-    at = m.index + m[0].length;
-  }
-  if (at < s.length) f.append(s.slice(at));
-  t.replaceWith(f);
-}
-function iconize(root) {
-  if (root.nodeType === 3) return iconizeText(root);
-  if (root.nodeType !== 1 || ICON_SKIP.has(root.nodeName)) return;
-  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = [];
-  while (w.nextNode()) list.push(w.currentNode);
-  list.forEach(iconizeText);
-}
-new MutationObserver((ms) => ms.forEach((m) => (m.type === 'characterData' ? iconizeText(m.target) : m.addedNodes.forEach(iconize))))
-  .observe(document.body, { childList: true, subtree: true, characterData: true });
-iconize(document.body);
+// 화면 글자 속 이모지 → 도트 아이콘 변환(iconize)은 src/icondraw.js
 // 글자를 바뀔 때만 넣는다 (0.25초마다 다시 넣으면 누르는 도중 버튼 속 노드가 바뀐다). 아이콘이 원래 이모지를 품고 있어 비교가 맞는다
 const setIcoText = (el, text) => { if (el.textContent !== text) el.textContent = text; };
 const rd = (on) => (on ? ' rd' : '');

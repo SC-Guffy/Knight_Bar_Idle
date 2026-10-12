@@ -1,5 +1,6 @@
 'use strict';
-// 캔버스 글자 속 이모지 → 도트 아이콘 (화면 DOM 쪽은 src/ui.js iconize).
+// 화면(DOM) 글자와 캔버스 글자 속 이모지·스킬 문자를 도트 아이콘으로 바꾼다. index.html 앞쪽(데이터 다음)에 실려 dev/skills.html 같은 개발 페이지에서도 돈다.
+// ── 캔버스 ──
 // fillTextIco / strokeTextIco / measureTextIco 는 g.fillText 등과 같은 자리에 쓴다. 이모지가 없으면 원래 함수 그대로.
 // 아이콘 크기는 글꼴 크기에 맞춘 정수배: 14px(1배), 글꼴이 20px 이상이면 28px(2배)… 표 ICON_OF·칸 순서 ICON_NAMES 는 src/iconmap.js.
 const ICON_SHEET = new Image();
@@ -55,3 +56,36 @@ function drawTextIco(g, text, x, y, stroke) {
 }
 const fillTextIco = (g, text, x, y) => drawTextIco(g, text, x, y, false);
 const strokeTextIco = (g, text, x, y) => drawTextIco(g, text, x, y, true);
+
+// ── 화면(DOM) ──
+// 화면 글자 속 이모지 → 도트 아이콘. 표 ICON_OF 는 dev/make-icons.js 가 만든 src/iconmap.js.
+// 문서에 글자가 들어올 때마다(MutationObserver, 그리기 전 마이크로태스크) 글자 노드만 훑어 바꾼다 — title 같은 속성·캔버스·입력칸은 그대로.
+// 바꾼 아이콘 안에 원래 이모지를 투명 글자로 남겨서 textContent 비교(tickLive 등)·복사가 그대로 된다. 표에 없는 이모지는 그대로 둔다.
+const ICON_RE = ICON_CRE, ICON_HAS = ICON_CHAS;
+const ICON_SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'OPTION', 'TITLE', 'CANVAS']);
+function iconizeText(t) {
+  const p = t.parentNode;
+  if (!p || p.nodeType !== 1 || ICON_SKIP.has(p.nodeName) || p.classList.contains('pi') || !ICON_HAS.test(t.nodeValue)) return;
+  const s = t.nodeValue, f = document.createDocumentFragment();
+  let at = 0;
+  for (const m of s.matchAll(ICON_RE)) {
+    if (m.index > at) f.append(s.slice(at, m.index));
+    const i = document.createElement('i');
+    i.className = `pi pi-${ICON_OF[m[1]]}`;
+    i.textContent = m[0];
+    f.append(i);
+    at = m.index + m[0].length;
+  }
+  if (at < s.length) f.append(s.slice(at));
+  t.replaceWith(f);
+}
+function iconize(root) {
+  if (root.nodeType === 3) return iconizeText(root);
+  if (root.nodeType !== 1 || ICON_SKIP.has(root.nodeName)) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = [];
+  while (w.nextNode()) list.push(w.currentNode);
+  list.forEach(iconizeText);
+}
+new MutationObserver((ms) => ms.forEach((m) => (m.type === 'characterData' ? iconizeText(m.target) : m.addedNodes.forEach(iconize))))
+  .observe(document.body, { childList: true, subtree: true, characterData: true });
+iconize(document.body);

@@ -895,6 +895,18 @@ for (const n of names) for (const e of ICONS[n][0].split(' ').filter(Boolean)) {
   const k = e.replace(/\ufe0f/g, '');
   if (map[k]) console.warn('이모지 중복', e, map[k], n); else map[k] = n;
 }
+// 스킬 아이콘(sk-<스킬 id>)은 이모지 대신 스킬마다 사용자 영역 문자 하나(U+E000~)를 붙인다 — 같은 이모지를 쓰는 스킬도 그림이 달라지게.
+// classes.js 가 SKILLS[id].icon 을 이 문자로 바꾸고(SKILL_CP), 화면·캔버스 변환은 ICON_OF 로 똑같이 된다.
+// 번호는 dev/icon-art/skill-cp.json 등록부에 고정한다 (새 스킬은 다음 번호를 받는다 — 저장된 글자가 다른 그림으로 바뀌지 않게)
+const cpFile = path.join(__dirname, 'icon-art', 'skill-cp.json');
+const skillCp = fs.existsSync(cpFile) ? JSON.parse(fs.readFileSync(cpFile, 'utf8')) : {};
+for (const id of names.filter((n) => n.startsWith('sk-')).map((n) => n.slice(3)).sort()) {
+  if (!skillCp[id]) skillCp[id] = Math.max(0xdfff, ...Object.values(skillCp)) + 1;
+}
+fs.writeFileSync(cpFile, JSON.stringify(skillCp, null, 1) + '\n');
+for (const id of Object.keys(skillCp)) if (!ICONS['sk-' + id]) delete skillCp[id];   // 그림이 없는 번호는 표에서만 뺀다 (등록부엔 남김)
 fs.writeFileSync(path.join(__dirname, '..', 'src', 'iconmap.js'),
-  `'use strict';\n// 생성 파일 — dev/make-icons.js 가 만든다. 화면 글자 속 이모지 → 도트 아이콘 이름 (src/ui.js iconize)\nconst ICON_OF = ${JSON.stringify(map, null, 0).replace(/","/g, '", "')};\n// 스프라이트 시트(icons.png) 칸 순서 — 캔버스에 그릴 때 (src/icondraw.js)\nconst ICON_NAMES = ${JSON.stringify(names).replace(/","/g, '", "')};\n`);
+  `'use strict';\n// 생성 파일 — dev/make-icons.js 가 만든다. 화면 글자 속 이모지 → 도트 아이콘 이름 (src/icondraw.js iconize)\nconst ICON_OF = ${JSON.stringify(map, null, 0).replace(/","/g, '", "')};\n// 스프라이트 시트(icons.png) 칸 순서 — 캔버스에 그릴 때 (src/icondraw.js)\nconst ICON_NAMES = ${JSON.stringify(names).replace(/","/g, '", "')};\n` +
+  `// 스킬 id → 아이콘 문자 코드 (사용자 영역). classes.js 가 SKILLS[id].icon 에 넣는다\nconst SKILL_CP = {${Object.entries(skillCp).map(([id, c]) => ` ${id}: 0x${c.toString(16)}`).join(',')} };\n` +
+  `for (const [id, c] of Object.entries(SKILL_CP)) ICON_OF[String.fromCharCode(c)] = 'sk-' + id;\n`);
 console.log('icons', names.length, 'emoji', Object.keys(map).length);

@@ -1724,3 +1724,7 @@ const treeNodesOf = (k) => {
   return treeNodesCache[k.id];
 };
 
+
+// 스킬 아이콘: 스킬마다 고유 도트 아이콘을 쓰도록 icon 을 사용자 영역 문자(SKILL_CP, src/iconmap.js)로 바꾼다.
+// 화면·캔버스 글자에서 이 문자가 sk-<id> 아이콘으로 바뀐다 (src/icondraw.js). 원래 이모지는 emoji 에 남긴다
+if (typeof SKILL_CP !== 'undefined') for (const [id, cp] of Object.entries(SKILL_CP)) if (SKILLS[id]) { SKILLS[id].emoji = SKILLS[id].icon; SKILLS[id].icon = String.fromCharCode(cp); }
