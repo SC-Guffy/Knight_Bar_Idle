@@ -112,7 +112,7 @@ function tickLive(root = document) {
 }
 
 // ───────────────────────── HUD ─────────────────────────
-// 바 한 줄이 전부다 — 호버로 펼쳐지는 패널은 없고, 명령은 바 안의 버튼(#hbtn), 캠프는 바를 클릭해 연다
+// 바 한 줄이 전부다 — 바 자체는 클릭을 통과시키고, 캠프 열기·귀환·후퇴는 바 안의 버튼(#hbtn) 하나로만 받는다
 function renderHud() {
   const st = stats();
   $('cls').textContent = heroClass().icon;
@@ -131,8 +131,9 @@ function renderHud() {
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`;
 
-  // 바 안의 명령 버튼 — 귀환·후퇴할 수 있는 상황에만 보이고, 없으면 바가 그만큼 줄어든다 (#hud.act)
-  const cmd = S.phase === 'expedition' ? ['recall', '🏕 귀환', '귀환 명령 — 지금 원정을 마치고 캠프로']
+  // 바 안의 명령 버튼 — 캠프에선 창 열기, 원정·탑·미궁에선 귀환·후퇴. 없으면(귀환 중) 바가 그만큼 줄어든다 (#hud.act)
+  const cmd = S.phase === 'camp' ? ['hud', '🏕 캠프', '캠프 창 열기']
+    : S.phase === 'expedition' ? ['recall', '🏕 귀환', '귀환 명령 — 지금 원정을 마치고 캠프로']
     : S.phase === 'tower' && S.tower.run ? ['tower-retreat', '⬇️ 후퇴', '이 층에서 후퇴해 캠프로']
     : S.phase === 'dungeon' && S.dg.run ? ['dg-retreat', '🎒 나가기', '지금 나가기 — 모은 자원을 모두 가지고 캠프로']
     : null;
@@ -146,7 +147,7 @@ function renderHud() {
   tickLive($('hud'));
   renderDungeonPick();
   const todo = S.phase === 'camp' && !modalOpen() && !duelActive() && !raidActive() && campHasDot();
-  document.querySelector('#hud .bar').classList.toggle('rd', todo);
+  hb.classList.toggle('rd', todo);
 
   // 캠프 말풍선
   const bubble = $('bubble');

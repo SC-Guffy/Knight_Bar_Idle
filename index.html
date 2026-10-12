@@ -97,7 +97,7 @@
   /* 레이드·결투는 캠프 옆(왼쪽)에서 싸우므로 그동안 HUD 를 반대편으로 밀어 싸움을 가리지 않게 (ui.js renderHud) */
   #hud.away { transform: translateX(calc(100vw - 100% - 20px)); }
   #hud.right.away { transform: translateX(calc(-100vw + 100% + 20px)); }
-  .bar { display: flex; align-items: center; gap: 9px; padding: 5px 10px; border-radius: 10px; cursor: pointer;
+  .bar { display: flex; align-items: center; gap: 9px; padding: 5px 10px; border-radius: 10px;
     background: var(--glass); border: 1px solid var(--line); transition: background .15s; white-space: nowrap; }
   #hud:hover .bar { background: rgba(18, 18, 26, .9); }
   .meters { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 70px; }
@@ -113,7 +113,8 @@
     background: radial-gradient(circle at 35% 30%, #fff6c2 0 16%, #ffd54a 17% 52%, #e6a400 53% 100%);
     box-shadow: inset 0 0 0 1px #a86f00, inset 0 0 0 2.5px rgba(255, 236, 150, .55); }
   #status { min-width: 92px; }
-  /* 바 안의 명령 버튼: 원정 중엔 🏕 귀환, 탑·미궁 도전 중엔 ⬇️ 후퇴. 그 외엔 숨고 바가 줄어든다 */
+  /* 바 안의 버튼: 캠프에선 🏕 캠프(창 열기), 원정 중엔 🏕 귀환, 탑·미궁 도전 중엔 ⬇️ 후퇴. 귀환 중엔 숨고 바가 줄어든다.
+     바 자체는 클릭을 통과시키고(.interactive 아님) 이 버튼만 클릭을 받는다 — 바 전체가 클릭 영역이면 뒤의 창을 누르려다 캠프가 열렸다 */
   #hbtn { padding: 0 8px; line-height: 17px; font-size: 12.5px; flex-shrink: 0; }   /* 게이지 높이(≈18px) 안에 들어가 바가 세로로 커지지 않게 */
   #hbtn:hover { background: rgba(255,255,255,.22); }
 
@@ -200,10 +201,10 @@
   #campModal nav i.info { padding: 0; background: none; }
   #campModal nav i.dot { display: inline-block; width: 8px; height: 8px; padding: 0; vertical-align: 6px; margin-left: 3px; }
   /* 레드닷: 지금 누르면 되는 곳 (ui.js 의 campDots). 글을 읽지 않아도 따라갈 수 있게 탭 → 버튼 순으로 찍는다 */
-  .btn.rd, .tcard.rd, .bar.rd, .go.rd { position: relative; }
+  .btn.rd, .tcard.rd, .go.rd { position: relative; }
   .rd:not(#bubble)::after, #bubble.rd::before { content: ''; position: absolute; top: -4px; right: -4px; width: 9px; height: 9px; border-radius: 50%;
     background: var(--dot); box-shadow: 0 0 0 2px rgba(18, 18, 26, .85); pointer-events: none; }
-  .bar.rd::after, #bubble.rd::before { animation: dotPulse 1.6s ease-in-out infinite; }
+  #hbtn.rd::after, #bubble.rd::before { animation: dotPulse 1.6s ease-in-out infinite; }
   @keyframes dotPulse { 50% { transform: scale(1.3); } }
   #campBody { padding: 4px 18px 16px; overflow-y: auto; flex: 1; min-height: 120px; }
   #campBody h3 { font-size: 14px; margin: 14px 0 8px; }
@@ -864,8 +865,8 @@
 <div id="barLayer">
   <canvas id="c"></canvas>
 
-  <div id="hud" class="interactive">
-    <div class="bar" data-action="hud">
+  <div id="hud">
+    <div class="bar">
       <span><span id="cls"></span> Lv <b id="lv">1</b></span>
       <div class="meters">
         <div class="meter"><div id="hpfill"></div></div>
@@ -876,7 +877,7 @@
       <span>🎒 <b id="bag"></b></span>
       <span><b id="stage"></b></span>
       <span class="gold"><i class="gc"></i> <b id="gold">0</b></span>
-      <button id="hbtn" class="btn" hidden></button>
+      <button id="hbtn" class="btn interactive" hidden></button>
     </div>
   </div>
 
