@@ -576,7 +576,8 @@ async function todayBoss(day = WB.dayAt()) {
   if (b) return b;
   if (!wbSpawning) {
     wbSpawning = (async () => {
-      const profiles = (await store.activeProfiles(Date.now() - WB.WB_ACTIVE_MS, WB.WB_UNLOCK)).map((p) => sanitizeProfile(p));
+      // 체력 어림은 사람만 — AI 기사 몫은 spawnBoss 가 WB_BOT_SHARE 만큼 따로 얹는다 (사람이 아무도 없으면 보스도 안 나온다)
+      const profiles = (await store.activeProfiles(Date.now() - WB.WB_ACTIVE_MS, WB.WB_UNLOCK, HUMANS)).map((p) => sanitizeProfile(p));
       if (!profiles.length) return null;
       const row = WB.spawnBoss(day, await store.wbLatestBefore(day), profiles);
       console.log(`월드 보스 ${day}: ${row.boss} 체력 ${row.maxHp.toExponential(3)} (어림 ${row.est.toExponential(3)} × 난이도 ${row.diff.toFixed(2)}, 기사 ${profiles.length}명)`);

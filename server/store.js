@@ -130,8 +130,8 @@ class FileStore {
   }
 
   // ── 월드 보스 ──
-  async activeProfiles(since, minBest) {
-    return Object.values(this.db).filter(a => a.updatedAt >= since && a.best >= minBest).map(a => a.profile);
+  async activeProfiles(since, minBest, opt = {}) {
+    return Object.values(this.db).filter(a => a.updatedAt >= since && a.best >= minBest && !(opt.humans && a.isBot)).map(a => a.profile);
   }
   async wbGet(day) { return this.sdb.wb.find(x => x.day === day) || null; }
   async wbLatestBefore(day) { return this.sdb.wb.filter(x => x.day < day).sort((a, b) => b.day - a.day)[0] || null; }
@@ -418,8 +418,8 @@ class PgStore {
   }
 
   // ── 월드 보스 ──
-  async activeProfiles(since, minBest) {
-    return (await this.pool.query('SELECT profile FROM accounts WHERE updated_at >= $1 AND best >= $2', [since, minBest])).rows.map(r => r.profile);
+  async activeProfiles(since, minBest, opt = {}) {
+    return (await this.pool.query(`SELECT profile FROM accounts WHERE updated_at >= $1 AND best >= $2${opt.humans ? ' AND NOT is_bot' : ''}`, [since, minBest])).rows.map(r => r.profile);
   }
   wbRow(r) {
     return r ? { day: r.day, boss: r.boss, maxHp: Number(r.max_hp), hp: Number(r.hp), diff: Number(r.diff), est: Number(r.est),

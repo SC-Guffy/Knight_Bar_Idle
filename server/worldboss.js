@@ -23,6 +23,9 @@ const WB_HP_MULT = 10;
 // 공격력은 기사마다 자기 수준에 맞춰 때린다 (약한 기사가 한 방에 죽거나 강한 기사가 아무 위협도 못 느끼지 않게).
 // 5배면 훈련·장비를 잘 챙긴 기사는 30초를 다 버티고, 대충 키운 기사는 광폭화 뒤 22~29초에 쓰러져 피해를 15~25% 덜 넣는다
 const WB_ATK = 5;
+// AI 기사 몫: 체력 어림은 사람만으로 하고, 그 위에 봇이 깎을 몫을 이 비율만큼 얹는다 (maxHp = 사람 몫 ÷ (1 − 이것)).
+// 봇은 하루 합쳐 이 비율까지만 깎고 마지막 일격은 넣지 않는다 — 보스를 잡는 건 언제나 사람 (2026-10-12: 봇이 아침에 다 잡아 버려서)
+const WB_BOT_SHARE = 0.3;
 const DAY_MS = 24 * 3600 * 1000;
 const KST = 9 * 3600 * 1000;
 const dayAt = (t = Date.now()) => Math.floor((t + KST) / DAY_MS);
@@ -78,8 +81,8 @@ function spawnBoss(day, prev, profiles, now = Date.now()) {
     diff = Math.max(DIFF_MIN, Math.min(DIFF_MAX, diff));
   }
   const est = profiles.reduce((a, p) => a + expectedDamage(id, p) * WB_TRIES, 0);
-  const maxHp = Math.max(1000, est * diff) * WB_HP_MULT;
+  const maxHp = (Math.max(1000, est * diff) * WB_HP_MULT) / (1 - WB_BOT_SHARE);
   return { day, boss: id, maxHp, hp: maxHp, diff, est, spawnedAt: now, killedAt: null };
 }
 
-module.exports = { WB_TRIES, WB_SEC, WB_UNLOCK, WB_COOLDOWN_MS, WB_ACTIVE_MS, WORLD_BOSSES, dayAt, dayEnd, bossOfDay, worldFight, spawnBoss, expectedDamage };
+module.exports = { WB_BOT_SHARE, WB_TRIES, WB_SEC, WB_UNLOCK, WB_COOLDOWN_MS, WB_ACTIVE_MS, WORLD_BOSSES, dayAt, dayEnd, bossOfDay, worldFight, spawnBoss, expectedDamage };

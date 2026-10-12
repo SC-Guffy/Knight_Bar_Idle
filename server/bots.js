@@ -13,8 +13,8 @@
 //    (클라이언트 profile() 과 같은 모양: 레벨·직업(전직 단계)·공격력·체력·스킬…, 줄 사이는 로그 보간). 장비 편차 g 를 곱한다.
 //  - 결투: 봇끼리 하루 BOT_DUELS_PER_DAY 번쯤 걸어서 시즌 순위에도 오른다. 사람에게도 가끔 건다 (시간당·사람당 제한).
 //    시즌 보상 순위는 사람끼리만 매긴다 (store.settleSeason) — 봇이 위에 있어도 사람 몫을 빼앗지 않는다.
-//  - 월드 보스: 최고 스테이지 30 이상인 봇은 매일 07~23시(한국 시간) 사이 무작위 세 번 도전한다. 봇도 '활동 중'이라 체력 어림에 들어가고
-//    늘 세 번을 다 쓰므로 어림한 만큼 실제로 깎는다 (체력에 더한 만큼 피해도 더하니 처치 시각은 사람끼리일 때와 같은 쪽으로 따라간다).
+//  - 월드 보스: 최고 스테이지 30 이상인 봇은 매일 07~23시(한국 시간) 사이 무작위 세 번 도전한다. 체력 어림은 사람만으로 하고
+//    봇 몫(WB_BOT_SHARE, 30%)을 따로 얹으며, 봇은 한 번에 그 몫 ÷ (봇 수 × 3) 까지만 깎고 마지막 일격은 넣지 않는다 — 잡는 건 사람.
 //    보상 지분 평균·순위는 사람만 센다 (store.wbPending).
 //  - 확성기: 최고 스테이지 상위 봇이 가끔 +20 이상 강화 성공·초기화 소식을 흘린다. 시간당 BOT_SHOUTS_PER_HOUR 번까지,
 //    최근 10분 안에 사람 소식이 있었으면 쉰다.
@@ -215,17 +215,18 @@ function createBots(deps) {
     const boss = await deps.todayBoss(day);
     if (!boss || boss.hp <= 0) return;
     const start = WB.dayEnd(day) - DAY;
+    const perTry = (boss.maxHp * WB.WB_BOT_SHARE) / (ready.length * WB.WB_TRIES);   // 봇 한 번 도전의 피해 상한
     for (const a of ready) {
       const due = [0, 1, 2].slice(0, WB.WB_TRIES).filter((j) => start + (7 + 16 * (hash(a.key, day, j) / 2 ** 32)) * 3600 * 1000 <= now).length;
       if (!wbDone.has(a.key)) { const m = await store.wbMine(day, a.key); wbDone.set(a.key, m ? m.tries : 0); }
       while (wbDone.get(a.key) < due && boss.hp > 0) {
         const p = botProfile(a);
         const fight = WB.worldFight(boss.boss, p, boss.hp, boss.maxHp);
-        const r = await store.wbHit(day, { key: a.key, nickname: a.nickname, cls: p.cls, bot: true }, fight.contrib[0].dmg, WB.WB_TRIES, now);
+        const dmg = Math.max(0, Math.min(fight.contrib[0].dmg, perTry, boss.hp - 1));   // 봇은 보스를 쓰러뜨리지 않는다
+        const r = await store.wbHit(day, { key: a.key, nickname: a.nickname, cls: p.cls, bot: true }, dmg, WB.WB_TRIES, now);
         if (!r) { wbDone.set(a.key, WB.WB_TRIES); break; }
         wbDone.set(a.key, r.tries);
         boss.hp = r.hp;
-        if (r.kill) console.log(`월드 보스 ${day} 처치: 🤖 ${a.nickname}`);
       }
     }
   }
