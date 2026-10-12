@@ -31,12 +31,23 @@ const RAID_BOSSES = {
 const SMASH_EVERY = 4;      // 평타 네 번째마다 강타
 const CC_HP = 1;            // 넉백·기절로 잃는 딜 시간을 메우려면 낮춘다 (0.8 이면 승률이 예전과 거의 같다). 1 = 메우지 않음 — 예전보다 어렵다
 const MAX_PARTY = 4;
-// 보스는 (입장 스테이지 × SOLO_MULT − 인원 보정) 스테이지의 능력치로 싸운다 (체력·공격력 모두).
+// 보스는 (입장 스테이지 × 혼자 배수 − 인원 보정) 스테이지의 능력치로 싸운다 (체력·공격력 모두).
+//  혼자 배수는 입장 스테이지에 따라 2.0 → 1.2 로 완만해진다 (SOLO_MULT 의 점 사이를 직선으로 잇는다).
+//  예전엔 모두 ×2 라 리치 킹(40)부터 입장 뒤 29렙을 더 올려야 했다 — 후반일수록 레벨 올리기가 느리므로 배수를 줄인다
 //  혼자 기준: 장비·훈련을 잘 챙긴 기사가 입장 스테이지의 약 1.7~1.9배 레벨이면 혼자 겨우 잡는다 (리치 킹 69렙, 화염룡 150렙)
 //  인원 보정은 스테이지 '차이'로 준다 — 같은 레벨 기사가 늘어도 실제로는 +3.5(2인)·+6.4(3인)·+8.5(4인) 스테이지만큼만 세지므로
 //  그보다 조금 넉넉하게. 예전엔 비율(보스 스테이지 × 0.24~1.25)이라 리치 킹 1인→2인이 20스테이지나 쉬워져 고렙 한 명이 끌어 주면 6초 만에 끝났다
 //  클라이언트 src/data.js 의 RAID_SOLO_MULT·RAID_PARTY_GAP 와 같아야 함 (보상 계산)
-const SOLO_MULT = 2;
+const SOLO_MULT = [[10, 2], [20, 1.8], [40, 1.6], [80, 1.5], [130, 1.4], [200, 1.3], [300, 1.2]];
+const soloMult = (stage) => {
+  if (stage <= SOLO_MULT[0][0]) return SOLO_MULT[0][1];
+  for (let i = 1; i < SOLO_MULT.length; i++) {
+    const [s0, m0] = SOLO_MULT[i - 1], [s1, m1] = SOLO_MULT[i];
+    if (stage <= s1) return m0 + (m1 - m0) * (stage - s0) / (s1 - s0);
+  }
+  return SOLO_MULT[SOLO_MULT.length - 1][1];
+};
+const soloStage = (b) => Math.round(b.stage * soloMult(b.stage));
 const PARTY_GAP = [0, 5, 9, 13];
 // 소수 인원(AI 기사 자리를 반 명으로 칠 때)은 양옆 인원 사이를 잇는다 (2.5명 = 7스테이지)
 const partyGap = (n) => {
@@ -70,7 +81,7 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 // 클라이언트 data.js 의 monsterStats(필드 보스) 와 같은 기준
 function bossStats(id, n) {
-  const b = RAID_BOSSES[id], s = b.stage * SOLO_MULT - partyGap(n);
+  const b = RAID_BOSSES[id], s = soloStage(b) - partyGap(n);
   return {
     hp: 14 * Math.pow(1.23, s - 1) * 7.5 * b.hp * CC_HP,
     atk: 3 * Math.pow(1.17, s - 1) * 1.68 * b.atk,
