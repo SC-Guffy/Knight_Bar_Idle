@@ -10,10 +10,15 @@ const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 
 let win = null;
 let tray = null;
-let campOpen = false;   // 캠프 창이 열리면 창을 화면 전체로 키운다
-// 오버레이: 창을 화면 전체 높이로 키우되 클릭은 계속 통과시킨다 (하단바 밖 화면 가장자리에 그리는 콘텐츠용 — 도전의 탑 등).
-// 무엇을 어디에 그릴지는 게임 코드(웹)가 정하므로, 이 통로만 있으면 새 가장자리 콘텐츠도 앱 재설치 없이 추가할 수 있다.
-let overlay = false;
+// 창 요청: 웹 코드가 이름(key)마다 "창이 얼마나 크고, 입력을 받아야 하는지"를 따로 요청하고, 메인은 모두 합쳐서 창을 정한다.
+// 무엇을 어디에 그릴지는 게임 코드(웹)가 정하므로, 이 통로만 있으면 화면 어디에 그리는 새 콘텐츠도 앱 재설치 없이 추가할 수 있다.
+// 이름별로 따로 두는 건 탑·캠프처럼 여러 콘텐츠가 동시에 창을 키웠다 줄여도 서로 덮어쓰지 않게 하려는 것.
+//  height: 'full' | 하단바 높이(px)   cover: 'work' 작업표시줄·Dock 제외 | 'screen' 모니터 전체
+//  focus: 키보드 입력을 받는다   mouse: 'all' 창 전체가 클릭을 받는다 (기본은 렌더러가 알려 주는 .interactive 위에서만)
+// 예전 IPC 도 이 위에 얹었다: camp-mode = 'camp' { focus, mouse: 'all' }, overlay = 'overlay' { height: 'full' }
+const requests = new Map();
+let interactive = false;  // 마우스가 HUD 등 .interactive 위에 있는지 (렌더러가 알려 줌)
+let focused = false;
 let settings = { displayId: null, overDock: false, showGround: true, hudRight: false, serverUrl: '' };
 let accountName = null;   // 렌더러가 알려 주는 현재 기사 닉네임
 let quitting = false;
@@ -29,14 +34,90 @@ function targetDisplay() {
   return screen.getAllDisplays().find(d => d.id === settings.displayId) || screen.getPrimaryDisplay();
 }
 
-// 선택한 모니터의 하단에 창을 붙인다. overDock=true면 Dock 위에 겹쳐서 화면 맨 아래.
+function normRequest(spec) {
+  if (!spec || typeof spec !== 'object') return null;
+  const h = spec.height;
+  return {
+    height: h === undefined || h === 'full' ? 'full' : Number.isFinite(+h) && +h > 0 ? Math.round(+h) : BAR_HEIGHT,
+    cover: spec.cover === 'screen' ? 'screen' : 'work',
+    focus: !!spec.focus,
+    mouse: spec.mouse === 'all' ? 'all' : 'pass',
+  };
+}
+
+// 모든 요청을 합친 결과. 하나라도 원하면 켠다 (높이는 가장 큰 것)
+function layout() {
+  const L = { height: BAR_HEIGHT, cover: settings.overDock, focus: false, mouse: false };
+  for (const r of requests.values()) {
+    L.height = r.height === 'full' || L.height === Infinity ? Infinity : Math.max(L.height, r.height);
+    L.cover = L.cover || r.cover === 'screen';
+    L.focus = L.focus || r.focus;
+    L.mouse = L.mouse || r.mouse === 'all';
+  }
+  return L;
+}
+
+// 선택한 모니터의 하단에 창을 붙인다. cover(overDock 설정 또는 요청)면 Dock·작업표시줄 위에 겹쳐서 화면 맨 아래.
+// 윈도우에서 cover:'screen' + 화면 전체 높이면 OS가 전체화면 앱으로 보고 작업표시줄을 내릴 수 있으니 필요할 때만 쓴다.
 function place() {
   if (!win) return;
   const d = targetDisplay();
-  const area = settings.overDock ? d.bounds : d.workArea;
-  const h = campOpen || overlay ? area.height : BAR_HEIGHT;
+  const L = layout();
+  const area = L.cover ? d.bounds : d.workArea;
+  const h = Math.min(L.height, area.height);
   win.setBounds({ x: area.x, y: area.y + area.height - h, width: area.width, height: h });
-  win.setAlwaysOnTop(true, settings.overDock ? 'screen-saver' : 'floating');
+  keepOnTop();
+  sendDisplay();
+}
+
+// 요청이 바뀌면 창 크기·클릭 통과·포커스를 다시 맞춘다
+function applyRequests() {
+  if (!win || win.isDestroyed()) return;
+  const L = layout();
+  place();
+  win.setIgnoreMouseEvents(!(L.mouse || interactive), { forward: true });
+  if (L.focus && !focused) {
+    app.focus({ steal: true });
+    win.focus();
+  } else if (!L.focus && focused) {
+    win.blur();
+    keepOnTop();   // 윈도우에서 blur 로 풀린 TOPMOST 를 되돌린다
+  }
+  focused = L.focus;
+}
+
+function setRequest(key, spec) {
+  if (typeof key !== 'string' || !key) return;
+  const r = normRequest(spec);
+  if (r) requests.set(key, r); else requests.delete(key);
+  applyRequests();
+}
+
+// 렌더러가 화면 어디에 무엇을 그릴지 정할 수 있게 모니터·창 위치를 알려 준다 (좌표는 모두 화면 좌표, 논리 px)
+function displayInfo() {
+  const d = targetDisplay();
+  const primary = screen.getPrimaryDisplay().id;
+  const pick = (x) => ({ id: x.id, bounds: x.bounds, workArea: x.workArea, scaleFactor: x.scaleFactor, primary: x.id === primary });
+  return {
+    window: win && !win.isDestroyed() ? win.getBounds() : null,
+    display: pick(d),
+    displays: screen.getAllDisplays().map(pick),
+    requests: Object.fromEntries(requests),
+    platform: process.platform,
+  };
+}
+function sendDisplay() {
+  if (win && !win.isDestroyed()) win.webContents.send('display', displayInfo());
+}
+
+// 윈도우는 blur()가 창을 z-order 맨 아래로 보내면서 TOPMOST 도 풀어 버리고, 다른 이유로도 가끔 풀린다.
+// 같은 값으로 다시 켜면 무시될 수 있어서 껐다 켠 뒤 맨 위로 올린다.
+function keepOnTop() {
+  if (!win || win.isDestroyed()) return;
+  const level = layout().cover ? 'screen-saver' : 'floating';
+  if (process.platform === 'win32') win.setAlwaysOnTop(false);
+  win.setAlwaysOnTop(true, level);
+  if (process.platform === 'win32') win.moveTop();
 }
 
 function createWindow() {
@@ -70,7 +151,16 @@ function createWindow() {
   loadGame();
   win.once('ready-to-show', () => win.showInactive());
   // 게임을 다시 불러올 때마다(새 버전 반영, 웹 실패 → 로컬) 설정을 다시 보낸다
-  win.webContents.on('did-finish-load', () => win.webContents.send('settings', settings));
+  win.webContents.on('did-finish-load', () => { win.webContents.send('settings', settings); sendDisplay(); });
+  // 게임을 다시 불러오면 이전 페이지가 걸어 둔 창 요청은 무효 (탑 안에서 새로고침돼도 창이 커진 채 남지 않게)
+  win.webContents.on('did-start-navigation', (details, _url, isInPlace, isMainFrame) => {
+    const main = details && details.isMainFrame !== undefined ? details.isMainFrame : isMainFrame;
+    const same = details && details.isSameDocument !== undefined ? details.isSameDocument : isInPlace;
+    if (!main || same || (!requests.size && !interactive)) return;
+    requests.clear();
+    interactive = false;
+    applyRequests();
+  });
 
   // 개발용: KB_SNAPSHOT=경로 로 실행하면 몇 초 뒤 창을 PNG 로 저장하고 콘솔 로그를 출력
   if (process.env.KB_SNAPSHOT) {
@@ -262,25 +352,18 @@ app.whenReady().then(() => {
   screen.on('display-removed', refresh);
 
   ipcMain.on('interactive', (_e, on) => {
-    if (win && !campOpen) win.setIgnoreMouseEvents(!on, { forward: true });
+    interactive = !!on;
+    if (win && !layout().mouse) win.setIgnoreMouseEvents(!interactive, { forward: true });
   });
-  ipcMain.on('camp-mode', (_e, on) => {
-    if (!win) return;
-    campOpen = on;
-    place();
-    if (on) {
-      win.setIgnoreMouseEvents(false);
-      app.focus({ steal: true });
-      win.focus();
-    } else {
-      win.setIgnoreMouseEvents(true, { forward: true });
-      win.blur();
-    }
-  });
-  ipcMain.on('overlay', (_e, on) => {
-    if (!win || overlay === !!on) return;
-    overlay = !!on;
-    place();
+  ipcMain.on('camp-mode', (_e, on) => setRequest('camp', on ? { focus: true, mouse: 'all' } : null));
+  ipcMain.on('overlay', (_e, on) => setRequest('overlay', on ? { height: 'full' } : null));
+  ipcMain.on('window-request', (_e, key, spec) => setRequest(key, spec));
+  ipcMain.handle('get-display', () => displayInfo());
+  // 창 밖(하단바만 떠 있을 때 화면 위쪽 등)에서도 마우스 위치를 알 수 있게. x·y 는 창 기준, screenX·screenY 는 화면 기준
+  ipcMain.handle('cursor', () => {
+    const p = screen.getCursorScreenPoint();
+    const b = win && !win.isDestroyed() ? win.getBounds() : { x: 0, y: 0 };
+    return { x: p.x - b.x, y: p.y - b.y, screenX: p.x, screenY: p.y };
   });
   ipcMain.on('quit', () => app.quit());
   // 렌더러가 새 게임 버전을 발견하면 캐시를 비우고 다시 불러온다

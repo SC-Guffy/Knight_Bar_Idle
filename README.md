@@ -295,8 +295,8 @@ python3 -m http.server 8765
 
 | 파일 | 역할 |
 |---|---|
-| `main.js` | 투명 오버레이 창, 클릭 통과, 캠프 모드(창을 화면 전체로 확장), 오버레이 모드(클릭 통과 그대로 화면 전체 높이 — 탑 등 하단바 밖 콘텐츠), 메뉴바 아이콘 |
-| `preload.js` | 렌더러 ↔ 메인 IPC |
+| `main.js` | 투명 오버레이 창, 클릭 통과, 창 요청(이름별로 창 크기·키보드·클릭을 요청하면 합쳐서 적용 — 캠프·탑·앞으로의 화면 전체 콘텐츠), 윈도우 always-on-top 유지, 메뉴바 아이콘 |
+| `preload.js` | 렌더러 ↔ 메인 IPC. 창 API v2(0.4.0~, `window.bar.api >= 2`): `setWindow(key, { height: 'full' \| px, cover: 'work' \| 'screen', focus, mouse: 'all' })` / `setWindow(key, null)`, `getDisplay()`·`onDisplay(cb)`(모니터·작업 영역·창 위치), `getCursor()` |
 | `index.html` | HUD·캠프 창 마크업과 스타일 |
 | `src/data.js` | 밸런스 수치, 건물·보급품·전리품·장비·강화 테이블, 도트 스프라이트 |
 | `src/classes.js` | 전직 트리: 무기, 전직 조건, 직업별 스탯 보정과 외형 |
