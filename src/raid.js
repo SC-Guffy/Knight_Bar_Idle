@@ -5,10 +5,11 @@
 //    tickets: 보유 입장권, freeDay: 무료 충전을 마지막으로 받은 날, buyDay·bought: 오늘(buyDay) 산 장수 — 살수록 비싸진다,
 //    chests: 아직 안 연 처치 상자 [{ k: 'rbox', b: 보스 id, s: 스테이지 }],
 //    kills: 보스별 처치 횟수 { 보스 id: n } (보스 카드에 표시용. 첫 처치 보너스 같은 건 없다 — 0.13.3 에서 뺌),
-//    claimed: 이미 정산한 결과 id (같은 결과를 두 번 받지 않도록), last: 마지막 정산 화면 내용
+//    claimed: 이미 정산한 결과 id (같은 결과를 두 번 받지 않도록), last: 마지막 정산 화면 내용,
+//    pending: 결과는 받았지만 아직 재생이 안 끝나 지급하지 않은 정산 (재생이 끝나면 applyRaid 로 지급)
 //  }
 
-const freshRaid = () => ({ tickets: 0, freeDay: '', buyDay: '', bought: 0, chests: [], kills: {}, claimed: [], last: null });
+const freshRaid = () => ({ tickets: 0, freeDay: '', buyDay: '', bought: 0, chests: [], kills: {}, claimed: [], last: null, pending: null });
 
 // 하루 기준은 서버 시각(gameNow)의 날짜. 저장된 날보다 "뒤의 날"이 됐을 때만, 그것도 서버 시각을 확인했을 때만 새날로 친다
 // (기기 날짜를 앞뒤로 바꿔 가며 하루 충전·구매 가격 초기화를 되풀이하지 못하게). 레이드·미궁·탑이 같이 쓴다
@@ -63,7 +64,8 @@ function raidStageAt(b, n) {
 // ───────────────────────── 정산 ─────────────────────────
 // 서버가 보낸 레이드 결과를 내 몫만큼 정산한다: 클리어했을 때만 입장권 1장 소모, 재화(MVP 1.5배), 경험치, 처치 상자.
 // 실패하면 입장권도 안 깎고 보상도 없다 (위로 보상을 주면 표 한 장으로 무한 파밍이 된다)
-// 이미 정산했거나 내가 그 파티에 없었으면 null
+// 결과를 받을 때는 보상을 계산만 해 S.raid.pending 에 두고, 전투 재생이 끝나야 applyRaid 로 실제 지급한다
+// (받자마자 주면 재생을 안 보고 보상만 챙기게 된다). 이미 정산했거나 내가 그 파티에 없었으면 null
 function settleRaid(result, nick) {
   if (S.raid.claimed.includes(result.id)) return null;
   const me = result.members.findIndex((m) => m.nickname === nick);
@@ -81,25 +83,36 @@ function settleRaid(result, nick) {
     gold: Math.round(ms.gold * 8 * mult * goldMult()),
     wood: Math.round(60 * scale * mult), ore: Math.round(45 * scale * mult), mana: Math.round(12 * scale * mult),
     exp: f.won ? Math.round(ms.exp * 5 * bot * expMult()) : 0,
-    chest: f.won, mvp, mult,
+    chest: f.won, mvp, mult, rs,
   };
-  S.gold += reward.gold;
-  S.mats.wood += reward.wood; S.mats.ore += reward.ore; S.mats.mana += reward.mana;
-  reward.levels = gainExp(reward.exp);
-  if (f.won) {
-    S.raid.tickets = Math.max(0, S.raid.tickets - 1);
-    S.raid.kills[result.boss] = (S.raid.kills[result.boss] || 0) + 1;
-    // 상자 장비의 아이템 레벨 = 실제로 싸운 스테이지 (내 최고 스테이지를 넘지 않음)
-    S.raid.chests.push({ k: 'rbox', b: result.boss, s: rs });
-  }
-
-  S.raid.last = {
+  if (S.raid.pending) applyRaid();   // 앞 결과를 아직 못 받았으면 먼저 지급
+  // 입장권은 보상이 아니라 결과를 받는 즉시 깎는다 (보류 중에 같은 표로 또 출정하지 못하게)
+  if (f.won) S.raid.tickets = Math.max(0, S.raid.tickets - 1);
+  S.raid.pending = {
     id: result.id, boss: result.boss, won: f.won, timeout: f.timeout, dur: f.dur, me, mvp: f.mvp,
     ...(result.botMult ? { party: result.party, botMult: result.botMult } : {}),
     members: result.members.map((m, i) => ({ ...m, ...f.contrib[i] })),
     reward, at: Date.now(),
   };
-  return S.raid.last;
+  return S.raid.pending;
+}
+
+// 보류해 둔 레이드 정산을 지급하고 정산 화면(last)으로 옮긴다. 지급했으면 그 내용을, 없으면 null
+function applyRaid() {
+  const L = S.raid.pending;
+  if (!L) return null;
+  S.raid.pending = null;
+  const r = L.reward;
+  S.gold += r.gold;
+  S.mats.wood += r.wood; S.mats.ore += r.ore; S.mats.mana += r.mana;
+  r.levels = gainExp(r.exp);
+  if (L.won) {
+    S.raid.kills[L.boss] = (S.raid.kills[L.boss] || 0) + 1;
+    // 상자 장비의 아이템 레벨 = 실제로 싸운 스테이지 (내 최고 스테이지를 넘지 않음)
+    S.raid.chests.push({ k: 'rbox', b: L.boss, s: r.rs });
+  }
+  S.raid.last = L;
+  return L;
 }
 
 // ───────────────────────── 처치 상자 ─────────────────────────

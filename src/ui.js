@@ -176,7 +176,12 @@ function openCamp(tab) {
   if (!activeNick()) { openAccount(); return; }
   if (S.phase !== 'camp' || campOpen || acctOpen) return;
   skipDuel();                          // 결투를 보는 중이었으면 결과만 알리고 끝낸다
-  if (raidActive()) { skipRaid(); return; }   // 레이드는 끝나면서 정산 화면(레이드 탭)을 연다
+  if (raidActive()) {
+    // 월드 보스는 건너뛸 수 있지만, 레이드는 끝까지 봐야 보상이 들어온다 (끝나면서 정산 화면을 연다)
+    if (raidPlay.res.world) skipRaid();
+    else toast('⚔️ 레이드 전투가 끝나면 보상과 정산 화면이 열려요');
+    return;
+  }
   campOpen = true;
   revealed = [];
   campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : raidUi.room ? 'raid' : guideTab() || 'town');
@@ -1732,14 +1737,15 @@ function startDuel(nick) {
 
 // ───────────────────────── 보스 레이드 ─────────────────────────
 // 로비(방 목록 · 방 만들기 · 참가 · 준비 · 출정)는 서버가 들고 있고, 여기서는 2초마다 물어봐서 화면을 갱신한다.
-// 방장이 출정하면 서버가 전투를 계산해 방에 결과를 남기고, 각자 그 결과를 받아 정산(raid.js settleRaid)한 뒤
-// 캠프 앞 하단바에서 재생(world.js playRaid)하고, 끝나면 레이드 탭의 정산 화면을 연다.
+// 방장이 출정하면 서버가 전투를 계산해 방에 결과를 남기고, 각자 그 결과를 받아 보상을 계산해 두고(raid.js settleRaid)
+// 캠프 앞 하단바에서 재생(world.js playRaid)한다. 재생이 끝나야 보상을 지급(applyRaid)하고 레이드 탭의 정산 화면을 연다.
 const raidUi = {
   rooms: null, at: 0,          // 열린 방 목록과 불러온 시각
   room: null,                  // 내가 들어가 있는 방 (서버의 roomView)
   error: null, busy: false,    // busy: 방 만들기·참가·출정 등 요청 중
   revealed: [],                // 이번에 연 처치 상자 내용물 [{ it, got, fresh }]
   showResult: false,           // 정산 화면을 펼쳐 보여 줄지
+  queued: null,                // 받았지만 아직 재생하지 못한 결과 (원정 중에 받았을 때 캠프로 돌아오면 재생)
   key: '',                     // 마지막으로 그린 서버 데이터 (바뀌었을 때만 다시 그린다)
 };
 let raidPollBusy = false;
@@ -1781,25 +1787,44 @@ function setRaidRoom(room) {
   if (room && room.state === 'done' && room.result) onRaidResult(room.result);
 }
 
-// 출정 결과를 받았다: 내 몫을 정산하고 하단바에서 재생한 뒤 정산 화면을 연다
+// 출정 결과를 받았다: 내 몫을 계산만 해 두고(보류) 하단바에서 재생한다. 보상은 재생이 끝나야 들어온다
 function onRaidResult(result) {
   if (S.raid.claimed.includes(result.id)) return;
-  const last = settleRaid(result, activeNick());
-  if (!last) return;
+  if (!settleRaid(result, activeNick())) return;
+  save();
+  pushSave();
+  raidUi.queued = result;
+  if (S.phase !== 'camp' || acctOpen) {
+    toast(`🐉 ${RAID_BOSSES[result.boss].name} 레이드 전투가 끝났어요 — 캠프로 돌아가면 전투를 보고 보상을 받아요`, 6000);
+    return;
+  }
+  closeCamp();
+  playQueuedRaid();
+}
+function playQueuedRaid() {
+  const result = raidUi.queued;
+  raidUi.queued = null;
+  skipDuel();
+  $('toast').classList.remove('show');
+  playRaid(result, finishRaid);
+}
+// 재생이 끝났다: 보류해 둔 보상을 지급하고 정산 화면을 연다
+function finishRaid() {
+  if (!applyRaid()) return;
   save();
   pushSave();
   raidUi.revealed = [];
   raidUi.showResult = true;
-  const b = RAID_BOSSES[result.boss];
-  if (S.phase !== 'camp' || acctOpen) {
-    toast(`🐉 ${b.name} 레이드 결과가 도착했어요 — 캠프의 레이드 탭에서 확인하세요`, 6000);
-    return;
-  }
-  closeCamp();
-  skipDuel();
-  $('toast').classList.remove('show');
-  playRaid(result, () => { openCamp('raid'); renderHud(); });
+  openCamp('raid');
+  renderHud();
 }
+// 보류된 정산이 남아 있으면(원정 중에 받았거나 재생 중에 앱을 껐을 때) 캠프에서 한가할 때 마저 처리한다
+function raidCatchUp() {
+  if (!S.raid.pending || raidActive() || duelActive() || S.phase !== 'camp' || campOpen || acctOpen || modalOpen()) return;
+  if (raidUi.queued && raidUi.queued.id === S.raid.pending.id) playQueuedRaid();
+  else { raidUi.queued = null; finishRaid(); }   // 재생할 기록이 없으면(앱을 다시 켬) 바로 지급
+}
+setInterval(raidCatchUp, 1000);
 
 // 서버 요청을 하나 보내고 결과 방으로 화면을 바꾼다
 function raidRequest(fn, okMsg) {
@@ -2989,7 +3014,7 @@ function resetWorld() {
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
   Object.assign(inbox, { list: null, error: null, told: 0, newAfter: null, more: false });
   rank.data = null; seasonUi.data = null; seasonUi.at = 0; duelPlay = null; lastDuel = null; revealed = []; classSel = null; classConfirm = null;
-  raidPlay = null; Object.assign(raidUi, { rooms: null, at: 0, room: null, error: null, revealed: [], showResult: false, key: '' });
+  raidPlay = null; Object.assign(raidUi, { rooms: null, at: 0, room: null, error: null, revealed: [], showResult: false, key: '', queued: null });
 }
 
 // 서버가 전체 초기화돼서 플레이 중인 기사가 없어졌다. 이 기기의 기사·세이브를 모두 지우고 닉네임 만들기 화면으로 보낸다
