@@ -57,8 +57,8 @@ h2, h3 { text-shadow: 2px 2px 0 var(--px-ink); }
 
 /* HUD 바 */
 .bar { gap: 8px; padding: 2px 9px; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated;
-  background-clip: padding-box; background-color: var(--glass); transition: none; }
-#hud:hover .bar { background-color: var(--px-bg); }
+  background-clip: padding-box; background-color: rgba(27, 26, 43, .55); transition: none; }
+/* 바는 클릭을 통과시키므로(🏕 버튼만 받음) 반투명으로 뒤가 비쳐 보이게 하고, hover 해도 불투명해지지 않는다 */
 #status { color: var(--px-gold-l); }
 /* 바 안 명령 버튼: 프레임을 2px 로 줄여 바 높이를 늘리지 않는다 */
 #hbtn { border-width: 2px; border-image: url(frame-btn.svg) 4 / 2px; padding: 1px 6px; }
@@ -163,7 +163,9 @@ canvas.town { outline: 2px solid var(--px-ink); outline-offset: 0; box-shadow: 0
 .frow input:focus { border-color: var(--px-gold); }
 
 /* 말풍선·토스트 */
-#bubble { background: var(--px-paper); border: 2px solid var(--px-ink); box-shadow: 2px 2px 0 var(--px-ink); width: 28px; height: 26px; line-height: 22px; }
+/* Galmuri 에 ❗ 가 흑백 글리프로 있어 종이색 글자 = 배경색이 되어 사라진다 → 컬러 이모지 폰트 우선 */
+#bubble { background: var(--px-paper); border: 2px solid var(--px-ink); box-shadow: 2px 2px 0 var(--px-ink); width: 28px; height: 26px; line-height: 22px;
+  color: var(--px-ink); font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", var(--px-font); }
 #bubble::after { border: 0; left: 8px; bottom: -6px; width: 4px; height: 4px; background: var(--px-paper); box-shadow: 0 0 0 2px var(--px-ink); }
 #toast { border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background-clip: padding-box;
   background-color: var(--px-bg); padding: 4px 11px; }
