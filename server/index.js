@@ -157,13 +157,11 @@ async function runDuel(me, op) {
   const pa = sanitizeProfile(me.profile), pb = sanitizeProfile(op.profile);
   const fight = simulateDuel(pa, pb);
   const won = fight.winner === 'a';
-  // AI 기사가 사람에게 건 결투는 점수에 넣지 않는다 (사람이 고르지 않은 싸움으로 사람 순위가 흔들리지 않게 — 봇은 곁들이일 뿐)
-  const rated = !(me.isBot && !op.isBot);
-  const d = !rated ? 0 : won ? eloDelta(a.rating, b.rating) : eloDelta(b.rating, a.rating);
+  const d = won ? eloDelta(a.rating, b.rating) : eloDelta(b.rating, a.rating);
   const myRating = Math.max(0, a.rating + (won ? d : -d));
   const opRating = Math.max(0, b.rating + (won ? -d : d));
   await store.update(me.key, { season, attacks: a.attacks + 1, rating: myRating, wins: a.wins + (won ? 1 : 0), losses: a.losses + (won ? 0 : 1) });
-  if (rated) await store.update(op.key, { season, attacks: b.attacks, rating: opRating, wins: b.wins + (won ? 0 : 1), losses: b.losses + (won ? 1 : 0) });
+  await store.update(op.key, { season, attacks: b.attacks, rating: opRating, wins: b.wins + (won ? 0 : 1), losses: b.losses + (won ? 1 : 0) });
   // 도전받은 쪽 우편함에 남긴다 (AI 기사는 우편함을 안 보므로 사람에게만. 기록을 못 남겨도 결투 결과는 그대로 돌려준다)
   if (!op.isBot) {
     await store.addDuelLog({

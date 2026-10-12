@@ -1584,7 +1584,7 @@ function tellInbox() {
   const win = fresh.filter((m) => m.won).length, sum = fresh.reduce((a, m) => a + (m.won ? m.delta : -m.delta), 0);
   const m = fresh[0];
   toast(fresh.length === 1
-    ? `📬 받은 결투 — ${botName(m)}(Lv ${m.level}) · ${m.bot && !m.delta ? `${m.won ? '🛡️ 방어 성공!' : '💀 패배…'} (AI 결투라 점수 변동 없음)` : m.won ? `🛡️ 방어 성공! 결투 점수 +${m.delta}` : `💀 패배… 결투 점수 -${m.delta}`} · 🏆 랭킹 탭에서 확인`
+    ? `📬 받은 결투 — ${botName(m)}(Lv ${m.level}) · ${m.won ? `🛡️ 방어 성공! 결투 점수 +${m.delta}` : `💀 패배… 결투 점수 -${m.delta}`} · 🏆 랭킹 탭에서 확인`
     : `📬 받은 결투 ${fresh.length}건 — 방어 ${win} · 패배 ${fresh.length - win} · 결투 점수 ${sum >= 0 ? '+' : ''}${sum} · 🏆 랭킹 탭에서 확인`, 9000);
 }
 
@@ -1639,7 +1639,7 @@ function viewInbox() {
       <div class="mrow ${m.won ? '' : 'lost'}">
         <small class="mt">${fmtAgo(m.at)}</small>
         <span class="mnm"><b>${botTag(m)}${esc(m.nickname)}</b> <small>${c.icon} Lv ${m.level}</small>${m.id > inbox.newAfter ? ' <span class="mnew">NEW</span>' : ''}</span>
-        <span class="mres">${m.won ? '🛡️ 방어' : '💀 패배'} <small>${m.bot && !m.delta ? '점수 변동 없음' : `${m.won ? '+' : '-'}${m.delta} → ${m.rating}`}</small></span>
+        <span class="mres">${m.won ? '🛡️ 방어' : '💀 패배'} <small>${m.won ? '+' : '-'}${m.delta} → ${m.rating}</small></span>
         ${m.won ? '' : `<button class="btn duel" data-action="duel" data-nick="${esc(m.nickname)}" ${duelBusy || duelActive() ? 'disabled' : ''}>⚔️ 복수</button>`}
       </div>`;
   };
