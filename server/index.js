@@ -15,6 +15,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 256 * 1024;
 const DUEL_COOLDOWN_MS = 5000;
 const DUEL_INBOX_MAX = 30;      // 받은 결투(우편함)에 보여 줄 최근 기록 수
+const RENAME_COOLDOWN_MS = 24 * 3600 * 1000;   // 닉네임 바꾸기는 하루에 한 번
 
 const store = openStore();
 
@@ -228,6 +229,30 @@ const routes = {
       level: profile.level, best: profile.best, power: profile.power, cls: profile.cls, tower: profile.tower, updatedAt: now,
     });
     return { ok: true, updatedAt: now };
+  },
+
+  // 닉네임 바꾸기 (무료, 하루 한 번). 토큰은 그대로이고, key 를 쓰는 DB 기록과 서버 메모리(레이드 방·쿨다운)를 새 key 로 옮긴다
+  'POST /api/me/nickname': async (req) => {
+    const a = await auth(req);
+    if (a.isBot) throw new HttpError(403, 'AI 기사는 이름을 바꿀 수 없어요');
+    const body = await readJson(req);
+    const { nick, key } = nicknameKey(body.nickname);
+    if (nick === a.nickname) throw new HttpError(400, '지금 쓰고 있는 닉네임이에요');
+    const now = Date.now(), wait = (a.renamedAt || 0) + RENAME_COOLDOWN_MS - now;
+    if (wait > 0) {
+      const min = Math.ceil(wait / 60000), h = Math.floor(min / 60), m = min % 60;
+      throw new HttpError(429, `닉네임은 하루에 한 번 바꿀 수 있어요 (${[h ? `${h}시간` : '', m || !h ? `${m}분` : ''].filter(Boolean).join(' ')} 남음)`, 'cooldown');
+    }
+    const oldKey = a.key, oldNick = a.nickname;   // 파일 저장소는 계정 객체를 그 자리에서 바꾸므로 먼저 잡아 둔다
+    try {
+      await store.rename(oldKey, key, nick, now);
+    } catch (e) {
+      if (e instanceof TakenError) throw new HttpError(409, '이미 사용 중인 닉네임이에요');
+      throw e;
+    }
+    renameInMemory(oldKey, key, nick);
+    console.log(`닉네임 변경: ${oldNick} → ${nick}`);
+    return { nickname: nick, renamedAt: now };
   },
 
   // 랭킹. 인증 헤더가 있으면 내 순위도 같이 준다. sort: stage 최고 스테이지 · duel 이번 결투 시즌 · tower 도전의 탑 최고 층
@@ -529,6 +554,19 @@ const raidRoutes = {
   },
 };
 Object.assign(routes, raidRoutes);
+
+// 닉네임을 바꾼 기사의 서버 메모리 기록을 새 key 로 옮긴다 (레이드 방 자리·방장, 결투·월드 보스·확성기 쿨다운, 인증 캐시)
+function renameInMemory(oldKey, newKey, nickname) {
+  const r = myRoom(oldKey);
+  if (r) {
+    for (const m of r.members) if (m.key === oldKey) Object.assign(m, { key: newKey, nickname });
+    if (r.host === oldKey) r.host = newKey;
+    roomOf.delete(oldKey);
+    roomOf.set(newKey, r.id);
+  }
+  for (const map of [lastDuel, lastWb, lastShout]) if (map.has(oldKey)) { map.set(newKey, map.get(oldKey)); map.delete(oldKey); }
+  for (const [h, c] of authCache) if (c.acc.key === oldKey) authCache.delete(h);
+}
 
 // ───────────────────────── 월드 보스 ─────────────────────────
 // 오늘의 보스는 그날 처음 누군가 볼 때 나타난다 (server/worldboss.js spawnBoss). 활동 중인 기사가 아무도 없으면 아직 나타나지 않는다

@@ -85,6 +85,23 @@ async function importAccount(nickname, token) {
 
 const fetchMe = (token = activeToken()) => api('GET', '/api/me', null, { token, timeout: 70000 });
 
+// 플레이 중인 기사의 닉네임 바꾸기 (하루 한 번). 토큰은 그대로라 이 기기의 계정 목록과 세이브 칸만 새 이름으로 옮긴다
+async function renameAccount(nickname) {
+  const old = accounts.active, token = activeToken();
+  const r = await api('POST', '/api/me/nickname', { nickname }, { token, timeout: 70000 });
+  const from = accountSaveKey(old), to = accountSaveKey(r.nickname);
+  if (from !== to) {
+    try {
+      const v = localStorage.getItem(from);
+      if (v != null) localStorage.setItem(to, v);
+      localStorage.removeItem(from);
+    } catch {}
+  }
+  accounts.list = Object.fromEntries(Object.entries(accounts.list).map(([n, t]) => [n === old ? r.nickname : n, t]));   // 목록 순서는 그대로
+  setActiveAccount(r.nickname);
+  return { ...r, saveKey: to };
+}
+
 // ───────────────────────── 세이브 동기화 ─────────────────────────
 const sync = { dirty: false, busy: null, lastOk: 0, error: null };
 hooks.onSave = () => { sync.dirty = true; };

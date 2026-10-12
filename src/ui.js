@@ -2641,6 +2641,7 @@ const ACTIONS = {
   'acct-create': acctCreate,
   'acct-switch': (el) => acctSwitch(el.dataset.nick),
   'acct-import': acctImport,
+  'acct-rename': acctRename,
   'acct-show-code': () => { showCode = !showCode; renderAccount(); },
   'acct-copy': () => {
     navigator.clipboard.writeText(activeToken()).then(() => toast('🔑 복구 코드를 복사했어요'), () => toast('복사하지 못했어요'));
@@ -2839,6 +2840,13 @@ function renderAccount() {
       </div>
       <div id="impMsg" class="fmsg"></div>
       ${cur ? `
+        <h3>✏️ ${esc(cur)}의 닉네임 바꾸기</h3>
+        <div class="hint">무료 · 하루에 한 번. 랭킹·결투 기록과 복구 코드는 그대로 이어져요.</div>
+        <div class="frow">
+          <input id="renameIn" maxlength="12" placeholder="새 닉네임" autocomplete="off" spellcheck="false">
+          <button class="btn" data-action="acct-rename">바꾸기</button>
+        </div>
+        <div id="renameMsg" class="fmsg"></div>
         <h3>🔑 ${esc(cur)}의 복구 코드</h3>
         <div class="hint">다른 기기에서 이 기사를 이어 하려면 필요해요. 다른 사람에게 알려 주지 마세요.</div>
         <div class="frow">
@@ -2893,6 +2901,31 @@ async function acctCreate() {
   } catch (e) {
     acctBusy = false;
     setMsg('nickMsg', `✗ ${e.message}`, 'bad');
+  }
+}
+
+async function acctRename() {
+  const nick = $('renameIn').value.trim(), old = activeNick();
+  if (!NICK_RE.test(nick)) return setMsg('renameMsg', '한글·영문·숫자·_ 2~12자로 지어 주세요', 'bad');
+  if (nick === old) return setMsg('renameMsg', '지금 쓰고 있는 닉네임이에요', 'bad');
+  if (acctBusy) return;
+  acctBusy = true;
+  setMsg('renameMsg', '⏳ 바꾸는 중…');
+  try {
+    save();
+    await pushSave();
+    const r = await renameAccount(nick);
+    saveKey = r.saveKey;
+    save();
+    if (window.bar) window.bar.setAccount(r.nickname);
+    rank.data = null; raidUi.rooms = null; raidUi.at = 0;   // 목록의 (나) 표시를 새 이름으로 다시 받는다
+    acctBusy = false;
+    renderAccount();
+    setMsg('renameMsg', `✓ ${old} → ${r.nickname}`, 'ok');
+    toast(`✏️ 이제 ${r.nickname}(으)로 불려요`);
+  } catch (e) {
+    acctBusy = false;
+    setMsg('renameMsg', `✗ ${e.message}`, 'bad');
   }
 }
 
@@ -3044,6 +3077,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.isComposing && acctOpen) {
     if (e.target.id === 'nickIn') acctCreate();
     if (e.target.id === 'impNick' || e.target.id === 'impCode') acctImport();
+    if (e.target.id === 'renameIn') acctRename();
   }
 });
 

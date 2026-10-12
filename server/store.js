@@ -1,9 +1,10 @@
 'use strict';
 // 계정 저장소. DATABASE_URL 이 있으면 Postgres, 없으면 DATA_DIR 의 JSON 파일(로컬 개발용).
-// 계정 = { key, nickname, tokenHash, state, profile, level, best, power, cls, rating, wins, losses, season, attacks, createdAt, updatedAt, isBot, tower }
+// 계정 = { key, nickname, tokenHash, state, profile, level, best, power, cls, rating, wins, losses, season, attacks, createdAt, updatedAt, isBot, tower, renamedAt }
 // isBot: AI 기사(server/bots.js). 토큰은 아무도 모르는 무작위 해시라 로그인할 수 없고, state 에는 봇 설정({ bot })만 있다.
 //   시즌 보상 순위·명예의 전당·월드 보스 보상 지분·서버 통계는 사람만 센다 (opt.humans). tower: 도전의 탑 최고 층
 // key 는 닉네임을 소문자로 정규화한 값 (대소문자만 다른 닉네임은 같은 닉네임으로 본다)
+// 닉네임 바꾸기(rename)는 key 를 쓰는 모든 기록(시즌 보상·월드 보스 피해·받은 결투)을 새 key 로 옮긴다. renamedAt: 마지막으로 바꾼 시각
 // rating·wins·losses·attacks 는 season 시즌의 결투 기록이다 (server/season.js).
 // 결투 시즌 정산: 시즌 = { id, settledAt, players, top: [{ nickname, cls, level, rating, wins, losses }] },
 //   시즌 보상 = { key, season, rank, total, rating, wins, losses } — 받아 가면(ack) 지운다
@@ -73,6 +74,19 @@ class FileStore {
   async byToken(tokenHash) { return Object.values(this.db).find(a => a.tokenHash === tokenHash) || null; }
   async update(key, fields) {
     Object.assign(this.db[key], fields);
+    this.persist();
+  }
+  async rename(oldKey, newKey, nickname, now) {
+    if (newKey !== oldKey && this.db[newKey]) throw new TakenError();
+    const acc = this.db[oldKey];
+    delete this.db[oldKey];
+    this.db[newKey] = Object.assign(acc, { key: newKey, nickname, renamedAt: now });
+    for (const r of this.sdb.rewards) if (r.key === oldKey) r.key = newKey;
+    for (const h of this.sdb.wbHits) if (h.key === oldKey) Object.assign(h, { key: newKey, nickname });
+    for (const e of this.sdb.duelLog) {
+      if (e.defender === oldKey) e.defender = newKey;
+      if (e.attacker === oldKey) Object.assign(e, { attacker: newKey, nickname });
+    }
     this.persist();
   }
   // season 을 주면 그 시즌 순위 대상만 (결투 순위), opt.humans 면 AI 기사를 뺀다
@@ -185,7 +199,7 @@ class FileStore {
 }
 
 // ───────────────────────── Postgres ─────────────────────────
-const COLS = ['key', 'nickname', 'tokenHash', 'state', 'profile', 'level', 'best', 'power', 'cls', 'rating', 'wins', 'losses', 'season', 'attacks', 'createdAt', 'updatedAt', 'isBot', 'tower'];
+const COLS = ['key', 'nickname', 'tokenHash', 'state', 'profile', 'level', 'best', 'power', 'cls', 'rating', 'wins', 'losses', 'season', 'attacks', 'createdAt', 'updatedAt', 'isBot', 'tower', 'renamedAt'];
 const snake = (c) => c.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
 
 class PgStore {
@@ -217,6 +231,7 @@ class PgStore {
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS attacks int NOT NULL DEFAULT 0;
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_bot boolean NOT NULL DEFAULT false;
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS tower int NOT NULL DEFAULT 0;
+      ALTER TABLE accounts ADD COLUMN IF NOT EXISTS renamed_at bigint NOT NULL DEFAULT 0;
       CREATE INDEX IF NOT EXISTS accounts_tower ON accounts (tower DESC, best DESC, level DESC);
       CREATE TABLE IF NOT EXISTS duel_seasons (
         id int PRIMARY KEY,
@@ -283,11 +298,11 @@ class PgStore {
     const o = {};
     for (const c of COLS) o[c] = r[snake(c)];
     o.power = Number(o.power); o.createdAt = Number(o.createdAt); o.updatedAt = Number(o.updatedAt);
-    o.isBot = !!o.isBot; o.tower = Number(o.tower) || 0;
+    o.isBot = !!o.isBot; o.tower = Number(o.tower) || 0; o.renamedAt = Number(o.renamedAt) || 0;
     return o;
   }
   async create(acc) {
-    const vals = COLS.map(c => (c === 'isBot' ? !!acc[c] : c === 'tower' ? acc[c] || 0 : acc[c]));
+    const vals = COLS.map(c => (c === 'isBot' ? !!acc[c] : c === 'tower' || c === 'renamedAt' ? acc[c] || 0 : acc[c]));
     const r = await this.pool.query(
       `INSERT INTO accounts (${COLS.map(snake).join(',')}) VALUES (${COLS.map((_, i) => '$' + (i + 1)).join(',')})
        ON CONFLICT (key) DO NOTHING RETURNING key`, vals);
@@ -301,6 +316,29 @@ class PgStore {
     await this.pool.query(
       `UPDATE accounts SET ${ks.map((k, i) => `${snake(k)}=$${i + 2}`).join(',')} WHERE key=$1`,
       [key, ...ks.map(k => fields[k])]);
+  }
+  // 한 트랜잭션에서 계정과 key 를 쓰는 기록을 모두 새 key 로 옮긴다. 새 key 가 이미 있으면 TakenError
+  async rename(oldKey, newKey, nickname, now) {
+    const c = await this.pool.connect();
+    try {
+      await c.query('BEGIN');
+      try {
+        await c.query('UPDATE accounts SET key=$2, nickname=$3, renamed_at=$4 WHERE key=$1', [oldKey, newKey, nickname, now]);
+      } catch (e) {
+        if (e.code === '23505') throw new TakenError();
+        throw e;
+      }
+      await c.query('UPDATE season_rewards SET key=$2 WHERE key=$1', [oldKey, newKey]);
+      await c.query('UPDATE world_boss_hits SET key=$2, nickname=$3 WHERE key=$1', [oldKey, newKey, nickname]);
+      await c.query('UPDATE duel_log SET defender=$2 WHERE defender=$1', [oldKey, newKey]);
+      await c.query('UPDATE duel_log SET attacker=$2, nickname=$3 WHERE attacker=$1', [oldKey, newKey, nickname]);
+      await c.query('COMMIT');
+    } catch (e) {
+      await c.query('ROLLBACK').catch(() => {});
+      throw e;
+    } finally {
+      c.release();
+    }
   }
   // season 을 주면 그 시즌 순위 대상만 (결투 순위), opt.humans 면 AI 기사를 뺀다
   async top(sort, limit, season, opt = {}) {

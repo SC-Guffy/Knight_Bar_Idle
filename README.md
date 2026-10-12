@@ -66,7 +66,7 @@ npm run dist:win   # dist/KnightBar-win-x64.exe
 
 ## 계정 · 랭킹 · 결투
 
-- **계정**: 첫 실행 때 닉네임을 정합니다. 닉네임이 곧 계정이고 서버에서 중복될 수 없습니다(한글·영문·숫자·_ 2~12자, 대소문자 무시).
+- **계정**: 첫 실행 때 닉네임을 정합니다. 닉네임이 곧 계정이고 서버에서 중복될 수 없습니다(한글·영문·숫자·_ 2~12자, 대소문자 무시). 계정 창("계정 변경…")에서 닉네임을 하루 한 번 무료로 바꿀 수 있고, 랭킹·결투·월드 보스 기록과 복구 코드는 그대로 이어집니다.
 - **저장**: 진행은 이 기기에 먼저 저장되고 30초마다(그리고 앱을 끌 때) 서버에 올라갑니다. 오프라인이어도 게임은 계속되고, 연결되면 다시 올라갑니다. 켤 때 서버 기록이 더 최근이면 그걸 불러옵니다.
 - **계정 변경**: 메뉴바 아이콘 → `계정 변경…`에서 새 기사를 만들거나, 이 기기의 다른 기사로 바꾸거나, 다른 기기의 기사를 **복구 코드**로 가져옵니다. 복구 코드는 같은 창에서 볼 수 있습니다.
 - **랭킹**: 캠프의 🏆 랭킹 탭. 최고 스테이지순 / 이번 결투 시즌 점수순 / 🗼 도전의 탑 최고 층순으로 볼 수 있습니다 (탑 층은 세이브와 함께 올라가는 `profile.tower`).
@@ -370,6 +370,7 @@ KB_SERVER=http://localhost:3000 KB_USER_DATA=/tmp/kb npm start
 | `GET /api/nickname?name=` | 닉네임 사용 가능 여부 |
 | `POST /api/accounts` | `{ nickname, state?, profile? }` → `{ nickname, token }`. 중복이면 409 |
 | `GET /api/me` · `PUT /api/me` | 내 세이브 읽기/쓰기 (`Authorization: Bearer <token>`) |
+| `POST /api/me/nickname` | 닉네임 바꾸기 (하루 한 번, `{ nickname }`). key 를 쓰는 기록·레이드 방을 새 key 로 옮긴다 |
 | `GET /api/ranking?sort=stage\|duel\|tower` | 상위 100명 + (인증 시) 내 순위. 🤖 AI 기사는 `bot: true`, `bots` 는 AI 수, 결투 순위의 `me.prizeRank` 는 사람끼리 순위 |
 | `POST /api/duels` | `{ opponent }` → 결투 결과와 재생 기록 |
 | `POST /api/raids/fill` | 방장: 빈자리를 🤖 AI 기사로 채우기 |
