@@ -57,7 +57,8 @@ function raidStageAt(b, n) {
 }
 
 // ───────────────────────── 정산 ─────────────────────────
-// 서버가 보낸 레이드 결과를 내 몫만큼 정산한다: 클리어했을 때만 입장권 1장 소모, 재화(MVP 1.5배), 경험치, 이기면 처치 상자.
+// 서버가 보낸 레이드 결과를 내 몫만큼 정산한다: 클리어했을 때만 입장권 1장 소모, 재화(MVP 1.5배), 경험치, 처치 상자.
+// 실패하면 입장권도 안 깎고 보상도 없다 (위로 보상을 주면 표 한 장으로 무한 파밍이 된다)
 // 이미 정산했거나 내가 그 파티에 없었으면 null
 function settleRaid(result, nick) {
   if (S.raid.claimed.includes(result.id)) return null;
@@ -75,7 +76,7 @@ function settleRaid(result, nick) {
   const reward = {
     gold: Math.round(ms.gold * 8 * mult * goldMult()),
     wood: Math.round(60 * scale * mult), ore: Math.round(45 * scale * mult), mana: Math.round(12 * scale * mult),
-    exp: Math.round(ms.exp * (f.won ? 5 : 1) * bot * expMult()),
+    exp: f.won ? Math.round(ms.exp * 5 * bot * expMult()) : 0,
     chest: f.won, mvp, mult,
   };
   S.gold += reward.gold;

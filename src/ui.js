@@ -1852,7 +1852,7 @@ function viewRaidResult() {
         <button class="x" data-action="raid-result-close" title="접기">✕</button>
       </div>
       <div class="clist">${rows}</div>
-      <div class="gain">내 보상 — ${gain}${r.mvp ? ` <b class="mvpchip">👑 MVP 재화 ×${RAID_MVP_MULT}</b>` : ''}${r.chest ? ` · 🎁 ${esc(b.chest.name)} +1` : L.won ? '' : ' · 실패해서 재화를 일부만 받았어요 (입장권은 그대로 남았어요 🎟️)'}</div>
+      <div class="gain">${L.won ? `내 보상 — ${gain}${r.mvp ? ` <b class="mvpchip">👑 MVP 재화 ×${RAID_MVP_MULT}</b>` : ''}${r.chest ? ` · 🎁 ${esc(b.chest.name)} +1` : ''}` : '실패하면 보상이 없어요 — 입장권은 그대로 남았어요 🎟️'}</div>
     </div>`;
 }
 
@@ -1983,7 +1983,7 @@ function viewRaidLobby() {
     <div class="card">
       <div class="ic">🎟️</div>
       <div class="info"><b>레이드 입장권 <small>보유 ${S.raid.tickets} / ${RAID_TICKET_MAX}</small></b>
-        <div class="eff">매일 ${RAID_TICKET_FREE}장까지 무료로 채워져요. 클리어했을 때만 1장 쓰여요(실패하면 그대로). 하루 첫 구매는 헐값, 그다음부터 점점 비싸져요 — 오늘 ${bought}장 샀어요 (자정에 초기화).</div></div>
+        <div class="eff">매일 ${RAID_TICKET_FREE}장까지 무료로 채워져요. 클리어했을 때만 1장 쓰여요(실패하면 그대로, 보상도 없음). 하루 첫 구매는 헐값, 그다음부터 점점 비싸져요 — 오늘 ${bought}장 샀어요 (자정에 초기화).</div></div>
       <div class="act">
         <div class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip('💎', p.mana, S.mats.mana)}</div>
         <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button>
