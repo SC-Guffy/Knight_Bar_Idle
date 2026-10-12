@@ -31,8 +31,20 @@ Everything sits on the BOTTOM edge of the image; the scenery occupies only the l
 The entire sky / upper area must be ONE flat solid pure magenta color (#FF00FF) so it can be keyed out as transparent; any fog or clouds that belong to the scene stay low inside the scenery band.
 Left and right edges must match so the strip tiles seamlessly. No characters, no creatures, no text, no UI, no ground strip at the very bottom.'''
 
+# 낮은 지면 띠 (하단바에서 땅에서 피어난 느낌): 키 작은 물체를 온전한 모양으로
+if '--low' in sys.argv:
+    OUTDIR = 'raw_low'
+    TPL = '''Hand-made 2D pixel art GROUND-LEVEL FOREGROUND STRIP for a retro side-scrolling idle game, zone "{z}". Side view, very wide panorama.
+Only SHORT things that grow or sit on the ground: low bushes, grass tufts, small rocks, flowers, small props typical of the zone. Every object must be COMPLETE and whole (never cut off at the top), with a natural irregular silhouette along the top, varied heights, gaps of ground between clusters.
+Everything sits on the BOTTOM edge of the image and occupies only the lowest 14% of the image height. Nothing tall: no trees taller than the strip, no buildings, no mountains, no far background layer.
+Style like a hand-pixeled 16-bit SNES/GBA game drawn by a human pixel artist: big clean color clusters, 1-pixel dark outline, flat cel shading with 2 shade steps, NO gradients, NO noise, NO speckles, NO anti-aliasing. Palette under 16 colors.
+The entire area above the objects must be ONE flat solid pure magenta color (#FF00FF). Left and right edges must match so the strip tiles seamlessly. No characters, no creatures, no text, no UI.'''
+else:
+    OUTDIR = '.'
+os.makedirs(OUTDIR, exist_ok=True)
+
 def job(k):
-    out = f'raw_{k}.png'
+    out = f'{OUTDIR}/raw_{k}.png'
     if os.path.exists(out): return
     gen('openai/gpt-5.4-image-2', TPL.format(z=ZONES[k]), out, '21:9')
 

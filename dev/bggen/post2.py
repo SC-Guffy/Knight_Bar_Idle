@@ -15,7 +15,8 @@ src, out, NCOL = sys.argv[1], sys.argv[2], int(sys.argv[4])
 ARG = sys.argv[3]  # 'c5' = 원본 격자 5px 로 복원, 숫자 = 목표 줄 수
 BRIGHT = float(sys.argv[5]) if len(sys.argv) > 5 else 0.62
 SAT = float(sys.argv[6]) if len(sys.argv) > 6 else 0.75
-FADE = 0.4
+FADE = float(sys.argv[8]) if len(sys.argv) > 8 else 0.4
+KEEP = int(sys.argv[7]) if len(sys.argv) > 7 else 0   # >0 이면 아래 KEEP 줄만 남긴다 (땅에서 피어난 낮은 띠)
 
 im = Image.open(src).convert('RGB')
 W0, H0 = im.size
@@ -89,19 +90,40 @@ print('lum', round(lum), 'bright', round(bf, 2))
 sw = ImageEnhance.Brightness(ImageEnhance.Color(sw).enhance(SAT)).enhance(bf)
 dcols = list(sw.get_flattened_data()) if hasattr(sw,'get_flattened_data') else list(sw.getdata())
 
+if KEEP and NH > KEEP:
+    grid = grid[NH - KEEP:]; NH = KEEP
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 # 풍경이 처음 나오는 줄부터 FADE 비율만큼 디더 페이드
-first = next(y for y in range(NH) if any(c != key_i for c in grid[y]))
-span = max(1, (NH - first) * FADE)
-outim = Image.new('RGBA', (NW, NH))
-op = outim.load()
-for y in range(NH):
-    t = (y - first + 0.5) / span
+import math
+if KEEP:
+    # 땅에서 피어난 실루엣: 열마다 높이가 다른 윗선 (낮은 사인 합, 양 끝이 이어지도록 주기 = 폭)
+    def ht(x):
+        t = 2 * math.pi * x / NW
+        v = 0.55 * math.sin(3 * t + 1.3) + 0.3 * math.sin(7 * t + 0.4) + 0.15 * math.sin(13 * t + 2.1)
+        return KEEP * (0.45 + 0.55 * (v + 1) / 2)
+    outim = Image.new('RGBA', (NW, NH))
+    op = outim.load()
     for x in range(NW):
-        i = grid[y][x]
-        if i == key_i or t < (BAYER[y % 4][x % 4] + 0.5) / 16:
-            op[x, y] = (0, 0, 0, 0)
-        else:
-            op[x, y] = dcols[i] + (255,)
+        top = NH - ht(x)
+        for y in range(NH):
+            i = grid[y][x]
+            t = (y - top + 0.5) / 3          # 윗선에서 3줄 동안 디더로 흩어진다
+            if i == key_i or t < 0 or t < (BAYER[y % 4][x % 4] + 0.5) / 16:
+                op[x, y] = (0, 0, 0, 0)
+            else:
+                op[x, y] = dcols[i] + (255,)
+else:
+    first = next(y for y in range(NH) if any(c != key_i for c in grid[y]))
+    span = max(1, (NH - first) * FADE)
+    outim = Image.new('RGBA', (NW, NH))
+    op = outim.load()
+    for y in range(NH):
+        t = (y - first + 0.5) / span
+        for x in range(NW):
+            i = grid[y][x]
+            if i == key_i or t < (BAYER[y % 4][x % 4] + 0.5) / 16:
+                op[x, y] = (0, 0, 0, 0)
+            else:
+                op[x, y] = dcols[i] + (255,)
 outim.save(out)
 print(out, outim.size)

@@ -8,3 +8,8 @@ dev/shots/
 dev/__pycache__/
 dev/bggen/raw/
 dev/bgtest/
+dev/bggen/raw_low/
+dev/bggen/low/
+dev/bggen/low2/
+dev/bggen/mini/
+dev/bggen/__pycache__/
