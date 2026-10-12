@@ -641,14 +641,14 @@ function drawTownTag(g, id, x, y, t) {
   const building = S.build && S.build.id === id;
   const text = building ? `🔨 ${B.name} · ${fmtTime(S.build.remain)}` : `${B.icon} ${B.name} Lv ${lv}`;
   g.font = '600 11px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
-  const tw = Math.ceil(g.measureText(text).width) + 14, th = 18;
+  const tw = Math.ceil(measureTextIco(g, text).width) + 14, th = 18;
   const bob = sel ? Math.round(Math.sin(t * 4) * 1.5) : 0;
   const x0 = Math.round(x - tw / 2), y0 = Math.round(y - th - 4 + bob);
   g.fillStyle = sel ? 'rgba(255,177,59,.95)' : townUi.hover === id ? 'rgba(30,30,42,.92)' : 'rgba(18,18,26,.78)';
   g.beginPath(); g.roundRect(x0, y0, tw, th, 9); g.fill();
   g.fillStyle = sel ? '#1a1206' : '#f3efe6';
   g.textBaseline = 'middle';
-  g.fillText(text, x0 + 7, y0 + th / 2 + 0.5);
+  fillTextIco(g, text, x0 + 7, y0 + th / 2 + 0.5);
   if (building) {
     const k = 1 - S.build.remain / S.build.total;
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x0 + 7, y0 + th - 3, tw - 14, 2);

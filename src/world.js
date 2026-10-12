@@ -92,12 +92,12 @@ function drawShout() {
   for (const [t, c] of shoutNow.parts) {
     // 무지개: 글자마다 색이 흐른다
     for (const piece of c === 'rainbow' ? [...t] : [t]) {
-      ctx.strokeText(piece, x, y);
+      strokeTextIco(ctx, piece, x, y);
       ctx.fillStyle = c === 'rainbow' ? `hsl(${(hue + (x - shoutNow.x) * 9) % 360}, 100%, 66%)` : c;
       if (c === 'rainbow') { ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 8; }
-      ctx.fillText(piece, x, y);
+      fillTextIco(ctx, piece, x, y);
       ctx.shadowBlur = 0;
-      x += ctx.measureText(piece).width;
+      x += measureTextIco(ctx, piece).width;
     }
   }
   shoutNow.w = x - shoutNow.x;
@@ -690,7 +690,7 @@ function drawTowerBody(g) {
     g.fillRect(0, gy, TOWER_W, 1);
     // 층 번호 (최고 기록 층은 금색, 보스 층은 빨강)
     g.fillStyle = f === S.tower.best ? '#ffd257' : boss ? '#ff8080' : 'rgba(255,255,255,0.55)';
-    g.fillText(`${boss ? '👑' : ''}${f}F`, 22, top + 12);
+    fillTextIco(g, `${boss ? '👑' : ''}${f}F`, 22, top + 12);
     if (i === 0) {
       // 1층 왼쪽 벽의 문
       g.fillStyle = '#0c0a12';
@@ -911,7 +911,7 @@ function drawSlotFx() {
     const k = f.st === 'fly' ? 1 - Math.min(1, f.t / 0.5) * 0.4 : 1;
     ctx.font = `${Math.round(f.size * k)}px -apple-system, sans-serif`;
     ctx.save(); ctx.translate(Math.round(f.x), Math.round(f.y - f.size / 2)); ctx.rotate(f.st === 'fall' ? f.rot * 0.3 : 0);
-    ctx.fillText(DG_RES[f.r].icon, 0, 0);
+    fillTextIco(ctx, DG_RES[f.r].icon, 0, 0);
     ctx.restore();
   }
   ctx.restore();
@@ -968,7 +968,7 @@ function drawSlotMachine() {
       // 당첨 칸의 그림은 계속 콩콩 뛴다
       const b = Math.sin(r.bounce * Math.PI) * 4 - (hit ? Math.abs(Math.sin(since * (perfect ? 12 : 9))) * 3 : 0);
       ctx.fillStyle = '#000';
-      ctx.fillText(DG_RES[r.final].icon, cx, cy + 1 + b);
+      fillTextIco(ctx, DG_RES[r.final].icon, cx, cy + 1 + b);
     } else {
       // 돌아가는 띠: 그림 3개가 아래로 흐른다 (잔상 한 장)
       const p = r.phase, idx = Math.floor(p), off = (p - idx) * wh;
@@ -976,9 +976,9 @@ function drawSlotMachine() {
       for (let j = -1; j <= 1; j++) {
         const id = DG_RES_IDS[((idx + j) % 6 + 6) % 6];
         ctx.globalAlpha = 0.85;
-        ctx.fillText(DG_RES[id].icon, cx, cy + 1 - j * wh + off);
+        fillTextIco(ctx, DG_RES[id].icon, cx, cy + 1 - j * wh + off);
         ctx.globalAlpha = 0.25;
-        ctx.fillText(DG_RES[id].icon, cx, cy + 1 - j * wh + off - 10);
+        fillTextIco(ctx, DG_RES[id].icon, cx, cy + 1 - j * wh + off - 10);
       }
       ctx.globalAlpha = 1;
     }
@@ -2942,9 +2942,9 @@ function drawFx() {
     const cx = duelPlay ? duelPlay.x0 + duelPlay.res.fight.start / 2 : raidPlay ? raidPlay.x0 + raidPlay.f.start * 0.55
       : towerInside() ? W - TOWER_W - 130 : toScreen(knight.x) + 40;
     const bx = Math.min(W - 60, Math.max(60, cx)), by = groundY() - 78;
-    ctx.strokeText(banner.text, bx, by);
+    strokeTextIco(ctx, banner.text, bx, by);
     ctx.fillStyle = banner.color === 'rainbow' ? `hsl(${Math.floor(clock * 420) % 360}, 100%, 72%)` : banner.color;
-    ctx.fillText(banner.text, bx, by);
+    fillTextIco(ctx, banner.text, bx, by);
     ctx.globalAlpha = 1;
   }
   drawShout();
@@ -2959,9 +2959,9 @@ function drawFloaters(tw) {
     const popK = f.pop && f.t < 0.16 ? 1 + 0.7 * (1 - f.t / 0.16) : 1;
     ctx.font = `bold ${Math.round(f.size * popK)}px -apple-system, sans-serif`;
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-    ctx.strokeText(f.text, f.x, f.y);
+    strokeTextIco(ctx, f.text, f.x, f.y);
     ctx.fillStyle = f.color;
-    ctx.fillText(f.text, f.x, f.y);
+    fillTextIco(ctx, f.text, f.x, f.y);
   }
   ctx.globalAlpha = 1;
 }
@@ -3087,9 +3087,9 @@ function drawDuel() {
     ctx.lineJoin = 'round';
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
     const label = `${c.icon} ${who.bot ? '🤖' : ''}${who.nickname}`;
-    ctx.strokeText(label, x, top - 5);
+    strokeTextIco(ctx, label, x, top - 5);
     ctx.fillStyle = side === 'a' ? '#f3efe6' : '#ffc9c9';
-    ctx.fillText(label, x, top - 5);
+    fillTextIco(ctx, label, x, top - 5);
     ctx.globalAlpha = 1;
   }
 }
@@ -4017,9 +4017,9 @@ function drawRaid() {
   ctx.lineJoin = 'round';
   const label = (text, x, y, color) => {
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-    ctx.strokeText(text, x, y);
+    strokeTextIco(ctx, text, x, y);
     ctx.fillStyle = color;
-    ctx.fillText(text, x, y);
+    fillTextIco(ctx, text, x, y);
   };
   if (d.dark > 0.01) { ctx.fillStyle = `rgba(12,4,20,${d.dark})`; ctx.fillRect(-10, -10, W + 20, H + 20); }
   // 광역기 경고: 화면 가장자리가 붉게 물들고, 파티가 선 바닥 전체가 위험 구역으로 깜빡인다

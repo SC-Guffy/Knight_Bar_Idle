@@ -236,3 +236,6 @@ body.web { background: #0f0e1a; background-image: repeating-linear-gradient(0deg
 #dgPick button.auto { box-shadow: 0 0 0 2px var(--px-gold-l), 4px 4px 0 rgba(0, 0, 0, .45); }
 .dgtime { height: 4px; background: var(--px-ink); }
 .dgtime > div { background: var(--gold); }
+
+/* 이모지를 큰 글씨(18~22px)로 보이던 자리는 도트 아이콘도 2배(28px)로 — 정수배만 쓴다 (src/ui.js iconize) */
+.sup .ic .pi, .card .ic .pi, .mskill .sicon .pi, .box .lic .pi, .gitem .lic .pi, .gsempty .pi, .pic .pi { width: 28px; height: 28px; vertical-align: middle; }

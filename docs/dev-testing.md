@@ -52,7 +52,8 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 
 ## UI 도트 아이콘 (`dev/icons.html`)
 
-- `node dev/make-icons.js` 로 `src/skin/icons.svg`·`icons.css` 를 다시 만든 뒤 `http://localhost:<포트>/dev/icons.html` — 이모지와 도트 아이콘을 1×·2×·4×, 캠프 탭 줄 견본으로 비교한다.
+- `node dev/make-icons.js` 로 `src/skin/icons.png`·`icons.css` 를 다시 만든 뒤 `http://localhost:<포트>/dev/icons.html` — 이모지와 도트 아이콘을 1×·2×·4×, 캠프 탭 줄 견본으로 비교한다.
+- 그림만 크게 볼 때는 브라우저 없이 `python -I dev/icon-preview.py dev/shots/pv.png [이름 ...]` → Read 로 PNG 를 본다 (6배 + 1배 사본).
 - 스크린샷을 1:1 로 보려면 `resize_window {width: 800, height: 600}` (기본 창은 축소되어 도트가 뭉개져 보인다). 끝나면 `preset: 'desktop'`.
 
 ## UI 버튼 상태 견본 (`dev/ui-buttons.html`)

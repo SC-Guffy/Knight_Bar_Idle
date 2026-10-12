@@ -567,7 +567,7 @@ function drawDrop(d) {
     ctx.font = `bold ${tr.beam === 2 ? 11 : 10}px -apple-system, sans-serif`;
     ctx.textAlign = 'center'; ctx.lineJoin = 'round';
     if (tr.beam === 2) {
-      const w = ctx.measureText(name).width + 10;
+      const w = measureTextIco(ctx, name).width + 10;
       ctx.fillStyle = 'rgba(12,12,18,0.72)';
       ctx.fillRect(Math.round(d.x - w / 2), ty - 10, Math.round(w), 14);
       ctx.fillStyle = dropCol(d, 0.9);
@@ -575,10 +575,10 @@ function drawDrop(d) {
       ctx.fillRect(Math.round(d.x - w / 2), ty + 3, Math.round(w), 1);
     } else {
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-      ctx.strokeText(name, d.x, ty);
+      strokeTextIco(ctx, name, d.x, ty);
     }
     ctx.fillStyle = d.g === 7 && d.kind !== 'tome' ? dropCol(d) : dropTextColor(d);
-    ctx.fillText(name, d.x, ty);
+    fillTextIco(ctx, name, d.x, ty);
     ctx.globalAlpha = 1;
   }
 
@@ -592,7 +592,7 @@ function drawDrop(d) {
     ctx.save();
     ctx.globalAlpha = a;
     ctx.font = `bold ${size}px -apple-system, sans-serif`;
-    const w = ctx.measureText(name).width + 12;
+    const w = measureTextIco(ctx, name).width + 12;
     // 오른쪽 끝에서는 왼쪽으로 붙인다
     const right = d.x + 12 * s + w < W - 4;
     const lx = right ? d.x + 10 * s : d.x - 10 * s - w * pop;
@@ -606,7 +606,7 @@ function drawDrop(d) {
     ctx.fillRect(right ? 0 : w - 2, 0, 2, size + 6);
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillStyle = d.g === 7 && d.kind !== 'tome' ? dropCol(d) : dropTextColor(d);
-    ctx.fillText(name, 6, (size + 6) / 2 + 1);
+    fillTextIco(ctx, name, 6, (size + 6) / 2 + 1);
     ctx.restore();
   }
 }

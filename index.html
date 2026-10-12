@@ -108,10 +108,7 @@
   #xpfill { background: linear-gradient(90deg, #3d8bff, #7cc4ff); }
   #xpfill { opacity: .8; }
   .gold { color: var(--gold); }
-  /* 골드 아이콘: 🪙 이모지는 macOS에서 은색이라 직접 그린 금화를 쓴다 */
-  .gc { display: inline-block; width: .95em; height: .95em; border-radius: 50%; vertical-align: -0.14em;
-    background: radial-gradient(circle at 35% 30%, #fff6c2 0 16%, #ffd54a 17% 52%, #e6a400 53% 100%);
-    box-shadow: inset 0 0 0 1px #a86f00, inset 0 0 0 2.5px rgba(255, 236, 150, .55); }
+  /* 골드 아이콘 .gc 는 도트 금화 — src/skin/icons.css (dev/make-icons.js) */
   #status { min-width: 92px; }
   /* 바 안의 버튼: 캠프에선 🏕 캠프(창 열기), 원정 중엔 🏕 귀환, 탑·미궁 도전 중엔 ⬇️ 후퇴. 귀환 중엔 숨고 바가 줄어든다.
      바 자체는 클릭을 통과시키고(.interactive 아님) 이 버튼만 클릭을 받는다 — 바 전체가 클릭 영역이면 뒤의 창을 누르려다 캠프가 열렸다 */
@@ -558,7 +555,7 @@
   /* 우편함: 캠프 창 머리의 📬 버튼 → campTab 'mail' */
   .mailbtn { all: unset; cursor: pointer; height: 26px; padding: 0 7px; border-radius: 7px; line-height: 26px; position: relative; }
   .mailbtn:hover, .mailbtn.on { background: var(--soft-hover); }
-  .mailbtn i { position: absolute; top: -5px; right: -6px; font-style: normal; padding: 0 5px; border-radius: 999px; background: var(--dot); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; }
+  .mailbtn i:not(.pi) { position: absolute; top: -5px; right: -6px; font-style: normal; padding: 0 5px; border-radius: 999px; background: var(--dot); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; }
   .mailbox { display: flex; flex-direction: column; gap: 4px; }
   .mailbox .shd { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
   .mailbox .shd small { color: var(--muted); }
@@ -814,24 +811,24 @@
 <body>
 <div id="webPromo" hidden>
   <div class="t">
-    <b>⚔️ 데스크탑 앱으로 받으면 바탕화면 맨 아래에서 기사가 계속 싸워요</b>
+    <b><i class="pi pi-sword"></i> 데스크탑 앱으로 받으면 바탕화면 맨 아래에서 기사가 계속 싸워요</b>
     <small>다른 기기에서도 복구 코드로 같은 기사를 이어서 키울 수 있어요 · 처음 열 때 경고가 뜨면 <a href="#" data-guide="mac">설치 방법</a>을 봐 주세요</small>
   </div>
   <div class="dls">
-    <a data-os="mac" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-mac-arm64.dmg" target="_blank" rel="noopener">🍎 Mac (Apple 칩)</a>
-    <a data-os="mac" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-mac-x64.dmg" target="_blank" rel="noopener">🍎 Mac (Intel)</a>
-    <a data-os="win" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-win-x64.exe" target="_blank" rel="noopener">🪟 Windows</a>
-    <a href="#" data-guide="">❓ 설치 방법</a>
+    <a data-os="mac" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-mac-arm64.dmg" target="_blank" rel="noopener"><i class="pi pi-apple"></i> Mac (Apple 칩)</a>
+    <a data-os="mac" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-mac-x64.dmg" target="_blank" rel="noopener"><i class="pi pi-apple"></i> Mac (Intel)</a>
+    <a data-os="win" href="https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest/download/KnightBar-win-x64.exe" target="_blank" rel="noopener"><i class="pi pi-window"></i> Windows</a>
+    <a href="#" data-guide=""><i class="pi pi-question"></i> 설치 방법</a>
   </div>
 </div>
 <!-- 설치 가이드: 서명·공증 전이라 처음 실행할 때 나오는 OS 경고를 넘기는 방법 -->
 <div id="guide" hidden>
   <div id="guideModal">
     <header>
-      <h2><span class="ttl">🛡️ 처음 실행할 때 경고가 뜨면</span></h2>
+      <h2><span class="ttl"><i class="pi pi-shield"></i> 처음 실행할 때 경고가 뜨면</span></h2>
       <button class="x" data-guide-close title="닫기 (Esc)">✕</button>
     </header>
-    <nav><button data-guide-tab="mac">🍎 Mac</button><button data-guide-tab="win">🪟 Windows</button></nav>
+    <nav><button data-guide-tab="mac"><i class="pi pi-apple"></i> Mac</button><button data-guide-tab="win"><i class="pi pi-window"></i> Windows</button></nav>
     <div class="gbody" data-guide-pane="mac">
       <p class="lead">아직 Apple 공증을 받지 않은 앱이라 macOS가 처음 한 번 막습니다. 아래대로 한 번만 허용하면 다음부터는 바로 열려요.</p>
       <ol class="steps">
@@ -875,7 +872,7 @@
         <div class="meter"><div id="xpfill"></div></div>
       </div>
       <span id="status"></span>
-      <span>🎒 <b id="bag"></b></span>
+      <span><i class="pi pi-bag"></i> <b id="bag"></b></span>
       <span><b id="stage"></b></span>
       <span class="gold"><i class="gc"></i> <b id="gold">0</b></span>
       <button id="hbtn" class="btn interactive" hidden></button>
@@ -889,6 +886,8 @@
 </div>
 
 <script src="src/data.js"></script>
+<script src="src/iconmap.js"></script>
+<script src="src/icondraw.js"></script>
 <script src="src/classes.js"></script>
 <script src="src/body2.js"></script>
 <script src="src/limbs.js"></script>

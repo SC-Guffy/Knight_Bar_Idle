@@ -3417,13 +3417,13 @@ function drawUltScreen() {
   const label = `${u.icon} ${u.name}${u.star || ''}`, x = Math.max(160, Math.min(W - 160, u.cx + 120));
   ctx.shadowColor = u.color; ctx.shadowBlur = 14;
   ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-  ctx.strokeText(label, x - sweep, cy + 1);
+  strokeTextIco(ctx, label, x - sweep, cy + 1);
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(label, x - sweep, cy + 1);
+  fillTextIco(ctx, label, x - sweep, cy + 1);
   ctx.shadowBlur = 0;
   ctx.font = 'bold 10px -apple-system, sans-serif';
   ctx.fillStyle = u.color;
-  ctx.fillText('ULTIMATE', x - sweep, cy - band / 2 - 7);       // 이름 띠 바로 위 (레터박스 아래)
+  fillTextIco(ctx, 'ULTIMATE', x - sweep, cy - band / 2 - 7);       // 이름 띠 바로 위 (레터박스 아래)
   ctx.restore();
 }
 
@@ -3454,9 +3454,9 @@ function drawScreenFx() {
   ctx.lineJoin = 'round';
   ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.8)';
   const label = `${k.icon} ${cutin.name || k.name}${cutin.star || ''}`;
-  ctx.strokeText(label, cx, y + h / 2 + 1);
+  strokeTextIco(ctx, label, cx, y + h / 2 + 1);
   ctx.fillStyle = cutin.color;
-  ctx.fillText(label, cx, y + h / 2 + 1);
+  fillTextIco(ctx, label, cx, y + h / 2 + 1);
   ctx.restore();
 }
 
@@ -3471,7 +3471,7 @@ function drawSkillIcons(x, y) {
     ctx.font = '8px -apple-system, sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.globalAlpha = ready ? 1 : 0.45;
-    ctx.fillText(k.icon, bx + sz / 2, y + sz / 2 + 0.5);
+    fillTextIco(ctx, k.icon, bx + sz / 2, y + sz / 2 + 0.5);
     ctx.globalAlpha = 1;
     if (!ready) {
       ctx.fillStyle = 'rgba(0,0,0,0.55)';

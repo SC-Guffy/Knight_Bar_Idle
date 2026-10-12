@@ -44,4 +44,4 @@
 | 스펙 | 상태 | 내용 |
 |---|---|---|
 | [art-upgrade.md](art-upgrade.md) | 진행 중 | AI 이미지 생성 → 도트 복원으로 배경·UI·아이콘 퀄업 |
-| [ui-icons.md](ui-icons.md) | 진행 중 | UI 이모지 → 14px 직접 도트 아이콘 (`dev/make-icons.js`) |
+| [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
