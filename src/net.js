@@ -16,7 +16,7 @@ async function api(method, path, body, { token, timeout = 20000, keepalive = fal
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeout);
   try {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json', 'X-Game-Version': GAME_VERSION };   // 서버가 예전 버전 클라이언트를 막을 때 쓴다 (레이드 등)
     if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(SERVER + path, {
       method, headers, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal, keepalive,

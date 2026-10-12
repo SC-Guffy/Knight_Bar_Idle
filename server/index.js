@@ -93,7 +93,7 @@ function send(res, status, body) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Key',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Key, X-Game-Version',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Cache-Control': 'no-store',
   });
@@ -178,6 +178,19 @@ async function runDuel(me, op) {
 }
 
 // ───────────────────────── 라우트 ─────────────────────────
+// 클라이언트 버전 (src/data.js GAME_VERSION, 헤더 X-Game-Version). 보상 정산이 클라이언트에서 일어나는 기능은 구멍을 고친 뒤 예전 버전을 막는다
+//   0.19.11: 레이드 실패 보상 0 (예전 버전은 실패해도 재화 25%를 받아 입장권 한 장으로 무한 파밍이 됐다)
+const RAID_MIN_VERSION = '0.19.11';
+const verNum = (v) => String(v || '0').split('.').map((x) => parseInt(x, 10) || 0);
+function versionAtLeast(v, min) {
+  const a = verNum(v), b = verNum(min);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+  return true;
+}
+function requireClient(req, min) {
+  if (!versionAtLeast(req.headers['x-game-version'], min)) throw new HttpError(426, '게임이 업데이트됐어요 — 새로 고침(또는 다시 실행)한 뒤 이용해 주세요');
+}
+
 const lastDuel = new Map();   // key → 마지막 결투 시각
 
 // ───────────────────────── 운영 기록 ─────────────────────────
@@ -561,6 +574,7 @@ const raidRoutes = {
 
   // 방장: 출정. 모두 준비됐으면 서버가 전투를 끝까지 계산해서 방에 결과를 남긴다
   'POST /api/raids/start': async (req) => {
+    requireClient(req, RAID_MIN_VERSION);
     const me = await authLite(req);
     const r = hostRoom(me);
     const waiting = r.members.find((m) => m.key !== r.host && !m.ready);
