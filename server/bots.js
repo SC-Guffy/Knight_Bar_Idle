@@ -7,7 +7,8 @@
 //  - 성장: 최근 7일 안에 활동한 사람들의 최고 스테이지 중앙값(R) × 봇마다 정해진 배수 k 를 목표로 조금씩 오른다.
 //    k 는 순번(slot)대로 0.5 ~ 1.3 에 깔리는데 아래쪽이 촘촘하다 — 봇 절반쯤이 사람 중앙값 아래, 맨 위 몇 명이 사람 1등 언저리.
 //    목표는 사람 1등 × BOT_TOP_OVER 를 넘지 않고, 한 틱에 1스테이지까지만 오른다 (사람보다 눈에 띄게 빨리 크지 않게).
-//    목표보다 BOT_DROP_OVER 배 넘게 앞선 봇은 목표로 내려온다 (기준이 바뀌었거나 사람이 빠졌을 때).
+//    목표보다 BOT_DROP_OVER 배 넘게 앞선 봇은 목표로 내려온다 (기준이 바뀌었거나 사람이 빠졌을 때). 탑 층도 사람 1등 층까지만.
+//    원칙: 봇은 게임을 풍성하게 하는 곁들이일 뿐, 사람의 할거리(순위·보스 처치·결투 점수·닉네임)를 빼앗지 않는다.
 //    사람이 아무도 없으면(초기화 직후) 봇 나이로 하루 10스테이지쯤 (최대 80).
 //  - 능력치: dev/bot-curve.js 가 진행 봇으로 구운 표(server/bot-curve.json)에서 그 계열·그 최고 스테이지 줄을 골라 쓴다
 //    (클라이언트 profile() 과 같은 모양: 레벨·직업(전직 단계)·공격력·체력·스킬…, 줄 사이는 로그 보간). 장비 편차 g 를 곱한다.
@@ -117,16 +118,16 @@ function createBots(deps) {
   const botShouts = [];               // 봇 확성기 시각 (최근 1시간)
   let wbDay = -1; const wbDone = new Map();   // 오늘 봇별 쓴 도전 수 (DB 를 매번 묻지 않게)
 
-  // { mid: 사람 중앙값, cap: 봇 목표 상한 }
+  // { mid: 사람 중앙값, cap: 봇 목표 상한, towerCap: 봇 탑 층 상한 = 사람 1등 층 }
   async function reference(now, bots) {
     const hs = await store.humansSince(now - HUMAN_ACTIVE_MS);
     if (hs.length) {
       const b = hs.map((h) => h.best).sort((x, y) => x - y);
       const mid = b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2;
-      return { mid, cap: Math.max(1, b[b.length - 1] * BOT_TOP_OVER) };
+      return { mid, cap: Math.max(1, b[b.length - 1] * BOT_TOP_OVER), towerCap: Math.max(...hs.map((h) => h.tower || 0)) };
     }
     const born = Math.min(now, ...bots.map((a) => a.state.bot.born));
-    return { mid: Math.min(80, 12 + 10 * (now - born) / DAY), cap: Infinity };
+    return { mid: Math.min(80, 12 + 10 * (now - born) / DAY), cap: Infinity, towerCap: Infinity };
   }
 
   // 봇 수를 CFG.count 에 맞춘다: 빈 순번을 새 봇으로 채우고, 넘치는 순번은 지운다
@@ -169,9 +170,11 @@ function createBots(deps) {
       if (best <= 1) best = Math.max(1, Math.round(target * (0.7 + 0.2 * Math.random())));   // 갓 만든 봇은 목표 근처에서 시작
       else if (drop) best = target;
       else if (best < target && Math.random() < 0.35) best += 1;
-      if (best === a.best && now - a.updatedAt < REFRESH_MS) continue;
+      // 탑은 사람 1등 층을 넘지 않는다 (사람이 아직 안 올랐으면 봇도 0층)
+      const tw = Math.min(towerOf(best, b.tw), R.towerCap), cur = a.tower || 0;
+      const tower = drop || cur > R.towerCap ? Math.min(cur, tw) : Math.max(cur, tw);
+      if (best === a.best && tower === cur && now - a.updatedAt < REFRESH_MS) continue;
       const p = scaled(curveAt(b.line, best), b.g);
-      const tower = drop ? Math.min(a.tower || 0, towerOf(best, b.tw)) : Math.max(a.tower || 0, towerOf(best, b.tw));
       const fields = { profile: p, best, level: p.level, power: p.power, cls: p.cls, tower, updatedAt: now };
       await store.update(a.key, fields);
       Object.assign(a, fields);

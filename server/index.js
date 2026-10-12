@@ -157,11 +157,13 @@ async function runDuel(me, op) {
   const pa = sanitizeProfile(me.profile), pb = sanitizeProfile(op.profile);
   const fight = simulateDuel(pa, pb);
   const won = fight.winner === 'a';
-  const d = won ? eloDelta(a.rating, b.rating) : eloDelta(b.rating, a.rating);
+  // AI 기사가 사람에게 건 결투는 점수에 넣지 않는다 (사람이 고르지 않은 싸움으로 사람 순위가 흔들리지 않게 — 봇은 곁들이일 뿐)
+  const rated = !(me.isBot && !op.isBot);
+  const d = !rated ? 0 : won ? eloDelta(a.rating, b.rating) : eloDelta(b.rating, a.rating);
   const myRating = Math.max(0, a.rating + (won ? d : -d));
   const opRating = Math.max(0, b.rating + (won ? -d : d));
   await store.update(me.key, { season, attacks: a.attacks + 1, rating: myRating, wins: a.wins + (won ? 1 : 0), losses: a.losses + (won ? 0 : 1) });
-  await store.update(op.key, { season, attacks: b.attacks, rating: opRating, wins: b.wins + (won ? 0 : 1), losses: b.losses + (won ? 1 : 0) });
+  if (rated) await store.update(op.key, { season, attacks: b.attacks, rating: opRating, wins: b.wins + (won ? 0 : 1), losses: b.losses + (won ? 1 : 0) });
   // 도전받은 쪽 우편함에 남긴다 (AI 기사는 우편함을 안 보므로 사람에게만. 기록을 못 남겨도 결투 결과는 그대로 돌려준다)
   if (!op.isBot) {
     await store.addDuelLog({
@@ -179,6 +181,11 @@ async function runDuel(me, op) {
 
 // ───────────────────────── 라우트 ─────────────────────────
 const lastDuel = new Map();   // key → 마지막 결투 시각
+// 사람이 원하는 닉네임을 AI 기사가 쓰고 있으면 봇을 지운다 (그 순번은 다음 틱에 새 이름으로 다시 생긴다)
+async function freeBotName(key) {
+  const o = await store.get(key);
+  if (o && o.isBot) await store.removeBots([key]);
+}
 
 const routes = {
   // players: 사람 기사 수 (AI 기사는 bots 로 따로)
@@ -187,7 +194,8 @@ const routes = {
   // 닉네임 사용 가능 여부
   'GET /api/nickname': async (_req, url) => {
     const { key } = nicknameKey(url.searchParams.get('name'));
-    return { available: !(await store.get(key)) };
+    const o = await store.get(key);
+    return { available: !o || !!o.isBot };
   },
 
   // 새 기사 만들기. state 는 클라이언트가 만든 첫 세이브
@@ -197,6 +205,7 @@ const routes = {
     const token = crypto.randomBytes(24).toString('base64url');
     const now = Date.now();
     const profile = sanitizeProfile(body.profile);
+    await freeBotName(key);
     try {
       await store.create({
         key, nickname: nick, tokenHash: hashToken(token),
@@ -243,6 +252,7 @@ const routes = {
       const min = Math.ceil(wait / 60000), h = Math.floor(min / 60), m = min % 60;
       throw new HttpError(429, `닉네임은 하루에 한 번 바꿀 수 있어요 (${[h ? `${h}시간` : '', m || !h ? `${m}분` : ''].filter(Boolean).join(' ')} 남음)`, 'cooldown');
     }
+    await freeBotName(key);
     const oldKey = a.key, oldNick = a.nickname;   // 파일 저장소는 계정 객체를 그 자리에서 바꾸므로 먼저 잡아 둔다
     try {
       await store.rename(oldKey, key, nick, now);

@@ -104,7 +104,7 @@ class FileStore {
   // 최근 활동한 사람 기사 (봇 성장 기준·결투 상대 고르기)
   async humansSince(since) {
     return Object.values(this.db).filter(a => !a.isBot && a.updatedAt >= since)
-      .map(({ key, nickname, best, level, rating, season, attacks, updatedAt }) => ({ key, nickname, best, level, rating, season, attacks, updatedAt }));
+      .map(({ key, nickname, best, level, rating, season, attacks, updatedAt, tower }) => ({ key, nickname, best, level, rating, season, attacks, updatedAt, tower: tower || 0 }));
   }
 
   async settledThrough() { return this.sdb.seasons.reduce((m, x) => Math.max(m, x.id), 0); }
@@ -373,8 +373,8 @@ class PgStore {
   async removeBots(keys) { if (keys.length) await this.pool.query('DELETE FROM accounts WHERE is_bot AND key = ANY($1::text[])', [keys]); }
   // 최근 활동한 사람 기사 (봇 성장 기준·결투 상대 고르기)
   async humansSince(since) {
-    return (await this.pool.query('SELECT key,nickname,best,level,rating,season,attacks,updated_at FROM accounts WHERE NOT is_bot AND updated_at >= $1', [since])).rows
-      .map(r => ({ key: r.key, nickname: r.nickname, best: r.best, level: r.level, rating: r.rating, season: r.season, attacks: r.attacks, updatedAt: Number(r.updated_at) }));
+    return (await this.pool.query('SELECT key,nickname,best,level,rating,season,attacks,updated_at,tower FROM accounts WHERE NOT is_bot AND updated_at >= $1', [since])).rows
+      .map(r => ({ key: r.key, nickname: r.nickname, best: r.best, level: r.level, rating: r.rating, season: r.season, attacks: r.attacks, updatedAt: Number(r.updated_at), tower: r.tower || 0 }));
   }
 
   async settledThrough() { return Number((await this.pool.query('SELECT coalesce(max(id), 0) AS m FROM duel_seasons')).rows[0].m); }
