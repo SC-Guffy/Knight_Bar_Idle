@@ -276,6 +276,12 @@ class PgStore {
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS tower int NOT NULL DEFAULT 0;
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS renamed_at bigint NOT NULL DEFAULT 0;
       CREATE INDEX IF NOT EXISTS accounts_tower ON accounts (tower DESC, best DESC, level DESC);
+      -- 전투력은 스테이지 214쯤에서 bigint(9.2e18)를 넘는다 → 실수형으로 (정수형일 때 한 번만 바꾼다)
+      DO $$ BEGIN
+        IF (SELECT data_type FROM information_schema.columns WHERE table_name = 'accounts' AND column_name = 'power') = 'bigint' THEN
+          ALTER TABLE accounts ALTER COLUMN power TYPE double precision;
+        END IF;
+      END $$;
       CREATE TABLE IF NOT EXISTS duel_seasons (
         id int PRIMARY KEY,
         settled_at bigint NOT NULL,
