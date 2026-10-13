@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>강화 +30 — 스펙 검토</title>
+<!-- 스펙: docs/specs/enhance-30.md. 게임 코드는 바꾸지 않는다 — src/data.js 를 읽어 '지금' 값(ENHANCE·enhanceCost·OPT_*)을 가져오고,
+     '새' 값은 스펙 1·5절 그대로 이 페이지에서 만든다 (NEW_ENHANCE·NEW_OPT_*). 기대값은 마르코프 연립방정식, 분포는 몬테카를로. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --pink: #ff5ac8; --hl: #3b2a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .hl { background: var(--hl); border: 2px solid var(--gold); }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  tr.newband td { background: #2a1f33; }
+  td.chg { color: var(--gold); }
+  .scroll { overflow-x: auto; }
+  canvas { display: block; width: 100%; max-width: 100%; background: #0f0d14; border: 1px solid var(--line); border-radius: 4px; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  select, input[type=number] { background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; }
+  input[type=number] { width: 60px; }
+  input[type=range] { width: 160px; }
+  button { background: #2f2840; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 3px 10px; font: inherit; cursor: pointer; }
+  b.v { color: var(--gold); }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); } .dim { color: var(--dim); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .legend span { margin-right: 14px; }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+  code { color: var(--blue); }
+</style>
+</head>
+<body>
+<main>
+  <h1>⚒️ 강화 +30 · 등급별 옵션 줄 수 — 스펙 검토 페이지</h1>
+  <div class="sub">스펙 <code>docs/specs/enhance-30.md</code> (상태: 초안 · 사용자 확인 대기 · 2026-10-13). "지금" 값은 <code>src/data.js</code> 에서 읽고, "새" 값은 스펙대로 이 페이지가 만든다. 입력칸을 바꾸면 표·그래프가 다시 계산된다. 게임 코드는 아직 안 바꿨다.</div>
+
+  <h2>1. 스펙 요지</h2>
+  <div class="grid2">
+    <div class="card">
+      <b>목표</b>
+      <ul>
+        <li>최대 강화 <b>+25 → +30</b>. +25 를 찍은 기사에게 다음 목표.</li>
+        <li>+16~25 <b>초기화 확률 절반</b> — "초기화가 무섭다"를 줄인다.</li>
+        <li>+26~30 은 성공률·하락으로 어렵게 → <b>📜 보호 주문서를 모아 도전하는 구간</b>.</li>
+        <li>옵션 줄 수를 등급 색에 맞춘다 (녹 1 · 파 2 · 보 3 …). 초월·태초는 +30 에서 6번째 줄.</li>
+        <li>가진 것은 빼앗지 않는다: 가진 장비의 줄·강화 단계는 그대로.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <b>핵심 수치</b>
+      <ul>
+        <li>+26~30: 성공 <b>15 → 11%</b>, 하락 <b>30%</b>, 초기화 <b>4%</b> (실패했을 때의 비율). 담금질대 한도 +20 그대로.</li>
+        <li>배율 식 그대로 <code>1 + 0.12L + 0.004L²</code> → +30 <b>×8.2</b>. 비용 식(<code>enhanceCost</code>)도 그대로.</li>
+        <li>부위당 +25→+30: 주문서로 <b>약 39회 · 39장 · 강화석 5,646</b>. 주문서 없이는 약 3.6만 회 → 화면 경고.</li>
+        <li>옵션 줄 <b>0·1·2·3·4·5·6·6</b>, 태초 값 배율 <b>1.75 → 2.0</b>.</li>
+        <li>이행 gearV 9: 5줄 초월·태초에 6번째 줄 + 태초 줄 값 재계산.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card hl"><b>정해 주실 것 2개 (스펙·이 페이지는 추천안 기준)</b>
+    <ul>
+      <li><b>+26~30 확률</b> — 추천: 결정 수치 그대로 + +25 이상에서 주문서 체크가 꺼져 있으면 확률 줄에 <span class="bad">📜 없이는 밀리기 쉬워요</span> 경고. 대안: 하락 20% · 초기화 없음 (3번 아래 표 참고).</li>
+      <li><b>가진 5줄 초월·태초</b> — 추천: 6번째 줄을 굴려 주고 태초 줄 값은 새 배율 2.0 으로 다시 계산 (+14%). 대안: 6번째 줄만 / 둘 다 안 줌.</li>
+    </ul>
+  </div>
+
+  <h2>2. 강화 확률표 (+0 ~ +30): 지금 ↔ 새</h2>
+  <div class="ctl">
+    <label>🔥 담금질대 Lv <input type="range" id="tl" min="0" max="20" value="0"> <b class="v" id="tlv">0</b></label>
+    <span class="dim">화면 표기(<code>enhOdds</code>)와 같은 값 = 실패 × 비율. 노란 칸은 바뀐 값, 보라 줄은 새 구간.</span>
+  </div>
+  <div class="scroll"><table id="odds"></table></div>
+
+  <h2>3. 기대 시도 횟수 · 기대 비용 (부위 하나)</h2>
+  <div class="ctl">
+    <label>🔥 담금질대 Lv <input type="number" id="ctl" min="0" max="20" value="0"></label>
+    <label>📜 보호 주문서 <select id="prot">
+      <option value="99">안 씀</option><option value="5">+5부터 전부</option><option value="15">+15부터</option><option value="20" selected>+20부터</option><option value="25">+25부터</option>
+    </select></label>
+    <label>시작 단계 <input type="number" id="start" min="0" max="29" value="0"></label>
+  </div>
+  <div class="scroll"><table id="exp"></table></div>
+  <div class="sub">마르코프 연립방정식 h(L) = 비용(L) + 성공·h(L+1) + 하락·h(L−1) + 초기화·h(0) + 유지·h(L). 주문서를 쓰는 단계는 하락·초기화가 유지로 바뀐다. 지금 표는 +25 가 끝이라 +26 이상 칸은 비어 있다.</div>
+  <div class="ctl" style="margin-top:10px">
+    <label>분포 보기: <input type="number" id="mcA" min="0" max="29" value="25"> → <input type="number" id="mcB" min="1" max="30" value="30"></label>
+    <button id="mcGo">몬테카를로 2만 회 (새 표, 위 설정)</button> <span id="mcOut" class="dim"></span>
+  </div>
+
+  <div class="card"><b>주문서 없이 +26~30 은 왜 거의 안 오르나</b> — 하락을 낮춰도 초기화(+0) 때문에 맨손 기대가 수천~수만 회다 (+25→+30, 담금질대 무관).
+    <div class="scroll"><table id="alt"></table></div>
+  </div>
+
+  <h2>4. 강화 배율 곡선</h2>
+  <canvas id="mult" width="1040" height="300"></canvas>
+  <div class="legend sub"><span><i style="background:var(--gold)"></i>장비 능력치 배율 enhanceMultAt</span><span><i style="background:var(--blue)"></i>공속·치명 softEnhMultAt</span><span><i style="background:var(--pink)"></i>지금 최대 +25 / 새 최대 +30</span></div>
+  <div class="scroll"><table id="multT"></table></div>
+
+  <h2>5. 등급별 옵션 줄 수 · 값 폭: 지금 ↔ 새</h2>
+  <div class="scroll"><table id="opt"></table></div>
+  <div class="sub">줄 i 는 부위 강화 +5·i 에서 켜진다 (6번째 줄 = +30). "공격력 % 최대" = 모든 줄이 공격력 S(10%) 일 때 한 부위 합.</div>
+
+  <h2>6. 기존 장비 이행 (core.js migrate, gearV 8 → 9)</h2>
+  <div class="card">
+    <table>
+      <tr><th>가진 장비</th><th style="text-align:left">패치 뒤</th></tr>
+      <tr><td>일반 1줄 · 고급 2줄</td><td style="text-align:left">그대로 둔다 (줄이지 않는다). 지금처럼 켜지고 재굴림도 된다.</td></tr>
+      <tr><td>옵션 줄 없는 장비 (<code>op: []</code>, 0.20.0 전에 얻음)</td><td style="text-align:left">그대로 둔다 (gearV 8 결정 유지).</td></tr>
+      <tr><td>초월·태초 5줄</td><td style="text-align:left"><b>6번째 줄을 굴려 덧붙인다</b> (<code>g ≥ 6 && op.length === 5</code>, 앞 5줄은 그대로). 두 번 돌려도 7줄 안 됨.</td></tr>
+      <tr><td>태초 줄 값</td><td style="text-align:left"><b><code>v = optValueAt(k, q, 7)</code> 로 다시 계산</b> — 종류·품질은 그대로, 값만 ×2.0/1.75 (+14%).</td></tr>
+      <tr><td>부위 강화 단계 · 최고 기록</td><td style="text-align:left">그대로. +25 였던 부위는 이제 +25→+26 을 시도할 수 있다.</td></tr>
+      <tr><td>가방 속 상자 · 안 받은 레이드 상자</td><td style="text-align:left">열 때 굴리므로 새 줄 수 (일반 0 · 고급 1 …).</td></tr>
+    </table>
+    <div class="sub" style="margin-top:6px">패치 안내 한 번: ⚒️ 강화가 +30 까지 열렸어요 — +16~25 초기화 확률은 절반으로 줄고, +26 부터는 📜 보호 주문서가 든든해요. 이제부터 얻는 장비는 등급만큼 옵션 줄이 붙어요 (일반 0 · 고급 1 · 희귀 2 … 초월·태초 6). 가진 장비의 줄은 그대로고, 초월·태초 장비에는 +30 에서 켜지는 6번째 줄을 새로 드렸어요</div>
+  </div>
+
+  <h2>7. 진행 봇 (24시간 봇, 30일 · 8시드 중앙값)</h2>
+  <div class="card">
+    <table>
+      <tr><th></th><th>지금 (+25)</th><th>새 (+30)</th></tr>
+      <tr><td>첫 +25 도달</td><td>5~9일</td><td>5~9일 (같음)</td></tr>
+      <tr><td>첫 +30 도달</td><td>—</td><td class="chg">14~22일 (중앙 15.5일)</td></tr>
+      <tr><td>세 부위 모두 최대</td><td>14일 (+25)</td><td class="chg">21일 4/8시드 · 30일 8/8시드</td></tr>
+      <tr><td>강화석 수입/일 (7일 평균)</td><td>7일 494 · 14일 761 · 30일 1,239</td><td>7일 494 · 14일 899 · 30일 1,091</td></tr>
+      <tr><td>남은 강화석</td><td>14일 5,298 · 21일 13,850 · 30일 26,559</td><td class="chg">14일 98 · 21일 475 · 30일 10,450</td></tr>
+      <tr><td>최고 스테이지</td><td>14일 166 · 21일 180 · 30일 199</td><td class="chg">14일 173 · 21일 191 · 30일 200</td></tr>
+      <tr><td>건물 Lv 합</td><td>14일 47 · 21일 50 · 30일 53</td><td>같음</td></tr>
+      <tr><td>주문서 수입/일 · 14일째 보유</td><td>17~26장 · 182장</td><td>17~29장 · 150장</td></tr>
+    </table>
+    <div class="sub" style="margin-top:6px">봇은 +15 까지 맨손, 그 위는 주문서가 있을 때만 주문서로 강화한다. 주문서가 넘쳐서 봇에선 <b>강화석이 진행 속도를 정한다</b>. 지금은 +25 뒤 강화석이 쌓이기만 했는데, +26~30 이 그걸 쓰는 곳이 된다. 철광석·마력석은 계속 남는다 → 비용 식 그대로.</div>
+  </div>
+
+  <h2>8. 수용 기준 (구현 때 확인)</h2>
+  <div class="card"><ul>
+    <li>☐ <code>ENHANCE_MAX === 30</code>, 확률표가 2번 표의 "새" 값과 같다.</li>
+    <li>☐ 대장간 표기 <code>+27 → +28 · 성공 13% · 하락 26% · 초기화 3.5%</code> (10% 미만은 소수 한 자리).</li>
+    <li>☐ 실제 <code>enhance</code> 2만 회(+27, 주문서 없이) 비율이 ±1%p 안.</li>
+    <li>☐ <code>enhanceCost(25..29)</code>·<code>enhanceMultAt(30) ≈ 8.2</code>, +30 배지 무지개(<code>.lvl.l6</code>).</li>
+    <li>☐ 등급별 1만 개: 줄 수 0/1/2/3/4/5/6/6, 태초 공격력 줄 최대 0.20.</li>
+    <li>☐ 6번째 줄이 +29 에선 꺼지고 +30 에서 켜진다.</li>
+    <li>☐ gearV 9 이행: 5줄 초월·태초 → 6줄, 태초 값 ×2.0/1.75, 나머지 그대로, 두 번 돌려도 7줄 안 됨.</li>
+    <li>☐ 일반 등급 새 장비: "옵션 줄 없음 · 일반 등급…" 문구.</li>
+    <li>☐ 서버 확성기 +30 까지 받음 (<code>to:31</code> 은 400), +26 보라 · +28 하늘 · +30 무지개.</li>
+    <li>☐ 진행 봇 30일·8시드: 첫 +30 14~22일, 건물 같음, 30일 스테이지 차이 +10 이하.</li>
+    <li>☐ 560px 창에서 6줄 목록·경고 문구가 안 잘린다.</li>
+  </ul></div>
+</main>
+
+<script src="../../src/data.js"></script>
+<script>
+// ───── 지금 값은 data.js 에서, 새 값은 스펙 1·5절 그대로 ─────
+const OLD = ENHANCE.map((e) => ({ ...e }));
+const NEW = OLD.map((e, L) => (L >= 15 ? { ...e, reset: e.reset / 2 } : { ...e }));
+for (let L = 25; L < 30; L++) NEW[L] = { rate: 0.15 - 0.01 * (L - 25), down: 0.30, reset: 0.04 };
+const NEW_OPT_LINES = [0, 1, 2, 3, 4, 5, 6, 6];
+const NEW_OPT_MULT = OPT_MULT.map((m, g) => (g === 7 ? 2.0 : m));
+
+const odds = (T, L, tl) => { const e = T[L]; if (!e) return null; if (!tl || L >= TEMPER_CAP) return e;
+  return { rate: Math.min(0.95, e.rate + TEMPER_RATE * tl), down: e.down * (1 - TEMPER_DOWN * tl), reset: e.reset }; };
+const pct = (v) => (v <= 0 ? '—' : v * 100 < 10 ? (v * 100).toFixed(1) + '%' : Math.round(v * 100) + '%');
+const n0 = (v) => (v == null ? '' : v >= 1e6 ? (v / 1e4).toFixed(0) + '만' : Math.round(v).toLocaleString());
+const $ = (id) => document.getElementById(id);
+
+// ───── 2. 확률표 ─────
+function drawOdds() {
+  const tl = +$('tl').value; $('tlv').textContent = tl;
+  let h = '<tr><th>시도</th><th>성공 지금</th><th>성공 새</th><th>하락 지금</th><th>하락 새</th><th>초기화 지금</th><th>초기화 새</th><th>표 값 (실패 중) 하락·초기화 새</th><th>💠·🪨·💎 비용</th><th>배율 (도착)</th></tr>';
+  for (let L = 0; L < 30; L++) {
+    const o = odds(OLD, L, tl), n = odds(NEW, L, tl), c = enhanceCost(L);
+    const cell = (a, b) => `<td>${a == null ? '' : pct(a)}</td><td class="${a == null || Math.abs(a - b) > 1e-9 ? 'chg' : ''}">${pct(b)}</td>`;
+    const of = o ? 1 - o.rate : null, nf = 1 - n.rate;
+    h += `<tr class="${L >= 25 ? 'newband' : ''}"><td>+${L}→+${L + 1}</td>${cell(o && o.rate, n.rate)}${cell(o && of * o.down, nf * n.down)}${cell(o && of * o.reset, nf * n.reset)}`
+      + `<td>${n.down ? (n.down * 100).toFixed(0) + '%' : '—'} · ${n.reset ? (n.reset * 100).toFixed(2) + '%' : '—'}</td><td>${c.stone} · ${c.ore} · ${c.mana}</td><td>×${enhanceMultAt(L + 1).toFixed(2)}</td></tr>`;
+  }
+  $('odds').innerHTML = h;
+}
+
+// ───── 3. 기대값 (마르코프) ─────
+function solve(T, N, cost, tl, protFrom, start) {
+  const n = N, A = Array.from({ length: n }, () => new Float64Array(n + 1));
+  for (let L = 0; L < n; L++) {
+    const e = odds(T, L, tl), f = 1 - e.rate, P = L >= protFrom && (e.down || e.reset);
+    const d = P ? 0 : f * e.down, r = P ? 0 : f * e.reset, k = f - d - r;
+    A[L][L] += 1 - k; if (L + 1 < n) A[L][L + 1] -= e.rate; if (d) A[L][L - 1] -= d; if (r) A[L][0] -= r;
+    A[L][n] = cost(L, P);
+  }
+  for (let i = 0; i < n; i++) { let p = i; for (let j = i + 1; j < n; j++) if (Math.abs(A[j][i]) > Math.abs(A[p][i])) p = j; [A[i], A[p]] = [A[p], A[i]];
+    for (let j = 0; j < n; j++) if (j !== i) { const m = A[j][i] / A[i][i]; if (m) for (let k = i; k <= n; k++) A[j][k] -= m * A[i][k]; } }
+  return A[start][n] / A[start][start];
+}
+const COSTS = [['시도', () => 1], ['💠 강화석', (L) => enhanceCost(L).stone], ['🪨 철광석', (L) => enhanceCost(L).ore], ['💎 마력석', (L) => enhanceCost(L).mana], ['📜 주문서', (L, P) => (P ? 1 : 0)]];
+function drawExp() {
+  const tl = Math.max(0, Math.min(20, +$('ctl').value || 0)), pf = +$('prot').value, st = Math.max(0, Math.min(29, +$('start').value || 0));
+  let h = '<tr><th>목표</th>' + COSTS.map(([k]) => `<th>${k} 지금</th><th>${k} 새</th>`).join('') + '</tr>';
+  for (const N of [5, 10, 15, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]) {
+    if (N <= st) continue;
+    h += `<tr class="${N > 25 ? 'newband' : ''}"><td>+${st}→+${N}</td>` + COSTS.map(([, f]) => {
+      const o = N <= 25 ? solve(OLD, N, f, tl, pf, st) : null, nv = solve(NEW, N, f, tl, pf, st);
+      return `<td>${n0(o)}</td><td class="${o == null || Math.abs(o - nv) > 0.5 ? 'chg' : ''}">${n0(nv)}</td>`;
+    }).join('') + '</tr>';
+  }
+  $('exp').innerHTML = h;
+}
+function drawAlt() {
+  const mk = (d, r) => NEW.map((e, L) => (L >= 25 ? { ...e, down: d, reset: r } : e));
+  let h = '<tr><th>+26~30 하락 · 초기화 (실패 중)</th><th>맨손 시도</th><th>맨손 강화석</th><th>주문서 쓰면 시도 · 장</th></tr>';
+  for (const [d, r, tag] of [[0.30, 0.04, ' ← 추천 (결정 수치)'], [0.25, 0.04, ''], [0.20, 0.04, ''], [0.15, 0.04, ''], [0.30, 0, ''], [0.20, 0, '']]) {
+    const T = mk(d, r);
+    h += `<tr><td>${d * 100}% · ${r * 100}%${tag}</td><td>${n0(solve(T, 30, () => 1, 0, 99, 25))}</td><td>${n0(solve(T, 30, (L) => enhanceCost(L).stone, 0, 99, 25))}</td><td>${n0(solve(T, 30, () => 1, 0, 25, 25))} · ${n0(solve(T, 30, (L, P) => (P ? 1 : 0), 0, 25, 25))}</td></tr>`;
+  }
+  $('alt').innerHTML = h;
+}
+function runMC() {
+  const tl = Math.max(0, Math.min(20, +$('ctl').value || 0)), pf = +$('prot').value;
+  const a = Math.max(0, Math.min(29, +$('mcA').value || 0)), b = Math.max(a + 1, Math.min(30, +$('mcB').value || 30));
+  const runs = [], CAP = 2e6;
+  for (let i = 0; i < 20000; i++) {
+    let L = a, n = 0;
+    while (L < b && n < CAP) { n++; const e = odds(NEW, L, tl); if (Math.random() < e.rate) { L++; continue; }
+      if (L >= pf && (e.down || e.reset)) continue; const r = Math.random(); if (r < e.reset) L = 0; else if (r < e.reset + e.down) L--; }
+    runs.push(n);
+  }
+  runs.sort((x, y) => x - y);
+  const q = (p) => runs[Math.floor(runs.length * p)].toLocaleString();
+  $('mcOut').innerHTML = `+${a}→+${b}: 중앙 <b class="v">${q(0.5)}</b> · 하위 10% ${q(0.1)} · 상위 10% ${q(0.9)} · 상위 1% ${q(0.99)} 회`;
+}
+
+// ───── 4. 배율 곡선 ─────
+function drawMult() {
+  const cv = $('mult'), g = cv.getContext('2d'), W = cv.width, H = cv.height, pl = 46, pr = 14, pt = 14, pb = 28, ymax = 9;
+  g.clearRect(0, 0, W, H); g.font = '12px Galmuri11, sans-serif';
+  const X = (L) => pl + (W - pl - pr) * L / 30, Y = (v) => H - pb - (H - pt - pb) * v / ymax;
+  g.strokeStyle = '#3a3348'; g.fillStyle = '#a59cb8';
+  for (let v = 0; v <= ymax; v++) { g.beginPath(); g.moveTo(pl, Y(v)); g.lineTo(W - pr, Y(v)); g.stroke(); g.fillText('×' + v, 8, Y(v) + 4); }
+  for (let L = 0; L <= 30; L += 5) g.fillText('+' + L, X(L) - 8, H - 8);
+  for (const [L, lab] of [[25, '지금 최대'], [30, '새 최대']]) { g.strokeStyle = '#ff5ac8'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(X(L), pt); g.lineTo(X(L), H - pb); g.stroke(); g.setLineDash([]); g.fillStyle = '#ff5ac8'; g.fillText(lab, X(L) - 54, pt + 12); }
+  for (const [f, col] of [[enhanceMultAt, '#ffd257'], [softEnhMultAt, '#8fd8ff']]) {
+    g.strokeStyle = col; g.lineWidth = 2; g.beginPath();
+    for (let L = 0; L <= 30; L++) { const x = X(L), y = Y(f(L)); L ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.stroke(); g.lineWidth = 1;
+    for (let L = 25; L <= 30; L++) { g.fillStyle = col; g.fillRect(X(L) - 2, Y(f(L)) - 2, 4, 4); }
+  }
+  let h = '<tr><th>단계</th>' + [0, 5, 10, 15, 20, 25, 26, 27, 28, 29, 30].map((L) => `<th>+${L}</th>`).join('') + '</tr>';
+  h += '<tr><td>장비 능력치</td>' + [0, 5, 10, 15, 20, 25, 26, 27, 28, 29, 30].map((L) => `<td class="${L > 25 ? 'chg' : ''}">×${enhanceMultAt(L).toFixed(2)}</td>`).join('') + '</tr>';
+  h += '<tr><td>공속·치명</td>' + [0, 5, 10, 15, 20, 25, 26, 27, 28, 29, 30].map((L) => `<td class="${L > 25 ? 'chg' : ''}">×${softEnhMultAt(L).toFixed(2)}</td>`).join('') + '</tr>';
+  $('multT').innerHTML = h;
+}
+
+// ───── 5. 옵션 줄 ─────
+function drawOpt() {
+  const a = GEAR_OPTS.atkPct;
+  let h = '<tr><th>등급</th><th>줄 수 지금</th><th>줄 수 새</th><th>값 배율 지금</th><th>값 배율 새</th><th>공격력 줄 범위 (새)</th><th>공격력 % 최대 지금</th><th>공격력 % 최대 새</th><th>쓰레기 줄</th><th>줄이 켜지는 단계 (새)</th></tr>';
+  GRADES.forEach((gr, g) => {
+    const oL = OPT_LINES[g], nL = NEW_OPT_LINES[g], oM = OPT_MULT[g], nM = NEW_OPT_MULT[g];
+    const steps = Array.from({ length: nL }, (_, i) => '+' + OPT_STEP * (i + 1)).join(' · ') || '—';
+    h += `<tr><td style="color:${gr.color}">${gr.name}</td><td>${oL}</td><td class="${oL !== nL ? 'chg' : ''}">${nL}</td><td>${oM}</td><td class="${oM !== nM ? 'chg' : ''}">${nM}</td>`
+      + `<td>${(a.lo * nM * 100).toFixed(1)} ~ ${(a.hi * nM * 100).toFixed(1)}%</td><td>+${(oL * a.hi * oM * 100).toFixed(1)}%</td><td class="${oL * oM !== nL * nM ? 'chg' : ''}">+${(nL * a.hi * nM * 100).toFixed(1)}%</td>`
+      + `<td>${Math.round(OPT_JUNK[g] * 100)}%</td><td style="text-align:left">${steps}</td></tr>`;
+  });
+  $('opt').innerHTML = h;
+}
+
+$('tl').oninput = drawOdds;
+for (const id of ['ctl', 'prot', 'start']) $(id).oninput = drawExp;
+$('mcGo').onclick = runMC;
+drawOdds(); drawExp(); drawAlt(); drawMult(); drawOpt();
+</script>
+</body>
+</html>
