@@ -145,6 +145,7 @@ function run() {
   }
 
   function nextSkill() {
+    if (T.lock) return;                     // 주소 ?skill= 로 연 경우: 그 스킬만 반복
     const list = skillsOf(T.cls).map((k) => k.id);
     const i = list.indexOf(T.skill);
     if (i < list.length - 1) { T.skill = list[i + 1]; return; }
@@ -288,7 +289,7 @@ function run() {
       <div class="meta">${k.stageDesc ? k.stageDesc[masteryOf(lv)] : k.desc}</div>`;
   }
   $('auto').onclick = () => { T.auto = !T.auto; renderUi(); };
-  $('allCls').onclick = () => { T.allCls = !T.allCls; if (T.allCls) T.auto = true; renderUi(); };
+  $('allCls').onclick = () => { T.allCls = !T.allCls; if (T.allCls) { T.auto = true; T.lock = false; } renderUi(); };
   $('basic').onclick = () => { T.basic = !T.basic; renderUi(); };
   $('pause').onclick = () => { T.paused = !T.paused; renderUi(); };
   $('step').onclick = () => { T.paused = true; T.stepOnce = true; renderUi(); };
@@ -300,7 +301,12 @@ function run() {
   // ── 시작 ──
   sizeStage();
   window.addEventListener('resize', sizeStage);
-  setClass(T.cls);
+  // 주소로 바로 열기 (검토 페이지 dev/review/*.html 링크용): ?cls=직업 id&skill=스킬 id&stage=0~3, 평타는 ?mode=basic&cls=직업 id
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('mode') === 'basic') T.mode = 'basic';
+  if (qs.has('stage')) T.stage = Math.max(0, Math.min(3, +qs.get('stage') || 0));
+  setClass(CLASSES[qs.get('cls')] ? qs.get('cls') : T.cls);
+  if (T.mode === 'skill' && skillsOf(T.cls).some((k) => k.id === qs.get('skill'))) { T.skill = qs.get('skill'); T.lock = true; renderUi(); }
   renderInfo();
   requestAnimationFrame(frame);
   // 콘솔·자동 캡처용: skillTest.state 상태, setClass(id), cast(skillId), step(초) 한 번에 진행 후 그리기

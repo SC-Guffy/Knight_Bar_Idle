@@ -45,6 +45,7 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - 버튼은 접근성 이름이 없다: `[...document.querySelectorAll('button')].find(b => b.textContent.includes('단계 순회')).click()`.
 - 스킬·직업을 추가·변경하면 위 루프로 예외가 없는지 확인하고, 절정 순간을 `step()` 으로 맞춰 스크린샷한다. 끝나면 페이지를 "단계 순회"에 둔다.
 - 여러 에이전트가 동시에 쓸 때는 각자 `tabs_create` 로 탭을 따로 연다.
+- 주소로 바로 열기: `dev/skills.html?cls=<직업 id>&skill=<스킬 id>&stage=<0~3>` 는 그 스킬만 반복 재생한다(전 직업 순회를 켜면 풀림). 평타는 `?mode=basic&cls=<직업 id>`. 검토 페이지(`dev/review/*.html`)의 ▶ 링크가 이것을 쓴다.
 - 스킬 VFX 장면 캡처(시작·타격·끝, 피해 숫자 없이): `#c` 캔버스를 `toDataURL` 로 `127.0.0.1:8798/save` 에 보낸다. 프레임 고르는 규칙과 스크립트 요지는 [specs/skill-vfx.md](specs/skill-vfx.md) "캡처 재현". 숨은 창에서는 아주 느리니 `tabs_select` 로 앞에 둔다.
 
 ### 컷 스크린샷 저장

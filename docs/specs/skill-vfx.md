@@ -8,7 +8,7 @@
   - src/ult/*.js: 3차 궁극기
   - src/cuts/*.js, src/motion/*.js: 평타 컷. src/world.js `drawCutSmear`(:2420)·`drawAtkFx`(:2072)·`drawShots`(:2704)·`hitMonster`(:210)
   - src/classes.js: `WEAPONS` (투사체·궤적 색), `SKILLS`
-- 도구: `dev/skills.html` 스킬 시뮬레이터, 캔버스 캡처 → `dev/shot-recv.py` ([dev-testing.md](../dev-testing.md)), PixelLab
+- 도구: `dev/review/skill-vfx.html` 검토 갤러리, `dev/skills.html` 스킬 시뮬레이터, 캔버스 캡처 → `dev/shot-recv.py` ([dev-testing.md](../dev-testing.md)), PixelLab
 - 최종 갱신: 2026-10-13
 
 ## 목표
@@ -30,6 +30,12 @@
    - 메모: 문제점. 코드 위치는 메모 안에 적었다.
 3. 점수가 낮은 것부터, 계열 단위로 묶어 패치한다 (아래 "퀄업 순서", 로드맵 ⑤).
 4. 권투가 7종의 스킬은 처음부터 새 기준으로 만든다. 그래서 이 표에는 넣지 않고 [boxer-class.md](boxer-class.md) 에서 따로 다룬다.
+
+### 검토 페이지 (확인 방법)
+
+- `dev/review/skill-vfx.html` — 이 스펙 표를 그대로 읽어 카드로 그린다: 요약·전체 문제, 문제 스킬 나란히, 하단바 섬광 11곳, 스킬 40종(a·b·c·Lv1)·평타 29종 카드, 판정·계열·차수·점수 필터, 계열 비교(컬러·흑백), 정지 기준, 퀄업 순서, 수용 기준.
+- 띄우기: 저장소 루트에서 `python -m http.server 8817` → `http://localhost:8817/dev/review/skill-vfx.html`.
+- 카드의 ▶ 버튼은 `dev/skills.html?cls=<직업>&skill=<스킬>&stage=<0~3>` 로 그 스킬만 반복 재생한다. 평타는 `?mode=basic&cls=<직업>`.
 
 ### 캡처 재현
 
@@ -273,6 +279,8 @@
   퀄업 순서는 공통 기반(⑤-0) → 마법사 → 창기사 → 레인저 → 검사. PixelLab 약 280회 (Tier 1 한 달).
 
 - 2026-10-13: 상위(로드맵) 세션 검토 반영. 지금의 히트스톱은 `update()` 를 통째로 건너뛰어 게임 시간 전체를 멈춘다(`world.js:1173`, 코드 확인). 그래서 평타·잔타는 화면만 멈추는 "연출 정지"로, 게임 정지는 막타·궁극기에만 두도록 기준표를 고치고 진행 손실 수용 기준(10분 사냥 골드 ±1%)을 넣었다. 하단바 섬광 11곳과 버그 3건은 0.21 자잘이로 당기는 안을 적었다.
+
+- 2026-10-13: 검토 갤러리 `dev/review/skill-vfx.html` 를 만들었다 (스펙 표를 읽어 그림). `dev/skills.html` 에 주소 파라미터(`?cls=&skill=&stage=`, `?mode=basic&cls=`)를 달아 카드에서 바로 재생한다.
 
 ## 남은 일 / 미정
 - 사용자 확인: 판정·퀄업 순서·`MASTERY_VIS` 바닥 올리기·정지 기준표(연출 정지/게임 정지). 확인되면 상태 `확정`.
