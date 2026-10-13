@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.19.27';
+const GAME_VERSION = '0.19.28';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -2112,18 +2112,12 @@ const RAID_TICKET_STEPS = [0.05, 1, 2, 3.5, 6];  // 오늘 n번째 구매의 기
 const RAID_TICKET_GROW = 1.6;          // 표를 넘어가면 한 장마다 × 1.6
 const RAID_MVP_MULT = 1.5;             // MVP 는 재화 1.5배
 const RAID_FAIL_MULT = 0;              // 실패하면 보상 없음 (입장권을 안 깎으므로 위로 보상을 주면 무한 파밍이 된다)
-// 보스가 실제로 싸우는 스테이지 = 입장 스테이지 × 혼자 배수 − 인원 보정 (server/raid.js 의 SOLO_MULT·PARTY_GAP 와 같아야 함).
-// 혼자 배수는 입장 스테이지에 따라 2.0 → 1.2 로 완만해진다 (점 사이는 직선)
+// 보스가 실제로 싸우는 스테이지 = 입장 스테이지 + RAID_SOLO_ADD − 인원 보정 (server/raid.js 의 SOLO_ADD·PARTY_GAP 와 같아야 함).
+// 새 보스가 열리면 사람 4인은 바로, 혼자 + AI 3 은 8스테이지쯤 뒤, 혼자는 다음 보스가 열릴 때쯤 잡는다 (docs/specs/raid-difficulty.md)
 // 보상도 이 '실제로 싸운 스테이지' 기준이다
-const RAID_SOLO_MULT = [[10, 2], [20, 1.8], [40, 1.6], [80, 1.5], [130, 1.4], [200, 1.3], [300, 1.2]];
+const RAID_SOLO_ADD = 9;
 const RAID_PARTY_GAP = [0, 5, 9, 13];
-const raidSoloMult = (stage) => {
-  const t = RAID_SOLO_MULT;
-  if (stage <= t[0][0]) return t[0][1];
-  for (let i = 1; i < t.length; i++) if (stage <= t[i][0]) return t[i - 1][1] + (t[i][1] - t[i - 1][1]) * (stage - t[i - 1][0]) / (t[i][0] - t[i - 1][0]);
-  return t[t.length - 1][1];
-};
-const raidStageOf = (b, n) => Math.round(b.stage * raidSoloMult(b.stage)) - RAID_PARTY_GAP[Math.max(1, Math.min(RAID_PARTY_GAP.length, n)) - 1];
+const raidStageOf = (b, n) => b.stage + RAID_SOLO_ADD - RAID_PARTY_GAP[Math.max(1, Math.min(RAID_PARTY_GAP.length, n)) - 1];
 
 // ───────────────────────── 레이드 보스 도트 ─────────────────────────
 // 필드 몬스터와 다른 레이드 전용 외형 (모두 왼쪽 = 파티 쪽을 본다). 글자 색은 RAID_BOSSES[보스].pal

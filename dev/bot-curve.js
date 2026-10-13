@@ -42,7 +42,7 @@ function runLine(line, { days, every, seed }) {
     const day = Math.floor(t / DAY);
     if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; S.tomes += TOWER_TOMES_PER_DAY; }
     while (S.raid.tickets > 0) {
-      const ids = Object.keys(A.RAID_BOSSES).filter((id) => A.raidStageOf(A.RAID_BOSSES[id], 4) <= S.best);
+      const ids = Object.keys(A.RAID_BOSSES).filter((id) => A.RAID_BOSSES[id].stage <= S.best && A.raidStageOf(A.RAID_BOSSES[id], 4) <= S.best);
       if (!ids.length) break;
       A.settleRaid({ id: 'r' + (++rid), boss: ids[ids.length - 1], members: ['me', 'a', 'b', 'c'].map((nickname) => ({ nickname })),
         fight: { won: true, mvp: rnd() < 0.25 ? 0 : 1, contrib: [{}, {}, {}, {}], dur: 60, timeout: false } }, 'me');
