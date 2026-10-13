@@ -238,12 +238,13 @@ const isMystery = (it) => it.k === 'gear' && it.g >= 3;
 // ── 장비 도트 아이콘 ──
 // <canvas data-gi="도감 키"> 를 HTML 에 넣어 두고, 그린 뒤 paintGearIcons 가 스프라이트를 찍는다
 // 장비는 16×16 고유 그림(src/gear-art.js GEAR_ART, 외곽선 포함 18px 캔버스 · 클래스 a16), 없으면 예전 12×12 (GEAR_SPR + pal, 14px)
-// 전리품 상자도 같은 방식으로 <canvas data-bx="등급"> 에 찍는다 (12×12 그대로)
+// 전리품 상자도 같은 방식으로 <canvas data-bx="등급"> · 레이드 상자는 <canvas data-rb="보스"> 에 찍는다
 const gearIcon = (it, cls = '') => {
   const n = GEAR_ART[it.t] ? 18 : 14;
   return `<canvas class="gicon ${isSetGear(it) ? 'gs' : 'g' + it.g} ${n === 18 ? 'a16' : ''} ${cls}" width="${n}" height="${n}" data-gi="${it.t}"></canvas>`;
 };
-const boxIcon = (g) => `<canvas class="gicon g${g}" width="14" height="14" data-bx="${g}"></canvas>`;
+// 상자도 16×16 그림(src/box-art.js BOX_ART·CHEST_ART)이 있으면 18px 캔버스 + a16
+const boxIcon = (g) => (BOX_ART[g] ? `<canvas class="gicon g${g} a16" width="18" height="18" data-bx="${g}"></canvas>` : `<canvas class="gicon g${g}" width="14" height="14" data-bx="${g}"></canvas>`);
 const lootIconHtml = (it) => (it.k === 'gear' ? gearIcon(it) : `<span class="lic">${lootIcon(it)}</span>`);
 
 const gearSprCache = {};
@@ -268,8 +269,8 @@ function paintGearIcons(root) {
     g.drawImage(gearSprite(key, def), 0, 0);
   };
   root.querySelectorAll('canvas[data-gi]').forEach((cv) => { const t = cv.dataset.gi; paint(cv, (GEAR_ART[t] ? 'art:' : '') + t, GEAR_ART[t] || GEAR_ITEMS[t]); });
-  root.querySelectorAll('canvas[data-bx]').forEach((cv) => paint(cv, 'box' + cv.dataset.bx, LOOT_BOXES[cv.dataset.bx]));
-  root.querySelectorAll('canvas[data-rb]').forEach((cv) => paint(cv, 'rbox' + cv.dataset.rb, RAID_BOSSES[cv.dataset.rb].chest));
+  root.querySelectorAll('canvas[data-bx]').forEach((cv) => { const g = cv.dataset.bx; paint(cv, (BOX_ART[g] ? 'boxart' : 'box') + g, BOX_ART[g] || LOOT_BOXES[g]); });
+  root.querySelectorAll('canvas[data-rb]').forEach((cv) => { const b = cv.dataset.rb; paint(cv, (CHEST_ART[b] ? 'rboxart' : 'rbox') + b, CHEST_ART[b] || RAID_BOSSES[b].chest); });
   // 레이드·월드 보스 초상: 몬스터 도트 첫 프레임을 캔버스 크기에 맞춰 찍는다
   root.querySelectorAll('canvas[data-boss]').forEach((cv) => {
     const def = raidDef(cv.dataset.boss), rows = SPR[def.spr][0];
@@ -278,7 +279,7 @@ function paintGearIcons(root) {
     drawSprite(rows, def.pal, cv.width / 2, cv.height - 1, 1, {}, g);
   });
 }
-const raidChestIcon = (b) => `<canvas class="gicon g${RAID_BOSSES[b].chest.w.findLastIndex((w) => w > 0)}" width="14" height="14" data-rb="${b}"></canvas>`;
+const raidChestIcon = (b) => { const n = CHEST_ART[b] ? 18 : 14; return `<canvas class="gicon g${RAID_BOSSES[b].chest.w.findLastIndex((w) => w > 0)} ${n === 18 ? 'a16' : ''}" width="${n}" height="${n}" data-rb="${b}"></canvas>`; };
 const bossPortrait = (b, cls = '') => `<canvas class="bossic ${cls}" data-boss="${b}"></canvas>`;
 
 // 상자에서 나와 챙긴 전리품 카드 (원정 보고·레이드 처치 상자 공용). b = { it, got, fresh }

@@ -47,13 +47,14 @@ const TOME_PAL = { B: '#6a3fb0', b: '#4e2c88', H: '#2a1850', W: '#f3ead2', J: '#
 
 const DROP_GRAV = 900;
 
-// ── 도트 스프라이트 캐시: 외곽선 붙인 14×14 원본과, 번쩍임용 흰 실루엣 ──
+// ── 도트 스프라이트 캐시: 외곽선 붙인 원본(16×16 그림이면 18px, 예전 12×12 면 14px)과, 번쩍임용 흰 실루엣 ──
 const dropSprCache = {};
 function dropSprite(key, rows, pal) {
   if (dropSprCache[key]) return dropSprCache[key];
+  const n = rows.length + 2;
   const make = (fill) => {
     const cv = document.createElement('canvas');
-    cv.width = cv.height = 14;
+    cv.width = cv.height = n;
     const g = cv.getContext('2d');
     const each = (fn) => rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') fn(x + 1, y + 1, ch); }));
     g.fillStyle = fill ? '#ffffff' : '#14151c';
@@ -64,13 +65,15 @@ function dropSprite(key, rows, pal) {
   // 땅에 닿는 줄: 맨 아래 칠해진 줄 + 외곽선 1칸 (위아래 빈 줄 때문에 상자가 떠 보이지 않게)
   let last = rows.length - 1;
   while (last > 0 && !/[^.]/.test(rows[last])) last--;
-  return (dropSprCache[key] = { cv: make(false), white: make(true), foot: 14 - (last + 3) });
+  return (dropSprCache[key] = { cv: make(false), white: make(true), foot: n - (last + 3), n });
 }
 const dropScratch = document.createElement('canvas');
-dropScratch.width = dropScratch.height = 14;
+dropScratch.width = dropScratch.height = 18;
 
 function dropLook(d) {
   if (d.kind === 'tome') return dropSprite('tome', TOME_SPR, TOME_PAL);
+  const art = BOX_ART[d.g];          // 16×16 상자 그림 (src/box-art.js), 없으면 예전 12×12
+  if (art) return dropSprite('boxart' + d.g, art.rows, art.pal);
   const def = LOOT_BOXES[d.g];
   return dropSprite('box' + d.g, GEAR_SPR[def.spr], def.pal);
 }
@@ -473,7 +476,7 @@ function drawDrop(d) {
   const held = d.st === 'hold' || d.st === 'lift';
   const sx = 1 + 0.32 * d.sq, sy = 1 - 0.28 * d.sq;
   const bottom = d.y + look.foot * s;
-  const cy = bottom - 7 * s * sy;                                    // 스프라이트 가운데 (회전 축)
+  const cy = bottom - look.n / 2 * s * sy;                                    // 스프라이트 가운데 (회전 축)
 
   // 그림자: 높이 뜰수록 옅고 작게
   if (d.st !== 'bag') {
@@ -525,12 +528,12 @@ function drawDrop(d) {
   if (d.st === 'ground' && sp < 1) {
     const g = dropScratch.getContext('2d');
     g.globalCompositeOperation = 'source-over';
-    g.clearRect(0, 0, 14, 14);
+    g.clearRect(0, 0, 18, 18);
     g.drawImage(look.cv, 0, 0);
     g.globalCompositeOperation = 'source-atop';
     g.fillStyle = 'rgba(255,255,255,0.8)';
-    const p = -6 + sp * 26;
-    g.beginPath(); g.moveTo(p, 0); g.lineTo(p + 3, 0); g.lineTo(p - 11, 14); g.lineTo(p - 14, 14); g.closePath(); g.fill();
+    const N = look.n, p = -6 + sp * (N + 12);
+    g.beginPath(); g.moveTo(p, 0); g.lineTo(p + 3, 0); g.lineTo(p - N + 3, N); g.lineTo(p - N, N); g.closePath(); g.fill();
     img = dropScratch;
   }
 
@@ -538,10 +541,11 @@ function drawDrop(d) {
   ctx.translate(Math.round(d.x), Math.round(cy));
   if (d.rot) ctx.rotate(d.rot);
   ctx.scale(sx, sy);
-  ctx.drawImage(img, -7 * s, -7 * s, 14 * s, 14 * s);
+  const N = look.n;
+  ctx.drawImage(img, 0, 0, N, N, -N / 2 * s, -N / 2 * s, N * s, N * s);
   if (d.flash > 0) {
     ctx.globalAlpha = Math.min(1, d.flash / 0.06);
-    ctx.drawImage(look.white, -7 * s, -7 * s, 14 * s, 14 * s);
+    ctx.drawImage(look.white, -N / 2 * s, -N / 2 * s, N * s, N * s);
   }
   ctx.restore();
 
@@ -562,7 +566,7 @@ function drawDrop(d) {
   if (d.st === 'ground') {
     const a = Math.min(1, (d.t - d.groundAt) / 0.2);
     const name = dropName(d);
-    const ty = Math.round(bottom - 14 * s - 6 - (1 - a) * 4 - (d.labelRow || 0) * 15);
+    const ty = Math.round(bottom - look.n * s - 6 - (1 - a) * 4 - (d.labelRow || 0) * 15);
     ctx.globalAlpha = a;
     ctx.font = `bold ${tr.beam === 2 ? 11 : 10}px -apple-system, sans-serif`;
     ctx.textAlign = 'center'; ctx.lineJoin = 'round';
