@@ -91,6 +91,14 @@ function campStatus() {
 // data-live="키" 요소는 틱마다 LIVE[키]() 로 글자만 갱신한다 (버튼을 다시 만들지 않도록)
 const LIVE = {
   buildLeft: () => (S.build ? fmtTime(S.build.remain) : ''),
+  stockWood: () => `${fmt(Math.floor(stockNow('wood')))} / ${fmt(stockCapAt('wood', S.bld.storage))}`,
+  stockOre: () => `${fmt(Math.floor(stockNow('ore')))} / ${fmt(stockCapAt('ore', S.bld.storage))}`,
+  stockEta: () => {
+    if (!srvClock.known) return '서버 시각 확인 중 — 잠시 뒤부터 쌓여요';
+    if (stockFull('wood')) return '가득 찼어요 — 받아야 다시 쌓여요';
+    const k = 'wood', left = (stockCapAt(k, S.bld.storage) - stockNow(k)) / stockRateAt(k, S.bld.storage) * 3600;
+    return `가득 차기까지 ${fmtTime(left)}`;
+  },
   gold: () => fmt(S.gold),
   wood: () => fmt(S.mats.wood),
   ore: () => fmt(S.mats.ore),
@@ -298,7 +306,7 @@ function viewReport() {
   const r = S.report;
   const cell = (label, value) => `<div class="cell"><span>${label}</span><b>${value}</b></div>`;
   const report = r ? `
-    <div class="reason">${REASON_TEXT[r.reason]}${r.trips > 1 ? ` <em>(원정 ${r.trips}회 합산)</em>` : ''}</div>
+    <div class="reason">${REASON_TEXT[r.reason]}${r.trips > 1 ? ` <em>(원정 ${r.trips}회 합산)</em>` : ''}${r.reason === 'bag' && S.bagLv < bagMaxLv() ? ` <button class="btn${rd(!bagUpBlocker())}" data-action="goto-inn">${ico('bag')} 여관에서 가방 키우기</button>` : ''}</div>
     ${r.bossFail ? `<div class="reason warn">👑 ${r.stageTo}스테이지 보스에게 패배해서 이후엔 파밍만 했습니다. 강해진 뒤 다시 출정하면 재도전합니다.</div>` : ''}
     <div class="stats">
       ${cell('⏱ 원정 시간', fmtTime(r.dur))}
@@ -378,7 +386,39 @@ function viewTown() {
         ${lv < bldMax(id) ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
       </div>
       <div class="act">${act}</div>
-    </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : ''}`;
+    </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : id === 'storage' ? viewStorage() : id === 'inn' ? viewInn() : ''}`;
+}
+
+// 여관을 골랐을 때 건물 카드 아래: 가방 업그레이드 한 줄 (core.js upgradeBag)
+function viewInn() {
+  const lv = S.bagLv, max = bagMaxLv(), blocker = bagUpBlocker(), maxed = lv >= max;
+  return `<div class="shead sub"><h3>${ico('bag')} 가방</h3><small>원정이 길어지면 가방이 먼저 찰 수 있어요 — 가득 차면 바로 돌아와요</small></div>
+    <div class="fac">
+      <span class="fname">${ico('bag')} 가방 <small>Lv ${lv}/${max}</small></span>
+      <span class="feff">무게 ${bagCapAt(lv)}${maxed ? '' : ` → <b>${bagCapAt(lv + 1)}</b>`}${S.bagHit ? ' · <em class="warn">지난 원정은 가방이 가득 차서 돌아왔어요</em>' : ''}</span>
+      ${maxed ? `<span class="small">여관 Lv 이 더 필요해요</span>` : `<span class="costs">${costChip(ico('wood'), bagUpCost(lv), S.mats.wood)}</span>
+      <button class="btn${rd(S.bagHit && !blocker)}" data-action="bag-up" ${blocker ? `disabled title="${blocker}"` : ''}>올리기</button>`}
+    </div>`;
+}
+
+// 창고를 골랐을 때 건물 카드 아래: 비축 수령 한 줄 + 교역 한 줄 (core.js stockNow·trade)
+function viewStorage() {
+  const lv = S.bld.storage, tb = tradeBlocker();
+  const has = ['wood', 'ore'].some((k) => stockNow(k) >= 1);
+  const tradeRow = lv < TRADE_LV
+    ? `<div class="fac"><span class="fname">${ico('scale')} 교역</span><span class="feff">창고 Lv${TRADE_LV} 에 열려요 — 남는 골드로 목재·철광석을 사요</span></div>`
+    : `<div class="fac">
+      <span class="fname">${ico('scale')} 교역 <small>오늘 ${tradesUsed()}/${tradesAt(lv)}</small></span>
+      <span class="feff">골드로 ${TRADE_HOURS}시간 생산량을 사요 · 살 때마다 값이 2배 · 자정에 초기화</span>
+      ${tradesLeft() ? `<span class="costs">${costChip('<i class="gc"></i>', tradePrice(), S.gold)}</span>` : ''}
+      ${['wood', 'ore'].map((k) => `<button class="btn" data-action="trade" data-k="${k}" ${tb ? `disabled title="${tb}"` : ''}>${ico(k)} +${fmt(tradeAmount(k))}</button>`).join('')}
+    </div>`;
+  return `<div class="shead sub"><h3>${ico('box')} 비축</h3><small>가만히 있어도 쌓여요 · 최대 ${STOCK_HOURS}시간분 · 원정 중에도 받을 수 있어요</small></div>
+    <div class="fac">
+      <span class="fname">${ico('wood')} <span data-live="stockWood"></span> · ${ico('ore')} <span data-live="stockOre"></span></span>
+      <span class="feff" data-live="stockEta"></span>
+      <button class="btn${rd(stockReady())}" data-action="stock-claim" ${has ? '' : 'disabled'}>수령</button>
+    </div>${tradeRow}`;
 }
 
 // 대장간 시설 한 줄: 이름·Lv·효과 → 다음 효과 · 비용 · 올리기
@@ -1184,7 +1224,8 @@ const gearInfo = (it) => `
 
 // 옵션 줄 목록 (시즌6): 켜진 줄은 밝게, 아직 부위 강화가 안 닿은 줄은 🔒 흐리게, 쓰레기 옵션은 회색. 오른쪽 끝은 품질 S/A/B/C
 function optLinesHtml(it, enh = S.gear.enh[it.slot]) {
-  if (!it.op || !it.op.length) return '';
+  if (it.op && !it.op.length) return '<div class="gops"><div class="gop off">옵션 줄 없음 — 옵션 줄이 생기기 전에 얻은 장비예요</div></div>';
+  if (!it.op) return '';
   return `<div class="gops">${it.op.map((o, i) => {
     const on = enh >= optNeed(i), rk = optRank(o.q), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk;
     return `<div class="gop${on ? '' : ' off'}${junk ? ' junk' : ''}"><b>${on ? '' : '🔒'}+${optNeed(i)}</b> ${optText(o)} <i class="rk r${rk}">${rk}</i></div>`;
@@ -1201,6 +1242,7 @@ function gearLvLine(slot) {
 function forgeRerollRow(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot);
   if (!it) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">장비를 끼면 옵션을 다시 굴릴 수 있어요</span></div>`;
+  if (!(it.op || []).length) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">옵션 줄이 없는 장비예요 (옵션 줄이 생기기 전에 얻음) — 새로 얻는 장비부터 붙어요</span></div>`;
   const c = rerollCost(it.g), enh = S.gear.enh[slot], rr = S.gear.rr && S.gear.rr.id === it.id ? S.gear.rr : null;
   const lines = (it.op || []).map((o, i) => {
     const on = enh >= optNeed(i), rk = optRank(o.q), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk, blocker = rerollBlocker(it, i);
@@ -1279,7 +1321,7 @@ function viewForge() {
   const html = `
     <div class="shead sub"><h3>${ico('anvil')} 부위 강화 ${stoneChip()}</h3>
       <button class="chk ${gearUi.protect ? 'on' : ''}" data-action="gear-protect" ${S.items.protect && anyRisky ? '' : 'disabled'}>
-        ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화가 있는 단계에서 강화할 때마다 1장 소모</small></button></div>
+        ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화가 있는 단계에서 강화할 때마다 1장 소모 · 원정 상자에서만 나옴</small></button></div>
     <div class="hint">강화 단계는 부위에 붙어 있어서 장비를 바꿔 껴도 그대로예요. 💠 강화석은 원정 보스를 잡거나 장비를 팔면 얻어요.</div>
     <div class="fslots">${Object.keys(GEAR_SLOTS).map(forgeSlot).join('')}</div>
     ${forgeRerollSection()}
@@ -2635,8 +2677,8 @@ function renderCamp() {
     <header>
       <h2><span class="ttl">${ico('camp')} ${esc(activeNick())}의 캠프</span> <small class="sync" data-live="sync"></small></h2>
       <div class="res">
-        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁에서 가장 많이 (원정 골동품에서도 조금)">${ico('wood')} <b data-live="wood"></b></span>
-        <span title="철광석 — ⛏️ 재료의 미궁에서 가장 많이 (원정 골동품에서도 조금)">${ico('ore')} <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 · 레이드 · 원정 골동품">${ico('mana')} <b data-live="mana"></b></span>
+        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁에서 가장 많이 · 📦 창고 비축·교역 (원정 골동품에서도 조금)">${ico('wood')} <b data-live="wood"></b></span>
+        <span title="철광석 — ⛏️ 재료의 미궁에서 가장 많이 · 📦 창고 비축·교역 (원정 골동품에서도 조금)">${ico('ore')} <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 · 레이드 · 원정 골동품">${ico('mana')} <b data-live="mana"></b></span>
       </div>
       <button class="mailbtn ${campTab === 'mail' ? 'on' : ''}" data-action="tab" data-tab="mail" title="우편함">${ico('mail')}${mailUnclaimed() ? `<i>${mailUnclaimed()}</i>` : ''}</button>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
@@ -2779,6 +2821,10 @@ const ACTIONS = {
     }, 110);
   },
   'build': (el) => startBuild(el.dataset.id),
+  'bag-up': () => { if (upgradeBag()) toast(`🎒 가방 Lv ${S.bagLv} — 무게 ${bagCap()}`); },
+  'goto-inn': () => { townUi.sel = 'inn'; campTab = 'town'; $('campBody').scrollTop = 0; },
+  'stock-claim': () => { const g = claimStock(); if (g) toast(`📦 창고 비축 수령 — 🪵 +${fmt(g.wood)} · 🪨 +${fmt(g.ore)}`); },
+  'trade': (el) => { const k = el.dataset.k, n = trade(k); if (n) toast(`⚖️ 교역 — ${k === 'wood' ? '🪵' : '🪨'} +${fmt(n)}`); },
   'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },
   'reroll': (el) => { if (rerollLine(Number(el.dataset.id), Number(el.dataset.i))) save(); },
   'reroll-pick': (el) => {
@@ -3171,6 +3217,7 @@ function catchUp() {
 function settleOffline() {
   if (!offline.pending || !srvClock.known || !saveKey) return;
   offline.pending = false;
+  if (!S.stock.at) settleStock();   // 창고 비축은 처음 서버 시각을 안 순간부터 쌓는다
   const away = (gameNow() - offline.from - (performance.now() - offline.mono)) / 1000;
   if (away <= 5) return;
   const wasOut = S.phase !== 'camp';
@@ -3320,9 +3367,11 @@ function setupGuide(os) {
   });
 }
 
-// ───────────────────────── 새 버전 자동 반영 (데스크탑 앱) ─────────────────────────
+// ───────────────────────── 새 버전 자동 반영 (앱·웹) ─────────────────────────
 // 앱은 게임 화면을 웹에서 불러온다. 켜 둔 채로도 업데이트가 반영되도록 몇 분마다 웹의 게임 파일을 다시 받아 보고,
 // 바뀌었으면 저장한 뒤 다시 불러온다. 배포 도중 일부 파일만 바뀐 상태를 피하려고 같은 결과가 두 번 연속 나와야 반영한다.
+// 0.20.0 부터 웹 버전도 같이 보고, 캠프 창이 열려 있어도 다시 불러온다 (탑을 오르거나 입력 중일 때만 미룬다).
+// 서버가 426(예전 버전)을 돌려주면 기다리지 않고 바로 다시 불러온다 (hooks.onOutdated).
 const UPDATE_CHECK_EVERY = 5 * 60 * 1000;
 
 async function gameFingerprint() {
@@ -3336,8 +3385,21 @@ async function gameFingerprint() {
   return h;
 }
 
+// 저장하고 새 버전으로 다시 불러온다. 새로 불러온 직후에도 같은 이유로 또 부르면(캐시 등) 1분 안에는 되풀이하지 않는다
+let reloading = false;
+async function forceReload(msg) {
+  if (reloading) return;
+  try { if (Date.now() - Number(sessionStorage.getItem('kb-reload-at') || 0) < 60000) return; sessionStorage.setItem('kb-reload-at', String(Date.now())); } catch {}
+  reloading = true;
+  toast(msg, 4000);
+  save();
+  try { await pushSave(); } catch {}
+  setTimeout(() => (window.bar && window.bar.reload ? window.bar.reload() : location.reload()), 1500);
+}
+hooks.onOutdated = () => forceReload('🔄 게임이 업데이트됐어요 — 저장하고 새 버전으로 다시 불러올게요');
+
 function watchForUpdates() {
-  if (!window.bar || location.protocol === 'file:') return;   // 로컬 파일로 열렸으면(개발·오프라인) 확인하지 않는다
+  if (location.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;   // 로컬 파일·개발 서버로 열렸으면 확인하지 않는다
   let current = null, pending = null;
   gameFingerprint().then((h) => { current = h; }, () => {});
   setInterval(async () => {
@@ -3346,10 +3408,8 @@ function watchForUpdates() {
     if (current == null) { current = h; return; }
     if (h === current) { pending = null; return; }
     if (pending !== h) { pending = h; return; }
-    if (campOpen || S.phase === 'tower' || document.activeElement?.value) return;   // 캠프 창을 보거나 탑을 오르거나 뭔가 입력하던 중이면 끝난 뒤에
-    save();
-    try { await pushSave(); } catch {}
-    window.bar.reload ? window.bar.reload() : location.reload();
+    if (S.phase === 'tower' || document.activeElement?.value) return;   // 탑을 오르거나 뭔가 입력하던 중이면 끝난 뒤에
+    forceReload('🔄 새 버전이 나왔어요 — 저장하고 다시 불러올게요');
   }, UPDATE_CHECK_EVERY);
 }
 

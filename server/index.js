@@ -198,7 +198,8 @@ async function runDuel(me, op, practice = '') {
 const RAID_MIN_VERSION = '0.19.15';   // 0.19.15: 출정·준비 전에 세이브를 올려 서버가 입장권을 확인
 //   0.19.12: 운영 차감 반영(0.19.10) + 배포 주소 ?speed= 배속 차단
 //   0.19.13: 운영 지급(gift) 반영 — 예전 버전은 지급을 차감으로 알고 ack 해 버려 선물이 사라진다
-const SAVE_MIN_VERSION = '0.19.15';   // 0.19.15: 날짜·오프라인 시간을 서버 시각으로 (기기 시계 조작 차단)
+const SAVE_MIN_VERSION = '0.20.0';    // 0.20.0: 훈련 Lv50·교관 수련·옵션 줄 세이브 이전 — 예전 버전이 이전 안 된 세이브로 덮어쓰지 못하게 (새로 고치면 로컬 진행이 이전돼서 올라온다)
+//   0.19.15: 날짜·오프라인 시간을 서버 시각으로 (기기 시계 조작 차단)
 const verNum = (v) => String(v || '0').split('.').map((x) => parseInt(x, 10) || 0);
 function versionAtLeast(v, min) {
   const a = verNum(v), b = verNum(min);

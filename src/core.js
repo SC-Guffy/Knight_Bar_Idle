@@ -12,6 +12,7 @@ const hooks = {
   onPenalty: (_p) => {},
   onClockKnown: () => {},
   onAccountGone: () => {},
+  onOutdated: () => {},
   onTowerEnd: (_result) => {},
   onDungeonEnd: (_result) => {},
 };
@@ -27,6 +28,9 @@ function freshState() {
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     mentor: freshMentor(),                  // 🎓 2차 훈련 교관 수련: 지금 교관·별·눈도장 (mentor.js)
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
+    bagLv: 1,                               // 가방 Lv (여관 안 업그레이드, data.js bagCapAt)
+    bagHit: false,                          // 지난 원정이 가방 가득으로 끝났나 (가방 레드닷, 올리면 꺼짐)
+    stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 },   // 창고 비축(소수점까지 쌓음, at = 마지막 정산 서버 시각, 0 = 아직 시작 전) · 오늘 교역 횟수 (data.js STOCK_*·TRADE_*)
     forge: {},                              // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0, reroll: 0 },
@@ -193,15 +197,16 @@ function migrate(o) {
     s.notice = `⚒️ 대장간 정리 — 부위 강화는 이제 마을 → 대장간에서 해요. 🔮 각인대는 ✨ 마법부여대로 바뀌어 장비에 공격력 % · 골드 획득 % 같은 부가 옵션을 붙여요${s.forge.potential ? ` (각인대 Lv ${s.forge.potential}을 그대로 옮겨 드렸어요)` : ''}`;
   }
   delete s.forge.potential;
-  // gearV 8 (시즌6): 마법부여(it.en) → 옵션 줄(it.op). 옵션이 없는 장비는 줄을 굴려 주고, 마법부여를 받았던 장비마다 🎲 재굴림권 1장으로 돌려준다
+  // gearV 8 (시즌6): 마법부여(it.en) → 옵션 줄(it.op). 리셋 없이 들어가서 이미 가진 장비에는 옵션 줄을 주지 않는다 (op: [] — 새로 얻는 장비부터).
+  //  마법부여를 받았던 장비마다 🎲 재굴림권 1장으로 돌려준다
   let ens = 0;
   for (const it of s.gear.inv) {
     if (it.en) { ens++; delete it.en; }
-    if (!it.op) it.op = rollOptLines(it.g);
+    if (!it.op) it.op = [];
   }
   if (ens) {
     s.items.reroll = (s.items.reroll || 0) + ens;
-    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 부위 강화 +5·+10·+15·+20·+25 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
+    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 이제부터 얻는 장비에 붙고, 부위 강화 +5·+10·+15·+20·+25 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
   }
   s.gearV = 8;
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
@@ -223,6 +228,10 @@ function migrate(o) {
   }
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
+  // 0.19.31 창고 개편: 창고는 목재·철광석 비축 + 교역 (비축은 지금부터 쌓인다)
+  // 0.19.32 가방은 여관 안 별도 업그레이드 — 기존 세이브도 모두 Lv1(무게 10)부터 (사용자 결정)
+  if (!o.stock && !s.notice) s.notice = '📦 창고 개편 — 이제 창고에 목재·철광석이 저절로 쌓여요 (마을 → 창고에서 수령). 창고 Lv5 부터는 골드로 목재·철광석을 사는 교역도 열려요. 🎒 가방은 이제 마을 → 여관에서 목재로 따로 키워요 (무게 10부터)';
+  else if (!('bagLv' in o) && !s.notice) s.notice = '🎒 가방 개편 — 가방은 이제 마을 → 여관에서 목재로 따로 키워요. 무게 10에서 시작해 올릴 때마다 +2, 원정이 길어지면 가방이 먼저 찰 수 있어요';
   return s;
 }
 
@@ -421,7 +430,20 @@ function profile() {
 
 const maxStamina = () => maxStaminaAt(S.bld.inn);
 const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
-const bagCap = () => bagCapAt(S.bld.storage) + gearBonus().bagCap;
+const bagCap = () => bagCapAt(S.bagLv) + gearBonus().bagCap;   // 🎲 가방 무게 옵션
+const bagMaxLv = () => S.bld.inn * BAG_PER_INN;
+function bagUpBlocker() {
+  if (S.bagLv >= bagMaxLv()) return '여관 Lv 이 더 필요해요';
+  if (S.mats.wood < bagUpCost(S.bagLv)) return '목재 부족';
+  return '';
+}
+function upgradeBag() {
+  if (bagUpBlocker()) return false;
+  S.mats.wood -= bagUpCost(S.bagLv);
+  S.bagLv++;
+  S.bagHit = false;
+  return true;
+}
 // 초당 스태미나 소모 (🎲 스태미나 소모 옵션, 합산 최대 STA_SAVE_MAX)
 const staDrain = () => STAMINA_DRAIN * (1 - Math.min(STA_SAVE_MAX, gearBonus().staSave));
 const bagWeight = () => S.bag.reduce((a, it) => a + lootWeight(it), 0);
@@ -533,11 +555,60 @@ function advanceBuild(sec) {
   S.build.remain -= sec;
   if (S.build.remain <= 0) {
     const id = S.build.id;
+    if (id === 'storage') settleStock();   // 그때까지 쌓인 건 옛 생산량으로
     S.bld[id]++;
     S.build = null;
     if (id === 'inn') S.stamina = Math.min(maxStamina(), S.stamina);
     hooks.onBuilt(id);
   }
+}
+
+// ───────────────────────── 창고: 비축 · 교역 ─────────────────────────
+// 비축은 서버 시각으로 흐른다. 서버 시각을 모르는 동안은 쌓지 않는다 (기기 시계를 돌려 채우지 못하게, 다음 서버 응답 뒤에 이어서 쌓임)
+// 처음 서버 시각을 안 순간부터 쌓기 시작한다 (예전 세이브에 소급하지 않음)
+function stockNow(k) {
+  const st = S.stock, now = gameNow();
+  if (!srvClock.known || !st.at || now <= st.at) return st[k];
+  const lv = S.bld.storage;
+  return Math.min(stockCapAt(k, lv), st[k] + stockRateAt(k, lv) * (now - st.at) / 3600000);
+}
+function settleStock() {
+  const st = S.stock, now = gameNow();
+  if (!srvClock.known) return;
+  if (st.at && now > st.at) { st.wood = stockNow('wood'); st.ore = stockNow('ore'); }
+  st.at = now;
+}
+const stockFull = (k) => stockNow(k) >= stockCapAt(k, S.bld.storage);
+// 수령할 만큼 찼나 (레드닷): 목재·철광석 중 하나라도 최대치의 절반 이상
+const stockReady = () => ['wood', 'ore'].some((k) => stockNow(k) >= stockCapAt(k, S.bld.storage) / 2);
+// 쌓인 걸 정수만큼 받는다 (소수점 아래는 남겨서 계속 쌓임). 받은 양을 돌려준다
+function claimStock() {
+  settleStock();
+  const got = { wood: Math.floor(S.stock.wood), ore: Math.floor(S.stock.ore) };
+  if (!got.wood && !got.ore) return null;
+  S.stock.wood -= got.wood; S.stock.ore -= got.ore;
+  S.mats.wood += got.wood; S.mats.ore += got.ore;
+  return got;
+}
+const tradesUsed = () => (newDay(S.stock.tradeDay) ? 0 : S.stock.trades);
+const tradesLeft = () => Math.max(0, tradesAt(S.bld.storage) - tradesUsed());
+const tradeAmount = (k) => stockRateAt(k, S.bld.storage) * TRADE_HOURS;
+const tradePrice = () => Math.max(1, Math.floor(monsterStats(S.best, false).gold * TRADE_GOLD * Math.pow(2, tradesUsed())));
+function tradeBlocker() {
+  if (S.bld.storage < TRADE_LV) return `창고 Lv${TRADE_LV} 에 교역이 열려요`;
+  if (!srvClock.known) return '서버 시각 확인 중';
+  if (!tradesLeft()) return '오늘 교역을 다 했어요';
+  if (S.gold < tradePrice()) return '골드 부족';
+  return '';
+}
+function trade(k) {
+  if (!STOCK_BASE[k] || tradeBlocker()) return 0;
+  S.gold -= tradePrice();
+  if (newDay(S.stock.tradeDay)) { S.stock.tradeDay = todayKey(); S.stock.trades = 0; }
+  S.stock.trades++;
+  const n = tradeAmount(k);
+  S.mats[k] += n;
+  return n;
 }
 
 // ───────────────────────── 우편함 ─────────────────────────
@@ -634,6 +705,7 @@ function selectZone(i) {
 function endExpedition(reason, instant = false) {
   if (S.phase !== 'expedition') return;
   S.trip.reason = reason;
+  S.bagHit = reason === 'bag';
   S.trip.stageTo = S.stage;
   S.phase = 'returning';
   hooks.onExpeditionEnd(reason);

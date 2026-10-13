@@ -1,7 +1,7 @@
 # 장비 강화 옵션 · 등급 희소성 · 재굴림권 (시즌6)
 
 - 상태: 완료
-- 브랜치: `season6` (worktree `../knight-bar-season6`) — main 은 라이브 패치, 시즌6 시작 때 머지
+- 브랜치: `season6` → 2026-10-13 리셋 없이 main 에 합침 (0.20.0)
 - 관련 코드: src/data.js (GRADES, RAID_BOSSES.chest, ENCHANT_OPTS, SUPPLIES), src/gear.js (rollLoot, gearBonus, enchantGear), src/raid.js (openRaidChest, claimRaidChest), src/worldboss.js (wbReward), src/core.js (rollGrade, stats, rewardKill), src/ui.js (viewForge, 장비 상세)
 - 최종 갱신: 2026-10-13
 
@@ -115,8 +115,8 @@
 - 일반 원정 상자의 보호 주문서(보급품 w 4)는 그대로.
 
 ### 6. 저장·이행
-- 장비: `S.gear.inv[i].op = [{ k, v, q }, ...]` (등급별 줄 수만큼). 시즌6 리셋으로 대부분 새로 시작하지만, 옵션이 없는 장비는 불러올 때 줄을 굴려 준다 (core.js migrate, gearV 8).
-- 남아 있는 it.en 은 지운다 (시즌 리셋이라 보상 없음 — 리셋이 아니면 재굴림권 1장으로 보상).
+- 장비: `S.gear.inv[i].op = [{ k, v, q }, ...]` (등급별 줄 수만큼). **리셋 없이 0.20.0 으로 들어갔다 (10-13 사용자 결정)** — 이미 가진 장비는 `op: []` (옵션 줄 없음, 상세·재굴림대에 '옵션 줄이 생기기 전에 얻은 장비' 안내), 새로 얻는 장비부터 줄을 굴린다 (core.js migrate, gearV 8).
+- 남아 있는 it.en 은 지우고, 마법부여했던 장비마다 🎲 재굴림권 1장으로 보상한다.
 - bestLoadout 캐시 키·gearScore 는 켜진 줄만 반영한다.
 
 ## UI

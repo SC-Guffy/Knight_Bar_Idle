@@ -322,15 +322,18 @@ function updateExpedition(dt, gdt) {
   if (!lapReady) layoutLap();
   spawnAhead();
 
-  fightTick(dt, st, () => {
-    knight.x += WALK_SPEED * dt;
+  fightTick(dt, st, (px = WALK_SPEED * dt) => {
+    knight.x += px;
     if (knight.x >= worldLen()) { knight.x -= worldLen(); endLap(); }
     knight.walkT += dt;
     S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * dt);
   });
 }
 
-// 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree() (원정은 걷기, 탑은 층 정리)
+// 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree(px) (원정은 px 만큼 걷기, 탑은 층 정리)
+const DASH_SPEED = 500;   // 돌진기로 달려붙는 속도 px/s (결투 server/duel.js DASH 와 같다)
+// 사거리 밖 d(px) 앞의 적에게 쓸 수 있는 돌진기 (classes.js SKILLS 의 gap, 쿨타임이 찬 것 중 목록 앞쪽)
+const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && !(knight.cds[id] > 0) && d <= SKILLS[id].gap) || null;
 function fightTick(dt, st, onFree) {
   const phase = S.phase;
   const alive = monsters.filter(m => !m.dying)
@@ -364,7 +367,9 @@ function fightTick(dt, st, onFree) {
   } else if (target && best <= reachTo(target)) {
     if (!knight.fighting) { knight.fighting = true; knight.crisis = false; }
     knight.atkTimer -= dt;
-    if (!knight.pending && tryCastSkill(st, target)) {
+    const dashed = knight.dash;              // 돌진이 닿았으면 그 스킬부터
+    knight.dash = null;
+    if (!knight.pending && (dashed ? tryCastSkill(st, target, dashed) : tryCastSkill(st, target))) {
       // 스킬부터
     } else if (knight.atkTimer <= 0 && !knight.pending) {
       knight.atkTimer = 1 / (st.aspd * (1 + (knight.haste ? knight.haste.v : 0) + procHaste()));   // + 고유 발동 누적 공속 (procs.js)   // 💨 고유 특수 가속 (skills.js 가 걸고 tickSkills 가 지운다)
@@ -375,7 +380,14 @@ function fightTick(dt, st, onFree) {
   } else {
     knight.fighting = false;
     knight.atkTimer = Math.min(knight.atkTimer, 0.25);
-    onFree();
+    // 돌진기: 사거리 밖이어도 돌진 거리 안의 적이면 달려붙어 닿는 순간 그 스킬을 쓴다 (docs/specs/duel-gap-closer.md)
+    const gap = target ? best - reachTo(target) : 0;
+    knight.dash = target && !knight.pending ? knight.dash || dashSkill(st, gap) : null;
+    if (knight.dash) {
+      onFree(Math.min(DASH_SPEED * dt, gap));
+      knight.walkT += dt * 2;
+      dashGhost('hero', S.cls, toScreen(knight.x), 1, knight.walkT);
+    } else onFree();
   }
 
   // 공격은 예비동작 → 타격 → 복귀 모션으로 재생하고, 피해는 타격 프레임에 들어간다
@@ -599,8 +611,8 @@ function updateTower(dt, gdt) {
           if (m) addFloater(`😡 공격력 ×${Math.round(rage)}`, toScreen(m.x), groundY() - 56, '#ff5a5a', 12);
         }
       }
-      fightTick(dt, st, () => {
-        if (monsters.some((m) => !m.dying)) { knight.x += WALK_SPEED * dt; knight.walkT += dt; return; }
+      fightTick(dt, st, (px = WALK_SPEED * dt) => {
+        if (monsters.some((m) => !m.dying)) { knight.x += px; knight.walkT += dt; return; }
         const r = clearTowerFloor();
         addFloater(`${r.floor}F 돌파!`, toScreen(knight.x), groundY() - 62, '#ffffff', 12);
         if (r.tomes) addFloater(`📖 비전서 +${r.tomes}`, toScreen(knight.x), groundY() - 78, '#c9a7ff', 14, true);
@@ -1087,8 +1099,8 @@ function updateDungeon(dt) {
       break;
     case 'fight':
       if (!run) { dgViewEnd(); break; }
-      fightTick(dt, st, () => {
-        if (monsters.some((m) => !m.dying)) { knight.x += WALK_SPEED * dt; knight.walkT += dt; return; }
+      fightTick(dt, st, (px = WALK_SPEED * dt) => {
+        if (monsters.some((m) => !m.dying)) { knight.x += px; knight.walkT += dt; return; }
         const res = dgBossCleared();
         dgShow(res);
         if (!S.dg.run) { dgViewEnd(); return; }
@@ -3000,11 +3012,23 @@ function playDuel(res, onEnd) {
 }
 const duelTime = () => Math.min(duelPlay.res.fight.dur, Math.max(0, clock - duelPlay.t0 - DUEL_ENTER_SEC) * duelPlay.speed);
 
-// 기사는 한 번 멈추면 다시 움직이지 않으므로 멈춘 시각·위치로 이동을 재현한다
+// 기사는 한 번 멈추면 다시 움직이지 않으므로 멈춘 시각·위치로 이동을 재현한다.
+// mv.dash: 돌진을 시작한 시각·위치 — 그때부터 dashSpeed 로 멈춘 위치까지 달린다
 function duelX(side, pt) {
-  const f = duelPlay.res.fight, mv = f.moves[side];
-  const walked = Math.min(pt, mv.t) * f.walk;
-  return duelPlay.x0 + (side === 'a' ? Math.min(mv.x, walked) : Math.max(mv.x, f.start - walked));
+  const f = duelPlay.res.fight, mv = f.moves[side], dir = side === 'a' ? 1 : -1;
+  let x;
+  if (mv.dash && pt >= mv.dash.t) x = mv.dash.x + dir * (pt - mv.dash.t) * f.dashSpeed;
+  else x = (side === 'a' ? 0 : f.start) + dir * Math.min(pt, mv.t) * f.walk;
+  return duelPlay.x0 + (side === 'a' ? Math.min(mv.x, x) : Math.max(mv.x, x));
+}
+const duelDashing = (side, pt) => { const mv = duelPlay.res.fight.moves[side]; return !!mv.dash && pt >= mv.dash.t && pt < mv.t; };
+
+// 돌진 중 잔상 (원정 기사·결투 재생 공용): 지나간 자리에 0.05초마다 흐린 모습을 남긴다
+const dashGhostAt = {};
+function dashGhost(key, cls, x, facing, walkT) {
+  if (clock - (dashGhostAt[key] || 0) < 0.05) return;
+  dashGhostAt[key] = clock;
+  ghostFx({ cls }, x, facing, (CLASSES[cls] || CLASSES.squire).look.fx, 0.22, { mode: 'walk', walkT }, 0.4);
 }
 
 function updateDuel() {
@@ -3074,13 +3098,14 @@ function drawDuel() {
     ctx.fillRect(x - 14, gy - 1, 28, 2);
     const pose = {
       mode: loser ? 'sit' : pt < mv.t ? 'walk' : 'fight',
-      walkT: pt, swing: !loser && since < 0.16 ? 0.35 + since * 4 : -1, combo: L ? L.n : 0,
+      walkT: duelDashing(side, pt) ? pt * 3 : pt, swing: !loser && since < 0.16 ? 0.35 + since * 4 : -1, combo: L ? L.n : 0,
       facing: side === 'a' ? 1 : -1, t: clock, lift,
       flash: d.hit[side] != null && clock - d.hit[side] < 0.08,
       alpha: loser ? 0.45 : alpha,
     };
     if (sp) Object.assign(pose, sp, { alpha: alpha * (sp.alpha == null ? 1 : sp.alpha) });
     if (sp) drawCastTrail(`duel-${side}`, who.cls, gy, side === 'a' ? 1 : -1);
+    if (duelDashing(side, pt)) dashGhost(`duel-${side}`, who.cls, x, side === 'a' ? 1 : -1, pose.walkT);
     drawHero(ctx, who.cls, x, gy, pose);
 
     // 원거리 공격은 화살이 날아가는 모습만 짧게 보여 준다

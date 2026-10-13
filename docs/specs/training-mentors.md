@@ -1,7 +1,7 @@
 # 훈련 1차 만렙 50 · 2차 훈련 🎓 교관 수련 (시즌6)
 
 - 상태: 완료
-- 브랜치: `season6` (worktree `../knight-bar-season6`) — main 은 라이브 패치, 시즌6 시작 때 머지
+- 브랜치: `season6` → 2026-10-13 리셋 없이 main 에 합침 (0.20.0)
 - 관련 코드: src/data.js (`TRAIN_MAX`, `trainCapAt`, `TRAINING`, `BUILDINGS.training`, `MENTORS`·`MENTOR_*`), src/mentor.js (규칙: 수련·승부 정산·보너스·레드닷), src/mentor-stage.js (무대: 교관 스프라이트·배경·연출·대사), src/core.js (`freshState`, migrate — 50 초과 환급), src/gear.js (`gearBonus`·`gearBonusParts` — 교관 보너스 합산), src/ui.js (`viewTraining`·`viewMentor`·`mentorPreview`, 액션 `mentor-*`, 그리기 루프), src/town.js (`townTodo`), src/net.js (`fetchMentor`·`requestMentorDuel`), server/index.js (`GET /api/mentor`·`POST /api/mentor/duel`), server/mentor.js (교관 프로필·배수), server/mentor-k.json (계열×교관×레벨 배수 표), server/bots.js (`curveAtLevel`), server/bot-curve.json (시즌6 규칙+교관으로 다시 구움), dev/mentor-sim.js (배수 보정), dev/progress-bot.js·dev/bot-curve.js (`playMentors`)
 - 최종 갱신: 2026-10-13
 
@@ -170,6 +170,8 @@
 - 2026-10-13 사용자 결정: 훈련장 만렙 10, 수완 상한으로 늦어진 진행은 교관 보상 경험치로 메움.
   - 전체 봇(`dev/bot-curve.js --days 14 --dry [--rev 29d397d]`, 계열 12개 중앙값): 교관 전(29d397d) 스테이지 180 · Lv172 · 140 도달 105h · 160 도달 187h / 교관·경험치 없음 179 · Lv168 · 115h · 198h / 경험치 +3% 180 · Lv171 · 120h · 181h / **+4% 180 · Lv172 · 114h · 193h** → 4% 로. (도달 시각은 시드 한 개라 ±10h 흔들린다)
   - 경험치를 넣은 규칙으로 봇 곡선·k 표를 다시 구웠다 (다시 구운 봇: 최종 스테이지 180 · Lv173 중앙값). 덜 갖춘 기사(×0.5) 승률은 그대로 Lv80 교관1 7% · Lv130 교관1 20%.
+
+- 2026-10-13 main 에 리셋 없이 합침 (0.20.0, 사용자 결정). 안내 우편 `update-mentor-1013` (투지의 영약 2 · 행운의 부적 2 · 재굴림권 1, 10-27 까지). main 의 0.19.27~0.19.32 (결투 체력 ×2·직업 밸런스·레이드 세기·보호 주문서 상자 전용·창고 교역·가방) 와 합친 규칙으로 봇 곡선·k 표를 다시 구웠다.
 
 ## 남은 일 / 미정
 

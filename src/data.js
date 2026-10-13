@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.19.26';
+const GAME_VERSION = '0.20.0';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -88,7 +88,19 @@ const trainCapAt = (lv) => 10 * Math.min(lv, TRAIN_MAX / 10);
 // (Lv5 약 11분 · Lv10 약 42분 · Lv15 약 2.6시간 · Lv20 약 10시간)
 const maxStaminaAt = (lv) => Math.round(20 * Math.pow(1.3, lv - 1)) * 5;
 const restSecAt = (lv) => 180 * Math.pow(1.1, lv - 1);          // 0 → 최대 스태미나까지 (Lv1 3분 · Lv20 약 18분)
-const bagCapAt = (lv) => 20 + 6 * (lv - 1);                     // 가방이 들 수 있는 무게 (상자마다 무게가 다름)
+// 가방 (0.19.32): 여관 안의 별도 업그레이드. 무게 10 + 2/Lv, 최대 Lv = 여관 Lv × BAG_PER_INN, 비용은 🪵 목재 (바로 오름)
+//  원정 1시간에 약 20~35 무게가 차서(보스 상자 100% · 잡몹 5%) 여관을 올려 원정이 길어지면 가방도 직접 올려 줘야 한다 (0.19.31 은 여관 Lv, 그 전엔 창고 Lv 을 따라감)
+const bagCapAt = (lv) => 10 + 2 * (lv - 1);                     // 가방이 들 수 있는 무게 (상자마다 무게가 다름)
+const BAG_PER_INN = 8;
+const bagUpCost = (lv) => Math.round(50 * Math.pow(1.06, lv - 1));   // lv → lv+1 목재
+// 창고 비축 (0.19.31): 가만히 있어도 목재·철광석이 시간당 쌓이고, STOCK_HOURS 시간분까지 모인다. 서버 시각으로 흐른다 (core.js settleStock)
+const STOCK_BASE = { wood: 10, ore: 7 }, STOCK_GROW = 1.3, STOCK_HOURS = 12;
+const stockRateAt = (k, lv) => Math.round(STOCK_BASE[k] * Math.pow(STOCK_GROW, lv - 1));   // 시간당
+const stockCapAt = (k, lv) => stockRateAt(k, lv) * STOCK_HOURS;
+// 창고 교역: 창고 Lv TRADE_LV 부터 골드로 목재·철광석을 산다. 한 번에 TRADE_HOURS 시간 생산량, 하루 2 + Lv/5 회 (목재·철광석 공용)
+//  가격 = 최고 스테이지 잡몹 골드 × TRADE_GOLD × 2^(오늘 교역한 횟수) — 골드가 스테이지를 따라 기하급수로 느는 경제라 가격도 스테이지를 따라간다
+const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200;
+const tradesAt = (lv) => (lv >= TRADE_LV ? 2 + Math.floor(lv / 5) : 0);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
 
 const BUILDINGS = {
@@ -99,11 +111,11 @@ const BUILDINGS = {
   },
   inn: {
     name: '여관', icon: '🛏️', mul: { gold: 1, wood: 1.3, ore: 0.4, mana: 0.8 },
-    effect: (lv) => `원정 ${fmtTime(maxStaminaAt(lv) / STAMINA_DRAIN)} · 완전 휴식 ${fmtTime(restSecAt(lv))}`,
+    effect: (lv) => `원정 ${fmtTime(maxStaminaAt(lv) / STAMINA_DRAIN)} · 완전 휴식 ${fmtTime(restSecAt(lv))} · 가방 최대 Lv ${lv * BAG_PER_INN}`,
   },
   storage: {
     name: '창고', icon: '📦', mul: { gold: 0.8, wood: 1.5, ore: 0.3, mana: 0.6 },
-    effect: (lv) => `가방 무게 ${bagCapAt(lv)}`,
+    effect: (lv) => `🪵 ${stockRateAt('wood', lv)}/h · 🪨 ${stockRateAt('ore', lv)}/h · 최대 ${STOCK_HOURS}시간${lv >= TRADE_LV ? ` · 교역 하루 ${tradesAt(lv)}회` : ''}`,
   },
   forge: {
     name: '대장간', icon: '⚒️', mul: { gold: 1.2, wood: 0.4, ore: 1.6, mana: 1.4 },
@@ -211,17 +223,18 @@ const MATERIALS = {
   mana: { name: '마력석', icon: '💎' },
 };
 
-// price 는 최고 스테이지의 몬스터 골드 × 배수
+// price 는 최고 스테이지의 몬스터 골드 × 배수, w 는 상자 소비 아이템 칸 가중치, shop: false 는 상점에서 안 팖 (드롭 전용)
 const SUPPLIES = {
-  lunch:  { name: '도시락',     icon: '🍱', price: 30, w: 35, desc: '캠프에서 먹으면 최대 스태미나의 50% 회복' },
-  potion: { name: '회복 물약',  icon: '🧪', price: 20, w: 40, desc: '원정 중 체력 30% 이하에서 자동 사용 (쓰러짐 방지)' },
-  charm:  { name: '행운의 부적', icon: '🍀', price: 60, w: 12, desc: '이번 원정 동안 좋은 등급의 전리품이 더 잘 나옴' },
-  elixir: { name: '투지의 영약', icon: '🔥', price: 60, w: 13, desc: '이번 원정 동안 공격력 +30%' },
-  protect: { name: '보호 주문서', icon: '📜', price: 400, w: 4, desc: '강화할 때 1장 써서, 실패로 단계가 떨어지거나 초기화되는 걸 막아 줌' },
+  lunch:  { name: '도시락',     icon: '🍱', price: 15, w: 35, desc: '캠프에서 먹으면 최대 스태미나의 50% 회복' },
+  potion: { name: '회복 물약',  icon: '🧪', price: 10, w: 40, desc: '원정 중 체력 30% 이하에서 자동 사용 (쓰러짐 방지)' },
+  charm:  { name: '행운의 부적', icon: '🍀', price: 30, w: 12, desc: '이번 원정 동안 좋은 등급의 전리품이 더 잘 나옴' },
+  elixir: { name: '투지의 영약', icon: '🔥', price: 30, w: 13, desc: '이번 원정 동안 공격력 +30%' },
+  protect: { name: '보호 주문서', icon: '📜', price: 0, w: 60, shop: false, desc: '강화할 때 1장 써서, 실패로 단계가 떨어지거나 초기화되는 걸 막아 줌 (원정 상자에서만 나옴)' },
   // 재굴림권: 상점에 없다(shop: false) — 레이드 처치 상자·월드 보스 보상에서만 (RARE_DROP)
   reroll: { name: '재굴림권', icon: '🎲', price: 0, w: 0, shop: false, desc: '대장간 🎲 옵션 재굴림대에서 장비 옵션 한 줄을 다시 굴림' },
 };
 // 재굴림권·보호 주문서 드랍 확률: 레이드 처치 상자 1개당 / 월드 보스 하루 보상(잡은 날은 kill)
+//  (보호 주문서는 원정 상자가 주 공급처 — protect-scroll-drop.md. 레이드·월드 보스 몫은 덤)
 const RARE_DROP = {
   raid: { reroll: 0.06, protect: 0.06 },
   wb:   { reroll: 0.15, protect: 0.15 },
@@ -245,6 +258,22 @@ const MAIL = [
       '감사의 마음을 담아 작은 출발 선물을 보내 드려요. 우편함에서 받아 가세요. 이번 시즌도 즐거운 모험 되세요!',
     ],
     reward: { items: { charm: 1, elixir: 1, potion: 3 } },
+  },
+  {
+    // 시즌6 내용을 리셋 없이 시즌5 중간에 넣은 업데이트 (0.20.0)
+    id: 'update-mentor-1013',
+    at: Date.parse('2026-10-13T00:00:00+09:00'),
+    until: Date.parse('2026-10-27T00:00:00+09:00'),
+    from: '기사 키우기 개발자',
+    title: '🎓 큰 업데이트: 교관 수련 · 장비 옵션 줄 · 고유 발동 효과',
+    body: [
+      '🎯 훈련이 바뀌었어요. 1차 훈련(공격·체력·방어·수완)은 Lv 50 에서 끝나고, 훈련장도 Lv 10 이 끝이에요. Lv 50 을 넘겨 올린 단계와 훈련장 Lv 10 을 넘긴 건설비는 쓴 만큼 돌려드렸어요.',
+      '🎓 1차 훈련 네 가지를 다 마치면 마을 → 훈련장에서 교관 다섯 명을 차례로 만나요. 골드를 내고 시범을 보여 별을 받고, 마지막 별은 교관과의 승부로 따내요. 별마다 능력치와 경험치 획득이 올라요 (뒤 교관일수록 까다로워요).',
+      '🎲 이제부터 얻는 장비에는 옵션 줄이 붙어서 부위 강화 +5 마다 한 줄씩 켜져요. 이미 가진 장비는 그대로예요. 마법부여는 옵션 재굴림으로 바뀌었고, 마법부여했던 장비마다 재굴림권을 돌려드렸어요.',
+      '✦ 이름 있는 장비와 레이드 세트에는 저마다 고유 발동 효과가 생겼어요. 대신 좋은 등급 장비가 조금 더 귀해졌어요.',
+      '바뀐 게 많아 낯설 수 있어 작은 선물을 보내 드려요. 우편함에서 받아 가세요!',
+    ],
+    reward: { items: { elixir: 2, charm: 2, reroll: 1 } },
   },
 ];
 
@@ -2280,18 +2309,12 @@ const RAID_TICKET_STEPS = [0.05, 1, 2, 3.5, 6];  // 오늘 n번째 구매의 기
 const RAID_TICKET_GROW = 1.6;          // 표를 넘어가면 한 장마다 × 1.6
 const RAID_MVP_MULT = 1.5;             // MVP 는 재화 1.5배
 const RAID_FAIL_MULT = 0;              // 실패하면 보상 없음 (입장권을 안 깎으므로 위로 보상을 주면 무한 파밍이 된다)
-// 보스가 실제로 싸우는 스테이지 = 입장 스테이지 × 혼자 배수 − 인원 보정 (server/raid.js 의 SOLO_MULT·PARTY_GAP 와 같아야 함).
-// 혼자 배수는 입장 스테이지에 따라 2.0 → 1.2 로 완만해진다 (점 사이는 직선)
+// 보스가 실제로 싸우는 스테이지 = 입장 스테이지 + RAID_SOLO_ADD − 인원 보정 (server/raid.js 의 SOLO_ADD·PARTY_GAP 와 같아야 함).
+// 새 보스가 열리면 사람 4인은 바로, 혼자 + AI 3 은 8스테이지쯤 뒤, 혼자는 다음 보스가 열릴 때쯤 잡는다 (docs/specs/raid-difficulty.md)
 // 보상도 이 '실제로 싸운 스테이지' 기준이다
-const RAID_SOLO_MULT = [[10, 2], [20, 1.8], [40, 1.6], [80, 1.5], [130, 1.4], [200, 1.3], [300, 1.2]];
+const RAID_SOLO_ADD = 9;
 const RAID_PARTY_GAP = [0, 5, 9, 13];
-const raidSoloMult = (stage) => {
-  const t = RAID_SOLO_MULT;
-  if (stage <= t[0][0]) return t[0][1];
-  for (let i = 1; i < t.length; i++) if (stage <= t[i][0]) return t[i - 1][1] + (t[i][1] - t[i - 1][1]) * (stage - t[i - 1][0]) / (t[i][0] - t[i - 1][0]);
-  return t[t.length - 1][1];
-};
-const raidStageOf = (b, n) => Math.round(b.stage * raidSoloMult(b.stage)) - RAID_PARTY_GAP[Math.max(1, Math.min(RAID_PARTY_GAP.length, n)) - 1];
+const raidStageOf = (b, n) => b.stage + RAID_SOLO_ADD - RAID_PARTY_GAP[Math.max(1, Math.min(RAID_PARTY_GAP.length, n)) - 1];
 
 // ───────────────────────── 레이드 보스 도트 ─────────────────────────
 // 필드 몬스터와 다른 레이드 전용 외형 (모두 왼쪽 = 파티 쪽을 본다). 글자 색은 RAID_BOSSES[보스].pal

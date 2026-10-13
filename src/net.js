@@ -26,6 +26,8 @@ async function api(method, path, body, { token, timeout = 20000, keepalive = fal
     if (!res.ok) {
       // 지금 플레이 중인 기사가 서버에서 지워졌다 (전체 초기화) → ui.js 가 이 기기의 기사를 지우고 처음 화면으로 보낸다
       if (data.code === 'gone' && token && token === activeToken()) hooks.onAccountGone();
+      // 서버가 이 버전을 더는 받지 않는다 (426, server/index.js requireClient) → ui.js 가 저장하고 새 버전으로 다시 불러온다
+      if (res.status === 426) hooks.onOutdated();
       throw new ApiError(data.error || `서버 오류 (${res.status})`, res.status, data.code);
     }
     return data;

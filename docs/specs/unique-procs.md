@@ -1,7 +1,7 @@
 # 이름 있는 장비 고유 발동 효과 (시즌6)
 
 - 상태: 완료
-- 브랜치: `season6`
+- 브랜치: `season6` → 2026-10-13 리셋 없이 main 에 합침 (0.20.0)
 - 관련 코드: src/data.js (PROC_TYPES·ITEM_PROCS·SET_PROCS), src/procs.js (필드 동작 전부), src/gear.js (activeProcs·procAtkEv·procHpEv·gearProcText), src/world.js (hitMonster·releaseAttack·fightTick·피격 갈고리), src/skills.js (tryCastSkill → procOnCast), src/core.js (dpsOf·powerOf·profile 평균 환산)
 - 최종 갱신: 2026-10-13
 
