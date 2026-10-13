@@ -20,6 +20,8 @@ function townTodo(id) {
   if (canBuild(id)) return true;
   if (id === 'training') return TRAINING.some(canTrain) || mentorTodo();
   if (id === 'forge') return Object.keys(GEAR_SLOTS).some(gearCanEnh) || Object.keys(FORGE_FAC).some((f) => forgeFacBlocker(f) === '');   // 부위 강화 · 시설
+  if (id === 'inn') return S.bagHit && !bagUpBlocker();   // 지난 원정이 가방 가득으로 끝났을 때만 가방 올리기를 재촉
+  if (id === 'storage') return stockReady();   // 비축이 절반 넘게 찼다 (교역은 재촉하지 않음)
   return false;
 }
 function townSel() {
@@ -656,6 +658,15 @@ function drawTownTag(g, id, x, y, t) {
   } else if (townTodo(id)) {
     g.fillStyle = '#ff3b30';
     g.beginPath(); g.arc(x0 + tw - 2, y0 + 2, 4, 0, Math.PI * 2); g.fill();
+  }
+  // 창고 비축이 절반 넘게 차면 이름표 위에 목재 말풍선이 둥실 뜬다
+  if (id === 'storage' && stockReady()) {
+    const bx = Math.round(x), by = y0 - 14 + Math.round(Math.sin(t * 3) * 2);
+    g.fillStyle = 'rgba(18,18,26,.85)';
+    g.beginPath(); g.roundRect(bx - 12, by - 10, 24, 20, 7); g.fill();
+    g.beginPath(); g.moveTo(bx - 4, by + 10); g.lineTo(bx + 4, by + 10); g.lineTo(bx, by + 14); g.fill();
+    g.textBaseline = 'middle';
+    fillTextIco(g, '🪵', bx - 7, by + 0.5);
   }
 }
 

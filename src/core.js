@@ -12,6 +12,7 @@ const hooks = {
   onPenalty: (_p) => {},
   onClockKnown: () => {},
   onAccountGone: () => {},
+  onOutdated: () => {},
   onTowerEnd: (_result) => {},
   onDungeonEnd: (_result) => {},
 };
@@ -27,13 +28,16 @@ function freshState() {
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     mentor: freshMentor(),                  // 🎓 2차 훈련 교관 수련: 지금 교관·별·눈도장 (mentor.js)
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
+    bagLv: 1,                               // 가방 Lv (여관 안 업그레이드, data.js bagCapAt)
+    bagHit: false,                          // 지난 원정이 가방 가득으로 끝났나 (가방 레드닷, 올리면 꺼짐)
+    stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 },   // 창고 비축(소수점까지 쌓음, at = 마지막 정산 서버 시각, 0 = 아직 시작 전) · 오늘 교역 횟수 (data.js STOCK_*·TRADE_*)
     forge: {},                              // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0, reroll: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed, 차수별 곡선)
-    mastV: 11,                              // 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    mastV: 12,                              // 12: 궁극기 별도 숙련도 · 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
@@ -83,13 +87,13 @@ function migrate(o) {
     s.gold += refund;
     s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·수완으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
   }
-  // 훈련(1차)이 Lv 50 에서 끝난다 (2차는 교관 수련): 50 을 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다
+  // 훈련(1차) 한도 TRAIN_MAX 를 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다 (교관 수련을 켜면 50, 끄면 200 이라 사실상 할 일 없음)
   let over = 0;
   for (const u of TRAINING) {
     for (let i = TRAIN_MAX; i < (s.train[u.id] || 0); i++) over += Math.floor(u.base * Math.pow(u.grow, i));
     s.train[u.id] = Math.min(TRAIN_MAX, s.train[u.id] || 0);
   }
-  // 훈련장 최대 Lv 이 10 으로 내려갔다: 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
+  // 훈련장 최대 Lv(교관 수련이 켜져 있으면 10)을 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
   const back = { gold: 0, wood: 0, ore: 0, mana: 0 };
   const addBack = (c) => { for (const k of Object.keys(back)) back[k] += c[k]; };
   if (s.build && s.build.id === 'training' && s.bld.training >= bldMax('training')) { addBack(buildCost('training', s.bld.training)); s.build = null; }
@@ -140,17 +144,23 @@ function migrate(o) {
     s.notice = '⚡ 스킬 트리 개편 — 이제 모든 스킬이 레벨 대신 노드로만 자라요. 왼쪽은 ⚔️ 피해, 오른쪽은 ⏱️ 쿨타임·💥 치명·🩸 흡혈에 더해 2구간엔 스킬마다 다른 고유 특수(처형·기절·화상·속사…)가 있어요. 찍었던 쿨타임 특화 포인트는 돌려드렸으니 스킬 탭에서 다시 살펴봐 주세요';
   }
   // mastV 11: 요구량이 차수별(1차 6·2차 10·궁극기 12권/레벨 최대)로 줄었다. 먹인 권수는 그대로 두고 새 곡선으로 레벨을 다시 센다 (레벨은 같거나 오른다).
-  //  만렙 누적을 넘는 권수는 비전서로 돌려준다. 키의 차수는 지금 직업에서 그 키를 쓰는 스킬 기준 (3차면 궁극기)
-  if (o.mast && (o.mastV || 1) < 11) {
+  //  만렙 누적을 넘는 권수는 비전서로 돌려준다 (그 스킬 차수의 만렙)
+  // mastV 12: 3차 궁극기가 1차 스킬 자리를 대신하며 숙련도(1차 스킬 id 의 권수·트리)를 이어받던 구조를 없앴다 — 궁극기는 따로 키우는 네 번째 스킬.
+  //  1차 스킬 id 의 권수·트리는 그대로 1차 스킬 것이고(1차 곡선이 더 싸서 레벨은 같거나 오른다), 1차 만렙을 넘는 권수는 돌려준다. 궁극기는 Lv1 부터
+  //  (docs/specs/ult-separate-mastery.md)
+  if (o.mast && (o.mastV || 1) < 12) {
     let refund = 0;
     for (const key of Object.keys(s.mast)) {
-      const user = skillsOf(s.cls).find((k) => mastKey(k.id) === key), cap = skillTomeMax(skillTierOf(user ? user.id : key));
+      const cap = skillTomeMax(skillTierOf(key));
       if (s.mast[key] > cap) { refund += s.mast[key] - cap; s.mast[key] = cap; }
     }
     s.tomes = (s.tomes || 0) + refund;
-    if (Object.keys(s.mast).length && !s.notice) s.notice = `📖 스킬 요구량 완화 — 비전서 요구량이 줄고 차수마다 달라졌어요 (1차 < 2차 < 궁극기). 먹인 권수는 그대로라 스킬 레벨이 올랐어요${refund ? ` · 만렙을 넘친 비전서 ${refund}권을 돌려드렸어요` : ''}`;
+    const back = refund ? ` · 만렙을 넘친 비전서 ${refund}권을 돌려드렸어요` : '';
+    if (CLASSES[s.cls] && CLASSES[s.cls].tier === 3) {
+      if (!s.notice) s.notice = `💥 궁극기가 따로 키우는 스킬이 됐어요 — 1차 스킬이 숙련도 그대로 돌아왔고, 궁극기는 Lv1 부터 비전서로 키워요${back}`;
+    } else if (Object.keys(s.mast).length && !s.notice) s.notice = `📖 스킬 요구량 완화 — 비전서 요구량이 줄고 차수마다 달라졌어요 (1차 < 2차 < 궁극기). 먹인 권수는 그대로라 스킬 레벨이 올랐어요${back}`;
   }
-  s.mastV = 11;
+  s.mastV = 12;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -193,17 +203,24 @@ function migrate(o) {
     s.notice = `⚒️ 대장간 정리 — 부위 강화는 이제 마을 → 대장간에서 해요. 🔮 각인대는 ✨ 마법부여대로 바뀌어 장비에 공격력 % · 골드 획득 % 같은 부가 옵션을 붙여요${s.forge.potential ? ` (각인대 Lv ${s.forge.potential}을 그대로 옮겨 드렸어요)` : ''}`;
   }
   delete s.forge.potential;
-  // gearV 8 (시즌6): 마법부여(it.en) → 옵션 줄(it.op). 옵션이 없는 장비는 줄을 굴려 주고, 마법부여를 받았던 장비마다 🎲 재굴림권 1장으로 돌려준다
+  // gearV 8 (시즌6): 마법부여(it.en) → 옵션 줄(it.op). 리셋 없이 들어가서 이미 가진 장비에는 옵션 줄을 주지 않는다 (op: [] — 새로 얻는 장비부터).
+  //  마법부여를 받았던 장비마다 🎲 재굴림권 1장으로 돌려준다
   let ens = 0;
   for (const it of s.gear.inv) {
     if (it.en) { ens++; delete it.en; }
-    if (!it.op) it.op = rollOptLines(it.g);
+    if (!it.op) it.op = [];
   }
   if (ens) {
     s.items.reroll = (s.items.reroll || 0) + ens;
-    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 부위 강화 +5·+10·+15·+20·+25 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
+    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 이제부터 얻는 장비에 붙고, 부위 강화 +5·+10·+15·+20·+25 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
   }
   s.gearV = 8;
+  // 0.20.5: 재굴림은 굴린 결과가 바로 적용된다 — 새/이전을 고르지 않고 남겨 둔 결과(s.gear.rr)는 새 옵션으로 넣는다
+  if (s.gear.rr) {
+    const it = s.gear.inv.find((x) => x.id === s.gear.rr.id);
+    if (it && it.op && it.op[s.gear.rr.i] && s.gear.rr.cand) it.op[s.gear.rr.i] = s.gear.rr.cand;
+    delete s.gear.rr;
+  }
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
   if (s.forge.resonance || s.gear.res) {
     const back = { gold: 0, ore: 0, mana: 0 };
@@ -223,6 +240,17 @@ function migrate(o) {
   }
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
+  // 0.19.31 창고 개편: 창고는 목재·철광석 비축 + 교역 (비축은 지금부터 쌓인다)
+  // 0.19.32 가방은 여관 안 별도 업그레이드 — 기존 세이브도 모두 Lv1(무게 10)부터 (사용자 결정)
+  if (!o.stock && !s.notice) s.notice = '📦 창고 개편 — 이제 창고에 목재·철광석이 저절로 쌓여요 (마을 → 창고에서 수령). 창고 Lv5 부터는 골드로 목재·철광석을 사는 교역도 열려요. 🎒 가방은 이제 마을 → 여관에서 목재로 따로 키워요 (무게 10부터)';
+  else if (!('bagLv' in o) && !s.notice) s.notice = '🎒 가방 개편 — 가방은 이제 마을 → 여관에서 목재로 따로 키워요 (최대 여관 Lv). 무게 10에서 시작해 올릴 때마다 +2, 원정이 길어지면 가방이 먼저 찰 수 있어요';
+  // 0.20.3 가방 최대 Lv = 여관 Lv: 0.19.32 에서 그보다 높게 올린 단계는 내리고 쓴 목재를 돌려준다
+  if (s.bagLv > s.bld.inn) {
+    let back = 0;
+    for (let l = s.bld.inn; l < s.bagLv; l++) back += oldBagUpCost(l);
+    s.bagLv = s.bld.inn; s.mats.wood += back;
+    if (!s.notice) s.notice = `🎒 가방 최대 Lv 이 여관 Lv 으로 바뀌었어요 — 넘친 단계를 내리고 목재 ${fmt(back)}을 돌려드렸어요`;
+  }
   return s;
 }
 
@@ -287,9 +315,9 @@ function stats(base = false) {
 const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id);
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
-const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0, skillTierOf(id)).lv;
+const skillLv = (id) => skillLvOf(S.mast[id] || 0, skillTierOf(id)).lv;
 // 스킬 트리 (S.tree, classes.js SKILL_TREE): ⭐ 포인트 = 숙련도 레벨 (Lv1 부터 1, Lv30 = 30). 진화 문(star)은 포인트를 쓰지 않는다. n 은 노드별 찍은 칸, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
-const treeOf = (id) => S.tree[mastKey(id)] || { n: {}, use: 0 };
+const treeOf = (id) => S.tree[id] || { n: {}, use: 0 };
 const nodeLv = (id, nid) => treeOf(id).n[nid] || 0;
 const skillPts = (id) => skillLv(id);
 // 이 스킬 트리의 노드 정의 (classes.js treeNodesOf — V1 공용, V2 는 스킬마다). 트리에 없는 노드 id(개편 전 잔재)는 없는 것으로 본다
@@ -341,7 +369,7 @@ const canInvestAny = () => skillsOf(S.cls).some((k) => canInvestSkill(k.id));
 // 노드에 포인트 1 을 찍는다 (진화 문은 포인트를 안 쓴다). 진화 노드면 새 모습을 바로 적용한다. 찍은 뒤 노드 Lv 또는 0
 function investNode(id, nid) {
   if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canInvest(id, nid)) return 0;
-  const key = mastKey(id), t = S.tree[key] || (S.tree[key] = { n: {}, use: 0 });
+  const t = S.tree[id] || (S.tree[id] = { n: {}, use: 0 });
   t.n[nid] = (t.n[nid] || 0) + 1;
   if (nodeDef(id, nid).kind === 'star') t.use = skillStar(id);
   return t.n[nid];
@@ -349,31 +377,31 @@ function investNode(id, nid) {
 // 찍은 포인트를 모두 되돌린다 (무료)
 function resetTree(id) {
   if (!SKILLS[id] || !skillSpent(id)) return false;
-  S.tree[mastKey(id)] = { n: {}, use: 0 };
+  S.tree[id] = { n: {}, use: 0 };
   return true;
 }
 // 전투에서 쓸 모습을 고른다 (0 ~ 단 별 수)
 function setSkillStar(id, use) {
   const t = treeOf(id);
   if (!SKILLS[id] || use < 0 || use > skillStar(id) || use === t.use) return false;
-  S.tree[mastKey(id)] = { n: t.n, use };
+  S.tree[id] = { n: t.n, use };
   return true;
 }
 // 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null
 function feedTomes(id, n) {
   const k = SKILLS[id];
   if (!k || !skillsOf(S.cls).includes(k)) return null;
-  const key = mastKey(id), have = S.mast[key] || 0;
+  const have = S.mast[id] || 0;
   const used = Math.min(n, S.tomes, skillTomeMax(skillTierOf(id)) - have);
   if (used <= 0) return null;
   const from = skillLv(id);
   S.tomes -= used;
-  S.mast[key] = have + used;
+  S.mast[id] = have + used;
   return { used, from, to: skillLv(id) };
 }
 // 지금 가진 비전서로 레벨을 하나라도 올릴 수 있는 내 스킬이 있는가 (레드닷)
 const canLevelSkill = () => skillsOf(S.cls).some((k) => {
-  const s = skillLvOf(S.mast[mastKey(k.id)] || 0, skillTierOf(k.id));
+  const s = skillLvOf(S.mast[k.id] || 0, skillTierOf(k.id));
   return s.lv < SKILL_MAX && S.tomes >= s.need - s.have;
 });
 
@@ -421,7 +449,20 @@ function profile() {
 
 const maxStamina = () => maxStaminaAt(S.bld.inn);
 const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
-const bagCap = () => bagCapAt(S.bld.storage) + gearBonus().bagCap;
+const bagCap = () => bagCapAt(S.bagLv) + gearBonus().bagCap;   // 🎲 가방 무게 옵션
+const bagMaxLv = () => S.bld.inn;
+function bagUpBlocker() {
+  if (S.bagLv >= bagMaxLv()) return '여관 Lv 이 더 필요해요';
+  if (S.mats.wood < bagUpCost(S.bagLv)) return '목재 부족';
+  return '';
+}
+function upgradeBag() {
+  if (bagUpBlocker()) return false;
+  S.mats.wood -= bagUpCost(S.bagLv);
+  S.bagLv++;
+  S.bagHit = false;
+  return true;
+}
 // 초당 스태미나 소모 (🎲 스태미나 소모 옵션, 합산 최대 STA_SAVE_MAX)
 const staDrain = () => STAMINA_DRAIN * (1 - Math.min(STA_SAVE_MAX, gearBonus().staSave));
 const bagWeight = () => S.bag.reduce((a, it) => a + lootWeight(it), 0);
@@ -507,7 +548,7 @@ function changeClass(id) {
   const req = CLASS_REQ[CLASSES[id].tier];
   S.mats.mana -= req.mana;
   S.gold -= req.gold;
-  // 1차 스킬은 2차 직업이 물려받으므로 숙련도도 그대로 둔다 (classes.js skillsOf)
+  // 아래 차수 스킬은 윗 차수가 모두 물려받으므로 숙련도도 그대로 둔다 (classes.js skillsOf)
   S.cls = id;
   S.hp = stats().maxHp;
   hooks.onClassChange(id);
@@ -533,11 +574,60 @@ function advanceBuild(sec) {
   S.build.remain -= sec;
   if (S.build.remain <= 0) {
     const id = S.build.id;
+    if (id === 'storage') settleStock();   // 그때까지 쌓인 건 옛 생산량으로
     S.bld[id]++;
     S.build = null;
     if (id === 'inn') S.stamina = Math.min(maxStamina(), S.stamina);
     hooks.onBuilt(id);
   }
+}
+
+// ───────────────────────── 창고: 비축 · 교역 ─────────────────────────
+// 비축은 서버 시각으로 흐른다. 서버 시각을 모르는 동안은 쌓지 않는다 (기기 시계를 돌려 채우지 못하게, 다음 서버 응답 뒤에 이어서 쌓임)
+// 처음 서버 시각을 안 순간부터 쌓기 시작한다 (예전 세이브에 소급하지 않음)
+function stockNow(k) {
+  const st = S.stock, now = gameNow();
+  if (!srvClock.known || !st.at || now <= st.at) return st[k];
+  const lv = S.bld.storage;
+  return Math.min(stockCapAt(k, lv), st[k] + stockRateAt(k, lv) * (now - st.at) / 3600000);
+}
+function settleStock() {
+  const st = S.stock, now = gameNow();
+  if (!srvClock.known) return;
+  if (st.at && now > st.at) { st.wood = stockNow('wood'); st.ore = stockNow('ore'); }
+  st.at = now;
+}
+const stockFull = (k) => stockNow(k) >= stockCapAt(k, S.bld.storage);
+// 수령할 만큼 찼나 (레드닷): 목재·철광석 중 하나라도 최대치의 절반 이상
+const stockReady = () => ['wood', 'ore'].some((k) => stockNow(k) >= stockCapAt(k, S.bld.storage) / 2);
+// 쌓인 걸 정수만큼 받는다 (소수점 아래는 남겨서 계속 쌓임). 받은 양을 돌려준다
+function claimStock() {
+  settleStock();
+  const got = { wood: Math.floor(S.stock.wood), ore: Math.floor(S.stock.ore) };
+  if (!got.wood && !got.ore) return null;
+  S.stock.wood -= got.wood; S.stock.ore -= got.ore;
+  S.mats.wood += got.wood; S.mats.ore += got.ore;
+  return got;
+}
+const tradesUsed = () => (newDay(S.stock.tradeDay) ? 0 : S.stock.trades);
+const tradesLeft = () => Math.max(0, tradesAt(S.bld.storage) - tradesUsed());
+const tradeAmount = (k) => stockRateAt(k, S.bld.storage) * TRADE_HOURS;
+const tradePrice = () => Math.max(1, Math.floor(monsterStats(S.best, false).gold * TRADE_GOLD * Math.pow(2, tradesUsed())));
+function tradeBlocker() {
+  if (S.bld.storage < TRADE_LV) return `창고 Lv${TRADE_LV} 에 교역이 열려요`;
+  if (!srvClock.known) return '서버 시각 확인 중';
+  if (!tradesLeft()) return '오늘 교역을 다 했어요';
+  if (S.gold < tradePrice()) return '골드 부족';
+  return '';
+}
+function trade(k) {
+  if (!STOCK_BASE[k] || tradeBlocker()) return 0;
+  S.gold -= tradePrice();
+  if (newDay(S.stock.tradeDay)) { S.stock.tradeDay = todayKey(); S.stock.trades = 0; }
+  S.stock.trades++;
+  const n = tradeAmount(k);
+  S.mats[k] += n;
+  return n;
 }
 
 // ───────────────────────── 우편함 ─────────────────────────
@@ -556,6 +646,7 @@ function claimMail(id) {
   const r = m.reward || {};
   for (const [k, n] of Object.entries(r.items || {})) S.items[k] = (S.items[k] || 0) + n;
   S.gold += r.gold || 0; S.stones += r.stones || 0; S.tomes += r.tomes || 0;
+  S.raid.tickets += r.raidTickets || 0;
   S.mail.got.push(m.id);
   return true;
 }
@@ -634,6 +725,7 @@ function selectZone(i) {
 function endExpedition(reason, instant = false) {
   if (S.phase !== 'expedition') return;
   S.trip.reason = reason;
+  S.bagHit = reason === 'bag';
   S.trip.stageTo = S.stage;
   S.phase = 'returning';
   hooks.onExpeditionEnd(reason);

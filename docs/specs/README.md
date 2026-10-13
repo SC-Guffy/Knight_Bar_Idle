@@ -47,6 +47,14 @@
 | [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
 | [forge-temper.md](forge-temper.md) | 완료 | 대장간 🔥 담금질대: +20 까지 강화 성공↑·하락↓, +20 이상은 그대로 |
 | [skill-mastery-cost.md](skill-mastery-cost.md) | 완료 | 스킬 숙련도 비전서 요구량 차수별(1차 6·2차 10·궁극기 12권/레벨 최대) |
-| [gear-options.md](gear-options.md) | 완료 (season6) | 장비 강화 구간별 옵션 줄 · 등급 희소성 드랍 개편 · 🎲 재굴림권(재굴림대) |
-| [unique-procs.md](unique-procs.md) | 완료 (season6) | 이름 있는 장비·레이드 세트 고유 발동 효과 |
-| [training-mentors.md](training-mentors.md) | 완료 (season6) | 훈련 1차 만렙 50 · 2차 훈련 🎓 교관 수련(교관 5명 × 별 5, 골드 확률 수련 + 마지막 별은 레벨 스케일링 승부) |
+| [ult-separate-mastery.md](ult-separate-mastery.md) | 완료 (0.20.7) | 3차 궁극기를 별도 스킬로 — 1차 스킬 유지(2차 때 위력), 궁극기 숙련도·트리 따로 (mastV 12) |
+| [gear-options.md](gear-options.md) | 완료 (0.20.0) | 장비 강화 구간별 옵션 줄 · 등급 희소성 드랍 개편 · 🎲 재굴림권(재굴림대) |
+| [unique-procs.md](unique-procs.md) | 완료 (0.20.0) | 이름 있는 장비·레이드 세트 고유 발동 효과 |
+| [training-mentors.md](training-mentors.md) | 보류 — 0.20.6 에 꺼 둠 (`MENTOR_ON`) | 훈련 1차 만렙 50 · 2차 훈련 🎓 교관 수련(교관 5명 × 별 5, 골드 확률 수련 + 마지막 별은 레벨 스케일링 승부). 지금은 훈련 Lv 200 으로 되돌려 둠 |
+| [duel-gap-closer.md](duel-gap-closer.md) | 완료 | 돌진기가 사거리 밖에서 달려붙는 이동기 + 직업 체력 근접 ×1.1 · 원거리 ×0.9 — 근접 vs 원거리 손해 보정 |
+| [duel-length.md](duel-length.md) | 완료 | 결투 체력 ×2(%회복은 늘리기 전 기준) + 성기사·성좌기사·천마장군 방어·회복 하향 — 스킬 한두 방에 끝나지 않게 |
+| [raid-difficulty.md](raid-difficulty.md) | 완료 | 레이드 보스 세기 = 입장 + 9 − 인원 보정 (4인 바로 · AI 파티 +8 · 혼자 +20), 전 보스는 스근하게 |
+| [skill-tree-nodes.md](skill-tree-nodes.md) | 완료 | 스킬 트리 오른쪽 노드 저울질: ⏱️ 쿨타임 −40%·💥 치명 +15%·🩸 흡혈 15%·🔥 화상 45% (피해=결투, 쿨타임=사냥·레이드) |
+| [protect-scroll-drop.md](protect-scroll-drop.md) | 완료 | 📜 보호 주문서 상점 제거·상자 드롭 전용(원정당 약 0.9장) + 보급품 가격 절반 |
+| [storage-logistics.md](storage-logistics.md) | 완료 | 창고 개편: 창고는 🪵·🪨 비축(12시간분) + Lv5 부터 골드 교역 (하루 2+Lv/5회, 값 ×2씩) |
+| [bag-upgrade.md](bag-upgrade.md) | 완료 | 🎒 가방은 여관 안 별도 업그레이드: 무게 10 + 2/Lv, 최대 Lv = 여관 Lv(최대 48), 비용 = 여관 목재의 1/4, 가방 가득 귀환 때만 레드닷 |

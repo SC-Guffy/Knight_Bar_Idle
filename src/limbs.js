@@ -167,6 +167,18 @@ function drawArmSprite(g, p, sx, sy, armC, fistC, shade = 0) {
 //  그림은 dev/cutgen.py 가 구워 addCutSprites(팔, 다리) 로 넣는다 — 이 파일 끝(검 계열·공용 'base')과 src/cuts/*.js(무기 계열별, 이름에 계열 접두사)
 const ARM_CUT = {}, LEG_CUT = {};
 // 팔은 ARM_POSES 와 같은 규칙(외곽선·닻 +1·어깨→손 벡터), 다리는 아래쪽 외곽선 없이(발이 땅에 닿게) 위·옆만 두른다
+// 다리를 한 칸씩 굵게 (골반보다 가늘어 막대처럼 보여서): 뒷다리(p/q)는 오른쪽으로, 앞다리(m/l/n)는 왼쪽으로 — 두 다리 사이 틈은 한 칸 이상 남긴다
+const LEG_BACK = 'pq', LEG_FRONT = 'mln';
+function thickenLegs(rows) {
+  return rows.map((row) => {
+    const r = row.split('');
+    for (let c = 0; c < row.length; c++) {
+      if (LEG_BACK.includes(row[c]) && row[c + 1] === '.' && (row[c + 2] === '.' || row[c + 2] === undefined) && !LEG_FRONT.includes(row[c + 3] || '')) r[c + 1] = 'q';
+      if (LEG_FRONT.includes(row[c]) && row[c - 1] === '.' && row[c - 2] === '.' && !LEG_BACK.includes(row[c - 3] || '')) { r[c - 1] = 'm'; if (row[c] === 'm') r[c] = 'l'; }
+    }
+    return r.join('');
+  });
+}
 function addCutSprites(arms = {}, legs = {}) {
   for (const k in arms) {
     const p = arms[k], w = Math.max(...p.rows.map((r) => r.length));
@@ -179,7 +191,7 @@ function addCutSprites(arms = {}, legs = {}) {
   for (const k in legs) {
     const p = legs[k], w = Math.max(...p.rows.map((r) => r.length));
     p.name = k;
-    p.rows = outline(p.rows.map((r) => r.padEnd(w, '.')), false);
+    p.rows = outline(thickenLegs(p.rows.map((r) => r.padEnd(w, '.'))), false);
     p.hip = [p.hip[0] + 1, p.hip[1] + 1];
     LEG_CUT[k] = p;
   }

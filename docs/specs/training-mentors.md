@@ -1,9 +1,23 @@
 # 훈련 1차 만렙 50 · 2차 훈련 🎓 교관 수련 (시즌6)
 
-- 상태: 완료
-- 브랜치: `season6` (worktree `../knight-bar-season6`) — main 은 라이브 패치, 시즌6 시작 때 머지
-- 관련 코드: src/data.js (`TRAIN_MAX`, `trainCapAt`, `TRAINING`, `BUILDINGS.training`, `MENTORS`·`MENTOR_*`), src/mentor.js (규칙: 수련·승부 정산·보너스·레드닷), src/mentor-stage.js (무대: 교관 스프라이트·배경·연출·대사), src/core.js (`freshState`, migrate — 50 초과 환급), src/gear.js (`gearBonus`·`gearBonusParts` — 교관 보너스 합산), src/ui.js (`viewTraining`·`viewMentor`·`mentorPreview`, 액션 `mentor-*`, 그리기 루프), src/town.js (`townTodo`), src/net.js (`fetchMentor`·`requestMentorDuel`), server/index.js (`GET /api/mentor`·`POST /api/mentor/duel`), server/mentor.js (교관 프로필·배수), server/mentor-k.json (계열×교관×레벨 배수 표), server/bots.js (`curveAtLevel`), server/bot-curve.json (시즌6 규칙+교관으로 다시 구움), dev/mentor-sim.js (배수 보정), dev/progress-bot.js·dev/bot-curve.js (`playMentors`)
+- 상태: **보류 (꺼 둠)** — 0.20.0 에 배포했다가 0.20.6 에 `MENTOR_ON = false` 로 껐다 ("직관적이지 않다"는 평). 아래 "꺼 둔 상태" 절 참고
+- 브랜치: `season6` → 2026-10-13 리셋 없이 main 에 합침 (0.20.0)
+- 관련 코드: src/data.js (`MENTOR_ON`, `TRAIN_MAX`, `trainCapAt`, `TRAINING`, `BUILDINGS.training`, `MENTORS`·`MENTOR_*`), src/mentor.js (규칙: 수련·승부 정산·보너스·레드닷), src/mentor-stage.js (무대: 교관 스프라이트·배경·연출·대사), src/core.js (`freshState`, migrate — 50 초과 환급), src/gear.js (`gearBonus`·`gearBonusParts` — 교관 보너스 합산), src/ui.js (`viewTraining`·`viewMentor`·`mentorPreview`, 액션 `mentor-*`, 그리기 루프), src/town.js (`townTodo`), src/net.js (`fetchMentor`·`requestMentorDuel`), server/index.js (`GET /api/mentor`·`POST /api/mentor/duel`), server/mentor.js (교관 프로필·배수), server/mentor-k.json (계열×교관×레벨 배수 표), server/bots.js (`curveAtLevel`), server/bot-curve.json (시즌6 규칙+교관으로 다시 구움), dev/mentor-sim.js (배수 보정), dev/progress-bot.js·dev/bot-curve.js (`playMentors`)
 - 최종 갱신: 2026-10-13
+
+## 꺼 둔 상태 (0.20.6~, `MENTOR_ON = false`)
+
+사용자 결정 (2026-10-13): 교관 수련이 직관적이지 않다는 평이 있어 비활성화하고 1차 훈련을 예전(Lv 200)으로 되돌린다. **작업은 지우지 않는다** — 나중에 다른 서브 콘텐츠가 생기면 그것과 엮어서 다시 푼다.
+
+- 스위치 하나: `src/data.js` `MENTOR_ON`. 꺼져 있으면
+  - 1차 훈련 한도 `TRAIN_MAX = 10 × BUILD_MAX = 200`, 훈련 최대 Lv = 훈련장 Lv × 10 (0.19.x 와 같음). 훈련장 최대 Lv = `BUILD_MAX`(20).
+  - `mentorLock()` 이 `'준비 중'` → 교관을 만날 수 없고 레드닷(`mentorTodo`)도 없다. `viewTraining()` 은 1차 훈련 칸만 그린다.
+  - **이미 받은 별의 보너스도 끈다** (`mentorBonus()` = {}, 사용자 결정). `S.mentor`(별·눈도장·승부 기록)는 세이브에 그대로 남겨, 다시 켜면 돌아온다. 쓴 골드는 기록이 없어 돌려주지 않았다.
+  - core.js migrate 의 "훈련 50 초과 환급"·"훈련장 10 초과 환급"은 한도가 200·20 이라 아무것도 하지 않는다 (코드는 그대로).
+  - 서버 `/api/mentor`·`/api/mentor/duel`·mentor-k.json 은 그대로 둔다 (클라이언트가 부르지 않음).
+- 안내 우편 `training-back-1013` (도시락 5개, 10-27 까지). 0.20.0 업데이트 우편(`update-mentor-1013`)에서 훈련·교관 문단과 제목의 "교관 수련"을 뺐다.
+- AI 기사 곡선(`server/bot-curve.json`)은 교관 없이 훈련 200 규칙으로 다시 구웠다 (아래 진행 기록).
+- **다시 켤 때 할 일**: `MENTOR_ON = true` → 훈련 50 초과분·훈련장 10 초과분이 migrate 에서 다시 환급된다(그사이 올린 몫) — 안내 문구 확인. 봇 곡선·k 표 다시 굽기 (`node dev/bot-curve.js --days 14` → `node dev/mentor-sim.js --table --levels $(seq -s, 40 5 220)`). 우편 문구 새로.
 
 ## 목표
 
@@ -171,7 +185,16 @@
   - 전체 봇(`dev/bot-curve.js --days 14 --dry [--rev 29d397d]`, 계열 12개 중앙값): 교관 전(29d397d) 스테이지 180 · Lv172 · 140 도달 105h · 160 도달 187h / 교관·경험치 없음 179 · Lv168 · 115h · 198h / 경험치 +3% 180 · Lv171 · 120h · 181h / **+4% 180 · Lv172 · 114h · 193h** → 4% 로. (도달 시각은 시드 한 개라 ±10h 흔들린다)
   - 경험치를 넣은 규칙으로 봇 곡선·k 표를 다시 구웠다 (다시 구운 봇: 최종 스테이지 180 · Lv173 중앙값). 덜 갖춘 기사(×0.5) 승률은 그대로 Lv80 교관1 7% · Lv130 교관1 20%.
 
+- 2026-10-13 main 에 리셋 없이 합침 (0.20.0, 사용자 결정). 안내 우편 `update-mentor-1013` (투지의 영약 2 · 행운의 부적 2 · 재굴림권 1, 10-27 까지). main 의 0.19.27~0.19.32 (결투 체력 ×2·직업 밸런스·레이드 세기·보호 주문서 상자 전용·창고 교역·가방) 와 합친 규칙으로 봇 곡선·k 표를 다시 구웠다.
+
+- 2026-10-13 **꺼 둠 (0.20.6, 사용자 결정)**: "2단계가 직관적이지 않다"는 평 → `MENTOR_ON = false`, 1차 훈련 Lv 200 · 훈련장 Lv 20 으로 롤백. 이미 받은 별의 보너스도 끔(별은 세이브에 보관). 안내 우편 + 도시락 5개.
+  - 전체 봇 14일 (`dev/bot-curve.js --days 14 --dry [--rev 9544b19]`, 계열 12개 중앙값): 교관 있음 최종 200 · Lv188 · 140 도달 96h · 160 도달 152h → **롤백 200 · Lv187 · 85h · 130h**. 끝은 같고 중반이 조금 빠르다 (수완이 다시 끝없이 올라서).
+  - 진행 봇 (`dev/progress-bot.js --days 14 --seeds 8 --rev 9544b19 --rev .`): 최종 스테이지 159 → 172, 140 도달 209h → 182h, 훈련 골드 지출 3.3% (교관 지출 13.9% 가 사라짐), 남는 골드 76% → 93%. (이 봇은 전직을 안 해서 교관 ★5 를 못 넘기므로 교관 쪽이 과소평가됨)
+  - `server/bot-curve.json` 을 롤백 규칙으로 다시 구웠다 (교관 보너스가 빠진 곡선, 최종 200 · Lv187 중앙값). `mentor-k.json` 은 그대로 — 다시 켤 때 같이 다시 굽는다.
+
 ## 남은 일 / 미정
+
+- **교관 수련 다시 켜기**: 다른 서브 콘텐츠와 엮어서 더 알기 쉬운 형태로 (사용자 계획). 켤 때 할 일은 위 "꺼 둔 상태" 절.
 
 - 골드는 여전히 남는다 (교관을 다 끝낸 뒤엔 하수구가 없다). 사용자 결정 (10-13): **일단 그대로 두고 라이브에서 정말 쌓이는지 본다** (보급품 소모도 있음). 필요하면 장비 강화·옵션 재굴림 같은 기존 소모처에 골드 비용을 붙인다 — 새 시설을 만들지 않는다.
 - 곡선 끝 근처(Lv170+)는 외삽이라 계열마다 승률이 흔들릴 수 있다 — 봇 곡선을 더 길게(--days 20) 구우면 나아진다.

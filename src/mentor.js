@@ -10,6 +10,7 @@
 //  - 1차 훈련 네 가지가 모두 Lv TRAIN_MAX 여야 열린다. 교관은 순서대로 — 앞 교관 별 5개 + 훈련장 Lv MENTORS[i].bld.
 //  - ★1~4: 골드를 내고 확률로 받는다 (실패해도 별은 그대로). ★5: 교관과의 승부 — 서버가 계산한다 (server/index.js /api/mentor/duel).
 //  - 별 보너스는 gearBonus() 에 더해져 stats()·profile() 로 그대로 흘러간다. ★5 는 별 하나 몫 × MENTOR_LAST_X.
+//  - MENTOR_ON(data.js) 이 꺼져 있으면 교관을 만날 수 없고 별 보너스도 없다. S.mentor 는 그대로 남겨 다시 켜면 돌아온다.
 
 const freshMentor = () => ({ stars: MENTORS.map(() => 0), eye: 0, wins: [], duelDay: '' });
 
@@ -22,6 +23,7 @@ const mentorCur = () => { const i = MENTORS.findIndex((m, k) => !mentorDone(k));
 
 // 교관 i 를 만날 수 없는 이유 ('' = 만날 수 있음)
 function mentorLock(i) {
+  if (!MENTOR_ON) return '준비 중';
   if (!trainDone()) return `1차 훈련 네 가지를 Lv ${TRAIN_MAX} 까지`;
   if (i > 0 && !mentorDone(i - 1)) return `${MENTORS[i - 1].name} 수료 필요`;
   if (S.bld.training < MENTORS[i].bld) return `훈련장 Lv ${MENTORS[i].bld}`;
@@ -107,7 +109,7 @@ function mentorSpAt(i, n = mentorStarsOf(i)) {
 // gearBonus() 에 더하는 교관 수련 보너스 합계
 function mentorBonus() {
   const out = {};
-  if (!S.mentor) return out;
+  if (!MENTOR_ON || !S.mentor) return out;
   MENTORS.forEach((m, i) => { for (const [k, v] of Object.entries(mentorSpAt(i))) if (v) out[k] = (out[k] || 0) + v; });
   return out;
 }

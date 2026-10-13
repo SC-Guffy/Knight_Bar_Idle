@@ -243,10 +243,10 @@ function tickSkills(dt, st) {
   }
 }
 
-// 교전 중 쿨타임이 찬 스킬이 있으면 쓴다 (해금 레벨 높은 것부터)
-function tryCastSkill(st, target) {
+// 교전 중 쿨타임이 찬 스킬이 있으면 쓴다 (해금 레벨 높은 것부터). only: 그 스킬만 (돌진이 닿았을 때, world.js fightTick)
+function tryCastSkill(st, target, only = null) {
   for (const id of st.skills) {
-    if ((knight.cds[id] || 0) > 0) continue;
+    if ((knight.cds[id] || 0) > 0 || (only && id !== only)) continue;
     const k0 = skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
     // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 · 고유 특수 (core.js skillRight · skillSpec, 종류는 classes.js SPEC_TYPES)
     const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward'), sp = skillSpec(id);

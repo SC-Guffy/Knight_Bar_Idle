@@ -322,15 +322,18 @@ function updateExpedition(dt, gdt) {
   if (!lapReady) layoutLap();
   spawnAhead();
 
-  fightTick(dt, st, () => {
-    knight.x += WALK_SPEED * dt;
+  fightTick(dt, st, (px = WALK_SPEED * dt) => {
+    knight.x += px;
     if (knight.x >= worldLen()) { knight.x -= worldLen(); endLap(); }
     knight.walkT += dt;
     S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * dt);
   });
 }
 
-// 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree() (원정은 걷기, 탑은 층 정리)
+// 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree(px) (원정은 px 만큼 걷기, 탑은 층 정리)
+const DASH_SPEED = 500;   // 돌진기로 달려붙는 속도 px/s (결투 server/duel.js DASH 와 같다)
+// 사거리 밖 d(px) 앞의 적에게 쓸 수 있는 돌진기 (classes.js SKILLS 의 gap, 쿨타임이 찬 것 중 목록 앞쪽)
+const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && !(knight.cds[id] > 0) && d <= SKILLS[id].gap) || null;
 function fightTick(dt, st, onFree) {
   const phase = S.phase;
   const alive = monsters.filter(m => !m.dying)
@@ -364,7 +367,9 @@ function fightTick(dt, st, onFree) {
   } else if (target && best <= reachTo(target)) {
     if (!knight.fighting) { knight.fighting = true; knight.crisis = false; }
     knight.atkTimer -= dt;
-    if (!knight.pending && tryCastSkill(st, target)) {
+    const dashed = knight.dash;              // 돌진이 닿았으면 그 스킬부터
+    knight.dash = null;
+    if (!knight.pending && (dashed ? tryCastSkill(st, target, dashed) : tryCastSkill(st, target))) {
       // 스킬부터
     } else if (knight.atkTimer <= 0 && !knight.pending) {
       knight.atkTimer = 1 / (st.aspd * (1 + (knight.haste ? knight.haste.v : 0) + procHaste()));   // + 고유 발동 누적 공속 (procs.js)   // 💨 고유 특수 가속 (skills.js 가 걸고 tickSkills 가 지운다)
@@ -375,7 +380,14 @@ function fightTick(dt, st, onFree) {
   } else {
     knight.fighting = false;
     knight.atkTimer = Math.min(knight.atkTimer, 0.25);
-    onFree();
+    // 돌진기: 사거리 밖이어도 돌진 거리 안의 적이면 달려붙어 닿는 순간 그 스킬을 쓴다 (docs/specs/duel-gap-closer.md)
+    const gap = target ? best - reachTo(target) : 0;
+    knight.dash = target && !knight.pending ? knight.dash || dashSkill(st, gap) : null;
+    if (knight.dash) {
+      onFree(Math.min(DASH_SPEED * dt, gap));
+      knight.walkT += dt * 2;
+      dashGhost('hero', S.cls, toScreen(knight.x), 1, knight.walkT);
+    } else onFree();
   }
 
   // 공격은 예비동작 → 타격 → 복귀 모션으로 재생하고, 피해는 타격 프레임에 들어간다
@@ -599,8 +611,8 @@ function updateTower(dt, gdt) {
           if (m) addFloater(`😡 공격력 ×${Math.round(rage)}`, toScreen(m.x), groundY() - 56, '#ff5a5a', 12);
         }
       }
-      fightTick(dt, st, () => {
-        if (monsters.some((m) => !m.dying)) { knight.x += WALK_SPEED * dt; knight.walkT += dt; return; }
+      fightTick(dt, st, (px = WALK_SPEED * dt) => {
+        if (monsters.some((m) => !m.dying)) { knight.x += px; knight.walkT += dt; return; }
         const r = clearTowerFloor();
         addFloater(`${r.floor}F 돌파!`, toScreen(knight.x), groundY() - 62, '#ffffff', 12);
         if (r.tomes) addFloater(`📖 비전서 +${r.tomes}`, toScreen(knight.x), groundY() - 78, '#c9a7ff', 14, true);
@@ -1087,8 +1099,8 @@ function updateDungeon(dt) {
       break;
     case 'fight':
       if (!run) { dgViewEnd(); break; }
-      fightTick(dt, st, () => {
-        if (monsters.some((m) => !m.dying)) { knight.x += WALK_SPEED * dt; knight.walkT += dt; return; }
+      fightTick(dt, st, (px = WALK_SPEED * dt) => {
+        if (monsters.some((m) => !m.dying)) { knight.x += px; knight.walkT += dt; return; }
         const res = dgBossCleared();
         dgShow(res);
         if (!S.dg.run) { dgViewEnd(); return; }
@@ -1979,10 +1991,11 @@ function kneeOf(hip, foot) {
   const flex = (e) => (e[0] - hip[0]) * (foot[1] - e[1]) - (e[1] - hip[1]) * (foot[0] - e[0]);
   return flex(e1) >= flex(e2) ? e1 : e2;                                                       // 무릎은 앞으로
 }
-// 다리 한 짝: 허벅지 굵고 정강이 가늘게, 발은 앞으로 나온 부츠
+// 다리 한 짝: 허벅지 굵고 정강이 가늘게, 발은 앞으로 나온 부츠 (골반 폭에 맞게 굵기 2.2·1.95·1.7칸)
 function drawLeg(g, col, boot, hip, knee, foot, shade = 0) {
-  drawLimb(g, col, hip, knee, foot, shade, [1.7, 1.45, 1.2]);
-  const C = PX / 2, bx = Math.round(foot[0] - 1.6 * C), by = Math.round(foot[1] - 1.6 * C), bw = Math.round(4.2 * C), bh = Math.round(2.2 * C);
+  const C = PX / 2;
+  drawLimb(g, col, hip, knee, [foot[0], foot[1] - 1.2 * C], shade, [2.2, 1.95, 1.7]);   // 정강이 끝을 부츠 안으로 올려 굵은 다리가 부츠 밑으로 삐져나오지 않게
+  const bx = Math.round(foot[0] - 1.9 * C), by = Math.round(foot[1] - 1.6 * C), bw = Math.round(4.8 * C), bh = Math.round(2.2 * C);
   g.fillStyle = PAL['#']; g.fillRect(bx - 1, by, bw + 2, bh); g.fillRect(bx, by - 1, bw, bh + 2);
   g.fillStyle = shade < 0 ? spriteShadeCol(boot, -1) : boot; g.fillRect(bx, by, bw, bh);
   g.fillStyle = spriteShadeCol(shade < 0 ? spriteShadeCol(boot, -1) : boot, 1); g.fillRect(bx, by, bw, 1);
@@ -2421,7 +2434,63 @@ function drawCutSmear(g, w, h0, a0, h1, a1, len, tipOnly = false) {
   drawCellSet(g, cells, h1[0], h1[1], false);
 }
 
+// 이음새 정리: 몸통·팔·다리·무기를 따로 그리면 조각마다 두른 검은 외곽선이 몸 안쪽에도 남아 팔다리가 떨어져 보인다.
+//  기사를 작은 캔버스에 따로 그린 뒤, 외곽선 색 중 바깥(투명)에 닿지 않는 것 = 몸 안쪽 이음새만 옆 색을 어둡게 한 색으로 바꾼다.
+//  바깥 실루엣의 검은 외곽선은 그대로 둔다. 한 색 잔상(tint)·무기만(onlyWeapon)·피격 번쩍임(flash)은 원래대로 그린다
+const heroSoft = { cv: null, g: null };
 function drawHero(g, id, x, gy, pose) {
+  if (pose.tint || pose.onlyWeapon || pose.flash || typeof document === 'undefined') return drawHeroRaw(g, id, x, gy, pose);
+  const T = g.getTransform(), dxa = Math.abs(pose.dx || 0), lift = Math.max(0, pose.lift || 0);
+  const ux0 = x - 100 - dxa, ux1 = x + 100 + dxa, uy0 = gy - 150 - lift, uy1 = gy + 12;
+  const xs = [], ys = [];
+  for (const [ux, uy] of [[ux0, uy0], [ux1, uy0], [ux0, uy1], [ux1, uy1]]) { xs.push(T.a * ux + T.c * uy + T.e); ys.push(T.b * ux + T.d * uy + T.f); }
+  const bx = Math.floor(Math.min(...xs)), by = Math.floor(Math.min(...ys));
+  const w = Math.ceil(Math.max(...xs)) - bx, h = Math.ceil(Math.max(...ys)) - by;
+  if (w <= 0 || h <= 0 || w * h > 1200 * 1200) return drawHeroRaw(g, id, x, gy, pose);
+  if (!heroSoft.cv) { heroSoft.cv = document.createElement('canvas'); heroSoft.g = heroSoft.cv.getContext('2d', { willReadFrequently: true }); }
+  const cv = heroSoft.cv, o = heroSoft.g;
+  if (cv.width < w || cv.height < h) { cv.width = Math.max(cv.width, w); cv.height = Math.max(cv.height, h); }
+  o.setTransform(1, 0, 0, 1, 0, 0);
+  o.clearRect(0, 0, w, h);
+  o.imageSmoothingEnabled = false;
+  o.setTransform(T.a, T.b, T.c, T.d, T.e - bx, T.f - by);
+  const alpha = pose.alpha == null ? 1 : pose.alpha;
+  drawHeroRaw(o, id, x, gy, { ...pose, alpha: 1 });
+  softenSeams(o, w, h, Math.max(1, Math.round(Math.hypot(T.a, T.b) * PX * 0.5)) + 1);
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha *= alpha;
+  g.drawImage(cv, 0, 0, w, h, bx, by, w, h);
+  g.restore();
+}
+// 외곽선 색 픽셀에서 네 방향으로 R칸 안에 투명이 있으면 실루엣(그대로), 없으면 이음새 → 맞닿은 색 중 어두운 쪽을 더 어둡게
+function softenSeams(o, w, h, R) {
+  const img = o.getImageData(0, 0, w, h), d = img.data, u = new Uint32Array(d.buffer);
+  const LINE = (255 << 24 | 20 << 16 | 13 << 8 | 11) >>> 0;            // PAL['#'] #0b0d14 (리틀 엔디언 RGBA)
+  const DIRS = [1, -1, w, -w], out = [];
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let i = 0, n = w * h; i < n; i++) {
+    if (u[i] !== LINE) continue;
+    const x = i % w, y = (i - x) / w;
+    let edge = false, best = -1, bestL = 1e9;
+    for (let k4 = 0; k4 < 4 && !edge; k4++) {
+      const st = DIRS[k4];
+      for (let k = 1, j = i; k <= R; k++) {
+        j += st;
+        const xx = k4 < 2 ? x + (k4 ? -k : k) : x, yy = k4 < 2 ? y : y + (k4 === 2 ? k : -k);
+        if (xx < 0 || yy < 0 || xx >= w || yy >= h || d[j * 4 + 3] < 128) { edge = true; break; }
+        if (u[j] !== LINE) { const L = d[j * 4] * 0.3 + d[j * 4 + 1] * 0.59 + d[j * 4 + 2] * 0.11; if (L < bestL) { bestL = L; best = j; } break; }
+      }
+    }
+    if (edge || best < 0) continue;
+    out.push(i, best);
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (!out.length) return;
+  for (let k = 0; k < out.length; k += 2) { const i = out[k] * 4, j = out[k + 1] * 4; d[i] = d[j] * 0.55; d[i + 1] = d[j + 1] * 0.55; d[i + 2] = d[j + 2] * 0.6; }
+  o.putImageData(img, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+}
+function drawHeroRaw(g, id, x, gy, pose) {
   const c = CLASSES[id] || CLASSES.squire;
   const look = c.look, w = WEAPONS[c.weapon], pal = heroPal(c === CLASSES[id] ? id : 'squire');
   const t = pose.t || 0;
@@ -3000,11 +3069,23 @@ function playDuel(res, onEnd) {
 }
 const duelTime = () => Math.min(duelPlay.res.fight.dur, Math.max(0, clock - duelPlay.t0 - DUEL_ENTER_SEC) * duelPlay.speed);
 
-// 기사는 한 번 멈추면 다시 움직이지 않으므로 멈춘 시각·위치로 이동을 재현한다
+// 기사는 한 번 멈추면 다시 움직이지 않으므로 멈춘 시각·위치로 이동을 재현한다.
+// mv.dash: 돌진을 시작한 시각·위치 — 그때부터 dashSpeed 로 멈춘 위치까지 달린다
 function duelX(side, pt) {
-  const f = duelPlay.res.fight, mv = f.moves[side];
-  const walked = Math.min(pt, mv.t) * f.walk;
-  return duelPlay.x0 + (side === 'a' ? Math.min(mv.x, walked) : Math.max(mv.x, f.start - walked));
+  const f = duelPlay.res.fight, mv = f.moves[side], dir = side === 'a' ? 1 : -1;
+  let x;
+  if (mv.dash && pt >= mv.dash.t) x = mv.dash.x + dir * (pt - mv.dash.t) * f.dashSpeed;
+  else x = (side === 'a' ? 0 : f.start) + dir * Math.min(pt, mv.t) * f.walk;
+  return duelPlay.x0 + (side === 'a' ? Math.min(mv.x, x) : Math.max(mv.x, x));
+}
+const duelDashing = (side, pt) => { const mv = duelPlay.res.fight.moves[side]; return !!mv.dash && pt >= mv.dash.t && pt < mv.t; };
+
+// 돌진 중 잔상 (원정 기사·결투 재생 공용): 지나간 자리에 0.05초마다 흐린 모습을 남긴다
+const dashGhostAt = {};
+function dashGhost(key, cls, x, facing, walkT) {
+  if (clock - (dashGhostAt[key] || 0) < 0.05) return;
+  dashGhostAt[key] = clock;
+  ghostFx({ cls }, x, facing, (CLASSES[cls] || CLASSES.squire).look.fx, 0.22, { mode: 'walk', walkT }, 0.4);
 }
 
 function updateDuel() {
@@ -3074,13 +3155,14 @@ function drawDuel() {
     ctx.fillRect(x - 14, gy - 1, 28, 2);
     const pose = {
       mode: loser ? 'sit' : pt < mv.t ? 'walk' : 'fight',
-      walkT: pt, swing: !loser && since < 0.16 ? 0.35 + since * 4 : -1, combo: L ? L.n : 0,
+      walkT: duelDashing(side, pt) ? pt * 3 : pt, swing: !loser && since < 0.16 ? 0.35 + since * 4 : -1, combo: L ? L.n : 0,
       facing: side === 'a' ? 1 : -1, t: clock, lift,
       flash: d.hit[side] != null && clock - d.hit[side] < 0.08,
       alpha: loser ? 0.45 : alpha,
     };
     if (sp) Object.assign(pose, sp, { alpha: alpha * (sp.alpha == null ? 1 : sp.alpha) });
     if (sp) drawCastTrail(`duel-${side}`, who.cls, gy, side === 'a' ? 1 : -1);
+    if (duelDashing(side, pt)) dashGhost(`duel-${side}`, who.cls, x, side === 'a' ? 1 : -1, pose.walkT);
     drawHero(ctx, who.cls, x, gy, pose);
 
     // 원거리 공격은 화살이 날아가는 모습만 짧게 보여 준다
