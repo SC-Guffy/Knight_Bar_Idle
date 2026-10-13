@@ -935,7 +935,7 @@ const SKILLS = {
   dragonBreath: {
     cls: 'dragoon', name: '용의 숨결', icon: '🔥', lv: 70, cd: 14, dur: 1.8, area: 'line', reach: 2.2,
     right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
-    spec: { type: 'dot', name: '화상', icon: '🔥', full: 0.6, dur: 3 },
+    spec: { type: 'dot', name: '화상', icon: '🔥', full: 0.45, dur: 3 },
     hits: evenHits(8, 0.25, 0.08, 0.5),
     stages: [
       { dur: 1.0, reach: 1.2, hits: evenHits(4, 0.3, 0.12, 0.5) },
@@ -1420,7 +1420,7 @@ const SKILLS = {
   sunArrow: {
     cls: 'deadeye', mastOf: 'rapidFire', ult: true, name: '태양 관통', icon: '☀️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 260, crit: true,
     right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 연사 트리를 이어받음 (r1·r3 같은 자리)
-    spec: { type: 'dot', name: '태양 화상', icon: '☀️', full: 0.6, dur: 3 },
+    spec: { type: 'dot', name: '태양 화상', icon: '☀️', full: 0.45, dur: 3 },
     hits: [[0.75, 3], ...evenHits(4, 0.8, 0.03, 0.75)],
     stages: [
       { dur: 2.2, hits: [[0.75, 3]] },
@@ -1671,13 +1671,15 @@ const treePct = (x) => +(x * 100).toFixed(1);
 //  고를 때 주의: crit: true(항상 치명) 스킬엔 'crit' 이 무의미하다. 3차 궐기(mastOf)는 1차 스킬의 트리(S.tree 의 r1·r2·r3)를 그대로 이어받으니
 //  r1·r3 은 1차와 같은 키를 두고, r2 의 고유 특수만 궐기 것으로 바뀐다 (찍은 칸은 그대로 새 효과를 낸다).
 //  V1 분기(right 없는 스킬)는 코드에만 남아 있고 지금 데이터에선 쓰는 스킬이 없다.
-//  수치 틀: 피해 30칸 = ×1.78 (V1 의 Lv30 ×1.4 × 트리 +27% 와 같은 선). 쿨타임은 V1 Lv1 3.0 → Lv30 1.2 대신 1.6 고정에서 시작하고 쿨타임 노드로 ×0.7 까지.
+//  수치 틀: 피해 30칸 = ×1.78 (V1 의 Lv30 ×1.4 × 트리 +27% 와 같은 선). 쿨타임은 V1 Lv1 3.0 → Lv30 1.2 대신 1.6 고정에서 시작하고 쿨타임 노드로 ×0.6 까지.
+//  오른쪽 공용 풀의 저울질 (2026-10-13, docs/specs/skill-tree-nodes.md): ⚔️ 피해는 어디서나 무난·짧은 결투에 강함, ⏱️ 쿨타임은 긴 싸움(사냥·레이드)에 강함,
+//  💥 치명은 치명 피해를 쌓을수록 좋아짐(평균은 피해와 비슷), 🩸 흡혈은 피해를 조금 내주고 버틴다.
 const TREE2_POW = 0.026;
 const TREE2_CD = 1.6;
 const TREE_RIGHT = {
-  cd:    { name: '쿨타임', icon: '⏱️', full: 0.3,  desc: (v) => `쿨타임 -${treePct(v)}%` },
-  crit:  { name: '치명',   icon: '💥', full: 0.2,  desc: (v) => `스킬 치명 확률 +${treePct(v)}%` },
-  leech: { name: '흡혈',   icon: '🩸', full: 0.09, desc: (v) => `스킬 피해의 ${treePct(v)}% 를 체력으로` },
+  cd:    { name: '쿨타임', icon: '⏱️', full: 0.4,  desc: (v) => `쿨타임 -${treePct(v)}%` },
+  crit:  { name: '치명',   icon: '💥', full: 0.15, desc: (v) => `스킬 치명 확률 +${treePct(v)}%` },
+  leech: { name: '흡혈',   icon: '🩸', full: 0.15, desc: (v) => `스킬 피해의 ${treePct(v)}% 를 체력으로` },
   ward:  { name: '철벽',   icon: '🛡️', full: 0.45, dur: 4, desc: (v) => `시전 뒤 4초간 받는 피해 -${treePct(v)}%` },   // 풀에 남겨 둔 예비 — 지금 쓰는 스킬 없음 (방어는 피해 노드와 저울질이 안 돼서 고유 특수로 바꿨다)
 };
 // ───────── 고유 특수 노드 (right 의 'spec') ─────────
