@@ -194,8 +194,7 @@
 
   <h2>9. 남은 것 (성벽 세션과 맞출 값)</h2>
   <ul>
-    <li>성벽 보상 계수(📕 = 막은 웨이브 × (0.2 + 0.004L), 첫 돌파 ×2)가 바뀌면 3절 표를 같은 비율로 조정 — 기준 <b>200권 ≈ 무료 약 20일분</b>.</li>
-    <li>성벽 스펙의 "참고안"(교관1 3·5·7·9 … 합 180)은 이 표(합 200)로 맞춰야 한다.</li>
+    <li>성벽 보상 계수(📕 = 막은 웨이브 × (0.34 + 0.001L), 첫 돌파 ×2)가 바뀌면 3절 표를 같은 비율로 조정 — 기준 <b>200권 ≈ 무료 약 20일분</b>.</li>
     <li>교관을 다 끝낸 뒤 📕 처리 (🧱 성벽돌로 바꿔 주기?) · <code>🏰 성벽 지키기로</code> 이동 위치.</li>
   </ul>
 </main>
@@ -250,8 +249,8 @@ function drawDays() {
   const max = Math.max(t, 1);
   $('bars').innerHTML = segs.map((s) => `<div class="bar"><span class="nm">${s.name}</span><span class="track"><i class="seg b" style="left:${s.t0 / max * 100}%;width:${s.b / max * 100}%"></i><i class="seg d" style="left:${(s.t0 + s.b) / max * 100}%;width:${s.d / max * 100}%"></i></span><span class="t">${r1(s.t0 + s.b + s.d)}일째 수료</span></div>`).join('');
 }
-// 성벽 단계 L 의 판당 📕 (다 막으면 10웨이브 × (0.2 + 0.004L) — castle-defense.md 시작안, 첫 돌파 ×2 는 빼고)
-function castleRun(L) { return 10 * (0.2 + 0.004 * L); }
+// 성벽 단계 L 의 판당 📕 (다 막으면 10웨이브 × (0.34 + 0.001L) — castle-defense.md 확정안, 첫 돌파 ×2 는 빼고)
+function castleRun(L) { return 10 * (0.34 + 0.001 * L); }
 function noteL() { const L = +$('castleL').value || 1, p = castleRun(L); $('castleNote').textContent = `L${L}: 판당 ${r1(p)}권 · 무료 3판 ${r1(3 * p)}권/일 (첫 돌파 ×2 판이 섞이면 더 많다 — 성벽 세션 추정 10~13권/일, L30 12.8)`; }
 $('useL').addEventListener('click', () => { const p = castleRun(+$('castleL').value || 1); $('perRun').value = r1(p); $('dBooks').value = r1(3 * p); drawDays(); });
 ['dBooks', 'dBuy', 'perRun', 'duelDay', 'winX'].forEach((id) => $(id).addEventListener('input', drawDays));

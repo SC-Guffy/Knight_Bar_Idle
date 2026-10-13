@@ -1,7 +1,7 @@
 # 패치 로드맵 (시즌6 · 시즌7~)
 
 - 상태: 방향 확정 (2026-10-13). 아래 "결정 사항"이 기준이다. 항목마다 착수할 때 개별 스펙을 쓰고, 수치는 그 스펙에서 시뮬레이션으로 확정한다.
-- 관련 스펙: [character-sprites.md](character-sprites.md) (PixelLab 통짜 스프라이트), [training-mentors.md](training-mentors.md) (교관, 꺼 둠), [gear-options.md](gear-options.md) (옵션 줄), [forge-temper.md](forge-temper.md) (담금질대), [skill-vfx.md](skill-vfx.md) (스킬 VFX 전수조사)
+- 관련 스펙: [character-sprites.md](character-sprites.md) (PixelLab 통짜 스프라이트), [training-mentors.md](training-mentors.md) (교관 재가동, 확정), [gear-options.md](gear-options.md) (옵션 줄), [forge-temper.md](forge-temper.md) (담금질대), [skill-vfx.md](skill-vfx.md) (스킬 VFX 전수조사)
 - 최종 갱신: 2026-10-13
 
 ## 배경
@@ -167,7 +167,7 @@
 | ① | 스킬 하단바 섬광 11곳 · 평타 버그 3건 (VFX 조사에서 옮김) | [vfx-rule-fixes.md](vfx-rule-fixes.md) | 확정 (10-13), 구현 대기 |
 | ①② | 강화 +30 · 등급별 옵션 줄 수 | [enhance-30.md](enhance-30.md) + [gear-options.md](gear-options.md) 갱신 | 초안 (확인 대기) — 비용 식 그대로, +25→+30 주문서로 부위당 약 39회. 질문 2개(+26~30 확률·가진 초월·태초) 남음. 검토 `dev/review/enhance-30.html` |
 | ③ | 성벽 지키기 | [castle-defense.md](castle-defense.md) | 확정 |
-| ③ | 교관 재가동 (수련의 서) | [training-mentors.md](training-mentors.md) 개정 | 작성 대기 |
+| ③ | 교관 재가동 (수련의 서) | [training-mentors.md](training-mentors.md) 개정 | 확정 (10-13) — ★1~4 📕 확정 상승 총 200권(무료 약 15~20일), 골드 없음, ★5 승부 무료 하루 3회, 스테이지 40 열림, 훈련 Lv 200 유지·경험치 보너스 제외. 검토 `dev/review/mentors.html` |
 | ④ | 권투가 7종 | `boxer-class.md` | 작성 대기 |
 | ⑤ | 스킬 VFX 전수조사 | [skill-vfx.md](skill-vfx.md) | **확정** (10-13, 명중 분리판) — 이펙트 그림은 전부 PixelLab 텍스처. 평타 명중은 직업마다(29)·스킬 명중은 스킬마다(40), 공용은 배경 부품 7장만. 텍스처 167장·약 740회(Tier 1 한 달, 권투가와 같은 달). ⑤-0 검흔 시험 완료(9회). 순서 ⑤-0 → 마법사 → 창기사 → 레인저 → 검사 |
 
