@@ -10,7 +10,7 @@ const vm = require('vm'), fs = require('fs'), path = require('path'), cp = requi
 const { simulateDuel } = require('../server/duel');
 const { mentorProfile } = require('../server/mentor');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['data', 'classes', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'core'];
+const FILES = ['data', 'classes', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'castle', 'core'];
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140];
 const ENH_MARKS = [20, 25, 30];   // 어느 부위든 처음 이 강화 단계에 닿은 시간 (docs/specs/enhance-30.md)
 
@@ -62,6 +62,29 @@ function playMentors(M, S, day, t, ms) {
   for (let n = 5; n <= M.MENTORS.length * 5; n += 5) if (ms.starAt[n] == null && M.mentorStarSum() >= n) ms.starAt[n] = t / 3600;
 }
 
+// 🏰 성벽 지키기가 있는 src 면 그 함수들, 아니면 null
+const castleApi = (ctx) => vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
+// 성벽 지키기 하루: 무료 입장권 3장(구매 없음)을 — 간이 시뮬 한계 단계보다 낮으면 다음 단계 도전(다 막은 것으로), 아니면 최고 단계 소탕 — 쓰고,
+//  🧱 으로 업그레이드를 낮은 것부터 올린다. cs = { openAt, books, runs, firsts, doneAt } — 부르는 쪽이 들고 다닌다
+function playCastle(C, S, t, cs) {
+  if (!C || !C.castleUnlocked() || C.castleTickets() <= 0) return;
+  if (cs.openAt == null) cs.openAt = t / 3600;
+  const lim = C.castleLimitLv();
+  while (C.castleTickets() > 0) {
+    const b0 = S.books;
+    if (S.castle.best < lim && C.startCastle()) {
+      const r = S.castle.run; r.wave = C.CASTLE_WAVES.length; r.waveLeft = C.CASTLE_WAVES.map(() => 0); r.pts = C.CASTLE_FULL_PTS;
+      C.endCastle('clear'); S.phase = 'camp'; cs.firsts++;
+    } else if (!C.sweepCastle()) break;
+    cs.books += S.books - b0; cs.runs++;
+  }
+  for (let k = 0; k < 100; k++) {
+    const id = C.CASTLE_UP_IDS.filter((i) => !C.castleUpBlocker(i)).sort((a, b) => S.castle.up[a] - S.castle.up[b])[0];
+    if (!id || !C.castleUpgrade(id)) break;
+  }
+  if (cs.doneAt == null && C.CASTLE_UP_IDS.every((i) => S.castle.up[i] >= C.CASTLE_UP_MAX)) cs.doneAt = t / 3600;
+}
+
 function runOne({ days, seed, rev }) {
   let s = seed * 9301 + 49297; const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
   const ctx = makeGame(rev); ctx.Math.random = rnd;
@@ -70,6 +93,7 @@ function runOne({ days, seed, rev }) {
     upgradeBag: typeof upgradeBag === 'function' ? upgradeBag : null, bagUpCost: typeof bagUpCost === 'function' ? bagUpCost : null,
     claimStock: typeof claimStock === 'function' ? claimStock : null, trade: typeof trade === 'function' ? trade : null, tradeBlocker: typeof tradeBlocker === 'function' ? tradeBlocker : null, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt })`, ctx);
   const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, spent: 0 };
+  const C = castleApi(ctx), cs = { openAt: null, books: 0, runs: 0, firsts: 0, doneAt: null };
   const S = A.S(); S.gear.auto = true;
   const inc = { expGold: 0, curioGold: 0, raidGold: 0, saleGold: 0, bossStones: 0, saleStones: 0, raidGear: [0, 0, 0, 0, 0, 0, 0, 0], raids: 0, trips: 0, kills: 0, dur: 0, stockWood: 0, stockOre: 0, tradeWood: 0, tradeOre: 0, tradeGold: 0 };
   const spend = { train: 0, build: 0, enhStone: 0, enhOre: 0, buildOre: 0, buildWood: 0, bagWood: 0, mentor: 0 };
@@ -108,6 +132,7 @@ function runOne({ days, seed, rev }) {
     for (const id of Object.keys(A.BUILDINGS)) { const g0 = S.gold, o0 = S.mats.ore, w0 = S.mats.wood; if (A.startBuild(id)) { spend.build += g0 - S.gold; spend.buildOre += o0 - S.mats.ore; spend.buildWood += w0 - S.mats.wood; } }
     { const g0 = S.gold; A.doTrainAll(); spend.train += g0 - S.gold; }
     if (M) { playMentors(M, S, day, t, ms); spend.mentor = ms.spent; }
+    playCastle(C, S, t, cs);
   };
   while (t < days * DAY) {
     if (S.phase === 'expedition') { maxBag = Math.max(maxBag, A.bagWeight() / A.bagCap()); A.simulate(TICK); if (S.phase === 'returning') A.simulate(0); }
@@ -116,7 +141,9 @@ function runOne({ days, seed, rev }) {
     for (const th of STAGES) if (reach[th] == null && S.best >= th) reach[th] = t / 3600;
   }
   chores();
-  return { mentorStars: M ? M.mentorStarSum() : 0, mentorStarAt: ms.starAt, trainDoneAt: ms.doneAt, best: S.best, gold: S.gold, maxBag, bagLv: S.bagLv || 0, stones: S.stones, ore: S.mats.ore, wood: S.mats.wood, why, lv: { ...S.bld }, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
+  const cDays = cs.openAt == null ? 0 : days - cs.openAt / 24;
+  return { castle: { ...cs, best: S.castle ? S.castle.best : 0, booksDay: cDays > 0.5 ? cs.books / cDays : null, doneDays: cs.doneAt == null ? null : (cs.doneAt - cs.openAt) / 24, upSum: S.castle ? Object.values(S.castle.up).reduce((a, b) => a + b, 0) : 0 },
+    mentorStars: M ? M.mentorStarSum() : 0, mentorStarAt: ms.starAt, trainDoneAt: ms.doneAt, best: S.best, gold: S.gold, maxBag, bagLv: S.bagLv || 0, stones: S.stones, ore: S.mats.ore, wood: S.mats.wood, why, lv: { ...S.bld }, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
     train: S.train.atk + S.train.hp + S.train.def + S.train.fortune, bld: Object.values(S.bld).reduce((a, b) => a + b, 0),
     enh: S.gear.enh.weapon + S.gear.enh.armor + S.gear.enh.ring, enhSlot: { ...S.gear.enh }, enhReach,
     prot: { left: S.items.protect || 0, used: prot.used, got: (S.items.protect || 0) + prot.used },
@@ -146,6 +173,12 @@ function main() {
   row('1차 훈련 수료 (시간)', (r) => (r.trainDoneAt == null ? 9999 : r.trainDoneAt), (x) => (x === 9999 ? '-' : x.toFixed(1)));
   row('🎓 교관 별 합계', (r) => r.mentorStars);
   for (let n = 5; n <= 25; n += 5) row(`🎓 교관 별 ${n} (시간)`, (r) => (r.mentorStarAt[n] == null ? 9999 : r.mentorStarAt[n]), (x) => (x === 9999 ? '-' : x.toFixed(1)));
+  const nz = (x) => (x == null ? 9999 : x), dash = (f) => (x) => (x === 9999 ? '-' : f(x));
+  row('🏰 성벽 열림 (시간)', (r) => nz(r.castle && r.castle.openAt), dash((x) => x.toFixed(1)));
+  row('🏰 성벽 최고 단계', (r) => (r.castle ? r.castle.best : 0));
+  row('📕 하루 수급 (열린 뒤)', (r) => nz(r.castle && r.castle.booksDay), dash((x) => x.toFixed(1)));
+  row('🏰 업그레이드 Lv 합 (60 = 완료)', (r) => (r.castle ? r.castle.upSum : 0));
+  row('🏰 업그레이드 완료 (열린 뒤 일)', (r) => nz(r.castle && r.castle.doneDays), dash((x) => x.toFixed(1)));
   row('골드: 훈련 지출 / 원정', (r) => r.spend.train / (r.inc.expGold + r.inc.curioGold), pct);
   row('골드: 교관 지출 / 원정', (r) => r.spend.mentor / (r.inc.expGold + r.inc.curioGold), pct);
   row('건물 Lv 합계', (r) => r.bld); row('원정 횟수', (r) => r.inc.trips); row('레이드 횟수', (r) => r.inc.raids);

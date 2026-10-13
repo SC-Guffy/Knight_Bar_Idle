@@ -15,6 +15,7 @@ const hooks = {
   onOutdated: () => {},
   onTowerEnd: (_result) => {},
   onDungeonEnd: (_result) => {},
+  onCastleEnd: (_result) => {},
 };
 
 // ───────────────────────── 상태 / 저장 ─────────────────────────
@@ -42,7 +43,7 @@ function freshState() {
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
     gearV: 9,                               // 9: 강화 +30 · 등급별 줄 수(초월·태초 6줄) · 8: 옵션 줄(it.op) · 7: 마법부여대 · 6: 무기·갑옷 기본 위력 = 기사 레벨 · 5: 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
-    phase: 'camp',                          // camp | expedition | returning | tower | dungeon
+    phase: 'camp',                          // camp | expedition | returning | tower | dungeon | castle
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
     trip: null,                             // 진행 중인 원정 기록
@@ -53,6 +54,8 @@ function freshState() {
     duelSeen: 0,                            // 받은 결투(우편함)에서 읽은 마지막 기록 id (ui.js inbox)
     tower: freshTower(),                    // 도전의 탑: 최고 층·진행 중인 도전 (tower.js)
     dg: freshDungeon(),                     // 재료의 미궁(보스 러시+슬롯): 입장권·최고 기록·진행 중인 도전 (dungeon.js)
+    castle: freshCastle(),                  // 🏰 성벽 지키기: 최고 단계·🧱·업그레이드·입장권·진행 중인 도전 (castle.js)
+    books: 0,                               // 📕 수련의 서 (성벽 지키기에서 얻고 교관 수련에 쓴다)
     wb: freshWb(),                          // 월드 보스: 받은 보상·마지막 정산 (worldboss.js)
     guide: {},                              // 처음 하는 일 안내(FTUE)에서 이미 본 단계 (ui.js guideTick)
     penDone: [],                            // 반영한 운영 차감 id (서버 /api/admin/penalty — 같은 차감을 두 번 빼지 않게)
@@ -252,6 +255,8 @@ function migrate(o) {
   }
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
+  migrateCastle(s.castle);                       // 🏰 업그레이드 항목이 늘어도 옛 세이브가 열리게
+  if (!(s.books >= 0)) s.books = 0;
   // 0.19.31 창고 개편: 창고는 목재·철광석 비축 + 교역 (비축은 지금부터 쌓인다)
   // 0.19.32 가방은 여관 안 별도 업그레이드 — 기존 세이브도 모두 Lv1(무게 10)부터 (사용자 결정)
   if (!o.stock && !s.notice) s.notice = '📦 창고 개편 — 이제 창고에 목재·철광석이 저절로 쌓여요 (마을 → 창고에서 수령). 창고 Lv5 부터는 골드로 목재·철광석을 사는 교역도 열려요. 🎒 가방은 이제 마을 → 여관에서 목재로 따로 키워요 (무게 10부터)';
@@ -315,6 +320,8 @@ function stats(base = false) {
   // 재료의 미궁 안 배율 (dungeon.js dgFx — 지금은 0). 랭킹·결투용(base)에는 넣지 않는다
   const dg = !base && dgActive() ? dgFx() : null;
   if (dg) atk *= 1 + dg.atk;
+  // 🏰 성벽 지키기 안 배율 (castle.js castleFx — 🚩 군기). 랭킹·결투용(base)에는 넣지 않는다
+  if (!base && castleActive()) atk *= 1 + castleFx().atk;
   return {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
@@ -682,7 +689,7 @@ function eatLunch() {
 }
 // 원정 중 체력이 낮으면 물약 자동 사용
 function tryPotion() {
-  if (S.phase === 'dungeon') return false;      // 던전에선 체력이 자원이라 물약을 못 쓴다
+  if (S.phase === 'dungeon' || S.phase === 'castle') return false;      // 던전·성벽에선 물약을 못 쓴다
   const max = stats().maxHp;
   if (S.hp >= max * POTION_AT || S.items.potion <= 0) return false;
   if (Math.random() >= gearBonus().potionSave) S.items.potion--;   // 🎲 물약 아낄 확률 (옵션 줄)
@@ -822,7 +829,7 @@ function knightDefeated(atBoss) {
 
 // 캠프에서 흐르는 시간: 휴식
 function advanceCamp(sec) {
-  if (S.phase !== 'camp' && S.phase !== 'dungeon') return;
+  if (S.phase !== 'camp' && S.phase !== 'dungeon' && S.phase !== 'castle') return;
   S.stamina = Math.min(maxStamina(), S.stamina + (maxStamina() / restSecAt(S.bld.inn)) * (1 + gearBonus().restPct) * sec);   // 던전은 스태미나를 안 써서 그동안에도 쉰다
   if (S.phase !== 'camp') return;
   const max = stats().maxHp;
@@ -836,6 +843,7 @@ function simulate(sec) {
   // 탑은 오프라인으로 진행하지 않는다: 멈춰 있던 동안(앱을 껐거나 절전) 그 층에서 끝낸 것으로 정산
   if (S.phase === 'tower') { endTower('offline'); S.phase = 'camp'; }
   if (S.phase === 'dungeon') { endDungeon('offline'); S.phase = 'camp'; }
+  if (S.phase === 'castle') { endCastle('offline'); S.phase = 'camp'; }
   if (S.phase === 'returning') arriveCamp(true);
   let t = sec;
   let guard = 0;

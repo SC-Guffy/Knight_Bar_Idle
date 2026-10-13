@@ -200,9 +200,9 @@ function mentorSpr(id) {
   const white = mk((b) => { b.drawImage(body, 0, 0); b.drawImage(head, 0, 0); b.globalCompositeOperation = 'source-in'; msR(b, 0, 0, MS_W, MS_H, '#ffffff'); });
   return (msSprCache[id] = { body, head, white });
 }
-// pose: { dx 앞으로 내딛기(px, 음수 = 기사 쪽), lean 기울기(rad), nod 머리 내림(칸), kneel 0~1, flash, alpha }
+// pose: { dx 앞으로 내딛기(px, 음수 = 기사 쪽), lean 기울기(rad), nod 머리 내림(칸), kneel 0~1, flash, alpha, cell 칸 크기(기본 MS_CELL) }
 function drawMentorFig(g, id, x, gy, pose = {}) {
-  const s = mentorSpr(id), c = MS_CELL;
+  const s = mentorSpr(id), c = pose.cell || MS_CELL;      // cell: 칸 크기 px (성벽 위에서는 1)
   g.save();
   g.imageSmoothingEnabled = false;
   g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;

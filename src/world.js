@@ -110,7 +110,7 @@ function spriteOf(m) {
   const frames = SPR[def.spr || m.type];
   return frames[Math.floor(m.t * (def.fps || 3)) % frames.length];
 }
-const monsterScale = (m) => (m.boss ? PX * 2 : PX);
+const monsterScale = (m) => m.scale || (m.boss ? PX * 2 : PX);   // scale: 성벽 지키기 거대 보스 (PX × 2.5)
 const monsterWidth = (m) => spriteOf(m)[0].length * monsterScale(m);
 const reachTo = (m) => stats().range + monsterWidth(m) / 2;        // 기사 무기 사거리
 const monsterReach = (m) => MELEE_REACH + monsterWidth(m) / 2;      // 몬스터 공격 사거리
@@ -247,6 +247,7 @@ function hitMonster(m, mult = 1, o = {}) {
   procOnKill(m);
   if (S.phase === 'tower') { towerKillReward(m); return dmg; }
   if (S.phase === 'dungeon') { dgKill(m); return dmg; }
+  if (S.phase === 'castle') { castleViewKill(m); return dmg; }
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -398,7 +399,7 @@ function fightTick(dt, st, onFree) {
     if (aheadDist(knight.x, m.x) > monsterReach(m) + 1) continue;
     m.atkTimer -= dt;
     if (m.atkTimer > 0 || m.anim) continue;
-    const cd = MONSTERS[m.type].atkCd || 1.4;
+    const cd = m.atkCd || MONSTERS[m.type].atkCd || 1.4;    // atkCd: 성벽 지키기 보스(2초)
     m.atkTimer = cd;
     const mo = ATK_MOTION[MONSTERS[m.type].style] || ATK_MOTION.swing;
     m.anim = { t: 0, dur: Math.min(mo.dur, cd * 0.85), hit: false };
@@ -426,6 +427,7 @@ function advanceMonsterAttack(m, dt, st) {
   if (S.hp > 0) return false;
   if (S.phase === 'tower') { towerKnightDown(); return true; }
   if (S.phase === 'dungeon') { dgViewDown(); return true; }
+  if (S.phase === 'castle') { castleViewDown(); return true; }
   addFloater(`💀 스태미나 -${DEFEAT_STAMINA}`, toScreen(knight.x), groundY() - 50, '#ff9f9f', 12);
   knightDefeated(!!m.boss);
   knight.down = DEFEAT_DOWN_SEC;
@@ -1189,10 +1191,12 @@ function update(dt) {
   }
 
   if (dv && S.phase !== 'dungeon') endDungeonView();      // 절전·불러오기로 던전이 정산된 뒤
+  if (cdv && S.phase !== 'castle') endCastleView();
   if (S.phase === 'expedition') updateExpedition(dt, gdt);
   else if (S.phase === 'returning') updateReturning(dt);
   else if (S.phase === 'tower') updateTower(dt, gdt);
   else if (S.phase === 'dungeon') { updateDungeon(dt); advanceCamp(gdt); }
+  else if (S.phase === 'castle') { updateCastle(dt); advanceCamp(gdt); }
   else advanceCamp(gdt);
   if (duelPlay) updateDuel();
   if (raidPlay) updateRaid(dt);
@@ -1218,7 +1222,7 @@ function update(dt) {
 
   for (const sh of shots) {
     if (sh.delay > 0) { sh.delay -= dt; continue; }
-    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'tower' && S.phase !== 'dungeon' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
+    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'tower' && S.phase !== 'dungeon' && S.phase !== 'castle' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
     const tx = toScreen(sh.m.x), ty = monsterMidY(sh.m);
     const dx = tx - sh.x, dy = ty - sh.y, dist = Math.hypot(dx, dy);
     const step = sh.w.arrow.speed * dt;
@@ -1399,6 +1403,7 @@ function drawZoneBg(deco, gy) {
 function drawGround() {
   if (!showGround) return;
   if (dgInside()) { drawDungeonGround(); return; }
+  if (castleInside()) { drawCastleGround(); return; }
   if (groundZone !== zoneIndex(S.stage)) makeGrass();
   const gr = ZONES[groundZone].ground;
   const gy = groundY();
@@ -1663,7 +1668,7 @@ function drawDecor(d, gy) {
 }
 
 function drawCamp() {
-  if (dgInside()) return;
+  if (dgInside() || castleInside()) return;
   const gy = groundY();
   drawSprite(SPR.tent, PAL, 26, gy, PX);
 
@@ -4283,6 +4288,7 @@ function drawActors() {
   if (duelPlay) drawDuel(); else if (raidPlay) drawRaid(); else drawKnight();
   drawShots();
   drawEffects();
+  drawCastleFx();
   drawSkillFx();
   drawParts();
   drawSlotFx();

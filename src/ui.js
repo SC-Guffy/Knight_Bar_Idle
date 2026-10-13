@@ -8,7 +8,7 @@ let campTab = 'report';
 // 🗺️ 도전 탭: 서브 콘텐츠 카드 목록(null)이거나 그중 하나를 펼친 상태('tower' | 'dungeon')
 let subView = null;
 // 탑·던전은 도전 탭 안의 카드라, 옛 탭 이름으로 열어도 그 카드를 펼친 도전 탭으로 간다
-const SUB_TABS = { tower: 1, dungeon: 1 };
+const SUB_TABS = { tower: 1, dungeon: 1, castle: 1 };
 // 🧑 캐릭터 탭: 장비·스킬·전직을 서브탭으로 품는다. sub 는 펼쳐 둔 서브탭, tree 는 전직 트리를 펼쳤는가 (null 이면 전직 가능할 때만)
 const charUi = { sub: 'gear', tree: null };
 const CHAR_SUBS = { gear: '📋 상태', skill: '⚡ 스킬', class: '⚜️ 전직' };   // gear 키는 옛 장비 탭 (세이브·링크 호환), 지금은 상태창 (능력치 출처 + 장비 교체·분해)
@@ -143,6 +143,7 @@ function renderHud() {
     S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / staDrain())}`
       : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / staDrain())}` : '✨ 귀환 중')
       : S.phase === 'dungeon' ? (S.dg.run ? `👑 보스 ${S.dg.run.k + (S.dg.run.fight ? 1 : 0)}` : '✨ 귀환 중')
+      : S.phase === 'castle' ? (S.castle.run ? `🏰 ${S.castle.run.lv}단계 · ${S.castle.run.wave}/${CASTLE_WAVES.length}` : '✨ 귀환 중')
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`);
 
@@ -151,6 +152,7 @@ function renderHud() {
     : S.phase === 'expedition' ? ['recall', '🏕 귀환', '귀환 명령 — 지금 원정을 마치고 캠프로']
     : S.phase === 'tower' && S.tower.run ? ['tower-retreat', '⬇️ 후퇴', '이 층에서 후퇴해 캠프로']
     : S.phase === 'dungeon' && S.dg.run ? ['dg-retreat', '🎒 나가기', '지금 나가기 — 모은 자원을 모두 가지고 캠프로']
+    : S.phase === 'castle' && S.castle.run ? ['castle-retreat', '🏳️ 후퇴', '후퇴 — 지금까지 막은 몫을 가지고 캠프로']
     : null;
   const hb = $('hbtn');
   hb.hidden = !cmd;
@@ -162,6 +164,7 @@ function renderHud() {
 
   tickLive($('hud'));
   renderDungeonPick();
+  renderCastleInfo();
   const todo = S.phase === 'camp' && !modalOpen() && !duelActive() && !raidActive() && campHasDot();
   hb.classList.toggle('rd', todo);
 
@@ -192,7 +195,7 @@ function openCamp(tab) {
   }
   campOpen = true;
   revealed = [];
-  campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : raidUi.room ? 'raid' : guideTab() || 'town');
+  campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : castleResultPending() ? 'castle' : raidUi.room ? 'raid' : guideTab() || 'town');
   markSubSeen();
   if (window.bar) window.bar.setCampMode(true);
   interactive = true;
@@ -211,6 +214,8 @@ function closeCamp() {
   towerResultViewed = false;
   if (dgResultViewed && S.dg.last) S.dg.last.seen = true;
   dgResultViewed = false;
+  if (castleResultViewed && S.castle.last) S.castle.last.seen = true;
+  castleResultViewed = false;
   $('camp').hidden = true;
   interactive = false;
   if (window.bar) window.bar.setCampMode(false);
@@ -1150,6 +1155,7 @@ function campDots() {
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '',
     // 던전: 처음 열렸거나, 안 본 결과가 있거나, 입장권이 남았을 때
     dungeon: dgUnlocked() && (!S.guide.dgSeen || dgResultPending() || dgTickets() > 0),
+    castle: castleDot(),             // 🏰 성벽 지키기 (castle-ui.js)
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
@@ -2536,6 +2542,8 @@ const SUB_CARDS = [
       out.push([d.best ? `최고 👑 ${d.best}마리` : '아직 기록 없음', '']);
       return out;
     } },
+  { k: 'castle', icon: 'castle', name: '성벽 지키기', desc: '몰려오는 10웨이브를 막아라 — 🧱 성벽돌로 성벽을, 📕 수련의 서로 교관을 키워요',
+    unlocked: () => castleUnlocked(), lockText: () => `스테이지 ${CASTLE_UNLOCK_STAGE}에 열려요`, dot: (d) => d.castle, view: () => viewCastle(), chips: () => castleCardChips() },
 ];
 const subCard = (k) => SUB_CARDS.find((c) => c.k === k);
 // 카드를 펼쳐 보면 FTUE 의 "봤다" 표시
@@ -2543,6 +2551,7 @@ function markSubSeen() {
   if (campTab !== 'sub') return;
   if (subView === 'tower' && towerUnlocked()) S.guide.towerSeen = 1;
   if (subView === 'dungeon' && dgUnlocked()) S.guide.dgSeen = 1;
+  if (subView === 'castle' && castleUnlocked()) S.guide.castleSeen = 1;
 }
 function viewSub() {
   const c = subView && subCard(subView);
@@ -2578,7 +2587,7 @@ function drawSubPreviews() {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, w, h);
-    const draw = { tower: drawSubTower, dungeon: drawSubDungeon, soon: drawSubSoon }[cv.dataset.k];
+    const draw = { tower: drawSubTower, dungeon: drawSubDungeon, castle: drawSubCastle, soon: drawSubSoon }[cv.dataset.k];
     if (draw) draw(g, w, h);
   });
 }
@@ -2710,7 +2719,7 @@ function renderCamp() {
     ['char', `${ico('char')} 캐릭터`, dots.gear || dots.skill || dots.class ? DOT : ''],
     ['rank', `${ico('rank')} 랭킹`, inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
     ['raid', `${ico('raid')} 레이드`, S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
-    ['sub', `${ico('sub')} 도전`, dots.tower || dots.dungeon ? DOT : ''],
+    ['sub', `${ico('sub')} 도전`, dots.tower || dots.dungeon || dots.castle ? DOT : ''],
   ];
   const view = { mail: viewMail, report: viewReport, town: viewTown, char: viewChar, rank: viewRank, raid: viewRaid, sub: viewSub }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
@@ -2798,6 +2807,7 @@ const ACTIONS = {
     renderHud();
   },
   'dg-retreat': () => { dgRetreat(); renderHud(); },
+  ...CASTLE_ACTIONS,                  // 🏰 성벽 지키기 (castle-ui.js)
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),
   'tab': (el) => {
@@ -3211,6 +3221,8 @@ function resetWorld() {
   if (tw) endTowerView();
   if (S.phase === 'dungeon') { endDungeon('offline'); S.phase = 'camp'; }
   if (dv) endDungeonView();
+  if (S.phase === 'castle') { endCastle('offline'); S.phase = 'camp'; }
+  if (cdv) endCastleView();
   monsters = []; coins = []; floaters = []; shots = []; effects = []; drops = [];
   lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null });
@@ -3257,7 +3269,7 @@ hooks.onPenalty = (p) => {
 // 그사이 화면에서 흐른 시간(단조 시계)은 이미 실시간으로 진행됐으니 뺀다. 탑·미궁·귀환 중이던 건 시간과 상관없이 바로 정리
 const offline = { from: 0, mono: 0, pending: false };
 function catchUp() {
-  if (Date.now() - (S.lastSeen || 0) > 5000 && ['tower', 'dungeon', 'returning'].includes(S.phase)) simulate(0);
+  if (Date.now() - (S.lastSeen || 0) > 5000 && ['tower', 'dungeon', 'castle', 'returning'].includes(S.phase)) simulate(0);
   offline.from = S.lastSeen || 0; offline.mono = performance.now(); offline.pending = true;
   settleOffline();
 }
@@ -3367,6 +3379,11 @@ hooks.onDungeonEnd = (r) => {
   renderHud();
   if (!r) return;
   toast(`⛏️ ${DG_REASON[r.reason] || '던전 끝'} — ${dgResText(r.got, '받은 게 없어요')} · 기사를 클릭해 정산을 확인하세요`, 8000);
+};
+hooks.onCastleEnd = (r) => {
+  renderHud();
+  if (!r) return;
+  toast(`🏰 ${CASTLE_REASON[r.reason] || '도전 끝'} — ${r.lv}단계 막은 웨이브 ${r.waves}/${CASTLE_WAVES.length} · 🧱 +${fmt(r.bricks)} · 📕 +${r.books} · 기사를 클릭해 정산을 확인하세요`, 8000);
 };
 hooks.onArrive = () => {
   const r = S.report;
@@ -3529,6 +3546,7 @@ function boot() {
     else clock += dt;
     render();
     if (S.phase === 'dungeon') renderDungeonPick();
+    if (S.phase === 'castle') renderCastleInfo();
     if (campOpen && campTab === 'char') { drawClassPreviews(); drawGearHero(); }
     if (campOpen && campTab === 'sub' && !subView) drawSubPreviews();
     if (campOpen && campTab === 'town') { drawTown(); drawMentorStage(); }
