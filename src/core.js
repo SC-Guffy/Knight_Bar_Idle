@@ -31,8 +31,8 @@ function freshState() {
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
-    mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed)
-    mastV: 7,                               // 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed, 차수별 곡선)
+    mastV: 11,                              // 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
@@ -85,19 +85,23 @@ function migrate(o) {
   // 잠깐 있었던 거물 사냥(boss) 훈련은 비용 곡선이 같은 수완으로 단계를 옮긴다
   // 스킬 숙련도 도입: 모두 Lv1 에서 시작한다 (Lv1 은 예전 스킬 배율의 ×0.85)
   if (!o.mast && !s.notice) s.notice = '📖 스킬 숙련도 도입 — 스킬 한 방은 세졌지만 쿨타임이 3배로 길어졌어요. 비전서를 먹여 Lv30까지 키우면 쿨타임이 줄고 위력이 오릅니다 (전직 탭)';
+  // mastV 10 까지의 공통 곡선(레벨당 최대 15권) — 옛 이전 단계가 쓴다
+  const oldTomesAt = (lv) => { let n = 0; for (let L = 1; L < lv; L++) n += skillNeedWith(SKILL_NEED_OLD, L); return n; };
+  const oldTomeMax = oldTomesAt(SKILL_MAX);
+  const oldLvOf = (t) => { let lv = 1; while (lv < SKILL_MAX && t >= skillNeedWith(SKILL_NEED_OLD, lv)) { t -= skillNeedWith(SKILL_NEED_OLD, lv); lv++; } return lv; };
   // 숙련도가 경험치(1권 = 10) → 비전서 권수로: 먹였던 권수 그대로 옮긴다 (요구량이 줄어서 레벨은 오른다)
-  if (o.mast && (o.mastV || 1) < 2) for (const id of Object.keys(s.mast)) s.mast[id] = Math.min(SKILL_TOME_MAX, Math.round(s.mast[id] / 10));
+  if (o.mast && (o.mastV || 1) < 2) for (const id of Object.keys(s.mast)) s.mast[id] = Math.min(oldTomeMax, Math.round(s.mast[id] / 10));
   // 요구량이 바뀌면(mastV 2: 레벨당 최대 20권, 3: 10권, 4: 30권 → 5: 15권) 지금 레벨과 칸 비율은 그대로 두고 새 곡선의 누적 권수로 옮긴다
   if (o.mast && (o.mastV || 1) < 5) {
     const oldMax = { 3: 10, 4: 30 }[o.mastV] || 20;
     for (const id of Object.keys(s.mast)) {
       let lv = 1, left = s.mast[id];
       while (lv < SKILL_MAX && left >= skillNeedWith(oldMax, lv)) { left -= skillNeedWith(oldMax, lv); lv++; }
-      s.mast[id] = lv >= SKILL_MAX ? SKILL_TOME_MAX : skillTomesAt(lv) + Math.floor(left / skillNeedWith(oldMax, lv) * skillNeed(lv));
+      s.mast[id] = lv >= SKILL_MAX ? oldTomeMax : oldTomesAt(lv) + Math.floor(left / skillNeedWith(oldMax, lv) * skillNeedWith(SKILL_NEED_OLD, lv));
     }
   }
   // mastV 7: 별(자동 → 진화 버튼)이 ⭐ 포인트를 찍는 스킬 트리로 바뀌었다. 포인트는 모두 미배분으로 시작한다 (트리에서 다시 찍는다)
-  if (o.mast && (o.mastV || 1) < 7 && Object.keys(s.mast).some((id) => skillLvOf(s.mast[id]).lv >= 5) && !s.notice) {
+  if (o.mast && (o.mastV || 1) < 7 && Object.keys(s.mast).some((id) => oldLvOf(s.mast[id]) >= 5) && !s.notice) {
     s.notice = '⚡ 스킬 트리 도입 — 스킬 Lv5 마다 ⭐ 포인트가 1개 생기고, 스킬 탭의 트리에서 공격·쿨타임 특화와 진화(별) 노드에 찍어요. 지금 가진 포인트를 찍어 주세요 (되돌리기는 무료)';
   }
   // mastV 8: ⭐ 포인트가 Lv5 마다 1 → 레벨마다 1 로 늘고 트리가 1-2-1-2-1-2-1(★★★까지)이 됐다. 칸당 효과가 바뀌어서 찍은 트리는 비우고 다시 찍게 한다
@@ -114,7 +118,18 @@ function migrate(o) {
   if (o.mast && (o.mastV || 1) < 10 && Object.keys(s.tree || {}).some((id) => SKILLS[id] && Object.values(s.tree[id].n || {}).some((n) => n > 0)) && !s.notice) {
     s.notice = '⚡ 스킬 트리 개편 — 이제 모든 스킬이 레벨 대신 노드로만 자라요. 왼쪽은 ⚔️ 피해, 오른쪽은 ⏱️ 쿨타임·💥 치명·🩸 흡혈에 더해 2구간엔 스킬마다 다른 고유 특수(처형·기절·화상·속사…)가 있어요. 찍었던 쿨타임 특화 포인트는 돌려드렸으니 스킬 탭에서 다시 살펴봐 주세요';
   }
-  s.mastV = 10;
+  // mastV 11: 요구량이 차수별(1차 6·2차 10·궁극기 12권/레벨 최대)로 줄었다. 먹인 권수는 그대로 두고 새 곡선으로 레벨을 다시 센다 (레벨은 같거나 오른다).
+  //  만렙 누적을 넘는 권수는 비전서로 돌려준다. 키의 차수는 지금 직업에서 그 키를 쓰는 스킬 기준 (3차면 궁극기)
+  if (o.mast && (o.mastV || 1) < 11) {
+    let refund = 0;
+    for (const key of Object.keys(s.mast)) {
+      const user = skillsOf(s.cls).find((k) => mastKey(k.id) === key), cap = skillTomeMax(skillTierOf(user ? user.id : key));
+      if (s.mast[key] > cap) { refund += s.mast[key] - cap; s.mast[key] = cap; }
+    }
+    s.tomes = (s.tomes || 0) + refund;
+    if (Object.keys(s.mast).length && !s.notice) s.notice = `📖 스킬 요구량 완화 — 비전서 요구량이 줄고 차수마다 달라졌어요 (1차 < 2차 < 궁극기). 먹인 권수는 그대로라 스킬 레벨이 올랐어요${refund ? ` · 만렙을 넘친 비전서 ${refund}권을 돌려드렸어요` : ''}`;
+  }
+  s.mastV = 11;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -241,7 +256,7 @@ function stats(base = false) {
 const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id);
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
-const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0).lv;
+const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0, skillTierOf(id)).lv;
 // 스킬 트리 (S.tree, classes.js SKILL_TREE): ⭐ 포인트 = 숙련도 레벨 (Lv1 부터 1, Lv30 = 30). 진화 문(star)은 포인트를 쓰지 않는다. n 은 노드별 찍은 칸, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
 const treeOf = (id) => S.tree[mastKey(id)] || { n: {}, use: 0 };
 const nodeLv = (id, nid) => treeOf(id).n[nid] || 0;
@@ -317,7 +332,7 @@ function feedTomes(id, n) {
   const k = SKILLS[id];
   if (!k || !skillsOf(S.cls).includes(k)) return null;
   const key = mastKey(id), have = S.mast[key] || 0;
-  const used = Math.min(n, S.tomes, SKILL_TOME_MAX - have);
+  const used = Math.min(n, S.tomes, skillTomeMax(skillTierOf(id)) - have);
   if (used <= 0) return null;
   const from = skillLv(id);
   S.tomes -= used;
@@ -326,7 +341,7 @@ function feedTomes(id, n) {
 }
 // 지금 가진 비전서로 레벨을 하나라도 올릴 수 있는 내 스킬이 있는가 (레드닷)
 const canLevelSkill = () => skillsOf(S.cls).some((k) => {
-  const s = skillLvOf(S.mast[mastKey(k.id)] || 0);
+  const s = skillLvOf(S.mast[mastKey(k.id)] || 0, skillTierOf(k.id));
   return s.lv < SKILL_MAX && S.tomes >= s.need - s.have;
 });
 

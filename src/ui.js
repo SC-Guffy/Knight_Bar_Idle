@@ -580,7 +580,7 @@ function viewSkill() {
       <small>칸 1개 = 비전서 1권 · 칸을 다 채우면 레벨 업 · ⭐ 포인트 = 레벨 (Lv10 이면 10개) → 단계 게이지에 투자</small></div>
     <span class="mchip${S.tomes ? '' : ' none'}" title="가진 비전서">📖 <b>${fmt(S.tomes)}</b><small>권 보유</small></span></div>`;
   if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요.</div>`;
-  const firstOpen = list.find((x) => skillLvOf(S.mast[mastKey(x.id)] || 0).lv < SKILL_MAX);
+  const firstOpen = list.find((x) => skillLvOf(S.mast[mastKey(x.id)] || 0, skillTierOf(x.id)).lv < SKILL_MAX);
   if (!skillSel || !list.some((x) => x.id === skillSel)) skillSel = (list.find((x) => skillPtsLeft(x.id) > 0) || firstOpen || list[0]).id;
   const camp = S.phase === 'camp';
   // 스킬 고르기 칩: 이름(적용한 모습) · Lv · 남은 포인트
@@ -592,15 +592,15 @@ function viewSkill() {
   }).join('')}</div>`;
 
   const k = SKILLS[skillSel];
-  const total = S.mast[mastKey(k.id)] || 0, s = skillLvOf(total), max = s.lv >= SKILL_MAX;
+  const tier = skillTierOf(k.id), total = S.mast[mastKey(k.id)] || 0, s = skillLvOf(total, tier), max = s.lv >= SKILL_MAX;
   const n = skillStar(k.id), use = skillStage(k.id), b = skillBonus(k.id);
   const need = max ? 0 : s.need - s.have;
   const mt = (lv, bb = b) => (k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k, lv, S.cls, bb)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k, lv, S.cls, bb)).toFixed(2)}`);
   const cd = (lv, bb = b) => skillCdOf(k, lv, S.cls, bb);
   const tag = n ? `<span class="mtag m${n}">${MASTERY[n].star} ${MASTERY[n].name}</span>` : '';
   const locked = S.level < k.lv;
-  const all = Math.min(S.tomes, SKILL_TOME_MAX - total);   // 전부 쓰기: 가진 만큼 (만렙에서 남는 건 안 씀)
-  const ups = skillLvOf(total + all).lv - s.lv;
+  const all = Math.min(S.tomes, skillTomeMax(tier) - total);   // 전부 쓰기: 가진 만큼 (만렙에서 남는 건 안 씀)
+  const ups = skillLvOf(total + all, tier).lv - s.lv;
   const pulse = guidePendingFeed() && k === firstOpen ? ' gpulse' : '';
   const btns = max ? `<span class="mmax">Lv ${SKILL_MAX} 만렙</span>` : `
     <button class="btn mb1${rd(S.tomes >= need)}${pulse}" data-action="tome" data-id="${k.id}" data-n="1" ${S.tomes < 1 ? 'disabled' : ''}>1권 쓰기</button>

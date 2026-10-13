@@ -1561,11 +1561,17 @@ const MASTERY = [
   { lv: 20, name: '달인', star: '★★', desc: '쿨타임이 크게 줄고, 발밑에 빛 고리가 돌고 잔상이 짙어진다' },
   { lv: 30, name: '극의', star: '★★★', desc: '쿨타임이 크게 줄고, 이펙트가 금빛으로 물들고 이름 띠와 마무리 섬광이 붙는다' },
 ];
-// L → L+1 에 필요한 비전서 권수: Lv1→2 1권(탑에서 처음 받은 한 권으로 바로 강화해 보게, FTUE), 그 뒤 2권에서 고르게 늘어 Lv29→30 15권.
-// 누적 Lv10 29권 · Lv20 109권 · Lv30 239권 — 최고 20층쯤(소탕 3번 60 + 등반 ≈ 하루 80권)이면 스킬 하나 만렙에 사흘
-const SKILL_NEED_MAX = 15;
+// L → L+1 에 필요한 비전서 권수: Lv1→2 1권(탑에서 처음 받은 한 권으로 바로 강화해 보게, FTUE), 그 뒤 2권에서 고르게 늘어 Lv29→30 에 차수별 최대.
+// 차수(스킬 주인 직업의 tier)가 높을수록 비싸다 (docs/specs/skill-mastery-cost.md):
+//   1차 최대 6권 — 누적 Lv10 21 · Lv20 59 · Lv30 113
+//   2차 최대 10권 — 누적 Lv10 25 · Lv20 82 · Lv30 169
+//   3차 궁극기 최대 12권 — 누적 Lv10 27 · Lv20 93 · Lv30 197 (1차 스킬 권수를 그대로 이어받아 이 곡선으로 센다)
+const SKILL_NEED_MAX = { 1: 6, 2: 10, 3: 12 };
+const SKILL_NEED_OLD = 15;               // mastV 10 까지의 공통 곡선 (세이브 이전용)
 const skillNeedWith = (max, L) => (L === 1 ? 1 : Math.min(max, Math.round(2 + (max - 2) * (L - 2) / (SKILL_MAX - 3))));
-const skillNeed = (L) => skillNeedWith(SKILL_NEED_MAX, L);
+// 스킬의 차수 (1~3). 궁극기는 3 — 숙련도 키(mastKey)를 1차 스킬과 함께 써도 곡선은 궁극기 것
+const skillTierOf = (id) => (SKILLS[id] && CLASSES[SKILLS[id].cls] ? CLASSES[SKILLS[id].cls].tier : 1);
+const skillNeed = (L, tier = 1) => skillNeedWith(SKILL_NEED_MAX[tier] || SKILL_NEED_MAX[1], L);
 // 이 레벨에서 달 수 있는 최대 별 수 (Lv10 ★ · Lv20 ★★ · Lv30 ★★★)
 const masteryOf = (lv) => Math.min(3, Math.floor(lv / 10));
 // 성장 진행도 0~1. star 는 단 별 수 (안 주면 레벨로 달 수 있는 최대 — 별 정보가 없는 다른 직업 미리보기·옛 기록용)
@@ -1608,16 +1614,16 @@ const skillPowAt = (k, lv, owner = k.cls, b) => {
   return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv, t.star)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1)
     * (1 + TREE_POW * (t.pow || 0));
 };
-// 누적 비전서 → { lv, have 이번 레벨에 먹인 권수, need 이번 레벨에 필요한 권수 }
-function skillLvOf(total) {
+// 누적 비전서 → { lv, have 이번 레벨에 먹인 권수, need 이번 레벨에 필요한 권수 } (tier 는 skillTierOf)
+function skillLvOf(total, tier = 1) {
   let lv = 1, left = total;
-  while (lv < SKILL_MAX && left >= skillNeed(lv)) { left -= skillNeed(lv); lv++; }
-  return { lv, have: lv >= SKILL_MAX ? 0 : left, need: lv >= SKILL_MAX ? 0 : skillNeed(lv) };
+  while (lv < SKILL_MAX && left >= skillNeed(lv, tier)) { left -= skillNeed(lv, tier); lv++; }
+  return { lv, have: lv >= SKILL_MAX ? 0 : left, need: lv >= SKILL_MAX ? 0 : skillNeed(lv, tier) };
 }
 // Lv1 에서 lv 까지 필요한 누적 비전서
-const skillTomesAt = (lv) => { let n = 0; for (let L = 1; L < lv; L++) n += skillNeed(L); return n; };
+const skillTomesAt = (lv, tier = 1) => { let n = 0; for (let L = 1; L < lv; L++) n += skillNeed(L, tier); return n; };
 // 만렙까지 필요한 누적 비전서
-const SKILL_TOME_MAX = Array.from({ length: SKILL_MAX - 1 }, (_, i) => skillNeed(i + 1)).reduce((a, b) => a + b, 0);
+const skillTomeMax = (tier = 1) => skillTomesAt(SKILL_MAX, tier);
 
 // ───────────────────────── 스킬 트리 ─────────────────────────
 // 스킬마다 좌→우 3단계 띠 (스킬 탭, ui.js treeHtml). ⭐ 포인트 = 숙련도 레벨 (Lv1 부터 1, Lv30 이면 30).

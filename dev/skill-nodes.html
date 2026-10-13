@@ -66,7 +66,7 @@ function renderNodes() {        // 이름을 render 로 두면 world.js 의 rend
   S = freshState();
   S.level = 100;
   for (const k of Object.values(SKILLS)) {
-    S.mast[mastKey(k.id)] = SKILL_TOME_MAX;
+    S.mast[mastKey(k.id)] = skillTomeMax(skillTierOf(k.id));
     S.tree[mastKey(k.id)] = { n: { learn: 1, pow1: pow, r1: 10, star1: 1, pow2: pow, r2: 10, star2: 1, pow3: pow, r3: 10, star3: 1 }, use: 3 };
   }
   const grid = document.getElementById('grid');
