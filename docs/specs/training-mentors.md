@@ -17,6 +17,7 @@
   - 서버 `/api/mentor`·`/api/mentor/duel`·mentor-k.json 은 그대로 둔다 (클라이언트가 부르지 않음).
 - 안내 우편 `training-back-1013` (도시락 5개, 10-27 까지). 0.20.0 업데이트 우편(`update-mentor-1013`)에서 훈련·교관 문단과 제목의 "교관 수련"을 뺐다.
 - AI 기사 곡선(`server/bot-curve.json`)은 교관 없이 훈련 200 규칙으로 다시 구웠다 (아래 진행 기록).
+- **다시 켤 계획 (2026-10-13 로드맵)**: 시즌6 성벽 지키기의 보상 📕 수련의 서로 교관을 성장시키고, 훈련 탭에 별도 탭으로 둔다. 별 1~4 는 골드 확률 수련 대신 수련의 서 n권으로 확정 상승, 마지막 별 승부는 유지 → [roadmap.md](roadmap.md).
 - **다시 켤 때 할 일**: `MENTOR_ON = true` → 훈련 50 초과분·훈련장 10 초과분이 migrate 에서 다시 환급된다(그사이 올린 몫) — 안내 문구 확인. 봇 곡선·k 표 다시 굽기 (`node dev/bot-curve.js --days 14` → `node dev/mentor-sim.js --table --levels $(seq -s, 40 5 220)`). 우편 문구 새로.
 
 ## 목표
