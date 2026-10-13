@@ -194,6 +194,27 @@ function gearBonusParts() {
   return parts;
 }
 
+// ───────────────────────── 고유 발동 효과 (data.js ITEM_PROCS·SET_PROCS, 필드 동작은 procs.js) ─────────────────────────
+// 지금 낀 장비·세트의 발동 효과 [{ p, key, src }] — key 는 발동 상태를 따로 세는 이름 (같은 효과 둘이 겹쳐도 각자 돈다)
+let procCache = { key: '', list: [] };
+function activeProcs() {
+  const eqKey = JSON.stringify(S.gear.eq);
+  if (procCache.key === eqKey) return procCache.list;
+  const list = [];
+  for (const slot of Object.keys(GEAR_SLOTS)) {
+    const it = equipped(slot);
+    if (it) procList(ITEM_PROCS[it.t]).forEach((p, i) => list.push({ p, key: `${it.t}${i}`, src: gearName(it) }));
+  }
+  for (const s of raidSets()) if (s.n >= 3) procList(SET_PROCS[s.boss]).forEach((p, i) => list.push({ p, key: `set${s.boss}${i}`, src: `${RAID_BOSSES[s.boss].set.name} 세트` }));
+  procCache = { key: eqKey, list };
+  return list;
+}
+// 서버 전투·자동 장착이 쓰는 평균 환산 배율 (공격 · 생존)
+const procAtkEv = () => activeProcs().reduce((a, x) => a * (1 + (x.p.ev || 0)), 1);
+const procHpEv = () => activeProcs().reduce((a, x) => a * (1 + (x.p.hv || 0)), 1);
+// 장비 상세의 고유 효과 줄 (없으면 '')
+const gearProcText = (it) => procList(ITEM_PROCS[it.t]).map((p) => `${p.name} — ${procText(p)}`);
+
 // ───────────────────────── 레이드 세트 ─────────────────────────
 // 같은 보스의 고유 장비를 2부위·3부위 끼면 그 보스의 세트 효과(RAID_BOSSES[보스].set)가 붙는다.
 // 낀 고유 장비가 있는 세트마다 { boss, n: 낀 부위 수, tiers: [{ need, sp, on }] }
@@ -213,7 +234,8 @@ const spText = (sp) => Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].na
 function setText(boss) {
   const set = RAID_BOSSES[boss].set, cur = raidSets().find((x) => x.boss === boss);
   const n = cur ? cur.n : 0;
-  return `🔗 ${set.name} (${n}/3) — ` + [2, 3].map((need) => `${n >= need ? '✅' : '▫️'} ${need}세트: ${spText(set[need])}`).join(' / ');
+  const pr = procList(SET_PROCS[boss]).map((p) => ` · ✦ ${p.name}: ${procText(p)}`).join('');
+  return `🔗 ${set.name} (${n}/3) — ` + [2, 3].map((need) => `${n >= need ? '✅' : '▫️'} ${need}세트: ${spText(set[need])}${need === 3 ? pr : ''}`).join(' / ');
 }
 
 // ───────────────────────── 가방 → 창고 ─────────────────────────
@@ -257,9 +279,9 @@ function equipGear(id) {
 function loadoutValue(eq) {
   const keep = S.gear.eq;
   S.gear.eq = eq;
-  const st = stats(true);
+  const st = stats(true), v = dpsOf(st) * st.maxHp * procHpEv() / (1 - st.guard) * (1 + st.heal * st.aspd * 5);   // dpsOf 에 발동 효과(procAtkEv)가 들어 있다
   S.gear.eq = keep;
-  return dpsOf(st) * st.maxHp / (1 - st.guard) * (1 + st.heal * st.aspd * 5);
+  return v;
 }
 
 // 가장 강한 장비 조합 { weapon, armor, ring }. 부위마다 후보를 추려 모든 조합을 비교한다:

@@ -622,6 +622,83 @@ const SPECIAL_STATS = {
   curioGold:  { name: '옛 금화 골드', fmt: (v) => `+${pct1(v)}%` },
   restPct:    { name: '캠프 휴식 속도', fmt: (v) => `+${pct1(v)}%` },
 };
+// ───────────────────────── 고유 발동 효과 (시즌6, docs/specs/unique-procs.md) ─────────────────────────
+// 이름 있는 장비(ITEM_PROCS, GEAR_ITEMS 키)와 레이드 3세트(SET_PROCS, RAID_BOSSES 키)가 전투 행동을 바꾼다. 필드 동작은 src/procs.js.
+//  type: PROC_TYPES 키 · name: 효과 이름 · say: 발동 말풍선 · color: 연출 색
+//  ev: 서버 전투(레이드·결투)·자동 장착용 한 마리 기준 평균 피해 증가 · hv: 같은 기준 생존력(체력) 증가 — 상황형이라 대략값
+//  한 장비가 효과 둘을 가지면 배열
+const PROC_TYPES = {
+  burn:     { text: (p) => `타격마다 ${p.poison ? '독' : '화상'} 1중첩 (최대 ${p.max}), 중첩당 초당 공격력 ×${pct1(p.v)}%` },
+  chain:    { text: (p) => `치명타 때 근처 적 ${p.n}마리에 ${p.fire ? '화염 폭발' : '번개'} ×${pct1(p.mult)}%` },
+  nova:     { text: (p) => `적을 쓰러뜨리면 ${p.mult ? `주변 폭발 ×${pct1(p.mult)}%` : ''}${p.mult && p.heal ? ' · ' : ''}${p.heal ? `체력 ${pct1(p.heal)}% 회복` : ''}` },
+  meteor:   { text: (p) => `${p.every}초마다 ${p.n > 1 ? `${p.n}발 ` : ''}${p.beam ? '포격' : p.star ? '별똥별' : '불기둥'} ×${pct1(p.mult)}%` },
+  throw:    { text: (p) => `${p.every}타마다 무기 투척 — 관통 ×${pct1(p.mult)}%${p.back ? `, 돌아오며 ×${pct1(p.back)}%` : ''}` },
+  reap:     { text: (p) => `체력 ${pct1(p.thr)}% 이하 일반 적 즉사 · 체력 30% 이하 보스 피해 +${pct1(p.boss)}%` },
+  stack:    { text: (p) => `처치마다 공격 속도 +${pct1(p.v)}% (최대 ${p.max}중첩, ${p.dur}초 동안 처치 없으면 사라짐)` },
+  rebirth:  { text: (p) => `원정마다 한 번, 쓰러질 때 체력 ${pct1(p.heal)}%로 되살아남` },
+  aegis:    { text: (p) => `체력이 50% 아래로 떨어지면 최대 체력 ${pct1(p.v)}% 보호막 (${p.cd}초마다)` },
+  thorns:   { text: (p) => `받은 피해의 ${pct1(p.v)}%를 되돌려 줌` },
+  dodge:    { text: (p) => `${pct1(p.v)}% 확률로 피해를 흘려보냄` },
+  fortune:  { text: (p) => (p.every ? `${p.every}번째 처치마다 골드 ×${p.x}` : `처치마다 ${pct1(p.chance)}% 확률로 골드 ×${p.x}`) },
+  cdreset:  { text: (p) => `스킬을 쓸 때 ${pct1(p.v)}% 확률로 쿨타임 즉시 초기화` },
+  eclipse:  { text: (p) => `${p.every}초마다 ${p.dur}초간 일식 — 치명 확률 +${pct1(p.crit)}%p` },
+  firsthit: { text: (p) => `적마다 첫 타격 확정 치명 · 치명 피해 +${pct1(p.critMult)}%` },
+  summon:   { text: (p) => `적을 쓰러뜨리면 해골 병사가 ${p.dur}초 동안 함께 싸움 (공격력 ×${pct1(p.mult)}%)` },
+  freeze:   { text: (p) => `타격 시 ${pct1(p.chance)}% 확률로 ${p.dur}초 빙결` },
+  gaze:     { text: (p) => `체력 ${pct1(p.thr)}% 이하 적이 받는 피해 +${pct1(p.v)}%` },
+  quake:    { text: (p) => `${p.every}번째 처치마다 개미지옥 — 주변 적 ×${pct1(p.mult)}%` },
+};
+const ITEM_PROCS = {
+  solaris:        { type: 'burn', v: 0.08, max: 5, dur: 3, color: '#ffb13b', name: '태양의 낙인', say: '솔라리스!', ev: 0.1 },
+  abyss_trident:  { type: 'chain', n: 2, mult: 0.5, color: '#5ad1ff', name: '갈라지는 파도', say: '심연의 파도!', ev: 0.06 },
+  yggdrasil:      { type: 'nova', mult: 0.4, heal: 0.03, radius: 50, color: '#7dffb0', name: '새싹 돋음', say: '이그드라실!', ev: 0.05, hv: 0.05 },
+  ragnarok:       { type: 'meteor', every: 8, n: 1, mult: 2.5, color: '#ff7a1f', name: '종말의 불기둥', say: '라그나로크!', ev: 0.16 },
+  gungnir:        { type: 'throw', every: 5, mult: 1.5, back: 0.75, color: '#ffe066', name: '반드시 돌아오는 창', say: '궁니르!', ev: 0.18 },
+  void_scythe:    { type: 'reap', thr: 0.12, boss: 0.3, color: '#9a5cff', name: '공허의 수확', say: '공허의 낫!', ev: 0.2 },
+  astral_staff:   { type: 'meteor', every: 6, n: 3, mult: 1.5, star: true, color: '#c9b8ff', name: '성좌 낙하', say: '성좌의 홀!', ev: 0.22 },
+  genesis: [
+    { type: 'throw', every: 4, mult: 2, back: 0, color: '#ffffff', name: '창세의 빛', say: '제네시스!', ev: 0.24 },
+    { type: 'nova', mult: 0.6, radius: 60, color: '#fff3b0', name: '창세의 여파', say: '', ev: 0.06 },
+  ],
+  phoenix:        { type: 'rebirth', heal: 0.5, color: '#ff9f1c', name: '불사조의 날개', say: '불사조!', hv: 0.15 },
+  celestial:      { type: 'aegis', v: 0.15, cd: 30, color: '#9fd8ff', name: '천공의 가호', say: '천공의 가호!', hv: 0.12 },
+  titan_plate:    { type: 'thorns', v: 0.25, color: '#c9a26a', name: '거신의 반격', say: '거신!', ev: 0.04, hv: 0.08 },
+  valkyrie:       { type: 'stack', v: 0.03, max: 8, dur: 6, color: '#e8f0ff', name: '영혼 거두기', say: '발키리!', ev: 0.15 },
+  starlight_robe: { type: 'dodge', v: 0.08, color: '#c9b8ff', name: '은하수 장막', say: '흘려보냄!', hv: 0.09 },
+  primordial: [
+    { type: 'rebirth', heal: 0.5, color: '#f4f0ff', name: '태초의 숨결', say: '태초!', hv: 0.15 },
+    { type: 'aegis', v: 0.2, cd: 30, color: '#f4f0ff', name: '태초의 수호', say: '태초의 수호!', hv: 0.15 },
+  ],
+  kings_seal:     { type: 'fortune', chance: 0.03, x: 5, color: '#ffd257', name: '왕의 하사금', say: '왕의 인장!' },
+  ouroboros:      { type: 'cdreset', v: 0.12, color: '#7dffd0', name: '꼬리를 무는 뱀', say: '우로보로스!', ev: 0.08 },
+  draupnir:       { type: 'fortune', every: 9, x: 8, color: '#ffd257', name: '아홉째 밤의 팔찌', say: '드라우프니르!' },
+  dragon_heart:   { type: 'chain', n: 3, mult: 0.8, fire: true, color: '#ff6b3d', name: '용의 숨결', say: '용심장!', ev: 0.1 },
+  eclipse_ring:   { type: 'eclipse', every: 20, dur: 5, crit: 0.25, color: '#ffcf6b', name: '일식', say: '일식!', ev: 0.12 },
+  origin_ring:    { type: 'firsthit', critMult: 1, color: '#ffffff', name: '근원의 일격', say: '근원!', ev: 0.15 },
+};
+// 레이드 3세트 효과에 얹는 발동 (수치 세트 효과는 RAID_BOSSES[보스].set 그대로). 슬라임 킹·고블린 족장은 영웅급이라 없음
+const SET_PROCS = {
+  lichking:      { type: 'summon', dur: 3, mult: 0.3, color: '#e9e4d4', name: '망자 소환', say: '일어나라!', ev: 0.06 },
+  boglord:       { type: 'burn', v: 0.05, max: 5, dur: 3, poison: true, color: '#9fdb5a', name: '독안개', say: '', ev: 0.06 },
+  flamedragon:   { type: 'meteor', every: 10, n: 1, mult: 2, color: '#ff7a1f', name: '화염 숨결', say: '화염룡의 분노!', ev: 0.1 },
+  frostgiant:    { type: 'freeze', chance: 0.1, dur: 1, color: '#9fe8ff', name: '만년설 빙결', say: '', hv: 0.06 },
+  demonking:     { type: 'nova', mult: 0.8, radius: 60, color: '#c06bff', name: '흑염 폭발', say: '', ev: 0.06 },
+  abysswatcher:  { type: 'gaze', thr: 0.3, v: 0.25, color: '#9a5cff', name: '심연의 응시', say: '', ev: 0.08 },
+  skygriffin:    { type: 'stack', v: 0.04, max: 6, dur: 6, color: '#9fd8ff', name: '천공 질주', say: '천공의 패자!', ev: 0.12 },
+  sandworm:      { type: 'quake', every: 6, mult: 1.5, radius: 120, color: '#e8b56a', name: '개미지옥', say: '개미지옥!', ev: 0.05 },
+  kraken:        { type: 'thorns', v: 0.2, color: '#2a8ad1', name: '먹물 반격', say: '', ev: 0.03, hv: 0.06 },
+  fairyqueen:    { type: 'nova', mult: 0, heal: 0.04, radius: 0, color: '#ff9ff3', name: '꽃잎 회복', say: '', hv: 0.08 },
+  colossus:      { type: 'meteor', every: 12, n: 1, mult: 3, beam: true, color: '#ff4d4d', name: '궤도 포격', say: '궤도 포격!', ev: 0.1 },
+  crystalspider: { type: 'chain', n: 2, mult: 0.7, color: '#ff9ff3', name: '프리즘 굴절', say: '', ev: 0.07 },
+  stormlord:     { type: 'chain', n: 3, mult: 0.6, color: '#ffe066', name: '만뢰', say: '만뢰!', ev: 0.09 },
+  starend: [
+    { type: 'meteor', every: 8, n: 5, mult: 1.5, star: true, color: '#ffd257', name: '별의 종언', say: '별의 종언!', ev: 0.2 },
+    { type: 'rebirth', heal: 0.5, color: '#c9b8ff', name: '마지막 별', say: '마지막 별!', hv: 0.15 },
+  ],
+};
+const procList = (x) => (!x ? [] : Array.isArray(x) ? x : [x]);
+const procText = (p) => PROC_TYPES[p.type].text(p);
+
 // 0.072 → '7.2', 0.07 → '7' (옵션 줄 표시용)
 function pct1(v) { const x = Math.round(v * 1000) / 10; return Number.isInteger(x) ? String(x) : x.toFixed(1); }
 // 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)

@@ -219,8 +219,11 @@ function hitMonster(m, mult = 1, o = {}) {
   if (gb.bossDmg && m.boss) mult *= 1 + gb.bossDmg;
   if (gb.execute && m.hp <= m.maxHp * 0.3) mult *= 1 + gb.execute;
   if (gb.firstHit && !m.opHit) { m.opHit = 1; mult *= 1 + gb.firstHit; }
-  const crit = o.nocrit ? false : o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0));   // nocrit: 지속 피해·관통처럼 이미 굴린 피해
-  const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
+  // 고유 발동 효과 (procs.js): 응시·수확 배율, 근원의 일격 확정 치명, 일식 치명 확률
+  const pre = procPreHit(m, o);
+  mult *= pre.mul;
+  const crit = o.nocrit ? false : pre.crit || o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0) + procCritPlus());   // nocrit: 지속 피해·관통처럼 이미 굴린 피해
+  const dmg = st.atk * mult * (crit ? st.critMult + pre.critAdd : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
   m.flash = o.color ? 0.13 : 0.08;
   m.hurt = 1;
@@ -235,11 +238,13 @@ function hitMonster(m, mult = 1, o = {}) {
     m.skAcc = 0; m.skCrit = false;
     addFloater((anyCrit ? '💥' : '') + fmt(total), toScreen(m.x) + rand(-6, 6), monsterTop(m) - 4 - (o.color ? rand(0, 10) : 0), anyCrit ? '#ffb13b' : o.color || '#ffffff', size + (o.color ? 2 : 0), !!o.color);
   }
-  if (m.hp > 0) return dmg;
+  if (!o.proc && !o.nocrit) procOnHit(m, dmg, crit);
+  if (m.hp > 0 || m.dying) return dmg;
 
   m.dying = 0.001;
   m.killed = true;
   shatter(m);
+  procOnKill(m);
   if (S.phase === 'tower') { towerKillReward(m); return dmg; }
   if (S.phase === 'dungeon') { dgKill(m); return dmg; }
   const r = rewardKill(m);
@@ -294,6 +299,7 @@ function releaseAttack(st) {
   } else {
     inRange.slice(0, st.targets).forEach(m => hitMonster(m));
   }
+  procOnBasic(st);
 }
 
 function updateExpedition(dt, gdt) {
@@ -331,6 +337,7 @@ function fightTick(dt, st, onFree) {
     .sort((a, b) => aheadDist(knight.x, a.x) - aheadDist(knight.x, b.x));
   const target = alive[0] || null;
   const best = target ? aheadDist(knight.x, target.x) : Infinity;
+  procTick(dt, st, !!target && best <= reachTo(target) + 40);   // 고유 발동 효과의 시간 흐름 (procs.js)
 
   // 기사의 사거리에 들어온 몬스터는 기사에게 달려든다. 원거리 직업은 그동안 먼저 때린다.
   let prev = 0;
@@ -360,7 +367,7 @@ function fightTick(dt, st, onFree) {
     if (!knight.pending && tryCastSkill(st, target)) {
       // 스킬부터
     } else if (knight.atkTimer <= 0 && !knight.pending) {
-      knight.atkTimer = 1 / (st.aspd * (1 + (knight.haste ? knight.haste.v : 0)));   // 💨 고유 특수 가속 (skills.js 가 걸고 tickSkills 가 지운다)
+      knight.atkTimer = 1 / (st.aspd * (1 + (knight.haste ? knight.haste.v : 0) + procHaste()));   // + 고유 발동 누적 공속 (procs.js)   // 💨 고유 특수 가속 (skills.js 가 걸고 tickSkills 가 지운다)
       knight.swing = 0;
       knight.combo = (knight.combo || 0) + 1;            // 연속기 직업은 평타마다 모션을 번갈아 쓴다
       knight.pending = true;
@@ -395,11 +402,13 @@ function advanceMonsterAttack(m, dt, st) {
   // 공중에 있거나 그새 사거리 밖이면 빗나감
   if (heroAirborne() || aheadDist(knight.x, m.x) > monsterReach(m) + 1) return false;
   strikeFx(m);
-  const dmg = m.atk * rand(0.9, 1.1) * (1 - st.guard) * (knight.ward ? 1 - knight.ward.guard : 1);
+  const dmg = procBeforeHurt(m.atk * rand(0.9, 1.1) * (1 - st.guard) * (knight.ward ? 1 - knight.ward.guard : 1));   // 회피·보호막 (procs.js)
   S.hp -= dmg;
   knight.flash = 0.08;
   knight.recoil = 1;
   addFloater('-' + fmt(dmg), toScreen(knight.x) + rand(-4, 4), groundY() - 52, '#ff6b6b', 11);
+  procAfterHurt(m, dmg, st);
+  if (S.hp <= 0) procRebirth(st);
   if (S.hp > 0 && tryPotion()) addFloater('🧪 +HP', toScreen(knight.x), groundY() - 66, '#7dffb0', 12);
   if (S.hp > 0 && S.hp < st.maxHp * 0.25 && !knight.crisis) { knight.crisis = true; if (S.trip) S.trip.crises++; }
   if (S.hp > 0) return false;

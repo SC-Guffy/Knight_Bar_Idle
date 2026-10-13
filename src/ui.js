@@ -1123,6 +1123,7 @@ const gearInfo = (it) => `
     <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''} · 편차 ×${it.roll.toFixed(2)}</small></div>
   </div>
   ${gearSpecialText(it) ? `<div class="gsp">✦ 고유 효과 — ${gearSpecialText(it)}</div>` : ''}
+  ${gearProcText(it).map((t) => `<div class="gproc">✦ ${esc(t)}</div>`).join('')}
   ${optLinesHtml(it)}
   ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
   <div class="gdesc">${gearDesc(it)}</div>`;

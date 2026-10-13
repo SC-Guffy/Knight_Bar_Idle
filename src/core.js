@@ -368,17 +368,19 @@ function dpsOf(st) {
     // 고유 특수는 평균 피해로 환산해 넣는다 (classes.js specEv — 처형·보스 등 상황형은 일부만, 기절·골드 같은 운영형은 0)
     extra += hitV * skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) / cd;
   }
-  return perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra;
+  // 고유 발동 효과(투척·불기둥 등)는 평균 피해 배율로 (gear.js procAtkEv)
+  return (perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra) * procAtkEv();
 }
 const bossOpts = () => { const gb = gearBonus(); return { ...(gb.bossDmg ? { bossDmg: gb.bossDmg } : {}), ...(gb.execute ? { exec: gb.execute } : {}) }; };
-const powerOf = (st) => Math.round(Math.sqrt(dpsOf(st) * st.maxHp) * 10);
+const powerOf = (st) => Math.round(Math.sqrt(dpsOf(st) * st.maxHp * procHpEv()) * 10);
 
 // 서버에 올리는 공개 전투 정보. 랭킹 표시와 결투 계산에 쓰인다.
 function profile() {
   const st = stats(true);
   return {
     cls: S.cls, level: S.level, best: S.best, power: powerOf(st), tower: S.tower ? S.tower.best : 0,   // tower: 🗼 탑 순위
-    atk: st.atk, maxHp: st.maxHp, aspd: st.aspd, crit: st.crit, critMult: st.critMult,
+    // 고유 발동 효과는 서버가 모르는 상황형이라 평균 배율로 공격력·체력에 녹인다 (gear.js procAtkEv·procHpEv)
+    atk: st.atk * procAtkEv(), maxHp: st.maxHp * procHpEv(), aspd: st.aspd, crit: st.crit, critMult: st.critMult,
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal,
     // 🎲 옵션 줄의 보스 피해·처형: 레이드·월드 보스 서버 전투(server/raid.js)가 쓴다
     ...bossOpts(),

@@ -255,6 +255,7 @@ function tryCastSkill(st, target) {
     const k = spT('range') ? { ...k0, rangeUp: sp.v } : k0;
     const cdNow = skillCd(id);
     knight.cds[id] = cdNow;
+    procLater.push({ at: clock + 0.05, fn: () => procOnCast(id) });   // 우로보로스: 쿨타임 초기화 (시전 처리가 끝난 뒤)
     // 🌀 겹침: 12초 안에 다시 쓰면 한 겹씩 쌓이고(최대 5), 이번 시전은 지금까지 쌓인 겹 수만큼 세다
     let stackMul = 1;
     if (spT('stack')) {
