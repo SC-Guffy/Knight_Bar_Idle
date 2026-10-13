@@ -20,8 +20,7 @@ const CASTLE_UNLOCK_STAGE = 40;
 const CASTLE_MAX_LV = 100;
 const CASTLE_TICKETS = 3;                 // 하루 무료 입장권
 const CASTLE_TICKET_GOLD = 300;           // 구매 기준값 = 최고 스테이지 몹 골드 × 300 (탑과 같음, 사냥 30분치)
-const CASTLE_TICKET_HOLD = 5;             // 산 입장권 보유 한도
-const CASTLE_TICKET_STEPS = [0.5, 1, 2, 3.5, 6], CASTLE_TICKET_GROW = 1.7;   // ticket-buy.md 공통 곡선 (subTicketMult 가 있으면 그것을 쓴다)
+const CASTLE_TICKET_HOLD = SUB_TICKET_HOLD;   // 산 입장권 보유 한도 (탑·미궁과 같음, data.js)
 const castleStage = (L) => 20 + 2 * L;
 // 웨이브 구성: n 일반 몬스터, b 보스 (1 = 보스 체력 ×12, 2 = 거대 보스 체력 ×20)
 const CASTLE_WAVES = [{ n: 10 }, { n: 11 }, { n: 12 }, { n: 13 }, { n: 10, b: 1 }, { n: 14 }, { n: 15 }, { n: 16 }, { n: 17 }, { n: 12, b: 2 }];
@@ -93,10 +92,8 @@ function castleFreeTickets() {
 const castleTickets = () => castleFreeTickets() + (S.castle.tixExtra || 0);
 const useCastleTicket = () => { if (castleFreeTickets() > 0) S.castle.tixUsed++; else S.castle.tixExtra = Math.max(0, S.castle.tixExtra - 1); };
 const castleTicketsBoughtToday = () => (newDay(S.castle.buyDay) ? 0 : S.castle.bought);
-// 오늘 n번째 구매 배율 — 입장권 공통 함수(ticket-buy.md subTicketMult)가 있으면 그것을, 없으면 같은 곡선
-const castleTicketMult = (n) => (typeof subTicketMult === 'function' ? subTicketMult(n)
-  : n < CASTLE_TICKET_STEPS.length ? CASTLE_TICKET_STEPS[n] : CASTLE_TICKET_STEPS[CASTLE_TICKET_STEPS.length - 1] * Math.pow(CASTLE_TICKET_GROW, n - CASTLE_TICKET_STEPS.length + 1));
-const castleTicketPrice = () => ({ gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * CASTLE_TICKET_GOLD * castleTicketMult(castleTicketsBoughtToday()))) });
+// 오늘 n번째 구매 가격 — 탑·미궁과 같은 공통 곡선 (data.js subTicketMult, ticket-buy.md)
+const castleTicketPrice = () => ({ gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * CASTLE_TICKET_GOLD * subTicketMult(castleTicketsBoughtToday()))) });
 function castleTicketBlocker() {
   if (!castleUnlocked()) return `스테이지 ${CASTLE_UNLOCK_STAGE} 도달 시 열려요`;
   if ((S.castle.tixExtra || 0) >= CASTLE_TICKET_HOLD) return `산 입장권은 ${CASTLE_TICKET_HOLD}장까지 가질 수 있어요`;

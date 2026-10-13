@@ -316,7 +316,7 @@ S.castle = {
 - 2026-10-13 사용자 확인 ("추천대로"): 기사 피격 개정 시작안(공격력 ×4 · 리스폰 5초 · 쓰러진 동안 성벽 피해 ×3 · 제한 시간 120초) 그대로 확정. 탱커 강점 보강(근접 한 걸음 앞)은 지금 넣지 않고 실측 뒤에 본다. 상태 `확정`.
 - 2026-10-14 **구현** (impl-castle → season6, 배포 전, `GAME_VERSION` 그대로): castle.js·castle-view.js·castle-ui.js 새 파일 + core·world·ui·mentor-stage 훅. 📕 세이브 필드는 `S.books` 로 확정해 로드맵·교관 세션에 알렸다. 📕 아이콘 `redbook`. dev/castle-sim.js, 진행 봇 `playCastle`.
   - 바꾼 것 (사용자 확인 대기): ① 지원군 위력 = 기사 공격력 → **기사 초당 피해**(`castlePow`) ② 판정 칩은 tk·ttd 기준치 대신 간이 시뮬 한계 단계로 ③ 상수는 castle.js 에 ④ 성벽 내구도 바는 윗단(궁수·교관 자리) 대신 벽면에, 숫자는 상태 칩.
-  - 입장권 구매 곡선은 `subTicketMult`(ticket-buy.md 공통 함수)가 있으면 그것을, 없으면 같은 곡선(castle.js `CASTLE_TICKET_STEPS`)을 쓴다.
+  - 입장권 구매는 ticket-buy 공통 함수(`subTicketMult`·`ticketBuyRow`)를 쓴다.
   - 지원군·교관 명중 이펙트는 아직 기존 `burst`·`ring` 과 코드 도트(검기 띠·돌·도끼·별똥별)다. PixelLab 텍스처 원칙(CLAUDE.md)에 맞추는 것은 남은 일.
   - 실측·수용 기준 결과는 위 "구현 뒤 실측"과 수용 기준 줄 끝.
 
@@ -331,7 +331,7 @@ S.castle = {
 - [ ] 실측에서 탱커 강점이 보이지 않았다 (위 "구현 뒤 실측" — 계열 차이 1단계 이내). 근접 기사가 성문 앞에서 한 걸음 나가 싸우는 안 등을 검토한다 (사용자 결정 대기).
 - [x] 진행 봇(`dev/progress-bot.js` `playCastle`)에 성벽 하루(무료 3장 도전·소탕 + 업그레이드)를 넣었다 → 📕 하루 12.0권. `dev/bot-curve.js` 의 교관 수련은 아직 📕 을 쓰지 않는다 (교관 세션 몫).
 - [x] 구현 뒤 진행 봇으로 업그레이드 완료 날짜를 다시 쟀다 → 6.8일 (봇은 하루 약 2.5단계씩 오른다). 비용 시작값 26 이면 9.8일 — 사용자 결정 대기 (위 "정할 것").
-- [ ] 입장권 구매: ticket-buy 구현이 season6 에 들어오면 `castleTicketMult` 가 `subTicketMult` 를 그대로 쓴다 (지금은 같은 곡선 사본). 들어온 뒤 사본 상수(`CASTLE_TICKET_STEPS`·`GROW`)를 지운다.
+- [x] 입장권 구매: ticket-buy 구현(05d0005)이 들어와서 공통 `subTicketMult`·`SUB_TICKET_HOLD`·`ticketBuyRow` 를 그대로 쓴다.
 - [x] dev/castle-sim.js: 봇 곡선 줄마다 초당 피해(dpsOf 식)·무기 광역(`targets`·`splash`) + 스킬 몫 0.5 로 한계 단계를 찍는다. 시뮬 본체는 castle.js `castleSimRun` (판정 칩과 같은 함수).
 - [ ] 지원군·교관 명중 이펙트를 PixelLab 텍스처로 (VFX 공통 기반 ⑤-0 이 들어온 뒤). 지금은 burst·ring·코드 도트.
 - [ ] 배포: 교관 재가동과 같은 패치로 낸다 (로드맵 ③). 서버는 고치지 않았다.

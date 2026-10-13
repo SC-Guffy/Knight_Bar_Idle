@@ -30,13 +30,8 @@ function castleResultHtml(L) {
       <div class="dgline">${L.lv}단계 · 막은 웨이브 <b>${L.waves}/${CASTLE_WAVES.length}</b> · 처치 ${L.kills} · 💀 쓰러짐 ${L.downs} · ${ico('wall')} <b>+${fmt(L.bricks)}</b> · 📕 <b>+${L.books}</b>${L.dur ? ` · ${fmtTime(L.dur)}` : ''}</div>
     </div>`;
 }
-function castleBuyRow() {
-  const p = castleTicketPrice(), tb = castleTicketBlocker(), n = castleTicketsBoughtToday();
-  return `
-    <div class="tbuy">🎟 입장권 구매 <small>오늘 ${n}장 샀어요 · 모아 둔 ${S.castle.tixExtra || 0}/${CASTLE_TICKET_HOLD}</small>
-      <span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}</span>
-      <button class="btn" data-action="castle-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button>${tb ? `<span class="blocker">${tb}</span>` : ''}</div>`;
-}
+// 입장권 구매 한 줄 — 탑·미궁과 같은 모양 (ui.js ticketBuyRow)
+const castleBuyRow = () => ticketBuyRow('castle-ticket', castleTicketPrice(), castleTicketBlocker(), castleTicketsBoughtToday(), S.castle.tixExtra || 0);
 function castleUpRow() {
   const chips = CASTLE_UPS.map((u) => {
     const lv = castleUp(u.id), max = lv >= CASTLE_UP_MAX, ok = !castleUpBlocker(u.id);
