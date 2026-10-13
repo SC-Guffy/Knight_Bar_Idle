@@ -1,6 +1,6 @@
 # 3차 궁극기를 별도 스킬로 (1차 스킬 유지)
 
-- 상태: 완료 (0.20.7, 배포 전)
+- 상태: 완료 (0.20.7 배포)
 - 관련 코드: src/classes.js (`skillsOf`, `mastKey`, SKILLS 궁극기의 `mastOf`, `INHERIT_DMG`·`inheritBoost`·`skillPowAt`·`skillCdOf`), src/core.js (세이브 이전 mastV 12), src/ui.js (스킬 탭 문구), dev/bot-curve.js · server/bot-curve.json (AI 기사)
 - 최종 갱신: 2026-10-13
 
@@ -45,4 +45,4 @@
   - server/bot-curve.json 다시 구움 (3차 봇도 스킬 4개).
 
 ## 남은 일 / 미정
-- main 푸시(웹 반영) + server/bot-curve.json 서버 반영 — 사용자 지시 대기
+- 없음 (2026-10-13 main 푸시 ef8b5c4)
