@@ -54,13 +54,13 @@ const WEAPONS = {
     staff: { len: 9, wood: '#1b3f6a', head: '#ffffff', orb: '#cff6ff', glowRgb: '200,245,255' },
     arrow: { speed: 640, color: '#ffffff', shape: 'ice', rgb: '200,245,255' } },
   starBlade:   { name: '성좌검', kind: 'melee',  motion: 'swing',  range: 18, targets: 1, len: 10, blade: '#fffbe6', hilt: '#9fd8ff', trail: '200,230,255', glow: '#cfe8ff' },
-  moonBlades:  { name: '월광쌍검', kind: 'melee', motion: 'dual',  range: 16, targets: 1, len: 8,  blade: '#ffe0e8', hilt: '#5a0a18', trail: '255,90,130', glow: '#ff4d6d' },
-  wyrmSpear:   { name: '용황창', kind: 'melee',  motion: 'thrust', range: 40, targets: 3, len: 19, shaft: '#1a0a28', tip: '#ffb0f0', trail: '255,120,220', glow: '#ff4dd2' },
+  moonBlades:  { name: '월광쌍검', kind: 'melee', motion: 'dual',  range: 16, targets: 1, len: 8,  blade: '#ffe0e8', hilt: '#5a0a18', trail: '255,90,130', glow: '#ff4d6d', burstRgb: '255,90,130' },
+  wyrmSpear:   { name: '용황창', kind: 'melee',  motion: 'thrust', range: 40, targets: 3, len: 19, shaft: '#1a0a28', tip: '#ffb0f0', trail: '255,120,220', glow: '#ff4dd2', burstRgb: '255,120,220' },
   doomAxe:     { name: '종말의 도끼창', kind: 'melee', motion: 'sweep', range: 44, targets: 9, len: 19, shaft: '#3a1a10', tip: '#ffb070', trail: '255,110,40', glow: '#ff7a2a' },
-  sunBow:      { name: '태양궁', kind: 'ranged', range: 260, targets: 1, shots: 1, size: 16, wood: '#c9a227', glow: '#ffe066',
+  sunBow:      { name: '태양궁', kind: 'ranged', range: 260, targets: 1, shots: 1, size: 16, wood: '#c9a227', glow: '#ffe066', burstRgb: '255,230,120',
     arrow: { speed: 980, color: '#fffbe0', trail: '255,230,120' } },
   voidBow:     { name: '공허궁', kind: 'ranged', range: 190, targets: 4, shots: 4, shotMult: 0.42, size: 13, wood: '#2a1050', glow: '#ff4dff',
-    arrow: { speed: 380, color: '#ff8aff', magic: true } },
+    arrow: { speed: 380, color: '#ff8aff', magic: true, rgb: '255,138,255' } },
 };
 
 // ───────────────────────── 전직 조건 ─────────────────────────

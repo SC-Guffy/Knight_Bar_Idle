@@ -112,7 +112,7 @@ Object.assign(SKILL_FX, {
       ];
       const fin = hits[hits.length - 1][0] * d;
       return [
-        [0.01, (a) => aFx(a, 0, fin + 0.25, (u) => { const t = u * (fin + 0.25); dimBand(0.45 * Math.min(1, t / 0.5) * (t > fin ? Math.max(0, 1 - (t - fin) / 0.25) : 1), '5,5,25'); })],
+        [0.01, (a) => aFx(a, 0, fin + 0.25, (u) => { const t = u * (fin + 0.25); dimSpan(a.tx() - 110, a.tx() + 110, 0.45 * Math.min(1, t / 0.5) * (t > fin ? Math.max(0, 1 - (t - fin) / 0.25) : 1), '5,5,25'); })],   // 구름(폭 190) 아래 구간만
         [0.1 / d, (a) => tsCloudFx(a.tx(), 190, fin - 0.1 + 0.3)],
         [0.35 / d, (a) => { const p = ilTip(a); starFx(p.x, p.y, 12, TS_COL.main, 0.3); impact({ shake: 0.08 }); }],
         ...hits.slice(0, -1).map((h, j) => [(h[0] * d - 0.1) / d, (a) => { tsSkyFlash(a.tx(), 0.35, 0.12); if (j % 2) boltFx(a.tx() + rand(-80, 80), 0.18); }]),
@@ -124,7 +124,7 @@ Object.assign(SKILL_FX, {
           ringFx(x, TS_COL.main, 2.0, 0.6); ringFx(x, TS_COL.core, 1.2, 0.45);
           for (let i = 0; i < 8; i++) { const an = Math.PI + (i / 7) * Math.PI, L = rand(60, 120); arcFx(x, gy - 10, x + Math.cos(an) * L, gy - 10 + Math.sin(an) * L * 0.5, TS_COL.core, TS_COL.rgb, 0.28, 2, 0.03 + i * 0.02); }
           debris(x, 18, ['#2a2a3a', TS_COL.main, TS_COL.core], 1.8);
-          skFx(null, 0, 0.35, (u) => dimBand(0.85 * (1 - u), '235,245,255'));
+          skFx(null, 0, 0.35, (u) => localFlash(x, gy - 50, 100, 0.85 * (1 - u), '235,245,255'));   // 기둥 번개 둘레만
         }],
       ];
     },

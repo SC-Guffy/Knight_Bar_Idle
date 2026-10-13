@@ -66,6 +66,7 @@
 4. **화면 전체 번쩍임 규칙 위반.** `skills.js:22-24` 는 "궁극기 말고는 화면 전체를 번쩍이거나 어둡게 하지 않는다"(게임이 바탕화면 하단바라서)인데, 2차 스킬 11곳이 `dimBand` 로 하단바 전체를 덮는다:
    gale ★★★(`skills.js:1532`), iaido ★★★(`:1588`), headshot ★★★(`:2161`), starfall ★★★(`nightSkyFx :2349`), wideCleave ★★★(`greatswordsman.js:136,144`), ramCharge ★★★(`:229,238`), cavalryCharge ★★★(`cavalier.js:221`), blastBolt ★★★(`arbalest.js:196`), boltStorm ★★★(`:274`), chainLightning ★★★(`chainLightning.js:129,137`), thunderstorm ★★★(`thunderstorm.js:115,127`).
    캡처에서도 대검 횡참·기병 돌격·폭열탄 b 장면이 통째로 하얗게 날아간다.
+   → **0.21 에서 고침 (구현 끝, 배포 전, 2026-10-14)**: 국소 섬광 `localFlash`·구간 어둡게 `dimSpan` 으로 바꿨다. [vfx-rule-fixes.md](vfx-rule-fixes.md), 검토 `dev/review/vfx-rule-fixes.html`.
 5. **Lv1~9 가 너무 약하다.** `MASTERY_VIS` 0.55 + 회색 45% 섞기 때문에 1·2차 스킬 대부분이 Lv1 에서 1~2px 선 하나다 (`*-l1.png`). 플레이어가 가장 오래 보는 단계다.
 6. **궁극기 공통 틀이 같다.** 12종 모두 레터박스 컷인 → 하늘 어둡게 → 첫 타 크게 → 잔타 → 막타 흰 섬광이다. 막타 섬광이 0.2~0.3초 화면을 하얗게 덮어 정작 마지막 그림이 안 보이는 것이 6종(용황·천마군단·뇌제·대마도사·파천참·성좌 강림).
 
@@ -439,6 +440,8 @@
 
 ### 4. 버그 → 0.21 자잘이로 옮김 ([vfx-rule-fixes.md](vfx-rule-fixes.md))
 
+- **세 건 모두 고침 (구현 끝, 배포 전, 2026-10-14)**: `voidBow.arrow.rgb`, `WEAPONS.*.burstRgb`, 원정·결투·레이드 공용 `drawProjectile`.
+
 - 공허궁 평타 꼬리 색이 청록으로 나온다: `WEAPONS.voidBow.arrow` 에 `rgb` 없음 → `world.js:2729` 기본값.
 - 3차 burst 색 상속으로 잔상과 섬광 색이 어긋남: 월광쌍검(빨강), 용황창(보라), 태양궁(흰색).
 - 결투·레이드에서 원거리 평타가 12×2 막대로만 그려진다.
@@ -555,4 +558,4 @@
 ## 남은 일 / 미정
 - [x] 생성 도구 결정 (2026-10-14 사용자): **섞어 쓰기** — 최종 텍스처는 PixelLab(Tier 1 결제, 월 2,000회), 시안 대량 생성은 ComfyUI(Z-Image, 로컬 무제한). 기록은 art-upgrade.md "로컬 생성(ComfyUI) 시험".
 - ⑤-0 착수 때: 시트 로더 설계(램프 양자화·다시 칠하기·회전), 연출 정지 구현안 (가)/(나) 선택, `MASTERY_VIS` 바닥.
-- 0.21 에서 [vfx-rule-fixes.md](vfx-rule-fixes.md) 가 끝나면 이 문서의 "전체에 걸친 문제" 4번·"버그" 절에 완료 표시.
+- [x] 0.21 [vfx-rule-fixes.md](vfx-rule-fixes.md) 구현 끝 (2026-10-14, 배포 전) — "전체에 걸친 문제" 4번·"버그" 절에 표시했다. 조사표의 공허궁·검신 행 메모는 고치기 전 상태 기록이라 그대로 둔다.

@@ -133,7 +133,7 @@ Object.assign(SKILL_FX, {
       return [
         wave(0, 0.8), wave(1, 0.8),
         [1.1 / d, (a) => gsGuillotineFx(a, 0, drop - 1.1 + 0.3, 0.42)],
-        [1.2 / d, (a) => aFx(a, 0, drop - 1.2, (u) => dimBand(0.28 * Math.min(1, u * 4) * (u > 0.85 ? (1 - u) / 0.15 : 1), '20,5,0'))],
+        [1.2 / d, (a) => aFx(a, 0, drop - 1.2, (u) => dimSpan(a.px() - a.dir * 30, a.tx() + a.dir * 40, 0.28 * Math.min(1, u * 4) * (u > 0.85 ? (1 - u) / 0.15 : 1), '20,5,0'))],   // 시전자~대상 구간만
         [(drop - 0.02) / d, (a) => {
           const h = hand(a), x0 = h.x + a.dir * 44, tg = a.targets(2), far = Math.max(150, ...tg.map((t) => Math.abs(t.x - a.px()) + 50));
           impact({ stop: 0.16, shake: 0.6 });
@@ -141,7 +141,7 @@ Object.assign(SKILL_FX, {
           ringFx(x0, '#ffffff', 1.0, 0.4);
           debris(x0, 20, ['#5a4a42', '#c9b38a', GS_COL.main], 1.6);
           gsSlamLine(a, x0, far);
-          skFx(null, 0, 0.25, (u) => dimBand(0.5 * (1 - u), '255,220,200'));
+          skFx(null, 0, 0.25, (u) => localFlash(x0, groundY() - 16, 90, 0.5 * (1 - u), '255,220,200'));   // 낙하 지점 둘레만
         }],
       ];
     },
@@ -226,7 +226,7 @@ Object.assign(SKILL_FX, {
         start,
         [0.8 / d, (a) => cracksFx(a.px() - a.dir * 20, a.px() + a.dir * 120, GS_COL.main, 1.2, 0.6)],
         [1.5 / d, (a) => gsGuillotineFx(a, 0, slam - 1.5 + 0.3, 0.3)],
-        [1.55 / d, (a) => aFx(a, 0, slam - 1.55, (u) => dimBand(0.25 * Math.min(1, u * 3) * (u > 0.85 ? (1 - u) / 0.15 : 1), '20,5,0'))],
+        [1.55 / d, (a) => aFx(a, 0, slam - 1.55, (u) => dimSpan(a.px() - a.dir * 30, a.tx() + a.dir * 40, 0.25 * Math.min(1, u * 3) * (u > 0.85 ? (1 - u) / 0.15 : 1), '20,5,0'))],   // 시전자~대상 구간만
         [(slam - 0.02) / d, (a) => {
           const x = hand(a).x + a.dir * 40;
           impact({ stop: 0.18, shake: 0.65 });
@@ -235,7 +235,7 @@ Object.assign(SKILL_FX, {
           craterFx(x, 1.0);
           quakeWaveFx(a, x - a.dir * 20, 150, 0.55, 0, 14);
           quakeWaveFx({ ...a, dir: -a.dir }, x + a.dir * 20, 80, 0.5, 0.05, 8);
-          skFx(null, 0, 0.3, (u) => dimBand(0.6 * (1 - u), '255,230,210'));
+          skFx(null, 0, 0.3, (u) => localFlash(x, groundY() - 16, 90, 0.6 * (1 - u), '255,230,210'));   // 내려찍는 지점 둘레만
         }],
       ];
     },

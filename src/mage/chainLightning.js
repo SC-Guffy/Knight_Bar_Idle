@@ -126,7 +126,7 @@ Object.assign(SKILL_FX, {
       if (m === 2) return [[0.01, (a) => clBallFx(a, d - 0.02, 0.35, 0.55, d - 0.1, Math.max(60, ...a.targets().map((t) => Math.abs(t.x - a.px()) - 10)))], [0.55 / d, (a) => { const p = ilTip(a); burst(p.x, p.y, 8, [CL_COL.core, CL_COL.main], 80, 2, 0); }]];
       const clench = hits[3][0] * d;
       return [
-        [0.01, (a) => aFx(a, 0, clench + 0.2, (u) => { const t = u * (clench + 0.2); dimBand(0.38 * Math.min(1, t / 0.4) * (t > clench ? Math.max(0, 1 - (t - clench) / 0.2) : 1), '5,5,25'); })],
+        [0.01, (a) => aFx(a, 0, clench + 0.2, (u) => { const t = u * (clench + 0.2); dimSpan(a.px() - a.dir * 30, a.tx() + a.dir * 40, 0.38 * Math.min(1, t / 0.4) * (t > clench ? Math.max(0, 1 - (t - clench) / 0.2) : 1), '5,5,25'); })],   // 손~대상 구간만
         [0.3 / d, (a) => { clHandFx(a, clench - 0.3 + 0.25, 0.55, hits[2][0] * d - 0.3, clench - 0.3); const p = ilTip(a); starFx(p.x, p.y, 12, CL_COL.main, 0.3); }],
         [(clench - 0.02) / d, (a) => {
           const x = a.tx(), gy = groundY();
@@ -134,7 +134,7 @@ Object.assign(SKILL_FX, {
           pillarFx(x, CL_COL.main, 36, 0.5);
           ringFx(x, CL_COL.main, 1.8, 0.55); ringFx(x, CL_COL.core, 1.1, 0.4);
           for (let i = 0; i < 6; i++) { const an = rand(0, Math.PI * 2), L = rand(40, 90); arcFx(x, gy - 30, x + Math.cos(an) * L, gy - 30 + Math.sin(an) * L * 0.5, CL_COL.core, CL_COL.rgb, 0.25, 2, i * 0.02); }
-          skFx(null, 0, 0.3, (u) => dimBand(0.75 * (1 - u), '230,240,255'));
+          skFx(null, 0, 0.3, (u) => localFlash(x, gy - 30, 100, 0.75 * (1 - u), '230,240,255'));   // 움켜쥐는 지점 둘레만
         }],
       ];
     },

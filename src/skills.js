@@ -1059,6 +1059,33 @@ function dimBand(alpha, color = '5,0,10') {
   ctx.fillRect(-60, -240, W + 120, H + 480);
   ctx.restore();
 }
+// 2차 스킬용 국소 연출 (하단바 전체를 덮지 않는다 — 위 규칙, docs/specs/vfx-rule-fixes.md)
+// localFlash: (x, y) 둘레 반경 r 원형 섬광. 바깥 30% 는 서서히 0
+//  임시 그림이다. 섬광 텍스처(옛 C11 → 지금은 스킬마다 K 명중 시트, skill-vfx.md)가 생기면 그것으로 바꿀 자리
+function localFlash(x, y, r, alpha, rgb = '255,255,255') {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = 1;
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, `rgba(${rgb},${alpha})`); g.addColorStop(0.7, `rgba(${rgb},${alpha})`); g.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  ctx.restore();
+}
+// dimSpan: 가로 구간 [x0, x1] 만 하단바 높이로 덮는다. 좌우 feather px 는 서서히 0 (화면 덮개라 텍스처로 바꾸지 않는다)
+function dimSpan(x0, x1, alpha, color = '5,0,10', feather = 24) {
+  if (alpha <= 0) return;
+  if (x0 > x1) [x0, x1] = [x1, x0];
+  const a = x0 - feather, b = x1 + feather, f = feather / Math.max(1, b - a);
+  ctx.save();
+  ctx.globalAlpha = 1;
+  const g = ctx.createLinearGradient(a, 0, b, 0);
+  g.addColorStop(0, `rgba(${color},0)`); g.addColorStop(f, `rgba(${color},${alpha})`);
+  g.addColorStop(1 - f, `rgba(${color},${alpha})`); g.addColorStop(1, `rgba(${color},0)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(a, -240, b - a, H + 480);
+  ctx.restore();
+}
 
 // ★ 강철 검풍: 칼날을 따라 푸른 빛이 차오르고 끝에서 불티가 떨어진다
 function steelGlowFx(a, life) {
@@ -1523,13 +1550,13 @@ function shadowClonesFx(a, n) {
     }
   });
 }
-// ★★★ 시간 정지: 하단바가 검붉게 어두워지고 그 사이 그어진 칼자국이 허공에 멈춰 있다가, 마무리 일격에 한꺼번에 부서진다
+// ★★★ 시간 정지: 시전자~대상 둘레가 검붉게 어두워지고 그 사이 그어진 칼자국이 허공에 멈춰 있다가, 마무리 일격에 한꺼번에 부서진다
 function timeStopFx(a, from, to, cx, cy) {
   const life = to - from, lines = [];
   for (let i = 0; i < 9; i++) lines.push({ ang: rand(0, Math.PI), len: rand(22, 46), ox: rand(-14, 14), oy: rand(-14, 10), at: i / 9 });
   backFx(a, from, life + 0.25, (u) => {
     const t = u * (life + 0.25), k = t < 0.08 ? t / 0.08 : t > life ? 1 - (t - life) / 0.25 : 1;
-    dimBand(0.62 * k, '20,0,6');
+    dimSpan(a.x() - a.dir * 60, a.tx() + a.dir * 60, 0.62 * k, '20,0,6');   // 시전자~대상 ±60px 만
   });
   aFx(a, from, life, (u) => {
     ctx.save();
@@ -1579,13 +1606,13 @@ function sheatheFx(a, y) {
     ctx.restore();
   });
 }
-// ★★★ 적월: 대상 뒤 하늘에 붉은 보름달이 떠오르고, 이중 일섬 동안 하단바가 핏빛으로 가라앉는다
+// ★★★ 적월: 대상 뒤 하늘에 붉은 보름달이 떠오르고, 이중 일섬 동안 달 둘레가 핏빛으로 가라앉는다
 function bloodMoonFx(a, life, dimFrom, dimTo) {
   const mx = a.tx() + a.dir * 34, my = groundY() - 92;
   backFx(a, 0, life, (u) => {
     const t = u * life, rise = easeOut(Math.min(1, t / 0.5)), out = t > life - 0.3 ? (life - t) / 0.3 : 1;
     const dim = t < dimFrom ? 0 : t < dimFrom + 0.1 ? (t - dimFrom) / 0.1 : t < dimTo ? 1 : Math.max(0, 1 - (t - dimTo) / 0.2);
-    if (dim > 0) dimBand(0.55 * dim, '24,0,4');
+    if (dim > 0) localFlash(mx, my, 110, 0.55 * dim, '24,0,4');   // 달 둘레만 핏빛으로 가라앉는다
     const y = my + 16 * (1 - rise);
     ctx.save();
     ctx.globalAlpha = rise * out;
@@ -2154,12 +2181,24 @@ function heatTrailFx(x0, y, x1, life = 0.8) {
     ctx.restore();
   });
 }
-// ★★★ 정적의 일발: 하단바가 청회색으로 가라앉고 대상에 커다란 조준경이 걸린다 (눈금·십자선이 천천히 좁혀진다)
+// 조준경 비네트: 조준경 원(r) 바깥부터 반경 R 까지만 어둡게, 바깥 30% 는 서서히 0 (하단바 전체를 덮지 않는다)
+function scopeVignette(x, y, r, R, alpha, color) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = 1;
+  const g = ctx.createRadialGradient(x, y, r, x, y, R), s = 0.7;
+  g.addColorStop(0, `rgba(${color},0)`); g.addColorStop(Math.min(0.15, s), `rgba(${color},${alpha})`);
+  g.addColorStop(s, `rgba(${color},${alpha})`); g.addColorStop(1, `rgba(${color},0)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(x - R, y - R, R * 2, R * 2);
+  ctx.restore();
+}
+// ★★★ 정적의 일발: 조준경 둘레가 청회색으로 가라앉고 대상에 커다란 조준경이 걸린다 (눈금·십자선이 천천히 좁혀진다)
 function scopeFx(a, life, fireAt) {
   backFx(a, 0, life, (u) => {
     const t = u * life, k = Math.min(1, t / 0.3), out = t > life - 0.25 ? (life - t) / 0.25 : 1;
-    dimBand(0.5 * k * out, '10,18,30');
     const x = a.tx(), y = a.ty() - 8, r = mix(60, 30, easeOut(Math.min(1, t / fireAt)));
+    scopeVignette(x, y, r, 120, 0.5 * k * out, '10,18,30');
     ctx.save();
     ctx.globalAlpha = k * out;
     ctx.strokeStyle = 'rgba(255,224,102,0.9)'; ctx.lineWidth = 1.5;
@@ -2345,22 +2384,27 @@ function constellationFx(a, life, n) {
     ctx.restore();
   });
 }
-// ★★★ 별이 지는 밤: 하단바가 남색 밤하늘로 물들고 별이 반짝이며 오로라가 흐른다. 마지막에 거대한 별이 떨어진다
+// ★★★ 별이 지는 밤: 대상 위 하늘이 남색 밤하늘로 물들고 별이 반짝이며 오로라가 흐른다. 마지막에 거대한 별이 떨어진다
 function nightSkyFx(a, life, starAt) {
   const tw = [];
   for (let i = 0; i < 40; i++) tw.push([rand(0, 1), rand(0, 0.65), rand(0, 6)]);
+  // 밤하늘은 대상 x ±HALF 구간에만 펼친다 (하단바 전체를 덮지 않는다). 좌우 FEATHER px 는 서서히 0
+  const HALF = 120, FEATHER = 32, cx = a.tx(), x0 = Math.round(cx - HALF - FEATHER), x1 = Math.round(cx + HALF + FEATHER);
+  const edge = (x) => Math.max(0, Math.min(1, (HALF + FEATHER - Math.abs(x - cx)) / FEATHER));
   backFx(a, 0, life, (u) => {
     const t = u * life, k = Math.min(1, t / 0.4), out = t > life - 0.35 ? (life - t) / 0.35 : 1, al = k * out;
     ctx.save();
     const g = ctx.createLinearGradient(0, 0, 0, groundY());
-    g.addColorStop(0, `rgba(8,12,40,${0.75 * al})`); g.addColorStop(1, `rgba(20,30,80,${0.35 * al})`);
-    ctx.fillStyle = g; ctx.fillRect(-60, -240, W + 120, groundY() + 240);
-    for (const [fx, fy, ph] of tw) { ctx.globalAlpha = al * (0.4 + 0.6 * Math.abs(Math.sin(clock * 3 + ph))); ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(fx * W), Math.round(fy * groundY()), 1, 1); }
+    g.addColorStop(0, 'rgba(8,12,40,0.75)'); g.addColorStop(1, 'rgba(20,30,80,0.35)');
+    ctx.fillStyle = g;
+    for (let x = x0; x < x1; x += 4) { ctx.globalAlpha = al * edge(x + 2); ctx.fillRect(x, -240, 4, groundY() + 240); }
+    ctx.fillStyle = '#ffffff';
+    for (const [fx, fy, ph] of tw) { const x = Math.round(x0 + fx * (x1 - x0)); ctx.globalAlpha = al * edge(x) * (0.4 + 0.6 * Math.abs(Math.sin(clock * 3 + ph))); ctx.fillRect(x, Math.round(fy * groundY()), 1, 1); }
     // 오로라: 위쪽을 흐르는 초록·청록 물결 띠
     ctx.globalCompositeOperation = 'lighter';
     for (const [col, off] of [['rgba(80,255,180,0.18)', 0], ['rgba(111,243,255,0.14)', 2]]) {
-      ctx.globalAlpha = al; ctx.fillStyle = col;
-      for (let x = 0; x < W; x += 4) { const y = 22 + Math.sin(x * 0.02 + clock * 1.5 + off) * 8, h = 14 + 8 * Math.sin(x * 0.05 + clock * 2 + off); ctx.fillRect(x, y, 4, h); }
+      ctx.fillStyle = col;
+      for (let x = x0; x < x1; x += 4) { const y = 22 + Math.sin(x * 0.02 + clock * 1.5 + off) * 8, h = 14 + 8 * Math.sin(x * 0.05 + clock * 2 + off); ctx.globalAlpha = al * edge(x + 2); ctx.fillRect(x, y, 4, h); }
     }
     ctx.restore();
   });

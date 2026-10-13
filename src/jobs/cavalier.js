@@ -218,7 +218,7 @@ Object.assign(SKILL_FX, {
           ringFx(x, CV_COL.main, 1.8, 0.55); ringFx(x, '#ffffff', 1.1, 0.4);
           waveFx(a, x, groundY() - 14, 120, CV_COL.main, 0.45, 1.6);
           debris(x, 14, ['#c9b38a', CV_COL.main, '#ffffff'], 1.6);
-          skFx(null, 0, 0.25, (u) => dimBand(0.45 * (1 - u), '200,230,255'));
+          skFx(null, 0, 0.25, (u) => localFlash(x, groundY() - 14, 90, 0.45 * (1 - u), '200,230,255'));   // 충격파 지점 둘레만
         }],
       ];
     },

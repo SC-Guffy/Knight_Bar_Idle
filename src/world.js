@@ -2083,7 +2083,8 @@ function drawAtkFx(g, w, r, atk) {
     g.fillStyle = `rgba(255,255,255,${0.5 * u})`;
     g.beginPath(); g.arc(r.bh[0], r.bh[1], 1 + 1.5 * u, 0, Math.PI * 2); g.fill();
   }
-  const [at, col, size] = mo.burst || [];
+  // 3차 무기는 2차 연속기를 그대로 쓰므로(legacy.js) 섬광 색은 무기의 burstRgb 가 있으면 그것으로 (잔상 색과 맞춘다)
+  const [at, moCol, size] = mo.burst || [], col = w.burstRgb || moCol;
   if (at != null && s >= at && s < at + 0.16) {
     const u = (s - at) / 0.16, k = 1 - u;
     let px, py;
@@ -2705,62 +2706,69 @@ function arcFx(x0, y0, x1, y1, color, rgb, life = 0.2, width = 2, delay = 0) {
 }
 
 function drawShots() {
-  for (const sh of shots) {
-    if (sh.delay > 0) continue;
-    const a = sh.w.arrow;
-    if (a.shape === 'bolt') {
-      // 번개탄: 출발점에서 지금 자리까지 꺾인 번개 줄 (속도가 빨라 한두 프레임이면 닿는다 — 닿은 뒤엔 arcFx 가 잠깐 남긴다)
-      drawLightning(ctx, sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, sh.x, sh.y, a.color, a.rgb, 2, sh.ox || 0);
-      ctx.save(); ctx.shadowColor = a.color; ctx.shadowBlur = 8; ctx.fillStyle = '#ffffff';
-      ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      continue;
-    }
-    if (a.shape === 'ice') {
-      // 얼음창: 뾰족한 결정이 날아가고 뒤로 서리 가루
-      sh.trail.forEach(([tx, ty], i) => { ctx.fillStyle = `rgba(${a.rgb},${((i + 1) / sh.trail.length) * 0.4})`; ctx.fillRect(tx - 1, ty - 1, 2, 2); });
-      ctx.save();
-      ctx.translate(sh.x, sh.y); ctx.rotate(sh.a);
-      ctx.shadowColor = a.color; ctx.shadowBlur = 8;
-      ctx.fillStyle = a.color;
-      ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-3, -3); ctx.lineTo(-9, 0); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(-4, -1, 8, 1);
-      ctx.restore();
-      continue;
-    }
-    if (a.magic) {
-      // 마력탄 (rgb: 꼬리 색, size: 크기 — 화염탄은 크고 붉다)
-      const rgb = a.rgb || '111,243,255', z = a.size || 1;
-      sh.trail.forEach(([tx, ty], i) => {
-        ctx.fillStyle = `rgba(${rgb},${((i + 1) / sh.trail.length) * 0.5})`;
-        ctx.fillRect(tx - 1.5, ty - 1.5, 3, 3);
-      });
-      ctx.save();
-      ctx.shadowColor = a.color; ctx.shadowBlur = 10;
-      ctx.fillStyle = a.color; ctx.globalAlpha = 0.5;
-      ctx.beginPath(); ctx.arc(sh.x, sh.y, 4 * z, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 1;
-      ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5 * z, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-      continue;
-    }
-    if (a.trail && sh.trail.length > 1) {
-      ctx.strokeStyle = `rgba(${a.trail},0.45)`; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(sh.trail[0][0], sh.trail[0][1]); ctx.lineTo(sh.x, sh.y); ctx.stroke();
-    }
+  for (const sh of shots) if (!(sh.delay > 0)) drawProjectile(sh);
+}
+// 원거리 평타 한 발 (원정·결투·레이드 공용). sh = { w: 무기, x, y, a: 날아가는 각도, trail: [[x, y], …] 최근 자리, ox/oy: 출발점 }
+function drawProjectile(sh) {
+  const a = sh.w.arrow;
+  if (a.shape === 'bolt') {
+    // 번개탄: 출발점에서 지금 자리까지 꺾인 번개 줄 (속도가 빨라 한두 프레임이면 닿는다 — 닿은 뒤엔 arcFx 가 잠깐 남긴다)
+    drawLightning(ctx, sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, sh.x, sh.y, a.color, a.rgb, 2, sh.ox || 0);
+    ctx.save(); ctx.shadowColor = a.color; ctx.shadowBlur = 8; ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    return;
+  }
+  if (a.shape === 'ice') {
+    // 얼음창: 뾰족한 결정이 날아가고 뒤로 서리 가루
+    sh.trail.forEach(([tx, ty], i) => { ctx.fillStyle = `rgba(${a.rgb},${((i + 1) / sh.trail.length) * 0.4})`; ctx.fillRect(tx - 1, ty - 1, 2, 2); });
     ctx.save();
     ctx.translate(sh.x, sh.y); ctx.rotate(sh.a);
-    if (a.bolt) {
-      // 쇠뇌 살: 짧고 굵은 살에 쇠촉, 깃은 가죽색
-      ctx.fillStyle = a.color; ctx.fillRect(-11, -1.5, 12, 3);
-      ctx.fillStyle = '#c9c2b4'; ctx.beginPath(); ctx.moveTo(0, -3.5); ctx.lineTo(7, 0); ctx.lineTo(0, 3.5); ctx.fill();
-      ctx.fillStyle = '#8a5a2b'; ctx.fillRect(-12, -3, 4, 1.5); ctx.fillRect(-12, 1.5, 4, 1.5);
-    } else {
-      ctx.fillStyle = a.color; ctx.fillRect(-12, -0.75, 13, 1.5);
-      ctx.beginPath(); ctx.moveTo(1, -2.5); ctx.lineTo(5, 0); ctx.lineTo(1, 2.5); ctx.fill();
-      ctx.fillStyle = '#d0463c'; ctx.fillRect(-13, -2, 3, 1); ctx.fillRect(-13, 1, 3, 1);   // 깃
-    }
+    ctx.shadowColor = a.color; ctx.shadowBlur = 8;
+    ctx.fillStyle = a.color;
+    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-3, -3); ctx.lineTo(-9, 0); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(-4, -1, 8, 1);
     ctx.restore();
+    return;
   }
+  if (a.magic) {
+    // 마력탄 (rgb: 꼬리 색, size: 크기 — 화염탄은 크고 붉다)
+    const rgb = a.rgb || '111,243,255', z = a.size || 1;
+    sh.trail.forEach(([tx, ty], i) => {
+      ctx.fillStyle = `rgba(${rgb},${((i + 1) / sh.trail.length) * 0.5})`;
+      ctx.fillRect(tx - 1.5, ty - 1.5, 3, 3);
+    });
+    ctx.save();
+    ctx.shadowColor = a.color; ctx.shadowBlur = 10;
+    ctx.fillStyle = a.color; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.arc(sh.x, sh.y, 4 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (a.trail && sh.trail.length > 1) {
+    ctx.strokeStyle = `rgba(${a.trail},0.45)`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(sh.trail[0][0], sh.trail[0][1]); ctx.lineTo(sh.x, sh.y); ctx.stroke();
+  }
+  ctx.save();
+  ctx.translate(sh.x, sh.y); ctx.rotate(sh.a);
+  if (a.bolt) {
+    // 쇠뇌 살: 짧고 굵은 살에 쇠촉, 깃은 가죽색
+    ctx.fillStyle = a.color; ctx.fillRect(-11, -1.5, 12, 3);
+    ctx.fillStyle = '#c9c2b4'; ctx.beginPath(); ctx.moveTo(0, -3.5); ctx.lineTo(7, 0); ctx.lineTo(0, 3.5); ctx.fill();
+    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(-12, -3, 4, 1.5); ctx.fillRect(-12, 1.5, 4, 1.5);
+  } else {
+    ctx.fillStyle = a.color; ctx.fillRect(-12, -0.75, 13, 1.5);
+    ctx.beginPath(); ctx.moveTo(1, -2.5); ctx.lineTo(5, 0); ctx.lineTo(1, 2.5); ctx.fill();
+    ctx.fillStyle = '#d0463c'; ctx.fillRect(-13, -2, 3, 1); ctx.fillRect(-13, 1, 3, 1);   // 깃
+  }
+  ctx.restore();
+}
+// 결투·레이드용: x0 에서 지금 자리 x 까지 날아가는 한 발을 drawProjectile 이 그릴 수 있는 모양으로 (꼬리는 최근 8자리 = 6px 간격)
+function flightShot(w, x0, x, y, dir) {
+  const trail = [];
+  for (let i = 8; i >= 1; i--) trail.push([dir > 0 ? Math.max(x0, x - i * 6) : Math.min(x0, x + i * 6), y]);
+  return { w, x, y, a: dir > 0 ? 0 : Math.PI, trail, ox: x0, oy: y };
 }
 
 function drawEffects() {
@@ -3173,8 +3181,7 @@ function drawDuel() {
     if (L && !sp && w.kind === 'ranged' && since < 0.14) {
       const dir = side === 'a' ? 1 : -1, ox = duelX(side === 'a' ? 'b' : 'a', pt);
       const x0 = x + dir * 16, x1 = ox - dir * 8, ax = x0 + (x1 - x0) * (since / 0.14);
-      ctx.fillStyle = w.arrow.color;
-      ctx.fillRect(Math.round(dir > 0 ? ax - 12 : ax), gy - 6 * PX, 12, 2);
+      drawProjectile(flightShot(w, x0, ax, gy - 6 * PX, dir));
     }
 
     // 이름표와 체력바
@@ -4211,8 +4218,7 @@ function drawRaid() {
     const wpn = WEAPONS[c.weapon];
     if (!dead && !sp && L && wpn.kind === 'ranged' && s < 0.14) {
       const x0 = x + 16, x1 = g.left + 6, ax = x0 + (x1 - x0) * (s / 0.14);
-      ctx.fillStyle = wpn.arrow.color;
-      ctx.fillRect(Math.round(ax - 12), gy - 6 * PX, 12, 2);
+      drawProjectile(flightShot(wpn, x0, ax, gy - 6 * PX, 1));
     }
     // 이름표가 겹치지 않게 번갈아 높이를 다르게 한다
     const top = gy - 58 - (i % 2) * 14;

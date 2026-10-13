@@ -193,7 +193,7 @@ Object.assign(SKILL_FX, {
           abMushroomFx(x);
           craterFx(x, 1.0);
           debris(x, 24, ['#5a4a42', '#c9b38a', AB_COL.fire], 1.9);
-          skFx(null, 0, 0.3, (u) => dimBand(0.7 * (1 - u), '255,240,220'));
+          skFx(null, 0, 0.3, (u) => localFlash(x, groundY() - 12, 100, 0.7 * (1 - u), '255,240,220'));   // 착탄 지점 둘레만
         }],
       ];
     },
@@ -271,7 +271,7 @@ Object.assign(SKILL_FX, {
           abMuzzleFlash(a, 1.8); impact({ stop: 0.1, shake: 0.5 });
           ballistaBoltFx(a, groundY() - 24, 1.0);
           for (let j = 0; j < 8; j++) parts.push({ x: a.px(), y: groundY() - 2, vx: -a.dir * rand(60, 160), vy: rand(-70, -10), g: 200, size: 3, color: '#c9b38a', life: 0.45, t: 0 });
-          skFx(null, 0, 0.2, (u) => dimBand(0.4 * (1 - u), '255,240,220'));
+          { const x = a.tx(); skFx(null, 0, 0.2, (u) => localFlash(x, groundY() - 12, 80, 0.4 * (1 - u), '255,240,220')); }   // 마지막 살 착탄 지점 둘레만
         }],
       ];
     },

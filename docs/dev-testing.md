@@ -46,6 +46,7 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - 스킬·직업을 추가·변경하면 위 루프로 예외가 없는지 확인하고, 절정 순간을 `step()` 으로 맞춰 스크린샷한다. 끝나면 페이지를 "단계 순회"에 둔다.
 - 여러 에이전트가 동시에 쓸 때는 각자 `tabs_create` 로 탭을 따로 연다.
 - 주소로 바로 열기: `dev/skills.html?cls=<직업 id>&skill=<스킬 id>&stage=<0~3>` 는 그 스킬만 반복 재생한다(전 직업 순회를 켜면 풀림). 평타는 `?mode=basic&cls=<직업 id>`. 검토 페이지(`dev/review/*.html`)의 ▶ 링크가 이것을 쓴다.
+- 하단바 양 끝 밝기 측정·전후 캡처: `dev/skills.html?patch=vfx-edge-probe` → 콘솔 `probeAll()` (궁극기 뺀 스킬마다 양 끝 40px 밝기 최대 변화, 기준 ±0.05), `snapAt`·`snapBasic`·`snapBurst`(평타 섬광 4배 확대)·`snapDuel`(결투 재생) — 사용법은 `dev/review/vfx-edge-probe.js` 머리 주석, 결과는 [specs/vfx-rule-fixes.md](specs/vfx-rule-fixes.md). 수신기 포트는 인자로 바꿀 수 있다(다른 세션과 8798 이 겹칠 때).
 - 스킬 VFX 장면 캡처(시작·타격·끝, 피해 숫자 없이): `#c` 캔버스를 `toDataURL` 로 `127.0.0.1:8798/save` 에 보낸다. 프레임 고르는 규칙과 스크립트 요지는 [specs/skill-vfx.md](specs/skill-vfx.md) "캡처 재현". 숨은 창에서는 아주 느리니 `tabs_select` 로 앞에 둔다.
 
 ### 컷 스크린샷 저장
