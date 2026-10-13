@@ -58,4 +58,5 @@
 | [skill-tree-nodes.md](skill-tree-nodes.md) | 완료 | 스킬 트리 오른쪽 노드 저울질: ⏱️ 쿨타임 −40%·💥 치명 +15%·🩸 흡혈 15%·🔥 화상 45% (피해=결투, 쿨타임=사냥·레이드) |
 | [protect-scroll-drop.md](protect-scroll-drop.md) | 완료 | 📜 보호 주문서 상점 제거·상자 드롭 전용(원정당 약 0.9장) + 보급품 가격 절반 |
 | [storage-logistics.md](storage-logistics.md) | 완료 | 창고 개편: 창고는 🪵·🪨 비축(12시간분) + Lv5 부터 골드 교역 (하루 2+Lv/5회, 값 ×2씩) |
+| [raid-sig-drop.md](raid-sig-drop.md) | 완료 (0.20.9) | 레이드 고유 장비 드랍률 ×3 — 처치 상자당 6~18% (세트 평균 17~50회) |
 | [bag-upgrade.md](bag-upgrade.md) | 완료 | 🎒 가방은 여관 안 별도 업그레이드: 무게 10 + 2/Lv, 최대 Lv = 여관 Lv(최대 48), 비용 = 여관 목재의 1/4, 가방 가득 귀환 때만 레드닷 |
