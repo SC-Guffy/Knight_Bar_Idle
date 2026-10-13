@@ -1060,7 +1060,7 @@ function campDots() {
 const campHasDot = () => Object.values(campDots()).some(Boolean);
 
 function enhOdds(L) {
-  const e = ENHANCE[L], fail = 1 - e.rate;
+  const e = enhanceOddsAt(L, forgeFacLv('temper')), fail = 1 - e.rate;
   const pct = (v) => (v * 100 < 1 && v > 0 ? (v * 100).toFixed(1) : Math.round(v * 100)) + '%';
   const risk = [];
   if (e.down) risk.push(`<span class="warn">하락 ${pct(fail * e.down)}</span>`);

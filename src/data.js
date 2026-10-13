@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.19.23';
+const GAME_VERSION = '0.19.24';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -123,13 +123,19 @@ function buildCost(id, lv) {
 // 대장간은 능력치를 주지 않고 장비를 다루는 시설을 품는다. 시설마다 따로 올리고(재화 즉시 소모), 대장간 Lv 이 시설의 최대 Lv 이다.
 // 무기·갑옷의 기본 위력은 기사 레벨이 정한다 (data.js gearAtkAt) — 0.12 의 재련·재련로는 0.13.3 에서 없어졌다 (core.js migrate 가 환급)
 // 부위 강화(S.gear.enh)도 대장간 화면에서 한다 — 시설 Lv 과는 무관하고 💠 강화석만 묶는다 (ui.js viewForge)
+const TEMPER_CAP = 20, TEMPER_RATE = 0.005, TEMPER_DOWN = 0.03;   // 담금질대 — 아래 설명 참고
 const FORGE_FAC = {
   salvage: { name: '분해대', icon: '🧰', desc: '장비를 분해할 때 나오는 💠 강화석이 늘어나요',
     effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },
   enchant: { name: '마법부여대', icon: '✨', desc: '장비에 부가 옵션(공격력 % · 골드 획득 % 등) 하나를 붙여요 — Lv 이 오를수록 수치가 좋아져요',
     effect: (lv) => (lv ? `옵션 품질 ${Math.round(enchantQualAt(lv) * 100)}~100%` : '아직 없음') },
+  temper: { name: '담금질대', icon: '🔥', desc: `+${TEMPER_CAP}까지 가는 강화의 성공 확률을 올리고 하락을 줄여요 — +${TEMPER_CAP} 이상에서 시도하는 강화엔 효과가 없어요`,
+    effect: (lv) => (lv ? `성공 +${(TEMPER_RATE * lv * 100).toFixed(1)}%p · 하락 −${Math.round(TEMPER_DOWN * lv * 100)}%` : '아직 없음') },
 };
-// 강화 확률을 올려 주는 시설은 두지 않는다 (강화는 아껴서 풀어야 하는 성장 — 0.12.2 의 연마대는 0.12.3 에서 빠짐, core.js migrate 가 환급)
+// 담금질대 (0.19.24): +0 ~ +19 에서 시도하는 강화만 완화한다 (+20 이상은 그대로 어렵게). 초기화 확률은 건드리지 않는다.
+//  성공 +0.5%p/Lv (Lv20 +10%p), 실패 시 하락 비율 ×(1 − 0.03·Lv) (Lv20 −60%)
+//  기대 시도 (0 → +20, 보호 주문서 없이): Lv0 약 112회 · Lv10 약 67회 · Lv20 약 48회
+//  (0.12.2 의 연마대(anvil)는 0.12.3 에서 빠졌고 core.js migrate 가 s.forge.anvil 을 환급·삭제하므로 id 를 다시 쓰지 않는다)
 // 분해대: 판매 강화석 ×(1 + 0.1·Lv) (Lv20 ×3)
 const salvageMultAt = (lv) => 1 + 0.1 * lv;
 // 마법부여대 (0.18, 0.13~0.17 의 각인대(편차 다시 굴리기)를 대신한다 — core.js migrate 가 Lv 을 옮김)
@@ -616,6 +622,12 @@ const ENHANCE = [
   { rate: 0.18, down: 0.25, reset: 0.065 },
   { rate: 0.16, down: 0.25, reset: 0.07 },
 ];
+// L → L+1 시도의 실제 확률 (담금질대 Lv 반영)
+function enhanceOddsAt(L, temperLv) {
+  const e = ENHANCE[L];
+  if (!e || !temperLv || L >= TEMPER_CAP) return e;
+  return { rate: Math.min(0.95, e.rate + TEMPER_RATE * temperLv), down: e.down * (1 - TEMPER_DOWN * temperLv), reset: e.reset };
+}
 // 강화 단계가 장비 능력치에 곱하는 배율
 const enhanceMultAt = (L) => 1 + 0.12 * L + 0.004 * L * L;
 // L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)과 겹치지 않는다. 철광석은 늘, 마력석은 +10부터

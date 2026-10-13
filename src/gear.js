@@ -324,7 +324,7 @@ const enhRisky = (L) => !!(ENHANCE[L] && (ENHANCE[L].down || ENHANCE[L].reset));
 function enhance(slot, protect = false) {
   if (enhanceBlocker(slot)) return null;
   const from = S.gear.enh[slot];
-  const e = ENHANCE[from];
+  const e = enhanceOddsAt(from, forgeFacLv('temper'));
   const c = enhanceCostOf(slot);
   const oldMax = stats().maxHp;
   S.stones -= c.stone; S.mats.ore -= c.ore; S.mats.mana -= c.mana;
