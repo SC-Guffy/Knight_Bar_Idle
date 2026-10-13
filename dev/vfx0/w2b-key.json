@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: horizontal sword thrust motion blur, a long thin straight band of speed lines pointing right, tapering to a sharp needle point on the right, three parallel thin streaks of white and pale steel blue fading out to the left, nothing else, no arrow, no arrowhead, no sword, no character, no background shape",
+ "seed": 5
+}

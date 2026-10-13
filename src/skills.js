@@ -13,8 +13,8 @@
 //
 // 숙련 단계(Lv10·20·30)마다 연출이 진화한다 — Lv1 은 수수하게 시작해서 단계마다 화려해진다:
 //   공통 세기 fxVis (MASTERY_VIS): 시전 중 나오는 모든 연출 도구(검흔·고리·빛기둥·파편·히트스톱·흔들림)의 크기·개수에 곱한다
-//   Lv1   세기 55%, 직업색이 바랜 회색빛, 오라·몸 잔상·이름 띠 없음 (이름은 작은 글자만)
-//   ★ 숙련  세기 80%, 색이 살아나고 작은 오라, 타격마다 직업색 파편
+//   Lv1   세기 70%, 직업색에 회색 25%, 오라·몸 잔상·이름 띠 없음 (이름은 작은 글자만)
+//   ★ 숙련  세기 85%, 색이 살아나고 작은 오라, 타격마다 직업색 파편
 //   ★★ 달인  세기 100%, 원래 색, 발밑 빛 고리·짙은 잔상, 2차 스킬 이름 띠
 //   ★★★ 극의 세기 120%, 금빛으로 물듦, 이름 띠(1차도), 바깥 금빛 고리, 시전 끝 마무리 섬광
 // 기술의 모양(타격 횟수·마무리 일격)은 classes.js 의 stages 가 따로 바꾼다
@@ -40,9 +40,10 @@ const mix = (a, b, u) => a + (b - a) * u;
 const HAND_Y = 18;        // 땅에서 손까지 높이 (다리 3칸 + 몸통 3칸)
 const skillTier = (k) => CLASSES[k.cls].tier;
 const MASTERY_GOLD = '#fff0b8';
-const MASTERY_VIS = [0.55, 0.8, 1, 1.2];
-const MASTERY_FADE = ['#a9adb8', 0.45, 0.2];   // Lv1·★ 에서 직업색을 섞을 회색과 비율
+const MASTERY_VIS = [0.7, 0.85, 1, 1.2];       // 바닥을 올렸다 (skill-vfx.md ⑤-0: Lv1 에서도 스킬 고유 모양이 보이게)
+const MASTERY_FADE = ['#a9adb8', 0.25, 0.2];   // Lv1·★ 에서 직업색을 섞을 회색과 비율
 let fxVis = 1;            // 지금 만드는 연출의 세기 (시전의 숙련 단계, updateCasts 가 정한다)
+let impactSoft = false;   // 지금 타격이 잔타(막타 아님, 궁극기 아님)면 impact 의 정지를 연출 정지로 바꾼다 (updateCasts)
 // '#rrggbb' 두 색을 u 만큼 섞는다
 function mixHex(c1, c2, u) {
   const p = (c, i) => parseInt(c.slice(1 + i * 2, 3 + i * 2), 16);
@@ -160,8 +161,10 @@ function updateCasts(dt) {
     const hits = c.k.hits;
     while (c.hi < hits.length && hits[c.hi][0] <= u) {
       const i = c.hi++;
+      impactSoft = !c.k.ult && i < hits.length - 1;
       if (c.fx.hit) c.fx.hit(c.a, i, hits.length);
       autoHitFx(c, i);
+      impactSoft = false;
       c.squash = 1;
       if (c.a.onHit) c.a.onHit(i, hits.length);
     }
@@ -366,9 +369,11 @@ function heroAirborne() {
 }
 
 // ───────────────────────── 타격감 도구 ─────────────────────────
+// stop: 잔타면 연출 정지(그림만, src/vfx-tex.js visStop), 막타·궁극기·그 밖의 순간이면 게임 정지(hitstop — 게임 시간이 멈춘다)
 function impact({ stop = 0, shake: sh = 0 } = {}) {
   stop *= fxVis; sh *= fxVis;
-  hitstop = Math.max(hitstop, stop * 1.3);
+  if (impactSoft) visStop(stop);
+  else hitstop = Math.max(hitstop, stop * 1.3);
   shake = Math.max(shake, sh);
   shakeAmp = Math.max(shakeAmp, Math.min(6, 3 + sh * 8));
 }
@@ -553,6 +558,12 @@ function autoHitFx(c, i) {
   const mast = c.a.mast || 0;
   const pow = (t2 ? 1.35 : 1) * (share >= 0.5 ? 2 : share >= 0.2 ? 1.4 : 0.8) * (last && n > 1 ? 1.5 : 1);
   const tg = c.a.targets(i);
+  // 스킬 전용 명중 텍스처(K 시트)가 있으면 그것만 (src/vfx-tex.js)
+  if (c.fx.hitTex) {
+    for (const t of tg) c.fx.hitTex(c.a, t, share, i, n);
+    impact({ stop: share >= 0.2 || last ? 0.035 * pow : 0.012, shake: 0.06 * pow });
+    return;
+  }
   // 숙련: 타격마다 직업색 파편 (극의는 금빛이 섞인다)
   if (mast) for (const t of tg) burst(t.x, t.y, Math.round((3 + 3 * mast) * Math.min(1.5, pow / 1.4)), [c.a.color, '#ffffff', mast >= 3 ? MASTERY_GOLD : c.a.color], 70 + 25 * mast, 2, 160);
   // 스킬마다 고유한 타격 이미지(fx.marks). 없으면 무기별 기본 검흔
@@ -2487,12 +2498,20 @@ const SKILL_FX = {
       }
       return list;
     },
+    // 명중 그림 K01 (땅 충격 + 강철 파편, 바닥 기준): Lv1 작게·앞 3프레임, ★ 4프레임, ★★ 이상 전부. 잔타(피해 비중 50% 미만)는 작게,
+    //  한 방은 원래 크기, ★★★ 천강검은 4/3배 + 금빛 램프 (a.color 가 이미 금빛이 섞여 있다)
+    hitTex(a, t, share, i, n) {
+      const m = a.mast, big = m > 0 && share >= 0.5;
+      texFx('k01', t.x, groundY(), a.color, { anchor: 'b', life: big ? 0.34 : 0.26, frames: [3, 4, 5, 5][m], scale: big ? (m >= 3 ? 4 / 3 : 1) : 2 / 3, flip: a.dir < 0, fade: 0.25 });
+    },
     hit(a, i) {
       const m = a.mast, g = gripOf(a);
-      if (m === 0) { crescentFx(g.x, g.y, 22, -2.6, 1.0, a.dir, '#dfe6f0', 2, 0.2); return; }
+      // 초승달 참격파 E43: 칼끝 앞에서 번쩍이고 흩어진다 (★ 의 검풍은 앞으로 날아간다)
+      const wave = (sc, life, fly) => texFx('e43', g.x + a.dir * 22 * sc, g.y, a.color, { scale: sc, life, flip: a.dir < 0, fade: 0.35, move: fly ? (u) => [a.dir * fly * easeOut(u), 0] : null });
+      if (m === 0) { wave(2 / 3, 0.22); return; }
       if (m === 1) {
-        if (i === 0) { crescentFx(g.x, g.y, 30, -2.6, 1.0, a.dir, '#bcd6ff', 3, 0.28); ringFx(a.px(), 'rgba(160,200,255,0.9)', 0.6, 0.35); impact({ stop: 0.05, shake: 0.12 }); }
-        else { waveFx(a, g.x, g.y + 4, 120, '#8fb4ff', 0.36); impact({ shake: 0.08 }); }
+        if (i === 0) { wave(1, 0.28); ringFx(a.px(), 'rgba(160,200,255,0.9)', 0.6, 0.35); impact({ stop: 0.05, shake: 0.12 }); }
+        else { wave(1, 0.36, 110); impact({ shake: 0.08 }); }
         return;
       }
       if (m === 2) {
@@ -2506,7 +2525,7 @@ const SKILL_FX = {
         }
         return;
       }
-      if (i === 0) { crescentFx(g.x, g.y, 28, -2.6, 1.0, a.dir, '#cfe0ff', 3, 0.24); impact({ stop: 0.04, shake: 0.1 }); return; }
+      if (i === 0) { wave(1, 0.24); impact({ stop: 0.04, shake: 0.1 }); return; }
       const x = a.skyX != null ? a.skyX : a.tx();
       craterFx(x);
       for (let j = 0; j < 24; j++) parts.push({ x: x + rand(-6, 6), y: groundY() - 4, vx: rand(-180, 180), vy: rand(-260, -80), g: 520, size: Math.random() < 0.3 ? 4 : 3, color: j % 3 ? '#8a7a68' : '#dfe7f3', life: rand(0.5, 0.9), t: 0 });

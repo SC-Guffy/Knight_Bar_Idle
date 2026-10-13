@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: one quick diagonal sword slash streak, a single slightly curved white stroke from upper right to lower left with thick middle and needle thin ends, a couple of small square sparks near the middle, small and clean, nothing else, no cross, no circle, no background shape",
+ "seed": 27
+}

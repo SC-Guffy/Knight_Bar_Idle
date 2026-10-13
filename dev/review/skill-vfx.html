@@ -76,7 +76,7 @@
   <div class="sub">스펙: <code>docs/specs/skill-vfx.md</code> (이 페이지는 스펙 표를 그대로 읽어 그립니다) · 캡처: <code>dev/vfx-survey/</code> · 스킬 ★★★ 기준, Lv1 은 비교용 · 재생 버튼은 <code>dev/skills.html</code> 을 그 스킬로 엽니다</div>
   <div id="err"></div>
   <nav>
-    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
+    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#vfx0">⑤-0 본작업</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
   </nav>
 
   <h2 id="sum">요약</h2>
@@ -85,6 +85,15 @@
 
   <h2 id="rule">원칙 — 이펙트 그림은 전부 PixelLab 텍스처</h2>
   <div id="ruleBlock"></div>
+
+  <h2 id="vfx0">⑤-0 본작업 — 공통 기반 + 첫 텍스처 (게임에 들어감, 확인 대기)</h2>
+  <div class="sub">이제 게임 src 에 들어갔습니다 (<code>src/vfx-tex.js</code>, 시트 <code>src/vfx/*.png</code>). 시험 패치 없이 그대로 재생됩니다. 속도 ×0.25 로 보면 잘 보입니다.
+    <br>▶ 평타: <a href="../skills.html?mode=basic&cls=squire" target="_blank">견습 기사</a> · <a href="../skills.html?mode=basic&cls=swordsman" target="_blank">검사</a> · <a href="../skills.html?mode=basic&cls=paladin" target="_blank">성기사 (번쩍임만 바뀜)</a>
+    &nbsp;▶ 강철 베기: <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=0" target="_blank">Lv1</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=1" target="_blank">★</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=2" target="_blank">★★</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=3" target="_blank">★★★</a>
+    &nbsp;▶ <a href="../../index.html?server=http://127.0.0.1:9" target="_blank">실제 게임 (오프라인)</a> — 상태는 스펙 "⑤-0 확인 방법"의 <code>vfx0Preset('swordsman', 1)</code></div>
+  <div id="vfx0Sheets" class="fam" style="grid-template-columns:repeat(6,1fr);margin:10px 0"></div>
+  <div id="vfx0Nums"></div>
+  <div id="vfx0List"></div>
 
   <h2 id="trial">⑤-0 시험 전후 — PixelLab 텍스처 (W1 장검 궤적 · H1 명중 섬광 · C1 초승달 참격)</h2>
   <div class="sub">위 줄 = 지금(사각 칸·벡터), 아래 줄 = 같은 프레임에 텍스처를 씌운 모습. 게임 src 는 그대로이고 시뮬레이터 패치(<code>dev/review/vfx-trial.js</code>)로 씌웠습니다. 성기사는 같은 텍스처를 금색으로 다시 칠한 것입니다.
@@ -324,6 +333,24 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
   document.getElementById('famImgs').innerHTML = FAM.map(([k, n]) => `
     <figure>${img(`family-${k}.png`, `${n} 컬러`)}<figcaption>${n} — 컬러</figcaption></figure>
     <figure>${img(`family-${k}-gray.png`, `${n} 흑백`)}<figcaption>${n} — 흑백</figcaption></figure>`).join('');
+
+  // ⑤-0 본작업
+  document.getElementById('vfx0Sheets').innerHTML = [['w1', 'W1 장검 휘두르기 (키 그림 1장)'], ['w2', 'W2 장검 찌르기 (새로)'], ['h01', 'H01 견습 기사 평타 명중 (새로)'], ['h02', 'H02 검사 평타 명중 (시험 H1)'], ['e43', 'E43 강철 초승달 (시험 C1)'], ['k01', 'K01 강철 베기 명중 (새로)']]
+    .map(([k, cap]) => `<figure><img src="../../src/vfx/${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap}</figcaption></figure>`).join('');
+  document.getElementById('vfx0Nums').innerHTML = `<table><tr><th>측정</th><th>퀄업 전</th><th>퀄업 후</th><th>메모</th></tr>
+    <tr><td>10분 사냥 골드 — 검신(공속 2.2) Lv1</td><td>10,430,820</td><td>10,454,905 (+0.2%)</td><td rowspan="4">시드 48개 × 10분(= 8시간) 합. 같은 시드라도 정지 시간이 달라지면 난수 순서가 갈라져 ±2% 안팎은 잡음이다</td></tr>
+    <tr><td>검신 ★★★</td><td>9,626,531</td><td>9,921,301 (+3.1%)</td></tr>
+    <tr><td>검사 Lv1</td><td>2,345,877</td><td>2,391,899 (+2.0%)</td></tr>
+    <tr><td>검사 ★★★</td><td>2,737,956</td><td>2,787,345 (+1.8%)</td></tr>
+    <tr><td>게임 정지 시간 / 10분 — 검신 Lv1 · ★★★</td><td>9.6초 · 45.9초</td><td>9.2초 · 30.7초</td><td rowspan="2">진행을 정하는 것은 이 값. 잔타가 연출 정지로 바뀐 만큼 줄었다. 검사 Lv1 만 +0.5초(막타 정지가 0.55→0.7배, 시간의 0.08%)</td></tr>
+    <tr><td>검사 Lv1 · ★★★</td><td>1.7초 · 12.0초</td><td>2.2초 · 9.4초</td></tr>
+    <tr><td>프레임 비용 (tick+render, ms) — 견습 평타 · 검사 평타</td><td>1.33 · 1.52</td><td>1.29 · 1.38</td><td rowspan="2">같은 탭에서 900프레임 평균</td></tr>
+    <tr><td>강철 베기 ★ · ★★★ 반복</td><td>1.72 · 1.82</td><td>1.51 · 1.71</td></tr>
+    <tr><td>하단바 양 끝 40px 밝기 변화 (최대)</td><td>0.009</td><td>0.007</td><td>기준 ±0.05</td></tr></table>`;
+  document.getElementById('vfx0List').innerHTML = [['basic-squire-flash', '견습 기사 평타 — 위 = 지금, 아래 = ⑤-0. 칸: 명중 1프레임 전, 명중 0~4프레임 (60fps). 피격 번쩍임이 반투명·짧아져 H01 이 보인다'], ['basic-swordsman-flash', '검사 평타 1·2번 동작 (내려베기·올려베기) — W1 키 그림 + H02'], ['basic-swordsman-m3', '검사 평타 3번 동작 (찌르기) — W2'], ['basic-paladin-flash', '성기사 평타 — 텍스처는 ⑤-4, 이번엔 피격 번쩍임만 바뀜'],
+    ['steelCleave-s0', '강철 베기 Lv1 — E43 2/3 크기 + K01 앞 3프레임 (칸: 명중 −2·0·2·5·9 프레임)'], ['steelCleave-s1', '강철 베기 ★ — E43 + 날아가는 검풍(E43 이동) + K01 (고리는 아직 벡터)'], ['steelCleave-s2', '강철 베기 ★★ — K01 만 바뀜 (대검·바위 송곳은 ⑤-4)'], ['steelCleave-s3', '강철 베기 ★★★ — 첫 베기 E43, 천강검 막타 K01 4/3배 (하늘 검은 ⑤-4 E01)'],
+    ['game-swordsman', '실제 게임(오프라인) 원정 — 강철 베기 ★ 명중 · 검사 평타 명중']]
+    .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}vfx0/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');
 
   // ⑤-0 시험 전후
   const TS = '../vfx-trial/';

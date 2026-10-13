@@ -225,7 +225,8 @@ function hitMonster(m, mult = 1, o = {}) {
   const crit = o.nocrit ? false : pre.crit || o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0) + procCritPlus());   // nocrit: 지속 피해·관통처럼 이미 굴린 피해
   const dmg = st.atk * mult * (crit ? st.critMult + pre.critAdd : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
-  m.flash = o.color ? 0.13 : 0.08;
+  m.flash = o.color ? 0.07 : 0.04;      // 피격 번쩍임: 짧게·반투명(drawMonster) — 검흔·명중 그림이 묻히지 않게 (skill-vfx.md ⑤-0)
+  m.lastCrit = crit;
   m.hurt = 1;
   const kb = o.kb != null ? o.kb : heroWeapon().motion === 'sweep' ? 10 : 5;
   m.kb = m.boss ? Math.min(kb, 4) : Math.max(m.kb, kb);
@@ -298,7 +299,8 @@ function releaseAttack(st) {
       shots.push({ w, m: inRange[i % n], mult: st.shotMult, x: hx, y: hy + (i - (st.shots - 1) / 2) * 3, ox: hx, oy: hy, a: 0, trail: [], delay: i * 0.06 });
     }
   } else {
-    inRange.slice(0, st.targets).forEach(m => hitMonster(m));
+    vfxBasicRelease();                  // 근접 잔상 텍스처가 명중 순간 늘어나며 사라진다 (src/vfx-tex.js)
+    inRange.slice(0, st.targets).forEach(m => { hitMonster(m); vfxBasicHit(m, m.lastCrit); });
   }
   procOnBasic(st);
 }
@@ -1174,7 +1176,8 @@ function drawDungeonGround() {
 }
 
 function update(dt) {
-  // 큰 타격 순간엔 화면 전체를 아주 잠깐 멈춘다 (히트스톱)
+  fxHoldTick(dt);                     // 연출 정지(그림만 멈춤)는 게임 시간과 같이 흐른다 (src/vfx-tex.js)
+  // 큰 타격 순간엔 화면 전체를 아주 잠깐 멈춘다 (히트스톱 = 게임 정지: 스킬 막타·궁극기만)
   if (hitstop > 0) { hitstop -= dt; return; }
   clock += dt;
   const gdt = dt * TIME_SCALE;
@@ -1230,6 +1233,7 @@ function update(dt) {
     if (sh.trail.length > 8) sh.trail.shift();
     if (dist <= step) {
       hitMonster(sh.m, sh.mult);
+      vfxBasicHit(sh.m, sh.m.lastCrit, true);
       // 화염 계열: 맞은 자리 주변의 다른 적도 splash 배율로 (원정에서만 — 결투·레이드는 상대가 하나라 상관없다)
       const sp = sh.w.splash, ar = sh.w.arrow;
       if (ar.shape === 'bolt') arcFx(sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, tx, ty, ar.color, ar.rgb, 0.16, 2);
@@ -2427,6 +2431,7 @@ function drawBladeCells(g, w, h, ang, len, white = false) {
 }
 //  새 쪽 절반은 흰색, 옛 쪽은 무기 잔상 색으로 옅어진다. tipOnly 면 칼끝 자리만 (찌르기 줄)
 function drawCutSmear(g, w, h0, a0, h1, a1, len, tipOnly = false) {
+  if (vfxSmear(g, w, h0, a0, h1, a1, len, tipOnly)) return;      // PixelLab 궤적 시트가 있는 무기 (src/vfx-tex.js)
   const C = PX / 2, L = len * 2, age = new Map();
   const t0 = tipOnly ? 0 : 0.4, uMin = tipOnly ? L - 2 : L * 0.45;
   const span = Math.abs(a1 - a0) * (L + 2) + Math.hypot(h1[0] - h0[0], h1[1] - h0[1]) / C, N = Math.max(12, Math.ceil(span * 2.5));
@@ -2463,6 +2468,7 @@ function drawHero(g, id, x, gy, pose) {
   o.clearRect(0, 0, w, h);
   o.imageSmoothingEnabled = false;
   o.setTransform(T.a, T.b, T.c, T.d, T.e - bx, T.f - by);
+  heroSoft.off = [bx, by];
   const alpha = pose.alpha == null ? 1 : pose.alpha;
   drawHeroRaw(o, id, x, gy, { ...pose, alpha: 1 });
   softenSeams(o, w, h, Math.max(1, Math.round(Math.hypot(T.a, T.b) * PX * 0.5)) + 1);
@@ -2663,7 +2669,9 @@ function drawKnight() {
   };
   if (sp) Object.assign(pose, sp, { alpha: pose.alpha * (sp.alpha == null ? 1 : sp.alpha) });
   if (sp) drawCastTrail('hero', S.cls, gy, knight.facing);
+  vfxCut.main = true; vfxCut.T = ctx.getTransform();          // 이 기사의 잔상만 명중 뒤 이어 그린다 (src/vfx-tex.js)
   drawHero(ctx, S.cls, x, gy, pose);
+  vfxCut.main = false;
   if (S.phase !== 'camp' && !wp) {
     drawHpBar(x, gy - 58 - Math.min(lift, 40), 30, S.hp / stats().maxHp, '#ff5a5a');
     drawSkillIcons(x - 15, gy - 58 - Math.min(lift, 40) - 12);
@@ -2965,9 +2973,12 @@ function drawMonster(m) {
   // 탑 광폭화: 붉은 기운이 맥박처럼 번진다
   const rage = m.rage > 1 && !m.dying ? `drop-shadow(0 0 ${2 + Math.sin(clock * 10) * 1.5 + Math.min(3, Math.log2(m.rage))}px #ff2a2a)` : '';
   if (hue || rage) ctx.filter = `${hue ? `hue-rotate(${hue}deg)` : ''} ${rage}`.trim();
-  const opt = { flash: m.flash > 0, alpha: alpha * (def.alpha || 1), sx: pose.sx, sy: pose.sy, skew: pose.skew };
+  const opt = { flash: !!m.killed, alpha: alpha * (def.alpha || 1), sx: pose.sx, sy: pose.sy, skew: pose.skew };
   if (m.killed) { opt.sx *= 1.15; opt.sy *= 0.9; }
-  drawSprite(rows, def.pal || {}, x, bottom - (m.dying && !m.killed ? m.dying * 20 : 0), scale, opt);
+  const by = bottom - (m.dying && !m.killed ? m.dying * 20 : 0);
+  drawSprite(rows, def.pal || {}, x, by, scale, opt);
+  // 피격 번쩍임: 원래 그림 위에 흰 실루엣을 반투명(0.45)으로 (예전엔 전신을 흰색으로 바꿔 검흔·명중 그림이 묻혔다)
+  if (m.flash > 0 && !m.killed) drawSprite(rows, def.pal || {}, x, by, scale, { ...opt, flash: true, alpha: opt.alpha * 0.45 });
   ctx.filter = 'none';
   if (m.killed) return;
 
@@ -4264,6 +4275,7 @@ function drawRaidStun(x, gy, enc, i) {
 }
 
 function render() {
+  if (fxHoldSkip()) return;            // 연출 정지: 지난 화면을 그대로 둔다 (src/vfx-tex.js)
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   // 흔들림 세기는 스킬 타격이 키운다 (shakeAmp, src/skills.js)

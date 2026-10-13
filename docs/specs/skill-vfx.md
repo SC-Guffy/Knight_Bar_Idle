@@ -1,6 +1,6 @@
 # 스킬 VFX 퀄업 — 전 직업 전수조사 (시즌6)
 
-- 상태: 확정 (2026-10-13 사용자 확정 — 명중 분리판: 평타 명중 H01~H29·스킬 명중 K01~K40·공용 배경 C 7장·텍스처 167장·약 740회, 퀄업 구현 전)
+- 상태: 확정 (2026-10-13 사용자 확정 — 명중 분리판: 평타 명중 H01~H29·스킬 명중 K01~K40·공용 배경 C 7장·텍스처 167장·약 740회). ⑤-0 구현 완료 — 사용자 확인 대기 (2026-10-14)
 - 관련 코드:
   - src/skills.js: 공용 연출과 1·2차 스킬 대부분. `skFx`, `impact`(:369), `autoHitFx`(:550), `MASTERY_VIS`(:43), 컷인 `drawScreenFx`(:3432)·`drawUltScreen`(:3385), `dimBand`(:1055)
   - src/mage/*.js: 마법사 계열 스킬
@@ -9,7 +9,8 @@
   - src/cuts/*.js, src/motion/*.js: 평타 컷. src/world.js `drawCutSmear`(:2420)·`drawAtkFx`(:2072)·`drawShots`(:2704)·`hitMonster`(:210)
   - src/classes.js: `WEAPONS` (투사체·궤적 색), `SKILLS`
 - 도구: `dev/review/skill-vfx.html` 검토 갤러리, `dev/skills.html` 스킬 시뮬레이터, 캔버스 캡처 → `dev/shot-recv.py` ([dev-testing.md](../dev-testing.md)), PixelLab
-- 최종 갱신: 2026-10-13
+  - src/vfx-tex.js: ⑤-0 공통 기반 — 시트 로더(램프 양자화·다시 칠하기·nearest 정수배·회전), 연출 정지(`fxHold`), 평타 궤적·명중 텍스처. 시트는 src/vfx/<번호>.png
+- 최종 갱신: 2026-10-14
 
 ## 목표
 
@@ -411,6 +412,9 @@
 - **연출 정지 (새로 만듦)**: 화면 그림만 멈춘다. 게임 시간(`update` 의 전투·건설·타이머)은 그대로 흐른다. 구현안은 둘 중 하나다 (⑤-0 착수 때 정한다).
   - (가) 기사·맞은 대상의 그리기용 동작 진행(`swing`·`anim`·스프라이트 프레임)과 이펙트 진행만 정지 시간 동안 고정한다. 피해·이동 계산은 그대로 둔다.
   - (나) 지금처럼 `update` 를 건너뛰되, 멈춘 시간만큼 다음 프레임들 `dt` 에 나눠 보충해 총 게임 시간을 맞춘다.
+  - **⑤-0 에서 고른 것 = (가)의 가장 단순한 형태**: 맞는 순간의 화면을 한 번 그린 뒤, 정지 시간 동안 `render()` 를 건너뛰어 캔버스에 그 화면을 남긴다 (`src/vfx-tex.js` `visStop`·`fxHoldSkip`). `update` 는 손대지 않아 진행에 영향이 0 이다.
+    정지 시간 = stop × 1.3 + 반 프레임 (30fps 에서 최소 한 프레임은 멈춘다 — 0.0325초는 한 프레임(0.033초)보다 짧아 안 보이기 때문). 정지가 끝나면 그동안 흐른 게임 시간만큼 한 번에 이어진다.
+  - 스킬 잔타 판정: `updateCasts` 가 타격(`fx.hit`·`autoHitFx`)을 부르는 동안 `impactSoft` 를 켠다 — 궁극기가 아니고 마지막 타격이 아니면 그 안의 `impact({stop})` 은 연출 정지가 된다. 시전 중 다른 순간(cues·지연 연출)의 `impact` 는 그대로 게임 정지다.
 - **게임 정지 (지금의 `hitstop`)**: 스킬 막타와 궁극기에만 쓴다. 쿨타임이 길어 진행 손실이 무시할 만하다.
 
 아래를 기준으로 맞춘다 (★★ 기준값, 단계별로 `MASTERY_VIS` 가 곱해진다).
@@ -521,11 +525,13 @@
 
 ## 수용 기준
 - [x] 스킬 40종 + 평타 29종 전부 캡처·점수·판정이 채워졌다 (`dev/vfx-survey/`, 스킬 ★★★ a·b·c + Lv1, 평타 a·b·c, 계열 비교 8장).
-- [ ] ⑤-0: 시험 텍스처(W1·H1·C1)를 견습 기사·검사 평타와 강철 베기에 씌운 전후 비교를 사용자가 보고 감성을 확인했다 — 비교는 만들었다 (`dev/vfx-survey/trial/`, 갤러리 "⑤-0 시험 전후", `dev/skills.html?…&patch=vfx-trial`), 사용자 확인 대기.
+- [ ] ⑤-0: 시험 텍스처(W1·H1·C1)를 견습 기사·검사 평타와 강철 베기에 씌운 전후 비교를 사용자가 보고 감성을 확인했다 — 게임에 넣은 판의 전후 비교를 만들었다 (`dev/vfx-survey/vfx0/`, 갤러리 "⑤-0 본작업"), 사용자 확인 대기.
 - [ ] 궁극기가 아닌 스킬이 하단바 전체를 덮지 않는다 — 0.21 [vfx-rule-fixes.md](vfx-rule-fixes.md) 수용 기준으로 확인하고, 퀄업 패치마다 같은 측정(하단바 양 끝 40px 밝기 변화 ±0.05 이하)을 다시 한다.
-- [ ] ⑤-0: 평타 명중 때 스파크와 연출 정지가 나오고, 게임 정지(`hitstop`)는 생기지 않는다 — `dev/skills.html` 평타 모드에서 명중 프레임에 `hitstop === 0` 이고 연출 정지 값이 0보다 큰지 확인, 명중 프레임 캡처.
-- [ ] ⑤-0: 피격 번쩍임을 줄인 뒤 검흔·명중 섬광이 맞은 대상 위에서 보인다 — 견습 기사·검사·성기사 평타 +명중 0~4프레임 전후 캡처 (`trial/*-flash.png`).
-- [ ] ⑤-0: 진행 손실이 늘지 않는다 — 같은 직업·장비로 10분 자동 사냥 골드가 퀄업 전후 ±1% 이내 (공속 빠른 직업 1종 + Lv1·★★★ 두 상태, 진행 봇 또는 실제 게임 루프 측정).
+- [x] ⑤-0: 평타 명중 때 스파크와 연출 정지가 나오고, 게임 정지(`hitstop`)는 생기지 않는다 — `dev/skills.html` 평타 모드 명중 프레임: 견습 기사·검사·검신 `hitstop 0`, `fxHold` 0.033초(치명 0.065초), 레인저(원거리)는 치명일 때만. 명중 프레임 캡처 `vfx0/basic-*-flash.png` (2026-10-14).
+- [x] ⑤-0: 피격 번쩍임을 줄인 뒤 검흔·명중 섬광이 맞은 대상 위에서 보인다 — 견습 기사·검사·성기사 평타 명중 0~4프레임 전후 캡처 `dev/vfx-survey/vfx0/basic-{squire,swordsman,paladin}-flash.png`. 전에는 허수아비가 4프레임 내내 흰 실루엣, 지금은 2프레임 반투명 (2026-10-14).
+- [ ] ⑤-0: 진행 손실이 늘지 않는다 — 실제 게임 루프(`update`)를 같은 시드로 10분 × 48회 돌림 (`dev/vfx0/hunt.js`). 골드 검신(공속 2.2) Lv1 +0.2% · ★★★ +3.1%, 검사 Lv1 +2.0% · ★★★ +1.8%. **손실은 없다(전부 이득)**. 다만 "±1% 이내"는 글자 그대로는 넘는다 — 잔타의 게임 정지가 연출 정지로 바뀐 만큼 진행이 빨라졌고, 같은 시드도 정지 시간이 달라지면 난수 순서가 갈라져 ±2% 안팎은 잡음이다. 진행을 정하는 게임 정지 시간(10분당)은 검신 9.6→9.2초·45.9→30.7초, 검사 1.7→2.2초·12.0→9.4초 (검사 Lv1 만 +0.5초 = 시간의 0.08%, `MASTERY_VIS` 바닥 때문). 이득을 받아들일지 사용자 확인 대기 (2026-10-14).
+- [x] ⑤-0: fps — 같은 탭에서 tick+render 900프레임 평균: 견습 평타 1.33→1.29ms, 검사 평타 1.52→1.38ms, 강철 베기 ★ 1.72→1.51ms, ★★★ 1.82→1.71ms. (처음엔 +1ms 늘었다 — 기사 보조 캔버스가 CPU 캔버스라 GPU 시트를 그릴 때마다 읽어 왔다. CPU 사본을 따로 두어 해결.) 레이드 4인·궁극기 동시 측정은 텍스처가 늘어나는 ⑤-1 부터 한다 (2026-10-14).
+- [x] ⑤-0: 하단바 규칙 — 강철 베기 Lv1~★★★·평타 캡처에서 하단바 양 끝 80 캔버스 px(= 게임 40px) 밝기 변화 최대 0.007 (전 0.009, 기준 ±0.05) (2026-10-14).
 - [ ] 판정이 "교체·부분 교체"인 항목은 바꾼 뒤 전후 비교 캡처가 있다 (같은 파일 이름에 `-after`).
 - [ ] 퀄업한 스킬·평타의 이펙트 그림이 텍스처다 — 바꾼 함수 안에 `fillRect` 파티클 터뜨리기·`createRadialGradient`·`createLinearGradient`·`shadowBlur` 가 주된 그림으로 남아 있지 않다 (코드 검색으로 확인, 작은 보조 불티만 예외).
 - [ ] 같은 1차 계열의 2차 직업끼리, 그리고 2차↔3차 평타끼리 나란히 놓았을 때 **흑백으로 봐도** 구분된다 (`family-*-gray.png` 를 패치마다 다시 찍음).
@@ -555,7 +561,46 @@
 - 2026-10-13: **사용자 확정** (로드맵 세션 창에서 "확정해"). 확정 범위: 이펙트 그림은 전부 PixelLab 텍스처, 판정 스킬 교체 31·부분 교체 9 / 평타 교체 28·부분 교체 1, 텍스처 121장·약 535회, 순서 ⑤-0 → 마법사 → 창기사 → 레인저 → 검사, ⑤-0 항목(시트 로더·연출 정지·`MASTERY_VIS` 바닥·피격 번쩍임 줄이기). 생성 도구는 ComfyUI 비교 뒤 따로 정한다.
 - 2026-10-13: **사용자 지시로 재개정** (확정 → 개정 중). "H1 명중을 전부 돌려쓰기엔 너무 재탕, 평타는 평타에 어울리는·스킬은 스킬마다 어울리는 피격 이펙트가 있다". 평타 명중을 직업마다 하나(H01~H29), 스킬 명중을 스킬마다 하나(K01~K40, 궁극기 막타 포함)로 나눴다. 공용 C 는 배경 부품 7장만 남기고, 초승달·X 베기·폭발·빛기둥·섬광·불꽃·얼음·낙뢰는 각 스킬의 E·K 로 옮겼다 (강철 초승달 E43 추가). 시험 H1 → H02(검사), C1 → E43(강철 베기). 텍스처 121 → 167장, PixelLab 약 535 → 약 740회 (Tier 1 한 달 안).
 - 2026-10-13: **사용자 확정** (로드맵 세션 창에서 "확정해") — 명중 분리 재개정판. 평타 명중 H01~H29(직업마다), 스킬 명중 K01~K40(스킬마다, 궁극기 막타 포함), 공용 C 는 배경 7장, 텍스처 167장, PixelLab 약 740회.
+- 2026-10-14: **⑤-0 구현** (impl-vfx0). 공통 기반 `src/vfx-tex.js`(시트 로더·다시 칠하기·연출 정지), `MASTERY_VIS` 바닥, 피격 번쩍임 0.04초·알파 0.45, 잔타 → 연출 정지. 첫 텍스처 6장(W1·W2·H01·H02·E43·K01, 새로 뽑은 것 W2·H01·K01, PixelLab 13회)을 견습 기사·검사 평타와 강철 베기에 넣었다. 수용 기준: 명중 프레임 `hitstop 0`·연출 정지 0.033초, 번쩍임 전후 캡처, 10분 사냥 골드 손실 없음(이득 +0.2~3.1%, 게임 정지 시간 감소), fps 같거나 빠름, 하단바 양 끝 밝기 0.007. 검토 갤러리 "⑤-0 본작업" 절. 사용자 확인 대기.
+### ⑤-0 본작업 (2026-10-14, 사용자 확인 대기)
+
+**만든 것**
+- `src/vfx-tex.js` (새 파일, index.html 에서 skills.js 뒤에 불러옴):
+  - 시트 로더: `src/vfx/<번호>.png` (가로로 프레임을 이어 붙인 한 장). 불러올 때 밝기를 5단 램프로 양자화(밝기 0.2 미만 = 외곽선 `#0b0d14`), 그릴 때 직업 색 램프 [색×0.4 → 색 → 흰색] 로 다시 칠해 색마다 캐시한다. 그리기는 nearest, 1도트 = `PX/2`, 배율은 2/3·1·4/3·2 (화면 배율 2배에서 기기 정수 px). `vfxDraw`(한 프레임, 회전·좌우·상하 반전·늘림·바닥 기준), `texFx`(skfx 에 얹어 한 번 재생 — 히트스톱과 같이 멈춘다).
+  - 기사 보조 캔버스(CPU)에 그릴 때는 CPU 사본 시트를 쓴다 (GPU→CPU 읽기로 프레임당 ~1ms 늘던 것).
+  - 연출 정지 `visStop(stop)` / `fxHoldSkip()` (위 "연출 정지" 참고).
+  - 평타: 무기 → 궤적 시트 `VFX_WEAPON` (장검·기사검 = W1·W2), 직업 → 명중 시트 `VFX_BASIC_HIT` (견습 기사 H01, 검사 H02). 휘두르기는 W1 키 그림 한 장을 칼끝 62% 지점에 얇게(세로 60%), 올려베기는 상하 반전, 명중 순간 0.12초 동안 늘이며 흐려진다 (시험 v2 그대로). 찌르기는 W2 를 칼끝 앞에. 명중은 맞은 대상 위에 H 시트, 치명은 4/3배.
+- `src/world.js` (최소 수정): `hitMonster` 피격 번쩍임 0.08/0.13 → **0.04/0.07초**, `drawMonster` 는 원래 그림 위에 흰 실루엣을 **알파 0.45** 로 덧그림(처치 순간 흰 번쩍임은 그대로). `releaseAttack`·화살 착탄에서 `vfxBasicHit`. `drawCutSmear` 첫 줄 `vfxSmear`. `update` 첫 줄 `fxHoldTick`, `render` 첫 줄 `fxHoldSkip`. `drawKnight`·`drawHero` 에 잔상 좌표 기록 두 줄.
+- `src/skills.js` (최소 수정): `MASTERY_VIS` [0.7, 0.85, 1, 1.2], `MASTERY_FADE` Lv1 회색 25%. `impact` 가 `impactSoft` 면 연출 정지. `autoHitFx` 는 스킬에 `hitTex` 가 있으면 그것만 그린다 (벡터 `hitFx`·검흔·파편 대신). 강철 베기: `crescentFx` → E43 (Lv1 2/3배, ★ 의 검풍은 E43 이 110px 날아감), `hitTex` = K01 (Lv1 앞 3프레임 2/3배, 잔타 2/3배, 한 방 1배, ★★★ 천강검 4/3배 + 금빛).
+- 시트 6장 (`src/vfx/`): W1·H02(=시험 H1)·E43(=시험 C1) 은 시험 시트 그대로, **W2·H01·K01 은 새로 뽑음** (`dev/vfx0/`: 요청 json·원본·정리본). 정리 도구: `dev/pixellab/sheet.py`(애니 프레임 → 시트, 반투명·배경판·작은 덩어리 지우기), `sheet-view.py`(확대 미리보기). H01 애니의 3·4번째 프레임은 흰 막대 찌꺼기를 지웠다.
+- 개발 도구: `dev/vfx0/cap.js`(전후 캡처·프레임 비용), `hunt.js`(10분 사냥 골드·게임 정지 시간), `preset.js`(실제 게임 확인 상태), `montage.py`(캡처를 한 장으로).
+
+**재현 설정** (`dev/vfx0/*-key.json`·`*-anim.json`)
+
+| 시트 | 키 그림 (`create-image-pixen`, 32×32, selective outline, medium detail, side, no_background, remove_complex_background) | 애니메이션 (`animate-with-text-v3`) |
+|---|---|---|
+| H01 | seed 3 (`h01d`): "a single short slash cut mark, one diagonal stroke … three pixels thick in the middle, sharp pointed tips, pure white center with light grey rim, two tiny white sparks … no cross, no star" | 4프레임 seed 9 → 키 + 앞 3프레임 (3·4번째는 찌꺼기 정리) |
+| K01 | seed 31 (`k01b`): "heavy blade impact burst on the ground, bright white flash at the bottom center, jagged steel blue metal shards … in a wide fan, a flat white shock line along the ground … no sword, no weapon" | 4프레임 seed 8 → 키 + 4프레임 |
+| W2 | seed 5 (`w2b`): "horizontal sword thrust motion blur, a long thin straight band of speed lines pointing right, tapering to a sharp needle point … no arrow, no arrowhead" → 32×12 로 잘라 냄 | 없음 (키 그림 + 코드 재생) |
+
+- 탈락: H01 첫 시도(1px 선, 너무 약함)·b(X 자 + 가지)·c(8갈래 별 = 검사 H02 와 겹침)·e(칼 모양), K01 첫 시도(칼이 꽂힌 그림)·c(주황 섞인 둥근 폭발), W2 첫 시도·c(화살촉 모양).
+- **PixelLab 사용량: 13회** (키 그림 11 + 애니 2, 이번 작업 상한 120회). 같은 달 권투가 세션과 함께 쓰므로 잔량 차이로는 셀 수 없어 호출 수로 셌다. ComfyUI 시안은 이번 6장이 적어 쓰지 않았다.
+
+**확인 방법**
+- 시뮬레이터: `dev/skills.html?mode=basic&cls=squire` · `?mode=basic&cls=swordsman` · `?cls=swordsman&skill=steelCleave&stage=0~3` (시험 패치 `?patch=vfx-trial` 은 이제 쓰지 않는다 — 게임 코드에 들어가 겹쳐 그려진다).
+- 실제 게임: `index.html?server=http://127.0.0.1:9` (dev-testing.md 대로 계정 넣고 8초 뒤) → 콘솔:
+  ```js
+  await new Promise((ok) => { const s = document.createElement('script'); s.src = 'dev/vfx0/preset.js?t=' + Date.now(); s.onload = ok; document.body.appendChild(s); });
+  vfx0Preset('swordsman', 1)   // 검사, 강철 베기 ★, 스테이지 12 원정 시작. 'squire' 면 견습 기사, 둘째 값 0~3 = 숙련 단계
+  ```
+- 측정: 같은 페이지에서 `dev/vfx0/hunt.js` 를 불러 `await hunt({ cls: 'swordsaint', stage: 3, seed: 1 })` (옛 코드는 `git archive 6465495` 를 다른 포트로 띄워 같은 시드로).
+- 캡처: `dev/skills.html` 에서 `dev/vfx0/cap.js` 를 불러 `capSeq('swordsman', 'after', 0)`·`capSkill('swordsman', 'steelCleave', 1, 'after')` → 받는 쪽 `dev/shot-recv.py` (`CAP_PORT`) → `python -I dev/vfx0/montage.py` 로 한 장.
+
+
 ## 남은 일 / 미정
 - [x] 생성 도구 결정 (2026-10-14 사용자): **섞어 쓰기** — 최종 텍스처는 PixelLab(Tier 1 결제, 월 2,000회), 시안 대량 생성은 ComfyUI(Z-Image, 로컬 무제한). 기록은 art-upgrade.md "로컬 생성(ComfyUI) 시험".
-- ⑤-0 착수 때: 시트 로더 설계(램프 양자화·다시 칠하기·회전), 연출 정지 구현안 (가)/(나) 선택, `MASTERY_VIS` 바닥.
 - [x] 0.21 [vfx-rule-fixes.md](vfx-rule-fixes.md) 구현 끝 (2026-10-14, 배포 전) — "전체에 걸친 문제" 4번·"버그" 절에 표시했다. 조사표의 공허궁·검신 행 메모는 고치기 전 상태 기록이라 그대로 둔다.
+- [x] ⑤-0 착수 때: 시트 로더 설계(램프 양자화·다시 칠하기·회전), 연출 정지 구현안 (가)/(나) 선택, `MASTERY_VIS` 바닥 — 2026-10-14 구현 (위 "⑤-0 본작업").
+- ⑤-0 사용자 확인: 평타·강철 베기 감성, 명중 크기(K01 잔타 2/3·한 방 1·★★★ 4/3), 피격 번쩍임 0.04초·알파 0.45, 잔타 연출 정지로 생긴 진행 이득(+2~3%) 받아들일지.
+- ⑤-0 에서 넘긴 것: C 공용 7장은 처음 쓰는 계열 패치에서 뽑는다 (강철 베기 ★ 의 `ringFx` 고리·★★ 대검·바위 송곳·★★★ 하늘 검·분화구는 ⑤-4 E01·C3·C7 때). 성기사 평타 W1 재칠 + H06 은 ⑤-4. 원거리 착탄 명중 그림은 ⑤-3. 결투·레이드의 다른 기사도 W1·W2 궤적은 나오지만 명중 뒤 늘어나는 잔상과 명중 그림은 내 기사만.
+- `dev/review/vfx-trial.js` 시험 패치는 게임 코드와 겹치므로 더 쓰지 않는다 (기록용으로 남김).
