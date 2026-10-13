@@ -87,13 +87,13 @@ function migrate(o) {
     s.gold += refund;
     s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·수완으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
   }
-  // 훈련(1차)이 Lv 50 에서 끝난다 (2차는 교관 수련): 50 을 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다
+  // 훈련(1차) 한도 TRAIN_MAX 를 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다 (교관 수련을 켜면 50, 끄면 200 이라 사실상 할 일 없음)
   let over = 0;
   for (const u of TRAINING) {
     for (let i = TRAIN_MAX; i < (s.train[u.id] || 0); i++) over += Math.floor(u.base * Math.pow(u.grow, i));
     s.train[u.id] = Math.min(TRAIN_MAX, s.train[u.id] || 0);
   }
-  // 훈련장 최대 Lv 이 10 으로 내려갔다: 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
+  // 훈련장 최대 Lv(교관 수련이 켜져 있으면 10)을 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
   const back = { gold: 0, wood: 0, ore: 0, mana: 0 };
   const addBack = (c) => { for (const k of Object.keys(back)) back[k] += c[k]; };
   if (s.build && s.build.id === 'training' && s.bld.training >= bldMax('training')) { addBack(buildCost('training', s.bld.training)); s.build = null; }

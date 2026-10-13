@@ -453,6 +453,7 @@ function trainGain(u, st = stats(), nx) {
 
 // 훈련장을 골랐을 때 건물 카드 아래에 붙는 훈련 칸 (옛 훈련 탭)
 function viewTraining() {
+  if (!MENTOR_ON) return viewTrain1();
   if (!trainDone()) return viewTrain1() + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — 1차 훈련 네 가지를 Lv ${TRAIN_MAX} 까지</span></div>`;
   const done = `<div class="chips"><span class="chip">✅ 1차 훈련 수료 · ⚔️ 맨몸 공격 ${fmt(trainAtkAt(TRAIN_MAX))} · 🛡️ 체력 ${fmt(trainHpAt(TRAIN_MAX))} · 방어 -${(defRedAt(TRAIN_MAX) * 100).toFixed(1)}% · 💰 수완 +${Math.round(TRAIN_MAX * FORTUNE_PER_LV * 100)}%</span></div>`;
   if (!mentorOpen(0) && !mentorDone(0)) return done + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — ${mentorLock(0)}</span></div>`;
@@ -518,7 +519,7 @@ function viewTrain1() {
   const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u));
   return `
     <div class="shead">
-      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — 초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요</small></h3>
+      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — ${MENTOR_ON ? '초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요' : '초반을 끌어 주고, 중후반 힘은 장비가 책임져요'}</small></h3>
       <button class="btn${rd(TRAINING.some(canTrain))}" data-action="train-all" ${anyTrain ? '' : 'disabled'}>${ico('bolt')} 골고루 올리기</button>
     </div>
     <div class="tgrid">${cards}</div>`;
