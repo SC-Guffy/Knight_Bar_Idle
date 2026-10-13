@@ -37,7 +37,7 @@ const TOME_SPR = [
   '.bJBBBBGBBBBBbWw',
   '.bJBBBGCGBBBBbWw',
   '.bJBBGCCCGBBBbWw',
-  '.bJBGCCWCCGBBbWw',
+  '.bJBGCCWCCGBBGGg',
   '.bJBBGCCCGBBBbWw',
   '.bJBBBGCGBBBBbWw',
   '.bJBBBBGBBBBBbWw',
