@@ -332,13 +332,31 @@ function starSlot(W, k) {
 }
 // n: 지금 보이는 별 수 · pulse: 다음 칸 두근거림(0~1) · pop: { k, age } 막 박힌 별
 function drawStarBar(g, W, n, t, pulse, pop) {
-  const z = starSlot(W, 0);
+  const z = starSlot(W, 0), hot = pop && pop.age < 1.4;
+  g.save();
+  // 박히는 순간 별 칸 줄 전체가 쿵 하고 커졌다 돌아온다
+  if (hot) { const b = 1 + (pop.big ? 0.28 : 0.2) * Math.exp(-pop.age * 9); g.translate(W / 2, 20); g.scale(b, b); g.translate(-W / 2, -20); }
   msR(g, z.x0 - 8, 5, z.total + 16, z.sw + 10, 'rgba(10,8,20,.6)');
+  // 박힌 칸 뒤의 빛줄기 (돌아가며 사라진다)
+  if (hot && pop.age < 1.1) {
+    const c = starSlot(W, pop.k), fade = 1 - pop.age / 1.1, len = (pop.big ? 120 : 90) * (0.6 + 0.4 * fade);
+    g.save(); g.translate(c.x, c.y); g.rotate(pop.age * 2.4); g.globalAlpha = 0.45 * fade;
+    for (let r = 0; r < 12; r++) { g.rotate(Math.PI / 6); g.fillStyle = r % 2 ? '#fff1b0' : '#ffd257'; g.beginPath(); g.moveTo(0, 0); g.lineTo(len, -8); g.lineTo(len, 8); g.closePath(); g.fill(); }
+    g.restore();
+  }
   for (let k = 0; k < MENTOR_STARS; k++) {
     const c = starSlot(W, k), fin = k === MENTOR_STARS - 1;
     if (k < n) {
-      const sc = pop && pop.k === k && pop.age < 0.3 ? 1 + 0.7 * (1 - pop.age / 0.3) : 1;
+      // 막 박힌 별: 크게 들어와 출렁이며 자리 잡는다
+      const sc = pop && pop.k === k && pop.age < 1 ? Math.max(0.7, 1 + (pop.big ? 2.8 : 2.2) * Math.exp(-pop.age * 6) * Math.cos(pop.age * 16)) : 1;
+      if (sc > 1.05) drawStarC(g, c.x, c.y, MS_SS * sc * 1.2, '#b8860b');
       drawStarC(g, c.x, c.y, MS_SS * sc, fin ? '#fff1b0' : '#ffd257');
+      if (pop && pop.k === k && pop.age < 0.12) drawStarC(g, c.x, c.y, MS_SS * sc * 0.6, '#ffffff');
+      // 반짝임 (박힌 뒤 잠깐)
+      if (pop && pop.k === k && pop.age > 0.2 && pop.age < 1.4) for (let q = 0; q < 4; q++) {
+        const ph = pop.age * 7 + q * 1.7, on = Math.sin(ph) > 0.3;
+        if (on) { const ax = c.x + Math.cos(q * 1.9 + 0.5) * 22, ay = c.y + Math.sin(q * 2.3 + 0.2) * 14; msR(g, Math.round(ax) - 3, Math.round(ay), 7, 1, '#ffffff'); msR(g, Math.round(ax), Math.round(ay) - 3, 1, 7, '#ffffff'); }
+      }
     } else {
       drawStarC(g, c.x, c.y, MS_SS, fin ? '#5a2a34' : '#33304a');
       if (k === n) {
@@ -347,6 +365,7 @@ function drawStarBar(g, W, n, t, pulse, pop) {
       }
     }
   }
+  g.restore();
 }
 function msFont(px, bold) { return `${bold ? 800 : 400} ${px}px Galmuri11, -apple-system, sans-serif`; }
 // 말풍선 (n 글자까지 — 타자 치듯)
@@ -406,10 +425,10 @@ function msBurst(a, x, y, n, cols, spd, o = {}) {
     const ang = o.up ? -Math.PI / 2 + (Math.random() - 0.5) * (o.spread || 2.4) : Math.random() * Math.PI * 2, v = spd * (0.45 + Math.random() * 0.55);
     const life = (o.life || 0.5) * (0.6 + Math.random() * 0.6);
     a.parts.push({ x, y, vx: Math.cos(ang) * v + (o.vx || 0), vy: Math.sin(ang) * v, g: o.g == null ? 420 : o.g, life, max: life,
-      s: (o.size || 3) * (0.7 + Math.random() * 0.6), col: cols[i % cols.length], kind: 'sq' });
+      s: (o.size || 3) * (0.7 + Math.random() * 0.6), col: cols[i % cols.length], kind: 'sq', ui: !!o.ui });
   }
 }
-const msRing = (a, x, y, col, r1 = 70, life = 0.35) => a.parts.push({ x, y, vx: 0, vy: 0, g: 0, life, max: life, s: r1, col, kind: 'ring' });
+const msRing = (a, x, y, col, r1 = 70, life = 0.35, ui = false) => a.parts.push({ x, y, vx: 0, vy: 0, g: 0, life, max: life, s: r1, col, kind: 'ring', ui });
 const msDust = (a, x, y, n = 7) => msBurst(a, x, y, n, ['#c9b896', '#a8987a', '#e2d6bc'], 70, { up: true, spread: 2.8, g: -30, life: 0.55, size: 4 });
 function msConfetti(a, W, n) {
   const cols = ['#ffd257', '#ff6b6b', '#7af0ff', '#9fd49a', '#c9a7ff', '#ffffff'];
@@ -422,8 +441,10 @@ function msStepParts(a, dt) {
   for (const p of a.parts) { p.life -= dt; p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.kind === 'conf') p.ph += dt * 9; }
   a.parts = a.parts.filter((p) => p.life > 0);
 }
-function msDrawParts(g, a) {
+// ui: 화면 위 층(별 칸 위)에 그릴 입자만 / 아니면 무대 층
+function msDrawParts(g, a, ui = false) {
   for (const p of a.parts) {
+    if (!!p.ui !== ui) continue;
     const k = p.life / p.max;
     if (p.kind === 'ring') {
       const r = p.s * (1 - k * k);
@@ -504,12 +525,8 @@ function mentorPlayTry(i, r) {
       msBurst(a, Math.round(P.W * 0.47), 96, 16, ['#fff1b0', '#ffd257', '#ffffff'], 150, { g: 60, life: 0.6 });
     });
     msCue(a, R + 1.45, (a, W, H, P) => {
-      msHit(a, 0.09, 6, '#fff1b0');
-      a.stars = a.star; a.slotPop = { k: a.star - 1, at: a.lt }; a.bigStar = null;
-      const c = starSlot(W, a.star - 1);
-      msRing(a, c.x, c.y, '#ffe9a0', 46, 0.4); msRing(a, c.x, c.y, '#ffffff', 26, 0.25);
-      msBurst(a, c.x, c.y, 20, ['#fff1b0', '#ffd257', '#ffffff', '#ffb13b'], 210, { g: 260, life: 0.6 });
-      a.spotT = 0; a.zoomT = 1; a.pulse = 0;
+      msSlam(a, W, a.star - 1, false);
+      a.spotT = 0; a.pulse = 0;
     });
     msCue(a, R + 1.58, (a, W, H) => { msFx(a, { kind: 'banner', text: `★${a.star} 성공!`, y: H * 0.46, col: '#ffe066', size: 28 }); msConfetti(a, W, 30); a.k.hop = a.lt; });
   }
@@ -541,11 +558,7 @@ function msDuelFinish(a, W, H, P) {
     msCue(a, D + 0.45, (a) => msSay(a, a.say));
     msCue(a, D + 0.9, (a, W, H, P) => { a.bigStar = { at: a.lt, x: Math.round(W * 0.47), y: 96, big: true }; a.flash = { col: '#ffe9a0', a: 0.6 }; msBurst(a, Math.round(W * 0.47), 96, 22, ['#fff1b0', '#ffd257', '#ffffff'], 170, { g: 60, life: 0.7 }); });
     msCue(a, D + 1.8, (a, W, H, P) => {
-      msHit(a, 0.12, 8, '#fff1b0');
-      a.stars = MENTOR_STARS; a.slotPop = { k: MENTOR_STARS - 1, at: a.lt }; a.bigStar = null;
-      const c = starSlot(W, MENTOR_STARS - 1);
-      msRing(a, c.x, c.y, '#ffe9a0', 60, 0.5); msRing(a, c.x, c.y, '#ffffff', 34, 0.3);
-      msBurst(a, c.x, c.y, 28, ['#fff1b0', '#ffd257', '#ffffff', '#ffb13b'], 250, { g: 260, life: 0.7 });
+      msSlam(a, W, MENTOR_STARS - 1, true);
     });
     msCue(a, D + 1.95, (a, W, H) => { msHit(a, 0.05, 6); msFx(a, { kind: 'stamp', text: '수료!', x: W * 0.44, y: H * 0.44, col: '#ffe066', size: 34, rot: -0.16 }); msConfetti(a, W, 50); a.spotT = 0; a.k.hop = a.lt; });
     a.end = D + 4.0;
@@ -557,6 +570,16 @@ function msDuelFinish(a, W, H, P) {
     msCue(a, D + 0.75, (a, W, H) => { msHit(a, 0.04, 5); msFx(a, { kind: 'stamp', text: '패배', x: W * 0.44, y: H * 0.42, col: '#ff5a5a', size: 30, rot: -0.2 }); a.spotT = 0; });
     a.end = D + 2.8;
   }
+}
+// 별이 칸에 쾅 박히는 순간 (big: ★5 수료)
+function msSlam(a, W, k, big) {
+  msHit(a, big ? 0.2 : 0.15, big ? 13 : 10, '#fff1b0');
+  a.zoom = big ? 1.15 : 1.1; a.zoomT = 1;
+  a.stars = k + 1; a.slotPop = { k, at: a.lt, big }; a.bigStar = null;
+  const c = starSlot(W, k);
+  for (const [r, col, life] of [[big ? 150 : 115, '#ffd257', 0.65], [big ? 95 : 72, '#fff1b0', 0.5], [big ? 50 : 38, '#ffffff', 0.32]]) msRing(a, c.x, c.y, col, r, life, true);
+  msBurst(a, c.x, c.y, big ? 56 : 40, ['#fff1b0', '#ffd257', '#ffffff', '#ffb13b'], big ? 360 : 300, { g: 240, life: 0.85, size: 5, ui: true });
+  msBurst(a, c.x, c.y, 16, ['#ffffff'], 140, { g: 0, life: 0.55, size: 2, ui: true });
 }
 // 무대를 누르면 끝 장면으로 건너뛴다 (남은 일은 효과 없이 상태만 반영)
 function mentorSkip() {
@@ -648,7 +671,7 @@ function drawMentorStage() {
   const breath = Math.round(Math.sin(t * 2.4) * 0.6);
   if (a) {
     stars = a.stars; pulse = a.pulse;
-    if (a.slotPop) slotPop = { k: a.slotPop.k, age: a.lt - a.slotPop.at };
+    if (a.slotPop) slotPop = { k: a.slotPop.k, age: a.lt - a.slotPop.at, big: a.slotPop.big };
     if (a.bubble) bubble = { text: a.bubble.text, n: (a.lt - a.bubble.at) * 26 };
     const lt = a.lt;
     if (a.kind === 'try') {
@@ -700,11 +723,11 @@ function drawMentorStage() {
   if (a && a.bigStar) {
     const b = a.bigStar, age = a.lt - b.at, fly0 = b.big ? 0.9 : 0.6, flyD = b.big ? 0.35 : 0.3;
     const c = starSlot(W, a.star - 1);
-    let x = b.x, y = b.y + Math.sin(age * 5) * 3, sc = age < 0.18 ? 1.5 * msEase(age / 0.18) : 1.5 - 0.25 * Math.min(1, (age - 0.18) / 0.15);
+    let x = b.x, y = b.y + Math.sin(age * 5) * 3, sc = age < 0.18 ? 2.3 * msEase(age / 0.18) : 2.3 - 0.35 * Math.min(1, (age - 0.18) / 0.15);
     if (b.big) sc *= 1.25;
     if (age >= fly0) {
       const p = Math.min(1, (age - fly0) / flyD), e = p * p;
-      x = b.x + (c.x - b.x) * e; y = b.y + (c.y - b.y) * e; sc = sc * (1 - e) + 1.6 * e;
+      x = b.x + (c.x - b.x) * e; y = b.y + (c.y - b.y) * e; sc = sc * (1 - e) + 2.4 * e;
       a.parts.push({ x: x + (Math.random() - 0.5) * 8, y: y + (Math.random() - 0.5) * 8, vx: 0, vy: 20, g: 0, life: 0.3, max: 0.3, s: 3, col: Math.random() < 0.5 ? '#fff1b0' : '#ffd257', kind: 'sq' });
     } else {
       // 빛줄기 (돌아간다)
@@ -723,6 +746,7 @@ function drawMentorStage() {
   // 화면 위에 붙는 것: 말풍선 · 별 칸 · 글자 효과 · 번쩍
   if (bubble) drawBubble(g, bubble.text, mx - 30, gy - MS_H * MS_CELL - 14, W, bubble.n);
   drawStarBar(g, W, stars, t, pulse, slotPop);
+  if (a) msDrawParts(g, a, true);
   if (a) for (const x of a.fx) drawFxText(g, x, W, H);
   if (a && a.flash) { g.globalAlpha = Math.max(0, Math.min(1, a.flash.a)) * 0.85; msR(g, 0, 0, W, H, a.flash.col); g.globalAlpha = 1; }
 
