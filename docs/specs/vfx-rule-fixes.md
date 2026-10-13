@@ -36,6 +36,7 @@
   - `localFlash(x, y, r, alpha, rgb)`: 원형 radial 섬광. 바깥 30% 는 0 으로 서서히 줄어든다.
   - `dimSpan(x0, x1, alpha, rgb, feather = 24)`: 가로 구간 [x0, x1] 만 하단바 높이로 덮는다. 좌우 feather px 는 서서히 0.
 - 알파 최댓값·지속 시간은 지금 값을 그대로 쓴다. 범위만 줄인다.
+- 이 두 도구는 **임시**다. [CLAUDE.md](../../CLAUDE.md) 지침상 섬광 그림은 PixelLab 텍스처로 그린다. 0.21 은 범위를 줄이는 규칙 위반 수정만 하고, 섬광 그림은 VFX 퀄업([skill-vfx.md](skill-vfx.md) ⑤)의 성광·폭발 시트가 생기면 그것으로 바꾼다. `dimSpan` 의 어둡게 하기는 그림이 아니라 화면 덮개라 그대로 남긴다.
 - 결투·레이드에서도 같은 함수를 쓴다 (`dimBand` 를 쓰는 곳만 바꾸므로 따로 손댈 것 없음).
 - 궁극기(src/ult/*.js)의 `dimBand` 는 규칙상 허용이라 이번에 건드리지 않는다.
 
