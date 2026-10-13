@@ -79,12 +79,13 @@ function mulberry32(seed) {
 }
 const round1 = (n) => Math.round(n * 10) / 10;
 
-// 클라이언트 data.js 의 monsterStats(필드 보스) 와 같은 기준
+// 클라이언트 data.js 의 monsterStats(필드 보스) 와 같은 기준 (MOB_*_GROW 도 data.js 와 같아야 함 — 시즌6 에서 1.23·1.17 → 1.221·1.165)
+const MOB_HP_GROW = 1.221, MOB_ATK_GROW = 1.165;
 function bossStats(id, n) {
   const b = RAID_BOSSES[id], s = soloStage(b) - partyGap(n);
   return {
-    hp: 14 * Math.pow(1.23, s - 1) * 7.5 * b.hp * CC_HP,
-    atk: 3 * Math.pow(1.17, s - 1) * 1.68 * b.atk,
+    hp: 14 * Math.pow(MOB_HP_GROW, s - 1) * 7.5 * b.hp * CC_HP,
+    atk: 3 * Math.pow(MOB_ATK_GROW, s - 1) * 1.68 * b.atk,
   };
 }
 
@@ -245,4 +246,5 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
   };
 }
 
-module.exports = { RAID_BOSSES, MAX_PARTY, simulateRaid, simulateBossFight, mulberry32 };
+module.exports = {
+  MOB_HP_GROW, MOB_ATK_GROW, RAID_BOSSES, MAX_PARTY, simulateRaid, simulateBossFight, mulberry32 };

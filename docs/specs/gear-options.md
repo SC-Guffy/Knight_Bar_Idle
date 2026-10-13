@@ -1,6 +1,6 @@
 # 장비 강화 옵션 · 등급 희소성 · 재굴림권 (시즌6)
 
-- 상태: 진행 중 (구현·검증 완료, 밸런스 보정 여부 결정 대기)
+- 상태: 완료
 - 브랜치: `season6` (worktree `../knight-bar-season6`) — main 은 라이브 패치, 시즌6 시작 때 머지
 - 관련 코드: src/data.js (GRADES, RAID_BOSSES.chest, ENCHANT_OPTS, SUPPLIES), src/gear.js (rollLoot, gearBonus, enchantGear), src/raid.js (openRaidChest, claimRaidChest), src/worldboss.js (wbReward), src/core.js (rollGrade, stats, rewardKill), src/ui.js (viewForge, 장비 상세)
 - 최종 갱신: 2026-10-13
@@ -141,8 +141,13 @@
 - 2026-10-13: 초안. season6 브랜치/worktree 생성. 사용자 확인 — 마법부여대는 재굴림대로, 이대로 진행.
 - 2026-10-13: 구현. data.js(GEAR_OPTS·OPT_*·GRADE_FROM·레이드 상자 w·reroll 보급품·RARE_DROP), gear.js(rollOptLines·activeOpts·rerollLine·pickReroll, claimLoot 에서 줄 굴림), core.js(gearV 8 이행·staDrain·bossStones·skillPow×스킬 피해·profile bossDmg/exec), world.js(hitMonster 옵션·귀환 속도), raid.js·worldboss.js(희귀 드랍·재화 옵션), server(raid.js 보스 피해·처형, index.js sanitize), ui.js·index.html(옵션 줄·★·재굴림대). 물약은 항상 가득 채워서 '물약 회복량' 쓰레기 옵션을 '물약 아낄 확률'로 바꿈.
 
+- 2026-10-13: 사용자 결정 — "성장 곡선을 낮춰 보정, 시간은 지금(시즌5) 정도". 몬스터 체력·공격력 배율을 상수로 빼고(data.js MOB_HP_GROW·MOB_ATK_GROW, server/raid.js 같은 값) 1.23·1.17 → 1.221·1.165.
+  진행 봇 14일·12시드 중앙값 (main → season6 보정 후): 최종 137 → 139, 스테이지 60 24.3h → 28.3h, 100 96h → 112h, 120 194h → 206h. 희귀·영웅이 늦게 열려 중반이 조금 느리고 끝은 비슷.
+
+## 7. 성장 곡선 보정
+- 몬스터(필드·미궁·레이드·월드 보스 공격력) 스테이지당 배율: 체력 ×1.221, 공격력 ×1.165 (시즌5 ×1.23 · ×1.17). 골드·경험치 곡선은 그대로.
+
 ## 남은 일 / 미정
-- **밸런스 결정 대기**: 진행 봇 기준 약 1.5배 느려짐 — 의도(시즌 플탐 늘리기)로 둘지, 몬스터 곡선·옵션 수치로 일부 보정할지 사용자에게 물어볼 것.
 - 결투(server/duel.js)는 보스 피해·처형을 쓰지 않는다 (상대가 보스가 아님). 첫 타격 옵션은 레이드·결투에 반영 안 됨.
 - 상태창 대표 능력치 표에 새 옵션(보스 피해 등) 합계 줄은 아직 없다 — 툴팁의 '🎲 옵션 n줄'로만 보임.
 - 고유 장비 이름값 살리기(고유 발동 효과)는 별도 스펙으로.

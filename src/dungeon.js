@@ -68,7 +68,7 @@ function dgTickets() {
 // 던전 보스: 같은 스테이지 몹보다 체력 ×14 · 공격력 ×2.6
 function dgMob(stage, kind) {
   const n = monsterStats(stage, false);
-  if (kind === 'boss') return { hp: 14 * Math.pow(1.23, stage - 1) * 14, atk: 3 * Math.pow(1.17, stage - 1) * 2.6, gold: 0, exp: n.exp * 12, boss: true };
+  if (kind === 'boss') return { hp: 14 * Math.pow(MOB_HP_GROW, stage - 1) * 14, atk: 3 * Math.pow(MOB_ATK_GROW, stage - 1) * 2.6, gold: 0, exp: n.exp * 12, boss: true };
   return { ...n, gold: 0 };
 }
 // 지금 능력치로 보스와 싸우면 잃는 체력(최대 체력 비율)의 기대값

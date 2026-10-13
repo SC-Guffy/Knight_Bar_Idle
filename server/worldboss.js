@@ -1,5 +1,5 @@
 'use strict';
-const { simulateBossFight } = require('./raid');
+const { simulateBossFight, MOB_ATK_GROW } = require('./raid');
 // 월드 보스: 하루(한국 시간 자정 기준)에 한 마리가 나타나고, 서버의 모든 기사가 체력 하나를 함께 깎는다.
 // 기사는 하루 WB_TRIES 번 혼자 도전해 WB_SEC 초 동안 피해를 넣는다 (쓰러지면 거기서 끝). 넣은 피해는 모두 서버에 쌓이고,
 // 날이 바뀌면 각자 넣은 피해 지분만큼 보상을 받는다 (처치했으면 추가 보상). 보상 내용은 클라이언트가 계산한다 (src/worldboss.js).
@@ -50,7 +50,7 @@ const WB_ORDER = ['behemoth', 'hydra', 'sporeking', 'goldmimic', 'voidwyrm', 'hi
 const WB_ROT_DAY = 20736;
 const bossOfDay = (day) => WB_ORDER[(((day - WB_ROT_DAY) % WB_ORDER.length) + WB_ORDER.length) % WB_ORDER.length];
 
-const bossAtk = (id, p) => 3 * Math.pow(1.17, p.best - 1) * 1.68 * 1.6 * WB_ATK * WORLD_BOSSES[id].atk;
+const bossAtk = (id, p) => 3 * Math.pow(MOB_ATK_GROW, p.best - 1) * 1.68 * 1.6 * WB_ATK * WORLD_BOSSES[id].atk;
 
 // 한 번 도전. hp: 지금 남은 체력, max: 최대 체력
 function worldFight(id, p, hp, max, seed) {

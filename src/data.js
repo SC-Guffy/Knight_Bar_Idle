@@ -629,7 +629,7 @@ const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
 // 무기 공격력·갑옷 체력은 절대값이다 — 중후반 성장의 중심. 기본 위력은 착용한 기사의 레벨을 따라 커지고(gearAtkAt·gearHpAt),
 //  등급 stat·편차·강화 배율이 곱해진다. 레벨은 경험치로만 오르고(골드·건물로 못 산다) 내 모든 장비가 같은 레벨을 쓰므로,
 //  같은 부위 장비끼리는 등급이 곧 서열이다 (편차 ±10% 로는 한 등급을 못 넘는다).
-//  레벨마다 공격력 ×GEAR_ATK_GROW · 체력 ×GEAR_HP_GROW — 몬스터(체력 ×1.23 · 공격력 ×1.17 / 스테이지)보다 조금 느려서,
+//  레벨마다 공격력 ×GEAR_ATK_GROW · 체력 ×GEAR_HP_GROW — 몬스터(체력 ×MOB_HP_GROW · 공격력 ×MOB_ATK_GROW / 스테이지)보다 조금 느려서,
 //  레벨만 올라서는 깊이 못 가고 좋은 등급(레이드)·강화가 벽을 넘게 해 준다
 const GEAR_ATK_GROW = 1.2, GEAR_HP_GROW = 1.16;
 // 기본값(0.1 · 1)은 플레이 시간 기준: 0.4 · 4 였을 때보다 같은 지점에 닿는 데 약 2배 걸린다 (다음 시즌 플탐 늘리기, 진행 봇 14일·16회)
@@ -742,9 +742,12 @@ const OLD_TRAINING = { spd: { base: 25, grow: 1.55 }, crit: { base: 30, grow: 1.
 // ───────────────────────── 몬스터 ─────────────────────────
 // 잡몹 체력 배율: 한 방에 녹지 않고 두세 대는 맞고 쓰러지게 (보스 체력은 그대로)
 const MOB_HP_MULT = 3;
+// 스테이지마다 몬스터 체력·공격력 배율 (server/raid.js·worldboss.js 의 MOB_*_GROW 와 같아야 함)
+//  시즌6: 등급 희소성 개편(gear-options)으로 장비가 약해진 만큼 1.23 · 1.17 에서 낮춰 진행 속도를 시즌5 와 맞췄다 (진행 봇)
+const MOB_HP_GROW = 1.221, MOB_ATK_GROW = 1.165;
 function monsterStats(stage, boss) {
-  const hp = 14 * Math.pow(1.23, stage - 1);
-  const atk = 3 * Math.pow(1.17, stage - 1);
+  const hp = 14 * Math.pow(MOB_HP_GROW, stage - 1);
+  const atk = 3 * Math.pow(MOB_ATK_GROW, stage - 1);
   const gold = 2 * Math.pow(1.2, stage - 1);
   const exp = 4 * Math.pow(1.16, stage - 1);
   // 필드 마지막 스테이지의 보스(필드 보스)는 필드마다 넘어야 하는 벽이다: 체력 ×4 · 공격력 ×1.6
