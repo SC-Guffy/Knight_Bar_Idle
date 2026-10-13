@@ -110,6 +110,23 @@
   <div class="ctl" style="margin-top:8px">
     <button class="on" data-mode="">컬러</button><button data-mode="-gray">흑백</button><button data-mode="-sil">실루엣만</button>
   </div>
+  <div class="card hl"><b>7:3 v2 (최신)</b> — 축소 대신 <b>PixelLab <code>generate-with-style-v2</code></b>로 직접 뽑았습니다. 기존 기사 스프라이트 4장(성기사·레인저·대검전사·마법사, 42×42 에 꽉 맞게 자름)을 스타일 참고로 넣어 같은 꼬마 비율·도트 크기·외곽선으로, 한 번에 변형 64장(직업당)을 받아 하나씩 골랐습니다.
+    손 마무리(<code>dev/boxer/finish.py</code>): 재질별 4단 램프 정리 · 바깥 외곽선 <code>#0b0d14</code> 통일 · 발 맞춤. 1·2차 4종은 기존 기사와 키가 같은 42칸판, <b>3차 3종은 64칸판이라 아직 약 1.3배 큽니다</b>(사용량 상한으로 다음에 맞춤). PixelLab 이번 작업 153회 (상한 150 — 3회 초과).</div>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix lu" data-base="lineup-v2-tier2" alt="v2 2차"><figcaption><b>7:3 v2 · 기존 2차와 나란히</b> — 성기사·검성·용기병 + 스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-tier1" alt="v2 1차"><figcaption><b>7:3 v2 · 1차</b> — 견습 기사·검사·레인저·마법사 + 파이터</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v1-v2" alt="판 비교"><figcaption><b>판 비교</b> — 직업마다 왼쪽부터 고퀄 / 7:3 v1(3단 정리) / <b>7:3 v2</b>. 파이터·스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-family" alt="v2 같은 계열"><figcaption><b>7:3 v2 · 같은 계열 2차 3종</b> — 흑백·실루엣 버튼으로 색깔놀이 확인</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-lines" alt="v2 2→3차"><figcaption><b>7:3 v2 · 2차→3차</b> — 3차는 64칸판이라 큼</figcaption></figure>
+  </div>
+  <h3>7:3 v2 변형 64장 (1·2차, 고른 것: 파이터 0 · 스트라이커 0 · 킥복서 16 · 기공사 0, 왼쪽 위부터 0)</h3>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix" src="../boxer/v2/_k-fighter.png" alt=""><figcaption>파이터</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-striker.png" alt=""><figcaption>스트라이커</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-kickboxer.png" alt=""><figcaption>킥복서</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-qigong.png" alt=""><figcaption>기공사 — 공격·기 모으기 자세도 많아 키 자세 후보로 쓸 수 있다</figcaption></figure>
+  </div>
+  <h3>이전 판 (7:3 v1 · 고퀄)</h3>
   <div class="card" style="border-color:var(--red)"><b>사용자 의견 반영</b>: "퀄리티가 너무 높아졌다, 픽셀 느낌" · "기존 7 : 현재 3" · "스트라이커는 원본 자체가 별로" · "픽셀 뭉개지는 현상만 잡아서".
     <b>7:3 판</b> (<code>dev/boxer/stylize.py</code>, PixelLab 추가 사용 없음): 고퀄 판을 <b>64 해상도 그대로</b> 두고 ① 재질별 3단 정리(색상 계열마다 밝기 3단의 평평한 면 — 기존 기사와 같은 칠) ② 외톨이 점 제거 ③ 게임과 같은 바깥 외곽선.
     처음 시도한 절반 축소 + EPX 는 얼굴·선이 뭉개져서 버렸습니다. 스트라이커는 프롬프트를 고쳐(매서운 성인 복서) 시안 12장을 새로 뽑고 111번으로 바꿨습니다.</div>
@@ -179,7 +196,7 @@
   <div class="card"><ul>
     <li>스펙 요지(주 기술 + 투지 구조, 충전 시작안, 스킬 10종, 시트·이펙트 규격)를 이대로 확정할지.</li>
     <li><b>그림체 선택</b> (5절 세 판 비교): ② 7:3 판으로 갈지, 비율을 더 옮길지(예: 8:2 / 6:4). 고칠 직업이 있으면 ComfyUI 시안에서 다른 번호를 고르거나 더 뽑습니다.</li>
-    <li><b>PixelLab Tier 1 결제</b> ($12/월, 2,000회): 본 생산에 필요. 체험판 잔량 3.9회.</li>
+    <li>PixelLab Tier 1 잔량 1,847회 (VFX 몫 약 740회 포함).</li>
   </ul></div>
 </main>
 
@@ -407,11 +424,11 @@ for (const [cls, pick] of Object.entries(PICK)) {
 
 // ───────── 수용 기준 ─────────
 const ACC = [
-  ['기준 그림 그림체가 기존 7 : 새 3 (5절 세 판 비교)', 'mid', '7:3 판 7종 — 사용자 선택 대기'],
+  ['기준 그림 그림체가 기존 7 : 새 3 (5절 7:3 v2)', 'mid', 'v2 7종 (1·2차 키 맞춤) — 사용자 선택 대기'],
   ['2차·3차 3종이 흑백·실루엣으로도 구분된다 (5절)', 'mid', '최종 7종 라인업 — 사용자 확인 대기'],
   ['평균 시전 간격·스킬 DPS 가 같은 차수 범위 안 (3절, 1마리)', 'ok', '시작안 모의 실험 — 구현 뒤 진행 봇·duel-balance 로 다시 측정'],
-  ['PixelLab 사용량 상한 안 (1차 시험 15회 · 기준 그림 15회)', 'ok', '1차 시험 6회 + 기준 그림 약 12회 (20.9 → 3.9). 32×32 직접 도트화 시험 2회(1회는 저장 오류로 날림)·스트라이커 다시 뽑기 2회 포함'],
-  ['7:3 판에서 픽셀이 뭉개지지 않는다', 'mid', '64 그대로 재질별 3단 정리로 바꿈 — 사용자 확인 대기'],
+  ['PixelLab 사용량 상한 안 (Tier 1 기준 그림 150회)', 'mid', 'Tier 1 에서 153회 (3회 초과). 그 전 체험판에서 시험 6회 + 기준 그림 약 12회'],
+  ['7:3 판에서 픽셀이 뭉개지지 않는다', 'mid', 'v2 는 직접 생성이라 축소 뭉개짐 없음 — 사용자 확인 대기'],
   ['이펙트 그림이 전부 텍스처 (목록 48장)', 'mid', '목록만 — 생산은 Tier 1 결제 뒤'],
   ['규칙·밸런스·렌더링 수용 기준 (스펙 본문)', 'no', '구현 전 (이번 세션은 스펙만)'],
 ];
