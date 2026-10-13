@@ -60,16 +60,20 @@ const TOWER_ENRAGE_DOUBLE = 2.5;
 //  입장권은 하루 TOWER_TICKETS 장 — 도전 입장 또는 소탕(입장 없이 최고 층 수만큼 📖)에 1장씩 (tower.js)
 //  숙련도는 스킬 하나 Lv30 에 239권 — 최고 15층이면 하루 소탕 15 + 등반 35권
 const TOWER_TICKETS = 3;
-// 탑 입장권 추가 구매 (tower.js buyTowerTicket). 입장권 1장 ≈ 소탕 한 번(최고 층 수만큼 📖)이라 레이드 입장권보다 훨씬 비싸게.
-//  골드 기준값 = 최고 스테이지 몬스터 골드 × TOWER_TICKET_GOLD. 원정은 약 6초에 1마리 → 몬스터 골드 × 300 ≈ 사냥 30분치 (골드 보너스 제외)
-//  오늘 n번째 구매 배율: 0.5(15분) → 1(30분) → 2(1시간) → 3.5(1시간 45분) → 6(3시간) → 그 뒤 × 1.7씩
-//  → 하루 2~3장은 사냥 골드로 무리 없이, 4장째부터는 확 부담스러워진다. 마력석은 두 번째 구매부터
-//  산 입장권은 자정에 사라지지 않고 TOWER_TICKET_HOLD 장까지 모아 둘 수 있다 (무료 입장권을 먼저 쓴다)
+// 탑·미궁 입장권 추가 구매 (tower.js buyTowerTicket · dungeon.js buyDgTicket). 골드만 든다 (docs/specs/ticket-buy.md).
+//  가격 = 최고 스테이지 몬스터 골드 × 기준값(TOWER_TICKET_GOLD · DG_TICKET_GOLD) × subTicketMult(오늘 n번째 구매)
+//  원정은 약 6초에 1마리 → 몬스터 골드 × 300 ≈ 사냥 30분치 (골드 보너스 제외). 탑은 30분치, 미궁은 한 판 보상이 커서 1시간치
+//  오늘 n번째 구매 배율: 0.5 → 1 → 2 → 3.5 → 6 → 그 뒤 × 1.7씩 → 하루 2~3장은 사냥 골드로 무리 없이, 4장째부터는 확 부담스러워진다
+//  구매 수는 콘텐츠마다 따로 센다. 산 입장권은 자정에 사라지지 않고 SUB_TICKET_HOLD 장까지 모아 둘 수 있다 (무료 입장권을 먼저 쓴다)
 const TOWER_TICKET_GOLD = 300;
-const TOWER_TICKET_MANA = 4;           // 기준 마력석: 이 값 + 최고 스테이지 / 20 (× 배율, 첫 구매는 없음)
-const TOWER_TICKET_STEPS = [0.5, 1, 2, 3.5, 6];
-const TOWER_TICKET_GROW = 1.7;
-const TOWER_TICKET_HOLD = 5;
+const DG_TICKET_GOLD = 600;
+const SUB_TICKET_STEPS = [0.5, 1, 2, 3.5, 6];
+const SUB_TICKET_GROW = 1.7;
+const SUB_TICKET_HOLD = 5;
+function subTicketMult(n) {
+  const last = SUB_TICKET_STEPS.length - 1;
+  return n <= last ? SUB_TICKET_STEPS[n] : SUB_TICKET_STEPS[last] * Math.pow(SUB_TICKET_GROW, n - last);
+}
 const BOSS_TOME_DROP = 0.15;          // 원정 보스가 📖 비전서를 떨굴 확률 (스킬 숙련도, classes.js)
 const POTION_AT = 0.3;                // 체력 30% 이하에서 물약 자동 사용
 const CAMP_HEAL_PER_SEC = 0.1;        // 캠프에서 초당 최대 체력의 10% 회복

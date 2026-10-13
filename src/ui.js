@@ -2426,14 +2426,15 @@ function towerResultHtml(L) {
       <div class="act" style="margin-top:6px"><button class="go compact" data-action="tower-start" ${blocker ? 'disabled' : ''}>${ico('tower')} 다시 도전 (${towerCheckpoint()}F 부터 · ${ico('ticket')} ${towerTickets()}장 남음)</button>${blocker ? ` <span class="blocker">${blocker}</span>` : ''}</div>
     </div>`;
 }
-// 입장권 구매 한 줄: 가격 칩 + 구매 버튼
-function towerBuyRow() {
-  const p = towerTicketPrice(), tb = towerTicketBlocker(), n = towerTicketsBoughtToday();
+// 입장권 구매 한 줄 (탑·미궁 공용): 가격 칩 + 구매 버튼, 살 수 없으면 사유를 글씨로도
+function ticketBuyRow(action, price, blocker, boughtToday, held) {
   return `
-    <div class="tbuy">🎟 입장권 구매 <small>오늘 ${n}장 샀어요</small>
-      <span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip(ico('mana'), p.mana, S.mats.mana)}</span>
-      <button class="btn" data-action="tower-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button></div>`;
+    <div class="tbuy">🎟 입장권 구매 <small>오늘 ${boughtToday}장 샀어요 · 모아 둔 ${held}/${SUB_TICKET_HOLD}</small>
+      <span class="costs">${costChip('<i class="gc"></i>', price.gold, S.gold)}</span>
+      <button class="btn" data-action="${action}" ${blocker ? 'disabled' : ''} title="${esc(blocker)}">구매</button>${blocker ? `<span class="blocker">${blocker}</span>` : ''}</div>`;
 }
+const towerBuyRow = () => ticketBuyRow('tower-ticket', towerTicketPrice(), towerTicketBlocker(), towerTicketsBoughtToday(), S.tower.tixExtra || 0);
+const dgBuyRow = () => ticketBuyRow('dg-ticket', dgTicketPrice(), dgTicketBlocker(), dgTicketsBoughtToday(), S.dg.tixExtra || 0);
 function viewTower() {
   const t = S.tower, blocker = towerBlocker(), cp = towerCheckpoint();
   const nextFirst = Math.floor(t.best / 10) * 10 + 10;
@@ -2452,7 +2453,7 @@ function viewTower() {
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="skill">${ico('bolt')} 스킬 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
-      체크포인트(10층 단위)부터 시작하고, 깬 층마다 <b>📖 1권</b>. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${TOWER_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
+      체크포인트(10층 단위)부터 시작하고, 깬 층마다 <b>📖 1권</b>. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${SUB_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
       <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
@@ -2503,9 +2504,10 @@ function viewDungeon() {
   const tiers = DG_SLOT_TIER_IDS.map((id) => { const t = DG_SLOT_TIERS[id]; return `<span class="pchip static" title="${t.big ? `맞춘 재화 ${t.big}칸${t.small ? ` + 나머지 ${t.small}칸` : ''}` : `세 재화 ${t.small}칸씩`}">${id === 'perfect' ? '🌟' : id === 'pair' ? '🎉' : '🎲'} ${t.name} <small>${t.w}%</small></span>`; }).join('');
   return `
     <div class="mhead"><div><h3>${ico('pick')} 재료의 미궁</h3>
-      <small>🎟 입장권 <b>${dgTickets()}/${DG_TICKETS}</b> · 최고 기록 👑 ${d.best || 0}마리 · 통산 🌟 퍼펙트 ${d.perfects || 0}</small></div></div>
+      <small>🎟 입장권 <b>${dgFreeTickets()}/${DG_TICKETS}</b>${d.tixExtra ? ` + 구매 <b>${d.tixExtra}</b>` : ''} · 최고 기록 👑 ${d.best || 0}마리 · 통산 🌟 퍼펙트 ${d.perfects || 0}</small></div></div>
+    ${dgBuyRow()}
     ${fresh ? dgResultHtml(d.last) : ''}
-    <div class="hint">보스가 한 마리씩 나와요. 잡을 때마다 🎰 슬롯머신을 한 번 돌리고, 보스는 한 마리마다 1 스테이지씩 세져요 (지금 첫 보스 스테이지 ${s0}, 내 전투력에 맞춰요). 슬롯 보상은 보스를 잡을수록 ×${1 + DG_BOSS_BONUS}씩 커지고, 보스를 잡으면 체력이 ${Math.round(DG_HEAL * 100)}% 차요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요.</div>
+    <div class="hint">보스가 한 마리씩 나와요. 잡을 때마다 🎰 슬롯머신을 한 번 돌리고, 보스는 한 마리마다 1 스테이지씩 세져요 (지금 첫 보스 스테이지 ${s0}, 내 전투력에 맞춰요). 슬롯 보상은 보스를 잡을수록 ×${1 + DG_BOSS_BONUS}씩 커지고, 보스를 잡으면 체력이 ${Math.round(DG_HEAL * 100)}% 차요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요. 입장권이 모자라면 골드로 사서 쓸 수 있어요 (하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${SUB_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="dgrow"><span class="lbl">슬롯</span>${tiers}<span class="small">— 3칸이 멈추면 그림대로 재화가 쏟아져요</span></div>
     <div class="act" style="margin-top:8px"><button class="go compact${rd(blocker === '')}" data-action="dg-start" ${blocker ? 'disabled' : ''}>${ico('pick')} 입장 <small>${ico('ticket')}1</small></button> <span class="blocker">${blocker}</span></div>`;
 }
@@ -2765,6 +2767,12 @@ const ACTIONS = {
   'tower-ticket': () => {
     if (!buyTowerTicket()) return;
     toast(`🎟 탑 입장권을 샀어요 (지금 ${towerTickets()}장)`);
+    save();
+    renderCamp();
+  },
+  'dg-ticket': () => {
+    if (!buyDgTicket()) return;
+    toast(`🎟 미궁 입장권을 샀어요 (지금 ${dgTickets()}장)`);
     save();
     renderCamp();
   },

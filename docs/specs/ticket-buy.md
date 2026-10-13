@@ -1,9 +1,9 @@
 # 입장권 골드 추가 구매 (도전의 탑 · 재료의 미궁)
 
-- 상태: 확정 (2026-10-13 사용자 확정 — 로드맵 세션 창에서 "추천대로 진행", 구현 전)
+- 상태: 진행 중 — 구현 끝, 배포 전 (2026-10-14, `season6` 브랜치. 0.21 묶음으로 `GAME_VERSION` 을 올려 main 에 낼 때 완료)
 - 검토 페이지: [dev/review/ticket-buy.html](../../dev/review/ticket-buy.html)
 - 관련 코드: src/data.js (`TOWER_TICKET_*`), src/tower.js (`towerTicketPrice`·`towerTicketBlocker`·`buyTowerTicket`·`useTowerTicket`), src/dungeon.js (`DG_TICKETS`·`dgTickets`·`dgBlocker`·`startDungeon`·`freshDungeon`·`dgUnitValue`), src/ui.js (`towerBuyRow`·`viewTower`·`viewDungeon`·`SUB_CARDS`·`campDots`·`ACTIONS['tower-ticket']`), src/core.js (`migrate`). 비교 대상: src/raid.js (`ticketPrice`·`ticketBlocker`)
-- 최종 갱신: 2026-10-13
+- 최종 갱신: 2026-10-14
 
 ## 목표
 
@@ -116,7 +116,8 @@
 - 배율 계산을 함수 하나로 묶는다: `subTicketMult(n)` (data.js). 상수 이름도 `SUB_TICKET_STEPS = [0.5, 1, 2, 3.5, 6]`·`SUB_TICKET_GROW = 1.7`·`SUB_TICKET_HOLD = 5` 로 바꿔 탑·미궁이 같이 쓴다. 탑 기준값은 `TOWER_TICKET_GOLD = 300`, 미궁은 `DG_TICKET_GOLD = 600`.
 - 미궁 함수는 탑을 그대로 따라 만든다: `dgFreeTickets()` (지금 `dgTickets()` 의 무료 계산), `dgTickets() = 무료 + tixExtra`, `useDgTicket()`, `dgTicketsBoughtToday()`, `dgTicketPrice()`, `dgTicketBlocker()`, `buyDgTicket()`. `startDungeon` 의 `S.dg.tixUsed++` 는 `useDgTicket()` 으로 바꾼다.
 - `dungeon.js` 주석 정리: 머리 주석의 S.dg 필드 설명, "골드는 사냥 30분치" → "한 판 골드 약 5분치(나누기 전 30분)", `dgUnitValue` mana 줄의 "탑 입장권 몫" 문구.
-- 게임 업데이트이므로 푸시할 때 `GAME_VERSION` 을 올린다 (0.21 자잘이 묶음).
+- 게임 업데이트이므로 main 에 낼 때 `GAME_VERSION` 을 올린다 (0.21 자잘이 묶음에서 한 번에. season6 구현 커밋에서는 올리지 않는다).
+- 구현 결과: UI 는 `ticketBuyRow(action, price, blocker, boughtToday, held)` 하나를 탑(`towerBuyRow`)·미궁(`dgBuyRow`)이 같이 쓴다. 미궁 구매 액션은 `ACTIONS['dg-ticket']`.
 
 ## UI
 
@@ -138,32 +139,48 @@
 
 확인 환경: [dev-testing.md](../dev-testing.md) 의 오프라인 웹 게임. 날짜가 바뀌는 규칙(`newDay`)은 서버 시각을 알아야 동작하니 먼저 콘솔에서 `setServerTime(Date.now())` 를 한다. 가격은 부동소수 곱셈 순서에 따라 ±1 골드 차이를 허용한다.
 
-- [ ] **탑에 마력석이 들지 않는다.** `S.best=60; S.gold=1e12; S.mats.mana=0; S.tower.tixExtra=0; S.tower.buyDay=todayKey(); S.tower.bought=3; buyTowerTicket()` → `true`, `S.mats.mana === 0`. `towerTicketPrice()` 에 `mana` 가 없다 (또는 0).
-- [ ] **탑 골드 가격은 그대로다.** `S.best=60` 에서 `S.tower.bought` 를 0~5 로 두고 `towerTicketPrice().gold` → 14,086,878 / 28,173,757 / 56,347,514 / 98,608,150 / 169,042,543 / 287,372,323.
-- [ ] **미궁 가격 곡선.** `S.best=60` 에서 `S.dg.bought` 를 0~5 로 두고 `dgTicketPrice().gold` → 28,173,757 / 56,347,514 / 112,695,028 / 197,216,300 / 338,085,086 / 574,744,646. `S.best=15, bought=0` → 7,703.
-- [ ] **구매 수는 콘텐츠마다 따로.** 탑을 3장 산 직후(`S.tower.bought === 3`) `dgTicketsBoughtToday() === 0` 이고 미궁 가격이 ×0.5 다.
-- [ ] **보유 한도 5장.** 미궁 `S.dg.tixExtra=5` → `dgTicketBlocker() === '산 입장권은 5장까지 가질 수 있어요'`, `buyDgTicket() === false`, 골드 그대로. 탑도 같다.
-- [ ] **골드 부족.** `S.gold = dgTicketPrice().gold - 1` → blocker `골드 부족`, 구매 실패.
-- [ ] **해금 전 구매 불가.** `S.best=10` → `dgTicketBlocker()` 가 `스테이지 15 도달 시 열려요`.
-- [ ] **무료부터 쓴다.** 무료 3장 + 산 2장 상태에서 `startDungeon()` → 끝내기를 반복한다. 처음 세 번은 `tixUsed` 가 1→2→3 으로 오르고 `tixExtra` 는 2 그대로다. 네·다섯 번째에 `tixExtra` 가 1→0 이 된다. 여섯 번째는 `dgBlocker()` = `입장권이 없어요 (자정에 충전 · 구매 가능)`.
-- [ ] **자정이 지나면** (`S.dg.tixDay='2000-1-1'; S.dg.buyDay='2000-1-1'`): `dgFreeTickets() === 3`, 산 입장권 수는 그대로, `dgTicketsBoughtToday() === 0` (가격 ×0.5).
-- [ ] **옛 세이브.** `S.dg` 에 `tixExtra`·`buyDay`·`bought` 가 없는 세이브 객체를 `migrate()` 에 넣으면 에러 없이 `tixExtra === 0`·`bought === 0` 이고, `tixUsed`·`best`·`perfects` 는 그대로다.
-- [ ] **UI 스크린샷** (내장 브라우저):
+- [x] **탑에 마력석이 들지 않는다.** `S.best=60; S.gold=1e12; S.mats.mana=0; S.tower.tixExtra=0; S.tower.buyDay=todayKey(); S.tower.bought=3; buyTowerTicket()` → `true`, `S.mats.mana === 0`. `towerTicketPrice()` 에 `mana` 가 없다 (또는 0).
+- [x] **탑 골드 가격은 그대로다.** `S.best=60` 에서 `S.tower.bought` 를 0~5 로 두고 `towerTicketPrice().gold` → 14,086,878 / 28,173,757 / 56,347,514 / 98,608,150 / 169,042,543 / 287,372,323.
+- [x] **미궁 가격 곡선.** `S.best=60` 에서 `S.dg.bought` 를 0~5 로 두고 `dgTicketPrice().gold` → 28,173,757 / 56,347,514 / 112,695,028 / 197,216,300 / 338,085,086 / 574,744,646. `S.best=15, bought=0` → 7,703.
+- [x] **구매 수는 콘텐츠마다 따로.** 탑을 3장 산 직후(`S.tower.bought === 3`) `dgTicketsBoughtToday() === 0` 이고 미궁 가격이 ×0.5 다.
+- [x] **보유 한도 5장.** 미궁 `S.dg.tixExtra=5` → `dgTicketBlocker() === '산 입장권은 5장까지 가질 수 있어요'`, `buyDgTicket() === false`, 골드 그대로. 탑도 같다.
+- [x] **골드 부족.** `S.gold = dgTicketPrice().gold - 1` → blocker `골드 부족`, 구매 실패.
+- [x] **해금 전 구매 불가.** `S.best=10` → `dgTicketBlocker()` 가 `스테이지 15 도달 시 열려요`.
+- [x] **무료부터 쓴다.** 무료 3장 + 산 2장 상태에서 `startDungeon()` → 끝내기를 반복한다. 처음 세 번은 `tixUsed` 가 1→2→3 으로 오르고 `tixExtra` 는 2 그대로다. 네·다섯 번째에 `tixExtra` 가 1→0 이 된다. 여섯 번째는 `dgBlocker()` = `입장권이 없어요 (자정에 충전 · 구매 가능)`.
+- [x] **자정이 지나면** (`S.dg.tixDay='2000-1-1'; S.dg.buyDay='2000-1-1'`): `dgFreeTickets() === 3`, 산 입장권 수는 그대로, `dgTicketsBoughtToday() === 0` (가격 ×0.5).
+- [x] **옛 세이브.** `S.dg` 에 `tixExtra`·`buyDay`·`bought` 가 없는 세이브 객체를 `migrate()` 에 넣으면 에러 없이 `tixExtra === 0`·`bought === 0` 이고, `tixUsed`·`best`·`perfects` 는 그대로다.
+- [x] **UI 스크린샷** (내장 브라우저):
   - 미궁 화면의 구매 줄(가격 칩·구매 버튼·`오늘 n장 샀어요 · 모아 둔 x/5`)과 머리 줄 `+ 구매 n`.
   - 탑 구매 줄에 마력석 칩이 없다.
   - 5장 가득일 때 버튼이 꺼지고 사유가 글씨로 보인다.
   - 도전 탭 미궁 카드 칩이 합계 장수를 보여 준다.
-- [ ] **회귀.** `node dev/progress-bot.js --days 3` 이 에러 없이 돈다 (봇은 탑·미궁을 돌리지 않으니 수치는 바뀌지 않아야 한다). 미궁 한 판(dev-testing.md 진입 스니펫)을 끝까지 돌려 정산이 정상이다.
+- [x] **회귀.** `node dev/progress-bot.js --days 3` 이 에러 없이 돈다 (봇은 탑·미궁을 돌리지 않으니 수치는 바뀌지 않아야 한다). 미궁 한 판(dev-testing.md 진입 스니펫)을 끝까지 돌려 정산이 정상이다.
+
+## 확인 방법 (테스트 환경)
+
+- worktree `impl-tickets` 를 `python -m http.server 8831 --bind 127.0.0.1` 로 띄우고 `http://localhost:8831/index.html?server=http://127.0.0.1:9` (localStorage 계정은 dev-testing.md). 로드 후 8초 기다린 뒤 콘솔에서:
+  ```js
+  setServerTime(Date.now()); S.phase='camp'; S.best=S.stage=60; S.gold=3e8; S.train.atk=30; S.train.hp=30; S.train.def=20;
+  S.dg.tixDay=todayKey(); S.dg.tixUsed=2; S.dg.tixExtra=1; S.dg.buyDay=todayKey(); S.dg.bought=1;
+  S.tower.tixDay=todayKey(); S.tower.tixUsed=3; S.tower.tixExtra=5; S.tower.buyDay=todayKey(); S.tower.bought=5;
+  save(); openCamp(); campTab='sub'; subView='dungeon'; renderCamp(); renderHud();
+  ```
+  → 미궁 화면: 머리 줄 `입장권 1/3 + 구매 1`, 구매 줄 `오늘 1장 샀어요 · 모아 둔 1/5 · 💰56.3M [구매]`. 구매를 누를 때마다 가격이 ×2 → ×3.5 … 로 오르고, 골드(3억)가 모자라면 칩이 빨개지며 `골드 부족` 이 글씨로 뜬다. `‹ 도전 목록` → 도전의 탑은 마력석 칩 없이 `모아 둔 5/5` + `산 입장권은 5장까지 가질 수 있어요`.
+- 로직 검사(노드, 브라우저 불필요): `dev/progress-bot.js` 의 `makeGame('.')` 으로 게임을 띄워 수용 기준의 식을 그대로 돌린다. 2026-10-14 에 쓴 스크립트는 저장소 밖(스크래치)이라, 다시 할 때는 수용 기준의 콘솔 식을 `vm.runInContext` 로 부르면 된다.
 
 ## 진행 기록
 
 - 2026-10-13: 스펙 초안을 썼다. 코드 조사: 탑 구매(`tower.js`), 미궁 입장권(`dungeon.js`), 레이드 구매(`raid.js`), 세이브 병합(`core.js migrate`), 서버 사용처 없음. 진행 봇 스냅샷(scratch 스크립트, `dev/progress-bot.js` 의 `makeGame` 재사용, 시드 7, 10일)으로 미궁 한 판 기대 보상과 탑 마력석 비용을 뽑았다. 그 근거로 미궁 기준값을 몹 골드 × 600(사냥 1시간치)으로 정했고, 탑은 골드 그대로 두고 마력석만 뺐다. 게임 코드는 고치지 않았다.
 - 2026-10-13: 검토 페이지 `dev/review/ticket-buy.html` 을 만들었다 (최고 스테이지·기준값을 바꾸면 n번째 구매 가격 표, 미궁 가격 vs 한 판 가치 그래프, 탑 마력석 제거 전후, 세이브 이행 요약이 다시 계산된다). 로컬: 포트 8811 로 worktree 를 제공해 `http://localhost:8811/dev/review/ticket-buy.html`.
 - 2026-10-13: 사용자 확정 (로드맵 세션 창에서 "추천대로 진행", 이 세션에서도 직접 확정). 질문은 추천안 그대로: 탑 골드만, 미궁 기준값 몹 골드 ×600.
+- 2026-10-14: 구현 (worktree `impl-tickets` → `season6`). data.js `subTicketMult`·`SUB_TICKET_*`·`DG_TICKET_GOLD` (`TOWER_TICKET_MANA`·`TOWER_TICKET_STEPS/GROW/HOLD` 삭제), tower.js 마력석 제거, dungeon.js 구매 함수 7개 + `freshDungeon` 필드 3개 + 주석 바로잡음, ui.js 공용 구매 줄·미궁 머리 줄·설명·`dg-ticket` 액션. 서버·`GAME_VERSION` 은 손대지 않았다.
+- 2026-10-14: 수용 기준 확인. 노드(`makeGame('.')`)로 가격(탑·미궁 6단계 모두 정확히 일치, S15 7,703)·따로 세기·한도·골드 부족·해금·무료 먼저(`[1,2]→[2,2]→[3,2]→[3,1]→[3,0]` 뒤 막힘 문구)·자정·옛 세이브 migrate 를 통과. 진행 봇 `--days 3` 출력이 고치기 전과 글자 하나 다르지 않다. 내장 브라우저에서 미궁 구매 줄 클릭 구매(토스트 `지금 4장`)·골드 부족 문구·탑 5/5 문구·마력석 칩 없음·도전 카드 `🎟 4장` 을 보고, 미궁 한 판을 `update(1/60)` 으로 끝까지 돌려 정산(보스 11, 목재 44 등)이 정상임을 확인했다.
 
 ## 남은 일 / 미정
 
 - [x] 사용자 확인 → 상태 `확정` (2026-10-13).
-- [ ] 구현 (0.21 자잘이 묶음, roadmap 진행 순서 ①). 구현 메모(§6)대로.
-- [ ] 수용 기준 검증 → 상태 `완료`.
+- [x] 구현 (0.21 자잘이 묶음, roadmap 진행 순서 ①). 구현 메모(§6)대로.
+- [x] 수용 기준 검증 (2026-10-14).
+- [ ] 0.21 묶음으로 `GAME_VERSION` 을 올려 main 배포 → 상태 `완료`.
+- [ ] 검토 페이지 `dev/review/ticket-buy.html` 은 구현 전 식을 따로 계산한다. 배포 뒤에는 기록용으로만 둔다.
 - [ ] 성벽 지키기(시즌6 ③)도 "하루 입장권 3장, 추가 구매 가능"이다. 그 스펙을 쓸 때 같은 `subTicketMult` 곡선과 기준값 방식(한 판 보상 가치에 맞춘 몹 골드 배수)을 쓴다.
