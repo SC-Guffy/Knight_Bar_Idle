@@ -329,7 +329,8 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
   const TS = '../vfx-trial/';
   document.getElementById('trialSheets').innerHTML = [['w1', 'W1 장검 궤적 (32×32 × 5)'], ['h1', 'H1 명중 섬광 (32×32 × 5)'], ['c1', 'C1 초승달 참격 (64×32 × 5)']]
     .map(([k, cap]) => `<figure><img src="${TS}${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap} — PixelLab 원본 시트</figcaption></figure>`).join('');
-  document.getElementById('trialList').innerHTML = [['basic-squire', '견습 기사 평타'], ['basic-swordsman', '검사 평타'], ['basic-paladin', '성기사 평타 — 금색으로 다시 칠함'], ['steelCleave-lv1', '강철 베기 Lv1'], ['steelCleave-s1', '강철 베기 ★ (고리·검풍은 아직 벡터)']]
+  document.getElementById('trialList').innerHTML = [['basic-squire-v2', '견습 기사 평타 — v2 (키 그림 한 장, 칼끝 배치, 2/3 크기)'], ['basic-swordsman-v2', '검사 평타 — v2'], ['basic-paladin-v2', '성기사 평타 — v2, 금색으로 다시 칠함'], ['steelCleave-lv1', '강철 베기 Lv1'], ['steelCleave-s1', '강철 베기 ★ (고리·검풍은 아직 벡터)'],
+    ['basic-squire', 'v1 (탈락) 견습 기사 평타 — 검흔이 몸에 겹치고 AI 중간 프레임이 뭉개짐'], ['basic-swordsman', 'v1 (탈락) 검사 평타'], ['basic-paladin', 'v1 (탈락) 성기사 평타']]
     .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}trial/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');
 
   // 정지 기준, 퀄업 순서
