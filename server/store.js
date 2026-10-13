@@ -83,6 +83,13 @@ class FileStore {
     Object.assign(this.db[key], fields);
     this.persist();
   }
+  // 복구 코드 재발급: 지금 토큰을 oldTokenHash 로 밀어 두고 새 토큰으로 바꾼다 (옛 토큰은 isRevoked 로 알아본다)
+  async reissueToken(key, tokenHash) {
+    const a = this.db[key];
+    Object.assign(a, { oldTokenHash: a.tokenHash, tokenHash });
+    this.persist();
+  }
+  async isRevoked(tokenHash) { return Object.values(this.db).some(a => a.oldTokenHash === tokenHash); }
   async rename(oldKey, newKey, nickname, now) {
     if (newKey !== oldKey && this.db[newKey]) throw new TakenError();
     const acc = this.db[oldKey];
@@ -275,6 +282,7 @@ class PgStore {
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_bot boolean NOT NULL DEFAULT false;
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS tower int NOT NULL DEFAULT 0;
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS renamed_at bigint NOT NULL DEFAULT 0;
+      ALTER TABLE accounts ADD COLUMN IF NOT EXISTS old_token_hash text NOT NULL DEFAULT '';
       CREATE INDEX IF NOT EXISTS accounts_tower ON accounts (tower DESC, best DESC, level DESC);
       -- 전투력은 스테이지 214쯤에서 bigint(9.2e18)를 넘는다 → 실수형으로 (정수형일 때 한 번만 바꾼다)
       DO $$ BEGIN
@@ -377,6 +385,13 @@ class PgStore {
   }
   async get(key) { return this.row((await this.pool.query('SELECT * FROM accounts WHERE key=$1', [key])).rows[0]); }
   async byToken(h) { return this.row((await this.pool.query('SELECT * FROM accounts WHERE token_hash=$1', [h])).rows[0]); }
+  // old_token_hash 는 COLS 에 넣지 않는다 (재발급 때만 쓰고 계정 객체에는 필요 없다)
+  async reissueToken(key, h) {
+    await this.pool.query('UPDATE accounts SET old_token_hash=token_hash, token_hash=$2 WHERE key=$1', [key, h]);
+  }
+  async isRevoked(h) {
+    return (await this.pool.query("SELECT 1 FROM accounts WHERE old_token_hash=$1 AND old_token_hash<>'' LIMIT 1", [h])).rowCount > 0;
+  }
   async update(key, fields) {
     const ks = Object.keys(fields);
     await this.pool.query(

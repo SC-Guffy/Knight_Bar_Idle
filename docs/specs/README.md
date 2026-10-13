@@ -43,6 +43,7 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
+| [admin-token-reissue.md](admin-token-reissue.md) | 완료 | 운영: 관리자 복구 코드 재발급 `POST /api/admin/token` — 옛 코드는 401 `revoked`(기기 기록 안 지움) |
 | [art-upgrade.md](art-upgrade.md) | 진행 중 | AI 이미지 생성 → 도트 복원으로 배경·UI·아이콘 퀄업 |
 | [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
 | [forge-temper.md](forge-temper.md) | 완료 | 대장간 🔥 담금질대: +20 까지 강화 성공↑·하락↓, +20 이상은 그대로 |

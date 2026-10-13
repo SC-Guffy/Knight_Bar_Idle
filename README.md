@@ -382,7 +382,13 @@ KB_SERVER=http://localhost:3000 KB_USER_DATA=/tmp/kb npm start
 | `POST /api/raids/fill` | 방장: 빈자리를 🤖 AI 기사로 채우기 |
 | `GET /health` | `{ players 사람 수, bots AI 수 }` |
 
-토큰(복구 코드)은 서버에 SHA-256 해시로만 저장됩니다.
+토큰(복구 코드)은 서버에 SHA-256 해시로만 저장됩니다. 그래서 서버에서 원래 코드를 꺼낼 수 없고, 기사를 키우던 기기를 잃었으면 관리자가 새 코드를 발급합니다 (`ADMIN_KEY` 필요, 옛 코드는 바로 막힘):
+
+```
+curl -X POST https://knight-bar.onrender.com/api/admin/token -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" -d '{"confirm":"TOKEN","nickname":"닉네임"}'
+```
+
+응답의 `token` 을 그 플레이어에게 전하면 `계정 변경…` → 복구 코드로 가져오기에서 닉네임과 함께 넣습니다. 옛 코드를 쓰던 기기는 401 `revoked` 를 받고, `gone` 과 달리 그 기기의 기사를 지우지 않습니다. 자세한 규칙: [docs/specs/admin-token-reissue.md](docs/specs/admin-token-reissue.md)
 
 ### Render 배포 (DB는 Supabase)
 

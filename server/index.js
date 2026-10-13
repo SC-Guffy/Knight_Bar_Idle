@@ -26,6 +26,11 @@ class HttpError extends Error {
 }
 // 토큰은 맞는 모양인데 그 계정이 서버에 없다 = 전체 초기화로 지워진 계정. 클라이언트는 이걸 받으면 이 기기의 기사를 지운다
 const goneError = () => new HttpError(401, '서버에서 이 기사를 찾을 수 없어요', 'gone');
+// 토큰이 없을 때: 복구 코드가 재발급돼 밀려난 옛 토큰이면 'revoked' (클라이언트는 이 기기의 기사를 지우지 않는다), 아니면 'gone'
+async function missingTokenError(h) {
+  if (await store.isRevoked(h)) return new HttpError(401, '복구 코드가 새로 발급돼서 이 기기의 코드는 더 이상 쓸 수 없어요 — 계정 변경에서 새 복구 코드로 가져와 주세요', 'revoked');
+  return goneError();
+}
 
 // 한글·영문·숫자·_ 2~12자. 대소문자만 다른 닉네임은 같은 닉네임으로 본다.
 function nicknameKey(raw) {
@@ -126,8 +131,9 @@ function readJson(req) {
 async function auth(req) {
   const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
   if (!m) throw new HttpError(401, '계정 인증에 실패했어요');
-  const acc = await store.byToken(hashToken(m[1]));
-  if (!acc) throw goneError();
+  const h = hashToken(m[1]);
+  const acc = await store.byToken(h);
+  if (!acc) throw await missingTokenError(h);
   return acc;
 }
 
@@ -486,7 +492,7 @@ async function authLite(req) {
   const c = authCache.get(h);
   if (c && Date.now() - c.at < 60000) return c.acc;
   const acc = await store.byToken(h);
-  if (!acc) throw goneError();
+  if (!acc) throw await missingTokenError(h);
   authCache.set(h, { acc, at: Date.now() });
   return acc;
 }
@@ -893,6 +899,24 @@ routes['POST /api/admin/gift'] = async (req) => {
   audit(key, 'gift', { id, reason, ...items });
   console.log(`운영 지급 #${id}: ${a.nickname} ${JSON.stringify(items)} (${reason})`);
   return { ok: true, id, nickname: a.nickname, data, pending: await store.pendingPenalties(key) };
+};
+
+// 복구 코드 재발급: 기사를 키우던 기기를 잃어 복구 코드를 모를 때 새 코드를 만든다. 옛 코드는 바로 막히고, 옛 기기는 'revoked' 를 받아 기록을 지우지 않는다
+//   curl -X POST https://knight-bar.onrender.com/api/admin/token -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" \
+//     -d '{"confirm":"TOKEN","nickname":"닉네임"}'
+routes['POST /api/admin/token'] = async (req) => {
+  requireAdmin(req);
+  const body = await readJson(req);
+  if (body.confirm !== 'TOKEN') throw new HttpError(400, '확인 문구가 필요해요 ({"confirm":"TOKEN"})');
+  const { key } = nicknameKey(body.nickname);
+  const a = await store.get(key);
+  if (!a || a.isBot) throw new HttpError(404, '그 닉네임의 기사가 없어요');
+  const token = crypto.randomBytes(24).toString('base64url');
+  await store.reissueToken(key, hashToken(token));
+  authCache.clear();
+  audit(key, 'token', { reason: String(body.reason || '').slice(0, 100) });
+  console.log(`복구 코드 재발급: ${a.nickname}`);
+  return { ok: true, nickname: a.nickname, token };
 };
 
 // 운영 기록 보기: 기사 한 명의 레이드 결과·정산·재화 스냅숏·차감 (새 것부터). kind 로 거를 수 있다 (raid | raid-reward | snap | penalty)
