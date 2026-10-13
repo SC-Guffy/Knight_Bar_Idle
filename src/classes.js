@@ -672,7 +672,7 @@ const CLASSES = {
     },
   },
 
-  // ── 3차 (2차마다 하나). 1차 스킬 자리를 궁극기가 대신한다 (숙련도는 그 1차 스킬 것을 그대로 쓴다, SKILLS 의 mastOf) ──
+  // ── 3차 (2차마다 하나). 2차의 스킬(물려받은 1차 스킬 포함)을 그대로 쓰고 궁극기가 더해진다 (숙련도는 스킬마다 따로) ──
   archon: {
     tier: 3, from: 'paladin', name: '성좌기사', icon: '🌟', weapon: 'starBlade',
     mods: { atk: 2.03, hp: 2.64, aspd: 1.1, crit: 0.08, guard: 0.15, heal: 0.012 },
@@ -1254,8 +1254,8 @@ const SKILLS = {
 
   // ── 새 3차 궁극기 (연출 src/ult/skyBreak.js · cavalryLegion.js · siegeBarrage.js · thunderJudgment.js) ──
   skyBreak: {
-    cls: 'tyrant', mastOf: 'steelCleave', ult: true, name: '파천참', icon: '👑', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
-    right: ['cd', 'spec', 'leech'],     // 강철 베기 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'tyrant', ult: true, name: '파천참', icon: '👑', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],
     spec: { type: 'exec', name: '참수', icon: '🗡️', full: 1.0, thr: 0.35 },
     hits: [[0.6, 3], ...evenHits(4, 0.7, 0.05, 0.8), [0.92, 4]],
     stages: [
@@ -1274,8 +1274,8 @@ const SKILLS = {
     desc: '하늘을 가르는 일격. 대검이 하단바를 끝까지 갈라 모든 적을 벤다.',
   },
   cavalryLegion: {
-    cls: 'skyGeneral', mastOf: 'piercingThrust', ult: true, name: '천마군단', icon: '🏇', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
-    right: ['cd', 'spec', 'crit'],     // 관통 찌르기 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'skyGeneral', ult: true, name: '천마군단', icon: '🏇', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'crit'],
     spec: { type: 'stun', name: '군단의 위압', icon: '💫', full: 2 },
     hits: [...evenHits(8, 0.45, 0.05, 0.6), [0.9, 4]],
     stages: [
@@ -1294,8 +1294,8 @@ const SKILLS = {
     desc: '빛의 천마 군단을 불러 하단바를 가로질러 돌격한다. 맞은 적은 위압에 멈춘다.',
   },
   siegeBarrage: {
-    cls: 'siegeMaster', mastOf: 'rapidFire', ult: true, name: '대공성포', icon: '🏰', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
-    right: ['leech', 'spec', 'cd'],     // 연사 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'siegeMaster', ult: true, name: '대공성포', icon: '🏰', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
+    right: ['leech', 'spec', 'cd'],
     spec: { type: 'boss', name: '성벽 파괴', icon: '🏰', full: 1.0 },
     hits: [[0.55, 3], ...evenHits(5, 0.65, 0.05, 0.6), [0.92, 4]],
     stages: [
@@ -1314,8 +1314,8 @@ const SKILLS = {
     desc: '거대한 공성포를 세워 하단바 전체에 포탄을 퍼붓는다. 보스에게 특히 강하다.',
   },
   thunderJudgment: {
-    cls: 'thunderEmperor', mastOf: 'manaBurst', ult: true, name: '뇌제 강림', icon: '⛈️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.7, area: 'all', radius: 230,
-    right: ['cd', 'spec', 'leech'],     // 마력 폭발 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'thunderEmperor', ult: true, name: '뇌제 강림', icon: '⛈️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.7, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],
     spec: { type: 'stun', name: '뇌제의 위압', icon: '💫', full: 2.5 },
     hits: [[0.5, 1.5], ...evenHits(6, 0.58, 0.05, 0.6), [0.92, 4]],
     stages: [
@@ -1334,12 +1334,12 @@ const SKILLS = {
     desc: '하늘 전체를 벼락으로 바꿔 하단바의 모든 적을 내리친다. 맞은 적은 위압에 멈춘다.',
   },
 
-  // ── 3차 궁극기: 1차 스킬 자리를 대신한다 (mastOf — 숙련도는 그 1차 스킬 것을 그대로 이어 쓴다) ──
+  // ── 3차 궁극기: 1차·2차 스킬에 더해지는 네 번째 스킬 (숙련도·트리는 따로 키운다) ──
   // 쿨타임이 길고 숙련도로 조금만 준다 (cdSpan: Lv1 60초 → Lv30 40초 — 다른 스킬의 ×3.0 → ×1.2 곡선 대신). 하단바 전체를 쓰는 화면 연출이 있는 한 방. 연출은 src/ult/*.js
   //  ult: true — 시전하는 동안 하단바 전체를 덮는 연출을 허락한다 (skills.js 의 '화면 전체를 쓰지 않는다' 규칙의 예외)
   starJudgment: {
-    cls: 'archon', mastOf: 'steelCleave', ult: true, name: '성좌 강림', icon: '🌟', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
-    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 강철 베기 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'archon', ult: true, name: '성좌 강림', icon: '🌟', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],
     spec: { type: 'chain', name: '성좌의 섭리', icon: '✨', full: 0.3 },
     hits: [...evenHits(5, 0.45, 0.07, 1), [0.86, 4]],
     stages: [
@@ -1358,8 +1358,8 @@ const SKILLS = {
     desc: '하늘의 성좌를 불러 내려 하단바 전체에 별을 떨어뜨린다.',
   },
   thousandCuts: {
-    cls: 'swordsaint', mastOf: 'steelCleave', ult: true, name: '천검', icon: '🌸', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.4, area: 'all', radius: 230,
-    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 강철 베기 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'swordsaint', ult: true, name: '천검', icon: '🌸', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.4, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],
     spec: { type: 'exec', name: '극의', icon: '🗡️', full: 1.0, thr: 0.3 },
     hits: [...evenHits(8, 0.4, 0.05, 0.6), [0.9, 4]],
     stages: [
@@ -1378,8 +1378,8 @@ const SKILLS = {
     desc: '보이지 않는 속도로 하단바 전체를 수십 번 벤 뒤, 칼을 거두는 순간 모두 갈라진다. 반드시 치명타.', crit: true,
   },
   dragonEmperor: {
-    cls: 'dragonlord', mastOf: 'piercingThrust', ult: true, name: '용황 강림', icon: '🐲', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
-    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 관통 찌르기 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'dragonlord', ult: true, name: '용황 강림', icon: '🐲', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'crit'],
     spec: { type: 'stun', name: '용황의 위압', icon: '💫', full: 2 },
     hits: [...evenHits(8, 0.45, 0.05, 0.6), [0.9, 4]],
     stages: [
@@ -1398,8 +1398,8 @@ const SKILLS = {
     desc: '창을 하늘로 치켜들어 용황을 불러 내린다. 거대한 용이 하단바를 휘감아 날며 모든 적을 태운다.',
   },
   worldBreaker: {
-    cls: 'warlord', mastOf: 'piercingThrust', ult: true, name: '천붕', icon: '⚒️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
-    right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 관통 찌르기 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'warlord', ult: true, name: '천붕', icon: '⚒️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 230,
+    right: ['cd', 'spec', 'crit'],
     spec: { type: 'boss', name: '천붕', icon: '🪨', full: 0.8 },
     hits: [[0.55, 3], ...evenHits(4, 0.65, 0.05, 1), [0.9, 3]],
     stages: [
@@ -1418,8 +1418,8 @@ const SKILLS = {
     desc: '하늘이 무너지듯 내리찍어 하단바 끝까지 땅을 무너뜨린다.',
   },
   sunArrow: {
-    cls: 'deadeye', mastOf: 'rapidFire', ult: true, name: '태양 관통', icon: '☀️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 260, crit: true,
-    right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 연사 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'deadeye', ult: true, name: '태양 관통', icon: '☀️', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.6, area: 'all', radius: 260, crit: true,
+    right: ['leech', 'spec', 'cd'],
     spec: { type: 'dot', name: '태양 화상', icon: '☀️', full: 0.45, dur: 3 },
     hits: [[0.75, 3], ...evenHits(4, 0.8, 0.03, 0.75)],
     stages: [
@@ -1438,8 +1438,8 @@ const SKILLS = {
     desc: '하늘의 태양을 꿰뚫어 그 빛으로 하단바 끝까지 관통한다. 반드시 치명타.',
   },
   dimensionCollapse: {
-    cls: 'voidArcher', mastOf: 'rapidFire', ult: true, name: '차원 붕괴', icon: '🌀', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
-    right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 연사 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'voidArcher', ult: true, name: '차원 붕괴', icon: '🌀', lv: 100, cd: 20, cdSpan: [60, 40], dur: 2.8, area: 'all', radius: 230,
+    right: ['leech', 'spec', 'cd'],
     spec: { type: 'vuln', name: '차원 균열', icon: '🌀', full: 0.3, dur: 5 },
     hits: [...evenHits(10, 0.4, 0.04, 0.5), [0.9, 4]],
     stages: [
@@ -1458,8 +1458,8 @@ const SKILLS = {
     desc: '차원을 찢는 화살로 하단바에 블랙홀을 열어 모든 적을 빨아들이고 터뜨린다.',
   },
   apocalypse: {
-    cls: 'archmage', mastOf: 'manaBurst', ult: true, name: '종언의 겁화', icon: '☄️', lv: 100, cd: 20, cdSpan: [60, 40], area: 'all', radius: 230,
-    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 마력 폭발 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'archmage', ult: true, name: '종언의 겁화', icon: '☄️', lv: 100, cd: 20, cdSpan: [60, 40], area: 'all', radius: 230,
+    right: ['cd', 'spec', 'leech'],
     spec: { type: 'crowd', name: '겁화', icon: '🔥', full: 0.6 },
     dur: 2.7, hits: [...evenHits(6, 0.45, 0.06, 0.8), [0.9, 4]],
     stages: [
@@ -1478,8 +1478,8 @@ const SKILLS = {
     desc: '하늘을 불태워 하단바 전체에 겁화를 쏟아붓는다.',
   },
   absoluteZero: {
-    cls: 'frostlord', mastOf: 'manaBurst', ult: true, name: '절대영도', icon: '🧊', lv: 100, cd: 20, cdSpan: [60, 40], area: 'all', radius: 230, crit: true,
-    right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수) — 마력 폭발 트리를 이어받음 (r1·r3 같은 자리)
+    cls: 'frostlord', ult: true, name: '절대영도', icon: '🧊', lv: 100, cd: 20, cdSpan: [60, 40], area: 'all', radius: 230, crit: true,
+    right: ['cd', 'spec', 'leech'],
     spec: { type: 'stun', name: '절대 정지', icon: '❄️', full: 2.5 },
     dur: 2.7, hits: [[0.55, 1.5], ...evenHits(5, 0.62, 0.05, 0.7), [0.92, 4]],
     stages: [
@@ -1524,16 +1524,13 @@ const skillNameAt = (k, lv = 1, stage = masteryOf(lv)) => (k.stageName ? k.stage
 const hitRange = (k, i) => (k.hits[i] && k.hits[i][2] ? { ...k, ...k.hits[i][2] } : k);
 // 그 직업만의 스킬 (해금 레벨 순)
 const classSkillsOf = (cls) => Object.values(SKILLS).filter((k) => k.cls === cls).sort((a, b) => a.lv - b.lv);
-// 쓸 수 있는 스킬: 2차 직업은 1차 스킬을 물려받는다 (숙련도도 그대로). 3차 직업은 2차 스킬을 물려받고,
-// 1차 스킬 자리는 궁극기가 대신한다 (mastOf). 해금 레벨 순
+// 쓸 수 있는 스킬: 윗 차수는 아래 차수의 스킬을 모두 물려받는다 (숙련도도 그대로). 3차는 1차·2차 스킬 + 궁극기. 해금 레벨 순
+// (3차 궁극기가 1차 스킬 자리를 대신하며 숙련도를 이어받던 구조는 없앴다 — docs/specs/ult-separate-mastery.md)
 const skillsOf = (cls) => {
   const out = [];
   for (let c = cls; c; c = CLASSES[c].from) out.push(...classSkillsOf(c));
-  const gone = new Set(out.map((k) => k.mastOf).filter(Boolean));
-  return out.filter((k) => !gone.has(k.id)).sort((a, b) => a.lv - b.lv);
+  return out.sort((a, b) => a.lv - b.lv);
 };
-// 숙련도(S.mast)를 기록하는 스킬 id. 궁극기는 대신한 1차 스킬의 숙련도를 그대로 이어 쓴다
-const mastKey = (id) => (SKILLS[id] && SKILLS[id].mastOf) || id;
 
 // ───────────────────────── 스킬 숙련도 ─────────────────────────
 // 📖 비전서로만 오른다 (쓴다고 오르지 않는다). 경험치 없이 비전서 권수 그대로 — 다음 레벨까지 1~15권. 숙련도가 오르면 **쿨타임이 줄고 한 방이 세진다** (둘을 함께 쓴다).
@@ -1578,11 +1575,11 @@ const MASTERY = [
 // 차수(스킬 주인 직업의 tier)가 높을수록 비싸다 (docs/specs/skill-mastery-cost.md):
 //   1차 최대 6권 — 누적 Lv10 21 · Lv20 59 · Lv30 113
 //   2차 최대 10권 — 누적 Lv10 25 · Lv20 82 · Lv30 169
-//   3차 궁극기 최대 12권 — 누적 Lv10 27 · Lv20 93 · Lv30 197 (1차 스킬 권수를 그대로 이어받아 이 곡선으로 센다)
+//   3차 궁극기 최대 12권 — 누적 Lv10 27 · Lv20 93 · Lv30 197
 const SKILL_NEED_MAX = { 1: 6, 2: 10, 3: 12 };
 const SKILL_NEED_OLD = 15;               // mastV 10 까지의 공통 곡선 (세이브 이전용)
 const skillNeedWith = (max, L) => (L === 1 ? 1 : Math.min(max, Math.round(2 + (max - 2) * (L - 2) / (SKILL_MAX - 3))));
-// 스킬의 차수 (1~3). 궁극기는 3 — 숙련도 키(mastKey)를 1차 스킬과 함께 써도 곡선은 궁극기 것
+// 스킬의 차수 (1~3) = 스킬 주인 직업의 tier. 궁극기는 3
 const skillTierOf = (id) => (SKILLS[id] && CLASSES[SKILLS[id].cls] ? CLASSES[SKILLS[id].cls].tier : 1);
 const skillNeed = (L, tier = 1) => skillNeedWith(SKILL_NEED_MAX[tier] || SKILL_NEED_MAX[1], L);
 // 이 레벨에서 달 수 있는 최대 별 수 (Lv10 ★ · Lv20 ★★ · Lv30 ★★★)
@@ -1598,9 +1595,16 @@ const INHERIT_HIT = 3.5;
 // 스킬 DPS 는 ×1.19 라 전체 DPS 는 Lv1~10 +3~9%, Lv30 +10~20% (스킬 비중이 큰 2차 직업일수록 더 오른다)
 const SKILL_POW_UP = 1.6;
 const SKILL_CD_UP = 1.35;
+// 물려받은 스킬의 위력 배수. 3차가 쓰는 1차 스킬은 그 계열 2차 직업이 쓸 때와 같다 (3차의 2차 스킬은 배수 없이 그대로)
+const inheritDmg = (k, owner) => {
+  if (owner === k.cls) return 1;
+  const via = CLASSES[owner] && CLASSES[owner].tier === 3 && CLASSES[k.cls].tier === 1 ? CLASSES[owner].from : owner;
+  return INHERIT_DMG[via] || 1;
+};
 const inheritBoost = (k, owner) => {
-  if (owner === k.cls || !INHERIT_DMG[owner]) return 1;
-  return Math.max(1, INHERIT_HIT / (skillMult(k) * (SKILL_DMG[k.cls] || 2) * SKILL_DMG_LV1 * INHERIT_DMG[owner] * SKILL_POW_UP));
+  const d = inheritDmg(k, owner);
+  if (d === 1) return 1;
+  return Math.max(1, INHERIT_HIT / (skillMult(k) * (SKILL_DMG[k.cls] || 2) * SKILL_DMG_LV1 * d * SKILL_POW_UP));
 };
 // 트리 보너스 b: { star 단 별 수, pow 공격 특화 Lv 합, cd 쿨타임 특화 Lv 합 } — 숫자만 주면 별 수로 본다 (없으면 레벨로 가능한 최대 별, 특화 0)
 const treeBonus = (b) => (typeof b === 'number' ? { star: b } : b || {});
@@ -1623,8 +1627,8 @@ const skillCdOf = (k, lv, owner = k.cls, b) => {
 const skillPowAt = (k, lv, owner = k.cls, b) => {
   const t = treeBonus(b);
   // V2: Lv1 기준 위력에서 시작해 ⚔️ 피해 노드 칸만큼만 오른다 (레벨·별은 수치 0)
-  if (k.right) return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * SKILL_DMG_LV1 * (1 + TREE2_POW * (t.pow || 0)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1);
-  return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv, t.star)) * (owner !== k.cls ? (INHERIT_DMG[owner] || 1) * inheritBoost(k, owner) : 1)
+  if (k.right) return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * SKILL_DMG_LV1 * (1 + TREE2_POW * (t.pow || 0)) * inheritDmg(k, owner) * inheritBoost(k, owner);
+  return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv, t.star)) * inheritDmg(k, owner) * inheritBoost(k, owner)
     * (1 + TREE_POW * (t.pow || 0));
 };
 // 누적 비전서 → { lv, have 이번 레벨에 먹인 권수, need 이번 레벨에 필요한 권수 } (tier 는 skillTierOf)
@@ -1668,8 +1672,7 @@ const treePct = (x) => +(x * 100).toFixed(1);
 //  풀 효과는 노드를 다 채웠을 때의 값(full)이고 찍은 칸 비율만큼 낸다. 칸 수·진화 조건(lv·min)은 V1 SKILL_TREE 와 같다.
 //  새 스킬·직업은 right 키 3개만 적으면 되고, 효과 구현은 전투 공통 경로(skills.js tryCastSkill · world.js hitMonster · 서버 duel/raid)에 한 번이다.
 //  4단(r2)은 모든 스킬이 'spec' — 그 스킬만의 고유 특수(k.spec, 아래 SPEC_TYPES). 2·6단(r1·r3)은 공용 풀에서 둘.
-//  고를 때 주의: crit: true(항상 치명) 스킬엔 'crit' 이 무의미하다. 3차 궐기(mastOf)는 1차 스킬의 트리(S.tree 의 r1·r2·r3)를 그대로 이어받으니
-//  r1·r3 은 1차와 같은 키를 두고, r2 의 고유 특수만 궐기 것으로 바뀐다 (찍은 칸은 그대로 새 효과를 낸다).
+//  고를 때 주의: crit: true(항상 치명) 스킬엔 'crit' 이 무의미하다.
 //  V1 분기(right 없는 스킬)는 코드에만 남아 있고 지금 데이터에선 쓰는 스킬이 없다.
 //  수치 틀: 피해 30칸 = ×1.78 (V1 의 Lv30 ×1.4 × 트리 +27% 와 같은 선). 쿨타임은 V1 Lv1 3.0 → Lv30 1.2 대신 1.6 고정에서 시작하고 쿨타임 노드로 ×0.6 까지.
 //  오른쪽 공용 풀의 저울질 (2026-10-13, docs/specs/skill-tree-nodes.md): ⚔️ 피해는 어디서나 무난·짧은 결투에 강함, ⏱️ 쿨타임은 긴 싸움(사냥·레이드)에 강함,

@@ -106,11 +106,11 @@ function run() {
     T.stage = st;
     const lv = STAGE_LV[st];
     for (const k of skillsOf(T.cls)) {
-      S.mast[mastKey(k.id)] = skillTomesAt(lv, skillTierOf(k.id));
+      S.mast[k.id] = skillTomesAt(lv, skillTierOf(k.id));
       // 트리 V2: 기술의 모양·이름은 트리의 진화 별(★)로 정해진다 (core.js skillStage) — 단계만큼 별을 달고 그 모습을 쓴다
       const n = {}; let stars = 0;
       for (const tier of skillTreeOf(k)) for (const nd of tier) if (nd.kind === 'star' && stars < st) { n[nd.id] = 1; stars++; }
-      S.tree[mastKey(k.id)] = { n, use: st };
+      S.tree[k.id] = { n, use: st };
     }
     knight.ward = null;
   }

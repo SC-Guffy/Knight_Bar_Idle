@@ -66,8 +66,8 @@ function renderNodes() {        // 이름을 render 로 두면 world.js 의 rend
   S = freshState();
   S.level = 100;
   for (const k of Object.values(SKILLS)) {
-    S.mast[mastKey(k.id)] = skillTomeMax(skillTierOf(k.id));
-    S.tree[mastKey(k.id)] = { n: { learn: 1, pow1: pow, r1: 10, star1: 1, pow2: pow, r2: 10, star2: 1, pow3: pow, r3: 10, star3: 1 }, use: 3 };
+    S.mast[k.id] = skillTomeMax(skillTierOf(k.id));
+    S.tree[k.id] = { n: { learn: 1, pow1: pow, r1: 10, star1: 1, pow2: pow, r2: 10, star2: 1, pow3: pow, r3: 10, star3: 1 }, use: 3 };
   }
   const grid = document.getElementById('grid');
   // 직업 트리 순서(CLASS_TREE)대로, 직업마다 그 직업의 스킬
@@ -79,7 +79,7 @@ function renderNodes() {        // 이름을 render 로 두면 world.js 의 rend
       S.cls = cls;                                   // treeHtml 이 S.cls 로 위력을 계산한다
       const b = skillBonus(k.id), sp = k.spec, v = rightVal(k, 'spec', b);
       const specLine = sp ? `<div class="spec">${sp.icon} <b>${sp.name}</b> · 고유 특수 — ${SPEC_TYPES[sp.type].desc(v, sp)}</div>` : '';
-      html += `<div class="one"><h2><span class="c">${c.icon} ${c.name} ${c.tier}차</span> ${k.icon} ${k.name} <small>${k.right.map((key) => rightDef(k, key).icon + ' ' + rightDef(k, key).name).join(' · ')}${k.mastOf ? ` · ${SKILLS[k.mastOf].name} 트리 이어받음` : ''}</small></h2>${specLine}${treeHtml(k)}</div>`;
+      html += `<div class="one"><h2><span class="c">${c.icon} ${c.name} ${c.tier}차</span> ${k.icon} ${k.name} <small>${k.right.map((key) => rightDef(k, key).icon + ' ' + rightDef(k, key).name).join(' · ')}</small></h2>${specLine}${treeHtml(k)}</div>`;
     }
   }
   grid.innerHTML = html;

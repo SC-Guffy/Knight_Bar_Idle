@@ -37,7 +37,7 @@ function freshState() {
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed, 차수별 곡선)
-    mastV: 11,                              // 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    mastV: 12,                              // 12: 궁극기 별도 숙련도 · 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
@@ -144,17 +144,23 @@ function migrate(o) {
     s.notice = '⚡ 스킬 트리 개편 — 이제 모든 스킬이 레벨 대신 노드로만 자라요. 왼쪽은 ⚔️ 피해, 오른쪽은 ⏱️ 쿨타임·💥 치명·🩸 흡혈에 더해 2구간엔 스킬마다 다른 고유 특수(처형·기절·화상·속사…)가 있어요. 찍었던 쿨타임 특화 포인트는 돌려드렸으니 스킬 탭에서 다시 살펴봐 주세요';
   }
   // mastV 11: 요구량이 차수별(1차 6·2차 10·궁극기 12권/레벨 최대)로 줄었다. 먹인 권수는 그대로 두고 새 곡선으로 레벨을 다시 센다 (레벨은 같거나 오른다).
-  //  만렙 누적을 넘는 권수는 비전서로 돌려준다. 키의 차수는 지금 직업에서 그 키를 쓰는 스킬 기준 (3차면 궁극기)
-  if (o.mast && (o.mastV || 1) < 11) {
+  //  만렙 누적을 넘는 권수는 비전서로 돌려준다 (그 스킬 차수의 만렙)
+  // mastV 12: 3차 궁극기가 1차 스킬 자리를 대신하며 숙련도(1차 스킬 id 의 권수·트리)를 이어받던 구조를 없앴다 — 궁극기는 따로 키우는 네 번째 스킬.
+  //  1차 스킬 id 의 권수·트리는 그대로 1차 스킬 것이고(1차 곡선이 더 싸서 레벨은 같거나 오른다), 1차 만렙을 넘는 권수는 돌려준다. 궁극기는 Lv1 부터
+  //  (docs/specs/ult-separate-mastery.md)
+  if (o.mast && (o.mastV || 1) < 12) {
     let refund = 0;
     for (const key of Object.keys(s.mast)) {
-      const user = skillsOf(s.cls).find((k) => mastKey(k.id) === key), cap = skillTomeMax(skillTierOf(user ? user.id : key));
+      const cap = skillTomeMax(skillTierOf(key));
       if (s.mast[key] > cap) { refund += s.mast[key] - cap; s.mast[key] = cap; }
     }
     s.tomes = (s.tomes || 0) + refund;
-    if (Object.keys(s.mast).length && !s.notice) s.notice = `📖 스킬 요구량 완화 — 비전서 요구량이 줄고 차수마다 달라졌어요 (1차 < 2차 < 궁극기). 먹인 권수는 그대로라 스킬 레벨이 올랐어요${refund ? ` · 만렙을 넘친 비전서 ${refund}권을 돌려드렸어요` : ''}`;
+    const back = refund ? ` · 만렙을 넘친 비전서 ${refund}권을 돌려드렸어요` : '';
+    if (CLASSES[s.cls] && CLASSES[s.cls].tier === 3) {
+      if (!s.notice) s.notice = `💥 궁극기가 따로 키우는 스킬이 됐어요 — 1차 스킬이 숙련도 그대로 돌아왔고, 궁극기는 Lv1 부터 비전서로 키워요${back}`;
+    } else if (Object.keys(s.mast).length && !s.notice) s.notice = `📖 스킬 요구량 완화 — 비전서 요구량이 줄고 차수마다 달라졌어요 (1차 < 2차 < 궁극기). 먹인 권수는 그대로라 스킬 레벨이 올랐어요${back}`;
   }
-  s.mastV = 11;
+  s.mastV = 12;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -309,9 +315,9 @@ function stats(base = false) {
 const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id);
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
-const skillLv = (id) => skillLvOf(S.mast[mastKey(id)] || 0, skillTierOf(id)).lv;
+const skillLv = (id) => skillLvOf(S.mast[id] || 0, skillTierOf(id)).lv;
 // 스킬 트리 (S.tree, classes.js SKILL_TREE): ⭐ 포인트 = 숙련도 레벨 (Lv1 부터 1, Lv30 = 30). 진화 문(star)은 포인트를 쓰지 않는다. n 은 노드별 찍은 칸, use 는 전투에서 쓰는 모습의 단계 (0~단 별 수, 기술 형태·연출만)
-const treeOf = (id) => S.tree[mastKey(id)] || { n: {}, use: 0 };
+const treeOf = (id) => S.tree[id] || { n: {}, use: 0 };
 const nodeLv = (id, nid) => treeOf(id).n[nid] || 0;
 const skillPts = (id) => skillLv(id);
 // 이 스킬 트리의 노드 정의 (classes.js treeNodesOf — V1 공용, V2 는 스킬마다). 트리에 없는 노드 id(개편 전 잔재)는 없는 것으로 본다
@@ -363,7 +369,7 @@ const canInvestAny = () => skillsOf(S.cls).some((k) => canInvestSkill(k.id));
 // 노드에 포인트 1 을 찍는다 (진화 문은 포인트를 안 쓴다). 진화 노드면 새 모습을 바로 적용한다. 찍은 뒤 노드 Lv 또는 0
 function investNode(id, nid) {
   if (!SKILLS[id] || !skillsOf(S.cls).includes(SKILLS[id]) || !canInvest(id, nid)) return 0;
-  const key = mastKey(id), t = S.tree[key] || (S.tree[key] = { n: {}, use: 0 });
+  const t = S.tree[id] || (S.tree[id] = { n: {}, use: 0 });
   t.n[nid] = (t.n[nid] || 0) + 1;
   if (nodeDef(id, nid).kind === 'star') t.use = skillStar(id);
   return t.n[nid];
@@ -371,31 +377,31 @@ function investNode(id, nid) {
 // 찍은 포인트를 모두 되돌린다 (무료)
 function resetTree(id) {
   if (!SKILLS[id] || !skillSpent(id)) return false;
-  S.tree[mastKey(id)] = { n: {}, use: 0 };
+  S.tree[id] = { n: {}, use: 0 };
   return true;
 }
 // 전투에서 쓸 모습을 고른다 (0 ~ 단 별 수)
 function setSkillStar(id, use) {
   const t = treeOf(id);
   if (!SKILLS[id] || use < 0 || use > skillStar(id) || use === t.use) return false;
-  S.tree[mastKey(id)] = { n: t.n, use };
+  S.tree[id] = { n: t.n, use };
   return true;
 }
 // 이 스킬에 비전서를 n권까지 먹인다 (만렙에서 남는 만큼은 쓰지 않는다). { used, from, to } 또는 null
 function feedTomes(id, n) {
   const k = SKILLS[id];
   if (!k || !skillsOf(S.cls).includes(k)) return null;
-  const key = mastKey(id), have = S.mast[key] || 0;
+  const have = S.mast[id] || 0;
   const used = Math.min(n, S.tomes, skillTomeMax(skillTierOf(id)) - have);
   if (used <= 0) return null;
   const from = skillLv(id);
   S.tomes -= used;
-  S.mast[key] = have + used;
+  S.mast[id] = have + used;
   return { used, from, to: skillLv(id) };
 }
 // 지금 가진 비전서로 레벨을 하나라도 올릴 수 있는 내 스킬이 있는가 (레드닷)
 const canLevelSkill = () => skillsOf(S.cls).some((k) => {
-  const s = skillLvOf(S.mast[mastKey(k.id)] || 0, skillTierOf(k.id));
+  const s = skillLvOf(S.mast[k.id] || 0, skillTierOf(k.id));
   return s.lv < SKILL_MAX && S.tomes >= s.need - s.have;
 });
 
@@ -542,7 +548,7 @@ function changeClass(id) {
   const req = CLASS_REQ[CLASSES[id].tier];
   S.mats.mana -= req.mana;
   S.gold -= req.gold;
-  // 1차 스킬은 2차 직업이 물려받으므로 숙련도도 그대로 둔다 (classes.js skillsOf)
+  // 아래 차수 스킬은 윗 차수가 모두 물려받으므로 숙련도도 그대로 둔다 (classes.js skillsOf)
   S.cls = id;
   S.hp = stats().maxHp;
   hooks.onClassChange(id);

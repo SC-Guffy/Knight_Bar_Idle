@@ -1,7 +1,7 @@
 # 스킬 숙련도 비전서 요구량 (차수별)
 
 - 상태: 완료
-- 관련 코드: src/classes.js (`SKILL_NEED_MAX`, `skillNeed`, `skillLvOf`, `skillTomesAt`, `skillTomeMax`, `skillTierOf`), src/core.js (`skillLv`, `feedTomes`, `canLevelSkill`, 세이브 이전 mastV 11), src/ui.js (스킬 탭)
+- 관련 코드: src/classes.js (`SKILL_NEED_MAX`, `skillNeed`, `skillLvOf`, `skillTomesAt`, `skillTomeMax`, `skillTierOf`), src/core.js (`skillLv`, `feedTomes`, `canLevelSkill`, 세이브 이전 mastV 11·12), src/ui.js (스킬 탭)
 - 최종 갱신: 2026-10-13
 
 ## 목표
@@ -19,10 +19,10 @@
 | 3차 궁극기 | 12 | 27 | 93 | 197 |
 | (이전, 공통) | 15 | 29 | 109 | 239 |
 
-- 차수 = 그 스킬을 가진 직업의 tier (`CLASSES[SKILLS[id].cls].tier`). 숙련도 키(`mastKey`)를 공유하는 궁극기는 **궁극기(3차) 곡선**으로 계산한다.
-- 3차 전직 때 궁극기는 1차 스킬에 먹인 **권수를 그대로** 이어받는다 (레벨 보존 아님). 궁극기 곡선이 더 비싸므로 전직 직후 레벨이 내려갈 수 있다.
+- 차수 = 그 스킬을 가진 직업의 tier (`CLASSES[SKILLS[id].cls].tier`). 궁극기는 3차 곡선.
+- ~~3차 전직 때 궁극기는 1차 스킬에 먹인 권수를 그대로 이어받는다~~ → 폐지 (2026-10-13, [ult-separate-mastery.md](ult-separate-mastery.md)): 궁극기는 별도 스킬로 Lv1 부터 키운다.
 - 기존 세이브(mastV < 11): 먹인 권수는 그대로, 새 곡선으로 레벨을 다시 계산한다 (모든 차수가 이전보다 싸서 레벨은 같거나 오른다). 만렙 누적을 넘는 권수는 비전서로 돌려준다.
-  키의 차수는 지금 직업에서 그 키를 쓰는 스킬 기준 (3차면 궁극기), 없으면 키 스킬의 차수.
+  키의 차수는 그 스킬의 차수 (mastV 12 부터).
 
 ## UI
 스킬 탭의 칸·「전부 쓰기」 수치가 차수별 곡선을 따른다. 별도 UI 추가 없음.
@@ -30,7 +30,7 @@
 ## 수용 기준
 - [x] 1차 Lv29→30 6권, 2차 10권, 궁극기 12권 (node 로 classes.js 로드해 skillNeed 확인)
 - [x] 옛 세이브: 레벨이 같거나 오르고, 넘친 권수는 돌려받는다 (migrate 스니펫)
-- [x] 3차 전직 직후 궁극기 숙련도 권수 = 1차 스킬 권수
+- [x] ~~3차 전직 직후 궁극기 숙련도 권수 = 1차 스킬 권수~~ (폐지, ult-separate-mastery.md)
 - [x] 내장 브라우저 스킬 탭에서 에러 없이 표시
 
 ## 진행 기록

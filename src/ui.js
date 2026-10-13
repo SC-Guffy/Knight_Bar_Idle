@@ -587,7 +587,7 @@ function skillList(id) {
     const dmg = k.ward ? `초당 ×${+(k.ward.tick * pow).toFixed(2)}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
-      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id), skillStage(k.id)) : k.name}</b> <small>${k.ult ? `💥 궁극기 · ${SKILLS[k.mastOf].name} 숙련도 이어받음 · ` : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id), skillStage(k.id)) : k.name}</b> <small>${k.ult ? '💥 궁극기 · ' : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
         <span class="sdesc">${k.desc}</span></span>
     </div>`;
   }).join('')}</div>`;
@@ -675,7 +675,7 @@ function viewSkill() {
       <small>칸 1개 = 비전서 1권 · 칸을 다 채우면 레벨 업 · ⭐ 포인트 = 레벨 (Lv10 이면 10개) → 단계 게이지에 투자</small></div>
     <span class="mchip${S.tomes ? '' : ' none'}" title="가진 비전서">📖 <b>${fmt(S.tomes)}</b><small>권 보유</small></span></div>`;
   if (!list.length) return `${head}<div class="hint">1차 전직을 하면 스킬을 익히고, 비전서로 키울 수 있어요.</div>`;
-  const firstOpen = list.find((x) => skillLvOf(S.mast[mastKey(x.id)] || 0, skillTierOf(x.id)).lv < SKILL_MAX);
+  const firstOpen = list.find((x) => skillLvOf(S.mast[x.id] || 0, skillTierOf(x.id)).lv < SKILL_MAX);
   if (!skillSel || !list.some((x) => x.id === skillSel)) skillSel = (list.find((x) => skillPtsLeft(x.id) > 0) || firstOpen || list[0]).id;
   const camp = S.phase === 'camp';
   // 스킬 고르기 칩: 이름(적용한 모습) · Lv · 남은 포인트
@@ -687,7 +687,7 @@ function viewSkill() {
   }).join('')}</div>`;
 
   const k = SKILLS[skillSel];
-  const tier = skillTierOf(k.id), total = S.mast[mastKey(k.id)] || 0, s = skillLvOf(total, tier), max = s.lv >= SKILL_MAX;
+  const tier = skillTierOf(k.id), total = S.mast[k.id] || 0, s = skillLvOf(total, tier), max = s.lv >= SKILL_MAX;
   const n = skillStar(k.id), use = skillStage(k.id), b = skillBonus(k.id);
   const need = max ? 0 : s.need - s.have;
   const mt = (lv, bb = b) => (k.ward ? `초당 ×${(k.ward.tick * skillPowAt(k, lv, S.cls, bb)).toFixed(2)}` : `×${(skillMult(k) * skillPowAt(k, lv, S.cls, bb)).toFixed(2)}`);
@@ -733,8 +733,8 @@ function viewSkill() {
     : canInvestAny() && !S.guide.node ? `<div class="gtip big">⭐ 스킬 포인트가 생겼어요 — 레벨마다 1개씩, 구간 칸의 빛나는 노드를 눌러 두 노드에 나눠 찍어 보세요. 칸 경계의 진화 이정표는 포인트 없이 Lv·찍은 포인트 조건만 맞으면 열려요 (되돌리기는 무료).</div>`
     : S.tomes === 0 ? `<div class="gtip">📖 비전서는 ${towerUnlocked() ? `<button class="lnk" data-action="tab" data-tab="tower">${ico('tower')} 도전의 탑</button>에서 가장 많이 얻어요 (원정 보스·레이드 상자·결투 시즌에서도)` : `🗼 도전의 탑(스테이지 ${TOWER_UNLOCK_STAGE}에 열림)·원정 보스·레이드 상자·결투 시즌에서 얻어요`}</div>` : '';
   const note = (heroClass().tier >= 3
-    ? '3차 궁극기는 대신한 1차 스킬의 숙련도·트리를 그대로 이어받아요. 2차 스킬은 숙련도 그대로 제 위력을 내요.'
-    : '1차 스킬은 2차 전직 뒤에도 숙련도·트리 그대로 써요 (2차 직업에선 위력이 조금 줄어요). 3차 전직하면 궁극기가 그 자리를 숙련도째 이어받아요.')
+    ? '1·2차 스킬은 숙련도·트리 그대로 써요 (1차 스킬 위력은 2차 때와 같아요). 3차 궁극기는 Lv 100 에 열리고 숙련도를 따로 키워요.'
+    : '1차 스킬은 2차 전직 뒤에도 숙련도·트리 그대로 써요 (2차 직업에선 위력이 조금 줄어요). 3차 전직하면 궁극기가 새 스킬로 더해져요.')
     + ' 별 띠에서 고른 모습은 기술의 형태·연출만 바꾸고, 위력·쿨타임은 트리 기준이에요.';
   return `${head}${guideFlow('skill')}${guide}${chips}${card}<div class="hint">${note}</div>`;
 }
