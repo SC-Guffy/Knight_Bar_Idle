@@ -525,6 +525,7 @@ function claimMail(id) {
 const supplyPrice = (id) => Math.floor(SUPPLIES[id].price * monsterStats(S.best, false).gold);
 
 function buySupply(id) {
+  if (!SUPPLIES[id] || SUPPLIES[id].shop === false) return false;
   const p = supplyPrice(id);
   if (S.gold < p) return false;
   S.gold -= p;

@@ -1207,7 +1207,7 @@ function viewForge() {
   const html = `
     <div class="shead sub"><h3>${ico('anvil')} 부위 강화 ${stoneChip()}</h3>
       <button class="chk ${gearUi.protect ? 'on' : ''}" data-action="gear-protect" ${S.items.protect && anyRisky ? '' : 'disabled'}>
-        ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화가 있는 단계에서 강화할 때마다 1장 소모</small></button></div>
+        ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화가 있는 단계에서 강화할 때마다 1장 소모 · 원정 상자에서만 나옴</small></button></div>
     <div class="hint">강화 단계는 부위에 붙어 있어서 장비를 바꿔 껴도 그대로예요. 💠 강화석은 원정 보스를 잡거나 장비를 팔면 얻어요.</div>
     <div class="fslots">${Object.keys(GEAR_SLOTS).map(forgeSlot).join('')}</div>
     ${forgeEnchantSection()}
@@ -1360,7 +1360,7 @@ function viewGear() {
 
 // 🏠 홈 탭 아래쪽의 보급품 (옛 보급품 탭). 한 줄에 아이콘 · 이름 · 보유 칩 · 효과 · 버튼
 function viewSupplies() {
-  return Object.entries(SUPPLIES).map(([id, s]) => {
+  return Object.entries(SUPPLIES).filter(([, s]) => s.shop !== false).map(([id, s]) => {
     const p = supplyPrice(id);
     const extra = id === 'lunch' ? `<button class="btn" data-action="eat" ${S.items.lunch && S.stamina < maxStamina() ? '' : 'disabled'}>먹기</button>` : '';
     return `
