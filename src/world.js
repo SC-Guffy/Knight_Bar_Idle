@@ -214,6 +214,11 @@ function hitMonster(m, mult = 1, o = {}) {
   if (o.bossBonus && m.boss) mult *= 1 + o.bossBonus;
   if (o.first && m.hp >= m.maxHp) mult *= 1 + o.first;
   if (m.vuln) mult *= 1 + m.vuln.v;
+  // 🎲 옵션 줄: 보스 피해 · 처형(체력 30% 이하) · 첫 타격 (적마다 첫 한 대)
+  const gb = gearBonus();
+  if (gb.bossDmg && m.boss) mult *= 1 + gb.bossDmg;
+  if (gb.execute && m.hp <= m.maxHp * 0.3) mult *= 1 + gb.execute;
+  if (gb.firstHit && !m.opHit) { m.opHit = 1; mult *= 1 + gb.firstHit; }
   const crit = o.nocrit ? false : o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0));   // nocrit: 지속 피해·관통처럼 이미 굴린 피해
   const dmg = st.atk * mult * (crit ? st.critMult : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
@@ -245,7 +250,7 @@ function hitMonster(m, mult = 1, o = {}) {
   // 상자·비전서는 실제로 필드에 떨어지고 기사가 주워 간다 (src/drops.js). 내용물은 캠프에서 열 때 공개
   if (r.loot) spawnDrop('box', r.loot.g, sx, monsterMidY(m), m.boss);
   if (r.tome) spawnDrop('tome', 0, sx, monsterMidY(m), false, { dist: r.loot ? rand(-14, -4) : rand(16, 28), delay: r.loot ? 0.12 : 0, pop: 1.15 });
-  if (m.boss) addFloater(`💠 강화석 +${BOSS_STONES}`, sx, monsterTop(m) - 18, '#8fd8ff', 13, true);
+  if (r.stones) addFloater(`💠 강화석 +${r.stones}`, sx, monsterTop(m) - 18, '#8fd8ff', 13, true);
   if (m.boss) { showBanner('STAGE CLEAR!'); save(); }
   if (bagFull()) endExpedition('bag');
   return dmg;
@@ -294,7 +299,7 @@ function releaseAttack(st) {
 function updateExpedition(dt, gdt) {
   const st = stats();
 
-  S.stamina -= STAMINA_DRAIN * gdt;
+  S.stamina -= staDrain() * gdt;
   S.trip.dur += gdt;
   if (S.stamina <= 0) { S.stamina = 0; endExpedition('stamina'); return; }
 
@@ -416,7 +421,7 @@ function advanceMonsterAttack(m, dt, st) {
 function updateReturning(dt) {
   const sx = toScreen(knight.x);
   const diff = CAMP_X - sx;
-  const speed = RETURN_SPEED;
+  const speed = RETURN_SPEED * (1 + gearBonus().walkSpd);
   if (Math.abs(diff) <= speed * dt) {
     knight.x = toWorld(CAMP_X);
     knight.facing = 1;
@@ -546,7 +551,7 @@ function updateTower(dt, gdt) {
   tw.cam += (camTo - tw.cam) * Math.min(1, dt * (tw.sub === 'fall' ? 12 : 5));
 
   if (S.tower.run && towerInside()) {
-    S.stamina -= STAMINA_DRAIN * gdt;
+    S.stamina -= staDrain() * gdt;
     if (S.stamina <= 0) { S.stamina = 0; towerEndRun('stamina'); }
   }
 

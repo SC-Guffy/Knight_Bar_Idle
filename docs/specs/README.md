@@ -47,3 +47,5 @@
 | [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
 | [forge-temper.md](forge-temper.md) | 완료 | 대장간 🔥 담금질대: +20 까지 강화 성공↑·하락↓, +20 이상은 그대로 |
 | [skill-mastery-cost.md](skill-mastery-cost.md) | 완료 | 스킬 숙련도 비전서 요구량 차수별(1차 6·2차 10·궁극기 12권/레벨 최대) |
+| [gear-options.md](gear-options.md) | 진행 중 (season6) | 장비 강화 구간별 옵션 줄 · 등급 희소성 드랍 개편 · 🎲 재굴림권(재굴림대) |
+| [unique-procs.md](unique-procs.md) | 초안 (season6) | 이름 있는 장비·레이드 세트 고유 발동 효과 |

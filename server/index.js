@@ -74,6 +74,8 @@ function sanitizeProfile(p = {}) {
     shotMult: num(p.shotMult, 0, 5, 1),
     guard: num(p.guard, 0, 0.9, 0),
     heal: num(p.heal, 0, 0.2, 0),
+    // 장비 옵션 줄 (시즌6): 레이드·월드 보스 전투만 쓴다 (server/raid.js)
+    ...(p.bossDmg ? { bossDmg: num(p.bossDmg, 0, 4, 0) } : {}), ...(p.exec ? { exec: num(p.exec, 0, 4, 0) } : {}),
     leap, skills,
     power: Math.floor(num(p.power, 0, 1e150, 0)),
     tower: Math.floor(num(p.tower, 0, 1e5, 0)),   // 도전의 탑 최고 층 (탑 순위)

@@ -24,7 +24,7 @@ function wbReward(row) {
   const units = 1 + 2 * rel;
   const ms = monsterStats(S.best, true), scale = 1 + (S.best - 1) * 0.04;
   const chestBoss = row.killed ? Object.keys(RAID_BOSSES).filter(raidUnlocked).pop() || null : null;
-  const killMats = row.killed && !chestBoss ? 1.5 : 1;     // 레이드를 아직 못 열면 상자 대신 재화를 더
+  const killMats = (row.killed && !chestBoss ? 1.5 : 1) * (1 + gearBonus().matPct);     // 레이드를 아직 못 열면 상자 대신 재화를 더 (🎲 재화 획득 옵션도 여기)
   return {
     rel, units,
     gold: Math.round(ms.gold * 2 * units * killMats),
@@ -45,6 +45,8 @@ function claimWbReward(row) {
   S.mats.wood += reward.wood; S.mats.ore += reward.ore; S.mats.mana += reward.mana;
   S.stones += reward.stones;
   S.tomes += reward.tomes;
+  // 🎲 재굴림권 · 📜 보호 주문서 (잡은 날은 확률 2배)
+  reward.items = rollRareDrops(row.killed ? RARE_DROP.wbKill : RARE_DROP.wb);
   for (let i = 0; i < reward.chests; i++) S.raid.chests.push({ k: 'rbox', b: reward.boss, s: Math.max(RAID_BOSSES[reward.boss].stage, S.best || 1) });
   S.wb.last = { ...row, reward, at: Date.now() };
   return S.wb.last;

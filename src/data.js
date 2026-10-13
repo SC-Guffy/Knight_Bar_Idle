@@ -127,8 +127,8 @@ const TEMPER_CAP = 20, TEMPER_RATE = 0.005, TEMPER_DOWN = 0.015;   // 담금질�
 const FORGE_FAC = {
   salvage: { name: '분해대', icon: '🧰', desc: '장비를 분해할 때 나오는 💠 강화석이 늘어나요',
     effect: (lv) => (lv ? `판매 강화석 ×${salvageMultAt(lv).toFixed(1)}` : '아직 없음') },
-  enchant: { name: '마법부여대', icon: '✨', desc: '장비에 부가 옵션(공격력 % · 골드 획득 % 등) 하나를 붙여요 — Lv 이 오를수록 수치가 좋아져요',
-    effect: (lv) => (lv ? `옵션 품질 ${Math.round(enchantQualAt(lv) * 100)}~100%` : '아직 없음') },
+  enchant: { name: '옵션 재굴림대', icon: '🎲', desc: '🎲 재굴림권으로 장비 옵션 한 줄을 다시 굴려요 — Lv 이 오를수록 품질 바닥이 오르고 쓰레기 옵션이 줄어요',
+    effect: (lv) => (lv ? `품질 ${Math.round(enchantQualAt(lv) * 100)}~100% · 쓰레기 −${lv}%p` : '아직 없음') },
   temper: { name: '담금질대', icon: '🔥', desc: `+${TEMPER_CAP}까지 가는 강화의 성공 확률을 올리고 하락을 줄여요 — +${TEMPER_CAP} 이상에서 시도하는 강화엔 효과가 없어요`,
     effect: (lv) => (lv ? `성공 +${(TEMPER_RATE * lv * 100).toFixed(1)}%p · 하락 −${Math.round(TEMPER_DOWN * lv * 100)}%` : '아직 없음') },
 };
@@ -138,25 +138,56 @@ const FORGE_FAC = {
 //  (0.12.2 의 연마대(anvil)는 0.12.3 에서 빠졌고 core.js migrate 가 s.forge.anvil 을 환급·삭제하므로 id 를 다시 쓰지 않는다)
 // 분해대: 판매 강화석 ×(1 + 0.1·Lv) (Lv20 ×3)
 const salvageMultAt = (lv) => 1 + 0.1 * lv;
-// 마법부여대 (0.18, 0.13~0.17 의 각인대(편차 다시 굴리기)를 대신한다 — core.js migrate 가 Lv 을 옮김)
-//  장비 하나에 부가 옵션 { k, v } 하나를 붙인다 (it.en). 옵션은 SPECIAL_STATS 키, 값은 lo~hi 사이.
-//  품질 q 를 [enchantQualAt(Lv), 1] 에서 균등하게 굴려 v = lo + (hi − lo)·q — Lv1 은 바닥 4%, Lv20 은 바닥 80% (최소값이 올라가 꽝이 줄어든다)
-//  다시 부여하면 이전 옵션은 사라진다. 능력치는 장비에 붙고 시설은 행동만 열어 주므로 "건물은 능력치를 직접 주지 않는다" 원칙과 맞다.
-//  공격력·체력 % 는 부위 3개를 다 최대로 받아도 ×1.36 — 등급 한 칸(약 1.45배)은 못 넘는다 → 등급 서열 유지
-const ENCHANT_OPTS = {
-  atkPct:   { lo: 0.03,  hi: 0.12 },
-  hpPct:    { lo: 0.03,  hi: 0.12 },
-  crit:     { lo: 0.01,  hi: 0.04 },
-  critMult: { lo: 0.05,  hi: 0.25 },
-  guard:    { lo: 0.02,  hi: 0.08 },
-  heal:     { lo: 0.002, hi: 0.01 },
-  goldPct:  { lo: 0.05,  hi: 0.25 },
-  expPct:   { lo: 0.05,  hi: 0.25 },
-};
+// 옵션 재굴림대 (시즌6, 0.18 의 마법부여대(it.en)를 대신한다 — 시설 id 'enchant' 와 Lv 은 그대로)
+//  장비 옵션 줄(it.op, 아래 GEAR_OPTS) 하나를 🎲 재굴림권 + 💠 강화석 + 💎 마력석으로 다시 굴린다.
+//  품질 바닥 enchantQualAt(Lv) (Lv당 4%, Lv20 80%), 쓰레기 옵션 확률 −1%p/Lv (최소 OPT_JUNK_MIN)
 const enchantQualAt = (lv) => Math.min(1, 0.04 * lv);
-const enchantValueAt = (k, q) => { const o = ENCHANT_OPTS[k]; return Math.round((o.lo + (o.hi - o.lo) * q) * 10000) / 10000; };
-// 마법부여 1회 비용: 💠 강화석 (그 등급 판매량만큼) + 💎 마력석
-const enchantCost = (g) => ({ stone: GEAR_STONES[g], mana: 2 + 2 * g });
+const rerollCost = (g) => ({ reroll: 1, stone: GEAR_STONES[g], mana: 2 + 2 * g });
+
+// ───────────────────────── 장비 옵션 줄 (시즌6) ─────────────────────────
+// 장비를 얻을 때 등급별 줄 수(OPT_LINES)만큼 옵션을 미리 굴려 둔다. 줄 i(0부터)는 그 부위 강화가 OPT_STEP·(i+1) 에 닿으면 켜진다
+//  (강화 단계는 부위에 붙어 있으므로 장비를 바꿔 껴도 켜진 줄 수는 부위 강화를 따른다).
+//  값 = (lo + (hi − lo)·q) × OPT_MULT[등급], q 는 품질 0~1 (S ≥ 0.9 · A ≥ 0.65 · B ≥ 0.35 · C). 같은 옵션이 여러 줄이면 합산.
+//  먼저 OPT_JUNK[등급] 확률로 쓰레기 옵션(junk)을 고르고, 아니면 나머지에서 균등하게 고른다.
+const OPT_STEP = 5;
+const OPT_LINES = [1, 2, 2, 3, 4, 5, 5, 5];
+const OPT_MULT = [0.4, 0.55, 0.7, 0.85, 1, 1.2, 1.45, 1.75];
+const OPT_JUNK = [0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.06];
+const OPT_JUNK_MIN = 0.03;
+const OPT_RANKS = [[0.9, 'S'], [0.65, 'A'], [0.35, 'B'], [0, 'C']];
+const STA_SAVE_MAX = 0.3;          // 스태미나 소모 감소 합산 상한
+const GEAR_OPTS = {
+  // 전투
+  atkPct:   { lo: 0.03,  hi: 0.10 },
+  hpPct:    { lo: 0.03,  hi: 0.10 },
+  aspdPct:  { lo: 0.02,  hi: 0.06 },
+  crit:     { lo: 0.01,  hi: 0.03 },
+  critMult: { lo: 0.05,  hi: 0.20 },
+  guard:    { lo: 0.02,  hi: 0.06 },
+  heal:     { lo: 0.002, hi: 0.008 },
+  bossDmg:  { lo: 0.05,  hi: 0.15 },
+  skillDmg: { lo: 0.05,  hi: 0.15 },
+  execute:  { lo: 0.08,  hi: 0.20 },
+  firstHit: { lo: 0.20,  hi: 0.60 },
+  // 원정·경제
+  goldPct:  { lo: 0.05,  hi: 0.20 },
+  expPct:   { lo: 0.05,  hi: 0.20 },
+  staSave:  { lo: 0.03,  hi: 0.08 },
+  lootPct:  { lo: 0.03,  hi: 0.10 },
+  matPct:   { lo: 0.05,  hi: 0.15 },
+  stonePct: { lo: 0.05,  hi: 0.15 },
+  tomePct:  { lo: 0.03,  hi: 0.10 },
+  bagCap:   { lo: 1,     hi: 3 },
+  // 쓰레기 (효과는 있지만 체감이 거의 없다)
+  sellPct:    { lo: 0.02, hi: 0.06, junk: true },
+  lunchPct:   { lo: 0.02, hi: 0.05, junk: true },
+  potionSave: { lo: 0.02, hi: 0.05, junk: true },
+  walkSpd:    { lo: 0.03, hi: 0.08, junk: true },
+  curioGold:  { lo: 0.03, hi: 0.08, junk: true },
+  restPct:    { lo: 0.01, hi: 0.03, junk: true },
+};
+const optRank = (q) => OPT_RANKS.find(([t]) => q >= t)[1];
+const optValueAt = (k, q, g) => { const o = GEAR_OPTS[k]; return Math.round((o.lo + (o.hi - o.lo) * q) * OPT_MULT[g] * 10000) / 10000; };
 // 건물·시설은 능력치를 직접 주지 않는다 (0.13.1 의 공명로는 0.13.2 에서 빠짐, core.js migrate 가 환급)
 // 시설 lv → lv+1 비용
 function forgeFacCost(id, lv) {
@@ -182,6 +213,14 @@ const SUPPLIES = {
   charm:  { name: '행운의 부적', icon: '🍀', price: 60, w: 12, desc: '이번 원정 동안 좋은 등급의 전리품이 더 잘 나옴' },
   elixir: { name: '투지의 영약', icon: '🔥', price: 60, w: 13, desc: '이번 원정 동안 공격력 +30%' },
   protect: { name: '보호 주문서', icon: '📜', price: 400, w: 4, desc: '강화할 때 1장 써서, 실패로 단계가 떨어지거나 초기화되는 걸 막아 줌' },
+  // 재굴림권: 상점에 없다(shop: false) — 레이드 처치 상자·월드 보스 보상에서만 (RARE_DROP)
+  reroll: { name: '재굴림권', icon: '🎲', price: 0, w: 0, shop: false, desc: '대장간 🎲 옵션 재굴림대에서 장비 옵션 한 줄을 다시 굴림' },
+};
+// 재굴림권·보호 주문서 드랍 확률: 레이드 처치 상자 1개당 / 월드 보스 하루 보상(잡은 날은 kill)
+const RARE_DROP = {
+  raid: { reroll: 0.06, protect: 0.06 },
+  wb:   { reroll: 0.15, protect: 0.15 },
+  wbKill: { reroll: 0.3, protect: 0.3 },
 };
 // ───────────────────────── 우편함 ─────────────────────────
 // 모든 기사에게 보내는 우편. id 는 한 번 정하면 바꾸지 않는다 (받았는지를 S.mail.got 에 id 로 남긴다).
@@ -205,17 +244,17 @@ const MAIL = [
 ];
 
 // 가방에서 소비 아이템이 나올 때 테두리 색으로 쓰는 등급
-const SUPPLY_GRADE = { lunch: 0, potion: 0, charm: 2, elixir: 2, protect: 3 };
+const SUPPLY_GRADE = { lunch: 0, potion: 0, charm: 2, elixir: 2, protect: 3, reroll: 4 };
 
 // ───────────────────────── 전리품 등급 ─────────────────────────
 // 장비·골동품 공통. stat: 장비 능력치 배수, sell: 판매가(몬스터 골드 배수), res: 골동품 재화 배수
 // 장비 수급은 둘로 나뉜다: 원정은 일반~영웅(짜바리 위주, 영웅은 가끔 터지는 대박), 전설 이상은 레이드 처치 상자에서만.
-// 원정 1회(상자 약 13개, 보스 3마리 기준) 장비 기대치: 영웅 4~5회에 1개 (부적을 쓰면 2배)
+// 시즌6 희소성 개편: 원정 1회(상자 약 13개, 보스 3마리 기준) 장비 기대치 영웅 약 15회에 1개 (부적을 쓰면 2배). 희귀·영웅은 필드가 깊어야 나온다 (GRADE_FROM)
 const GRADES = [
-  { name: '일반', color: '#b8bcc6', w: 64,  stat: 1,   sell: 3,  res: 1 },
-  { name: '고급', color: '#5fcf5a', w: 26,  stat: 1.5, sell: 6,  res: 2 },
-  { name: '희귀', color: '#4aa3ff', w: 8,   stat: 2.2, sell: 12, res: 4 },
-  { name: '영웅', color: '#b36bff', w: 1.8, stat: 3.2, sell: 30, res: 8 },
+  { name: '일반', color: '#b8bcc6', w: 70,  stat: 1,   sell: 3,  res: 1 },
+  { name: '고급', color: '#5fcf5a', w: 24,  stat: 1.5, sell: 6,  res: 2 },
+  { name: '희귀', color: '#4aa3ff', w: 5.5, stat: 2.2, sell: 12, res: 4 },
+  { name: '영웅', color: '#b36bff', w: 0.5, stat: 3.2, sell: 30, res: 8 },
   { name: '전설', color: '#ff9f1c', w: 0.2, stat: 4.6, sell: 80, res: 18 },
   { name: '신화', color: '#ff4d6d', w: 0.03,   stat: 6.6,  sell: 200,  res: 40 },
   { name: '초월', color: '#3ee8ff', w: 0.005,  stat: 9.5,  sell: 500,  res: 90 },
@@ -227,6 +266,8 @@ const SET_GRADE = { name: '세트', color: '#3dffa8' };
 const SELL_FILTER_DEFAULT = [true, true, true, true, false, false, false, false];
 // 원정 상자가 나올 수 있는 가장 높은 등급 (영웅). 그 위 등급의 w 는 레이드·옛 세이브 상자에만 쓰인다
 const EXPEDITION_GRADE_MAX = 3;
+// 원정 상자 등급이 나오기 시작하는 스테이지 (희귀 필드 2 · 영웅 필드 4)
+const GRADE_FROM = [1, 1, 21, 61];
 const CHARM_BONUS = [0.5, 1, 1.6, 2, 2, 2, 2, 2];     // 행운의 부적: 등급별 가중치 배수 (전설 이상은 2배까지만)
 
 // ───────────────────────── 전리품 상자 ─────────────────────────
@@ -563,7 +604,26 @@ const SPECIAL_STATS = {
   heal:     { name: '타격 시 체력 회복', fmt: (v) => `${(v * 100).toFixed(1)}%` },
   goldPct:  { name: '골드 획득', fmt: (v) => `+${Math.round(v * 100)}%` },
   expPct:   { name: '경험치 획득', fmt: (v) => `+${Math.round(v * 100)}%` },
+  // 시즌6 장비 옵션 줄 (GEAR_OPTS)
+  bossDmg:  { name: '보스 피해', fmt: (v) => `+${pct1(v)}%` },
+  skillDmg: { name: '스킬 피해', fmt: (v) => `+${pct1(v)}%` },
+  execute:  { name: '처형 (체력 30%↓ 적)', fmt: (v) => `+${pct1(v)}%` },
+  firstHit: { name: '첫 타격 피해', fmt: (v) => `+${pct1(v)}%` },
+  staSave:  { name: '스태미나 소모', fmt: (v) => `-${pct1(v)}%` },
+  lootPct:  { name: '전리품 상자 획득', fmt: (v) => `+${pct1(v)}%` },
+  matPct:   { name: '목재·철광석·마력석 획득', fmt: (v) => `+${pct1(v)}%` },
+  stonePct: { name: '강화석 획득', fmt: (v) => `+${pct1(v)}%` },
+  tomePct:  { name: '비전서 추가 확률', fmt: (v) => `+${pct1(v)}%p` },
+  bagCap:   { name: '가방 무게', fmt: (v) => `+${v.toFixed(1)}` },
+  sellPct:    { name: '장비 판매 골드', fmt: (v) => `+${pct1(v)}%` },
+  lunchPct:   { name: '도시락 회복량', fmt: (v) => `+${pct1(v)}%` },
+  potionSave: { name: '물약 아낄 확률', fmt: (v) => `${pct1(v)}%` },
+  walkSpd:    { name: '귀환 걸음 속도', fmt: (v) => `+${pct1(v)}%` },
+  curioGold:  { name: '옛 금화 골드', fmt: (v) => `+${pct1(v)}%` },
+  restPct:    { name: '캠프 휴식 속도', fmt: (v) => `+${pct1(v)}%` },
 };
+// 0.072 → '7.2', 0.07 → '7' (옵션 줄 표시용)
+function pct1(v) { const x = Math.round(v * 1000) / 10; return Number.isInteger(x) ? String(x) : x.toFixed(1); }
 // 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)
 const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
 // 무기 공격력·갑옷 체력은 절대값이다 — 중후반 성장의 중심. 기본 위력은 착용한 기사의 레벨을 따라 커지고(gearAtkAt·gearHpAt),
@@ -1995,9 +2055,8 @@ const GEAR_SPR = {
 // id·stage 는 server/raid.js 의 RAID_BOSSES 와 같아야 한다. stage: 입장에 필요한 최고 스테이지 (보스 능력치 기준이기도 함)
 //  spr·pal: 레이드 전용 도트(SPR.rb_*)와 색 · hit·aoe: 평타·광역기 연출 종류(world.js RAID_FX) · fx: 연출 색 · skill: 광역기 이름
 //  chest: 처치 상자 — n 내용물 수, w 등급(GRADES 순서)별 가중치, sig 고유 장비가 하나 섞일 확률, spr·pal 상자 모양
-//   전설 이상 장비는 여기서만 나온다. 첫 보스부터 원정 최고 등급(영웅) 위주로 시작해 보스를 따라 한 칸씩 오른다:
-//   슬라임 킹 영웅 위주(전설 15%) → 리치 킹 영웅·전설 반반 → 화염룡 전설 위주 → 마왕 신화 위주(초월·태초 가끔).
-//   시즌 5 보스(심연 140 ~ 별의 끝 300)는 신화 이상만 — 신화를 덜고 태초를 늘려 별의 끝에서는 태초 65%.
+//   전설 이상 장비는 여기서만 나온다. 시즌6 희소성 개편: 보스를 따라 한 칸씩 오르되 그 보스의 최고 등급은 '가끔 터지는 대박'.
+//   슬라임 킹 희귀·영웅(전설 3%) → 리치 킹 영웅 위주(신화 2%) → 마왕 전설 위주(태초 0.2%) → 종언의 성좌신 신화 50 · 초월 38 · 태초 12.
 //   고유 장비는 잘 안 나온다(sig 2~6%). 보스를 처음 잡으면 첫 처치 상자에는 그 보스의 고유 장비가 반드시 하나 들어 있다
 //  set: 그 보스 고유 장비 3부위(무기·갑옷·장신구) 세트. 같은 보스 것을 2부위·3부위 끼면 효과가 붙는다 (SPECIAL_STATS 키)
 const RAID_BOSSES = {
@@ -2005,43 +2064,43 @@ const RAID_BOSSES = {
     pal: { y: '#ffd257', R: '#ff3b4b', B: '#3dffa8', g: '#1f4f9a', G: '#4aa3ff', L: '#d8f0ff', W: '#ffffff', K: '#0d1630', m: '#ff6b8a' },
     set: { name: '슬라임 왕가', 2: { hpPct: 0.08 }, 3: { atkPct: 0.08, aspdPct: 0.05 } },
     desc: '초원의 슬라임들이 모이고 모여 왕이 되었다. 뛰어오를 때마다 땅이 흔들린다.',
-    chest: { name: '슬라임 킹의 보물상자', n: [3, 3], w: [0, 0, 10, 50, 40, 0, 0, 0], sig: 0.06, spr: 'chest',
+    chest: { name: '슬라임 킹의 보물상자', n: [3, 3], w: [0, 0, 60, 37, 3, 0, 0, 0], sig: 0.06, spr: 'chest',
       pal: { B: '#2a5fa8', b: '#173a6b', W: '#4aa3ff', H: '#ffd257', G: '#ffd257', J: '#bfe3ff' } } },
   goblinchief: { name: '고블린 족장', icon: '👺', stage: 20, spr: 'rb_goblinchief', hit: 'axe', aoe: 'whirl', fx: ['#c9a227', '#e8d9a8'], skill: '약탈의 회오리',
     pal: { f: '#e0443c', o: '#ff9f1c', y: '#ffd257', I: '#c9d1dd', h: '#7a4a22', g: '#4a6b1f', G: '#8fae3c', Y: '#ffd257', K: '#1b1d27', W: '#f4f1e8', b: '#4a2a14', B: '#7a2a2a' },
     set: { name: '약탈자의 긍지', 2: { atkPct: 0.1 }, 3: { crit: 0.04, goldPct: 0.2 } },
     desc: '초원의 고블린 부족을 하나로 묶은 족장. 빼앗은 보물이 동굴 천장까지 쌓여 있다.',
-    chest: { name: '족장의 약탈품 궤짝', n: [3, 3], w: [0, 0, 0, 40, 50, 10, 0, 0], sig: 0.05, spr: 'chest',
+    chest: { name: '족장의 약탈품 궤짝', n: [3, 3], w: [0, 0, 40, 52, 8, 0.3, 0, 0], sig: 0.05, spr: 'chest',
       pal: { B: '#6b4420', b: '#3a2410', W: '#8fae3c', H: '#ffd257', G: '#ffd257', J: '#e0443c' } } },
   lichking: { name: '리치 킹', icon: '💀', stage: 40, spr: 'rb_lichking', hit: 'skull', aoe: 'deathwave', fx: ['#7dffb0', '#b38bff'], skill: '죽음의 파동',
     pal: { y: '#ffd257', R: '#ff4d6d', O: '#7dffb0', o: '#e8fff0', p: '#1b1030', k: '#0d0818', W: '#e9e4d4', K: '#0d0818', P: '#3a2463', G: '#7dffb0', s: '#5e3818' },
     set: { name: '불사의 군주', 2: { hpPct: 0.12 }, 3: { guard: 0.06, heal: 0.01 } },
     desc: '묘지의 모든 망자를 거느린 왕. 쓰러뜨려도 성물함이 남아 있는 한 다시 일어난다.',
-    chest: { name: '리치 킹의 관', n: [3, 4], w: [0, 0, 0, 20, 55, 25, 0, 0], sig: 0.05, spr: 'jewelbox',
+    chest: { name: '리치 킹의 관', n: [3, 4], w: [0, 0, 20, 60, 18, 2, 0, 0], sig: 0.05, spr: 'jewelbox',
       pal: { B: '#2a1a4a', b: '#150d26', W: '#4a2a6b', H: '#7dffb0', G: '#7dffb0', J: '#ff4d6d' } } },
   boglord: { name: '늪의 군주', icon: '🐊', stage: 60, spr: 'rb_boglord', hit: 'bite', aoe: 'fog', fx: ['#8a6fb8', '#c9b3ff'], skill: '독안개 포효',
     pal: { r: '#6b8f3a', y: '#c9b3ff', c: '#2f4f2a', C: '#4a6b3a', Y: '#d9b3ff', K: '#1b1d27', W: '#f4f1e8', l: '#8a9a5a', t: '#2f4f2a' },
     set: { name: '늪의 지배자', 2: { aspdPct: 0.08 }, 3: { hpPct: 0.15, expPct: 0.15 } },
     desc: '독안개 늪 한가운데 웅크린 거대한 악어. 숨을 내쉴 때마다 늪 전체가 보랏빛으로 물든다.',
-    chest: { name: '늪 군주의 이끼 궤', n: [3, 4], w: [0, 0, 0, 5, 50, 40, 5, 0], sig: 0.04, spr: 'chest',
+    chest: { name: '늪 군주의 이끼 궤', n: [3, 4], w: [0, 0, 8, 60, 28, 4, 0, 0], sig: 0.04, spr: 'chest',
       pal: { B: '#3a5a2a', b: '#1f3315', W: '#8fd8a8', H: '#8a6fb8', G: '#c9b3ff', J: '#ffd257' } } },
   flamedragon: { name: '화염룡', icon: '🐉', stage: 80, spr: 'rb_flamedragon', hit: 'fireball', aoe: 'breath', fx: ['#ff7a1f', '#ffe066'], skill: '화염 숨결',
     pal: { w: '#7a1414', W: '#ff7a1f', h: '#2a1d1d', d: '#b8321f', Y: '#ffe066', K: '#1b0d0a', b: '#ffb13b', t: '#8a1414' },
     set: { name: '화염룡의 분노', 2: { atkPct: 0.15 }, 3: { crit: 0.05, critMult: 0.5 } },
     desc: '화산 동굴 가장 깊은 곳에서 잠든 고룡. 깨어나는 순간 동굴 전체가 용광로가 된다.',
-    chest: { name: '화염룡의 보물궤', n: [4, 4], w: [0, 0, 0, 0, 40, 45, 15, 0], sig: 0.04, spr: 'chest',
+    chest: { name: '화염룡의 보물궤', n: [4, 4], w: [0, 0, 0, 55, 38, 6.5, 0.5, 0], sig: 0.04, spr: 'chest',
       pal: { B: '#b3263e', b: '#6e1424', W: '#ff6b81', H: '#ffd257', G: '#ffd257', J: '#ff9f1c' } } },
   frostgiant: { name: '서리 거인', icon: '🧊', stage: 100, spr: 'rb_frostgiant', hit: 'boulder', aoe: 'icicles', fx: ['#9fe8ff', '#ffffff'], skill: '빙하 내려찍기',
     pal: { I: '#9fe8ff', w: '#e8f6ff', b: '#6a8cc8', E: '#5ad1ff', W: '#ffffff' },
     set: { name: '만년설 거인', 2: { hpPct: 0.2 }, 3: { atkPct: 0.15, guard: 0.08 } },
     desc: '설원의 끝에서 산맥을 베개 삼아 자는 거인. 한 걸음에 눈사태가 난다.',
-    chest: { name: '서리 거인의 얼음 성궤', n: [4, 4], w: [0, 0, 0, 0, 20, 50, 25, 5], sig: 0.035, spr: 'jewelbox',
+    chest: { name: '서리 거인의 얼음 성궤', n: [4, 4], w: [0, 0, 0, 40, 50, 9, 1, 0], sig: 0.035, spr: 'jewelbox',
       pal: { B: '#8fbfe0', b: '#3f6f9a', W: '#e8f6ff', H: '#ffffff', G: '#ffffff', J: '#1b6fd1' } } },
   demonking: { name: '마왕', icon: '😈', stage: 130, spr: 'rb_demonking', hit: 'darkorb', aoe: 'hellfire', fx: ['#c06bff', '#ff3b4b'], skill: '멸망의 흑염',
     pal: { h: '#e9e4d4', y: '#ffd257', R: '#ff3b4b', d: '#5a0f2a', W: '#f4f1e8', K: '#150a20', c: '#150a20', C: '#3a1a4a', J: '#c06bff' },
     set: { name: '마왕의 권능', 2: { atkPct: 0.2, hpPct: 0.15 }, 3: { aspdPct: 0.15, crit: 0.08, critMult: 0.5, guard: 0.05 } },
     desc: '마왕성의 옥좌에 앉은 모든 어둠의 주인. 그가 일어서면 하늘이 꺼진다.',
-    chest: { name: '마왕의 옥좌 보고', n: [4, 5], w: [0, 0, 0, 0, 5, 45, 38, 12], sig: 0.03, spr: 'jewelbox',
+    chest: { name: '마왕의 옥좌 보고', n: [4, 5], w: [0, 0, 0, 25, 58, 15, 2, 0.2], sig: 0.03, spr: 'jewelbox',
       pal: { B: '#2a1540', b: '#150a20', W: '#c06bff', H: '#ffd257', G: '#ffd257', J: '#ff3b4b' } } },
   // ── 시즌 5: 마왕 뒤로 필드마다 한 마리 (그 필드의 마지막 스테이지에서 열린다). 상자는 신화 이상만, 보스를 따라 태초 비율이 오른다
   //  float: 땅에서 떠서 둥실거린다 (world.js raidBossPose)
@@ -2049,55 +2108,55 @@ const RAID_BOSSES = {
     pal: { k: '#0d0818', v: '#3a1a6b', V: '#7a4fd1', W: '#f0e8ff', R: '#ff3b8a', K: '#0a0410', c: '#5ad1ff', C: '#e0f8ff' },
     set: { name: '심연의 시선', 2: { atkPct: 0.22, hpPct: 0.16 }, 3: { aspdPct: 0.15, crit: 0.09, critMult: 0.55, guard: 0.05 } },
     desc: '균열 너머에서 이쪽을 들여다보는 거대한 눈. 눈이 마주친 자는 발밑부터 심연으로 무너진다.',
-    chest: { name: '감시자의 균열 함', n: [4, 5], w: [0, 0, 0, 0, 0, 42, 42, 16], sig: 0.03, spr: 'jewelbox',
+    chest: { name: '감시자의 균열 함', n: [4, 5], w: [0, 0, 0, 12, 62, 22, 3.5, 0.5], sig: 0.03, spr: 'jewelbox',
       pal: { B: '#2a1a4a', b: '#0d0818', W: '#7a4fd1', H: '#5ad1ff', G: '#5ad1ff', J: '#ff3b8a' } } },
   skygriffin: { name: '천공의 그리폰 왕', icon: '🦅', stage: 160, spr: 'rb_skygriffin', hit: 'feather', aoe: 'gale', fx: ['#9fd8ff', '#ffffff'], skill: '천공 돌풍',
     pal: { w: '#3a6bb8', W: '#e8f0ff', h: '#ffffff', K: '#1b1d27', y: '#ffd257', b: '#c9a26a', B: '#f0dcb0', t: '#8a6a3a', T: '#3a6bb8' },
     set: { name: '천공의 패자', 2: { atkPct: 0.2, aspdPct: 0.12 }, 3: { hpPct: 0.2, crit: 0.08, critMult: 0.6, guard: 0.05 } },
     desc: '하늘에 뜬 섬들을 둥지 삼아 다스리는 그리폰들의 왕. 날개를 한 번 치면 구름이 갈라진다.',
-    chest: { name: '그리폰 왕의 황금 둥지', n: [4, 5], w: [0, 0, 0, 0, 0, 35, 45, 20], sig: 0.03, spr: 'chest',
+    chest: { name: '그리폰 왕의 황금 둥지', n: [4, 5], w: [0, 0, 0, 5, 60, 29, 5, 1], sig: 0.03, spr: 'chest',
       pal: { B: '#c9a26a', b: '#8a6a3a', W: '#e8f0ff', H: '#ffd257', G: '#ffd257', J: '#3a6bb8' } } },
   sandworm: { name: '모래폭풍 대왕충', icon: '🪱', stage: 180, spr: 'rb_sandworm', hit: 'sandspit', aoe: 'quicksand', fx: ['#e8b56a', '#fff1c2'], skill: '개미지옥',
     pal: { o: '#5a3e1e', K: '#2a1408', t: '#f4f1e8', r: '#8a1f1f', s: '#c98b4a', S: '#e8b56a', d: '#b8925a', D: '#e0c080' },
     set: { name: '모래 폭군', 2: { hpPct: 0.25 }, 3: { atkPct: 0.25, guard: 0.08, goldPct: 0.3 } },
     desc: '모래폭풍 사막 밑을 헤엄치는 산만 한 벌레. 사구가 움직인다 싶으면 이미 그 입 속이다.',
-    chest: { name: '대왕충의 삼킨 보물', n: [5, 5], w: [0, 0, 0, 0, 0, 28, 47, 25], sig: 0.028, spr: 'chest',
+    chest: { name: '대왕충의 삼킨 보물', n: [5, 5], w: [0, 0, 0, 0, 58, 34, 6.5, 1.5], sig: 0.028, spr: 'chest',
       pal: { B: '#c98b4a', b: '#5a3e1e', W: '#e8b56a', H: '#fff1c2', G: '#ffd257', J: '#2a8ad1' } } },
   kraken: { name: '심해의 크라켄', icon: '🦑', stage: 200, spr: 'rb_kraken', hit: 'inkshot', aoe: 'tidal', fx: ['#2a8ad1', '#9fe8ff'], skill: '대해일',
     pal: { p: '#4a1030', P: '#b3264a', L: '#ff6b8a', Y: '#ffe066', K: '#0a0410', s: '#ffb3c6' },
     set: { name: '심해의 군주', 2: { hpPct: 0.2, heal: 0.006 }, 3: { atkPct: 0.25, aspdPct: 0.15, guard: 0.07 } },
     desc: '가라앉은 신전을 제 둥지로 삼은 거대한 두족류. 촉수 하나가 신전 기둥보다 굵다.',
-    chest: { name: '가라앉은 신전의 제단 궤', n: [5, 5], w: [0, 0, 0, 0, 0, 20, 50, 30], sig: 0.028, spr: 'jewelbox',
+    chest: { name: '가라앉은 신전의 제단 궤', n: [5, 5], w: [0, 0, 0, 0, 50, 40, 8, 2], sig: 0.028, spr: 'jewelbox',
       pal: { B: '#1f4a6b', b: '#0d2438', W: '#9fe8ff', H: '#ffe066', G: '#ffe066', J: '#ff6b8a' } } },
   fairyqueen: { name: '요정 여왕 티타니아', icon: '🧚', stage: 220, spr: 'rb_fairyqueen', hit: 'pixie', aoe: 'thorns', fx: ['#7dffb0', '#ff9ff3'], skill: '가시덩굴 정원',
     pal: { W: '#2f7a4a', L: '#b3ffd9', G: '#ff9ff3', y: '#ffd257', h: '#ffe8a8', f: '#ffd9c2', K: '#1b1d27', d: '#3a9a5a', D: '#c9ffd9' },
     set: { name: '요정 왕실', 2: { aspdPct: 0.15, expPct: 0.3 }, 3: { atkPct: 0.28, crit: 0.1, critMult: 0.6, heal: 0.006 } },
     desc: '요정의 숲 가장 오래된 나무 위의 여왕. 웃으며 손짓하면 숲 전체가 가시로 변한다.',
-    chest: { name: '여왕의 꽃잎 보석함', n: [5, 5], w: [0, 0, 0, 0, 0, 12, 52, 36], sig: 0.025, spr: 'jewelbox',
+    chest: { name: '여왕의 꽃잎 보석함', n: [5, 5], w: [0, 0, 0, 0, 40, 46, 11, 3], sig: 0.025, spr: 'jewelbox',
       pal: { B: '#3a9a5a', b: '#1f5a33', W: '#b3ffd9', H: '#ff9ff3', G: '#ffd257', J: '#ff9ff3' } } },
   colossus: { name: '고대 병기 콜로서스', icon: '🤖', stage: 240, spr: 'rb_colossus', hit: 'cannon', aoe: 'laser', fx: ['#ff4d4d', '#3ee8ff'], skill: '궤도 포격',
     pal: { m: '#3a3a44', M: '#8a8f9a', E: '#3ee8ff', g: '#c9a227', c: '#2a2a33', C: '#e0443c' },
     set: { name: '고대 병기', 2: { atkPct: 0.25, guard: 0.06 }, 3: { hpPct: 0.25, aspdPct: 0.15, crit: 0.1, critMult: 0.7 } },
     desc: '유적 깊은 곳에서 천 년 동안 명령을 기다린 병기. 마지막 명령은 "다가오는 것은 모두 없애라".',
-    chest: { name: '콜로서스의 동력 금고', n: [5, 6], w: [0, 0, 0, 0, 0, 5, 53, 42], sig: 0.025, spr: 'chest',
+    chest: { name: '콜로서스의 동력 금고', n: [5, 6], w: [0, 0, 0, 0, 30, 50, 16, 4], sig: 0.025, spr: 'chest',
       pal: { B: '#5a5f6a', b: '#2a2a33', W: '#8a8f9a', H: '#c9a227', G: '#c9a227', J: '#3ee8ff' } } },
   crystalspider: { name: '수정 여왕 거미', icon: '🕷️', stage: 260, spr: 'rb_crystalspider', hit: 'shard', aoe: 'prism', fx: ['#ff9ff3', '#9fe8ff'], skill: '프리즘 폭쇄',
     pal: { c: '#5a2a8a', C: '#c98bff', W: '#ffffff', s: '#2a2048', S: '#5a4a8a', R: '#ff4dff', K: '#ffffff' },
     set: { name: '수정 여왕', 2: { crit: 0.1, critMult: 0.5 }, 3: { atkPct: 0.3, hpPct: 0.25, aspdPct: 0.15, guard: 0.06 } },
     desc: '등에 수정을 키우며 동굴을 통째로 거미줄로 감싼 여왕. 빛이 들면 동굴 전체가 칼날이 된다.',
-    chest: { name: '수정 여왕의 알집', n: [5, 6], w: [0, 0, 0, 0, 0, 0, 52, 48], sig: 0.022, spr: 'jewelbox',
+    chest: { name: '수정 여왕의 알집', n: [5, 6], w: [0, 0, 0, 0, 20, 52, 22, 6], sig: 0.022, spr: 'jewelbox',
       pal: { B: '#3a2a5a', b: '#1b1530', W: '#c98bff', H: '#9fe8ff', G: '#ffffff', J: '#ff4dff' } } },
   stormlord: { name: '폭풍의 정령왕', icon: '🌩️', stage: 280, spr: 'rb_stormlord', hit: 'bolt', aoe: 'thunder', fx: ['#ffe066', '#9fd8ff'], skill: '만뢰', float: true,
     pal: { c: '#2a3448', C: '#5a6b8a', L: '#8a9ab8', K: '#0d0d1a', Y: '#ffe066', y: '#ffe066' },
     set: { name: '폭풍의 왕', 2: { atkPct: 0.25, aspdPct: 0.18 }, 3: { hpPct: 0.3, crit: 0.1, critMult: 0.8, guard: 0.07 } },
     desc: '봉우리 꼭대기에 걸린 먹구름이 눈을 떴다. 손가락질 한 번에 벼락이 떨어진다.',
-    chest: { name: '정령왕의 뇌운 성궤', n: [6, 6], w: [0, 0, 0, 0, 0, 0, 45, 55], sig: 0.02, spr: 'jewelbox',
+    chest: { name: '정령왕의 뇌운 성궤', n: [6, 6], w: [0, 0, 0, 0, 10, 52, 30, 8], sig: 0.02, spr: 'jewelbox',
       pal: { B: '#2a3448', b: '#0d0d1a', W: '#5a6b8a', H: '#ffe066', G: '#ffe066', J: '#9fd8ff' } } },
   starend: { name: '종언의 성좌신', icon: '🌠', stage: 300, spr: 'rb_starend', hit: 'meteor', aoe: 'supernova', fx: ['#ffd257', '#c9b8ff'], skill: '초신성',
     pal: { a: '#ffd257', n: '#1b1450', N: '#3a2e8a', K: '#ffffff', '*': '#ffffff' },
     set: { name: '별의 종언', 2: { atkPct: 0.3, hpPct: 0.25 }, 3: { aspdPct: 0.2, crit: 0.12, critMult: 1, guard: 0.08, heal: 0.005 } },
     desc: '모든 별이 지는 곳에서 마지막 별을 지키는 신. 그 별마저 꺼지면 세상이 끝난다고 한다.',
-    chest: { name: '마지막 별의 성궤', n: [6, 6], w: [0, 0, 0, 0, 0, 0, 35, 65], sig: 0.02, spr: 'jewelbox',
+    chest: { name: '마지막 별의 성궤', n: [6, 6], w: [0, 0, 0, 0, 0, 50, 38, 12], sig: 0.02, spr: 'jewelbox',
       pal: { B: '#2a2060', b: '#0d0a2a', W: '#c9b8ff', H: '#ffd257', G: '#ffd257', J: '#ffffff' } } },
 };
 

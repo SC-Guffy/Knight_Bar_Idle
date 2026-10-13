@@ -78,10 +78,10 @@ function settleRaid(result, nick) {
   const mult = (f.won ? 1 : RAID_FAIL_MULT) * (mvp ? RAID_MVP_MULT : 1) * bot;
   // 재화·경험치는 인원수만큼 강해진 보스의 스테이지 기준 (적은 인원으로 어렵게 잡을수록 많이). 단 내 최고 스테이지를 넘지는 않는다
   const rs = Math.max(b.stage, Math.min(S.best, Math.round(raidStageAt(b, result.party || result.members.length))));
-  const ms = monsterStats(rs, true), scale = 1 + (rs - 1) * 0.04;
+  const ms = monsterStats(rs, true), scale = 1 + (rs - 1) * 0.04, mat = mult * (1 + gearBonus().matPct);
   const reward = {
     gold: Math.round(ms.gold * 8 * mult * goldMult()),
-    wood: Math.round(60 * scale * mult), ore: Math.round(45 * scale * mult), mana: Math.round(12 * scale * mult),
+    wood: Math.round(60 * scale * mat), ore: Math.round(45 * scale * mat), mana: Math.round(12 * scale * mat),
     exp: f.won ? Math.round(ms.exp * 5 * bot * expMult()) : 0,
     chest: f.won, mvp, mult, rs,
   };
@@ -148,8 +148,16 @@ function claimRaidChest(i) {
   const c = S.raid.chests.splice(i, 1)[0];
   if (!c) return [];
   const got = openRaidChest(c).map((it) => ({ it, got: claimLoot(it) }));
-  // 📖 비전서 (스킬 숙련도): 상자마다 1~2권
-  got.tomes = 1 + (Math.random() < 0.5 ? 1 : 0);
+  // 📖 비전서 (스킬 숙련도): 상자마다 1~2권 (🎲 비전서 추가 확률 옵션만큼 한 권 더 나올 확률이 오른다)
+  got.tomes = 1 + (Math.random() < 0.5 + gearBonus().tomePct ? 1 : 0);
   S.tomes += got.tomes;
+  // 🎲 재굴림권 · 📜 보호 주문서: 상자마다 낮은 확률로 (RARE_DROP.raid)
+  got.items = rollRareDrops(RARE_DROP.raid);
   return got;
+}
+// 재굴림권·보호 주문서를 표의 확률로 굴려 바로 챙긴다. 받은 것 { reroll?: 1, protect?: 1 }
+function rollRareDrops(table) {
+  const out = {};
+  for (const id of Object.keys(table)) if (Math.random() < table[id]) { out[id] = 1; S.items[id] = (S.items[id] || 0) + 1; }
+  return out;
 }

@@ -28,7 +28,7 @@ function freshState() {
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
     forge: {},                              // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
-    items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
+    items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0, reroll: 0 },
     gear: freshGear(),                      // 장비 창고·장착·부위별 강화 단계 (gear.js)
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed, 차수별 곡선)
@@ -36,7 +36,7 @@ function freshState() {
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
-    gearV: 6,                               // 6: 무기·갑옷 기본 위력 = 기사 레벨 · 5: 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
+    gearV: 8,                               // 8: 옵션 줄(it.op) · 7: 마법부여대 · 6: 무기·갑옷 기본 위력 = 기사 레벨 · 5: 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
     phase: 'camp',                          // camp | expedition | returning | tower | dungeon
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -172,7 +172,17 @@ function migrate(o) {
     s.notice = `⚒️ 대장간 정리 — 부위 강화는 이제 마을 → 대장간에서 해요. 🔮 각인대는 ✨ 마법부여대로 바뀌어 장비에 공격력 % · 골드 획득 % 같은 부가 옵션을 붙여요${s.forge.potential ? ` (각인대 Lv ${s.forge.potential}을 그대로 옮겨 드렸어요)` : ''}`;
   }
   delete s.forge.potential;
-  s.gearV = 7;
+  // gearV 8 (시즌6): 마법부여(it.en) → 옵션 줄(it.op). 옵션이 없는 장비는 줄을 굴려 주고, 마법부여를 받았던 장비마다 🎲 재굴림권 1장으로 돌려준다
+  let ens = 0;
+  for (const it of s.gear.inv) {
+    if (it.en) { ens++; delete it.en; }
+    if (!it.op) it.op = rollOptLines(it.g);
+  }
+  if (ens) {
+    s.items.reroll = (s.items.reroll || 0) + ens;
+    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 부위 강화 +5·+10·+15·+20·+25 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
+  }
+  s.gearV = 8;
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
   if (s.forge.resonance || s.gear.res) {
     const back = { gold: 0, ore: 0, mana: 0 };
@@ -284,7 +294,8 @@ const skillRight = (id, key) => rightVal(SKILLS[id], key, skillBonus(id));
 const skillSpec = (id) => { const k = SKILLS[id], v = k.spec ? skillRight(id, 'spec') : 0; return v ? { ...k.spec, v } : null; };
 const skillStar = (id) => skillBonus(id).star;
 const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
-const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
+// 🎲 스킬 피해 옵션은 한 방 위력에 곱한다 (필드·결투·레이드가 모두 이 값을 쓴다)
+const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id)) * (1 + gearBonus().skillDmg);
 const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
 // 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
 function nodeLock(id, nid) {
@@ -359,6 +370,7 @@ function dpsOf(st) {
   }
   return perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra;
 }
+const bossOpts = () => { const gb = gearBonus(); return { ...(gb.bossDmg ? { bossDmg: gb.bossDmg } : {}), ...(gb.execute ? { exec: gb.execute } : {}) }; };
 const powerOf = (st) => Math.round(Math.sqrt(dpsOf(st) * st.maxHp) * 10);
 
 // 서버에 올리는 공개 전투 정보. 랭킹 표시와 결투 계산에 쓰인다.
@@ -368,6 +380,8 @@ function profile() {
     cls: S.cls, level: S.level, best: S.best, power: powerOf(st), tower: S.tower ? S.tower.best : 0,   // tower: 🗼 탑 순위
     atk: st.atk, maxHp: st.maxHp, aspd: st.aspd, crit: st.crit, critMult: st.critMult,
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal,
+    // 🎲 옵션 줄의 보스 피해·처형: 레이드·월드 보스 서버 전투(server/raid.js)가 쓴다
+    ...bossOpts(),
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     skills: st.skills.map((id) => {
       const k = skillAt(id, skillLv(id), skillStage(id));
@@ -384,7 +398,9 @@ function profile() {
 
 const maxStamina = () => maxStaminaAt(S.bld.inn);
 const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
-const bagCap = () => bagCapAt(S.bld.storage);
+const bagCap = () => bagCapAt(S.bld.storage) + gearBonus().bagCap;
+// 초당 스태미나 소모 (🎲 스태미나 소모 옵션, 합산 최대 STA_SAVE_MAX)
+const staDrain = () => STAMINA_DRAIN * (1 - Math.min(STA_SAVE_MAX, gearBonus().staSave));
 const bagWeight = () => S.bag.reduce((a, it) => a + lootWeight(it), 0);
 // 무게가 조금이라도 남아 있으면 상자를 하나 더 얹는다 (마지막 상자는 조금 넘쳐도 들고 온다)
 const bagFull = () => bagWeight() >= bagCap();
@@ -525,6 +541,7 @@ function claimMail(id) {
 const supplyPrice = (id) => Math.floor(SUPPLIES[id].price * monsterStats(S.best, false).gold);
 
 function buySupply(id) {
+  if (!SUPPLIES[id] || SUPPLIES[id].shop === false) return false;
   const p = supplyPrice(id);
   if (S.gold < p) return false;
   S.gold -= p;
@@ -534,7 +551,7 @@ function buySupply(id) {
 function eatLunch() {
   if (S.phase !== 'camp' || S.items.lunch <= 0 || S.stamina >= maxStamina()) return false;
   S.items.lunch--;
-  S.stamina = Math.min(maxStamina(), S.stamina + maxStamina() * LUNCH_RATIO);
+  S.stamina = Math.min(maxStamina(), S.stamina + maxStamina() * LUNCH_RATIO * (1 + gearBonus().lunchPct));
   return true;
 }
 // 원정 중 체력이 낮으면 물약 자동 사용
@@ -542,7 +559,7 @@ function tryPotion() {
   if (S.phase === 'dungeon') return false;      // 던전에선 체력이 자원이라 물약을 못 쓴다
   const max = stats().maxHp;
   if (S.hp >= max * POTION_AT || S.items.potion <= 0) return false;
-  S.items.potion--;
+  if (Math.random() >= gearBonus().potionSave) S.items.potion--;   // 🎲 물약 아낄 확률 (옵션 줄)
   S.hp = max;
   if (S.trip) S.trip.potions++;
   return true;
@@ -551,8 +568,9 @@ function tryPotion() {
 // ───────────────────────── 전리품 ─────────────────────────
 // 전리품 상자 등급. 보스는 일반 등급이 안 나오고, 행운의 부적은 좋은 등급 가중치를 올린다. 내용물은 gear.js 의 openBox
 // 원정 상자 등급: 영웅까지만 (전설 이상은 레이드 처치 상자에서만 나온다)
-function rollGrade(boss, charm) {
-  const w = GRADES.map((g, i) => (boss && i === 0 || i > EXPEDITION_GRADE_MAX ? 0 : g.w) * (charm ? CHARM_BONUS[i] : 1));
+// 희귀·영웅은 필드가 깊어야 나온다 (GRADE_FROM, 시즌6)
+function rollGrade(boss, charm, stage = S.stage) {
+  const w = GRADES.map((g, i) => (boss && i === 0 || i > EXPEDITION_GRADE_MAX || stage < GRADE_FROM[i] ? 0 : g.w) * (charm ? CHARM_BONUS[i] : 1));
   let r = Math.random() * w.reduce((a, b) => a + b, 0);
   for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; }
   return 0;
@@ -623,16 +641,20 @@ const fortuneBonus = () => S.train.fortune * FORTUNE_PER_LV;
 const goldMult = () => 1 + fortuneBonus() + gearBonus().goldPct;
 const expMult = () => 1 + fortuneBonus() + gearBonus().expPct;
 
+// 원정 보스 강화석 (🎲 강화석 획득 옵션 — 소수점은 확률로 하나 더)
+const bossStones = () => { const x = BOSS_STONES * (1 + gearBonus().stonePct); return Math.floor(x) + (Math.random() < x % 1 ? 1 : 0); };
 function rewardKill(m) {
   const t = S.trip;
   const gold = m.gold * goldMult() * (1 + (m.goldBonus || 0)), exp = m.exp * expMult();   // goldBonus: 고유 특수 💰 (skills.js 가 처치 직전에 붙인다)
   S.gold += gold; t.gold += gold;
   t.kills++; if (m.boss) t.bosses++;
-  if (m.boss) { S.stones += BOSS_STONES; t.stones = (t.stones || 0) + BOSS_STONES; }
+  const gb = gearBonus();
+  const stones = m.boss ? bossStones() : 0;
+  if (stones) { S.stones += stones; t.stones = (t.stones || 0) + stones; }
   t.xp += exp;
   t.levels += gainExp(exp);
   let loot = null;
-  if ((m.boss || Math.random() < BOX_DROP) && !bagFull()) {
+  if ((m.boss || Math.random() < BOX_DROP * (1 + gb.lootPct)) && !bagFull()) {
     loot = { k: 'box', g: rollGrade(m.boss, t.buffs.charm), s: S.stage };
     if (m.boss) loot.boss = 1;
     S.bag.push(loot);
@@ -640,10 +662,10 @@ function rewardKill(m) {
   }
   // 보스는 낮은 확률로 비전서를 떨군다 (가방 무게와 상관없이 바로 챙긴다)
   let tome = false;
-  if (m.boss && Math.random() < BOSS_TOME_DROP) { S.tomes++; t.tomes = (t.tomes || 0) + 1; tome = true; }
+  if (m.boss && Math.random() < BOSS_TOME_DROP + gb.tomePct) { S.tomes++; t.tomes = (t.tomes || 0) + 1; tome = true; }
   S.run.kills++;
   if (m.boss) S.run.cleared = true;
-  return { loot, tome };
+  return { loot, tome, stones };
 }
 
 // 화면 오른쪽 끝을 지나 한 바퀴를 마쳤을 때. 보스를 잡았으면 다음 스테이지, 아니면 같은 스테이지를 한 바퀴 더.
@@ -674,7 +696,7 @@ function knightDefeated(atBoss) {
 // 캠프에서 흐르는 시간: 휴식
 function advanceCamp(sec) {
   if (S.phase !== 'camp' && S.phase !== 'dungeon') return;
-  S.stamina = Math.min(maxStamina(), S.stamina + (maxStamina() / restSecAt(S.bld.inn)) * sec);   // 던전은 스태미나를 안 써서 그동안에도 쉰다
+  S.stamina = Math.min(maxStamina(), S.stamina + (maxStamina() / restSecAt(S.bld.inn)) * (1 + gearBonus().restPct) * sec);   // 던전은 스태미나를 안 써서 그동안에도 쉰다
   if (S.phase !== 'camp') return;
   const max = stats().maxHp;
   S.hp = Math.min(max, S.hp + max * CAMP_HEAL_PER_SEC * sec);
@@ -699,17 +721,17 @@ function simulate(sec) {
     // 여러 마리를 동시에 때리는 무기는 처치 속도가 조금 빨라진다고 근사
     const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1));
     const cycle = walk + fight;
-    const staminaLeft = S.stamina / STAMINA_DRAIN;
+    const staminaLeft = S.stamina / staDrain();
     if (cycle > t || cycle > staminaLeft) {
       const used = Math.min(t, staminaLeft);
-      S.stamina -= used * STAMINA_DRAIN;
+      S.stamina -= used * staDrain();
       S.trip.dur += used;
       t -= used;
       if (S.stamina <= 0.01) { S.stamina = 0; endExpedition('stamina', true); }
       break;
     }
     t -= cycle;
-    S.stamina -= cycle * STAMINA_DRAIN;
+    S.stamina -= cycle * staDrain();
     S.trip.dur += cycle;
     S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * walk);
     // 사거리가 길면 적이 다가오는 동안은 맞지 않는다. 방어(guard)·타격 회복(heal) 반영
@@ -718,7 +740,8 @@ function simulate(sec) {
     S.hp += fight * st.aspd * st.heal * st.maxHp;
     // 체력이 30% 아래로 떨어질 때마다 물약이 최대 체력의 70%를 되돌려 준다고 근사
     while (S.hp < st.maxHp * POTION_AT && S.items.potion > 0) {
-      S.items.potion--; S.trip.potions++;
+      if (Math.random() >= gearBonus().potionSave) S.items.potion--;
+      S.trip.potions++;
       S.hp += st.maxHp * (1 - POTION_AT);
     }
     if (S.hp <= 0) {

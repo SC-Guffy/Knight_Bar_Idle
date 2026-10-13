@@ -95,7 +95,7 @@ const LIVE = {
   wood: () => fmt(S.mats.wood),
   ore: () => fmt(S.mats.ore),
   mana: () => fmt(S.mats.mana),
-  stamina: () => `${Math.floor(S.stamina)} / ${maxStamina()} · 약 ${fmtTime(S.stamina / STAMINA_DRAIN)} 원정`,
+  stamina: () => `${Math.floor(S.stamina)} / ${maxStamina()} · 약 ${fmtTime(S.stamina / staDrain())} 원정`,
   hpLine: () => `${fmt(S.hp)} / ${fmt(stats().maxHp)}`,
   blocker: () => departBlocker() || '',
   sync: () => (!activeNick() ? '' : sync.error ? `⚠️ ${sync.error} — 이 기기에 저장 중` : sync.lastOk ? '☁️ 서버에 저장됨' : '☁️ 연결 중…'),
@@ -132,8 +132,8 @@ function renderHud() {
   $('stfill').style.width = (100 * S.stamina / maxStamina()) + '%';
   $('xpfill').style.width = (100 * S.exp / expToNext()) + '%';
   setIcoText($('status'),
-    S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / STAMINA_DRAIN)}`
-      : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / STAMINA_DRAIN)}` : '✨ 귀환 중')
+    S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / staDrain())}`
+      : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / staDrain())}` : '✨ 귀환 중')
       : S.phase === 'dungeon' ? (S.dg.run ? `👑 보스 ${S.dg.run.k + (S.dg.run.fight ? 1 : 0)}` : '✨ 귀환 중')
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`);
@@ -1123,9 +1123,18 @@ const gearInfo = (it) => `
     <div><div class="gname ${gnClass(it)}">${gearName(it)}</div><small>${gearKindText(it)}${isSetGear(it) ? ` · ${GRADES[it.g].name}급 능력치` : ''} · 편차 ×${it.roll.toFixed(2)}</small></div>
   </div>
   ${gearSpecialText(it) ? `<div class="gsp">✦ 고유 효과 — ${gearSpecialText(it)}</div>` : ''}
-  ${it.en ? `<div class="gsp en">✨ 마법부여 — ${gearEnchantText(it)}</div>` : ''}
+  ${optLinesHtml(it)}
   ${GEAR_ITEMS[it.t].raid ? `<div class="gset">${setText(GEAR_ITEMS[it.t].raid)}</div>` : ''}
   <div class="gdesc">${gearDesc(it)}</div>`;
+
+// 옵션 줄 목록 (시즌6): 켜진 줄은 밝게, 아직 부위 강화가 안 닿은 줄은 🔒 흐리게, 쓰레기 옵션은 회색. 오른쪽 끝은 품질 S/A/B/C
+function optLinesHtml(it, enh = S.gear.enh[it.slot]) {
+  if (!it.op || !it.op.length) return '';
+  return `<div class="gops">${it.op.map((o, i) => {
+    const on = enh >= optNeed(i), rk = optRank(o.q), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk;
+    return `<div class="gop${on ? '' : ' off'}${junk ? ' junk' : ''}"><b>${on ? '' : '🔒'}+${optNeed(i)}</b> ${optText(o)} <i class="rk r${rk}">${rk}</i></div>`;
+  }).join('')}</div>`;
+}
 
 // 무기·갑옷 기본 위력 안내 한 줄 (기사 레벨을 따라 커진다)
 function gearLvLine(slot) {
@@ -1133,25 +1142,33 @@ function gearLvLine(slot) {
   return `<div class="small rfline">✨ 기본 위력 Lv ${gearLvOf(slot)} — 기사 레벨을 따라 커지고, 등급·편차·강화가 곱해져요</div>`;
 }
 
-// 마법부여 한 줄 (마을 대장간 viewForge): 낀 장비 하나에 부가 옵션을 무작위로 붙인다. 상태창은 교체·분해만 하므로 여기서만 한다
-function forgeEnchantRow(slot) {
+// 옵션 재굴림 (마을 대장간 viewForge): 낀 장비의 옵션 줄 하나를 🎲 재굴림권으로 다시 굴린다. 결과가 나오면 새/이전 중 고른다
+function forgeRerollRow(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot);
-  if (!it) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">장비를 끼면 마법을 부여할 수 있어요</span></div>`;
-  const c = enchantCost(it.g), blocker = enchantBlocker(it);
+  if (!it) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">장비를 끼면 옵션을 다시 굴릴 수 있어요</span></div>`;
+  const c = rerollCost(it.g), enh = S.gear.enh[slot], rr = S.gear.rr && S.gear.rr.id === it.id ? S.gear.rr : null;
+  const lines = (it.op || []).map((o, i) => {
+    const on = enh >= optNeed(i), rk = optRank(o.q), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk, blocker = rerollBlocker(it, i);
+    const head = `<span class="gop${on ? '' : ' off'}${junk ? ' junk' : ''}"><b>${on ? '' : '🔒'}+${optNeed(i)}</b> ${optText(o)} <i class="rk r${rk}">${rk}</i></span>`;
+    if (rr && rr.i === i) {
+      const n = rr.cand, nrk = optRank(n.q), njunk = GEAR_OPTS[n.k].junk;
+      return `<div class="rrline pick">${head}<span class="rrarrow">→</span><span class="gop${njunk ? ' junk' : ''}">${optText(n)} <i class="rk r${nrk}">${nrk}</i></span>
+        <span class="rracts"><button class="btn enh" data-action="reroll-pick" data-take="1">새 옵션</button><button class="btn" data-action="reroll-pick" data-take="0">원래대로</button></span></div>`;
+    }
+    return `<div class="rrline">${head}<button class="btn" data-action="reroll" data-id="${it.id}" data-i="${i}" ${blocker ? `disabled title="${esc(blocker)}"` : ''}>${ico('dice')} 굴리기</button></div>`;
+  }).join('');
   return `
-    <div class="fac" style="--c:${gearGrade(it).color}">
-      <span class="fname">${gearIcon(it)} <span class="${gnClass(it)}">${gearName(it)}</span> <small>${def.name}</small></span>
-      <span class="feff">${it.en ? `✨ <b>${gearEnchantText(it)}</b> → 새 옵션으로 바뀜` : '부가 옵션 없음 → 하나 무작위'}</span>
-      <span class="costs">${costChip(ico('stone'), c.stone, S.stones)}${costChip(ico('mana'), c.mana, S.mats.mana)}</span>
-      <button class="btn" data-action="enchant" data-id="${it.id}" ${blocker ? `disabled title="${esc(blocker)}"` : ''}>${it.en ? '다시 부여' : '부여'}</button>
+    <div class="fac rrfac" style="--c:${gearGrade(it).color}">
+      <span class="fname">${gearIcon(it)} <span class="${gnClass(it)}">${gearName(it)}</span> <small>${def.name} +${enh}</small></span>
+      <span class="costs">🎲 1 ${costChip(ico('stone'), c.stone, S.stones)}${costChip(ico('mana'), c.mana, S.mats.mana)}</span>
+      <div class="rrlines">${lines}</div>
     </div>`;
 }
-function forgeEnchantSection() {
+function forgeRerollSection() {
   const lv = forgeFacLv('enchant');
-  const pool = Object.keys(ENCHANT_OPTS).map((k) => SPECIAL_STATS[k].name).join(' · ');
   return `
-    <div class="shead sub"><h3>${ico('spark')} 마법부여</h3><small>${lv ? `낀 장비에 부가 옵션 하나 — ${pool} 중 무작위 · 품질 ${Math.round(enchantQualAt(lv) * 100)}~100% (마법부여대 Lv ${lv})` : '아래 🏗️ 시설에서 마법부여대를 지으면 낀 장비에 부가 옵션을 붙일 수 있어요'}</small></div>
-    ${lv ? Object.keys(GEAR_SLOTS).map(forgeEnchantRow).join('') : ''}`;
+    <div class="shead sub"><h3>${ico('dice')} 옵션 재굴림 <span class="stchip${S.items.reroll ? '' : ' none'}" title="재굴림권 — 레이드 처치 상자·월드 보스 보상에서 가끔 나와요">🎲 <b>${S.items.reroll || 0}</b></span></h3><small>${lv ? `줄 하나를 새로 굴려요 — 품질 ${Math.round(enchantQualAt(lv) * 100)}~100% · 쓰레기 옵션 −${lv}%p (재굴림대 Lv ${lv})` : '아래 🏗️ 시설에서 옵션 재굴림대를 지으면 낀 장비의 옵션 줄을 다시 굴릴 수 있어요'}</small></div>
+    ${lv ? Object.keys(GEAR_SLOTS).map(forgeRerollRow).join('') : ''}`;
 }
 
 // 가진 💠 강화석 (강화 화면 우상단 칩)
@@ -1210,7 +1227,7 @@ function viewForge() {
         ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화가 있는 단계에서 강화할 때마다 1장 소모</small></button></div>
     <div class="hint">강화 단계는 부위에 붙어 있어서 장비를 바꿔 껴도 그대로예요. 💠 강화석은 원정 보스를 잡거나 장비를 팔면 얻어요.</div>
     <div class="fslots">${Object.keys(GEAR_SLOTS).map(forgeSlot).join('')}</div>
-    ${forgeEnchantSection()}
+    ${forgeRerollSection()}
     <div class="shead sub"><h3>${ico('wall')} 시설</h3><small>대장간 Lv ${S.bld.forge}이 시설의 최대 Lv 이에요</small></div>
     ${Object.keys(FORGE_FAC).map(forgeFacRow).join('')}`;
   if (gearUi.last) gearUi.last.fresh = false;       // 결과 연출은 한 번만
@@ -1235,7 +1252,7 @@ function gearRow(it) {
   return `
     <button class="gitem ${gearUi.sel.id === it.id ? 'sel' : ''}" data-action="gear-sel-item" data-id="${it.id}" style="--c:${gearGrade(it).color}">
       ${gearIcon(it)}
-      <span class="gi"><span class="gname ${gnClass(it)}">${gearName(it)}</span><span class="small">${gearKindText(it)}</span></span>
+      <span class="gi"><span class="gname ${gnClass(it)}">${gearName(it)}${optStars(it) ? ` <i class="ostar">${'★'.repeat(optStars(it))}</i>` : ''}</span><span class="small">${gearKindText(it)}</span></span>
       <span class="gstat">${gearStatText(gearStat(it))}</span>
       <span class="gcmp">${gearCmp(it)}</span>
     </button>`;
@@ -1361,6 +1378,9 @@ function viewGear() {
 // 🏠 홈 탭 아래쪽의 보급품 (옛 보급품 탭). 한 줄에 아이콘 · 이름 · 보유 칩 · 효과 · 버튼
 function viewSupplies() {
   return Object.entries(SUPPLIES).map(([id, s]) => {
+    // 상점에 없는 것(재굴림권)은 가졌을 때만 보유 수와 설명을 보여 준다
+    if (s.shop === false) return S.items[id] ? `
+      <div class="sup"><span class="ic">${s.icon}</span><b>${s.name}</b><span class="chip">보유 ${S.items[id]}</span><span class="eff">${s.desc}</span><span class="act"></span></div>` : '';
     const p = supplyPrice(id);
     const extra = id === 'lunch' ? `<button class="btn" data-action="eat" ${S.items.lunch && S.stamina < maxStamina() ? '' : 'disabled'}>먹기</button>` : '';
     return `
@@ -2115,6 +2135,8 @@ async function takeWbRewards(rows) {
 function wbRewardText(r, html = true) {
   const parts = [html ? gainText(r) : `골드 ${fmt(r.gold)} · 🪵 ${fmt(r.wood)} · 🪨 ${fmt(r.ore)} · 💎 ${fmt(r.mana)}`, `💠 ${r.stones}`, `📖 ${r.tomes}`];
   if (r.chests) parts.push(`🎁 ${html ? esc(RAID_BOSSES[r.boss].chest.name) : RAID_BOSSES[r.boss].chest.name}`);
+  if (r.items && r.items.reroll) parts.push('🎲 재굴림권');
+  if (r.items && r.items.protect) parts.push('📜 보호 주문서');
   return parts.join(' · ');
 }
 
@@ -2531,6 +2553,8 @@ function openRaidChestAt(i) {
   const got = claimRaidChest(i);
   for (const x of got) raidUi.revealed.push({ ...x, fresh: true });
   if (got.tomes) toast(`📖 비전서 +${got.tomes}`);
+  if (got.items && got.items.reroll) toast('🎲 재굴림권 획득!', 4000);
+  if (got.items && got.items.protect) toast('📜 보호 주문서 획득!', 4000);
   const sig = got.find((x) => GEAR_ITEMS[x.it.t].raid);
   const top = got.map((x) => x.it).sort((a, b) => b.g - a.g)[0];
   if (sig) toast(`🌟 고유 장비 — ${gearName(sig.it)}!`, 5000);
@@ -2701,11 +2725,12 @@ const ACTIONS = {
   },
   'build': (el) => startBuild(el.dataset.id),
   'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },
-  'enchant': (el) => {
-    const it = gearById(Number(el.dataset.id)), r = enchantGear(Number(el.dataset.id));
+  'reroll': (el) => { if (rerollLine(Number(el.dataset.id), Number(el.dataset.i))) save(); },
+  'reroll-pick': (el) => {
+    const r = pickReroll(el.dataset.take === '1');
     if (!r) return;
-    const t = (en) => `${SPECIAL_STATS[en.k].name} ${SPECIAL_STATS[en.k].fmt(en.v)}`;
-    toast(`✨ 마법부여 — ${gearName(it)}: ${r.from ? `${t(r.from)} → ` : ''}${t(r.to)}`);
+    save();
+    toast(r.took ? `🎲 ${gearName(r.it)}: ${optText(r.from)} → ${optText(r.to)}` : `🎲 ${gearName(r.it)}: ${optText(r.from)} 그대로 두었어요`);
   },
   // 장비 탭 → 마을 대장간 (부위 강화)
   'goto-forge': () => { townUi.sel = 'forge'; campTab = 'town'; $('campBody').scrollTop = 0; },
@@ -3184,7 +3209,7 @@ hooks.onBuilt = (id) => {
 
 let trayText = '';
 function updateTray() {
-  const text = S.phase === 'expedition' ? `⚔ ${Math.ceil(S.stamina / STAMINA_DRAIN / 60)}m`
+  const text = S.phase === 'expedition' ? `⚔ ${Math.ceil(S.stamina / staDrain() / 60)}m`
     : S.phase === 'returning' ? '🏃' : campStatus().icon;
   if (text !== trayText && window.bar) { trayText = text; window.bar.setTrayTitle(text); }
 }

@@ -127,7 +127,9 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
     if (sk) flush();
     const crit = (sk && sk.crit) || rng() < k.p.crit + ((sk && sk.cp) || 0);   // cp: 스킬 치명 확률 보정 (트리 V2)
     const base = kind === 'leap' ? k.p.leap.mult : sk ? sk.mult : k.p.shots * k.p.shotMult;
-    const dmg = Math.min(boss.hp, k.p.atk * base * (crit ? k.p.critMult : 1) * (0.9 + rng() * 0.2));
+    // 장비 옵션 줄 (시즌6): bossDmg 보스 피해 · exec 처형 (보스 체력 30% 이하)
+    const opt = (1 + (k.p.bossDmg || 0)) * (boss.hp <= boss.max * 0.3 ? 1 + (k.p.exec || 0) : 1);
+    const dmg = Math.min(boss.hp, k.p.atk * base * (crit ? k.p.critMult : 1) * opt * (0.9 + rng() * 0.2));
     boss.hp -= dmg;
     k.dmg += dmg;
     if (k.p.heal) {

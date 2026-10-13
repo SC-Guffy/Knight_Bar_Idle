@@ -271,6 +271,25 @@
   .fslot.flash-down, .fslot.flash-reset { animation: shake .4s ease-out; }
   @media (max-width: 760px) { .fslots { grid-template-columns: 1fr; } }
   .gsp.en { color: #ffd9a0; }
+  /* 장비 옵션 줄 (시즌6) */
+  .gops { display: flex; flex-direction: column; gap: 1px; margin: 2px 0; }
+  .gop { font-size: 11px; color: #e8f0ff; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gop b { display: inline-block; min-width: 30px; color: #8fd8ff; font-weight: 700; }
+  .gop.off { opacity: .42; }
+  .gop.junk { color: #9aa0ad; font-weight: 400; }
+  .gop .rk { font-style: normal; font-size: 10px; padding: 0 3px; border-radius: 2px; margin-left: 2px; }
+  .rk.rS { color: #1b1d27; background: #ffd257; } .rk.rA { color: #1b1d27; background: #b36bff; }
+  .rk.rB { color: #1b1d27; background: #4aa3ff; } .rk.rC { color: #c9ccd6; background: rgba(255,255,255,.12); }
+  .ostar { font-style: normal; color: #ffd257; font-size: 10px; }
+  .rrfac { flex-wrap: wrap; }
+  .rrlines { flex-basis: 100%; display: flex; flex-direction: column; gap: 2px; }
+  .rrline { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .rrline > .gop { flex: 1 1 auto; min-width: 0; }
+  .rrline.pick { flex-wrap: wrap; background: rgba(255,210,87,.08); padding: 2px 4px; }
+  .rrline .rrarrow { color: #ffd257; }
+  .rracts { display: flex; gap: 4px; margin-left: auto; }
+  .rrline .btn { padding: 1px 8px; font-size: 11px; min-height: 0; line-height: 1.4; }
+  .rrline > .btn { margin-left: auto; }
   .fac .fname { font-weight: 700; white-space: nowrap; }
   .fac .feff { color: var(--muted); flex: 1; min-width: 140px; }
   .fac .feff b { color: #9fd49a; font-weight: 600; }
