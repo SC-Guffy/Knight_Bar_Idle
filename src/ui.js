@@ -1238,22 +1238,55 @@ function gearLvLine(slot) {
   return `<div class="small rfline">✨ 기본 위력 Lv ${gearLvOf(slot)} — 기사 레벨을 따라 커지고, 등급·편차·강화가 곱해져요</div>`;
 }
 
-// 옵션 재굴림 (마을 대장간 viewForge): 낀 장비의 옵션 줄 하나를 🎲 재굴림권으로 다시 굴린다. 결과가 나오면 새/이전 중 고른다
+// 옵션 재굴림 (마을 대장간 viewForge): 낀 장비의 옵션 줄 하나를 🎲 재굴림권으로 다시 굴린다. 굴린 결과가 바로 그 줄이 된다
+// 연출: 누르는 순간 결과를 정해 저장하고(강제 종료로 다시 굴리지 못하게), 줄 글자가 슬롯머신처럼 무작위 옵션으로 빠르게 바뀌다가
+// 점점 느려지며 결과에 멈춘다. 멈추면 등급에 따라 반짝(S·A)이거나 시들(쓰레기) — 이전 옵션은 옆에 흐리게 남긴다
+let rrFx = null;                 // { id, slot, i, g, from, to, show: 지금 보이는 줄, done, fresh }
+const RR_SPIN = { first: 40, grow: 1.14, total: 1500 };   // 첫 칸 간격(ms) · 칸마다 느려지는 배율 · 총 길이
+const rrHead = (o, i, on) => `<b>${on ? '' : '🔒'}+${optNeed(i)}</b> ${optText(o)} <i class="rk r${optRank(o.q)}">${optRank(o.q)}</i>`;
+
+function startRerollFx(r) {
+  const fx = rrFx = { id: r.it.id, slot: r.it.slot, i: r.i, g: r.it.g, from: r.from, to: r.to, show: r.from, done: false, fresh: false };
+  let wait = RR_SPIN.first, t = 0;
+  const tick = () => {
+    if (rrFx !== fx) return;
+    if (t >= RR_SPIN.total) { landRerollFx(fx); return; }
+    fx.show = rollOptLine(fx.g);
+    const el = document.querySelector('[data-rrspin]');
+    if (el) {
+      el.className = `gop rrspin${GEAR_OPTS[fx.show.k].junk ? ' junk' : ''}`;
+      el.innerHTML = rrHead(fx.show, fx.i, S.gear.enh[fx.slot] >= optNeed(fx.i));
+      void el.offsetWidth;          // 칸이 넘어가는 애니메이션을 매번 다시 튼다
+      el.classList.add('tk');
+    }
+    t += wait; wait *= RR_SPIN.grow;
+    setTimeout(tick, wait);
+  };
+  setTimeout(tick, wait);
+}
+function landRerollFx(fx) {
+  fx.show = fx.to; fx.done = true; fx.fresh = true;
+  const rk = optRank(fx.to.q), junk = GEAR_OPTS[fx.to.k].junk;
+  toast(`🎲 ${optText(fx.from)} → ${junk ? '' : rk === 'S' ? '🌟 ' : ''}${optText(fx.to)} [${rk}]`, rk === 'S' ? 4000 : 2500);
+  if (campOpen) renderCamp();
+}
+
 function forgeRerollRow(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot);
   if (!it) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">장비를 끼면 옵션을 다시 굴릴 수 있어요</span></div>`;
   if (!(it.op || []).length) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">옵션 줄이 없는 장비예요 (옵션 줄이 생기기 전에 얻음) — 새로 얻는 장비부터 붙어요</span></div>`;
-  const c = rerollCost(it.g), enh = S.gear.enh[slot], rr = S.gear.rr && S.gear.rr.id === it.id ? S.gear.rr : null;
+  const c = rerollCost(it.g), enh = S.gear.enh[slot], fx = rrFx && rrFx.id === it.id ? rrFx : null, spinning = rrFx && !rrFx.done;
   const lines = (it.op || []).map((o, i) => {
-    const on = enh >= optNeed(i), rk = optRank(o.q), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk, blocker = rerollBlocker(it, i);
-    const head = `<span class="gop${on ? '' : ' off'}${junk ? ' junk' : ''}"><b>${on ? '' : '🔒'}+${optNeed(i)}</b> ${optText(o)} <i class="rk r${rk}">${rk}</i></span>`;
-    if (rr && rr.i === i) {
-      const n = rr.cand, nrk = optRank(n.q), njunk = GEAR_OPTS[n.k].junk;
-      return `<div class="rrline pick">${head}<span class="rrarrow">→</span><span class="gop${njunk ? ' junk' : ''}">${optText(n)} <i class="rk r${nrk}">${nrk}</i></span>
-        <span class="rracts"><button class="btn enh" data-action="reroll-pick" data-take="1">새 옵션</button><button class="btn" data-action="reroll-pick" data-take="0">원래대로</button></span></div>`;
+    const on = enh >= optNeed(i), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk, blocker = spinning ? '굴리는 중이에요' : rerollBlocker(it, i);
+    if (fx && fx.i === i && !fx.done) {
+      const sj = GEAR_OPTS[fx.show.k].junk;
+      return `<div class="rrline rolling"><span class="gop rrspin${sj ? ' junk' : ''}" data-rrspin>${rrHead(fx.show, i, on)}</span><button class="btn" disabled>${ico('dice')} 굴리는 중…</button></div>`;
     }
-    return `<div class="rrline">${head}<button class="btn" data-action="reroll" data-id="${it.id}" data-i="${i}" ${blocker ? `disabled title="${esc(blocker)}"` : ''}>${ico('dice')} 굴리기</button></div>`;
+    const land = fx && fx.i === i ? ` landed r${optRank(o.q)}${fx.fresh ? ' fresh' : ''}` : '';
+    const prev = land ? `<small class="rrprev" title="굴리기 전 옵션">이전 ${optText(fx.from)} ${optRank(fx.from.q)}</small>` : '';
+    return `<div class="rrline${land}"><span class="gop${on ? '' : ' off'}${junk ? ' junk' : ''}">${rrHead(o, i, on)}</span>${prev}<button class="btn" data-action="reroll" data-id="${it.id}" data-i="${i}" ${blocker ? `disabled title="${esc(blocker)}"` : ''}>${ico('dice')} 굴리기</button></div>`;
   }).join('');
+  if (fx) fx.fresh = false;       // 멈추는 연출은 한 번만
   return `
     <div class="fac rrfac" style="--c:${gearGrade(it).color}">
       <span class="fname">${gearIcon(it)} <span class="${gnClass(it)}">${gearName(it)}</span> <small>${def.name} +${enh}</small></span>
@@ -2827,12 +2860,12 @@ const ACTIONS = {
   'stock-claim': () => { const g = claimStock(); if (g) toast(`📦 창고 비축 수령 — 🪵 +${fmt(g.wood)} · 🪨 +${fmt(g.ore)}`); },
   'trade': (el) => { const k = el.dataset.k, n = trade(k); if (n) toast(`⚖️ 교역 — ${k === 'wood' ? '🪵' : '🪨'} +${fmt(n)}`); },
   'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },
-  'reroll': (el) => { if (rerollLine(Number(el.dataset.id), Number(el.dataset.i))) save(); },
-  'reroll-pick': (el) => {
-    const r = pickReroll(el.dataset.take === '1');
+  'reroll': (el) => {
+    if (rrFx && !rrFx.done) return;
+    const r = rerollLine(Number(el.dataset.id), Number(el.dataset.i));
     if (!r) return;
-    save();
-    toast(r.took ? `🎲 ${gearName(r.it)}: ${optText(r.from)} → ${optText(r.to)}` : `🎲 ${gearName(r.it)}: ${optText(r.from)} 그대로 두었어요`);
+    save();     // 결과를 보기 전에 저장 — 강제 종료로 다시 굴리지 못하게
+    startRerollFx(r);
   },
   // 장비 탭 → 마을 대장간 (부위 강화)
   'goto-forge': () => { townUi.sel = 'forge'; campTab = 'town'; $('campBody').scrollTop = 0; },

@@ -209,6 +209,12 @@ function migrate(o) {
     s.notice = `🎲 장비 옵션 줄이 생겼어요 — 이제부터 얻는 장비에 붙고, 부위 강화 +5·+10·+15·+20·+25 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
   }
   s.gearV = 8;
+  // 0.20.5: 재굴림은 굴린 결과가 바로 적용된다 — 새/이전을 고르지 않고 남겨 둔 결과(s.gear.rr)는 새 옵션으로 넣는다
+  if (s.gear.rr) {
+    const it = s.gear.inv.find((x) => x.id === s.gear.rr.id);
+    if (it && it.op && it.op[s.gear.rr.i] && s.gear.rr.cand) it.op[s.gear.rr.i] = s.gear.rr.cand;
+    delete s.gear.rr;
+  }
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
   if (s.forge.resonance || s.gear.res) {
     const back = { gold: 0, ore: 0, mana: 0 };

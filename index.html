@@ -291,9 +291,28 @@
   .rrlines { flex-basis: 100%; display: flex; flex-direction: column; gap: 2px; }
   .rrline { display: flex; align-items: center; gap: 6px; min-width: 0; }
   .rrline > .gop { flex: 1 1 auto; min-width: 0; }
-  .rrline.pick { flex-wrap: wrap; background: rgba(255,210,87,.08); padding: 2px 4px; }
-  .rrline .rrarrow { color: #ffd257; }
-  .rracts { display: flex; gap: 4px; margin-left: auto; }
+  /* 굴리는 중: 줄이 슬롯머신처럼 무작위 옵션으로 넘어가다 멈춘다 (ui.js startRerollFx) */
+  .rrline.rolling { background: rgba(255,210,87,.1); box-shadow: inset 0 0 0 1px rgba(255,210,87,.45); padding: 0 4px; animation: rrRoll .5s ease-in-out infinite; }
+  .rrline.rolling .rrspin { color: #ffe9a8; }
+  .rrline.rolling .rrspin.junk { color: #b9bdc8; }
+  .rrspin.tk { animation: rrTick .09s ease-out; }
+  .rrline.rolling .btn .pi { display: inline-block; animation: rrDice .35s linear infinite; }
+  @keyframes rrRoll { 50% { box-shadow: inset 0 0 0 1px #ffd257, 0 0 8px rgba(255,210,87,.4); } }
+  @keyframes rrTick { 0% { transform: translateY(-7px); opacity: .25; filter: blur(.6px); } 100% { transform: none; opacity: 1; filter: none; } }
+  @keyframes rrDice { 25% { transform: rotate(90deg) scale(1.15); } 50% { transform: rotate(180deg); } 75% { transform: rotate(270deg) scale(1.15); } 100% { transform: rotate(360deg); } }
+  /* 멈춤: 등급 색으로 팡 (S 는 금빛이 오래, 쓰레기는 시든다) · 이전 옵션은 흐리게 */
+  .rrline.landed { padding: 0 4px; }
+  .rrline.landed.fresh > .gop { display: inline-block; animation: rrPop .45s ease-out; }
+  .rrline.landed.fresh { animation: rrFlash .9s ease-out; --rc: 74, 163, 255; }
+  .rrline.landed.fresh.rC { --rc: 200, 204, 214; }
+  .rrline.landed.fresh.rA { --rc: 179, 107, 255; }
+  .rrline.landed.fresh.rS { --rc: 255, 210, 87; animation: rrFlash 1.6s ease-out; }
+  .rrline.landed.fresh.rS > .gop { animation: rrPop .45s ease-out, rrShine 1.6s ease-out; }
+  .rrline.landed.fresh:has(> .gop.junk) > .gop { animation: enhFizzle .7s ease-out; }
+  .rrprev { flex: 0 1 auto; min-width: 0; font-size: 10px; color: #8a8fa0; text-decoration: line-through; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @keyframes rrPop { 0% { transform: scale(1.3); filter: brightness(2); } 60% { transform: scale(.96); } 100% { transform: none; filter: none; } }
+  @keyframes rrFlash { 0% { background: rgba(var(--rc), .35); box-shadow: 0 0 12px rgba(var(--rc), .7); } 100% { background: transparent; box-shadow: none; } }
+  @keyframes rrShine { 0%, 100% { text-shadow: none; } 20%, 60% { text-shadow: 0 0 6px #ffd257, 0 0 2px #fff; } }
   .rrline .btn { padding: 1px 8px; font-size: 11px; min-height: 0; line-height: 1.4; }
   .rrline > .btn { margin-left: auto; }
   .fac .fname { font-weight: 700; white-space: nowrap; }
