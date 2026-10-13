@@ -14,14 +14,14 @@ const WEAPONS = {
   dragonSpear: { name: '용창',   kind: 'melee',  motion: 'thrust', range: 36, targets: 2, len: 17, shaft: '#3b2458', tip: '#c0a0ff', trail: '190,150,255', glow: '#a070ff' },
   halberd:     { name: '할버드', kind: 'melee',  motion: 'sweep',  range: 40, targets: 9, len: 17, shaft: '#6b4a2b', tip: '#c9d1dd', trail: '255,150,60' },
   bow:         { name: '단궁',   kind: 'ranged', range: 150, targets: 1, shots: 1, size: 11, wood: '#8a5a2b', arrow: { speed: 420, color: '#e8d9b0' } },
-  longbow:     { name: '장궁',   kind: 'ranged', range: 230, targets: 1, shots: 1, size: 15, wood: '#3b2a1a', arrow: { speed: 760, color: '#f4f1e8', trail: '255,255,220' } },
-  arcaneBow:   { name: '마력궁', kind: 'ranged', range: 170, targets: 3, shots: 3, shotMult: 0.45, size: 12, wood: '#3a55b0', glow: '#6ff3ff',
+  longbow:     { name: '장궁',   kind: 'ranged', range: 180, targets: 1, shots: 1, size: 15, wood: '#3b2a1a', arrow: { speed: 760, color: '#f4f1e8', trail: '255,255,220' } },
+  arcaneBow:   { name: '마력궁', kind: 'ranged', range: 190, targets: 3, shots: 3, shotMult: 0.45, size: 12, wood: '#3a55b0', glow: '#6ff3ff',
     arrow: { speed: 360, color: '#6ff3ff', magic: true } },
   // 마법사 지팡이 (원거리): staff = { len 자루 칸, wood, head, orb 구슬색, glowRgb } — 그리는 법은 world.js drawStaff.
   // arrow.shape 'ice' 얼음창 / magic 마력탄(rgb 꼬리색, size 크기) · splash: 맞은 자리 radius(px) 안의 다른 적도 mult 배율로 (화염)
   wand:        { name: '견습 지팡이', kind: 'ranged', range: 150, targets: 1, shots: 1, staff: { len: 7, wood: '#8a5a2b', head: '#c9a227', orb: '#9fd8ff', glowRgb: '159,216,255' },
     arrow: { speed: 400, color: '#cfe8ff', magic: true, rgb: '159,216,255' } },
-  flameStaff:  { name: '화염 지팡이', kind: 'ranged', range: 160, targets: 1, shots: 1, splash: { radius: 40, mult: 0.5 }, glow: '#ff7a2a',
+  flameStaff:  { name: '화염 지팡이', kind: 'ranged', range: 180, targets: 1, shots: 1, splash: { radius: 40, mult: 0.5 }, glow: '#ff7a2a',
     staff: { len: 8, wood: '#5a2a14', head: '#ffb13b', orb: '#ff6a1f', glowRgb: '255,120,40' },
     arrow: { speed: 340, color: '#ff8a3a', magic: true, rgb: '255,140,60', size: 1.4 } },
   frostStaff:  { name: '서리 지팡이', kind: 'ranged', range: 175, targets: 1, shots: 1, glow: '#9fe8ff',
@@ -33,17 +33,17 @@ const WEAPONS = {
   // slab: 너비가 몸통만 한 쇳덩이 대검 (drawBlade), rest: 평소 무기 각도 — 어깨 뒤로 걸쳐 멘다 (heroRig·restPose)
   greatsword:  { name: '대검',   kind: 'melee',  motion: 'swing',  range: 20, targets: 3, len: 16, wide: true, slab: true, twoHand: true, rest: -2.35, blade: '#2e3038', edge: '#9aa0ac', hilt: '#4a3a30', trail: '200,200,210', glow: '#ff8a5c' },
   lance:       { name: '돌격창', kind: 'melee',  motion: 'thrust', range: 32, targets: 2, len: 16, lance: true, shaft: '#7a5a3a', tip: '#e8edf5', trail: '200,225,255', glow: '#9fd8ff' },
-  ballista:    { name: '거대 석궁', kind: 'ranged', range: 200, targets: 1, shots: 1, size: 14, crossbow: true, wood: '#5a3a1e', steel: '#9a9aa6',
+  ballista:    { name: '거대 석궁', kind: 'ranged', range: 160, targets: 1, shots: 1, size: 14, crossbow: true, wood: '#5a3a1e', steel: '#9a9aa6',
     arrow: { speed: 900, color: '#e8d9b0', trail: '230,210,160', bolt: true } },
-  stormStaff:  { name: '뇌전 지팡이', kind: 'ranged', range: 165, targets: 1, shots: 1, glow: '#b7e3ff', splash: { radius: 70, mult: 0.4, max: 2, arc: true },
+  stormStaff:  { name: '뇌전 지팡이', kind: 'ranged', range: 185, targets: 1, shots: 1, glow: '#b7e3ff', splash: { radius: 70, mult: 0.4, max: 2, arc: true },
     staff: { len: 8, wood: '#2a2a44', head: '#ffe066', orb: '#b7e3ff', glowRgb: '183,227,255' },
     arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '183,227,255' } },
   // ── 새 2차의 3차 (평타 모션은 2차 것을 그대로, world.js HERO_ATK 별칭) ──
   doomBlade:     { name: '파천대검', kind: 'melee',  motion: 'swing',  range: 22, targets: 3, len: 18, wide: true, slab: true, twoHand: true, rest: -2.35, blade: '#1a0c0c', edge: '#ff8a5c', hilt: '#2a1010', trail: '255,110,60', glow: '#ff5a2a' },
   holyLance:     { name: '천마창',   kind: 'melee',  motion: 'thrust', range: 36, targets: 3, len: 18, lance: true, shaft: '#c9a227', tip: '#ffffff', trail: '220,235,255', glow: '#cfe8ff' },
-  siegeBallista: { name: '공성 석궁', kind: 'ranged', range: 240, targets: 1, shots: 1, size: 16, crossbow: true, wood: '#2a1a10', steel: '#c9c2b4',
+  siegeBallista: { name: '공성 석궁', kind: 'ranged', range: 180, targets: 1, shots: 1, size: 16, crossbow: true, wood: '#2a1a10', steel: '#c9c2b4',
     arrow: { speed: 1000, color: '#ffe8c0', trail: '255,220,160', bolt: true } },
-  tempestStaff:  { name: '뇌제의 홀', kind: 'ranged', range: 175, targets: 1, shots: 1, glow: '#e0f0ff', splash: { radius: 90, mult: 0.45, max: 3, arc: true },
+  tempestStaff:  { name: '뇌제의 홀', kind: 'ranged', range: 195, targets: 1, shots: 1, glow: '#e0f0ff', splash: { radius: 90, mult: 0.45, max: 3, arc: true },
     staff: { len: 9, wood: '#1a1a30', head: '#ffffff', orb: '#e0f0ff', glowRgb: '220,240,255' },
     arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '220,240,255' } },
   // ── 3차 ──
@@ -429,6 +429,11 @@ const BODY = {
 
 // ───────────────────────── 직업 ─────────────────────────
 // mods: atk/hp/aspd 배율, crit 가산, critMult 가산, guard 받는 피해 감소, heal 타격마다 최대 체력 회복 비율
+// 체력: 근접(검사·창기사 계열)은 몸으로 버티며 파고드니 단단하게, 원거리(궁수·마법사 계열)는 몸이 약하게 — 같은 단계 기준 근접 ×1.1 · 원거리 ×0.9 로 벌려 두었다
+//   (원거리가 먼저 때리는 결투 손해를 돌진기와 함께 메운다, docs/specs/duel-gap-closer.md)
+// 같은 전투력 리그전(시드 4벌 평균)에서 튀던 직업은 사거리·받는 피해 감소로 맞췄다: 저격수 장궁 230→180 · 공성 석궁 →180 · 화염/뇌전 지팡이·마력궁·뇌제의 홀 +20,
+//   성기사 guard 0.25→0.15 · 랜서 0.2→0.1 · 빙결술사 0.1→0 · 용기병·용황 0→0.1 (용의 비늘)
+// 대검전사·검성 계열은 막기 기술로 받는 피해 −15% (guard) — 같은 전투력 리그전에서 검사 계열이 가장 밀려서. 석궁 계열은 사거리를 줄였다 (ballista 160 · siegeBallista 200)
 // 공속·치명은 훈련으로 못 올리고 직업(여기)과 장비(무기 공속 · 장신구 치명)에서만 얻는다. 빠른 직업·치명 직업이 확실히 갈리도록
 // look: body 스프라이트, pal 색 덮어쓰기, cape/halo/shield 장식, fx 전직 연출 색
 const CLASSES = {
@@ -441,7 +446,7 @@ const CLASSES = {
   // ── 검 계열 ──
   swordsman: {
     tier: 1, from: 'squire', name: '검사', icon: '⚔️', weapon: 'knightSword',
-    mods: { atk: 1.35, hp: 1.25, aspd: 1.1, crit: 0.08 },
+    mods: { atk: 1.35, hp: 1.38, aspd: 1.1, crit: 0.08 },
     desc: '균형 잡힌 근접 전투. 무난하고 튼튼하다.',
     look: {
       body: BODY.swordsman, fx: '#8fb4ff',
@@ -451,7 +456,7 @@ const CLASSES = {
   },
   paladin: {
     tier: 2, from: 'swordsman', name: '성기사', icon: '✨', weapon: 'holySword',
-    mods: { atk: 1.7, hp: 1.8, aspd: 1.05, crit: 0.06, guard: 0.25, heal: 0.02 },
+    mods: { atk: 1.7, hp: 1.98, aspd: 1.05, crit: 0.06, guard: 0.15, heal: 0.02 },
     desc: '성검과 방패. 받는 피해가 줄고 때릴 때마다 회복한다.',
     look: {
       body: BODY.paladin, fx: '#ffd257',
@@ -463,7 +468,7 @@ const CLASSES = {
   },
   blademaster: {
     tier: 2, from: 'swordsman', name: '검성', icon: '🗡️', weapon: 'dualBlades',
-    mods: { atk: 1.8, hp: 1.3, aspd: 1.8, crit: 0.2, critMult: 0.5 },
+    mods: { atk: 1.8, hp: 1.43, aspd: 1.8, crit: 0.2, critMult: 0.5, guard: 0.15 },
     desc: '쌍검으로 몰아친다. 매우 빠르고 치명타가 강하다.',
     look: {
       body: BODY.blademaster, fx: '#ff4d4d',
@@ -475,7 +480,7 @@ const CLASSES = {
   // ── 창 계열 ──
   lancer: {
     tier: 1, from: 'squire', name: '창기사', icon: '🔱', weapon: 'spear',
-    mods: { atk: 1.4, hp: 1.25, aspd: 0.9, crit: 0.06 },
+    mods: { atk: 1.4, hp: 1.38, aspd: 0.9, crit: 0.06 },
     desc: '긴 창으로 멀리서 찌르고 2마리까지 꿰뚫는다.',
     look: {
       body: BODY.lancer, fx: '#9fd49a',
@@ -484,7 +489,7 @@ const CLASSES = {
   },
   dragoon: {
     tier: 2, from: 'lancer', name: '용기병', icon: '🐉', weapon: 'dragonSpear',
-    mods: { atk: 2.6, hp: 1.6, aspd: 0.9, crit: 0.1 },
+    mods: { atk: 2.6, hp: 1.76, aspd: 0.9, crit: 0.1, guard: 0.1 },
     desc: '용의 힘을 두른 창. 하늘에서 내리꽂고 용의 숨결을 뿜는다.',
     look: {
       body: BODY.dragoon, fx: '#b388ff',
@@ -494,7 +499,7 @@ const CLASSES = {
   },
   halberdier: {
     tier: 2, from: 'lancer', name: '할버디어', icon: '🪓', weapon: 'halberd',
-    mods: { atk: 2.7, hp: 1.9, aspd: 0.8, crit: 0.08 },
+    mods: { atk: 2.7, hp: 2.09, aspd: 0.8, crit: 0.08 },
     desc: '묵직한 할버드로 사거리 안의 적을 모두 휩쓸어 밀어낸다.',
     look: {
       body: BODY.halberdier, fx: '#ff9f40',
@@ -505,7 +510,7 @@ const CLASSES = {
   // ── 활 계열 ──
   ranger: {
     tier: 1, from: 'squire', name: '레인저', icon: '🏹', weapon: 'bow',
-    mods: { atk: 1.3, hp: 1.0, aspd: 1.25, crit: 0.08 },
+    mods: { atk: 1.3, hp: 0.9, aspd: 1.25, crit: 0.08 },
     desc: '멀리서 화살을 쏜다. 적이 다가오는 동안 먼저 때린다.',
     look: {
       body: BODY.ranger, fx: '#7fd06a',
@@ -516,7 +521,7 @@ const CLASSES = {
   },
   marksman: {
     tier: 2, from: 'ranger', name: '저격수', icon: '🎯', weapon: 'longbow',
-    mods: { atk: 2.5, hp: 1.2, aspd: 0.8, crit: 0.3, critMult: 0.5 },
+    mods: { atk: 2.5, hp: 1.08, aspd: 0.8, crit: 0.3, critMult: 0.5 },
     desc: '아주 먼 거리에서 강력한 한 발. 치명타 확률이 높다.',
     look: {
       body: BODY.marksman, fx: '#e8e070',
@@ -528,7 +533,7 @@ const CLASSES = {
   },
   arcaneArcher: {
     tier: 2, from: 'ranger', name: '마궁수', icon: '🔮', weapon: 'arcaneBow',
-    mods: { atk: 1.7, hp: 1.2, aspd: 1.35, crit: 0.1 },
+    mods: { atk: 1.7, hp: 1.08, aspd: 1.35, crit: 0.1 },
     desc: '마력 화살 3발을 흩뿌려 여러 적을 동시에 맞힌다.',
     look: {
       body: BODY.arcaneArcher, fx: '#6ff3ff',
@@ -541,7 +546,7 @@ const CLASSES = {
   // ── 마법사 계열: 지팡이로 마력탄을 쏜다 (원거리). 화염은 맞은 자리 주변까지 태우고, 냉기는 멀리서 빠르고 날카롭게 ──
   mage: {
     tier: 1, from: 'squire', name: '마법사', icon: '🪄', weapon: 'wand',
-    mods: { atk: 1.37, hp: 0.95, aspd: 1.05, crit: 0.08 },
+    mods: { atk: 1.37, hp: 0.85, aspd: 1.05, crit: 0.08 },
     desc: '지팡이로 마력탄을 쏜다. 몸은 약하지만 멀리서 강하게 때린다.',
     look: {
       body: BODY.mage, fx: '#9fd8ff',
@@ -551,7 +556,7 @@ const CLASSES = {
   },
   pyromancer: {
     tier: 2, from: 'mage', name: '화염술사', icon: '🔥', weapon: 'flameStaff',
-    mods: { atk: 2.54, hp: 1.15, aspd: 1.0, crit: 0.1 },
+    mods: { atk: 2.54, hp: 1.03, aspd: 1.0, crit: 0.1 },
     desc: '불덩이를 던진다. 맞은 자리에서 터져 주변 적까지 함께 태운다.',
     look: {
       body: BODY.pyromancer, fx: '#ff7a2a',
@@ -562,7 +567,7 @@ const CLASSES = {
   },
   cryomancer: {
     tier: 2, from: 'mage', name: '빙결술사', icon: '❄️', weapon: 'frostStaff',
-    mods: { atk: 2.29, hp: 1.3, aspd: 1.1, crit: 0.14, guard: 0.1 },
+    mods: { atk: 2.29, hp: 1.17, aspd: 1.1, crit: 0.14 },
     desc: '얼음창을 멀리서 빠르게 꽂는다. 서리 갑옷이 받는 피해를 줄인다.',
     look: {
       body: BODY.cryomancer, fx: '#9fe8ff',
@@ -575,7 +580,7 @@ const CLASSES = {
   // ── 새 2차 (계열마다 세 번째 갈래, 2026-10 추가). 3차는 아직 없다 — 트리는 여기서 끝난다 ──
   greatswordsman: {
     tier: 2, from: 'swordsman', name: '대검전사', icon: '🪓', weapon: 'greatsword',
-    mods: { atk: 2.9, hp: 1.75, aspd: 0.75, crit: 0.08, critMult: 0.3 },
+    mods: { atk: 2.9, hp: 1.93, aspd: 0.75, crit: 0.08, critMult: 0.3, guard: 0.15 },
     desc: '양손 거대 대검. 느리지만 한 번 휘두르면 앞의 적 셋이 한꺼번에 갈라진다.',
     look: {
       body: BODY.greatswordsman, fx: '#ff8a5c',
@@ -586,7 +591,7 @@ const CLASSES = {
   },
   cavalier: {
     tier: 2, from: 'lancer', name: '랜서', icon: '🐎', weapon: 'lance',
-    mods: { atk: 2.3, hp: 2.0, aspd: 0.95, crit: 0.08, guard: 0.2 },
+    mods: { atk: 2.3, hp: 2.2, aspd: 0.95, crit: 0.08, guard: 0.1 },
     desc: '돌격창과 방패. 받는 피해가 줄고, 돌격하면 일직선의 적이 쓰러진다.',
     look: {
       body: BODY.cavalier, fx: '#9fd8ff',
@@ -597,7 +602,7 @@ const CLASSES = {
   },
   arbalest: {
     tier: 2, from: 'ranger', name: '석궁사수', icon: '🔩', weapon: 'ballista',
-    mods: { atk: 3.0, hp: 1.45, aspd: 0.62, crit: 0.14, critMult: 0.4 },
+    mods: { atk: 3.0, hp: 1.3, aspd: 0.62, crit: 0.14, critMult: 0.4 },
     desc: '기사만 한 거대 석궁. 아주 느리지만 한 발이 포탄처럼 무겁다.',
     look: {
       body: BODY.arbalest, fx: '#ffb86b',
@@ -609,7 +614,7 @@ const CLASSES = {
   },
   electromancer: {
     tier: 2, from: 'mage', name: '뇌전술사', icon: '⚡', weapon: 'stormStaff',
-    mods: { atk: 2.3, hp: 1.1, aspd: 1.2, crit: 0.16 },
+    mods: { atk: 2.3, hp: 0.99, aspd: 1.2, crit: 0.16 },
     desc: '번개를 쏜다. 맞은 적에서 둘에게 더 튀고, 빠르고 치명타가 잦다.',
     look: {
       body: BODY.electromancer, fx: '#b7e3ff',
@@ -622,7 +627,7 @@ const CLASSES = {
   // ── 새 2차의 3차 (2026-10 추가) ──
   tyrant: {
     tier: 3, from: 'greatswordsman', name: '파천검왕', icon: '👑', weapon: 'doomBlade',
-    mods: { atk: 3.3, hp: 2.3, aspd: 0.8, crit: 0.1, critMult: 0.5 },
+    mods: { atk: 3.3, hp: 2.53, aspd: 0.8, crit: 0.1, critMult: 0.5, guard: 0.15 },
     desc: '하늘을 가른 대검의 왕. 검을 들면 세계가 둘로 갈라진다.',
     look: {
       body: BODY.greatswordsman, fx: '#ff5a2a',
@@ -633,7 +638,7 @@ const CLASSES = {
   },
   skyGeneral: {
     tier: 3, from: 'cavalier', name: '천마장군', icon: '🏇', weapon: 'holyLance',
-    mods: { atk: 2.6, hp: 2.7, aspd: 1.0, crit: 0.1, guard: 0.25 },
+    mods: { atk: 2.6, hp: 2.97, aspd: 1.0, crit: 0.1, guard: 0.25 },
     desc: '빛의 천마 군단을 이끄는 장군. 창을 들면 하늘의 기병대가 함께 달린다.',
     look: {
       body: BODY.cavalier, fx: '#cfe8ff',
@@ -645,7 +650,7 @@ const CLASSES = {
   },
   siegeMaster: {
     tier: 3, from: 'arbalest', name: '공성포수', icon: '🏰', weapon: 'siegeBallista',
-    mods: { atk: 3.5, hp: 1.9, aspd: 0.65, crit: 0.18, critMult: 0.6 },
+    mods: { atk: 3.5, hp: 1.71, aspd: 0.65, crit: 0.18, critMult: 0.6 },
     desc: '성벽을 무너뜨리는 포수. 한 발이 요새를 통째로 무너뜨린다.',
     look: {
       body: BODY.arbalest, fx: '#ffb86b',
@@ -656,7 +661,7 @@ const CLASSES = {
   },
   thunderEmperor: {
     tier: 3, from: 'electromancer', name: '뇌제', icon: '⛈️', weapon: 'tempestStaff',
-    mods: { atk: 2.7, hp: 1.6, aspd: 1.25, crit: 0.2 },
+    mods: { atk: 2.7, hp: 1.44, aspd: 1.25, crit: 0.2 },
     desc: '천둥을 다스리는 황제. 홀을 들면 하늘 전체가 벼락이 된다.',
     look: {
       body: BODY.electromancer, fx: '#e0f0ff',
@@ -670,7 +675,7 @@ const CLASSES = {
   // ── 3차 (2차마다 하나). 1차 스킬 자리를 궁극기가 대신한다 (숙련도는 그 1차 스킬 것을 그대로 쓴다, SKILLS 의 mastOf) ──
   archon: {
     tier: 3, from: 'paladin', name: '성좌기사', icon: '🌟', weapon: 'starBlade',
-    mods: { atk: 2.03, hp: 2.4, aspd: 1.1, crit: 0.08, guard: 0.3, heal: 0.025 },
+    mods: { atk: 2.03, hp: 2.64, aspd: 1.1, crit: 0.08, guard: 0.3, heal: 0.025 },
     desc: '별자리를 두른 성기사. 하늘의 성좌를 불러 내려 전장을 심판한다.',
     look: {
       body: BODY.archon, fx: '#9fd8ff',
@@ -682,7 +687,7 @@ const CLASSES = {
   },
   swordsaint: {
     tier: 3, from: 'blademaster', name: '검신', icon: '🌸', weapon: 'moonBlades',
-    mods: { atk: 1.74, hp: 1.7, aspd: 2.2, crit: 0.28, critMult: 0.8 },
+    mods: { atk: 1.74, hp: 1.87, aspd: 2.2, crit: 0.28, critMult: 0.8, guard: 0.15 },
     desc: '검의 끝에 닿은 자. 칼을 뽑는 순간 전장 전체가 갈라진다.',
     look: {
       body: BODY.swordsaint, fx: '#ff6a8a',
@@ -692,7 +697,7 @@ const CLASSES = {
   },
   dragonlord: {
     tier: 3, from: 'dragoon', name: '용황', icon: '🐲', weapon: 'wyrmSpear',
-    mods: { atk: 3, hp: 2.1, aspd: 0.95, crit: 0.14 },
+    mods: { atk: 3, hp: 2.31, aspd: 0.95, crit: 0.14, guard: 0.1 },
     desc: '용들의 왕이 된 기병. 창을 들면 하늘에서 용황이 내려온다.',
     look: {
       body: BODY.dragonlord, fx: '#ff4dd2',
@@ -702,7 +707,7 @@ const CLASSES = {
   },
   warlord: {
     tier: 3, from: 'halberdier', name: '전쟁군주', icon: '⚒️', weapon: 'doomAxe',
-    mods: { atk: 3.18, hp: 2.5, aspd: 0.85, crit: 0.1 },
+    mods: { atk: 3.18, hp: 2.75, aspd: 0.85, crit: 0.1 },
     desc: '전쟁 그 자체가 된 거인. 도끼창을 내리찍으면 땅이 끝까지 무너진다.',
     look: {
       body: BODY.warlord, fx: '#ff7a2a',
@@ -712,7 +717,7 @@ const CLASSES = {
   },
   deadeye: {
     tier: 3, from: 'marksman', name: '신궁', icon: '☀️', weapon: 'sunBow',
-    mods: { atk: 2.61, hp: 1.55, aspd: 0.85, crit: 0.4, critMult: 0.8 },
+    mods: { atk: 2.61, hp: 1.4, aspd: 0.85, crit: 0.4, critMult: 0.8 },
     desc: '태양을 쏘아 떨어뜨렸다는 궁수. 시위를 당기면 하늘이 열린다.',
     look: {
       body: BODY.deadeye, fx: '#ffe066',
@@ -724,7 +729,7 @@ const CLASSES = {
   },
   voidArcher: {
     tier: 3, from: 'arcaneArcher', name: '차원궁사', icon: '🌀', weapon: 'voidBow',
-    mods: { atk: 1.72, hp: 1.55, aspd: 1.45, crit: 0.14 },
+    mods: { atk: 1.72, hp: 1.4, aspd: 1.45, crit: 0.14 },
     desc: '차원의 틈을 활시위로 삼는다. 화살 네 발이 공간을 찢으며 날아간다.',
     look: {
       body: BODY.voidArcher, fx: '#ff4dff',
@@ -735,7 +740,7 @@ const CLASSES = {
   },
   archmage: {
     tier: 3, from: 'pyromancer', name: '대마도사', icon: '☄️', weapon: 'infernoStaff',
-    mods: { atk: 2.93, hp: 1.5, aspd: 1.05, crit: 0.12 },
+    mods: { atk: 2.93, hp: 1.35, aspd: 1.05, crit: 0.12 },
     desc: '불의 근원에 닿은 마도사. 지팡이를 들면 하늘에서 겁화가 쏟아진다.',
     look: {
       body: BODY.pyromancer, fx: '#ff3b1f',
@@ -747,7 +752,7 @@ const CLASSES = {
   },
   frostlord: {
     tier: 3, from: 'cryomancer', name: '빙결의 군주', icon: '🧊', weapon: 'glacierStaff',
-    mods: { atk: 2.62, hp: 1.75, aspd: 1.15, crit: 0.18, guard: 0.15 },
+    mods: { atk: 2.62, hp: 1.57, aspd: 1.15, crit: 0.18, guard: 0.15 },
     desc: '만년설을 다스리는 군주. 숨을 내쉬면 전장의 시간까지 얼어붙는다.',
     look: {
       body: BODY.cryomancer, fx: '#cff6ff',
@@ -797,6 +802,7 @@ const SKILLS = {
   // ── 1차 ──
   steelCleave: {
     cls: 'swordsman', name: '강철 베기', icon: '⚔️', lv: 25, cd: 8, dur: 0.7, area: 'single',
+    gap: 120,   // 돌진기: 사거리 밖 이 거리(px) 안의 적에게 달려붙어 쓴다 (원정 world.js fightTick · 결투 server/duel.js GAP)
     hits: [[0.5, 2.6]],
     stages: [
       {},
@@ -812,6 +818,7 @@ const SKILLS = {
   },
   piercingThrust: {
     cls: 'lancer', name: '관통 찌르기', icon: '🔱', lv: 25, cd: 9, dur: 0.65, area: 'line', reach: 1.6,
+    gap: 120,
     right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'overkill', name: '관통', icon: '➡️', full: 0.5 },
     hits: [[0.45, 2.3]],
@@ -876,6 +883,7 @@ const SKILLS = {
   // ── 검성 ──
   gale: {
     cls: 'blademaster', name: '질풍난무', icon: '🌪️', lv: 0, cd: 10, dur: 1.3, area: 'all', radius: 40,
+    gap: 180,
     right: ['leech', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'crowd', name: '난무', icon: '🍃', full: 0.5 },
     hits: [...evenHits(6, 0.15, 0.09, 0.5), [0.86, 1.2]],
@@ -891,6 +899,7 @@ const SKILLS = {
   },
   iaido: {
     cls: 'blademaster', name: '일섬', icon: '🌙', lv: 70, cd: 15, dur: 1.4, area: 'all', radius: 200, crit: true,
+    gap: 180,
     right: ['cd', 'spec', 'leech'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'refund', name: '거합', icon: '🔁', full: 0.15 },
     hits: [[0.78, 4]],
@@ -909,6 +918,7 @@ const SKILLS = {
   // 2차 직업 첫 스킬은 모두 전직하자마자 쓴다 (lv: 0). 용기병은 도약이 직업의 핵심이라 예전부터 그랬다
   dragonFall: {
     cls: 'dragoon', name: '용추락', icon: '☄️', lv: 0, cd: 8, dur: 1.1, area: 'all', radius: 80, air: [0.15, 0.72],
+    gap: 180,
     right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'stun', name: '충격파', icon: '💫', full: 1.5 },
     hits: [[0.72, 3]],
@@ -956,6 +966,7 @@ const SKILLS = {
   },
   earthSplitter: {
     cls: 'halberdier', name: '대지 가르기', icon: '⛰️', lv: 70, cd: 15, dur: 1.4, area: 'line', reach: 4,
+    gap: 180,
     right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'range', name: '균열 확장', icon: '↔️', full: 0.5 },
     hits: [[0.6, 4]],
@@ -1129,6 +1140,7 @@ const SKILLS = {
   },
   ramCharge: {
     cls: 'greatswordsman', name: '돌진 격돌', icon: '💢', lv: 70, cd: 15, dur: 1.5, area: 'line', reach: 3,
+    gap: 180,
     right: ['crit', 'spec', 'cd'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'stun', name: '격돌', icon: '💫', full: 1.5 },
     hits: [[0.5, 1.6], [0.72, 2.4, { area: 'all', radius: 50, launch: true }]],
@@ -1146,6 +1158,7 @@ const SKILLS = {
   // ── 랜서: 방패를 앞세운 돌격 + 방패로 세우는 장벽 (연출 src/jobs/cavalier.js) ──
   cavalryCharge: {
     cls: 'cavalier', name: '기병 돌격', icon: '🐎', lv: 0, cd: 10, dur: 1.2, area: 'line', reach: 3,
+    gap: 180,
     right: ['cd', 'spec', 'crit'],     // 트리 V2: 2·4·6단 오른쪽 노드 (공용 풀 TREE_RIGHT, 'spec' = 아래 고유 특수)
     spec: { type: 'first', name: '선봉', icon: '🚩', full: 0.7 },
     hits: [[0.5, 3.4]],
