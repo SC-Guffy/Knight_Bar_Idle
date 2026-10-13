@@ -39,7 +39,7 @@
   .head b { font-size: 14px; }
   .tag { border-radius: 6px; padding: 0 7px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); }
   .verdict { font-weight: 700; border-radius: 6px; padding: 0 8px; color: #14161d; }
-  .v-교체 { background: var(--swap); } .v-보강 { background: var(--boost); } .v-유지 { background: var(--keep); }
+  .v-교체 { background: var(--swap); } .v-부분교체 { background: var(--boost); } .v-유지 { background: var(--keep); }
   .score { font-weight: 700; letter-spacing: 1px; color: var(--accent); }
   .shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 8px 0 6px; }
   .shots.three { grid-template-columns: repeat(3, 1fr); }
@@ -76,12 +76,15 @@
   <div class="sub">스펙: <code>docs/specs/skill-vfx.md</code> (이 페이지는 스펙 표를 그대로 읽어 그립니다) · 캡처: <code>dev/vfx-survey/</code> · 스킬 ★★★ 기준, Lv1 은 비교용 · 재생 버튼은 <code>dev/skills.html</code> 을 그 스킬로 엽니다</div>
   <div id="err"></div>
   <nav>
-    <a href="#sum">요약</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
+    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
   </nav>
 
   <h2 id="sum">요약</h2>
   <div id="sumTable"></div>
   <ol class="problems" id="problems"></ol>
+
+  <h2 id="rule">원칙 — 이펙트 그림은 전부 PixelLab 텍스처</h2>
+  <div id="ruleBlock"></div>
 
   <h2 id="spot">먼저 볼 것 — 문제 스킬 바로 재생</h2>
   <div class="sub">재생 링크는 새 탭에서 시뮬레이터를 그 스킬·단계로 고정해 반복 재생합니다 (스페이스 = 일시정지, → = 한 프레임).</div>
@@ -104,6 +107,10 @@
   <div class="sub">줄 = 2차 3종 + 3차 3종, 칸 = 스킬 2개(3차는 궁극기 b·c) + 평타. 흑백판에서 구분되는지가 기준입니다.</div>
   <div id="famTable"></div>
   <div class="fam" id="famImgs"></div>
+
+  <h2 id="tex">텍스처 목록 (PixelLab 스프라이트 시트)</h2>
+  <div class="sub">카드 메모 끝의 <b>텍스처:</b> 번호가 이 표의 번호입니다. 크기는 도트 단위(1도트 = 화면 3px).</div>
+  <div id="texBlock"></div>
 
   <h2 id="stop">정지(히트스톱)·흔들림 기준</h2>
   <div id="stopBlock"></div>
@@ -238,7 +245,7 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
   const skBox = document.getElementById('skillCards');
   skBox.innerHTML = skills.map((s) => `
     <div class="card" data-verdict="${s.verdict}" data-fam="${s.fam}" data-tier="${s.tier}" data-score="${s.score}" id="sk-${s.id}">
-      <div class="head"><b>${md(s.name)}</b><span class="tag">${s.tier} · ${s.job}</span><span class="verdict v-${s.verdict}">${s.verdict}</span><span class="score">${'★'.repeat(+s.score || 0)}${'☆'.repeat(3 - (+s.score || 0))}</span>
+      <div class="head"><b>${md(s.name)}</b><span class="tag">${s.tier} · ${s.job}</span><span class="verdict v-${s.verdict.replace(/\s/g, '')}">${s.verdict}</span><span class="score">${'★'.repeat(+s.score || 0)}${'☆'.repeat(3 - (+s.score || 0))}</span>
         <span class="play"><a href="${play(s.cls, s.id, 3)}" target="_blank">▶ ★★★</a><a href="${play(s.cls, s.id, 0)}" target="_blank">▶ Lv1</a></span></div>
       <div class="shots">
         <figure>${img(`${s.id}-a.png`, `${s.name} — a 시작`)}<figcaption>a 시작</figcaption></figure>
@@ -249,7 +256,7 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
       <div class="now">${md(s.now)}</div><div class="memo">${md(s.memo)} <span style="opacity:.6">(${md(s.code)})</span></div>
     </div>`).join('');
   filters(document.getElementById('fSkills'), [
-    ['verdict', '판정', ['교체', '보강', '유지']],
+    ['verdict', '판정', ['교체', '부분 교체', '유지']],
     ['fam', '계열', ['검사', '창기사', '레인저', '마법사']],
     ['tier', '차수', ['1차', '2차', '궁극기']],
     ['score', '점수', ['1', '2', '3']],
@@ -261,7 +268,7 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
   const bBox = document.getElementById('basicCards');
   bBox.innerHTML = basics.map((b) => `
     <div class="card" data-verdict="${b.verdict}" data-fam="${b.fam}" data-tier="${b.tier}" data-score="${b.score}">
-      <div class="head"><b>${md(b.job)}</b><span class="tag">${b.tier} · ${md(b.weapon)}</span><span class="verdict v-${b.verdict}">${b.verdict}</span><span class="score">${'★'.repeat(+b.score || 0)}${'☆'.repeat(3 - (+b.score || 0))}</span>
+      <div class="head"><b>${md(b.job)}</b><span class="tag">${b.tier} · ${md(b.weapon)}</span><span class="verdict v-${b.verdict.replace(/\s/g, '')}">${b.verdict}</span><span class="score">${'★'.repeat(+b.score || 0)}${'☆'.repeat(3 - (+b.score || 0))}</span>
         <span class="play"><a href="${playBasic(b.cls)}" target="_blank">▶ 평타</a></span></div>
       <div class="shots three">
         <figure>${img(`basic-${b.cls}-a.png`, `${b.job} 평타 — a`)}<figcaption>a 시작</figcaption></figure>
@@ -271,7 +278,7 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
       <div class="now">${md(b.now)}</div><div class="memo">${md(b.memo)}</div>
     </div>`).join('');
   filters(document.getElementById('fBasics'), [
-    ['verdict', '판정', ['교체', '보강', '유지']],
+    ['verdict', '판정', ['교체', '부분 교체', '유지']],
     ['fam', '계열', ['공통', '검사', '창기사', '레인저', '마법사']],
     ['tier', '차수', ['견습', '1차', '2차', '3차']],
     ['score', '점수', ['1', '2', '3']],
@@ -316,7 +323,10 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
   const common = section(lines, '## 공통 개선 후보');
   const i2 = common.findIndex((l) => l.startsWith('### 2.')), i3 = common.findIndex((l) => l.startsWith('### 3.')), i4 = common.findIndex((l) => l.startsWith('### 4.'));
   document.getElementById('stopBlock').innerHTML = block(common.slice(i2 + 1, i3)) + block(common.slice(i3, i4)) + block(common.slice(i4));
-  document.getElementById('orderBlock').innerHTML = block(section(lines, '## 퀄업 순서')) + block(common.slice(0, i2));
+  document.getElementById('orderBlock').innerHTML = block(section(lines, '## 퀄업 순서'));
+  document.getElementById('texBlock').innerHTML = block(common.slice(2, i2));
+  const how = section(lines, '## 조사 방법'), r0 = how.findIndex((l) => l.includes('판정 (')), r1 = how.findIndex((l, k) => k > r0 && l.includes('메모: 문제점'));
+  document.getElementById('ruleBlock').innerHTML = block(how.slice(r0, r1));
 
   // 수용 기준, 정할 것
   document.getElementById('acceptList').innerHTML = section(lines, '## 수용 기준').filter((l) => /^- \[/.test(l))
