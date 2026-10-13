@@ -83,7 +83,7 @@
       <ul>
         <li>1차 훈련 <b>Lv 200 유지</b> (훈련장 Lv 20) — 환급 없음.</li>
         <li>교관 열림: 최고 스테이지 <b>40</b> (성벽과 같이) → 다음 교관은 앞 교관 ★5. 훈련장 Lv 조건 없음.</li>
-        <li>★1~4: 📕 <b>20 / 30 / 40 / 50 / 60</b>권 (교관별 합, 총 <b>200</b>). 골드 없음.</li>
+        <li>★1~4: 📕 <b>11 / 16 / 22 / 28 / 33</b>권 (교관별 합, 총 <b>110</b> — 무료 약 <b>10일</b>). 골드 없음.</li>
         <li>★5 승부: <b>무료 · 하루 3회</b> (서버가 센다).</li>
         <li>별 보너스는 전투 능력치만 (경험치 +4%/별 뺌).</li>
         <li>훈련장 카드 아래 탭 <b>🎯 훈련 · 🎓 교관</b>.</li>
@@ -105,13 +105,13 @@
 
   <h2>3. 교관 5명 × 별 5 — 📕 요구량 (칸을 고치면 합계·4절이 바뀐다)</h2>
   <div class="scroll"><table id="reqT"></table></div>
-  <div class="sub" style="margin-top:4px">교관마다 합 20 → 60 (10권씩), 교관 안에서는 ★1 15% · ★2 20% · ★3 30% · ★4 35%. ★5 는 📕 이 아니라 승부. 보너스 칸은 별 하나 몫 (★5 는 ×2).</div>
+  <div class="sub" style="margin-top:4px">교관별 합 11 / 16 / 22 / 28 / 33 (처음 안 20/30/40/50/60 × 0.55 — 사용자 지시 "10일 안팎"), 교관 안에서는 ★1 15% · ★2 20% · ★3 30% · ★4 35%. ★5 는 📕 이 아니라 승부. 보너스 칸은 별 하나 몫 (★5 는 ×2).</div>
 
   <h2>4. 수급량 → 다 찍는 데 며칠</h2>
   <div class="ctl">
-    <label>하루 📕 (무료 입장) <input id="dBooks" type="number" step="0.1" value="12"></label>
+    <label>하루 📕 (무료 입장) <input id="dBooks" type="number" step="0.1" value="11.1"></label>
     <label>+ 입장권 구매 하루 <input id="dBuy" type="number" value="0"> 장</label>
-    <label>판당 📕 <input id="perRun" type="number" step="0.1" value="4"></label>
+    <label>판당 📕 <input id="perRun" type="number" step="0.1" value="3.7"></label>
     <label>승부 하루 <input id="duelDay" type="number" value="3"> 회</label>
     <label>내 승률 = 목표 × <input id="winX" type="number" step="0.05" value="1"></label>
   </div>
@@ -163,12 +163,12 @@
       <div style="font-size:12px">🎓 교관 수련 · 별 7/25 · <span class="bk">📕 보유 14</span> · 🛡️ 방패 교관 — 성채 연병장</div>
       <div class="mchips"><span class="mchip">🗡️ 검술 사범 ★5</span><span class="mchip on">🛡️ 방패 교관 ★2</span><span class="mchip">🏹 숲의 사냥꾼 🔒</span><span class="mchip">🔥 화산 투사 🔒</span><span class="mchip">🌌 성좌의 은자 🔒</span></div>
       <div class="mstage">(무대 그대로 — 기사 · 교관 · 별 5칸)</div>
-      <div class="mbar"><span class="grow"><b>★3 수련 · <span class="bk">📕 9 필요 (보유 14)</span></b><small>지금 체력 +5% · 받는 피해 −2% → 다음 별 체력 +7.5% · 받는 피해 −3%</small></span><span class="mbtn">📕 수련하기</span></div>
+      <div class="mbar"><span class="grow"><b>★3 수련 · <span class="bk">📕 5 필요 (보유 14)</span></b><small>지금 체력 +5% · 받는 피해 −2% → 다음 별 체력 +7.5% · 받는 피해 −3%</small></span><span class="mbtn">📕 수련하기</span></div>
     </div>
     <div class="mock">
       <div class="mtabs"><span class="mtab">🎯 훈련</span><span class="mtab on">🎓 교관 ★9/25</span></div>
       <div class="mstage">(무대)</div>
-      <div class="mbar"><span class="grow"><b>★4 수련 · <span class="bk">📕 11 필요 (보유 7)</span></b><small class="bad">📕 4권 모자라요</small></span><span class="mbtn off">📕 수련하기</span><span class="mbtn">🏰 성벽 지키기로</span></div>
+      <div class="mbar"><span class="grow"><b>★4 수련 · <span class="bk">📕 6 필요 (보유 3)</span></b><small class="bad">📕 3권 모자라요</small></span><span class="mbtn off">📕 수련하기</span><span class="mbtn">🏰 성벽 지키기로</span></div>
       <div class="mbar"><span class="grow"><b>⚔️ 마지막 별 — 교관과의 승부 · 오늘 2/3</b><small>교관 전투력 1.2M / 내 1.3M · 비슷함</small></span><span class="mbtn">⚔️ 승부하기</span></div>
       <div class="mbar"><span class="grow"><b>🔒 최고 스테이지 40 에서 열려요</b><small>🏰 성벽 지키기에서 📕 수련의 서를 모아 교관에게 배워요</small></span></div>
     </div>
@@ -178,7 +178,7 @@
   <ul class="chk">
     <li>❌ <code>MENTOR_ON = true</code> 에서도 <code>TRAIN_MAX</code> 200 · 훈련장 최대 20 · 훈련 Lv 120 세이브가 그대로 (환급 없음)</li>
     <li>❌ 최고 스테이지 39 잠김 / 40 교관1 열림 (훈련·훈련장 무관)</li>
-    <li>❌ ★1~4: 📕 이 표대로 줄고 별 +1, 골드 그대로 — 다섯 명 ★1~4 합 정확히 200권</li>
+    <li>❌ ★1~4: 📕 이 표대로 줄고 별 +1, 골드 그대로 — 다섯 명 ★1~4 합 정확히 110권</li>
     <li>❌ 📕 부족 → 버튼 잠김 + 모자란 권수 + <code>🏰 성벽 지키기로</code></li>
     <li>❌ ★5: 재화 안 줄어듦 · 같은 날 4번째는 서버 429 · 자정 지나 다시 3회</li>
     <li>❌ 이긴 결과 id 로 두 번 별을 받지 않음</li>
@@ -188,13 +188,13 @@
     <li>❌ 탭 전환·기억 · 375px 가로 넘침 없음</li>
     <li>❌ 수련 연출 약 3초 · 탈락 연출 없음 · 누르면 건너뜀</li>
     <li>❌ 다시 구운 봇 곡선·k 표로 계열별 승률 목표 ±10%p · 덜 갖춘 기사 Lv80 교관1 ≤ 15%</li>
-    <li>❌ 14일 봇 (📕 하루 12권 가정): 교관1 ★4 ≈ 해금 +2일 · 별 25개 다 받는 계열 없음 · 최종 스테이지·레벨 ±5%</li>
+    <li>❌ 14일 봇 (📕 하루 12권 가정): 교관1 ★4 ≈ 해금 +1일 · ★1~4 전부 ≈ +10일 · 최종 스테이지·레벨 ±5%</li>
     <li>❌ 실루엣·무대·승부 연출 회귀 확인</li>
   </ul>
 
   <h2>9. 남은 것 (성벽 세션과 맞출 값)</h2>
   <ul>
-    <li>성벽 보상 계수(📕 = 막은 웨이브 × (0.34 + 0.001L), 첫 돌파 ×2)가 바뀌면 3절 표를 같은 비율로 조정 — 기준 <b>200권 ≈ 무료 약 20일분</b>.</li>
+    <li>성벽 보상 계수(📕 = 막은 웨이브 × (0.34 + 0.001L), 첫 돌파 ×2)가 바뀌면 3절 표를 같은 비율로 조정 — 기준 <b>110권 ≈ 무료 약 10일분</b>.</li>
     <li>교관을 다 끝낸 뒤 📕 처리 (🧱 성벽돌로 바꿔 주기?) · <code>🏰 성벽 지키기로</code> 이동 위치.</li>
   </ul>
 </main>
@@ -209,7 +209,7 @@ const M = [
   { id: 'brute',  name: '🔥 화산 투사',   sp: '치명 피해 +5% · 보스 피해 +3%',  win: 0.40, sp1: { critMult: 0.05, bossDmg: 0.03 } },
   { id: 'sage',   name: '🌌 성좌의 은자', sp: '스킬 피해 +3%',                 win: 0.35, sp1: { skillDmg: 0.03 } },
 ];
-const REQ = [[3, 4, 6, 7], [4, 6, 9, 11], [6, 8, 12, 14], [7, 10, 15, 18], [9, 12, 18, 21]];
+const REQ = [[2, 2, 3, 4], [2, 3, 5, 6], [3, 4, 7, 8], [4, 6, 8, 10], [5, 7, 9, 12]];
 const SPN = { atkPct: '공격력', hpPct: '체력', aspdPct: '공속', crit: '치명', critMult: '치명 피해', bossDmg: '보스 피해', skillDmg: '스킬 피해', expPct: '경험치' };
 const $ = (id) => document.getElementById(id);
 const r1 = (x) => Math.round(x * 10) / 10;
@@ -244,7 +244,7 @@ function drawDays() {
   });
   $('dayT').innerHTML = rows;
   const tot = REQ.flat().reduce((a, b) => a + b, 0), booksOnly = day > 0 ? tot / day : Infinity;
-  const judge = booksOnly >= 15 && booksOnly <= 22 ? '<span class="ok">기준 안 (하루 10~13권 → 15~20일)</span>' : booksOnly < 15 ? '<span class="mid">기준보다 빠름</span>' : '<span class="bad">기준보다 느림</span>';
+  const judge = booksOnly >= 8 && booksOnly <= 12 ? '<span class="ok">기준 안 (10일 안팎)</span>' : booksOnly < 8 ? '<span class="mid">기준보다 빠름</span>' : '<span class="bad">기준보다 느림</span>';
   $('sumLine').innerHTML = `하루 📕 <b class="v">${r1(day)}</b>권 → ★1~4 전부(${tot}권) <b class="v">${r1(booksOnly)}일</b> ${judge} · 승부 포함 별 25개 <b class="v">${r1(t)}일</b>`;
   const max = Math.max(t, 1);
   $('bars').innerHTML = segs.map((s) => `<div class="bar"><span class="nm">${s.name}</span><span class="track"><i class="seg b" style="left:${s.t0 / max * 100}%;width:${s.b / max * 100}%"></i><i class="seg d" style="left:${(s.t0 + s.b) / max * 100}%;width:${s.d / max * 100}%"></i></span><span class="t">${r1(s.t0 + s.b + s.d)}일째 수료</span></div>`).join('');
