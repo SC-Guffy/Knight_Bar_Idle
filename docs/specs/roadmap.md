@@ -165,7 +165,7 @@
 | ① | 입장권 골드 구매 (탑·미궁) | [ticket-buy.md](ticket-buy.md) | 확정 |
 | ① | 탑 몬스터 무리 | [tower-packs.md](tower-packs.md) | 확정 |
 | ① | 스킬 하단바 섬광 11곳 · 평타 버그 3건 (VFX 조사에서 옮김) | [vfx-rule-fixes.md](vfx-rule-fixes.md) | 확정 (10-13), 구현 대기 |
-| ①② | 강화 +30 · 등급별 옵션 줄 수 | [enhance-30.md](enhance-30.md) + [gear-options.md](gear-options.md) 갱신 | **구현 끝** (10-13, season6 · 배포 전) — 비용 식 그대로, +25→+30 주문서로 부위당 약 39회. 확인 질문 2개는 추천안으로 확정. 진행 봇 첫 +30 18일. 서버(확성기 +30) 배포 필요. 검토 `dev/review/enhance-30.html` |
+| ① | 강화 +30 · 등급별 옵션 줄 수 (②에서 ①로 당김 — 사용자: 0.21 자잘이와 묶어서 0.21.0 으로) | [enhance-30.md](enhance-30.md) + [gear-options.md](gear-options.md) 갱신 | **구현 끝** (10-13, season6 · 0.21.0 배포 대기) — 비용 식 그대로, +25→+30 주문서로 부위당 약 39회. 확인 질문 2개는 추천안으로 확정. 진행 봇 첫 +30 18일. 서버(확성기 +30) 배포 필요. 검토 `dev/review/enhance-30.html` |
 | ③ | 성벽 지키기 | [castle-defense.md](castle-defense.md) | 개정 중 (기사 피격, 확인 대기) |
 | ③ | 교관 재가동 (수련의 서) | [training-mentors.md](training-mentors.md) 개정 | 확정 (10-13) — ★1~4 📕 확정 상승 총 110권(무료 약 10일 — 사용자 지시로 단축), 골드 없음, ★5 승부 무료 하루 3회, 스테이지 40 열림, 훈련 Lv 200 유지·경험치 보너스 제외. 검토 `dev/review/mentors.html` |
 | ④ | 권투가 7종 | `boxer-class.md` | 작성 대기 |

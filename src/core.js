@@ -220,7 +220,7 @@ function migrate(o) {
     if (it && it.op && it.op[s.gear.rr.i] && s.gear.rr.cand) it.op[s.gear.rr.i] = s.gear.rr.cand;
     delete s.gear.rr;
   }
-  // gearV 9 (0.22, docs/specs/enhance-30.md): 강화 +30 · 옵션 줄 수가 등급 색을 따른다 (일반 0 · 고급 1 · … · 초월·태초 6).
+  // gearV 9 (0.21, docs/specs/enhance-30.md): 강화 +30 · 옵션 줄 수가 등급 색을 따른다 (일반 0 · 고급 1 · … · 초월·태초 6).
   //  가진 장비의 줄은 줄이지 않는다. 5줄 초월·태초에는 +30 에서 켜지는 6번째 줄을 굴려 주고, 태초 줄 값은 새 배율(OPT_MULT)로 다시 계산한다
   if ((o.gearV || 1) < 9) {
     let six = 0;

@@ -4,7 +4,7 @@
 - 검토 페이지: [dev/review/enhance-30.html](../../dev/review/enhance-30.html) — 확률표·기대 시도/비용 계산기(담금질대·주문서 바꿔 보기)·배율 곡선·옵션 줄 표·이행 규칙
 - 관련 코드: src/data.js (`ENHANCE`, `ENHANCE_MAX`, `enhanceOddsAt`, `enhanceMultAt`, `softEnhMultAt`, `enhanceCost`, `OPT_LINES`, `OPT_MULT`, `TEMPER_*`), src/gear.js (`enhance`, `enhanceBlocker`, `rollOptLines`, `optNeed`, `activeOpts`, `claimLoot`), src/core.js (migrate `gearV`), src/ui.js (`enhOdds`, `forgeSlot`, `slotDetail`, `optLinesHtml`, `forgeRerollRow`, `shoutLvCol`), index.html (`.lvl.l*`), src/skin/pixel.css (`.lvl.l5`·`.l6` 바탕), server/index.js (`POST /api/shouts`), dev/progress-bot.js
 - 관련 스펙: [roadmap.md](roadmap.md) "결정 사항 (2026-10-13)" (강화 최대·초기화 확률·옵션 줄 수), [gear-options.md](gear-options.md) (옵션 줄), [forge-temper.md](forge-temper.md) (담금질대), [protect-scroll-drop.md](protect-scroll-drop.md) (보호 주문서)
-- 패치: 시즌6 ② (0.22.0 안). 옵션 줄 수 개편도 이 패치에 같이 낸다 (6번째 줄이 +30 과 맞물리므로)
+- 패치: **0.21.0 — 0.21 자잘이(① 입장권 골드 구매·탑 무리·VFX 규칙 수정)와 묶어서 낸다** (사용자 결정 10-13). 옵션 줄 수 개편도 같이 나간다 (6번째 줄이 +30 과 맞물리므로)
 - 최종 갱신: 2026-10-13
 
 ## 목표
@@ -186,7 +186,8 @@
 - 2026-10-13: 검토 페이지 `dev/review/enhance-30.html` 을 만들었다. 스펙에는 아래 두 질문의 추천안을 적어 두었다. 사용자가 확인하면 `확정` 으로 바꾼다.
 - 2026-10-13: 사용자 확정 (로드맵 세션 창에서 "강화도 그대로 확정해"). ① +26~30 결정 수치 그대로 + 주문서 없을 때 경고, ② 가진 5줄 초월·태초에 6번째 줄 + 태초 값 2.0 재계산.
 - 2026-10-13: 구현 (사용자 "구현 시작해"). data.js(`ENHANCE` 30칸·`ENHANCE_MAX`·`OPT_LINES`·`OPT_MULT`·주석), core.js(gearV 9 이행·안내), ui.js(`enhOdds` 10% 미만 소수 한 자리·`ENH_SCROLL_FROM` 경고·배지 `l6`·확성기 색·일반 0줄 문구), index.html·pixel.css(`.lvl.l6` 무지개, 픽셀 스킨에서 묻히던 `l5` 바탕도 고침), server/index.js(`SHOUT_ENH_MAX = 30`), dev/progress-bot.js(부위 강화·첫 +20/+25/+30·주문서 행). gear.js 는 `OPT_LINES` 를 따르므로 그대로.
-  수용 기준을 vm 테스트·오프라인 게임·로컬 서버·진행 봇으로 하나씩 확인했다 (위 체크 옆 결과). `GAME_VERSION` 은 배포할 때 올린다 (0.21 자잘이와 같이 낼지에 따라 번호가 정해짐).
+  수용 기준을 vm 테스트·오프라인 게임·로컬 서버·진행 봇으로 하나씩 확인했다 (위 체크 옆 결과). `GAME_VERSION` 은 배포할 때 올린다.
+- 2026-10-13: 사용자 결정 — 0.21 자잘이와 묶어서 0.21.0 으로 낸다. 코드 주석·문서의 "0.22" 를 0.21 로 고쳤다. `GAME_VERSION` 은 0.21 의 다른 항목이 다 들어간 뒤 main 으로 낼 때 한 번에 `0.21.0` 으로 올린다 (항목마다 올리면 세션끼리 충돌).
 
 ## 남은 일 / 미정
 - [x] 사용자 확인 → 상태 `확정` (2026-10-13, 두 질문 모두 추천안). 열린 질문 2개 (스펙 본문은 추천안 기준):
@@ -194,6 +195,6 @@
   2. 가진 5줄 초월·태초: **추천** 6번째 줄을 굴려 주고 태초 줄 값을 배율 2.0 으로 재계산 / 대안: 6번째 줄만 · 둘 다 안 줌.
 - [x] [gear-options.md](gear-options.md) 줄 수 표·배율을 새 값으로 고쳤다.
 - [x] 구현 (2026-10-13, season6).
-- [ ] 배포: 서버(확성기 검증)를 먼저 올려도 안전하다 (넓히기만 함). 클라이언트는 main 으로 낼 때 `GAME_VERSION` 을 올린다. 서버를 늦게 올리면 그 사이 +26 이상 확성기만 400 으로 조용히 빠진다.
+- [ ] 배포 (0.21.0, 0.21 자잘이와 함께): 서버(확성기 검증)를 먼저 올려도 안전하다 (넓히기만 함). 클라이언트는 0.21 항목이 다 들어간 뒤 main 으로 낼 때 `GAME_VERSION` 을 `0.21.0` 으로 올린다. 서버를 늦게 올리면 그 사이 +26 이상 확성기만 400 으로 조용히 빠진다.
 - [ ] (선택) 봇 확성기(`server/bots.js`)는 +20~22 만 흘린다. +26 이상도 가끔 흘릴지는 나중에 정한다.
 - 지금 0.21 자잘이(① 패치)에 있던 "옵션 줄 수 등급 맞춤"은 이 스펙으로 옮겼다. ① 에서 먼저 내면 초월·태초의 6번째 줄이 +30 전까지 잠겨 있게 되니, 같은 패치에 내는 쪽이 낫다.

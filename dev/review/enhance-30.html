@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>강화 +30 — 스펙 검토</title>
 <!-- 스펙: docs/specs/enhance-30.md. '새' 값은 구현된 src/data.js 에서 읽고(ENHANCE·enhanceCost·OPT_*),
-     '0.22 전' 값은 아래 OLD_* 에 고정해 둔다. 기대값은 마르코프 연립방정식, 분포는 몬테카를로. -->
+     '0.21 전' 값은 아래 OLD_* 에 고정해 둔다. 기대값은 마르코프 연립방정식, 분포는 몬테카를로. -->
 <style>
   @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
   @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
@@ -44,7 +44,7 @@
 <body>
 <main>
   <h1>⚒️ 강화 +30 · 등급별 옵션 줄 수 — 스펙 검토 페이지</h1>
-  <div class="sub">스펙 <code>docs/specs/enhance-30.md</code> (상태: 확정 → 구현·검증 끝, 배포 전 · 2026-10-13). "새" 값은 구현된 <code>src/data.js</code> 에서 읽고, "지금"(0.22 전) 값은 이 페이지에 고정해 두었다. 입력칸을 바꾸면 표·그래프가 다시 계산된다.
+  <div class="sub">스펙 <code>docs/specs/enhance-30.md</code> (상태: 확정 → 구현·검증 끝, 배포 전 · 2026-10-13). "새" 값은 구현된 <code>src/data.js</code> 에서 읽고, "지금"(0.21 전) 값은 이 페이지에 고정해 두었다. 입력칸을 바꾸면 표·그래프가 다시 계산된다.
     게임에서 보기: <a href="../../index.html?server=http://127.0.0.1:9" style="color:var(--blue)">오프라인 게임</a> → 마을 → 대장간 (테스트 상태는 보고에 적은 콘솔 스니펫).</div>
 
   <h2>1. 스펙 요지</h2>
@@ -160,7 +160,7 @@
 
 <script src="../../src/data.js"></script>
 <script>
-// ───── 새 값은 구현된 data.js 에서, 0.22 전 값은 여기 고정 ─────
+// ───── 새 값은 구현된 data.js 에서, 0.21 전 값은 여기 고정 ─────
 const NEW = ENHANCE.map((e) => ({ ...e }));
 const OLD = NEW.slice(0, 25).map((e, L) => (L >= 15 ? { ...e, reset: [0.02, 0.025, 0.03, 0.035, 0.04, 0.05, 0.055, 0.06, 0.065, 0.07][L - 15] } : { ...e }));
 const NEW_OPT_LINES = OPT_LINES, NEW_OPT_MULT = OPT_MULT;
