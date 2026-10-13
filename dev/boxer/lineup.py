@@ -8,7 +8,7 @@ S = 4  # 확대 배율 (nearest)
 
 def at64(path, foot_from_bbox=True):
     im = Image.open(path).convert('RGBA')
-    if os.path.basename(path).startswith(('base-', 'final-', 'pix-', 'v2fin-')): return im
+    if os.path.basename(path).startswith(('base-', 'final-', 'pix-', 'v2fin-', 'v2a-')): return im
     b = im.getbbox(); c = im.crop(b)
     out = Image.new('RGBA', (64, 64)); out.paste(c, (32 - (c.width // 2), 59 - c.height), c)
     return out
@@ -55,6 +55,12 @@ if __name__ == '__main__':
     strip([V['striker'], V['champion'], V['kickboxer'], V['tempest'], V['qigong'], V['grandmaster']], 'v2-lines')
     strip([F['fighter'], P['fighter'], V['fighter'], F['striker'], P['striker'], V['striker'], F['kickboxer'], P['kickboxer'], V['kickboxer'],
            F['qigong'], P['qigong'], V['qigong']], 'v1-v2')
+    # 3차 키 맞춤 (2026-10-14): 계열 전체 줄 세우기 + 기존 기사와 + 이전 v2 와 비교
+    strip([V['fighter'], V['striker'], V['champion'], V['kickboxer'], V['tempest'], V['qigong'], V['grandmaster']], 'v2-all')
+    strip(['raw/hero-paladin.png', 'raw/hero-blademaster.png', 'raw/hero-dragoon.png', 'raw/hero-ranger.png', V['champion'], V['tempest'], V['grandmaster']], 'v2-tier3')
+    strip(['v2a-striker.png', V['striker'], 'v2a-kickboxer.png', V['kickboxer'], 'v2a-champion.png', V['champion'], 'v2a-tempest.png', V['tempest'],
+           'v2a-grandmaster.png', V['grandmaster']], 'v2a-v2b')
+    strip([V['champion'], V['tempest'], V['grandmaster']], 'v2-family3')
     strip(['raw/hero-paladin.png', 'raw/hero-blademaster.png', 'raw/hero-dragoon.png', P['striker'], P['kickboxer'], P['qigong']], 'pix-tier2')
     strip(['raw/hero-squire.png', 'raw/hero-swordsman.png', 'raw/hero-ranger.png', 'raw/hero-mage.png', P['fighter']], 'pix-tier1')
     strip([P['striker'], P['champion'], P['kickboxer'], P['tempest'], P['qigong'], P['grandmaster']], 'pix-lines')

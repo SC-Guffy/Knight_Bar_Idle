@@ -16,6 +16,25 @@ SIZE42 = 42
 
 STYLE = ('tiny chibi side-scroller knight sprites: big head about one third of the body, short stubby limbs, 1 pixel dark navy outline around the whole figure, '
          'flat colors with 2 to 3 shades per material, simple dot eyes, facing right in side view, feet on the bottom')
+# 3차 키 맞춤판 (2026-10-14): 2차의 특징을 잇고 더 화려하게 — 스타일 참고 4장 중 1장을 부모 2차의 v2 마무리 그림으로 바꾼다 (PARENT)
+PARENT = {'champion': 'striker', 'tempest': 'kickboxer', 'grandmaster': 'qigong'}
+DESC3 = {
+    'champion': 'the same heavyweight boxer as the reference striker but now a champion: wild golden spiky hair like a lion mane, a gold circlet, '
+                'a flowing red cape over the shoulders, black sleeveless top, huge shining golden armored gauntlets, big gold champion belt, red shorts, black boots, '
+                'more ornate and heroic, front gauntlet raised at the chin',
+    'tempest': 'the same kickboxer as the reference but now a wind master: long ponytail flowing back, a long green wind scarf streaming behind, '
+               'white chest wrap, wide white pants with a green sash, steel shin guards with small wing ornaments, barefoot, front knee raised high, '
+               'small green wind swirls around the feet, more ornate',
+    'grandmaster': 'the same qigong martial artist as the reference but now a grandmaster: white headband with long tails, black hair, '
+                   'dark blue robe with gold trim and very wide sleeves, a glowing golden halo ring behind the back, floating prayer beads, '
+                   'one open palm pushed forward with a golden glow, more ornate',
+    # 스트라이커 보강: 권투 글러브가 아니라 금속 판 장갑
+    'striker_g': 'a fierce heavyweight boxer with very broad shoulders and big arms, black flat-top haircut, black sleeveless tank top, '
+                 'huge angular steel plate gauntlets like armored knight gauntlets with riveted metal plates and short spikes on the knuckles, not boxing gloves, '
+                 'gold champion belt, red shorts, black boots, front gauntlet raised at the chin',
+    'kickboxer_knee': 'a lean kickboxer with long brown hair in a high ponytail flowing behind, white chest bandage wrap, bare arms, loose wide white martial arts pants '
+                      'with a black belt, steel shin guards, barefoot, standing on one leg with the front knee raised high to the chest, fists in guard',
+}
 DESC = {
     'fighter': 'a young boxer martial artist, short spiky black hair with a red headband whose two tails flow behind the head, white short sleeve shirt, '
                'dark blue shorts with a yellow waistband, white bandage wraps on both fists raised in a boxing guard, red sneakers',
@@ -56,10 +75,24 @@ def images(o, out):
         for v in o: images(v, out)
 
 
+def fin42(name):
+    """v2 마무리 그림(64 판, 발 y=58)을 42×42 로 꽉 맞게 자른다 — 3차의 부모 참고용."""
+    im = Image.open(os.path.join(HERE, f'v2fin-{name}.png')).convert('RGBA'); bb = im.getbbox(); c = im.crop(bb)
+    o = Image.new('RGBA', (SIZE42, SIZE42)); o.paste(c, (SIZE42 // 2 - c.width // 2, SIZE42 - 1 - c.height), c); return o
+
+
 def run(cls, seed=1, small=False):
-    refs = [{'image': {'type': 'base64', 'base64': b64(ref42(n))}, 'width': SIZE42, 'height': SIZE42} for n in REFS42] if small else            [{'image': {'type': 'base64', 'base64': b64(ref64(n))}, 'width': 64, 'height': 64} for n in REFS]
+    base = cls.split('_')[0]
+    if small:
+        names = REFS42[:3] if base in PARENT else REFS42
+        refs = [{'image': {'type': 'base64', 'base64': b64(ref42(n))}, 'width': SIZE42, 'height': SIZE42} for n in names]
+        if base in PARENT:
+            refs.append({'image': {'type': 'base64', 'base64': b64(fin42(PARENT[base]))}, 'width': SIZE42, 'height': SIZE42})
+    else:
+        refs = [{'image': {'type': 'base64', 'base64': b64(ref64(n))}, 'width': 64, 'height': 64} for n in REFS]
+    desc = DESC3.get(cls) if small and cls in DESC3 else DESC[cls]
     body = {'style_images': refs,
-            'description': DESC[cls], 'style_description': STYLE, 'seed': seed, 'no_background': True}
+            'description': desc, 'style_description': STYLE, 'seed': seed, 'no_background': True}
     st, r = call('POST', '/generate-with-style-v2', body)
     if st not in (200, 202): print('HTTP', st, str(r)[:800]); return []
     job = r.get('background_job_id') if isinstance(r, dict) else None

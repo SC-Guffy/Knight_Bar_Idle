@@ -11,9 +11,10 @@ from stylize import prequant
 OUT_C = (0x0b, 0x0d, 0x14, 255)
 lum = lambda c: (c[0] * 3 + c[1] * 6 + c[2]) / 10
 # 고른 변형 (v2/<직업>-s<seed>-<n>.png) — 검토 페이지 5절 "7:3 v2" 와 같다
-# 1·2차는 42×42 키 맞춤판(k1), 3차는 64판(s1, 기존 기사보다 키가 약 1.3배 — 사용량 상한으로 키 맞춤판은 다음에)
-PICK = {'fighter': 'fighter-k1-0.png', 'striker': 'striker-k1-0.png', 'kickboxer': 'kickboxer-k1-16.png', 'qigong': 'qigong-k1-0.png',
-        'champion': 'champion-s1-0.png', 'tempest': 'tempest-s1-1.png', 'grandmaster': 'grandmaster-s1-0.png'}
+# 모두 42×42 키 맞춤판 (k1). 2026-10-14 3차 키 맞춤 + 보강: 스트라이커 금속판 장갑(striker_g), 킥복서 무릎 든 자세(47)
+# 이전 v2 (스트라이커 k1-0 · 킥복서 k1-16 · 3차 64판 s1) 는 v2a-*.png 로 남겨 비교한다
+PICK = {'fighter': 'fighter-k1-0.png', 'striker': 'striker_g-k1-28.png', 'kickboxer': 'kickboxer-k1-47.png', 'qigong': 'qigong-k1-0.png',
+        'champion': 'champion-k1-16.png', 'tempest': 'tempest-k1-45.png', 'grandmaster': 'grandmaster-k1-16.png'}
 # 손으로 찍는 눈: {직업: [(x, y, '#rrggbb'), ...]} (마무리한 그림 좌표)
 EYES = {}
 

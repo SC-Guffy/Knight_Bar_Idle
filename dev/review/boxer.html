@@ -110,7 +110,24 @@
   <div class="ctl" style="margin-top:8px">
     <button class="on" data-mode="">컬러</button><button data-mode="-gray">흑백</button><button data-mode="-sil">실루엣만</button>
   </div>
-  <div class="card hl"><b>7:3 v2 (최신)</b> — 축소 대신 <b>PixelLab <code>generate-with-style-v2</code></b>로 직접 뽑았습니다. 기존 기사 스프라이트 4장(성기사·레인저·대검전사·마법사, 42×42 에 꽉 맞게 자름)을 스타일 참고로 넣어 같은 꼬마 비율·도트 크기·외곽선으로, 한 번에 변형 64장(직업당)을 받아 하나씩 골랐습니다.
+  <div class="card hl"><b>7:3 v2 (3차 키 맞춤) — 최신</b>: 3차 3종도 1·2차와 같은 42칸 방식으로 다시 뽑아 <b>계열 7종이 모두 기존 기사와 같은 키</b>입니다.
+    3차는 스타일 참고 4장 중 1장을 부모 2차 그림으로 바꿔 특징을 이었습니다 — 챔피언 = 스트라이커 + 사자 갈기·망토·황금 건틀릿, 템페스트 = 킥복서 + 바람 목도리·발밑 회오리, 그랜드마스터 = 기공사 + 후광·금빛 장식.
+    보강: 스트라이커 장갑을 금속판 장갑(<code>striker_g</code> 28번)으로, 킥복서를 무릎 든 자세(47번, 추가 생성 없이 이미 뽑은 64장에서)로 바꿨습니다.</div>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix lu" data-base="lineup-v2-all" alt="계열 전체"><figcaption><b>계열 전체 줄 세우기</b> — 파이터 / 스트라이커 → 챔피언 / 킥복서 → 템페스트 / 기공사 → 그랜드마스터 (흑백·실루엣 버튼)</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-tier3" alt="3차 비교"><figcaption><b>3차 · 기존 기사와 나란히</b> — 성기사·검성·용기병·레인저 + 챔피언·템페스트·그랜드마스터</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-family3" alt="3차 3종"><figcaption><b>3차 3종 (색깔놀이 확인)</b></figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2a-v2b" alt="이전 v2 비교"><figcaption><b>이전 v2 → 지금</b> — 스트라이커(글러브 → 금속판) · 킥복서(가드 → 무릎 듦) · 챔피언·템페스트·그랜드마스터(64칸판 → 키 맞춤)</figcaption></figure>
+  </div>
+  <h3>3차·보강 변형 64장 (고른 것: 챔피언 16 · 템페스트 45 · 그랜드마스터 16 · 스트라이커 금속판 28 · 킥복서 47)</h3>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix" src="../boxer/v2/_k-champion.png" alt=""><figcaption>챔피언</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-tempest.png" alt=""><figcaption>템페스트</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-grandmaster.png" alt=""><figcaption>그랜드마스터</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-striker_g.png" alt=""><figcaption>스트라이커 금속판 장갑</figcaption></figure>
+  </div>
+  <h3>7:3 v2 첫 판</h3>
+  <div class="card hl"><b>7:3 v2 첫 판</b> — 축소 대신 <b>PixelLab <code>generate-with-style-v2</code></b>로 직접 뽑았습니다. 기존 기사 스프라이트 4장(성기사·레인저·대검전사·마법사, 42×42 에 꽉 맞게 자름)을 스타일 참고로 넣어 같은 꼬마 비율·도트 크기·외곽선으로, 한 번에 변형 64장(직업당)을 받아 하나씩 골랐습니다.
     손 마무리(<code>dev/boxer/finish.py</code>): 재질별 4단 램프 정리 · 바깥 외곽선 <code>#0b0d14</code> 통일 · 발 맞춤. 1·2차 4종은 기존 기사와 키가 같은 42칸판, <b>3차 3종은 64칸판이라 아직 약 1.3배 큽니다</b>(사용량 상한으로 다음에 맞춤). PixelLab 이번 작업 153회 (상한 150 — 3회 초과).</div>
   <div class="gallery" style="grid-template-columns:1fr">
     <figure><img class="pix lu" data-base="lineup-v2-tier2" alt="v2 2차"><figcaption><b>7:3 v2 · 기존 2차와 나란히</b> — 성기사·검성·용기병 + 스트라이커·킥복서·기공사</figcaption></figure>
@@ -196,7 +213,7 @@
   <div class="card"><ul>
     <li>스펙 요지(주 기술 + 투지 구조, 충전 시작안, 스킬 10종, 시트·이펙트 규격)를 이대로 확정할지.</li>
     <li><b>그림체 선택</b> (5절 세 판 비교): ② 7:3 판으로 갈지, 비율을 더 옮길지(예: 8:2 / 6:4). 고칠 직업이 있으면 ComfyUI 시안에서 다른 번호를 고르거나 더 뽑습니다.</li>
-    <li>PixelLab Tier 1 잔량 1,847회 (VFX 몫 약 740회 포함).</li>
+    <li>PixelLab Tier 1 잔량 1,780회 (VFX 몫 약 740회 남김).</li>
   </ul></div>
 </main>
 
@@ -424,10 +441,11 @@ for (const [cls, pick] of Object.entries(PICK)) {
 
 // ───────── 수용 기준 ─────────
 const ACC = [
-  ['기준 그림 그림체가 기존 7 : 새 3 (5절 7:3 v2)', 'mid', 'v2 7종 (1·2차 키 맞춤) — 사용자 선택 대기'],
+  ['기준 그림 그림체가 기존 7 : 새 3 (5절 7:3 v2)', 'mid', 'v2 7종 모두 키 맞춤 — 사용자 선택 대기'],
+  ['3차가 2차 특징을 잇고 더 화려하다', 'mid', '챔피언·템페스트·그랜드마스터 — 사용자 확인 대기'],
   ['2차·3차 3종이 흑백·실루엣으로도 구분된다 (5절)', 'mid', '최종 7종 라인업 — 사용자 확인 대기'],
   ['평균 시전 간격·스킬 DPS 가 같은 차수 범위 안 (3절, 1마리)', 'ok', '시작안 모의 실험 — 구현 뒤 진행 봇·duel-balance 로 다시 측정'],
-  ['PixelLab 사용량 상한 안 (Tier 1 기준 그림 150회)', 'mid', 'Tier 1 에서 153회 (3회 초과). 그 전 체험판에서 시험 6회 + 기준 그림 약 12회'],
+  ['PixelLab 사용량 상한 안', 'mid', 'Tier 1: 첫 판 153회 (상한 150, 3회 초과) + 3차 키 맞춤 3회 호출·스트라이커 금속판 1회 호출 = 67회 (상한 70 안). 체험판: 시험 6 + 기준 그림 약 12'],
   ['7:3 판에서 픽셀이 뭉개지지 않는다', 'mid', 'v2 는 직접 생성이라 축소 뭉개짐 없음 — 사용자 확인 대기'],
   ['이펙트 그림이 전부 텍스처 (목록 48장)', 'mid', '목록만 — 생산은 Tier 1 결제 뒤'],
   ['규칙·밸런스·렌더링 수용 기준 (스펙 본문)', 'no', '구현 전 (이번 세션은 스펙만)'],
