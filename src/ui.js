@@ -440,7 +440,7 @@ function viewMentor() {
     btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-duel" ${blk || busy ? 'disabled' : ''} title="${blk}">⚔️ 승부하기 <i class="gc"></i> ${fmt(mentorCost(i))}</button>`;
   } else {
     const blk = mentorTryBlocker(i), eye = S.mentor.eye;
-    info = `<b>★${n + 1} 수련 · 성공 ${Math.round(mentorRate(i) * 100)}%${eye ? ` (눈도장 +${Math.round(eye * MENTOR_EYE * 100)}%p)` : ''}</b><small>지금 ${now} → 다음 별 ${spText(mentorSpAt(i, n + 1))}</small>`;
+    info = `<b>★${n + 1} 수련 · 성공 ${Math.round(mentorRate(i) * 100)}%${eye ? ` (눈도장 +${+(eye * mentorEye(i) * 100).toFixed(1)}%p)` : ''}</b><small>지금 ${now} → 다음 별 ${spText(mentorSpAt(i, n + 1))}</small>`;
     btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">🎓 수련하기 <i class="gc"></i> ${fmt(mentorCost(i))}</button>`;
   }
   return `

@@ -33,7 +33,9 @@ const mentorOpen = (i) => i < MENTORS.length && mentorLock(i) === '';
 const mentorCostAt = (star) => Math.floor(monsterStats(S.best, false).gold * MENTOR_GOLD * Math.pow(MENTOR_GROW, star - 1));
 const mentorCost = (i = mentorCur()) => mentorCostAt(Math.min(MENTOR_STARS, mentorStarsOf(i) + 1));
 // 지금 별의 성공 확률 (눈도장 포함)
-const mentorRate = (i = mentorCur()) => Math.min(1, (MENTOR_RATE[mentorStarsOf(i)] || 0) + S.mentor.eye * MENTOR_EYE);
+// 뒤 교관일수록 기본 확률·눈도장 모두 MENTOR_HARD 배 (확률은 1%p 단위로 반올림)
+const mentorEye = (i = mentorCur()) => Math.round(MENTOR_EYE * (MENTOR_HARD[i] || 1) * 1000) / 1000;
+const mentorRate = (i = mentorCur()) => Math.min(1, Math.round((MENTOR_RATE[mentorStarsOf(i)] || 0) * (MENTOR_HARD[i] || 1) * 100) / 100 + S.mentor.eye * mentorEye(i));
 // 다음이 승부(★5) 차례인가
 const mentorDuelTurn = (i = mentorCur()) => mentorStarsOf(i) === MENTOR_STARS - 1;
 
