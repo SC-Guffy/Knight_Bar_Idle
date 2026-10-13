@@ -1,6 +1,6 @@
 # 스킬 VFX 퀄업 — 전 직업 전수조사 (시즌6)
 
-- 상태: 개정 중 (2026-10-13 사용자 정정 "이펙트 텍스처를 PixelLab 으로" 반영, 확인 대기)
+- 상태: 개정 중 (텍스처 원칙 반영 + ⑤-0 검흔 시험 완료, 사용자 확인 대기)
 - 관련 코드:
   - src/skills.js: 공용 연출과 1·2차 스킬 대부분. `skFx`, `impact`(:369), `autoHitFx`(:550), `MASTERY_VIS`(:43), 컷인 `drawScreenFx`(:3432)·`drawUltScreen`(:3385), `dimBand`(:1055)
   - src/mage/*.js: 마법사 계열 스킬
@@ -174,10 +174,11 @@
 
 **공통 규격**
 
-- **크기 단위는 도트다.** 1도트 = 화면 3px(`PX = 3`). 32×32 도트 시트는 화면에서 96×96px 이다. PixelLab 에서는 도트 크기 그대로(32×32px) 뽑고, 그릴 때 정수배 nearest 로 키운다. 화면에서 회전·크기 조절이 필요하면 도트 격자가 깨지지 않게 ×3 단위로 그린다.
+- **크기 단위는 도트다. 1도트 = 캐릭터 몸 도트 = `PX / 2` = 게임 화면 1.5px** (⑤-0 시험에서 확인, 2026-10-13). 몸 그림이 `px: 0.5` 라서 캐릭터의 실제 도트도 1.5px 이고, 근접 잔상 칸(`drawCutSmear` 의 `C = PX / 2`)도 같다. 처음 적었던 "1도트 = 3px" 는 캐릭터보다 두 배 굵어져서 고쳤다. 32×32 도트 시트는 게임 화면에서 48×48px 이다. PixelLab 에서는 도트 크기 그대로(32×32px) 뽑고, 그릴 때 1.5배 nearest 로 그린다 (화면 배율 2배에서 3 기기 px = 정수). 더 크게 그릴 때는 ×2·×3 정수배로만 키운다.
+- **PixelLab 크기 제약**: `create-image-pixen` 은 한 변이 32 미만이면 정사각형만, 두 변 모두 4의 배수, 넓이 512×512 까지다. `animate-with-text-v3` 는 한 변 256 까지다. 그래서 32×12 같은 가는 시트는 32×32 이상 캔버스로 뽑고 잘라 낸다.
 - **색은 다시 칠한다.** 시트는 명암 4~5단 램프로 정리(양자화)해 두고, 불러올 때 직업 팔레트 램프로 바꿔 칠한다. 아래 "공유" 칸이 한 시트를 다시 칠해 같이 쓰는 범위다. **같은 1차 계열의 2차끼리는 서로 다른 시트를 쓴다.** 2차→3차는 같은 계열이라도 3차 전용 변형 시트(번호 뒤 a·b)를 따로 둔다.
 - **외곽선**: 몸 그림과 같은 어두운 외곽(`#0b0d14`)을 바깥 테두리에만 두른다. shadowBlur 는 쓰지 않는다. 빛 단계는 시트에 그려 넣는다.
-- **크기 한도**: 무료 200×200px, Tier 1 320×320px. 가장 큰 시트(궁극기 배경 128×56 도트)도 한도 안이다.
+- **크기 한도**: 무료 200×200px, Tier 1 320×320px. 가장 큰 시트(궁극기 배경 240×100 도트)는 무료로는 안 되고 Tier 1 부터 뽑을 수 있다. 배경은 정지 그림 1~2장이라 애니메이션 한도(256)와도 맞는다.
 
 #### W. 무기별 휘두르기 궤적 (평타·스킬 공용, 15장)
 
@@ -275,7 +276,7 @@
 | E08 | 성역 | 성당 실루엣 | 64×64 × 4 |
 | E09 | 질풍난무 | 시간 정지 붉은 검선 | 64×8 × 4 |
 | E10 | 일섬 | 핏빛 달 | 48×48 × 2 |
-| E11 | 일섬 | 칼집 일섬 | 128×4 × 4 |
+| E11 | 일섬 | 칼집 일섬 | 240×8 × 4 |
 | E12 | 대검 횡참 | 대검 참격파 | 48×32 × 6 |
 | E13 | 대검 횡참 | 단두대 대검 | 32×80 × 1 |
 | E14 | 돌진 격돌 | 어깨 충돌 충격 + 땅 파임 | 48×48 × 6 |
@@ -306,32 +307,32 @@
 | E39 | 블리자드 | 프리즘 결정 군 | 48×48 × 6 |
 | E40 | 연쇄 번개 | 번개 손 (새로) | 64×64 × 6 |
 | E41 | 연쇄 번개 | 구전 | 24×24 × 4 |
-| E42 | 낙뢰 | 기둥 번개 + 하늘 균열 | 32×128 × 5 |
+| E42 | 낙뢰 | 기둥 번개 + 하늘 균열 | 32×96 × 5 |
 
 #### F. 궁극기 고유 부품·배경 (21장)
 
-배경은 하단바 전체 크기(약 120×50 도트)를 덮는 128×56 도트 시트다. 궁극기만 하단바 전체를 쓸 수 있다.
+배경은 하단바 전체 크기(게임 360×150px = 240×100 도트)를 덮는 240×100 도트 시트다. 궁극기만 하단바 전체를 쓸 수 있다.
 
 | 번호 | 궁극기 | 시트 | 도트 크기 × 프레임 |
 |---|---|---|---|
-| F01 | 성좌 강림 | 밤하늘 배경 | 128×56 × 2 |
+| F01 | 성좌 강림 | 밤하늘 배경 | 240×100 × 2 |
 | F02 | 성좌 강림 | 기사 성좌 + 별똥 | 64×64 × 4 |
-| F03 | 성좌 강림 | 창세의 빛 | 64×56 × 6 |
+| F03 | 성좌 강림 | 창세의 빛 | 64×100 × 6 |
 | F04 | 천검 | 분홍 검선 타일 + 꽃잎 | 64×8 × 4 |
-| F05 | 파천참 | 붉은 하늘 균열 배경 | 128×56 × 2 |
+| F05 | 파천참 | 붉은 하늘 균열 배경 | 240×100 × 2 |
 | F06 | 파천참 | 그림자 대검·대검 비 | 32×96 × 2 |
-| F07 | 파천참 | 세계참 빛기둥 | 32×56 × 6 |
+| F07 | 파천참 | 세계참 빛기둥 | 32×100 × 6 |
 | F08 | 용황 강림 | 용황 (머리·마디 몸통) | 96×64 × 8 |
-| F09 | 용황 강림 | 용신의 눈 배경 + 용암 땅 | 128×56 × 4 |
+| F09 | 용황 강림 | 용신의 눈 배경 + 용암 땅 | 240×100 × 4 |
 | F10 | 천붕 | 거인 도끼 + 용암 기둥 | 64×96 × 4 |
-| F11 | 천마군단 | 군단 그림자 배경 + 창비 | 128×56 × 4 |
+| F11 | 천마군단 | 군단 그림자 배경 + 창비 | 240×100 × 4 |
 | F12 | 태양 관통 | 태양 + 홍염 | 96×96 × 6 |
 | F13 | 차원 붕괴 | 공허 균열 + 블랙홀 | 64×64 × 8 |
-| F14 | 차원 붕괴 | 휘는 격자 배경 | 128×56 × 4 |
+| F14 | 차원 붕괴 | 휘는 격자 배경 | 240×100 × 4 |
 | F15 | 대공성포 | 포탄 | 16×16 × 2 |
-| F16 | 종언의 겁화 | 불바다 루프 | 128×32 × 6 |
+| F16 | 종언의 겁화 | 불바다 루프 | 240×40 × 6 |
 | F17 | 종언의 겁화 | 붉은 태양 붕괴 + 하얀 불의 벽 | 64×64 × 6 |
-| F18 | 절대영도 | 빙하 산맥 배경 + 오로라 | 128×56 × 4 |
+| F18 | 절대영도 | 빙하 산맥 배경 + 오로라 | 240×100 × 4 |
 | F19 | 절대영도 | 거대 눈꽃 + 유리 격자 파편 | 48×48 × 6 |
 | F20 | 뇌제 강림 | 뇌신 거인 (새 콘셉트) | 96×96 × 6 |
 | F21 | 뇌제 강림 | 번개 왕좌 + 번개 그물 | 64×64 × 6 |
@@ -397,40 +398,55 @@
 - 검사 계열은 지금 연출의 완성도가 가장 높아 마지막이다. W1·H1 은 ⑤-0 시험에서 먼저 만든다.
 - 패치마다 계열 비교 그림(`family-*.png`)을 다시 찍어 전후를 남긴다.
 
-### PixelLab 사용량 추정 (2026-10-13 개정)
+### PixelLab 사용량 추정 (2026-10-13, ⑤-0 시험 결과로 다시 계산)
 
 [character-sprites.md](character-sprites.md) 요금 기준: 무료 40회 + 하루 5회 / Tier 1 $12/월 2,000회 / Tier 2 $24/월 5,000회.
-시트 한 장에 평균 5회를 잡았다: 기준 그림 2~3회(변형 생성 → 고르기) + 프레임 생성 1~2회 + 다듬기.
+시험에서 잰 값: `create-image-pixen` 1장 = **1회**, `animate-with-text-v3` 4프레임 = **1회** (호출당). 시험은 3장에 9회였다 (키 그림 6회 중 쓸 만한 것 3장 + 애니메이션 3회).
+그래서 시트 한 장 = 키 그림 2~3회 + 애니메이션 1회 ≈ 3~4회로 잡는다. 정지 그림(배경·달 등)은 키 그림만.
 
 | 묶음 | 장수 | 회/장 | 생성 횟수 |
 |---|---|---|---|
-| W 무기별 궤적 | 15 | 5 | 75 |
-| H 평타 명중 | 15 | 4 | 60 |
+| W 무기별 궤적 | 15 | 4 | 60 |
+| H 평타 명중 | 15 | 3 | 45 |
 | P 투사체 | 12 | 3 | 36 |
-| C 공용 부품 | 16 | 5 | 80 |
-| E 1·2차 고유 | 42 | 6 | 252 |
-| F 궁극기 고유·배경 | 21 | 7 | 147 |
-| ⑤-0 시험 (W1·H1·C1, 감성 맞추기 반복) | — | — | 30 |
-| 재작업 여유 (약 15%) | — | — | 100 |
-| **합계** | **121장** | | **약 780회** |
+| C 공용 부품 | 16 | 4 | 64 |
+| E 1·2차 고유 | 42 | 4 | 168 |
+| F 궁극기 고유·배경 | 21 | 5 | 105 |
+| 재작업 여유 (약 15%) | — | — | 70 |
+| **합계** | **121장** | | **약 550회** (⑤-0 시험 9회 별도, 이미 씀) |
 
-- **Tier 1 한 달($12, 2,000회)** 로 권투가 7종 스프라이트([boxer-class.md](boxer-class.md))와 VFX 텍스처를 **같은 달에 몰아서** 뽑는 것을 권한다. 권투가 몫을 약 400~600회로 보면 합계 1,200~1,400회로 한도 안이다.
+- **Tier 1 한 달($12, 2,000회)** 로 권투가 7종 스프라이트([boxer-class.md](boxer-class.md))와 VFX 텍스처를 **같은 달에 몰아서** 뽑는 것을 권한다. 권투가 몫을 400~600회로 보면 합계 950~1,150회로 한도 안이다. 궁극기 배경(240×100 도트)은 무료 한도(200px)를 넘어 어차피 유료가 필요하다.
 - 권투가 재작업이 커서 1,800회를 넘길 것 같으면 그 달만 Tier 2($24, 5,000회)로 올린다.
-- 무료(40회 + 하루 5회)로는 반년 가까이 걸려 현실적이지 않다. 무료 남은 횟수는 ⑤-0 시험(약 30회)에만 쓴다.
-- 생성은 PixelLab MCP(또는 HTTP JSON-RPC 스크립트)로 Claude 가 호출한다. 키는 사용자 환경에만 두고 출력·기록·커밋하지 않는다.
+- 생성은 `dev/pixellab/` 스크립트(HTTP API, 키는 Windows 사용자 환경변수 `PIXELLAB_API_KEY` 에서 읽음) 또는 PixelLab MCP 로 Claude 가 호출한다. 키는 출력·기록·커밋하지 않는다.
 
-### ⑤-0 시험 (텍스처 감성 확인)
+### ⑤-0 시험 (2026-10-13 실시, 사용자 확인 대기)
 
-1. PixelLab 으로 W1(장검 휘두르기 32×32 × 5), H1(베기 명중 24×24 × 5), C1(초승달 참격 48×24 × 5)을 뽑는다. 프롬프트 요지: "pixel art slash VFX sprite sheet, side view, white-to-steel blue ramp, dark outline, transparent background, N frames, no anti-aliasing".
-2. 램프를 4~5단으로 양자화한다. 검사색(연청)·견습(흰색)으로 다시 칠한 판을 만든다.
-3. **게임 src 는 고치지 않고** `dev/review/vfx-trial.html` 에서 시뮬레이터 함수를 덮어써 씌운다 (`drawCutSmear`·`crescentFx`·`crescentMarkFx` 를 텍스처 그리기로 바꾸는 dev 전용 패치).
-4. 견습 기사·검사 평타, 강철 베기 Lv1·★★★ 를 지금(사각 파티클·벡터)과 텍스처판으로 나란히 찍어 검토 갤러리의 "⑤-0 시험 전후" 절에 넣는다 → 사용자 확인.
-5. 감성이 안 맞으면 해상도(24 도트로 낮추기)·램프 단 수·외곽선 유무를 바꿔 다시 뽑는다. 확인되면 그 규격을 나머지 120장에 쓴다.
-- **선행 조건**: 이 PC(집)에는 PixelLab 연결이 없다. 환경변수 `PIXELLAB_API_KEY` 와 `~/.claude.json` 의 MCP 등록이 둘 다 없고, 회사 PC 에서 쓴 `dev/pixellab/mcp.py` 도 저장소에 없다. 시험은 PixelLab 이 연결된 PC 에서 하거나, 이 PC 에 MCP 를 등록한 뒤 한다.
+**결과**: W1(장검 궤적)·H1(명중 섬광)·C1(초승달 참격)을 뽑아 견습 기사·검사·성기사 평타와 강철 베기 Lv1·★ 에 씌웠다. 전후 비교는 `dev/vfx-survey/trial/*.png`, 검토 갤러리 "⑤-0 시험 전후" 절.
+직접 보기: `dev/skills.html?mode=basic&cls=swordsman&patch=vfx-trial` (재생 줄 "🧪 텍스처 시험" 버튼 또는 T 키로 켬/끔), 강철 베기는 `dev/skills.html?cls=swordsman&skill=steelCleave&stage=0&patch=vfx-trial`.
+
+**확인한 것**
+- **1도트 크기**: 캐릭터 도트(1.5px)에 맞춰 그리니 몸 그림과 결이 같다. 3px 로 그리면 이펙트만 두 배 굵다 → 규격을 1.5px 로 고쳤다 (위 "공통 규격").
+- **외곽선**: `outline: "selective outline"` 이 검은 외곽을 바깥에만 둘렀다. 다시 칠할 때 밝기 0.2 미만은 `#0b0d14` 로 바꿔 몸 외곽선과 맞췄다.
+- **팔레트 바꿔 칠하기**: 밝기를 5단(0·0.25·0.5·0.75·1)으로 나눠 [직업색 × 0.4 → 직업색 → 흰색] 램프로 칠했다. 같은 W1·H1 이 견습(흰색)·검사(연청)·성기사(금색)로 자연스럽게 바뀐다 (`basic-paladin.png`). 시트 하나를 여러 직업이 나눠 쓰는 계획이 실제로 된다.
+- **프레임**: 한 장에 여러 프레임을 그리게 하면(128×32 "4 frames in a row") 간격·모양이 엉망이었다 (W1 첫 시도 실패). **키 그림 1장 → `animate-with-text-v3` 4프레임**이 깔끔했다 (첫 프레임 포함 5장).
+- **배경 제거**: 첫 H1 은 둥근 배경판이 통째로 남았다. 프롬프트에 "isolated … on empty transparent background … no circle, no background shape" 를 넣고 `remove_complex_background` 를 쓰니 나아졌다. 남는 찌꺼기는 `dev/pixellab/clean.py`(작은 덩어리·어두운 덩어리 지우기, 좌우 반전)·`dedark.py`(밝은 그림에서 먼 어두운 점 지우기)로 정리한다.
+- **남은 것 (구현 때)**: 궤적 위치·각도를 손 위치(`heroRig`)와 휘두르는 각도에 맞춰야 한다 (시험은 기사 앞 고정 위치). 성기사 평타의 원형 섬광(`drawAtkFx` burst)·강철 베기 ★ 의 `ringFx`·`waveFx` 는 아직 벡터라 시험 화면에 남아 있다.
+
+**재현 설정** (키 제외, `dev/vfx-trial/*-key.json`·`*-anim.json` 에 그대로 있다)
+
+| 시트 | 키 그림 (`POST /v2/create-image-pixen`) | 애니메이션 (`POST /v2/animate-with-text-v3`) |
+|---|---|---|
+| H1 | 32×32, seed 3, `selective outline`, `medium detail`, view `side`, `no_background`, `remove_complex_background`. "isolated pixel art VFX sprite on empty transparent background: melee hit impact flash, a small four-pointed white star burst with two crossing short slash lines and a few tiny square sparks, pale icy blue glow edges, compact, nothing else, no circle, no background shape" | 4프레임, seed 9: "impact flash burst: the star spark pops bigger and brighter, then the rays break apart into small sparks and fade out completely" |
+| W1 | 32×32, seed 33, 같은 설정. "… sword swing smear trail, a wide curved arc sweeping from top to bottom on the right side like a quarter moon, thick white leading edge on the outside, body fading into pale steel blue then dissolving into small broken pieces at the tail end, nothing else, no sword, no character, no background shape" → `clean.py` 로 정리·좌우 반전 | 4프레임, seed 4: "sword swing smear trail: starts as a thin bright sliver at the top, sweeps downward and widens into the full crescent arc, then the tail dissolves into small broken fragments and fades out" |
+| C1 | 64×32, seed 21, 같은 설정. "… one big crescent moon shaped sword slash wave, smooth curved blade arc opening to the right, thick bright white inner edge, pale steel blue body tapering to thin pointed tips at top and bottom, a few speed lines trailing behind, nothing else, no character, no background shape" → `clean.py`·`dedark.py`·좌우 반전 | 4프레임, seed 8: "crescent sword wave slash: flashes bright white, stretches slightly forward, then the crescent thins and breaks into small glittering sparks that fade away" |
+
+- 실패한 시도 (사용 횟수에 포함): H1 첫 시도(seed 11, `single color black outline`) — 둥근 배경판이 남음. H1 두 번째(seed 7) — 가지 친 번개처럼 나옴. W1 첫 시도 — 128×32 한 장에 4프레임, 못 씀.
+- 사용 횟수: **9회** (체험판 29.9 → 20.9). 지시받은 상한 12회 안. 남은 20.9회는 권투가 시험 몫이다.
+- 산출물: `dev/vfx-trial/{w1,h1,c1}.png` (가로 5프레임 시트), `dev/review/vfx-trial.js` (시뮬레이터 패치, 게임 src 는 그대로), `dev/pixellab/*.py` (API·생성·정리 스크립트).
 
 ## 수용 기준
 - [x] 스킬 40종 + 평타 29종 전부 캡처·점수·판정이 채워졌다 (`dev/vfx-survey/`, 스킬 ★★★ a·b·c + Lv1, 평타 a·b·c, 계열 비교 8장).
-- [ ] ⑤-0: 시험 텍스처(W1·H1·C1)를 견습 기사·검사 평타와 강철 베기에 씌운 전후 비교를 사용자가 보고 감성을 확인했다 (`dev/review/vfx-trial.html`, 갤러리 "⑤-0 시험 전후").
+- [ ] ⑤-0: 시험 텍스처(W1·H1·C1)를 견습 기사·검사 평타와 강철 베기에 씌운 전후 비교를 사용자가 보고 감성을 확인했다 — 비교는 만들었다 (`dev/vfx-survey/trial/`, 갤러리 "⑤-0 시험 전후", `dev/skills.html?…&patch=vfx-trial`), 사용자 확인 대기.
 - [ ] 궁극기가 아닌 스킬이 하단바 전체를 덮지 않는다 — 0.21 [vfx-rule-fixes.md](vfx-rule-fixes.md) 수용 기준으로 확인하고, 퀄업 패치마다 같은 측정(하단바 양 끝 40px 밝기 변화 ±0.05 이하)을 다시 한다.
 - [ ] ⑤-0: 평타 명중 때 스파크와 연출 정지가 나오고, 게임 정지(`hitstop`)는 생기지 않는다 — `dev/skills.html` 평타 모드에서 명중 프레임에 `hitstop === 0` 이고 연출 정지 값이 0보다 큰지 확인, 명중 프레임 캡처.
 - [ ] ⑤-0: 진행 손실이 늘지 않는다 — 같은 직업·장비로 10분 자동 사냥 골드가 퀄업 전후 ±1% 이내 (공속 빠른 직업 1종 + Lv1·★★★ 두 상태, 진행 봇 또는 실제 게임 루프 측정).
@@ -456,8 +472,9 @@
   텍스처 목록을 121장으로 넓혔다 (무기별 궤적 W 15 · 평타 명중 H 15 · 투사체 P 12 · 공용 C 16 · 1·2차 고유 E 42 · 궁극기 F 21). 행마다 쓸 텍스처 번호를 달았다. PixelLab 약 780회 → Tier 1 한 달에 권투가와 몰아서 (넘치면 그 달만 Tier 2).
   ⑤-0 시험을 W1·H1·C1 을 견습 기사·검사 평타와 강철 베기에 씌우는 전후 비교로 바꿨다. 이 PC 에는 PixelLab 연결이 없어 시험 생성은 하지 못했다.
 
+- 2026-10-13: **⑤-0 검흔 시험** — 사용자가 PixelLab 을 연결했다 (`PIXELLAB_API_KEY`, 체험판). W1·H1·C1 을 뽑아(9회) 시뮬레이터 패치(`dev/review/vfx-trial.js`, src 그대로)로 견습 기사·검사·성기사 평타와 강철 베기 Lv1·★ 에 씌우고 전후를 찍었다. 1도트 = 캐릭터 도트(1.5px)로 규격을 고쳤고, 외곽선·팔레트 바꿔 칠하기가 되는 것을 확인했다. "키 그림 → 애니메이션" 방식이 한 장 여러 프레임보다 낫다. 호출당 1회라 추정을 약 780 → 약 550회로 낮췄다. 궁극기 배경은 240×100 도트로 키웠다.
 ## 남은 일 / 미정
-- 사용자 확인: 개정한 원칙(그림은 전부 텍스처)·판정·텍스처 목록 121장·PixelLab 약 780회(Tier 1, 권투가와 같은 달)·⑤-0 시험 방식. 확인되면 상태 `확정`.
-- ⑤-0 시험 생성: PixelLab 이 연결된 PC 에서 하거나, 이 PC 에 PixelLab MCP 를 등록한 뒤 한다 (키는 사용자가 직접 등록, 출력·기록 금지). 생성하면 `dev/review/vfx-trial.html` 을 만들고 갤러리에 전후 비교 절을 넣는다.
+- 사용자 확인: 개정한 원칙(그림은 전부 텍스처)·판정·텍스처 목록 121장·PixelLab 약 550회(Tier 1, 권투가와 같은 달). 확인되면 상태 `확정`.
+- 사용자 확인: ⑤-0 시험 전후 비교의 감성 (해상도 32 도트·5단 램프·외곽선). 안 맞으면 해상도·램프 단 수·외곽선 유무를 바꿔 다시 뽑는다.
 - ⑤-0 착수 때: 시트 로더 설계(램프 양자화·다시 칠하기·회전), 연출 정지 구현안 (가)/(나) 선택, `MASTERY_VIS` 바닥.
 - 0.21 에서 [vfx-rule-fixes.md](vfx-rule-fixes.md) 가 끝나면 이 문서의 "전체에 걸친 문제" 4번·"버그" 절에 완료 표시.

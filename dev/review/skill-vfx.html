@@ -76,7 +76,7 @@
   <div class="sub">스펙: <code>docs/specs/skill-vfx.md</code> (이 페이지는 스펙 표를 그대로 읽어 그립니다) · 캡처: <code>dev/vfx-survey/</code> · 스킬 ★★★ 기준, Lv1 은 비교용 · 재생 버튼은 <code>dev/skills.html</code> 을 그 스킬로 엽니다</div>
   <div id="err"></div>
   <nav>
-    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
+    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
   </nav>
 
   <h2 id="sum">요약</h2>
@@ -85,6 +85,12 @@
 
   <h2 id="rule">원칙 — 이펙트 그림은 전부 PixelLab 텍스처</h2>
   <div id="ruleBlock"></div>
+
+  <h2 id="trial">⑤-0 시험 전후 — PixelLab 텍스처 (W1 장검 궤적 · H1 명중 섬광 · C1 초승달 참격)</h2>
+  <div class="sub">위 줄 = 지금(사각 칸·벡터), 아래 줄 = 같은 프레임에 텍스처를 씌운 모습. 게임 src 는 그대로이고 시뮬레이터 패치(<code>dev/review/vfx-trial.js</code>)로 씌웠습니다. 성기사는 같은 텍스처를 금색으로 다시 칠한 것입니다.
+    직접 보기: <a href="../skills.html?mode=basic&cls=swordsman&patch=vfx-trial" target="_blank">▶ 검사 평타</a> · <a href="../skills.html?mode=basic&cls=paladin&patch=vfx-trial" target="_blank">▶ 성기사 평타</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=0&patch=vfx-trial" target="_blank">▶ 강철 베기 Lv1</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=1&patch=vfx-trial" target="_blank">▶ 강철 베기 ★</a> — 재생 줄 "🧪 텍스처 시험" 버튼(또는 T 키)으로 켬/끔, 속도 ×0.25 로 보면 잘 보입니다.</div>
+  <div id="trialSheets" class="fam" style="grid-template-columns:repeat(3,1fr);margin:10px 0"></div>
+  <div id="trialList"></div>
 
   <h2 id="spot">먼저 볼 것 — 문제 스킬 바로 재생</h2>
   <div class="sub">재생 링크는 새 탭에서 시뮬레이터를 그 스킬·단계로 고정해 반복 재생합니다 (스페이스 = 일시정지, → = 한 프레임).</div>
@@ -318,6 +324,13 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
   document.getElementById('famImgs').innerHTML = FAM.map(([k, n]) => `
     <figure>${img(`family-${k}.png`, `${n} 컬러`)}<figcaption>${n} — 컬러</figcaption></figure>
     <figure>${img(`family-${k}-gray.png`, `${n} 흑백`)}<figcaption>${n} — 흑백</figcaption></figure>`).join('');
+
+  // ⑤-0 시험 전후
+  const TS = '../vfx-trial/';
+  document.getElementById('trialSheets').innerHTML = [['w1', 'W1 장검 궤적 (32×32 × 5)'], ['h1', 'H1 명중 섬광 (32×32 × 5)'], ['c1', 'C1 초승달 참격 (64×32 × 5)']]
+    .map(([k, cap]) => `<figure><img src="${TS}${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap} — PixelLab 원본 시트</figcaption></figure>`).join('');
+  document.getElementById('trialList').innerHTML = [['basic-squire', '견습 기사 평타'], ['basic-swordsman', '검사 평타'], ['basic-paladin', '성기사 평타 — 금색으로 다시 칠함'], ['steelCleave-lv1', '강철 베기 Lv1'], ['steelCleave-s1', '강철 베기 ★ (고리·검풍은 아직 벡터)']]
+    .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}trial/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');
 
   // 정지 기준, 퀄업 순서
   const common = section(lines, '## 공통 개선 후보');

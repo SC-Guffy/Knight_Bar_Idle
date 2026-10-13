@@ -1,0 +1,2 @@
+{"description": "isolated pixel art VFX sprite on empty transparent background: one big crescent moon shaped sword slash wave, smooth curved blade arc opening to the right, thick bright white inner edge, pale steel blue body tapering to thin pointed tips at top and bottom, a few speed lines trailing behind, nothing else, no character, no background shape",
+ "image_size": {"width": 64, "height": 32}, "outline": "selective outline", "detail": "medium detail", "view": "side", "no_background": true, "background_removal_task": "remove_complex_background", "seed": 21}

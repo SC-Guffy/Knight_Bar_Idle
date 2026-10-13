@@ -27,6 +27,9 @@ const SKIP_SCRIPTS = ['src/ui.js', 'src/net.js'];
     });
   }
   run();
+  // 시험 패치 (검토용): ?patch=<이름> 이면 dev/review/<이름>.js 를 마지막에 불러온다 (예: vfx-trial = PixelLab 텍스처 씌우기)
+  const patch = new URLSearchParams(location.search).get('patch');
+  if (patch && /^[\w-]+$/.test(patch)) { const el = document.createElement('script'); el.src = 'review/' + patch + '.js?t=' + Date.now(); document.body.appendChild(el); }
 })();
 
 function run() {
