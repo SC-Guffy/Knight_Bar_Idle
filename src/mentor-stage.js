@@ -322,35 +322,35 @@ const MS_STAR = ['..#..', '.###.', '#####', '.###.', '.#.#.'];
 function drawStarPx(g, x, y, s, fill) {
   for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) if (MS_STAR[r][c] === '#') msR(g, Math.round(x + c * s), Math.round(y + r * s), Math.ceil(s), Math.ceil(s), fill);
 }
-function drawStarBar(g, W, n, t, slam) {
-  const s = 4, gap = 8, sw = 5 * s, total = MENTOR_STARS * sw + (MENTOR_STARS - 1) * gap;
-  const x0 = Math.round((W - total) / 2), y0 = 10;
-  msR(g, x0 - 8, y0 - 5, total + 16, sw + 10, 'rgba(10,8,20,.55)');
+// 가운데 (cx, cy) 기준 별 (칸 크기 s)
+const drawStarC = (g, cx, cy, s, fill) => drawStarPx(g, cx - 2.5 * s, cy - 2.5 * s, s, fill);
+// 별 칸 k 의 가운데
+const MS_SS = 4, MS_SGAP = 8;
+function starSlot(W, k) {
+  const sw = 5 * MS_SS, total = MENTOR_STARS * sw + (MENTOR_STARS - 1) * MS_SGAP, x0 = Math.round((W - total) / 2);
+  return { x: x0 + k * (sw + MS_SGAP) + sw / 2, y: 10 + sw / 2, x0, total, sw };
+}
+// n: 지금 보이는 별 수 · pulse: 다음 칸 두근거림(0~1) · pop: { k, age } 막 박힌 별
+function drawStarBar(g, W, n, t, pulse, pop) {
+  const z = starSlot(W, 0);
+  msR(g, z.x0 - 8, 5, z.total + 16, z.sw + 10, 'rgba(10,8,20,.6)');
   for (let k = 0; k < MENTOR_STARS; k++) {
-    const x = x0 + k * (sw + gap), on = k < n, fin = k === MENTOR_STARS - 1;
-    if (on) drawStarPx(g, x, y0, s, fin ? '#ffe9a0' : '#ffd257');
-    else {
-      drawStarPx(g, x, y0, s, fin ? '#5a2a34' : '#33304a');
-      if (k === n && Math.sin(t * 5) > 0) drawStarPx(g, x + s, y0 + s, s * 0.6, fin ? '#a04a5a' : '#5a5680');
-    }
-  }
-  // 별이 날아와 박힌다: slam = { k, p(0~1 비행), hit(박힌 뒤 경과초) }
-  if (slam) {
-    const x = x0 + slam.k * (sw + gap), tx = x, ty = y0;
-    if (slam.p < 1) {
-      const sc = s * (3 - 2 * slam.p), sx = slam.fromX + (tx - slam.fromX) * slam.p, sy = slam.fromY + (ty - slam.fromY) * slam.p * slam.p;
-      drawStarPx(g, sx - (sc * 5 - sw) / 2, sy - (sc * 5 - sw) / 2, sc, '#fff1b0');
-    } else if (slam.hit < 0.5) {
-      const r = 6 + slam.hit * 60;
-      g.globalAlpha = 1 - slam.hit * 2;
-      g.strokeStyle = '#ffe9a0'; g.lineWidth = 3;
-      g.strokeRect(Math.round(x + sw / 2 - r / 2), Math.round(y0 + sw / 2 - r / 2), Math.round(r), Math.round(r));
-      g.globalAlpha = 1;
+    const c = starSlot(W, k), fin = k === MENTOR_STARS - 1;
+    if (k < n) {
+      const sc = pop && pop.k === k && pop.age < 0.3 ? 1 + 0.7 * (1 - pop.age / 0.3) : 1;
+      drawStarC(g, c.x, c.y, MS_SS * sc, fin ? '#fff1b0' : '#ffd257');
+    } else {
+      drawStarC(g, c.x, c.y, MS_SS, fin ? '#5a2a34' : '#33304a');
+      if (k === n) {
+        const p = pulse ? 1 + 0.35 * pulse * Math.abs(Math.sin(t * 9)) : 1;
+        if (pulse || Math.sin(t * 5) > 0) drawStarC(g, c.x, c.y, MS_SS * 0.6 * p, fin ? '#c05a6a' : '#7a76a8');
+      }
     }
   }
 }
 function msFont(px, bold) { return `${bold ? 800 : 400} ${px}px Galmuri11, -apple-system, sans-serif`; }
-function drawBubble(g, text, x, y, W) {
+// 말풍선 (n 글자까지 — 타자 치듯)
+function drawBubble(g, text, x, y, W, n = text.length) {
   g.font = msFont(12);
   const w = Math.ceil(g.measureText(text).width) + 16, h = 22;
   const bx = Math.max(4, Math.min(W - w - 4, Math.round(x - w + 18))), by = Math.round(y - h);
@@ -358,55 +358,241 @@ function drawBubble(g, text, x, y, W) {
   const tx = Math.max(bx + 8, Math.min(bx + w - 14, Math.round(x)));
   msR(g, tx, by + h - 2, 6, 2, '#f3efe6'); msR(g, tx + 2, by + h, 4, 2, '#2a2838'); msR(g, tx + 2, by + h - 2, 2, 2, '#f3efe6'); msR(g, tx + 4, by + h + 2, 2, 2, '#2a2838');
   g.fillStyle = '#2a2838'; g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.fillText(text, bx + 8, by + h / 2 + 1);
+  g.fillText(text.slice(0, Math.max(0, Math.floor(n))), bx + 8, by + h / 2 + 1);
 }
-function drawPop(g, text, x, y, age, col) {
-  const sc = age < 0.12 ? 0.6 + age / 0.12 * 0.6 : age < 0.22 ? 1.2 - (age - 0.12) / 0.1 * 0.2 : 1;
-  g.save();
-  g.translate(Math.round(x), Math.round(y)); g.scale(sc, sc);
-  g.font = msFont(26, true); g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.lineWidth = 6; g.strokeStyle = '#1a1424'; g.lineJoin = 'round';
+// 굵은 글자 (외곽선) — 의성어·스탬프·띠가 같이 쓴다
+function msBigText(g, text, px, col, ink = '#1a1424') {
+  g.font = msFont(px, true); g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineJoin = 'round'; g.lineWidth = Math.max(4, px / 4); g.strokeStyle = ink;
   g.strokeText(text, 0, 0); g.fillStyle = col; g.fillText(text, 0, 0);
-  g.restore();
 }
-function drawSpark(g, x, y, age) {
-  if (age < 0 || age > 0.18) return;
-  const r = 4 + age * 60;
-  g.fillStyle = age < 0.08 ? '#ffffff' : '#ffe9a0';
-  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]]) g.fillRect(Math.round(x + dx * r), Math.round(y + dy * r), 3, 3);
-}
-// 교관이 내리치는 궤적 (반달 모양 흰 획)
-function drawSlash(g, x, y, p) {
-  if (p < 0 || p > 1) return;
-  g.save(); g.globalAlpha = 1 - p; g.strokeStyle = '#ffffff'; g.lineWidth = 5; g.lineCap = 'square';
-  g.beginPath(); g.arc(Math.round(x), Math.round(y), 34, -2.4 + p * 0.6, -0.6 + p * 1.2); g.stroke();
+// 떠오르는 글자 효과: kind sfx(챙!·쾅! 의성어) · stamp(탈락!·수료! 도장) · banner(성공! 띠)
+function drawFxText(g, x, W, H) {
+  const age = x.age;
+  g.save();
+  if (x.kind === 'sfx') {
+    const sc = age < 0.08 ? 0.4 + age / 0.08 : 1 + Math.max(0, 0.2 - age) * 0.5;
+    g.globalAlpha = age > 0.45 ? Math.max(0, 1 - (age - 0.45) / 0.25) : 1;
+    g.translate(Math.round(x.x), Math.round(x.y - age * 14)); g.rotate(x.rot || 0); g.scale(sc, sc);
+    msBigText(g, x.text, x.size || 20, x.col);
+  } else if (x.kind === 'stamp') {
+    const sc = age < 0.12 ? 2.6 - 1.6 * (age / 0.12) : 1;
+    g.translate(Math.round(x.x), Math.round(x.y)); g.rotate(x.rot || -0.18); g.scale(sc, sc);
+    g.font = msFont(x.size || 28, true);
+    const w = g.measureText(x.text).width + 24, h = (x.size || 28) + 14;
+    g.globalAlpha = Math.min(1, age / 0.06);
+    g.strokeStyle = '#1a1424'; g.lineWidth = 8; g.strokeRect(-w / 2, -h / 2, w, h);
+    g.strokeStyle = x.col; g.lineWidth = 4; g.strokeRect(-w / 2, -h / 2, w, h);
+    msBigText(g, x.text, x.size || 28, x.col);
+  } else if (x.kind === 'banner') {
+    const sc = age < 0.1 ? 0.5 + age / 0.1 * 0.7 : age < 0.18 ? 1.2 - (age - 0.1) / 0.08 * 0.2 : 1;
+    const bh = 40, y = Math.round(x.y);
+    g.globalAlpha = Math.min(1, age / 0.08) * 0.75;
+    msR(g, 0, y - bh / 2, W, bh, '#1a1424'); msR(g, 0, y - bh / 2, W, 2, x.col); msR(g, 0, y + bh / 2 - 2, W, 2, x.col);
+    g.globalAlpha = 1;
+    g.translate(Math.round(W / 2), y); g.scale(sc, sc);
+    msBigText(g, x.text, x.size || 30, x.col);
+    // 반짝 지나가는 빛
+    const sx = -120 + ((age - 0.15) / 0.4) * 240;
+    if (age > 0.15 && age < 0.55) { g.save(); g.beginPath(); g.rect(sx, -22, 16, 44); g.clip(); g.font = msFont(x.size || 30, true); g.fillStyle = '#ffffff'; g.fillText(x.text, 0, 0); g.restore(); }
+  }
   g.restore();
 }
 
-// ───────────────────────── 연출 시작 ─────────────────────────
+// ───────────────────────── 입자 ─────────────────────────
+// p: { x, y, vx, vy, g 중력, life, max, s 크기, col, kind: 'sq' | 'ring' | 'conf' }
+function msBurst(a, x, y, n, cols, spd, o = {}) {
+  for (let i = 0; i < n; i++) {
+    const ang = o.up ? -Math.PI / 2 + (Math.random() - 0.5) * (o.spread || 2.4) : Math.random() * Math.PI * 2, v = spd * (0.45 + Math.random() * 0.55);
+    const life = (o.life || 0.5) * (0.6 + Math.random() * 0.6);
+    a.parts.push({ x, y, vx: Math.cos(ang) * v + (o.vx || 0), vy: Math.sin(ang) * v, g: o.g == null ? 420 : o.g, life, max: life,
+      s: (o.size || 3) * (0.7 + Math.random() * 0.6), col: cols[i % cols.length], kind: 'sq' });
+  }
+}
+const msRing = (a, x, y, col, r1 = 70, life = 0.35) => a.parts.push({ x, y, vx: 0, vy: 0, g: 0, life, max: life, s: r1, col, kind: 'ring' });
+const msDust = (a, x, y, n = 7) => msBurst(a, x, y, n, ['#c9b896', '#a8987a', '#e2d6bc'], 70, { up: true, spread: 2.8, g: -30, life: 0.55, size: 4 });
+function msConfetti(a, W, n) {
+  const cols = ['#ffd257', '#ff6b6b', '#7af0ff', '#9fd49a', '#c9a7ff', '#ffffff'];
+  for (let i = 0; i < n; i++) {
+    const life = 1.4 + Math.random() * 0.8;
+    a.parts.push({ x: Math.random() * W, y: -10 - Math.random() * 40, vx: (Math.random() - 0.5) * 50, vy: 40 + Math.random() * 60, g: 50, life, max: life, s: 3, col: cols[i % cols.length], kind: 'conf', ph: Math.random() * 6 });
+  }
+}
+function msStepParts(a, dt) {
+  for (const p of a.parts) { p.life -= dt; p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.kind === 'conf') p.ph += dt * 9; }
+  a.parts = a.parts.filter((p) => p.life > 0);
+}
+function msDrawParts(g, a) {
+  for (const p of a.parts) {
+    const k = p.life / p.max;
+    if (p.kind === 'ring') {
+      const r = p.s * (1 - k * k);
+      g.globalAlpha = k; g.strokeStyle = p.col; g.lineWidth = 3;
+      g.strokeRect(Math.round(p.x - r), Math.round(p.y - r * 0.6), Math.round(r * 2), Math.round(r * 1.2));
+    } else if (p.kind === 'conf') {
+      g.globalAlpha = Math.min(1, k * 2);
+      const w = Math.max(1, Math.round(Math.abs(Math.cos(p.ph)) * p.s * 1.4));
+      msR(g, Math.round(p.x - w / 2), Math.round(p.y), w, 2, p.col);
+    } else {
+      g.globalAlpha = Math.min(1, k * 1.6);
+      const s = Math.max(1, Math.round(p.s * (0.5 + k * 0.5)));
+      msR(g, Math.round(p.x), Math.round(p.y), s, s, p.col);
+    }
+  }
+  g.globalAlpha = 1;
+}
+
+// ───────────────────────── 연출 (타임라인) ─────────────────────────
+// 연출은 자기 시계 lt 로 흐른다: 타격 순간 멈칫(hit-stop, a.stop), 마지막 한 방 슬로 모션(a.slow).
+// 정해진 시각에 한 번씩 터지는 일(cue)은 a.cues = [[시각, fn], …]. 카메라: 흔들림 a.shake · 확대 a.zoom · 번쩍 a.flash · 조명 a.spot
 const pickSay = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const SFX_CLANG = ['챙!', '캉!', '탁!', '챙그랑!'];
+const msEase = (t) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
+const msIsRanged = () => { const c = CLASSES[S.cls] || CLASSES.squire; return WEAPONS[c.weapon].kind === 'ranged'; };
+
+function msNewAnim(kind, i, extra) {
+  return Object.assign({
+    kind, i, lt: 0, stop: 0, slow: 1, last: null, cues: [], parts: [], fx: [],
+    shake: 0, zoom: 1, zoomT: 1, flash: null, spot: 0, spotT: 0, pulse: 0,
+    k: { ox: 0, lift: 0, vx: 0, vy: 0, rot: 0, spin: 0, fly: false, bounced: false, sit: false, hop: null },
+    m: { dx: 0, lean: 0, nod: 0, kneel: 0, flashUntil: -1 },
+    bubble: null, bigStar: null, slotPop: null,
+  }, extra);
+}
+const msCue = (a, at, fn) => { a.cues.push([at, fn]); a.cues.sort((x, y) => x[0] - y[0]); };
+const msFx = (a, o) => a.fx.push({ age: 0, ...o });
+const msHit = (a, stop, shake, flash) => { a.stop = Math.max(a.stop, stop); a.shake = Math.max(a.shake, shake); if (flash) a.flash = { col: flash, a: 1 }; };
+const msSay = (a, text) => { a.bubble = { text, at: a.lt }; };
+// 기사가 날아간다 (탈락·패배)
+const msLaunch = (a) => Object.assign(a.k, { fly: true, vx: -300, vy: 260, spin: -10, bounced: false, sit: false });
+
 // ★1~4 수련 연출 (결과 r = mentorTry 의 반환)
 function mentorPlayTry(i, r) {
   const m = MENTORS[i], say = MENTOR_SAY[m.id];
   const swings = Math.random() < 0.5 ? 1 : 2;
-  const R = 0.35 + swings * 0.42;                         // 결과가 나는 시각
-  mentorUi.anim = { kind: 'try', i, ok: r.ok, star: r.star, t0: clock, swings, R, end: R + (r.ok ? 2.3 : 1.9),
-    say: pickSay(r.ok ? say.ok : say.fail), before: r.star - 1 };
+  const R0 = 0.24 + swings * 0.36 + 0.1, R = R0 + 0.6;
+  const a = msNewAnim('try', i, { ok: r.ok, star: r.star, stars: r.star - 1, swings, R0, R, end: R + (r.ok ? 3.0 : 2.4) });
+  msCue(a, 0.01, (a, W, H, P) => msDust(a, P.kx0, P.gy, 6));          // 박차고 달려 나간다
+  // 공격 → 교관이 막는다 (챙!)
+  for (let k = 0; k < swings; k++) {
+    msCue(a, 0.24 + k * 0.36 + 0.11, (a, W, H, P) => {
+      msHit(a, 0.06, 3);
+      msBurst(a, P.cx, P.cy, 10, ['#ffffff', '#ffe9a0', '#ffd257'], 170, { g: 200, life: 0.35 });
+      msFx(a, { kind: 'sfx', text: pickSay(SFX_CLANG), x: P.cx + 6, y: P.cy - 26, col: '#ffffff', size: 18, rot: (Math.random() - 0.5) * 0.4 });
+      a.m.recoilAt = a.lt;
+    });
+  }
+  // 숨 고르기: 조명이 좁아지고, 교관이 말없이 바라본다 (…), 다음 별 칸이 두근거린다
+  msCue(a, R0, (a) => { a.spotT = 0.55; a.zoomT = 1.07; a.pulse = 1; msSay(a, '……'); });
+  if (!r.ok) {
+    msCue(a, R + 0.2, (a, W, H, P) => {
+      msHit(a, 0.13, 10, '#ffffff');
+      a.zoom = 1.14; a.zoomT = 1; a.spotT = 0.25; a.pulse = 0;
+      msLaunch(a);
+      msBurst(a, P.kx + 6, P.gy - 34, 16, ['#ffffff', '#ff8080', '#ffd0a0'], 230, { g: 300, life: 0.45, size: 4 });
+      msRing(a, P.kx + 6, P.gy - 30, '#ffffff', 60);
+      msFx(a, { kind: 'sfx', text: '쾅!', x: P.kx + 20, y: P.gy - 78, col: '#ff6b6b', size: 30, rot: -0.15 });
+    });
+    msCue(a, R + 0.35, (a) => msSay(a, a.say));
+    msCue(a, R + 0.62, (a, W, H, P) => { msHit(a, 0.04, 5); msFx(a, { kind: 'stamp', text: '탈락!', x: W * 0.44, y: H * 0.42, col: '#ff5a5a', size: 30, rot: -0.2 }); msDust(a, W * 0.44, H * 0.42 + 22, 8); });
+    msCue(a, R + 1.2, (a) => { a.spotT = 0; a.zoomT = 1; });
+  } else {
+    msCue(a, R + 0.05, (a) => msSay(a, a.say));
+    msCue(a, R + 0.55, (a, W, H, P) => {
+      a.bigStar = { at: a.lt, x: Math.round(P.W * 0.47), y: 96 };
+      a.flash = { col: '#ffe9a0', a: 0.5 };
+      msBurst(a, Math.round(P.W * 0.47), 96, 16, ['#fff1b0', '#ffd257', '#ffffff'], 150, { g: 60, life: 0.6 });
+    });
+    msCue(a, R + 1.45, (a, W, H, P) => {
+      msHit(a, 0.09, 6, '#fff1b0');
+      a.stars = a.star; a.slotPop = { k: a.star - 1, at: a.lt }; a.bigStar = null;
+      const c = starSlot(W, a.star - 1);
+      msRing(a, c.x, c.y, '#ffe9a0', 46, 0.4); msRing(a, c.x, c.y, '#ffffff', 26, 0.25);
+      msBurst(a, c.x, c.y, 20, ['#fff1b0', '#ffd257', '#ffffff', '#ffb13b'], 210, { g: 260, life: 0.6 });
+      a.spotT = 0; a.zoomT = 1; a.pulse = 0;
+    });
+    msCue(a, R + 1.58, (a, W, H) => { msFx(a, { kind: 'banner', text: `★${a.star} 성공!`, y: H * 0.46, col: '#ffe066', size: 28 }); msConfetti(a, W, 30); a.k.hop = a.lt; });
+  }
+  a.say = pickSay(r.ok ? say.ok : say.fail);
+  mentorUi.anim = a;
 }
-// 승부 연출 (서버 결과 res)
+// 승부(★5) 연출 (서버 결과 res)
 function mentorPlayDuel(i, res) {
   const f = res.fight, say = MENTOR_SAY[MENTORS[i].id];
   const speed = Math.max(1, f.dur / 7);
-  const play = 0.8 + f.dur / speed;
-  mentorUi.anim = { kind: 'duel', i, res, t0: clock, speed, play, end: play + (res.won ? 3 : 2.4), shown: 0, last: {}, hit: {}, floats: [],
-    say: res.won ? say.win : pickSay(say.lose), before: MENTOR_STARS - 1, star: MENTOR_STARS, ok: res.won };
+  const a = msNewAnim('duel', i, { res, ok: res.won, star: MENTOR_STARS, stars: MENTOR_STARS - 1, speed, F0: 1.2, shown: 0, hpShow: { a: 1, b: 1 }, hpChip: { a: 1, b: 1 },
+    end: Infinity, say: res.won ? say.win : pickSay(say.lose) });
+  // 등장: 조명 · VS
+  msCue(a, 0, (a) => { a.spotT = 0.5; a.zoomT = 1.05; });
+  msCue(a, 0.3, (a, W, H) => { msHit(a, 0.05, 4); msFx(a, { kind: 'stamp', text: 'VS', x: W / 2, y: H * 0.45, col: '#ffb13b', size: 32, rot: 0, life: 0.8 }); });
+  msCue(a, 1.0, (a) => { a.fx = a.fx.filter((x) => x.text !== 'VS'); a.spotT = 0.2; a.zoomT = 1; });
+  mentorUi.anim = a;
 }
-// 무대를 누르면 끝으로 건너뛴다 (별이 박히는 마지막 장면은 보여 준다)
+// 승부가 끝난 순간 (마지막 한 방) — 그 뒤 일정은 이 시각 기준
+function msDuelFinish(a, W, H, P) {
+  const D = a.lt;
+  a.finished = true; a.slow = 1;
+  msHit(a, 0.22, 11, '#ffffff');
+  a.zoom = 1.16; a.zoomT = 1;
+  if (a.ok) {
+    a.m.kneelAt = D;
+    msBurst(a, P.mx, P.gy - 60, 18, ['#ffffff', '#ffd0a0', '#ff8080'], 240, { g: 300, life: 0.5, size: 4 });
+    msDust(a, P.mx, P.gy, 10);
+    msCue(a, D + 0.45, (a) => msSay(a, a.say));
+    msCue(a, D + 0.9, (a, W, H, P) => { a.bigStar = { at: a.lt, x: Math.round(W * 0.47), y: 96, big: true }; a.flash = { col: '#ffe9a0', a: 0.6 }; msBurst(a, Math.round(W * 0.47), 96, 22, ['#fff1b0', '#ffd257', '#ffffff'], 170, { g: 60, life: 0.7 }); });
+    msCue(a, D + 1.8, (a, W, H, P) => {
+      msHit(a, 0.12, 8, '#fff1b0');
+      a.stars = MENTOR_STARS; a.slotPop = { k: MENTOR_STARS - 1, at: a.lt }; a.bigStar = null;
+      const c = starSlot(W, MENTOR_STARS - 1);
+      msRing(a, c.x, c.y, '#ffe9a0', 60, 0.5); msRing(a, c.x, c.y, '#ffffff', 34, 0.3);
+      msBurst(a, c.x, c.y, 28, ['#fff1b0', '#ffd257', '#ffffff', '#ffb13b'], 250, { g: 260, life: 0.7 });
+    });
+    msCue(a, D + 1.95, (a, W, H) => { msHit(a, 0.05, 6); msFx(a, { kind: 'stamp', text: '수료!', x: W * 0.44, y: H * 0.44, col: '#ffe066', size: 34, rot: -0.16 }); msConfetti(a, W, 50); a.spotT = 0; a.k.hop = a.lt; });
+    a.end = D + 4.0;
+  } else {
+    msLaunch(a);
+    msBurst(a, P.kx + 6, P.gy - 34, 16, ['#ffffff', '#ff8080', '#ffd0a0'], 230, { g: 300, life: 0.45, size: 4 });
+    msFx(a, { kind: 'sfx', text: '쾅!', x: P.kx + 20, y: P.gy - 78, col: '#ff6b6b', size: 30, rot: -0.15 });
+    msCue(a, D + 0.45, (a) => msSay(a, a.say));
+    msCue(a, D + 0.75, (a, W, H) => { msHit(a, 0.04, 5); msFx(a, { kind: 'stamp', text: '패배', x: W * 0.44, y: H * 0.42, col: '#ff5a5a', size: 30, rot: -0.2 }); a.spotT = 0; });
+    a.end = D + 2.8;
+  }
+}
+// 무대를 누르면 끝 장면으로 건너뛴다 (남은 일은 효과 없이 상태만 반영)
 function mentorSkip() {
   const a = mentorUi.anim;
-  if (!a) return;
-  const at = a.kind === 'try' ? a.R + (a.ok ? 1.3 : 0.5) : a.play + 0.1;
-  if (clock - a.t0 < at) a.t0 = clock - at;
+  if (!a || a.skipped) return;
+  a.skipped = true;
+  if (a.kind === 'duel' && !a.finished) { const f = a.res.fight; a.shown = f.events.length; a.finished = true; a.hpShow = { a: f.events.length ? f.events[f.events.length - 1].hpA / f.maxA : 1, b: f.events.length ? f.events[f.events.length - 1].hpB / f.maxB : 1 }; if (a.ok) a.m.kneelAt = a.lt - 1; else Object.assign(a.k, { sit: true, ox: -60 }); }
+  a.stars = a.ok ? a.star : a.stars;
+  a.cues = []; a.parts = []; a.fx = a.fx.filter((x) => x.kind === 'stamp' && x.text !== 'VS');
+  a.bigStar = null; a.stop = 0; a.slow = 1; a.spotT = 0; a.zoomT = 1; a.pulse = 0;
+  if (!a.ok && a.kind === 'try') Object.assign(a.k, { fly: false, lift: 0, rot: 0, sit: true, ox: -60 });
+  if (a.bubble || a.say) a.bubble = { text: a.say, at: -99 };
+  a.end = Math.min(a.end, a.lt + 1.1);
+}
+
+// 연출 시계·물리 한 프레임
+function msStep(a, dt, W, H, P) {
+  if (a.stop > 0) { a.stop -= dt; dt = 0; } else dt *= a.slow;
+  a.lt += dt;
+  while (a.cues.length && a.cues[0][0] <= a.lt) a.cues.shift()[1](a, W, H, P);
+  msStepParts(a, dt);
+  for (const x of a.fx) x.age += dt;
+  a.fx = a.fx.filter((x) => x.kind === 'stamp' ? x.age < (x.life || 99) : x.kind === 'banner' ? x.age < 1.6 : x.age < 0.8);
+  const k = a.k;
+  if (k.fly) {
+    k.ox += k.vx * dt; k.lift += k.vy * dt; k.vy -= 1000 * dt; k.rot += k.spin * dt;
+    if (P.kx0 + k.ox < 26) { k.ox = 26 - P.kx0; k.vx = Math.abs(k.vx) * 0.3; }
+    if (k.lift <= 0 && k.vy < 0) {
+      if (!k.bounced) { k.bounced = true; k.lift = 0; k.vy = -k.vy * 0.32; k.vx *= 0.35; k.spin *= 0.3; msDust(a, P.kx0 + k.ox, P.gy, 8); a.shake = Math.max(a.shake, 4); }
+      else { Object.assign(k, { fly: false, lift: 0, vx: 0, vy: 0, rot: 0, spin: 0, sit: true }); msDust(a, P.kx0 + k.ox, P.gy, 5); }
+    }
+  }
+  const ease = 1 - Math.exp(-dt * 8);
+  a.zoom += (a.zoomT - a.zoom) * ease; a.spot += (a.spotT - a.spot) * ease;
+  a.shake *= Math.exp(-(dt || 0.016) * 9);
+  if (a.flash) { a.flash.a -= (dt || 0.016) * 6; if (a.flash.a <= 0) a.flash = null; }
 }
 
 // ───────────────────────── 그리기 (캠프 마을 탭이 열려 있는 동안 매 프레임) ─────────────────────────
@@ -422,131 +608,161 @@ function drawMentorStage() {
   g.imageSmoothingEnabled = false;
   const i = mentorView(), m = MENTORS[i], t = clock;
   const a = mentorUi.anim && mentorUi.anim.i === i ? mentorUi.anim : null;
-  const at = a ? clock - a.t0 : 0;
   const gy = H - 26, kx0 = Math.round(W * 0.27), mx = Math.round(W * 0.7);
+  const ranged = msIsRanged();
+  const kDash = ranged ? kx0 + 20 : Math.max(kx0, mx - 96);
 
-  // 흔들림
-  let shake = 0;
-  if (a && a.kind === 'try' && !a.ok && at > a.R + 0.18 && at < a.R + 0.42) shake = 4;
-  if (a && a.slamAt != null && at - a.slamAt >= 0 && at - a.slamAt < 0.2) shake = 3;
-  g.save();
-  if (shake) g.translate(Math.round((Math.random() - 0.5) * shake * 2), Math.round((Math.random() - 0.5) * shake));
-  g.clearRect(-8, -8, W + 16, H + 16);
-  drawMentorBg(g, m, W, H, gy, t);
-
-  const kPose = { mode: 'fight', swing: -1, combo: 0, facing: 1, t };
-  const mPose = { dx: 0 };
-  let kx = kx0, bubble = null, pop = null, slam = null, stars = mentorStarsOf(i);
-  const breath = Math.round(Math.sin(t * 2.4) * 0.6);
-
-  if (a && a.kind === 'try') {
-    stars = a.before;
-    const step = Math.min(1, at / 0.35);
-    kx = kx0 + Math.round(step * 22);
-    for (let s = 0; s < a.swings; s++) {
-      const s0 = 0.35 + s * 0.42, p = (at - s0) / 0.4;
-      if (p >= 0 && p < 1) { kPose.swing = p; kPose.combo = s; mPose.lean = 0.05; mPose.dx = 3; }
-    }
-    const r = at - a.R;
-    if (r >= 0) {
-      kPose.swing = -1;
-      if (!a.ok) {
-        // 교관이 한 대 친다 → 기사가 밀려난다
-        mPose.dx = r < 0.25 ? -Math.round(Math.sin(r / 0.25 * Math.PI) * 26) : 0;
-        mPose.lean = r < 0.25 ? -0.08 : 0;
-        if (r > 0.18) kx = kx0 + 22 - Math.round(Math.min(1, (r - 0.18) / 0.35) * 30);
-        kPose.flash = r > 0.18 && r < 0.26;
-        if (r > 0.18 && r < 0.5) kPose.mode = 'sit';
-        bubble = r > 0.15 ? a.say : null;
-        if (r > 0.45) pop = { text: '탈락…', age: r - 0.45, col: '#ff8080' };
-      } else {
-        // 끄덕끄덕 → 성공! → 별이 날아와 박힌다
-        mPose.nod = r < 0.7 ? (Math.sin(r / 0.35 * Math.PI) > 0 ? 1 : 0) : 0;
-        kx = kx0 + 22 - Math.round(Math.min(1, r / 0.6) * 22);
-        bubble = r > 0.05 ? a.say : null;
-        if (r > 0.75) pop = { text: '성공!', age: r - 0.75, col: '#ffe066' };
-        const fly = (r - 0.95) / 0.35;
-        if (fly >= 0) {
-          a.slamAt = a.R + 1.3;
-          slam = { k: a.star - 1, p: Math.min(1, fly), hit: Math.max(0, r - 1.3), fromX: mx - 20, fromY: gy - 140 };
-          if (fly >= 1) stars = a.star;
-        }
-      }
-    }
-  } else if (a && a.kind === 'duel') {
-    stars = a.before;
-    const f = a.res.fight, pt = Math.min(f.dur, Math.max(0, at - 0.8) * a.speed);
-    while (a.shown < f.events.length && f.events[a.shown].t <= pt) {
-      const e = f.events[a.shown++], target = e.by === 'a' ? 'b' : 'a';
-      a.last[e.by] = { e, at: clock, n: (a.last[e.by] ? a.last[e.by].n : 0) + 1 };
-      a.hit[target] = clock;
-      const big = e.kind === 'skill' || e.crit;
-      a.floats.push({ text: (e.crit ? '💥' : '') + fmt(e.dmg), x: (target === 'a' ? kx0 + 22 : mx) + (Math.random() - 0.5) * 20, y: target === 'a' ? gy - 70 : gy - 120, at: clock, col: e.crit ? '#ffb13b' : e.kind === 'skill' ? '#9fe6ff' : '#ffffff', big });
-      if (e.kind === 'skill') a.floats.push({ text: SKILLS[e.sk] ? SKILLS[e.sk].name : '기술', x: e.by === 'a' ? kx0 + 22 : mx, y: e.by === 'a' ? gy - 92 : gy - 150, at: clock, col: '#c9a7ff', big: false, label: true });
-    }
-    kx = kx0 + 22;
-    const La = a.last.a, Lb = a.last.b;
-    if (La && clock - La.at < 0.35) { kPose.swing = (clock - La.at) / 0.35; kPose.combo = La.n; }
-    if (Lb && clock - Lb.at < 0.3) { const p = (clock - Lb.at) / 0.3; mPose.dx = -Math.round(Math.sin(p * Math.PI) * 20); mPose.lean = -0.06; }
-    kPose.flash = a.hit.a != null && clock - a.hit.a < 0.08;
-    mPose.flash = a.hit.b != null && clock - a.hit.b < 0.08;
-    const lastEv = a.shown ? f.events[a.shown - 1] : null;
-    const hpA = lastEv ? lastEv.hpA / f.maxA : 1, hpB = lastEv ? lastEv.hpB / f.maxB : 1;
-    const done = at >= a.play;
-    const r = at - a.play;
-    if (done) {
-      kPose.swing = -1;
-      if (a.ok) {
-        mPose.kneel = Math.min(1, r / 0.4); mPose.dx = 0; mPose.lean = 0;
-        bubble = r > 0.3 ? a.say : null;
-        if (r > 0.9) pop = { text: '수료!', age: r - 0.9, col: '#ffe066' };
-        const fly = (r - 1.1) / 0.35;
-        if (fly >= 0) { a.slamAt = a.play + 1.45; slam = { k: MENTOR_STARS - 1, p: Math.min(1, fly), hit: Math.max(0, r - 1.45), fromX: mx - 20, fromY: gy - 140 }; if (fly >= 1) stars = MENTOR_STARS; }
-      } else {
-        kPose.mode = 'sit';
-        bubble = r > 0.3 ? a.say : null;
-        if (r > 0.6) pop = { text: '패배', age: r - 0.6, col: '#ff8080' };
-      }
-    }
-    // 체력 바 (바닥 위 — 말풍선·별에 가리지 않게)
-    for (const [x, hp, col, w] of [[kx, hpA, '#5fcf5a', 44], [mx, hpB, '#ff5a5a', 80]]) {
-      msR(g, x - w / 2, gy + 9, w, 7, '#1a1424'); msR(g, x - w / 2 + 1, gy + 10, Math.round((w - 2) * Math.max(0, hp)), 5, col);
-    }
-  } else {
-    // 대기: 교관은 숨쉬고, 다 받은 교관은 수료 대사
-    if (mentorDone(i) && Math.sin(t * 0.5) > 0.2) bubble = MENTOR_SAY[m.id].done;
+  // 연출 시계·위치 (P: cue 가 쓰는 자리)
+  const dt = a ? Math.min(0.05, Math.max(0, clock - (a.last == null ? clock : a.last))) : 0;
+  // 기사 자리: 수련은 달려 들어가 공격 → 반걸음 물러나 결과를 기다린다, 승부는 처음부터 맞선 자리
+  const kBase = (lt) => (a.kind === 'duel' ? kDash : lt < 0.2 ? kx0 + (kDash - kx0) * msEase(lt / 0.2) : lt < a.R0 ? kDash : kDash - 14 * msEase((lt - a.R0) / 0.15));
+  let kx = kx0;
+  if (a) {
+    a.last = clock;
+    msStep(a, dt, W, H, { W, H, gy, kx0, mx, kx: kBase(a.lt) + a.k.ox, cx: Math.round((kDash + mx) / 2 + 14), cy: gy - 58 });
+    kx = kBase(a.lt) + a.k.ox;
+    // 끝나 갈 때 제자리로 걸어 돌아간다
+    const back = a.end - a.lt;
+    if (back < 0.45 && !a.k.fly) { const p = 1 - back / 0.45; kx = kx + (kx0 - kx) * msEase(p); }
+    // 승부: 결과 처리
+    if (a.kind === 'duel') msDuelEvents(a, W, H, { W, H, gy, kx0, mx, kx, cx: Math.round((kDash + mx) / 2 + 14), cy: gy - 58 });
   }
 
-  // 교관 · 기사
+  // 카메라: 흔들림 · 확대 (기사와 교관 사이를 중심으로)
+  g.save();
+  if (a && a.shake > 0.3) g.translate(Math.round((Math.random() - 0.5) * a.shake * 2), Math.round((Math.random() - 0.5) * a.shake));
+  if (a && Math.abs(a.zoom - 1) > 0.002) { const zx = (kDash + mx) / 2, zy = gy - 50; g.translate(zx, zy); g.scale(a.zoom, a.zoom); g.translate(-zx, -zy); }
+  g.clearRect(-40, -40, W + 80, H + 80);
+  drawMentorBg(g, m, W, H, gy, t);
+  // 조명: 배경을 어둡게 누르고 두 사람 발밑만 밝게
+  if (a && a.spot > 0.01) {
+    msR(g, -40, -40, W + 80, H + 80, `rgba(8,6,18,${a.spot.toFixed(3)})`);
+    g.fillStyle = `rgba(255,236,190,${(a.spot * 0.22).toFixed(3)})`;
+    g.beginPath(); g.ellipse((kDash + mx) / 2, gy + 4, (mx - kDash) / 2 + 70, 14, 0, 0, Math.PI * 2); g.fill();
+  }
+
+  // ── 자세
+  const kPose = { mode: 'fight', swing: -1, combo: 0, facing: 1, t };
+  const mPose = { dx: 0, lean: 0, nod: 0, kneel: 0 };
+  let bubble = null, stars = mentorStarsOf(i), pulse = 0, slotPop = null;
+  const breath = Math.round(Math.sin(t * 2.4) * 0.6);
+  if (a) {
+    stars = a.stars; pulse = a.pulse;
+    if (a.slotPop) slotPop = { k: a.slotPop.k, age: a.lt - a.slotPop.at };
+    if (a.bubble) bubble = { text: a.bubble.text, n: (a.lt - a.bubble.at) * 26 };
+    const lt = a.lt;
+    if (a.kind === 'try') {
+      for (let k = 0; k < a.swings; k++) { const p = (lt - (0.24 + k * 0.36)) / 0.3; if (p >= 0 && p < 1) { kPose.swing = p; kPose.combo = k; } }
+      if (a.m.recoilAt != null && lt - a.m.recoilAt < 0.14) { mPose.lean = 0.07; mPose.dx = 6; }
+      const r = lt - a.R;
+      if (!a.ok && r >= 0) {
+        // 교관: 크게 젖혔다가(예비 동작) 내딛어 내려친다
+        if (r < 0.14) { mPose.lean = 0.12 * msEase(r / 0.14); mPose.dx = 9 * msEase(r / 0.14); }
+        else if (r < 0.22) { const p = (r - 0.14) / 0.08; mPose.lean = 0.12 - 0.24 * p; mPose.dx = 9 - 55 * p; }
+        else if (r < 0.75) { mPose.lean = -0.12; mPose.dx = -46; }
+        else { const p = Math.min(1, (r - 0.75) / 0.35); mPose.lean = -0.12 * (1 - p); mPose.dx = -46 * (1 - msEase(p)); }
+      }
+      if (a.ok && r >= 0 && r < 0.75) mPose.nod = Math.sin(r / 0.375 * Math.PI) > 0 ? 1 : 0;
+    } else {
+      const La = a.last_a, Lb = a.last_b;
+      if (La && a.lt - La.at < 0.3) { kPose.swing = (a.lt - La.at) / 0.3; kPose.combo = La.n; }
+      if (Lb && a.lt - Lb.at < 0.28) { const p = (a.lt - Lb.at) / 0.28; mPose.dx = -Math.round(Math.sin(p * Math.PI) * 26); mPose.lean = -0.08 * Math.sin(p * Math.PI); }
+      if (a.m.kneelAt != null) { const p = Math.min(1, (a.lt - a.m.kneelAt) / 0.35); mPose.kneel = msEase(p); mPose.dx = 10 * msEase(p); mPose.lean = 0.06 * msEase(p); }
+    }
+    if (a.m.flashUntil > a.lt) mPose.flash = true;
+    if (a.k.flashUntil > a.lt) kPose.flash = true;
+    if (a.k.sit) kPose.mode = 'sit';
+    if (a.k.hop != null) { const p = (a.lt - a.k.hop) / 0.35; if (p >= 0 && p < 1) a.k.lift = Math.sin(p * Math.PI) * 16; else if (!a.k.fly) a.k.lift = 0; }
+    if (a.end - a.lt < 0.45 && !a.k.fly && (a.k.sit || kx !== kx0)) { kPose.mode = 'walk'; kPose.walkT = a.lt; kPose.facing = -1; a.k.sit = false; }
+  } else if (mentorDone(i) && Math.sin(t * 0.5) > 0.2) bubble = { text: MENTOR_SAY[m.id].done, n: 99 };
+
+  // ── 교관 · 기사
   drawMentorFig(g, m.id, mx, gy + (a ? 0 : breath), mPose);
   g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(kx - 14, gy - 1, 28, 2);
-  drawHero(g, S.cls, kx, gy, kPose);
-  if (a && a.kind === 'try') for (let s = 0; s < a.swings; s++) drawSpark(g, mx - 30, gy - 58, at - (0.35 + s * 0.42) - 0.16);
-  if (a && a.kind === 'try' && !a.ok) drawSlash(g, mx - 26, gy - 70, (at - a.R) / 0.22);
-
-  // 떠오르는 피해 숫자 (승부)
-  if (a && a.kind === 'duel') {
-    a.floats = a.floats.filter((fl) => clock - fl.at < 0.9);
-    for (const fl of a.floats) {
-      const age = clock - fl.at;
-      g.globalAlpha = Math.max(0, 1 - age / 0.9);
-      g.font = msFont(fl.big ? 14 : 12, true); g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.75)';
-      const y = fl.y - age * 26;
-      g.strokeText(fl.text, fl.x, y); g.fillStyle = fl.col; g.fillText(fl.text, fl.x, y);
-      g.globalAlpha = 1;
-    }
+  if (a && (a.k.lift || a.k.rot)) {
+    g.save(); g.translate(kx, gy - a.k.lift - 22); g.rotate(a.k.rot); g.translate(0, 22);
+    drawHero(g, S.cls, 0, 0, kPose); g.restore();
+  } else drawHero(g, S.cls, kx, gy, kPose);
+  // 원거리 직업: 맞는 순간 화살·마법이 날아가는 줄
+  if (a && a.kind === 'try' && ranged) for (let k = 0; k < a.swings; k++) {
+    const p = (a.lt - (0.24 + k * 0.36 + 0.03)) / 0.08;
+    if (p >= 0 && p < 1) { const x0 = kx + 14, x1 = mx - 46, x = x0 + (x1 - x0) * p; msR(g, Math.round(x - 14), gy - 26, 14, 2, '#fff1b0'); }
   }
+  // 교관의 내려치기 궤적
+  if (a && a.kind === 'try' && !a.ok) {
+    const p = (a.lt - a.R - 0.14) / 0.18;
+    if (p >= 0 && p < 1) { g.save(); g.globalAlpha = 1 - p; g.strokeStyle = '#ffffff'; g.lineWidth = 7; g.beginPath(); g.arc(mx - 40, gy - 70, 52, -2.6 + p * 0.5, -0.4 + p * 1.4); g.stroke(); g.lineWidth = 3; g.strokeStyle = '#ffd0a0'; g.stroke(); g.restore(); }
+  }
+  if (a && a.kind === 'duel') msDrawDuelHud(g, a, W, H, gy, kx, mx);
+  if (a) msDrawParts(g, a);
 
-  if (bubble) drawBubble(g, bubble, mx - 30, gy - MS_H * MS_CELL - 14, W);
-  if (pop) drawPop(g, pop.text, Math.round((kx0 + mx) / 2), Math.round(H * 0.5), pop.age, pop.col);
-  drawStarBar(g, W, stars, t, slam);                // 별은 맨 위 (날아오는 별이 말풍선을 덮는다)
+  // 떠 있는 큰 별 (빛줄기) → 별 칸으로 날아간다
+  if (a && a.bigStar) {
+    const b = a.bigStar, age = a.lt - b.at, fly0 = b.big ? 0.9 : 0.6, flyD = b.big ? 0.35 : 0.3;
+    const c = starSlot(W, a.star - 1);
+    let x = b.x, y = b.y + Math.sin(age * 5) * 3, sc = age < 0.18 ? 1.5 * msEase(age / 0.18) : 1.5 - 0.25 * Math.min(1, (age - 0.18) / 0.15);
+    if (b.big) sc *= 1.25;
+    if (age >= fly0) {
+      const p = Math.min(1, (age - fly0) / flyD), e = p * p;
+      x = b.x + (c.x - b.x) * e; y = b.y + (c.y - b.y) * e; sc = sc * (1 - e) + 1.6 * e;
+      a.parts.push({ x: x + (Math.random() - 0.5) * 8, y: y + (Math.random() - 0.5) * 8, vx: 0, vy: 20, g: 0, life: 0.3, max: 0.3, s: 3, col: Math.random() < 0.5 ? '#fff1b0' : '#ffd257', kind: 'sq' });
+    } else {
+      // 빛줄기 (돌아간다)
+      g.save(); g.translate(x, y); g.rotate(age * 1.8);
+      g.globalAlpha = 0.28 * Math.min(1, age / 0.2);
+      for (let r = 0; r < 10; r++) { g.rotate(Math.PI / 5); g.fillStyle = r % 2 ? '#fff1b0' : '#ffd257'; g.beginPath(); g.moveTo(0, 0); g.lineTo(95 * sc / 1.5, -10); g.lineTo(95 * sc / 1.5, 10); g.closePath(); g.fill(); }
+      g.restore(); g.globalAlpha = 1;
+      if (Math.random() < 0.4) a.parts.push({ x: x + (Math.random() - 0.5) * 50, y: y + (Math.random() - 0.5) * 40, vx: 0, vy: -20, g: 0, life: 0.4, max: 0.4, s: 2, col: '#ffffff', kind: 'sq' });
+    }
+    drawStarC(g, Math.round(x), Math.round(y), 6 * sc, '#b8860b');
+    drawStarC(g, Math.round(x), Math.round(y), 5 * sc, '#ffe066');
+    drawStarC(g, Math.round(x), Math.round(y), 2.6 * sc, '#fff8d8');
+  }
   g.restore();
 
+  // 화면 위에 붙는 것: 말풍선 · 별 칸 · 글자 효과 · 번쩍
+  if (bubble) drawBubble(g, bubble.text, mx - 30, gy - MS_H * MS_CELL - 14, W, bubble.n);
+  drawStarBar(g, W, stars, t, pulse, slotPop);
+  if (a) for (const x of a.fx) drawFxText(g, x, W, H);
+  if (a && a.flash) { g.globalAlpha = Math.max(0, Math.min(1, a.flash.a)) * 0.85; msR(g, 0, 0, W, H, a.flash.col); g.globalAlpha = 1; }
+
   // 연출이 끝나면 화면(버튼·별 표시)을 다시 그린다
-  if (a && at > a.end) {
+  if (a && a.lt > a.end) {
     mentorUi.anim = null;
     if (typeof renderCamp === 'function' && campOpen) renderCamp();
+  }
+}
+
+// 승부: 서버 기록을 연출 시계에 맞춰 꺼낸다 (타격마다 멈칫·입자, 마지막 한 방은 슬로 모션 → msDuelFinish)
+function msDuelEvents(a, W, H, P) {
+  const f = a.res.fight;
+  if (a.finished) return;
+  const pt = Math.max(0, a.lt - a.F0) * a.speed;
+  const lastEv = f.events[f.events.length - 1];
+  if (lastEv && a.shown === f.events.length - 1 && pt > lastEv.t - 0.45 * a.speed) a.slow = 0.3;
+  while (a.shown < f.events.length && f.events[a.shown].t <= pt) {
+    const e = f.events[a.shown++], toB = e.by === 'a';
+    const big = e.kind === 'skill' || e.crit;
+    if (toB) { a.last_a = { at: a.lt, n: (a.last_a ? a.last_a.n : 0) + 1 }; a.m.flashUntil = a.lt + 0.06; }
+    else { a.last_b = { at: a.lt, n: (a.last_b ? a.last_b.n : 0) + 1 }; a.k.flashUntil = a.lt + 0.06; }
+    a.hpShow.a = e.hpA / f.maxA; a.hpShow.b = e.hpB / f.maxB;
+    const x = toB ? P.mx - 30 : P.kx + 6, y = toB ? P.gy - 70 : P.gy - 34;
+    msHit(a, big ? 0.08 : 0.03, big ? 5 : 2);
+    msBurst(a, x, y, big ? 12 : 5, big ? ['#ffffff', '#ffb13b', '#ffe9a0'] : ['#ffffff', '#e8e2d0'], big ? 220 : 140, { g: 260, life: 0.35 });
+    if (big) msRing(a, x, y, e.crit ? '#ffb13b' : '#9fe6ff', 40, 0.3);
+    msFx(a, { kind: 'sfx', text: (e.crit ? '💥' : '') + fmt(e.dmg), x: x + (Math.random() - 0.5) * 16, y: y - 20, col: e.crit ? '#ffb13b' : e.kind === 'skill' ? '#9fe6ff' : '#ffffff', size: big ? 18 : 13 });
+    if (e.kind === 'skill' && SKILLS[e.sk]) msFx(a, { kind: 'sfx', text: SKILLS[e.sk].name, x: toB ? P.kx + 10 : P.mx, y: toB ? P.gy - 96 : P.gy - 150, col: '#c9a7ff', size: 14 });
+  }
+  if (a.shown >= f.events.length && pt >= f.dur) msDuelFinish(a, W, H, P);
+}
+// 승부 체력 바 (바닥 위, 맞으면 흰 잔상이 천천히 줄어든다)
+function msDrawDuelHud(g, a, W, H, gy, kx, mx) {
+  for (const [side, x, col, w] of [['a', kx, '#5fcf5a', 48], ['b', mx, '#ff5a5a', 84]]) {
+    const hp = Math.max(0, a.hpShow[side]);
+    a.hpChip[side] += (hp - a.hpChip[side]) * 0.08;
+    msR(g, x - w / 2, gy + 9, w, 8, '#1a1424');
+    msR(g, x - w / 2 + 1, gy + 10, Math.round((w - 2) * Math.max(hp, a.hpChip[side])), 6, '#f3efe6');
+    msR(g, x - w / 2 + 1, gy + 10, Math.round((w - 2) * hp), 6, col);
   }
 }
 // 지금 무대에 세울 교관 (고른 칩, 없으면 지금 수련할 교관)
