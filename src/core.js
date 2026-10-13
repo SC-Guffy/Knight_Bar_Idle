@@ -27,7 +27,7 @@ function freshState() {
     stage: 1, best: 1,
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
-    mentor: freshMentor(),                  // 🎓 2차 훈련 교관 수련: 지금 교관·별·눈도장 (mentor.js)
+    mentor: freshMentor(),                  // 🎓 교관 수련: 교관별 별·승부 결과·오늘 승부 수 (mentor.js)
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
     bagLv: 1,                               // 가방 Lv (여관 안 업그레이드, data.js bagCapAt)
     bagHit: false,                          // 지난 원정이 가방 가득으로 끝났나 (가방 레드닷, 올리면 꺼짐)
@@ -80,6 +80,7 @@ function migrate(o) {
     s[k] = isObj && o[k] ? Object.assign(s[k], o[k]) : o[k];
   }
   s.bag = (s.bag || []).map(upgradeOldLoot);     // v2 초기의 미감정 상자 → 전리품 상자
+  migrateMentor(s.mentor);                       // 🎓 0.20.0 판 교관 (eye·duelDay) → 시즌6 판 (duel), 받은 별은 그대로
   // 공속·치명 훈련이 없어졌다: 올려 둔 단계만큼 쓴 골드를 돌려준다
   let refund = 0;
   for (const [id, u] of Object.entries(OLD_TRAINING)) {
@@ -90,13 +91,13 @@ function migrate(o) {
     s.gold += refund;
     s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·수완으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
   }
-  // 훈련(1차) 한도 TRAIN_MAX 를 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다 (교관 수련을 켜면 50, 끄면 200 이라 사실상 할 일 없음)
+  // 훈련(1차) 한도 TRAIN_MAX 를 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다 (0.20.0 판은 50 이었다 — 지금은 200 이라 사실상 할 일 없음)
   let over = 0;
   for (const u of TRAINING) {
     for (let i = TRAIN_MAX; i < (s.train[u.id] || 0); i++) over += Math.floor(u.base * Math.pow(u.grow, i));
     s.train[u.id] = Math.min(TRAIN_MAX, s.train[u.id] || 0);
   }
-  // 훈련장 최대 Lv(교관 수련이 켜져 있으면 10)을 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
+  // 훈련장 최대 Lv(0.20.0 판은 10, 지금 20)을 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
   const back = { gold: 0, wood: 0, ore: 0, mana: 0 };
   const addBack = (c) => { for (const k of Object.keys(back)) back[k] += c[k]; };
   if (s.build && s.build.id === 'training' && s.bld.training >= bldMax('training')) { addBack(buildCost('training', s.bld.training)); s.build = null; }
@@ -666,6 +667,7 @@ function claimMail(id) {
   for (const [k, n] of Object.entries(r.items || {})) S.items[k] = (S.items[k] || 0) + n;
   S.gold += r.gold || 0; S.stones += r.stones || 0; S.tomes += r.tomes || 0;
   S.raid.tickets += r.raidTickets || 0;
+  S.books = (S.books || 0) + (r.books || 0);
   S.mail.got.push(m.id);
   return true;
 }

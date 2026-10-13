@@ -146,8 +146,7 @@
     <button data-live="0">교관1 ★0</button>
     <button data-live="1">교관2 ★3 차례 (이행 예시 [5,2,0,0,0])</button>
     <button data-live="2">교관4 ★5 승부 차례</button>
-    <button data-play="ok">성공 연출 재생</button>
-    <button data-play="fail">탈락 연출 재생 (없어질 것)</button>
+    <button data-play="ok">수련 연출 재생 (약 3초)</button>
     <span class="sub" id="liveMsg">불러오는 중… (계정 로그인 대기 약 8초)</span>
   </div>
   <iframe id="game" title="지금 교관 화면"></iframe>
@@ -292,16 +291,16 @@ $('mgIn').value = document.querySelector('[data-pre]').nextElementSibling.datase
 // ── 6. 지금 화면 (iframe, 같은 주소의 게임) ──
 // MENTOR_ON 은 const 라 못 바꾼다 → 그 값을 보는 함수 셋만 첫 줄(if (!MENTOR_ON …))을 뺀 사본으로 바꿔 끼운다
 const PRESETS = [
-  { stars: [0, 0, 0, 0, 0], eye: 0 },
-  { stars: [5, 2, 0, 0, 0], eye: 1 },
-  { stars: [5, 5, 5, 4, 0], eye: 0 },
+  { stars: [0, 0, 0, 0, 0], books: 10 },
+  { stars: [5, 2, 0, 0, 0], books: 14 },
+  { stars: [5, 5, 5, 4, 0], books: 0 },
 ];
 $('snip').textContent = `// 주소: ${location.origin}/index.html?server=http://127.0.0.1:9
 // 처음 한 번: localStorage.setItem('knight-bar-accounts', JSON.stringify({active:'테스트', list:{'테스트':'local-test-token'}})); location.reload();
-// 약 8초 뒤 (MENTOR_ON 을 보는 함수 셋을 그 줄만 뺀 사본으로 바꿔 끼우고 교관 무대를 연다 — 게임 파일은 그대로):
+// 약 8초 뒤 (상태를 만들고 훈련장 🎓 교관 탭을 연다):
 const sc = document.createElement('script'); sc.src = 'dev/review/mentors-live.js';
-sc.onload = () => __mentorReview.apply([5, 2, 0, 0, 0], 1); document.body.appendChild(sc);
-// 연출: __mentorReview.play(true) 성공 / play(false) 탈락 · 다른 상태: __mentorReview.apply([5,5,5,4,0], 0)`;
+sc.onload = () => __mentorReview.apply([5, 2, 0, 0, 0], 14); document.body.appendChild(sc);
+// 연출: __mentorReview.play() · 다른 상태: __mentorReview.apply([5,5,5,4,0], 0)`;
 let liveReady = false, liveK = 1;
 function gw() { return $('game').contentWindow; }
 const LIVE_NAME = ['교관1 ★0', '교관2 ★3 차례', '교관4 ★5 승부 차례'];
@@ -309,7 +308,7 @@ function applyLive(k) {
   const h = gw().__mentorReview;
   if (!h) return false;
   try {
-    const line = h.apply(PRESETS[k].stars, PRESETS[k].eye);
+    const line = h.apply(PRESETS[k].stars, PRESETS[k].books);
     liveK = k;
     $('liveMsg').innerHTML = `<span class="ok">켜짐</span> — ${LIVE_NAME[k]} · 무대 아래 한 줄: <code>${line}</code>`;
     return true;

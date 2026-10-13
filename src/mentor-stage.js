@@ -1,36 +1,31 @@
 'use strict';
 // 🎓 교관 수련 무대 (마을 → 훈련장 아래 <canvas class="mstage">). 규칙은 mentor.js, 스펙은 docs/specs/training-mentors.md.
 // 왼쪽에 내 기사, 오른쪽에 큼직한 교관, 뒤에 교관 장소 배경. 수련(★1~4)과 승부(★5)의 연출을 그린다.
-// 결과는 연출 전에 이미 정해져 있다 (mentor.js mentorTry · 서버 승부). 무대를 누르면 연출을 건너뛴다.
+// 결과는 연출 전에 이미 정해져 있다 (mentor.js mentorTry — 📕 로 확정 · 서버 승부). 무대를 누르면 연출을 건너뛴다.
 
 const mentorUi = { view: null, anim: null, preview: null, busy: false };
 const MS_CELL = 4;                 // 교관 도트 1칸 = 4px (기사는 PX=3 — 교관이 한눈에 크게 보이게)
 const MS_W = 28, MS_H = 32;        // 교관 스프라이트 칸 수 (발끝 가운데 = 14열)
 
-// 교관 대사 — fail: 탈락 · ok: 합격 · win: 승부에서 졌을 때(기사 승리) · lose: 기사가 졌을 때 · done: 수료 후
+// 교관 대사 — ok: 수련(★1~4) 완료 · win: 승부에서 졌을 때(기사 승리) · lose: 기사가 졌을 때 · done: 수료 후
 const MENTOR_SAY = {
   sword: {
-    fail: ['이놈, 탈락이다!', '칼끝이 흔들린다!', '발이 먼저 나갔다. 다시!', '그걸 검이라고 휘두르느냐!'],
     ok: ['음. 다음 단계로 넘어가도 되겠군.', '호오… 제법이구나.', '좋다. 그 감각을 잊지 마라.'],
     win: '훌륭하다… 더 가르칠 것이 없구나.', lose: ['아직 멀었다. 더 단련하고 오너라.', '검은 마음으로 휘두르는 것이다.'], done: '네 검은 이미 내 손을 떠났다.',
   },
   shield: {
-    fail: ['방패 너머가 다 보인다! 탈락!', '자세가 무너졌다!', '그 정도로는 성벽도 못 지킨다!', '한 대 맞고 정신 차려라!'],
     ok: ['버티는 법을 알았군. 통과다.', '좋아, 어깨가 단단해졌어.', '음. 쓸 만한 방패잡이로군.'],
     win: '내 방패를 넘다니… 수료다.', lose: ['방패는 아직 뚫리지 않았다.', '더 무거워져서 와라.'], done: '성문은 이제 네가 지켜라.',
   },
   hunter: {
-    fail: ['소리가 너무 크다. 탈락.', '사냥감은 이미 도망갔다.', '바람을 읽지 못했군.', '숲이 너를 비웃는다.'],
     ok: ['…좋아. 숨소리가 사라졌어.', '그 눈빛이면 됐다.', '숲이 너를 받아들였다.'],
     win: '내 화살보다 빨랐다. 인정하지.', lose: ['넌 아직 사냥감이다.', '다시 숲에 숨어 보아라.'], done: '숲길은 이제 네 것이다.',
   },
   brute: {
-    fail: ['흐하하! 약하다! 탈락!', '불길에 데이기나 해라!', '그게 힘이냐, 하품이냐!', '용암이 더 뜨겁겠다!'],
     ok: ['흥, 뼈는 좀 있구나!', '좋다! 피가 끓는군!', '크하하, 마음에 든다!'],
     win: '크윽… 네 불길이 더 뜨거웠다!', lose: ['흐하하! 다시 달궈 와라!', '아직 쇠가 덜 달궈졌다!'], done: '화산의 불은 이미 네 안에 있다.',
   },
   sage: {
-    fail: ['별의 흐름을 거슬렀구나. 탈락.', '마음이 앞서는구나.', '하늘이 고개를 젓는다.', '구름이 너를 가리는구나.'],
     ok: ['허허… 별이 너를 비추는구나.', '흐름을 탔구나. 다음으로.', '좋다. 고요함이 보인다.'],
     win: '허허… 이제 별이 너를 따르겠구나.', lose: ['아직 하늘이 멀구나.', '별은 서두르지 않는다.'], done: '하늘 끝에서 다시 보자꾸나.',
   },
@@ -385,7 +380,7 @@ function msBigText(g, text, px, col, ink = '#1a1424') {
   g.lineJoin = 'round'; g.lineWidth = Math.max(4, px / 4); g.strokeStyle = ink;
   g.strokeText(text, 0, 0); g.fillStyle = col; g.fillText(text, 0, 0);
 }
-// 떠오르는 글자 효과: kind sfx(챙!·쾅! 의성어) · stamp(탈락!·수료! 도장) · banner(성공! 띠)
+// 떠오르는 글자 효과: kind sfx(챙!·쾅! 의성어) · stamp(수료!·패배 도장) · banner(수련 완료! 띠)
 function drawFxText(g, x, W, H) {
   const age = x.age;
   g.save();
@@ -484,54 +479,50 @@ const msCue = (a, at, fn) => { a.cues.push([at, fn]); a.cues.sort((x, y) => x[0]
 const msFx = (a, o) => a.fx.push({ age: 0, ...o });
 const msHit = (a, stop, shake, flash) => { a.stop = Math.max(a.stop, stop); a.shake = Math.max(a.shake, shake); if (flash) a.flash = { col: flash, a: 1 }; };
 const msSay = (a, text) => { a.bubble = { text, at: a.lt }; };
-// 기사가 날아간다 (탈락·패배)
+// 기사가 날아간다 (승부 패배)
 const msLaunch = (a) => Object.assign(a.k, { fly: true, vx: -300, vy: 260, spin: -10, bounced: false, sit: false });
 
-// ★1~4 수련 연출 (결과 r = mentorTry 의 반환)
+// ★1~4 수련 연출 (결과 r = mentorTry 의 반환 — 실패가 없어서 성공 연출만, 약 3초)
+//  📕 이 기사 머리 위에서 펼쳐져 교관 쪽으로 날아감 (T0) → 달려 들어가 공격 1회 · 교관이 막음 → 끄덕 + 대사 → 큰 별이 칸에 쾅
 function mentorPlayTry(i, r) {
   const m = MENTORS[i], say = MENTOR_SAY[m.id];
-  const swings = Math.random() < 0.5 ? 1 : 2;
-  const R0 = 0.24 + swings * 0.36 + 0.1, R = R0 + 0.6;
-  const a = msNewAnim('try', i, { ok: r.ok, star: r.star, stars: r.star - 1, swings, R0, R, end: R + (r.ok ? 3.0 : 2.4) });
-  msCue(a, 0.01, (a, W, H, P) => msDust(a, P.kx0, P.gy, 6));          // 박차고 달려 나간다
+  const T0 = 0.45, swings = 1;
+  const R0 = T0 + 0.24 + swings * 0.36 + 0.1, R = R0;
+  const a = msNewAnim('try', i, { ok: true, star: r.star, stars: r.star - 1, swings, T0, R0, R, end: R + 1.85, book: { at: 0 } });
+  msCue(a, 0.12, (a, W, H, P) => msBurst(a, P.kx0, P.gy - 84, 10, ['#fff1b0', '#ffd257', '#ffffff'], 90, { g: 0, life: 0.4 }));   // 책이 펼쳐지며 빛
+  msCue(a, T0, (a, W, H, P) => { a.book = null; msBurst(a, P.mx - 12, P.gy - 80, 12, ['#ff8a7a', '#ffd257', '#ffffff'], 140, { g: 60, life: 0.4 }); msRing(a, P.mx - 12, P.gy - 80, '#ffd257', 40, 0.3); });
+  msCue(a, T0 + 0.01, (a, W, H, P) => msDust(a, P.kx0, P.gy, 6));     // 박차고 달려 나간다
   // 공격 → 교관이 막는다 (챙!)
   for (let k = 0; k < swings; k++) {
-    msCue(a, 0.24 + k * 0.36 + 0.11, (a, W, H, P) => {
+    msCue(a, T0 + 0.24 + k * 0.36 + 0.11, (a, W, H, P) => {
       msHit(a, 0.06, 3);
       msBurst(a, P.cx, P.cy, 10, ['#ffffff', '#ffe9a0', '#ffd257'], 170, { g: 200, life: 0.35 });
       msFx(a, { kind: 'sfx', text: pickSay(SFX_CLANG), x: P.cx + 6, y: P.cy - 26, col: '#ffffff', size: 18, rot: (Math.random() - 0.5) * 0.4 });
       a.m.recoilAt = a.lt;
     });
   }
-  // 숨 고르기: 조명이 좁아지고, 교관이 말없이 바라본다 (…), 다음 별 칸이 두근거린다
-  msCue(a, R0, (a) => { a.spotT = 0.55; a.zoomT = 1.07; a.pulse = 1; msSay(a, '……'); });
-  if (!r.ok) {
-    msCue(a, R + 0.2, (a, W, H, P) => {
-      msHit(a, 0.13, 10, '#ffffff');
-      a.zoom = 1.14; a.zoomT = 1; a.spotT = 0.25; a.pulse = 0;
-      msLaunch(a);
-      msBurst(a, P.kx + 6, P.gy - 34, 16, ['#ffffff', '#ff8080', '#ffd0a0'], 230, { g: 300, life: 0.45, size: 4 });
-      msRing(a, P.kx + 6, P.gy - 30, '#ffffff', 60);
-      msFx(a, { kind: 'sfx', text: '쾅!', x: P.kx + 20, y: P.gy - 78, col: '#ff6b6b', size: 30, rot: -0.15 });
-    });
-    msCue(a, R + 0.35, (a) => msSay(a, a.say));
-    msCue(a, R + 0.62, (a, W, H, P) => { msHit(a, 0.04, 5); msFx(a, { kind: 'stamp', text: '탈락!', x: W * 0.44, y: H * 0.42, col: '#ff5a5a', size: 30, rot: -0.2 }); msDust(a, W * 0.44, H * 0.42 + 22, 8); });
-    msCue(a, R + 1.2, (a) => { a.spotT = 0; a.zoomT = 1; });
-  } else {
-    msCue(a, R + 0.05, (a) => msSay(a, a.say));
-    msCue(a, R + 0.55, (a, W, H, P) => {
-      a.bigStar = { at: a.lt, x: Math.round(P.W * 0.47), y: 96 };
-      a.flash = { col: '#ffe9a0', a: 0.5 };
-      msBurst(a, Math.round(P.W * 0.47), 96, 16, ['#fff1b0', '#ffd257', '#ffffff'], 150, { g: 60, life: 0.6 });
-    });
-    msCue(a, R + 1.45, (a, W, H, P) => {
-      msSlam(a, W, a.star - 1, false);
-      a.spotT = 0; a.pulse = 0;
-    });
-    msCue(a, R + 1.58, (a, W, H) => { msFx(a, { kind: 'banner', text: `★${a.star} 성공!`, y: H * 0.46, col: '#ffe066', size: 28 }); msConfetti(a, W, 30); a.k.hop = a.lt; });
-  }
-  a.say = pickSay(r.ok ? say.ok : say.fail);
+  msCue(a, R + 0.05, (a) => msSay(a, a.say));
+  msCue(a, R + 0.3, (a, W, H, P) => {
+    a.bigStar = { at: a.lt, x: Math.round(P.W * 0.47), y: 96 };
+    a.flash = { col: '#ffe9a0', a: 0.5 };
+    msBurst(a, Math.round(P.W * 0.47), 96, 16, ['#fff1b0', '#ffd257', '#ffffff'], 150, { g: 60, life: 0.6 });
+  });
+  msCue(a, R + 1.2, (a, W) => msSlam(a, W, a.star - 1, false));
+  msCue(a, R + 1.33, (a, W, H) => { msFx(a, { kind: 'banner', text: `★${a.star} 수련 완료!`, y: H * 0.46, col: '#ffe066', size: 28 }); msConfetti(a, W, 30); a.k.hop = a.lt; });
+  a.say = pickSay(say.ok);
   mentorUi.anim = a;
+}
+// 📕 수련의 서 (빨간 표지 + 금박 띠) — 2px 도트. open 0~1: 덮인 책 → 펼친 책
+function drawRedBook(g, cx, cy, s, open) {
+  const R = (x, y, w, h, c) => msR(g, Math.round(cx + x * s), Math.round(cy + y * s), Math.ceil(w * s), Math.ceil(h * s), c);
+  if (open < 0.5) {
+    R(-4, -5, 8, 10, '#5a1418'); R(-3, -5, 7, 9, '#c0392b'); R(-3, -5, 1, 9, '#8e1f1a');
+    R(-2, -2, 6, 1, '#ffd257'); R(-2, 2, 6, 1, '#ffd257'); R(4, -4, 1, 9, '#f3efe6');
+  } else {
+    R(-7, -4, 14, 9, '#5a1418'); R(-6, -4, 6, 8, '#f3efe6'); R(1, -4, 6, 8, '#f3efe6'); R(0, -4, 1, 9, '#8e1f1a');
+    for (let y = -2; y <= 2; y += 2) { R(-5, y, 4, 1, '#c9b896'); R(2, y, 4, 1, '#c9b896'); }
+    R(-7, 4, 14, 1, '#c0392b'); R(-1, 5, 3, 1, '#ffd257');
+  }
 }
 // 승부(★5) 연출 (서버 결과 res)
 function mentorPlayDuel(i, res) {
@@ -590,7 +581,7 @@ function mentorSkip() {
   a.stars = a.ok ? a.star : a.stars;
   a.cues = []; a.parts = []; a.fx = a.fx.filter((x) => x.kind === 'stamp' && x.text !== 'VS');
   a.bigStar = null; a.stop = 0; a.slow = 1; a.spotT = 0; a.zoomT = 1; a.pulse = 0;
-  if (!a.ok && a.kind === 'try') Object.assign(a.k, { fly: false, lift: 0, rot: 0, sit: true, ox: -60 });
+  a.book = null;
   if (a.bubble || a.say) a.bubble = { text: a.say, at: -99 };
   a.end = Math.min(a.end, a.lt + 1.1);
 }
@@ -638,7 +629,7 @@ function drawMentorStage() {
   // 연출 시계·위치 (P: cue 가 쓰는 자리)
   const dt = a ? Math.min(0.05, Math.max(0, clock - (a.last == null ? clock : a.last))) : 0;
   // 기사 자리: 수련은 달려 들어가 공격 → 반걸음 물러나 결과를 기다린다, 승부는 처음부터 맞선 자리
-  const kBase = (lt) => (a.kind === 'duel' ? kDash : lt < 0.2 ? kx0 + (kDash - kx0) * msEase(lt / 0.2) : lt < a.R0 ? kDash : kDash - 14 * msEase((lt - a.R0) / 0.15));
+  const kBase = (lt) => (a.kind === 'duel' ? kDash : lt < a.T0 ? kx0 : lt < a.T0 + 0.2 ? kx0 + (kDash - kx0) * msEase((lt - a.T0) / 0.2) : lt < a.R0 ? kDash : kDash - 14 * msEase((lt - a.R0) / 0.15));
   let kx = kx0;
   if (a) {
     a.last = clock;
@@ -675,16 +666,9 @@ function drawMentorStage() {
     if (a.bubble) bubble = { text: a.bubble.text, n: (a.lt - a.bubble.at) * 26 };
     const lt = a.lt;
     if (a.kind === 'try') {
-      for (let k = 0; k < a.swings; k++) { const p = (lt - (0.24 + k * 0.36)) / 0.3; if (p >= 0 && p < 1) { kPose.swing = p; kPose.combo = k; } }
+      for (let k = 0; k < a.swings; k++) { const p = (lt - (a.T0 + 0.24 + k * 0.36)) / 0.3; if (p >= 0 && p < 1) { kPose.swing = p; kPose.combo = k; } }
       if (a.m.recoilAt != null && lt - a.m.recoilAt < 0.14) { mPose.lean = 0.07; mPose.dx = 6; }
       const r = lt - a.R;
-      if (!a.ok && r >= 0) {
-        // 교관: 크게 젖혔다가(예비 동작) 내딛어 내려친다
-        if (r < 0.14) { mPose.lean = 0.12 * msEase(r / 0.14); mPose.dx = 9 * msEase(r / 0.14); }
-        else if (r < 0.22) { const p = (r - 0.14) / 0.08; mPose.lean = 0.12 - 0.24 * p; mPose.dx = 9 - 55 * p; }
-        else if (r < 0.75) { mPose.lean = -0.12; mPose.dx = -46; }
-        else { const p = Math.min(1, (r - 0.75) / 0.35); mPose.lean = -0.12 * (1 - p); mPose.dx = -46 * (1 - msEase(p)); }
-      }
       if (a.ok && r >= 0 && r < 0.75) mPose.nod = Math.sin(r / 0.375 * Math.PI) > 0 ? 1 : 0;
     } else {
       const La = a.last_a, Lb = a.last_b;
@@ -708,13 +692,17 @@ function drawMentorStage() {
   } else drawHero(g, S.cls, kx, gy, kPose);
   // 원거리 직업: 맞는 순간 화살·마법이 날아가는 줄
   if (a && a.kind === 'try' && ranged) for (let k = 0; k < a.swings; k++) {
-    const p = (a.lt - (0.24 + k * 0.36 + 0.03)) / 0.08;
+    const p = (a.lt - (a.T0 + 0.24 + k * 0.36 + 0.03)) / 0.08;
     if (p >= 0 && p < 1) { const x0 = kx + 14, x1 = mx - 46, x = x0 + (x1 - x0) * p; msR(g, Math.round(x - 14), gy - 26, 14, 2, '#fff1b0'); }
   }
-  // 교관의 내려치기 궤적
-  if (a && a.kind === 'try' && !a.ok) {
-    const p = (a.lt - a.R - 0.14) / 0.18;
-    if (p >= 0 && p < 1) { g.save(); g.globalAlpha = 1 - p; g.strokeStyle = '#ffffff'; g.lineWidth = 7; g.beginPath(); g.arc(mx - 40, gy - 70, 52, -2.6 + p * 0.5, -0.4 + p * 1.4); g.stroke(); g.lineWidth = 3; g.strokeStyle = '#ffd0a0'; g.stroke(); g.restore(); }
+  // 📕 수련의 서: 머리 위에서 펼쳐져 빛나다가 교관 쪽으로 날아가 사라진다
+  if (a && a.book) {
+    const age = a.lt, T = a.T0;
+    let bx = kx, by = gy - 84, sc = 3 * msEase(age / 0.12), op = Math.min(1, age / 0.12);
+    if (age > 0.25) { const p = (age - 0.25) / (T - 0.25), e = p * p; bx = kx + (mx - 12 - kx) * e; by = gy - 84 - Math.sin(p * Math.PI) * 18 + 4 * e; sc = 3 - 1 * e; }
+    else by -= Math.sin(age / 0.25 * Math.PI) * 4;
+    if (age > 0.08 && age < 0.3) { g.globalAlpha = 0.35 * (1 - Math.abs(age - 0.19) / 0.11); drawStarC(g, Math.round(bx), Math.round(by), 6, '#fff1b0'); g.globalAlpha = 1; }
+    g.globalAlpha = op; drawRedBook(g, bx, by, sc, age > 0.1 ? 1 : 0); g.globalAlpha = 1;
   }
   if (a && a.kind === 'duel') msDrawDuelHud(g, a, W, H, gy, kx, mx);
   if (a) msDrawParts(g, a);

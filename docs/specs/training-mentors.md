@@ -1,11 +1,11 @@
 # 🎓 교관 수련 — 📕 수련의 서로 별을 올린다 (시즌6 재가동)
 
-- 상태: **확정** (2026-10-13 시즌6 재가동안 — 사용자 "추천대로 진행", 구현 전). 0.20.0 에 골드 확률 수련으로 배포했다가 0.20.6 에 `MENTOR_ON = false` 로 꺼 둔 것을 다시 켠다
+- 상태: **진행 중 — 구현 끝, 배포 전** (2026-10-14 season6 구현 · 시즌6 재가동안은 10-13 확정). 0.20.0 에 골드 확률 수련으로 배포했다가 0.20.6 에 `MENTOR_ON = false` 로 꺼 둔 것을 다시 켰다
 - 검토 페이지: `dev/review/mentors.html` (요구량 표·수급량 입력 → 며칠 걸리는지·세이브 이행·지금 화면)
 - 브랜치: `season6` (③ 성벽 지키기와 같은 패치로 낸다 — [roadmap.md](roadmap.md) 진행 순서)
 - 관련 스펙: [castle-defense.md](castle-defense.md) (📕 수련의 서 수급 — 작성 중), [roadmap.md](roadmap.md) "결정 사항"
-- 관련 코드: src/data.js (`MENTOR_ON`, `TRAIN_MAX`, `trainCapAt`, `TRAINING`, `BUILDINGS.training`, `MENTORS`·`MENTOR_*`), src/mentor.js (규칙: 수련·승부 정산·보너스·레드닷), src/mentor-stage.js (무대: 교관 스프라이트·배경·연출·대사), src/core.js (`freshState`, migrate — 훈련 50 초과 환급·훈련장 10 초과 환급), src/gear.js (`gearBonus`·`gearBonusParts` — 교관 보너스 합산), src/ui.js (`viewTraining`·`viewMentor`·`mentorPreview`, 액션 `mentor-*`, 그리기 루프), src/town.js (`townTodo`), src/net.js (`fetchMentor`·`requestMentorDuel`), server/index.js (`GET /api/mentor`·`POST /api/mentor/duel`), server/mentor.js (교관 프로필·배수), server/mentor-k.json (계열×교관×레벨 배수 표), server/bots.js (`curveAtLevel`), server/bot-curve.json, dev/mentor-sim.js (배수 보정), dev/progress-bot.js·dev/bot-curve.js (`playMentors`)
-- 최종 갱신: 2026-10-13
+- 관련 코드: src/data.js (`MENTOR_ON`, `TRAIN_MAX`, `trainCapAt`, `TRAINING`, `BUILDINGS.training`, `MENTORS`·`MENTOR_*`), src/mentor.js (규칙: `mentorLock`·`mentorNeed`·`mentorTry`·`mentorDuelLeft`·`mentorSettle`·`mentorTodo`·`migrateMentor`·보너스), src/mentor-stage.js (무대: 교관 스프라이트·배경·연출·대사), src/core.js (`freshState` `books`, migrate → `migrateMentor`, `claimMail` 의 `books`), src/gear.js (`gearBonus`·`gearBonusParts` — 교관 보너스 합산), src/ui.js (`viewTraining` 탭·`viewMentor`·`mentorSpText`·`mentorPreview`, 액션 `train-tab`·`goto-castle`·`mentor-*`, 우편 `books`·함수 문단), src/town.js (`townTodo`), src/net.js (`fetchMentor`·`requestMentorDuel`), server/index.js (`GET /api/mentor`·`POST /api/mentor/duel` — `MENTOR_DUEL_DAY`·`mentorDay` 하루 횟수, `MENTOR_OPEN_STAGE`), server/mentor.js (교관 프로필·배수), server/mentor-k.json (계열×교관×레벨 배수 표), server/bots.js (`curveAtLevel`), server/bot-curve.json, dev/mentor-sim.js (배수 보정), dev/progress-bot.js·dev/bot-curve.js (`playMentors`)
+- 최종 갱신: 2026-10-14
 
 ## 이번 개정 요약 (0.20.0 판 → 시즌6 판)
 

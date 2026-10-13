@@ -456,41 +456,48 @@ function trainGain(u, st = stats(), nx) {
   return nx[k] / st[k] - 1;
 }
 
-// 훈련장을 골랐을 때 건물 카드 아래에 붙는 훈련 칸 (옛 훈련 탭)
+// 훈련장을 골랐을 때 건물 카드 아래에 붙는 칸: 탭 두 개 🎯 훈련 · 🎓 교관 (고른 탭은 townUi.trainTab)
 function viewTraining() {
   if (!MENTOR_ON) return viewTrain1();
-  if (!trainDone()) return viewTrain1() + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — 1차 훈련 네 가지를 Lv ${TRAIN_MAX} 까지</span></div>`;
-  const done = `<div class="chips"><span class="chip">✅ 1차 훈련 수료 · ⚔️ 맨몸 공격 ${fmt(trainAtkAt(TRAIN_MAX))} · 🛡️ 체력 ${fmt(trainHpAt(TRAIN_MAX))} · 방어 -${(defRedAt(TRAIN_MAX) * 100).toFixed(1)}% · 💰 수완 +${Math.round(TRAIN_MAX * FORTUNE_PER_LV * 100)}%</span></div>`;
-  if (!mentorOpen(0) && !mentorDone(0)) return done + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — ${mentorLock(0)}</span></div>`;
-  return done + viewMentor();
+  const tab = townUi.trainTab === 'mentor' ? 'mentor' : 'train';
+  const tabs = `<div class="skchips">
+    <button class="skchip${tab === 'train' ? ' on' : ''}${rd(TRAINING.some(canTrain))}" data-action="train-tab" data-k="train">🎯 훈련</button>
+    <button class="skchip${tab === 'mentor' ? ' on' : ''}${rd(mentorTodo())}" data-action="train-tab" data-k="mentor">🎓 교관 <small>★${mentorStarSum()}/${MENTORS.length * MENTOR_STARS}</small></button>
+  </div>`;
+  if (tab === 'train') return tabs + viewTrain1();
+  if (mentorLock(0)) return tabs + `<div class="chips"><span class="chip">🔒 최고 스테이지 ${MENTOR_OPEN_STAGE} 에서 열려요 — 🏰 성벽 지키기에서 📕 수련의 서를 모아 교관에게 배워요</span></div>`;
+  return tabs + viewMentor();
 }
 
-// 2차 훈련 🎓 교관 수련: 교관 칩 줄 · 무대(mentor-stage.js) · 한 줄 안내와 버튼
+// 교관 별 보너스 글 — spText 는 % 를 정수로 반올림해서 (2.5% → 3%) 소수 한 자리까지 보인다
+const mentorSpText = (sp) => Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v).replace(/\d+(?=%)/, pct1(v))}`).join(' · ');
+// 🎓 교관 수련: 교관 칩 줄 · 무대(mentor-stage.js) · 한 줄 안내와 버튼
 function viewMentor() {
   const cur = mentorCur(), i = mentorView(), m = MENTORS[i], n = mentorStarsOf(i);
   const chips = MENTORS.map((x, k) => {
-    const lock = k > cur || (k === cur && mentorLock(k));
-    const tag = k < cur ? '★5' : k > cur ? (S.bld.training < x.bld ? `🔒 훈련장 Lv ${x.bld}` : '🔒') : lock ? `🔒 ${mentorLock(k)}` : `★${mentorStarsOf(k)}`;
+    const tag = k < cur ? '★5' : k > cur ? `🔒 ${MENTORS[k - 1].name} 수료` : `★${mentorStarsOf(k)}`;
     return `<button class="skchip${k === i ? ' on' : ''}" data-action="mentor-view" data-i="${k}" ${k > cur ? 'disabled' : ''}>${x.icon} ${x.name} <small>${tag}</small></button>`;
   }).join('');
   const busy = !!(mentorUi.anim || mentorUi.busy);
-  const now = spText(mentorSpAt(i)) || '아직 없음', full = spText(mentorSpAt(i, MENTOR_STARS));
+  const now = mentorSpText(mentorSpAt(i)) || '아직 없음', full = mentorSpText(mentorSpAt(i, MENTOR_STARS));
   let info, btn = '';
-  if (i < cur) info = `<b>✅ ${m.name} 수료</b><small>${full}</small>`;
-  else if (mentorLock(i)) info = `<b>🔒 ${mentorLock(i)}</b><small>별 5개 · ${full}</small>`;
+  if (cur >= MENTORS.length) info = `<b>✅ 모든 교관 수료 — 📕 은 더 필요 없어요</b><small>${m.name} · ${full}</small>`;
+  else if (i < cur) info = `<b>✅ ${m.name} 수료</b><small>${full}</small>`;
   else if (mentorDuelTurn(i)) {
-    const p = mentorPreview(i), me = profile().power;
+    const p = mentorPreview(i), me = profile().power, left = mentorDuelLeft();
     const verdict = !p ? '' : me >= p.power * 1.15 ? ' · <span style="color:#9fd49a">여유</span>' : me >= p.power * 0.9 ? ' · 비슷함' : ' · <span class="warn">버거움</span>';
     const blk = !activeToken() ? '서버 연결 필요' : mentorDuelBlocker(i);
-    info = `<b>⚔️ 마지막 별 — 교관과의 승부${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>지금 ${now} → 수료 ${full}</small>`;
-    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-duel" ${blk || busy ? 'disabled' : ''} title="${blk}">⚔️ 승부하기 <i class="gc"></i> ${fmt(mentorCost(i))}</button>`;
+    info = `<b>⚔️ 마지막 별 — 교관과의 승부 · 오늘 ${left}/${MENTOR_DUEL_DAY}${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>${left ? `지금 ${now} → 수료 ${full}` : '내일 다시 도전할 수 있어요'}</small>`;
+    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-duel" ${blk || busy ? 'disabled' : ''} title="${blk}">⚔️ 승부하기</button>`;
   } else {
-    const blk = mentorTryBlocker(i), eye = S.mentor.eye;
-    info = `<b>★${n + 1} 수련 · 성공 ${Math.round(mentorRate(i) * 100)}%${eye ? ` (눈도장 +${+(eye * mentorEye(i) * 100).toFixed(1)}%p)` : ''}</b><small>지금 ${now} → 다음 별 ${spText(mentorSpAt(i, n + 1))}</small>`;
-    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">🎓 수련하기 <i class="gc"></i> ${fmt(mentorCost(i))}</button>`;
+    const need = mentorNeed(i), have = mentorBooks(), lack = need - have;
+    const blk = mentorTryBlocker(i);
+    info = `<b>★${n + 1} 수련 · 📕 ${need} 필요 (보유 ${have})</b><small>지금 ${now} → 다음 별 ${mentorSpText(mentorSpAt(i, n + 1))}</small>`;
+    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">📕 수련하기</button>`;
+    if (lack > 0) btn = `<span class="warn">📕 ${lack}권 모자라요</span>${btn}<button class="btn" data-action="goto-castle">🏰 성벽 지키기로</button>`;
   }
   return `
-    <div class="shead"><h3>🎓 교관 수련 <small>2차 훈련 · 별 ${mentorStarSum()}/${MENTORS.length * MENTOR_STARS} · ${m.icon} ${m.name} — ${m.place}</small></h3></div>
+    <div class="shead"><h3>🎓 교관 수련 <small>별 ${mentorStarSum()}/${MENTORS.length * MENTOR_STARS} · 📕 보유 ${mentorBooks()} · ${m.icon} ${m.name} — ${m.place}</small></h3></div>
     <div class="skchips">${chips}</div>
     <canvas class="mstage" data-action="mentor-skip" title="누르면 연출을 건너뛰어요"></canvas>
     <div class="mbar"><span class="grow">${info}</span>${btn}</div>`;
@@ -501,7 +508,7 @@ function mentorPreview(i) {
   if (p && p.key === key) return p;
   if (activeToken() && mentorUi.previewReq !== key) {
     mentorUi.previewReq = key;
-    fetchMentor(i).then((r) => { mentorUi.preview = { ...r, key }; if (campOpen) renderCamp(); }).catch(() => {});
+    fetchMentor(i).then((r) => { mentorUi.preview = { ...r, key }; mentorDuelSync(r.left); if (campOpen) renderCamp(); }).catch(() => {});
   }
   return p && p.i === i ? p : null;
 }
@@ -524,7 +531,7 @@ function viewTrain1() {
   const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u));
   return `
     <div class="shead">
-      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — ${MENTOR_ON ? '초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요' : '초반을 끌어 주고, 중후반 힘은 장비가 책임져요'}</small></h3>
+      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — 초반을 끌어 주고, 중후반 힘은 장비가 책임져요</small></h3>
       <button class="btn${rd(TRAINING.some(canTrain))}" data-action="train-all" ${anyTrain ? '' : 'disabled'}>${ico('bolt')} 골고루 올리기</button>
     </div>
     <div class="tgrid">${cards}</div>`;
@@ -1841,6 +1848,7 @@ function mailRewardText(r = {}) {
   if (r.stones) out.push(`💠 강화석 ×${r.stones}`);
   if (r.tomes) out.push(`📖 비전서 ×${r.tomes}`);
   if (r.raidTickets) out.push(`🎟 레이드 입장권 ×${r.raidTickets}`);
+  if (r.books) out.push(`📕 수련의 서 ×${r.books}`);
   return out;
 }
 function viewMail() {
@@ -1861,7 +1869,7 @@ function viewMail() {
           </button>
           ${on ? `
           <div class="mbd">
-            ${m.body.map((t) => `<p>${esc(t)}</p>`).join('')}
+            ${m.body.map((t) => (typeof t === 'function' ? t() : t)).filter(Boolean).map((t) => `<p>${esc(t)}</p>`).join('')}
             <div class="mrw">${mailRewardText(m.reward).map((t) => `<span class="chip">${t}</span>`).join('')}
               ${got ? '<span class="mdone">✔ 받았어요</span>' : `<button class="btn rd" data-action="mail-claim" data-id="${m.id}">${ico('gift')} 받기</button>`}</div>
           </div>` : ''}
@@ -2903,8 +2911,8 @@ const ACTIONS = {
   },
   'mentor-duel': () => {
     if (mentorUi.anim || mentorUi.busy) return;
-    const i = mentorCur(), paid = mentorPayDuel(i);
-    if (!paid) return;
+    const i = mentorCur();
+    if (mentorDuelBlocker(i) || !activeToken()) return;
     mentorUi.busy = true; mentorUi.view = i;
     requestMentorDuel(i).then((res) => {
       mentorUi.busy = false;
@@ -2914,12 +2922,14 @@ const ACTIONS = {
       if (campOpen) renderCamp();
     }).catch((e) => {
       mentorUi.busy = false;
-      mentorRefund(paid);
+      if (e.status === 429 && /모두/.test(e.message)) mentorDuelSync(0);   // 서버가 오늘 횟수를 다 썼다고 하면 맞춘다
       toast(`⚠️ 승부를 걸지 못했어요 — ${e.message}`, 5000);
       save();
       if (campOpen) renderCamp();
     });
   },
+  'train-tab': (el) => { townUi.trainTab = el.dataset.k; },
+  'goto-castle': () => { campTab = 'sub'; subView = typeof subCard === 'function' && subCard('castle') ? 'castle' : null; markSubSeen(); $('campBody').scrollTop = 0; },
   'buy': (el) => buySupply(el.dataset.id),
   'eat': eatLunch,
   'equip': (el) => { const id = Number(el.dataset.id); if (equipGear(id)) gearUi.sel = { slot: gearById(id).slot }; },

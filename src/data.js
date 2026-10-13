@@ -91,10 +91,10 @@ const AGGRO_RANGE = 260;              // 이 거리 안에 들어오면 몬스�
 
 // ───────────────────────── 건물 ─────────────────────────
 const BUILD_MAX = 20;
-// 🎓 2차 훈련 교관 수련 (src/mentor.js) 스위치. 0.20.6 에 껐다 ("직관적이지 않다"는 평) — 코드·세이브의 별은 그대로 두고,
-//  나중에 다른 서브 콘텐츠와 엮어 다시 켤 때 true 로. 켜면: 1차 훈련 Lv 50 · 훈련장 Lv 10 (Lv6~10 = 교관), 꺼지면: 예전처럼 훈련장 Lv × 10 (최대 200)
-const MENTOR_ON = false;
-const TRAIN_MAX = MENTOR_ON ? 50 : 10 * BUILD_MAX;
+// 🎓 교관 수련 (src/mentor.js) 스위치. 0.20.6 에 껐다가 시즌6 에 📕 수련의 서 확정 상승으로 다시 켰다 (docs/specs/training-mentors.md).
+//  1차 훈련 한도와는 연결하지 않는다 — 켜고 꺼도 훈련은 훈련장 Lv × 10 (최대 200). 끄면 교관을 만날 수 없고 별 보너스도 없다 (별은 세이브에 남는다)
+const MENTOR_ON = true;
+const TRAIN_MAX = 10 * BUILD_MAX;
 const trainCapAt = (lv) => 10 * Math.min(lv, TRAIN_MAX / 10);
 // 초반엔 원정이 4분이라 자주 손봐야 하고, 여관을 올릴수록 길어져 방치가 된다
 // (Lv5 약 11분 · Lv10 약 42분 · Lv15 약 2.6시간 · Lv20 약 10시간)
@@ -116,10 +116,9 @@ const tradesAt = (lv) => (lv >= TRADE_LV ? 2 + Math.floor(lv / 5) : 0);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
 
 const BUILDINGS = {
-  // 교관 수련이 켜져 있으면 훈련장은 Lv10 이 끝 (1차 훈련 Lv1~5 · 교관 Lv6~10 — 그 위로는 열 것이 없다)
   training: {
-    name: '훈련장', icon: '🎯', mul: { gold: 1, wood: 1, ore: 0.6, mana: 0.6 }, max: MENTOR_ON ? 10 : BUILD_MAX,
-    effect: (lv) => (lv <= TRAIN_MAX / 10 ? `훈련 최대 Lv ${trainCapAt(lv)}` : `교관 ${MENTORS.filter((m) => m.bld <= lv).length}명`),
+    name: '훈련장', icon: '🎯', mul: { gold: 1, wood: 1, ore: 0.6, mana: 0.6 },
+    effect: (lv) => `훈련 최대 Lv ${trainCapAt(lv)}`,
   },
   inn: {
     name: '여관', icon: '🛏️', mul: { gold: 1, wood: 1.3, ore: 0.4, mana: 0.8 },
@@ -315,6 +314,21 @@ const MAIL = [
       '자주 바뀌어 헷갈리게 해 드려 죄송해요. 든든하게 드시라고 도시락 5개를 보내 드려요!',
     ],
     reward: { items: { lunch: 5 } },
+  },
+  {
+    // 시즌6: 교관 수련을 📕 수련의 서 확정 상승으로 다시 켬 (docs/specs/training-mentors.md). training-back-1013 에서 약속한 별을 돌려준다
+    id: 'mentor-back-1014',
+    at: Date.parse('2026-10-14T00:00:00+09:00'),
+    until: Date.parse('2026-10-28T00:00:00+09:00'),
+    from: '기사 키우기 개발자',
+    title: '🎓 교관 수련이 돌아왔어요 — 📕 수련의 서 10권',
+    body: [
+      '🎓 교관 수련이 확률 없이 📕 수련의 서로 별을 올리는 모습으로 돌아왔어요. 최고 스테이지 40 부터 훈련장의 🎓 교관 탭에서 만날 수 있어요.',
+      '📕 수련의 서는 🏰 성벽 지키기에서 모아요. 별 네 개는 책으로 바로 받고, 마지막 별은 교관과의 승부로 받아요 (하루 3번, 도전비 없음).',
+      () => { const n = typeof mentorStarSum === 'function' ? mentorStarSum() : 0; return n ? `간직해 두었던 별 ${n}개가 돌아왔어요. 그 별에서 이어서 수련하면 돼요.` : ''; },
+      '🎯 훈련은 그대로 Lv 200 까지 올릴 수 있어요. 먼저 해 보시라고 📕 수련의 서 10권을 보내 드려요!',
+    ],
+    reward: { books: 10 },
   },
   {
     // 0.20.7: 3차 궁극기가 1차 스킬 숙련도를 이어받던 구조를 없애고 별도 스킬로 (docs/specs/ult-separate-mastery.md). 궁극기를 새로 키우는 데 보태라고 모두에게
@@ -909,30 +923,26 @@ const DEF_MAX = 0.5, DEF_HALF = 15;
 const defRedAt = (t) => DEF_MAX * t / (t + DEF_HALF);
 // 수완: 골드·경험치 획득 Lv 당 +3% (몬스터 처치와 레이드 보상에 적용)
 const FORTUNE_PER_LV = 0.03;
-// ───────────────────────── 2차 훈련: 🎓 교관 수련 (src/mentor.js, docs/specs/training-mentors.md) ─────────────────────────
-// 1차 훈련 네 가지가 모두 Lv 50 이면 교관 다섯 명을 차례로 찾아가 별 5개씩 받는다 (고르는 게 아니라 결국 전부 올리는 구조).
-//  bld: 열리는 훈련장 Lv (앞 교관 별 5개도 필요) — 6·7·8·9·10: 진행 봇에서 훈련장 Lv10 ≈ 6일, Lv13 부터는 2주 안에 못 닿아서 (건설 시간 60×1.8^Lv) · sp: 별 하나 몫 (gearBonus 에 더하는 키) · ★5 는 별 하나 몫의 2배
+// ───────────────────────── 🎓 교관 수련 (src/mentor.js, docs/specs/training-mentors.md) ─────────────────────────
+// 최고 스테이지 MENTOR_OPEN_STAGE 에서 열리고, 교관 다섯 명을 차례로 찾아가 별 5개씩 받는다 (고르는 게 아니라 결국 전부 올리는 구조).
+//  ★1~4: 📕 수련의 서(S.books — 🏰 성벽 지키기에서 얻는다) MENTOR_BOOKS[교관][별−1] 권을 내면 확정으로 별 하나. 골드는 받지 않는다
+//  ★5: 교관과의 승부 — 도전비 없음, 하루 MENTOR_DUEL_DAY 번 (서버가 센다, server/index.js)
+//  sp: 별 하나 몫 (gearBonus 에 더하는 키) · ★5 는 별 하나 몫의 2배 · 경험치 보너스는 없다 (1차 훈련이 Lv 200 이라 수완이 그대로라서)
 //  승부 상대는 내 레벨·내 계열의 '기준 기사' 거울 × 교관 배수 (server/mentor.js) — 직업 상성 없이 '얼마나 골고루 갖췄나'만 본다
-//  bg: 무대 배경 (src/bg/<bg>.png, 'dojo' 는 mentor.js 가 직접 그린다)
-// 교관마다 별 하나 몫에 경험치 획득도 붙는다 — 1차 훈련이 Lv50 에서 끝나 수완(골드·경험치)이 +150% 에서 멈춘 만큼을 메운다 (전체 봇 14일 비교로 맞춤)
-const MENTOR_EXP = 0.04;
+//  bg: 무대 배경 (src/bg/<bg>.png, 'dojo' 는 mentor-stage.js 가 직접 그린다)
 const MENTORS = [
-  { id: 'sword',  name: '검술 사범',   icon: '🗡️', place: '도장',       bg: 'dojo',    bld: 6,   sp: { atkPct: 0.025, expPct: MENTOR_EXP } },
-  { id: 'shield', name: '방패 교관',   icon: '🛡️', place: '성채 연병장', bg: 'castle',  bld: 7,  sp: { hpPct: 0.025, guard: 0.01, expPct: MENTOR_EXP } },
-  { id: 'hunter', name: '숲의 사냥꾼', icon: '🏹', place: '깊은 숲',     bg: 'fairy',   bld: 8,  sp: { aspdPct: 0.015, crit: 0.01, expPct: MENTOR_EXP } },
-  { id: 'brute',  name: '화산 투사',   icon: '🔥', place: '화산 분화구', bg: 'volcano', bld: 9,  sp: { critMult: 0.05, bossDmg: 0.03, expPct: MENTOR_EXP } },
-  { id: 'sage',   name: '성좌의 은자', icon: '🌌', place: '구름 위',     bg: 'sky',     bld: 10, sp: { skillDmg: 0.03, expPct: MENTOR_EXP } },
+  { id: 'sword',  name: '검술 사범',   icon: '🗡️', place: '도장',       bg: 'dojo',    sp: { atkPct: 0.025 } },
+  { id: 'shield', name: '방패 교관',   icon: '🛡️', place: '성채 연병장', bg: 'castle',  sp: { hpPct: 0.025, guard: 0.01 } },
+  { id: 'hunter', name: '숲의 사냥꾼', icon: '🏹', place: '깊은 숲',     bg: 'fairy',   sp: { aspdPct: 0.015, crit: 0.01 } },
+  { id: 'brute',  name: '화산 투사',   icon: '🔥', place: '화산 분화구', bg: 'volcano', sp: { critMult: 0.05, bossDmg: 0.03 } },
+  { id: 'sage',   name: '성좌의 은자', icon: '🌌', place: '구름 위',     bg: 'sky',     sp: { skillDmg: 0.03 } },
 ];
 const MENTOR_STARS = 5;
 const MENTOR_LAST_X = 2;                       // ★5 는 별 하나 몫 × 2
-const MENTOR_RATE = [0.6, 0.45, 0.35, 0.25];   // ★1~4 기본 성공 확률
-const MENTOR_EYE = 0.05;                       // 눈도장: 그 별에서 실패할 때마다 다음 확률 +5%p (별을 받으면 0)
-// 뒤 교관일수록 어렵다: 기본 확률·눈도장에 교관별 배수 (교관5 = ★1 30% … ★4 13%, 눈도장 +2.5%p)
-//  기대 시도 (★1~4 합): 교관1 9.1 · 2 10.4 · 3 11.9 · 4 13.6 · 5 15.5회
-const MENTOR_HARD = [1, 0.85, 0.72, 0.6, 0.5];
-// 1회 비용 = 최고 스테이지 몬스터 골드 × MENTOR_GOLD × MENTOR_GROW^(별−1) — ★1 500 · ★2 750 · ★3 1,125 · ★4 1,688 · ★5 승부 2,531 마리 몫
-// 기대 (눈도장 포함): 교관 한 명 ★1~4 ≈ 몬스터 10,200 마리 몫 ≈ 사냥 17시간 (수완 +150% 면 약 7시간)
-const MENTOR_GOLD = 500, MENTOR_GROW = 1.5;
+const MENTOR_OPEN_STAGE = 40;                  // 첫 교관이 열리는 최고 스테이지 (🏰 성벽 지키기 해금과 같은 값)
+// ★1~4 에 드는 📕 (교관별 합 11/16/22/28/33 = 110권 ≈ 성벽 무료 입장 약 10일분)
+const MENTOR_BOOKS = [[2, 2, 3, 4], [2, 3, 5, 6], [3, 4, 7, 8], [4, 6, 8, 10], [5, 7, 9, 12]];
+const MENTOR_DUEL_DAY = 3;                     // ★5 승부 하루 횟수 (한국 시간 자정 초기화)
 // 예전 훈련(공속·치명)은 없어졌다. 예전 세이브에 남은 단계는 쓴 골드를 돌려준다 (core.js migrate)
 const OLD_TRAINING = { spd: { base: 25, grow: 1.55 }, crit: { base: 30, grow: 1.6 } };
 

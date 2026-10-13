@@ -213,6 +213,10 @@ function requireClient(req, min) {
 const lastDuel = new Map();   // key → 마지막 결투 시각
 const lastMentor = new Map();  // key → 마지막 교관 승부 시각
 const MENTOR_COOLDOWN_MS = 3000;
+const MENTOR_DUEL_DAY = 3;               // 🎓 교관 승부 하루 횟수 (src/data.js MENTOR_DUEL_DAY 와 같게, 한국 시간 자정 초기화)
+const MENTOR_OPEN_STAGE = 40;            // 교관이 열리는 최고 스테이지 (src/data.js 와 같게)
+const mentorDay = new Map();  // key → { day, n } 오늘 건 교관 승부 수
+const mentorLeft = (key) => { const u = mentorDay.get(key); return MENTOR_DUEL_DAY - (u && u.day === kstDay() ? u.n : 0); };
 const DUEL_RATED_DAY = 100;              // 하루에 점수가 오가는 결투 수 (넘으면 연습 결투)
 const DUEL_PAIR_MS = 30 * 60 * 1000;     // 같은 상대와 점수가 오가는 간격
 const duelDay = new Map();    // key → { day, n } 오늘 점수 결투 수
@@ -223,6 +227,7 @@ setInterval(() => {
   const now = Date.now(), day = kstDay(now);
   for (const [k, t] of duelPair) if (now - t > DUEL_PAIR_MS) duelPair.delete(k);
   for (const [k, v] of duelDay) if (v.day !== day) duelDay.delete(k);
+  for (const [k, v] of mentorDay) if (v.day !== day) mentorDay.delete(k);
   for (const [k, t] of lastDuel) if (now - t > 600000) lastDuel.delete(k);
   for (const [k, t] of lastSnap) if (now - t > SNAP_EVERY_MS * 2) lastSnap.delete(k);
 }, 600000).unref();
@@ -442,7 +447,7 @@ const routes = {
     const a = await authLite(req);
     const i = Math.floor(num(url.searchParams.get('i'), 0, MENTOR_DUEL.length - 1, 0));
     const me = sanitizeProfile(a.profile), level = me.level, p = mentorProfile(i, level, me.cls);
-    return { i, level, cls: p.cls, power: p.power };
+    return { i, level, cls: p.cls, power: p.power, left: Math.max(0, mentorLeft(a.key)) };
   },
   // 승부: 저장된 내 프로필로 싸운다 (클라이언트가 먼저 세이브를 올린다). 결과 id 로 같은 승리를 두 번 별로 바꾸지 않게
   'POST /api/mentor/duel': async (req) => {
@@ -452,13 +457,18 @@ const routes = {
     const stars = me.state && me.state.mentor && Array.isArray(me.state.mentor.stars) ? me.state.mentor.stars : [];
     if ((stars[i] || 0) !== 4) throw new HttpError(403, '★4 까지 받은 교관과만 승부할 수 있어요');
     for (let j = 0; j < i; j++) if ((stars[j] || 0) < 5) throw new HttpError(403, '앞 교관 수련을 먼저 마쳐야 해요');
+    if (!(me.state && me.state.best >= MENTOR_OPEN_STAGE)) throw new HttpError(403, `최고 스테이지 ${MENTOR_OPEN_STAGE} 부터 교관과 승부할 수 있어요`);
     const now = Date.now(), since = now - (lastMentor.get(me.key) || 0);
     if (since < MENTOR_COOLDOWN_MS) throw new HttpError(429, `${Math.ceil((MENTOR_COOLDOWN_MS - since) / 1000)}초 뒤에 다시 도전할 수 있어요`);
+    // 하루 MENTOR_DUEL_DAY 번 (도전비가 없어서 — 덜 갖춘 기사가 계속 눌러 이기지 못하게)
+    const day = kstDay(), left = mentorLeft(me.key);
+    if (left <= 0) throw new HttpError(429, `오늘 승부를 모두 했어요 (하루 ${MENTOR_DUEL_DAY}번 · 자정에 초기화)`);
     lastMentor.set(me.key, now);
+    mentorDay.set(me.key, { day, n: MENTOR_DUEL_DAY - left + 1 });
     const pa = sanitizeProfile(me.profile), pb = sanitizeProfile(mentorProfile(i, pa.level, pa.cls));
     const fight = simulateDuel(pa, pb);
     return {
-      id: crypto.randomBytes(8).toString('hex'), i, won: fight.winner === 'a',
+      id: crypto.randomBytes(8).toString('hex'), i, won: fight.winner === 'a', left: left - 1,
       me: { nickname: me.nickname, cls: pa.cls, level: pa.level, power: pa.power },
       opponent: { cls: pb.cls, level: pb.level, power: pb.power },
       fight,
@@ -719,7 +729,7 @@ function renameInMemory(oldKey, newKey, nickname) {
     roomOf.delete(oldKey);
     roomOf.set(newKey, r.id);
   }
-  for (const map of [lastDuel, lastWb, lastShout, duelDay]) if (map.has(oldKey)) { map.set(newKey, map.get(oldKey)); map.delete(oldKey); }
+  for (const map of [lastDuel, lastWb, lastShout, duelDay, mentorDay]) if (map.has(oldKey)) { map.set(newKey, map.get(oldKey)); map.delete(oldKey); }
   for (const [h, c] of authCache) if (c.acc.key === oldKey) authCache.delete(h);
 }
 
