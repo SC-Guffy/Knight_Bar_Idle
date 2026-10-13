@@ -2452,7 +2452,7 @@ function viewTower() {
     ${towerUnlocked() ? towerBuyRow() : ''}
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="skill">${ico('bolt')} 스킬 탭에서 스킬 강화하기 →</button></div>` : ''}
-    <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
+    <div class="hint">층마다 정예 몬스터 하나 — 3·6·9로 끝나는 층은 정예 무리 3마리 — 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
       체크포인트(10층 단위)부터 시작하고, 깬 층마다 <b>📖 1권</b>. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${SUB_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
@@ -2517,7 +2517,7 @@ function viewDungeon() {
 // 매 프레임 drawSubPreviews), 오른쪽은 제목·한 줄 설명·상태 칩. 누르면 그 콘텐츠 화면(viewTower·viewDungeon)을 펼친다.
 // 새 콘텐츠는 SUB_CARDS 에 한 줄 보태고 view·칩·미리보기만 붙이면 된다. 마지막 카드는 늘 "Coming Soon".
 const SUB_CARDS = [
-  { k: 'tower', icon: 'tower', name: '도전의 탑', desc: '층마다 정예 하나, 10층마다 보스 — 오를수록 📖 비전서',
+  { k: 'tower', icon: 'tower', name: '도전의 탑', desc: '층마다 정예, 3·6·9층은 무리, 10층마다 보스 — 오를수록 📖 비전서',
     unlocked: () => towerUnlocked(), lockText: () => `스테이지 ${TOWER_UNLOCK_STAGE}에 열려요`, dot: (d) => d.tower, view: () => viewTower(),
     chips: () => {
       const t = S.tower, out = [];

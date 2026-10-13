@@ -14,7 +14,7 @@
 //  }
 // 규칙
 //  - 원정과 같은 스태미나를 같은 속도(STAMINA_DRAIN)로 쓴다. 스태미나가 바닥나거나 쓰러지거나 후퇴하면 끝.
-//  - 시작은 체크포인트(깬 10층 단위 다음 층)부터. 층마다 정예 몬스터 1마리, 10층마다 보스.
+//  - 시작은 체크포인트(깬 10층 단위 다음 층)부터. 층마다 정예 몬스터 1마리, 끝자리 3·6·9 층은 정예 무리(towerPack), 10층마다 보스.
 //  - 층 난이도는 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER. 정예는 체력 ×TOWER_ELITE_HP · 공격력 ×TOWER_ELITE_ATK, 보스는 체력 ×TOWER_BOSS_HP · 공격력 ×TOWER_BOSS_ATK.
 //  - 한 층에서 TOWER_ENRAGE_SEC 초 넘게 싸우면 몬스터가 광폭화해 공격력이 계속 두 배씩 오른다 (towerRage) → 못 넘는 층은 금방 쓰러져 끝난다.
 //  - 보상: 처치 골드·경험치(정예라 원정 몬스터의 3배) + 📖 비전서 — 층을 깰 때마다 1권 (하루 한도 없음 — 입장권으로만 제한)
@@ -48,6 +48,18 @@ function towerMonster(floor) {
   const pool = monsterPool(stage);
   const type = boss ? zoneOf(stage).boss : pool[Math.floor(Math.random() * pool.length)];
   return boss ? { type, ...st, hp: st.hp * TOWER_BOSS_HP, atk: st.atk * TOWER_BOSS_ATK } : { type, ...st, hp: st.hp * TOWER_ELITE_HP, atk: st.atk * TOWER_ELITE_ATK, gold: st.gold * 3, exp: st.exp * 3 };
+}
+
+// 이 층의 마리 수: 끝자리 3·6·9 층은 무리 (dev 시뮬레이터가 window.towerPack 을 덮어써서 정예만 기준선을 잰다 → function 선언으로 둔다)
+function towerPack(floor) {
+  return !towerBossFloor(floor) && TOWER_PACK_FLOORS.includes(floor % 10) ? TOWER_PACK_N : 1;
+}
+// 이 층에 나오는 몬스터 배열. 정예·보스 층은 towerMonster 1마리, 무리 층은 정예를 n마리로 나눠 (체력 ×TOWER_PACK_HP · 공격력 ×TOWER_PACK_ATK · 골드·경험치 ÷n) 종류를 마리마다 뽑는다
+function towerMonsters(floor) {
+  const n = towerPack(floor), m = towerMonster(floor);
+  if (n <= 1) return [m];
+  const pool = monsterPool(towerStage(floor));
+  return Array.from({ length: n }, () => ({ ...m, type: pool[Math.floor(Math.random() * pool.length)], hp: m.hp * TOWER_PACK_HP, atk: m.atk * TOWER_PACK_ATK, gold: m.gold / n, exp: m.exp / n }));
 }
 
 // 한 층에서 t초 싸웠을 때 몬스터 공격력 배율 (광폭화)

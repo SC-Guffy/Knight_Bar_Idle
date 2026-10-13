@@ -54,6 +54,12 @@ const TOWER_ELITE_HP = 2;             // 탑의 일반 몬스터는 정예: 같�
 const TOWER_ELITE_ATK = 2.2;
 const TOWER_BOSS_HP = 2;              // 10층 보스는 같은 스테이지 보스보다 체력 ×2 · 공격력 ×1.6 더 (바로 아래층 정예보다 확실히 세게)
 const TOWER_BOSS_ATK = 1.6;
+// 무리 층: 층 번호 끝자리가 TOWER_PACK_FLOORS 인 층은 정예 무리 TOWER_PACK_N 마리 (종류는 마리마다 따로 뽑는다)
+//  마리당 체력 = 정예 × TOWER_PACK_HP (합 1.2배 — 마리 사이엔 싸우지 않아 쉬워지는 몫), 공격력 = 정예 × TOWER_PACK_ATK, 골드·경험치 = 정예 ÷ 마리 수
+const TOWER_PACK_FLOORS = [3, 6, 9];
+const TOWER_PACK_N = 3;
+const TOWER_PACK_HP = 0.4;
+const TOWER_PACK_ATK = 1;
 const TOWER_ENRAGE_SEC = 10;          // 한 층에서 이만큼 싸우면 광폭화: 그 뒤 TOWER_ENRAGE_DOUBLE 초마다 공격력 2배씩 (10초 ×1, 15초 ×4, 20초 ×16, 25초 ×64…)
 const TOWER_ENRAGE_DOUBLE = 2.5;
 // 탑 비전서: 올라가며 깬 층 하나에 1권 (하루 한도 없음) + 10층 단위 첫 돌파 묶음.

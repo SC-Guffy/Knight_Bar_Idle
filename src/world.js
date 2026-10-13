@@ -591,10 +591,12 @@ function updateTower(dt, gdt) {
       regen();
       if (towerWalk(TW_START_X, WALK_SPEED * 1.6, dt)) {
         knight.facing = 1;
-        const floor = S.tower.run.floor, m = towerMonster(floor);
-        monsters = [makeMonster(m.type, m.boss, toWorld(TW_SPAWN_X), { ...m, atk0: m.atk, rage: 1 })];
+        const floor = S.tower.run.floor, ms = towerMonsters(floor), m = ms[0];
+        // 무리는 정예 자리를 가운데로 14px 간격 (x 100·114·128)
+        monsters = ms.map((o, j, a) => makeMonster(o.type, o.boss, toWorld(TW_SPAWN_X + (j - (a.length - 1) / 2) * 14), { ...o, atk0: o.atk, rage: 1 }));
         tw.ft = 0;
         if (m.boss) showBanner(`🗼 ${floor}F 보스! ${MONSTERS[m.type].name}`, '#ff5a5a');
+        else if (ms.length > 1) addFloater(`⚔ 무리 ×${ms.length}`, TW_SPAWN_X - 14, groundY() - 56, '#ffb070', 12);
         tw.sub = 'fight';
       }
       break;
@@ -714,9 +716,10 @@ function drawTowerBody(g) {
     g.fillRect(0, gy, TOWER_W, 4);
     g.fillStyle = boss ? '#b05a66' : '#8a8298';
     g.fillRect(0, gy, TOWER_W, 1);
-    // 층 번호 (최고 기록 층은 금색, 보스 층은 빨강)
-    g.fillStyle = f === S.tower.best ? '#ffd257' : boss ? '#ff8080' : 'rgba(255,255,255,0.55)';
-    fillTextIco(g, `${boss ? '👑' : ''}${f}F`, 22, top + 12);
+    // 층 번호 (최고 기록 층은 금색, 보스 층은 빨강, 무리 층은 주황 + ×n)
+    const pack = towerPack(f);
+    g.fillStyle = f === S.tower.best ? '#ffd257' : boss ? '#ff8080' : pack > 1 ? '#ffb070' : 'rgba(255,255,255,0.55)';
+    fillTextIco(g, `${boss ? '👑' : ''}${f}F${pack > 1 ? ` ×${pack}` : ''}`, 22, top + 12);
     if (i === 0) {
       // 1층 왼쪽 벽의 문
       g.fillStyle = '#0c0a12';

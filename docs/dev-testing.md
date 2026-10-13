@@ -58,11 +58,13 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - `dev/skills.html` 을 연 뒤 콘솔(javascript_tool)에서 불러온다. 테스트 페이지 루프를 멈추고 게임 `update(1/60)` 을 직접 돌려 탑 전투를 잰다 ([specs/tower-packs.md](specs/tower-packs.md)).
   ```js
   await new Promise((ok) => { const s = document.createElement('script'); s.src = 'tower-pack-sim.js?t=' + Date.now(); s.onload = ok; document.body.appendChild(s); });
-  towerSim.compare(towerSim.TIER2, { pack: { pack: (f) => [3, 6, 9].includes(f % 10) ? 3 : 0, hpShare: 0.4 } }, { curve: 'real', seeds: 8 })
+  towerSim.compare([...towerSim.TIER2, ...towerSim.TIER3], { pack: {} }, { curve: 'real', seeds: 8 })
   ```
+- 무리는 게임이 직접 낸다(`towerPack`·`towerMonsters`). 기준선 `elite` 는 `window.towerPack = () => 1` 로 잰다. 옛 실험용 `pack: { pack: (f) => n, hpShare }` 옵션도 남아 있다.
 - 결과는 직업별 "정예만" 평균 최고 층과 설정별 차이 표다. `curve: 'fine'` 은 보스 없이 층 간격을 잘게(체력 ×1.08/칸) 쪼개 작은 차이를 본다.
 - javascript_tool 은 한 번에 30초쯤 넘으면 끊긴다. 직업 12종 × 12회 × 설정 하나씩 나눠 부른다 (결과는 `towerSim.res` 에 쌓이고 `towerSim.table(직업들, [설정 이름], curve)` 로 다시 볼 수 있다).
-- 페이지의 `towerMonster`·`towerBossFloor`·`save` 를 덮어쓰므로 끝나면 페이지를 새로고침한다.
+- 페이지의 `towerMonster`·`towerBossFloor`·`towerPack`·`save` 를 덮어쓰므로 끝나면 페이지를 새로고침한다.
+- 실제 게임에서 무리 층을 바로 보는 스니펫(`towerTest(13)`)은 [specs/tower-packs.md](specs/tower-packs.md) "확인 방법".
 
 ## UI 도트 아이콘 (`dev/icons.html`)
 

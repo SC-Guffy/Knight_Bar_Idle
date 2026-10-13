@@ -1,8 +1,8 @@
 # 도전의 탑 몬스터 무리
 
-- 상태: 확정 (2026-10-13 사용자 확정, 구현 전)
+- 상태: 진행 중 — 구현 끝, 배포 전 (2026-10-13 사용자 확정, 2026-10-14 구현·검증, `season6` 브랜치)
 - 관련 코드: src/data.js (`TOWER_*`), src/tower.js (`towerMonster`·`towerBossFloor`·`towerKillReward`·`clearTowerFloor`·`sweepTower`), src/world.js (`updateTower` 의 `enter`·`fight`, `fightTick`, `drawTowerBody`), src/ui.js (`viewTower` 안내 문구, 서브 콘텐츠 목록 설명), dev/tower-pack-sim.js (밸런스 시뮬레이터), dev/review/tower-packs.html (검토 페이지)
-- 최종 갱신: 2026-10-13
+- 최종 갱신: 2026-10-14
 
 ## 목표
 
@@ -60,7 +60,7 @@
 ## UI
 
 - **탑 층 번호** (`drawTowerBody`): 무리 층은 `13F ×3` 처럼 뒤에 `×3` 을 붙이고 주황(`#ffb070`)으로 쓴다. 우선순위는 최고 기록 층 금색 > 보스 👑 빨강 > 무리 주황 > 보통 흰색. 다가오는 층이 무리인지 미리 보인다. 새 이모지는 쓰지 않는다(`👥` 는 도트 아이콘이 없다).
-- **등장 알림**: 무리가 나타날 때 무리 위에 `⚔ 무리 ×3` 플로터(`addFloater`, 주황, 12px)를 띄운다. 보스처럼 큰 배너(`showBanner`)는 쓰지 않는다. 30% 층마다 배너가 뜨면 시끄럽다.
+- **등장 알림**: 무리가 나타날 때 무리 위에 `⚔ 무리 ×3` 플로터(`addFloater`, 주황, 12px)를 띄운다. 가운데 x 는 맨 앞 마리 자리(100) — 114 에 두면 글자 오른쪽이 탑 벽(150)에 잘린다. 보스처럼 큰 배너(`showBanner`)는 쓰지 않는다. 30% 층마다 배너가 뜨면 시끄럽다.
 - **탑 탭 안내 문구** (`viewTower` 의 `.hint`): "층마다 정예 몬스터 하나, 10층마다 보스." → "층마다 정예 몬스터 하나 — **3·6·9로 끝나는 층은 정예 무리 3마리** — 10층마다 보스."
 - **서브 콘텐츠 목록 설명** (ui.js `desc: '층마다 정예 하나, 10층마다 보스 — …'`): "층마다 정예, 3·6·9층은 무리, 10층마다 보스 — 오를수록 📖 비전서".
 - "첫 상대" 카드는 체크포인트(끝자리 1) 층이라 늘 정예 1마리다. 바꾸지 않는다.
@@ -103,26 +103,55 @@
 검토 페이지 `dev/review/tower-packs.html` (로컬 서버에서 연다): 층별 구성 표(마리당 체력·마리 수를 바꿔 볼 수 있다), 직업별 유불리·최고 층 변화·처치 시간 막대, 시뮬레이터 다시 재기, 구현 뒤 실제 게임에서 13층을 여는 콘솔 스니펫.
 
 
-- [ ] 무리 층 판정: 콘솔에서 `[1,2,3,6,9,10,13,20,29,30].map(towerPack)` → `[1,1,3,3,3,1,3,1,3,1]`.
-- [ ] 마리당 수치: `towerMonsters(13)` 은 3마리다. 각 마리의 체력 = `monsterStats(towerStage(13), false).hp × 2 × 0.4`, 공격력 = `× 2.2`, 골드·경험치 = 스테이지 몬스터 ×1 이다. `towerMonsters(14)`·`towerMonsters(20)` 은 지금 `towerMonster` 와 같은 1마리다 (콘솔 스니펫으로 비교).
-- [ ] 등장: 웹 게임을 오프라인으로 띄우고(`docs/dev-testing.md`) `S.tower.best = 12` 로 13층부터 시작하면, 몬스터 3마리가 x 100·114·128 쯤에 나타나 탑 폭 안에서 모두 보인다. `⚔ 무리 ×3` 플로터가 뜨고 층 번호가 `13F ×3` 주황이다 (스크린샷).
-- [ ] 줄서기: 근접 기사 앞에 무리가 16px 간격으로 서고, 맨 앞 1마리만 공격 모션을 낸다 (스크린샷 또는 `monsters.map(m => !!m.anim)`).
-- [ ] 광폭화: 무리 층에서 10초 넘게 싸우면 살아 있는 모든 마리의 `m.rage` 가 같이 오르고, `😡 광폭화!` 배너가 한 번 뜬다. 마리 사이 빈 시간에는 `tw.ft` 가 늘지 않는다.
-- [ ] 돌파: 3마리를 다 잡아야 `13F 돌파!` 가 뜬다. 📖 는 1권 오르고, `S.tower.run.kills` 는 3 오른다. 2마리만 잡았을 때는 돌파하지 않는다.
-- [ ] 소탕 불변: `S.tower.best = 25` 에서 `sweepTower()` 의 반환값과 `S.tomes` 증가가 25다 (구현 전과 같다).
-- [ ] 보상 불변: 같은 층을 정예만(`window.towerPack = () => 1`)으로 깼을 때와 무리로 깼을 때 층 합계 골드·경험치가 같다 (`S.tower.run.gold`·`exp` 비교, 골드·경험치 배율 1로).
-- [ ] 밸런스: `towerSim.compare([...towerSim.TIER2, ...towerSim.TIER3], { pack: {} }, { curve: 'real', seeds: 8 })` 를 구현 뒤 다시 돌린다. 이때 무리는 게임이 직접 내고, 기준선은 `window.towerPack = () => 1` 로 잰다. 모든 직업의 최고 층 변화가 **±1층 안**이고 평균 변화는 **±0.3층 안**이다.
-- [ ] 안내 문구: 탑 탭 `.hint` 와 서브 콘텐츠 목록 설명에 "3·6·9층은 무리"가 보인다.
+- [x] 무리 층 판정: 콘솔에서 `[1,2,3,6,9,10,13,20,29,30].map(towerPack)` → `[1,1,3,3,3,1,3,1,3,1]`.
+- [x] 마리당 수치: `towerMonsters(13)` 은 3마리다. 각 마리의 체력 = `monsterStats(towerStage(13), false).hp × 2 × 0.4`, 공격력 = `× 2.2`, 골드·경험치 = 스테이지 몬스터 ×1 이다. `towerMonsters(14)`·`towerMonsters(20)` 은 지금 `towerMonster` 와 같은 1마리다 (콘솔 스니펫으로 비교).
+- [x] 등장: 웹 게임을 오프라인으로 띄우고(`docs/dev-testing.md`) 13층부터 시작하면(체크포인트는 11층이라 아래 "확인 방법" 스니펫이 시작 층을 13으로 바꾼다), 몬스터 3마리가 x 100·114·128 쯤에 나타나 탑 폭 안에서 모두 보인다. `⚔ 무리 ×3` 플로터가 뜨고 층 번호가 `13F ×3` 주황이다 (스크린샷).
+- [x] 줄서기: 근접 기사 앞에 무리가 16px 간격으로 서고, 맨 앞 1마리만 공격 모션을 낸다 (스크린샷 또는 `monsters.map(m => !!m.anim)`).
+- [x] 광폭화: 무리 층에서 10초 넘게 싸우면 살아 있는 모든 마리의 `m.rage` 가 같이 오르고, `😡 광폭화!` 배너가 한 번 뜬다. 마리 사이 빈 시간에는 `tw.ft` 가 늘지 않는다.
+- [x] 돌파: 3마리를 다 잡아야 `13F 돌파!` 가 뜬다. 📖 는 1권 오르고, `S.tower.run.kills` 는 3 오른다. 2마리만 잡았을 때는 돌파하지 않는다.
+- [x] 소탕 불변: `S.tower.best = 25` 에서 `sweepTower()` 의 반환값과 `S.tomes` 증가가 25다 (구현 전과 같다).
+- [x] 보상 불변: 같은 층을 정예만(`window.towerPack = () => 1`)으로 깼을 때와 무리로 깼을 때 층 합계 골드·경험치가 같다 (`S.tower.run.gold`·`exp` 비교, 골드·경험치 배율 1로).
+- [x] 밸런스: `towerSim.compare([...towerSim.TIER2, ...towerSim.TIER3], { pack: {} }, { curve: 'real', seeds: 8 })` 를 구현 뒤 다시 돌린다. 이때 무리는 게임이 직접 내고, 기준선은 `window.towerPack = () => 1` 로 잰다. 모든 직업의 최고 층 변화가 **±1층 안**이고 평균 변화는 **±0.3층 안**이다.
+- [x] 안내 문구: 탑 탭 `.hint` 와 서브 콘텐츠 목록 설명에 "3·6·9층은 무리"가 보인다.
+
+## 확인 방법
+
+1. worktree 를 띄운다 (impl-tower 는 상위 `knight_bar/.claude/launch.json` 의 `impl-tower`, 포트 8832). `index.html?server=http://127.0.0.1:9` 를 오프라인으로 연다 (localStorage 계정은 [dev-testing.md](../dev-testing.md)).
+2. 로드 8초 뒤 콘솔에 붙인다. 시험용으로 탑 몬스터를 약하게 만들어(체력 ×0.06 · 공격 ×0.012) 새 계정 기사로도 수십 초 싸우며 광폭화까지 보인다. 다시 보려면 `towerTest(13)`, 다른 무리 층은 `towerTest(16)` 처럼 부른다.
+   ```js
+   S.phase = 'camp'; S.best = S.stage = Math.max(S.best, 60); S.level = Math.max(S.level, 100); S.cls = 'paladin';
+   S.train.atk = S.train.hp = S.train.def = 100;
+   if (!window.__simOrig) window.__simOrig = simulate;
+   window.simulate = (s) => (S.phase === 'tower' ? undefined : __simOrig(s));   // 숨은 창에서 탑이 'offline' 으로 끝나지 않게
+   if (!window.__tm) window.__tm = towerMonster;
+   window.towerMonster = (f) => { const m = __tm(f); return { ...m, hp: m.hp * 0.06, atk: m.atk * 0.012 }; };   // 시험용 세기 (towerMonsters 가 이걸 나눠 쓴다)
+   window.towerTest = (floor = 13) => {
+     if (tw) { clearTowerFx(); monsters = []; endTowerView(); }
+     if (campOpen) closeCamp();
+     S.phase = 'camp'; S.tower.run = null; S.tower.best = floor - 1; S.tower.tixUsed = 0; S.tower.tixDay = todayKey();
+     S.stamina = Math.max(S.stamina, 100); S.hp = stats().maxHp;
+     startTower(); S.tower.run.start = S.tower.run.floor = floor;
+     beginTowerView(); renderHud();
+   };
+   towerTest(13);
+   ```
+3. 볼 것: 탑 띠의 `13F ×3`·`16F ×3`·`19F ×3` 주황 층 번호 → 13층에 3마리(종류 섞임)와 `⚔ 무리 ×3` → 맨 앞만 공격 → 10초 뒤 `😡 광폭화!` → 3마리 다 잡으면 `13F 돌파!`·📖 +1.
+4. 수치: `[1,2,3,6,9,10,13,20,29,30].map(towerPack)`, `towerMonsters(13)`. 캠프 → 서브 콘텐츠 목록·탑 탭 안내 문구.
+- 주의: 브라우저 창이 숨겨져 있으면 rAF 가 멈추고, 그 상태에서 새로고침하면 메인 캔버스 폭 `W` 가 0 이 되어 `update()` 를 직접 돌려도 몬스터가 안 그려지고 거리 계산(`aheadDist`, 원형 월드 `W + 80`)이 틀어진다. 창을 보이게 한 뒤 확인한다.
 
 ## 진행 기록
 
 - 2026-10-13: 스펙 초안. 탑 코드(`tower.js`·`world.js updateTower`·`fightTick`)를 조사했다. 줄서기 때문에 맨 앞 1마리만 때리고, 마리 사이에는 광폭화 시계가 멈춘다는 점을 확인했다. `dev/skills.html` 위에서 실제 전투로 재는 시뮬레이터 `dev/tower-pack-sim.js` 를 만들었다. 체력 1/3·0.4·0.45, 공격 ×1.2·×1.3, 광폭화 +2초, 4마리 무리를 비교해서 **3마리 · 마리당 체력 정예 ×0.4 · 공격 ×1 · 광폭화 그대로 · 3·6·9층 고정**을 골랐다. 게임 코드는 아직 고치지 않았다.
 - 2026-10-13: 검토 페이지 `dev/review/tower-packs.html` 을 만들었다. 직업별 벽 근처 한 층 처치 시간(정예 → 무리)도 쟀다: 대부분 비슷하거나 조금 길다(저격수 4.5 → 6.0초). 광역 마법 계열만 짧아진다(대마도사 5.6 → 4.1초). 로드맵 세션이 "사용자가 추천대로 진행을 승인했다"고 전해 왔다. 다만 이 세션에서 사용자에게 직접 확인받은 것은 아니어서, 상태는 사용자가 검토 페이지를 본 뒤 `확정`으로 바꾼다.
 - 2026-10-13: 사용자 확정 (로드맵 세션 창에서 "추천대로 진행"). 끝자리 3·6·9층 무리 3마리 · 마리당 체력 0.4배 · 광폭화 그대로.
+- 2026-10-14: 구현 (`impl-tower` → `season6`). data.js `TOWER_PACK_*`, tower.js `towerPack`·`towerMonsters` (무리는 `towerMonster` 결과를 나눠 만들어서, 시뮬레이터가 `towerMonster` 를 덮어쓴 세기 조정이 무리에도 그대로 먹는다), world.js `enter` 등장·플로터·층 번호, ui.js 문구 두 곳. 시뮬레이터는 `elite` 설정에서 `window.towerPack = () => 1`, 나머지는 게임 무리 그대로 (옛 `pack` 주입 옵션은 남김). 세이브 구조 변화 없음.
+  - 검증: 수용 기준 10개 모두 통과. 밸런스(실제 곡선, 8회): 24종 −0.5 ~ +1.0층, 평균 +0.09층. 경계였던 성좌기사(+1.0)를 24회로 다시 재니 +0.7 → 평균 +0.08층. 진행 봇(`--days 2 --seeds 4 --rev HEAD --rev .`) 전후 동일.
+  - 플로터 x 를 114 → 100 으로 옮겼다 (탑 벽에 잘림).
 
 ## 남은 일 / 미정
 
-- [ ] 사용자 확인 → 상태 `확정`.
-- [ ] 구현 (0.21 자잘이 패치에 같이 넣는다, [roadmap.md](roadmap.md) 진행 순서 ①). 구현 뒤 수용 기준을 검증한다. 구현 뒤에는 시뮬레이터의 `pack` 주입이 필요 없으니 `dev/tower-pack-sim.js` 머리 주석을 갱신한다.
+- [x] 사용자 확인 → 상태 `확정`.
+- [x] 구현·검증 (2026-10-14). 시뮬레이터 머리 주석 갱신.
+- [ ] 사용자가 테스트 환경(포트 8832)에서 확인 → 0.21.0 배포 때 `main` 으로 (GAME_VERSION 은 모아서 올린다). 확인 뒤 상태 `완료`.
 - 미정(나중에): 높은 층(예: 50층+)에서 무리를 4마리로 늘릴지. 탑 폭 150px 에 4마리(x 93~135)는 들어간다. 4마리·체력 1/4 은 층 간격이 큰 첫 측정에서만 봤다(잡음이 커서 결론 없음). 하려면 `curve: 'fine'` 으로 다시 잰다.
 - 미정(나중에): 시즌7 스킬 룬이 "도전의 탑 10층 단위 보상"에 섞이면([roadmap.md](roadmap.md) E), 무리 층 전용 보상을 따로 둘지는 그때 정한다. 지금은 보상을 바꾸지 않는다.

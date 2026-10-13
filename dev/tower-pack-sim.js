@@ -6,14 +6,15 @@
 // 기사 세기는 맞추지 않는다. 대신 직업마다 몬스터에 배율을 걸어 "정예만 나올 때 벽이 되는 층"을 같게 만든 뒤, 무리 설정에서 그 벽이 몇 층 움직이는지 본다.
 //  curve 'real': 실제 층 곡선(층마다 체력 ×1.49 · 공격력 ×1.36, 10층마다 보스). 정예만 기준 벽 ≈ 15층.
 //  curve 'fine': 보스 없이 층마다 체력 ×1.08 · 공격력 ×1.06 (실제 1층 ≈ 5칸). 벽 ≈ 20칸. 작은 차이를 볼 때 쓴다.
-// 무리는 아직 게임에 없으므로(towerPack 이 없으면) 층을 시작하는 순간 정예 1마리를 n마리로 바꿔 넣는다.
-//  hpShare: 마리당 체력 = 정예 체력 × hpShare, atkShare: 마리당 공격력 = 정예 공격력 × atkShare, rageExtra: 광폭화 시작을 이만큼(초) 늦춘다.
-// 구현 뒤에는 게임이 무리를 직접 내므로 pack 옵션 대신 window.towerPack 을 덮어써서 기준선(정예만)을 잰다.
+// 무리는 게임이 직접 낸다(tower.js towerPack·towerMonsters). 'elite' 설정은 window.towerPack = () => 1 로 기준선(정예만)을 재고, 나머지 설정은 게임 그대로다.
+//   towerSim.compare([...towerSim.TIER2, ...towerSim.TIER3], { pack: {} }, { curve: 'real', seeds: 8 })
+// 옛 실험용 pack 옵션(게임 무리를 끈 뒤 층을 시작하는 순간 정예 1마리를 n마리로 바꿔 넣는다)도 남겨 둔다.
+//  pack: (f) => 마리 수, hpShare: 마리당 체력 = 정예 체력 × hpShare, atkShare: 마리당 공격력 = 정예 공격력 × atkShare, rageExtra: 광폭화 시작을 이만큼(초) 늦춘다.
 (function () {
   const TIER2 = ['paladin', 'blademaster', 'dragoon', 'halberdier', 'marksman', 'arcaneArcher', 'pyromancer', 'cryomancer', 'greatswordsman', 'cavalier', 'arbalest', 'electromancer'];
   const TIER3 = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'];
-  const origTM = window.__origTM || towerMonster, origBoss = window.__origBoss || towerBossFloor;
-  window.__origTM = origTM; window.__origBoss = origBoss;
+  const origTM = window.__origTM || towerMonster, origBoss = window.__origBoss || towerBossFloor, origPack = window.__origPack || towerPack;
+  window.__origTM = origTM; window.__origBoss = origBoss; window.__origPack = origPack;
   let H = 1, A = 1, curve = 'real';
 
   // 테스트 페이지 루프를 멈추고, 저장·정산 화면·배너를 끈다
@@ -40,8 +41,9 @@
 
   // 탑 한 번: 1층부터 쓰러질 때까지. { best 최고 층, floors: [{ f, n 마리 수, dt 걸린 시간, hp1 끝난 뒤 체력 비율 }] }
   function run(cls, opts = {}) {
-    const o = Object.assign({ pack: null, hpShare: 1 / 3, atkShare: 1, rageExtra: 0, maxSec: 400 }, opts);
+    const o = Object.assign({ elite: false, pack: null, hpShare: 1 / 3, atkShare: 1, rageExtra: 0, maxSec: 400 }, opts);
     calib(cls);
+    window.towerPack = o.elite || o.pack ? () => 1 : origPack;
     if (tw) endTowerView();
     monsters.length = 0;
     S.best = Math.max(S.best, 30); S.phase = 'camp'; S.stamina = 1e9;
@@ -72,6 +74,7 @@
     const last = S.tower.last;
     if (tw) endTowerView();
     monsters.length = 0;
+    window.towerPack = origPack;
     return { cls, best: last ? last.best : null, floors };
   }
 
@@ -80,7 +83,7 @@
   const res = {};
   function compare(classes, cfgs = {}, { curve: c = 'real', seeds = 8, skipElite = false } = {}) {
     setCurve(c);
-    const all = skipElite ? cfgs : { elite: {}, ...cfgs };
+    const all = skipElite ? cfgs : { elite: { elite: true }, ...cfgs };
     for (const [name, opts] of Object.entries(all)) {
       const key = c + ':' + name;
       res[key] = res[key] || {};
