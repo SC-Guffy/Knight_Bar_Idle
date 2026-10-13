@@ -1,6 +1,6 @@
 # 강화 +30 확장 · 등급별 옵션 줄 수 개편
 
-- 상태: 초안 (사용자 확인 대기 — 열린 질문 2개는 "남은 일" 참고)
+- 상태: 확정 (2026-10-13 사용자 확정 — 열린 질문 2개 모두 추천안, 구현 전)
 - 검토 페이지: [dev/review/enhance-30.html](../../dev/review/enhance-30.html) — 확률표·기대 시도/비용 계산기(담금질대·주문서 바꿔 보기)·배율 곡선·옵션 줄 표·이행 규칙
 - 관련 코드: src/data.js (`ENHANCE`, `ENHANCE_MAX`, `enhanceOddsAt`, `enhanceMultAt`, `softEnhMultAt`, `enhanceCost`, `OPT_LINES`, `OPT_MULT`, `TEMPER_*`), src/gear.js (`enhance`, `enhanceBlocker`, `rollOptLines`, `optNeed`, `activeOpts`, `claimLoot`), src/core.js (migrate `gearV`), src/ui.js (`enhOdds`, `forgeSlot`, `slotDetail`, `optLinesHtml`, `forgeRerollRow`, `shoutLvCol`), index.html (`.lvl.l*`), server/index.js (`POST /api/shouts`), dev/progress-bot.js
 - 관련 스펙: [roadmap.md](roadmap.md) "결정 사항 (2026-10-13)" (강화 최대·초기화 확률·옵션 줄 수), [gear-options.md](gear-options.md) (옵션 줄), [forge-temper.md](forge-temper.md) (담금질대), [protect-scroll-drop.md](protect-scroll-drop.md) (보호 주문서)
@@ -184,9 +184,10 @@
   고칠 곳을 더 찾았다: 서버 확성기 검증(`to <= 25`), 강화 배지 CSS(`l5` 까지).
 
 - 2026-10-13: 검토 페이지 `dev/review/enhance-30.html` 을 만들었다. 스펙에는 아래 두 질문의 추천안을 적어 두었다. 사용자가 확인하면 `확정` 으로 바꾼다.
+- 2026-10-13: 사용자 확정 (로드맵 세션 창에서 "강화도 그대로 확정해"). ① +26~30 결정 수치 그대로 + 주문서 없을 때 경고, ② 가진 5줄 초월·태초에 6번째 줄 + 태초 값 2.0 재계산.
 
 ## 남은 일 / 미정
-- [ ] 사용자 확인 → 상태 `확정`. 열린 질문 2개 (스펙 본문은 추천안 기준):
+- [x] 사용자 확인 → 상태 `확정` (2026-10-13, 두 질문 모두 추천안). 열린 질문 2개 (스펙 본문은 추천안 기준):
   1. +26~30 확률: **추천** 결정 수치(성공 15→11% · 하락 30% · 초기화 4%) 그대로 + 주문서 없이 +25 이상이면 화면 경고 / 대안: 하락 20% · 초기화 없음 (맨손 +25→+30 약 2,600회).
   2. 가진 5줄 초월·태초: **추천** 6번째 줄을 굴려 주고 태초 줄 값을 배율 2.0 으로 재계산 / 대안: 6번째 줄만 · 둘 다 안 줌.
 - [ ] 확정되면 [gear-options.md](gear-options.md) 줄 수 표·배율을 "지금"으로 고친다 (지금은 "예정" 줄로만 적어 둠).
