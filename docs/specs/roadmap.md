@@ -165,7 +165,7 @@
 | ① | 입장권 골드 구매 (탑·미궁) | `ticket-buy.md` | 작성 대기 |
 | ① | 탑 몬스터 무리 | `tower-packs.md` | 작성 대기 |
 | ① | 스킬 하단바 섬광 11곳 · 평타 버그 3건 (VFX 조사에서 옮김) | [vfx-rule-fixes.md](vfx-rule-fixes.md) | 확정 (10-13), 구현 대기 |
-| ①② | 강화 +30 · 등급별 옵션 줄 수 | `enhance-30.md` + [gear-options.md](gear-options.md) 갱신 | 작성 대기 |
+| ①② | 강화 +30 · 등급별 옵션 줄 수 | [enhance-30.md](enhance-30.md) + [gear-options.md](gear-options.md) 갱신 | 초안 (확인 대기) — 비용 식 그대로, +25→+30 주문서로 부위당 약 39회. 질문 2개(+26~30 확률·가진 초월·태초) 남음. 검토 `dev/review/enhance-30.html` |
 | ③ | 성벽 지키기 | [castle-defense.md](castle-defense.md) | 확정 |
 | ③ | 교관 재가동 (수련의 서) | [training-mentors.md](training-mentors.md) 개정 | 작성 대기 |
 | ④ | 권투가 7종 | `boxer-class.md` | 작성 대기 |
