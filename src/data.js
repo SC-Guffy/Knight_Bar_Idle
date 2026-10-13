@@ -92,8 +92,9 @@ const bagCapAt = (lv) => 20 + 6 * (lv - 1);                     // 가방이 들
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
 
 const BUILDINGS = {
+  // 훈련장은 Lv10 이 끝 (1차 훈련 Lv1~5 · 교관 Lv6~10 — 그 위로는 열 것이 없다)
   training: {
-    name: '훈련장', icon: '🎯', mul: { gold: 1, wood: 1, ore: 0.6, mana: 0.6 },
+    name: '훈련장', icon: '🎯', mul: { gold: 1, wood: 1, ore: 0.6, mana: 0.6 }, max: 10,
     effect: (lv) => (lv <= TRAIN_MAX / 10 ? `훈련 최대 Lv ${trainCapAt(lv)}` : `교관 ${MENTORS.filter((m) => m.bld <= lv).length}명`),
   },
   inn: {
@@ -110,6 +111,8 @@ const BUILDINGS = {
   },
 };
 
+// 건물 최대 Lv (건물마다 max 가 있으면 그것, 없으면 BUILD_MAX)
+const bldMax = (id) => BUILDINGS[id].max || BUILD_MAX;
 function buildCost(id, lv) {
   const m = BUILDINGS[id].mul;
   return {
@@ -820,12 +823,14 @@ const FORTUNE_PER_LV = 0.03;
 //  bld: 열리는 훈련장 Lv (앞 교관 별 5개도 필요) — 6·7·8·9·10: 진행 봇에서 훈련장 Lv10 ≈ 6일, Lv13 부터는 2주 안에 못 닿아서 (건설 시간 60×1.8^Lv) · sp: 별 하나 몫 (gearBonus 에 더하는 키) · ★5 는 별 하나 몫의 2배
 //  승부 상대는 내 레벨·내 계열의 '기준 기사' 거울 × 교관 배수 (server/mentor.js) — 직업 상성 없이 '얼마나 골고루 갖췄나'만 본다
 //  bg: 무대 배경 (src/bg/<bg>.png, 'dojo' 는 mentor.js 가 직접 그린다)
+// 교관마다 별 하나 몫에 경험치 획득도 붙는다 — 1차 훈련이 Lv50 에서 끝나 수완(골드·경험치)이 +150% 에서 멈춘 만큼을 메운다 (전체 봇 14일 비교로 맞춤)
+const MENTOR_EXP = 0.04;
 const MENTORS = [
-  { id: 'sword',  name: '검술 사범',   icon: '🗡️', place: '도장',       bg: 'dojo',    bld: 6,   sp: { atkPct: 0.025 } },
-  { id: 'shield', name: '방패 교관',   icon: '🛡️', place: '성채 연병장', bg: 'castle',  bld: 7,  sp: { hpPct: 0.025, guard: 0.01 } },
-  { id: 'hunter', name: '숲의 사냥꾼', icon: '🏹', place: '깊은 숲',     bg: 'fairy',   bld: 8,  sp: { aspdPct: 0.015, crit: 0.01 } },
-  { id: 'brute',  name: '화산 투사',   icon: '🔥', place: '화산 분화구', bg: 'volcano', bld: 9,  sp: { critMult: 0.05, bossDmg: 0.03 } },
-  { id: 'sage',   name: '성좌의 은자', icon: '🌌', place: '구름 위',     bg: 'sky',     bld: 10, sp: { skillDmg: 0.03 } },
+  { id: 'sword',  name: '검술 사범',   icon: '🗡️', place: '도장',       bg: 'dojo',    bld: 6,   sp: { atkPct: 0.025, expPct: MENTOR_EXP } },
+  { id: 'shield', name: '방패 교관',   icon: '🛡️', place: '성채 연병장', bg: 'castle',  bld: 7,  sp: { hpPct: 0.025, guard: 0.01, expPct: MENTOR_EXP } },
+  { id: 'hunter', name: '숲의 사냥꾼', icon: '🏹', place: '깊은 숲',     bg: 'fairy',   bld: 8,  sp: { aspdPct: 0.015, crit: 0.01, expPct: MENTOR_EXP } },
+  { id: 'brute',  name: '화산 투사',   icon: '🔥', place: '화산 분화구', bg: 'volcano', bld: 9,  sp: { critMult: 0.05, bossDmg: 0.03, expPct: MENTOR_EXP } },
+  { id: 'sage',   name: '성좌의 은자', icon: '🌌', place: '구름 위',     bg: 'sky',     bld: 10, sp: { skillDmg: 0.03, expPct: MENTOR_EXP } },
 ];
 const MENTOR_STARS = 5;
 const MENTOR_LAST_X = 2;                       // ★5 는 별 하나 몫 × 2

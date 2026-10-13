@@ -360,7 +360,7 @@ function viewTown() {
   let act;
   if (S.build && S.build.id === id) {
     act = `<div class="prog"><div data-bar="build"></div></div><div class="small">건설 중 · <span data-live="buildLeft"></span></div>`;
-  } else if (lv >= BUILD_MAX) {
+  } else if (lv >= bldMax(id)) {
     act = '<div class="small">최대 레벨</div>';
   } else {
     const c = buildCost(id, lv);
@@ -375,7 +375,7 @@ function viewTown() {
       <div class="info">
         <b>${b.name} <small>Lv ${lv}</small></b>
         <div class="eff">${b.effect(lv)}</div>
-        ${lv < BUILD_MAX ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
+        ${lv < bldMax(id) ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
       </div>
       <div class="act">${act}</div>
     </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : ''}`;
@@ -1086,7 +1086,7 @@ const ico = (n) => `<i class="pi pi-${n}"></i>`;
 // 글자를 바뀔 때만 넣는다 (0.25초마다 다시 넣으면 누르는 도중 버튼 속 노드가 바뀐다). 아이콘이 원래 이모지를 품고 있어 비교가 맞는다
 const setIcoText = (el, text) => { if (el.textContent !== text) el.textContent = text; };
 const rd = (on) => (on ? ' rd' : '');
-const canBuild = (id) => !S.build && S.bld[id] < BUILD_MAX && canAfford(buildCost(id, S.bld[id]));
+const canBuild = (id) => !S.build && S.bld[id] < bldMax(id) && canAfford(buildCost(id, S.bld[id]));
 // 훈련은 골드가 쌓이면 늘 할 수 있어서, 다음 단계 비용의 2배가 모였을 때만 찍는다 (버튼은 비용만 있으면 눌림)
 // 레드닷: 골드가 넉넉하고, 공격력·체력은 한 단계가 1% 이상 올려 줄 때만 (중후반엔 장비가 힘의 대부분이라 재촉하지 않는다)
 const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= 2 * trainCost(u) && (u.id !== 'atk' && u.id !== 'hp' || trainGain(u) >= 0.01);

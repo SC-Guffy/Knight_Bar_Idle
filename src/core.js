@@ -89,6 +89,16 @@ function migrate(o) {
     for (let i = TRAIN_MAX; i < (s.train[u.id] || 0); i++) over += Math.floor(u.base * Math.pow(u.grow, i));
     s.train[u.id] = Math.min(TRAIN_MAX, s.train[u.id] || 0);
   }
+  // 훈련장 최대 Lv 이 10 으로 내려갔다: 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
+  const back = { gold: 0, wood: 0, ore: 0, mana: 0 };
+  const addBack = (c) => { for (const k of Object.keys(back)) back[k] += c[k]; };
+  if (s.build && s.build.id === 'training' && s.bld.training >= bldMax('training')) { addBack(buildCost('training', s.bld.training)); s.build = null; }
+  for (let lv = bldMax('training'); lv < s.bld.training; lv++) addBack(buildCost('training', lv));
+  if (back.gold) {
+    s.bld.training = Math.min(s.bld.training, bldMax('training'));
+    s.gold += back.gold; s.mats.wood += back.wood; s.mats.ore += back.ore; s.mats.mana += back.mana;
+    if (!s.notice) s.notice = `🎯 훈련장 최대 Lv 이 ${bldMax('training')} 이 됐어요 — 넘는 레벨을 짓는 데 쓴 재화를 돌려드렸어요`;
+  }
   if (over > 0) {
     s.gold += over;
     if (!s.notice) s.notice = `🎓 훈련 개편 — 훈련은 Lv ${TRAIN_MAX} 에서 끝나고 그다음은 훈련장의 교관 수련이에요. Lv ${TRAIN_MAX} 을 넘겨 쓴 골드 ${fmt(over)}을 돌려드렸어요`;
@@ -511,7 +521,7 @@ function canAfford(cost) {
 function startBuild(id) {
   const lv = S.bld[id];
   const cost = buildCost(id, lv);
-  if (S.build || lv >= BUILD_MAX || !canAfford(cost)) return false;
+  if (S.build || lv >= bldMax(id) || !canAfford(cost)) return false;
   S.gold -= cost.gold;
   S.mats.wood -= cost.wood; S.mats.ore -= cost.ore; S.mats.mana -= cost.mana;
   const total = buildTimeAt(lv);

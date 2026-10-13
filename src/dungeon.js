@@ -94,7 +94,7 @@ const DG_RUN_UNITS = DG_SLOT_AVG * Array.from({ length: DG_RUN_BOSSES }, (_, k) 
 const DG_RUN_SHARE = 1.5;
 function dgNextBuildCost(k) {
   const ids = Object.keys(BUILDINGS);
-  const sum = ids.reduce((a, id) => a + buildCost(id, Math.min(S.bld[id], BUILD_MAX - 1))[k], 0);
+  const sum = ids.reduce((a, id) => a + buildCost(id, Math.min(S.bld[id], bldMax(id) - 1))[k], 0);
   return sum / ids.length;
 }
 function dgUnitValue(r, best = S.best) {
