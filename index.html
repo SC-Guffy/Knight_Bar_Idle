@@ -760,6 +760,11 @@
   .sigcard { width: 44px; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 0 3px; border-radius: 8px; box-sizing: border-box;
     border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 12%, rgba(0,0,0,.3)); box-shadow: inset 0 0 8px color-mix(in srgb, var(--c) 30%, transparent); }
   .sigcard .gicon { width: 28px; height: 28px; }
+  /* 16×16 장비 그림(18px 캔버스)은 정수배로: 목록 2배 · 상세 3배 */
+  .gicon.a16 { width: 36px; height: 36px; }
+  .gicon.a16.big { width: 54px; height: 54px; }
+  .gsbox .gicon.a16.big { width: 36px; height: 36px; }
+  .box.chestbox .gicon.a16, .sigcard .gicon.a16 { width: 36px; height: 36px; }
   .sigcard small { font-size: 9.5px; line-height: 1.1; }
   .sigcard:not(.own) { border-style: dashed; }
   .sigcard:not(.own) .gicon.sil { filter: brightness(0) drop-shadow(0 0 3px var(--c)); opacity: .75; }
@@ -906,6 +911,7 @@
 </div>
 
 <script src="src/data.js"></script>
+<script src="src/gear-art.js"></script>
 <script src="src/iconmap.js"></script>
 <script src="src/icondraw.js"></script>
 <script src="src/classes.js"></script>

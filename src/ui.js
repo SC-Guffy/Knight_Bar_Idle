@@ -237,18 +237,22 @@ const isMystery = (it) => it.k === 'gear' && it.g >= 3;
 
 // ── 장비 도트 아이콘 ──
 // <canvas data-gi="도감 키"> 를 HTML 에 넣어 두고, 그린 뒤 paintGearIcons 가 스프라이트를 찍는다
-// 전리품 상자도 같은 방식으로 <canvas data-bx="등급"> 에 찍는다
-const gearIcon = (it, cls = '') => `<canvas class="gicon ${isSetGear(it) ? 'gs' : 'g' + it.g} ${cls}" width="14" height="14" data-gi="${it.t}"></canvas>`;
+// 장비는 16×16 고유 그림(src/gear-art.js GEAR_ART, 외곽선 포함 18px 캔버스 · 클래스 a16), 없으면 예전 12×12 (GEAR_SPR + pal, 14px)
+// 전리품 상자도 같은 방식으로 <canvas data-bx="등급"> 에 찍는다 (12×12 그대로)
+const gearIcon = (it, cls = '') => {
+  const n = GEAR_ART[it.t] ? 18 : 14;
+  return `<canvas class="gicon ${isSetGear(it) ? 'gs' : 'g' + it.g} ${n === 18 ? 'a16' : ''} ${cls}" width="${n}" height="${n}" data-gi="${it.t}"></canvas>`;
+};
 const boxIcon = (g) => `<canvas class="gicon g${g}" width="14" height="14" data-bx="${g}"></canvas>`;
 const lootIconHtml = (it) => (it.k === 'gear' ? gearIcon(it) : `<span class="lic">${lootIcon(it)}</span>`);
 
 const gearSprCache = {};
-// key: 캐시 키, def: { spr, pal } (장비 도감 항목 또는 LOOT_BOXES 항목)
+// key: 캐시 키, def: { spr, pal } (장비 도감 항목 또는 LOOT_BOXES 항목) 또는 { rows, pal } (GEAR_ART)
 function gearSprite(key, def) {
   if (gearSprCache[key]) return gearSprCache[key];
-  const rows = GEAR_SPR[def.spr];
+  const rows = def.rows || GEAR_SPR[def.spr];
   const cv = document.createElement('canvas');
-  cv.width = cv.height = 14;
+  cv.width = cv.height = rows.length + 2;
   const g = cv.getContext('2d');
   const each = (fn) => rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') fn(x + 1, y + 1, ch); }));
   g.fillStyle = '#14151c';                    // 외곽선: 칠해진 칸의 상하좌우
@@ -260,10 +264,10 @@ function paintGearIcons(root) {
   const paint = (cv, key, def) => {
     if (!def) return;
     const g = cv.getContext('2d');
-    g.clearRect(0, 0, 14, 14);
+    g.clearRect(0, 0, cv.width, cv.height);
     g.drawImage(gearSprite(key, def), 0, 0);
   };
-  root.querySelectorAll('canvas[data-gi]').forEach((cv) => paint(cv, cv.dataset.gi, GEAR_ITEMS[cv.dataset.gi]));
+  root.querySelectorAll('canvas[data-gi]').forEach((cv) => { const t = cv.dataset.gi; paint(cv, (GEAR_ART[t] ? 'art:' : '') + t, GEAR_ART[t] || GEAR_ITEMS[t]); });
   root.querySelectorAll('canvas[data-bx]').forEach((cv) => paint(cv, 'box' + cv.dataset.bx, LOOT_BOXES[cv.dataset.bx]));
   root.querySelectorAll('canvas[data-rb]').forEach((cv) => paint(cv, 'rbox' + cv.dataset.rb, RAID_BOSSES[cv.dataset.rb].chest));
   // 레이드·월드 보스 초상: 몬스터 도트 첫 프레임을 캔버스 크기에 맞춰 찍는다
