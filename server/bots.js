@@ -88,6 +88,25 @@ function curveAt(line, best) {
     atk: lerpLog(v(lo, 'atk'), v(hi, 'atk'), t), maxHp: lerpLog(v(lo, 'maxHp'), v(hi, 'maxHp'), t), power: lerpLog(v(lo, 'power'), v(hi, 'power'), t),
   });
 }
+// 계열 line 의 기사가 레벨 level 일 때의 프로필 — 표의 레벨 칸으로 그 레벨에 닿는 최고 스테이지를 찾아 curveAt 으로 (🎓 교관 승부, server/index.js)
+// 표 끝을 넘는 레벨은 마지막 몇 줄의 '레벨당 스테이지' 기울기로 스테이지를 늘린다
+function curveAtLevel(line, level) {
+  const rows = CURVE.lines[line] || CURVE.lines[LINES[0]];
+  const v = (r, c) => r[COL[c]];
+  const last = rows[rows.length - 1];
+  if (level >= v(last, 'level')) {
+    const ref = rows[Math.max(0, rows.length - 6)], k = (v(last, 'best') - v(ref, 'best')) / Math.max(1, v(last, 'level') - v(ref, 'level'));
+    return { ...curveAt(line, v(last, 'best') + (level - v(last, 'level')) * k), level: Math.round(level) };
+  }
+  for (let i = 1; i < rows.length; i++) {
+    const lo = rows[i - 1], hi = rows[i];
+    if (v(hi, 'level') > level) {
+      const t = Math.max(0, (level - v(lo, 'level')) / Math.max(1, v(hi, 'level') - v(lo, 'level')));
+      return { ...curveAt(line, lerp(v(lo, 'best'), v(hi, 'best'), t)), level: Math.round(level) };
+    }
+  }
+  return { ...curveAt(line, v(rows[0], 'best')), level: Math.round(level) };
+}
 function toProfile(r, best, x) {
   const v = (c) => r[COL[c]];
   return {
@@ -315,4 +334,4 @@ function createBots(deps) {
   };
 }
 
-module.exports = { createBots, curveAt, spread, towerOf, CFG };
+module.exports = { createBots, curveAt, curveAtLevel, spread, towerOf, CFG };

@@ -18,7 +18,7 @@ const townTier = (lv) => (lv < 5 ? 0 : lv < 10 ? 1 : lv < 15 ? 2 : 3);
 // (안의 버튼이 빨갛게 뛰면 탭·이름표에도 점이 있어야 한다는 원칙)
 function townTodo(id) {
   if (canBuild(id)) return true;
-  if (id === 'training') return TRAINING.some(canTrain);
+  if (id === 'training') return TRAINING.some(canTrain) || mentorTodo();
   if (id === 'forge') return Object.keys(GEAR_SLOTS).some(gearCanEnh) || Object.keys(FORGE_FAC).some((f) => forgeFacBlocker(f) === '');   // 부위 강화 · 시설
   return false;
 }

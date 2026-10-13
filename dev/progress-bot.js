@@ -1,13 +1,16 @@
 'use strict';
 // 진행 봇 (개발용, 밸런스 점검). 게임 src 를 Node vm 에 올려 7일치 진행을 빠르게 돌리고 재화 수입·지출과 스테이지 도달 시각을 표로 낸다.
 //  node dev/progress-bot.js [--days 5] [--seeds 12] [--rev HEAD~1 --rev HEAD ...]
-//  --rev 를 여러 개 주면 그 커밋들의 src 를 각각 불러 나란히 비교한다 (없으면 작업 트리의 src 하나만).
+//  --rev 를 여러 개 주면 그 커밋들의 src 를 각각 불러 나란히 비교한다 (없으면 작업 트리의 src 하나만). --rev . 은 작업 트리.
+//  🎓 교관 수련(2차 훈련)이 있는 src 면: 훈련 뒤 남는 골드로 수련하고(비용 2배 이상일 때), 승부(★5)는 하루 한 번 server/duel.js 로 바로 계산한다.
 // 봇의 하루: 원정(스태미나 다 쓰면 귀환) → 가방 정리·자동 장착·안 낀 장비 전부 판매 → 레이드 3회(4인 파티로 이길 수 있는 가장 센 보스, 이긴다고 가정)
 //  → 강화(+15 까지, 그 위는 보호 주문서가 있을 때만) → 건설 → 훈련 → 스태미나 차면 다시 원정. 탑·월드 보스·결투는 돌리지 않는다.
 // 수치는 '24시간 켜 둔 봇' 기준이라 실제 플레이어보다 빠르다. 변경 전후의 차이를 보는 용도다.
 const vm = require('vm'), fs = require('fs'), path = require('path'), cp = require('child_process');
+const { simulateDuel } = require('../server/duel');
+const { mentorProfile } = require('../server/mentor');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['data', 'classes', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'core'];
+const FILES = ['data', 'classes', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'core'];
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140];
 
 function makeGame(rev) {
@@ -20,11 +23,38 @@ function makeGame(rev) {
   vm.createContext(ctx);
   for (const f of FILES) {
     let src;
-    if (rev) { try { src = cp.execFileSync('git', ['show', `${rev}:src/${f}.js`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { continue; } } // 그 커밋에 아직 없는 파일(예: 0.12.0 이전의 dungeon.js)은 건너뜀
+    if (rev && rev !== '.') { try { src = cp.execFileSync('git', ['show', `${rev}:src/${f}.js`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { continue; } } // 그 커밋에 아직 없는 파일(예: 0.12.0 이전의 dungeon.js)은 건너뜀
     else src = fs.readFileSync(path.join(ROOT, 'src', f + '.js'), 'utf8');
     vm.runInContext(src, ctx, { filename: f + '.js' });
   }
   return ctx;
+}
+
+// 🎓 교관 수련 (2차 훈련)을 하는 src 면 그 함수들, 아니면 null
+const mentorApi = (ctx) => vm.runInContext(`typeof mentorTry === 'function' ? { mentorCur, mentorOpen, mentorDuelTurn, mentorPayDuel, mentorSettle, mentorTry, mentorCost, mentorStarSum, trainDone, profile, MENTORS } : null`, ctx);
+// 교관 수련 한 차례: 수련(★1~4)은 골드가 비용 2배 이상일 때 계속, 승부(★5)는 하루 한 번 (server/duel.js 로 바로 계산).
+//  ms = { duelDay, mid, starAt: { 별 합계: 처음 닿은 시간 }, spent, doneAt: 1차 수료 시간 } — 부르는 쪽이 들고 다닌다
+function playMentors(M, S, day, t, ms) {
+  if (ms.doneAt == null && M.trainDone()) ms.doneAt = t / 3600;
+  ms.hallAt = ms.hallAt || {};
+  if (ms.hallAt[S.bld.training] == null) ms.hallAt[S.bld.training] = t / 3600;
+  for (let k = 0; k < 200; k++) {
+    const i = M.mentorCur();
+    if (!M.mentorOpen(i)) break;
+    if (M.mentorDuelTurn(i)) {
+      if (ms.duelDay === day) break;
+      ms.duelDay = day;
+      const paid = M.mentorPayDuel(i);
+      if (!paid) break;
+      ms.spent += paid;
+      const me = M.profile();
+      M.mentorSettle(i, { id: 'm' + (++ms.mid), won: simulateDuel(me, mentorProfile(i, S.level, me.cls)).winner === 'a' });
+      continue;
+    }
+    if (S.gold < 2 * M.mentorCost(i)) break;
+    const g0 = S.gold; M.mentorTry(i); ms.spent += g0 - S.gold;
+  }
+  for (let n = 5; n <= M.MENTORS.length * 5; n += 5) if (ms.starAt[n] == null && M.mentorStarSum() >= n) ms.starAt[n] = t / 3600;
 }
 
 function runOne({ days, seed, rev }) {
@@ -32,9 +62,10 @@ function runOne({ days, seed, rev }) {
   const ctx = makeGame(rev); ctx.Math.random = rnd;
   const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt })`, ctx);
+  const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, spent: 0 };
   const S = A.S(); S.gear.auto = true;
   const inc = { expGold: 0, curioGold: 0, raidGold: 0, saleGold: 0, bossStones: 0, saleStones: 0, raidGear: [0, 0, 0, 0, 0, 0, 0, 0], raids: 0, trips: 0 };
-  const spend = { train: 0, build: 0, enhStone: 0, enhOre: 0, buildOre: 0 };
+  const spend = { train: 0, build: 0, enhStone: 0, enhOre: 0, buildOre: 0, mentor: 0 };
   const reach = {}; let rid = 0, t = 0, lastDay = -1;
   const sell = () => { const l = S.gear.inv.filter((x) => !A.isEquipped(x) && !A.isSetGear(x)); if (!l.length) return; const g0 = S.gold, s0 = S.stones; A.sellGear(l); inc.saleGold += S.gold - g0; inc.saleStones += S.stones - s0; };
   const chores = () => {
@@ -59,6 +90,7 @@ function runOne({ days, seed, rev }) {
     }
     for (const id of Object.keys(A.BUILDINGS)) { const g0 = S.gold, o0 = S.mats.ore; if (A.startBuild(id)) { spend.build += g0 - S.gold; spend.buildOre += o0 - S.mats.ore; } }
     { const g0 = S.gold; A.doTrainAll(); spend.train += g0 - S.gold; }
+    if (M) { playMentors(M, S, day, t, ms); spend.mentor = ms.spent; }
   };
   while (t < days * DAY) {
     if (S.phase === 'expedition') { A.simulate(TICK); if (S.phase === 'returning') A.simulate(0); }
@@ -67,7 +99,7 @@ function runOne({ days, seed, rev }) {
     for (const th of STAGES) if (reach[th] == null && S.best >= th) reach[th] = t / 3600;
   }
   chores();
-  return { best: S.best, gold: S.gold, stones: S.stones, ore: S.mats.ore, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
+  return { mentorStars: M ? M.mentorStarSum() : 0, mentorStarAt: ms.starAt, trainDoneAt: ms.doneAt, best: S.best, gold: S.gold, stones: S.stones, ore: S.mats.ore, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
     train: S.train.atk + S.train.hp + S.train.def + S.train.fortune, bld: Object.values(S.bld).reduce((a, b) => a + b, 0),
     enh: S.gear.enh.weapon + S.gear.enh.armor + S.gear.enh.ring,
     eq: Object.keys(A.GEAR_SLOTS).reduce((a, k) => { const it = S.gear.inv.find((x) => A.isEquipped(x) && x.slot === k); return a + (it ? it.g : 0); }, 0) };
@@ -90,6 +122,11 @@ function main() {
   for (const th of STAGES) row(`스테이지 ${th} 도달(시간)`, (r) => (r.reach[th] == null ? 9999 : r.reach[th]), (x) => (x === 9999 ? '-' : x.toFixed(1)));
   row('장착 등급 합(3부위)', (r) => r.eq); row('강화 합계(3부위)', (r) => r.enh);
   row('훈련 합계', (r) => r.train); row('훈련 상한(훈련장 기준)', (r) => r.trainCap);
+  row('1차 훈련 수료 (시간)', (r) => (r.trainDoneAt == null ? 9999 : r.trainDoneAt), (x) => (x === 9999 ? '-' : x.toFixed(1)));
+  row('🎓 교관 별 합계', (r) => r.mentorStars);
+  for (let n = 5; n <= 25; n += 5) row(`🎓 교관 별 ${n} (시간)`, (r) => (r.mentorStarAt[n] == null ? 9999 : r.mentorStarAt[n]), (x) => (x === 9999 ? '-' : x.toFixed(1)));
+  row('골드: 훈련 지출 / 원정', (r) => r.spend.train / (r.inc.expGold + r.inc.curioGold), pct);
+  row('골드: 교관 지출 / 원정', (r) => r.spend.mentor / (r.inc.expGold + r.inc.curioGold), pct);
   row('건물 Lv 합계', (r) => r.bld); row('원정 횟수', (r) => r.inc.trips); row('레이드 횟수', (r) => r.inc.raids);
   row('레이드 장비 전설 이상', (r) => r.inc.raidGear.slice(4).reduce((a, b) => a + b, 0));
   row('골드: 판매 / 원정', (r) => r.inc.saleGold / (r.inc.expGold + r.inc.curioGold), pct);
@@ -100,4 +137,4 @@ function main() {
 }
 // 다른 개발 스크립트(dev/bot-curve.js)가 게임 vm 을 빌려 쓸 수 있게
 if (require.main === module) main();
-module.exports = { makeGame };
+module.exports = { makeGame, mentorApi, playMentors };

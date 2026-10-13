@@ -25,6 +25,7 @@ function freshState() {
     stage: 1, best: 1,
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
+    mentor: freshMentor(),                  // 🎓 2차 훈련 교관 수련: 지금 교관·별·눈도장 (mentor.js)
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
     forge: {},                              // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
@@ -81,6 +82,16 @@ function migrate(o) {
   if (refund > 0) {
     s.gold += refund;
     s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·수완으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
+  }
+  // 훈련(1차)이 Lv 50 에서 끝난다 (2차는 교관 수련): 50 을 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다
+  let over = 0;
+  for (const u of TRAINING) {
+    for (let i = TRAIN_MAX; i < (s.train[u.id] || 0); i++) over += Math.floor(u.base * Math.pow(u.grow, i));
+    s.train[u.id] = Math.min(TRAIN_MAX, s.train[u.id] || 0);
+  }
+  if (over > 0) {
+    s.gold += over;
+    if (!s.notice) s.notice = `🎓 훈련 개편 — 훈련은 Lv ${TRAIN_MAX} 에서 끝나고 그다음은 훈련장의 교관 수련이에요. Lv ${TRAIN_MAX} 을 넘겨 쓴 골드 ${fmt(over)}을 돌려드렸어요`;
   }
   // 잠깐 있었던 거물 사냥(boss) 훈련은 비용 곡선이 같은 수완으로 단계를 옮긴다
   // 스킬 숙련도 도입: 모두 Lv1 에서 시작한다 (Lv1 은 예전 스킬 배율의 ×0.85)

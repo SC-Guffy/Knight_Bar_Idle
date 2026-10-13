@@ -412,6 +412,55 @@ function trainGain(u, st = stats(), nx) {
 
 // 훈련장을 골랐을 때 건물 카드 아래에 붙는 훈련 칸 (옛 훈련 탭)
 function viewTraining() {
+  if (!trainDone()) return viewTrain1() + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — 1차 훈련 네 가지를 Lv ${TRAIN_MAX} 까지</span></div>`;
+  const done = `<div class="chips"><span class="chip">✅ 1차 훈련 수료 · ⚔️ 맨몸 공격 ${fmt(trainAtkAt(TRAIN_MAX))} · 🛡️ 체력 ${fmt(trainHpAt(TRAIN_MAX))} · 방어 -${(defRedAt(TRAIN_MAX) * 100).toFixed(1)}% · 💰 수완 +${Math.round(TRAIN_MAX * FORTUNE_PER_LV * 100)}%</span></div>`;
+  if (!mentorOpen(0) && !mentorDone(0)) return done + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — ${mentorLock(0)}</span></div>`;
+  return done + viewMentor();
+}
+
+// 2차 훈련 🎓 교관 수련: 교관 칩 줄 · 무대(mentor-stage.js) · 한 줄 안내와 버튼
+function viewMentor() {
+  const cur = mentorCur(), i = mentorView(), m = MENTORS[i], n = mentorStarsOf(i);
+  const chips = MENTORS.map((x, k) => {
+    const lock = k > cur || (k === cur && mentorLock(k));
+    const tag = k < cur ? '★5' : k > cur ? (S.bld.training < x.bld ? `🔒 훈련장 Lv ${x.bld}` : '🔒') : lock ? `🔒 ${mentorLock(k)}` : `★${mentorStarsOf(k)}`;
+    return `<button class="skchip${k === i ? ' on' : ''}" data-action="mentor-view" data-i="${k}" ${k > cur ? 'disabled' : ''}>${x.icon} ${x.name} <small>${tag}</small></button>`;
+  }).join('');
+  const busy = !!(mentorUi.anim || mentorUi.busy);
+  const now = spText(mentorSpAt(i)) || '아직 없음', full = spText(mentorSpAt(i, MENTOR_STARS));
+  let info, btn = '';
+  if (i < cur) info = `<b>✅ ${m.name} 수료</b><small>${full}</small>`;
+  else if (mentorLock(i)) info = `<b>🔒 ${mentorLock(i)}</b><small>별 5개 · ${full}</small>`;
+  else if (mentorDuelTurn(i)) {
+    const p = mentorPreview(i), me = profile().power;
+    const verdict = !p ? '' : me >= p.power * 1.15 ? ' · <span style="color:#9fd49a">여유</span>' : me >= p.power * 0.9 ? ' · 비슷함' : ' · <span class="warn">버거움</span>';
+    const blk = !activeToken() ? '서버 연결 필요' : mentorDuelBlocker(i);
+    info = `<b>⚔️ 마지막 별 — 교관과의 승부${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>지금 ${now} → 수료 ${full}</small>`;
+    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-duel" ${blk || busy ? 'disabled' : ''} title="${blk}">⚔️ 승부하기 <i class="gc"></i> ${fmt(mentorCost(i))}</button>`;
+  } else {
+    const blk = mentorTryBlocker(i), eye = S.mentor.eye;
+    info = `<b>★${n + 1} 수련 · 성공 ${Math.round(mentorRate(i) * 100)}%${eye ? ` (눈도장 +${Math.round(eye * MENTOR_EYE * 100)}%p)` : ''}</b><small>지금 ${now} → 다음 별 ${spText(mentorSpAt(i, n + 1))}</small>`;
+    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">🎓 수련하기 <i class="gc"></i> ${fmt(mentorCost(i))}</button>`;
+  }
+  return `
+    <div class="shead"><h3>🎓 교관 수련 <small>2차 훈련 · 별 ${mentorStarSum()}/${MENTORS.length * MENTOR_STARS} · ${m.icon} ${m.name} — ${m.place}</small></h3></div>
+    <div class="skchips">${chips}</div>
+    <canvas class="mstage" data-action="mentor-skip" title="누르면 연출을 건너뛰어요"></canvas>
+    <div class="mbar"><span class="grow">${info}</span>${btn}</div>`;
+}
+// 승부 차례 교관의 전투력 (서버 미리보기, 내 레벨이 바뀌면 다시 묻는다)
+function mentorPreview(i) {
+  const p = mentorUi.preview, key = `${i}:${S.level}`;
+  if (p && p.key === key) return p;
+  if (activeToken() && mentorUi.previewReq !== key) {
+    mentorUi.previewReq = key;
+    fetchMentor(i).then((r) => { mentorUi.preview = { ...r, key }; if (campOpen) renderCamp(); }).catch(() => {});
+  }
+  return p && p.i === i ? p : null;
+}
+
+// 1차 훈련 (맨몸 단련 네 가지, 만렙 TRAIN_MAX)
+function viewTrain1() {
   const st = stats();
   const cap = trainCapAt(S.bld.training);
   const cards = TRAINING.map((u) => {
@@ -428,7 +477,7 @@ function viewTraining() {
   const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u));
   return `
     <div class="shead">
-      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — 초반을 끌어 주고, 중후반 힘은 장비가 책임져요</small></h3>
+      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — 초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요</small></h3>
       <button class="btn${rd(TRAINING.some(canTrain))}" data-action="train-all" ${anyTrain ? '' : 'disabled'}>${ico('bolt')} 골고루 올리기</button>
     </div>
     <div class="tgrid">${cards}</div>`;
@@ -2598,7 +2647,7 @@ function renderCamp() {
   tickLive($('campModal'));
   paintGearIcons($('campModal'));
   if (campTab === 'char') { drawGearHero(); drawClassPreviews(); }      // 다시 그린 직후 한 프레임 비지 않게
-  if (campTab === 'town') drawTown();
+  if (campTab === 'town') { drawTown(); drawMentorStage(); }
   if (campTab === 'sub') drawSubPreviews();
 }
 
@@ -2741,6 +2790,32 @@ const ACTIONS = {
   'goto-forge': () => { townUi.sel = 'forge'; campTab = 'town'; $('campBody').scrollTop = 0; },
   'train': (el) => doTrain(el.dataset.id),
   'train-all': () => { const n = doTrainAll(); if (n) toast(`🎯 훈련 ${n}단계 올렸어요`, 2500); },
+  'mentor-view': (el) => { mentorUi.view = Number(el.dataset.i); },
+  'mentor-skip': mentorSkip,
+  'mentor-try': () => {
+    if (mentorUi.anim) return;
+    const i = mentorCur(), r = mentorTry(i);
+    if (r) { mentorUi.view = i; mentorPlayTry(i, r); }
+  },
+  'mentor-duel': () => {
+    if (mentorUi.anim || mentorUi.busy) return;
+    const i = mentorCur(), paid = mentorPayDuel(i);
+    if (!paid) return;
+    mentorUi.busy = true; mentorUi.view = i;
+    requestMentorDuel(i).then((res) => {
+      mentorUi.busy = false;
+      mentorSettle(i, res);
+      mentorPlayDuel(i, res);
+      save();
+      if (campOpen) renderCamp();
+    }).catch((e) => {
+      mentorUi.busy = false;
+      mentorRefund(paid);
+      toast(`⚠️ 승부를 걸지 못했어요 — ${e.message}`, 5000);
+      save();
+      if (campOpen) renderCamp();
+    });
+  },
   'buy': (el) => buySupply(el.dataset.id),
   'eat': eatLunch,
   'equip': (el) => { const id = Number(el.dataset.id); if (equipGear(id)) gearUi.sel = { slot: gearById(id).slot }; },
@@ -3348,7 +3423,7 @@ function boot() {
     if (S.phase === 'dungeon') renderDungeonPick();
     if (campOpen && campTab === 'char') { drawClassPreviews(); drawGearHero(); }
     if (campOpen && campTab === 'sub' && !subView) drawSubPreviews();
-    if (campOpen && campTab === 'town') drawTown();
+    if (campOpen && campTab === 'town') { drawTown(); drawMentorStage(); }
     slow += dt;
     if (slow > 0.25) {
       slow = 0;

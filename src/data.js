@@ -81,7 +81,9 @@ const AGGRO_RANGE = 260;              // 이 거리 안에 들어오면 몬스�
 
 // ───────────────────────── 건물 ─────────────────────────
 const BUILD_MAX = 20;
-const trainCapAt = (lv) => 10 * lv;
+// 훈련(1차)은 훈련장 Lv5 = Lv 50 에서 끝난다. 훈련장 Lv6~20 은 2차 훈련(🎓 교관 수련, src/mentor.js)의 교관을 연다
+const TRAIN_MAX = 50;
+const trainCapAt = (lv) => 10 * Math.min(lv, TRAIN_MAX / 10);
 // 초반엔 원정이 4분이라 자주 손봐야 하고, 여관을 올릴수록 길어져 방치가 된다
 // (Lv5 약 11분 · Lv10 약 42분 · Lv15 약 2.6시간 · Lv20 약 10시간)
 const maxStaminaAt = (lv) => Math.round(20 * Math.pow(1.3, lv - 1)) * 5;
@@ -92,7 +94,7 @@ const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 
 const BUILDINGS = {
   training: {
     name: '훈련장', icon: '🎯', mul: { gold: 1, wood: 1, ore: 0.6, mana: 0.6 },
-    effect: (lv) => `훈련 최대 Lv ${trainCapAt(lv)}`,
+    effect: (lv) => (lv <= TRAIN_MAX / 10 ? `훈련 최대 Lv ${trainCapAt(lv)}` : `교관 ${MENTORS.filter((m) => m.bld <= lv).length}명`),
   },
   inn: {
     name: '여관', icon: '🛏️', mul: { gold: 1, wood: 1.3, ore: 0.4, mana: 0.8 },
@@ -802,10 +804,10 @@ const trainSat = (t) => (Math.pow(TRAIN_GROW, t) - 1) / (1 + Math.pow(TRAIN_GROW
 const trainAtkAt = (t) => 6 + 9 * trainSat(t);
 const trainHpAt = (t) => 40 + 55 * trainSat(t);
 const TRAINING = [
-  { id: 'atk',  name: '⚔️ 공격력', max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
-  { id: 'hp',   name: '🛡️ 체력',   max: Infinity, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },
-  { id: 'def',  name: '🛡️ 방어',   max: Infinity, base: 15, grow: 1.3,  show: (st) => `-${Math.round(st.defRed * 100)}%` },
-  { id: 'fortune', name: '💰 수완', max: Infinity, base: 15, grow: 1.3, show: () => `+${Math.round(fortuneBonus() * 100)}%` },
+  { id: 'atk',  name: '⚔️ 공격력', max: TRAIN_MAX, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
+  { id: 'hp',   name: '🛡️ 체력',   max: TRAIN_MAX, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },
+  { id: 'def',  name: '🛡️ 방어',   max: TRAIN_MAX, base: 15, grow: 1.3,  show: (st) => `-${Math.round(st.defRed * 100)}%` },
+  { id: 'fortune', name: '💰 수완', max: TRAIN_MAX, base: 15, grow: 1.3, show: () => `+${Math.round(fortuneBonus() * 100)}%` },
 ];
 // 방어: 받는 피해 감소 = DEF_MAX × 단계 / (단계 + DEF_HALF). 스테이지와 상관없고 올릴수록 효율이 떨어져 DEF_MAX(50%)에는 닿지 않는다
 //  (Lv 6 14% · Lv 26 32% · Lv 57 40% · Lv 100 43%)
@@ -813,6 +815,25 @@ const DEF_MAX = 0.5, DEF_HALF = 15;
 const defRedAt = (t) => DEF_MAX * t / (t + DEF_HALF);
 // 수완: 골드·경험치 획득 Lv 당 +3% (몬스터 처치와 레이드 보상에 적용)
 const FORTUNE_PER_LV = 0.03;
+// ───────────────────────── 2차 훈련: 🎓 교관 수련 (src/mentor.js, docs/specs/training-mentors.md) ─────────────────────────
+// 1차 훈련 네 가지가 모두 Lv 50 이면 교관 다섯 명을 차례로 찾아가 별 5개씩 받는다 (고르는 게 아니라 결국 전부 올리는 구조).
+//  bld: 열리는 훈련장 Lv (앞 교관 별 5개도 필요) — 6·7·8·9·10: 진행 봇에서 훈련장 Lv10 ≈ 6일, Lv13 부터는 2주 안에 못 닿아서 (건설 시간 60×1.8^Lv) · sp: 별 하나 몫 (gearBonus 에 더하는 키) · ★5 는 별 하나 몫의 2배
+//  승부 상대는 내 레벨·내 계열의 '기준 기사' 거울 × 교관 배수 (server/mentor.js) — 직업 상성 없이 '얼마나 골고루 갖췄나'만 본다
+//  bg: 무대 배경 (src/bg/<bg>.png, 'dojo' 는 mentor.js 가 직접 그린다)
+const MENTORS = [
+  { id: 'sword',  name: '검술 사범',   icon: '🗡️', place: '도장',       bg: 'dojo',    bld: 6,   sp: { atkPct: 0.025 } },
+  { id: 'shield', name: '방패 교관',   icon: '🛡️', place: '성채 연병장', bg: 'castle',  bld: 7,  sp: { hpPct: 0.025, guard: 0.01 } },
+  { id: 'hunter', name: '숲의 사냥꾼', icon: '🏹', place: '깊은 숲',     bg: 'fairy',   bld: 8,  sp: { aspdPct: 0.015, crit: 0.01 } },
+  { id: 'brute',  name: '화산 투사',   icon: '🔥', place: '화산 분화구', bg: 'volcano', bld: 9,  sp: { critMult: 0.05, bossDmg: 0.03 } },
+  { id: 'sage',   name: '성좌의 은자', icon: '🌌', place: '구름 위',     bg: 'sky',     bld: 10, sp: { skillDmg: 0.03 } },
+];
+const MENTOR_STARS = 5;
+const MENTOR_LAST_X = 2;                       // ★5 는 별 하나 몫 × 2
+const MENTOR_RATE = [0.6, 0.45, 0.35, 0.25];   // ★1~4 기본 성공 확률
+const MENTOR_EYE = 0.05;                       // 눈도장: 그 별에서 실패할 때마다 다음 확률 +5%p (별을 받으면 0)
+// 1회 비용 = 최고 스테이지 몬스터 골드 × MENTOR_GOLD × MENTOR_GROW^(별−1) — ★1 500 · ★2 750 · ★3 1,125 · ★4 1,688 · ★5 승부 2,531 마리 몫
+// 기대 (눈도장 포함): 교관 한 명 ★1~4 ≈ 몬스터 10,200 마리 몫 ≈ 사냥 17시간 (수완 +150% 면 약 7시간)
+const MENTOR_GOLD = 500, MENTOR_GROW = 1.5;
 // 예전 훈련(공속·치명)은 없어졌다. 예전 세이브에 남은 단계는 쓴 골드를 돌려준다 (core.js migrate)
 const OLD_TRAINING = { spd: { base: 25, grow: 1.55 }, crit: { base: 30, grow: 1.6 } };
 

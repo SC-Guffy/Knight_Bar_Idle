@@ -10,6 +10,7 @@ const { RAID_BOSSES, MAX_PARTY, simulateRaid } = require('./raid');
 const { START_RATING, seasonAt, seasonRange, fresh } = require('./season');
 const WB = require('./worldboss');
 const { createBots } = require('./bots');
+const { MENTOR_DUEL, mentorProfile } = require('./mentor');
 
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 256 * 1024;
@@ -209,6 +210,8 @@ function requireClient(req, min) {
 }
 
 const lastDuel = new Map();   // key → 마지막 결투 시각
+const lastMentor = new Map();  // key → 마지막 교관 승부 시각
+const MENTOR_COOLDOWN_MS = 3000;
 const DUEL_RATED_DAY = 100;              // 하루에 점수가 오가는 결투 수 (넘으면 연습 결투)
 const DUEL_PAIR_MS = 30 * 60 * 1000;     // 같은 상대와 점수가 오가는 간격
 const duelDay = new Map();    // key → { day, n } 오늘 점수 결투 수
@@ -430,6 +433,35 @@ const routes = {
     if (!practice) { duelDay.set(me.key, { day, n: n + 1 }); duelPair.set(pairKey, now); }
     const res = await runDuel(me, op, practice);
     return { ...res, ratedLeft: DUEL_RATED_DAY - (practice ? n : n + 1) };
+  },
+
+  // 🎓 교관 승부 (2차 훈련 ★5, src/mentor.js). 교관 = 내 레벨의 기준 기사 × 배수 (server/mentor.js)
+  // 미리보기: 지금 내 레벨에서 교관 i 의 전투력
+  'GET /api/mentor': async (req, url) => {
+    const a = await authLite(req);
+    const i = Math.floor(num(url.searchParams.get('i'), 0, MENTOR_DUEL.length - 1, 0));
+    const me = sanitizeProfile(a.profile), level = me.level, p = mentorProfile(i, level, me.cls);
+    return { i, level, cls: p.cls, power: p.power };
+  },
+  // 승부: 저장된 내 프로필로 싸운다 (클라이언트가 먼저 세이브를 올린다). 결과 id 로 같은 승리를 두 번 별로 바꾸지 않게
+  'POST /api/mentor/duel': async (req) => {
+    const me = await auth(req);
+    const body = await readJson(req);
+    const i = Math.floor(num(body.i, 0, MENTOR_DUEL.length - 1, 0));
+    const stars = me.state && me.state.mentor && Array.isArray(me.state.mentor.stars) ? me.state.mentor.stars : [];
+    if ((stars[i] || 0) !== 4) throw new HttpError(403, '★4 까지 받은 교관과만 승부할 수 있어요');
+    for (let j = 0; j < i; j++) if ((stars[j] || 0) < 5) throw new HttpError(403, '앞 교관 수련을 먼저 마쳐야 해요');
+    const now = Date.now(), since = now - (lastMentor.get(me.key) || 0);
+    if (since < MENTOR_COOLDOWN_MS) throw new HttpError(429, `${Math.ceil((MENTOR_COOLDOWN_MS - since) / 1000)}초 뒤에 다시 도전할 수 있어요`);
+    lastMentor.set(me.key, now);
+    const pa = sanitizeProfile(me.profile), pb = sanitizeProfile(mentorProfile(i, pa.level, pa.cls));
+    const fight = simulateDuel(pa, pb);
+    return {
+      id: crypto.randomBytes(8).toString('hex'), i, won: fight.winner === 'a',
+      me: { nickname: me.nickname, cls: pa.cls, level: pa.level, power: pa.power },
+      opponent: { cls: pb.cls, level: pb.level, power: pb.power },
+      fight,
+    };
   },
 };
 

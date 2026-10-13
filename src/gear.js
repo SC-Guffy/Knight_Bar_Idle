@@ -171,6 +171,7 @@ function gearBonus() {
     for (const o of activeOpts(it)) if (o.k in out) out[o.k] += o.v;
   }
   for (const s of raidSets()) for (const t of s.tiers) if (t.on) for (const k of Object.keys(t.sp)) out[k] += t.sp[k];
+  for (const [k, v] of Object.entries(mentorBonus())) out[k] = (out[k] || 0) + v;   // 🎓 교관 수련 별 (mentor.js)
   return out;
 }
 
@@ -191,6 +192,8 @@ function gearBonusParts() {
     }
   }
   for (const s of raidSets()) for (const t of s.tiers) if (t.on) parts.push({ name: `🔗 ${RAID_BOSSES[s.boss].set.name} 세트 ${t.need}부위`, st: { ...t.sp } });
+  const mb = mentorBonus();
+  if (Object.keys(mb).length) parts.push({ name: `🎓 교관 수련 (별 ${mentorStarSum()}/${MENTORS.length * MENTOR_STARS})`, st: mb });
   return parts;
 }
 
@@ -289,7 +292,7 @@ function loadoutValue(eq) {
 let loadoutCache = { key: '', eq: null };
 function bestLoadout() {
   // 창고 내용·강화·직업·훈련이 같으면 지난 계산을 그대로 쓴다 (탭 배지 때문에 화면을 그릴 때마다 불린다)
-  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}${(x.op || []).map((o) => o.k + o.v).join('')}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}`;
+  const key = S.gear.inv.map((x) => `${x.id}${x.t}${x.s}${x.g}${x.roll}${(x.op || []).map((o) => o.k + o.v).join('')}`).join() + `|${S.cls}|${JSON.stringify(S.gear.enh)}|${S.level}|${JSON.stringify(S.train)}|${S.mentor ? S.mentor.stars.join() : ''}`;
   if (loadoutCache.key === key) return loadoutCache.eq;
   const slots = Object.keys(GEAR_SLOTS);
   const cands = slots.map((slot) => {

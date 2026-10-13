@@ -150,6 +150,13 @@ async function requestDuel(opponent) {
   return api('POST', '/api/duels', { opponent }, { token: activeToken(), timeout: 70000 });
 }
 
+// 🎓 교관 승부 (2차 훈련 ★5): 미리보기(지금 내 레벨에서 교관 전투력) / 승부 (저장된 최신 능력치로 싸우도록 먼저 올린다)
+const fetchMentor = (i) => api('GET', `/api/mentor?i=${i}`, null, { token: activeToken(), timeout: 70000 });
+async function requestMentorDuel(i) {
+  await pushSave(true);
+  return api('POST', '/api/mentor/duel', { i }, { token: activeToken(), timeout: 70000 });
+}
+
 // 받은 결투(우편함): 다른 기사가 나에게 건 최근 결투들 (새 것부터)
 const fetchDuelInbox = () => api('GET', '/api/duels/inbox', null, { token: activeToken(), timeout: 70000 });
 
