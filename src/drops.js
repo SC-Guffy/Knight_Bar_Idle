@@ -28,22 +28,26 @@ const DROP_TINT = ['#e8e8ee', '#d9ffd4', '#cfe9ff', '#ead6ff', '#fff0b0', '#ffc5
 const TOME_TIER = { beam: 1, glow: 0.7, motes: 8, rays: 0, wave: 0, hold: 0.4, wait: 0.6 };
 const TOME_COLOR = '#c9a7ff';
 
-// 비전서 도트 (GEAR_SPR 과 같은 12×12 · 글자 규칙). 보라 표지에 금빛 룬, 옆으로 책장이 보인다
+// 비전서 도트 16×16 (외곽선 자동, 상자 그림 box-art.js 와 같은 크기). 보라 가죽 표지에 금 모서리, 가운데 청록 룬, 오른쪽·아래로 책장, 빨간 책갈피
 const TOME_SPR = [
-  '............',
-  '..HHHHHHHH..',
-  '..HBBBBBBHW.',
-  '..HBbJJbBHW.',
-  '..HBJGGJBHW.',
-  '..HBbJJbBHW.',
-  '..HBBBBBBHW.',
-  '..HBBGGBBHW.',
-  '..HbbbbbbHW.',
-  '..HHHHHHHHW.',
-  '...WWWWWWWW.',
-  '............',
+  '................',
+  '.gGbbbbbbbbbGg..',
+  '.GBJJJJJJJJJBGW.',
+  '.bBJBBBBBBBBBbWw',
+  '.bJBBBBGBBBBBbWw',
+  '.bJBBBGCGBBBBbWw',
+  '.bJBBGCCCGBBBbWw',
+  '.bJBGCCWCCGBBbWw',
+  '.bJBBGCCCGBBBbWw',
+  '.bJBBBGCGBBBBbWw',
+  '.bJBBBBGBBBBBbWw',
+  '.bBBBBBBBBBBBbWw',
+  '.GBBBBBBBBBBBGWw',
+  '.gGbbbbRbbbbGgWw',
+  '..wwwwwRwwwwwwww',
+  '.......r........',
 ];
-const TOME_PAL = { B: '#6a3fb0', b: '#4e2c88', H: '#2a1850', W: '#f3ead2', J: '#c9a7ff', G: '#ffd257' };
+const TOME_PAL = { B: '#7a4ac4', b: '#55309a', J: '#b391ec', W: '#f3ead2', w: '#c9bd9a', G: '#ffd257', g: '#c79a12', C: '#8ff4ff', R: '#e0443c', r: '#8a1f1f' };
 
 const DROP_GRAV = 900;
 

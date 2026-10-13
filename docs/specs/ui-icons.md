@@ -78,6 +78,7 @@ UI 톤(남보라 바탕 + 바랜 은 선)은 그대로 두고, 이모지만 같�
 - [x] 결과 스크린샷 — `dev/shots/icons-8-home-all.jpg`, `icons-9-skill.jpg`, `icons-10-class.jpg`, 묶음별 시트 `rv-a/b/c/d.png`
 
 ## 진행 기록
+- 2026-10-13 (season6): 📖 `tome` 을 흰 펼친 책 → 보라 가죽 마법서(금 모서리·청록 룬·빨간 책갈피)로. 필드 드롭 비전서(drops.js TOME_SPR, 16×16)와 같은 모티프, 📗 greenbook(초록 닫힌 책·이름표)과 실루엣 구분.
 
 - 2026-10-13: 이모지 조사(약 200종, 위 표). 1단계 시안: 탭 6개 직접 도트 (집 / 망루+집 / 깃 달린 기사 투구 / 금 트로피 / 용 머리 / 접힌 지도).
   처음엔 `src/icons.js` 가 런타임에 canvas → data URL 로 CSS 를 넣었는데 CSP 에 막혀 안 보였다 → `make-skin.js` 관례대로 dev 생성 스크립트 + 정적 SVG/CSS 로 바꿨다.

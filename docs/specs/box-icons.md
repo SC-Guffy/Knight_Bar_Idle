@@ -29,4 +29,6 @@
 
 - 2026-10-13: 두 묶음 완성 → src/box-art.js 로 합침. ui.js boxIcon·raidChestIcon 은 그림이 있으면 18px + a16, drops.js dropSprite 는 그림 크기(look.n)로 그리고 땅 맞춤(foot)도 그 크기 기준. 필드 상자는 같은 배율(2·3배)이라 예전보다 약 1.3배 커 보인다.
 
+- 2026-10-13: 필드 드롭 비전서(drops.js TOME_SPR)도 16×16 으로 — 보라 가죽 표지·금 모서리·청록 룬·책장·책갈피. UI 📖 아이콘(dev/make-icons.js tome)도 같은 모티프로 다시 그림.
+
 ## 남은 일 / 미정
