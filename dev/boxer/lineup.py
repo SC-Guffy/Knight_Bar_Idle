@@ -35,7 +35,7 @@ if __name__ == '__main__':
     strip(['raw/hero-squire.png', 'raw/hero-swordsman.png', 'raw/hero-lancer.png', 'raw/hero-ranger.png', 'raw/hero-mage.png', 'base-fighter.png'], 'tier1')
     strip(['raw/hero-paladin.png', 'raw/hero-blademaster.png', 'raw/hero-greatswordsman.png', 'base-striker.png', 'base-kickboxer.png', 'base-qigong.png'], 'tier2')
     # PixelLab 최종 (ComfyUI 시안 → image-to-pixelart → clean)
-    F = {'fighter': 'final-fighter-4-1.png', 'striker': 'final-striker-6-1.png', 'kickboxer': 'final-kickboxer-2-1.png', 'qigong': 'final-qigong-8-1.png',
+    F = {'fighter': 'final-fighter-4-1.png', 'striker': 'final-striker2-111-1.png', 'kickboxer': 'final-kickboxer-2-1.png', 'qigong': 'final-qigong-8-1.png',
          'champion': 'final-champion-6-1.png', 'tempest': 'final-tempest-12-1.png', 'grandmaster': 'final-grandmaster-3-1.png'}
     strip([F['striker'], F['kickboxer'], F['qigong']], 'final-family')
     strip([F['champion'], F['tempest'], F['grandmaster']], 'final-family3')
@@ -43,8 +43,10 @@ if __name__ == '__main__':
     strip(['raw/hero-squire.png', 'raw/hero-swordsman.png', 'raw/hero-lancer.png', 'raw/hero-ranger.png', 'raw/hero-mage.png', F['fighter']], 'final-tier1')
     strip(['raw/hero-paladin.png', 'raw/hero-blademaster.png', 'raw/hero-dragoon.png', F['striker'], F['kickboxer'], F['qigong']], 'final-tier2')
     strip(['base-fighter.png', F['fighter'], 'base-striker.png', F['striker'], 'base-kickboxer.png', F['kickboxer'], 'base-qigong.png', F['qigong']], 'before-after')
+    strip(['final-striker-6-1.png', 'final-striker2-101-1.png', F['striker'], 'pix-striker.png'], 'striker-redo')
     # 7:3 판 (stylize.py: 절반 축소 + EPX, 사용자 "기존 7 : 현재 3")
     P = {k: f'pix-{k}.png' for k in F}
+    strip([P['striker'], P['kickboxer'], P['qigong']], 'pix-family')
     strip(['raw/hero-paladin.png', 'raw/hero-blademaster.png', 'raw/hero-dragoon.png', P['striker'], P['kickboxer'], P['qigong']], 'pix-tier2')
     strip(['raw/hero-squire.png', 'raw/hero-swordsman.png', 'raw/hero-ranger.png', 'raw/hero-mage.png', P['fighter']], 'pix-tier1')
     strip([P['striker'], P['champion'], P['kickboxer'], P['tempest'], P['qigong'], P['grandmaster']], 'pix-lines')

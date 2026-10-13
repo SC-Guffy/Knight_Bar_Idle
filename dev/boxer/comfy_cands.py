@@ -20,6 +20,10 @@ DESC = {
                'both fists raised in a boxing guard in front of the face',
     'striker': 'a muscular brawler boxer with very broad shoulders and a big chest, black buzz cut hair, black sleeveless tank top, '
                'huge heavy steel armored gauntlets on both fists, a gold champion belt, red boxing shorts, black boots, fists raised in guard',
+    # 스트라이커 2차 시안 (사용자: 1차 시안 "원본 자체가 별로" — 아기 얼굴·통통한 몸 → 매서운 성인 복서)
+    'striker2': 'a fierce adult heavyweight boxer, sharp jaw and narrow angry eyes, short black flat-top haircut, thick neck, broad muscular shoulders and big arms, '
+                'black sleeveless tank top, huge heavy steel armored gauntlets on both fists, a gold champion belt, red boxing shorts, black boots, '
+                'strict side profile view facing right, front gauntlet raised at chin height, rear gauntlet low, not a child, not chubby',
     'kickboxer': 'a lean kickboxer with long brown hair tied in a high ponytail flowing behind, shirtless with white bandage wraps around the chest, '
                  'loose wide white martial arts pants with a black belt, steel shin guards, barefoot, front knee raised high ready to kick',
     'qigong': 'a qigong martial artist, black bob hair with a white headband, long blue kung fu robe with very wide sleeves hanging down to the knees, '

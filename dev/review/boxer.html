@@ -110,11 +110,13 @@
   <div class="ctl" style="margin-top:8px">
     <button class="on" data-mode="">컬러</button><button data-mode="-gray">흑백</button><button data-mode="-sil">실루엣만</button>
   </div>
-  <div class="card" style="border-color:var(--red)"><b>사용자 의견 반영 중</b>: "퀄리티가 갑자기 너무 높아졌다. 픽셀 느낌이 더 나야 돼" · "기존안·현재안 7:3 정도로 기존에 치우친 느낌".
-    그래서 <b>7:3 판</b>을 만들었습니다 (<code>dev/boxer/stylize.py</code>): 고퀄 그림을 2×2 칸 → 1칸으로 줄이고(키 약 20도트, 기존 기사 11×13 과 같은 굵기), 눈을 다시 찍고, 기존 기사와 똑같이 EPX 2배 + 바깥 외곽선. PixelLab 추가 사용 없음.
-    아래 <b>세 판 비교</b>에서 고르시면 그 방식으로 갑니다. 7:3 판은 장식이 많은 직업(챔피언·그랜드마스터)의 얼굴·무늬가 뭉쳐서 생산 때 손 마무리가 필요합니다.</div>
+  <div class="card" style="border-color:var(--red)"><b>사용자 의견 반영</b>: "퀄리티가 너무 높아졌다, 픽셀 느낌" · "기존 7 : 현재 3" · "스트라이커는 원본 자체가 별로" · "픽셀 뭉개지는 현상만 잡아서".
+    <b>7:3 판</b> (<code>dev/boxer/stylize.py</code>, PixelLab 추가 사용 없음): 고퀄 판을 <b>64 해상도 그대로</b> 두고 ① 재질별 3단 정리(색상 계열마다 밝기 3단의 평평한 면 — 기존 기사와 같은 칠) ② 외톨이 점 제거 ③ 게임과 같은 바깥 외곽선.
+    처음 시도한 절반 축소 + EPX 는 얼굴·선이 뭉개져서 버렸습니다. 스트라이커는 프롬프트를 고쳐(매서운 성인 복서) 시안 12장을 새로 뽑고 111번으로 바꿨습니다.</div>
   <div class="gallery" style="grid-template-columns:1fr">
     <figure><img class="pix lu" data-base="lineup-three-way" alt="세 판"><figcaption><b>세 판 비교</b> — 직업마다 왼쪽부터 ① 손도트(이전) ② <b>7:3 판</b> ③ 고퀄(PixelLab 64). 파이터·스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-striker-redo" alt="스트라이커 다시"><figcaption><b>스트라이커 다시 뽑기</b> — 이전 시안 6번(아기 얼굴) / 새 시안 101번 / <b>새 시안 111번 (채택)</b> / 111번 7:3 판</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-pix-family" alt="7:3 2차 3종"><figcaption><b>7:3 판 · 같은 계열 2차 3종</b> — 색깔놀이 확인 (흑백·실루엣 버튼)</figcaption></figure>
     <figure><img class="pix lu" data-base="lineup-pix-tier2" alt="7:3 2차"><figcaption><b>7:3 판 · 기존 2차와 나란히</b> — 성기사·검성·용기병 + 스트라이커·킥복서·기공사</figcaption></figure>
     <figure><img class="pix lu" data-base="lineup-pix-tier1" alt="7:3 1차"><figcaption><b>7:3 판 · 1차</b> — 견습 기사·검사·레인저·마법사 + 파이터</figcaption></figure>
     <figure><img class="pix lu" data-base="lineup-pix-lines" alt="7:3 2→3차"><figcaption><b>7:3 판 · 2차→3차</b> — 스트라이커→챔피언 / 킥복서→템페스트 / 기공사→그랜드마스터</figcaption></figure>
@@ -129,11 +131,11 @@
     <figure><img class="pix lu" data-base="lineup-final-lines" alt="2→3차"><figcaption><b>2차 → 3차 특징 잇기</b> — 스트라이커→챔피언 / 킥복서→템페스트 / 기공사→그랜드마스터</figcaption></figure>
   </div>
   <h3>ComfyUI 시안 (직업마다 12장, ✔ = 고른 것)</h3>
-  <div class="sub">고른 기준: 옆모습(오른쪽)인가, 실루엣 특징이 분명한가, 구도가 깨지지 않았나. 원본 1024px 는 저장소 밖(<code>C:\AI\comfy-raw\boxer</code>), 여기는 256px 축소본입니다. 번호 = seed (왼쪽 위부터 1).</div>
+  <div class="sub">고른 기준: 옆모습(오른쪽)인가, 실루엣 특징이 분명한가, 구도가 깨지지 않았나. 원본 1024px 는 저장소 밖(<code>C:\AI\comfy-raw\boxer</code>), 여기는 256px 축소본입니다. 번호 = seed (왼쪽 위부터 1, 스트라이커 다시 뽑기는 101부터).</div>
   <div class="gallery" id="comfySheets" style="grid-template-columns:1fr"></div>
   <div class="card">3차까지 7종을 모두 뽑았습니다. 크기는 아직 들쭉날쭉합니다(스트라이커·챔피언이 크고 킥복서가 작다). 시트 생산 때 키 목표를 직업별로 36~40도트로 맞춥니다.</div>
 
-  <h2>6. PixelLab 시험 기록 (1차 시험 6회 + 기준 그림 9회 = 15회)</h2>
+  <h2>6. PixelLab 시험 기록 (1차 시험 6회 + 기준 그림 약 12회)</h2>
   <div class="anim" id="anims"></div>
   <div class="scroll" style="margin-top:8px"><table>
     <tr><th>시도</th><th>방식</th><th>결과</th><th>판정</th></tr>
@@ -177,7 +179,7 @@
   <div class="card"><ul>
     <li>스펙 요지(주 기술 + 투지 구조, 충전 시작안, 스킬 10종, 시트·이펙트 규격)를 이대로 확정할지.</li>
     <li><b>그림체 선택</b> (5절 세 판 비교): ② 7:3 판으로 갈지, 비율을 더 옮길지(예: 8:2 / 6:4). 고칠 직업이 있으면 ComfyUI 시안에서 다른 번호를 고르거나 더 뽑습니다.</li>
-    <li><b>PixelLab Tier 1 결제</b> ($12/월, 2,000회): 본 생산에 필요. 체험판 잔량 6.9회.</li>
+    <li><b>PixelLab Tier 1 결제</b> ($12/월, 2,000회): 본 생산에 필요. 체험판 잔량 3.9회.</li>
   </ul></div>
 </main>
 
@@ -382,13 +384,15 @@ for (const [file, label] of [['base-fighter.png', '손도트 기준 그림 (채�
 })();
 
 // ───────── ComfyUI 시안 시트 ─────────
-const PICK = { fighter: 4, striker: 6, kickboxer: 2, qigong: 8, champion: 6, tempest: 12, grandmaster: 3 };
-const NAMES = { fighter: '파이터', striker: '스트라이커', kickboxer: '킥복서', qigong: '기공사', champion: '챔피언', tempest: '템페스트', grandmaster: '그랜드마스터' };
+const PICK = { fighter: 4, striker: 6, striker2: 111, kickboxer: 2, qigong: 8, champion: 6, tempest: 12, grandmaster: 3 };
+const SEED0 = { striker2: 101 };
+const NAMES = { fighter: '파이터', striker: '스트라이커 (1차 시안, 버림)', striker2: '스트라이커 (다시 뽑음)', kickboxer: '킥복서', qigong: '기공사', champion: '챔피언', tempest: '템페스트', grandmaster: '그랜드마스터' };
 const cs = document.getElementById('comfySheets');
 for (const [cls, pick] of Object.entries(PICK)) {
   const fig = document.createElement('figure'), wrap = document.createElement('div');
   wrap.style.cssText = 'display:grid;grid-template-columns:repeat(6,1fr);gap:2px';
-  for (let s = 1; s <= 12; s++) {
+  const s0 = SEED0[cls] || 1;
+  for (let s = s0; s < s0 + 12; s++) {
     const im = document.createElement('img'); im.src = `../boxer/comfy/${cls}-${s}.png`; im.loading = 'lazy'; im.style.cssText = 'width:100%;display:block;border-radius:2px';
     im.onerror = () => { im.style.visibility = 'hidden'; };
     if (s === pick) im.style.outline = '3px solid var(--gold)';
@@ -396,6 +400,7 @@ for (const [cls, pick] of Object.entries(PICK)) {
     wrap.append(im);
   }
   const fin = document.createElement('img'); fin.className = 'pix'; fin.style.cssText = 'width:128px;margin-top:4px'; fin.src = `../boxer/final-${cls}-${pick}-1.png`;
+  if (cls === 'striker') fin.style.opacity = 0.4;
   const cap = document.createElement('figcaption'); cap.innerHTML = `<b>${NAMES[cls]}</b> — ✔ seed ${pick} → PixelLab 최종 (오른쪽 아래)`;
   fig.append(wrap, fin, cap); cs.append(fig);
 }
@@ -405,7 +410,8 @@ const ACC = [
   ['기준 그림 그림체가 기존 7 : 새 3 (5절 세 판 비교)', 'mid', '7:3 판 7종 — 사용자 선택 대기'],
   ['2차·3차 3종이 흑백·실루엣으로도 구분된다 (5절)', 'mid', '최종 7종 라인업 — 사용자 확인 대기'],
   ['평균 시전 간격·스킬 DPS 가 같은 차수 범위 안 (3절, 1마리)', 'ok', '시작안 모의 실험 — 구현 뒤 진행 봇·duel-balance 로 다시 측정'],
-  ['PixelLab 사용량 상한 안 (1차 시험 15회 · 기준 그림 15회)', 'ok', '1차 시험 6회 + 기준 그림 9회 (20.9 → 6.9). 32×32 직접 도트화 시험 2회(1회는 저장 오류로 날림) 포함'],
+  ['PixelLab 사용량 상한 안 (1차 시험 15회 · 기준 그림 15회)', 'ok', '1차 시험 6회 + 기준 그림 약 12회 (20.9 → 3.9). 32×32 직접 도트화 시험 2회(1회는 저장 오류로 날림)·스트라이커 다시 뽑기 2회 포함'],
+  ['7:3 판에서 픽셀이 뭉개지지 않는다', 'mid', '64 그대로 재질별 3단 정리로 바꿈 — 사용자 확인 대기'],
   ['이펙트 그림이 전부 텍스처 (목록 48장)', 'mid', '목록만 — 생산은 Tier 1 결제 뒤'],
   ['규칙·밸런스·렌더링 수용 기준 (스펙 본문)', 'no', '구현 전 (이번 세션은 스펙만)'],
 ];
