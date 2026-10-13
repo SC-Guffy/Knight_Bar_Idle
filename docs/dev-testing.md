@@ -53,6 +53,17 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - `window.cutStrip(직업 id, 동작 번호)`, `window.cutShot(이름, 항목, {cols, scale, cw, ch})`.
 - cutShot 은 `127.0.0.1:8798/save?name=` 으로 PNG를 보낸다. 받는 쪽은 `python -I dev/shot-recv.py dev/shots` (세션마다 다시 띄운다). 결과는 `dev/shots/<이름>.png` (git 제외).
 
+## 도전의 탑 무리 시뮬레이터 (`dev/tower-pack-sim.js`)
+
+- `dev/skills.html` 을 연 뒤 콘솔(javascript_tool)에서 불러온다. 테스트 페이지 루프를 멈추고 게임 `update(1/60)` 을 직접 돌려 탑 전투를 잰다 ([specs/tower-packs.md](specs/tower-packs.md)).
+  ```js
+  await new Promise((ok) => { const s = document.createElement('script'); s.src = 'tower-pack-sim.js?t=' + Date.now(); s.onload = ok; document.body.appendChild(s); });
+  towerSim.compare(towerSim.TIER2, { pack: { pack: (f) => [3, 6, 9].includes(f % 10) ? 3 : 0, hpShare: 0.4 } }, { curve: 'real', seeds: 8 })
+  ```
+- 결과는 직업별 "정예만" 평균 최고 층과 설정별 차이 표다. `curve: 'fine'` 은 보스 없이 층 간격을 잘게(체력 ×1.08/칸) 쪼개 작은 차이를 본다.
+- javascript_tool 은 한 번에 30초쯤 넘으면 끊긴다. 직업 12종 × 12회 × 설정 하나씩 나눠 부른다 (결과는 `towerSim.res` 에 쌓이고 `towerSim.table(직업들, [설정 이름], curve)` 로 다시 볼 수 있다).
+- 페이지의 `towerMonster`·`towerBossFloor`·`save` 를 덮어쓰므로 끝나면 페이지를 새로고침한다.
+
 ## UI 도트 아이콘 (`dev/icons.html`)
 
 - `node dev/make-icons.js` 로 `src/skin/icons.png`·`icons.css` 를 다시 만든 뒤 `http://localhost:<포트>/dev/icons.html` — 이모지와 도트 아이콘을 1×·2×·4×, 캠프 탭 줄 견본으로 비교한다.

@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>탑 무리 층 — 스펙 검토</title>
+<!-- 스펙: docs/specs/tower-packs.md. 게임 코드는 바꾸지 않는다 — src/data.js(몬스터 수치)를 읽기만 한다.
+     시뮬레이션 결과는 dev/tower-pack-sim.js 로 2026-10-13 에 잰 값을 그대로 넣었다. "다시 재기"는 숨은 iframe 의 dev/skills.html 에서 같은 시뮬레이터를 돌린다. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --orange: #ffb070; --hl: #3b2a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .hl { background: var(--hl); border: 2px solid var(--gold); }
+  .hl h3 { margin: 0 0 6px; color: var(--gold); font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  input[type=number], select { background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; }
+  input[type=number] { width: 64px; }
+  button { background: #3a2f52; color: var(--ink); border: 1px solid #5a4b78; border-radius: 4px; padding: 3px 10px; font: inherit; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); } .pk { color: var(--orange); } .boss { color: #ff8080; }
+  ul { margin: 4px 0; padding-left: 20px; }
+  code { background: #120f18; padding: 0 4px; border-radius: 3px; font-size: 12px; }
+  pre { background: #120f18; border: 1px solid var(--line); border-radius: 4px; padding: 8px; overflow-x: auto; font-size: 12px; white-space: pre; }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 3px; background: #2f2840; color: var(--dim); font-size: 11px; }
+  /* 가로 막대: 가운데 0 기준 (음수 왼쪽 빨강, 양수 오른쪽 초록) */
+  .bars { display: grid; grid-template-columns: 150px 1fr 60px; gap: 2px 8px; align-items: center; font-size: 12px; }
+  .bars .nm { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bars .nm small { color: var(--dim); }
+  .bars .tr { position: relative; height: 12px; background: #1b1724; border-radius: 2px; }
+  .bars .tr::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--dim); }
+  .bars .b { position: absolute; top: 1px; bottom: 1px; border-radius: 2px; }
+  .bars .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .bars .sep { grid-column: 1 / -1; color: var(--dim); font-size: 11px; margin-top: 6px; }
+  /* 묶음 막대 (정예 vs 무리 처치 시간) */
+  .pair { display: grid; grid-template-columns: 150px 1fr 90px; gap: 2px 8px; align-items: center; font-size: 12px; }
+  .pair .tr { position: relative; height: 14px; }
+  .pair .b1, .pair .b2 { position: absolute; left: 0; height: 6px; border-radius: 2px; }
+  .pair .b1 { top: 0; background: #8fd8ff; } .pair .b2 { top: 7px; background: var(--orange); }
+  .legend span { margin-right: 14px; color: var(--dim); }
+  .legend i { display: inline-block; width: 14px; height: 6px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+  .chk li { list-style: none; margin-left: -18px; }
+  #runOut { min-height: 20px; }
+  iframe.sim { position: absolute; left: -10000px; top: 0; width: 800px; height: 300px; border: 0; }
+  @media (max-width: 560px) { .bars, .pair { grid-template-columns: 96px 1fr 52px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>🗼 도전의 탑 — 몬스터 무리 층</h1>
+  <div class="sub">스펙 <code>docs/specs/tower-packs.md</code> · 상태 <b class="mid">초안 (사용자 확인 대기)</b> · 시뮬레이터 <code>dev/tower-pack-sim.js</code> · 2026-10-13</div>
+
+  <div class="card hl">
+    <h3>요지</h3>
+    <ul>
+      <li><b>무리 층</b>: 층 번호 끝자리 <b class="pk">3·6·9</b> (3F·6F·9F·13F…) — 전체의 30%. 확률이 아니라 고정이라 같은 층은 언제나 같은 상대. 보스 층(x0)·체크포인트 첫 층(x1)은 지금 그대로.</li>
+      <li><b>무리 구성</b>: 정예 <b>3마리</b>(종류 섞임). 마리당 <b>체력 = 정예 × 0.4</b> (합 1.2배), <b>공격력 = 정예 × 1</b>, 골드·경험치 = 정예 ÷ 3 (층 합계 같음).</li>
+      <li>합 1.2배인 이유: 몬스터는 16px 간격으로 줄을 서서 <b>맨 앞 1마리만 기사를 때리고</b>, 다음 마리가 다가오는 동안은 광폭화 시계가 멈춘다 → 정확히 3등분(1.0배)하면 모든 직업에게 쉬워진다.</li>
+      <li><b>광폭화 그대로</b> (10초 뒤 2.5초마다 공격 ×2, 살아 있는 모든 마리에). <b>보상·소탕·층 곡선·랭킹 그대로</b> — 층당 📖 1권, 소탕은 최고 층 수만큼 📖.</li>
+      <li><b>결과</b>: 실제 층 곡선에서 2·3차 24종 모두 최고 층 변화 <b>−0.5 ~ +0.8층, 평균 −0.04층</b>. 무리 층 자체는 광역 마법 계열이 최대 +1.2층 분량 쉽고, 단일 저격 계열이 −0.2층 분량 어렵다.</li>
+    </ul>
+  </div>
+
+  <h2>① 층별 구성 (src/data.js 수치로 계산)</h2>
+  <div class="ctl">
+    <label>시작 층 <input id="f0" type="number" value="1" min="1" step="10"></label>
+    <label>층 수 <input id="fn" type="number" value="30" min="10" max="100" step="10"></label>
+    <label>마리당 체력 (정예 대비) <input id="hpS" type="number" value="0.4" min="0.2" max="1" step="0.05"></label>
+    <label>마리 수 <input id="nS" type="number" value="3" min="2" max="5" step="1"></label>
+  </div>
+  <div class="sub">스테이지 = 25 + 층 × 2. 정예 = 스테이지 몬스터 체력 ×2 · 공격 ×2.2, 보스 = 스테이지 보스 체력 ×2 · 공격 ×1.6. 숫자는 게임 표기(<code>fmt</code>).</div>
+  <div class="scroll card"><table id="floors"></table></div>
+
+  <h2>② 무리 층에서 직업별 유불리 (잘게 쪼갠 곡선, 모든 층이 무리)</h2>
+  <div class="sub">보스 없이 칸마다 체력 ×1.08 · 공격력 ×1.06 (세기 ≈ 7%, 실제 탑 1층 ≈ 5칸). 직업마다 "정예만" 벽을 20칸에 맞춘 뒤 무리일 때 최고 칸이 얼마나 움직이는지. 2차 12회 · 3차 8회 평균. <b>+ 는 무리 층이 쉬움</b>.</div>
+  <div class="ctl"><label>설정 <select id="cfgSel">
+    <option value="h40">채택: 체력 0.4 · 공격 1</option>
+    <option value="p3">체력 1/3 (합 1.0) · 공격 1</option>
+    <option value="a13">체력 1/3 · 공격 1.3</option>
+    <option value="r2">체력 0.4 + 광폭화 12초</option>
+  </select></label><span class="sub" id="cfgNote"></span></div>
+  <div class="card"><div class="bars" id="fineBars"></div></div>
+
+  <h2>③ 실제 층 곡선에서 최고 층 변화 (3·6·9층만 무리, 체력 0.4)</h2>
+  <div class="sub">실제 곡선(층마다 체력 ×1.49 · 공격 ×1.36, 10층마다 보스). 직업마다 "정예만" 벽 ≈ 15층으로 맞춤, 8회씩. 정예만일 때도 회차마다 ±0.5층은 흔들린다.</div>
+  <div class="card"><div class="bars" id="realBars"></div>
+    <div class="sub" style="margin-top:6px">최고 층 분포 — 정예만 {13: 5, 14: 87, 15: 95, 16: 5} → 무리 {13: 5, 14: 100, 15: 78, 16: 8, 17: 1}</div></div>
+
+  <h2>④ 벽 근처 한 층 처치 시간 (정예 1마리 vs 무리 3마리)</h2>
+  <div class="sub">②의 곡선에서 14~18칸(벽 바로 아래) 한 층을 시작부터 돌파까지 걸린 시간 평균(초), 6회씩. 무리는 다가오는 시간과 체력 합 1.2배 때문에 대개 조금 길다. 그래도 맨 앞 1마리만 때려서 받는 피해는 정예와 비슷하다. 광역 마법 계열만 무리가 더 빠르다.</div>
+  <div class="legend"><span><i style="background:#8fd8ff"></i>정예 1마리</span><span><i style="background:var(--orange)"></i>무리 3마리</span></div>
+  <div class="card"><div class="pair" id="timeBars"></div></div>
+
+  <h2>⑤ 다시 재기 (이 페이지에서 시뮬레이터 실행)</h2>
+  <div class="sub">숨은 <code>dev/skills.html</code> 에서 <code>dev/tower-pack-sim.js</code> 를 돌린다 (②와 같은 곡선). 한 직업에 회차당 1초쯤 걸리고, 도는 동안 화면이 잠깐 멈춘다.</div>
+  <div class="ctl">
+    <label>직업 <select id="rCls"></select></label>
+    <label>마리당 체력 <input id="rHp" type="number" value="0.4" min="0.2" max="1" step="0.05"></label>
+    <label>마리 수 <input id="rN" type="number" value="3" min="2" max="4" step="1"></label>
+    <label>광폭화 늦춤(초) <input id="rRage" type="number" value="0" min="0" max="5" step="1"></label>
+    <label>회차 <input id="rSeeds" type="number" value="4" min="1" max="12" step="1"></label>
+    <button id="rGo" disabled>시뮬레이터 불러오는 중…</button>
+  </div>
+  <div class="card" id="runOut"><span class="sub">결과가 여기에 나온다.</span></div>
+
+  <h2>⑥ 실제 게임에서 보기</h2>
+  <div class="card">
+    <b class="mid">구현 후 확인</b> — 무리 층은 아직 게임 코드에 없다 (스펙 세션은 게임 코드를 고치지 않는다). 구현되면:
+    <ol>
+      <li>오프라인으로 연다: <a href="../../index.html?server=http://127.0.0.1:9" target="_blank"><code>index.html?server=http://127.0.0.1:9</code></a> (처음이면 <code>docs/dev-testing.md</code> "웹 게임 띄우기"대로 localStorage <code>knight-bar-accounts</code> 를 먼저 넣는다).</li>
+      <li>8초쯤 뒤 콘솔에서 탑 해금 + 13층(무리)부터 시작:
+<pre>S.best = S.stage = Math.max(S.best, 60); S.level = Math.max(S.level, 120); S.train.atk = 200; S.train.hp = 200;
+S.tower = freshTower(); S.tower.best = 12;          // 체크포인트는 11층 → 11·12 정예, 13층 무리
+S.phase = 'camp'; S.stamina = 1e6; S.hp = stats().maxHp; startTower(); closeCamp(); save();</pre></li>
+      <li>탑 띠에서 <code>13F ×3</code> 주황 층 번호, <code>⚔ 무리 ×3</code> 플로터, 3마리가 줄 서서 맨 앞만 공격하는지 본다. 기사가 너무 세거나 약하면 <code>S.train.atk</code> 를 바꾼다.</li>
+      <li>수치 확인: <code>[1,2,3,6,9,10,13,20].map(towerPack)</code>, <code>towerMonsters(13)</code>.</li>
+    </ol>
+    지금(구현 전) 바로 볼 수 있는 것은 ⑤의 시뮬레이터다. 전투는 실제 게임 코드(<code>update()</code>) 그대로다.
+  </div>
+
+  <h2>⑦ 수용 기준 (구현 후 검증)</h2>
+  <div class="card"><ul class="chk" id="acc"></ul>
+    <div class="sub" style="margin-top:6px">⏳ = 구현 전이라 아직 확인 못 함. 근거 수치(②③)는 시뮬레이션으로 확인했다 — 구현 뒤 같은 명령으로 다시 잰다.</div></div>
+
+  <h2>⑧ 사용자가 정할 것</h2>
+  <div class="card"><ul>
+    <li><b>이대로 확정할지</b> — 3·6·9층 고정 · 3마리 · 마리당 체력 0.4 · 공격 1 · 광폭화·보상·소탕 그대로.</li>
+    <li>무리 층을 <b>확률(층마다 30%)</b>로 바꿀지 — 추천하지 않음: 같은 층이 운에 따라 쉬웠다 어려웠다 해서 "어디서 막혔다"가 흐려진다.</li>
+    <li>높은 층(예: 50층+)에서 <b>4마리</b>로 늘릴지 — 탑 폭에는 들어간다. 지금은 보류(⑤에서 마리 수 4로 직접 재 볼 수 있다).</li>
+  </ul></div>
+</main>
+
+<iframe class="sim" id="sim" src="../skills.html" title="시뮬레이터"></iframe>
+<script src="../../src/data.js"></script>
+<script>
+'use strict';
+// 직업 이름·공격 범위 (src/classes.js WEAPONS 의 targets/splash 요약)
+const CLS = {
+  paladin: ['성기사', '단일'], blademaster: ['검성', '단일'], marksman: ['저격수', '단일'], cryomancer: ['빙결술사', '단일'], arbalest: ['석궁사수', '단일'],
+  arcaneArcher: ['마궁수', '3발 나눔'], greatswordsman: ['대검전사', '3마리'], dragoon: ['용기병', '2마리'], cavalier: ['랜서', '2마리'], halberdier: ['할버디어', '9마리'],
+  pyromancer: ['화염술사', '폭발'], electromancer: ['뇌전술사', '연쇄'],
+  archon: ['성좌기사', '단일'], swordsaint: ['검신', '단일'], deadeye: ['신궁', '단일'], frostlord: ['빙결의 군주', '단일'], siegeMaster: ['공성포수', '단일'],
+  voidArcher: ['차원궁사', '4발 나눔'], tyrant: ['파천검왕', '3마리'], skyGeneral: ['천마장군', '3마리'], dragonlord: ['용황', '3마리'], warlord: ['전쟁군주', '9마리'],
+  archmage: ['대마도사', '폭발'], thunderEmperor: ['뇌제', '연쇄'],
+};
+const T2 = ['paladin', 'blademaster', 'marksman', 'cryomancer', 'arbalest', 'arcaneArcher', 'greatswordsman', 'dragoon', 'cavalier', 'halberdier', 'pyromancer', 'electromancer'];
+const T3 = ['archon', 'swordsaint', 'deadeye', 'frostlord', 'siegeMaster', 'voidArcher', 'tyrant', 'skyGeneral', 'dragonlord', 'warlord', 'archmage', 'thunderEmperor'];
+
+// ── 2026-10-13 측정값 (dev/tower-pack-sim.js) ──
+const FINE = {
+  h40: { paladin: 0.8, blademaster: 0.4, dragoon: 1.9, halberdier: 1.0, marksman: -1.0, arcaneArcher: -0.6, pyromancer: 4.1, cryomancer: 0.4, greatswordsman: 0.5, cavalier: 2.9, arbalest: -0.7, electromancer: 4.5,
+    tyrant: 3.0, skyGeneral: 1.0, siegeMaster: 1.3, thunderEmperor: 6.1, archon: 1.1, swordsaint: 0.6, dragonlord: 2.1, warlord: 2.6, deadeye: -0.9, voidArcher: 0.8, archmage: 6.5, frostlord: 0.5 },
+  p3: { paladin: 2.9, blademaster: 1.2, dragoon: 2.7, halberdier: 3.9, marksman: -1.0, arcaneArcher: 0.1, pyromancer: 6.8, cryomancer: 1.9, greatswordsman: 1.7, cavalier: 4.6, arbalest: 0.0, electromancer: 6.4 },
+  a13: { paladin: -0.7, blademaster: 0.5, dragoon: 1.5, halberdier: 2.7, marksman: -1.2, arcaneArcher: -1.0, pyromancer: 4.3, cryomancer: 0.3, greatswordsman: 0.3, cavalier: 3.8, arbalest: -1.8, electromancer: 4.8 },
+  r2: { paladin: 1.6, blademaster: 0.4, marksman: -1.4, arcaneArcher: -0.8, arbalest: -0.3, cryomancer: 0.5, greatswordsman: -0.4 },
+};
+const FINE_NOTE = {
+  h40: '단일 −1.0~+1.3칸, 광역 +1~+6.5칸 — 채택.',
+  p3: '단일 대상인 성기사까지 +2.9칸 — 모두에게 쉬워진다.',
+  a13: '석궁사수 −1.8칸 — 단일 원거리가 손해.',
+  r2: '0.4 와 차이가 잡음 범위 — 규칙을 늘릴 이유 없음.',
+};
+const REAL = { paladin: 0, blademaster: 0, dragoon: 0.5, halberdier: 0, marksman: -0.1, arcaneArcher: 0.4, pyromancer: 0.3, cryomancer: -0.5, greatswordsman: 0.8, cavalier: -0.1, arbalest: 0, electromancer: -0.5,
+  tyrant: 0.3, skyGeneral: -0.4, siegeMaster: -0.4, thunderEmperor: 0, archon: 0.1, swordsaint: 0, dragonlord: -0.3, warlord: -0.4, deadeye: -0.1, voidArcher: -0.1, archmage: 0.1, frostlord: -0.5 };
+const TIME = { paladin: [5.85, 5.74], blademaster: [5.4, 5.52], dragoon: [5.07, 5.98], halberdier: [5.23, 5.88], marksman: [4.51, 6.03], arcaneArcher: [6.25, 6.2], pyromancer: [5.35, 4.38], cryomancer: [5.36, 6.83],
+  greatswordsman: [4.9, 4.7], cavalier: [4.99, 5.16], arbalest: [3.77, 4.66], electromancer: [5.22, 5.16], tyrant: [4.69, 5.12], skyGeneral: [5.14, 4.52], siegeMaster: [3.62, 4.73], thunderEmperor: [4.84, 4.26],
+  archon: [5.59, 6.8], swordsaint: [4.36, 4.04], dragonlord: [4.72, 5.33], warlord: [4.73, 5.49], deadeye: [4.1, 5.1], voidArcher: [4.99, 5.22], archmage: [5.58, 4.13], frostlord: [5.08, 5.51] };
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const nm = (c) => `${CLS[c][0]} <small>${CLS[c][1]}</small>`;
+
+// ── ① 층 표 ──
+const PACK_FLOORS = [3, 6, 9];
+function renderFloors() {
+  const f0 = Math.max(1, +$('f0').value || 1), n = Math.min(100, Math.max(1, +$('fn').value || 30));
+  const hpS = +$('hpS').value || 0.4, k = Math.max(2, +$('nS').value || 3);
+  let h = '<tr><th>층</th><th>스테이지</th><th>종류</th><th>마리</th><th>마리당 체력</th><th>마리당 공격</th><th>체력 합 (정예 대비)</th><th>골드 합</th></tr>';
+  for (let f = f0; f < f0 + n; f++) {
+    const stage = TOWER_STAGE0 + Math.round(f * TOWER_STAGE_PER), boss = f % 10 === 0, pack = !boss && PACK_FLOORS.includes(f % 10);
+    const st = monsterStats(stage, boss);
+    const eHp = st.hp * (boss ? TOWER_BOSS_HP : TOWER_ELITE_HP), eAtk = st.atk * (boss ? TOWER_BOSS_ATK : TOWER_ELITE_ATK), gold = boss ? st.gold : st.gold * 3;
+    const cnt = pack ? k : 1, hp = pack ? eHp * hpS : eHp;
+    const kind = boss ? '<span class="boss">👑 보스</span>' : pack ? `<span class="pk">무리 ×${k}</span>` : '정예';
+    h += `<tr${pack ? ' style="background:#2a2030"' : ''}><td>${f}F${pack ? ` <span class="pk">×${k}</span>` : ''}</td><td>${stage}</td><td style="text-align:left">${kind}</td><td>${cnt}</td>
+      <td>${fmt(hp)}</td><td>${fmt(eAtk)}</td><td>${pack ? `×${(hpS * k).toFixed(2)}` : '×1'}</td><td>${fmt(gold)}</td></tr>`;
+  }
+  $('floors').innerHTML = h;
+}
+['f0', 'fn', 'hpS', 'nS'].forEach((id) => $(id).addEventListener('input', renderFloors));
+renderFloors();
+
+// ── 가운데 0 기준 막대 ──
+function divBars(el, data, scale, unit) {
+  const groups = [['2차', T2], ['3차', T3]];
+  let h = '';
+  for (const [g, list] of groups) {
+    const rows = list.filter((c) => data[c] != null);
+    if (!rows.length) continue;
+    h += `<div class="sep">${g}</div>`;
+    for (const c of rows) {
+      const v = data[c], w = Math.min(50, Math.abs(v) / scale * 50);
+      const style = v >= 0 ? `left:50%;width:${w}%;background:var(--green)` : `right:50%;width:${w}%;background:var(--red)`;
+      h += `<div class="nm">${nm(c)}</div><div class="tr"><div class="b" style="${style}"></div></div><div class="v ${v > 0.05 ? 'ok' : v < -0.05 ? 'bad' : ''}">${v > 0 ? '+' : ''}${v.toFixed(1)}${unit}</div>`;
+    }
+  }
+  el.innerHTML = h;
+}
+function renderFine() { const k = $('cfgSel').value; divBars($('fineBars'), FINE[k], 7, '칸'); $('cfgNote').textContent = FINE_NOTE[k]; }
+$('cfgSel').addEventListener('change', renderFine);
+renderFine();
+divBars($('realBars'), REAL, 1.5, '층');
+
+// ── 처치 시간 ──
+(function () {
+  let h = '';
+  const max = 7.5;
+  for (const [g, list] of [['2차', T2], ['3차', T3]]) {
+    h += `<div class="sep" style="grid-column:1/-1;color:var(--dim);font-size:11px;margin-top:6px">${g}</div>`;
+    for (const c of list) {
+      const [e, p] = TIME[c];
+      h += `<div class="nm">${nm(c)}</div><div class="tr"><div class="b1" style="width:${e / max * 100}%"></div><div class="b2" style="width:${p / max * 100}%"></div></div>
+        <div class="v">${e.toFixed(1)} → <span class="${p < e ? 'ok' : 'pk'}">${p.toFixed(1)}초</span></div>`;
+    }
+  }
+  $('timeBars').innerHTML = h;
+})();
+
+// ── 수용 기준 ──
+const ACC = [
+  ['⏳', '무리 층 판정: <code>[1,2,3,6,9,10,13,20,29,30].map(towerPack)</code> → <code>[1,1,3,3,3,1,3,1,3,1]</code>'],
+  ['⏳', '마리당 수치: <code>towerMonsters(13)</code> 3마리, 체력 = 스테이지 몬스터 ×2 ×0.4, 공격 ×2.2, 골드·경험치 ×1. 14·20층은 지금과 같은 1마리'],
+  ['⏳', '등장: 13층에서 3마리가 x 100·114·128 쯤 나타나 탑 폭 안에 다 보이고, <code>⚔ 무리 ×3</code> 플로터·<code>13F ×3</code> 주황 층 번호 (⑥ 스니펫 + 스크린샷)'],
+  ['⏳', '줄서기: 16px 간격, 맨 앞 1마리만 공격 모션 (<code>monsters.map(m => !!m.anim)</code>)'],
+  ['⏳', '광폭화: 10초 넘으면 살아 있는 모든 마리 <code>m.rage</code> 상승, 배너 한 번, 마리 사이 빈 시간엔 <code>tw.ft</code> 정지'],
+  ['⏳', '돌파: 3마리 다 잡아야 돌파, 📖 +1, <code>run.kills</code> +3'],
+  ['⏳', '소탕 불변: best 25 에서 <code>sweepTower()</code> = 25'],
+  ['⏳', '보상 불변: 정예만(<code>window.towerPack = () => 1</code>)과 무리의 층 합계 골드·경험치가 같다'],
+  ['✅', '밸런스 (구현 전 시뮬레이션): 실제 곡선에서 24종 모두 ±1층 안(−0.5~+0.8), 평균 ±0.3층 안(−0.04) — 구현 뒤 다시 잰다'],
+  ['⏳', '안내 문구: 탑 탭 <code>.hint</code>·서브 콘텐츠 설명에 "3·6·9층은 무리"'],
+];
+$('acc').innerHTML = ACC.map(([s, t]) => `<li>${s} ${t}</li>`).join('');
+
+// ── ⑤ 다시 재기: 숨은 iframe 의 dev/skills.html 에서 시뮬레이터 ──
+const sel = $('rCls');
+sel.innerHTML = [...T2, ...T3].map((c) => `<option value="${c}">${esc(CLS[c][0])} (${esc(CLS[c][1])})</option>`).join('');
+let simWin = null;
+async function loadSim() {
+  const fr = $('sim');
+  for (let i = 0; i < 100; i++) {
+    const w = fr.contentWindow;
+    if (w && w.skillTest && w.update && w.towerMonster) {
+      await new Promise((ok, fail) => { const s = w.document.createElement('script'); s.src = 'tower-pack-sim.js?t=' + Date.now(); /* iframe 문서(dev/skills.html) 기준 경로 */ s.onload = ok; s.onerror = fail; w.document.body.appendChild(s); });
+      simWin = w; w.towerSim.setCurve('fine');
+      $('rGo').disabled = false; $('rGo').textContent = '▶ 재기';
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  $('rGo').textContent = '시뮬레이터를 못 불러왔어요 (로컬 서버에서 여세요)';
+}
+loadSim().catch(() => { $('rGo').textContent = '시뮬레이터를 못 불러왔어요'; });
+$('rGo').onclick = async () => {
+  const c = sel.value, hp = +$('rHp').value || 0.4, n = Math.max(2, +$('rN').value || 3), rage = +$('rRage').value || 0, seeds = Math.max(1, Math.min(12, +$('rSeeds').value || 4));
+  $('rGo').disabled = true;
+  const acc = { e: [], p: [], et: [], pt: [] };
+  for (let s = 0; s < seeds; s++) {
+    for (const [k, o] of [['e', {}], ['p', { pack: () => n, hpShare: hp, rageExtra: rage }]]) {
+      $('runOut').innerHTML = `<span class="sub">${esc(CLS[c][0])} — ${s + 1}/${seeds} 회차 ${k === 'e' ? '정예만' : '무리'} 재는 중…</span>`;
+      await new Promise((r) => setTimeout(r, 30));
+      const r = simWin.towerSim.run(c, o);
+      acc[k].push(r.best);
+      for (const f of r.floors) if (f.f >= 14 && f.f <= 18) acc[k + 't'].push(f.dt);
+    }
+  }
+  const m = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
+  const d = m(acc.p) - m(acc.e);
+  $('runOut').innerHTML = `<b>${esc(CLS[c][0])}</b> · 무리 ${n}마리 · 마리당 체력 ${hp} · 광폭화 +${rage}초 · ${seeds}회<br>
+    최고 칸: 정예만 <b>${m(acc.e).toFixed(1)}</b> → 무리 <b>${m(acc.p).toFixed(1)}</b> (<span class="${d > 0.05 ? 'ok' : d < -0.05 ? 'bad' : ''}">${d >= 0 ? '+' : ''}${d.toFixed(1)}칸</span>, 실제 탑 약 ${(d / 5).toFixed(2)}층)<br>
+    14~18칸 한 층 처치 시간: 정예 ${m(acc.et).toFixed(2)}초 → 무리 ${m(acc.pt).toFixed(2)}초
+    <div class="sub">회차가 적으면 ±1칸쯤 흔들린다. 결과 표: 정예 [${acc.e.join(', ')}] · 무리 [${acc.p.join(', ')}]</div>`;
+  $('rGo').disabled = false;
+};
+</script>
+</body>
+</html>
