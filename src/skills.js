@@ -2498,11 +2498,11 @@ const SKILL_FX = {
       }
       return list;
     },
-    // 명중 그림 K01 (땅 충격 + 강철 파편, 바닥 기준): Lv1 작게·앞 3프레임, ★ 4프레임, ★★ 이상 전부. 잔타(피해 비중 50% 미만)는 작게,
-    //  한 방은 원래 크기, ★★★ 천강검은 4/3배 + 금빛 램프 (a.color 가 이미 금빛이 섞여 있다)
+    // 명중 그림 K01 (땅 위 충격선 + 아래로 갈라지는 균열 + 튀어 오르는 강철 파편 3조각): Lv1 앞 3프레임, ★ 4프레임, ★★ 이상 전부.
+    //  크기는 2/3배, ★★★ 천강검 막타만 1배 + 금빛 램프 (a.color 가 이미 금빛이 섞여 있다). 시트 20번째 줄(충격선)을 땅선에 맞춘다
     hitTex(a, t, share, i, n) {
-      const m = a.mast, big = m > 0 && share >= 0.5;
-      texFx('k01', t.x, groundY(), a.color, { anchor: 'b', life: big ? 0.34 : 0.26, frames: [3, 4, 5, 5][m], scale: big ? (m >= 3 ? 4 / 3 : 1) : 2 / 3, flip: a.dir < 0, fade: 0.25 });
+      const m = a.mast, big = m >= 3 && share >= 0.5, sc = big ? 1 : 2 / 3;
+      texFx('k01', t.x, groundY() + 11 * VFX_DOT * sc, a.color, { anchor: 'b', life: big ? 0.36 : 0.28, frames: [3, 4, 5, 5][m], scale: sc, flip: a.dir < 0, fade: 0.25 });
     },
     hit(a, i) {
       const m = a.mast, g = gripOf(a);

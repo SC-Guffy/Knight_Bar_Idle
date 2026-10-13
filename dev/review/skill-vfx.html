@@ -335,7 +335,7 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
     <figure>${img(`family-${k}-gray.png`, `${n} 흑백`)}<figcaption>${n} — 흑백</figcaption></figure>`).join('');
 
   // ⑤-0 본작업
-  document.getElementById('vfx0Sheets').innerHTML = [['w1', 'W1 장검 휘두르기 (키 그림 1장)'], ['w2', 'W2 장검 찌르기 (새로)'], ['h01', 'H01 견습 기사 평타 명중 (새로)'], ['h02', 'H02 검사 평타 명중 (시험 H1)'], ['e43', 'E43 강철 초승달 (시험 C1)'], ['k01', 'K01 강철 베기 명중 (새로)']]
+  document.getElementById('vfx0Sheets').innerHTML = [['w1', 'W1 장검 휘두르기 (키 그림 1장)'], ['w2', 'W2 장검 찌르기 (새로)'], ['h01', 'H01 견습 기사 평타 명중 (새로)'], ['h02', 'H02 검사 평타 명중 (시험 H1)'], ['e43', 'E43 강철 초승달 (시험 C1)'], ['k01', 'K01 강철 베기 명중 v2 (충격선·균열·파편 3조각)']]
     .map(([k, cap]) => `<figure><img src="../../src/vfx/${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap}</figcaption></figure>`).join('');
   document.getElementById('vfx0Nums').innerHTML = `<table><tr><th>측정</th><th>퀄업 전</th><th>퀄업 후</th><th>메모</th></tr>
     <tr><td>10분 사냥 골드 — 검신(공속 2.2) Lv1</td><td>10,430,820</td><td>10,454,905 (+0.2%)</td><td rowspan="4">시드 48개 × 10분(= 8시간) 합. 같은 시드라도 정지 시간이 달라지면 난수 순서가 갈라져 ±2% 안팎은 잡음이다</td></tr>
@@ -347,7 +347,9 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
     <tr><td>프레임 비용 (tick+render, ms) — 견습 평타 · 검사 평타</td><td>1.33 · 1.52</td><td>1.29 · 1.38</td><td rowspan="2">같은 탭에서 900프레임 평균</td></tr>
     <tr><td>강철 베기 ★ · ★★★ 반복</td><td>1.72 · 1.82</td><td>1.51 · 1.71</td></tr>
     <tr><td>하단바 양 끝 40px 밝기 변화 (최대)</td><td>0.009</td><td>0.007</td><td>기준 ±0.05</td></tr></table>`;
-  document.getElementById('vfx0List').innerHTML = [['basic-squire-flash', '견습 기사 평타 — 위 = 지금, 아래 = ⑤-0. 칸: 명중 1프레임 전, 명중 0~4프레임 (60fps). 피격 번쩍임이 반투명·짧아져 H01 이 보인다'], ['basic-swordsman-flash', '검사 평타 1·2번 동작 (내려베기·올려베기) — W1 키 그림 + H02'], ['basic-swordsman-m3', '검사 평타 3번 동작 (찌르기) — W2'], ['basic-paladin-flash', '성기사 평타 — 텍스처는 ⑤-4, 이번엔 피격 번쩍임만 바뀜'],
+  document.getElementById('vfx0List').innerHTML = [['steelCleave-s3-v2', 'v2 강철 베기 ★★★ 막타 — 전 / v1(가시 덩어리 4/3배) / v2(충격선·균열·파편 3조각, 1배)'], ['steelCleave-s1-v2', 'v2 강철 베기 ★ — K01 2/3배'], ['steelCleave-s2-v2', 'v2 강철 베기 ★★'], ['steelCleave-s0-v2', 'v2 강철 베기 Lv1'],
+    ['basic-swordsman-flash-v2', 'v2 검사 평타 — H02 2/3배, 몸통·칼끝 쪽으로 옮겨 얼굴이 보인다 (줄: 전 / v1 / v2)'], ['basic-squire-flash-v2', 'v2 견습 기사 평타 — H01 을 몸통·칼끝 쪽으로'], ['game-swordsman-v2', 'v2 실제 게임 — 위 두 줄 v1, 아래 두 줄 v2'],
+    ['basic-squire-flash', '견습 기사 평타 — 위 = 지금, 아래 = ⑤-0. 칸: 명중 1프레임 전, 명중 0~4프레임 (60fps). 피격 번쩍임이 반투명·짧아져 H01 이 보인다'], ['basic-swordsman-flash', '검사 평타 1·2번 동작 (내려베기·올려베기) — W1 키 그림 + H02'], ['basic-swordsman-m3', '검사 평타 3번 동작 (찌르기) — W2'], ['basic-paladin-flash', '성기사 평타 — 텍스처는 ⑤-4, 이번엔 피격 번쩍임만 바뀜'],
     ['steelCleave-s0', '강철 베기 Lv1 — E43 2/3 크기 + K01 앞 3프레임 (칸: 명중 −2·0·2·5·9 프레임)'], ['steelCleave-s1', '강철 베기 ★ — E43 + 날아가는 검풍(E43 이동) + K01 (고리는 아직 벡터)'], ['steelCleave-s2', '강철 베기 ★★ — K01 만 바뀜 (대검·바위 송곳은 ⑤-4)'], ['steelCleave-s3', '강철 베기 ★★★ — 첫 베기 E43, 천강검 막타 K01 4/3배 (하늘 검은 ⑤-4 E01)'],
     ['game-swordsman', '실제 게임(오프라인) 원정 — 강철 베기 ★ 명중 · 검사 평타 명중']]
     .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}vfx0/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');

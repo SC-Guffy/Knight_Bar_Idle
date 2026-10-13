@@ -14,9 +14,9 @@ const VFX_SHEETS = {
   w1: { frames: 5 },     // W1 장검 휘두르기 궤적 — 키 그림(0번) 한 장만 쓰고 코드로 재생한다
   w2: { frames: 1 },     // W2 장검 찌르기 줄 (키 그림 한 장)
   h01: { frames: 4, scale: 2 / 3 },   // H01 견습 기사 평타 명중: 짧은 사선 + 양끝 불티 (스펙 24도트 → 32도트 시트를 2/3 로)
-  h02: { frames: 5 },    // H02 검사 평타 명중: 별 섬광 + 교차 검흔 (⑤-0 시험 H1)
+  h02: { frames: 5, scale: 2 / 3 },   // H02 검사 평타 명중: 별 섬광 + 교차 검흔 (⑤-0 시험 H1). 1배는 맞은 대상 얼굴을 다 가려서 2/3
   e43: { frames: 5 },    // E43 강철 베기 초승달 참격파 (⑤-0 시험 C1)
-  k01: { frames: 5 },    // K01 강철 베기 명중: 땅 충격 + 강철 파편 부채꼴 (바닥 기준)
+  k01: { frames: 5 },    // K01 강철 베기 명중: 땅 위 충격선(20번째 줄) + 아래 균열 + 강철 파편 3조각 (v2, 바닥 기준)
 };
 // 무기 → 평타 궤적 시트 (휘두르기, 찌르기). 직업 → 평타 명중 시트. 없으면 예전 그림
 const VFX_WEAPON = { sword: ['w1', 'w2'], knightSword: ['w1', 'w2'] };
@@ -182,8 +182,9 @@ function vfxBasicRelease() {
 function vfxBasicHit(m, crit, ranged) {
   const id = !ranged && VFX_BASIC_HIT[S.cls];
   if (id && !m.killed) {
-    const x = toScreen(m.x) + m.kb + rand(-3, 3), y = Math.max(monsterTop(m) + 8, groundY() - 22) + rand(-3, 3);
-    const sc = (VFX_SHEETS[id].scale || 1) * (crit ? 4 / 3 : 1);    // 치명은 4/3배
+    // 대상 가운데에서 칼끝 쪽(기사 쪽)으로 조금, 얼굴보다 아래(몸통)에 — 얼굴을 가리지 않게
+    const x = toScreen(m.x) + m.kb - (knight.facing || 1) * 5 + rand(-2, 2), y = Math.max(monsterTop(m) + 14, monsterMidY(m)) + rand(-2, 2);
+    const sc = crit ? 1 : VFX_SHEETS[id].scale || 1;                // 치명은 1배 (평소 2/3)
     texFx(id, x, y, heroWeapon().trail || '255,255,255', { life: id === 'h01' ? 0.16 : 0.2, scale: sc, fade: 0.25, flip: Math.random() < 0.5 });
   }
   let stop = ranged ? (crit ? 0.03 : 0) : crit ? 0.05 : 0.025;
