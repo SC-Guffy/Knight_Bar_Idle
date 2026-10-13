@@ -168,7 +168,7 @@
 | ③ | 성벽 지키기 | `castle-defense.md` | 작성 대기 |
 | ③ | 교관 재가동 (수련의 서) | [training-mentors.md](training-mentors.md) 개정 | 작성 대기 |
 | ④ | 권투가 7종 | `boxer-class.md` | 작성 대기 |
-| ⑤ | 스킬 VFX 전수조사 | [skill-vfx.md](skill-vfx.md) | 조사 대기 |
+| ⑤ | 스킬 VFX 전수조사 | [skill-vfx.md](skill-vfx.md) | 조사 완료 · 확인 대기 — 스킬 교체 11·보강 20·유지 9, 평타 교체 6·보강 19·유지 4. 순서 ⑤-0 공통 기반(시트 시험) → 마법사 → 창기사 → 레인저 → 검사, PixelLab 약 280회(Tier 1 한 달, 권투가와 같은 달) |
 
 - [ ] 시즌7 직업(사무라이·해머전사·암살자 3종)도 3차까지 만들지는 시즌7 착수 때 정한다.
 

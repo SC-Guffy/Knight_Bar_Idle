@@ -44,7 +44,7 @@
 | 스펙 | 상태 | 내용 |
 |---|---|---|
 | [roadmap.md](roadmap.md) | 방향 확정 | **패치 로드맵** — 시즌6(권투가·성벽 지키기·교관 재가동·강화 +30·자잘이) · 시즌7~(암살자·사무라이·해머전사·스킬 룬). "결정 사항" 표가 기준, 항목별 스펙은 착수 때 따로 |
-| [skill-vfx.md](skill-vfx.md) | 초안 (조사 전) | 스킬 VFX 퀄업 — 스킬 40종 + 평타 29종 전수조사표 (PixelLab) |
+| [skill-vfx.md](skill-vfx.md) | 초안 (조사 완료, 확정 대기) | 스킬 VFX 퀄업 — 스킬 40종 + 평타 29종 전수조사 결과 · 공용 PixelLab 시트 11장 · 히트스톱 기준 · 계열별 패치 순서 (캡처 `dev/vfx-survey/`) |
 | [art-upgrade.md](art-upgrade.md) | 진행 중 | AI 이미지 생성 → 도트 복원으로 배경·UI·아이콘 퀄업 |
 | [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
 | [forge-temper.md](forge-temper.md) | 완료 | 대장간 🔥 담금질대: +20 까지 강화 성공↑·하락↓, +20 이상은 그대로 |
