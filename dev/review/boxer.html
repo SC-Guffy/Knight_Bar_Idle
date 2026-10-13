@@ -103,25 +103,44 @@
     <tr><td>앞으로의 캐릭터 전체 쿨타임 효과 (시즌7 룬)</td><td>모든 스킬 쿨타임 −x%</td><td>기 충전 ×1/(1−x)</td></tr>
   </table></div>
 
-  <h2>5. 실루엣 — 색깔놀이 확인</h2>
-  <div class="sub">기준 그림은 손도트(<code>dev/boxer/draw.py</code>), 기존 직업은 게임의 <code>drawHero</code> 로 그려 1칸=1px 로 복원한 것입니다. 모두 같은 축척(1칸 = 화면 1.5px 의 4배 확대).</div>
+  <h2>5. 기준 그림 — 손도트 → ComfyUI 시안 → PixelLab 최종</h2>
+  <div class="card hl">사용자 피드백("권투가 왜 이렇게 저퀄이야")으로 기준 그림을 다시 뽑았습니다.
+    <b>ComfyUI(Z-Image + 픽셀 LoRA)</b>로 직업마다 시안 12장(모두 84장) → 하나를 골라 바탕을 지우고 키 40도트로 줄여 256×256 판에 놓음 → <b>PixelLab <code>image-to-pixelart</code></b>(256 → 64, 직업당 1회) → 바탕·발밑 그림자 정리, 발 바닥 y=58, 게임과 같은 바깥 외곽선 <code>#0b0d14</code> (<code>dev/boxer/to_pixel.py</code>).
+    기존 직업은 게임의 <code>drawHero</code> 로 그려 1칸=1px 로 복원했습니다. 모두 같은 축척(4배 확대)입니다.</div>
   <div class="ctl" style="margin-top:8px">
     <button class="on" data-mode="">컬러</button><button data-mode="-gray">흑백</button><button data-mode="-sil">실루엣만</button>
   </div>
+  <div class="card" style="border-color:var(--red)"><b>사용자 의견 반영 중</b>: "퀄리티가 갑자기 너무 높아졌다. 픽셀 느낌이 더 나야 돼" · "기존안·현재안 7:3 정도로 기존에 치우친 느낌".
+    그래서 <b>7:3 판</b>을 만들었습니다 (<code>dev/boxer/stylize.py</code>): 고퀄 그림을 2×2 칸 → 1칸으로 줄이고(키 약 20도트, 기존 기사 11×13 과 같은 굵기), 눈을 다시 찍고, 기존 기사와 똑같이 EPX 2배 + 바깥 외곽선. PixelLab 추가 사용 없음.
+    아래 <b>세 판 비교</b>에서 고르시면 그 방식으로 갑니다. 7:3 판은 장식이 많은 직업(챔피언·그랜드마스터)의 얼굴·무늬가 뭉쳐서 생산 때 손 마무리가 필요합니다.</div>
   <div class="gallery" style="grid-template-columns:1fr">
-    <figure><img class="pix lu" data-base="lineup-family" alt="2차 3종"><figcaption><b>같은 계열 2차 3종</b> — 스트라이커(위가 무거운 역삼각형·큰 건틀릿) / 킥복서(뒤로 긴 머리·든 앞다리·넓은 바지) / 기공사(소매 늘어진 가운·머리띠)</figcaption></figure>
-    <figure><img class="pix lu" data-base="lineup-tier1" alt="1차"><figcaption><b>1차 비교</b> — 견습 기사·검사·창기사·레인저·마법사 + 파이터</figcaption></figure>
-    <figure><img class="pix lu" data-base="lineup-tier2" alt="2차"><figcaption><b>2차 비교</b> — 성기사·검성·대검전사 + 스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-three-way" alt="세 판"><figcaption><b>세 판 비교</b> — 직업마다 왼쪽부터 ① 손도트(이전) ② <b>7:3 판</b> ③ 고퀄(PixelLab 64). 파이터·스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-pix-tier2" alt="7:3 2차"><figcaption><b>7:3 판 · 기존 2차와 나란히</b> — 성기사·검성·용기병 + 스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-pix-tier1" alt="7:3 1차"><figcaption><b>7:3 판 · 1차</b> — 견습 기사·검사·레인저·마법사 + 파이터</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-pix-lines" alt="7:3 2→3차"><figcaption><b>7:3 판 · 2차→3차</b> — 스트라이커→챔피언 / 킥복서→템페스트 / 기공사→그랜드마스터</figcaption></figure>
   </div>
-  <div class="card" style="margin-top:8px">3차(챔피언·템페스트·그랜드마스터)는 2차 시안이 확정된 뒤 같은 방식으로 그립니다. 특징 잇기 안: 챔피언 = 역삼각형 + 어깨 망토·사자 건틀릿, 템페스트 = 넓은 삼각형 + 두 갈래 머리·바람 목도리, 그랜드마스터 = 긴 장삼 + 등 뒤 기의 고리·떠도는 염주.</div>
+  <h3>고퀄 판 (PixelLab 64, 참고)</h3>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix lu" data-base="lineup-before-after" alt="전후"><figcaption><b>전후 비교</b> — 파이터·스트라이커·킥복서·기공사, 각각 왼쪽이 손도트(이전), 오른쪽이 PixelLab 최종</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-tier2" alt="2차 비교"><figcaption><b>기존 2차 중 잘 그린 직업과 나란히</b> — 성기사·검성·용기병 + 스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-tier1" alt="1차 비교"><figcaption><b>1차 비교</b> — 견습 기사·검사·창기사·레인저·마법사 + 파이터</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-family" alt="2차 3종"><figcaption><b>같은 계열 2차 3종 (색깔놀이 확인)</b> — 스트라이커(역삼각형·강철 건틀릿·민소매·챔피언 벨트) / 킥복서(뒤로 흐르는 묶은 머리·든 무릎·넓은 바지·맨발) / 기공사(소매 늘어진 도복·흰 머리띠·염주·손바닥 기)</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-family3" alt="3차 3종"><figcaption><b>3차 3종</b> — 챔피언(사자 갈기 머리·붉은 망토·황금 건틀릿) / 템페스트(초록 묶은 머리·바람 목도리·정강이 철갑) / 그랜드마스터(상투·흰 금빛 장삼·등 뒤 기의 고리)</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-lines" alt="2→3차"><figcaption><b>2차 → 3차 특징 잇기</b> — 스트라이커→챔피언 / 킥복서→템페스트 / 기공사→그랜드마스터</figcaption></figure>
+  </div>
+  <h3>ComfyUI 시안 (직업마다 12장, ✔ = 고른 것)</h3>
+  <div class="sub">고른 기준: 옆모습(오른쪽)인가, 실루엣 특징이 분명한가, 구도가 깨지지 않았나. 원본 1024px 는 저장소 밖(<code>C:\AI\comfy-raw\boxer</code>), 여기는 256px 축소본입니다. 번호 = seed (왼쪽 위부터 1).</div>
+  <div class="gallery" id="comfySheets" style="grid-template-columns:1fr"></div>
+  <div class="card">3차까지 7종을 모두 뽑았습니다. 크기는 아직 들쭉날쭉합니다(스트라이커·챔피언이 크고 킥복서가 작다). 시트 생산 때 키 목표를 직업별로 36~40도트로 맞춥니다.</div>
 
-  <h2>6. PixelLab 시험 (체험판 6회 사용 / 상한 15회)</h2>
+  <h2>6. PixelLab 시험 기록 (1차 시험 6회 + 기준 그림 9회 = 15회)</h2>
   <div class="anim" id="anims"></div>
   <div class="scroll" style="margin-top:8px"><table>
     <tr><th>시도</th><th>방식</th><th>결과</th><th>판정</th></tr>
     <tr><td>기준 그림 A</td><td>bitforge, 스타일 참조 = 기사 두 명</td><td>두 명이 나오고 등신대에 가깝다</td><td><span class="badge b-no">✗</span></td></tr>
     <tr><td>기준 그림 B·C</td><td>bitforge, 시작 그림 = 레인저 (강도 250·450)</td><td>근육형 등신대 / 레인저 모자가 남음</td><td><span class="badge b-no">✗</span></td></tr>
-    <tr><td>손도트 기준 그림</td><td>레인저 도트를 틀로 손으로</td><td>비율·외곽선·명암 결이 같다</td><td><span class="badge b-ok">✓ 채택</span></td></tr>
+    <tr><td>손도트 기준 그림</td><td>레인저 도트를 틀로 손으로</td><td>비율·외곽선은 맞지만 단순·평면적 (사용자: 저퀄)</td><td><span class="badge b-no">✗ 교체</span></td></tr>
+    <tr><td><b>ComfyUI 시안 → image-to-pixelart</b></td><td>Z-Image 84장 중 고름 → 256 → 64 도트화 (7회)</td><td>3~5단 명암·근육·주름·글러브 디테일, 기존 상위 직업과 같은 급</td><td><span class="badge b-ok">✓ 채택</span></td></tr>
     <tr><td>대기</td><td>animate-with-text-v3 4프레임</td><td>그림체·색 유지. 몸이 조금 정면으로 돈다</td><td><span class="badge b-mid">△</span></td></tr>
     <tr><td>잽</td><td>같은 방식</td><td>팔이 끝까지 안 뻗는다</td><td><span class="badge b-no">✗</span></td></tr>
     <tr><td>잽 + 끝 자세</td><td>last_frame = 손으로 그린 팔 뻗은 자세</td><td>중간이 정면으로 돌고 흰 얼룩</td><td><span class="badge b-no">✗</span></td></tr>
@@ -129,7 +148,7 @@
   <div class="gallery" style="margin-top:8px">
     <figure><img class="pix" id="bfImg" alt="bitforge 결과"><figcaption>bitforge 시도 3장 (왼쪽부터 A·B·C) — 버림</figcaption></figure>
   </div>
-  <div class="card"><b>결론</b>: 그림체는 손도트로 잡고, PixelLab 은 반복 동작(대기·걷기·앉기·피격·쓰러짐 등)과 이펙트 텍스처에 쓴다. 공격·기술 동작은 손 키 자세 2~3장 + 코드 보간 + 궤적 텍스처. 뼈대 지정 애니메이션(<code>animate-with-skeleton-v3</code>)은 Tier 1 결제 뒤 시험.</div>
+  <div class="card"><b>결론 (갱신)</b>: 기준 그림은 ComfyUI 시안 → PixelLab image-to-pixelart. 아래는 손도트 시절의 동작 시험 기록입니다. 그림체는 손도트로 잡고, PixelLab 은 반복 동작(대기·걷기·앉기·피격·쓰러짐 등)과 이펙트 텍스처에 쓴다. 공격·기술 동작은 손 키 자세 2~3장 + 코드 보간 + 궤적 텍스처. 뼈대 지정 애니메이션(<code>animate-with-skeleton-v3</code>)은 Tier 1 결제 뒤 시험.</div>
 
   <h2>7. 이펙트 텍스처와 PixelLab 사용량</h2>
   <div class="scroll"><table>
@@ -157,8 +176,8 @@
   <h2>9. 사용자가 정할 것</h2>
   <div class="card"><ul>
     <li>스펙 요지(주 기술 + 투지 구조, 충전 시작안, 스킬 10종, 시트·이펙트 규격)를 이대로 확정할지.</li>
-    <li>2차 3종 실루엣 시안이 충분히 다른지 (5절 흑백·실루엣).</li>
-    <li><b>PixelLab Tier 1 결제</b> ($12/월, 2,000회): 본 생산에 필요. 체험판 잔량 14.9회.</li>
+    <li><b>그림체 선택</b> (5절 세 판 비교): ② 7:3 판으로 갈지, 비율을 더 옮길지(예: 8:2 / 6:4). 고칠 직업이 있으면 ComfyUI 시안에서 다른 번호를 고르거나 더 뽑습니다.</li>
+    <li><b>PixelLab Tier 1 결제</b> ($12/월, 2,000회): 본 생산에 필요. 체험판 잔량 6.9회.</li>
   </ul></div>
 </main>
 
@@ -362,11 +381,31 @@ for (const [file, label] of [['base-fighter.png', '손도트 기준 그림 (채�
   document.getElementById('bfImg').src = cv.toDataURL();
 })();
 
+// ───────── ComfyUI 시안 시트 ─────────
+const PICK = { fighter: 4, striker: 6, kickboxer: 2, qigong: 8, champion: 6, tempest: 12, grandmaster: 3 };
+const NAMES = { fighter: '파이터', striker: '스트라이커', kickboxer: '킥복서', qigong: '기공사', champion: '챔피언', tempest: '템페스트', grandmaster: '그랜드마스터' };
+const cs = document.getElementById('comfySheets');
+for (const [cls, pick] of Object.entries(PICK)) {
+  const fig = document.createElement('figure'), wrap = document.createElement('div');
+  wrap.style.cssText = 'display:grid;grid-template-columns:repeat(6,1fr);gap:2px';
+  for (let s = 1; s <= 12; s++) {
+    const im = document.createElement('img'); im.src = `../boxer/comfy/${cls}-${s}.png`; im.loading = 'lazy'; im.style.cssText = 'width:100%;display:block;border-radius:2px';
+    im.onerror = () => { im.style.visibility = 'hidden'; };
+    if (s === pick) im.style.outline = '3px solid var(--gold)';
+    im.title = `${NAMES[cls]} seed ${s}${s === pick ? ' ✔ 고름' : ''}`;
+    wrap.append(im);
+  }
+  const fin = document.createElement('img'); fin.className = 'pix'; fin.style.cssText = 'width:128px;margin-top:4px'; fin.src = `../boxer/final-${cls}-${pick}-1.png`;
+  const cap = document.createElement('figcaption'); cap.innerHTML = `<b>${NAMES[cls]}</b> — ✔ seed ${pick} → PixelLab 최종 (오른쪽 아래)`;
+  fig.append(wrap, fin, cap); cs.append(fig);
+}
+
 // ───────── 수용 기준 ─────────
 const ACC = [
-  ['2차 3종 기준 그림이 흑백·실루엣으로도 구분된다 (5절)', 'mid', '시안 완료 — 사용자 확인 대기'],
+  ['기준 그림 그림체가 기존 7 : 새 3 (5절 세 판 비교)', 'mid', '7:3 판 7종 — 사용자 선택 대기'],
+  ['2차·3차 3종이 흑백·실루엣으로도 구분된다 (5절)', 'mid', '최종 7종 라인업 — 사용자 확인 대기'],
   ['평균 시전 간격·스킬 DPS 가 같은 차수 범위 안 (3절, 1마리)', 'ok', '시작안 모의 실험 — 구현 뒤 진행 봇·duel-balance 로 다시 측정'],
-  ['PixelLab 시험 사용량 15회 이하', 'ok', '6회 (20.9 → 14.9)'],
+  ['PixelLab 사용량 상한 안 (1차 시험 15회 · 기준 그림 15회)', 'ok', '1차 시험 6회 + 기준 그림 9회 (20.9 → 6.9). 32×32 직접 도트화 시험 2회(1회는 저장 오류로 날림) 포함'],
   ['이펙트 그림이 전부 텍스처 (목록 48장)', 'mid', '목록만 — 생산은 Tier 1 결제 뒤'],
   ['규칙·밸런스·렌더링 수용 기준 (스펙 본문)', 'no', '구현 전 (이번 세션은 스펙만)'],
 ];
