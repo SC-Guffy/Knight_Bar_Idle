@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComfyUI vs PixelLab 텍스처 비교 (개발용)</title>
+<!--
+  docs/specs/art-upgrade.md "로컬 생성(ComfyUI) 시험" 검토 페이지.
+  그림: dev/comfy/pixellab/ (PixelLab 시험 원본), dev/comfy/out/ (ComfyUI 결과, dev/comfy/trial.py 로 생성)
+  로컬 서버: python -m http.server 8818 -d <저장소 루트>  →  http://localhost:8818/dev/review/comfy-vs-pixellab.html
+-->
+<style>
+  :root { --bg: #14161d; --panel: #1d2029; --panel2: #232733; --line: rgba(255,255,255,.09); --text: #f3efe6; --muted: rgba(243,239,230,.6);
+          --accent: #ffb13b; --pl: #b48cff; --sdxl: #6fb6ff; --zimg: #6fd98a; --bad: #ff6a5c; --stage: #0f1118; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  main { max-width: 1280px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 19px; margin: 0 0 2px; }
+  h2 { font-size: 16px; margin: 30px 0 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 14px; margin: 16px 0 6px; }
+  .sub { color: var(--muted); }
+  code { background: rgba(255,255,255,.07); padding: 0 4px; border-radius: 4px; font-size: 12px; }
+  a { color: #9fd8ff; }
+  nav { position: sticky; top: 0; z-index: 5; background: rgba(20,22,29,.95); padding: 8px 0; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px; }
+  nav a { color: var(--text); text-decoration: none; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+  .verdict { border-color: var(--accent); }
+  .verdict b.big { font-size: 15px; color: var(--accent); }
+  table { border-collapse: collapse; margin: 8px 0; }
+  td, th { border: 1px solid var(--line); padding: 4px 10px; text-align: center; vertical-align: middle; }
+  th { background: var(--panel2); font-weight: 600; }
+  td.l { text-align: left; }
+  .tag { display: inline-block; border-radius: 6px; padding: 0 7px; font-size: 12px; border: 1px solid currentColor; }
+  .t-pl { color: var(--pl); } .t-sdxl { color: var(--sdxl); } .t-zimg { color: var(--zimg); } .t-bad { color: var(--bad); }
+  .row { display: grid; grid-template-columns: 170px 1fr; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px dashed var(--line); }
+  .row:first-of-type { border-top: 0; }
+  .who b { display: block; font-size: 13px; }
+  .who .note { color: var(--muted); font-size: 12px; }
+  .pics { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .pic { display: flex; flex-direction: column; gap: 3px; }
+  .pic .cap { color: var(--muted); font-size: 11px; }
+  canvas, img.px { image-rendering: pixelated; image-rendering: crisp-edges; background: var(--stage); border-radius: 4px; display: block; }
+  img.raw { border-radius: 4px; display: block; max-width: 100%; }
+  .controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+  button { font: inherit; color: var(--text); background: var(--panel2); border: 1px solid var(--line); border-radius: 7px; padding: 3px 10px; cursor: pointer; }
+  button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  details { margin: 8px 0; }
+  summary { cursor: pointer; color: var(--muted); }
+  .gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+  .gal .g { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px; font-size: 11px; color: var(--muted); }
+  .gal .g.ok { border-color: var(--zimg); }
+  .gal .g.no { opacity: .55; }
+  .gal img { width: 100%; }
+  ul.tight { margin: 4px 0; padding-left: 20px; }
+  ul.tight li { margin: 2px 0; }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+<h1>ComfyUI(로컬) vs PixelLab — VFX 텍스처 비교</h1>
+<div class="sub">2026-10-13 · RTX 4070 Ti SUPER 16GB · 스펙: <code>docs/specs/art-upgrade.md</code> "로컬 생성(ComfyUI) 시험" · 텍스처 규격: <code>docs/specs/skill-vfx.md</code> (1도트 = 게임 화면 1.5px)</div>
+
+<nav>
+  <a href="#verdict">결론</a><a href="#w1b">W1b 초승달 검흔</a><a href="#h1">H1 명중 5프레임</a><a href="#c1">C1 초승달+속도선</a><a href="#w1">W1 휘두르기 궤적</a>
+  <a href="#speed">속도·횟수</a><a href="#how">방법</a>
+</nav>
+
+<div class="controls" style="margin-top:10px">
+  <span class="sub">재생 속도</span>
+  <button data-fps="6">느리게</button><button data-fps="12" class="on">게임 속도(12fps)</button><button data-fps="0">정지(1프레임씩 →)</button>
+  <span class="sub" style="margin-left:10px">기사 옆에 놓기</span><button id="knightBtn" class="on">켬</button>
+</div>
+
+<section id="verdict" class="card verdict">
+  <b class="big">결론: 섞어 쓰기 — PixelLab 이 주력, ComfyUI(Z-Image) 는 시안·대량 후보·단순 모양 보조</b>
+  <ul class="tight">
+    <li><b>품질은 PixelLab 이 확실히 위다.</b> PixelLab 은 32px 도트를 직접 그려서 1도트 하이라이트·끝이 가늘어지는 선·의도된 명암이 살아 있다.
+      ComfyUI 는 1024px 그림을 32칸으로 줄이는 방식이라 가장자리에 계단 잡음이 생기고, 반짝이·가는 속도선 같은 1~2도트 디테일이 뭉치거나 사라진다.</li>
+    <li><b>모델은 Z-Image Turbo 가 SDXL 보다 낫다.</b> 글 지시(초승달, 속도선, 별 섬광)를 훨씬 잘 따른다 (C1 쓸 만한 후보 6/8 vs 1/8). SDXL 은 도트 질감은 좋지만 회색 바탕·그림자·엉뚱한 구도(칼, 산, 링)를 자주 넣는다.</li>
+    <li><b>여러 프레임은 "기준 그림 고정 img2img" 가 된다.</b> 키 그림을 코드로 살짝 바꾸고(키우기·부수기·각도로 드러내기) 다시 그리게 하면 프레임끼리 모양·색이 이어진다.
+      다만 흩어지는 마지막 프레임은 PixelLab 처럼 정돈된 파편이 아니라 덩어리로 남는다. 한 장에 5프레임 그리기는 C1 은 일관되지만 변화가 거의 없고, W1 은 실패했다.</li>
+    <li><b>속도는 무제한에 가깝다.</b> 1024px 한 장 6.5~7.4초, 하루 8시간 돌리면 약 4,000장. 텍스처 1장(키 후보 4~8장 + 프레임 4장)이 약 1~1.5분이라 121장 전체 시안을 하루 안에 뽑을 수 있다.</li>
+    <li><b>제안:</b> ① 최종 텍스처(특히 평타 H·W, 궁극기 F)는 PixelLab 으로 뽑는다. ② 콘셉트가 안 정해진 것(1점 스킬 새 콘셉트 등)은 ComfyUI 로 수십 장 시안을 먼저 뽑아 모양을 고른 뒤, 그 그림을 PixelLab 에 기준 그림으로 넣는다 → PixelLab 횟수를 아낀다.
+      ③ 모양이 단순하고 커서 축소에 강한 것(초승달 C1, 고리 C3, 큰 폭발 C5, 먹구름 C15)은 ComfyUI 결과를 바로 써 볼 만하다.</li>
+  </ul>
+  <div class="sub">사용자 결정 필요: PixelLab 만 / ComfyUI 만 / 섞어 쓰기 중 무엇으로 갈지. 아래 그림을 보고 판단해 달라.</div>
+</section>
+
+<div id="sections"></div>
+
+<h2 id="speed">속도·횟수</h2>
+<div class="card">
+  <h3>한 장 생성 시간 (같은 모델 연속, 안정 상태 중앙값 — <code>dev/comfy/bench.py</code>)</h3>
+  <table>
+    <tr><th>모델</th><th>1024×1024 한 장</th><th>4장 배치(장당)</th><th>768×768 한 장</th><th>첫 로드·모델 교체</th><th>VRAM</th></tr>
+    <tr><td class="l"><span class="tag t-sdxl">SDXL</span> + pixel-art-xl, 25스텝</td><td>6.5초</td><td>6.6초</td><td>4.6초</td><td>+8~15초</td><td rowspan="2">약 14GB (16GB 중)</td></tr>
+    <tr><td class="l"><span class="tag t-zimg">Z-Image Turbo</span> + 픽셀 LoRA, 8스텝</td><td>7.4초</td><td>7.4초</td><td>4.2초</td><td>+10~18초</td></tr>
+  </table>
+  <div class="sub">후처리(도트 줄이기·램프·외곽선)는 장당 0.1초 미만. img2img 프레임은 업로드·인코딩 포함 장당 10~12초.</div>
+
+  <h3>쓸 만한 후보 비율 (8장씩, Claude 판정 — 아래 각 절 "후보 전부" 에서 확인 가능)</h3>
+  <table>
+    <tr><th>텍스처</th><th><span class="tag t-sdxl">SDXL</span> 쓸 만함</th><th>첫 성공</th><th><span class="tag t-zimg">Z-Image</span> 쓸 만함</th><th>첫 성공</th><th><span class="tag t-pl">PixelLab</span> (시험 기록)</th></tr>
+    <tr><td>W1b 초승달 검흔</td><td>2/8</td><td>4번째</td><td>4/8</td><td>5번째</td><td>1회 (1/1)</td></tr>
+    <tr><td>H1 명중 키 그림</td><td>3/8</td><td>1번째</td><td>6/8</td><td>1번째</td><td>3회 (3번째 성공)</td></tr>
+    <tr><td>C1 초승달+속도선</td><td>1/8 (조건부)</td><td>2번째</td><td>6/8</td><td>1번째</td><td>1회 (1/1)</td></tr>
+    <tr><td>H1 5프레임 (img2img)</td><td>키 1 + 4장, 1번 만에 (흐름은 맞음, 덩어리짐)</td><td>—</td><td>키 1 + 4장, 1번 만에</td><td>—</td><td>애니 1회</td></tr>
+    <tr><td>W1 궤적 5프레임 (img2img)</td><td>키 1 + 5장, 중심 보정 후 1번</td><td>—</td><td>키 1 + 5장, 중심 보정 후 1번</td><td>—</td><td>애니 1회 (128×32 한 장 방식은 실패)</td></tr>
+  </table>
+
+  <h3>하루에 몇 장?</h3>
+  <table>
+    <tr><th></th><th>ComfyUI (Z-Image, 이 PC)</th><th>PixelLab Tier 1 ($12/월)</th></tr>
+    <tr><td class="l">생성 한도</td><td>없음 (전기·PC 점유만)</td><td>월 2,000회</td></tr>
+    <tr><td class="l">8시간 돌리면</td><td>약 3,900장 (7.4초/장)</td><td>한 달 몫 2,000회를 하루에 다 쓸 수 있음</td></tr>
+    <tr><td class="l">텍스처 1장(키 + 4프레임) 비용</td><td>후보 4~8장 + 프레임 4장 ≈ 1~1.5분</td><td>키 1~3회 + 애니 1회 ≈ 2~4회</td></tr>
+    <tr><td class="l">121장 전체</td><td>약 2~3시간 (고르는 시간 별도)</td><td>약 550회 (스펙 추정)</td></tr>
+  </table>
+</div>
+
+<h2 id="how">방법 (재현)</h2>
+<div class="card">
+  <ul class="tight">
+    <li>설치: <code>C:\AI\ComfyUI</code> (OneDrive 밖), Python 3.13 가상환경 <code>.venv</code>, PyTorch 2.14 cu130. 모델 약 26GB 는 <code>C:\AI\ComfyUI\models</code>. 서버: <code>.venv\Scripts\python.exe main.py --listen 127.0.0.1 --port 8188</code></li>
+    <li>모델: <span class="tag t-sdxl">SDXL</span> <code>sd_xl_base_1.0</code> + <code>sdxl-vae-fp16-fix</code> + LoRA <code>nerijs/pixel-art-xl</code> (dpmpp_2m karras 25스텝 cfg 6) ·
+      <span class="tag t-zimg">Z-Image</span> <code>Comfy-Org/z_image_turbo</code> bf16 + <code>qwen_3_4b_fp8_mixed</code> + <code>ae</code> + LoRA <code>tarn59/pixel_art_style_lora_z_image_turbo</code> (res_multistep 8스텝 cfg 1, AuraFlow shift 3)</li>
+    <li>스크립트 (<code>dev/comfy/</code>, ComfyUI 가상환경 파이썬으로 실행): <code>comfy.py</code> API 호출 · <code>post.py</code> 후처리 · <code>trial.py</code> 후보/애니/시트 · <code>bench.py</code> 속도 · <code>look.py</code> 밀착 시트</li>
+    <li>후처리: 테두리 중앙값을 바탕색으로 보고 떼기 → 도트 칸마다 덮인 비율 40% 이상이면 칠하고 색은 칸 안 최빈 밝기 단계 → 그림 안 밝기 순위(15·20·25·20·20%)로 5단 램프(PixelLab W1b·H1·C1 에서 뽑은 흰~하늘색) → 3칸 미만 덩어리 지우기 → 바깥 외곽선 <code>#0b0d14</code>.
+      마지막 두 프레임은 흰 단을 깎아(밝기 상한 3·2) 사라지게 한다.</li>
+    <li>기준 그림 고정 img2img: 키 그림 바탕을 검정으로 → 프레임마다 코드로 변형(H1: 0.7배 → 원본 → 조각 밀어내기 3단계, W1: 호 중심 기준 각도로 위에서부터 드러내기 → 꼬리 부수기) → denoise 0.45 로 다시 그림 → 모든 프레임에 같은 자르기 상자.</li>
+    <li>원본 1024px 그림은 저장소 밖 <code>C:\AI\comfy-raw</code>. 저장소에는 도트 결과(<code>out/cand</code>, <code>out/anim</code>)와 축소 미리보기(<code>out/thumb</code>)만 둔다.</li>
+  </ul>
+</div>
+</main>
+
+<script>
+const PL = '../comfy/pixellab/', OUT = '../comfy/out/';
+const KNIGHT = '../comfy/ref/squire-fight.png';
+// kind: 'one' 한 장, 'anim' 가로 프레임 시트. at: 기사 기준 이펙트 위치(도트), 기사 30×35
+const SECTIONS = [
+  { id: 'w1b', title: 'W1b 초승달 검흔 (32×32)', at: [16, 2], desc: 'PixelLab 평가 "좋음". 흰 바깥 날 + 하늘색 몸, 끝이 가늘어지는 호.',
+    rows: [
+      { who: 'pl', src: PL + 'w1b-clean.png', fw: 32, n: 1, note: 'PixelLab 기준 (좋음)' },
+      { who: 'zimg', src: OUT + 'cand/w1b-zimg-s6.png', fw: 32, n: 1, raw: OUT + 'thumb/w1b-zimg-s6.jpg', note: 'Z-Image s6 — 흰 날 + 하늘색 안쪽, 끝 가늘어짐' },
+      { who: 'zimg', src: OUT + 'cand/w1b-zimg-s5.png', fw: 32, n: 1, raw: OUT + 'thumb/w1b-zimg-s5.jpg', note: 'Z-Image s5' },
+      { who: 'sdxl', src: OUT + 'cand/w1b-sdxl-s6.png', fw: 32, n: 1, raw: OUT + 'thumb/w1b-sdxl-s6.jpg', note: 'SDXL s6 — 명암은 좋으나 칸이 뭉툭' },
+      { who: 'sdxl', src: OUT + 'cand/w1b-sdxl-s4.png', fw: 32, n: 1, raw: OUT + 'thumb/w1b-sdxl-s4.jpg', note: 'SDXL s4' },
+    ], gallery: 'w1b',
+    ok: { sdxl: [4, 6], zimg: [5, 6, 7, 8] } },
+  { id: 'h1', title: 'H1 평타 명중 5프레임 (32×32 × 5)', at: [30, 6], desc: 'PixelLab 평가 "좋음". 별 섬광 → 커짐 → 깨짐 → 흩어짐.',
+    rows: [
+      { who: 'pl', src: PL + 'pl-h1.png', fw: 32, n: 5, note: 'PixelLab 기준 (좋음). 키 그림 → animate-with-text-v3' },
+      { who: 'zimg', src: OUT + 'anim/h1-zimg-anim4-d45.png', fw: 32, n: 5, raw: OUT + 'thumb/h1-zimg-anim4-d45.jpg', note: 'Z-Image 기준 그림 고정 img2img (키 s4, denoise 0.45). 흐름은 맞고 모양이 이어진다. 4·5프레임 파편이 덩어리' },
+      { who: 'sdxl', src: OUT + 'anim/h1-sdxl-anim8-d45.png', fw: 32, n: 5, raw: OUT + 'thumb/h1-sdxl-anim8-d45.jpg', note: 'SDXL 같은 방식 (키 s8). 섬광이 둥근 덩어리, 4프레임이 가로 띠로 뭉침' },
+      { who: 'zimg', src: OUT + 'anim/h1-zimg-sheet-s102.png', fw: 32, n: 5, raw: OUT + 'thumb/h1-zimg-sheet-s102.jpg', note: 'Z-Image 한 장 5프레임 (s102). 흐름은 그렸지만 별이 작아 32칸에서 몇 도트로 줄어든다', bad: true },
+    ], gallery: 'h1',
+    ok: { sdxl: [1, 2, 8], zimg: [1, 2, 3, 4, 7, 8] } },
+  { id: 'c1', title: 'C1 공용 초승달 + 속도선 (64×32)', at: [14, 1], desc: 'PixelLab 평가 "좋음". 강철 베기 등 스킬 공용 참격파.',
+    rows: [
+      { who: 'pl', src: PL + 'c1-clean.png', fw: 64, n: 1, note: 'PixelLab 기준 (좋음)' },
+      { who: 'pl', src: PL + 'pl-c1anim.png', fw: 64, n: 5, note: 'PixelLab 애니 5프레임' },
+      { who: 'zimg', src: OUT + 'cand/c1-zimg-s5.png', fw: 64, n: 1, raw: OUT + 'thumb/c1-zimg-s5.jpg', note: 'Z-Image s5 — 구도 정확. 속도선이 굵은 띠가 된다' },
+      { who: 'zimg', src: OUT + 'cand/c1-zimg-s8.png', fw: 64, n: 1, raw: OUT + 'thumb/c1-zimg-s8.jpg', note: 'Z-Image s8 — 2단 날' },
+      { who: 'zimg', src: OUT + 'anim/c1-zimg-sheet-s100.png', fw: 64, n: 5, raw: OUT + 'thumb/c1-zimg-sheet-s100.jpg', note: 'Z-Image 한 장 5프레임 (s100). 프레임끼리 일관되지만 변화가 작다' },
+      { who: 'sdxl', src: OUT + 'cand/c1-sdxl-s2.png', fw: 64, n: 1, raw: OUT + 'thumb/c1-sdxl-s2.jpg', note: 'SDXL 8장 중 가장 가까운 것 (s2). 초승달이 아니라 고리', bad: true },
+    ], gallery: 'c1',
+    ok: { sdxl: [2], zimg: [1, 4, 5, 6, 7, 8] } },
+  { id: 'w1', title: 'W1 장검 휘두르기 궤적 (32×32 × 5)', at: [16, 2], desc: 'PixelLab 첫 시도(128×32 한 장 4프레임)는 회색 연기·주황 테두리로 실패. W1b 를 기준 그림으로 애니메이션한 것이 지금 비교 기준.',
+    rows: [
+      { who: 'pl', src: PL + 'w1-0.png', fw: 128, n: 1, note: 'PixelLab 실패작 (한 장에 4프레임)', bad: true },
+      { who: 'pl', src: PL + 'pl-w1.png', fw: 32, n: 5, note: 'PixelLab W1b → animate-with-text-v3 (dev/vfx-trial/w1.png)' },
+      { who: 'zimg', src: OUT + 'anim/w1-zimg-anim6-d45.png', fw: 32, n: 5, raw: OUT + 'thumb/w1-zimg-anim6-d45.jpg', note: 'Z-Image W1b s6 기준 그림 고정 img2img. 가는 조각 → 호 → 꽉 찬 초승달 → 부서짐. 흐름이 가장 좋다' },
+      { who: 'sdxl', src: OUT + 'anim/w1-sdxl-anim6-d45.png', fw: 32, n: 5, raw: OUT + 'thumb/w1-sdxl-anim6-d45.jpg', note: 'SDXL W1b s6 기준. 2·3프레임은 좋지만 1프레임이 거의 안 보이고 꼬리가 각진다' },
+      { who: 'zimg', src: OUT + 'anim/w1-zimg-sheet-s100.png', fw: 32, n: 5, raw: OUT + 'thumb/w1-zimg-sheet-s100.jpg', note: 'Z-Image 한 장 5프레임 — 프레임이 서로 붙어 못 나눔 (PixelLab 과 같은 실패)', bad: true },
+    ] },
+];
+const WHO = { pl: ['PixelLab', 't-pl'], sdxl: ['ComfyUI SDXL', 't-sdxl'], zimg: ['ComfyUI Z-Image', 't-zimg'] };
+
+let FPS = 12, withKnight = true, tick = 0;
+const players = [];
+const load = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
+let knightImg = null;
+
+function stripCanvas(img, scale) {
+  const c = document.createElement('canvas'); c.width = img.width * scale; c.height = img.height * scale;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(img, 0, 0, c.width, c.height); return c;
+}
+function pic(el, cap) { const d = document.createElement('div'); d.className = 'pic'; d.append(el); const s = document.createElement('div'); s.className = 'cap'; s.textContent = cap; d.append(s); return d; }
+
+function makePlayer(img, fw, n, at) {
+  const S = 4, fh = img.height, kw = 30, kh = 35;
+  const W = Math.max(at[0] + fw, kw) + 4, H = Math.max(kh, at[1] + fh) + 4;
+  const c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  const p = { draw(f) {
+    g.clearRect(0, 0, c.width, c.height);
+    const ky = H - kh - 2;
+    if (withKnight && knightImg) g.drawImage(knightImg, 2 * S, ky * S, kw * S, kh * S);
+    const ox = withKnight ? at[0] + 2 : (W - fw) / 2 | 0, oy = withKnight ? ky + at[1] : (H - fh) / 2 | 0;
+    g.drawImage(img, (f % n) * fw, 0, fw, fh, ox * S, oy * S, fw * S, fh * S);
+  } };
+  players.push(p); p.draw(0); return c;
+}
+
+async function build() {
+  knightImg = await load(KNIGHT);
+  const root = document.getElementById('sections');
+  for (const sec of SECTIONS) {
+    const h = document.createElement('h2'); h.id = sec.id; h.textContent = sec.title; root.append(h);
+    const card = document.createElement('div'); card.className = 'card'; root.append(card);
+    const d = document.createElement('div'); d.className = 'sub'; d.textContent = sec.desc; card.append(d);
+    for (const r of sec.rows) {
+      const img = await load(r.src); if (!img) continue;
+      const row = document.createElement('div'); row.className = 'row';
+      const who = document.createElement('div'); who.className = 'who';
+      who.innerHTML = `<b><span class="tag ${WHO[r.who][1]}">${WHO[r.who][0]}</span>${r.bad ? ' <span class="tag t-bad">실패/약함</span>' : ''}</b><div class="note"></div>`;
+      who.querySelector('.note').textContent = r.note;
+      const pics = document.createElement('div'); pics.className = 'pics';
+      pics.append(pic(stripCanvas(img, 1), '1×'));
+      pics.append(pic(stripCanvas(img, 4), '4× (전체 프레임)'));
+      if (r.fw < img.width || r.n === 1) pics.append(pic(makePlayer(img, r.fw, r.n, sec.at), r.n > 1 ? '4× 재생 (기사 옆)' : '4× 기사 옆'));
+      if (r.raw) { const ri = document.createElement('img'); ri.className = 'raw'; ri.src = r.raw; ri.style.maxHeight = '96px'; pics.append(pic(ri, '생성 원본 (축소)')); }
+      row.append(who, pics); card.append(row);
+    }
+    if (sec.gallery) {
+      const det = document.createElement('details');
+      det.innerHTML = `<summary>후보 전부 보기 (SDXL 8장 · Z-Image 8장, 초록 테두리 = 쓸 만함)</summary>`;
+      const gal = document.createElement('div'); gal.className = 'gal';
+      for (const m of ['sdxl', 'zimg']) for (let s = 1; s <= 8; s++) {
+        const name = `${sec.gallery}-${m}-s${s}`, ok = sec.ok[m].includes(s);
+        const g = document.createElement('div'); g.className = 'g ' + (ok ? 'ok' : 'no');
+        g.innerHTML = `<div>${WHO[m][0]} s${s} ${ok ? '✓' : ''}</div><img src="${OUT}thumb/${name}.jpg"><img class="px" src="${OUT}cand/${name}.png" style="margin-top:4px">`;
+        gal.append(g);
+      }
+      det.append(gal); card.append(det);
+    }
+  }
+}
+
+document.querySelectorAll('[data-fps]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-fps]').forEach(x => x.classList.remove('on')); b.classList.add('on'); FPS = +b.dataset.fps;
+  if (!FPS) { tick++; players.forEach(p => p.draw(tick)); }
+});
+document.getElementById('knightBtn').onclick = e => { withKnight = !withKnight; e.target.classList.toggle('on', withKnight); e.target.textContent = withKnight ? '켬' : '끔'; players.forEach(p => p.draw(tick)); };
+let last = 0;
+function loop(t) { if (FPS && t - last > 1000 / FPS) { last = t; tick++; players.forEach(p => p.draw(tick)); } requestAnimationFrame(loop); }
+build().then(() => requestAnimationFrame(loop));
+</script>
+</body>
+</html>

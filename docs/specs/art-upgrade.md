@@ -69,8 +69,41 @@
   `rd_advanced_animation__*` 는 시작 프레임(`input_image`, 32~256px)을 받아 walking·idle·attack 등을 장당 $0.14로 만든다.
   프롬프트만 쓰는 애니메이션은 $0.07~0.25, RD Pro 정지 이미지는 최대 $0.18이다. 잔액은 USD 선불이고 실패한 생성은 환불된다.
   Replicate 에는 rd-plus·rd-animation 등이 있지만 advanced animation(시작 프레임 입력)이 있는지는 확인하지 못했다. 공식 API 직결을 권장한다.
+- 2026-10-13: 로컬 생성(ComfyUI) 시험. SDXL+pixel-art-xl 과 Z-Image Turbo+픽셀 LoRA 로 W1b·H1·C1·W1 을 PixelLab 과 같은 조건으로 비교했다 (위 "로컬 생성(ComfyUI) 시험" 절, 검토 페이지 `dev/review/comfy-vs-pixellab.html`).
+  품질은 PixelLab 우위, Z-Image 가 SDXL 보다 낫고, 기준 그림 고정 img2img 로 프레임 일관성이 나온다. 섞어 쓰기를 제안했고 사용자 결정 대기.
+
+## 로컬 생성(ComfyUI) 시험 (2026-10-13, 사용자 확인 대기)
+
+PixelLab Tier 1(월 2,000회)은 VFX 텍스처 121장 + 권투가 스프라이트로 하루 이틀이면 다 쓴다. 그래서 횟수 제한이 없는 로컬 생성이 PixelLab 만큼 쓸 만한지 같은 텍스처로 비교했다.
+
+- 검토 페이지: `dev/review/comfy-vs-pixellab.html` (서버 `python -m http.server 8818 -d <저장소 루트>` → `http://localhost:8818/dev/review/comfy-vs-pixellab.html`).
+  텍스처마다 PixelLab·SDXL·Z-Image 를 1×·4×·견습 기사 옆 재생으로 나란히 두고, 후보 8장씩 전부와 속도·횟수 표를 넣었다.
+- 설치 (이 PC 만, 저장소·OneDrive 밖): `C:\AI\ComfyUI` (공식 git), Python 3.13 가상환경 `.venv`, PyTorch 2.14 cu130. 모델 약 26GB 는 `C:\AI\ComfyUI\models`.
+  서버: `C:\AI\ComfyUI\.venv\Scripts\python.exe main.py --listen 127.0.0.1 --port 8188`. 원본 1024px 그림은 `C:\AI\comfy-raw`.
+- 모델 (모두 Hugging Face 공식 저장소, 상업 사용 가능 라이선스):
+  - SDXL: `stabilityai/sd_xl_base_1.0` + `madebyollin/sdxl-vae-fp16-fix` + LoRA `nerijs/pixel-art-xl` (dpmpp_2m karras 25스텝 cfg 6).
+  - Z-Image Turbo: `Comfy-Org/z_image_turbo` bf16 + `qwen_3_4b_fp8_mixed` + `ae` + LoRA `tarn59/pixel_art_style_lora_z_image_turbo` (res_multistep 8스텝 cfg 1, AuraFlow shift 3). Apache 2.0.
+- 스크립트 `dev/comfy/` (ComfyUI 가상환경 파이썬으로 실행 — 시스템 파이썬 3.14 에는 numpy 가 없다):
+  `comfy.py`(HTTP API, 업로드·img2img) · `post.py`(후처리) · `trial.py cands|anim|sheet`(후보·기준 그림 고정 프레임·한 장 시트) · `bench.py`(속도) · `look.py`(밀착 시트).
+  결과 `dev/comfy/out/{cand,anim,thumb}`, 비교용 PixelLab 원본 `dev/comfy/pixellab/`, 견습 기사 도트(30×35) `dev/comfy/ref/`.
+- 후처리: 테두리 중앙값을 바탕색으로 보고 뗀다 → 도트 칸마다 덮인 비율 40% 이상이면 칠하고 색은 칸 안 **최빈 밝기 단계** →
+  그림 안 밝기 순위(15·20·25·20·20%)로 5단 램프(PixelLab W1b·H1·C1 에서 뽑은 흰~하늘색) → 3칸 미만 덩어리 지우기 → 바깥 외곽선 `#0b0d14`.
+  고정 밝기로 자르면 생성물의 흰색이 넓어 거의 한 단이 되므로 순위로 나눴다. 여러 프레임은 자르기 상자를 같이 쓰고, 마지막 두 프레임은 밝기 상한(3·2단)으로 사라지게 한다.
+- **결과**
+  - 품질: **PixelLab 이 확실히 위다.** PixelLab 은 32px 를 직접 그려 1도트 하이라이트·가늘어지는 끝·정돈된 파편이 있다. ComfyUI 는 1024px → 32칸 축소라 가장자리 계단 잡음이 생기고 반짝이·가는 속도선이 뭉치거나 사라진다.
+  - 모델: **Z-Image 가 SDXL 보다 낫다.** 쓸 만한 후보 W1b 4/8·H1 6/8·C1 6/8 (SDXL 2/8·3/8·1/8). SDXL 은 도트 질감·명암은 좋지만 회색 바탕·그림자·엉뚱한 구도(칼, 산, 고리)를 넣는다. "sword" 를 넣으면 칼을 그려서 "energy slash arc" 로 바꿨다.
+  - 여러 프레임: **기준 그림 고정 img2img 가 된다.** 키 그림을 코드로 바꾸고(H1: 0.7배 → 원본 → 조각 밀어내기 3단계, W1: 호 중심 기준 각도로 위부터 드러내기 → 꼬리 부수기) denoise 0.45 로 다시 그리게 하면 모양·색이 이어진다.
+    흩어지는 끝 프레임은 덩어리로 남는다. W1 은 회색 연기·주황 테두리 없이 나왔다. 키 그림 바탕(SDXL 회색)은 먼저 검정으로 지워야 하고, W1 각도 중심은 상자 가운데가 아니라 호의 원 중심 근처여야 한다.
+  - 한 장에 5프레임: Z-Image C1 은 프레임끼리 일관되지만 변화가 거의 없다. H1 은 흰 판·크기 들쭉날쭉, W1 은 프레임이 붙어 실패 (PixelLab 과 같은 실패). SDXL 은 전부 실패.
+  - 속도 (같은 모델 연속, `bench.py`): 1024px 한 장 SDXL 6.5초·Z-Image 7.4초, 4장 배치도 장당 같음, 768px 는 4.2~4.6초. 모델 교체·첫 로드 +8~18초, VRAM 약 14GB.
+    8시간이면 약 3,900장. 텍스처 1장(키 후보 4~8장 + 프레임 4장)이 1~1.5분이라 121장 시안이 2~3시간이다.
+- **제안 (사용자 결정 대기): 섞어 쓰기.** 최종 텍스처(특히 평타 H·W, 궁극기 F)는 PixelLab. 콘셉트가 안 정해진 것은 ComfyUI(Z-Image)로 수십 장 시안을 뽑아 모양을 고른 뒤 그 그림을 PixelLab 기준 그림으로 넣어 횟수를 아낀다.
+  모양이 크고 단순해 축소에 강한 것(C1 초승달·C3 고리·C5 큰 폭발·C15 먹구름)은 ComfyUI 결과를 바로 써 볼 만하다.
 
 ## 남은 일 / 미정
+
+- ComfyUI 시험 결과를 사용자가 검토 페이지로 확인 → PixelLab 만 / ComfyUI 만 / 섞어 쓰기 결정. 섞어 쓰기면 skill-vfx.md 텍스처 목록에 텍스처별 도구를 적는다.
+- (ComfyUI 를 더 쓴다면) 후처리 개선 후보: 축소 전 가장자리 정리(계단 잡음), 1도트 반짝이 살리기, 의도된 디더. Z-Image 로 시안 → PixelLab `animate-with-text-v3` 기준 그림으로 넣는 연결 시험.
 
 - 다음 대상: UI 프레임·아이콘 시험 생성 (순서: 배경 → UI → 아이콘).
 - 직업 캐릭터 통짜 스프라이트 전환은 [character-sprites.md](character-sprites.md) 로 분리했다 (PixelLab 시험 예정).
