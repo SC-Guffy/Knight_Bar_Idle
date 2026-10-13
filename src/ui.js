@@ -301,7 +301,7 @@ function viewReport() {
   const r = S.report;
   const cell = (label, value) => `<div class="cell"><span>${label}</span><b>${value}</b></div>`;
   const report = r ? `
-    <div class="reason">${REASON_TEXT[r.reason]}${r.trips > 1 ? ` <em>(원정 ${r.trips}회 합산)</em>` : ''}</div>
+    <div class="reason">${REASON_TEXT[r.reason]}${r.trips > 1 ? ` <em>(원정 ${r.trips}회 합산)</em>` : ''}${r.reason === 'bag' && S.bagLv < bagMaxLv() ? ` <button class="btn${rd(!bagUpBlocker())}" data-action="goto-inn">${ico('bag')} 여관에서 가방 키우기</button>` : ''}</div>
     ${r.bossFail ? `<div class="reason warn">👑 ${r.stageTo}스테이지 보스에게 패배해서 이후엔 파밍만 했습니다. 강해진 뒤 다시 출정하면 재도전합니다.</div>` : ''}
     <div class="stats">
       ${cell('⏱ 원정 시간', fmtTime(r.dur))}
@@ -381,7 +381,19 @@ function viewTown() {
         ${lv < BUILD_MAX ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
       </div>
       <div class="act">${act}</div>
-    </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : id === 'storage' ? viewStorage() : ''}`;
+    </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : id === 'storage' ? viewStorage() : id === 'inn' ? viewInn() : ''}`;
+}
+
+// 여관을 골랐을 때 건물 카드 아래: 가방 업그레이드 한 줄 (core.js upgradeBag)
+function viewInn() {
+  const lv = S.bagLv, max = bagMaxLv(), blocker = bagUpBlocker(), maxed = lv >= max;
+  return `<div class="shead sub"><h3>${ico('bag')} 가방</h3><small>원정이 길어지면 가방이 먼저 찰 수 있어요 — 가득 차면 바로 돌아와요</small></div>
+    <div class="fac">
+      <span class="fname">${ico('bag')} 가방 <small>Lv ${lv}/${max}</small></span>
+      <span class="feff">무게 ${bagCapAt(lv)}${maxed ? '' : ` → <b>${bagCapAt(lv + 1)}</b>`}${S.bagHit ? ' · <em class="warn">지난 원정은 가방이 가득 차서 돌아왔어요</em>' : ''}</span>
+      ${maxed ? `<span class="small">여관 Lv 이 더 필요해요</span>` : `<span class="costs">${costChip(ico('wood'), bagUpCost(lv), S.mats.wood)}</span>
+      <button class="btn${rd(S.bagHit && !blocker)}" data-action="bag-up" ${blocker ? `disabled title="${blocker}"` : ''}>올리기</button>`}
+    </div>`;
 }
 
 // 창고를 골랐을 때 건물 카드 아래: 비축 수령 한 줄 + 교역 한 줄 (core.js stockNow·trade)
@@ -2728,6 +2740,8 @@ const ACTIONS = {
     }, 110);
   },
   'build': (el) => startBuild(el.dataset.id),
+  'bag-up': () => { if (upgradeBag()) toast(`🎒 가방 Lv ${S.bagLv} — 무게 ${bagCap()}`); },
+  'goto-inn': () => { townUi.sel = 'inn'; campTab = 'town'; $('campBody').scrollTop = 0; },
   'stock-claim': () => { const g = claimStock(); if (g) toast(`📦 창고 비축 수령 — 🪵 +${fmt(g.wood)} · 🪨 +${fmt(g.ore)}`); },
   'trade': (el) => { const k = el.dataset.k, n = trade(k); if (n) toast(`⚖️ 교역 — ${k === 'wood' ? '🪵' : '🪨'} +${fmt(n)}`); },
   'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },

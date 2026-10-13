@@ -26,6 +26,8 @@ function freshState() {
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
+    bagLv: 1,                               // 가방 Lv (여관 안 업그레이드, data.js bagCapAt)
+    bagHit: false,                          // 지난 원정이 가방 가득으로 끝났나 (가방 레드닷, 올리면 꺼짐)
     stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 },   // 창고 비축(소수점까지 쌓음, at = 마지막 정산 서버 시각, 0 = 아직 시작 전) · 오늘 교역 횟수 (data.js STOCK_*·TRADE_*)
     forge: {},                              // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
@@ -193,8 +195,10 @@ function migrate(o) {
   }
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
-  // 0.19.31 창고 개편: 가방 무게는 여관으로, 창고는 목재·철광석 비축 + 교역 (비축은 지금부터 쌓인다)
-  if (!o.stock && !s.notice) s.notice = '📦 창고 개편 — 이제 창고에 목재·철광석이 저절로 쌓여요 (마을 → 창고에서 수령). 창고 Lv5 부터는 골드로 목재·철광석을 사는 교역도 열려요. 가방 무게는 여관 Lv 을 따라가요';
+  // 0.19.31 창고 개편: 창고는 목재·철광석 비축 + 교역 (비축은 지금부터 쌓인다)
+  // 0.19.32 가방은 여관 안 별도 업그레이드 — 기존 세이브도 모두 Lv1(무게 10)부터 (사용자 결정)
+  if (!o.stock && !s.notice) s.notice = '📦 창고 개편 — 이제 창고에 목재·철광석이 저절로 쌓여요 (마을 → 창고에서 수령). 창고 Lv5 부터는 골드로 목재·철광석을 사는 교역도 열려요. 🎒 가방은 이제 마을 → 여관에서 목재로 따로 키워요 (무게 10부터)';
+  else if (!('bagLv' in o) && !s.notice) s.notice = '🎒 가방 개편 — 가방은 이제 마을 → 여관에서 목재로 따로 키워요. 무게 10에서 시작해 올릴 때마다 +2, 원정이 길어지면 가방이 먼저 찰 수 있어요';
   return s;
 }
 
@@ -387,7 +391,20 @@ function profile() {
 
 const maxStamina = () => maxStaminaAt(S.bld.inn);
 const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
-const bagCap = () => bagCapAt(S.bld.inn);
+const bagCap = () => bagCapAt(S.bagLv);
+const bagMaxLv = () => S.bld.inn * BAG_PER_INN;
+function bagUpBlocker() {
+  if (S.bagLv >= bagMaxLv()) return '여관 Lv 이 더 필요해요';
+  if (S.mats.wood < bagUpCost(S.bagLv)) return '목재 부족';
+  return '';
+}
+function upgradeBag() {
+  if (bagUpBlocker()) return false;
+  S.mats.wood -= bagUpCost(S.bagLv);
+  S.bagLv++;
+  S.bagHit = false;
+  return true;
+}
 const bagWeight = () => S.bag.reduce((a, it) => a + lootWeight(it), 0);
 // 무게가 조금이라도 남아 있으면 상자를 하나 더 얹는다 (마지막 상자는 조금 넘쳐도 들고 온다)
 const bagFull = () => bagWeight() >= bagCap();
@@ -646,6 +663,7 @@ function selectZone(i) {
 function endExpedition(reason, instant = false) {
   if (S.phase !== 'expedition') return;
   S.trip.reason = reason;
+  S.bagHit = reason === 'bag';
   S.trip.stageTo = S.stage;
   S.phase = 'returning';
   hooks.onExpeditionEnd(reason);

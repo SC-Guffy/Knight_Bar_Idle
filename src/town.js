@@ -20,6 +20,7 @@ function townTodo(id) {
   if (canBuild(id)) return true;
   if (id === 'training') return TRAINING.some(canTrain);
   if (id === 'forge') return Object.keys(GEAR_SLOTS).some(gearCanEnh) || Object.keys(FORGE_FAC).some((f) => forgeFacBlocker(f) === '');   // 부위 강화 · 시설
+  if (id === 'inn') return S.bagHit && !bagUpBlocker();   // 지난 원정이 가방 가득으로 끝났을 때만 가방 올리기를 재촉
   if (id === 'storage') return stockReady();   // 비축이 절반 넘게 찼다 (교역은 재촉하지 않음)
   return false;
 }

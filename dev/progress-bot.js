@@ -34,18 +34,22 @@ function runOne({ days, seed, rev }) {
   const ctx = makeGame(rev); ctx.Math.random = rnd;
   const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, bagWeight, bagCap,
+    upgradeBag: typeof upgradeBag === 'function' ? upgradeBag : null, bagUpCost: typeof bagUpCost === 'function' ? bagUpCost : null,
     claimStock: typeof claimStock === 'function' ? claimStock : null, trade: typeof trade === 'function' ? trade : null, tradeBlocker: typeof tradeBlocker === 'function' ? tradeBlocker : null, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt })`, ctx);
   const S = A.S(); S.gear.auto = true;
   const inc = { expGold: 0, curioGold: 0, raidGold: 0, saleGold: 0, bossStones: 0, saleStones: 0, raidGear: [0, 0, 0, 0, 0, 0, 0, 0], raids: 0, trips: 0, kills: 0, dur: 0, stockWood: 0, stockOre: 0, tradeWood: 0, tradeOre: 0, tradeGold: 0 };
-  const spend = { train: 0, build: 0, enhStone: 0, enhOre: 0, buildOre: 0, buildWood: 0 };
+  const spend = { train: 0, build: 0, enhStone: 0, enhOre: 0, buildOre: 0, buildWood: 0, bagWood: 0 };
   const why = {};   // 원정이 끝난 사유별 횟수 (stamina 지침 · bag 가방 가득 · ...)
   const reach = {}; let maxBag = 0, rid = 0, t = 0, lastDay = -1;
   const sell = () => { const l = S.gear.inv.filter((x) => !A.isEquipped(x) && !A.isSetGear(x)); if (!l.length) return; const g0 = S.gold, s0 = S.stones; A.sellGear(l); inc.saleGold += S.gold - g0; inc.saleStones += S.stones - s0; };
   const chores = () => {
+    const w = A.bagWeight();
     for (const it of S.bag) for (const x of (it.k === 'box' ? A.openBox(it) : [it])) inc.curioGold += A.claimLoot(x).gold || 0;
     S.bag = [];
     if (S.report) { why[S.report.reason] = (why[S.report.reason] || 0) + (S.report.trips || 1); inc.expGold += S.report.gold || 0; inc.bossStones += S.report.stones || 0; inc.trips += S.report.trips || 1; inc.kills += S.report.kills || 0; inc.dur += S.report.dur || 0; S.report = null; }
     A.autoEquip(); sell();
+    // 가방: 가득 차서 돌아왔으면 이번에 든 무게의 1.3배가 될 때까지 올린다
+    if (A.upgradeBag && S.bagHit) while (A.bagCap() < w * 1.3) { const w0 = S.mats.wood; if (!A.upgradeBag()) break; spend.bagWood += w0 - S.mats.wood; }
     if (A.claimStock) {
       const g = A.claimStock(); if (g) { inc.stockWood += g.wood; inc.stockOre += g.ore; }
       while (!A.tradeBlocker()) { const k = S.mats.wood <= S.mats.ore * 1.5 ? 'wood' : 'ore', g0 = S.gold, n = A.trade(k); inc.tradeGold += g0 - S.gold; inc[k === 'wood' ? 'tradeWood' : 'tradeOre'] += n; }
@@ -75,7 +79,7 @@ function runOne({ days, seed, rev }) {
     for (const th of STAGES) if (reach[th] == null && S.best >= th) reach[th] = t / 3600;
   }
   chores();
-  return { best: S.best, gold: S.gold, maxBag, stones: S.stones, ore: S.mats.ore, wood: S.mats.wood, why, lv: { ...S.bld }, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
+  return { best: S.best, gold: S.gold, maxBag, bagLv: S.bagLv || 0, stones: S.stones, ore: S.mats.ore, wood: S.mats.wood, why, lv: { ...S.bld }, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
     train: S.train.atk + S.train.hp + S.train.def + S.train.fortune, bld: Object.values(S.bld).reduce((a, b) => a + b, 0),
     enh: S.gear.enh.weapon + S.gear.enh.armor + S.gear.enh.ring,
     eq: Object.keys(A.GEAR_SLOTS).reduce((a, k) => { const it = S.gear.inv.find((x) => A.isEquipped(x) && x.slot === k); return a + (it ? it.g : 0); }, 0) };
@@ -110,8 +114,9 @@ function main() {
   for (const id of ['training', 'inn', 'storage', 'forge']) row(`건물 Lv: ${id}`, (r) => r.lv[id]);
   row('원정 끝: 스태미나 / 가방', (r) => (r.why.stamina || 0) / Math.max(1, r.inc.trips), pct);
   row('가방 최대 찬 비율', (r) => r.maxBag, pct);
+  row('가방 Lv', (r) => r.bagLv); row('나무: 가방 지출', (r) => r.spend.bagWood);
   row('원정 끝: 가방 가득', (r) => (r.why.bag || 0) / Math.max(1, r.inc.trips), pct);
-  row('나무: 수입', (r) => r.wood + r.spend.buildWood); row('나무: 건물 지출', (r) => r.spend.buildWood); row('나무: 남은 것', (r) => r.wood);
+  row('나무: 수입', (r) => r.wood + r.spend.buildWood + r.spend.bagWood); row('나무: 건물 지출', (r) => r.spend.buildWood); row('나무: 남은 것', (r) => r.wood);
   row('철광석: 수입', (r) => r.ore + r.spend.buildOre + r.spend.enhOre);
   row('창고: 비축 목재', (r) => r.inc.stockWood); row('창고: 비축 철광석', (r) => r.inc.stockOre);
   row('창고: 교역 목재', (r) => r.inc.tradeWood); row('창고: 교역 철광석', (r) => r.inc.tradeOre);
