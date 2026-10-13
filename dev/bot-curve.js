@@ -2,7 +2,7 @@
 // AI 기사(봇) 성장 곡선 굽기 (개발용). 진행 봇(dev/progress-bot.js)의 게임 vm 으로 3차 직업 계열마다 며칠치 진행을 돌려,
 // 최고 스테이지가 오를 때마다 클라이언트가 서버에 올리는 것과 똑같은 전투 프로필(core.js profile())을 찍어 server/bot-curve.json 에 남긴다.
 // 서버(server/bots.js)는 봇의 최고 스테이지에 맞는 줄을 골라(사이는 로그 보간) 봇의 랭킹·결투·레이드·월드 보스 능력치로 쓴다.
-//  node dev/bot-curve.js [--days 12] [--every 3]
+//  node dev/bot-curve.js [--days 12] [--every 3] [--seed 0] [--out 파일]   (--seed: 시드 묶음 번호, 밸런스 점검용으로 여러 벌 구울 때. --out: 다른 파일에 쓰기)
 // 진행 봇의 하루(원정 → 정리·자동 장착·판매 → 레이드 3회 → 강화 → 건설 → 훈련)에 더해:
 //  전직(조건이 되는 대로 그 계열 다음 직업으로) · 비전서(레이드 상자 + 탑 몫 하루 4권)를 가장 낮은 스킬부터 먹이고 트리 노드를 찍는다.
 // 24시간 켜 둔 봇이라 시간축은 실제 유저보다 빠르다 — 그래서 시간이 아니라 '최고 스테이지 → 능력치' 표로만 쓴다.
@@ -76,19 +76,22 @@ function runLine(line, { days, every, seed }) {
 
 function main() {
   const argv = process.argv.slice(2), opt = { days: 12, every: 3 };
+  let seedSet = 0, outFile = null;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--days') opt.days = Number(argv[++i]);
     else if (argv[i] === '--every') opt.every = Number(argv[++i]);
+    else if (argv[i] === '--seed') seedSet = Number(argv[++i]);
+    else if (argv[i] === '--out') outFile = path.resolve(argv[++i]);
   }
   const out = { v: 1, made: new Date().toISOString().slice(0, 10), days: opt.days,
     cols: ['best', 'level', 'cls', 'atk', 'maxHp', 'aspd', 'crit', 'critMult', 'range', 'shots', 'shotMult', 'guard', 'heal', 'power', 'skills'], lines: {} };
   LINES.forEach((line, i) => {
     const t0 = Date.now();
-    out.lines[line] = runLine(line, { ...opt, seed: i + 1 });
+    out.lines[line] = runLine(line, { ...opt, seed: i + 1 + seedSet * 100 });
     const L = out.lines[line], last = L[L.length - 1];
     console.log(`${line.padEnd(15)} ${String(L.length).padStart(4)}줄 · 최고 스테이지 ${last[0]} · Lv ${last[1]} · ${last[2]} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
   });
-  const file = path.join(__dirname, '..', 'server', 'bot-curve.json');
+  const file = outFile || path.join(__dirname, '..', 'server', 'bot-curve.json');
   fs.writeFileSync(file, JSON.stringify(out));
   console.log(`→ ${path.relative(process.cwd(), file)} (${(fs.statSync(file).size / 1024).toFixed(0)}KB)`);
 }

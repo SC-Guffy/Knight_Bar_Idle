@@ -456,7 +456,7 @@ const CLASSES = {
   },
   paladin: {
     tier: 2, from: 'swordsman', name: '성기사', icon: '✨', weapon: 'holySword',
-    mods: { atk: 1.7, hp: 1.98, aspd: 1.05, crit: 0.06, guard: 0.15, heal: 0.02 },
+    mods: { atk: 1.7, hp: 1.98, aspd: 1.05, crit: 0.06, guard: 0.15, heal: 0.012 },
     desc: '성검과 방패. 받는 피해가 줄고 때릴 때마다 회복한다.',
     look: {
       body: BODY.paladin, fx: '#ffd257',
@@ -638,7 +638,7 @@ const CLASSES = {
   },
   skyGeneral: {
     tier: 3, from: 'cavalier', name: '천마장군', icon: '🏇', weapon: 'holyLance',
-    mods: { atk: 2.6, hp: 2.97, aspd: 1.0, crit: 0.1, guard: 0.25 },
+    mods: { atk: 2.6, hp: 2.97, aspd: 1.0, crit: 0.1, guard: 0.18 },
     desc: '빛의 천마 군단을 이끄는 장군. 창을 들면 하늘의 기병대가 함께 달린다.',
     look: {
       body: BODY.cavalier, fx: '#cfe8ff',
@@ -675,7 +675,7 @@ const CLASSES = {
   // ── 3차 (2차마다 하나). 1차 스킬 자리를 궁극기가 대신한다 (숙련도는 그 1차 스킬 것을 그대로 쓴다, SKILLS 의 mastOf) ──
   archon: {
     tier: 3, from: 'paladin', name: '성좌기사', icon: '🌟', weapon: 'starBlade',
-    mods: { atk: 2.03, hp: 2.64, aspd: 1.1, crit: 0.08, guard: 0.3, heal: 0.025 },
+    mods: { atk: 2.03, hp: 2.64, aspd: 1.1, crit: 0.08, guard: 0.15, heal: 0.012 },
     desc: '별자리를 두른 성기사. 하늘의 성좌를 불러 내려 전장을 심판한다.',
     look: {
       body: BODY.archon, fx: '#9fd8ff',

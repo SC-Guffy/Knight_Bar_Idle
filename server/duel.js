@@ -10,6 +10,10 @@ const HP_MULT = 4;          // 원정보다 오래 싸우도록 결투에서만 
 // 그대로 두면 결투가 1~2초 만에 끝나 사거리 긴 쪽이 먼저 쏘면 이기므로, 서로 평타만 주고받아도
 // 이 시간(초)은 버티도록 두 기사의 체력 배수를 같이 키운다 (둘 다 같은 배수라 체력·방어 차이는 그대로)
 const DUEL_SEC = 12;
+// 위 기준은 평타만 보고 정해서, 치명 터진 스킬(평타 수십~수백 대 분량) 한두 방에 결투가 끝났다 (평균 3.6초).
+// 그래서 결투 체력을 한 번 더 키운다 — 평균 약 10초 (docs/specs/duel-length.md).
+// 최대 체력 % 로 차는 회복(타격 회복 heal·보호막 회복)은 이 몫만큼 나눠서, 체력을 늘렸다고 회복까지 커지지 않게 한다
+const DUEL_HP = 2;
 const rateOf = (p) => p.atk * (1 + p.crit * (p.critMult - 1)) * p.shots * p.shotMult * p.aspd;
 const MAX_T = 45;           // 이 시간이 지나면 남은 체력 비율로 판정
 const HP_TIE = 0.01;        // 시간 종료 때 남은 체력 비율 차이가 이것(또는 결투 중 가장 큰 한 방)보다 작으면 가한 총 피해로 판정
@@ -56,9 +60,9 @@ const moveOf = (k, t) => ({ t: k.stopT ?? round1(t), x: round1(k.x), ...(k.dashe
 // p: 클라이언트가 저장할 때 올린 전투 프로필 (sanitizeProfile 을 거친 값)
 function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
   const rng = mulberry32(seed);
-  const hpMult = Math.max(HP_MULT, DUEL_SEC * (rateOf(pa) * (1 - pb.guard) / pb.maxHp + rateOf(pb) * (1 - pa.guard) / pa.maxHp) / 2);
+  const hpMult = DUEL_HP * Math.max(HP_MULT, DUEL_SEC * (rateOf(pa) * (1 - pb.guard) / pb.maxHp + rateOf(pb) * (1 - pa.guard) / pa.maxHp) / 2);
   const make = (p, x, dir) => ({
-    p, x, dir, hp: p.maxHp * hpMult, max: p.maxHp * hpMult,
+    p, x, dir, hp: p.maxHp * hpMult, max: p.maxHp * hpMult, healBase: p.maxHp * hpMult / DUEL_HP,
     cd: 0.2 + rng() * 0.3,
     leapCd: p.leap ? p.leap.every / 2 : Infinity,
     // 돌진기는 개전 직후 준비되고, 걸어가는 동안에도 쿨타임이 돈다 (다른 스킬은 교전 시작 후부터)
@@ -78,11 +82,11 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     op.hp -= dmg;
     me.dealt += dmg;
     bigHit = Math.max(bigHit, dmg / op.max);
-    if (me.p.heal) me.hp = Math.min(me.max, me.hp + me.max * me.p.heal);
+    if (me.p.heal) me.hp = Math.min(me.max, me.hp + me.healBase * me.p.heal);
     if (sk && sk.lc) me.hp = Math.min(me.max, me.hp + dmg * sk.lc);      // lc: 스킬 흡혈 (트리 V2)
     if (sk && sk.ward) {
       me.ward = { until: t + sk.dur + sk.ward.dur, guard: sk.ward.guard };
-      me.hp = Math.min(me.max, me.hp + me.max * sk.ward.heal);
+      me.hp = Math.min(me.max, me.hp + me.healBase * sk.ward.heal);
     }
     events.push({
       t: round1(t), by: side, kind, ...(sk ? { sk: sk.id, sl: sk.lv, ...(sk.st != null ? { ss: sk.st } : {}) } : {}),
