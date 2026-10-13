@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.20.2';
+const GAME_VERSION = '0.20.3';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -88,11 +88,11 @@ const trainCapAt = (lv) => 10 * Math.min(lv, TRAIN_MAX / 10);
 // (Lv5 약 11분 · Lv10 약 42분 · Lv15 약 2.6시간 · Lv20 약 10시간)
 const maxStaminaAt = (lv) => Math.round(20 * Math.pow(1.3, lv - 1)) * 5;
 const restSecAt = (lv) => 180 * Math.pow(1.1, lv - 1);          // 0 → 최대 스태미나까지 (Lv1 3분 · Lv20 약 18분)
-// 가방 (0.19.32): 여관 안의 별도 업그레이드. 무게 10 + 2/Lv, 최대 Lv = 여관 Lv × BAG_PER_INN, 비용은 🪵 목재 (바로 오름)
-//  원정 1시간에 약 20~35 무게가 차서(보스 상자 100% · 잡몹 5%) 여관을 올려 원정이 길어지면 가방도 직접 올려 줘야 한다 (0.19.31 은 여관 Lv, 그 전엔 창고 Lv 을 따라감)
+// 가방 (0.20.3): 여관 안의 별도 업그레이드. 무게 10 + 2/Lv, 최대 Lv = 여관 Lv (대장간 시설과 같은 규칙), 비용은 같은 Lv 여관 목재의 1/4 (바로 오름)
+//  최대 48 이라 여관 12(원정 72분) 즈음부터는 스태미나보다 가방이 먼저 찬다 (사용자 결정 — 0.19.32 는 최대 여관 Lv × 8 · 목재 50×1.06^Lv)
 const bagCapAt = (lv) => 10 + 2 * (lv - 1);                     // 가방이 들 수 있는 무게 (상자마다 무게가 다름)
-const BAG_PER_INN = 8;
-const bagUpCost = (lv) => Math.round(50 * Math.pow(1.06, lv - 1));   // lv → lv+1 목재
+const bagUpCost = (lv) => Math.floor(buildCost('inn', lv).wood / 4);   // lv → lv+1 목재
+const oldBagUpCost = (lv) => Math.round(50 * Math.pow(1.06, lv - 1));  // 0.19.32 비용 (core.js migrate 환급용)
 // 창고 비축 (0.19.31): 가만히 있어도 목재·철광석이 시간당 쌓이고, STOCK_HOURS 시간분까지 모인다. 서버 시각으로 흐른다 (core.js settleStock)
 const STOCK_BASE = { wood: 10, ore: 7 }, STOCK_GROW = 1.3, STOCK_HOURS = 12;
 const stockRateAt = (k, lv) => Math.round(STOCK_BASE[k] * Math.pow(STOCK_GROW, lv - 1));   // 시간당
@@ -111,7 +111,7 @@ const BUILDINGS = {
   },
   inn: {
     name: '여관', icon: '🛏️', mul: { gold: 1, wood: 1.3, ore: 0.4, mana: 0.8 },
-    effect: (lv) => `원정 ${fmtTime(maxStaminaAt(lv) / STAMINA_DRAIN)} · 완전 휴식 ${fmtTime(restSecAt(lv))} · 가방 최대 Lv ${lv * BAG_PER_INN}`,
+    effect: (lv) => `원정 ${fmtTime(maxStaminaAt(lv) / STAMINA_DRAIN)} · 완전 휴식 ${fmtTime(restSecAt(lv))} · 가방 최대 Lv ${lv}`,
   },
   storage: {
     name: '창고', icon: '📦', mul: { gold: 0.8, wood: 1.5, ore: 0.3, mana: 0.6 },

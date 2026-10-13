@@ -231,7 +231,14 @@ function migrate(o) {
   // 0.19.31 창고 개편: 창고는 목재·철광석 비축 + 교역 (비축은 지금부터 쌓인다)
   // 0.19.32 가방은 여관 안 별도 업그레이드 — 기존 세이브도 모두 Lv1(무게 10)부터 (사용자 결정)
   if (!o.stock && !s.notice) s.notice = '📦 창고 개편 — 이제 창고에 목재·철광석이 저절로 쌓여요 (마을 → 창고에서 수령). 창고 Lv5 부터는 골드로 목재·철광석을 사는 교역도 열려요. 🎒 가방은 이제 마을 → 여관에서 목재로 따로 키워요 (무게 10부터)';
-  else if (!('bagLv' in o) && !s.notice) s.notice = '🎒 가방 개편 — 가방은 이제 마을 → 여관에서 목재로 따로 키워요. 무게 10에서 시작해 올릴 때마다 +2, 원정이 길어지면 가방이 먼저 찰 수 있어요';
+  else if (!('bagLv' in o) && !s.notice) s.notice = '🎒 가방 개편 — 가방은 이제 마을 → 여관에서 목재로 따로 키워요 (최대 여관 Lv). 무게 10에서 시작해 올릴 때마다 +2, 원정이 길어지면 가방이 먼저 찰 수 있어요';
+  // 0.20.3 가방 최대 Lv = 여관 Lv: 0.19.32 에서 그보다 높게 올린 단계는 내리고 쓴 목재를 돌려준다
+  if (s.bagLv > s.bld.inn) {
+    let back = 0;
+    for (let l = s.bld.inn; l < s.bagLv; l++) back += oldBagUpCost(l);
+    s.bagLv = s.bld.inn; s.mats.wood += back;
+    if (!s.notice) s.notice = `🎒 가방 최대 Lv 이 여관 Lv 으로 바뀌었어요 — 넘친 단계를 내리고 목재 ${fmt(back)}을 돌려드렸어요`;
+  }
   return s;
 }
 
@@ -431,7 +438,7 @@ function profile() {
 const maxStamina = () => maxStaminaAt(S.bld.inn);
 const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
 const bagCap = () => bagCapAt(S.bagLv) + gearBonus().bagCap;   // 🎲 가방 무게 옵션
-const bagMaxLv = () => S.bld.inn * BAG_PER_INN;
+const bagMaxLv = () => S.bld.inn;
 function bagUpBlocker() {
   if (S.bagLv >= bagMaxLv()) return '여관 Lv 이 더 필요해요';
   if (S.mats.wood < bagUpCost(S.bagLv)) return '목재 부족';
