@@ -26,6 +26,7 @@ function freshState() {
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
+    stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 },   // 창고 비축(소수점까지 쌓음, at = 마지막 정산 서버 시각, 0 = 아직 시작 전) · 오늘 교역 횟수 (data.js STOCK_*·TRADE_*)
     forge: {},                              // 대장간 시설 Lv (data.js FORGE_FAC) — 최대 Lv 은 대장간 건물 Lv
     build: null,                            // { id, remain, total }
     items: { lunch: 1, potion: 2, charm: 0, elixir: 0, protect: 0 },
@@ -192,6 +193,8 @@ function migrate(o) {
   }
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
+  // 0.19.31 창고 개편: 가방 무게는 여관으로, 창고는 목재·철광석 비축 + 교역 (비축은 지금부터 쌓인다)
+  if (!o.stock && !s.notice) s.notice = '📦 창고 개편 — 이제 창고에 목재·철광석이 저절로 쌓여요 (마을 → 창고에서 수령). 창고 Lv5 부터는 골드로 목재·철광석을 사는 교역도 열려요. 가방 무게는 여관 Lv 을 따라가요';
   return s;
 }
 
@@ -384,7 +387,7 @@ function profile() {
 
 const maxStamina = () => maxStaminaAt(S.bld.inn);
 const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
-const bagCap = () => bagCapAt(S.bld.storage);
+const bagCap = () => bagCapAt(S.bld.inn);
 const bagWeight = () => S.bag.reduce((a, it) => a + lootWeight(it), 0);
 // 무게가 조금이라도 남아 있으면 상자를 하나 더 얹는다 (마지막 상자는 조금 넘쳐도 들고 온다)
 const bagFull = () => bagWeight() >= bagCap();
@@ -494,11 +497,60 @@ function advanceBuild(sec) {
   S.build.remain -= sec;
   if (S.build.remain <= 0) {
     const id = S.build.id;
+    if (id === 'storage') settleStock();   // 그때까지 쌓인 건 옛 생산량으로
     S.bld[id]++;
     S.build = null;
     if (id === 'inn') S.stamina = Math.min(maxStamina(), S.stamina);
     hooks.onBuilt(id);
   }
+}
+
+// ───────────────────────── 창고: 비축 · 교역 ─────────────────────────
+// 비축은 서버 시각으로 흐른다. 서버 시각을 모르는 동안은 쌓지 않는다 (기기 시계를 돌려 채우지 못하게, 다음 서버 응답 뒤에 이어서 쌓임)
+// 처음 서버 시각을 안 순간부터 쌓기 시작한다 (예전 세이브에 소급하지 않음)
+function stockNow(k) {
+  const st = S.stock, now = gameNow();
+  if (!srvClock.known || !st.at || now <= st.at) return st[k];
+  const lv = S.bld.storage;
+  return Math.min(stockCapAt(k, lv), st[k] + stockRateAt(k, lv) * (now - st.at) / 3600000);
+}
+function settleStock() {
+  const st = S.stock, now = gameNow();
+  if (!srvClock.known) return;
+  if (st.at && now > st.at) { st.wood = stockNow('wood'); st.ore = stockNow('ore'); }
+  st.at = now;
+}
+const stockFull = (k) => stockNow(k) >= stockCapAt(k, S.bld.storage);
+// 수령할 만큼 찼나 (레드닷): 목재·철광석 중 하나라도 최대치의 절반 이상
+const stockReady = () => ['wood', 'ore'].some((k) => stockNow(k) >= stockCapAt(k, S.bld.storage) / 2);
+// 쌓인 걸 정수만큼 받는다 (소수점 아래는 남겨서 계속 쌓임). 받은 양을 돌려준다
+function claimStock() {
+  settleStock();
+  const got = { wood: Math.floor(S.stock.wood), ore: Math.floor(S.stock.ore) };
+  if (!got.wood && !got.ore) return null;
+  S.stock.wood -= got.wood; S.stock.ore -= got.ore;
+  S.mats.wood += got.wood; S.mats.ore += got.ore;
+  return got;
+}
+const tradesUsed = () => (newDay(S.stock.tradeDay) ? 0 : S.stock.trades);
+const tradesLeft = () => Math.max(0, tradesAt(S.bld.storage) - tradesUsed());
+const tradeAmount = (k) => stockRateAt(k, S.bld.storage) * TRADE_HOURS;
+const tradePrice = () => Math.max(1, Math.floor(monsterStats(S.best, false).gold * TRADE_GOLD * Math.pow(2, tradesUsed())));
+function tradeBlocker() {
+  if (S.bld.storage < TRADE_LV) return `창고 Lv${TRADE_LV} 에 교역이 열려요`;
+  if (!srvClock.known) return '서버 시각 확인 중';
+  if (!tradesLeft()) return '오늘 교역을 다 했어요';
+  if (S.gold < tradePrice()) return '골드 부족';
+  return '';
+}
+function trade(k) {
+  if (!STOCK_BASE[k] || tradeBlocker()) return 0;
+  S.gold -= tradePrice();
+  if (newDay(S.stock.tradeDay)) { S.stock.tradeDay = todayKey(); S.stock.trades = 0; }
+  S.stock.trades++;
+  const n = tradeAmount(k);
+  S.mats[k] += n;
+  return n;
 }
 
 // ───────────────────────── 우편함 ─────────────────────────

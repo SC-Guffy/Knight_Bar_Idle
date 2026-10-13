@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.19.30';
+const GAME_VERSION = '0.19.31';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -86,7 +86,15 @@ const trainCapAt = (lv) => 10 * lv;
 // (Lv5 약 11분 · Lv10 약 42분 · Lv15 약 2.6시간 · Lv20 약 10시간)
 const maxStaminaAt = (lv) => Math.round(20 * Math.pow(1.3, lv - 1)) * 5;
 const restSecAt = (lv) => 180 * Math.pow(1.1, lv - 1);          // 0 → 최대 스태미나까지 (Lv1 3분 · Lv20 약 18분)
-const bagCapAt = (lv) => 20 + 6 * (lv - 1);                     // 가방이 들 수 있는 무게 (상자마다 무게가 다름)
+const bagCapAt = (lv) => 20 + 6 * (lv - 1);                     // 가방이 들 수 있는 무게 (상자마다 무게가 다름) — 여관 Lv 기준 (0.19.31 전엔 창고)
+// 창고 비축 (0.19.31): 가만히 있어도 목재·철광석이 시간당 쌓이고, STOCK_HOURS 시간분까지 모인다. 서버 시각으로 흐른다 (core.js settleStock)
+const STOCK_BASE = { wood: 10, ore: 7 }, STOCK_GROW = 1.3, STOCK_HOURS = 12;
+const stockRateAt = (k, lv) => Math.round(STOCK_BASE[k] * Math.pow(STOCK_GROW, lv - 1));   // 시간당
+const stockCapAt = (k, lv) => stockRateAt(k, lv) * STOCK_HOURS;
+// 창고 교역: 창고 Lv TRADE_LV 부터 골드로 목재·철광석을 산다. 한 번에 TRADE_HOURS 시간 생산량, 하루 2 + Lv/5 회 (목재·철광석 공용)
+//  가격 = 최고 스테이지 잡몹 골드 × TRADE_GOLD × 2^(오늘 교역한 횟수) — 골드가 스테이지를 따라 기하급수로 느는 경제라 가격도 스테이지를 따라간다
+const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200;
+const tradesAt = (lv) => (lv >= TRADE_LV ? 2 + Math.floor(lv / 5) : 0);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
 
 const BUILDINGS = {
@@ -96,11 +104,11 @@ const BUILDINGS = {
   },
   inn: {
     name: '여관', icon: '🛏️', mul: { gold: 1, wood: 1.3, ore: 0.4, mana: 0.8 },
-    effect: (lv) => `원정 ${fmtTime(maxStaminaAt(lv) / STAMINA_DRAIN)} · 완전 휴식 ${fmtTime(restSecAt(lv))}`,
+    effect: (lv) => `원정 ${fmtTime(maxStaminaAt(lv) / STAMINA_DRAIN)} · 완전 휴식 ${fmtTime(restSecAt(lv))} · 가방 무게 ${bagCapAt(lv)}`,
   },
   storage: {
     name: '창고', icon: '📦', mul: { gold: 0.8, wood: 1.5, ore: 0.3, mana: 0.6 },
-    effect: (lv) => `가방 무게 ${bagCapAt(lv)}`,
+    effect: (lv) => `🪵 ${stockRateAt('wood', lv)}/h · 🪨 ${stockRateAt('ore', lv)}/h · 최대 ${STOCK_HOURS}시간${lv >= TRADE_LV ? ` · 교역 하루 ${tradesAt(lv)}회` : ''}`,
   },
   forge: {
     name: '대장간', icon: '⚒️', mul: { gold: 1.2, wood: 0.4, ore: 1.6, mana: 1.4 },

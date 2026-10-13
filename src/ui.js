@@ -91,6 +91,14 @@ function campStatus() {
 // data-live="키" 요소는 틱마다 LIVE[키]() 로 글자만 갱신한다 (버튼을 다시 만들지 않도록)
 const LIVE = {
   buildLeft: () => (S.build ? fmtTime(S.build.remain) : ''),
+  stockWood: () => `${fmt(Math.floor(stockNow('wood')))} / ${fmt(stockCapAt('wood', S.bld.storage))}`,
+  stockOre: () => `${fmt(Math.floor(stockNow('ore')))} / ${fmt(stockCapAt('ore', S.bld.storage))}`,
+  stockEta: () => {
+    if (!srvClock.known) return '서버 시각 확인 중 — 잠시 뒤부터 쌓여요';
+    if (stockFull('wood')) return '가득 찼어요 — 받아야 다시 쌓여요';
+    const k = 'wood', left = (stockCapAt(k, S.bld.storage) - stockNow(k)) / stockRateAt(k, S.bld.storage) * 3600;
+    return `가득 차기까지 ${fmtTime(left)}`;
+  },
   gold: () => fmt(S.gold),
   wood: () => fmt(S.mats.wood),
   ore: () => fmt(S.mats.ore),
@@ -373,7 +381,27 @@ function viewTown() {
         ${lv < BUILD_MAX ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
       </div>
       <div class="act">${act}</div>
-    </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : ''}`;
+    </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : id === 'storage' ? viewStorage() : ''}`;
+}
+
+// 창고를 골랐을 때 건물 카드 아래: 비축 수령 한 줄 + 교역 한 줄 (core.js stockNow·trade)
+function viewStorage() {
+  const lv = S.bld.storage, tb = tradeBlocker();
+  const has = ['wood', 'ore'].some((k) => stockNow(k) >= 1);
+  const tradeRow = lv < TRADE_LV
+    ? `<div class="fac"><span class="fname">${ico('scale')} 교역</span><span class="feff">창고 Lv${TRADE_LV} 에 열려요 — 남는 골드로 목재·철광석을 사요</span></div>`
+    : `<div class="fac">
+      <span class="fname">${ico('scale')} 교역 <small>오늘 ${tradesUsed()}/${tradesAt(lv)}</small></span>
+      <span class="feff">골드로 ${TRADE_HOURS}시간 생산량을 사요 · 살 때마다 값이 2배 · 자정에 초기화</span>
+      ${tradesLeft() ? `<span class="costs">${costChip('<i class="gc"></i>', tradePrice(), S.gold)}</span>` : ''}
+      ${['wood', 'ore'].map((k) => `<button class="btn" data-action="trade" data-k="${k}" ${tb ? `disabled title="${tb}"` : ''}>${ico(k)} +${fmt(tradeAmount(k))}</button>`).join('')}
+    </div>`;
+  return `<div class="shead sub"><h3>${ico('box')} 비축</h3><small>가만히 있어도 쌓여요 · 최대 ${STOCK_HOURS}시간분 · 원정 중에도 받을 수 있어요</small></div>
+    <div class="fac">
+      <span class="fname">${ico('wood')} <span data-live="stockWood"></span> · ${ico('ore')} <span data-live="stockOre"></span></span>
+      <span class="feff" data-live="stockEta"></span>
+      <button class="btn${rd(stockReady())}" data-action="stock-claim" ${has ? '' : 'disabled'}>수령</button>
+    </div>${tradeRow}`;
 }
 
 // 대장간 시설 한 줄: 이름·Lv·효과 → 다음 효과 · 비용 · 올리기
@@ -2556,8 +2584,8 @@ function renderCamp() {
     <header>
       <h2><span class="ttl">${ico('camp')} ${esc(activeNick())}의 캠프</span> <small class="sync" data-live="sync"></small></h2>
       <div class="res">
-        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁에서 가장 많이 (원정 골동품에서도 조금)">${ico('wood')} <b data-live="wood"></b></span>
-        <span title="철광석 — ⛏️ 재료의 미궁에서 가장 많이 (원정 골동품에서도 조금)">${ico('ore')} <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 · 레이드 · 원정 골동품">${ico('mana')} <b data-live="mana"></b></span>
+        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁에서 가장 많이 · 📦 창고 비축·교역 (원정 골동품에서도 조금)">${ico('wood')} <b data-live="wood"></b></span>
+        <span title="철광석 — ⛏️ 재료의 미궁에서 가장 많이 · 📦 창고 비축·교역 (원정 골동품에서도 조금)">${ico('ore')} <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 · 레이드 · 원정 골동품">${ico('mana')} <b data-live="mana"></b></span>
       </div>
       <button class="mailbtn ${campTab === 'mail' ? 'on' : ''}" data-action="tab" data-tab="mail" title="우편함">${ico('mail')}${mailUnclaimed() ? `<i>${mailUnclaimed()}</i>` : ''}</button>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
@@ -2700,6 +2728,8 @@ const ACTIONS = {
     }, 110);
   },
   'build': (el) => startBuild(el.dataset.id),
+  'stock-claim': () => { const g = claimStock(); if (g) toast(`📦 창고 비축 수령 — 🪵 +${fmt(g.wood)} · 🪨 +${fmt(g.ore)}`); },
+  'trade': (el) => { const k = el.dataset.k, n = trade(k); if (n) toast(`⚖️ 교역 — ${k === 'wood' ? '🪵' : '🪨'} +${fmt(n)}`); },
   'forge-up': (el) => { const id = el.dataset.id; if (upgradeForgeFac(id)) toast(`${FORGE_FAC[id].icon} ${FORGE_FAC[id].name} Lv ${forgeFacLv(id)} — ${FORGE_FAC[id].effect(forgeFacLv(id))}`); },
   'enchant': (el) => {
     const it = gearById(Number(el.dataset.id)), r = enchantGear(Number(el.dataset.id));
@@ -3065,6 +3095,7 @@ function catchUp() {
 function settleOffline() {
   if (!offline.pending || !srvClock.known || !saveKey) return;
   offline.pending = false;
+  if (!S.stock.at) settleStock();   // 창고 비축은 처음 서버 시각을 안 순간부터 쌓는다
   const away = (gameNow() - offline.from - (performance.now() - offline.mono)) / 1000;
   if (away <= 5) return;
   const wasOut = S.phase !== 'camp';

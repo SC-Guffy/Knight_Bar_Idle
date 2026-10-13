@@ -10,6 +10,7 @@ Claude Code 내장 브라우저(browser pane) 기준이다. 경로는 저장소 
 - 주소: `index.html?server=http://127.0.0.1:9` (닿지 않는 서버 → 오프라인 모드). **진짜 서버에 가짜 토큰을 쓰지 말 것**: `gone` 응답이 오고 로컬 계정 목록이 지워진다.
 - 첫 로드 전에 localStorage `knight-bar-accounts` = `{"active":"테스트","list":{"테스트":"local-test-token"}}` 를 넣어 닉네임 창을 건너뛴다. 로드 후 약 8초 기다렸다가(enterAccount 서버 호출이 끝나도록) 상태를 만진다.
 - **캐시 주의**: `src/*.js` 를 고친 뒤 그냥 새로고침하면 옛 스크립트가 나온다. `await fetch('src/ui.js', {cache:'reload'})` (core.js 등 고친 파일 모두) → `location.reload()` 하고, 새로 추가한 심볼(`typeof 새함수`)로 새 코드인지 확인한다.
+- 오프라인 모드는 서버 시각을 모른다(`srvClock.known = false`) → 창고 비축·하루 초기화·우편이 멈춘다. 확인하려면 콘솔에서 `setServerTime(Date.now())`.
 - javascript_tool 에서 전역 재할당(`startCast = fn`)은 조용히 무시된다. `window.startCast = fn` 으로 쓴다. 속성 변경(`S.phase = ...`)은 된다.
 - 숨겨진 브라우저 창은 rAF가 멈춘다. "몇 초 기다렸다 스크린샷" 방식은 거의 진행되지 않는다.
   화면 갱신도 멈춰서 DOM 을 바꿔도 스크린샷이 옛 화면일 수 있다 → `tabs_select` 로 탭을 앞으로 가져온 뒤 찍는다.
