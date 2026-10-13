@@ -1154,12 +1154,16 @@ function campDots() {
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
 
+// +26 부터는 주문서 없이 실패하면 하락이 성공보다 잦다 — 주문서 체크가 꺼져 있으면 확률 줄 끝에 경고 (docs/specs/enhance-30.md)
+const ENH_SCROLL_FROM = 25;
 function enhOdds(L) {
   const e = enhanceOddsAt(L, forgeFacLv('temper')), fail = 1 - e.rate;
-  const pct = (v) => (v * 100 < 1 && v > 0 ? (v * 100).toFixed(1) : Math.round(v * 100)) + '%';
+  // 10% 미만은 소수 한 자리 (초기화 0.7~3.6% 를 정수로 반올림하면 1·2·3% 로 뭉개진다)
+  const pct = (v) => (v * 100 < 10 ? Number((v * 100).toFixed(1)) : Math.round(v * 100)) + '%';
   const risk = [];
   if (e.down) risk.push(`<span class="warn">하락 ${pct(fail * e.down)}</span>`);
   if (e.reset) risk.push(`<span class="bad">초기화 ${pct(fail * e.reset)}</span>`);
+  if (L >= ENH_SCROLL_FROM && !(gearUi.protect && S.items.protect)) risk.push('<span class="bad">📜 없이는 밀리기 쉬워요</span>');
   return `성공 <b>${pct(e.rate)}</b>${risk.length ? ' · ' + risk.join(' · ') : ' · 실패해도 유지'}`;
 }
 
@@ -1207,7 +1211,7 @@ function gearSlotBtn(slot) {
   return `
     <button class="gsbtn s-${slot} ${gearSel().slot === slot ? 'on' : ''}" data-action="gear-sel-slot" data-slot="${slot}"
       style="--c:${it ? gearGrade(it).color : 'rgba(255,255,255,.18)'}" title="${def.name}">
-      <span class="gsbox${rd(gearBetter(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
+      <span class="gsbox${rd(gearBetter(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(6, Math.floor(L / 5))}">+${L}</b></span>
       <span class="gsname ${it ? gnClass(it) : ''}">${it ? gearName(it) : def.name}</span>
     </button>`;
 }
@@ -1225,7 +1229,7 @@ const gearInfo = (it) => `
 
 // 옵션 줄 목록 (시즌6): 켜진 줄은 밝게, 아직 부위 강화가 안 닿은 줄은 🔒 흐리게, 쓰레기 옵션은 회색. 오른쪽 끝은 품질 S/A/B/C
 function optLinesHtml(it, enh = S.gear.enh[it.slot]) {
-  if (it.op && !it.op.length) return '<div class="gops"><div class="gop off">옵션 줄 없음 — 옵션 줄이 생기기 전에 얻은 장비예요</div></div>';
+  if (it.op && !it.op.length) return `<div class="gops"><div class="gop off">${it.g === 0 ? '옵션 줄 없음 · 일반 등급은 옵션 줄이 붙지 않아요 (고급부터 1줄)' : '옵션 줄 없음 — 옵션 줄이 생기기 전에 얻은 장비예요'}</div></div>`;
   if (!it.op) return '';
   return `<div class="gops">${it.op.map((o, i) => {
     const on = enh >= optNeed(i), rk = optRank(o.q), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk;
@@ -1275,7 +1279,7 @@ function landRerollFx(fx) {
 function forgeRerollRow(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot);
   if (!it) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">장비를 끼면 옵션을 다시 굴릴 수 있어요</span></div>`;
-  if (!(it.op || []).length) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">옵션 줄이 없는 장비예요 (옵션 줄이 생기기 전에 얻음) — 새로 얻는 장비부터 붙어요</span></div>`;
+  if (!(it.op || []).length) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">${it.g === 0 ? '일반 등급 장비는 옵션 줄이 없어요 — 고급부터 붙어요' : '옵션 줄이 없는 장비예요 (옵션 줄이 생기기 전에 얻음) — 새로 얻는 장비부터 붙어요'}</span></div>`;
   const c = rerollCost(it.g), enh = S.gear.enh[slot], fx = rrFx && rrFx.id === it.id ? rrFx : null, spinning = rrFx && !rrFx.done;
   const lines = (it.op || []).map((o, i) => {
     const on = enh >= optNeed(i), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk, blocker = spinning ? '굴리는 중이에요' : rerollBlocker(it, i);
@@ -1312,7 +1316,7 @@ function slotDetail(slot) {
     : `<div class="gtop"><div class="gicon big empty"></div><div class="gname empty">${def.name} 비어 있음</div></div><div class="gstat small">강화 단계는 장비를 끼면 적용돼요</div>`;
   const top = S.gear.top[slot] > L ? ` <small>최고 +${S.gear.top[slot]}</small>` : '';
   return `
-    <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b>${top}</div>
+    <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(6, Math.floor(L / 5))}">+${L}</b>${top}</div>
     ${item}
     ${gearLvLine(slot)}
     <div class="rfline"><span class="small">⚒️ 부위 강화 +${L}${L < ENHANCE_MAX ? ` → +${L + 1}` : ' (최대)'} — 마을 대장간에서 해요</span>
@@ -1343,7 +1347,7 @@ function forgeSlot(slot) {
   return `
     <div class="fslot s-${slot}${cls}" style="--c:${it ? gearGrade(it).color : 'rgba(255,255,255,.18)'}">
       <div class="fhead">
-        <span class="gsbox">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
+        <span class="gsbox">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(6, Math.floor(L / 5))}">+${L}</b></span>
         <div class="finfo"><b>${def.icon} ${def.name}</b> ${top}<div class="gsname ${it ? gnClass(it) : ''}">${it ? gearName(it) : '비어 있음'}</div>${stat}</div>
       </div>
       <div class="genh">${enh}${res}</div>
@@ -1762,9 +1766,9 @@ function tellInbox() {
 // 누군가 +20 이상 강화에 성공하거나 강화가 초기화되면 모든 기사의 하단바 위로 소식이 흘러간다 (world.js 의 pushShout)
 const SHOUT_CHECK_EVERY = 15 * 1000;
 const shoutFeed = { after: 0, busy: false };
-// 조각마다 색을 따로: 닉네임은 하늘색, 강화 단계는 높을수록 금 → 주황 → 분홍 → 무지개(+25), 성공은 초록, 초기화는 빨강·잃은 단계는 회색으로 꺼짐
+// 조각마다 색을 따로: 닉네임은 하늘색, 강화 단계는 높을수록 금 → 주황 → 분홍 → 보라 → 하늘 → 무지개(최대 +30), 성공은 초록, 초기화는 빨강·잃은 단계는 회색으로 꺼짐
 const SHOUT_COL = { text: '#e6e6ee', nick: '#7cc4ff', good: '#7dffb0', bad: '#ff6b6b', lost: '#8a8a96' };
-const shoutLvCol = (L) => L >= ENHANCE_MAX ? 'rainbow' : L >= 24 ? '#ff5ac8' : L >= 22 ? '#ff9f1c' : L >= 20 ? '#ffd257' : '#e0b070';
+const shoutLvCol = (L) => L >= ENHANCE_MAX ? 'rainbow' : L >= 28 ? '#3ee8ff' : L >= 26 ? '#b36bff' : L >= 24 ? '#ff5ac8' : L >= 22 ? '#ff9f1c' : L >= 20 ? '#ffd257' : '#e0b070';
 function shoutText(m) {
   const g = GEAR_SLOTS[m.slot] || { name: '장비', icon: '⚒️' };
   const C = SHOUT_COL, head = [['📢 ', C.text], [botName(m), C.nick]];

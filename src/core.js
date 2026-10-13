@@ -41,7 +41,7 @@ function freshState() {
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
-    gearV: 8,                               // 8: 옵션 줄(it.op) · 7: 마법부여대 · 6: 무기·갑옷 기본 위력 = 기사 레벨 · 5: 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
+    gearV: 9,                               // 9: 강화 +30 · 등급별 줄 수(초월·태초 6줄) · 8: 옵션 줄(it.op) · 7: 마법부여대 · 6: 무기·갑옷 기본 위력 = 기사 레벨 · 5: 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
     phase: 'camp',                          // camp | expedition | returning | tower | dungeon
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
@@ -212,15 +212,27 @@ function migrate(o) {
   }
   if (ens) {
     s.items.reroll = (s.items.reroll || 0) + ens;
-    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 이제부터 얻는 장비에 붙고, 부위 강화 +5·+10·+15·+20·+25 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
+    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 이제부터 얻는 장비에 붙고, 부위 강화 +5 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
   }
-  s.gearV = 8;
   // 0.20.5: 재굴림은 굴린 결과가 바로 적용된다 — 새/이전을 고르지 않고 남겨 둔 결과(s.gear.rr)는 새 옵션으로 넣는다
   if (s.gear.rr) {
     const it = s.gear.inv.find((x) => x.id === s.gear.rr.id);
     if (it && it.op && it.op[s.gear.rr.i] && s.gear.rr.cand) it.op[s.gear.rr.i] = s.gear.rr.cand;
     delete s.gear.rr;
   }
+  // gearV 9 (0.22, docs/specs/enhance-30.md): 강화 +30 · 옵션 줄 수가 등급 색을 따른다 (일반 0 · 고급 1 · … · 초월·태초 6).
+  //  가진 장비의 줄은 줄이지 않는다. 5줄 초월·태초에는 +30 에서 켜지는 6번째 줄을 굴려 주고, 태초 줄 값은 새 배율(OPT_MULT)로 다시 계산한다
+  if ((o.gearV || 1) < 9) {
+    let six = 0;
+    for (const it of s.gear.inv) {
+      if (!Array.isArray(it.op) || it.g < 6) continue;
+      if (it.g === 7) for (const ln of it.op) if (ln && GEAR_OPTS[ln.k] && typeof ln.q === 'number') ln.v = optValueAt(ln.k, ln.q, 7);
+      if (it.op.length === 5) { it.op.push(rollOptLine(it.g)); six++; }
+    }
+    if ((o.gearV || 1) >= 8 && !s.notice) s.notice = `⚒️ 강화가 +${ENHANCE_MAX} 까지 열렸어요 — +16~25 초기화 확률은 절반으로 줄고, +26 부터는 📜 보호 주문서가 든든해요. 이제부터 얻는 장비는 등급만큼 옵션 줄이 붙어요 (일반 0 · 고급 1 · 희귀 2 … 초월·태초 6). 가진 장비의 줄은 그대로예요`
+      + (six ? ` · 초월·태초 장비 ${six}개에 +30 에서 켜지는 6번째 줄을 새로 드렸어요` : '');
+  }
+  s.gearV = 9;
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
   if (s.forge.resonance || s.gear.res) {
     const back = { gold: 0, ore: 0, mana: 0 };

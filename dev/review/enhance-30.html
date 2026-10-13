@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>강화 +30 — 스펙 검토</title>
-<!-- 스펙: docs/specs/enhance-30.md. 게임 코드는 바꾸지 않는다 — src/data.js 를 읽어 '지금' 값(ENHANCE·enhanceCost·OPT_*)을 가져오고,
-     '새' 값은 스펙 1·5절 그대로 이 페이지에서 만든다 (NEW_ENHANCE·NEW_OPT_*). 기대값은 마르코프 연립방정식, 분포는 몬테카를로. -->
+<!-- 스펙: docs/specs/enhance-30.md. '새' 값은 구현된 src/data.js 에서 읽고(ENHANCE·enhanceCost·OPT_*),
+     '0.22 전' 값은 아래 OLD_* 에 고정해 둔다. 기대값은 마르코프 연립방정식, 분포는 몬테카를로. -->
 <style>
   @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
   @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
@@ -44,7 +44,8 @@
 <body>
 <main>
   <h1>⚒️ 강화 +30 · 등급별 옵션 줄 수 — 스펙 검토 페이지</h1>
-  <div class="sub">스펙 <code>docs/specs/enhance-30.md</code> (상태: 초안 · 사용자 확인 대기 · 2026-10-13). "지금" 값은 <code>src/data.js</code> 에서 읽고, "새" 값은 스펙대로 이 페이지가 만든다. 입력칸을 바꾸면 표·그래프가 다시 계산된다. 게임 코드는 아직 안 바꿨다.</div>
+  <div class="sub">스펙 <code>docs/specs/enhance-30.md</code> (상태: 확정 → 구현·검증 끝, 배포 전 · 2026-10-13). "새" 값은 구현된 <code>src/data.js</code> 에서 읽고, "지금"(0.22 전) 값은 이 페이지에 고정해 두었다. 입력칸을 바꾸면 표·그래프가 다시 계산된다.
+    게임에서 보기: <a href="../../index.html?server=http://127.0.0.1:9" style="color:var(--blue)">오프라인 게임</a> → 마을 → 대장간 (테스트 상태는 보고에 적은 콘솔 스니펫).</div>
 
   <h2>1. 스펙 요지</h2>
   <div class="grid2">
@@ -69,10 +70,10 @@
       </ul>
     </div>
   </div>
-  <div class="card hl"><b>정해 주실 것 2개 (스펙·이 페이지는 추천안 기준)</b>
+  <div class="card hl"><b>사용자 확정 (2026-10-13, 두 질문 모두 추천안)</b>
     <ul>
-      <li><b>+26~30 확률</b> — 추천: 결정 수치 그대로 + +25 이상에서 주문서 체크가 꺼져 있으면 확률 줄에 <span class="bad">📜 없이는 밀리기 쉬워요</span> 경고. 대안: 하락 20% · 초기화 없음 (3번 아래 표 참고).</li>
-      <li><b>가진 5줄 초월·태초</b> — 추천: 6번째 줄을 굴려 주고 태초 줄 값은 새 배율 2.0 으로 다시 계산 (+14%). 대안: 6번째 줄만 / 둘 다 안 줌.</li>
+      <li><b>+26~30 확률</b> — 결정 수치 그대로. +25 이상에서 주문서 체크가 꺼져 있으면 확률 줄에 <span class="bad">📜 없이는 밀리기 쉬워요</span> 경고.</li>
+      <li><b>가진 5줄 초월·태초</b> — 6번째 줄을 굴려 주고 태초 줄 값은 새 배율 2.0 으로 다시 계산 (+14%).</li>
     </ul>
   </div>
 
@@ -159,12 +160,11 @@
 
 <script src="../../src/data.js"></script>
 <script>
-// ───── 지금 값은 data.js 에서, 새 값은 스펙 1·5절 그대로 ─────
-const OLD = ENHANCE.map((e) => ({ ...e }));
-const NEW = OLD.map((e, L) => (L >= 15 ? { ...e, reset: e.reset / 2 } : { ...e }));
-for (let L = 25; L < 30; L++) NEW[L] = { rate: 0.15 - 0.01 * (L - 25), down: 0.30, reset: 0.04 };
-const NEW_OPT_LINES = [0, 1, 2, 3, 4, 5, 6, 6];
-const NEW_OPT_MULT = OPT_MULT.map((m, g) => (g === 7 ? 2.0 : m));
+// ───── 새 값은 구현된 data.js 에서, 0.22 전 값은 여기 고정 ─────
+const NEW = ENHANCE.map((e) => ({ ...e }));
+const OLD = NEW.slice(0, 25).map((e, L) => (L >= 15 ? { ...e, reset: [0.02, 0.025, 0.03, 0.035, 0.04, 0.05, 0.055, 0.06, 0.065, 0.07][L - 15] } : { ...e }));
+const NEW_OPT_LINES = OPT_LINES, NEW_OPT_MULT = OPT_MULT;
+const OLD_OPT_LINES = [1, 2, 2, 3, 4, 5, 5, 5], OLD_OPT_MULT = [0.4, 0.55, 0.7, 0.85, 1, 1.2, 1.45, 1.75];
 
 const odds = (T, L, tl) => { const e = T[L]; if (!e) return null; if (!tl || L >= TEMPER_CAP) return e;
   return { rate: Math.min(0.95, e.rate + TEMPER_RATE * tl), down: e.down * (1 - TEMPER_DOWN * tl), reset: e.reset }; };
@@ -215,7 +215,7 @@ function drawExp() {
 function drawAlt() {
   const mk = (d, r) => NEW.map((e, L) => (L >= 25 ? { ...e, down: d, reset: r } : e));
   let h = '<tr><th>+26~30 하락 · 초기화 (실패 중)</th><th>맨손 시도</th><th>맨손 강화석</th><th>주문서 쓰면 시도 · 장</th></tr>';
-  for (const [d, r, tag] of [[0.30, 0.04, ' ← 추천 (결정 수치)'], [0.25, 0.04, ''], [0.20, 0.04, ''], [0.15, 0.04, ''], [0.30, 0, ''], [0.20, 0, '']]) {
+  for (const [d, r, tag] of [[0.30, 0.04, ' ← 확정'], [0.25, 0.04, ''], [0.20, 0.04, ''], [0.15, 0.04, ''], [0.30, 0, ''], [0.20, 0, '']]) {
     const T = mk(d, r);
     h += `<tr><td>${d * 100}% · ${r * 100}%${tag}</td><td>${n0(solve(T, 30, () => 1, 0, 99, 25))}</td><td>${n0(solve(T, 30, (L) => enhanceCost(L).stone, 0, 99, 25))}</td><td>${n0(solve(T, 30, () => 1, 0, 25, 25))} · ${n0(solve(T, 30, (L, P) => (P ? 1 : 0), 0, 25, 25))}</td></tr>`;
   }
@@ -262,7 +262,7 @@ function drawOpt() {
   const a = GEAR_OPTS.atkPct;
   let h = '<tr><th>등급</th><th>줄 수 지금</th><th>줄 수 새</th><th>값 배율 지금</th><th>값 배율 새</th><th>공격력 줄 범위 (새)</th><th>공격력 % 최대 지금</th><th>공격력 % 최대 새</th><th>쓰레기 줄</th><th>줄이 켜지는 단계 (새)</th></tr>';
   GRADES.forEach((gr, g) => {
-    const oL = OPT_LINES[g], nL = NEW_OPT_LINES[g], oM = OPT_MULT[g], nM = NEW_OPT_MULT[g];
+    const oL = OLD_OPT_LINES[g], nL = NEW_OPT_LINES[g], oM = OLD_OPT_MULT[g], nM = NEW_OPT_MULT[g];
     const steps = Array.from({ length: nL }, (_, i) => '+' + OPT_STEP * (i + 1)).join(' · ') || '—';
     h += `<tr><td style="color:${gr.color}">${gr.name}</td><td>${oL}</td><td class="${oL !== nL ? 'chg' : ''}">${nL}</td><td>${oM}</td><td class="${oM !== nM ? 'chg' : ''}">${nM}</td>`
       + `<td>${(a.lo * nM * 100).toFixed(1)} ~ ${(a.hi * nM * 100).toFixed(1)}%</td><td>+${(oL * a.hi * oM * 100).toFixed(1)}%</td><td class="${oL * oM !== nL * nM ? 'chg' : ''}">+${(nL * a.hi * nM * 100).toFixed(1)}%</td>`

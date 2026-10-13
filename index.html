@@ -638,6 +638,8 @@
   .lvl { padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,.12); font-size: 13px; }
   .lvl.l1 { color: #9fd49a; } .lvl.l2 { color: #7cc4ff; } .lvl.l3 { color: #c99bff; } .lvl.l4 { color: #ffb13b; }
   .lvl.l5 { color: #1b1300; background: linear-gradient(90deg, #ffd257, #ff9f1c); }
+  .lvl.l6 { color: #1b1300; background: linear-gradient(90deg, #ff6b6b, #ffd257, #7dffb0, #3ee8ff, #b36bff, #ff5ac8); background-size: 200% 100%; animation: lvlRainbow 3s linear infinite; }   /* 최대 강화 +30 */
+  @keyframes lvlRainbow { to { background-position: -200% 0; } }
   .gname { font-weight: 700; }
   .gname.empty { color: var(--muted); font-weight: 400; }
   .gstat { font-size: 12px; }

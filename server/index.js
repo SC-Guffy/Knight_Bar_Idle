@@ -913,6 +913,7 @@ const SHOUT_KEEP_MS = 2 * 60 * 1000;
 const SHOUT_MAX = 50;
 const SHOUT_WINDOW_MS = 2 * 60 * 1000, SHOUT_PER_WINDOW = 4;
 const SHOUT_SLOTS = ['weapon', 'armor', 'ring'];
+const SHOUT_ENH_MAX = 30;           // 최대 강화 (클라이언트 src/data.js ENHANCE_MAX 와 같게 — 0.22 에서 25 → 30)
 const shouts = [];
 const lastShout = new Map();       // 계정 key → 마지막 확성기 시각
 let shoutSeq = 0, lastHumanShout = 0;
@@ -930,8 +931,8 @@ routes['POST /api/shouts'] = async (req) => {
   const b = await readJson(req);
   const from = Math.floor(Number(b.from)), to = Math.floor(Number(b.to));
   const ok = SHOUT_SLOTS.includes(b.slot) && (
-    (b.result === 'up' && to >= 20 && to <= 25 && from === to - 1) ||
-    (b.result === 'reset' && from >= 16 && from <= 25 && to === 0));
+    (b.result === 'up' && to >= 20 && to <= SHOUT_ENH_MAX && from === to - 1) ||
+    (b.result === 'reset' && from >= 16 && from <= SHOUT_ENH_MAX && to === 0));
   if (!ok) throw new HttpError(400, '확성기에 올릴 소식이 아니에요');
   const now = Date.now();
   if (now - (lastShout.get(a.key) || 0) < 2000) return { ok: true };   // 강화 연출보다 빠를 수 없다

@@ -12,6 +12,7 @@ const { mentorProfile } = require('../server/mentor');
 const ROOT = path.join(__dirname, '..');
 const FILES = ['data', 'classes', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'core'];
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140];
+const ENH_MARKS = [20, 25, 30];   // 어느 부위든 처음 이 강화 단계에 닿은 시간 (docs/specs/enhance-30.md)
 
 function makeGame(rev) {
   const ctx = { console, Math: Object.create(Math), Date, JSON, Object, Array, Number, String, Infinity, NaN, isFinite, isNaN, parseInt, parseFloat, URLSearchParams,
@@ -73,7 +74,7 @@ function runOne({ days, seed, rev }) {
   const inc = { expGold: 0, curioGold: 0, raidGold: 0, saleGold: 0, bossStones: 0, saleStones: 0, raidGear: [0, 0, 0, 0, 0, 0, 0, 0], raids: 0, trips: 0, kills: 0, dur: 0, stockWood: 0, stockOre: 0, tradeWood: 0, tradeOre: 0, tradeGold: 0 };
   const spend = { train: 0, build: 0, enhStone: 0, enhOre: 0, buildOre: 0, buildWood: 0, bagWood: 0, mentor: 0 };
   const why = {};   // 원정이 끝난 사유별 횟수 (stamina 지침 · bag 가방 가득 · ...)
-  const reach = {}; let maxBag = 0, rid = 0, t = 0, lastDay = -1;
+  const reach = {}, enhReach = {}, prot = { used: 0 }; let maxBag = 0, rid = 0, t = 0, lastDay = -1;
   const sell = () => { const l = S.gear.inv.filter((x) => !A.isEquipped(x) && !A.isSetGear(x)); if (!l.length) return; const g0 = S.gold, s0 = S.stones; A.sellGear(l); inc.saleGold += S.gold - g0; inc.saleStones += S.stones - s0; };
   const chores = () => {
     const w = A.bagWeight();
@@ -100,7 +101,9 @@ function runOne({ days, seed, rev }) {
       sell();
     }
     for (const slot of Object.keys(A.GEAR_SLOTS)) for (let i = 0; i < 300 && !A.enhanceBlocker(slot) && (S.gear.enh[slot] < 15 || S.items.protect > 0); i++) {
-      const s0 = S.stones, o0 = S.mats.ore; A.enhance(slot, S.gear.enh[slot] >= 15); spend.enhStone += s0 - S.stones; spend.enhOre += o0 - S.mats.ore;
+      const s0 = S.stones, o0 = S.mats.ore, r = A.enhance(slot, S.gear.enh[slot] >= 15); spend.enhStone += s0 - S.stones; spend.enhOre += o0 - S.mats.ore;
+      if (r && r.used) prot.used++;
+      for (const th of ENH_MARKS) if (enhReach[th] == null && S.gear.enh[slot] >= th) enhReach[th] = t / 3600;
     }
     for (const id of Object.keys(A.BUILDINGS)) { const g0 = S.gold, o0 = S.mats.ore, w0 = S.mats.wood; if (A.startBuild(id)) { spend.build += g0 - S.gold; spend.buildOre += o0 - S.mats.ore; spend.buildWood += w0 - S.mats.wood; } }
     { const g0 = S.gold; A.doTrainAll(); spend.train += g0 - S.gold; }
@@ -115,7 +118,8 @@ function runOne({ days, seed, rev }) {
   chores();
   return { mentorStars: M ? M.mentorStarSum() : 0, mentorStarAt: ms.starAt, trainDoneAt: ms.doneAt, best: S.best, gold: S.gold, maxBag, bagLv: S.bagLv || 0, stones: S.stones, ore: S.mats.ore, wood: S.mats.wood, why, lv: { ...S.bld }, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
     train: S.train.atk + S.train.hp + S.train.def + S.train.fortune, bld: Object.values(S.bld).reduce((a, b) => a + b, 0),
-    enh: S.gear.enh.weapon + S.gear.enh.armor + S.gear.enh.ring,
+    enh: S.gear.enh.weapon + S.gear.enh.armor + S.gear.enh.ring, enhSlot: { ...S.gear.enh }, enhReach,
+    prot: { left: S.items.protect || 0, used: prot.used, got: (S.items.protect || 0) + prot.used },
     eq: Object.keys(A.GEAR_SLOTS).reduce((a, k) => { const it = S.gear.inv.find((x) => A.isEquipped(x) && x.slot === k); return a + (it ? it.g : 0); }, 0) };
 }
 
@@ -135,6 +139,9 @@ function main() {
   row('최종 최고 스테이지', (r) => r.best);
   for (const th of STAGES) row(`스테이지 ${th} 도달(시간)`, (r) => (r.reach[th] == null ? 9999 : r.reach[th]), (x) => (x === 9999 ? '-' : x.toFixed(1)));
   row('장착 등급 합(3부위)', (r) => r.eq); row('강화 합계(3부위)', (r) => r.enh);
+  for (const [k, nm] of [['weapon', '무기'], ['armor', '갑옷'], ['ring', '반지']]) row(`부위 강화: ${nm}`, (r) => r.enhSlot[k]);
+  for (const th of ENH_MARKS) row(`첫 +${th} 강화(시간)`, (r) => (r.enhReach[th] == null ? 9999 : r.enhReach[th]), (x) => (x === 9999 ? '-' : x.toFixed(1)));
+  row('📜 주문서: 수입', (r) => r.prot.got); row('📜 주문서: 강화 사용', (r) => r.prot.used); row('📜 주문서: 남은 것', (r) => r.prot.left);
   row('훈련 합계', (r) => r.train); row('훈련 상한(훈련장 기준)', (r) => r.trainCap);
   row('1차 훈련 수료 (시간)', (r) => (r.trainDoneAt == null ? 9999 : r.trainDoneAt), (x) => (x === 9999 ? '-' : x.toFixed(1)));
   row('🎓 교관 별 합계', (r) => r.mentorStars);

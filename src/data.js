@@ -153,7 +153,7 @@ const FORGE_FAC = {
 };
 // 담금질대 (0.19.24): +0 ~ +19 에서 시도하는 강화만 완화한다 (+20 이상은 그대로 어렵게). 초기화 확률은 건드리지 않는다.
 //  성공 +0.5%p/Lv (Lv20 +10%p), 실패 시 하락 비율 ×(1 − 0.015·Lv) (Lv20 −30%, 0.19.24 의 −3%/Lv 는 과하다는 피드백으로 0.19.25 에서 절반)
-//  기대 시도 (0 → +20, 보호 주문서 없이): Lv0 약 112회 · Lv20 약 54회
+//  기대 시도 (0 → +20, 보호 주문서 없이): Lv0 약 91회 · Lv20 약 48회 (0.22 초기화 절반 뒤. 그 전엔 112 · 54)
 //  (0.12.2 의 연마대(anvil)는 0.12.3 에서 빠졌고 core.js migrate 가 s.forge.anvil 을 환급·삭제하므로 id 를 다시 쓰지 않는다)
 // 분해대: 판매 강화석 ×(1 + 0.1·Lv) (Lv20 ×3)
 const salvageMultAt = (lv) => 1 + 0.1 * lv;
@@ -169,8 +169,10 @@ const rerollCost = (g) => ({ reroll: 1, stone: GEAR_STONES[g], mana: 2 + 2 * g }
 //  값 = (lo + (hi − lo)·q) × OPT_MULT[등급], q 는 품질 0~1 (S ≥ 0.9 · A ≥ 0.65 · B ≥ 0.35 · C). 같은 옵션이 여러 줄이면 합산.
 //  먼저 OPT_JUNK[등급] 확률로 쓰레기 옵션(junk)을 고르고, 아니면 나머지에서 균등하게 고른다.
 const OPT_STEP = 5;
-const OPT_LINES = [1, 2, 2, 3, 4, 5, 5, 5];
-const OPT_MULT = [0.4, 0.55, 0.7, 0.85, 1, 1.2, 1.45, 1.75];
+// 줄 수는 등급 색을 따른다 (0.22: 일반 0 · 고급 1 · … · 초월·태초 6, 6번째 줄은 +30). 태초는 줄 대신 값 배율로 차이를 둔다 (1.75 → 2.0).
+//  그 전에 얻은 장비의 줄은 줄이지 않는다 (일반 1줄·고급 2줄 그대로 — core.js migrate gearV 9)
+const OPT_LINES = [0, 1, 2, 3, 4, 5, 6, 6];
+const OPT_MULT = [0.4, 0.55, 0.7, 0.85, 1, 1.2, 1.45, 2.0];
 const OPT_JUNK = [0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.06];
 const OPT_JUNK_MIN = 0.03;
 const OPT_RANKS = [[0.9, 'S'], [0.65, 'A'], [0.35, 'B'], [0, 'C']];
@@ -795,15 +797,16 @@ function gearBase(slot, g, roll, s) {
   if (slot === 'armor') return { hp: gearHpAt(s) * k };
   return { crit: 0.02 * k, critMult: 0.2 * k };
 }
-// 강화가 공속·치명에는 단계당 4%만 곱해진다 (+25 에서 2배)
+// 강화가 공속·치명에는 단계당 4%만 곱해진다 (+25 에서 2배, +30 에서 2.2배)
 const SOFT_ENH = { aspdPct: true, crit: true };
 const softEnhMultAt = (L) => 1 + 0.04 * L;
 
 // ───────────────────────── 강화 ─────────────────────────
 // 강화 단계는 부위(무기·갑옷·반지)에 붙어 있어서 장비를 바꿔 껴도 유지된다.
 // ENHANCE[L] = L → L+1 시도. 실패하면 down 확률로 한 단계 하락, reset 확률로 +0 초기화, 나머지는 유지.
-// 0에서 시작한 기대 시도 횟수 (보호 주문서 없이): +10 약 15회 · +15 약 35회 · +20 약 110회 · +25 약 1,200회
-const ENHANCE_MAX = 25;
+// 0에서 시작한 기대 시도 횟수 (보호 주문서 없이): +10 약 15회 · +15 약 35회 · +20 약 91회 · +25 약 540회
+// +26~30 은 주문서 구간이다: 실패하면 하락이 성공보다 커서 맨손으로는 +25→+30 기대 약 3.6만 회, 주문서를 쓰면 약 39회 (docs/specs/enhance-30.md)
+const ENHANCE_MAX = 30;
 const ENHANCE = [
   // +1 ~ +5: 실패해도 유지
   { rate: 0.95, down: 0,    reset: 0 },
@@ -823,18 +826,24 @@ const ENHANCE = [
   { rate: 0.40, down: 0.26, reset: 0 },
   { rate: 0.37, down: 0.28, reset: 0 },
   { rate: 0.35, down: 0.3,  reset: 0 },
-  // +16 ~ +20: 하락 + 초기화 위험
-  { rate: 0.33, down: 0.25, reset: 0.02 },
-  { rate: 0.31, down: 0.25, reset: 0.025 },
-  { rate: 0.29, down: 0.25, reset: 0.03 },
-  { rate: 0.27, down: 0.25, reset: 0.035 },
-  { rate: 0.25, down: 0.25, reset: 0.04 },
-  // +21 ~ +25: 초기화 위험 큼
-  { rate: 0.24, down: 0.25, reset: 0.05 },
-  { rate: 0.22, down: 0.25, reset: 0.055 },
-  { rate: 0.20, down: 0.25, reset: 0.06 },
-  { rate: 0.18, down: 0.25, reset: 0.065 },
-  { rate: 0.16, down: 0.25, reset: 0.07 },
+  // +16 ~ +20: 하락 + 초기화 위험 (초기화는 0.22 에서 절반으로)
+  { rate: 0.33, down: 0.25, reset: 0.01 },
+  { rate: 0.31, down: 0.25, reset: 0.0125 },
+  { rate: 0.29, down: 0.25, reset: 0.015 },
+  { rate: 0.27, down: 0.25, reset: 0.0175 },
+  { rate: 0.25, down: 0.25, reset: 0.02 },
+  // +21 ~ +25: 초기화 위험 (0.22 에서 절반으로)
+  { rate: 0.24, down: 0.25, reset: 0.025 },
+  { rate: 0.22, down: 0.25, reset: 0.0275 },
+  { rate: 0.20, down: 0.25, reset: 0.03 },
+  { rate: 0.18, down: 0.25, reset: 0.0325 },
+  { rate: 0.16, down: 0.25, reset: 0.035 },
+  // +26 ~ +30: 성공률이 낮고 실패하면 자주 하락 — 보호 주문서를 모아 도전하는 구간
+  { rate: 0.15, down: 0.3, reset: 0.04 },
+  { rate: 0.14, down: 0.3, reset: 0.04 },
+  { rate: 0.13, down: 0.3, reset: 0.04 },
+  { rate: 0.12, down: 0.3, reset: 0.04 },
+  { rate: 0.11, down: 0.3, reset: 0.04 },
 ];
 // L → L+1 시도의 실제 확률 (담금질대 Lv 반영)
 function enhanceOddsAt(L, temperLv) {
@@ -842,10 +851,10 @@ function enhanceOddsAt(L, temperLv) {
   if (!e || !temperLv || L >= TEMPER_CAP) return e;
   return { rate: Math.min(0.95, e.rate + TEMPER_RATE * temperLv), down: e.down * (1 - TEMPER_DOWN * temperLv), reset: e.reset };
 }
-// 강화 단계가 장비 능력치에 곱하는 배율
+// 강화 단계가 장비 능력치에 곱하는 배율 (+25 ×6.5 · +30 ×8.2)
 const enhanceMultAt = (L) => 1 + 0.12 * L + 0.004 * L * L;
 // L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)과 겹치지 않는다. 철광석은 늘, 마력석은 +10부터
-// 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 75개 · +15 약 320개 (부위마다)
+// 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 75개 · +15 약 320개 (부위마다). +25→+30 을 주문서로 가면 약 5,600개
 function enhanceCost(L) {
   return {
     stone: Math.floor(2 * Math.pow(1.17, L)),
