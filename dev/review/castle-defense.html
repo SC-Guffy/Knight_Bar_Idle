@@ -41,7 +41,7 @@
 <body>
 <main>
   <h1>🏰 성벽 지키기 — 스펙 검토 페이지</h1>
-  <div class="sub">스펙 <code>docs/specs/castle-defense.md</code> (상태: 초안 · 2026-10-13). 숫자 입력칸을 바꾸면 아래 표·그래프·시뮬이 다시 계산된다. 게임 코드는 아직 없다.</div>
+  <div class="sub">스펙 <code>docs/specs/castle-defense.md</code> (상태: 확정 · 2026-10-13 — 사용자 결정 5가지 반영). 숫자 입력칸을 바꾸면 아래 표·그래프·시뮬이 다시 계산된다. 게임 코드는 아직 없다.</div>
 
   <h2>1. 스펙 요지</h2>
   <div class="grid2">
@@ -98,13 +98,13 @@
   <h2>5. 보상표</h2>
   <div class="ctl">
     <label>단계 L <input id="rLv" type="number" min="1" max="100" value="25"></label>
-    <label>🧱 계수 (1 + L/<input id="rB" type="number" value="25">)</label>
-    <label>📕 웨이브당 <input id="rK0" type="number" step="0.01" value="0.2"> + <input id="rK1" type="number" step="0.001" value="0.004"> × L</label>
+    <label>🧱 계수 (1 + L/<input id="rB" type="number" value="100">)</label>
+    <label>📕 웨이브당 <input id="rK0" type="number" step="0.01" value="0.34"> + <input id="rK1" type="number" step="0.001" value="0.001"> × L</label>
   </div>
   <div class="grid2">
     <div class="card">
       <b>막은 웨이브·잡은 수에 따라 (단계 <span id="rLvV"></span>)</b>
-      <div class="sub">처치 점수: 일반 1, 보스 10. 실패 판은 "막은 웨이브까지 다 잡고 다음 웨이브의 절반을 잡았다"고 가정. 첫 돌파는 둘 다 ×2.</div>
+      <div class="sub">처치 점수: 일반 1, 보스 10. 실패 판은 "막은 웨이브까지 다 잡고 다음 웨이브의 절반을 잡았다"고 가정. 첫 돌파는 🧱 만 ×2 (📕 은 보너스 없음).</div>
       <div class="scroll"><table id="rewTbl"></table></div>
     </div>
     <div class="card">
@@ -115,7 +115,7 @@
 
   <h2>6. 업그레이드 (🧱, 각 Lv10) + 웨이브 시뮬</h2>
   <div class="ctl">
-    <label>비용 = <input id="uC0" type="number" value="80"> × <input id="uG" type="number" step="0.05" value="1.4"><sup>n</sup></label>
+    <label>비용 = <input id="uC0" type="number" value="18"> × <input id="uG" type="number" step="0.05" value="1.4"><sup>n</sup> (5 단위 반올림)</label>
   </div>
   <div class="grid2">
     <div class="card"><div class="scroll"><table id="upTbl"></table></div></div>
@@ -134,25 +134,28 @@
 
   <h2>7. 하루 수급량 추정</h2>
   <div class="card hl">
-    <h3>⚠️ 교관 세션과 맞출 값 — 📕 수련의 서 수급량은 미정</h3>
+    <h3>📕 하루 10~13권 (무료 입장) · 🧱 업그레이드 6종 Lv10 까지 약 10일 — 사용자 결정 (10-13)</h3>
     <div class="ctl">
       <label>내 소탕 단계 <input id="dLv" type="number" min="1" max="100" value="30"></label>
       <label>하루 추가 구매 <input id="dBuy" type="number" min="0" max="8" value="0"> 장</label>
       <label>첫 돌파 하루 <input id="dFirst" type="number" min="0" max="5" value="1"> 회</label>
-      <label>교관 별 값 참고안: 교관 n의 ★k = (1+2k) × (1 + <input id="dM" type="number" step="0.05" value="0.25"> n)</label>
+      <label>교관 별 값 총 <input id="dM" type="number" value="200"> 권 (교관 스펙)</label>
     </div>
     <div class="scroll"><table id="dayTbl"></table></div>
     <div id="dayNote" class="sub"></div>
+    <h3 style="margin-top:12px">업그레이드 기간 시뮬 — 겹치는 수급(첫 돌파 🧱 ×2·입장권 구매)을 넣어도 너무 빨라지지 않는가</h3>
+    <div class="sub">하루: 무료 3장 + 구매 n장. 그중 "하루 오르는 단계"만큼은 첫 돌파 도전(성공 가정, 🧱 ×2), 나머지는 최고 단계 소탕. 🧱 이 6종 Lv10 비용 합계에 닿는 날.</div>
+    <div class="scroll"><table id="scTbl"></table></div>
   </div>
 
-  <h2>8. 사용자가 정할 것</h2>
+  <h2>8. 사용자 결정 (2026-10-13, 로드맵 세션 창)</h2>
   <div class="card">
     <ol>
-      <li><b>기사가 맞지 않는 방식</b> (처치 속도만 시험) — 괜찮은가? 대안: 기사가 몸으로 막고 맞는다(체력·방어도 의미, 대신 복잡).</li>
-      <li><b>성벽 위 교관이 실제 피해</b> (10초마다 공격력 × 0.4 × 별) — 괜찮은가, 연출만 할까?</li>
-      <li><b>📕 수급량</b> — 교관 세션의 별 값과 맞춰서 위 7번 계수를 정해 주기.</li>
-      <li><b>단계 곡선</b> 20 + 2L (100단계 ≈ 최고 스테이지 220 이 필요, 14일 봇 끝 ≈ 200) — 너무 멀면 단계당 1.8.</li>
-      <li>업그레이드 6종·비용(전부 Lv10 = 33,480 🧱, 하루 소탕으로 3~4주) 이대로?</li>
+      <li>✅ <b>기사는 맞지 않는다</b> — 처치 속도로만 겨룬다.</li>
+      <li>✅ <b>성벽 위 교관이 실제 피해</b> — 10초마다 공격력 × 0.4 × 별 수.</li>
+      <li>✅ <b>📕 무료 입장 기준 하루 10~13권</b> — 다 막은 판 3.4 + 0.01L 권 (교관 별 값 총 200권 ≈ 20일분). 첫 돌파 보너스 없음.</li>
+      <li>✅ <b>단계 곡선 20 + 2L 유지</b> — 100단계는 장기 목표.</li>
+      <li>✅ <b>업그레이드 약 10일</b> — 비용 80×1.4<sup>n</sup> → <b>18×1.4<sup>n</sup></b> (6종 합 33,480 → 7,530), 🧱 단계 배율 1+L/25 → <b>1+L/100</b> (시작 단계와 상관없이 9~13일로 모음). 7번 시뮬 표 참고.</li>
     </ol>
   </div>
 </main>
@@ -175,7 +178,7 @@ const BOSS_HP = [0, 12, 20];
 const castleStage = (L) => num('cOff') + num('cPer') * L;
 const bricksOf = (L, pts) => Math.round(pts * (1 + L / num('rB')));
 const booksOf = (L, waves) => waves * (num('rK0') + num('rK1') * L);
-const upCost = (n) => Math.round((num('uC0') * Math.pow(num('uG'), n)) / 10) * 10;
+const upCost = (n) => Math.round((num('uC0') * Math.pow(num('uG'), n)) / 5) * 5;
 const UPS = [
   { id: 'wall', icon: '🧱', name: '성벽 보강', per: '내구도 +15', at10: '250' },
   { id: 'watch', icon: '⏳', name: '망루', per: '웨이브 간격 +0.5초', at10: '17초' },
@@ -348,10 +351,10 @@ function drawWaves() {
 // ── 5. 보상 ──
 function drawRewards() {
   const L = Math.max(1, Math.min(100, num('rLv'))); $('rLvV').textContent = L;
-  let rows = '<tr><th>막은 웨이브</th><th>처치 점수 (가정)</th><th>🧱</th><th>📕 기대</th><th>첫 돌파 🧱 / 📕</th></tr>';
+  let rows = '<tr><th>막은 웨이브</th><th>처치 점수 (가정)</th><th>🧱</th><th>📕 기대</th><th>첫 돌파 🧱 ×2 / 📕 그대로</th></tr>';
   for (let w = 0; w <= 10; w++) {
     const pts = WAVE_PTS.slice(0, w).reduce((a, b) => a + b, 0) + (w < 10 ? Math.floor(waveN(WAVES[w]) / 2) : 0);
-    rows += `<tr><td>${w}${w === 10 ? ' (성공)' : ''}</td><td>${pts}</td><td>${fi(bricksOf(L, pts))}</td><td>${f1(booksOf(L, w))}</td><td>${w === 10 ? `${fi(2 * bricksOf(L, pts))} / ${f1(2 * booksOf(L, w))}` : '—'}</td></tr>`;
+    rows += `<tr><td>${w}${w === 10 ? ' (성공)' : ''}</td><td>${pts}</td><td>${fi(bricksOf(L, pts))}</td><td>${f1(booksOf(L, w))}</td><td>${w === 10 ? `${fi(2 * bricksOf(L, pts))} / ${f1(booksOf(L, w))}` : '—'}</td></tr>`;
   }
   $('rewTbl').innerHTML = rows;
   let r2 = '<tr><th>단계</th><th>적 스테이지</th><th>🧱</th><th>📕</th><th>하루 3장 🧱 / 📕</th></tr>';
@@ -404,18 +407,32 @@ function runSim() {
 
 // ── 7. 하루 수급 ──
 function drawDaily() {
-  const L = Math.max(1, Math.min(100, num('dLv'))), buy = num('dBuy'), first = num('dFirst'), m = num('dM');
+  const L = Math.max(1, Math.min(100, num('dLv'))), buy = num('dBuy'), first = num('dFirst'), M = num('dM');
   const runs = 3 + buy, bk = bricksOf(L, FULL_PTS), bo = booksOf(L, 10);
-  const dayB = runs * bk + first * bk, dayO = runs * bo + first * bo;
+  const dayB = (runs - first) * bk + first * 2 * bk, dayO = runs * bo, TOT = UPS.length * Array.from({ length: 10 }, (_, n) => upCost(n)).reduce((a, b) => a + b, 0);
   const steps = [0.5, 1, 2, 3.5, 6]; const k = (n) => (n < 5 ? steps[n] : 6 * Math.pow(1.7, n - 4));
   const goldMult = Array.from({ length: buy }, (_, n) => k(n)).reduce((a, b) => a + b, 0);
-  // 스펙 참고안: 교관 n(0부터)의 ★k(1~4) = (1 + 2k) × (1 + m·n) → 교관1 3·5·7·9
-  const perM2 = [0, 1, 2, 3, 4].map((n) => [1, 2, 3, 4].reduce((a, kk) => a + (1 + 2 * kk) * (1 + m * n), 0));
-  const totalBooks = perM2.reduce((a, b) => a + b, 0);
-  $('dayTbl').innerHTML = `<tr><th></th><th>판 수</th><th>🧱 / 일</th><th>📕 / 일</th><th>업그레이드 전부 (${fi(UPS.length * Array.from({ length: 10 }, (_, n) => upCost(n)).reduce((a, b) => a + b, 0))} 🧱)</th><th>교관 ★1~4 전부 (${fi(totalBooks)} 📕)</th></tr>
-    <tr><td>단계 ${L} 소탕 ${runs}장 + 첫 돌파 ${first}회</td><td>${runs}</td><td>${fi(dayB)}</td><td><b class="v">${f1(dayO)}</b></td><td>${f1(UPS.length * Array.from({ length: 10 }, (_, n) => upCost(n)).reduce((a, b) => a + b, 0) / dayB)}일</td><td><b class="v">${f1(totalBooks / dayO)}일</b></td></tr>`;
-  $('dayNote').innerHTML = `구매 ${buy}장 골드 = 최고 스테이지 몹 골드 × 300 × ${f1(goldMult)} (사냥 약 ${f1(goldMult * 0.5)}시간치). 교관별 ★1~4 합 (참고안): ${perM2.map((x, i) => `교관${i + 1} ${fi(x)}`).join(' · ')}권 — 첫 교관 ${f1(perM2[0] / dayO)}일.
-    <br>📕 값은 교관 세션(training-mentors.md 개정)의 별 권수와 맞춰 정한다. 위 계수(📕 웨이브당 ${num('rK0')} + ${num('rK1')}×L)를 바꾸면 이 표도 바뀐다.`;
+  const freeO = 3 * bo, inRange = freeO >= 10 && freeO <= 13.05;
+  $('dayTbl').innerHTML = `<tr><th></th><th>판 수</th><th>🧱 / 일</th><th>📕 / 일</th><th>업그레이드 전부 (${fi(TOT)} 🧱)</th><th>교관 별 전부 (${fi(M)} 📕)</th></tr>
+    <tr><td>단계 ${L}: 무료 3장 + 구매 ${buy}장 (그중 첫 돌파 ${first}판)</td><td>${runs}</td><td>${fi(dayB)}</td><td><b class="v">${f1(dayO)}</b></td><td>${f1(TOT / dayB)}일</td><td><b class="v">${f1(M / dayO)}일</b></td></tr>
+    <tr><td>무료 3장만 📕</td><td>3</td><td></td><td class="${inRange ? 'ok' : 'bad'}">${f1(freeO)} ${inRange ? '✅ 10~13권 안' : '❌ 10~13권 밖'}</td><td></td><td>${f1(M / freeO)}일</td></tr>`;
+  $('dayNote').innerHTML = `구매 ${buy}장 골드 = 최고 스테이지 몹 골드 × 300 × ${f1(goldMult)} (사냥 약 ${f1(goldMult * 0.5)}시간치). 📕 은 첫 돌파 보너스가 없어서 단계를 빨리 올려도 하루 수급이 그대로다.`;
+  const sc = (L0, climb, nb) => {
+    let lv = L0, b = 0, bkSum = 0, frac = 0, done = null, b10 = 0;
+    for (let day = 1; day <= 60; day++) {
+      const tix = 3 + nb; frac += climb; const fc = Math.min(tix, Math.floor(frac)); frac -= fc;
+      for (let i = 0; i < fc; i++) { lv = Math.min(100, lv + 1); b += 2 * bricksOf(lv, FULL_PTS); bkSum += booksOf(lv, 10); }
+      for (let i = fc; i < tix; i++) { b += bricksOf(lv, FULL_PTS); bkSum += booksOf(lv, 10); }
+      if (done == null && b >= TOT) done = day;
+      if (day === 10) b10 = bkSum / 10;
+    }
+    return { done, b10 };
+  };
+  const rows = [['막 열린 신규', 5, 1, 0], ['중간 유저 (기준)', 30, 1, 0], ['상위 유저', 60, 0.5, 0], ['최상위', 90, 0.3, 0], ['성장이 빠른 신규', 5, 2, 0], ['오르지 못하고 소탕만', 30, 0, 0], ['입장권 매일 3장 구매', 30, 1, 3], ['입장권 매일 5장 구매', 30, 1, 5]];
+  $('scTbl').innerHTML = `<tr><th>경우</th><th>시작 단계</th><th>하루 오르는 단계</th><th>하루 구매</th><th>6종 Lv10 까지</th><th>📕 하루 (첫 10일)</th></tr>` + rows.map(([n, l0, c, nb]) => {
+    const r = sc(l0, c, nb), cls = r.done == null ? 'bad' : r.done < 7 ? 'mid' : r.done <= 14 ? 'ok' : 'bad';
+    return `<tr><td>${n}</td><td>${l0}</td><td>${c}</td><td>${nb}</td><td class="${cls}">${r.done == null ? '60일+' : r.done + '일'}</td><td>${f1(r.b10)}</td></tr>`;
+  }).join('');
 }
 
 function all() { drawMock(); drawWaves(); drawRewards(); drawUps(); drawDaily(); drawCurve(); }
