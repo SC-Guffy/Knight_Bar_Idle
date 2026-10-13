@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>성벽 지키기 — 스펙 검토</title>
+<!-- 스펙: docs/specs/castle-defense.md. 게임 코드는 바꾸지 않는다 — src/data.js(몬스터·필드)·src/mentor-stage.js(교관 그림)를 읽기만 한다.
+     웨이브 시뮬은 스펙 "난이도 근거"의 간이 모델 그대로 (구현 때 dev/castle-sim.js 로 옮긴다). -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --hl: #3b2a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .hl { background: var(--hl); border: 2px solid var(--gold); }
+  .hl h3 { margin: 0 0 6px; color: var(--gold); font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  canvas { display: block; max-width: 100%; image-rendering: pixelated; background: #0f0d14; border: 1px solid var(--line); border-radius: 4px; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  input[type=number] { width: 64px; background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; }
+  input[type=range] { width: 160px; }
+  b.v { color: var(--gold); }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 3px; background: #2f2840; color: var(--dim); font-size: 11px; }
+  .legend span { margin-right: 14px; }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🏰 성벽 지키기 — 스펙 검토 페이지</h1>
+  <div class="sub">스펙 <code>docs/specs/castle-defense.md</code> (상태: 초안 · 2026-10-13). 숫자 입력칸을 바꾸면 아래 표·그래프·시뮬이 다시 계산된다. 게임 코드는 아직 없다.</div>
+
+  <h2>1. 스펙 요지</h2>
+  <div class="grid2">
+    <div class="card">
+      <b>목표</b>
+      <ul>
+        <li>오른쪽에서 몰려오는 무리를 <b>빨리 잡는</b> 콘텐츠. 탑(버티기)·미궁(생존)과 달리 <b>처치 속도</b>를 시험.</li>
+        <li>10웨이브, 한 판 <b>3분 이하</b>. 판 안 강화(카드) 없음.</li>
+        <li>🧱 성벽돌 → 성벽 영구 업그레이드 · 📕 수련의 서 → 교관. 교관은 성벽 위에서 같이 싸운다.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <b>핵심 규칙</b>
+      <ul>
+        <li>최고 스테이지 <b>40</b> 해금 · 무료 입장권 하루 <b>3장</b> · 골드 구매(탑과 같은 곡선, 5장 보유).</li>
+        <li>1~100단계, 차례로. 단계 L 의 적 = 스테이지 <b>20 + 2L</b> 급. 깬 최고 단계는 1장으로 소탕.</li>
+        <li><b>기사는 맞지 않는다</b> — 몬스터는 기사를 지나 성벽만 친다 (일반 1/1.4초, 보스 8/2초). 내구도 100, 0 이면 실패.</li>
+        <li>5·10웨이브 보스. 웨이브 간격 12초, 다 잡으면 3초 뒤 다음 웨이브.</li>
+        <li>레인 길이 최대 480px (창 폭이 달라도 광역 효율이 같게).</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2. 화면 목업 (하단바 150px, 정지 그림)</h2>
+  <div class="ctl">
+    <label>단계 <input id="mLv" type="range" min="1" max="100" value="12"> <b class="v" id="mLvV"></b></label>
+    <label>창 폭 <select id="mW"><option value="360">360px (모바일)</option><option value="720" selected>720px</option><option value="1100">1100px (넓은 창)</option></select></label>
+    <label>내구도 <input id="mHp" type="range" min="0" max="100" value="72"></label>
+  </div>
+  <canvas id="mock" width="720" height="150"></canvas>
+  <div class="sub" style="margin-top:4px">왼쪽부터: (넓은 창이면 성 안 풍경) · 성벽(내구도 바·균열) · 성벽 위 투석기·교관(칸당 1px)·궁수 · 성벽 앞 해자 · 기사(가장 앞선 적 쪽으로 이동) · 오른쪽 끝에서 4마리씩 쏟아지는 무리. 배경색·몬스터는 그 단계 적 스테이지의 필드.</div>
+
+  <h2>3. 난이도 곡선 — 단계 → 적 스테이지</h2>
+  <div class="ctl">
+    <label>단계당 스테이지 <input id="cPer" type="number" step="0.1" value="2"></label>
+    <label>기준 스테이지 <input id="cOff" type="number" value="20"></label>
+    <span class="sub">적 스테이지 = 기준 + 단계당 × L</span>
+  </div>
+  <canvas id="curve" width="980" height="300"></canvas>
+  <div class="legend sub" style="margin-top:4px">
+    <span><i style="background:#ffd257"></i>적 스테이지</span>
+    <span><i style="background:#ff6b6b"></i>단일 대상·업그레이드 0 이 깨려면 필요한 내 최고 스테이지</span>
+    <span><i style="background:#8fd8ff"></i>광역(2.5)·업그레이드 0</span>
+    <span><i style="background:#7dffb0"></i>단일·업그레이드 전부 Lv10</span>
+    <span>점선 = 필드 경계 (10단계마다)</span>
+  </div>
+  <div class="scroll"><table id="curveTbl"></table></div>
+  <div class="sub">"필요한 내 최고 스테이지" = 적 스테이지 − Δ. Δ 는 아래 6번 웨이브 시뮬이 찾는다 (업그레이드를 바꾸면 초록 선이 움직인다).</div>
+
+  <h2>4. 웨이브 구성 (1 · 5 · 10웨이브 예시)</h2>
+  <canvas id="waves" width="980" height="210"></canvas>
+  <div class="scroll"><table id="waveTbl"></table></div>
+
+  <h2>5. 보상표</h2>
+  <div class="ctl">
+    <label>단계 L <input id="rLv" type="number" min="1" max="100" value="25"></label>
+    <label>🧱 계수 (1 + L/<input id="rB" type="number" value="25">)</label>
+    <label>📕 웨이브당 <input id="rK0" type="number" step="0.01" value="0.2"> + <input id="rK1" type="number" step="0.001" value="0.004"> × L</label>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <b>막은 웨이브·잡은 수에 따라 (단계 <span id="rLvV"></span>)</b>
+      <div class="sub">처치 점수: 일반 1, 보스 10. 실패 판은 "막은 웨이브까지 다 잡고 다음 웨이브의 절반을 잡았다"고 가정. 첫 돌파는 둘 다 ×2.</div>
+      <div class="scroll"><table id="rewTbl"></table></div>
+    </div>
+    <div class="card">
+      <b>단계별 다 막았을 때 (소탕 1회 = 이 값)</b>
+      <div class="scroll"><table id="rewLvTbl"></table></div>
+    </div>
+  </div>
+
+  <h2>6. 업그레이드 (🧱, 각 Lv10) + 웨이브 시뮬</h2>
+  <div class="ctl">
+    <label>비용 = <input id="uC0" type="number" value="80"> × <input id="uG" type="number" step="0.05" value="1.4"><sup>n</sup></label>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="scroll"><table id="upTbl"></table></div></div>
+    <div class="card"><canvas id="upCost" width="460" height="200"></canvas><div class="sub">Lv n→n+1 비용 (막대) · 누적 (선, 오른쪽 축)</div></div>
+  </div>
+  <div class="card">
+    <b>시뮬: 업그레이드 레벨을 바꿔 보기</b> <span class="sub">— 간이 모델: 기사는 가장 앞선 적을 치고, 광역은 근처 몬스터에 같이 들어가는 몫으로 근사. 실제 스킬 광역은 구현 뒤 dev/castle-sim.js 로 다시 맞춘다.</span>
+    <div class="ctl" id="upSliders"></div>
+    <div class="ctl">
+      <label>성벽 위 교관 별 합계 <input id="sStars" type="number" min="0" max="25" value="0"></label>
+      <label>광역 계수 <input id="sAoe" type="number" step="0.5" min="1" max="4" value="1"></label>
+      <button id="sRun">다시 계산</button>
+    </div>
+    <div id="simOut"></div>
+  </div>
+
+  <h2>7. 하루 수급량 추정</h2>
+  <div class="card hl">
+    <h3>⚠️ 교관 세션과 맞출 값 — 📕 수련의 서 수급량은 미정</h3>
+    <div class="ctl">
+      <label>내 소탕 단계 <input id="dLv" type="number" min="1" max="100" value="30"></label>
+      <label>하루 추가 구매 <input id="dBuy" type="number" min="0" max="8" value="0"> 장</label>
+      <label>첫 돌파 하루 <input id="dFirst" type="number" min="0" max="5" value="1"> 회</label>
+      <label>교관 별 값 참고안: 교관 n의 ★k = (1+2k) × (1 + <input id="dM" type="number" step="0.05" value="0.25"> n)</label>
+    </div>
+    <div class="scroll"><table id="dayTbl"></table></div>
+    <div id="dayNote" class="sub"></div>
+  </div>
+
+  <h2>8. 사용자가 정할 것</h2>
+  <div class="card">
+    <ol>
+      <li><b>기사가 맞지 않는 방식</b> (처치 속도만 시험) — 괜찮은가? 대안: 기사가 몸으로 막고 맞는다(체력·방어도 의미, 대신 복잡).</li>
+      <li><b>성벽 위 교관이 실제 피해</b> (10초마다 공격력 × 0.4 × 별) — 괜찮은가, 연출만 할까?</li>
+      <li><b>📕 수급량</b> — 교관 세션의 별 값과 맞춰서 위 7번 계수를 정해 주기.</li>
+      <li><b>단계 곡선</b> 20 + 2L (100단계 ≈ 최고 스테이지 220 이 필요, 14일 봇 끝 ≈ 200) — 너무 멀면 단계당 1.8.</li>
+      <li>업그레이드 6종·비용(전부 Lv10 = 33,480 🧱, 하루 소탕으로 3~4주) 이대로?</li>
+    </ol>
+  </div>
+</main>
+
+<script src="../../src/data.js"></script>
+<script src="../../src/mentor-stage.js"></script>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const num = (id) => Number($(id).value);
+const f1 = (x) => (Math.round(x * 10) / 10).toLocaleString();
+const fi = (x) => Math.round(x).toLocaleString();
+
+// ── 스펙 수치 ──
+const WAVES = [10, 11, 12, 13, { b: 1, n: 10 }, 14, 15, 16, 17, { b: 2, n: 12 }];
+const waveN = (w) => (typeof w === 'number' ? w : w.n);
+const WAVE_PTS = WAVES.map((w) => waveN(w) + (w.b ? 10 : 0));       // 웨이브별 처치 점수
+const FULL_PTS = WAVE_PTS.reduce((a, b) => a + b, 0);                 // 150
+const BOSS_HP = [0, 12, 20];
+const castleStage = (L) => num('cOff') + num('cPer') * L;
+const bricksOf = (L, pts) => Math.round(pts * (1 + L / num('rB')));
+const booksOf = (L, waves) => waves * (num('rK0') + num('rK1') * L);
+const upCost = (n) => Math.round((num('uC0') * Math.pow(num('uG'), n)) / 10) * 10;
+const UPS = [
+  { id: 'wall', icon: '🧱', name: '성벽 보강', per: '내구도 +15', at10: '250' },
+  { id: 'watch', icon: '⏳', name: '망루', per: '웨이브 간격 +0.5초', at10: '17초' },
+  { id: 'moat', icon: '🌊', name: '해자', per: '이동 시간 +3%', at10: '+30%' },
+  { id: 'banner', icon: '🚩', name: '군기', per: '기사 공격력 +5%', at10: '+50%' },
+  { id: 'archer', icon: '🏹', name: '궁수대', per: '초당 공격력 ×0.08 (궁수 ⌈Lv/3⌉명)', at10: '초당 ×0.8 · 4명' },
+  { id: 'catapult', icon: '💥', name: '투석기', per: '6초마다 광역 공격력 ×(1+0.3Lv)', at10: '×4.0' },
+];
+const ups = Object.fromEntries(UPS.map((u) => [u.id, 0]));
+
+// ── 간이 웨이브 시뮬 (스펙 "난이도 근거"와 같은 모델) ──
+// tk: 기사가 일반 몬스터 한 마리를 단일 대상으로 잡는 초. 지원군 피해는 "기사 공격력"을 기사 단일 DPS 의 1/1.2 로 근사
+function simRun(tk, o) {
+  const P = 12 + 0.5 * o.watch, walk = 12 * (1 + 0.03 * o.moat), bwalk = 16 * (1 + 0.03 * o.moat), wall = 100 + 15 * o.wall;
+  const am = 1 + 0.05 * o.banner, t1 = tk / am;              // 군기: 처치 시간 단축
+  const atkPerSec = 1 / (1.2 * t1);                            // 기사 공격력 1 = 몹 체력의 몇 분의 1 (초당)
+  const arch = 0.08 * o.archer * 1.2 * atkPerSec * t1 / t1;     // 궁수대: 몹/초 단위
+  const catDmg = o.catapult ? (1 + 0.3 * o.catapult) / (1.2 * t1) : 0;
+  const mentorRate = (o.stars || 0) * 0.4 / 10 / (1.2 * t1);    // 교관 합계: 몹/초 (가장 앞선 적에 근사)
+  const dt = 0.05; let t = 0, hp = wall, mobs = [], wi = 0, nextAt = 0, catT = 6;
+  const left = [];
+  while (t < 400) {
+    if (wi < 10 && t >= nextAt) {
+      const w = WAVES[wi], n = waveN(w);
+      for (let i = 0; i < n; i++) mobs.push({ hp: 1, x: 1 + Math.floor(i / 4) * 0.04 + (i % 4) * 0.012, sp: 1 / walk, w: wi, cd: 0, dmg: 1 });
+      if (w.b) mobs.push({ hp: BOSS_HP[w.b], x: 1.06, sp: 1 / bwalk, w: wi, cd: 0, dmg: 8, boss: 1 });
+      left[wi] = n + (w.b ? 1 : 0); wi++; nextAt = t + P;
+    }
+    for (const m of mobs) { if (m.x > 0) m.x = Math.max(0, m.x - m.sp * dt); else { m.cd -= dt; if (m.cd <= 0) { m.cd = m.boss ? 2 : 1.4; hp -= m.dmg; } } }
+    if (hp <= 0) break;
+    mobs.sort((a, b) => a.x - b.x);
+    if (mobs.length) {
+      const f = mobs[0], near = mobs.filter((m) => m.x - f.x <= 0.06).slice(0, Math.ceil(o.aoe));
+      near.forEach((m, i) => { m.hp -= (dt / t1) * (i === 0 ? 1 : Math.min(1, o.aoe - i)); });
+      f.hp -= dt * (0.08 * o.archer / 1.2 / t1 + mentorRate);
+      if (catDmg) { catT -= dt; if (catT <= 0) { catT = 6; mobs.filter((m) => m.x - f.x <= 0.1).forEach((m) => (m.hp -= catDmg)); } }
+    }
+    const dead = mobs.filter((m) => m.hp <= 0);
+    mobs = mobs.filter((m) => m.hp > 0);
+    for (const m of dead) left[m.w]--;
+    if (wi < 10 && wi > 0 && left[wi - 1] === 0 && nextAt > t + 3) nextAt = t + 3;
+    if (wi >= 10 && !mobs.length) break;
+    t += dt;
+  }
+  const blocked = left.filter((x) => x === 0).length;
+  return { ok: hp > 0 && blocked === 10, blocked, wall: Math.max(0, hp) / wall, t };
+}
+// 막을 수 있는 가장 긴 처치 시간 → 내 최고 스테이지 대비 Δ (자기 최고 스테이지 몹 처치 = 6초 기준, 봇 곡선 중앙값)
+function threshold(o) {
+  let best = 0;
+  for (let tk = 0.15; tk <= 12; tk *= 1.03) if (simRun(tk, o).ok) best = tk;
+  return { tk: best, d: Math.log(best / 6) / Math.log(1.221) };
+}
+
+// ── 그리기 도우미 ──
+function spr(type) { const d = MONSTERS[type]; const f = SPR[d.spr || type]; return f[0]; }
+function drawRows(g, rows, pal, cx, by, s) {
+  const h = rows.length, w = rows[0].length, ox = Math.round(cx - (w * s) / 2);
+  for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
+    const ch = rows[r][c]; if (ch === '.') continue;
+    g.fillStyle = pal[ch] || PAL[ch] || '#f0f'; g.fillRect(ox + c * s, Math.round(by - (h - r) * s), s, s);
+  }
+}
+const drawMob = (g, type, cx, by, s) => drawRows(g, spr(type), MONSTERS[type].pal || {}, cx, by - (MONSTERS[type].fly || 0), s);
+function pxRect(g, x, y, w, h, c) { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
+
+// ── 2. 목업 ──
+function drawMock() {
+  const L = num('mLv'); $('mLvV').textContent = `${L}단계 · 적 스테이지 ${castleStage(L)} (${zoneOf(castleStage(L)).icon} ${zoneOf(castleStage(L)).name})`;
+  const W = num('mW'), H = 150, cv = $('mock'); cv.width = W; cv.style.width = Math.min(W * (W <= 400 ? 2 : W <= 760 ? 1.35 : 0.9), 980) + 'px';
+  const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+  const st = castleStage(L), z = zoneOf(st), gd = z.ground, gy = H - 10;
+  // 하늘·지면
+  pxRect(g, 0, 0, W, H, '#1c2233');
+  for (let y = 0; y < gy; y += 6) pxRect(g, 0, y, W, 6, `rgba(${40 + y / 3},${48 + y / 4},${70 + y / 5},1)`);
+  pxRect(g, 0, gy, W, 10, gd.soil); pxRect(g, 0, gy, W, 3, gd.grass);
+  const WALL_W = 64, LANE = Math.min(W - WALL_W, 480), wallX = W - LANE - WALL_W;
+  // 성 안 풍경 (넓은 창)
+  for (let x = 6; x < wallX - 10; x += 34) { pxRect(g, x, gy - 26, 26, 26, '#3a3348'); pxRect(g, x - 2, gy - 34, 30, 8, '#7a3b2e'); pxRect(g, x + 10, gy - 14, 6, 14, '#1a1424'); pxRect(g, x + 4, gy - 22, 5, 5, '#ffd257'); }
+  // 해자
+  pxRect(g, wallX + WALL_W, gy, 26, 6, '#2f6c9a'); pxRect(g, wallX + WALL_W, gy, 26, 2, '#7cc6ff');
+  // 성벽
+  const top = gy - 70;
+  pxRect(g, wallX, top, WALL_W, 70, '#6b6478');
+  for (let y = top; y < gy; y += 8) for (let x = wallX + ((y / 8) % 2 ? 0 : 6); x < wallX + WALL_W; x += 12) pxRect(g, x, y, 11, 7, '#857d93');
+  for (let x = wallX; x < wallX + WALL_W; x += 12) pxRect(g, x, top - 8, 8, 8, '#857d93');
+  pxRect(g, wallX + WALL_W - 22, gy - 26, 16, 26, '#3a2a1e'); pxRect(g, wallX + WALL_W - 22, gy - 28, 16, 3, '#2a1d14');
+  // 균열
+  const hp = num('mHp') / 100;
+  const cracks = hp < 0.15 ? 3 : hp < 0.4 ? 2 : hp < 0.7 ? 1 : 0;
+  g.strokeStyle = '#1a1424'; g.lineWidth = 2;
+  for (let k = 0; k < cracks; k++) { const x0 = wallX + 10 + k * 18; g.beginPath(); g.moveTo(x0, top + 6); g.lineTo(x0 + 6, top + 22); g.lineTo(x0 - 2, top + 38); g.lineTo(x0 + 5, top + 54); g.stroke(); }
+  // 내구도 바
+  pxRect(g, wallX + 2, top - 22, WALL_W - 4, 7, '#1a1424'); pxRect(g, wallX + 3, top - 21, (WALL_W - 6) * hp, 5, hp < 0.3 ? '#ff6b6b' : hp < 0.6 ? '#ffd257' : '#7dffb0');
+  g.fillStyle = '#fff'; g.font = '700 9px Galmuri11'; g.fillText(`🧱 ${Math.round(hp * 100)}/100`, wallX + 4, top - 25);
+  // 성벽 위: 투석기 · 교관 · 궁수
+  pxRect(g, wallX + 4, top - 16, 14, 6, '#5a3d2a'); pxRect(g, wallX + 8, top - 26, 3, 12, '#5a3d2a'); pxRect(g, wallX + 2, top - 28, 10, 4, '#8a5a2b');
+  g.fillStyle = '#9a9aa6'; g.beginPath(); g.arc(wallX + 130, top - 50, 4, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,.25)'; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(wallX + 8, top - 28); g.quadraticCurveTo(wallX + 70, top - 80, wallX + 130, top - 50); g.stroke(); g.setLineDash([]);
+  const ments = ['sword', 'hunter'];
+  ments.forEach((id, i) => { g.save(); g.translate(wallX + 30 + i * 18, top); g.scale(0.25, 0.25); drawMentorFig(g, id, 0, 0, {}); g.restore(); });
+  for (let i = 0; i < 2; i++) { const ax = wallX + 52 + i * 8; pxRect(g, ax, top - 12, 4, 12, '#3d6b3a'); pxRect(g, ax, top - 15, 4, 4, '#f0c8a0'); pxRect(g, ax + 4, top - 12, 1, 9, '#8a5a2b'); }
+  // 화살 하나
+  pxRect(g, wallX + 120, top + 4, 10, 1, '#e8d9b0');
+  // 기사 (단순 실루엣) — 가장 앞선 적 바로 앞
+  const lane0 = wallX + WALL_W, laneX = (u) => lane0 + u * LANE;
+  const frontU = 0.38, kx = laneX(frontU) - 20;
+  pxRect(g, kx - 5, gy - 30, 10, 20, '#3d7bff'); pxRect(g, kx - 4, gy - 38, 8, 8, '#f0c8a0'); pxRect(g, kx - 5, gy - 40, 10, 3, '#c9d1dd'); pxRect(g, kx - 4, gy - 10, 3, 10, '#2a2b33'); pxRect(g, kx + 1, gy - 10, 3, 10, '#2a2b33');
+  g.strokeStyle = '#e8edf5'; g.lineWidth = 2; g.beginPath(); g.moveTo(kx + 5, gy - 24); g.lineTo(kx + 18, gy - 34); g.stroke();
+  // 몰려오는 무리 — 4마리씩 묶음
+  const pool = z.mobs; let k = 0;
+  for (let grp = 0; grp < 4; grp++) for (let j = 0; j < 4; j++) {
+    const u = frontU + grp * 0.17 + j * 0.035; if (u > 1.02) continue;
+    drawMob(g, pool[(k++) % pool.length], laneX(u), gy, 2);
+  }
+  // 성벽을 치는 놈 하나 (내구도가 깎이는 중)
+  if (hp < 1) drawMob(g, pool[0], lane0 + 14, gy, 2);
+  // 보스 (오른쪽 끝)
+  if (LANE > 300) drawMob(g, z.boss, laneX(0.95), gy, 4);
+  // 배너
+  g.fillStyle = '#ffd257'; g.font = '700 14px Galmuri11'; g.textAlign = 'center'; g.fillText('WAVE 5 · BOSS WAVE!', lane0 + LANE / 2, 22); g.textAlign = 'left';
+  g.fillStyle = '#a59cb8'; g.font = '9px Galmuri11'; g.fillText(`레인 ${LANE}px · 몬스터 ${f1(LANE / 12)}px/s`, lane0 + 4, 38);
+}
+
+// ── 3. 곡선 ──
+let simCache = null;
+function drawCurve() {
+  const cv = $('curve'), g = cv.getContext('2d'), W = cv.width, H = cv.height, P = { l: 44, r: 10, t: 12, b: 26 };
+  g.clearRect(0, 0, W, H);
+  const d = simCache || { base1: -10.4, base25: -7.6, full: -0.1 };
+  const lines = [['#ffd257', 0], ['#ff6b6b', -d.base1], ['#8fd8ff', -d.base25], ['#7dffb0', -d.full]];
+  const maxY = Math.ceil((castleStage(100) + 15) / 50) * 50;
+  const X = (L) => P.l + ((L - 1) / 99) * (W - P.l - P.r), Y = (s) => H - P.b - (s / maxY) * (H - P.t - P.b);
+  g.font = '10px Galmuri11'; g.fillStyle = '#a59cb8'; g.strokeStyle = '#3a3348'; g.lineWidth = 1;
+  for (let s = 0; s <= maxY; s += 50) { g.beginPath(); g.moveTo(P.l, Y(s)); g.lineTo(W - P.r, Y(s)); g.stroke(); g.fillText(s, 6, Y(s) + 3); }
+  g.setLineDash([3, 4]);
+  for (let L = 10; L <= 100; L += 10) { g.beginPath(); g.moveTo(X(L + 0.5), P.t); g.lineTo(X(L + 0.5), H - P.b); g.stroke(); g.fillText(L, X(L) - 6, H - 8); }
+  g.setLineDash([]); g.fillText('단계 →', W - 50, H - 8); g.fillText('스테이지', 4, P.t + 2);
+  for (const [col, off] of lines) { g.strokeStyle = col; g.lineWidth = 2; g.beginPath(); for (let L = 1; L <= 100; L++) { const y = Y(castleStage(L) + off); L === 1 ? g.moveTo(X(L), y) : g.lineTo(X(L), y); } g.stroke(); }
+  // 해금선
+  g.strokeStyle = '#ffffff55'; g.beginPath(); g.moveTo(P.l, Y(40)); g.lineTo(W - P.r, Y(40)); g.stroke(); g.fillStyle = '#fff'; g.fillText('해금 40', W - 60, Y(40) - 3);
+  const Ls = [1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  $('curveTbl').innerHTML = `<tr><th>단계</th>${Ls.map((L) => `<th>${L}</th>`).join('')}</tr>
+    <tr><td>적 스테이지 · 필드</td>${Ls.map((L) => `<td>${castleStage(L)} ${zoneOf(castleStage(L)).icon}</td>`).join('')}</tr>
+    <tr><td class="bad">필요 최고 (단일·업 0)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.base1)}</td>`).join('')}</tr>
+    <tr><td style="color:#8fd8ff">필요 최고 (광역 2.5·업 0)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.base25)}</td>`).join('')}</tr>
+    <tr><td class="ok">필요 최고 (단일·업 지금 값)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.full)}</td>`).join('')}</tr>`;
+}
+
+// ── 4. 웨이브 ──
+function drawWaves() {
+  const L = num('mLv'), st = castleStage(L), z = zoneOf(st), cv = $('waves'), g = cv.getContext('2d');
+  g.clearRect(0, 0, cv.width, cv.height); g.imageSmoothingEnabled = false;
+  [0, 4, 9].forEach((wi, row) => {
+    const w = WAVES[wi], n = waveN(w), y = 60 + row * 70;
+    g.fillStyle = w.b ? '#ff9f1c' : '#ffd257'; g.font = '700 12px Galmuri11';
+    g.fillText(`${wi + 1}웨이브`, 6, y - 20); g.fillStyle = '#a59cb8'; g.font = '10px Galmuri11';
+    g.fillText(`일반 ${n}${w.b ? ` + ${w.b === 2 ? '거대 ' : ''}보스 (체력 ×${BOSS_HP[w.b]})` : ''}`, 6, y - 6);
+    for (let i = 0; i < n; i++) { const grp = Math.floor(i / 4); drawMob(g, z.mobs[i % z.mobs.length], 190 + grp * 120 + (i % 4) * 22, y + 6, 2); }
+    for (let grp = 0; grp < Math.ceil(n / 4); grp++) { g.fillStyle = '#6b6478'; g.fillText(`+${(grp * 0.5).toFixed(1)}초`, 190 + grp * 120 - 10, y + 18); }
+    if (w.b) drawMob(g, z.boss, 190 + Math.ceil(n / 4) * 120 + 30, y + 10, w.b === 2 ? 5 : 4);
+  });
+  let s = 0;
+  $('waveTbl').innerHTML = `<tr><th>웨이브</th>${WAVES.map((w, i) => `<th>${i + 1}${w.b ? ' 👑' : ''}</th>`).join('')}<th>합계</th></tr>
+    <tr><td>일반</td>${WAVES.map((w) => `<td>${waveN(w)}</td>`).join('')}<td>${WAVES.reduce((a, w) => a + waveN(w), 0)}</td></tr>
+    <tr><td>처치 점수</td>${WAVE_PTS.map((p) => `<td>${p}</td>`).join('')}<td>${FULL_PTS}</td></tr>
+    <tr><td>시작 시각 (아무것도 못 잡을 때, 간격 12초)</td>${WAVES.map((w, i) => `<td>${i * 12}초</td>`).join('')}<td>마지막 108초</td></tr>`;
+}
+
+// ── 5. 보상 ──
+function drawRewards() {
+  const L = Math.max(1, Math.min(100, num('rLv'))); $('rLvV').textContent = L;
+  let rows = '<tr><th>막은 웨이브</th><th>처치 점수 (가정)</th><th>🧱</th><th>📕 기대</th><th>첫 돌파 🧱 / 📕</th></tr>';
+  for (let w = 0; w <= 10; w++) {
+    const pts = WAVE_PTS.slice(0, w).reduce((a, b) => a + b, 0) + (w < 10 ? Math.floor(waveN(WAVES[w]) / 2) : 0);
+    rows += `<tr><td>${w}${w === 10 ? ' (성공)' : ''}</td><td>${pts}</td><td>${fi(bricksOf(L, pts))}</td><td>${f1(booksOf(L, w))}</td><td>${w === 10 ? `${fi(2 * bricksOf(L, pts))} / ${f1(2 * booksOf(L, w))}` : '—'}</td></tr>`;
+  }
+  $('rewTbl').innerHTML = rows;
+  let r2 = '<tr><th>단계</th><th>적 스테이지</th><th>🧱</th><th>📕</th><th>하루 3장 🧱 / 📕</th></tr>';
+  for (const l of [1, 10, 25, 40, 50, 60, 75, 90, 100]) r2 += `<tr><td>${l}</td><td>${castleStage(l)}</td><td>${fi(bricksOf(l, FULL_PTS))}</td><td>${f1(booksOf(l, 10))}</td><td>${fi(3 * bricksOf(l, FULL_PTS))} / ${f1(3 * booksOf(l, 10))}</td></tr>`;
+  $('rewLvTbl').innerHTML = r2;
+}
+
+// ── 6. 업그레이드 ──
+function drawUps() {
+  let tot = 0, rows = `<tr><th>업그레이드</th><th>Lv당</th><th>Lv10</th></tr>`;
+  for (const u of UPS) rows += `<tr><td>${u.icon} ${u.name}</td><td style="text-align:left">${u.per}</td><td>${u.at10}</td></tr>`;
+  const costs = Array.from({ length: 10 }, (_, n) => upCost(n)); tot = costs.reduce((a, b) => a + b, 0);
+  rows += `<tr><td colspan="3" style="text-align:left">비용 Lv1~10: ${costs.map(fi).join(' · ')} → 1종 <b class="v">${fi(tot)}</b> · 6종 <b class="v">${fi(tot * 6)}</b> 🧱</td></tr>`;
+  $('upTbl').innerHTML = rows;
+  const cv = $('upCost'), g = cv.getContext('2d'), W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
+  const mx = Math.max(...costs), bw = (W - 60) / 10;
+  g.font = '10px Galmuri11';
+  costs.forEach((c, i) => { const h = (c / mx) * (H - 40); g.fillStyle = '#ffd257'; g.fillRect(30 + i * bw + 3, H - 20 - h, bw - 6, h); g.fillStyle = '#a59cb8'; g.fillText(`Lv${i + 1}`, 30 + i * bw + 4, H - 6); g.fillStyle = '#ece6f6'; g.fillText(fi(c), 30 + i * bw + 2, H - 24 - h); });
+  let acc = 0; g.strokeStyle = '#8fd8ff'; g.lineWidth = 2; g.beginPath();
+  costs.forEach((c, i) => { acc += c; const y = H - 20 - (acc / tot) * (H - 40); const x = 30 + i * bw + bw / 2; i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+  g.fillStyle = '#8fd8ff'; g.fillText(`누적 ${fi(tot)}`, W - 80, 14);
+}
+function buildSliders() {
+  $('upSliders').innerHTML = UPS.map((u) => `<label>${u.icon} ${u.name} <input type="range" min="0" max="10" value="0" data-up="${u.id}"> <b class="v" id="uv-${u.id}">0</b></label>`).join('')
+    + `<button id="allMax">전부 Lv10</button> <button id="allZero">전부 0</button>`;
+  for (const el of document.querySelectorAll('[data-up]')) el.oninput = () => { ups[el.dataset.up] = Number(el.value); $('uv-' + el.dataset.up).textContent = el.value; };
+  $('allMax').onclick = () => setAll(10); $('allZero').onclick = () => setAll(0);
+}
+function setAll(v) { for (const el of document.querySelectorAll('[data-up]')) { el.value = v; ups[el.dataset.up] = v; $('uv-' + el.dataset.up).textContent = v; } runSim(); }
+function runSim() {
+  $('simOut').innerHTML = '<span class="sub">계산 중…</span>';
+  setTimeout(() => {
+    const zero = Object.fromEntries(UPS.map((u) => [u.id, 0]));
+    const aoe = num('sAoe'), stars = num('sStars');
+    const b1 = threshold({ ...zero, aoe: 1 }), b25 = threshold({ ...zero, aoe: 2.5 }), cur = threshold({ ...ups, aoe, stars }), cur1 = threshold({ ...ups, aoe: 1, stars });
+    simCache = { base1: b1.d, base25: b25.d, full: cur1.d };
+    const each = UPS.map((u) => { const t = threshold({ ...zero, [u.id]: ups[u.id], aoe: 1 }); return `${u.icon} ${u.name} Lv${ups[u.id]}: <b>${(t.d - b1.d >= 0 ? '+' : '') + f1(t.d - b1.d)}</b>`; }).join(' · ');
+    const B = (d) => `내 최고 ${d >= 0 ? '+' : '−'}${f1(Math.abs(d))} 스테이지`;
+    $('simOut').innerHTML = `<table>
+      <tr><th>조건</th><th>막는 처치 시간 (한 마리)</th><th>막는 적 세기</th><th>단계 환산 (최고 B 일 때)</th></tr>
+      <tr><td>단일 · 업그레이드 0</td><td>${b1.tk.toFixed(2)}초</td><td>${B(b1.d)}</td><td>≈ (B ${f1(b1.d)} − ${num('cOff')}) / ${num('cPer')}</td></tr>
+      <tr><td>광역 2.5 · 업그레이드 0</td><td>${b25.tk.toFixed(2)}초</td><td>${B(b25.d)}</td><td>≈ (B ${f1(b25.d)} − ${num('cOff')}) / ${num('cPer')}</td></tr>
+      <tr><td class="ok">단일 · 지금 업그레이드${stars ? ` + 교관 별 ${stars}` : ''}</td><td>${cur1.tk.toFixed(2)}초</td><td>${B(cur1.d)}</td><td>단일보다 <b class="v">+${f1(cur1.d - b1.d)}</b> 스테이지 = +${f1((cur1.d - b1.d) / num('cPer'))}단계</td></tr>
+      <tr><td>광역 ${aoe} · 지금 업그레이드${stars ? ` + 교관` : ''}</td><td>${cur.tk.toFixed(2)}초</td><td>${B(cur.d)}</td><td></td></tr>
+      </table><div class="sub" style="margin-top:6px">업그레이드 하나씩만 올렸을 때 (단일): ${each}</div>
+      <div class="sub">예: 최고 스테이지 100 → 단일·업 0 ≈ ${Math.floor((100 + b1.d - num('cOff')) / num('cPer'))}단계 · 단일·지금 ≈ ${Math.floor((100 + cur1.d - num('cOff')) / num('cPer'))}단계 · 최고 200 → ${Math.floor((200 + b1.d - num('cOff')) / num('cPer'))} / ${Math.floor((200 + cur1.d - num('cOff')) / num('cPer'))}단계</div>`;
+    drawCurve();
+  }, 20);
+}
+
+// ── 7. 하루 수급 ──
+function drawDaily() {
+  const L = Math.max(1, Math.min(100, num('dLv'))), buy = num('dBuy'), first = num('dFirst'), m = num('dM');
+  const runs = 3 + buy, bk = bricksOf(L, FULL_PTS), bo = booksOf(L, 10);
+  const dayB = runs * bk + first * bk, dayO = runs * bo + first * bo;
+  const steps = [0.5, 1, 2, 3.5, 6]; const k = (n) => (n < 5 ? steps[n] : 6 * Math.pow(1.7, n - 4));
+  const goldMult = Array.from({ length: buy }, (_, n) => k(n)).reduce((a, b) => a + b, 0);
+  // 스펙 참고안: 교관 n(0부터)의 ★k(1~4) = (1 + 2k) × (1 + m·n) → 교관1 3·5·7·9
+  const perM2 = [0, 1, 2, 3, 4].map((n) => [1, 2, 3, 4].reduce((a, kk) => a + (1 + 2 * kk) * (1 + m * n), 0));
+  const totalBooks = perM2.reduce((a, b) => a + b, 0);
+  $('dayTbl').innerHTML = `<tr><th></th><th>판 수</th><th>🧱 / 일</th><th>📕 / 일</th><th>업그레이드 전부 (${fi(UPS.length * Array.from({ length: 10 }, (_, n) => upCost(n)).reduce((a, b) => a + b, 0))} 🧱)</th><th>교관 ★1~4 전부 (${fi(totalBooks)} 📕)</th></tr>
+    <tr><td>단계 ${L} 소탕 ${runs}장 + 첫 돌파 ${first}회</td><td>${runs}</td><td>${fi(dayB)}</td><td><b class="v">${f1(dayO)}</b></td><td>${f1(UPS.length * Array.from({ length: 10 }, (_, n) => upCost(n)).reduce((a, b) => a + b, 0) / dayB)}일</td><td><b class="v">${f1(totalBooks / dayO)}일</b></td></tr>`;
+  $('dayNote').innerHTML = `구매 ${buy}장 골드 = 최고 스테이지 몹 골드 × 300 × ${f1(goldMult)} (사냥 약 ${f1(goldMult * 0.5)}시간치). 교관별 ★1~4 합 (참고안): ${perM2.map((x, i) => `교관${i + 1} ${fi(x)}`).join(' · ')}권 — 첫 교관 ${f1(perM2[0] / dayO)}일.
+    <br>📕 값은 교관 세션(training-mentors.md 개정)의 별 권수와 맞춰 정한다. 위 계수(📕 웨이브당 ${num('rK0')} + ${num('rK1')}×L)를 바꾸면 이 표도 바뀐다.`;
+}
+
+function all() { drawMock(); drawWaves(); drawRewards(); drawUps(); drawDaily(); drawCurve(); }
+for (const id of ['mLv', 'mW', 'mHp', 'cPer', 'cOff', 'rLv', 'rB', 'rK0', 'rK1', 'uC0', 'uG', 'dLv', 'dBuy', 'dFirst', 'dM']) $(id).addEventListener('input', all);
+$('sRun').onclick = runSim;
+buildSliders();
+document.fonts.ready.then(() => { all(); runSim(); });
+</script>
+</body>
+</html>
