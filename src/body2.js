@@ -53,6 +53,35 @@ function hiRes(rows, padBottom = true) {
 //  팔레트 글자는 classes.js 그 직업의 look.pal 에 맞춘다. 팔·주먹 색은 look.arm 으로 따로 준다 (머리카락이 어깨 줄에 걸쳐도 되게)
 //  눈: e 눈동자 · E 눈 하이라이트. 궁수 계열은 여성, 마법사 계열은 모자·머리 모양이 전부 다르다
 const BODY2_OVERRIDE = {
+  // 견습 기사: 오른쪽을 보는 게 읽히게 — 눈구멍을 앞(오른쪽) 끝까지, 투구 뒤통수는 어둡게, 깃털은 뒤로 흩날림, 가슴 문양·버클은 앞으로
+  squire: [
+    '......rrrr............',
+    '....rrrrrrrr..........',
+    '...rr...rrrrr.........',
+    '.........rrrr.........',
+    '......hhhhhhhh........',
+    '.....hhhhhhHHHHH......',
+    '....hhhhhHHHHHHHH.....',
+    '....hhhhHHHHHHHHHH....',
+    '....hhhhHHHvvvvvvvv...',
+    '....hhhhHHHvvvvvvvv...',
+    '....hhhhHHHHHHHHHH....',
+    '....hhhhhHHHHHHHHH....',
+    '.....hhhhhHHHHHHH.....',
+    '......hhhhhhhhhh......',
+    '.....aaaAAAAAAAAa.....',
+    '....aaaaAAAAAAAAAa....',
+    '...aaaaaAAAAAyyAAa....',
+    '..aaaaaaAAAAAyyAAAa...',
+    '..aaaaaaAAAAAyyAAAa...',
+    '..aaaaaaAAAAAyyAAAa...',
+    '..aaaaaaAAAAAAAAAAa...',
+    '...aaaaaAAAAAAAAAa....',
+    '....bbbbbbbbbyybbb....',
+    '....bbbbbbbbbyybbb....',
+    '....aaaaaAAAAAAAAa....',
+    '.....aaaaAAAAAAAa.....',
+  ],
   // 레인저(여): 깃털 꽂은 초록 모자, 등 뒤로 흘러내린 적갈색 머리, 흰 블라우스 위 가죽 조끼, 화살통 끈
   ranger: [
     '.......f..............',
