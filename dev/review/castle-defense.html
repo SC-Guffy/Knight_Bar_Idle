@@ -41,15 +41,15 @@
 <body>
 <main>
   <h1>🏰 성벽 지키기 — 스펙 검토 페이지</h1>
-  <div class="sub">스펙 <code>docs/specs/castle-defense.md</code> (상태: 확정 · 2026-10-13 — 사용자 결정 5가지 반영). 숫자 입력칸을 바꾸면 아래 표·그래프·시뮬이 다시 계산된다. 게임 코드는 아직 없다.</div>
+  <div class="sub">스펙 <code>docs/specs/castle-defense.md</code> (상태: 개정 중 — 기사도 맞는다 · 2026-10-13 사용자 요청, 수치 확인 대기). 숫자 입력칸을 바꾸면 아래 표·그래프·시뮬이 다시 계산된다. 게임 코드는 아직 없다.</div>
 
   <h2>1. 스펙 요지</h2>
   <div class="grid2">
     <div class="card">
       <b>목표</b>
       <ul>
-        <li>오른쪽에서 몰려오는 무리를 <b>빨리 잡는</b> 콘텐츠. 탑(버티기)·미궁(생존)과 달리 <b>처치 속도</b>를 시험.</li>
-        <li>10웨이브, 한 판 <b>3분 이하</b>. 판 안 강화(카드) 없음.</li>
+        <li>오른쪽에서 몰려오는 무리를 기사가 성문 앞에서 <b>몸으로 막으며 빨리 잡는</b> 콘텐츠. <b>처치 속도 + 버티기</b>를 함께 시험 — 단단한 기사도 강점이 있다.</li>
+        <li>10웨이브, 한 판 <b>4분 이하</b> (10웨이브 등장 후 제한 120초). 판 안 강화(카드) 없음.</li>
         <li>🧱 성벽돌 → 성벽 영구 업그레이드 · 📕 수련의 서 → 교관. 교관은 성벽 위에서 같이 싸운다.</li>
       </ul>
     </div>
@@ -58,7 +58,9 @@
       <ul>
         <li>최고 스테이지 <b>40</b> 해금 · 무료 입장권 하루 <b>3장</b> · 골드 구매(탑과 같은 곡선, 5장 보유).</li>
         <li>1~100단계, 차례로. 단계 L 의 적 = 스테이지 <b>20 + 2L</b> 급. 깬 최고 단계는 1장으로 소탕.</li>
-        <li><b>기사는 맞지 않는다</b> — 몬스터는 기사를 지나 성벽만 친다 (일반 1/1.4초, 보스 8/2초). 내구도 100, 0 이면 실패.</li>
+        <li><b>기사도 맞는다 (개정)</b> — 몬스터는 성문 앞 기사 앞에 줄을 서서 기사를 친다 (공격력 ×4, 보스 ×12·×16). 물약 없음, 웨이브 사이 초당 5% 회복.</li>
+        <li><b>기사가 쓰러졌을 때만 성벽이 맞는다</b> — 5초 뒤 리스폰. 그동안 몬스터가 성벽에 몰려 일반 3/1.4초, 보스 24/2초. 내구도 100, 0 이면 실패.</li>
+        <li><b>제한 시간</b> — 10웨이브가 나온 뒤 120초 안에 다 잡아야 한다 (안 쓰러지는 탱커도 처치가 느리면 실패).</li>
         <li>5·10웨이브 보스. 웨이브 간격 12초, 다 잡으면 3초 뒤 다음 웨이브.</li>
         <li>레인 길이 최대 480px (창 폭이 달라도 광역 효율이 같게).</li>
       </ul>
@@ -70,9 +72,10 @@
     <label>단계 <input id="mLv" type="range" min="1" max="100" value="12"> <b class="v" id="mLvV"></b></label>
     <label>창 폭 <select id="mW"><option value="360">360px (모바일)</option><option value="720" selected>720px</option><option value="1100">1100px (넓은 창)</option></select></label>
     <label>내구도 <input id="mHp" type="range" min="0" max="100" value="72"></label>
+    <label><input id="mDown" type="checkbox"> 기사 쓰러짐 (몬스터가 성벽으로)</label>
   </div>
   <canvas id="mock" width="720" height="150"></canvas>
-  <div class="sub" style="margin-top:4px">왼쪽부터: (넓은 창이면 성 안 풍경) · 성벽(내구도 바·균열) · 성벽 위 투석기·교관(칸당 1px)·궁수 · 성벽 앞 해자 · 기사(가장 앞선 적 쪽으로 이동) · 오른쪽 끝에서 4마리씩 쏟아지는 무리. 배경색·몬스터는 그 단계 적 스테이지의 필드.</div>
+  <div class="sub" style="margin-top:4px">왼쪽부터: (넓은 창이면 성 안 풍경) · 성벽(내구도 바·균열) · 성벽 위 투석기·교관(칸당 1px)·궁수 · 성벽 앞 해자 · 기사(성문 앞, 머리 위 체력 바) · 기사 앞에 줄 선 몬스터 · 오른쪽 끝에서 4마리씩 쏟아지는 무리. 배경색·몬스터는 그 단계 적 스테이지의 필드.</div>
 
   <h2>3. 난이도 곡선 — 단계 → 적 스테이지</h2>
   <div class="ctl">
@@ -83,9 +86,9 @@
   <canvas id="curve" width="980" height="300"></canvas>
   <div class="legend sub" style="margin-top:4px">
     <span><i style="background:#ffd257"></i>적 스테이지</span>
-    <span><i style="background:#ff6b6b"></i>단일 대상·업그레이드 0 이 깨려면 필요한 내 최고 스테이지</span>
-    <span><i style="background:#8fd8ff"></i>광역(2.5)·업그레이드 0</span>
-    <span><i style="background:#7dffb0"></i>단일·업그레이드 전부 Lv10</span>
+    <span><i style="background:#ff6b6b"></i>입력한 기사(6번)·업그레이드 0 이 깨려면 필요한 내 최고 스테이지</span>
+    <span><i style="background:#8fd8ff"></i>흡혈로 안 쓰러지는 기사·업그레이드 0</span>
+    <span><i style="background:#7dffb0"></i>입력한 기사·지금 업그레이드</span>
     <span>점선 = 필드 경계 (10단계마다)</span>
   </div>
   <div class="scroll"><table id="curveTbl"></table></div>
@@ -122,11 +125,24 @@
     <div class="card"><canvas id="upCost" width="460" height="200"></canvas><div class="sub">Lv n→n+1 비용 (막대) · 누적 (선, 오른쪽 축)</div></div>
   </div>
   <div class="card">
-    <b>시뮬: 업그레이드 레벨을 바꿔 보기</b> <span class="sub">— 간이 모델: 기사는 가장 앞선 적을 치고, 광역은 근처 몬스터에 같이 들어가는 몫으로 근사. 실제 스킬 광역은 구현 뒤 dev/castle-sim.js 로 다시 맞춘다.</span>
+    <b>시뮬: 기사 유형·업그레이드를 바꿔 보기 (기사도 맞는 규칙)</b> <span class="sub">— 간이 모델: 몬스터는 기사 앞에 16px 간격으로 줄을 서고 사거리 안 1~2마리가 친다. 기사가 쓰러지면 5초 동안 성벽에 몰려 친다. 같은 시드로 돌려 값이 고정된다. 실제 스킬 광역은 구현 뒤 dev/castle-sim.js 로 다시 맞춘다.</span>
+    <div class="ctl">
+      <span class="sub">기사 유형:</span>
+      <button data-pre="80,180,1">원거리</button> <button data-pre="100,20,1">근접 보통</button> <button data-pre="250,30,1.5">근접 탱커</button> <button data-pre="9999,16,1">흡혈 (안 쓰러짐)</button>
+    </div>
+    <div class="ctl">
+      <label>내 최고 스테이지 몹 처치 <input id="sTk" type="number" step="0.5" value="6"> 초</label>
+      <label>버티는 시간 <input id="sTtd" type="number" value="80"> 초 <span class="sub">(최고 −10 스테이지 몹 1마리에게 맞기만 할 때)</span></label>
+      <label>사거리 <input id="sRange" type="number" value="180"> px</label>
+      <label>광역 계수 <input id="sAoe" type="number" step="0.5" min="1" max="4" value="1"></label>
+      <label>성벽 위 교관 별 합계 <input id="sStars" type="number" min="0" max="25" value="0"></label>
+    </div>
     <div class="ctl" id="upSliders"></div>
     <div class="ctl">
-      <label>성벽 위 교관 별 합계 <input id="sStars" type="number" min="0" max="25" value="0"></label>
-      <label>광역 계수 <input id="sAoe" type="number" step="0.5" min="1" max="4" value="1"></label>
+      <label>몬스터 공격력 × <input id="sM" type="number" step="0.5" value="4"></label>
+      <label>리스폰 <input id="sN" type="number" value="5"> 초</label>
+      <label>성벽 피해 × <input id="sWd" type="number" value="3"></label>
+      <label>제한 시간 <input id="sLim" type="number" value="120"> 초</label>
       <button id="sRun">다시 계산</button>
     </div>
     <div id="simOut"></div>
@@ -139,7 +155,7 @@
       <label>내 소탕 단계 <input id="dLv" type="number" min="1" max="100" value="30"></label>
       <label>하루 추가 구매 <input id="dBuy" type="number" min="0" max="8" value="0"> 장</label>
       <label>첫 돌파 하루 <input id="dFirst" type="number" min="0" max="5" value="1"> 회</label>
-      <label>교관 별 값 총 <input id="dM" type="number" value="200"> 권 (교관 스펙)</label>
+      <label>교관 별 값 총 <input id="dM" type="number" value="110"> 권 (교관 스펙)</label>
     </div>
     <div class="scroll"><table id="dayTbl"></table></div>
     <div id="dayNote" class="sub"></div>
@@ -148,10 +164,10 @@
     <div class="scroll"><table id="scTbl"></table></div>
   </div>
 
-  <h2>8. 사용자 결정 (2026-10-13, 로드맵 세션 창)</h2>
+  <h2>8. 사용자 결정 (2026-10-13)</h2>
   <div class="card">
     <ol>
-      <li>✅ <b>기사는 맞지 않는다</b> — 처치 속도로만 겨룬다.</li>
+      <li>🔄 <s>기사는 맞지 않는다</s> → <b>기사도 맞고, 쓰러졌을 때만 성벽이 맞는다 · N초 뒤 리스폰</b> (사용자 요청 — 단단한 기사의 강점). 수치 시작안: 몬스터 공격력 ×4 · 리스폰 5초 · 쓰러진 동안 성벽 피해 ×3 · 제한 시간 120초 — <b>확인 대기</b>.</li>
       <li>✅ <b>성벽 위 교관이 실제 피해</b> — 10초마다 공격력 × 0.4 × 별 수.</li>
       <li>✅ <b>📕 무료 입장 기준 하루 10~13권</b> — 다 막은 판 3.4 + 0.01L 권 (교관 별 값 총 110권 ≈ 10일분). 첫 돌파 보너스 없음.</li>
       <li>✅ <b>단계 곡선 20 + 2L 유지</b> — 100단계는 장기 목표.</li>
@@ -189,48 +205,63 @@ const UPS = [
 ];
 const ups = Object.fromEntries(UPS.map((u) => [u.id, 0]));
 
-// ── 간이 웨이브 시뮬 (스펙 "난이도 근거"와 같은 모델) ──
-// tk: 기사가 일반 몬스터 한 마리를 단일 대상으로 잡는 초. 지원군 피해는 "기사 공격력"을 기사 단일 DPS 의 1/1.2 로 근사
-function simRun(tk, o) {
-  const P = 12 + 0.5 * o.watch, walk = 12 * (1 + 0.03 * o.moat), bwalk = 16 * (1 + 0.03 * o.moat), wall = 100 + 15 * o.wall;
-  const am = 1 + 0.05 * o.banner, t1 = tk / am;              // 군기: 처치 시간 단축
-  const atkPerSec = 1 / (1.2 * t1);                            // 기사 공격력 1 = 몹 체력의 몇 분의 1 (초당)
-  const arch = 0.08 * o.archer * 1.2 * atkPerSec * t1 / t1;     // 궁수대: 몹/초 단위
-  const catDmg = o.catapult ? (1 + 0.3 * o.catapult) / (1.2 * t1) : 0;
-  const mentorRate = (o.stars || 0) * 0.4 / 10 / (1.2 * t1);    // 교관 합계: 몹/초 (가장 앞선 적에 근사)
-  const dt = 0.05; let t = 0, hp = wall, mobs = [], wi = 0, nextAt = 0, catT = 6;
+// ── 간이 웨이브 시뮬 — 기사도 맞는 규칙 (스펙 "난이도 근거"와 같은 모델) ──
+// 위치: 0 = 성문(기사 자리·성벽), 1 = 스폰. 레인 480px. tk: 일반 몹 처치 초(단일), ttd: 일반 몹 1마리(공격력 ×1)에게 맞기만 할 때 쓰러지는 초
+// 지원군 피해는 "기사 공격력"을 기사 단일 DPS 의 1/1.2 로 근사. 같은 시드로 돌려 결과가 고정된다
+function simRun(o) {
+  let seed = 7; const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const u = o.ups, P = 12 + 0.5 * u.watch, walk = 12 * (1 + 0.03 * u.moat), bwalk = 16 * (1 + 0.03 * u.moat), wall = 100 + 15 * u.wall;
+  const t1 = o.tk / (1 + 0.05 * u.banner), PXL = 1 / 480, reach = (o.range + 12) * PXL, mreach = 26 * PXL, gap = 16 * PXL;
+  const archRate = 0.08 * u.archer / (1.2 * t1) + (o.stars || 0) * 0.4 / 10 / (1.2 * t1);
+  const catDmg = u.catapult ? (1 + 0.3 * u.catapult) / (1.2 * t1) : 0;
+  const dt = 0.05; let t = 0, hp = wall, kh = 1, down = 0, downs = 0, mobs = [], wi = 0, nextAt = 0, catT = 6, tLast = null;
   const left = [];
-  while (t < 400) {
+  while (t < 600) {
     if (wi < 10 && t >= nextAt) {
       const w = WAVES[wi], n = waveN(w);
-      for (let i = 0; i < n; i++) mobs.push({ hp: 1, x: 1 + Math.floor(i / 4) * 0.04 + (i % 4) * 0.012, sp: 1 / walk, w: wi, cd: 0, dmg: 1 });
-      if (w.b) mobs.push({ hp: BOSS_HP[w.b], x: 1.06, sp: 1 / bwalk, w: wi, cd: 0, dmg: 8, boss: 1 });
-      left[wi] = n + (w.b ? 1 : 0); wi++; nextAt = t + P;
+      for (let i = 0; i < n; i++) mobs.push({ hp: 1, x: 1 + Math.floor(i / 4) * 0.04 + (i % 4) * 0.012, sp: 1 / walk, w: wi, cd: rnd(), atk: o.M, wdmg: o.wd, wcd: 1.4, kcd: 1.4 });
+      if (w.b) mobs.push({ hp: BOSS_HP[w.b], x: 1.06, sp: 1 / bwalk, w: wi, cd: 0, atk: o.M * (w.b === 2 ? 4 : 3), wdmg: 8 * o.wd, wcd: 2, kcd: 2, boss: 1 });
+      left[wi] = n + (w.b ? 1 : 0); wi++; nextAt = t + P; if (wi === 10) tLast = t;
     }
-    for (const m of mobs) { if (m.x > 0) m.x = Math.max(0, m.x - m.sp * dt); else { m.cd -= dt; if (m.cd <= 0) { m.cd = m.boss ? 2 : 1.4; hp -= m.dmg; } } }
-    if (hp <= 0) break;
     mobs.sort((a, b) => a.x - b.x);
+    let prev = -1;
+    for (const m of mobs) { const stop = down > 0 ? 0 : Math.max(mreach * 0.6, prev + gap); if (m.x > stop) m.x = Math.max(stop, m.x - m.sp * dt); prev = m.x; }
+    let engaged = false;
+    for (const m of mobs) {
+      if (m.x > mreach) continue; engaged = true; m.cd -= dt; if (m.cd > 0) continue;
+      if (down > 0) { m.cd = m.wcd; hp -= m.wdmg; } else { m.cd = m.kcd; kh -= m.atk / (o.ttd / 1.4); }
+    }
+    if (hp <= 0) return { ok: false, why: '붕괴', downs, t };
+    if (tLast != null && t > tLast + o.lim) return { ok: false, why: '시간', downs, t };
+    if (down > 0) { down -= dt; if (down <= 0) kh = 1; }
+    else if (kh <= 0) { downs++; down = o.N; }
+    else {
+      if (!engaged) kh = Math.min(1, kh + 0.05 * dt);
+      const tgt = mobs.filter((m) => m.x <= reach);
+      if (tgt.length) { const f = tgt[0]; tgt.filter((m) => m.x - f.x <= 0.06).slice(0, Math.ceil(o.aoe)).forEach((m, i) => (m.hp -= (dt / t1) * (i === 0 ? 1 : Math.min(1, o.aoe - i)))); }
+    }
     if (mobs.length) {
-      const f = mobs[0], near = mobs.filter((m) => m.x - f.x <= 0.06).slice(0, Math.ceil(o.aoe));
-      near.forEach((m, i) => { m.hp -= (dt / t1) * (i === 0 ? 1 : Math.min(1, o.aoe - i)); });
-      f.hp -= dt * (0.08 * o.archer / 1.2 / t1 + mentorRate);
+      const f = mobs[0]; f.hp -= dt * archRate;
       if (catDmg) { catT -= dt; if (catT <= 0) { catT = 6; mobs.filter((m) => m.x - f.x <= 0.1).forEach((m) => (m.hp -= catDmg)); } }
     }
     const dead = mobs.filter((m) => m.hp <= 0);
     mobs = mobs.filter((m) => m.hp > 0);
     for (const m of dead) left[m.w]--;
     if (wi < 10 && wi > 0 && left[wi - 1] === 0 && nextAt > t + 3) nextAt = t + 3;
-    if (wi >= 10 && !mobs.length) break;
+    if (wi >= 10 && !mobs.length) return { ok: true, downs, t };
     t += dt;
   }
-  const blocked = left.filter((x) => x === 0).length;
-  return { ok: hp > 0 && blocked === 10, blocked, wall: Math.max(0, hp) / wall, t };
+  return { ok: false, why: '시간', downs, t };
 }
-// 막을 수 있는 가장 긴 처치 시간 → 내 최고 스테이지 대비 Δ (자기 최고 스테이지 몹 처치 = 6초 기준, 봇 곡선 중앙값)
+// 막을 수 있는 가장 센 적 → 내 최고 스테이지 대비 Δ. 입력: 내 최고 스테이지 몹 처치 초(tk6), 최고 −10 스테이지 몹에게 버티는 초(ttd)
+// 적이 내 최고 + Δ 이면 처치 = tk6 × 1.221^Δ, 버티기 = ttd / 1.165^(Δ+10)
 function threshold(o) {
-  let best = 0;
-  for (let tk = 0.15; tk <= 12; tk *= 1.03) if (simRun(tk, o).ok) best = tk;
-  return { tk: best, d: Math.log(best / 6) / Math.log(1.221) };
+  let best = null, last = null;
+  for (let d = -24; d <= 12; d += 0.5) {
+    const r = simRun({ ...o, tk: o.tk6 * Math.pow(1.221, d), ttd: o.ttd / Math.pow(1.165, d + 10) });
+    if (r.ok) { best = d; last = r; } else if (best != null) return { d: best, at: last, fail: r };
+  }
+  return { d: best == null ? -24 : best, at: last, fail: null };
 }
 
 // ── 그리기 도우미 ──
@@ -283,19 +314,28 @@ function drawMock() {
   for (let i = 0; i < 2; i++) { const ax = wallX + 52 + i * 8; pxRect(g, ax, top - 12, 4, 12, '#3d6b3a'); pxRect(g, ax, top - 15, 4, 4, '#f0c8a0'); pxRect(g, ax + 4, top - 12, 1, 9, '#8a5a2b'); }
   // 화살 하나
   pxRect(g, wallX + 120, top + 4, 10, 1, '#e8d9b0');
-  // 기사 (단순 실루엣) — 가장 앞선 적 바로 앞
-  const lane0 = wallX + WALL_W, laneX = (u) => lane0 + u * LANE;
-  const frontU = 0.38, kx = laneX(frontU) - 20;
-  pxRect(g, kx - 5, gy - 30, 10, 20, '#3d7bff'); pxRect(g, kx - 4, gy - 38, 8, 8, '#f0c8a0'); pxRect(g, kx - 5, gy - 40, 10, 3, '#c9d1dd'); pxRect(g, kx - 4, gy - 10, 3, 10, '#2a2b33'); pxRect(g, kx + 1, gy - 10, 3, 10, '#2a2b33');
-  g.strokeStyle = '#e8edf5'; g.lineWidth = 2; g.beginPath(); g.moveTo(kx + 5, gy - 24); g.lineTo(kx + 18, gy - 34); g.stroke();
+  // 기사 (단순 실루엣) — 성문 바로 앞. 쓰러지면 눕고 카운트다운
+  const lane0 = wallX + WALL_W, laneX = (u) => lane0 + u * LANE, isDown = $('mDown').checked;
+  const kx = lane0 + 10, pool = z.mobs;
+  if (isDown) {
+    pxRect(g, kx - 10, gy - 7, 20, 7, '#3d7bff'); pxRect(g, kx + 10, gy - 7, 7, 6, '#f0c8a0');
+    g.fillStyle = '#ff9f9f'; g.font = '700 10px Galmuri11'; g.fillText('💀 3', kx - 8, gy - 16);
+    // 성벽에 몰린 몬스터 (닿은 몬스터가 모두 성벽을 친다)
+    for (let j = 0; j < 7; j++) drawMob(g, pool[j % pool.length], lane0 + 6 + j * 9, gy, 2);
+    for (let j = 0; j < 6; j++) pxRect(g, lane0 - 4 - (j % 3) * 3, top + 30 + j * 5, 2, 2, '#c9c2b4');
+  } else {
+    pxRect(g, kx - 5, gy - 30, 10, 20, '#3d7bff'); pxRect(g, kx - 4, gy - 38, 8, 8, '#f0c8a0'); pxRect(g, kx - 5, gy - 40, 10, 3, '#c9d1dd'); pxRect(g, kx - 4, gy - 10, 3, 10, '#2a2b33'); pxRect(g, kx + 1, gy - 10, 3, 10, '#2a2b33');
+    g.strokeStyle = '#e8edf5'; g.lineWidth = 2; g.beginPath(); g.moveTo(kx + 5, gy - 24); g.lineTo(kx + 18, gy - 34); g.stroke();
+    pxRect(g, kx - 12, gy - 50, 24, 4, '#1a1424'); pxRect(g, kx - 11, gy - 49, 14, 2, '#ff6b6b');
+    // 기사 앞에 줄 선 몬스터 (16px 간격) — 맨 앞 1~2마리만 기사를 친다
+    for (let j = 0; j < 7; j++) drawMob(g, pool[j % pool.length], kx + 24 + j * 16, gy, 2);
+  }
   // 몰려오는 무리 — 4마리씩 묶음
-  const pool = z.mobs; let k = 0;
-  for (let grp = 0; grp < 4; grp++) for (let j = 0; j < 4; j++) {
-    const u = frontU + grp * 0.17 + j * 0.035; if (u > 1.02) continue;
+  let k = 0;
+  for (let grp = 0; grp < 3; grp++) for (let j = 0; j < 4; j++) {
+    const u = 0.5 + grp * 0.17 + j * 0.035; if (u > 1.02) continue;
     drawMob(g, pool[(k++) % pool.length], laneX(u), gy, 2);
   }
-  // 성벽을 치는 놈 하나 (내구도가 깎이는 중)
-  if (hp < 1) drawMob(g, pool[0], lane0 + 14, gy, 2);
   // 보스 (오른쪽 끝)
   if (LANE > 300) drawMob(g, z.boss, laneX(0.95), gy, 4);
   // 배너
@@ -308,7 +348,7 @@ let simCache = null;
 function drawCurve() {
   const cv = $('curve'), g = cv.getContext('2d'), W = cv.width, H = cv.height, P = { l: 44, r: 10, t: 12, b: 26 };
   g.clearRect(0, 0, W, H);
-  const d = simCache || { base1: -10.4, base25: -7.6, full: -0.1 };
+  const d = simCache || { base1: -11, base25: -7, full: -2 };
   const lines = [['#ffd257', 0], ['#ff6b6b', -d.base1], ['#8fd8ff', -d.base25], ['#7dffb0', -d.full]];
   const maxY = Math.ceil((castleStage(100) + 15) / 50) * 50;
   const X = (L) => P.l + ((L - 1) / 99) * (W - P.l - P.r), Y = (s) => H - P.b - (s / maxY) * (H - P.t - P.b);
@@ -323,9 +363,9 @@ function drawCurve() {
   const Ls = [1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
   $('curveTbl').innerHTML = `<tr><th>단계</th>${Ls.map((L) => `<th>${L}</th>`).join('')}</tr>
     <tr><td>적 스테이지 · 필드</td>${Ls.map((L) => `<td>${castleStage(L)} ${zoneOf(castleStage(L)).icon}</td>`).join('')}</tr>
-    <tr><td class="bad">필요 최고 (단일·업 0)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.base1)}</td>`).join('')}</tr>
-    <tr><td style="color:#8fd8ff">필요 최고 (광역 2.5·업 0)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.base25)}</td>`).join('')}</tr>
-    <tr><td class="ok">필요 최고 (단일·업 지금 값)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.full)}</td>`).join('')}</tr>`;
+    <tr><td class="bad">필요 최고 (입력한 기사·업 0)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.base1)}</td>`).join('')}</tr>
+    <tr><td style="color:#8fd8ff">필요 최고 (흡혈 안 쓰러짐·업 0)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.base25)}</td>`).join('')}</tr>
+    <tr><td class="ok">필요 최고 (입력한 기사·업 지금 값)</td>${Ls.map((L) => `<td>${f1(castleStage(L) - d.full)}</td>`).join('')}</tr>`;
 }
 
 // ── 4. 웨이브 ──
@@ -384,26 +424,28 @@ function buildSliders() {
   $('allMax').onclick = () => setAll(10); $('allZero').onclick = () => setAll(0);
 }
 function setAll(v) { for (const el of document.querySelectorAll('[data-up]')) { el.value = v; ups[el.dataset.up] = v; $('uv-' + el.dataset.up).textContent = v; } runSim(); }
+function simBase() { return { tk6: num('sTk'), ttd: num('sTtd'), range: num('sRange'), aoe: num('sAoe'), stars: num('sStars'), M: num('sM'), N: num('sN'), wd: num('sWd'), lim: num('sLim') }; }
 function runSim() {
   $('simOut').innerHTML = '<span class="sub">계산 중…</span>';
   setTimeout(() => {
-    const zero = Object.fromEntries(UPS.map((u) => [u.id, 0]));
-    const aoe = num('sAoe'), stars = num('sStars');
-    const b1 = threshold({ ...zero, aoe: 1 }), b25 = threshold({ ...zero, aoe: 2.5 }), cur = threshold({ ...ups, aoe, stars }), cur1 = threshold({ ...ups, aoe: 1, stars });
-    simCache = { base1: b1.d, base25: b25.d, full: cur1.d };
-    const each = UPS.map((u) => { const t = threshold({ ...zero, [u.id]: ups[u.id], aoe: 1 }); return `${u.icon} ${u.name} Lv${ups[u.id]}: <b>${(t.d - b1.d >= 0 ? '+' : '') + f1(t.d - b1.d)}</b>`; }).join(' · ');
-    const B = (d) => `내 최고 ${d >= 0 ? '+' : '−'}${f1(Math.abs(d))} 스테이지`;
+    const zero = Object.fromEntries(UPS.map((u) => [u.id, 0])), o = simBase();
+    const b = threshold({ ...o, ups: zero, stars: 0 }), cur = threshold({ ...o, ups: { ...ups } });
+    const types = [['원거리', 80, 180, 1], ['근접 보통', 100, 20, 1], ['근접 탱커', 250, 30, 1], ['흡혈 (안 쓰러짐)', 1e9, 16, 1]]
+      .map(([n, ttd, range, aoe]) => [n, threshold({ ...o, ttd, range, aoe, ups: zero, stars: 0 })]);
+    simCache = { base1: b.d, base25: types[3][1].d, full: cur.d };
+    const each = UPS.map((u) => { const t = threshold({ ...o, ups: { ...zero, [u.id]: ups[u.id] }, stars: 0 }); return `${u.icon} ${u.name} Lv${ups[u.id]}: <b>${(t.d - b.d >= 0 ? '+' : '') + f1(t.d - b.d)}</b>`; }).join(' · ');
+    const B = (d) => `내 최고 ${d >= 0 ? '+' : '−'}${f1(Math.abs(d))}`;
+    const why = (r) => (r.fail ? `${r.fail.why === '붕괴' ? '💥 성벽 붕괴' : '⏱️ 시간 초과'} (쓰러짐 ${r.fail.downs})` : '—');
+    const L = (d, best) => Math.floor((best + d - num('cOff')) / num('cPer'));
     $('simOut').innerHTML = `<table>
-      <tr><th>조건</th><th>막는 처치 시간 (한 마리)</th><th>막는 적 세기</th><th>단계 환산 (최고 B 일 때)</th></tr>
-      <tr><td>단일 · 업그레이드 0</td><td>${b1.tk.toFixed(2)}초</td><td>${B(b1.d)}</td><td>≈ (B ${f1(b1.d)} − ${num('cOff')}) / ${num('cPer')}</td></tr>
-      <tr><td>광역 2.5 · 업그레이드 0</td><td>${b25.tk.toFixed(2)}초</td><td>${B(b25.d)}</td><td>≈ (B ${f1(b25.d)} − ${num('cOff')}) / ${num('cPer')}</td></tr>
-      <tr><td class="ok">단일 · 지금 업그레이드${stars ? ` + 교관 별 ${stars}` : ''}</td><td>${cur1.tk.toFixed(2)}초</td><td>${B(cur1.d)}</td><td>단일보다 <b class="v">+${f1(cur1.d - b1.d)}</b> 스테이지 = +${f1((cur1.d - b1.d) / num('cPer'))}단계</td></tr>
-      <tr><td>광역 ${aoe} · 지금 업그레이드${stars ? ` + 교관` : ''}</td><td>${cur.tk.toFixed(2)}초</td><td>${B(cur.d)}</td><td></td></tr>
-      </table><div class="sub" style="margin-top:6px">업그레이드 하나씩만 올렸을 때 (단일): ${each}</div>
-      <div class="sub">예: 최고 스테이지 100 → 단일·업 0 ≈ ${Math.floor((100 + b1.d - num('cOff')) / num('cPer'))}단계 · 단일·지금 ≈ ${Math.floor((100 + cur1.d - num('cOff')) / num('cPer'))}단계 · 최고 200 → ${Math.floor((200 + b1.d - num('cOff')) / num('cPer'))} / ${Math.floor((200 + cur1.d - num('cOff')) / num('cPer'))}단계</div>`;
+      <tr><th>기사 유형 (업그레이드 0, 위 처치 시간·몬스터 설정 그대로)</th><th>막는 적 세기</th><th>한계에서 쓰러짐 · 판 길이</th><th>한 단계 위 실패 원인</th><th>최고 100 / 200 일 때 단계</th></tr>
+      ${types.map(([n, r]) => `<tr><td>${n}</td><td>${B(r.d)} 스테이지</td><td>${r.at ? `${r.at.downs}번 · ${fi(r.at.t)}초` : '—'}</td><td>${why(r)}</td><td>${L(r.d, 100)} / ${L(r.d, 200)}</td></tr>`).join('')}
+      <tr><td class="ok">입력한 기사 · 지금 업그레이드${o.stars ? ` + 교관 별 ${o.stars}` : ''}</td><td>${B(cur.d)} (업 0 보다 <b class="v">+${f1(cur.d - b.d)}</b>)</td><td>${cur.at ? `${cur.at.downs}번 · ${fi(cur.at.t)}초` : '—'}</td><td>${why(cur)}</td><td>${L(cur.d, 100)} / ${L(cur.d, 200)}</td></tr>
+      </table><div class="sub" style="margin-top:6px">업그레이드 하나씩만 올렸을 때 (입력한 기사): ${each}</div>`;
     drawCurve();
   }, 20);
 }
+for (const el of document.querySelectorAll('[data-pre]')) el.onclick = () => { const [ttd, r, a] = el.dataset.pre.split(','); $('sTtd').value = ttd; $('sRange').value = r; $('sAoe').value = a; runSim(); };
 
 // ── 7. 하루 수급 ──
 function drawDaily() {
@@ -436,7 +478,7 @@ function drawDaily() {
 }
 
 function all() { drawMock(); drawWaves(); drawRewards(); drawUps(); drawDaily(); drawCurve(); }
-for (const id of ['mLv', 'mW', 'mHp', 'cPer', 'cOff', 'rLv', 'rB', 'rK0', 'rK1', 'uC0', 'uG', 'dLv', 'dBuy', 'dFirst', 'dM']) $(id).addEventListener('input', all);
+for (const id of ['mLv', 'mW', 'mHp', 'mDown', 'cPer', 'cOff', 'rLv', 'rB', 'rK0', 'rK1', 'uC0', 'uG', 'dLv', 'dBuy', 'dFirst', 'dM']) $(id).addEventListener('input', all);
 $('sRun').onclick = runSim;
 buildSliders();
 document.fonts.ready.then(() => { all(); runSim(); });
