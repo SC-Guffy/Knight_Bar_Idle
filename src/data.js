@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.20.3';
+const GAME_VERSION = '0.20.4';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -242,7 +242,8 @@ const RARE_DROP = {
 };
 // ───────────────────────── 우편함 ─────────────────────────
 // 모든 기사에게 보내는 우편. id 는 한 번 정하면 바꾸지 않는다 (받았는지를 S.mail.got 에 id 로 남긴다).
-// at ~ until 사이에만 우편함에 보인다. reward: { items: { 보급품 id: 개수 }, gold, stones, tomes }
+// at ~ until 사이에만 우편함에 보인다. reward: { items: { 보급품 id: 개수 }, gold, stones, tomes, raidTickets }
+// raidTickets 는 구매 상한(RAID_TICKET_MAX)을 넘겨서도 쌓인다
 // 시즌3 강화 확률 사과 편지(sorry-enhance-1007·-b)는 시즌4 리셋과 함께, 시즌4 시작 편지(season4-start)는 시즌5 리셋과 함께 뺐다
 const MAIL = [
   {
@@ -274,6 +275,19 @@ const MAIL = [
       '바뀐 게 많아 낯설 수 있어 작은 선물을 보내 드려요. 우편함에서 받아 가세요!',
     ],
     reward: { items: { elixir: 2, charm: 2, reroll: 1 } },
+  },
+  {
+    // 0.20.0 장비 개편으로 가진 장비가 약해졌다는 원성에 대한 보상
+    id: 'sorry-gear-1013',
+    at: Date.parse('2026-10-13T00:00:01+09:00'),   // 같은 날 업데이트 편지보다 위에 보이게
+    until: Date.parse('2026-10-27T00:00:00+09:00'),
+    from: '기사 키우기 개발자',
+    title: '🙇 장비 개편 불편 사과 — 레이드 입장권 3장',
+    body: [
+      '이번 장비 개편으로 애써 맞춰 둔 장비를 예전처럼 쓰지 못하게 되어 많이 속상하셨을 거예요. 미리 충분히 알려 드리지 못해 죄송해요.',
+      '사과의 마음으로 레이드 입장권 3장을 보내 드려요. 입장권은 구매 상한과 상관없이 그대로 쌓여요. 레이드에서 새 옵션 줄이 붙은 장비를 노려 보세요!',
+    ],
+    reward: { raidTickets: 3 },
   },
 ];
 

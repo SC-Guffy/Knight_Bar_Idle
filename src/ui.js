@@ -1796,6 +1796,7 @@ function mailRewardText(r = {}) {
   if (r.gold) out.push(`<i class="gc"></i> ${fmt(r.gold)}`);
   if (r.stones) out.push(`💠 강화석 ×${r.stones}`);
   if (r.tomes) out.push(`📖 비전서 ×${r.tomes}`);
+  if (r.raidTickets) out.push(`🎟 레이드 입장권 ×${r.raidTickets}`);
   return out;
 }
 function viewMail() {

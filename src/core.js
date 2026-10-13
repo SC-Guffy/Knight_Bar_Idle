@@ -634,6 +634,7 @@ function claimMail(id) {
   const r = m.reward || {};
   for (const [k, n] of Object.entries(r.items || {})) S.items[k] = (S.items[k] || 0) + n;
   S.gold += r.gold || 0; S.stones += r.stones || 0; S.tomes += r.tomes || 0;
+  S.raid.tickets += r.raidTickets || 0;
   S.mail.got.push(m.id);
   return true;
 }
