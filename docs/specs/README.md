@@ -49,7 +49,7 @@
 | [tower-packs.md](tower-packs.md) | 확정 | 도전의 탑 무리 층: 끝자리 3·6·9층은 정예 무리 3마리(마리당 체력 정예 ×0.4·공격 ×1), 광폭화·보상·소탕 그대로 (`dev/tower-pack-sim.js`, 검토 `dev/review/tower-packs.html`) |
 | [ticket-buy.md](ticket-buy.md) | 확정 | 탑·미궁 입장권 골드 추가 구매 — 둘 다 골드만(탑 마력석 제거), ×0.5→1→2→3.5→6 이후 ×1.7, 산 입장권 5장까지. 미궁 기준값 몹 골드 ×600(사냥 1시간치). 검토 `dev/review/ticket-buy.html` |
 | [boxer-class.md](boxer-class.md) | 확정 (구현 전) | 신규 계열 **파이터** 7종(스트라이커·킥복서·기공사 → 챔피언·템페스트·그랜드마스터) — 쿨타임 대신 기 게이지(주 기술) + 투지(물려받은 기술·Lv70·궁극기), 2차마다 채우는 법이 다름, 통짜 스프라이트 시트·이펙트 텍스처 48장, 기준 그림 7:3 v2 (검토 `dev/review/boxer.html`) |
-| [legacy-class-sheets.md](legacy-class-sheets.md) | 확정 (구현 전) | 기존 직업 29종 통짜 스프라이트 시트 전환 — 칸 64/96/128, 계열 4개 동시, 계열당 PixelLab 150회, SHEET_ON 되돌리기 |
+| [legacy-class-sheets.md](legacy-class-sheets.md) | 확정 (구현 전) | 기존 직업 29종 통짜 스프라이트 시트 전환 — 칸 64/96/128, 계열 4개 동시, 포즈=기존 리그 → ComfyUI img2img → 팔레트 고정, PixelLab 은 예외(계열 40회), SHEET_ON 되돌리기 |
 | [skill-vfx.md](skill-vfx.md) | 확정 (명중 분리판, 퀄업 구현 전) | 스킬 VFX 퀄업 — 스킬 40종 + 평타 29종 전수조사 · 이펙트 그림은 전부 PixelLab 텍스처 167장(무기 궤적 15·평타 명중 직업마다 29·투사체 12·공용 배경 7·스킬 본체 43·궁극기 21·스킬 명중 스킬마다 40, 약 740회) · ⑤-0 검흔 시험 · 정지·흔들림 기준 · 계열별 패치 순서 (검토 `dev/review/skill-vfx.html`) |
 | [vfx-rule-fixes.md](vfx-rule-fixes.md) | 확정 (0.21, 구현 전) | 2차 스킬 ★★★ 하단바 전체 섬광 11곳 → 타격 지점 둘레로 · 공허궁 꼬리 색 · 3차 타격 섬광 색 · 결투·레이드 원거리 평타 모양 |
 | [art-upgrade.md](art-upgrade.md) | 진행 중 | AI 이미지 생성 → 도트 복원으로 배경·UI·아이콘 퀄업 |
