@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>시즌6 아침 점검</title>
+<style>
+:root{--bg:#14161f;--card:#1d2030;--line:#2c3044;--fg:#e6e8f0;--dim:#9aa0b4;--ok:#5fcf5a;--warn:#ffb347;--bad:#ff6b6b;--acc:#7fb4ff}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6f7fb;--card:#fff;--line:#dfe2ec;--fg:#1c1f2b;--dim:#5d6377;--acc:#2f6fd6}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,"Malgun Gothic",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:28px 0 10px}
+.sub{color:var(--dim);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:10px 0}
+.card h3{margin:0 0 6px;font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tag{font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+.ok{color:var(--ok);border-color:var(--ok)} .warn{color:var(--warn);border-color:var(--warn)}
+a{color:var(--acc)} ul{margin:6px 0;padding-left:20px} li{margin:2px 0}
+.links a{display:inline-block;margin:4px 10px 0 0}
+table{border-collapse:collapse;width:100%;font-size:14px} td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+code{background:rgba(127,127,127,.15);padding:0 4px;border-radius:4px;font-size:13px}
+</style></head><body><main>
+<h1>시즌6 아침 점검</h1>
+<div class="sub">2026-10-14 · season6 브랜치 기준 · main(실제 게임)에는 아직 아무것도 나가지 않았음 · 게임 링크는 오프라인 모드(첫 로드 뒤 약 8초 기다렸다가 콘솔 사용)</div>
+
+<h2>먼저 정해 주실 것</h2>
+<table>
+<tr><th>#</th><th>무엇</th><th>선택지</th><th>추천</th></tr>
+<tr><td>1</td><td><b>권투가 그림 판</b></td><td>7:3 v2 / 7:3 v1 / 고퀄</td><td><b>7:3 v2</b> — 기존 기사와 키·도트·외곽선이 맞고 3차까지 키 맞춤 끝</td></tr>
+<tr><td>2</td><td><b>교관 진행 속도 +8%</b> (14일 봇: 켬 216·Lv198 vs 끔 200·Lv186)</td><td>① 그대로 ② 별 하나 몫 ×0.6 ③ ★5 배수 2→1</td><td><b>②</b> — 기간을 10일로 줄였으니 보너스 총량도 줄이는 게 자연스러움</td></tr>
+<tr><td>3</td><td><b>성벽 업그레이드 기간</b> — 실측 6.8일 (목표 10일)</td><td>그대로 / 비용 시작값 18→26 (9.8일)</td><td><b>26</b> — 목표 10일에 맞음</td></tr>
+<tr><td>4</td><td><b>VFX 스킬 오라</b> (시전 중 기사 둘레 둥근 빛, 지금 gradient)</td><td>텍스처 C17 로 바꿈 / 그대로</td><td>C17 — 텍스처 원칙대로. ⑤ 계열 패치 때 함께</td></tr>
+<tr><td>5</td><td><b>0.21.0 배포</b> (강화 +30·입장권·탑 무리·VFX 규칙 위반)</td><td>지금 main 으로 / 성벽·교관과 묶어서</td><td>확인 끝나면 0.21.0 먼저. 서버 배포(확성기 +30) 같이</td></tr>
+</table>
+
+<h2>0.21.0 묶음 (구현 끝, 배포 전)</h2>
+<div class="card"><h3>⚒️ 강화 +30 · 등급별 옵션 줄 수 <span class="tag ok">구현 끝</span></h3>
+<ul><li>+16~25 초기화 절반, +26~30 은 보호 주문서 구간 (주문서 없이면 경고), 고급 1줄 … 초월·태초 6줄, 태초 값 2.0</li></ul>
+<div class="links"><a href="http://localhost:8820/index.html?server=http://127.0.0.1:9" target="_blank">▶ 게임 (8820)</a><a href="http://localhost:8820/dev/review/enhance-30.html" target="_blank">검토 페이지</a></div>
+<div class="sub">테스트 상태: 콘솔 스니펫은 docs/specs/enhance-30.md 확인 방법 (무기 +25 초월, 갑옷 +29 태초, 주문서 60장)</div></div>
+
+<div class="card"><h3>🎟️ 입장권 골드 구매 (탑·미궁) <span class="tag ok">구현 끝 · 수용 기준 11/11</span></h3>
+<ul><li>탑 마력석 제거, 미궁 골드 구매(몹 골드 ×600 기준, ×0.5→1→2→3.5→6→×1.7), 5장 보관</li></ul>
+<div class="links"><a href="http://localhost:8831/index.html?server=http://127.0.0.1:9" target="_blank">▶ 게임 (8831)</a><a href="http://localhost:8820/dev/review/ticket-buy.html" target="_blank">검토 페이지</a></div></div>
+
+<div class="card"><h3>🗼 탑 무리 층 <span class="tag ok">구현 끝</span></h3>
+<ul><li>끝자리 3·6·9층 정예 3마리 (체력 0.4배·공격 그대로·보상 1/3), <code>13F ×3</code> 표시</li></ul>
+<div class="links"><a href="http://localhost:8832/index.html?server=http://127.0.0.1:9" target="_blank">▶ 게임 (8832)</a><a href="http://localhost:8820/dev/review/tower-packs.html" target="_blank">검토 페이지</a></div></div>
+
+<div class="card"><h3>✨ VFX 규칙 위반 11곳 · 평타 버그 3건 <span class="tag ok">구현 끝</span></h3>
+<ul><li>2차 스킬의 하단바 전체 번쩍임 → 국소 섬광, 공허궁 꼬리 색·3차 섬광 색·결투/레이드 원거리 막대</li></ul>
+<div class="links"><a href="http://localhost:8833/dev/review/vfx-rule-fixes.html" target="_blank">▶ 재생 목록 (8833)</a></div></div>
+
+<h2>③ 성벽 지키기 + 교관 (구현 끝, 배포 전)</h2>
+<div class="card"><h3>🏰 성벽 지키기 <span class="tag ok">구현 끝</span> <span class="tag warn">결정 #3</span></h3>
+<ul><li>스테이지 40 해금, 10웨이브(5·10 보스), 기사도 맞음(쓰러지면 5초·성벽 피해 ×3), 120초 제한, 🧱 업그레이드 6종, 📕 하루 약 12권, 소탕</li>
+<li>실측: 할버디어·검성 계열 모두 시뮬과 ±1단계, 한 판 2~4분. 계열 간 차이는 거의 없음(탱커 강점 안 보임 — 남은 일)</li></ul>
+<div class="links"><a href="http://127.0.0.1:8844/index.html?server=http://127.0.0.1:9" target="_blank">▶ 게임 (8844)</a><a href="http://localhost:8820/dev/review/castle-defense.html" target="_blank">검토 페이지</a></div>
+<div class="sub">테스트 상태 스니펫: docs/specs/castle-defense.md "확인 방법" (최고 스테이지 100, 31단계까지 깸, 🧱 480·📕 23 → <code>openCamp('castle')</code>)</div></div>
+
+<div class="card"><h3>🎓 교관 재가동 <span class="tag ok">구현 끝</span> <span class="tag warn">결정 #2</span></h3>
+<ul><li>훈련 Lv200 유지, 📕 총 110권으로 ★1~4 확정 상승(약 10일), ★5 승부 하루 3회(서버 배포 필요), 훈련장 🎯/🎓 탭</li></ul>
+<div class="links"><a href="http://127.0.0.1:8855/index.html?server=http://127.0.0.1:9" target="_blank">▶ 게임 (8855)</a><a href="http://localhost:8820/dev/review/mentors.html" target="_blank">검토 페이지</a></div></div>
+
+<h2>④ 권투가 · ⑤ VFX</h2>
+<div class="card"><h3>🥊 파이터 계열 7종 — 그림 <span class="tag warn">결정 #1</span></h3>
+<ul><li>파이터 / 스트라이커·킥복서·기공사 / 챔피언·템페스트·그랜드마스터</li>
+<li>7:3 v2: 기존 기사 4장을 스타일 참고로 PixelLab 직접 생성(직업당 64장 중 선택) + 손 마무리. 3차 키 맞춤, 스트라이커 금속판 장갑·킥복서 무릎 보강</li>
+<li>스펙은 아직 초안 — 그림 판을 고르면 확정 → 구현 세션</li></ul>
+<div class="links"><a href="http://localhost:8816/dev/review/boxer.html" target="_blank">▶ 검토 페이지 5절 맨 위 (8816)</a></div></div>
+
+<div class="card"><h3>🗡️ 스킬 VFX ⑤-0 (공통 기반 + 첫 텍스처) <span class="tag ok">구현 끝</span> <span class="tag warn">결정 #4 · 감성 확인</span></h3>
+<ul><li>텍스처 로더(색 바꿔 칠하기), 평타·잔타는 연출 정지(진행 손실 없음), 피격 번쩍임 줄임, 견습 기사·검사 평타 + 강철 베기에 PixelLab 텍스처</li>
+<li>v2: 강철 베기 막타를 충격선·균열·파편으로 다시 뽑고 줄임, 명중 별이 얼굴을 가리지 않게</li></ul>
+<div class="links"><a href="http://localhost:8836/dev/review/skill-vfx.html#vfx0" target="_blank">▶ 전후 비교 (8836)</a><a href="http://localhost:8836/dev/skills.html?mode=basic&cls=swordsman" target="_blank">▶ 검사 평타 실시간</a><a href="http://localhost:8836/dev/skills.html?cls=swordsman&skill=steelCleave&stage=3" target="_blank">▶ 강철 베기 ★★★</a></div></div>
+
+<h2>PixelLab · 기타</h2>
+<ul>
+<li>Tier 1: 2,000회 중 약 220회 사용, 약 1,780회 남음 (VFX 남은 몫 약 720회 확보)</li>
+<li>ComfyUI(Z-Image) 비교: <a href="http://localhost:8818/dev/review/comfy-vs-pixellab.html" target="_blank">8818</a> — 결정: 섞어 쓰기</li>
+<li>정리 대기: 끝난 작업 폴더(kb-*, impl-*)와 공유 체크아웃의 미커밋 사본, 다 본 검토 서버</li>
+</ul>
+</main></body></html>
