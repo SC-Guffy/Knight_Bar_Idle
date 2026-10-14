@@ -89,6 +89,7 @@
     },
     reach: (w) => w.len + 1,
     smear(g, w, L0, Ly, cut) {
+      if (vfxSlabSmear(g, w, L0, Ly, cut)) return;          // PixelLab 궤적 시트 W4·W4a (src/vfx-sword.js)
       if (cut.smear === 'flat') flatSmear(g, w, L0, Ly, w.len);
       else slabSmear(g, w, L0.hand, L0.wa, Ly.hand, Ly.wa, w.len);
     },

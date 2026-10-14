@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 48,
+  "height": 48
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: long horizontal lance thrust trail pointing right, a narrow straight golden white streak with three small white feathers scattering off behind it, sharp bright point at the right end, flat and thin, centered vertically, nothing else, no character, no background shape",
+ "seed": 11
+}

@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: frozen solid hit, a tall block of jagged ice crystals encasing a shape and cracking apart into sharp shards, white highlights, pale cyan ice, flat base, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 48,
+  "height": 64
+ },
+ "seed": 5
+}

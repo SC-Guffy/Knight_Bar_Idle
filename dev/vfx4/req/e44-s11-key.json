@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 64
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a wide straight vertical beam of holy light filling most of the image width, coming down from the very top edge to the ground at the bottom edge, blinding white center stripe, golden edges made of thin vertical rays, small sparkles at the base, nothing else, no character, no background shape, no orb, no ball, no lamp",
+ "seed": 11
+}

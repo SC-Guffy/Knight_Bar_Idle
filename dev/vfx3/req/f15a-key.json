@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 16,
+  "height": 16
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a round black iron cannonball with a burning orange fuse spark and a short fire trail behind it, nothing else, no character, no background shape",
+ "seed": 57
+}

@@ -1,0 +1,1 @@
+2차 시트 완료 (2026-10-14): src/sprites/striker·kickboxer·qigong .png/.json — 13동작(idle·guard·walk·dash·atkA·atkB·charge·release·skillA·skillB·hurt·death·sit), awaken 없음. 미리보기 dev/boxer/sheets/<cls>-preview.png

@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: flaming meteor falling diagonally down to the right, a round craggy dark rock ball wrapped in fire with a long blazing flame tail streaming up to the upper left, white yellow hot front, orange and red flames, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "seed": 5
+}

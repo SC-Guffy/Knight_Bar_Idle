@@ -142,7 +142,8 @@ function procThrow(x, st) {
 function procOnCast(id) {
   for (const x of procsOf('cdreset')) {
     if (Math.random() >= x.p.v) continue;
-    knight.cds[id] = 0;
+    if (qiOn()) qiReset();                 // 파이터 계열: 기 게이지 최대치의 50% (docs/specs/boxer-class.md 4절)
+    else knight.cds[id] = 0;
     ringFx(toScreen(knight.x), x.p.color, 0.5, 0.4, groundY() - 30);
     procSay(x);
     return;

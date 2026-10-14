@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: magic nova explosion shaped like a diamond, a big rhombus shaped burst of arcane energy with a bright white diamond core and concentric diamond outlines expanding outward, pale blue light, sharp straight edges, symmetric, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 48,
+  "height": 48
+ },
+ "seed": 5
+}

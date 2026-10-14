@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 48,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: giant blade swing smear trail, one very thick wide band arc curving downward on the right side, its outer edge broken into glowing cracked fiery fissures, small embers flying off, dark core with bright orange and white rim, nothing else, no character, no background shape, no sword",
+ "seed": 7
+}

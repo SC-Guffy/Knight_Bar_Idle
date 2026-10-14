@@ -87,6 +87,7 @@ const ST_CUT = {
   // 내지르는 컷: 구슬이 앞 컷 자리에서 지나온 궤적 (옛 쪽은 속성색으로 옅게, 새 쪽은 희게)
   smear(g, w, L0, Ly, cut) {
     if (cut.arc == null) return;
+    if (typeof mgStaffSmear === 'function' && mgStaffSmear(g, w, L0, Ly, cut)) return;     // W8 구슬 궤적 텍스처 (src/vfx-mage.js)
     const C = PX / 2, D = stOrbDist(w), a0 = staffAngle(cut.arc), a1 = staffAngle(cut.bowA || 0);
     const end = [Ly.hand[0] + Math.cos(a1) * D * C, Ly.hand[1] + Math.sin(a1) * D * C], age = new Map();
     const N = 40;

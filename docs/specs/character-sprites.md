@@ -23,6 +23,7 @@
 | Retro Diffusion API | 종량제 | $45~90 | `rd_advanced_animation__*` 가 시작 프레임을 받아 동작 생성, $0.14/회 |
 | Retro Diffusion Aseprite 확장 | 한 번 $65 (Lite $20) + Aseprite $20 | 약 $85 | 로컬 생성. 동작 시트 기능은 없는 것으로 보인다 |
 | ComfyUI 로컬 (오픈소스) | 무료 | 0원 | 설치·모델 수십 GB, 품질 불확실 |
+| ↳ **시험 결과 (2026-10-13, VFX)** | 무료, 1024px 장당 6.5~7.4초 | 하루 약 3,900장 | **Z-Image Turbo+픽셀 LoRA** 가 SDXL 보다 낫지만 32px 축소라 PixelLab 보다 거칠다. 기준 그림 고정 img2img 로 프레임 일관성 가능. 시안·대량 후보용, 최종은 PixelLab 제안 → [art-upgrade.md](art-upgrade.md) "로컬 생성(ComfyUI) 시험" |
 | OpenRouter `gpt-5.4-image-2` (현재) | 종량제 $0.11/장 | $60~70 | 프레임 간 일관성이 약하다 |
 
 - PixelLab 공식 요금 (2026-10-13 pixellab.ai 확인): 무료는 빠른 생성 40회, 이후 하루 5회이며 최대 200×200px, 기본 동작·API·MCP를 쓸 수 있다. Tier 1은 $12/월에 2,000회/월, 320×320px, 스켈레톤 동작이 들어간다. Tier 2는 $24/월에 5,000회/월, 512×512px이다. 연간 결제를 하면 약 25% 싸다.

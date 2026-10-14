@@ -1,0 +1,10 @@
+{
+ "first_frame": {
+  "type": "base64",
+  "base64": ""
+ },
+ "action": "flame hit: the violet fire blooms bigger, curls outward, then turns to dark smoke and fades",
+ "frame_count": 4,
+ "seed": 3,
+ "no_background": true
+}

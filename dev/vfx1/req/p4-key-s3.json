@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: small glowing magic orb projectile, a round ball of arcane light with a bright white core, pale blue rim and a short tail of tiny sparkles to the left, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 16,
+  "height": 16
+ },
+ "seed": 3
+}

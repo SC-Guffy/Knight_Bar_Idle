@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 48
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a ghostly spectral war horse galloping to the right, side view, flowing mane and tail made of light, glowing pale blue and white, motion streaks behind, pixel art creature sprite, nothing else, no character, no background shape",
+ "seed": 23
+}

@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: moon blade hit mark, two strongly curved thin crescent moon arcs facing each other like a pair of parentheses overlapping at their tips, no straight lines, white with pink glow, four small cherry blossom petals scattered around, nothing else, no character, no background shape, no circle, no star, no X",
+ "seed": 11
+}

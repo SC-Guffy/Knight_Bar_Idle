@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 48,
+  "height": 48
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: horizontal spear thrust motion blur pointing right, a long thin band of straight speed lines with one thin spiral twist wrapped around it, tapering to a sharp needle point at the right end, white core and pale mint green edges, flat and thin, centered vertically, nothing else, no character, no background shape",
+ "seed": 5
+}

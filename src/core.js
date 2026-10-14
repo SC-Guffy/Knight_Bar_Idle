@@ -15,6 +15,7 @@ const hooks = {
   onOutdated: () => {},
   onTowerEnd: (_result) => {},
   onDungeonEnd: (_result) => {},
+  onCastleEnd: (_result) => {},
 };
 
 // ───────────────────────── 상태 / 저장 ─────────────────────────
@@ -27,7 +28,7 @@ function freshState() {
     stage: 1, best: 1,
     run: { kills: 0, total: 8, farm: false, cleared: false },  // 현재 바퀴 진행. total=이번 바퀴 몬스터 수, cleared=보스 처치, farm=쓰러져서 이번 원정은 보스 없이 사냥
     train: { atk: 0, hp: 0, def: 0, fortune: 0 },
-    mentor: freshMentor(),                  // 🎓 2차 훈련 교관 수련: 지금 교관·별·눈도장 (mentor.js)
+    mentor: freshMentor(),                  // 🎓 교관 수련: 교관별 별·승부 결과·오늘 승부 수 (mentor.js)
     bld: { training: 1, inn: 1, storage: 1, forge: 1 },
     bagLv: 1,                               // 가방 Lv (여관 안 업그레이드, data.js bagCapAt)
     bagHit: false,                          // 지난 원정이 가방 가득으로 끝났나 (가방 레드닷, 올리면 꺼짐)
@@ -42,8 +43,8 @@ function freshState() {
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
-    gearV: 8,                               // 8: 옵션 줄(it.op) · 7: 마법부여대 · 6: 무기·갑옷 기본 위력 = 기사 레벨 · 5: 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
-    phase: 'camp',                          // camp | expedition | returning | tower | dungeon
+    gearV: 9,                               // 9: 강화 +30 · 등급별 줄 수(초월·태초 6줄) · 8: 옵션 줄(it.op) · 7: 마법부여대 · 6: 무기·갑옷 기본 위력 = 기사 레벨 · 5: 훈련 · 3~4: 부위 레벨(S.gear.lvl, 재련) · 2: 장비마다 s 절대값 · 1: 등급 %
+    phase: 'camp',                          // camp | expedition | returning | tower | dungeon | castle
     stamina: 100, hp: null,
     bag: [],                                // 원정 전리품 상자 (gear.js 참고)
     trip: null,                             // 진행 중인 원정 기록
@@ -54,6 +55,8 @@ function freshState() {
     duelSeen: 0,                            // 받은 결투(우편함)에서 읽은 마지막 기록 id (ui.js inbox)
     tower: freshTower(),                    // 도전의 탑: 최고 층·진행 중인 도전 (tower.js)
     dg: freshDungeon(),                     // 재료의 미궁(보스 러시+슬롯): 입장권·최고 기록·진행 중인 도전 (dungeon.js)
+    castle: freshCastle(),                  // 🏰 성벽 지키기: 최고 단계·🧱·업그레이드·입장권·진행 중인 도전 (castle.js)
+    books: 0,                               // 📕 수련의 서 (성벽 지키기에서 얻고 교관 수련에 쓴다)
     wb: freshWb(),                          // 월드 보스: 받은 보상·마지막 정산 (worldboss.js)
     guide: {},                              // 처음 하는 일 안내(FTUE)에서 이미 본 단계 (ui.js guideTick)
     penDone: [],                            // 반영한 운영 차감 id (서버 /api/admin/penalty — 같은 차감을 두 번 빼지 않게)
@@ -78,6 +81,7 @@ function migrate(o) {
     s[k] = isObj && o[k] ? Object.assign(s[k], o[k]) : o[k];
   }
   s.bag = (s.bag || []).map(upgradeOldLoot);     // v2 초기의 미감정 상자 → 전리품 상자
+  migrateMentor(s.mentor);                       // 🎓 0.20.0 판 교관 (eye·duelDay) → 시즌6 판 (duel), 받은 별은 그대로
   // 공속·치명 훈련이 없어졌다: 올려 둔 단계만큼 쓴 골드를 돌려준다
   let refund = 0;
   for (const [id, u] of Object.entries(OLD_TRAINING)) {
@@ -88,13 +92,13 @@ function migrate(o) {
     s.gold += refund;
     s.notice = `🎯 훈련 개편 — 공속·치명 훈련이 방어·수완으로 바뀌어서 쓴 골드 ${fmt(refund)}을 돌려드렸어요`;
   }
-  // 훈련(1차) 한도 TRAIN_MAX 를 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다 (교관 수련을 켜면 50, 끄면 200 이라 사실상 할 일 없음)
+  // 훈련(1차) 한도 TRAIN_MAX 를 넘겨 올린 단계는 내리고 그만큼 쓴 골드를 돌려준다 (0.20.0 판은 50 이었다 — 지금은 200 이라 사실상 할 일 없음)
   let over = 0;
   for (const u of TRAINING) {
     for (let i = TRAIN_MAX; i < (s.train[u.id] || 0); i++) over += Math.floor(u.base * Math.pow(u.grow, i));
     s.train[u.id] = Math.min(TRAIN_MAX, s.train[u.id] || 0);
   }
-  // 훈련장 최대 Lv(교관 수련이 켜져 있으면 10)을 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
+  // 훈련장 최대 Lv(0.20.0 판은 10, 지금 20)을 넘는 Lv 과 짓던 공사는 들인 재화를 돌려준다
   const back = { gold: 0, wood: 0, ore: 0, mana: 0 };
   const addBack = (c) => { for (const k of Object.keys(back)) back[k] += c[k]; };
   if (s.build && s.build.id === 'training' && s.bld.training >= bldMax('training')) { addBack(buildCost('training', s.bld.training)); s.build = null; }
@@ -216,15 +220,27 @@ function migrate(o) {
   }
   if (ens) {
     s.items.reroll = (s.items.reroll || 0) + ens;
-    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 이제부터 얻는 장비에 붙고, 부위 강화 +5·+10·+15·+20·+25 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
+    s.notice = `🎲 장비 옵션 줄이 생겼어요 — 이제부터 얻는 장비에 붙고, 부위 강화 +5 마다 한 줄씩 켜져요. ✨ 마법부여대는 🎲 옵션 재굴림대로 바뀌어, 마법부여 대신 재굴림권 ${ens}장을 드렸어요`;
   }
-  s.gearV = 8;
   // 0.20.5: 재굴림은 굴린 결과가 바로 적용된다 — 새/이전을 고르지 않고 남겨 둔 결과(s.gear.rr)는 새 옵션으로 넣는다
   if (s.gear.rr) {
     const it = s.gear.inv.find((x) => x.id === s.gear.rr.id);
     if (it && it.op && it.op[s.gear.rr.i] && s.gear.rr.cand) it.op[s.gear.rr.i] = s.gear.rr.cand;
     delete s.gear.rr;
   }
+  // gearV 9 (0.21, docs/specs/enhance-30.md): 강화 +30 · 옵션 줄 수가 등급 색을 따른다 (일반 0 · 고급 1 · … · 초월·태초 6).
+  //  가진 장비의 줄은 줄이지 않는다. 5줄 초월·태초에는 +30 에서 켜지는 6번째 줄을 굴려 주고, 태초 줄 값은 새 배율(OPT_MULT)로 다시 계산한다
+  if ((o.gearV || 1) < 9) {
+    let six = 0;
+    for (const it of s.gear.inv) {
+      if (!Array.isArray(it.op) || it.g < 6) continue;
+      if (it.g === 7) for (const ln of it.op) if (ln && GEAR_OPTS[ln.k] && typeof ln.q === 'number') ln.v = optValueAt(ln.k, ln.q, 7);
+      if (it.op.length === 5) { it.op.push(rollOptLine(it.g)); six++; }
+    }
+    if ((o.gearV || 1) >= 8 && !s.notice) s.notice = `⚒️ 강화가 +${ENHANCE_MAX} 까지 열렸어요 — +16~25 초기화 확률은 절반으로 줄고, +26 부터는 📜 보호 주문서가 든든해요. 이제부터 얻는 장비는 등급만큼 옵션 줄이 붙어요 (일반 0 · 고급 1 · 희귀 2 … 초월·태초 6). 가진 장비의 줄은 그대로예요`
+      + (six ? ` · 초월·태초 장비 ${six}개에 +30 에서 켜지는 6번째 줄을 새로 드렸어요` : '');
+  }
+  s.gearV = 9;
   // 공명로(0.13.1, 장신구 치명 피해)가 빠졌다 — 건물이 능력치를 직접 주지 않도록. 공명 단계·시설에 쓴 재화를 돌려준다
   if (s.forge.resonance || s.gear.res) {
     const back = { gold: 0, ore: 0, mana: 0 };
@@ -244,6 +260,8 @@ function migrate(o) {
   }
   // 탑 기록은 curve 가 없으면 옛 곡선 기록 (freshTower 기본값이 덮어쓰기 전에 원본으로 판단)
   if (o.tower && o.tower.curve !== TOWER_CURVE) { s.tower.curve = o.tower.curve || 1; migrateTower(s.tower); }
+  migrateCastle(s.castle);                       // 🏰 업그레이드 항목이 늘어도 옛 세이브가 열리게
+  if (!(s.books >= 0)) s.books = 0;
   // 0.19.31 창고 개편: 창고는 목재·철광석 비축 + 교역 (비축은 지금부터 쌓인다)
   // 0.19.32 가방은 여관 안 별도 업그레이드 — 기존 세이브도 모두 Lv1(무게 10)부터 (사용자 결정)
   if (!o.stock && !s.notice) s.notice = '📦 창고 개편 — 이제 창고에 목재·철광석이 저절로 쌓여요 (마을 → 창고에서 수령). 창고 Lv5 부터는 골드로 목재·철광석을 사는 교역도 열려요. 🎒 가방은 이제 마을 → 여관에서 목재로 따로 키워요 (무게 10부터)';
@@ -306,6 +324,8 @@ function stats(base = false) {
   // 재료의 미궁 안 배율 (dungeon.js dgFx — 지금은 0). 랭킹·결투용(base)에는 넣지 않는다
   const dg = !base && dgActive() ? dgFx() : null;
   if (dg) atk *= 1 + dg.atk;
+  // 🏰 성벽 지키기 안 배율 (castle.js castleFx — 🚩 군기). 랭킹·결투용(base)에는 넣지 않는다
+  if (!base && castleActive()) atk *= 1 + castleFx().atk;
   return {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
@@ -348,7 +368,9 @@ const skillStar = (id) => skillBonus(id).star;
 const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
 // 🎲 스킬 피해 옵션은 한 방 위력에 곱한다 (필드·결투·레이드가 모두 이 값을 쓴다)
 const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id)) * (1 + gearBonus().skillDmg);
-const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
+const skillCd = (id) => (SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
+// 파이터 계열 등가 쿨타임에 쓰는 공속·치명 (장비 포함, stats() 와 같은 식 — dpsOf 안에서 stats 를 다시 부르지 않게)
+const qiStats = () => { const m = heroClass().mods, gb = gearBonus(); return { aspd: 0.9 * (m.aspd || 1) * (1 + gb.aspdPct), crit: Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit) }; };
 // 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
 function nodeLock(id, nid) {
   const nd = nodeDef(id, nid);
@@ -447,6 +469,8 @@ function profile() {
     // 🎲 옵션 줄의 보스 피해·처형: 레이드·월드 보스 서버 전투(server/raid.js)가 쓴다
     ...bossOpts(),
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
+    // 파이터 계열: 기 규칙 (서버 duel.js·raid.js 가 실제로 충전·소모를 돌린다. 모르는 서버는 버리고 등가 cd 로 계산)
+    ...(isQiCls(S.cls) ? { qi: qiProfileOf(S.cls) } : {}),
     skills: st.skills.map((id) => {
       const k = skillAt(id, skillLv(id), skillStage(id));
       // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
@@ -455,6 +479,8 @@ function profile() {
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
       return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) * stageComp(id, st), crit: !!k.crit,
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
+        ...(k.qi && isQiCls(S.cls) ? { [qiIsMain(id, S.cls) ? 'cost' : 'need']: qiCostOf(SKILLS[id], S.cls, skillBonus(id)), ...(id === 'palmBlast' ? { m3: QI_PALM3 } : {}), ...(k.ult ? { awaken: 1 } : {}),
+          ...(k.ward && k.ward.qiHurt ? { qiHurt: k.ward.qiHurt } : {}) } : {}),
         ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : wd ? { ward: { dur: TREE_RIGHT.ward.dur, guard: wd, heal: 0 } } : {}) };
     }),
   };
@@ -678,6 +704,7 @@ function claimMail(id) {
   for (const [k, n] of Object.entries(r.items || {})) S.items[k] = (S.items[k] || 0) + n;
   S.gold += r.gold || 0; S.stones += r.stones || 0; S.tomes += r.tomes || 0;
   S.raid.tickets += r.raidTickets || 0;
+  S.books = (S.books || 0) + (r.books || 0);
   S.mail.got.push(m.id);
   return true;
 }
@@ -701,7 +728,7 @@ function eatLunch() {
 }
 // 원정 중 체력이 낮으면 물약 자동 사용
 function tryPotion() {
-  if (S.phase === 'dungeon') return false;      // 던전에선 체력이 자원이라 물약을 못 쓴다
+  if (S.phase === 'dungeon' || S.phase === 'castle') return false;      // 던전·성벽에선 물약을 못 쓴다
   const max = stats().maxHp;
   if (S.hp >= max * POTION_AT || S.items.potion <= 0) return false;
   if (Math.random() >= gearBonus().potionSave) S.items.potion--;   // 🎲 물약 아낄 확률 (옵션 줄)
@@ -847,7 +874,7 @@ function knightDefeated(atBoss) {
 
 // 캠프에서 흐르는 시간: 휴식
 function advanceCamp(sec) {
-  if (S.phase !== 'camp' && S.phase !== 'dungeon') return;
+  if (S.phase !== 'camp' && S.phase !== 'dungeon' && S.phase !== 'castle') return;
   S.stamina = Math.min(maxStamina(), S.stamina + (maxStamina() / restSecAt(S.bld.inn)) * (1 + gearBonus().restPct) * sec);   // 던전은 스태미나를 안 써서 그동안에도 쉰다
   if (S.phase !== 'camp') return;
   const max = stats().maxHp;
@@ -861,6 +888,7 @@ function simulate(sec) {
   // 탑은 오프라인으로 진행하지 않는다: 멈춰 있던 동안(앱을 껐거나 절전) 그 층에서 끝낸 것으로 정산
   if (S.phase === 'tower') { endTower('offline'); S.phase = 'camp'; }
   if (S.phase === 'dungeon') { endDungeon('offline'); S.phase = 'camp'; }
+  if (S.phase === 'castle') { endCastle('offline'); S.phase = 'camp'; }
   if (S.phase === 'returning') arriveCamp(true);
   let t = sec;
   let guard = 0;

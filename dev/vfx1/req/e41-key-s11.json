@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: ball lightning, a round crackling orb of electricity with thick jagged electric arcs sticking out all around it, large and bold, filling most of the canvas, bright white core, pale violet glow, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 24,
+  "height": 24
+ },
+ "seed": 11
+}

@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>교관 재가동 — 스펙 검토</title>
+<!-- 스펙: docs/specs/training-mentors.md (시즌6 재가동판). 게임 코드는 바꾸지 않는다.
+     "지금 화면"은 같은 주소의 index.html 을 iframe 으로 열고, MENTOR_ON 을 보는 함수 셋(mentorLock·mentorBonus·viewTraining)만
+     그 줄을 뺀 사본으로 바꿔 끼워 꺼 둔 교관(0.20.0 판)을 보여 준다. 오프라인 주소(?server=http://127.0.0.1:9)라 진짜 서버에 닿지 않는다. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --hl: #3b2a12; --book: #e0605a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  td.l, th.l { text-align: left; white-space: normal; }
+  .scroll { overflow-x: auto; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  input[type=number] { width: 58px; background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; text-align: right; }
+  textarea { width: 100%; height: 58px; background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 4px; font: 12px/1.4 monospace; }
+  button { background: #2f2840; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 3px 9px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--gold); }
+  b.v { color: var(--gold); }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); } .bk { color: var(--book); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 3px; background: #2f2840; color: var(--dim); font-size: 11px; }
+  .bars { margin-top: 8px; }
+  .bar { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 12px; }
+  .bar .nm { width: 110px; flex: none; color: var(--dim); }
+  .bar .track { flex: 1; height: 16px; background: #120f18; border: 1px solid var(--line); border-radius: 3px; position: relative; overflow: hidden; }
+  .bar .seg { position: absolute; top: 0; bottom: 0; }
+  .bar .seg.b { background: #a8443f; } .bar .seg.d { background: #c9a23a; }
+  .bar .t { width: 120px; flex: none; text-align: right; }
+  iframe { width: 100%; height: 560px; border: 1px solid var(--line); border-radius: 4px; background: #000; }
+  code, pre { font-family: Consolas, monospace; font-size: 12px; }
+  pre { background: #120f18; border: 1px solid var(--line); border-radius: 4px; padding: 8px; overflow-x: auto; white-space: pre; margin: 6px 0; }
+  /* 바뀔 화면 목업 — 게임 픽셀 스킨 톤을 흉내만 낸다 */
+  .mock { background: #2a2235; border: 2px solid #4a3f5c; border-radius: 4px; padding: 8px; }
+  .mtabs { display: flex; gap: 4px; margin-bottom: 6px; }
+  .mtab { padding: 3px 10px; border: 1px solid #5a4d6e; border-radius: 3px; background: #241d2e; color: var(--dim); position: relative; }
+  .mtab.on { background: #4a3a1a; color: var(--gold); border-color: var(--gold); }
+  .mtab .rd { position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; background: #ff4040; border-radius: 1px; }
+  .mchips { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+  .mchip { padding: 1px 8px; border: 1px solid #5a4d6e; border-radius: 3px; font-size: 12px; color: var(--dim); }
+  .mchip.on { border-color: var(--gold); color: var(--ink); }
+  .mstage { height: 90px; background: linear-gradient(#1d1830, #3a2f52 70%, #554466 70%); border: 1px solid #5a4d6e; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 12px; }
+  .mbar { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .mbar .grow { flex: 1; }
+  .mbar small { display: block; color: var(--dim); }
+  .mbtn { padding: 4px 10px; background: #4a3a1a; border: 1px solid var(--gold); border-radius: 3px; color: var(--ink); white-space: nowrap; }
+  .mbtn.off { opacity: .45; }
+  .chk li { list-style: none; margin-left: -18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎓 교관 재가동 — 스펙 검토 페이지</h1>
+  <div class="sub">스펙 <code>docs/specs/training-mentors.md</code> (상태: <b class="v">확정</b> · 2026-10-13, 구현 전). 숫자 칸을 바꾸면 표·막대·이행 결과가 다시 계산된다. 게임 코드는 아직 바뀌지 않았다 — 6절 "지금 화면"은 꺼 둔 0.20.0 판을 콘솔로 켠 모습이다.</div>
+
+  <h2>1. 스펙 요지</h2>
+  <div class="grid2">
+    <div class="card">
+      <b>목표</b>
+      <ul>
+        <li>"직관적이지 않다"는 평의 핵심은 <b>확률 수련</b>이었다 → <b class="bk">📕 수련의 서 n권 = 별 하나 확정</b>. 누르기 전에 결과를 안다.</li>
+        <li><b>재화 하나 = 쓰는 곳 하나</b>: 골드 → 🎯 1차 훈련, 📕 → 🎓 교관. 🏰 성벽 → 📕 → 교관 → 더 센 기사 → 성벽 사이클.</li>
+        <li>마지막 별은 그대로 <b>교관과의 승부</b> (내 레벨·내 계열 거울 × k) — "골고루 키웠는가"의 시험.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <b>핵심 규칙</b>
+      <ul>
+        <li>1차 훈련 <b>Lv 200 유지</b> (훈련장 Lv 20) — 환급 없음.</li>
+        <li>교관 열림: 최고 스테이지 <b>40</b> (성벽과 같이) → 다음 교관은 앞 교관 ★5. 훈련장 Lv 조건 없음.</li>
+        <li>★1~4: 📕 <b>11 / 16 / 22 / 28 / 33</b>권 (교관별 합, 총 <b>110</b> — 무료 약 <b>10일</b>). 골드 없음.</li>
+        <li>★5 승부: <b>무료 · 하루 3회</b> (서버가 센다).</li>
+        <li>별 보너스는 전투 능력치만 (경험치 +4%/별 뺌).</li>
+        <li>훈련장 카드 아래 탭 <b>🎯 훈련 · 🎓 교관</b>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2. 지금(0.20.0 판, 꺼 둠) → 시즌6 판</h2>
+  <div class="scroll"><table>
+    <tr><th>항목</th><th class="l">지금 (0.20.0 판 · <code>MENTOR_ON = false</code>)</th><th class="l">시즌6 판</th><th class="l">이유</th></tr>
+    <tr><td>1차 훈련 한도</td><td class="l">켜면 Lv 50 (넘는 몫 환급) / 꺼 둔 지금 Lv 200</td><td class="l"><b>Lv 200</b> — 켜도 그대로</td><td class="l">세 번째 번복 회피 · 수완(+3%/Lv) 유지 · 원정 골드 97.3% 가 훈련 지출 (하수구)</td></tr>
+    <tr><td>교관 열림</td><td class="l">1차 4종 Lv 50 + 훈련장 Lv 6·7·8·9·10</td><td class="l">최고 스테이지 40 + 앞 교관 ★5</td><td class="l">📕 이 성벽에서만 나온다 — 같이 열린다</td></tr>
+    <tr><td>★1~4</td><td class="l">골드 (몬스터 500~1,688 마리 몫) · 성공 60→13% · 눈도장</td><td class="l bk">📕 n권 · 확정</td><td class="l">확률이 "직관적이지 않다"의 핵심</td></tr>
+    <tr><td>★5 승부</td><td class="l">도전비 골드 (2,531 마리 몫) · 무제한</td><td class="l">무료 · <b>하루 3회</b></td><td class="l">📕 도전비는 지면 너무 아프고, 무제한이면 약한 기사도 계속 눌러 이긴다</td></tr>
+    <tr><td>별 보너스</td><td class="l">전투 + 경험치 +4%/별 (25개 +120%)</td><td class="l">전투만</td><td class="l">경험치는 훈련 50 상한을 메우려던 것 — 200 이면 이유가 없다</td></tr>
+    <tr><td>수련 연출</td><td class="l">공격 1~2 → 숨 고르기 → 탈락/성공 (3.7~4.3초)</td><td class="l">📕 날아감 → 공격 1 → 끄덕 → 별 박힘 (약 3초)</td><td class="l">실패가 없어 긴장 구간이 의미 없다</td></tr>
+    <tr><td>화면</td><td class="l">훈련장 아래 1차 훈련 → 수료 칩 → 무대</td><td class="l">탭 두 개 🎯 훈련 · 🎓 교관 ★n/25</td><td class="l">로드맵 결정 "훈련 탭 안 별도 탭"</td></tr>
+  </table></div>
+
+  <h2>3. 교관 5명 × 별 5 — 📕 요구량 (칸을 고치면 합계·4절이 바뀐다)</h2>
+  <div class="scroll"><table id="reqT"></table></div>
+  <div class="sub" style="margin-top:4px">교관별 합 11 / 16 / 22 / 28 / 33 (처음 안 20/30/40/50/60 × 0.55 — 사용자 지시 "10일 안팎"), 교관 안에서는 ★1 15% · ★2 20% · ★3 30% · ★4 35%. ★5 는 📕 이 아니라 승부. 보너스 칸은 별 하나 몫 (★5 는 ×2).</div>
+
+  <h2>4. 수급량 → 다 찍는 데 며칠</h2>
+  <div class="ctl">
+    <label>하루 📕 (무료 입장) <input id="dBooks" type="number" step="0.1" value="11.1"></label>
+    <label>+ 입장권 구매 하루 <input id="dBuy" type="number" value="0"> 장</label>
+    <label>판당 📕 <input id="perRun" type="number" step="0.1" value="3.7"></label>
+    <label>승부 하루 <input id="duelDay" type="number" value="3"> 회</label>
+    <label>내 승률 = 목표 × <input id="winX" type="number" step="0.05" value="1"></label>
+  </div>
+  <div class="ctl">
+    <label>성벽 단계로 판당 📕 계산: L <input id="castleL" type="number" value="30"></label>
+    <button id="useL">판당·하루 📕 채우기</button>
+    <span class="sub" id="castleNote"></span>
+  </div>
+  <div class="card">
+    <div id="sumLine"></div>
+    <div class="bars" id="bars"></div>
+    <div class="sub" style="margin-top:6px"><span class="tag" style="background:#a8443f;color:#fff">■</span> ★1~4 📕 모으는 날 · <span class="tag" style="background:#c9a23a;color:#000">■</span> ★5 승부 기대 일수 = 1 / (1 − (1 − 승률)^하루 횟수). 날짜는 교관 탭이 열린 날(스테이지 40 — 24시간 봇 6.3시간, 사람 약 하루)부터.</div>
+  </div>
+  <div class="scroll"><table id="dayT"></table></div>
+
+  <h2>5. 기존 <code>S.mentor</code> 세이브 이행</h2>
+  <div class="card">
+    <div class="ctl">
+      <button data-pre='{"stars":[0,0,0,0,0],"eye":0,"wins":[],"duelDay":""}'>별 없음 (대부분)</button>
+      <button data-pre='{"stars":[5,2,0,0,0],"eye":3,"wins":["a1b2"],"duelDay":"2026-10-13"}'>0.20.0 때 교관1 수료 + 방패 ★2</button>
+      <button data-pre='{"stars":[5,5,5,4,0],"eye":1,"wins":["x","y","z"],"duelDay":"2026-10-13"}'>많이 한 사람</button>
+      <label>최고 스테이지 <input id="mgBest" type="number" value="60"></label>
+      <label>📕 <input id="mgBooks" type="number" value="0"></label>
+    </div>
+    <textarea id="mgIn"></textarea>
+    <div class="grid2" id="mgOut"></div>
+    <div class="sub">규칙: 별 그대로 · <code>eye</code> 삭제 · <code>duelDay</code> → <code>duel: { day, n: 0 }</code> · <code>wins</code> 그대로 · <code>S.books</code> 없으면 0. 쓴 골드는 돌려주지 않는다(별이 남으므로). 1차 훈련·훈련장은 손대지 않는다 (200·20 유지). 꺼 둔 지금은 별 보너스가 0 이라 경험치를 빼도 아무도 손해 보지 않는다.</div>
+  </div>
+
+  <h2>6. 지금 화면 — 꺼 둔 0.20.0 판을 콘솔로 켠 모습</h2>
+  <div class="ctl">
+    <button data-live="0">교관1 ★0</button>
+    <button data-live="1">교관2 ★3 차례 (이행 예시 [5,2,0,0,0])</button>
+    <button data-live="2">교관4 ★5 승부 차례</button>
+    <button data-play="ok">수련 연출 재생 (약 3초)</button>
+    <span class="sub" id="liveMsg">불러오는 중… (계정 로그인 대기 약 8초)</span>
+  </div>
+  <iframe id="game" title="지금 교관 화면"></iframe>
+  <div class="sub">오프라인 테스트 계정(<code>테스트</code>)으로 연다. 지금 판은 골드 확률 수련이라 버튼에 <b>성공 n% · 골드</b>가 보인다 — 시즌6 판에서는 7절 목업처럼 바뀐다. 무대를 누르면 연출을 건너뛴다. ★5 승부는 오프라인이라 <code>서버 연결 필요</code>로 잠긴다.</div>
+  <details class="card"><summary>콘솔에서 직접 재현하기 (게임 탭 F12)</summary>
+<pre id="snip"></pre>
+  </details>
+
+  <h2>7. 바뀔 화면 (목업)</h2>
+  <div class="grid2">
+    <div class="mock">
+      <div class="mtabs"><span class="mtab">🎯 훈련</span><span class="mtab on">🎓 교관 ★7/25<i class="rd"></i></span></div>
+      <div style="font-size:12px">🎓 교관 수련 · 별 7/25 · <span class="bk">📕 보유 14</span> · 🛡️ 방패 교관 — 성채 연병장</div>
+      <div class="mchips"><span class="mchip">🗡️ 검술 사범 ★5</span><span class="mchip on">🛡️ 방패 교관 ★2</span><span class="mchip">🏹 숲의 사냥꾼 🔒</span><span class="mchip">🔥 화산 투사 🔒</span><span class="mchip">🌌 성좌의 은자 🔒</span></div>
+      <div class="mstage">(무대 그대로 — 기사 · 교관 · 별 5칸)</div>
+      <div class="mbar"><span class="grow"><b>★3 수련 · <span class="bk">📕 5 필요 (보유 14)</span></b><small>지금 체력 +5% · 받는 피해 −2% → 다음 별 체력 +7.5% · 받는 피해 −3%</small></span><span class="mbtn">📕 수련하기</span></div>
+    </div>
+    <div class="mock">
+      <div class="mtabs"><span class="mtab">🎯 훈련</span><span class="mtab on">🎓 교관 ★9/25</span></div>
+      <div class="mstage">(무대)</div>
+      <div class="mbar"><span class="grow"><b>★4 수련 · <span class="bk">📕 6 필요 (보유 3)</span></b><small class="bad">📕 3권 모자라요</small></span><span class="mbtn off">📕 수련하기</span><span class="mbtn">🏰 성벽 지키기로</span></div>
+      <div class="mbar"><span class="grow"><b>⚔️ 마지막 별 — 교관과의 승부 · 오늘 2/3</b><small>교관 전투력 1.2M / 내 1.3M · 비슷함</small></span><span class="mbtn">⚔️ 승부하기</span></div>
+      <div class="mbar"><span class="grow"><b>🔒 최고 스테이지 40 에서 열려요</b><small>🏰 성벽 지키기에서 📕 수련의 서를 모아 교관에게 배워요</small></span></div>
+    </div>
+  </div>
+
+  <h2>8. 수용 기준 (구현 때 확인 — 지금은 전부 ❌)</h2>
+  <ul class="chk">
+    <li>❌ <code>MENTOR_ON = true</code> 에서도 <code>TRAIN_MAX</code> 200 · 훈련장 최대 20 · 훈련 Lv 120 세이브가 그대로 (환급 없음)</li>
+    <li>❌ 최고 스테이지 39 잠김 / 40 교관1 열림 (훈련·훈련장 무관)</li>
+    <li>❌ ★1~4: 📕 이 표대로 줄고 별 +1, 골드 그대로 — 다섯 명 ★1~4 합 정확히 110권</li>
+    <li>❌ 📕 부족 → 버튼 잠김 + 모자란 권수 + <code>🏰 성벽 지키기로</code></li>
+    <li>❌ ★5: 재화 안 줄어듦 · 같은 날 4번째는 서버 429 · 자정 지나 다시 3회</li>
+    <li>❌ 이긴 결과 id 로 두 번 별을 받지 않음</li>
+    <li>❌ 이행: [5,2,0,0,0] → 별 그대로 · eye 없음 · duel {day, n:0} · 공격 +15% · 체력 +5% · 받는 피해 −2%</li>
+    <li>❌ 별 25개 → <code>expPct</code> 없음 · atk ×1.15 · maxHp ×1.15</li>
+    <li>❌ 레드닷: 📕 = 요구량−1 없음 / = 요구량 있음 · ★5 는 오늘 한 번 걸면 사라짐</li>
+    <li>❌ 탭 전환·기억 · 375px 가로 넘침 없음</li>
+    <li>❌ 수련 연출 약 3초 · 탈락 연출 없음 · 누르면 건너뜀</li>
+    <li>❌ 다시 구운 봇 곡선·k 표로 계열별 승률 목표 ±10%p · 덜 갖춘 기사 Lv80 교관1 ≤ 15%</li>
+    <li>❌ 14일 봇 (📕 하루 12권 가정): 교관1 ★4 ≈ 해금 +1일 · ★1~4 전부 ≈ +10일 · 최종 스테이지·레벨 ±5%</li>
+    <li>❌ 실루엣·무대·승부 연출 회귀 확인</li>
+  </ul>
+
+  <h2>9. 남은 것 (성벽 세션과 맞출 값)</h2>
+  <ul>
+    <li>성벽 보상 계수(📕 = 막은 웨이브 × (0.34 + 0.001L), 첫 돌파 ×2)가 바뀌면 3절 표를 같은 비율로 조정 — 기준 <b>110권 ≈ 무료 약 10일분</b>.</li>
+    <li>교관을 다 끝낸 뒤 📕 처리 (🧱 성벽돌로 바꿔 주기?) · <code>🏰 성벽 지키기로</code> 이동 위치.</li>
+  </ul>
+</main>
+
+<script>
+'use strict';
+// ── 데이터 (스펙 표 그대로) ──
+const M = [
+  { id: 'sword',  name: '🗡️ 검술 사범',   sp: '공격력 +2.5%',                 win: 0.55, sp1: { atkPct: 0.025 } },
+  { id: 'shield', name: '🛡️ 방패 교관',   sp: '체력 +2.5% · 받는 피해 −1%',    win: 0.50, sp1: { hpPct: 0.025, guard: 0.01 } },
+  { id: 'hunter', name: '🏹 숲의 사냥꾼', sp: '공속 +1.5% · 치명 +1%p',         win: 0.45, sp1: { aspdPct: 0.015, crit: 0.01 } },
+  { id: 'brute',  name: '🔥 화산 투사',   sp: '치명 피해 +5% · 보스 피해 +3%',  win: 0.40, sp1: { critMult: 0.05, bossDmg: 0.03 } },
+  { id: 'sage',   name: '🌌 성좌의 은자', sp: '스킬 피해 +3%',                 win: 0.35, sp1: { skillDmg: 0.03 } },
+];
+const REQ = [[2, 2, 3, 4], [2, 3, 5, 6], [3, 4, 7, 8], [4, 6, 8, 10], [5, 7, 9, 12]];
+const SPN = { atkPct: '공격력', hpPct: '체력', aspdPct: '공속', crit: '치명', critMult: '치명 피해', bossDmg: '보스 피해', skillDmg: '스킬 피해', expPct: '경험치' };
+const $ = (id) => document.getElementById(id);
+const r1 = (x) => Math.round(x * 10) / 10;
+
+// ── 3. 요구량 표 ──
+function drawReq() {
+  const t = $('reqT');
+  let h = '<tr><th>교관</th><th>★1</th><th>★2</th><th>★3</th><th>★4</th><th>★1~4 합</th><th>누적</th><th>★5</th><th class="l">별 하나 몫 (★5 ×2)</th></tr>';
+  let cum = 0;
+  M.forEach((m, i) => {
+    const s = REQ[i].reduce((a, b) => a + b, 0); cum += s;
+    h += `<tr><td>${i + 1} ${m.name}</td>${REQ[i].map((v, k) => `<td><input type="number" min="0" data-i="${i}" data-k="${k}" value="${v}"></td>`).join('')}<td><b class="bk">${s}</b></td><td>${cum}</td><td>⚔️ 승부 (목표 ${Math.round(m.win * 100)}%)</td><td class="l">${m.sp}</td></tr>`;
+  });
+  h += `<tr><td><b>합</b></td><td colspan="4"></td><td><b class="v">${cum}</b></td><td></td><td colspan="2"></td></tr>`;
+  t.innerHTML = h;
+  t.querySelectorAll('input').forEach((el) => el.addEventListener('change', () => { REQ[+el.dataset.i][+el.dataset.k] = Math.max(0, +el.value || 0); drawReq(); drawDays(); }));
+}
+
+// ── 4. 며칠 ──
+function drawDays() {
+  const day = (+$('dBooks').value || 0) + (+$('dBuy').value || 0) * (+$('perRun').value || 0);
+  const nDuel = Math.max(1, +$('duelDay').value || 1), wx = +$('winX').value || 0;
+  let t = 0, rows = '<tr><th>교관</th><th>📕 ★1~4</th><th>모으는 날</th><th>승부 승률</th><th>승부 하루 통과</th><th>승부 기대 일수</th><th>수료 (누적 일)</th></tr>';
+  const segs = [];
+  M.forEach((m, i) => {
+    const need = REQ[i].reduce((a, b) => a + b, 0);
+    const dB = day > 0 ? need / day : Infinity;
+    const p = Math.min(1, Math.max(0, m.win * wx)), pass = 1 - Math.pow(1 - p, nDuel), dD = pass > 0 ? 1 / pass : Infinity;
+    segs.push({ name: m.name, t0: t, b: dB, d: dD });
+    t += dB + dD;
+    rows += `<tr><td>${i + 1} ${m.name}</td><td>${need}</td><td>${r1(dB)}일</td><td>${Math.round(p * 100)}%</td><td>${Math.round(pass * 100)}%</td><td>${r1(dD)}일</td><td><b>${r1(t)}일</b></td></tr>`;
+  });
+  $('dayT').innerHTML = rows;
+  const tot = REQ.flat().reduce((a, b) => a + b, 0), booksOnly = day > 0 ? tot / day : Infinity;
+  const judge = booksOnly >= 8 && booksOnly <= 12 ? '<span class="ok">기준 안 (10일 안팎)</span>' : booksOnly < 8 ? '<span class="mid">기준보다 빠름</span>' : '<span class="bad">기준보다 느림</span>';
+  $('sumLine').innerHTML = `하루 📕 <b class="v">${r1(day)}</b>권 → ★1~4 전부(${tot}권) <b class="v">${r1(booksOnly)}일</b> ${judge} · 승부 포함 별 25개 <b class="v">${r1(t)}일</b>`;
+  const max = Math.max(t, 1);
+  $('bars').innerHTML = segs.map((s) => `<div class="bar"><span class="nm">${s.name}</span><span class="track"><i class="seg b" style="left:${s.t0 / max * 100}%;width:${s.b / max * 100}%"></i><i class="seg d" style="left:${(s.t0 + s.b) / max * 100}%;width:${s.d / max * 100}%"></i></span><span class="t">${r1(s.t0 + s.b + s.d)}일째 수료</span></div>`).join('');
+}
+// 성벽 단계 L 의 판당 📕 (다 막으면 10웨이브 × (0.34 + 0.001L) — castle-defense.md 확정안, 첫 돌파 ×2 는 빼고)
+function castleRun(L) { return 10 * (0.34 + 0.001 * L); }
+function noteL() { const L = +$('castleL').value || 1, p = castleRun(L); $('castleNote').textContent = `L${L}: 판당 ${r1(p)}권 · 무료 3판 ${r1(3 * p)}권/일 (첫 돌파 ×2 판이 섞이면 더 많다 — 성벽 세션 추정 10~13권/일, L30 12.8)`; }
+$('useL').addEventListener('click', () => { const p = castleRun(+$('castleL').value || 1); $('perRun').value = r1(p); $('dBooks').value = r1(3 * p); drawDays(); });
+['dBooks', 'dBuy', 'perRun', 'duelDay', 'winX'].forEach((id) => $(id).addEventListener('input', drawDays));
+$('castleL').addEventListener('input', noteL);
+
+// ── 5. 이행 ──
+function spOf(stars) {
+  const out = {};
+  stars.forEach((n, i) => { const u = Math.min(n, 4) + (n >= 5 ? 2 : 0); for (const [k, v] of Object.entries(M[i].sp1)) if (u) out[k] = (out[k] || 0) + v * u; });
+  return out;
+}
+const spText = (o) => Object.entries(o).map(([k, v]) => (k === 'guard' ? `받는 피해 −${r1(v * 100)}%` : `${SPN[k]} +${r1(v * 100)}${k === 'crit' ? '%p' : '%'}`)).join(' · ') || '없음';
+function drawMig() {
+  let old;
+  try { old = JSON.parse($('mgIn').value); } catch (e) { $('mgOut').innerHTML = '<div class="bad">JSON 을 읽지 못했어요</div>'; return; }
+  const stars = (old.stars || []).slice(0, 5).map((n) => Math.max(0, Math.min(5, n | 0)));
+  while (stars.length < 5) stars.push(0);
+  const nu = { stars, wins: old.wins || [], duel: { day: old.duelDay || '', n: 0 } };
+  const best = +$('mgBest').value || 0, books = +$('mgBooks').value || 0;
+  const cur = stars.findIndex((n) => n < 5), sum = stars.reduce((a, b) => a + b, 0);
+  let next;
+  if (cur < 0) next = '✅ 모든 교관 수료 — 📕 은 더 필요 없어요';
+  else if (best < 40) next = `🔒 최고 스테이지 40 에서 열려요 (받은 별 보너스는 그대로)`;
+  else if (stars[cur] === 4) next = `${M[cur].name} ⚔️ 승부 차례 (무료 · 오늘 0/3)`;
+  else { const need = REQ[cur][stars[cur]]; next = `${M[cur].name} ★${stars[cur] + 1} 수련 · 📕 ${need} 필요 (보유 ${books}) ${books >= need ? '<span class="ok">→ 바로 가능 · 레드닷</span>' : `<span class="bad">· ${need - books}권 모자람</span>`}`; }
+  const oldSp = spOf(stars); for (const i in stars) if (stars[i]) { const u = Math.min(stars[i], 4) + (stars[i] >= 5 ? 2 : 0); oldSp.expPct = (oldSp.expPct || 0) + 0.04 * u; }
+  $('mgOut').innerHTML = `
+    <div class="card"><b>이행 뒤 S.mentor</b><pre>${JSON.stringify(nu)}</pre>S.books = ${books}</div>
+    <div class="card"><b>별 ${sum}/25 보너스</b><br>
+      0.20.0 판(켜져 있을 때): ${spText(oldSp)}<br>
+      꺼 둔 지금: <span class="sub">없음</span><br>
+      <b>시즌6 판</b>: <span class="ok">${spText(spOf(stars))}</span><br><br>
+      <b>다음 할 일</b>: ${next}</div>`;
+}
+document.querySelectorAll('[data-pre]').forEach((b) => b.addEventListener('click', () => { $('mgIn').value = b.dataset.pre; drawMig(); }));
+['mgIn', 'mgBest', 'mgBooks'].forEach((id) => $(id).addEventListener('input', drawMig));
+$('mgIn').value = document.querySelector('[data-pre]').nextElementSibling.dataset.pre;
+
+// ── 6. 지금 화면 (iframe, 같은 주소의 게임) ──
+// MENTOR_ON 은 const 라 못 바꾼다 → 그 값을 보는 함수 셋만 첫 줄(if (!MENTOR_ON …))을 뺀 사본으로 바꿔 끼운다
+const PRESETS = [
+  { stars: [0, 0, 0, 0, 0], books: 10 },
+  { stars: [5, 2, 0, 0, 0], books: 14 },
+  { stars: [5, 5, 5, 4, 0], books: 0 },
+];
+$('snip').textContent = `// 주소: ${location.origin}/index.html?server=http://127.0.0.1:9
+// 처음 한 번: localStorage.setItem('knight-bar-accounts', JSON.stringify({active:'테스트', list:{'테스트':'local-test-token'}})); location.reload();
+// 약 8초 뒤 (상태를 만들고 훈련장 🎓 교관 탭을 연다):
+const sc = document.createElement('script'); sc.src = 'dev/review/mentors-live.js';
+sc.onload = () => __mentorReview.apply([5, 2, 0, 0, 0], 14); document.body.appendChild(sc);
+// 연출: __mentorReview.play() · 다른 상태: __mentorReview.apply([5,5,5,4,0], 0)`;
+let liveReady = false, liveK = 1;
+function gw() { return $('game').contentWindow; }
+const LIVE_NAME = ['교관1 ★0', '교관2 ★3 차례', '교관4 ★5 승부 차례'];
+function applyLive(k) {
+  const h = gw().__mentorReview;
+  if (!h) return false;
+  try {
+    const line = h.apply(PRESETS[k].stars, PRESETS[k].books);
+    liveK = k;
+    $('liveMsg').innerHTML = `<span class="ok">켜짐</span> — ${LIVE_NAME[k]} · 무대 아래 한 줄: <code>${line}</code>`;
+    return true;
+  } catch (e) { $('liveMsg').innerHTML = `<span class="bad">아직 준비 안 됨 (${e.message})</span>`; return false; }
+}
+function playLive(ok) {
+  if (!liveReady) return;
+  try { if (!gw().__mentorReview.play(ok)) $('liveMsg').textContent = '승부 차례에는 수련 연출이 없어요 — 다른 상태를 고르세요'; } catch (e) { $('liveMsg').textContent = e.message; }
+}
+document.querySelectorAll('[data-live]').forEach((b) => b.addEventListener('click', () => { if (liveReady) applyLive(+b.dataset.live); }));
+document.querySelectorAll('[data-play]').forEach((b) => b.addEventListener('click', () => playLive(b.dataset.play === 'ok')));
+// 게임 CSP(default-src 'self')가 eval 을 막는다 → 같은 주소의 mentors-live.js 를 <script src> 로 넣는다 (게임이 다 뜨고 계정 로그인이 끝난 뒤)
+function bootLive() {
+  try { localStorage.setItem('knight-bar-accounts', JSON.stringify({ active: '테스트', list: { '테스트': 'local-test-token' } })); } catch (e) {}
+  $('game').src = '../../index.html?server=http://127.0.0.1:9';
+  const t0 = Date.now();
+  let injected = false;
+  const poll = setInterval(() => {
+    let w; try { w = gw(); } catch (e) { return; }
+    if (!w || !w.document || !w.document.body) return;
+    if (!injected && Date.now() - t0 > 8000 && typeof w.openCamp === 'function') {
+      injected = true;
+      const sc = w.document.createElement('script');
+      sc.src = new URL('mentors-live.js?v=' + Date.now(), location.href).href;
+      w.document.body.appendChild(sc);
+    }
+    if (injected && w.__mentorReview) { clearInterval(poll); liveReady = applyLive(liveK); }
+    else if (Date.now() - t0 > 30000) { clearInterval(poll); $('liveMsg').innerHTML = '<span class="bad">게임을 불러오지 못했어요 — 새로고침</span>'; }
+  }, 500);
+}
+
+drawReq(); drawDays(); noteL(); drawMig(); bootLive();
+</script>
+</body>
+</html>

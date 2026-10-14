@@ -45,11 +45,27 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - 버튼은 접근성 이름이 없다: `[...document.querySelectorAll('button')].find(b => b.textContent.includes('단계 순회')).click()`.
 - 스킬·직업을 추가·변경하면 위 루프로 예외가 없는지 확인하고, 절정 순간을 `step()` 으로 맞춰 스크린샷한다. 끝나면 페이지를 "단계 순회"에 둔다.
 - 여러 에이전트가 동시에 쓸 때는 각자 `tabs_create` 로 탭을 따로 연다.
+- 주소로 바로 열기: `dev/skills.html?cls=<직업 id>&skill=<스킬 id>&stage=<0~3>` 는 그 스킬만 반복 재생한다(전 직업 순회를 켜면 풀림). 평타는 `?mode=basic&cls=<직업 id>`. 검토 페이지(`dev/review/*.html`)의 ▶ 링크가 이것을 쓴다.
+- 하단바 양 끝 밝기 측정·전후 캡처: `dev/skills.html?patch=vfx-edge-probe` → 콘솔 `probeAll()` (궁극기 뺀 스킬마다 양 끝 40px 밝기 최대 변화, 기준 ±0.05), `snapAt`·`snapBasic`·`snapBurst`(평타 섬광 4배 확대)·`snapDuel`(결투 재생) — 사용법은 `dev/review/vfx-edge-probe.js` 머리 주석, 결과는 [specs/vfx-rule-fixes.md](specs/vfx-rule-fixes.md). 수신기 포트는 인자로 바꿀 수 있다(다른 세션과 8798 이 겹칠 때).
+- 스킬 VFX 장면 캡처(시작·타격·끝, 피해 숫자 없이): `#c` 캔버스를 `toDataURL` 로 `127.0.0.1:8798/save` 에 보낸다. 프레임 고르는 규칙과 스크립트 요지는 [specs/skill-vfx.md](specs/skill-vfx.md) "캡처 재현". 숨은 창에서는 아주 느리니 `tabs_select` 로 앞에 둔다.
 
 ### 컷 스크린샷 저장
 
 - `window.cutStrip(직업 id, 동작 번호)`, `window.cutShot(이름, 항목, {cols, scale, cw, ch})`.
 - cutShot 은 `127.0.0.1:8798/save?name=` 으로 PNG를 보낸다. 받는 쪽은 `python -I dev/shot-recv.py dev/shots` (세션마다 다시 띄운다). 결과는 `dev/shots/<이름>.png` (git 제외).
+
+## 도전의 탑 무리 시뮬레이터 (`dev/tower-pack-sim.js`)
+
+- `dev/skills.html` 을 연 뒤 콘솔(javascript_tool)에서 불러온다. 테스트 페이지 루프를 멈추고 게임 `update(1/60)` 을 직접 돌려 탑 전투를 잰다 ([specs/tower-packs.md](specs/tower-packs.md)).
+  ```js
+  await new Promise((ok) => { const s = document.createElement('script'); s.src = 'tower-pack-sim.js?t=' + Date.now(); s.onload = ok; document.body.appendChild(s); });
+  towerSim.compare([...towerSim.TIER2, ...towerSim.TIER3], { pack: {} }, { curve: 'real', seeds: 8 })
+  ```
+- 무리는 게임이 직접 낸다(`towerPack`·`towerMonsters`). 기준선 `elite` 는 `window.towerPack = () => 1` 로 잰다. 옛 실험용 `pack: { pack: (f) => n, hpShare }` 옵션도 남아 있다.
+- 결과는 직업별 "정예만" 평균 최고 층과 설정별 차이 표다. `curve: 'fine'` 은 보스 없이 층 간격을 잘게(체력 ×1.08/칸) 쪼개 작은 차이를 본다.
+- javascript_tool 은 한 번에 30초쯤 넘으면 끊긴다. 직업 12종 × 12회 × 설정 하나씩 나눠 부른다 (결과는 `towerSim.res` 에 쌓이고 `towerSim.table(직업들, [설정 이름], curve)` 로 다시 볼 수 있다).
+- 페이지의 `towerMonster`·`towerBossFloor`·`towerPack`·`save` 를 덮어쓰므로 끝나면 페이지를 새로고침한다.
+- 실제 게임에서 무리 층을 바로 보는 스니펫(`towerTest(13)`)은 [specs/tower-packs.md](specs/tower-packs.md) "확인 방법".
 
 ## UI 도트 아이콘 (`dev/icons.html`)
 

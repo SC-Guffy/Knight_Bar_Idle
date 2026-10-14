@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 48,
+  "height": 48
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: horizontal dragon spear thrust trail pointing right, a narrow band covered with overlapping purple dragon scale pattern, bright white leading tip, tail breaking into small scale flakes at the left end, flat and thin, centered vertically, nothing else, no character, no background shape",
+ "seed": 6
+}

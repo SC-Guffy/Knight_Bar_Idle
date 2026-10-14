@@ -35,17 +35,18 @@ const WEAPONS = {
   lance:       { name: '돌격창', kind: 'melee',  motion: 'thrust', range: 32, targets: 2, len: 16, lance: true, shaft: '#7a5a3a', tip: '#e8edf5', trail: '200,225,255', glow: '#9fd8ff' },
   ballista:    { name: '거대 석궁', kind: 'ranged', range: 160, targets: 1, shots: 1, size: 14, crossbow: true, wood: '#5a3a1e', steel: '#9a9aa6',
     arrow: { speed: 900, color: '#e8d9b0', trail: '230,210,160', bolt: true } },
-  stormStaff:  { name: '뇌전 지팡이', kind: 'ranged', range: 185, targets: 1, shots: 1, glow: '#b7e3ff', splash: { radius: 70, mult: 0.4, max: 2, arc: true },
-    staff: { len: 8, wood: '#2a2a44', head: '#ffe066', orb: '#b7e3ff', glowRgb: '183,227,255' },
-    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '183,227,255' } },
+  // 뇌전 색은 연보라 + 연노랑 빛 (빙결의 청백과 띄운다, skill-vfx.md ⑤-1), 뇌제는 금빛
+  stormStaff:  { name: '뇌전 지팡이', kind: 'ranged', range: 185, targets: 1, shots: 1, glow: '#b58cff', splash: { radius: 70, mult: 0.4, max: 2, arc: true },
+    staff: { len: 8, wood: '#2a2a44', head: '#ffe066', orb: '#c9a8ff', glowRgb: '181,140,255' },
+    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '181,140,255' } },
   // ── 새 2차의 3차 (평타 모션은 2차 것을 그대로, world.js HERO_ATK 별칭) ──
   doomBlade:     { name: '파천대검', kind: 'melee',  motion: 'swing',  range: 22, targets: 3, len: 18, wide: true, slab: true, twoHand: true, rest: -2.35, blade: '#1a0c0c', edge: '#ff8a5c', hilt: '#2a1010', trail: '255,110,60', glow: '#ff5a2a' },
   holyLance:     { name: '천마창',   kind: 'melee',  motion: 'thrust', range: 36, targets: 3, len: 18, lance: true, shaft: '#c9a227', tip: '#ffffff', trail: '220,235,255', glow: '#cfe8ff' },
   siegeBallista: { name: '공성 석궁', kind: 'ranged', range: 180, targets: 1, shots: 1, size: 16, crossbow: true, wood: '#2a1a10', steel: '#c9c2b4',
     arrow: { speed: 1000, color: '#ffe8c0', trail: '255,220,160', bolt: true } },
-  tempestStaff:  { name: '뇌제의 홀', kind: 'ranged', range: 195, targets: 1, shots: 1, glow: '#e0f0ff', splash: { radius: 90, mult: 0.45, max: 3, arc: true },
-    staff: { len: 9, wood: '#1a1a30', head: '#ffffff', orb: '#e0f0ff', glowRgb: '220,240,255' },
-    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '220,240,255' } },
+  tempestStaff:  { name: '뇌제의 홀', kind: 'ranged', range: 195, targets: 1, shots: 1, glow: '#ffe27a', splash: { radius: 90, mult: 0.45, max: 3, arc: true },
+    staff: { len: 9, wood: '#1a1a30', head: '#ffffff', orb: '#fff2b0', glowRgb: '255,226,122' },
+    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '255,226,122' } },
   // ── 3차 ──
   infernoStaff: { name: '겁화의 지팡이', kind: 'ranged', range: 170, targets: 1, shots: 1, splash: { radius: 52, mult: 0.55 }, glow: '#ff3b1f',
     staff: { len: 9, wood: '#2a0e08', head: '#ffd257', orb: '#ff3b1f', glowRgb: '255,80,30' },
@@ -54,13 +55,13 @@ const WEAPONS = {
     staff: { len: 9, wood: '#1b3f6a', head: '#ffffff', orb: '#cff6ff', glowRgb: '200,245,255' },
     arrow: { speed: 640, color: '#ffffff', shape: 'ice', rgb: '200,245,255' } },
   starBlade:   { name: '성좌검', kind: 'melee',  motion: 'swing',  range: 18, targets: 1, len: 10, blade: '#fffbe6', hilt: '#9fd8ff', trail: '200,230,255', glow: '#cfe8ff' },
-  moonBlades:  { name: '월광쌍검', kind: 'melee', motion: 'dual',  range: 16, targets: 1, len: 8,  blade: '#ffe0e8', hilt: '#5a0a18', trail: '255,90,130', glow: '#ff4d6d' },
-  wyrmSpear:   { name: '용황창', kind: 'melee',  motion: 'thrust', range: 40, targets: 3, len: 19, shaft: '#1a0a28', tip: '#ffb0f0', trail: '255,120,220', glow: '#ff4dd2' },
+  moonBlades:  { name: '월광쌍검', kind: 'melee', motion: 'dual',  range: 16, targets: 1, len: 8,  blade: '#ffe0e8', hilt: '#5a0a18', trail: '255,90,130', glow: '#ff4d6d', burstRgb: '255,90,130' },
+  wyrmSpear:   { name: '용황창', kind: 'melee',  motion: 'thrust', range: 40, targets: 3, len: 19, shaft: '#1a0a28', tip: '#ffb0f0', trail: '255,120,220', glow: '#ff4dd2', burstRgb: '255,120,220' },
   doomAxe:     { name: '종말의 도끼창', kind: 'melee', motion: 'sweep', range: 44, targets: 9, len: 19, shaft: '#3a1a10', tip: '#ffb070', trail: '255,110,40', glow: '#ff7a2a' },
-  sunBow:      { name: '태양궁', kind: 'ranged', range: 260, targets: 1, shots: 1, size: 16, wood: '#c9a227', glow: '#ffe066',
+  sunBow:      { name: '태양궁', kind: 'ranged', range: 260, targets: 1, shots: 1, size: 16, wood: '#c9a227', glow: '#ffe066', burstRgb: '255,230,120',
     arrow: { speed: 980, color: '#fffbe0', trail: '255,230,120' } },
   voidBow:     { name: '공허궁', kind: 'ranged', range: 190, targets: 4, shots: 4, shotMult: 0.42, size: 13, wood: '#2a1050', glow: '#ff4dff',
-    arrow: { speed: 380, color: '#ff8aff', magic: true } },
+    arrow: { speed: 380, color: '#ff8aff', magic: true, rgb: '255,138,255' } },
 };
 
 // ───────────────────────── 전직 조건 ─────────────────────────
@@ -617,7 +618,7 @@ const CLASSES = {
     mods: { atk: 1.99, hp: 0.99, aspd: 1.2, crit: 0.16 },
     desc: '번개를 쏜다. 맞은 적에서 둘에게 더 튀고, 빠르고 치명타가 잦다.',
     look: {
-      body: BODY.electromancer, fx: '#b7e3ff',
+      body: BODY.electromancer, fx: '#b58cff',
       pal: { P: '#3a3a6a', p: '#26264a', c: '#ffe066', n: '#e8c84a', s: '#f0c29a', e: '#1b1d27', E: '#ffffff', y: '#b7e3ff', R: '#3a3a6a', r: '#26264a', b: '#1a1a30', l: '#26264a', k: '#1a1a30' },
       arm: ['#3a3a6a', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#1a1a30' },
@@ -664,7 +665,7 @@ const CLASSES = {
     mods: { atk: 2.43, hp: 1.44, aspd: 1.25, crit: 0.2 },
     desc: '천둥을 다스리는 황제. 홀을 들면 하늘 전체가 벼락이 된다.',
     look: {
-      body: BODY.electromancer, fx: '#e0f0ff',
+      body: BODY.electromancer, fx: '#ffe27a',
       pal: { y: '#ffd257', C: '#ffffff', w: '#f4f1e8', s: '#f0c29a', e: '#e0f0ff', E: '#ffffff', R: '#1a1a40', r: '#10102a', c: '#e0f0ff', b: '#ffe066', l: '#10102a', k: '#0a0a1a' },
       arm: ['#1a1a40', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cape', color: '#2a2a6a' },
@@ -1326,10 +1327,10 @@ const SKILLS = {
     ],
     stageName: ['뇌제의 벼락', '뇌제 강림', '만뢰', '천둥의 왕좌'],
     stageDesc: [
-      '하단바 하늘이 먹구름으로 덮이고 거대한 벼락 한 줄기가 적을 꿰뚫은 뒤, 땅을 따라 번개가 양끝까지 번진다',
-      '번개로 된 뇌제의 형상이 하늘에 떠올라 손을 내리치면 하단바 전체에 벼락이 쏟아진다',
-      '하단바 하늘 끝에서 끝까지 번개가 그물처럼 얽히고, 수십 줄기 벼락이 땅을 두드린다',
-      '하늘에 번개의 왕좌가 나타나 하단바가 하얗게 멎고 — 왕좌에서 내리는 거대한 벼락 기둥이 모든 것을 띄운다',
+      '하단바 하늘이 먹구름으로 덮이고 금빛 벼락 한 줄기가 적에게 내리꽂혀 왕관 모양으로 터진 뒤, 땅을 따라 번개가 양끝까지 번진다',
+      '먹구름 위로 번개로 된 뇌신 거인이 떠올라 팔을 내리치면 하단바 전체에 금빛 벼락이 쏟아진다',
+      '뇌신 거인 아래로 하늘 끝에서 끝까지 금빛 번개 그물이 얽히고, 수십 줄기 벼락이 땅을 두드린다',
+      '뇌신 거인이 번개의 왕좌에 앉아 하단바가 하얗게 멎고 — 모든 적의 머리 위로 왕관 번개가 내리꽂혀 띄운다',
     ],
     desc: '하늘 전체를 벼락으로 바꿔 하단바의 모든 적을 내리친다. 맞은 적은 위압에 멈춘다.',
   },
@@ -1592,6 +1593,7 @@ const SKILL_CD_UP = 1.35;
 const treeBonus = (b) => (typeof b === 'number' ? { star: b } : b || {});
 // 쿨타임(초). owner 는 쓰는 기사의 직업
 const skillCdOf = (k, lv, owner = k.cls, b) => {
+  if (k.qi) return qiCdOf(k, owner, b);      // 파이터 계열: 쿨타임 대신 기 — 등가 쿨타임 (src/fighter-data.js)
   const t = treeBonus(b);
   if (k.right) {
     // V2: 레벨·별로 줄지 않고 TREE2_CD 에서 시작, 쿨타임 노드(right cd)가 있으면 그만큼 더 준다
@@ -1667,6 +1669,8 @@ const TREE_RIGHT = {
   leech: { name: '흡혈',   icon: '🩸', full: 0.15, desc: (v) => `스킬 피해의 ${treePct(v)}% 를 체력으로` },
   ward:  { name: '철벽',   icon: '🛡️', full: 0.45, dur: 4, desc: (v) => `시전 뒤 4초간 받는 피해 -${treePct(v)}%` },   // 풀에 남겨 둔 예비 — 지금 쓰는 스킬 없음 (방어는 피해 노드와 저울질이 안 돼서 고유 특수로 바꿨다)
 };
+// 파이터 계열(k.qi) 스킬은 쿨타임 대신 기 — ⏱️ 자리가 ☯️ 기 절약 (소모량·문턱 ×(1 − v), docs/specs/boxer-class.md 4절)
+const TREE_RIGHT_QI = { cd: { name: '기 절약', icon: '☯️', full: 0.4, desc: (v) => `기 소모 -${treePct(v)}%` } };
 // ───────── 고유 특수 노드 (right 의 'spec') ─────────
 // 스킬마다 하나씩 다른 효과 k.spec = { type, name, icon, full, ...인자 }. 피해 노드와 진짜로 저울질되게 전부 공격·운영형이다 (방어 없음).
 //  type 은 공용 구현(아래 SPEC_TYPES, 효과는 skills.js tryCastSkill · world.js hitMonster·몬스터 틱·fightTick · core.js rewardKill 에 한 번씩)이고,
@@ -1684,18 +1688,18 @@ const SPEC_TYPES = {
   vuln:     { fmt: 'pct+', ev: 0.6,  desc: (v, s) => `맞은 적이 ${s.dur}초간 받는 모든 피해 +${treePct(v)}% (평타 포함)` },
   dot:      { fmt: 'pct+', ev: 1,    desc: (v, s) => `맞은 적에게 ${s.dur}초에 걸쳐 스킬 피해의 ${treePct(v)}% 를 추가로` },
   stun:     { fmt: 'sec',  ev: 0,    desc: (v) => `맞은 적이 ${v.toFixed(1)}초 멈춤 (보스는 절반)` },
-  refund:   { fmt: 'pct',  ev: 0.5,  desc: (v) => `처치할 때마다 이 스킬 쿨타임 ${treePct(v)}% 환급` },
+  refund:   { fmt: 'pct',  ev: 0.5,  desc: (v) => `처치할 때마다 이 스킬 쿨타임 ${treePct(v)}% 환급`, descQi: (v) => `처치할 때마다 이 스킬 소모 기의 ${treePct(v)}% 를 돌려받음` },
   haste:    { fmt: 'pct+', ev: 0.3,  desc: (v, s) => `시전 뒤 ${s.dur}초간 평타 속도 +${treePct(v)}%` },
-  chain:    { fmt: 'pct',  ev: 0.4,  desc: (v) => `시전 시 다른 스킬 쿨타임 ${treePct(v)}% 감소` },
+  chain:    { fmt: 'pct',  ev: 0.4,  desc: (v) => `시전 시 다른 스킬 쿨타임 ${treePct(v)}% 감소`, descQi: (v) => `시전 시 다른 스킬의 기·투지를 ${treePct(v)}% 채움` },
   range:    { fmt: 'pct+', ev: 0.3,  desc: (v) => `기술 범위 +${treePct(v)}%` },
   overkill: { fmt: 'pct',  ev: 0.3,  desc: (v) => `처치 시 넘친 피해의 ${treePct(v)}% 를 다음 적에게` },
   gold:     { fmt: 'pct+', ev: 0,    desc: (v) => `이 스킬로 처치한 적의 골드 +${treePct(v)}%` },
 };
 // 오른쪽 키의 효과 정의 { name, icon, full, desc(v) } — 'spec' 은 그 스킬의 k.spec, 나머지는 공용 풀
 const rightDef = (k, key) => {
-  if (key !== 'spec') return TREE_RIGHT[key];
-  const s = k.spec, T = SPEC_TYPES[s.type];
-  return { name: s.name, icon: s.icon, full: s.full, type: s.type, fmt: T.fmt, desc: (v) => T.desc(v, s) };
+  if (key !== 'spec') return k.qi && TREE_RIGHT_QI[key] || TREE_RIGHT[key];
+  const s = k.spec, T = SPEC_TYPES[s.type], d = k.qi && T.descQi || T.desc;
+  return { name: s.name, icon: s.icon, full: s.full, type: s.type, fmt: T.fmt, desc: (v) => d(v, s) };
 };
 // 짧은 표기: ⏱️ -15% · 💥 +4.4% · 🗡️ +30% · 💫 0.8초
 const rightShort = (k, key, v) => {

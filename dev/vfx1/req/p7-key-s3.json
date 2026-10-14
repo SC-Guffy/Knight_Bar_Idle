@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: small fireball projectile flying to the right, round ball of fire with white yellow core, orange flames trailing to the left in a short tail, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 16,
+  "height": 16
+ },
+ "seed": 3
+}

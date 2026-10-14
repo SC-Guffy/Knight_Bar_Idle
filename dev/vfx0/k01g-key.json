@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: ground impact mark, a flat oval shock ring on the floor glowing white and pale steel blue, a zigzag crack line across the ground, three angular steel fragments popping upward, minimal and tidy, nothing else, no sword, no explosion cloud, no background shape",
+ "seed": 61
+}

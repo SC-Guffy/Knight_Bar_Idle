@@ -1,0 +1,7 @@
+{
+ "action": "explosion: the fireball expands outward and breaks up into dark smoke puffs that drift outward and fade away",
+ "frame_count": 4,
+ "seed": 3,
+ "no_background": true,
+ "first_frame": "k21-p7.png"
+}

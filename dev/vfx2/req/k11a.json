@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: ground landing impact, a flat purple shock ring on the floor with three deep diagonal dragon claw scratch marks across it, small rocks popping up, white and violet, flat and wide, nothing else, no character, no background shape",
+ "seed": 11
+}

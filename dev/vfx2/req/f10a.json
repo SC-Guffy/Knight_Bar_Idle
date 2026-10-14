@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 96
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a gigantic stone and iron battle axe blade falling straight down, the huge crescent axe head at the bottom, long thick handle going up, molten orange cracks glowing in the blade, chunks of rock around it, nothing else, no character, no background shape",
+ "seed": 10
+}

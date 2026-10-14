@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: heavy metal punch impact, a thick hard metallic shock ring seen slightly from the side like a steel washer, bright white highlight on the top of the ring, grey steel body, dark outline, four small flattened squashed angular metal fragments flying out sideways from the ring, empty hollow center, nothing else, no character, no background shape, no text",
+ "seed": 101
+}

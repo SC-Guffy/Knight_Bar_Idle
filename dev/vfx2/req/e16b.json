@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: three long parallel diagonal glowing purple claw scratch lines slashed in the air, bright white cores, violet edges, tapering sharp ends, a few tiny sparks, flat and wide, no rock, no ground, no plate, nothing else, no character, no background shape",
+ "seed": 53
+}

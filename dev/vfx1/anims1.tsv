@@ -1,0 +1,31 @@
+h05	keyc/h05.png	4	7	tiny magic hit: the diamond spark flashes bigger, splits into four small diamond shards flying outward, then fades out completely
+h15	keyc/h15.png	4	7	fire hit: the flame flower bursts open wider, petals turn into embers flying outward and burn out to nothing
+h16	keyc/h16.png	4	7	frost hit: the ice crystal shatters, sharp shards fly outward and shrink, then vanish completely
+h17	keyc/h17.png	4	7	electric hit: the discharge flickers and crackles, branches jump to new zigzag shapes, then the sparks fade out
+h27	keyc/h27.png	4	7	hellfire pillar erupts: the flame column shoots up taller, flickers, then collapses down into embers and disappears
+h28	keyc/h28.png	4	7	glacier spikes burst up out of the ground, glint, then crack and crumble into small ice chunks that fade
+p4	keyc/p4.png	4	7	magic orb projectile flying: the orb pulses and its sparkle tail flickers, same position and size every frame
+p7	keyc/p7.png	4	7	fireball flying: the flames flicker and the tail ripples, same position and size every frame
+p8	keyc/p8.png	4	7	hellfire comet flying: the jagged flames writhe and the ragged tail flickers, same position and size every frame
+e04	keyc/e04.png	6	7	diamond magic nova explosion: the diamond burst expands outward, the concentric diamond outlines spread and thin, then break into sparkles and fade away
+k04	keyc/k04.png	4	7	the nested diamond crystals crack and shatter into angular fragments that fly outward and fade
+c9	keyc/c9.png	4	7	seamless looping flat magic circle on the ground: the rune marks rotate slowly around the ring and glow, same size and shape every frame
+e33	keyc/e33.png	4	7	seamless looping burning meteor: the flames around the rock flicker and the fire tail ripples, rock stays in the same position
+e34	keyc/e34.png	6	7	explosion dome: the fire dome bursts up bigger, smoke rolls outward, then the dome collapses leaving a glowing lava pool on the ground that cools down
+k23	keyc/k23.png	6	7	lava splash: molten blobs and rock chunks fly up and outward, fall down and splatter into small glowing puddles that cool and fade
+e35	keyc/e35.png	4	7	seamless looping fire tornado: the flame spiral spins and twists continuously, same size and position every frame
+e36	keyc/e36.png	4	7	fire flower blooms: the flame petals open wider and flare, then curl and burn out into embers
+k24	keyc/k24.png	4	7	swirling fire hit: the whirlpool of embers spins faster and spreads outward, then the flame streaks fade away
+e38	keyc/e38.png	4	7	seamless looping blizzard: the snow streaks and hailstones move diagonally down to the right, same density every frame
+e39	keyc/e39.png	6	7	ice crystal cluster: the crystals burst up out of the ground and glint, then cracks spread through them and they shatter into falling shards
+e40	keyc/e40.png	6	7	lightning claw hand: the electric fingers crackle and flicker, then the hand clenches into a fist, sparks bursting from it
+c15	keyc/c15.png	4	7	seamless looping storm cloud: the dark cloud churns slowly and the rain streaks fall, same size and position every frame
+c3	keyc/c3.png	4	7	ground shockwave ring expands outward wider and thinner along the floor, then fades out
+f17	keyc/f17.png	6	7	the cracked red sun glows hotter, the cracks widen with white light, then it splits apart into burning fragments flying outward
+k38	keyc/k38.png	6	7	wall of white fire crashes forward and breaks over the ground, flames spread low and wide, then burn out
+f18	keyc/f18.png	4	7	seamless looping night scene: the aurora ribbons in the sky wave and shimmer slowly, the mountains stay completely still
+f19	keyc/f19.png	6	7	giant snowflake glints and pulses with light, then cracks and shatters into glass shards flying outward
+k39	keyc/k39.png	6	7	ice crystals grow up taller encasing everything, glint, then crack and shatter into shards falling down
+f20	keyc/f20.png	6	7	thunder god giant: lightning crackles through his beard and eyes flash, then he raises his arm and strikes down with a huge bolt of lightning
+f21	keyc/f21.png	4	7	seamless looping lightning throne: the electric bolts forming the throne crackle and flicker, same shape every frame
+k40	keyc/k40.png	6	7	crown lightning strike: the bolt slams down, the crown of zigzag prongs flares wide with a bright flash, then the lightning fades out

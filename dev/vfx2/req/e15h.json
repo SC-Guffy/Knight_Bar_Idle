@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a purple wyvern dragon head in side view facing right, open jaws with small white fangs, two swept back horns, yellow eye, short neck stub on the left, pixel art creature sprite, nothing else, no character, no background shape",
+ "seed": 35
+}

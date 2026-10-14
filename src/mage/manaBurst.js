@@ -40,14 +40,7 @@ const MB_POSE = [
 ];
 
 // 마름모(45° 돈 사각형) 윤곽 — 마력 폭발의 파문 모양
-function mbDiamond(x, y, r, color, width, alpha) {
-  if (r < 1 || alpha <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = color; ctx.lineWidth = width;
-  ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); ctx.stroke();
-  ctx.restore();
-}
+// (옛 마름모 윤곽 mbDiamond 는 E04·K04 텍스처로 바뀌었다)
 // 마력 조각: 작은 마름모 파편이 날아가며 떨어진다 (parts 는 사각이라 따로 그린다)
 function mbShards(a, x, y, n, speed, life, cols) {
   n = Math.max(2, Math.round(n * fxVis));
@@ -73,47 +66,34 @@ function mbShards(a, x, y, n, speed, life, cols) {
 
 // ── Lv1: 마력탄 ── 사각 빛알이 잔상 꼬리를 끌며 지팡이 끝에서 대상까지 날아간다
 function mbBoltFx(a, life) {
-  const s0 = mbTip(a), trail = [];
+  const s0 = mbTip(a), trail = [], ramp = mgA(a, 'mana');
   aFx(a, 0, life, (u) => {
     const tx = a.tx(), ty = a.ty(), e = easeIn(u) * 0.4 + u * 0.6;
     const x = mix(s0.x, tx, e), y = mix(s0.y, ty, e) - Math.sin(Math.PI * u) * 6;
     trail.push([x, y]); if (trail.length > 6) trail.shift();
-    trail.forEach(([px, py], j) => dot(px, py, 2 + j * 0.5, a.color, ((j + 1) / trail.length) * 0.5));
-    ctx.save();
-    ctx.shadowColor = a.color; ctx.shadowBlur = 8;
-    dot(x, y, 7, a.color, 0.85); dot(x, y, 3, '#ffffff');
-    ctx.restore();
+    // P4 마력탄을 크게: 지나온 자리에 흐린 사본 둘, 머리는 4/3배
+    const ang = Math.atan2(ty - s0.y, tx - s0.x);
+    for (const j of [1, 3]) if (trail[trail.length - 1 - j]) vfxDraw(ctx, 'p4', ramp, (mgLoop('p4', 15) + j) % 3, trail[trail.length - 1 - j][0], trail[trail.length - 1 - j][1], { scale: 1, rot: ang, alpha: 0.5 / j });
+    vfxDraw(ctx, 'p4', ramp, mgLoop('p4', 15), x, y, { scale: 4 / 3, rot: ang });
   });
 }
 
 // ── ★: 부풀어 오르는 마력 구체 ── 테두리가 일렁이고 안에서 소용돌이가 돈다. popAt 초에 사라진다 (터짐은 hit)
 function mbSphereFx(a, life, popAt) {
-  const pos = () => ({ x: a.tx() - a.dir * 8, y: a.ty() - 2 });
+  const pos = () => ({ x: a.tx() - a.dir * 8, y: a.ty() - 2 }), ramp = mgA(a, 'mana');
   aFx(a, 0, life, (u) => {
     const t = u * life;
     if (t >= popAt) return;
-    const g = easeOut(clamp01(t / popAt)), { x, y } = pos();
-    const R = 3 + 13 * g + Math.sin(clock * 30) * g;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const gr = ctx.createRadialGradient(x, y, 1, x, y, R * 1.6);
-    gr.addColorStop(0, 'rgba(230,246,255,0.75)'); gr.addColorStop(0.55, a.color + '88'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = gr; ctx.fillRect(x - R * 1.6, y - R * 1.6, R * 3.2, R * 3.2);
-    // 일렁이는 테두리: 각도마다 반지름이 출렁인다
-    for (let i = 0; i < 24; i++) {
-      const an = (i / 24) * Math.PI * 2, r = R + Math.sin(an * 3 + clock * 14) * 1.6 * g;
-      dot(x + Math.cos(an) * r, y + Math.sin(an) * r, 2, i % 3 ? a.color : '#ffffff', 0.9);
-    }
-    // 안쪽 소용돌이 두 가닥
-    for (let j = 0; j < 2; j++) for (let s = 0; s < 6; s++) {
-      const an = clock * 9 + j * Math.PI + s * 0.5, r = R * (0.15 + s * 0.12);
-      dot(x + Math.cos(an) * r, y + Math.sin(an) * r, 2, MB_LIGHT, 0.7);
-    }
+    // 마력 구체 = K04 겹 마름모 결정의 첫 그림이 계단으로 부풀며(2/3 → 1 → 4/3배) 일렁인다
+    const g = clamp01(t / popAt), { x, y } = pos(), sc = g < 0.4 ? 2 / 3 : g < 0.8 ? 1 : 4 / 3;
+    const jit = Math.floor(clock * 20) % 2;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    vfxDraw(ctx, 'k04', ramp, 0, x, y + jit, { scale: sc, alpha: 0.95 });
     ctx.restore();
   }, null, (u) => {
     const t = u * life;
     if (t >= popAt - 0.04) return;
-    // 지팡이 끝에서 구체로 마력이 흘러 들어간다
+    // 지팡이 끝에서 구체로 마력이 흘러 들어간다 (작은 보조 불티)
     const s = mbTip(a), { x, y } = pos();
     if (Math.random() < 0.8) {
       const k = rand(0, 0.3);
@@ -123,121 +103,58 @@ function mbSphereFx(a, life, popAt) {
 }
 // 구체가 터진다: 하얀 섬광 + 마름모 파문 두 겹 + 마력 조각
 function mbPopFx(a, x, y, size) {
-  aFx(a, 0, 0.42, (u) => {
-    const e = easeOut(u);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = (1 - u) * 0.9; ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(x, y, 12 * size * (1 - u * 0.7), 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    mbDiamond(x, y, 8 + 30 * size * e, a.color, 3 * (1 - u) + 1, 1 - u);
-    mbDiamond(x, y, 4 + 20 * size * easeOut(clamp01(u * 1.3 - 0.15)), '#ffffff', 1.5, (1 - u) * 0.8);
-  });
-  mbShards(a, x, y, 10 * size, 150 * size, 0.5, [a.color, '#ffffff', MB_LIGHT]);
+  // E04 마름모 노바가 한 번 터진다 (size 1 = 1배, Lv1 0.45 = 2/3배·앞 4프레임)
+  const big = size >= 0.8;
+  mgFx(a, 'e04', x, y, mgA(a, 'mana'), { scale: big ? 1 : 2 / 3, life: big ? 0.42 : 0.3, frames: big ? 99 : 4, fade: 0.3, add: true });
+  mbShards(a, x, y, 6 * size, 150 * size, 0.5, [a.color, '#ffffff', MB_LIGHT]);
 }
 
 // ── ★★: 육망성 마법진 ── 땅에 납작하게 펼쳐지는 이중 원 + 두 삼각형 + 둘레를 도는 사각 룬 글자
 function mbSigilFx(a, life, flashAt) {
-  const cx = a.tx(), gy = groundY() - 2, rx = 30, ry = 7;
+  // C9 바닥 마법진이 펼쳐져(2/3 → 1배) 돌고, 폭발 순간마다 4/3배로 번쩍인다. 둘레에 룬 불티가 피어오른다
+  const cx = a.tx(), gy = groundY() + 1, rx = 30, ramp = mgA(a, 'mana');
   aFx(a, 0, life, (u) => {
-    const t = u * life, open = easeOut(clamp01(t / 0.16)), out = u > 0.85 ? (1 - u) / 0.15 : 1;
+    const t = u * life, out = u > 0.85 ? (1 - u) / 0.15 : 1;
     const fl = flashAt.reduce((m, f) => Math.max(m, 1 - Math.abs(t - f) / 0.08), 0);
-    const k = open * out, R = rx * open, Ry = ry * open;
-    if (k <= 0) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = k * (0.75 + 0.25 * Math.max(0, fl));
-    ctx.strokeStyle = fl > 0 ? '#ffffff' : a.color; ctx.lineWidth = 1.5;
-    ctx.shadowColor = a.color; ctx.shadowBlur = 6;
-    ctx.beginPath(); ctx.ellipse(cx, gy, R, Ry, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(cx, gy, R * 0.78, Ry * 0.78, 0, 0, Math.PI * 2); ctx.stroke();
-    // 두 삼각형(육망성)이 천천히 돈다
-    for (let tri = 0; tri < 2; tri++) {
-      ctx.beginPath();
-      for (let i = 0; i <= 3; i++) {
-        const an = clock * 1.2 + tri * Math.PI / 3 + (i / 3) * Math.PI * 2;
-        const px = cx + Math.cos(an) * R * 0.78, py = gy + Math.sin(an) * Ry * 0.78;
-        i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-      }
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-    // 둘레의 룬 글자: 2×3 사각 조각이 거꾸로 돈다
-    for (let i = 0; i < 8; i++) {
-      const an = -clock * 2 + (i / 8) * Math.PI * 2, px = cx + Math.cos(an) * R * 0.89, py = gy + Math.sin(an) * Ry * 0.89;
-      ctx.fillStyle = i % 2 ? '#ffffff' : a.color;
-      ctx.fillRect(Math.round(px - 1), Math.round(py - 2), 2, 3);
-      if (i % 2) ctx.fillRect(Math.round(px + 1), Math.round(py - 2), 1, 1);
-    }
+    const sc = t < 0.08 ? 2 / 3 : fl > 0.3 ? 4 / 3 : 1;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    vfxDraw(ctx, 'c9', ramp, mgLoop('c9', 10), cx, gy, { scale: sc, anchor: 'b', alpha: out * (0.8 + 0.2 * Math.max(0, fl)) });
     ctx.restore();
   }, null, (u) => {
-    if (Math.random() < 0.5 && u < 0.85) parts.push({ x: cx + rand(-rx, rx) * 0.8, y: gy - 1, vx: 0, vy: rand(-50, -25), g: 0, size: 2, color: Math.random() < 0.5 ? a.color : '#ffffff', life: 0.35, t: 0, add: true });
+    if (Math.random() < 0.5 && u < 0.85) parts.push({ x: cx + rand(-rx, rx) * 0.8, y: gy - 2, vx: 0, vy: rand(-50, -25), g: 0, size: 2, color: Math.random() < 0.5 ? a.color : '#ffffff', life: 0.35, t: 0, add: true });
   });
 }
 // 마법진에서 마력 블록이 솟구친다: 크고 작은 사각 블록이 기둥처럼 쌓여 올랐다가 위로 흩어진다
 function mbEruptFx(a, x, h, w, life) {
-  const gy = groundY() - 2, blocks = [];
-  const n = Math.round(10 * Math.max(0.6, fxVis) * (w / 20));
-  for (let i = 0; i < n; i++) blocks.push({ ox: rand(-w / 2, w / 2), s: Math.random() < 0.3 ? 5 : 3, sp: rand(0.7, 1.2), d: rand(0, 0.25) });
-  aFx(a, 0, life, (u) => {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    // 기둥 몸통: 가운데가 밝은 세로 띠가 솟았다가 가늘어진다
-    const rise = easeOut(clamp01(u / 0.3)), thin = 1 - clamp01((u - 0.3) / 0.7);
-    const bw = w * 0.6 * thin, top = gy - h * rise;
-    if (bw > 0.5) {
-      const gr = ctx.createLinearGradient(x - bw, 0, x + bw, 0);
-      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, a.color); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = 0.7 * thin; ctx.fillStyle = gr; ctx.fillRect(x - bw, top, bw * 2, gy - top);
-      ctx.globalAlpha = thin; ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x - 1), top, 2, gy - top);
-    }
-    for (const b of blocks) {
-      const v = clamp01((u - b.d) / (1 - b.d));
-      if (v <= 0 || v >= 1) continue;
-      const y = gy - h * b.sp * easeOut(v) * 1.1, s = b.s * (1 - v * 0.5);
-      ctx.globalAlpha = 1 - v;
-      ctx.fillStyle = b.s > 4 ? '#ffffff' : a.color;
-      ctx.fillRect(Math.round(x + b.ox * (1 + v * 0.6) - s / 2), Math.round(y - s / 2), Math.round(s), Math.round(s));
-    }
-    ctx.restore();
-  });
+  // E04b 마력 블록 기둥이 마법진에서 솟구쳤다가 위로 흩어진다 (h 60px 이상이면 4/3배)
+  mgFx(a, 'e04b', x, groundY() + 1, mgA(a, 'mana'), { scale: h >= 60 ? 4 / 3 : 1, life, anchor: 'b', fade: 0.3, add: true });
 }
 
 // ── ★★★: 비전 고리 셋 ── 서로 다르게 기운 고리가 자이로처럼 돌다가 collapseAt 무렵 한 점으로 줄어든다
 const MB_RINGS = [{ r: 36, tilt: -0.45, flat: 0.3, sp: 2.6 }, { r: 29, tilt: 0.55, flat: 0.36, sp: -3.2 }, { r: 19, tilt: 0.05, flat: 0.9, sp: 4.1 }];
 function mbRingsXY(a) { return { x: a.tx(), y: Math.max(30, a.ty() - 54) }; }
 function mbRingsFx(a, life, pulses, collapseAt) {
-  const t0 = clock;
+  // 비전 고리 셋 = C9 마법진 시트를 서로 다르게 기울여 자이로처럼 돌린다. 붕괴 직전 계단으로 작아진다. 가운데 핵 = K04 첫 그림
+  const ramp = mgA(a, 'mana');
   aFx(a, 0, life, (u) => {
     const t = u * life;
     if (t > collapseAt) return;
     const { x, y } = mbRingsXY(a);
-    const open = easeOut(clamp01(t / 0.25)), col = easeIn(clamp01((t - (collapseAt - 0.24)) / 0.24));
+    const open = clamp01(t / 0.25), col = clamp01((t - (collapseAt - 0.24)) / 0.24);
     const pl = pulses.reduce((m, p) => Math.max(m, 1 - Math.abs(t - p) / 0.1), 0);
-    const ph = (clock - t0) * (1 + col * 5);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    // 고리 가운데에 모이는 마력 핵
-    const core = 1.5 + 2 * open + 4 * col + 2 * Math.max(0, pl);
-    const gr = ctx.createRadialGradient(x, y, 0, x, y, core * 3);
-    gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, a.color); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = gr; ctx.globalAlpha = 0.9; ctx.fillRect(x - core * 3, y - core * 3, core * 6, core * 6);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
     MB_RINGS.forEach((rg, j) => {
-      const R = rg.r * open * (1 - col * 0.92) * (1 + 0.12 * Math.max(0, pl)), N = 36;
-      const c = Math.cos(rg.tilt + col * (j - 1) * 1.2), s = Math.sin(rg.tilt + col * (j - 1) * 1.2);
-      for (let i = 0; i < N; i++) {
-        const an = (i / N) * Math.PI * 2 + ph * rg.sp, lx = Math.cos(an) * R, ly = Math.sin(an) * R * rg.flat;
-        const front = Math.sin(an) > 0, glyph = i % 7 === 0;
-        dot(x + lx * c - ly * s, y + lx * s + ly * c, glyph ? 3 : 2, glyph || pl > 0.3 ? '#ffffff' : a.color, (front ? 1 : 0.45) * open);
-      }
+      const sc = open < 0.5 || col > 0.66 ? 2 / 3 : col > 0.33 ? 1 : j === 2 ? 1 : 4 / 3;
+      const rot = rg.tilt + Math.sin(clock * rg.sp * 0.5) * 0.25 + col * (j - 1) * 1.2;
+      vfxDraw(ctx, 'c9', ramp, mgLoop('c9', 12, j * 2), x, y, { scale: sc, rot, sy: j === 2 ? 2 : 1, flip: j === 1, alpha: open * (pl > 0.3 ? 1 : 0.85) });
     });
+    vfxDraw(ctx, 'k04', ramp, 0, x, y, { scale: col > 0.5 || pl > 0.3 ? 1 : 2 / 3, alpha: 0.95 });
     ctx.restore();
   }, null, (u) => {
     const t = u * life;
     if (t > collapseAt) return;
     const { x, y } = mbRingsXY(a), s = mbTip(a);
-    // 지팡이 끝 → 고리로 마력이 실처럼 올라가고, 붕괴가 가까우면 둘레의 빛이 빨려 든다
+    // 지팡이 끝 → 고리로 마력이 실처럼 올라가고, 붕괴가 가까우면 둘레의 빛이 빨려 든다 (작은 보조 불티)
     if (t < collapseAt - 0.28 && Math.random() < 0.7) {
       const k = rand(0, 0.2);
       parts.push({ x: mix(s.x, x, k), y: mix(s.y, y, k), vx: (x - s.x) * 2.6, vy: (y - s.y) * 2.6, g: 0, size: 2, color: Math.random() < 0.5 ? a.color : '#ffffff', life: 0.3, t: 0, add: true });
@@ -250,49 +167,16 @@ function mbRingsFx(a, life, pulses, collapseAt) {
 }
 // 고리에서 대상으로 떨어지는 마력 번개 (꺾인 선, 매번 모양이 다르다)
 function mbZapFx(a, x0, y0, x1, y1) {
-  const pts = [[x0, y0]];
-  for (let i = 1; i < 6; i++) pts.push([mix(x0, x1, i / 6) + rand(-6, 6), mix(y0, y1, i / 6)]);
-  pts.push([x1, y1]);
-  aFx(a, 0, 0.16, (u) => {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 1 - u;
-    for (const [col, wd] of [[a.color, 4], ['#ffffff', 1.5]]) {
-      ctx.strokeStyle = col; ctx.lineWidth = wd * (1 - u * 0.5);
-      ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
-    }
-    ctx.restore();
-  });
+  mgArcFx(x0, y0, x1, y1, mgA(a, 'mana'), 0.16, { sheet: 'p11', jag: 0.35 });
 }
 // 비전 붕괴: 한 점에서 터지는 큰 폭발 — 하얀 핵, 겹겹이 퍼지는 마름모, 여덟 갈래 빛살, 땅에 떨어지는 파편
 function mbNovaFx(a, x, y) {
-  const gy = groundY() - 2;
-  aFx(a, 0, 0.7, (u) => {
-    const e = easeOut(u);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    // 핵: 하얗게 커졌다가 줄어든다
-    const R = 20 * Math.sin(Math.PI * Math.min(1, u * 1.6));
-    if (R > 0.5) {
-      const gr = ctx.createRadialGradient(x, y, 0, x, y, R * 2);
-      gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.4, a.color); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(x - R * 2, y - R * 2, R * 4, R * 4);
-    }
-    // 여덟 갈래 빛살: 사각 도트가 바깥으로 줄지어 달린다
-    for (let i = 0; i < 8; i++) {
-      const an = (i / 8) * Math.PI * 2 + Math.PI / 8, len = (i % 2 ? 40 : 62) * e;
-      for (let s = 0.35; s <= 1; s += 0.13) dot(x + Math.cos(an) * len * s, y + Math.sin(an) * len * s * 0.8, s > 0.9 ? 3 : 2, s > 0.9 ? '#ffffff' : a.color, (1 - u) * s);
-    }
-    // 땅에 비친 붕괴: 납작한 빛 파문
-    ctx.globalAlpha = 0.8 * (1 - u); ctx.strokeStyle = a.color; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(x, gy, 14 + 70 * e, 3 + 8 * e, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-    for (let j = 0; j < 3; j++) {
-      const v = clamp01(u * 1.4 - j * 0.14);
-      if (v > 0 && v < 1) mbDiamond(x, y, 10 + (36 + j * 20) * easeOut(v), j === 1 ? '#ffffff' : a.color, 3 * (1 - v) + 0.5, 1 - v);
-    }
-  });
-  mbShards(a, x, y, 22, 210, 0.8, [a.color, '#ffffff', MB_LIGHT, MASTERY_GOLD]);
+  // 비전 붕괴: E04 마름모 노바를 4/3배로 + 바닥 충격 고리(C3) + 마름모 조각
+  const ramp = mgA(a, 'mana');
+  mgFx(a, 'e04', x, y, ramp, { scale: 4 / 3, life: 0.6, fade: 0.35, add: true });
+  mgFx(a, 'e04', x, y, ramp, { scale: 2 / 3, life: 0.35, delay: 0.12, fade: 0.4, add: true, flip: true });
+  mgRing(x, ramp, 1.6, 0.5);
+  mbShards(a, x, y, 14, 210, 0.8, [a.color, '#ffffff', MB_LIGHT, MASTERY_GOLD]);
 }
 
 Object.assign(SKILL_FX, {
@@ -343,10 +227,10 @@ Object.assign(SKILL_FX, {
       for (const t of a.targets(i)) if (Math.abs(t.x - x) > 20) mbZapFx(a, x, y + 10, t.x, t.y);
       impact({ stop: 0.1, shake: 0.35 });
     },
-    // 맞은 자리에 작은 마름모 룬이 잠깐 새겨진다 (화살 긁힌 자국 대신)
-    marks(a, t, pow) {
-      const s = 4 + 2 * Math.min(2, pow), x = t.x + rand(-5, 5), y = t.y + rand(-7, 5);
-      aFx(a, 0, 0.3, (u) => mbDiamond(x, y, s * (0.6 + 0.4 * easeOut(u)), u < 0.3 ? '#ffffff' : a.color, 1.5, 1 - u));
+    // 명중 그림 K04 (겹 마름모가 차례로 깨지는 파열): Lv1 앞 3프레임, ★ 4프레임, ★★ 이상 전부. 2/3배, ★★★ 막타(비전 붕괴)만 1배
+    hitTex(a, t, share, i, n) {
+      const m = a.mast || 0, big = m >= 3 && i === n - 1;
+      mgFx(a, 'k04', t.x + rand(-3, 3), t.y + rand(-4, 3), mgA(a, 'mana'), { scale: big ? 1 : 2 / 3, life: big ? 0.34 : 0.26, frames: [3, 4, 5, 5][m], fade: 0.3, flip: Math.random() < 0.5 });
     },
     kb: 10,
   },

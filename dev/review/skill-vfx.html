@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스킬 VFX 전수조사 검토 (개발용)</title>
+<!--
+  docs/specs/skill-vfx.md 검토 페이지. 표 내용은 스펙 파일을 그대로 읽어 그린다 (스펙을 고치면 새로고침만 하면 된다).
+  캡처는 dev/vfx-survey/, 재생 버튼은 dev/skills.html?cls=&skill=&stage= 로 연다.
+  로컬 서버에서만: python -m http.server 8817  →  http://localhost:8817/dev/review/skill-vfx.html
+-->
+<style>
+  :root { --bg: #14161d; --panel: #1d2029; --panel2: #232733; --line: rgba(255,255,255,.09); --text: #f3efe6; --muted: rgba(243,239,230,.6);
+          --accent: #ffb13b; --swap: #ff6a5c; --boost: #ffd257; --keep: #6fd98a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  main { max-width: 1280px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 19px; margin: 0 0 2px; }
+  h2 { font-size: 16px; margin: 28px 0 10px; padding-top: 6px; border-top: 1px solid var(--line); }
+  .sub { color: var(--muted); }
+  code { background: rgba(255,255,255,.07); padding: 0 4px; border-radius: 4px; font-size: 12px; }
+  a { color: #9fd8ff; }
+  nav { position: sticky; top: 0; z-index: 5; background: rgba(20,22,29,.95); backdrop-filter: blur(4px); padding: 8px 0; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px; }
+  nav a { color: var(--text); text-decoration: none; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; }
+  table.sum { border-collapse: collapse; margin: 8px 0; }
+  table.sum td, table.sum th { border: 1px solid var(--line); padding: 4px 12px; text-align: center; }
+  table.sum th { background: var(--panel); font-weight: 600; }
+  ol.problems li { margin: 6px 0; }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 12px; }
+  .filters .label { color: var(--muted); margin-right: 2px; }
+  button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; cursor: pointer; }
+  button:hover { background: #262a36; }
+  button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .card.hide { display: none; }
+  .head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .head b { font-size: 14px; }
+  .tag { border-radius: 6px; padding: 0 7px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); }
+  .verdict { font-weight: 700; border-radius: 6px; padding: 0 8px; color: #14161d; }
+  .v-교체 { background: var(--swap); } .v-부분교체 { background: var(--boost); } .v-유지 { background: var(--keep); }
+  .score { font-weight: 700; letter-spacing: 1px; color: var(--accent); }
+  .shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 8px 0 6px; }
+  .shots.three { grid-template-columns: repeat(3, 1fr); }
+  .shots figure { margin: 0; }
+  .shots img { width: 100%; display: block; image-rendering: pixelated; border-radius: 4px; background: #000; cursor: zoom-in; }
+  .shots figcaption { color: var(--muted); font-size: 11px; text-align: center; }
+  .now { margin: 2px 0; }
+  .memo { color: var(--muted); }
+  .play { margin-left: auto; display: flex; gap: 4px; }
+  .play a { text-decoration: none; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; color: var(--text); font-size: 12px; }
+  .play a:hover { border-color: var(--accent); }
+  .md-table { border-collapse: collapse; width: 100%; margin: 6px 0; }
+  .md-table td, .md-table th { border: 1px solid var(--line); padding: 5px 8px; vertical-align: top; text-align: left; }
+  .md-table th { background: var(--panel); }
+  .fam { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fam figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+  .fam img { width: 100%; image-rendering: pixelated; cursor: zoom-in; display: block; }
+  .fam figcaption { color: var(--muted); margin-top: 4px; }
+  .spot { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 10px; }
+  .spot .card img { width: 100%; image-rendering: pixelated; border-radius: 4px; cursor: zoom-in; display: block; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  ul.check { list-style: none; padding: 0; }
+  ul.check li { margin: 5px 0; }
+  #lb { position: fixed; inset: 0; background: rgba(0,0,0,.88); display: none; align-items: center; justify-content: center; z-index: 20; cursor: zoom-out; flex-direction: column; gap: 8px; }
+  #lb img { max-width: 96vw; max-height: 88vh; image-rendering: pixelated; }
+  #lb div { color: var(--muted); }
+  #err { color: var(--swap); }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .fam { grid-template-columns: 1fr; } .shots { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎆 스킬 VFX 전수조사 검토</h1>
+  <div class="sub">스펙: <code>docs/specs/skill-vfx.md</code> (이 페이지는 스펙 표를 그대로 읽어 그립니다) · 캡처: <code>dev/vfx-survey/</code> · 스킬 ★★★ 기준, Lv1 은 비교용 · 재생 버튼은 <code>dev/skills.html</code> 을 그 스킬로 엽니다</div>
+  <div id="err"></div>
+  <nav>
+    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#vfx1">⑤-1 마법사 계열</a><a href="#vfx4">⑤-4 검사 계열</a><a href="#vfx2">⑤-2 창기사 계열</a><a href="#vfx3">⑤-3 레인저</a><a href="#vfx0">⑤-0 본작업</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
+  </nav>
+
+  <h2 id="sum">요약</h2>
+  <div id="sumTable"></div>
+  <ol class="problems" id="problems"></ol>
+
+  <h2 id="rule">원칙 — 이펙트 그림은 전부 PixelLab 텍스처</h2>
+  <div id="ruleBlock"></div>
+
+  <h2 id="vfx1">⑤-1 마법사 계열 — 스킬 10종 · 평타 7종 텍스처 (확인 대기)</h2>
+  <div id="vfx1Block"></div>
+
+  <h2 id="vfx4">⑤-4 검사 계열 — 성기사·검성·대검전사·성좌기사·검신·파천검왕 (확인 대기)</h2>
+  <div class="sub">스킬 9종(궁극기 3종 포함)과 평타 6종의 이펙트 그림을 PixelLab 시트로 바꿨습니다 (<code>src/vfx-sword.js</code> + 원래 파일 안의 그리기, 시트 <code>src/vfx/*.png</code>). 아래 그림은 모두 줄 = 전 / 후. 속도 ×0.25 로 보면 잘 보입니다.
+    <br>▶ 스킬: 심판의 일격 <a href="../skills.html?cls=paladin&skill=judgment&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=paladin&skill=judgment&stage=1" target="_blank">★</a> <a href="../skills.html?cls=paladin&skill=judgment&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=paladin&skill=judgment&stage=3" target="_blank">★★★</a> · 성역 <a href="../skills.html?cls=paladin&skill=sanctuary&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=paladin&skill=sanctuary&stage=1" target="_blank">★</a> <a href="../skills.html?cls=paladin&skill=sanctuary&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=paladin&skill=sanctuary&stage=3" target="_blank">★★★</a> · 질풍난무 <a href="../skills.html?cls=blademaster&skill=gale&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=blademaster&skill=gale&stage=1" target="_blank">★</a> <a href="../skills.html?cls=blademaster&skill=gale&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=blademaster&skill=gale&stage=3" target="_blank">★★★</a> · 일섬 <a href="../skills.html?cls=blademaster&skill=iaido&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=blademaster&skill=iaido&stage=1" target="_blank">★</a> <a href="../skills.html?cls=blademaster&skill=iaido&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=blademaster&skill=iaido&stage=3" target="_blank">★★★</a> · 대검 횡참 <a href="../skills.html?cls=greatswordsman&skill=wideCleave&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=greatswordsman&skill=wideCleave&stage=1" target="_blank">★</a> <a href="../skills.html?cls=greatswordsman&skill=wideCleave&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=greatswordsman&skill=wideCleave&stage=3" target="_blank">★★★</a> · 돌진 격돌 <a href="../skills.html?cls=greatswordsman&skill=ramCharge&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=greatswordsman&skill=ramCharge&stage=1" target="_blank">★</a> <a href="../skills.html?cls=greatswordsman&skill=ramCharge&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=greatswordsman&skill=ramCharge&stage=3" target="_blank">★★★</a> · 성좌 강림 <a href="../skills.html?cls=archon&skill=starJudgment&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=archon&skill=starJudgment&stage=1" target="_blank">★</a> <a href="../skills.html?cls=archon&skill=starJudgment&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=archon&skill=starJudgment&stage=3" target="_blank">★★★</a> · 천검 <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=1" target="_blank">★</a> <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=3" target="_blank">★★★</a> · 파천참 <a href="../skills.html?cls=tyrant&skill=skyBreak&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=tyrant&skill=skyBreak&stage=1" target="_blank">★</a> <a href="../skills.html?cls=tyrant&skill=skyBreak&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=tyrant&skill=skyBreak&stage=3" target="_blank">★★★</a>
+    <br>▶ 평타: <a href="../skills.html?mode=basic&cls=paladin" target="_blank">성기사</a> · <a href="../skills.html?mode=basic&cls=blademaster" target="_blank">검성</a> · <a href="../skills.html?mode=basic&cls=greatswordsman" target="_blank">대검전사</a> · <a href="../skills.html?mode=basic&cls=archon" target="_blank">성좌기사</a> · <a href="../skills.html?mode=basic&cls=swordsaint" target="_blank">검신</a> · <a href="../skills.html?mode=basic&cls=tyrant" target="_blank">파천검왕</a>
+    <br>▶ <a href="../../index.html?server=http://127.0.0.1:9" target="_blank">실제 게임 (오프라인)</a> — 상태는 스펙 "⑤-4 확인 방법"의 <code>vfx4Preset('tyrant', 3)</code></div>
+  <div id="vfx4Key" style="margin:8px 0"></div>
+  <div id="vfx4Sheets" class="fam" style="grid-template-columns:repeat(4,1fr);margin:10px 0"></div>
+  <div id="vfx4Nums"></div>
+  <div id="vfx4List"></div>
+
+  <h2 id="vfx2">⑤-2 창기사 계열 — 텍스처 39장 + 시트 5장 (확인 대기)</h2>
+  <div class="sub">창기사·용기병·할버디어·랜서·용황·전쟁군주·천마장군의 평타 궤적(W)·평타 명중(H)·스킬 본체(E)·스킬 명중(K)·궁극기(F)를 PixelLab 시트로 바꿨습니다. 코드는 <code>src/vfx-spear.js</code>(시트 등록·장병기 궤적·도트 용 마디·찌르기 줄) + 계열 연출 함수만 고쳤습니다. 원본·요청은 <code>dev/vfx2/</code>.
+    ▶ 평타: <a href="../skills.html?mode=basic&cls=lancer" target="_blank">창기사</a> · <a href="../skills.html?mode=basic&cls=dragoon" target="_blank">용기병</a> · <a href="../skills.html?mode=basic&cls=halberdier" target="_blank">할버디어</a> · <a href="../skills.html?mode=basic&cls=cavalier" target="_blank">랜서</a> · <a href="../skills.html?mode=basic&cls=dragonlord" target="_blank">용황</a> · <a href="../skills.html?mode=basic&cls=warlord" target="_blank">전쟁군주</a> · <a href="../skills.html?mode=basic&cls=skyGeneral" target="_blank">천마장군</a></div>
+  <h3>평타 전후 (명중 직후) · 계열 흑백 비교</h3>
+  <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/basic.png" data-zoom="평타 전후" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">줄 = 직업, 칸 = 1번 동작 전·후 | 2번 동작 전·후. 2차→3차(용기병→용황, 할버디어→전쟁군주, 랜서→천마장군)가 궤적·명중 모양부터 다르다</figcaption></figure>
+  <div class="pair" style="margin:0 0 12px"><figure style="margin:0"><img src="../vfx-survey/vfx2/family-spear.png" data-zoom="계열 비교" style="width:100%;image-rendering:pixelated;cursor:zoom-in"><figcaption class="sub">줄 = 2차 3종 + 3차 3종, 칸 = 평타 1·2번 + 스킬 ★★★</figcaption></figure><figure style="margin:0"><img src="../vfx-survey/vfx2/family-spear-gray.png" data-zoom="계열 비교 흑백" style="width:100%;image-rendering:pixelated;cursor:zoom-in"><figcaption class="sub">흑백 — 모양만으로 구분되는지</figcaption></figure></div>
+  <h3>스킬 10종 전후</h3>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/piercingThrust.png" data-zoom="관통 찌르기 — 찌르기 줄 W5 · ★★★ 드릴 창 E02 · 명중 K02" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">관통 찌르기 — 찌르기 줄 W5 · ★★★ 드릴 창 E02 · 명중 K02 · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=lancer&skill=piercingThrust&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=lancer&skill=piercingThrust&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/dragonFall.png" data-zoom="용추락 — ★ 와이번 급강하 E15 · 착지 용 발톱 자국 E16 · ★★★ 유성룡(E15 머리+마디) · 명중 K11" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">용추락 — ★ 와이번 급강하 E15 · 착지 용 발톱 자국 E16 · ★★★ 유성룡(E15 머리+마디) · 명중 K11 · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=dragoon&skill=dragonFall&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=dragoon&skill=dragonFall&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/dragonBreath.png" data-zoom="용의 숨결 — 불꽃 원뿔 E17 · ★★★ 광선 타일 E18 (용머리 도트는 그대로) · 명중 K12" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">용의 숨결 — 불꽃 원뿔 E17 · ★★★ 광선 타일 E18 (용머리 도트는 그대로) · 명중 K12 · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=dragoon&skill=dragonBreath&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=dragoon&skill=dragonBreath&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/whirlwind.png" data-zoom="대회전 — 할버드 호 W6 궤도 · ★★ 흙 회오리 E19 · ★★★ 먹구름·낙뢰 제거 → 흙 회오리 + 도끼날 고리 E20 · 명중 K13" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">대회전 — 할버드 호 W6 궤도 · ★★ 흙 회오리 E19 · ★★★ 먹구름·낙뢰 제거 → 흙 회오리 + 도끼날 고리 E20 · 명중 K13 · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=halberdier&skill=whirlwind&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=halberdier&skill=whirlwind&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/earthSplitter.png" data-zoom="대지 가르기 — 바위판 융기 E21 (용추락 발톱 자국과 분리) · ★★★ 용암 간헐천 E22 · 명중 K14" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">대지 가르기 — 바위판 융기 E21 (용추락 발톱 자국과 분리) · ★★★ 용암 간헐천 E22 · 명중 K14 · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=halberdier&skill=earthSplitter&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=halberdier&skill=earthSplitter&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/cavalryCharge.png" data-zoom="기병 돌격 — 돌격창 속도선 W7 · ★★★ 빛의 천마 E23 · 명중 K15" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">기병 돌격 — 돌격창 속도선 W7 · ★★★ 빛의 천마 E23 · 명중 K15 · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=cavalier&skill=cavalryCharge&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=cavalier&skill=cavalryCharge&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/shieldWall.png" data-zoom="방패 벽 — 빛 원·돔(성역과 같던 코드) 제거 → 앞에 세우는 문장 방패 벽 E24 · 명중 K16 (★★★ 돌 성벽 도트는 그대로)" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">방패 벽 — 빛 원·돔(성역과 같던 코드) 제거 → 앞에 세우는 문장 방패 벽 E24 · 명중 K16 (★★★ 돌 성벽 도트는 그대로) · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=cavalier&skill=shieldWall&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=cavalier&skill=shieldWall&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/dragonEmperor.png" data-zoom="용황 강림 — 용황 F08(머리+마디)·흑룡 E15 · 숨결·불꽃 줄 E17 · 폭발·명중 K32 · ★★★ 용신의 눈 배경 F09" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">용황 강림 — 용황 F08(머리+마디)·흑룡 E15 · 숨결·불꽃 줄 E17 · 폭발·명중 K32 · ★★★ 용신의 눈 배경 F09 · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=dragonlord&skill=dragonEmperor&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=dragonlord&skill=dragonEmperor&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/worldBreaker.png" data-zoom="천붕 — 떨어지는 도끼·거인의 도끼 F10 · 용암 기둥 F10l · 궤적 W6a · 명중 K33 (풀 얹은 땅판 도트는 그대로)" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">천붕 — 떨어지는 도끼·거인의 도끼 F10 · 용암 기둥 F10l · 궤적 W6a · 명중 K33 (풀 얹은 땅판 도트는 그대로) · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=warlord&skill=worldBreaker&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=warlord&skill=worldBreaker&stage=0" target="_blank">Lv1</a></figcaption></figure>
+    <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/cavalryLegion.png" data-zoom="천마군단 — 빛의 기병 E23r · 천마 E23 · 창비 W7a · ★★★ 군단 그림자 F11 · 명중 K34 · 막타 섬광 α0.6·0.15초" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">천마군단 — 빛의 기병 E23r · 천마 E23 · 창비 W7a · ★★★ 군단 그림자 F11 · 명중 K34 · 막타 섬광 α0.6·0.15초 · 줄 = Lv1·★·★★·★★★, 칸 = 전 a·b·c | 후 a·b·c · ▶ <a href="../skills.html?cls=skyGeneral&skill=cavalryLegion&stage=3" target="_blank">★★★ 재생</a> <a href="../skills.html?cls=skyGeneral&skill=cavalryLegion&stage=0" target="_blank">Lv1</a></figcaption></figure>
+  <h3>시트 모음 (원본 명암 — 게임에서는 직업 색으로 다시 칠함)</h3>
+  <figure style="margin:0 0 12px"><img src="../vfx-survey/vfx2/textures.png" data-zoom="⑤-2 시트" style="max-width:100%;image-rendering:pixelated;cursor:zoom-in"></figure>
+  <h3>측정</h3>
+  <table><tr><th>항목</th><th>퀄업 전</th><th>퀄업 후</th><th>메모</th></tr>
+    <tr><td>전 직업 시전 예외</td><td>—</td><td>0 / 160회</td><td>스킬 40종 × 4단계 (<code>dev/skills.html</code> step 루프)</td></tr>
+    <tr><td>10분 사냥 골드 합 (7직업 × Lv1·★★★ × 시드 8)</td><td>9,018,769</td><td>8,991,529 (−0.30%)</td><td>직업별로는 ±5% 잡음(정지 시간이 갈라지면 난수 순서가 달라짐). 진행을 정하는 게임 정지 합은 1409.9 → 1412.2초 (+0.003% of time)</td></tr>
+    <tr><td>프레임 비용 ms (tick+render) — 할버디어 평타 · 용황 평타</td><td>3.25 · 2.40</td><td>1.93 · 2.07</td><td rowspan="3">숨은 탭 600프레임 평균, 옛 코드는 기준 커밋을 8874 로 띄워 같은 방식</td></tr>
+    <tr><td>대회전 ★★★ · 기병 돌격 ★★★</td><td>2.85 · 3.82</td><td>2.03 · 3.59</td></tr>
+    <tr><td>용황 강림 · 천붕 · 천마군단 ★★★</td><td>2.98 · 3.50 · 6.36</td><td>2.59 · 2.68 · 4.24</td></tr>
+    <tr><td>하단바 양 끝 밝기 변화 (2차 7종 × Lv1~★★★)</td><td>기병 돌격 ★★★ 0.031 · 관통 찌르기 ★★★ 0.027</td><td>최대 0.041 (기병 돌격 ★★★), 나머지 0.002~0.038</td><td>기준 ±0.05. 처음엔 0.14 → 돌진 끝 섬광·충격을 기사 뒤쪽으로 옮겨 맞춤</td></tr>
+  </table>
+
+  <h2 id="vfx0">⑤-0 본작업 — 공통 기반 + 첫 텍스처 (사용자 확인 완료) · v3 시전 오라 C17·C18 (확인 대기)</h2>
+  <div class="sub">이제 게임 src 에 들어갔습니다 (<code>src/vfx-tex.js</code>, 시트 <code>src/vfx/*.png</code>). 시험 패치 없이 그대로 재생됩니다. 속도 ×0.25 로 보면 잘 보입니다.
+    <br>▶ 평타: <a href="../skills.html?mode=basic&cls=squire" target="_blank">견습 기사</a> · <a href="../skills.html?mode=basic&cls=swordsman" target="_blank">검사</a> · <a href="../skills.html?mode=basic&cls=paladin" target="_blank">성기사 (번쩍임만 바뀜)</a>
+    &nbsp;▶ 강철 베기: <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=0" target="_blank">Lv1</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=1" target="_blank">★</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=2" target="_blank">★★</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=3" target="_blank">★★★</a>
+    &nbsp;▶ <a href="../../index.html?server=http://127.0.0.1:9" target="_blank">실제 게임 (오프라인)</a> — 상태는 스펙 "⑤-0 확인 방법"의 <code>vfx0Preset('swordsman', 1)</code></div>
+  <div id="vfx0Sheets" class="fam" style="grid-template-columns:repeat(4,1fr);margin:10px 0"></div>
+  <div id="vfx0Nums"></div>
+  <div id="vfx0List"></div>
+
+  <h2 id="vfx3">⑤-3 레인저 계열 — 활·석궁 7직업 (확인 대기)</h2>
+  <div class="sub">레인저·저격수·마궁수·석궁사수·신궁·차원궁사·공성포수. 코드 <code>src/vfx-ranger.js</code>(시트 등록·투사체·명중 도우미) + 각 스킬 파일, 시트 <code>src/vfx/*.png</code> 35장. 비교 그림은 위 줄 = 전(07c7a9c), 아래 줄 = 후, 칸은 첫 타격 직전 → 끝을 고르게 6장.
+    <br>▶ 평타: <span id="vfx3Basic"></span>
+    <br>▶ 스킬 (Lv1 · ★ · ★★ · ★★★): <span id="vfx3Play"></span></div>
+  <div id="vfx3Sheets" class="fam" style="grid-template-columns:repeat(6,1fr);margin:10px 0"></div>
+  <div id="vfx3Nums"></div>
+  <div id="vfx3List"></div>
+
+  <h2 id="trial">⑤-0 시험 전후 — PixelLab 텍스처 (W1 장검 궤적 · H1 명중 섬광 · C1 초승달 참격)</h2>
+  <div class="sub">위 줄 = 지금(사각 칸·벡터), 아래 줄 = 같은 프레임에 텍스처를 씌운 모습. 게임 src 는 그대로이고 시뮬레이터 패치(<code>dev/review/vfx-trial.js</code>)로 씌웠습니다. 성기사는 같은 텍스처를 금색으로 다시 칠한 것입니다.
+    직접 보기: <a href="../skills.html?mode=basic&cls=swordsman&patch=vfx-trial" target="_blank">▶ 검사 평타</a> · <a href="../skills.html?mode=basic&cls=paladin&patch=vfx-trial" target="_blank">▶ 성기사 평타</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=0&patch=vfx-trial" target="_blank">▶ 강철 베기 Lv1</a> · <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=1&patch=vfx-trial" target="_blank">▶ 강철 베기 ★</a> — 재생 줄 "🧪 텍스처 시험" 버튼(또는 T 키)으로 켬/끔, 속도 ×0.25 로 보면 잘 보입니다.</div>
+  <div id="trialSheets" class="fam" style="grid-template-columns:repeat(3,1fr);margin:10px 0"></div>
+  <div id="trialList"></div>
+
+  <h2 id="spot">먼저 볼 것 — 문제 스킬 바로 재생</h2>
+  <div class="sub">재생 링크는 새 탭에서 시뮬레이터를 그 스킬·단계로 고정해 반복 재생합니다 (스페이스 = 일시정지, → = 한 프레임).</div>
+  <div class="spot" id="spotList"></div>
+
+  <h2 id="flash">하단바 전체 섬광 — 규칙 위반 11곳</h2>
+  <div class="sub"><code>skills.js:22-24</code> "궁극기 말고는 화면 전체를 번쩍이거나 어둡게 하지 않는다"(바탕화면 하단바 게임). 아래 2차 스킬 ★★★ 가 <code>dimBand</code> 로 하단바 전체를 덮습니다. 0.21 자잘이로 옮길지 정해 주세요.</div>
+  <div class="spot" id="flashList"></div>
+
+  <h2 id="skills">스킬 40종</h2>
+  <div class="filters" id="fSkills"></div>
+  <div class="grid" id="skillCards"></div>
+
+  <h2 id="basics">평타·투사체 29종</h2>
+  <div class="sub">a = 휘두르기 시작 / b = 명중 / c = 명중 직후 (1번 동작). 공통: 명중 스파크·히트스톱·흔들림 0, 원거리 착탄 효과는 화염·뇌전만.</div>
+  <div class="filters" id="fBasics"></div>
+  <div class="grid" id="basicCards"></div>
+
+  <h2 id="family">계열 비교 — 색깔놀이 점검</h2>
+  <div class="sub">줄 = 2차 3종 + 3차 3종, 칸 = 스킬 2개(3차는 궁극기 b·c) + 평타. 흑백판에서 구분되는지가 기준입니다.</div>
+  <div id="famTable"></div>
+  <div class="fam" id="famImgs"></div>
+
+  <h2 id="tex">텍스처 목록 (PixelLab 스프라이트 시트)</h2>
+  <div class="sub">카드 메모 끝의 <b>텍스처:</b> 번호가 이 표의 번호입니다. 크기는 도트 단위(1도트 = 화면 3px).</div>
+  <div id="texBlock"></div>
+
+  <h2 id="stop">정지(히트스톱)·흔들림 기준</h2>
+  <div id="stopBlock"></div>
+
+  <h2 id="order">퀄업 순서 · PixelLab 사용량</h2>
+  <div id="orderBlock"></div>
+
+  <h2 id="accept">수용 기준</h2>
+  <ul class="check" id="acceptList"></ul>
+  <h2>사용자가 정할 것</h2>
+  <ul id="todo"></ul>
+</main>
+<div id="lb"><img alt=""><div></div></div>
+
+<script>
+'use strict';
+const SHOT = '../vfx-survey/';
+// 스펙 표의 한글 직업 이름 → 직업 id, 1차 계열
+const JOB = {
+  '견습 기사': ['squire', '공통'],
+  '검사': ['swordsman', '검사'], '성기사': ['paladin', '검사'], '검성': ['blademaster', '검사'], '대검전사': ['greatswordsman', '검사'],
+  '성좌기사': ['archon', '검사'], '검신': ['swordsaint', '검사'], '파천검왕': ['tyrant', '검사'],
+  '창기사': ['lancer', '창기사'], '용기병': ['dragoon', '창기사'], '할버디어': ['halberdier', '창기사'], '랜서': ['cavalier', '창기사'],
+  '용황': ['dragonlord', '창기사'], '전쟁군주': ['warlord', '창기사'], '천마장군': ['skyGeneral', '창기사'],
+  '레인저': ['ranger', '레인저'], '저격수': ['marksman', '레인저'], '마궁수': ['arcaneArcher', '레인저'], '석궁사수': ['arbalest', '레인저'],
+  '신궁': ['deadeye', '레인저'], '차원궁사': ['voidArcher', '레인저'], '공성포수': ['siegeMaster', '레인저'],
+  '마법사': ['mage', '마법사'], '화염술사': ['pyromancer', '마법사'], '빙결술사': ['cryomancer', '마법사'], '뇌전술사': ['electromancer', '마법사'],
+  '대마도사': ['archmage', '마법사'], '빙결의 군주': ['frostlord', '마법사'], '뇌제': ['thunderEmperor', '마법사'],
+};
+const play = (cls, skill, stage = 3) => `../skills.html?cls=${cls}&skill=${skill}&stage=${stage}`;
+const playBasic = (cls) => `../skills.html?mode=basic&cls=${cls}`;
+
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// 스펙 마크다운 한 줄 → HTML (코드·굵게·링크만)
+const md = (s) => esc(s)
+  .replace(/`([^`]+)`/g, '<code>$1</code>')
+  .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+  .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, u) => /^https?:/.test(u) ? `<a href="${u}">${t}</a>` : t);
+const cells = (line) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+
+// 스펙에서 "| 헤더 시작..." 줄로 시작하는 표를 찾아 [헤더, 행들] 로
+function tableAfter(lines, startsWith) {
+  const i = lines.findIndex((l) => l.startsWith(startsWith));
+  if (i < 0) return null;
+  const head = cells(lines[i]); const rows = [];
+  for (let j = i + 2; j < lines.length && lines[j].startsWith('|'); j++) rows.push(cells(lines[j]));
+  return { head, rows };
+}
+function mdTable(t) {
+  if (!t) return '';
+  return `<table class="md-table"><tr>${t.head.map((h) => `<th>${md(h)}</th>`).join('')}</tr>${t.rows.map((r) => `<tr>${r.map((c) => `<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table>`;
+}
+// "## 제목" 부터 다음 "## " 전까지의 줄
+function section(lines, title) {
+  const i = lines.findIndex((l) => l.startsWith(title));
+  if (i < 0) return [];
+  const out = [];
+  for (let j = i + 1; j < lines.length && !/^## /.test(lines[j]); j++) out.push(lines[j]);
+  return out;
+}
+// 표·목록이 섞인 문단 묶음을 간단히 HTML 로
+function block(ls) {
+  let html = '', k = 0;
+  while (k < ls.length) {
+    const l = ls[k];
+    if (l.startsWith('|')) { const t = { head: cells(l), rows: [] }; k += 2; while (k < ls.length && ls[k].startsWith('|')) t.rows.push(cells(ls[k++])); html += mdTable(t); continue; }
+    if (/^#### |^### /.test(l)) html += `<h3 style="font-size:14px;margin:14px 0 6px">${md(l.replace(/^#+ /, ''))}</h3>`;
+    else if (/^\s*- /.test(l)) html += `<div style="margin:3px 0 3px ${l.match(/^\s*/)[0].length * 8 + 4}px">• ${md(l.replace(/^\s*- /, ''))}</div>`;
+    else if (l.trim()) html += `<p style="margin:6px 0">${md(l)}</p>`;
+    k++;
+  }
+  return html;
+}
+
+const lb = document.getElementById('lb');
+function zoom(src, cap) { lb.querySelector('img').src = src; lb.querySelector('div').textContent = cap || ''; lb.style.display = 'flex'; }
+lb.onclick = () => { lb.style.display = 'none'; };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.style.display = 'none'; });
+document.addEventListener('click', (e) => { const im = e.target.closest('img[data-zoom]'); if (im) zoom(im.src, im.dataset.zoom); });
+const img = (file, cap) => `<img loading="lazy" src="${SHOT}${file}" alt="${esc(cap)}" data-zoom="${esc(cap)}">`;
+
+// 필터 버튼 묶음
+function filters(el, groups, apply) {
+  const st = {};
+  el.innerHTML = '';
+  for (const [key, label, opts] of groups) {
+    st[key] = '전체';
+    const lab = document.createElement('span'); lab.className = 'label'; lab.textContent = label; el.appendChild(lab);
+    for (const o of ['전체', ...opts]) {
+      const b = document.createElement('button'); b.textContent = o; b.dataset.k = key; if (o === '전체') b.classList.add('on');
+      b.onclick = () => { st[key] = o; el.querySelectorAll(`button[data-k="${key}"]`).forEach((x) => x.classList.toggle('on', x === b)); apply(st); };
+      el.appendChild(b);
+    }
+    const sp = document.createElement('span'); sp.style.width = '10px'; el.appendChild(sp);
+  }
+  return st;
+}
+const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) => {
+  const ok = Object.entries(st).every(([k, v]) => v === '전체' || c.dataset[k] === v);
+  c.classList.toggle('hide', !ok);
+});
+
+(async function main() {
+  let text;
+  try { text = await (await fetch('../../docs/specs/skill-vfx.md', { cache: 'no-store' })).text(); }
+  catch (e) { document.getElementById('err').textContent = '스펙 파일을 못 읽었어요 — 저장소 루트에서 로컬 서버를 띄웠는지 확인하세요'; return; }
+  const lines = text.split(/\r?\n/);
+  const status = (lines.find((l) => l.startsWith('- 상태:')) || '').replace('- 상태:', '').trim();
+  document.querySelector('.sub').insertAdjacentHTML('afterbegin', `<b>상태: ${esc(status)}</b> · `);
+
+  // 요약 표 + 전체 문제
+  document.getElementById('sumTable').innerHTML = `<table class="sum">${(() => {
+    const t = tableAfter(lines, '| | 1점'); if (!t) return '';
+    return `<tr>${t.head.map((h) => `<th>${md(h)}</th>`).join('')}</tr>` + t.rows.map((r) => `<tr>${r.map((c, i) => `<${i ? 'td' : 'th'}>${md(c)}</${i ? 'td' : 'th'}>`).join('')}</tr>`).join('');
+  })()}</table>`;
+  const sumLines = section(lines, '## 조사 결과 요약');
+  const probs = []; let cur = null;
+  for (const l of sumLines) {
+    const m = l.match(/^(\d+)\. (.*)/);
+    if (m) { cur = [m[2]]; probs.push(cur); } else if (cur && l.trim() && !l.startsWith('|')) cur.push(l.trim());
+  }
+  document.getElementById('problems').innerHTML = probs.map((p) => `<li>${p.map(md).join('<br>')}</li>`).join('');
+
+  // 스킬 40종
+  const sk = tableAfter(lines, '| 차수 | 직업 | 스킬 (id)');
+  const skills = sk.rows.map((r) => {
+    const [tier, job, name, code, now, score, verdict, memo] = r;
+    const id = (name.match(/\(([A-Za-z]+)\)/) || [])[1];
+    const [cls, fam] = JOB[job] || ['', '?'];
+    return { tier, job, name, code, now, score, verdict, memo, id, cls, fam };
+  });
+  const skBox = document.getElementById('skillCards');
+  skBox.innerHTML = skills.map((s) => `
+    <div class="card" data-verdict="${s.verdict}" data-fam="${s.fam}" data-tier="${s.tier}" data-score="${s.score}" id="sk-${s.id}">
+      <div class="head"><b>${md(s.name)}</b><span class="tag">${s.tier} · ${s.job}</span><span class="verdict v-${s.verdict.replace(/\s/g, '')}">${s.verdict}</span><span class="score">${'★'.repeat(+s.score || 0)}${'☆'.repeat(3 - (+s.score || 0))}</span>
+        <span class="play"><a href="${play(s.cls, s.id, 3)}" target="_blank">▶ ★★★</a><a href="${play(s.cls, s.id, 0)}" target="_blank">▶ Lv1</a></span></div>
+      <div class="shots">
+        <figure>${img(`${s.id}-a.png`, `${s.name} — a 시작`)}<figcaption>a 시작</figcaption></figure>
+        <figure>${img(`${s.id}-b.png`, `${s.name} — b 타격`)}<figcaption>b 타격</figcaption></figure>
+        <figure>${img(`${s.id}-c.png`, `${s.name} — c 끝`)}<figcaption>c 끝</figcaption></figure>
+        <figure>${img(`${s.id}-l1.png`, `${s.name} — Lv1`)}<figcaption>Lv1</figcaption></figure>
+      </div>
+      <div class="now">${md(s.now)}</div><div class="memo">${md(s.memo)} <span style="opacity:.6">(${md(s.code)})</span></div>
+    </div>`).join('');
+  filters(document.getElementById('fSkills'), [
+    ['verdict', '판정', ['교체', '부분 교체', '유지']],
+    ['fam', '계열', ['검사', '창기사', '레인저', '마법사']],
+    ['tier', '차수', ['1차', '2차', '궁극기']],
+    ['score', '점수', ['1', '2', '3']],
+  ], applyCards(skBox));
+
+  // 평타 29종
+  const bt = tableAfter(lines, '| 차수 | 직업 | 무기');
+  const basics = bt.rows.map(([tier, job, weapon, now, score, verdict, memo]) => ({ tier, job, weapon, now, score, verdict, memo, cls: (JOB[job] || [])[0], fam: (JOB[job] || [])[1] }));
+  const bBox = document.getElementById('basicCards');
+  bBox.innerHTML = basics.map((b) => `
+    <div class="card" data-verdict="${b.verdict}" data-fam="${b.fam}" data-tier="${b.tier}" data-score="${b.score}">
+      <div class="head"><b>${md(b.job)}</b><span class="tag">${b.tier} · ${md(b.weapon)}</span><span class="verdict v-${b.verdict.replace(/\s/g, '')}">${b.verdict}</span><span class="score">${'★'.repeat(+b.score || 0)}${'☆'.repeat(3 - (+b.score || 0))}</span>
+        <span class="play"><a href="${playBasic(b.cls)}" target="_blank">▶ 평타</a></span></div>
+      <div class="shots three">
+        <figure>${img(`basic-${b.cls}-a.png`, `${b.job} 평타 — a`)}<figcaption>a 시작</figcaption></figure>
+        <figure>${img(`basic-${b.cls}-b.png`, `${b.job} 평타 — b 명중`)}<figcaption>b 명중</figcaption></figure>
+        <figure>${img(`basic-${b.cls}-c.png`, `${b.job} 평타 — c 직후`)}<figcaption>c 직후</figcaption></figure>
+      </div>
+      <div class="now">${md(b.now)}</div><div class="memo">${md(b.memo)}</div>
+    </div>`).join('');
+  filters(document.getElementById('fBasics'), [
+    ['verdict', '판정', ['교체', '부분 교체', '유지']],
+    ['fam', '계열', ['공통', '검사', '창기사', '레인저', '마법사']],
+    ['tier', '차수', ['견습', '1차', '2차', '3차']],
+    ['score', '점수', ['1', '2', '3']],
+  ], applyCards(bBox));
+
+  // 먼저 볼 것 — 문제 스킬 나란히
+  const byId = Object.fromEntries(skills.map((s) => [s.id, s]));
+  const spots = [
+    { t: '연쇄 번개 ★★★ — 1점, "뇌신의 손"이 해파리처럼 보임', ids: ['chainLightning'], f: 'a' },
+    { t: '뇌제 강림 — 1점, 2차 낙뢰의 확대판', ids: ['thunderJudgment', 'thunderstorm'], f: 'b' },
+    { t: '대회전 ★★★ ↔ 낙뢰 — 할버디어가 뇌전술사 그림(먹구름·낙뢰)', ids: ['whirlwind', 'thunderstorm'], f: 'b' },
+    { t: '성역 ↔ 방패 벽 — 계열 다른데 빛 원·돔 코드가 같음', ids: ['sanctuary', 'shieldWall'], f: 'b' },
+    { t: '대검 횡참 ↔ 돌진 격돌 — 피날레 부품 같음 + 하단바 섬광', ids: ['wideCleave', 'ramCharge'], f: 'b' },
+    { t: '심판의 일격 ★★★ — 대천사가 blur 필터 노란 얼룩', ids: ['judgment'], f: 'c' },
+    { t: '용황 강림 — 벡터 용, 도트 캐릭터와 가장 이질적', ids: ['dragonEmperor'], f: 'b' },
+    { t: 'Lv1 이 너무 약함 — 강철 베기 Lv1 ↔ ★★★', ids: ['steelCleave'], f: 'l1', g: 'b' },
+  ];
+  document.getElementById('spotList').innerHTML = spots.map((sp) => {
+    const pics = sp.g ? [[sp.ids[0], sp.f, 'Lv1'], [sp.ids[0], sp.g, '★★★']] : sp.ids.length > 1 ? sp.ids.map((id) => [id, sp.f, byId[id] ? byId[id].job : id]) : [[sp.ids[0], 'b', 'b 타격'], [sp.ids[0], sp.f === 'b' ? 'c' : sp.f, sp.f === 'b' ? 'c 끝' : sp.f + ' 장면']];
+    return `<div class="card"><div class="head"><b>${esc(sp.t)}</b></div>
+      <div class="pair" style="margin:8px 0">${pics.map(([id, f, cap]) => `<figure style="margin:0">${img(`${id}-${f}.png`, `${id} ${cap}`)}<figcaption class="sub" style="text-align:center">${esc(cap)}</figcaption></figure>`).join('')}</div>
+      <div class="play" style="margin:0">${[...new Set(sp.ids)].map((id) => byId[id] ? `<a href="${play(byId[id].cls, id, 3)}" target="_blank">▶ ${esc(byId[id].name.replace(/ \(.*/, ''))} ★★★</a>${sp.g ? `<a href="${play(byId[id].cls, id, 0)}" target="_blank">▶ Lv1</a>` : ''}` : '').join('')}</div></div>`;
+  }).join('');
+
+  // 하단바 섬광 11곳
+  const FLASH = [['gale', 'skills.js:1532'], ['iaido', 'skills.js:1588'], ['headshot', 'skills.js:2161'], ['starfall', 'skills.js:2349'], ['wideCleave', 'greatswordsman.js:136,144'], ['ramCharge', 'greatswordsman.js:229,238'],
+    ['cavalryCharge', 'cavalier.js:221'], ['blastBolt', 'arbalest.js:196'], ['boltStorm', 'arbalest.js:274'], ['chainLightning', 'chainLightning.js:129,137'], ['thunderstorm', 'thunderstorm.js:115,127']];
+  document.getElementById('flashList').innerHTML = FLASH.map(([id, at]) => {
+    const s = byId[id]; if (!s) return '';
+    return `<div class="card"><div class="head"><b>${md(s.name)}</b><span class="tag">${s.job}</span><span class="play"><a href="${play(s.cls, id, 3)}" target="_blank">▶ ★★★</a></span></div>
+      <div class="pair" style="margin:8px 0">${img(`${id}-b.png`, `${s.name} b`)}${img(`${id}-c.png`, `${s.name} c`)}</div><div class="memo"><code>${at}</code></div></div>`;
+  }).join('');
+
+  // 계열 비교
+  document.getElementById('famTable').innerHTML = mdTable(tableAfter(lines, '| 계열 | 2차 스킬끼리'));
+  const FAM = [['sword', '검사 계열'], ['spear', '창기사 계열'], ['bow', '레인저 계열'], ['mage', '마법사 계열']];
+  document.getElementById('famImgs').innerHTML = FAM.map(([k, n]) => `
+    <figure>${img(`family-${k}.png`, `${n} 컬러`)}<figcaption>${n} — 컬러</figcaption></figure>
+    <figure>${img(`family-${k}-gray.png`, `${n} 흑백`)}<figcaption>${n} — 흑백</figcaption></figure>`).join('');
+
+  // ⑤-0 본작업
+  document.getElementById('vfx0Sheets').innerHTML = [['w1', 'W1 장검 휘두르기 (키 그림 1장)'], ['w2', 'W2 장검 찌르기 (새로)'], ['h01', 'H01 견습 기사 평타 명중 (새로)'], ['h02', 'H02 검사 평타 명중 (시험 H1)'], ['e43', 'E43 강철 초승달 (시험 C1)'], ['k01', 'K01 강철 베기 명중 v2 (충격선·균열·파편 3조각)'], ['c17', 'C17 시전 오라 (40종 공용)'], ['c18', 'C18 발밑 고리']]
+    .map(([k, cap]) => `<figure><img src="../../src/vfx/${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap}</figcaption></figure>`).join('');
+  document.getElementById('vfx0Nums').innerHTML = `<table><tr><th>측정</th><th>퀄업 전</th><th>퀄업 후</th><th>메모</th></tr>
+    <tr><td>10분 사냥 골드 — 검신(공속 2.2) Lv1</td><td>10,430,820</td><td>10,454,905 (+0.2%)</td><td rowspan="4">시드 48개 × 10분(= 8시간) 합. 같은 시드라도 정지 시간이 달라지면 난수 순서가 갈라져 ±2% 안팎은 잡음이다</td></tr>
+    <tr><td>검신 ★★★</td><td>9,626,531</td><td>9,921,301 (+3.1%)</td></tr>
+    <tr><td>검사 Lv1</td><td>2,345,877</td><td>2,391,899 (+2.0%)</td></tr>
+    <tr><td>검사 ★★★</td><td>2,737,956</td><td>2,787,345 (+1.8%)</td></tr>
+    <tr><td>게임 정지 시간 / 10분 — 검신 Lv1 · ★★★</td><td>9.6초 · 45.9초</td><td>9.2초 · 30.7초</td><td rowspan="2">진행을 정하는 것은 이 값. 잔타가 연출 정지로 바뀐 만큼 줄었다. 검사 Lv1 만 +0.5초(막타 정지가 0.55→0.7배, 시간의 0.08%)</td></tr>
+    <tr><td>검사 Lv1 · ★★★</td><td>1.7초 · 12.0초</td><td>2.2초 · 9.4초</td></tr>
+    <tr><td>프레임 비용 (tick+render, ms) — 견습 평타 · 검사 평타</td><td>1.33 · 1.52</td><td>1.29 · 1.38</td><td rowspan="2">같은 탭에서 900프레임 평균</td></tr>
+    <tr><td>강철 베기 ★ · ★★★ 반복</td><td>1.72 · 1.82</td><td>1.51 · 1.71</td></tr>
+    <tr><td>하단바 양 끝 40px 밝기 변화 (최대)</td><td>0.009</td><td>0.007</td><td>기준 ±0.05</td></tr></table>`;
+  document.getElementById('vfx0List').innerHTML = [['steelCleave-aura-v3', 'v3 시전 오라 C17·C18 — 줄: 전(gradient 빛·벡터 고리) / v3(도트 불꽃 테두리·빛 고리). ★ · ★★ · ★★★ 순'], ['sheets-c17-c18', 'C17 시전 오라 루프 48×48 × 5 · C18 발밑 고리 루프 48×16 × 5 (원본, 직업 색으로 다시 칠해 씀)'], ['steelCleave-s3-v3', 'v3 강철 베기 ★★★ 막타 — 전 / v3'], ['steelCleave-s0-v3', 'v3 강철 베기 Lv1 — 전 / v3 (Lv1 은 오라 없음)'], ['basic-swordsman-v3', 'v3 검사 평타 — 전 / v3 1·2·3번 동작'], ['basic-squire-v3', 'v3 견습 기사 평타 — 전 / v3 1·2번 동작'],
+    ['steelCleave-s3-v2', 'v2 강철 베기 ★★★ 막타 — 전 / v1(가시 덩어리 4/3배) / v2(충격선·균열·파편 3조각, 1배)'], ['steelCleave-s1-v2', 'v2 강철 베기 ★ — K01 2/3배'], ['steelCleave-s2-v2', 'v2 강철 베기 ★★'], ['steelCleave-s0-v2', 'v2 강철 베기 Lv1'],
+    ['basic-swordsman-flash-v2', 'v2 검사 평타 — H02 2/3배, 몸통·칼끝 쪽으로 옮겨 얼굴이 보인다 (줄: 전 / v1 / v2)'], ['basic-squire-flash-v2', 'v2 견습 기사 평타 — H01 을 몸통·칼끝 쪽으로'], ['game-swordsman-v2', 'v2 실제 게임 — 위 두 줄 v1, 아래 두 줄 v2'],
+    ['basic-squire-flash', '견습 기사 평타 — 위 = 지금, 아래 = ⑤-0. 칸: 명중 1프레임 전, 명중 0~4프레임 (60fps). 피격 번쩍임이 반투명·짧아져 H01 이 보인다'], ['basic-swordsman-flash', '검사 평타 1·2번 동작 (내려베기·올려베기) — W1 키 그림 + H02'], ['basic-swordsman-m3', '검사 평타 3번 동작 (찌르기) — W2'], ['basic-paladin-flash', '성기사 평타 — 텍스처는 ⑤-4, 이번엔 피격 번쩍임만 바뀜'],
+    ['steelCleave-s0', '강철 베기 Lv1 — E43 2/3 크기 + K01 앞 3프레임 (칸: 명중 −2·0·2·5·9 프레임)'], ['steelCleave-s1', '강철 베기 ★ — E43 + 날아가는 검풍(E43 이동) + K01 (고리는 아직 벡터)'], ['steelCleave-s2', '강철 베기 ★★ — K01 만 바뀜 (대검·바위 송곳은 ⑤-4)'], ['steelCleave-s3', '강철 베기 ★★★ — 첫 베기 E43, 천강검 막타 K01 4/3배 (하늘 검은 ⑤-4 E01)'],
+    ['game-swordsman', '실제 게임(오프라인) 원정 — 강철 베기 ★ 명중 · 검사 평타 명중']]
+    .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}vfx0/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');
+
+  // ⑤-4 검사 계열
+  document.getElementById('vfx4Key').innerHTML = `<table><tr><th>스펙 ⑤-4 핵심</th><th>한 것</th></tr>
+    <tr><td>대천사를 도트 천사 시트로</td><td>E06 날개 편 대천사 5프레임 (들어 올림 → 내리침). blur 필터·금색 덧칠 실루엣 제거</td></tr>
+    <tr><td>성역 = 바닥 성문양 + 빛 기둥 울타리 (랜서 방패 벽과 분리)</td><td>Lv1 「성광」 E07 성문양만 · ★ 성문양 + E07b 빛 기둥 울타리 · ★★ 더 큰 울타리 · ★★★ E08 성당. 돔(gradient 반원)·돌기둥 fillRect 제거 — 방패 벽의 원·돔 코드와 더는 겹치지 않는다</td></tr>
+    <tr><td>횡참 ↔ 돌진 격돌 피날레 분리</td><td>횡참 = E13 단두대 대검이 떨어지고 K09 참격이 앞으로 줄줄이 · 돌진 격돌 = K10 어깨 충돌 원뿔 + E14 땅 파임(달린 자리 고랑, 내리찍은 자리 큰 고랑). 링 2개·흰 섬광 공용 부품 제거, ★★★ 돌진은 거대 대검을 쓰지 않는다</td></tr>
+    <tr><td>일섬 핏빛 달을 도트로</td><td>E10 핏빛 보름달 (원+gradient 제거), 칼날선·납도 = E11, 명중 = K08</td></tr>
+    <tr><td>파천참 보강 (전쟁군주와 균열 함수 분리)</td><td>F05 붉은 하늘 · F22 곧은 칼자국 땅 베임(지그재그 균열 대신) · F06 그림자 대검(하늘의 대검·대검 비·공중 거대 날) · F07 세계참 빛 틈 · K31 세로 틈. 링·하단바 0.9 흰 섬광 제거</td></tr>
+    <tr><td>평타 3차를 2차와 다르게</td><td>성기사 W1(금빛)+H06 낙인 ↔ 성좌기사 W1a 별 궤적 + H18 별자리 · 검성 W3 두 줄 + H07 X ↔ 검신 W3a 초승달 + H19 고리·꽃잎 · 대검전사 W4 바람 띠 + H08 납작 충격 ↔ 파천검왕 W4a 불꽃 띠 + H20 불꽃 균열</td></tr>
+    <tr><td>성광 텍스처</td><td>E44 성광 빛기둥 (심판 Lv1 빛줄기·★ 빛기둥·★★★ 하늘의 빛, 성역 ★★★ 붕괴)</td></tr></table>`;
+  document.getElementById('vfx4Sheets').innerHTML = [['w1a', 'W1a 성좌검 궤적'], ['w3', 'W3 쌍검 궤적'], ['w3a', 'W3a 월광쌍검 궤적'], ['w4', 'W4 대검 궤적'], ['w4a', 'W4a 파천대검 궤적'],
+    ['h06', 'H06 성기사 명중'], ['h07', 'H07 검성 명중'], ['h08', 'H08 대검전사 명중'], ['h18', 'H18 성좌기사 명중'], ['h19', 'H19 검신 명중'], ['h20', 'H20 파천검왕 명중'],
+    ['e05', 'E05 성검'], ['e06', 'E06 대천사'], ['e44', 'E44 성광 빛기둥 (새로)'], ['k05', 'K05 심판 명중'], ['e07', 'E07 바닥 성문양'], ['e07b', 'E07b 빛 기둥 울타리'], ['e08', 'E08 성당'], ['k06', 'K06 성역 파동'],
+    ['e09', 'E09 시간 정지 검선'], ['k07', 'K07 질풍난무 명중'], ['e10', 'E10 핏빛 달'], ['e11', 'E11 칼집 일섬'], ['k08', 'K08 일섬 명중'],
+    ['e12', 'E12 참격파'], ['e13', 'E13 단두대 대검'], ['k09', 'K09 횡참 명중'], ['e14', 'E14 땅 파임'], ['k10', 'K10 돌진 명중'],
+    ['f01', 'F01 밤하늘'], ['f02', 'F02 기사 성좌'], ['f02s', 'F02s 별 반짝임 (K29 에서 잘라 냄)'], ['f03', 'F03 창세의 빛'], ['k29', 'K29 별 폭발'],
+    ['f04', 'F04 분홍 검선'], ['k30', 'K30 천 갈래 검선'], ['f05', 'F05 붉은 하늘'], ['f06', 'F06 그림자 대검'], ['f07', 'F07 세계참 빛 틈'], ['k31', 'K31 세로 틈'], ['f22', 'F22 땅 베임 (새로)']]
+    .map(([k, cap]) => `<figure><img src="../../src/vfx/${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap}</figcaption></figure>`).join('');
+  fetch(SHOT + 'vfx4/nums.html').then((r) => (r.ok ? r.text() : '')).then((t) => { document.getElementById('vfx4Nums').innerHTML = t; });
+  document.getElementById('vfx4List').innerHTML = [['family-sword', '계열 비교 (후) — 줄: 성기사·검성·대검전사·성좌기사·검신·파천검왕 / 칸: 스킬 1 ★★★ · 스킬 2 ★★★ · 평타 명중'], ['family-sword-gray', '같은 그림 흑백 — 실루엣만으로 구분되는지'],
+    ['basic', '평타 6종 — 줄마다 전 / 후 (명중 1프레임 전, 명중 0·1·2·4프레임)'],
+    ...[['judgment', '심판의 일격'], ['sanctuary', '성역'], ['gale', '질풍난무'], ['iaido', '일섬'], ['wideCleave', '대검 횡참'], ['ramCharge', '돌진 격돌'], ['starJudgment', '성좌 강림'], ['thousandCuts', '천검'], ['skyBreak', '파천참']]
+      .map(([f, nm]) => [f, `${nm} — 줄: 전 / 후, 칸: Lv1 · ★ · ★★ · ★★★ 가장 화려한 순간 · ★★★ 마지막 타격 뒤`]),
+    ['finale-split', '횡참 ★★★ ↔ 돌진 격돌 ★★★ 마무리 (전 / 후)']]
+    .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}vfx4/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');
+
+  // ⑤-0 시험 전후
+  const TS = '../vfx-trial/';
+  document.getElementById('trialSheets').innerHTML = [['w1', 'W1 장검 궤적 (32×32 × 5)'], ['h1', 'H1 명중 섬광 → H02 검사 전용 평타 명중 (32×32 × 5)'], ['c1', 'C1 초승달 참격 → E43 강철 베기 전용 (64×32 × 5)']]
+    .map(([k, cap]) => `<figure><img src="${TS}${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap} — PixelLab 원본 시트</figcaption></figure>`).join('');
+  document.getElementById('trialList').innerHTML = [['basic-squire-v2', '견습 기사 평타 — v2 (키 그림 한 장, 칼끝 배치, 2/3 크기)'], ['basic-swordsman-v2', '검사 평타 — v2'], ['basic-paladin-v2', '성기사 평타 — v2, 금색으로 다시 칠함'], ['steelCleave-lv1', '강철 베기 Lv1'], ['steelCleave-s1', '강철 베기 ★ (고리·검풍은 아직 벡터)'],
+    ['basic-squire', 'v1 (탈락) 견습 기사 평타 — 검흔이 몸에 겹치고 AI 중간 프레임이 뭉개짐'], ['basic-swordsman', 'v1 (탈락) 검사 평타'], ['basic-paladin', 'v1 (탈락) 성기사 평타']]
+    .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}trial/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');
+
+  // 정지 기준, 퀄업 순서
+  const common = section(lines, '## 공통 개선 후보');
+  const i2 = common.findIndex((l) => l.startsWith('### 2.')), i3 = common.findIndex((l) => l.startsWith('### 3.')), i4 = common.findIndex((l) => l.startsWith('### 4.'));
+  document.getElementById('stopBlock').innerHTML = block(common.slice(i2 + 1, i3)) + block(common.slice(i3, i4)) + block(common.slice(i4));
+  document.getElementById('orderBlock').innerHTML = block(section(lines, '## 퀄업 순서'));
+  document.getElementById('texBlock').innerHTML = block(common.slice(2, i2));
+  const how = section(lines, '## 조사 방법'), r0 = how.findIndex((l) => l.includes('판정 (')), r1 = how.findIndex((l, k) => k > r0 && l.includes('메모: 문제점'));
+  document.getElementById('ruleBlock').innerHTML = block(how.slice(r0, r1));
+
+  // 수용 기준, 정할 것
+  document.getElementById('acceptList').innerHTML = section(lines, '## 수용 기준').filter((l) => /^- \[/.test(l))
+    .map((l) => `<li>${l.startsWith('- [x]') ? '✅' : '⬜'} ${md(l.replace(/^- \[.\] /, ''))}</li>`).join('');
+  document.getElementById('todo').innerHTML = section(lines, '## 남은 일').filter((l) => l.startsWith('- '))
+    .map((l) => `<li>${md(l.slice(2))}</li>`).join('');
+})();
+</script>
+<script src="vfx1.js"></script>
+
+<script>
+// ⑤-3 레인저 계열 절 (docs/specs/skill-vfx.md "⑤-3 본작업")
+(() => {
+  const V3 = '../vfx-survey/vfx3/', CLS = [['ranger', '레인저'], ['marksman', '저격수'], ['arcaneArcher', '마궁수'], ['arbalest', '석궁사수'], ['deadeye', '신궁'], ['voidArcher', '차원궁사'], ['siegeMaster', '공성포수']];
+  const SK = [['ranger', 'rapidFire', '연사'], ['marksman', 'headshot', '헤드샷'], ['marksman', 'armorPiercer', '철갑 관통탄'], ['arcaneArcher', 'homingBolts', '유도 마탄'], ['arcaneArcher', 'starfall', '별빛 화살비'],
+    ['arbalest', 'blastBolt', '폭열탄'], ['arbalest', 'boltStorm', '다연장 사격'], ['deadeye', 'sunArrow', '태양 관통'], ['voidArcher', 'dimensionCollapse', '차원 붕괴'], ['siegeMaster', 'siegeBarrage', '대공성포']];
+  document.getElementById('vfx3Basic').innerHTML = CLS.map(([c, n]) => `<a href="../skills.html?mode=basic&cls=${c}" target="_blank">${n}</a>`).join(' · ');
+  document.getElementById('vfx3Play').innerHTML = SK.map(([c, id, n]) => `${n} ` + [0, 1, 2, 3].map((s) => `<a href="../skills.html?cls=${c}&skill=${id}&stage=${s}" target="_blank">${['L1', '★', '★★', '★★★'][s]}</a>`).join('·')).join(' &nbsp;| ');
+  const SHEETS = [['p1', 'P1 단궁 화살'], ['p2', 'P2 장궁 화살'], ['p3', 'P3 태양 화살 루프'], ['p5', 'P5 공허탄 루프'], ['p6', 'P6 공성 거대 살'], ['f15', 'F15 포탄'],
+    ['h04', 'H04 레인저 명중 (화살 박힘)'], ['h12', 'H12 저격수 명중 (탄흔)'], ['h13', 'H13 마궁수 명중 (룬 고리)'], ['h14', 'H14 석궁사수 명중 (쪼개짐)'], ['h24', 'H24 신궁 명중 (태양 섬광)'], ['h25', 'H25 차원궁사 명중 (공허 균열)'],
+    ['h26', 'H26 공성포수 명중 (포격 폭발)'], ['e03', 'E03 분열 화살'], ['e25', 'E25 조준경'], ['e26', 'E26 관통 빔'], ['e27', 'E27 유도 마탄'], ['e28', 'E28 특이점 루프'],
+    ['e29', 'E29 별 화살'], ['e30', 'E30 밤하늘 루프'], ['e31', 'E31 버섯구름'], ['e32', 'E32 꽂힌 살'], ['k03', 'K03 연사 명중'], ['k17', 'K17 헤드샷 명중'],
+    ['k18', 'K18 철갑 관통 명중 (구멍)'], ['k19', 'K19 유도 마탄 명중'], ['k20', 'K20 별빛 명중'], ['k21', 'K21 폭발 (석궁사수·공성포수)'], ['k22', 'K22 다연장 명중'], ['k35', 'K35 태양 폭발'],
+    ['k36', 'K36 블랙홀 붕괴'], ['k37', 'K37 요새 대폭발'], ['f12', 'F12 태양 루프'], ['f13', 'F13 공허 균열 루프'], ['f14', 'F14 시공간 격자 (240×100)']];
+  document.getElementById('vfx3Sheets').innerHTML = SHEETS.map(([k, cap]) => `<figure><img src="../../src/vfx/${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap}</figcaption></figure>`).join('');
+  const fig = (f, cap) => `<figure style="margin:0 0 10px"><img src="${V3}${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px" onerror="this.parentNode.style.display='none'"><figcaption class="sub">${cap}</figcaption></figure>`;
+  document.getElementById('vfx3List').innerHTML = [
+    fig('family-bow-after', '계열 비교 (후) — 줄 = 2차 3종 + 3차 3종, 칸 = 스킬 2개 + 평타'), fig('family-bow-after-gray', '계열 비교 (후) 흑백 — 색 없이도 모양이 다른지'),
+    ...[['siegeBarrage', '대공성포'], ['sunArrow', '태양 관통'], ['dimensionCollapse', '차원 붕괴'], ['blastBolt', '폭열탄'], ['boltStorm', '다연장 사격 (살비)']].map(([id, n]) => fig(`cmp-${id}fin-s3`, `${n} ★★★ 막타 — 칸: 마지막 타격 +0·10·25·35·45·60 프레임 (막타 게임 정지 동안은 같은 장면)`)),
+    ...CLS.map(([c, n]) => fig(`cmp-basic-${c}`, `${n} 평타 — 칸: 명중 3·2·1프레임(×2) 전 → 명중 → 뒤`)),
+    ...SK.flatMap(([c, id, n]) => [0, 1, 2, 3].map((s) => fig(`cmp-${id}-s${s}`, `${n} ${['Lv1', '★', '★★', '★★★'][s]}`))),
+  ].join('');
+  fetch(V3 + 'nums.html').then((r) => (r.ok ? r.text() : '')).then((t) => { document.getElementById('vfx3Nums').innerHTML = t; });
+})();
+</script>
+</body>
+</html>

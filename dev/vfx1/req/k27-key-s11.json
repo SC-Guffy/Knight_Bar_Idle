@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: electric chain link hit, a bright white discharge flash in the center with thick jagged lightning sparks shooting out sideways to the left and right edges, large and bold, filling most of the canvas, white core, violet glow, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "seed": 11
+}

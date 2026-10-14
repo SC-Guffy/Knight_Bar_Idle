@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a spinning cyclone made of sharp curved halberd axe blades flying in a circle like a buzzsaw ring, flat ellipse seen from the side, orange and white streaks, chips of dirt, nothing else, no character, no background shape",
+ "seed": 30
+}

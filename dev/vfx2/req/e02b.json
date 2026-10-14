@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a giant spinning spear of light shaped like a long narrow drill pointing right, spiral bands of light wrapped around it, a vortex of wind rings at the back, bright white core, pale green edges, nothing else, no character, no background shape",
+ "seed": 22
+}

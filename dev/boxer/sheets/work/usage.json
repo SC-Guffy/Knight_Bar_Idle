@@ -1,0 +1,287 @@
+{
+ "start": 1769.0,
+ "used": 384.0,
+ "calls": [
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "idle: standing relaxed idle, breathing slowly, chest rises and fal",
+   "used": 2.0,
+   "bal": 1767.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view walk cycle to the right, legs clearly cross and al",
+   "used": 3.0,
+   "bal": 1763.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "charge: side view, crouches low in a wide stance and pulls both fist",
+   "used": 1.0,
+   "bal": 1762.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "death: side view, gets knocked out: staggers backward, knees buckle",
+   "used": 4.0,
+   "bal": 1758.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "hurt: side view, gets hit hard in the face and recoils, head and u",
+   "used": 2.0,
+   "bal": 1756.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "dash: side view, sprints forward to the right very fast, torso lea",
+   "used": 4.0,
+   "bal": 1751.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "idle: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 3.0,
+   "bal": 1748.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 1.0,
+   "bal": 1747.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "dash: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 4.0,
+   "bal": 1743.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "charge: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 3.0,
+   "bal": 1740.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "hurt: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 3.0,
+   "bal": 1735.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "death: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 4.0,
+   "bal": 1731.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "sit: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 11.0,
+   "bal": 1720.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-jab: same boxer in side view facing right, throwing a jab: the fr",
+   "used": 8.0,
+   "bal": 1705.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-straight: same boxer in side view facing right, throwing a long straig",
+   "used": 8.0,
+   "bal": 1696.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-upper: same boxer in side view facing right, throwing an uppercut: ",
+   "used": 7.0,
+   "bal": 1688.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-upper2: same boxer in side view facing right, rising uppercut punch:",
+   "used": 12.0,
+   "bal": 1671.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-text-v3",
+   "purpose": "idle: side view, body keeps facing right, lean kickboxer with a lo",
+   "used": 16.0,
+   "bal": 1646.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right, lean kickboxer with a lo",
+   "used": 17.0,
+   "bal": 1628.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-text-v3",
+   "purpose": "dash: side view, body keeps facing right, lean kickboxer with a lo",
+   "used": 10.0,
+   "bal": 1618.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-text-v3",
+   "purpose": "charge: side view, body keeps facing right, lean kickboxer with a lo",
+   "used": 24.0,
+   "bal": 1594.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-text-v3",
+   "purpose": "hurt: side view, body keeps facing right, lean kickboxer with a lo",
+   "used": 19.0,
+   "bal": 1575.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-text-v3",
+   "purpose": "death: side view, body keeps facing right, lean kickboxer with a lo",
+   "used": 24.0,
+   "bal": 1551.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-text-v3",
+   "purpose": "sit: side view, body keeps facing right, lean kickboxer with a lo",
+   "used": 23.0,
+   "bal": 1528.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-front: same kickboxer in side view facing right, front push kick: s",
+   "used": 9.0,
+   "bal": 1516.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-round: same kickboxer in side view facing right, high roundhouse ki",
+   "used": 8.0,
+   "bal": 1508.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-fly: same kickboxer in side view facing right, flying jump kick i",
+   "used": 7.0,
+   "bal": 1501.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-spin: same kickboxer in side view, spinning back kick mid-turn: bo",
+   "used": 13.0,
+   "bal": 1487.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-text-v3",
+   "purpose": "idle: side view, body keeps facing right, qigong martial artist in",
+   "used": 9.0,
+   "bal": 1474.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right, qigong martial artist in",
+   "used": 25.0,
+   "bal": 1449.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-text-v3",
+   "purpose": "dash: side view, body keeps facing right, qigong martial artist in",
+   "used": 27.0,
+   "bal": 1422.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-text-v3",
+   "purpose": "charge: side view, body keeps facing right, qigong martial artist in",
+   "used": 8.0,
+   "bal": 1414.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-text-v3",
+   "purpose": "hurt: side view, body keeps facing right, qigong martial artist in",
+   "used": 12.0,
+   "bal": 1401.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-text-v3",
+   "purpose": "death: side view, body keeps facing right, qigong martial artist in",
+   "used": 16.0,
+   "bal": 1385.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-text-v3",
+   "purpose": "sit: side view, body keeps facing right, qigong martial artist in",
+   "used": 12.0,
+   "bal": 1373.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-palm: same martial artist in side view facing right, palm strike: ",
+   "used": 7.0,
+   "bal": 1365.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-double: same martial artist in side view facing right, double palm p",
+   "used": 3.0,
+   "bal": 1360.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-barrier: same martial artist in side view facing right, defensive qi ",
+   "used": 7.0,
+   "bal": 1352.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-sit: same martial artist in side view facing right, sitting cross",
+   "used": 3.0,
+   "bal": 1349.0
+  },
+  {
+   "cls": "champion",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right, champion boxer with gold",
+   "used": 5.0,
+   "bal": 1340.0
+  }
+ ],
+ "nom": 40.0
+}

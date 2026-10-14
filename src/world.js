@@ -110,7 +110,7 @@ function spriteOf(m) {
   const frames = SPR[def.spr || m.type];
   return frames[Math.floor(m.t * (def.fps || 3)) % frames.length];
 }
-const monsterScale = (m) => (m.boss ? PX * 2 : PX);
+const monsterScale = (m) => m.scale || (m.boss ? PX * 2 : PX);   // scale: 성벽 지키기 거대 보스 (PX × 2.5)
 const monsterWidth = (m) => spriteOf(m)[0].length * monsterScale(m);
 const reachTo = (m) => stats().range + monsterWidth(m) / 2;        // 기사 무기 사거리
 const monsterReach = (m) => MELEE_REACH + monsterWidth(m) / 2;      // 몬스터 공격 사거리
@@ -227,7 +227,8 @@ function hitMonster(m, mult = 1, o = {}) {
   const crit = o.nocrit ? false : pre.crit || o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0) + procCritPlus());   // nocrit: 지속 피해·관통처럼 이미 굴린 피해
   const dmg = st.atk * mult * (crit ? st.critMult + pre.critAdd : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
-  m.flash = o.color ? 0.13 : 0.08;
+  m.flash = o.color ? 0.07 : 0.04;      // 피격 번쩍임: 짧게·반투명(drawMonster) — 검흔·명중 그림이 묻히지 않게 (skill-vfx.md ⑤-0)
+  m.lastCrit = crit;
   m.hurt = 1;
   const kb = o.kb != null ? o.kb : heroWeapon().motion === 'sweep' ? 10 : 5;
   m.kb = m.boss ? Math.min(kb, 4) : Math.max(m.kb, kb);
@@ -249,6 +250,7 @@ function hitMonster(m, mult = 1, o = {}) {
   procOnKill(m);
   if (S.phase === 'tower') { towerKillReward(m); return dmg; }
   if (S.phase === 'dungeon') { dgKill(m); return dmg; }
+  if (S.phase === 'castle') { castleViewKill(m); return dmg; }
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -269,6 +271,7 @@ function hitMonster(m, mult = 1, o = {}) {
 //  무기 계열 파일이 CUT_WEAPON[id].muzzle(w, Ly, cut, r) 로 바꿀 수 있다
 function heroMuzzle(w) {
   const c = CLASSES[S.cls], look = c && c.look;
+  if (look && heroSheetOn(S.cls)) return sheetMuzzle(S.cls, toScreen(knight.x) - Math.round((knight.recoil || 0) * 3), groundY(), knight.facing || 1);   // 시트의 hand 점 (src/sprites.js)
   if (!look || !look.body.px || knight.swing < 0) return null;
   const mo = heroAtkOf(w, knight.combo);
   if (!mo || !mo.cuts) return null;
@@ -299,7 +302,9 @@ function releaseAttack(st) {
       shots.push({ w, m: inRange[i % n], mult: st.shotMult, x: hx, y: hy + (i - (st.shots - 1) / 2) * 3, ox: hx, oy: hy, a: 0, trail: [], delay: i * 0.06 });
     }
   } else {
-    inRange.slice(0, st.targets).forEach(m => hitMonster(m));
+    vfxBasicRelease();                  // 근접 잔상 텍스처가 명중 순간 늘어나며 사라진다 (src/vfx-tex.js)
+    inRange.slice(0, st.targets).forEach(m => { hitMonster(m); vfxBasicHit(m, m.lastCrit); });
+    if (qiOn()) { qiOnBasic(Math.min(inRange.length, st.targets), inRange[0].lastCrit); qiBasicFx(inRange[0], knight.combo || 0); }   // 파이터 계열 기 충전 · 주먹/발 궤적 (src/jobs/fighter*.js)
   }
   procOnBasic(st);
 }
@@ -335,7 +340,7 @@ function updateExpedition(dt, gdt) {
 // 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree(px) (원정은 px 만큼 걷기, 탑은 층 정리)
 const DASH_SPEED = 500;   // 돌진기로 달려붙는 속도 px/s (결투 server/duel.js DASH 와 같다)
 // 사거리 밖 d(px) 앞의 적에게 쓸 수 있는 돌진기 (classes.js SKILLS 의 gap, 쿨타임이 찬 것 중 목록 앞쪽)
-const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && !(knight.cds[id] > 0) && d <= SKILLS[id].gap) || null;
+const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && (qiOn() ? qiCan(id, true) : !(knight.cds[id] > 0)) && d <= SKILLS[id].gap) || null;
 function fightTick(dt, st, onFree) {
   const phase = S.phase;
   const alive = monsters.filter(m => !m.dying)
@@ -387,6 +392,7 @@ function fightTick(dt, st, onFree) {
     knight.dash = target && !knight.pending ? knight.dash || dashSkill(st, gap) : null;
     if (knight.dash) {
       onFree(Math.min(DASH_SPEED * dt, gap));
+      qiOnDash(Math.min(DASH_SPEED * dt, gap));         // 킥복서: 돌진한 거리만큼 기
       knight.walkT += dt * 2;
       dashGhost('hero', S.cls, toScreen(knight.x), 1, knight.walkT);
     } else onFree();
@@ -400,7 +406,7 @@ function fightTick(dt, st, onFree) {
     if (aheadDist(knight.x, m.x) > monsterReach(m) + 1) continue;
     m.atkTimer -= dt;
     if (m.atkTimer > 0 || m.anim) continue;
-    const cd = MONSTERS[m.type].atkCd || 1.4;
+    const cd = m.atkCd || MONSTERS[m.type].atkCd || 1.4;    // atkCd: 성벽 지키기 보스(2초)
     m.atkTimer = cd;
     const mo = ATK_MOTION[MONSTERS[m.type].style] || ATK_MOTION.swing;
     m.anim = { t: 0, dur: Math.min(mo.dur, cd * 0.85), hit: false };
@@ -420,6 +426,7 @@ function advanceMonsterAttack(m, dt, st) {
   S.hp -= dmg;
   knight.flash = 0.08;
   knight.recoil = 1;
+  qiOnHurt();                                      // 기공사: 맞을 때마다 기
   addFloater('-' + fmt(dmg), toScreen(knight.x) + rand(-4, 4), groundY() - 52, '#ff6b6b', 11);
   procAfterHurt(m, dmg, st);
   if (S.hp <= 0) procRebirth(st);
@@ -428,6 +435,7 @@ function advanceMonsterAttack(m, dt, st) {
   if (S.hp > 0) return false;
   if (S.phase === 'tower') { towerKnightDown(); return true; }
   if (S.phase === 'dungeon') { dgViewDown(); return true; }
+  if (S.phase === 'castle') { castleViewDown(); return true; }
   addFloater(`💀 스태미나 -${DEFEAT_STAMINA}`, toScreen(knight.x), groundY() - 50, '#ff9f9f', 12);
   knightDefeated(!!m.boss);
   knight.down = DEFEAT_DOWN_SEC;
@@ -593,10 +601,12 @@ function updateTower(dt, gdt) {
       regen();
       if (towerWalk(TW_START_X, WALK_SPEED * 1.6, dt)) {
         knight.facing = 1;
-        const floor = S.tower.run.floor, m = towerMonster(floor);
-        monsters = [makeMonster(m.type, m.boss, toWorld(TW_SPAWN_X), { ...m, atk0: m.atk, rage: 1 })];
+        const floor = S.tower.run.floor, ms = towerMonsters(floor), m = ms[0];
+        // 무리는 정예 자리를 가운데로 14px 간격 (x 100·114·128)
+        monsters = ms.map((o, j, a) => makeMonster(o.type, o.boss, toWorld(TW_SPAWN_X + (j - (a.length - 1) / 2) * 14), { ...o, atk0: o.atk, rage: 1 }));
         tw.ft = 0;
         if (m.boss) showBanner(`🗼 ${floor}F 보스! ${MONSTERS[m.type].name}`, '#ff5a5a');
+        else if (ms.length > 1) addFloater(`⚔ 무리 ×${ms.length}`, TW_SPAWN_X - 14, groundY() - 56, '#ffb070', 12);
         tw.sub = 'fight';
       }
       break;
@@ -716,9 +726,10 @@ function drawTowerBody(g) {
     g.fillRect(0, gy, TOWER_W, 4);
     g.fillStyle = boss ? '#b05a66' : '#8a8298';
     g.fillRect(0, gy, TOWER_W, 1);
-    // 층 번호 (최고 기록 층은 금색, 보스 층은 빨강)
-    g.fillStyle = f === S.tower.best ? '#ffd257' : boss ? '#ff8080' : 'rgba(255,255,255,0.55)';
-    fillTextIco(g, `${boss ? '👑' : ''}${f}F`, 22, top + 12);
+    // 층 번호 (최고 기록 층은 금색, 보스 층은 빨강, 무리 층은 주황 + ×n)
+    const pack = towerPack(f);
+    g.fillStyle = f === S.tower.best ? '#ffd257' : boss ? '#ff8080' : pack > 1 ? '#ffb070' : 'rgba(255,255,255,0.55)';
+    fillTextIco(g, `${boss ? '👑' : ''}${f}F${pack > 1 ? ` ×${pack}` : ''}`, 22, top + 12);
     if (i === 0) {
       // 1층 왼쪽 벽의 문
       g.fillStyle = '#0c0a12';
@@ -1171,7 +1182,8 @@ function drawDungeonGround() {
 }
 
 function update(dt) {
-  // 큰 타격 순간엔 화면 전체를 아주 잠깐 멈춘다 (히트스톱)
+  fxHoldTick(dt);                     // 연출 정지(그림만 멈춤)는 게임 시간과 같이 흐른다 (src/vfx-tex.js)
+  // 큰 타격 순간엔 화면 전체를 아주 잠깐 멈춘다 (히트스톱 = 게임 정지: 스킬 막타·궁극기만)
   if (hitstop > 0) { hitstop -= dt; return; }
   clock += dt;
   const gdt = dt * TIME_SCALE;
@@ -1188,10 +1200,12 @@ function update(dt) {
   }
 
   if (dv && S.phase !== 'dungeon') endDungeonView();      // 절전·불러오기로 던전이 정산된 뒤
+  if (cdv && S.phase !== 'castle') endCastleView();
   if (S.phase === 'expedition') updateExpedition(dt, gdt);
   else if (S.phase === 'returning') updateReturning(dt);
   else if (S.phase === 'tower') updateTower(dt, gdt);
   else if (S.phase === 'dungeon') { updateDungeon(dt); advanceCamp(gdt); }
+  else if (S.phase === 'castle') { updateCastle(dt); advanceCamp(gdt); }
   else advanceCamp(gdt);
   if (duelPlay) updateDuel();
   if (raidPlay) updateRaid(dt);
@@ -1217,7 +1231,7 @@ function update(dt) {
 
   for (const sh of shots) {
     if (sh.delay > 0) { sh.delay -= dt; continue; }
-    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'tower' && S.phase !== 'dungeon' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
+    if (sh.m.dying || (S.phase !== 'expedition' && S.phase !== 'tower' && S.phase !== 'dungeon' && S.phase !== 'castle' && S.phase !== 'test')) { sh.done = true; continue; }   // test: 개발용 테스트 페이지(dev/skills.html)
     const tx = toScreen(sh.m.x), ty = monsterMidY(sh.m);
     const dx = tx - sh.x, dy = ty - sh.y, dist = Math.hypot(dx, dy);
     const step = sh.w.arrow.speed * dt;
@@ -1225,9 +1239,11 @@ function update(dt) {
     if (sh.trail.length > 8) sh.trail.shift();
     if (dist <= step) {
       hitMonster(sh.m, sh.mult);
+      vfxBasicHit(sh.m, sh.m.lastCrit, true);
+      if (qiOn()) { qiOnBasic(1, sh.m.lastCrit); qiRangedHit(sh.m); }
       // 화염 계열: 맞은 자리 주변의 다른 적도 splash 배율로 (원정에서만 — 결투·레이드는 상대가 하나라 상관없다)
       const sp = sh.w.splash, ar = sh.w.arrow;
-      if (ar.shape === 'bolt') arcFx(sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, tx, ty, ar.color, ar.rgb, 0.16, 2);
+      if (ar.shape === 'bolt' && !vfxShotArc(sh.w, sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, tx, ty, 0.16)) arcFx(sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, tx, ty, ar.color, ar.rgb, 0.16, 2);
       if (sp) {
         // splash.max: 번지는 적 수 상한 (번개는 둘) · splash.arc: 맞은 적에서 다음 적으로 번개 줄이 차례로 튄다
         let n = 0;
@@ -1235,11 +1251,13 @@ function update(dt) {
           if (o === sh.m || o.dying || Math.abs(toScreen(o.x) - tx) > sp.radius) continue;
           if (sp.max && n >= sp.max) break;
           hitMonster(o, sh.mult * sp.mult, { kb: 6, color: ar.color });
-          if (sp.arc) arcFx(tx, ty, toScreen(o.x) + o.kb, monsterMidY(o), ar.color, ar.rgb, 0.2, 1.5, 0.05 * (n + 1));
+          if (sp.arc && !vfxShotArc(sh.w, tx, ty, toScreen(o.x) + o.kb, monsterMidY(o), 0.2, 0.05 * (n + 1))) arcFx(tx, ty, toScreen(o.x) + o.kb, monsterMidY(o), ar.color, ar.rgb, 0.2, 1.5, 0.05 * (n + 1));
           n++;
         }
-        burst(tx, ty, 10, [ar.color, '#ffe066', '#ffffff'], 90, 2, 120);
-        effects.push({ type: 'ring', x: tx, y: groundY() - 2, t: 0, color: ar.color });
+        if (!VFX_RANGED[sh.w.id]) {        // 텍스처 무기는 착탄 명중 그림(vfxBasicHit)이 맡는다
+          burst(tx, ty, 10, [ar.color, '#ffe066', '#ffffff'], 90, 2, 120);
+          effects.push({ type: 'ring', x: tx, y: groundY() - 2, t: 0, color: ar.color });
+        }
       }
       sh.done = true; continue;
     }
@@ -1398,6 +1416,7 @@ function drawZoneBg(deco, gy) {
 function drawGround() {
   if (!showGround) return;
   if (dgInside()) { drawDungeonGround(); return; }
+  if (castleInside()) { drawCastleGround(); return; }
   if (groundZone !== zoneIndex(S.stage)) makeGrass();
   const gr = ZONES[groundZone].ground;
   const gy = groundY();
@@ -1662,7 +1681,7 @@ function drawDecor(d, gy) {
 }
 
 function drawCamp() {
-  if (dgInside()) return;
+  if (dgInside() || castleInside()) return;
   const gy = groundY();
   drawSprite(SPR.tent, PAL, 26, gy, PX);
 
@@ -2082,8 +2101,9 @@ function drawAtkFx(g, w, r, atk) {
     g.fillStyle = `rgba(255,255,255,${0.5 * u})`;
     g.beginPath(); g.arc(r.bh[0], r.bh[1], 1 + 1.5 * u, 0, Math.PI * 2); g.fill();
   }
-  const [at, col, size] = mo.burst || [];
-  if (at != null && s >= at && s < at + 0.16) {
+  // 3차 무기는 2차 연속기를 그대로 쓰므로(legacy.js) 섬광 색은 무기의 burstRgb 가 있으면 그것으로 (잔상 색과 맞춘다)
+  const [at, moCol, size] = mo.burst || [], col = w.burstRgb || moCol;
+  if (at != null && s >= at && s < at + 0.16 && !w.texHit) {         // texHit: 명중 그림을 PixelLab 시트(H)로 그리는 무기는 벡터 섬광을 끈다 (src/vfx-*.js)
     const u = (s - at) / 0.16, k = 1 - u;
     let px, py;
     if (w.staff) {
@@ -2100,6 +2120,7 @@ function drawAtkFx(g, w, r, atk) {
       const L = pole ? r.ext + (w.len + 3) * PX : (w.len + 1) * PX;
       px = r.fh[0] + Math.cos(r.wa) * L; py = r.fh[1] + Math.sin(r.wa) * L;
     }
+    if (vfxCastFlash(g, w, px, py, u)) { g.restore(); return; }     // 텍스처 섬광 (src/vfx-tex.js VFX_RANGED)
     const R = (6 + 14 * easeOutQ(u)) * size;
     g.strokeStyle = `rgba(${col},${0.8 * k})`;
     g.lineWidth = 2;
@@ -2420,6 +2441,7 @@ function drawBladeCells(g, w, h, ang, len, white = false) {
 }
 //  새 쪽 절반은 흰색, 옛 쪽은 무기 잔상 색으로 옅어진다. tipOnly 면 칼끝 자리만 (찌르기 줄)
 function drawCutSmear(g, w, h0, a0, h1, a1, len, tipOnly = false) {
+  if (vfxSmear(g, w, h0, a0, h1, a1, len, tipOnly)) return;      // PixelLab 궤적 시트가 있는 무기 (src/vfx-tex.js)
   const C = PX / 2, L = len * 2, age = new Map();
   const t0 = tipOnly ? 0 : 0.4, uMin = tipOnly ? L - 2 : L * 0.45;
   const span = Math.abs(a1 - a0) * (L + 2) + Math.hypot(h1[0] - h0[0], h1[1] - h0[1]) / C, N = Math.max(12, Math.ceil(span * 2.5));
@@ -2441,6 +2463,7 @@ function drawCutSmear(g, w, h0, a0, h1, a1, len, tipOnly = false) {
 //  바깥 실루엣의 검은 외곽선은 그대로 둔다. 한 색 잔상(tint)·무기만(onlyWeapon)·피격 번쩍임(flash)은 원래대로 그린다
 const heroSoft = { cv: null, g: null };
 function drawHero(g, id, x, gy, pose) {
+  if (heroSheetOn(id)) return drawHeroSheet(g, id, x, gy, pose);     // 통짜 스프라이트 시트 직업 (src/sprites.js — 파이터 계열 + SHEET_ON 기존 직업)
   if (pose.tint || pose.onlyWeapon || pose.flash || typeof document === 'undefined') return drawHeroRaw(g, id, x, gy, pose);
   const T = g.getTransform(), dxa = Math.abs(pose.dx || 0), lift = Math.max(0, pose.lift || 0);
   const ux0 = x - 100 - dxa, ux1 = x + 100 + dxa, uy0 = gy - 150 - lift, uy1 = gy + 12;
@@ -2456,6 +2479,7 @@ function drawHero(g, id, x, gy, pose) {
   o.clearRect(0, 0, w, h);
   o.imageSmoothingEnabled = false;
   o.setTransform(T.a, T.b, T.c, T.d, T.e - bx, T.f - by);
+  heroSoft.off = [bx, by];
   const alpha = pose.alpha == null ? 1 : pose.alpha;
   drawHeroRaw(o, id, x, gy, { ...pose, alpha: 1 });
   softenSeams(o, w, h, Math.max(1, Math.round(Math.hypot(T.a, T.b) * PX * 0.5)) + 1);
@@ -2652,14 +2676,18 @@ function drawKnight() {
     mode: S.phase === 'camp' ? (sp ? 'fight' : 'sit') : knight.fighting ? 'fight' : 'walk',
     walkT: knight.walkT, swing: knight.swing, combo: knight.combo, facing: knight.facing, t: clock,
     flash: knight.flash > 0,
+    recoil: knight.recoil, down: knight.down, dash: !!knight.dash, ranged: heroWeapon().kind === 'ranged',    // 시트 직업의 피격·쓰러짐·돌진 동작 (src/sprites.js)
     alpha: (knight.down > 0 ? 0.35 + 0.25 * Math.sin(clock * 12) : 1) * vis,
   };
   if (sp) Object.assign(pose, sp, { alpha: pose.alpha * (sp.alpha == null ? 1 : sp.alpha) });
   if (sp) drawCastTrail('hero', S.cls, gy, knight.facing);
+  if (S.phase !== 'camp') qiAura(x, gy);      // 파이터 계열: 기가 가득이면 몸 뒤 오라 (src/jobs/fighter-fx.js)
+  vfxCut.main = true; vfxCut.T = ctx.getTransform();          // 이 기사의 잔상만 명중 뒤 이어 그린다 (src/vfx-tex.js)
   drawHero(ctx, S.cls, x, gy, pose);
+  vfxCut.main = false;
   if (S.phase !== 'camp' && !wp) {
     drawHpBar(x, gy - 58 - Math.min(lift, 40), 30, S.hp / stats().maxHp, '#ff5a5a');
-    drawSkillIcons(x - 15, gy - 58 - Math.min(lift, 40) - 12);
+    drawSkillIcons(x - 15, gy - 58 - Math.min(lift, 40) - 12 - (qiOn() ? 5 : 0));     // 파이터는 아래에 기 게이지 막대
   }
 }
 
@@ -2704,62 +2732,71 @@ function arcFx(x0, y0, x1, y1, color, rgb, life = 0.2, width = 2, delay = 0) {
 }
 
 function drawShots() {
-  for (const sh of shots) {
-    if (sh.delay > 0) continue;
-    const a = sh.w.arrow;
-    if (a.shape === 'bolt') {
-      // 번개탄: 출발점에서 지금 자리까지 꺾인 번개 줄 (속도가 빨라 한두 프레임이면 닿는다 — 닿은 뒤엔 arcFx 가 잠깐 남긴다)
-      drawLightning(ctx, sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, sh.x, sh.y, a.color, a.rgb, 2, sh.ox || 0);
-      ctx.save(); ctx.shadowColor = a.color; ctx.shadowBlur = 8; ctx.fillStyle = '#ffffff';
-      ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      continue;
-    }
-    if (a.shape === 'ice') {
-      // 얼음창: 뾰족한 결정이 날아가고 뒤로 서리 가루
-      sh.trail.forEach(([tx, ty], i) => { ctx.fillStyle = `rgba(${a.rgb},${((i + 1) / sh.trail.length) * 0.4})`; ctx.fillRect(tx - 1, ty - 1, 2, 2); });
-      ctx.save();
-      ctx.translate(sh.x, sh.y); ctx.rotate(sh.a);
-      ctx.shadowColor = a.color; ctx.shadowBlur = 8;
-      ctx.fillStyle = a.color;
-      ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-3, -3); ctx.lineTo(-9, 0); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(-4, -1, 8, 1);
-      ctx.restore();
-      continue;
-    }
-    if (a.magic) {
-      // 마력탄 (rgb: 꼬리 색, size: 크기 — 화염탄은 크고 붉다)
-      const rgb = a.rgb || '111,243,255', z = a.size || 1;
-      sh.trail.forEach(([tx, ty], i) => {
-        ctx.fillStyle = `rgba(${rgb},${((i + 1) / sh.trail.length) * 0.5})`;
-        ctx.fillRect(tx - 1.5, ty - 1.5, 3, 3);
-      });
-      ctx.save();
-      ctx.shadowColor = a.color; ctx.shadowBlur = 10;
-      ctx.fillStyle = a.color; ctx.globalAlpha = 0.5;
-      ctx.beginPath(); ctx.arc(sh.x, sh.y, 4 * z, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 1;
-      ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5 * z, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-      continue;
-    }
-    if (a.trail && sh.trail.length > 1) {
-      ctx.strokeStyle = `rgba(${a.trail},0.45)`; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(sh.trail[0][0], sh.trail[0][1]); ctx.lineTo(sh.x, sh.y); ctx.stroke();
-    }
+  for (const sh of shots) if (!(sh.delay > 0)) drawProjectile(sh);
+}
+// 원거리 평타 한 발 (원정·결투·레이드 공용). sh = { w: 무기, x, y, a: 날아가는 각도, trail: [[x, y], …] 최근 자리, ox/oy: 출발점 }
+function drawProjectile(sh) {
+  if (vfxRangedProj(sh) || (typeof vfxProjectile === 'function' && vfxProjectile(sh))) return;   // 텍스처 투사체 (⑤-1 src/vfx-mage.js VFX_RANGED · ⑤-3 src/vfx-ranger.js P 시트)
+  const a = sh.w.arrow;
+  if (a.qi && qiShotDraw(sh)) return;          // 기공사 계열 기탄 텍스처 (src/jobs/fighter-fx.js)
+  if (a.shape === 'bolt') {
+    // 번개탄: 출발점에서 지금 자리까지 꺾인 번개 줄 (속도가 빨라 한두 프레임이면 닿는다 — 닿은 뒤엔 arcFx 가 잠깐 남긴다)
+    drawLightning(ctx, sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, sh.x, sh.y, a.color, a.rgb, 2, sh.ox || 0);
+    ctx.save(); ctx.shadowColor = a.color; ctx.shadowBlur = 8; ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    return;
+  }
+  if (a.shape === 'ice') {
+    // 얼음창: 뾰족한 결정이 날아가고 뒤로 서리 가루
+    sh.trail.forEach(([tx, ty], i) => { ctx.fillStyle = `rgba(${a.rgb},${((i + 1) / sh.trail.length) * 0.4})`; ctx.fillRect(tx - 1, ty - 1, 2, 2); });
     ctx.save();
     ctx.translate(sh.x, sh.y); ctx.rotate(sh.a);
-    if (a.bolt) {
-      // 쇠뇌 살: 짧고 굵은 살에 쇠촉, 깃은 가죽색
-      ctx.fillStyle = a.color; ctx.fillRect(-11, -1.5, 12, 3);
-      ctx.fillStyle = '#c9c2b4'; ctx.beginPath(); ctx.moveTo(0, -3.5); ctx.lineTo(7, 0); ctx.lineTo(0, 3.5); ctx.fill();
-      ctx.fillStyle = '#8a5a2b'; ctx.fillRect(-12, -3, 4, 1.5); ctx.fillRect(-12, 1.5, 4, 1.5);
-    } else {
-      ctx.fillStyle = a.color; ctx.fillRect(-12, -0.75, 13, 1.5);
-      ctx.beginPath(); ctx.moveTo(1, -2.5); ctx.lineTo(5, 0); ctx.lineTo(1, 2.5); ctx.fill();
-      ctx.fillStyle = '#d0463c'; ctx.fillRect(-13, -2, 3, 1); ctx.fillRect(-13, 1, 3, 1);   // 깃
-    }
+    ctx.shadowColor = a.color; ctx.shadowBlur = 8;
+    ctx.fillStyle = a.color;
+    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-3, -3); ctx.lineTo(-9, 0); ctx.lineTo(-3, 3); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(-4, -1, 8, 1);
     ctx.restore();
+    return;
   }
+  if (a.magic) {
+    // 마력탄 (rgb: 꼬리 색, size: 크기 — 화염탄은 크고 붉다)
+    const rgb = a.rgb || '111,243,255', z = a.size || 1;
+    sh.trail.forEach(([tx, ty], i) => {
+      ctx.fillStyle = `rgba(${rgb},${((i + 1) / sh.trail.length) * 0.5})`;
+      ctx.fillRect(tx - 1.5, ty - 1.5, 3, 3);
+    });
+    ctx.save();
+    ctx.shadowColor = a.color; ctx.shadowBlur = 10;
+    ctx.fillStyle = a.color; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.arc(sh.x, sh.y, 4 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(sh.x, sh.y, 2.5 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (a.trail && sh.trail.length > 1) {
+    ctx.strokeStyle = `rgba(${a.trail},0.45)`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(sh.trail[0][0], sh.trail[0][1]); ctx.lineTo(sh.x, sh.y); ctx.stroke();
+  }
+  ctx.save();
+  ctx.translate(sh.x, sh.y); ctx.rotate(sh.a);
+  if (a.bolt) {
+    // 쇠뇌 살: 짧고 굵은 살에 쇠촉, 깃은 가죽색
+    ctx.fillStyle = a.color; ctx.fillRect(-11, -1.5, 12, 3);
+    ctx.fillStyle = '#c9c2b4'; ctx.beginPath(); ctx.moveTo(0, -3.5); ctx.lineTo(7, 0); ctx.lineTo(0, 3.5); ctx.fill();
+    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(-12, -3, 4, 1.5); ctx.fillRect(-12, 1.5, 4, 1.5);
+  } else {
+    ctx.fillStyle = a.color; ctx.fillRect(-12, -0.75, 13, 1.5);
+    ctx.beginPath(); ctx.moveTo(1, -2.5); ctx.lineTo(5, 0); ctx.lineTo(1, 2.5); ctx.fill();
+    ctx.fillStyle = '#d0463c'; ctx.fillRect(-13, -2, 3, 1); ctx.fillRect(-13, 1, 3, 1);   // 깃
+  }
+  ctx.restore();
+}
+// 결투·레이드용: x0 에서 지금 자리 x 까지 날아가는 한 발을 drawProjectile 이 그릴 수 있는 모양으로 (꼬리는 최근 8자리 = 6px 간격)
+function flightShot(w, x0, x, y, dir) {
+  const trail = [];
+  for (let i = 8; i >= 1; i--) trail.push([dir > 0 ? Math.max(x0, x - i * 6) : Math.min(x0, x + i * 6), y]);
+  return { w, x, y, a: dir > 0 ? 0 : Math.PI, trail, ox: x0, oy: y };
 }
 
 function drawEffects() {
@@ -2951,9 +2988,12 @@ function drawMonster(m) {
   // 탑 광폭화: 붉은 기운이 맥박처럼 번진다
   const rage = m.rage > 1 && !m.dying ? `drop-shadow(0 0 ${2 + Math.sin(clock * 10) * 1.5 + Math.min(3, Math.log2(m.rage))}px #ff2a2a)` : '';
   if (hue || rage) ctx.filter = `${hue ? `hue-rotate(${hue}deg)` : ''} ${rage}`.trim();
-  const opt = { flash: m.flash > 0, alpha: alpha * (def.alpha || 1), sx: pose.sx, sy: pose.sy, skew: pose.skew };
+  const opt = { flash: !!m.killed, alpha: alpha * (def.alpha || 1), sx: pose.sx, sy: pose.sy, skew: pose.skew };
   if (m.killed) { opt.sx *= 1.15; opt.sy *= 0.9; }
-  drawSprite(rows, def.pal || {}, x, bottom - (m.dying && !m.killed ? m.dying * 20 : 0), scale, opt);
+  const by = bottom - (m.dying && !m.killed ? m.dying * 20 : 0);
+  drawSprite(rows, def.pal || {}, x, by, scale, opt);
+  // 피격 번쩍임: 원래 그림 위에 흰 실루엣을 반투명(0.45)으로 (예전엔 전신을 흰색으로 바꿔 검흔·명중 그림이 묻혔다)
+  if (m.flash > 0 && !m.killed) drawSprite(rows, def.pal || {}, x, by, scale, { ...opt, flash: true, alpha: opt.alpha * 0.45 });
   ctx.filter = 'none';
   if (m.killed) return;
 
@@ -3087,7 +3127,7 @@ const dashGhostAt = {};
 function dashGhost(key, cls, x, facing, walkT) {
   if (clock - (dashGhostAt[key] || 0) < 0.05) return;
   dashGhostAt[key] = clock;
-  ghostFx({ cls }, x, facing, (CLASSES[cls] || CLASSES.squire).look.fx, 0.22, { mode: 'walk', walkT }, 0.4);
+  ghostFx({ cls }, x, facing, (CLASSES[cls] || CLASSES.squire).look.fx, 0.22, { mode: 'walk', walkT, dash: true }, 0.4);
 }
 
 function updateDuel() {
@@ -3172,8 +3212,7 @@ function drawDuel() {
     if (L && !sp && w.kind === 'ranged' && since < 0.14) {
       const dir = side === 'a' ? 1 : -1, ox = duelX(side === 'a' ? 'b' : 'a', pt);
       const x0 = x + dir * 16, x1 = ox - dir * 8, ax = x0 + (x1 - x0) * (since / 0.14);
-      ctx.fillStyle = w.arrow.color;
-      ctx.fillRect(Math.round(dir > 0 ? ax - 12 : ax), gy - 6 * PX, 12, 2);
+      drawProjectile(flightShot(w, x0, ax, gy - 6 * PX, dir));
     }
 
     // 이름표와 체력바
@@ -4210,8 +4249,7 @@ function drawRaid() {
     const wpn = WEAPONS[c.weapon];
     if (!dead && !sp && L && wpn.kind === 'ranged' && s < 0.14) {
       const x0 = x + 16, x1 = g.left + 6, ax = x0 + (x1 - x0) * (s / 0.14);
-      ctx.fillStyle = wpn.arrow.color;
-      ctx.fillRect(Math.round(ax - 12), gy - 6 * PX, 12, 2);
+      drawProjectile(flightShot(wpn, x0, ax, gy - 6 * PX, 1));
     }
     // 이름표가 겹치지 않게 번갈아 높이를 다르게 한다
     const top = gy - 58 - (i % 2) * 14;
@@ -4252,6 +4290,7 @@ function drawRaidStun(x, gy, enc, i) {
 }
 
 function render() {
+  if (fxHoldSkip()) return;            // 연출 정지: 지난 화면을 그대로 둔다 (src/vfx-tex.js)
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   // 흔들림 세기는 스킬 타격이 키운다 (shakeAmp, src/skills.js)
@@ -4276,6 +4315,7 @@ function drawActors() {
   if (duelPlay) drawDuel(); else if (raidPlay) drawRaid(); else drawKnight();
   drawShots();
   drawEffects();
+  drawCastleFx();
   drawSkillFx();
   drawParts();
   drawSlotFx();

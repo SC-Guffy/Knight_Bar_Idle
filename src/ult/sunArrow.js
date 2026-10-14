@@ -17,58 +17,18 @@ function saCenter(a) {
 }
 const saEdge = (a) => (a.dir > 0 ? W + 40 : -40);
 
-// 태양 한 덩이: 바깥 햇무리 → 천천히 도는 도트 햇살 → 하얀 심의 원반
+// 태양 한 덩이: F12 태양 + 홍염 루프 시트 (텍스처 ⑤-3). 시트의 원반 반지름은 약 30도트(= 45px × 배율) → r 에 가장 가까운 배율.
+//  rays 는 홍염 기세: 1 보다 크면 뒤에 한 장 더 겹쳐(좌우 반전·다른 프레임) 홍염이 넘실거린다
 function saSun(x, y, r, t, al = 1, rays = 1) {
   if (r < 1 || al <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = al;
-  ctx.globalCompositeOperation = 'lighter';
-  let g = ctx.createRadialGradient(x, y, r * 0.5, x, y, r * 2.8);
-  g.addColorStop(0, 'rgba(255,190,70,0.6)'); g.addColorStop(0.4, 'rgba(255,140,40,0.22)'); g.addColorStop(1, 'rgba(255,90,20,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(x - r * 2.8, y - r * 2.8, r * 5.6, r * 5.6);
-  if (rays > 0) {
-    const n = 18, step = Math.max(3, r / 9);
-    for (let i = 0; i < n; i++) {
-      const ang = t * 0.5 + (i / n) * Math.PI * 2, len = r * (1.3 + 0.25 * Math.sin(t * 6 + i * 1.7) + (i % 2 ? 0 : 0.45)) * rays;
-      for (let s = r * 1.05; s < len; s += step) {
-        const f = 1 - (s - r) / Math.max(1, len - r);
-        ctx.fillStyle = `rgba(255,${200 + 40 * f | 0},${90 + 60 * f | 0},${0.55 * f})`;
-        const q = s < r * 1.4 ? 3 : 2;
-        ctx.fillRect(Math.round(x + Math.cos(ang) * s - q / 2), Math.round(y + Math.sin(ang) * s - q / 2), q, q);
-      }
-    }
-  }
-  ctx.globalCompositeOperation = 'source-over';
-  g = ctx.createRadialGradient(x - r * 0.25, y - r * 0.3, r * 0.05, x, y, r);
-  g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, '#fff4b8'); g.addColorStop(0.78, '#ffc43a'); g.addColorStop(1, '#ff7a1a');
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
+  const sc = vfxNearScale(r / 45), f = vfxLoopF('f12', 8);
+  if (rays > 1) vfxDraw(ctx, 'f12', 'raw', (f + 2) % 4, x, y, { scale: sc * Math.min(1.5, rays * 0.75 + 0.25), flip: true, alpha: al * 0.45 });
+  vfxDraw(ctx, 'f12', 'raw', f, x, y, { scale: sc, alpha: al });
 }
-// 거대한 태양의 겉면: 끓어오르는 쌀알 무늬와 테두리에서 고리처럼 솟는 홍염
+// 거대한 태양의 겉면: 시트 한 장을 반대로 돌려 반투명하게 겹쳐 겉면이 끓어오르는 것처럼
 function saSunSurface(x, y, r, t, al = 1) {
-  ctx.save();
-  ctx.globalAlpha = al;
-  for (let i = 0; i < 70; i++) {
-    const ang = i * 2.39996, rr = r * Math.sqrt((i * 0.618) % 1) * 0.92;
-    const px = x + Math.cos(ang + t * 0.15) * rr, py = y + Math.sin(ang + t * 0.15) * rr;
-    if (Math.sin(t * 9 + i * 3.1) < 0.2) continue;
-    ctx.fillStyle = i % 3 ? 'rgba(255,150,40,0.45)' : 'rgba(255,255,230,0.6)';
-    const q = 3 + (i % 2) * 3;
-    ctx.fillRect(Math.round(px - q / 2), Math.round(py - q / 2), q, q);
-  }
-  ctx.lineCap = 'round';
-  for (let i = 0; i < 6; i++) {
-    const ang = i * 1.05 + t * 0.4, h = r * (0.18 + 0.12 * Math.sin(t * 3 + i * 2));
-    const bx = x + Math.cos(ang) * r, by = y + Math.sin(ang) * r;
-    ctx.strokeStyle = i % 2 ? 'rgba(255,90,30,0.75)' : 'rgba(255,170,60,0.7)';
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(bx + Math.cos(ang) * h * 0.4, by + Math.sin(ang) * h * 0.4, h, ang + Math.PI * 0.85, ang + Math.PI * 2.15); ctx.stroke();
-  }
-  ctx.restore();
-}
-// 굵은 태양 광선: 주황 번짐 → 금빛 몸통 → 하얀 심, 그 위로 빛 마디가 흐른다
+  vfxDraw(ctx, 'f12', 'raw', (vfxLoopF('f12', 6) + 3) % 4, x, y, { scale: vfxNearScale(r / 45), rot: Math.PI, alpha: al * 0.35 });
+}// 굵은 태양 광선: 주황 번짐 → 금빛 몸통 → 하얀 심, 그 위로 빛 마디가 흐른다
 function saBeam(x0, y0, x1, y1, w, al, t) {
   if (w < 0.5 || al <= 0) return;
   const L = Math.hypot(x1 - x0, y1 - y0) || 1, ux = (x1 - x0) / L, uy = (y1 - y0) / L;
@@ -428,8 +388,9 @@ function saFallStage(a) {
     }
     // 마지막: 빛이 하단바 전체를 하얗게 태운다
     if (t > fin) {
-      const k = t - fin, al = k < 0.06 ? k / 0.06 : 1 - segU(k, 0.2, 1.05);
-      dimBand(al, '255,252,236');
+      // 하얀 섬광은 궁극기 막타 규칙대로 α 0.6 이하·0.15초 안에 (마지막 그림 = 태양 폭발 K35 가 보이게)
+      const k = t - fin, al = 0.35 * (k < 0.04 ? k / 0.04 : 1 - segU(k, 0.04, 0.15));
+      if (al > 0) dimBand(al, '255,252,236');
       ctx.save();
       ctx.globalAlpha = clamp01(1 - k / 0.7);
       ctx.strokeStyle = '#ffb02e'; ctx.lineWidth = 4;
@@ -558,11 +519,10 @@ Object.assign(SKILL_FX, {
         impact({ shake: 0.12 });
         return;
       }
-      for (const t of tg) {
-        burst(t.x, t.y, 34, ['#ffffff', '#ffe066', '#ff9a2e'], 240, 3, 60);
-        hitFx(t.x, t.y, '#ffffff', 3);
-      }
-      impact({ stop: 0.28, shake: 0.7 });
+      // 막타 K35 (태양 폭발 홍염): 태양이 내려앉은 자리에 2배, 대상마다 1배
+      texFx('k35', a.saFall ? a.saFall.X : a.tx(), groundY() - 40, 'raw', { scale: 2, life: 0.7, fade: 0.4 });
+      for (const t of tg) texFx('k35', t.x, t.y, 'raw', { scale: 1, life: 0.45, fade: 0.35, delay: 0.05 });
+      impact({ stop: 0.28, shake: 0.85 });
     },
     kb: 20,
   },

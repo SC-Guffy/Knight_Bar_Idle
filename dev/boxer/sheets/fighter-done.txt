@@ -1,0 +1,1 @@
+fighter 시트 완료 (2026-10-14): src/sprites/fighter.png/.json — idle·guard·walk·dash·atkA·atkB·charge·release·hurt·death·sit 11동작, 64x64, foot (32,58), skillA/B·awaken 없음. 미리보기 dev/boxer/sheets/fighter-preview.png

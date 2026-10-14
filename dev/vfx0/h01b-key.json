@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: small sword hit spark, one short thick diagonal slash mark shaped like a narrow leaf, pointed at both ends, bright white core with light grey edge, two or three tiny square sparks flying off, compact in the center, nothing else, no circle, no background shape",
+ "seed": 7
+}

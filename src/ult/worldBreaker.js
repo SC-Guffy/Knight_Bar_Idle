@@ -8,6 +8,7 @@
 //  ★★★ 「종말의 일격」 하단바 위에 거인의 도끼가 나타나 크게 휘둘러 내리찍고 — 땅이 판째로 뜯겨 뒤집히며 하늘로 솟았다가,
 //            공중에서 부서져 한꺼번에 쏟아진다 (뜯긴 자리에는 시뻘건 땅속이 드러난다)
 // 레터박스(아래 16px)가 땅선을 덮으므로, 땅의 연출은 그 위(groundY() - 6 근처)에서 보이게 그린다
+// 그림은 PixelLab 시트 (src/vfx-spear.js): 거인의 도끼·떨어지는 도끼 F10 · 용암 기둥 F10l · 명중 K33 · 내려치는 궤적 W6a (풀 얹은 땅판은 도트 그대로)
 
 const WB_ROCK = ['#2a1a12', '#5a4030', '#8a6a4a', '#6b5a44'];
 const WB_LAVA = ['#5a1404', '#ff5a1f', '#ffb040', '#fff0b0'];
@@ -140,28 +141,9 @@ function wbSkyCrack(a, cx, from, life) {
     ctx.restore();
   });
 }
-// 거대한 도끼창 그림자 (창끝이 아래). x 화면 위치, yTip 창끝 높이, d 날이 향하는 쪽
-function wbHalberdShadow(x, yTip, d, alpha, sc = 1.35) {
-  ctx.save();
-  ctx.translate(x, yTip); ctx.scale(d * sc, sc);
-  ctx.globalAlpha = alpha;
-  ctx.shadowColor = '#ff7a2a'; ctx.shadowBlur = 10;
-  const shapes = [
-    [[-5, -26], [5, -26], [5, -420], [-5, -420]],                                                         // 자루
-    [[0, 0], [-8, -28], [8, -28]],                                                                         // 창끝
-    [[5, -34], [30, -28], [50, -40], [57, -58], [49, -77], [28, -88], [5, -82]],                           // 도끼날
-    [[-5, -44], [-32, -34], [-24, -52], [-5, -64]],                                                        // 뒷갈고리
-    [[-9, -84], [9, -84], [9, -92], [-9, -92]],                                                            // 띠
-  ];
-  for (const P of shapes) {
-    wbPoly(P); ctx.fillStyle = '#120804'; ctx.fill();
-    ctx.strokeStyle = '#ff7a2a'; ctx.lineWidth = 2.6 / sc; ctx.stroke();
-  }
-  ctx.shadowBlur = 0;
-  // 날에 서린 빛
-  ctx.strokeStyle = '#ffd0a0'; ctx.lineWidth = 1.2 / sc;
-  ctx.beginPath(); ctx.moveTo(30, -28); ctx.lineTo(50, -40); ctx.lineTo(57, -58); ctx.lineTo(49, -77); ctx.lineTo(28, -88); ctx.stroke();
-  ctx.restore();
+// 하늘에서 떨어지는 불꽃 도끼(F10, 날이 아래). x 화면 위치, yTip 날 끝 높이, d 날이 향하는 쪽 (★ 천붕)
+function wbHalberdShadow(x, yTip, d, alpha, sc = 2) {
+  vfxDraw(ctx, 'f10', '#c0501e', 0, x, yTip, { anchor: 'b', scale: sc, flip: d < 0, alpha });
 }
 // 들썩이는 땅: 하단바 바닥이 흙 띠로 솟아, 충격파가 지나가는 자리마다 위로 들렸다 내려앉는다
 // pulses: [[시각, 높이]], x0 진원
@@ -205,38 +187,13 @@ function wbHeave(a, x0, life, pulses, startAt) {
   });
 }
 
-// ── ★★ 용암 기둥: 땅이 붉게 부풀다가 울퉁불퉁한 용암 기둥이 솟고, 꼭대기에서 용암 방울이 튄다 ──
+// ── ★★ 용암 기둥(F10l): 솟았다가(앞 0.14초) 무너진다. 높이 h·굵기 w 에 맞춰 늘인다, 꼭대기에서 용암 방울이 튄다(보조) ──
 function wbLavaPillar(a, x, delay, h, w, life = 0.8) {
   const by = wbBase() + 3;
   aFx(a, delay, life, (u) => {
-    const t = u * life, rise = easeOut(Math.min(1, t / 0.14)), fall = u > 0.55 ? easeIn((u - 0.55) / 0.45) : 0;
-    const top = by - h * rise * (1 - fall), hh = by - top;
-    ctx.save();
-    // 밑동의 붉은 열기
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.6 * (1 - u * 0.6);
-    const g = ctx.createRadialGradient(x, by, 1, x, by, w * 2.2);
-    g.addColorStop(0, WB_LAVA[2]); g.addColorStop(1, 'rgba(255,90,31,0)');
-    ctx.fillStyle = g; ctx.fillRect(x - w * 2.2, by - w * 2.2, w * 4.4, w * 2.2 + 6);
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 1;
-    if (hh > 2) {
-      for (const [k, c] of [[1.25, WB_LAVA[0]], [1, WB_LAVA[1]], [0.6, WB_LAVA[2]], [0.22, WB_LAVA[3]]]) {
-        ctx.fillStyle = c;
-        ctx.beginPath(); ctx.moveTo(x - w * k * 0.6, by + 4);
-        for (let y = by; y >= top; y -= 5) ctx.lineTo(x - (w / 2) * k * (1 + 0.18 * Math.sin(y * 0.3 + clock * 22)), y);
-        ctx.lineTo(x, top - 3 * k);
-        for (let y = top; y <= by; y += 5) ctx.lineTo(x + (w / 2) * k * (1 + 0.18 * Math.sin(y * 0.27 - clock * 19)), y);
-        ctx.lineTo(x + w * k * 0.6, by + 4); ctx.closePath(); ctx.fill();
-      }
-      // 꼭대기에서 부글거리는 머리
-      ctx.fillStyle = WB_LAVA[1]; ctx.beginPath(); ctx.arc(x, top, w * 0.75, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = WB_LAVA[2]; ctx.beginPath(); ctx.arc(x - 1, top - 1, w * 0.45, 0, Math.PI * 2); ctx.fill();
-      // 식어 굳은 껍질 조각
-      ctx.fillStyle = 'rgba(40,10,4,0.8)';
-      for (let y = top + 8; y < by - 4; y += 13) ctx.fillRect(Math.round(x - w * 0.4 + ((y * 7) % 5)), Math.round(y), 3, 2);
-    }
-    ctx.restore();
+    const t = u * life, rise = easeOut(Math.min(1, t / 0.14)), fall = u > 0.55 ? easeIn((u - 0.55) / 0.45) : 0, hh = h * rise * (1 - fall), S = VFX_SHEETS.f10l;
+    if (hh < 2 || !S) return;
+    vfxDraw(ctx, 'f10l', WB_LAVA[1], Math.min(4, Math.floor(u * 5)), x, by + 4, { anchor: 'b', sx: Math.max(0.35, w / 32), sy: hh / (S.h * VFX_DOT) });
   }, null, (u) => {
     if (u > 0.6 || Math.random() > 0.85) return;
     const t = u * life, top = by - h * easeOut(Math.min(1, t / 0.14));
@@ -246,39 +203,13 @@ function wbLavaPillar(a, x, delay, h, w, life = 0.8) {
 }
 
 // ── ★★★ 거인의 도끼 ──
-// 거대한 도끼를 자루 아래 끝(pivot, 하단바 밑)에서 θ 각도로 그린다. 날은 +y(휘두르는 쪽)에 있다. 좌우는 d 로 뒤집는다
+// 거대한 도끼(F10)를 자루 아래 끝(pivot, 하단바 밑)에서 θ 각도로 그린다. 날은 자루 끝(L) 쪽. 좌우는 d 로 뒤집는다
+//  시트는 자루가 위·날이 아래라 −90° 돌려 날이 +x(자루 끝)로 오게 한다. rune(0~1): 날의 룬이 달아오를수록 주황 램프 + 뒤 프레임(금이 빛남)
 function wbGiantAxe(px, py, ang, d, alpha, rune, L) {
+  const S = VFX_SHEETS.f10, sc = 2, len = S ? S.h * VFX_DOT * sc : 0;
   ctx.save();
   ctx.translate(px, py); ctx.scale(d, 1); ctx.rotate(ang);
-  ctx.globalAlpha = alpha;
-  const S = WB_STEEL, k = 1.35;
-  // 자루
-  ctx.fillStyle = '#0c0604'; ctx.fillRect(0, -6, L + 20, 12);
-  ctx.fillStyle = '#4a2410'; ctx.fillRect(0, -4, L + 20, 8);
-  ctx.fillStyle = '#7a3a18'; ctx.fillRect(0, -4, L + 20, 2);
-  for (let s = 40; s < L - 60; s += 46) { ctx.fillStyle = S.gold; ctx.fillRect(s, -6, 5, 12); }
-  const P = (pts) => wbPoly(pts.map(([x, y]) => [L + x * k, y * k]));
-  // 도끼날 (휘두르는 쪽): 어두운 테두리 → 강철 → 밝은 날 → 흰 날끝
-  const blade = [[14, 4], [22, 30], [16, 52], [-4, 66], [-28, 66], [-48, 54], [-56, 32], [-44, 4]];
-  ctx.shadowColor = '#ff7a2a'; ctx.shadowBlur = 16 * rune;
-  P(blade); ctx.fillStyle = '#0c0d10'; ctx.fill();
-  ctx.shadowBlur = 0;
-  P([[11, 6], [18, 30], [12, 50], [-4, 62], [-27, 62], [-45, 51], [-52, 31], [-41, 6]]); ctx.fillStyle = S.mid; ctx.fill();
-  P([[16, 34], [10, 50], [-4, 60], [-27, 60], [-44, 50], [-49, 36], [-38, 46], [-22, 52], [-4, 50], [8, 42]]); ctx.fillStyle = S.light; ctx.fill();
-  P([[13, 46], [-4, 58], [-27, 58], [-42, 50], [-26, 55], [-4, 54]]); ctx.fillStyle = '#ffffff'; ctx.fill();
-  // 날에 새겨진 룬이 주황으로 달아오른다
-  ctx.fillStyle = mixHex('#5a2410', '#ffb040', rune);
-  for (const [x, y] of [[-6, 18], [-18, 26], [-30, 18], [-14, 38], [-34, 34]]) P([[x, y], [x + 4, y - 4], [x + 8, y], [x + 4, y + 4]]);
-  // 뒤쪽 뿔과 창끝
-  P([[-8, -4], [-2, -34], [6, -4]]); ctx.fillStyle = '#0c0d10'; ctx.fill();
-  P([[-6, -5], [-2, -30], [4, -5]]); ctx.fillStyle = S.light; ctx.fill();
-  P([[16, -6], [56, 0], [16, 6]]); ctx.fillStyle = '#0c0d10'; ctx.fill();
-  P([[18, -4], [52, 0], [18, 4]]); ctx.fillStyle = S.shine; ctx.fill();
-  // 목 장식 (금 띠)
-  P([[-48, -8], [18, -8], [18, 8], [-48, 8]]); ctx.fillStyle = '#0c0d10'; ctx.fill();
-  P([[-46, -6], [16, -6], [16, 6], [-46, 6]]); ctx.fillStyle = S.dark; ctx.fill();
-  ctx.fillStyle = S.gold;
-  for (const x of [-40, -16, 8]) P([[x, -6], [x + 4, -6], [x + 4, 6], [x, 6]]);
+  vfxDraw(ctx, 'f10', mixHex('#8a8f9c', '#ff7a2a', rune), Math.min(4, Math.floor(rune * 4.99)), L + 40 - len / 2, 0, { scale: sc, rot: -Math.PI / 2, alpha });
   ctx.restore();
 }
 // 뜯겨 나간 땅 아래로 드러난 시뻘건 땅속
@@ -386,13 +317,8 @@ function wbStage3(a) {
     else ang = angHit + Math.sin(clock * 60) * 0.004 * (1 - segU(t, ts, ts + 0.3));
     // 내려치는 동안 날이 지나간 자리에 남는 주황 궤적
     if (t > ts - 0.2 && t < ts + 0.2) {
-      const k = 1 - segU(t, ts, ts + 0.2), a1 = Math.max(angBack, ang - 0.6);
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55 * k;
-      ctx.strokeStyle = '#ff7a2a'; ctx.lineWidth = 46;
-      ctx.beginPath();
-      for (let s = 0; s <= 12; s++) { const A = mix(a1, ang, s / 12) + phi, x = px + sw * Math.cos(A) * re, y = py + Math.sin(A) * re; s ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
-      ctx.stroke();
-      ctx.restore();
+      const k = 1 - segU(t, ts, ts + 0.2), A = ang + phi - 0.3, S = VFX_SHEETS.w6a;
+      vfxDraw(ctx, 'w6a', '#ff7a2a', 0, px + sw * Math.cos(A) * re * 0.92, py + Math.sin(A) * re * 0.92, { scale: 3, rot: sw > 0 ? A - (S ? S.bulge : 0) : Math.PI - A - (S ? S.bulge : 0), flipY: sw < 0, alpha: 0.85 * k });
     }
     // 나타날 때: 주황 빛가루로 짜여 들어오며 윤곽이 먼저 보인다
     wbGiantAxe(px, py, ang, sw, appear * out, Math.max(appear * 0.6, t > ts - 0.25 ? 1 : 0), L);
@@ -461,26 +387,6 @@ function wbGroundFlash(a, x0, life) {
     const h = 70 * easeOut(Math.min(1, u * 3)), w = 16 + 20 * u;
     wbPoly([[x0 - w, by + 2], [x0 - w * 0.4, by - h], [x0 + w * 0.4, by - h * 0.9], [x0 + w, by + 2]]); ctx.fill();
     ctx.restore();
-  });
-}
-
-// ── 타격 이미지: 육중한 주황 파편 넷이 바깥으로 쪼개지며 박힌다 (쇳덩이가 짓누른 자국) ──
-function wbCrushMark(x, y, big) {
-  const s = big ? 1.7 : 1, rot = rand(0, Math.PI / 2);
-  skFx(null, 0, 0.45, (u) => {
-    const e = easeOut(Math.min(1, u / 0.3)), fade = u < 0.45 ? 1 : 1 - (u - 0.45) / 0.55;
-    for (let j = 0; j < 4; j++) {
-      const A = rot + (j * Math.PI) / 2, r = 4 + 12 * s * e;
-      ctx.save();
-      ctx.globalAlpha = fade;
-      ctx.translate(x + Math.cos(A) * r, y + Math.sin(A) * r); ctx.rotate(A);
-      ctx.fillStyle = '#0b0d14'; wbPoly([[-3 * s, -6 * s], [9 * s, 0], [-3 * s, 6 * s]]); ctx.fill();
-      ctx.fillStyle = '#ff7a2a'; wbPoly([[-2 * s, -4.5 * s], [7.5 * s, 0], [-2 * s, 4.5 * s]]); ctx.fill();
-      ctx.fillStyle = '#ffffff'; wbPoly([[0, -1.5 * s], [5 * s, 0], [0, 1.5 * s]]); ctx.fill();
-      ctx.restore();
-    }
-    ctx.save(); ctx.globalAlpha = fade * 0.8; ctx.strokeStyle = '#ffd0a0'; ctx.lineWidth = 2 * (1 - u);
-    ctx.beginPath(); ctx.arc(x, y, 6 + 18 * s * e, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   });
 }
 
@@ -561,7 +467,6 @@ Object.assign(SKILL_FX, {
         for (const t of a.targets(i)) {
           debris(t.x, 6, rocks, 1.2);
           if (m === 2) wbLavaPillar(a, t.x, 0, 78, 20, 0.6);
-          else burst(t.x, by - 4, 8, ['#ff7a2a', '#c9b38a', '#ffffff'], 140);
         }
         if (m === 3 && i === n - 2) { impact({ stop: 0.08, shake: 0.4 }); return; }       // ★★★ 공중의 땅판이 부서지는 순간
         impact({ stop: 0.03, shake: 0.22 });
@@ -595,7 +500,8 @@ Object.assign(SKILL_FX, {
       for (let x = 10; x < W; x += 40) ringFx(x, '#c9b38a', 0.6, 0.5);
       impact({ stop: 0.3, shake: 0.95 });
     },
-    marks(a, t, pow, i, n) { wbCrushMark(t.x, t.y, i === n - 1 || i === 0); },
+    // 명중 그림 K33 (땅판이 내리꽂히는 충격): 바닥 기준, 첫 일격·막타는 크게
+    hitTex(a, t, share, i, n) { vfxSkillHit('k33', a, t, i === 0 ? 1 : share, i, n, { ground: true, gpad: 2, life: 0.32 }); },
     kb: 20,
   },
 });

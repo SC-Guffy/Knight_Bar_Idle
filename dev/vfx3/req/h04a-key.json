@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 16,
+  "height": 16
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: an arrow hit, a short arrow shaft stuck diagonally into the target sticking out to the left with feathers, small wood splinters and white dust puffs bursting at the right end where it hit, nothing else, no character, no background shape",
+ "seed": 21
+}

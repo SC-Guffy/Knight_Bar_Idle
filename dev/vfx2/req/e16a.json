@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: three long parallel diagonal claw gash marks torn into the flat ground, glowing purple inside the cuts, small rock chips at the ends, seen from the side, flat and wide, nothing else, no character, no background shape",
+ "seed": 16
+}

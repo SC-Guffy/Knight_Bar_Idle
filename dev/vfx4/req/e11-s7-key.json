@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a long straight horizontal razor thin sword slash line across the whole width, sharp pointed ends, white core with red glow, a few tiny speed sparks, nothing else, no character, no background shape",
+ "seed": 7
+}

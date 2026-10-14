@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 48,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: abstract motion blur swoosh, one very thick curved crescent band of wind and speed lines like a quarter moon on the right side, bright white outer rim, pale grey body fading and breaking into chunky fragments at the tail end, nothing else, no character, no background shape, no sword, no blade, no metal object, no hilt",
+ "seed": 11
+}

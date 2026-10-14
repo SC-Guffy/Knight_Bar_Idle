@@ -8,6 +8,9 @@
 // 하단바 전체를 덮지 않는다: 하늘의 얼음창도 대상 둘레에만 맺힌다
 
 const IL_ICE = { line: '#1b3f6a', dark: '#5fb4dc', light: '#d8f4ff', glow: '#9fe8ff' };
+// 텍스처 램프: 지금 만드는 시전의 숙련 세기(fxVis)로 단계를 고른다 (얼음 그림 도우미들은 시전 a 를 받지 않는다)
+const IL_RAMP = () => { const m = MASTERY_VIS.indexOf(fxVis); return mgRamp('frost', m < 0 ? 2 : m); };
+const IL_CLOUD = ['#16304e', '#2c5478', '#4f86ad', '#86bcdc', '#cdeefc'];   // 냉기 구름 램프 (C15 를 다시 칠함)
 
 // 지팡이 끝(마력 구슬) 화면 위치 — world.js heroRig·drawStaff 와 같은 셈 (자세의 손 자리 + 지팡이 각도·길이)
 function ilTip(a) {
@@ -36,101 +39,47 @@ function ilKeys(t, keys) {
 
 // 얼음창 한 자루: 끝(x, y)이 ang 방향을 향하고 뒤로 len 만큼. 어두운 테두리 → 아랫면(짙은 청) → 윗면(밝은 청백) → 흰 능선, 꼬리에 결정 가시
 function ilLance(x, y, ang, len, wid, alpha = 1, glow = 0) {
+  // 끝(x, y)이 ang 쪽을 향하는 얼음창. 길이에 맞춰 시트를 고른다: 짧은 가시 = P9 결정, 창 = E37 (2/3·1배), 거대 빙창(폭 14 이상, 아래를 향함) = E37b
   if (len < 2 || alpha <= 0) return;
-  ctx.save();
-  ctx.translate(x, y); ctx.rotate(ang);
-  ctx.globalAlpha = Math.min(1, alpha);
-  if (glow) { ctx.shadowColor = IL_ICE.glow; ctx.shadowBlur = glow; }
-  const h = wid / 2;
-  const body = [[0, 0], [-len * 0.28, -h], [-len * 0.84, -h * 0.62], [-len, 0], [-len * 0.84, h * 0.62], [-len * 0.28, h]];
-  const path = (pts) => { ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.closePath(); };
-  // 꼬리 결정 가시 (몸통 뒤로 비스듬히 갈라진다)
-  ctx.fillStyle = IL_ICE.dark;
-  path([[-len * 0.8, -h * 0.5], [-len - h * 1.1, -h * 1.5], [-len * 0.93, -h * 0.1]]); ctx.fill();
-  path([[-len * 0.8, h * 0.5], [-len - h * 1.1, h * 1.5], [-len * 0.93, h * 0.1]]); ctx.fill();
-  ctx.strokeStyle = IL_ICE.line; ctx.lineWidth = 1.5;
-  path(body); ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = IL_ICE.dark; ctx.fill();
-  ctx.fillStyle = IL_ICE.light;
-  path([[0, 0], [-len * 0.28, -h], [-len * 0.84, -h * 0.62], [-len, 0], [-len * 0.3, h * 0.15]]); ctx.fill();
-  // 결정 면의 마디 (빛이 꺾이는 선)
-  ctx.strokeStyle = 'rgba(27,63,106,0.45)'; ctx.lineWidth = 1;
-  for (const f of [0.5, 0.7]) { ctx.beginPath(); ctx.moveTo(-len * f, -h * 0.85); ctx.lineTo(-len * (f + 0.07), h * 0.7); ctx.stroke(); }
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(-len * 0.82, -Math.max(1, h * 0.25), len * 0.72, 1);
-  ctx.fillRect(-Math.max(2, len * 0.08), -0.5, Math.max(2, len * 0.08), 1);
-  ctx.restore();
+  const ramp = IL_RAMP(), giant = wid >= 14;
+  const id = giant ? 'e37b' : len < 16 ? 'p9' : 'e37';
+  const sc = giant ? (len < 40 ? 1 / 3 : 2 / 3) : id === 'p9' ? (len < 9 ? 2 / 3 : 1) : len < 40 ? 2 / 3 : 1;
+  const s = VFX_SHEETS[id];
+  if (!s || !s.lv) return;
+  const half = (giant ? s.h : s.fw) * sc * VFX_DOT / 2;
+  vfxDraw(ctx, id, ramp, 0, x - Math.cos(ang) * half, y - Math.sin(ang) * half, { scale: sc, rot: giant ? ang - Math.PI / 2 : ang, alpha: Math.min(1, alpha) });
 }
 
 // 서리꽃: 여섯 갈래 가지가 뻗고 가지마다 잔가지가 돋는 눈꽃이 피었다 진다
 function ilBloom(x, y, size, life = 0.6, delay = 0) {
-  size *= 0.7 + 0.3 * fxVis;
-  const rot = rand(0, Math.PI / 3);
-  skFx(null, delay, life, (u) => {
-    const g = easeOut(Math.min(1, u / 0.3)), fade = u < 0.55 ? 1 : 1 - (u - 0.55) / 0.45, R = size * g;
-    ctx.save();
-    ctx.translate(x, y); ctx.rotate(rot + u * 0.4);
-    ctx.lineCap = 'round';
-    for (const [col, lw, al] of [[IL_ICE.line, 3, 0.55], [IL_ICE.glow, 2, 0.9], ['#ffffff', 1, 1]]) {
-      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.globalAlpha = al * fade;
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const an = (i / 6) * Math.PI * 2, c = Math.cos(an), s = Math.sin(an);
-        ctx.moveTo(0, 0); ctx.lineTo(c * R, s * R);
-        for (const [f, l] of [[0.45, 0.3], [0.72, 0.22]]) {
-          const bx = c * R * f, by = s * R * f;
-          for (const sd of [-0.65, 0.65]) { ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(an + sd) * R * l, by + Math.sin(an + sd) * R * l); }
-        }
-      }
-      ctx.stroke();
-    }
-    ctx.globalAlpha = fade; ctx.fillStyle = '#ffffff';
-    ctx.fillRect(-2, -2, 4, 4);
-    ctx.restore();
-  });
+  // 서리꽃 = K25 (얼음 꽂힘 + 서리꽃)
+  texFx('k25', x, y, IL_RAMP(), { life, delay, scale: size <= 18 ? 2 / 3 : size <= 28 ? 1 : 4 / 3, fade: 0.35, flip: Math.random() < 0.5 });
 }
 
 // 땅에 번지는 서리: 납작한 청백 얼룩 + 가장자리에 서는 작은 결정 가시
 function ilFrostPatch(x, w, life = 1.0, delay = 0) {
-  w *= 0.75 + 0.25 * fxVis;
-  const ticks = [];
-  for (let i = 0; i < Math.round(w / 4); i++) ticks.push([rand(-1, 1), rand(1, 4)]);
+  // 땅에 번지는 서리 = E39b 빙판 타일의 한 토막 (폭 w×2), 번졌다가 녹는다
+  const ramp = IL_RAMP();
   skFx(null, delay, life, (u) => {
-    const g = easeOut(Math.min(1, u / 0.25)), fade = u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4, gy = groundY(), hw = w * g;
-    ctx.save();
-    ctx.globalAlpha = 0.45 * fade; ctx.fillStyle = '#cfefff';
-    ctx.beginPath(); ctx.ellipse(x, gy, Math.max(0.1, hw), 3, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 0.8 * fade; ctx.fillStyle = '#ffffff';
-    ctx.fillRect(Math.round(x - hw * 0.6), gy - 1, Math.round(hw * 1.2), 1);
-    ctx.fillStyle = IL_ICE.glow;
-    for (const [f, h] of ticks) ctx.fillRect(Math.round(x + f * hw), Math.round(gy - h * g), 1, Math.round(h * g));
-    ctx.restore();
+    const g = Math.min(1, u / 0.25), s = VFX_SHEETS.e39b;
+    if (!s || !s.lv) return;
+    const wd = Math.min(1, (w * 2 * (0.5 + 0.5 * g)) / (s.fw * (2 / 3) * VFX_DOT));
+    vfxDraw(ctx, 'e39b', ramp, 0, x, groundY() + 3, { scale: 2 / 3, anchor: 'b', crop: [0.5 - wd / 2, 0.5 + wd / 2], alpha: (u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4) * 0.9 });
   });
 }
 
 // 얼음 조각이 흩어진다: 삼각 조각이 돌면서 날아가 떨어진다 (조각마다 밝은 면·어두운 면)
 function ilShatter(x, y, n, size = 4, speed = 160, life = 0.7) {
-  n = Math.max(2, Math.round(n * fxVis));
-  const sh = [];
+  // 얼음 조각 = P9 결정 시트를 45° 계단으로 돌리며 흩뿌린다 (size 5 이상이면 1배)
+  n = Math.max(2, Math.round(n * fxVis * 0.6));
+  const sh = [], ramp = IL_RAMP(), sc = size >= 5 ? 1 : 2 / 3;
   for (let i = 0; i < n; i++) {
     const an = rand(0, Math.PI * 2), v = rand(0.35, 1) * speed;
-    sh.push({ vx: Math.cos(an) * v, vy: Math.sin(an) * v - speed * 0.45, r: rand(0, 6), vr: rand(-14, 14), s: size * rand(0.6, 1.3), light: i % 3 !== 0 });
+    sh.push({ vx: Math.cos(an) * v, vy: Math.sin(an) * v - speed * 0.45, r: rand(0, 6), vr: rand(-14, 14) });
   }
   skFx(null, 0, life, (u) => {
-    const t = u * life;
-    ctx.save();
-    ctx.globalAlpha = u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4;
-    for (const p of sh) {
-      const px = x + p.vx * t, py = Math.min(groundY() - 1, y + p.vy * t + 260 * t * t);
-      ctx.save();
-      ctx.translate(px, py); ctx.rotate(p.r + p.vr * t);
-      ctx.fillStyle = p.light ? IL_ICE.light : IL_ICE.dark;
-      ctx.beginPath(); ctx.moveTo(p.s, 0); ctx.lineTo(-p.s * 0.6, -p.s * 0.7); ctx.lineTo(-p.s * 0.4, p.s * 0.6); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(-1, -1, 1.5, 1.5);
-      ctx.restore();
-    }
-    ctx.restore();
+    const t = u * life, al = u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4;
+    for (const p of sh) vfxDraw(ctx, 'p9', ramp, 0, x + p.vx * t, Math.min(groundY() - 1, y + p.vy * t + 260 * t * t), { scale: sc, rot: Math.round((p.r + p.vr * t) / 0.785) * 0.785, alpha: al });
   });
 }
 
@@ -153,16 +102,8 @@ function ilFlyFx(a, x0, y0, tx, ty, hitT, len, wid, o = {}) {
   skFx(null, 0, life, (u) => {
     const t = u * life, d = Math.min(dist + far, v * t), x = x0 + Math.cos(ang) * d, y = y0 + Math.sin(ang) * d;
     const out = far && d > dist ? 1 - (d - dist) / far : 1;
-    if (trail) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      const tl = Math.max(1, Math.min(d, 60 * trail));
-      const g = ctx.createLinearGradient(x - Math.cos(ang) * tl, y - Math.sin(ang) * tl, x, y);
-      g.addColorStop(0, 'rgba(159,232,255,0)'); g.addColorStop(1, `rgba(159,232,255,${0.55 * out})`);
-      ctx.strokeStyle = g; ctx.lineWidth = Math.max(1, wid * 0.7);
-      ctx.beginPath(); ctx.moveTo(x - Math.cos(ang) * tl, y - Math.sin(ang) * tl); ctx.lineTo(x, y); ctx.stroke();
-      ctx.restore();
-    }
+    // 지나온 자리에 흐린 사본 둘 (꼬리)
+    if (trail) for (const j of [1, 2]) if (d > len * j) ilLance(x - Math.cos(ang) * len * 0.55 * j, y - Math.sin(ang) * len * 0.55 * j, ang, len, wid, out * 0.3 / j);
     ilLance(x, y, ang, len, wid, out, o.glow || 0);
   }, null, (u) => {
     if (!trail || Math.random() > 0.7 * trail) return;
@@ -203,11 +144,8 @@ function ilBackTrio(a, life, fire) {
       if (t < born[j] || t >= fire[j]) continue;
       const g = easeOut(Math.min(1, (t - born[j]) / 0.22)), s = spot(j, t);
       const ang = Math.atan2(a.ty() - 6 - s.y, a.tx() - s.x);
-      // 떠 있는 자리 뒤에 세로로 선 작은 마법 고리
-      ctx.save();
-      ctx.globalAlpha = 0.6 * g; ctx.strokeStyle = IL_ICE.glow; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.ellipse(s.x - Math.cos(ang) * 14, s.y - Math.sin(ang) * 14, 2.5, 8 * g + 0.1, ang, 0, Math.PI * 2); ctx.stroke();
-      ctx.restore();
+      // 떠 있는 자리 뒤에 세로로 선 작은 마법 고리 (C9 마법진을 세워서)
+      vfxDraw(ctx, 'c9', IL_RAMP(), mgLoop('c9', 10, j), s.x - Math.cos(ang) * 14, s.y - Math.sin(ang) * 14, { scale: 2 / 3, sx: 0.5, rot: ang + Math.PI / 2, alpha: 0.7 * g });
       const L = 30 * g;
       ilLance(s.x + Math.cos(ang) * L * 0.5, s.y + Math.sin(ang) * L * 0.5, ang, L, 7 * (0.4 + 0.6 * g), 0.5 + 0.5 * g, 5);
     }
@@ -228,13 +166,9 @@ function ilSkyLances(a, life) {
   a.ilSky = list;
   aFx(a, 0, life, (u) => {
     const t = u * life;
-    // 대상 위 하늘에만 엷은 냉기 안개
-    ctx.save();
+    // 대상 위 하늘에만 엷은 냉기 구름 (C15 먹구름을 서리 램프로)
     const k = Math.min(1, t / 0.3) * (u > 0.85 ? (1 - u) / 0.15 : 1);
-    const g = ctx.createRadialGradient(cx, 18, 4, cx, 18, 100);
-    g.addColorStop(0, `rgba(190,240,255,${0.22 * k})`); g.addColorStop(1, 'rgba(190,240,255,0)');
-    ctx.fillStyle = g; ctx.fillRect(cx - 100, -20, 200, 80);
-    ctx.restore();
+    for (const sd of [-1, 1]) vfxDraw(ctx, 'c15', IL_CLOUD, mgLoop('c15', 5, sd + 1), cx + sd * 40, 16, { scale: 4 / 3, flip: sd > 0, alpha: 0.45 * k });
     for (const s of list) {
       if (t < s.born || s.gone) continue;
       const f = Math.min(1, (t - s.born) / 0.16), bob = Math.sin(clock * 4 + s.x) * 1.2;
@@ -254,10 +188,8 @@ function ilVolley(a, v, flight) {
     const gy = groundY() - 2, x0 = s.x + Math.cos(s.ang) * 11, y0 = s.y + Math.sin(s.ang) * 11;
     skFx(null, j * 0.025, flight, (u) => {
       const e = easeIn(u), x = mix(x0, s.lx, e), y = mix(y0, gy, e);
+      ilLance(x - Math.cos(s.ang) * 14, y - Math.sin(s.ang) * 14, s.ang, 22, 5, 0.3);
       ilLance(x, y, s.ang, 22, 5, 1, 4);
-      ctx.save(); ctx.globalAlpha = 0.5; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(x - Math.cos(s.ang) * 36, y - Math.sin(s.ang) * 36); ctx.lineTo(x - Math.cos(s.ang) * 22, y - Math.sin(s.ang) * 22); ctx.stroke();
-      ctx.restore();
     }, () => {
       skFx(null, 0, 0.45, (u) => ilLance(s.lx + Math.cos(s.ang) * 4, gy + Math.sin(s.ang) * 4, s.ang, 22, 5, u < 0.5 ? 1 : 1 - (u - 0.5) / 0.5));
       burst(s.lx, gy - 2, 5, ['#ffffff', IL_ICE.glow, IL_ICE.light], 90, 2, 280);
@@ -272,13 +204,9 @@ function ilGiantForm(a, life) {
   a.ilGiantX = x;
   aFx(a, 0, life, (u) => {
     const g = easeOut(u), L = IL_GIANT.len * g, wob = u > 0.75 ? Math.sin(clock * 30) : 0;
-    // 둘레를 도는 냉기 고리 두 겹
-    ctx.save();
-    ctx.globalAlpha = 0.6 * g; ctx.strokeStyle = IL_ICE.glow; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(x, 12 + L * 0.3, 20 + 5 * Math.sin(clock * 6), 4, 0, clock * 4, clock * 4 + 4.5); ctx.stroke();
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(x, 6 + L * 0.5, 14, 3, 0, -clock * 5, -clock * 5 + 3.5); ctx.stroke();
-    ctx.restore();
+    // 둘레를 도는 냉기 고리 두 겹 (C9 마법진)
+    vfxDraw(ctx, 'c9', IL_RAMP(), mgLoop('c9', 12), x, 12 + L * 0.3, { scale: 2 / 3, alpha: 0.75 * g });
+    vfxDraw(ctx, 'c9', IL_RAMP(), mgLoop('c9', 12, 2), x, 6 + L * 0.5, { scale: 2 / 3, sx: 0.7, flip: true, alpha: 0.6 * g });
     ilLance(x + wob, 2 + L * 0.7, Math.PI / 2, L, IL_GIANT.wid * (0.4 + 0.6 * g), 0.6 + 0.4 * g, 10 * g);
   }, null, () => { if (Math.random() < 0.9) ilGather(x, 30, 30, 52, 0.6); });
 }
@@ -287,32 +215,21 @@ function ilGiantDrop(a, flight) {
   const x = a.ilGiantX != null ? a.ilGiantX : a.tx(), gy = groundY(), y0 = IL_GIANT.y, y1 = gy + 8, { len, wid } = IL_GIANT;
   skFx(null, 0, flight, (u) => {
     const y = mix(y0, y1, easeIn(u));
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(159,232,255,0.35)';
-    ctx.fillRect(x - 5, -10, 10, Math.max(0, y - len + 10)); ctx.restore();
+    ilLance(x, y - 24, Math.PI / 2, len, wid, 0.3);
     ilLance(x, y, Math.PI / 2, len, wid, 1, 12);
   }, () => {
-    const cracks = [];
-    for (let i = 0; i < 7; i++) cracks.push([rand(-4, 4), rand(14, 58), rand(-1, 1)]);
     skFx(null, 0, 0.2, (u) => {
-      ilLance(x, y1, Math.PI / 2, len, wid, 1, 12 * (1 - u));
-      ctx.save(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (const [ox, oy, s] of cracks) {
-        const L = 10 * Math.min(1, u * 1.6 + 0.2);
-        ctx.moveTo(x + ox, y1 - oy); ctx.lineTo(x + ox + s * L * 0.6, y1 - oy - L * 0.5); ctx.lineTo(x + ox - s * L * 0.3, y1 - oy - L);
-      }
-      ctx.stroke(); ctx.restore();
+      // 땅에 박힌 채 떨리다가 깨진다 (금은 아래 K25 서리꽃이 맡는다)
+      ilLance(x + (Math.floor(u * 20) % 2 ? 1 : -1), y1, Math.PI / 2, len, wid, 1, 0);
     }, () => {
       ilShatter(x, gy - 32, 22, 6, 230, 0.8);
       ilShatter(x, gy - 10, 10, 4, 150, 0.6);
       ilBloom(x, gy - 30, 34, 0.75);
       ilFrostPatch(x, 60, 1.2);
-      ringFx(x, IL_ICE.glow, 1.4, 0.5);
-      ringFx(x, '#ffffff', 0.9, 0.4);
+      mgRing(x, IL_RAMP(), 1.6, 0.5);
       impact({ stop: 0.1, shake: 0.4 });
     });
-    ringFx(x, IL_ICE.glow, 1.0, 0.4);
-    debris(x, 8, ['#cfefff', '#ffffff', '#c9b38a'], 1.4);
+    mgRing(x, IL_RAMP(), 1.0, 0.4);
   });
 }
 
@@ -390,11 +307,10 @@ Object.assign(SKILL_FX, {
       for (const t of tg) { ilBloom(t.x, t.y - 4, 22, 0.6); burst(t.x, t.y, 20, ['#ffffff', IL_ICE.glow, IL_ICE.light], 180, 3, 260); }
       impact({ stop: 0.16, shake: 0.5 });
     },
-    // 검흔 대신 대상에 얼음 가시가 박힌다 (Lv1 은 없이, ★★★ 는 마지막 빙창만)
-    marks(a, t, pow, i, n) {
-      const m = a.mast;
-      if (m === 0 || (m === 3 && i < n - 1)) return;
-      ilSplinters(a, t, m >= 2 ? 3 : 2, 0.5);
+    // 명중 그림 K25 (얼음 꽂힘 + 서리꽃): Lv1 앞 3프레임, ★ 4프레임, ★★ 이상 전부. 2/3배, ★★★ 거대 빙창 막타만 4/3배
+    hitTex(a, t, share, i, n) {
+      const m = a.mast || 0, big = m >= 3 && i === n - 1;
+      mgFx(a, 'k25', t.x + rand(-3, 3), t.y + rand(-5, 3), mgA(a, 'frost'), { scale: big ? 4 / 3 : 2 / 3, life: big ? 0.45 : 0.3, frames: [3, 4, 5, 5][m], fade: 0.3, flip: a.dir < 0 });
     },
     kb: 10,
   },

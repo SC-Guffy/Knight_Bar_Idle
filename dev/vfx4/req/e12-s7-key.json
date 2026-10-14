@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 48,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: one heavy crescent shaped slash wave flying to the right, very thick, bright orange and white hot leading edge on the right, dark red tail, flat and wide, nothing else, no character, no background shape",
+ "seed": 7
+}

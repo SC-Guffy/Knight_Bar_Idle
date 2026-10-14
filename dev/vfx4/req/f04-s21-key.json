@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: one long perfectly horizontal thin ribbon of pink light going from the left edge to the right edge, thickest in the middle and tapering to needle points at both ends, white core, three small cherry blossom petals floating near it, nothing else, no character, no background shape, no sword, no hilt, no handle, no crossguard",
+ "seed": 21
+}

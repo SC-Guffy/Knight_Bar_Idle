@@ -1,0 +1,11 @@
+{
+ "image_size": {
+  "width": 240,
+  "height": 100
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "description": "pixel art game background: night sky, deep navy blue getting lighter toward the bottom, many tiny twinkling stars, a faint milky way band diagonally, no ground, no moon, no characters, no text",
+ "seed": 7
+}

@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: heavy axe chop hit, one thick diagonal gash mark with jagged sawtooth edges like a saw cut, three angular grey rock chunks popping out, white hot edge, deep orange, compact, nothing else, no character, no background shape",
+ "seed": 8
+}

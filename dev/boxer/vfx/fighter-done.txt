@@ -1,0 +1,1 @@
+2026-10-14 파이터 묶음 완료: src/vfx/xw1.png(28x16x1) xh1.png(32x32x4) xe01.png(60x26x5) xe02.png(32x16x4, 가로 이어붙임) xk01.png(32x32x5). 크기·앵커는 dev/boxer/vfx/manifest.json. 32도트 시트(xh1·xk01)는 2/3배로 그리면 스펙 24도트. PixelLab 15회.

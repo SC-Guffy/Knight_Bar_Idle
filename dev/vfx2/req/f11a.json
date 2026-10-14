@@ -1,0 +1,13 @@
+{
+ "outline": "lineless",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 240,
+  "height": 100
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: golden sunset sky background with a huge army of cavalry knight silhouettes with raised lances charging across the horizon, long rows of horse riders, dust clouds at the bottom, wide landscape, game background, nothing else, no character, no background shape",
+ "seed": 11
+}

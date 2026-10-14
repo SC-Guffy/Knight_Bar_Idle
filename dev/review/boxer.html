@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>파이터 계열 — 스펙 검토</title>
+<!-- 스펙: docs/specs/boxer-class.md. 게임 코드는 바꾸지 않는다.
+     게이지 시뮬레이션은 스펙 3절 시작안을 이 페이지 안에서 그대로 돌린다 (끝없는 허수아비, Lv1 스킬 위력).
+     쿨타임 직업 비교값은 src/classes.js 실측(트리 V2·노드 0칸): 1차 17.8초 · 2차 8.2초 · 3차 6.9초. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --hl: #3b2a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: var(--gold); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .hl { background: var(--hl); border: 2px solid var(--gold); }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td.n { text-align: right; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  canvas { display: block; max-width: 100%; background: #0f0d14; border: 1px solid var(--line); border-radius: 4px; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  select, input[type=number] { background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; }
+  input[type=number] { width: 64px; }
+  button { background: #2f2840; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 3px 10px; font: inherit; cursor: pointer; }
+  button.on { border-color: var(--gold); color: var(--gold); }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); } .dim { color: var(--dim); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .jobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+  .job h4 { margin: 0 0 4px; font-size: 14px; }
+  .job .tier { font-size: 11px; color: var(--dim); }
+  .job dl { margin: 4px 0 0; display: grid; grid-template-columns: 56px 1fr; gap: 2px 6px; font-size: 12px; }
+  .job dt { color: var(--dim); }
+  .job dd { margin: 0; }
+  .pix { image-rendering: pixelated; max-width: 100%; display: block; border: 1px solid var(--line); border-radius: 4px; background: #282830; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+  .gallery figure { margin: 0; }
+  .gallery figcaption { color: var(--dim); font-size: 12px; margin-top: 3px; }
+  .anim { display: flex; gap: 10px; flex-wrap: wrap; }
+  .anim figure { margin: 0; text-align: center; }
+  .anim canvas { background: #282830; }
+  .badge { display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 11px; border: 1px solid var(--line); }
+  .b-ok { color: var(--green); border-color: #2f6a4a; } .b-no { color: var(--red); border-color: #6a2f3a; } .b-mid { color: var(--gold); border-color: #6a5a2f; }
+  .legend span { margin-right: 14px; white-space: nowrap; }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+  @media (max-width: 600px) { main { padding: 10px; } th, td { padding: 2px 4px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>🥊 파이터 계열 7종 — 스펙 검토</h1>
+  <div class="sub">스펙: <code>docs/specs/boxer-class.md</code> (확정 2026-10-14 — 그림은 7:3 v2 3차 키 맞춤판) · 이 페이지는 게임 코드를 바꾸지 않습니다. 게이지 그래프는 스펙의 시작안 수치로 이 자리에서 계산합니다.</div>
+
+  <h2>0. 구현 진행 (impl-boxer, 포트 8861)</h2>
+  <p>단계: ① 1차 파이터 → ② 2차 3종 → ③ 3차 3종. 스펙 <code>docs/specs/boxer-class.md</code> "확인 방법"에 순서가 있다.</p>
+  <ul>
+    <li>스킬 시험장: <a href="../skills.html?cls=fighter&skill=oneTwo&stage=1">원투 스트레이트 ★</a> · <a href="../skills.html?mode=basic&cls=fighter">파이터 평타</a></li>
+    <li>실제 게임(오프라인): <a href="../../index.html?server=http://127.0.0.1:9">index.html?server=http://127.0.0.1:9</a> → 8초 뒤 콘솔에서 <code>dev/boxer/preset.js</code> 를 불러 <code>boxerPreset('fighter')</code> · <code>boxerWatch()</code></li>
+  </ul>
+  <h3>2차 3종 (② — 시험장 캡처)</h3>
+  <div class="gallery">
+    <figure><img class="pix" src="../boxer/shots/t2-skills.png"><figcaption>줄: 연타 러시 · 붕권 · 돌진 발차기 · 회전 발차기 · 장풍 · 기막 / 칸: Lv1 시작 · Lv1 막타 · ★★★ 시작 · ★★★ 막타</figcaption></figure>
+    <figure><img class="pix" src="../boxer/shots/t2-basic.png"><figcaption>평타 명중: 파이터 · 스트라이커 · 킥복서 · 기공사</figcaption></figure>
+    <figure><img class="pix" src="../boxer/shots/t2-basic-gray.png"><figcaption>같은 그림 흑백 — 충격 별 / 금속 링 / 반달 호 / 동심 파문</figcaption></figure>
+    <figure><img class="pix" src="../boxer/sheets/lineup-guard.png"><figcaption>7종 전투 대기 (템페스트·그랜드마스터는 아직 기준 그림)</figcaption></figure>
+  </div>
+  <p>시트 미리보기: <a href="../boxer/sheets/striker-preview.png">스트라이커</a> · <a href="../boxer/sheets/kickboxer-preview.png">킥복서</a> · <a href="../boxer/sheets/qigong-preview.png">기공사</a> · 시험장 <a href="../skills.html?cls=striker&skill=ironRush&stage=2">연타 러시 ★★</a> · <a href="../skills.html?cls=kickboxer&skill=spinKick&stage=1">회전 발차기 ★</a> · <a href="../skills.html?cls=qigong&skill=palmBlast&stage=1&q3=1">장풍 3단</a></p>
+  <h3>파이터 시트 (PixelLab, 11동작)</h3>
+  <img class="pix" src="../boxer/sheets/fighter-preview.png" alt="파이터 시트" style="max-width:640px">
+  <div class="anim" id="gifs"></div>
+  <h3>게임 캡처</h3>
+  <div class="gallery">
+    <figure><img class="pix" src="../boxer/shots/g-fighter.png"><figcaption>원정: 평타(위 2줄) · 원투 스트레이트 ★ (아래 2줄)</figcaption></figure>
+    <figure><img class="pix" src="../boxer/shots/g-fighter-zoom.png"><figcaption>평타 명중 4배 — 주먹 궤적 XW1 + 명중 XH1, 체력바 위 기 게이지(주황)</figcaption></figure>
+    <figure><img class="pix" src="../boxer/shots/f-ot-stages.png"><figcaption>원투 스트레이트 Lv1·★·★★·★★★ (첫 타 · 막타) — 명중 XK01, 충격파 XE01, 섬광 줄 XE02</figcaption></figure>
+  </div>
+  <script>
+    (() => {
+      const g = document.getElementById('gifs');
+      for (const cls of ['fighter', 'striker', 'kickboxer', 'qigong', 'champion', 'tempest', 'grandmaster'])
+        for (const a of ['idle', 'guard', 'walk', 'dash', 'atkA', 'atkB', 'charge', 'release', 'skillA', 'skillB', 'awaken', 'hurt', 'death', 'sit']) {
+          const im = new Image(); im.className = 'pix'; im.style.height = '128px';
+          im.onload = () => { const f = document.createElement('figure'); f.appendChild(im); const c = document.createElement('figcaption'); c.textContent = cls + ' ' + a; f.appendChild(c); g.appendChild(f); };
+          im.src = `../boxer/sheets/gif/${cls}-${a}.gif`;
+        }
+    })();
+  </script>
+
+  <h2>1. 요지</h2>
+  <div class="card hl">
+    <b>파이터 계열 스킬에는 쿨타임이 없다.</b> 기(氣)를 모아서 쓴다. 2차마다 기를 채우는 방식이 다르다.
+    <ul>
+      <li><b>기 게이지</b> → <b>주 기술</b>(직업의 대표 기술)이 쓴다. 게이지 모양·채우는 법이 직업마다 다르다.</li>
+      <li><b>투지</b> → 기를 쓴 만큼 쌓인다. 물려받은 원투·Lv70 기술·궁극기가 각자 문턱마다 나간다. 스킬을 새로 배워도 다른 스킬이 덜 나가지 않게 하려고 둔 칸이다.</li>
+      <li>결투·레이드·원정 시작 때 게이지와 투지가 <b>가득</b> → 첫 몇 초에 스킬이 한 번씩 나가는 구조가 쿨타임 직업과 같다.</li>
+      <li>쿨타임 효과 변환: ⏱️ 노드 → <b>☯️ 기 절약</b>(소모 ×0.6 = 충전 ×1.67) · 고유 발동 <code>cdreset</code> → 게이지 최대치 50% 즉시 충전.</li>
+      <li>사용자 결정: 이름(파이터 / 스트라이커 / 킥복서 / 기공사 → 챔피언 / 템페스트 / 그랜드마스터) · 새 기사만 · 장풍 2단 고정.</li>
+      <li>출시: 1·2차 4종 먼저, 3차 3종은 다음 패치. 렌더링은 통짜 스프라이트 시트, 이펙트는 PixelLab 텍스처 48장.</li>
+    </ul>
+  </div>
+
+  <h2>2. 직업 7종</h2>
+  <div class="jobs" id="jobs"></div>
+
+  <h2>3. 게이지 시뮬레이션</h2>
+  <div class="card">
+    <div class="ctl">
+      <label>직업 <select id="simCls"></select></label>
+      <label>함께 맞는 적 <select id="simTgt"><option value="1">1마리 (결투·레이드)</option><option value="2">2마리</option><option value="3">3마리 (무리)</option></select></label>
+      <label>보여 줄 시간 <select id="simWin"><option>30</option><option selected>60</option><option>120</option></select>초</label>
+      <button id="simReset">시작안으로</button>
+    </div>
+    <div class="ctl" id="simParams"></div>
+    <canvas id="simCv" width="1040" height="260"></canvas>
+    <div class="legend" id="simLegend" style="margin-top:4px"></div>
+    <div id="simStat" style="margin-top:6px"></div>
+  </div>
+  <h3>같은 차수 쿨타임 직업과 비교 (허수아비 600초, Lv1 위력, 고른 마리 수)</h3>
+  <div class="scroll"><table id="cmp"></table></div>
+  <div class="sub" style="margin-top:4px">쿨타임 직업 값은 <code>src/classes.js</code> 실측입니다. 평균 시전 간격 1차 17.8초 · 2차 8.2초 · 3차 6.9초, 스킬 DPS(공격력 배수/초) 1차 0.39 · 2차 Lv70 전 0.49 · 2차 0.72 · 3차 1.06. 기준 범위는 시전 간격 ±15%, 스킬 DPS ±10% 입니다.</div>
+
+  <h2>4. 쿨타임 효과 변환</h2>
+  <div class="scroll"><table>
+    <tr><th>효과</th><th>쿨타임 직업</th><th>파이터 계열</th></tr>
+    <tr><td>⏱️ 트리 노드 (10칸 −40%)</td><td>그 스킬 쿨타임 ×0.6</td><td><b>☯️ 기 절약</b>: 그 스킬 소모량(주 기술) 또는 문턱(투지 기술) ×0.6 = 그 스킬 몫 충전 ×1.67</td></tr>
+    <tr><td>🔁 고유 특수 refund</td><td>처치 시 쿨타임 x% 환급</td><td>처치 시 그 기술 소모량(문턱)의 x% 를 기(투지)로 돌려받음</td></tr>
+    <tr><td>✨ 고유 특수 chain</td><td>다른 스킬 쿨타임 x% 감소</td><td>다른 투지 기술 칸을 각 문턱의 x% 만큼, 기 게이지를 주 기술 소모량의 x% 만큼 채움</td></tr>
+    <tr><td>고유 발동 cdreset (우로보로스 12%)</td><td>그 스킬 쿨타임 0</td><td>기 게이지 최대치의 50% 즉시 충전</td></tr>
+    <tr><td>장비 옵션</td><td colspan="2">지금 쿨타임 옵션 없음 (<code>GEAR_OPTS</code> 확인)</td></tr>
+    <tr><td>앞으로의 캐릭터 전체 쿨타임 효과 (시즌7 룬)</td><td>모든 스킬 쿨타임 −x%</td><td>기 충전 ×1/(1−x)</td></tr>
+  </table></div>
+
+  <h2>5. 기준 그림 — 손도트 → ComfyUI 시안 → PixelLab 최종</h2>
+  <div class="card hl">사용자 피드백("권투가 왜 이렇게 저퀄이야")으로 기준 그림을 다시 뽑았습니다.
+    <b>ComfyUI(Z-Image + 픽셀 LoRA)</b>로 직업마다 시안 12장(모두 84장) → 하나를 골라 바탕을 지우고 키 40도트로 줄여 256×256 판에 놓음 → <b>PixelLab <code>image-to-pixelart</code></b>(256 → 64, 직업당 1회) → 바탕·발밑 그림자 정리, 발 바닥 y=58, 게임과 같은 바깥 외곽선 <code>#0b0d14</code> (<code>dev/boxer/to_pixel.py</code>).
+    기존 직업은 게임의 <code>drawHero</code> 로 그려 1칸=1px 로 복원했습니다. 모두 같은 축척(4배 확대)입니다.</div>
+  <div class="ctl" style="margin-top:8px">
+    <button class="on" data-mode="">컬러</button><button data-mode="-gray">흑백</button><button data-mode="-sil">실루엣만</button>
+  </div>
+  <div class="card hl"><b>7:3 v2 (3차 키 맞춤) — 최신</b>: 3차 3종도 1·2차와 같은 42칸 방식으로 다시 뽑아 <b>계열 7종이 모두 기존 기사와 같은 키</b>입니다.
+    3차는 스타일 참고 4장 중 1장을 부모 2차 그림으로 바꿔 특징을 이었습니다 — 챔피언 = 스트라이커 + 사자 갈기·망토·황금 건틀릿, 템페스트 = 킥복서 + 바람 목도리·발밑 회오리, 그랜드마스터 = 기공사 + 후광·금빛 장식.
+    보강: 스트라이커 장갑을 금속판 장갑(<code>striker_g</code> 28번)으로, 킥복서를 무릎 든 자세(47번, 추가 생성 없이 이미 뽑은 64장에서)로 바꿨습니다.</div>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix lu" data-base="lineup-v2-all" alt="계열 전체"><figcaption><b>계열 전체 줄 세우기</b> — 파이터 / 스트라이커 → 챔피언 / 킥복서 → 템페스트 / 기공사 → 그랜드마스터 (흑백·실루엣 버튼)</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-tier3" alt="3차 비교"><figcaption><b>3차 · 기존 기사와 나란히</b> — 성기사·검성·용기병·레인저 + 챔피언·템페스트·그랜드마스터</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-family3" alt="3차 3종"><figcaption><b>3차 3종 (색깔놀이 확인)</b></figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2a-v2b" alt="이전 v2 비교"><figcaption><b>이전 v2 → 지금</b> — 스트라이커(글러브 → 금속판) · 킥복서(가드 → 무릎 듦) · 챔피언·템페스트·그랜드마스터(64칸판 → 키 맞춤)</figcaption></figure>
+  </div>
+  <h3>3차·보강 변형 64장 (고른 것: 챔피언 16 · 템페스트 45 · 그랜드마스터 16 · 스트라이커 금속판 28 · 킥복서 47)</h3>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix" src="../boxer/v2/_k-champion.png" alt=""><figcaption>챔피언</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-tempest.png" alt=""><figcaption>템페스트</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-grandmaster.png" alt=""><figcaption>그랜드마스터</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-striker_g.png" alt=""><figcaption>스트라이커 금속판 장갑</figcaption></figure>
+  </div>
+  <h3>7:3 v2 첫 판</h3>
+  <div class="card hl"><b>7:3 v2 첫 판</b> — 축소 대신 <b>PixelLab <code>generate-with-style-v2</code></b>로 직접 뽑았습니다. 기존 기사 스프라이트 4장(성기사·레인저·대검전사·마법사, 42×42 에 꽉 맞게 자름)을 스타일 참고로 넣어 같은 꼬마 비율·도트 크기·외곽선으로, 한 번에 변형 64장(직업당)을 받아 하나씩 골랐습니다.
+    손 마무리(<code>dev/boxer/finish.py</code>): 재질별 4단 램프 정리 · 바깥 외곽선 <code>#0b0d14</code> 통일 · 발 맞춤. 1·2차 4종은 기존 기사와 키가 같은 42칸판, <b>3차 3종은 64칸판이라 아직 약 1.3배 큽니다</b>(사용량 상한으로 다음에 맞춤). PixelLab 이번 작업 153회 (상한 150 — 3회 초과).</div>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix lu" data-base="lineup-v2-tier2" alt="v2 2차"><figcaption><b>7:3 v2 · 기존 2차와 나란히</b> — 성기사·검성·용기병 + 스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-tier1" alt="v2 1차"><figcaption><b>7:3 v2 · 1차</b> — 견습 기사·검사·레인저·마법사 + 파이터</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v1-v2" alt="판 비교"><figcaption><b>판 비교</b> — 직업마다 왼쪽부터 고퀄 / 7:3 v1(3단 정리) / <b>7:3 v2</b>. 파이터·스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-family" alt="v2 같은 계열"><figcaption><b>7:3 v2 · 같은 계열 2차 3종</b> — 흑백·실루엣 버튼으로 색깔놀이 확인</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-v2-lines" alt="v2 2→3차"><figcaption><b>7:3 v2 · 2차→3차</b> — 3차는 64칸판이라 큼</figcaption></figure>
+  </div>
+  <h3>7:3 v2 변형 64장 (1·2차, 고른 것: 파이터 0 · 스트라이커 0 · 킥복서 16 · 기공사 0, 왼쪽 위부터 0)</h3>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix" src="../boxer/v2/_k-fighter.png" alt=""><figcaption>파이터</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-striker.png" alt=""><figcaption>스트라이커</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-kickboxer.png" alt=""><figcaption>킥복서</figcaption></figure>
+    <figure><img class="pix" src="../boxer/v2/_k-qigong.png" alt=""><figcaption>기공사 — 공격·기 모으기 자세도 많아 키 자세 후보로 쓸 수 있다</figcaption></figure>
+  </div>
+  <h3>이전 판 (7:3 v1 · 고퀄)</h3>
+  <div class="card" style="border-color:var(--red)"><b>사용자 의견 반영</b>: "퀄리티가 너무 높아졌다, 픽셀 느낌" · "기존 7 : 현재 3" · "스트라이커는 원본 자체가 별로" · "픽셀 뭉개지는 현상만 잡아서".
+    <b>7:3 판</b> (<code>dev/boxer/stylize.py</code>, PixelLab 추가 사용 없음): 고퀄 판을 <b>64 해상도 그대로</b> 두고 ① 재질별 3단 정리(색상 계열마다 밝기 3단의 평평한 면 — 기존 기사와 같은 칠) ② 외톨이 점 제거 ③ 게임과 같은 바깥 외곽선.
+    처음 시도한 절반 축소 + EPX 는 얼굴·선이 뭉개져서 버렸습니다. 스트라이커는 프롬프트를 고쳐(매서운 성인 복서) 시안 12장을 새로 뽑고 111번으로 바꿨습니다.</div>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix lu" data-base="lineup-three-way" alt="세 판"><figcaption><b>세 판 비교</b> — 직업마다 왼쪽부터 ① 손도트(이전) ② <b>7:3 판</b> ③ 고퀄(PixelLab 64). 파이터·스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-striker-redo" alt="스트라이커 다시"><figcaption><b>스트라이커 다시 뽑기</b> — 이전 시안 6번(아기 얼굴) / 새 시안 101번 / <b>새 시안 111번 (채택)</b> / 111번 7:3 판</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-pix-family" alt="7:3 2차 3종"><figcaption><b>7:3 판 · 같은 계열 2차 3종</b> — 색깔놀이 확인 (흑백·실루엣 버튼)</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-pix-tier2" alt="7:3 2차"><figcaption><b>7:3 판 · 기존 2차와 나란히</b> — 성기사·검성·용기병 + 스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-pix-tier1" alt="7:3 1차"><figcaption><b>7:3 판 · 1차</b> — 견습 기사·검사·레인저·마법사 + 파이터</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-pix-lines" alt="7:3 2→3차"><figcaption><b>7:3 판 · 2차→3차</b> — 스트라이커→챔피언 / 킥복서→템페스트 / 기공사→그랜드마스터</figcaption></figure>
+  </div>
+  <h3>고퀄 판 (PixelLab 64, 참고)</h3>
+  <div class="gallery" style="grid-template-columns:1fr">
+    <figure><img class="pix lu" data-base="lineup-before-after" alt="전후"><figcaption><b>전후 비교</b> — 파이터·스트라이커·킥복서·기공사, 각각 왼쪽이 손도트(이전), 오른쪽이 PixelLab 최종</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-tier2" alt="2차 비교"><figcaption><b>기존 2차 중 잘 그린 직업과 나란히</b> — 성기사·검성·용기병 + 스트라이커·킥복서·기공사</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-tier1" alt="1차 비교"><figcaption><b>1차 비교</b> — 견습 기사·검사·창기사·레인저·마법사 + 파이터</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-family" alt="2차 3종"><figcaption><b>같은 계열 2차 3종 (색깔놀이 확인)</b> — 스트라이커(역삼각형·강철 건틀릿·민소매·챔피언 벨트) / 킥복서(뒤로 흐르는 묶은 머리·든 무릎·넓은 바지·맨발) / 기공사(소매 늘어진 도복·흰 머리띠·염주·손바닥 기)</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-family3" alt="3차 3종"><figcaption><b>3차 3종</b> — 챔피언(사자 갈기 머리·붉은 망토·황금 건틀릿) / 템페스트(초록 묶은 머리·바람 목도리·정강이 철갑) / 그랜드마스터(상투·흰 금빛 장삼·등 뒤 기의 고리)</figcaption></figure>
+    <figure><img class="pix lu" data-base="lineup-final-lines" alt="2→3차"><figcaption><b>2차 → 3차 특징 잇기</b> — 스트라이커→챔피언 / 킥복서→템페스트 / 기공사→그랜드마스터</figcaption></figure>
+  </div>
+  <h3>ComfyUI 시안 (직업마다 12장, ✔ = 고른 것)</h3>
+  <div class="sub">고른 기준: 옆모습(오른쪽)인가, 실루엣 특징이 분명한가, 구도가 깨지지 않았나. 원본 1024px 는 저장소 밖(<code>C:\AI\comfy-raw\boxer</code>), 여기는 256px 축소본입니다. 번호 = seed (왼쪽 위부터 1, 스트라이커 다시 뽑기는 101부터).</div>
+  <div class="gallery" id="comfySheets" style="grid-template-columns:1fr"></div>
+  <div class="card">3차까지 7종을 모두 뽑았습니다. 크기는 아직 들쭉날쭉합니다(스트라이커·챔피언이 크고 킥복서가 작다). 시트 생산 때 키 목표를 직업별로 36~40도트로 맞춥니다.</div>
+
+  <h2>6. PixelLab 시험 기록 (1차 시험 6회 + 기준 그림 약 12회)</h2>
+  <div class="anim" id="anims"></div>
+  <div class="scroll" style="margin-top:8px"><table>
+    <tr><th>시도</th><th>방식</th><th>결과</th><th>판정</th></tr>
+    <tr><td>기준 그림 A</td><td>bitforge, 스타일 참조 = 기사 두 명</td><td>두 명이 나오고 등신대에 가깝다</td><td><span class="badge b-no">✗</span></td></tr>
+    <tr><td>기준 그림 B·C</td><td>bitforge, 시작 그림 = 레인저 (강도 250·450)</td><td>근육형 등신대 / 레인저 모자가 남음</td><td><span class="badge b-no">✗</span></td></tr>
+    <tr><td>손도트 기준 그림</td><td>레인저 도트를 틀로 손으로</td><td>비율·외곽선은 맞지만 단순·평면적 (사용자: 저퀄)</td><td><span class="badge b-no">✗ 교체</span></td></tr>
+    <tr><td><b>ComfyUI 시안 → image-to-pixelart</b></td><td>Z-Image 84장 중 고름 → 256 → 64 도트화 (7회)</td><td>3~5단 명암·근육·주름·글러브 디테일, 기존 상위 직업과 같은 급</td><td><span class="badge b-ok">✓ 채택</span></td></tr>
+    <tr><td>대기</td><td>animate-with-text-v3 4프레임</td><td>그림체·색 유지. 몸이 조금 정면으로 돈다</td><td><span class="badge b-mid">△</span></td></tr>
+    <tr><td>잽</td><td>같은 방식</td><td>팔이 끝까지 안 뻗는다</td><td><span class="badge b-no">✗</span></td></tr>
+    <tr><td>잽 + 끝 자세</td><td>last_frame = 손으로 그린 팔 뻗은 자세</td><td>중간이 정면으로 돌고 흰 얼룩</td><td><span class="badge b-no">✗</span></td></tr>
+  </table></div>
+  <div class="gallery" style="margin-top:8px">
+    <figure><img class="pix" id="bfImg" alt="bitforge 결과"><figcaption>bitforge 시도 3장 (왼쪽부터 A·B·C) — 버림</figcaption></figure>
+  </div>
+  <div class="card"><b>결론 (갱신)</b>: 기준 그림은 ComfyUI 시안 → PixelLab image-to-pixelart. 아래는 손도트 시절의 동작 시험 기록입니다. 그림체는 손도트로 잡고, PixelLab 은 반복 동작(대기·걷기·앉기·피격·쓰러짐 등)과 이펙트 텍스처에 쓴다. 공격·기술 동작은 손 키 자세 2~3장 + 코드 보간 + 궤적 텍스처. 뼈대 지정 애니메이션(<code>animate-with-skeleton-v3</code>)은 Tier 1 결제 뒤 시험.</div>
+
+  <h2>7. 이펙트 텍스처와 PixelLab 사용량</h2>
+  <div class="scroll"><table>
+    <tr><th>묶음</th><th>장수</th><th>내용 (2차끼리 다른 시트, 3차는 a 변형)</th></tr>
+    <tr><td>XW 평타 궤적</td><td class="n">7</td><td>주먹 직선 / 건틀릿 강타·사자 건틀릿 / 발차기 호·바람 띠 / 장타 파동·연꽃 파동</td></tr>
+    <tr><td>XH 평타 명중</td><td class="n">7</td><td>직업마다 하나</td></tr>
+    <tr><td>XP 투사체</td><td class="n">2</td><td>기탄 / 금빛 기탄</td></tr>
+    <tr><td>XE 스킬 고유</td><td class="n">16</td><td>충격파·주먹 잔상·강철 주먹·쐐기·회오리·기탄·기막·계열별 기 오라 3종</td></tr>
+    <tr><td>XK 스킬 명중</td><td class="n">10</td><td>스킬마다 하나 (궁극기 막타 포함)</td></tr>
+    <tr><td>XF 궁극기</td><td class="n">6</td><td>배경 240×100 ×3 + 거대 부품 ×3</td></tr>
+    <tr><td>공용 (skill-vfx)</td><td class="n">—</td><td>C3 충격파 고리 · C6 흙먼지 · C7 파편 · C8 균열을 다시 칠해 씀 (새로 안 뽑음)</td></tr>
+  </table></div>
+  <div class="scroll" style="margin-top:8px"><table>
+    <tr><th>PixelLab 사용량</th><th>회</th></tr>
+    <tr><td>캐릭터 반복 동작 7종 × 8동작 × 약 2회</td><td class="n">약 112</td></tr>
+    <tr><td>캐릭터 큰 동작 보조 (뼈대 시험·다듬기)</td><td class="n">약 28</td></tr>
+    <tr><td>이펙트 텍스처 48장</td><td class="n">약 185</td></tr>
+    <tr><td>재작업 여유 15%</td><td class="n">약 50</td></tr>
+    <tr><td><b>파이터 합계</b> (+ skill-vfx 약 740 = 약 1,115 → Tier 1 한 달 안)</td><td class="n"><b>약 375</b></td></tr>
+  </table></div>
+
+  <h2>8. 수용 기준 (이번 세션에서 확인한 것)</h2>
+  <div class="scroll"><table id="acc"></table></div>
+
+  <h2>9. 사용자가 정할 것</h2>
+  <div class="card"><ul>
+    <li>스펙 요지(주 기술 + 투지 구조, 충전 시작안, 스킬 10종, 시트·이펙트 규격)를 이대로 확정할지.</li>
+    <li><b>그림체 선택</b> (5절 세 판 비교): ② 7:3 판으로 갈지, 비율을 더 옮길지(예: 8:2 / 6:4). 고칠 직업이 있으면 ComfyUI 시안에서 다른 번호를 고르거나 더 뽑습니다.</li>
+    <li>PixelLab Tier 1 잔량 1,780회 (VFX 몫 약 740회 남김).</li>
+  </ul></div>
+</main>
+
+<script>
+// ───────── 직업 데이터 (스펙 1·2·3·5절) ─────────
+const JOBS = [
+  { id: 'fighter', name: '파이터', icon: '🥊', tier: 1, from: '견습 기사 Lv20', weapon: '붕대 너클 (근접 12, 1명)', mods: 'atk 1.05 · hp 1.38 · aspd 1.5 · crit 0.08',
+    fill: '평타 적중 +4.5', skills: '원투 스트레이트 (Lv25, 기 100)', look: '짧은 머리 + 붉은 머리띠, 반팔·반바지, 붕대 주먹' },
+  { id: 'striker', name: '스트라이커', icon: '👊', tier: 2, from: '파이터 Lv50', weapon: '강철 건틀릿 (근접 12, 1명)', mods: 'atk 1.75 · hp 1.87 · aspd 1.6 · crit 0.18 · 치명피해 +0.3',
+    fill: '평타 +3, 치명이면 +6 (두 배)', skills: '연타 러시 (기 100, 돌진 180) · 붕권 (Lv70, 투지 150) · 원투 (투지 100)', look: '위가 무거운 역삼각형, 큰 강철 건틀릿, 민소매·챔피언 벨트' },
+  { id: 'kickboxer', name: '킥복서', icon: '🦶', tier: 2, from: '파이터 Lv50', weapon: '철각 정강이받이 (근접 24, 3명)', mods: 'atk 1.65 · hp 1.65 · aspd 1.25 · crit 0.10',
+    fill: '3칸 · 첫 적중 +6.5, 함께 맞은 적당 +2.5 · 돌진 1px당 +0.25', skills: '돌진 발차기 (1칸, 돌진 180) · 회전 발차기 (Lv70, 1칸) · 원투 (투지 150)', look: '아래가 넓은 삼각형, 뒤로 긴 묶은 머리, 넓은 바지·맨발' },
+  { id: 'qigong', name: '기공사', icon: '🧘', tier: 2, from: '파이터 Lv50', weapon: '기공 염주 (원거리 80, 1명)', mods: 'atk 2.15 · hp 1.40 · aspd 1.0 · crit 0.12 · guard 0.05',
+    fill: '3단 · 교전 중 초당 +5, 평타 +2, 피격 +3 (초당 최대 +6)', skills: '장풍 (2단 200, 가득이면 3단) · 기막 (Lv70, 투지 300) · 원투 (투지 200)', look: '소매 늘어진 가운, 흰 머리띠, 염주' },
+  { id: 'champion', name: '챔피언', icon: '🦁', tier: 3, from: '스트라이커 Lv100', weapon: '챔피언 건틀릿 (근접 14)', mods: 'atk 2.15 · hp 2.45 · aspd 1.85 · crit 0.25 · 치명피해 +0.5',
+    fill: '평타 +2.5, 치명 +5', skills: '+ 패왕권 (궁극기, 투지 220, 각성 6초)', look: '역삼각형 + 어깨 망토, 사자 건틀릿, 갈기 머리' },
+  { id: 'tempest', name: '템페스트', icon: '🍃', tier: 3, from: '킥복서 Lv100', weapon: '폭풍 각반 (근접 26, 3명)', mods: 'atk 1.95 · hp 2.20 · aspd 1.4 · crit 0.14',
+    fill: '첫 적중 +5.8, 적당 +2.5', skills: '+ 천풍각 (궁극기, 투지 330, 각성 6초)', look: '넓은 삼각형 + 바람 목도리, 두 갈래 머리' },
+  { id: 'grandmaster', name: '그랜드마스터', icon: '☯️', tier: 3, from: '기공사 Lv100', weapon: '천기 염주 (원거리 90)', mods: 'atk 2.70 · hp 1.85 · aspd 1.05 · crit 0.16 · guard 0.1',
+    fill: '기공사와 같다', skills: '+ 기신 강림 (궁극기, 투지 480, 각성 6초)', look: '긴 장삼 + 등 뒤 기의 고리, 떠도는 염주' },
+];
+document.getElementById('jobs').innerHTML = JOBS.map((j) => `<div class="card job"><h4>${j.icon} ${j.name} <span class="tier">${j.tier}차 · ${j.from}</span></h4>
+  <dl><dt>무기</dt><dd>${j.weapon}</dd><dt>능력치</dt><dd>${j.mods}</dd><dt>기 채움</dt><dd>${j.fill}</dd><dt>스킬</dt><dd>${j.skills}</dd><dt>외형</dt><dd>${j.look}</dd></dl></div>`).join('');
+
+// ───────── 게이지 모델 (스펙 3절 시작안) ─────────
+// main: 주 기술 [{id, cost, keep(이 값 이상일 때만 씀), dur, pow, tgt(최대 맞는 수)}], tuji: 투지 기술 [{id, n 문턱, dur, pow, awaken}]
+const MODELS = {
+  fighter: { name: '파이터', tier: 1, aspd: 1.5, crit: 0.08, max: 100, hit: 4.5, critX: 1, extra: 0, perSec: 0, hurt: 0, hurtCap: 0, targets: 1,
+    main: [{ id: '원투 스트레이트', cost: 100, dur: 0.6, pow: 6.8 }], tuji: [] },
+  striker50: { name: '스트라이커 (Lv70 전)', tier: 2.5, aspd: 1.6, crit: 0.18, max: 100, hit: 3, critX: 2, extra: 0, perSec: 0, hurt: 0, hurtCap: 0, targets: 1,
+    main: [{ id: '연타 러시', cost: 100, dur: 1.4, pow: 7.0 }], tuji: [{ id: '원투', n: 100, dur: 0.6, pow: 3.5 }] },
+  striker: { name: '스트라이커', tier: 2, aspd: 1.6, crit: 0.18, max: 100, hit: 3, critX: 2, extra: 0, perSec: 0, hurt: 0, hurtCap: 0, targets: 1,
+    main: [{ id: '연타 러시', cost: 100, dur: 1.4, pow: 7.0 }], tuji: [{ id: '붕권', n: 150, dur: 1.1, pow: 8.0 }, { id: '원투', n: 100, dur: 0.6, pow: 3.5 }] },
+  kickboxer: { name: '킥복서', tier: 2, aspd: 1.25, crit: 0.1, max: 300, hit: 6.5, critX: 1, extra: 2.5, perSec: 0, hurt: 0, hurtCap: 0, targets: 3,
+    main: [{ id: '회전 발차기', cost: 100, keep: 200, dur: 1.1, pow: 7.3, tgt: 9 }], tuji: [{ id: '원투', n: 150, dur: 0.6, pow: 3.5 }] },
+  qigong: { name: '기공사', tier: 2, aspd: 1.0, crit: 0.12, max: 300, hit: 2, critX: 1, extra: 0, perSec: 5, hurt: 3, hurtCap: 6, targets: 1,
+    main: [{ id: '장풍', cost: 200, step3: true, dur: 1.1, pow: 7.6, pow3: 12.4 }], tuji: [{ id: '기막', n: 300, dur: 0.9, pow: 7.0 }, { id: '원투', n: 200, dur: 0.6, pow: 3.5 }] },
+  champion: { name: '챔피언', tier: 3, aspd: 1.85, crit: 0.25, max: 100, hit: 2.5, critX: 2, extra: 0, perSec: 0, hurt: 0, hurtCap: 0, targets: 1,
+    main: [{ id: '연타 러시', cost: 100, dur: 1.4, pow: 7.0 }], tuji: [{ id: '패왕권', n: 220, dur: 2.6, pow: 14, awaken: true }, { id: '붕권', n: 150, dur: 1.1, pow: 8.0 }, { id: '원투', n: 100, dur: 0.6, pow: 3.5 }] },
+  tempest: { name: '템페스트', tier: 3, aspd: 1.4, crit: 0.14, max: 300, hit: 5.8, critX: 1, extra: 2.5, perSec: 0, hurt: 0, hurtCap: 0, targets: 3,
+    main: [{ id: '회전 발차기', cost: 100, keep: 200, dur: 1.1, pow: 7.3, tgt: 9 }], tuji: [{ id: '천풍각', n: 330, dur: 2.6, pow: 14, awaken: true }, { id: '원투', n: 150, dur: 0.6, pow: 3.5 }] },
+  grandmaster: { name: '그랜드마스터', tier: 3, aspd: 1.05, crit: 0.16, max: 300, hit: 2, critX: 1, extra: 0, perSec: 5, hurt: 3, hurtCap: 6, targets: 1,
+    main: [{ id: '장풍', cost: 200, step3: true, dur: 1.1, pow: 7.6, pow3: 12.4 }], tuji: [{ id: '기신 강림', n: 480, dur: 2.7, pow: 14, awaken: true }, { id: '기막', n: 300, dur: 0.9, pow: 7.0 }, { id: '원투', n: 200, dur: 0.6, pow: 3.5 }] },
+};
+const PEER = { 1: { gap: 17.8, dps: 0.39 }, 2.5: { gap: 10.9, dps: 0.485 }, 2: { gap: 8.2, dps: 0.72 }, 3: { gap: 6.9, dps: 1.06 } };
+const COLORS = ['#ffd257', '#ff6b6b', '#8fd8ff', '#7dffb0', '#ff8aff'];
+
+// 결정적 난수 (같은 결과)
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// 허수아비를 T초 때린다. 피격은 초당 hurtRate 번. 시작 때 게이지·투지 가득 (스펙 "시작 때 가득")
+function simulate(c, targets, T, track = false) {
+  const R = rng(7), DT = 0.01, aspd = 0.9 * c.aspd, crit = 0.05 + c.crit, hurtRate = 0.8;
+  let g = c.max, busy = 0, atk = 0, t = 0, hurtAcc = 0, awaken = 0, hurtSec = -1, hurtGot = 0;
+  const tuji = {}; for (const k of c.tuji) tuji[k.id] = k.n;
+  const cnt = {}, dmg = {}, casts = [], trace = [];
+  const fill = (v) => { g = Math.min(c.max, g + v * (awaken > 0 ? 2 : 1)); };
+  const spend = (v) => { g -= v; for (const id in tuji) tuji[id] += v; };
+  const cast = (k, pow) => {
+    cnt[k.id] = (cnt[k.id] || 0) + 1;
+    dmg[k.id] = (dmg[k.id] || 0) + pow * (k.tgt ? Math.min(targets, k.tgt) : 1);
+    busy = k.dur; if (k.awaken) awaken = 6;
+    if (track) casts.push({ t, id: k.id });
+  };
+  let nextTrace = 0;
+  while (t < T) {
+    t += DT; busy -= DT; atk -= DT; awaken -= DT;
+    if (track && t >= nextTrace) { trace.push({ t, g, tuji: { ...tuji }, aw: awaken > 0 }); nextTrace += 0.1; }
+    if (c.perSec) fill(c.perSec * DT);
+    hurtAcc += hurtRate * DT;
+    if (Math.floor(t) !== hurtSec) { hurtSec = Math.floor(t); hurtGot = 0; }
+    if (hurtAcc >= 1) { hurtAcc -= 1; if (c.hurt && hurtGot < c.hurtCap) { const v = Math.min(c.hurt, c.hurtCap - hurtGot); hurtGot += v; fill(v); } }
+    if (busy > 0) continue;
+    const tj = c.tuji.find((k) => tuji[k.id] >= k.n);
+    if (tj) { tuji[tj.id] -= tj.n; cast(tj, tj.pow); continue; }
+    const m = c.main.find((k) => g >= (k.keep || k.cost));
+    if (m) {
+      const three = m.step3 && g >= c.max;          // 장풍: 가득(300)이면 3단
+      spend(three ? c.max : m.cost); cast({ ...m, dur: three ? 1.3 : m.dur }, three ? m.pow3 : m.pow); continue;
+    }
+    if (atk <= 0) {
+      atk = 1 / aspd;
+      const n = Math.min(targets, c.targets || 1);
+      fill((c.hit + (n - 1) * (c.extra || 0)) * (R() < crit ? c.critX : 1));
+    }
+  }
+  const total = Object.values(cnt).reduce((a, b) => a + b, 0), d = Object.values(dmg).reduce((a, b) => a + b, 0);
+  return { cnt, gap: T / Math.max(1, total), dps: d / T, casts, trace };
+}
+
+// ───────── 그래프 ─────────
+const sel = document.getElementById('simCls');
+sel.innerHTML = Object.entries(MODELS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join('');
+sel.value = 'striker';
+const START = JSON.parse(JSON.stringify(MODELS));
+const PARAMS = [['hit', '평타 충전'], ['critX', '치명 배수'], ['extra', '추가 적당'], ['perSec', '초당'], ['hurt', '피격당']];
+function paramsUI() {
+  const c = MODELS[sel.value];
+  const el = document.getElementById('simParams');
+  el.innerHTML = PARAMS.map(([k, l]) => `<label>${l} <input type="number" step="0.5" data-k="${k}" value="${c[k]}"></label>`).join('')
+    + c.main.map((m, i) => `<label>${m.id} 소모 <input type="number" step="10" data-main="${i}" value="${m.cost}"></label>`).join('')
+    + c.tuji.map((m, i) => `<label>${m.id} 문턱 <input type="number" step="10" data-tuji="${i}" value="${m.n}"></label>`).join('');
+  el.querySelectorAll('input').forEach((inp) => inp.oninput = () => {
+    const v = Number(inp.value); if (!isFinite(v)) return;
+    if (inp.dataset.k) c[inp.dataset.k] = v;
+    if (inp.dataset.main) { c.main[+inp.dataset.main].cost = v; if (c.main[+inp.dataset.main].keep) c.main[+inp.dataset.main].keep = v * 2; }
+    if (inp.dataset.tuji) c.tuji[+inp.dataset.tuji].n = v;
+    draw(); table();
+  });
+}
+function draw() {
+  const c = MODELS[sel.value], targets = +document.getElementById('simTgt').value, W = +document.getElementById('simWin').value;
+  const r = simulate(c, targets, W, true), cv = document.getElementById('simCv'), g = cv.getContext('2d');
+  const w = cv.width, h = cv.height, L = 40, B = 24, top = 10, ph = h - B - top, pw = w - L - 10;
+  g.clearRect(0, 0, w, h); g.font = '11px Galmuri11, sans-serif';
+  const X = (t) => L + pw * t / W, Y = (v, max) => top + ph * (1 - v / max);
+  g.strokeStyle = '#3a3348'; g.fillStyle = '#a59cb8';
+  for (let t = 0; t <= W; t += W / 6) { g.beginPath(); g.moveTo(X(t), top); g.lineTo(X(t), top + ph); g.stroke(); g.fillText(`${t}s`, X(t) - 8, h - 8); }
+  // 칸 눈금 (100마다)
+  for (let v = 0; v <= c.max; v += 100) { g.beginPath(); g.moveTo(L, Y(v, c.max)); g.lineTo(L + pw, Y(v, c.max)); g.stroke(); g.fillText(v, 6, Y(v, c.max) + 4); }
+  // 각성 구간
+  g.fillStyle = 'rgba(255,210,87,0.12)';
+  for (const p of r.trace) if (p.aw) g.fillRect(X(p.t), top, pw * 0.1 / W + 1, ph);
+  // 기 게이지
+  g.strokeStyle = '#8fd8ff'; g.lineWidth = 2; g.beginPath();
+  r.trace.forEach((p, i) => (i ? g.lineTo(X(p.t), Y(p.g, c.max)) : g.moveTo(X(p.t), Y(p.g, c.max)))); g.stroke();
+  // 투지 (문턱 대비 비율을 게이지 높이로)
+  c.tuji.forEach((k, j) => {
+    g.strokeStyle = COLORS[j + 1]; g.lineWidth = 1; g.setLineDash([4, 3]); g.beginPath();
+    r.trace.forEach((p, i) => { const y = Y(Math.min(1, p.tuji[k.id] / k.n) * c.max, c.max); i ? g.lineTo(X(p.t), y) : g.moveTo(X(p.t), y); }); g.stroke(); g.setLineDash([]);
+  });
+  // 시전 표시
+  const ids = [...c.main.map((m) => m.id), ...c.tuji.map((m) => m.id)];
+  for (const cs of r.casts) {
+    const j = c.tuji.findIndex((k) => k.id === cs.id), col = j >= 0 ? COLORS[j + 1] : COLORS[0];
+    g.fillStyle = col; g.fillRect(X(cs.t) - 1, top + ph - 10, 3, 10);
+  }
+  g.lineWidth = 1;
+  document.getElementById('simLegend').innerHTML = `<span><i style="background:#8fd8ff"></i>기 게이지 (최대 ${c.max})</span>`
+    + c.tuji.map((k, j) => `<span><i style="background:${COLORS[j + 1]}"></i>투지: ${k.id} (문턱 ${k.n} 대비)</span>`).join('')
+    + `<span><i style="background:${COLORS[0]}"></i>주 기술 시전 ▮</span>` + (c.tuji.some((k) => k.awaken) ? '<span><i style="background:rgba(255,210,87,.5)"></i>각성 6초</span>' : '');
+  const long = simulate(c, targets, 600), peer = PEER[c.tier];
+  const gapOk = Math.abs(long.gap / peer.gap - 1) <= 0.15, dpsOk = Math.abs(long.dps / peer.dps - 1) <= 0.10;
+  document.getElementById('simStat').innerHTML = `600초 평균: 시전 간격 <b class="${gapOk ? 'ok' : 'bad'}">${long.gap.toFixed(1)}초</b> (쿨타임 직업 ${peer.gap}초) · 스킬 DPS <b class="${dpsOk ? 'ok' : 'bad'}">${long.dps.toFixed(2)}</b> (쿨타임 직업 ${peer.dps}) · 기술별 간격 `
+    + Object.entries(long.cnt).map(([id, n]) => `${id} ${(600 / n).toFixed(1)}초`).join(' · ')
+    + (targets > 1 && c.targets === 1 ? ' <span class="dim">(단일 대상 직업이라 마리 수와 무관)</span>' : '');
+}
+function table() {
+  const targets = +document.getElementById('simTgt').value;
+  let html = '<tr><th>직업</th><th>평균 시전 간격</th><th>쿨타임 직업</th><th>스킬 DPS</th><th>쿨타임 직업</th><th>판정</th></tr>';
+  for (const [k, c] of Object.entries(MODELS)) {
+    const r = simulate(c, targets, 600), p = PEER[c.tier];
+    const ok = Math.abs(r.gap / p.gap - 1) <= 0.15 && Math.abs(r.dps / p.dps - 1) <= 0.10;
+    html += `<tr><td>${c.name}</td><td class="n">${r.gap.toFixed(1)}초</td><td class="n">${p.gap}초</td><td class="n">${r.dps.toFixed(2)}</td><td class="n">${p.dps}</td><td>${ok ? '<span class="badge b-ok">범위 안</span>' : '<span class="badge b-mid">벗어남</span>'}</td></tr>`;
+  }
+  document.getElementById('cmp').innerHTML = html + (targets > 1 ? '<tr><td colspan="6" class="dim">무리(2~3마리)에서는 킥복서·템페스트 충전이 빨라지고 범위 피해가 커져서 일부러 범위를 벗어납니다 (무리 사냥·성벽 지키기 강점). 균형은 1마리 기준으로 봅니다.</td></tr>' : '');
+}
+sel.onchange = () => { paramsUI(); draw(); };
+document.getElementById('simTgt').onchange = () => { draw(); table(); };
+document.getElementById('simWin').onchange = draw;
+document.getElementById('simReset').onclick = () => { MODELS[sel.value] = JSON.parse(JSON.stringify(START[sel.value])); paramsUI(); draw(); table(); };
+paramsUI(); draw(); table();
+
+// ───────── 실루엣 라인업 (컬러·흑백·실루엣) ─────────
+function setLineup(mode) { document.querySelectorAll('img.lu').forEach((im) => { im.src = `../boxer/${im.dataset.base}${mode}.png`; }); }
+document.querySelectorAll('[data-mode]').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('[data-mode]').forEach((x) => x.classList.toggle('on', x === b)); setLineup(b.dataset.mode);
+});
+setLineup('');
+
+// ───────── PixelLab 프레임 재생 ─────────
+const ANIMS = [
+  ['sheet-fighter-idle.png', '대기 (animate-with-text-v3)', 5, 6],
+  ['sheet-fighter-jab.png', '잽 (같은 방식)', 5, 8],
+  ['sheet-fighter-jab2.png', '잽 + 끝 자세 (last_frame)', 5, 8],
+];
+const box = document.getElementById('anims');
+for (const [file, label, n, fps] of ANIMS) {
+  const fig = document.createElement('figure'), cv = document.createElement('canvas');
+  cv.width = 64 * 3; cv.height = 64 * 3; cv.className = 'pix';
+  fig.append(cv); const cap = document.createElement('figcaption'); cap.className = 'dim'; cap.textContent = label; fig.append(cap); box.append(fig);
+  const im = new Image(); im.src = '../boxer/' + file;
+  const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+  let f = 0;
+  im.onload = () => setInterval(() => { g.clearRect(0, 0, cv.width, cv.height); g.drawImage(im, 64 * f, 0, 64, 64, 0, 0, cv.width, cv.height); f = (f + 1) % n; }, 1000 / fps);
+}
+// 손도트 기준 그림 (프레임 없이)
+for (const [file, label] of [['base-fighter.png', '손도트 기준 그림 (채택)'], ['base-fighter-jab.png', '손으로 그린 잽 끝 자세']]) {
+  const fig = document.createElement('figure'), im = document.createElement('img');
+  im.src = '../boxer/' + file; im.className = 'pix'; im.style.width = '192px';
+  const cap = document.createElement('figcaption'); cap.className = 'dim'; cap.textContent = label;
+  fig.append(im, cap); box.append(fig);
+}
+// bitforge 시도 3장을 한 줄로
+(async () => {
+  const files = ['base-a-0.png', 'init-0-0.png', 'init-1-0.png'];
+  const ims = await Promise.all(files.map((f) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = '../boxer/' + f; })));
+  const cv = document.createElement('canvas'); cv.width = 66 * 3 * 3; cv.height = 64 * 3;
+  const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#282830'; g.fillRect(0, 0, cv.width, cv.height);
+  ims.forEach((im, k) => im && g.drawImage(im, 66 * 3 * k, 0, 64 * 3, 64 * 3));
+  document.getElementById('bfImg').src = cv.toDataURL();
+})();
+
+// ───────── ComfyUI 시안 시트 ─────────
+const PICK = { fighter: 4, striker: 6, striker2: 111, kickboxer: 2, qigong: 8, champion: 6, tempest: 12, grandmaster: 3 };
+const SEED0 = { striker2: 101 };
+const NAMES = { fighter: '파이터', striker: '스트라이커 (1차 시안, 버림)', striker2: '스트라이커 (다시 뽑음)', kickboxer: '킥복서', qigong: '기공사', champion: '챔피언', tempest: '템페스트', grandmaster: '그랜드마스터' };
+const cs = document.getElementById('comfySheets');
+for (const [cls, pick] of Object.entries(PICK)) {
+  const fig = document.createElement('figure'), wrap = document.createElement('div');
+  wrap.style.cssText = 'display:grid;grid-template-columns:repeat(6,1fr);gap:2px';
+  const s0 = SEED0[cls] || 1;
+  for (let s = s0; s < s0 + 12; s++) {
+    const im = document.createElement('img'); im.src = `../boxer/comfy/${cls}-${s}.png`; im.loading = 'lazy'; im.style.cssText = 'width:100%;display:block;border-radius:2px';
+    im.onerror = () => { im.style.visibility = 'hidden'; };
+    if (s === pick) im.style.outline = '3px solid var(--gold)';
+    im.title = `${NAMES[cls]} seed ${s}${s === pick ? ' ✔ 고름' : ''}`;
+    wrap.append(im);
+  }
+  const fin = document.createElement('img'); fin.className = 'pix'; fin.style.cssText = 'width:128px;margin-top:4px'; fin.src = `../boxer/final-${cls}-${pick}-1.png`;
+  if (cls === 'striker') fin.style.opacity = 0.4;
+  const cap = document.createElement('figcaption'); cap.innerHTML = `<b>${NAMES[cls]}</b> — ✔ seed ${pick} → PixelLab 최종 (오른쪽 아래)`;
+  fig.append(wrap, fin, cap); cs.append(fig);
+}
+
+// ───────── 수용 기준 ─────────
+const ACC = [
+  ['기준 그림 그림체가 기존 7 : 새 3 (5절 7:3 v2)', 'mid', 'v2 7종 모두 키 맞춤 — 사용자 선택 대기'],
+  ['3차가 2차 특징을 잇고 더 화려하다', 'mid', '챔피언·템페스트·그랜드마스터 — 사용자 확인 대기'],
+  ['2차·3차 3종이 흑백·실루엣으로도 구분된다 (5절)', 'mid', '최종 7종 라인업 — 사용자 확인 대기'],
+  ['평균 시전 간격·스킬 DPS 가 같은 차수 범위 안 (3절, 1마리)', 'ok', '시작안 모의 실험 — 구현 뒤 진행 봇·duel-balance 로 다시 측정'],
+  ['PixelLab 사용량 상한 안', 'mid', 'Tier 1: 첫 판 153회 (상한 150, 3회 초과) + 3차 키 맞춤 3회 호출·스트라이커 금속판 1회 호출 = 67회 (상한 70 안). 체험판: 시험 6 + 기준 그림 약 12'],
+  ['7:3 판에서 픽셀이 뭉개지지 않는다', 'mid', 'v2 는 직접 생성이라 축소 뭉개짐 없음 — 사용자 확인 대기'],
+  ['이펙트 그림이 전부 텍스처 (목록 48장)', 'mid', '목록만 — 생산은 Tier 1 결제 뒤'],
+  ['규칙·밸런스·렌더링 수용 기준 (스펙 본문)', 'no', '구현 전 (이번 세션은 스펙만)'],
+];
+document.getElementById('acc').innerHTML = '<tr><th>기준</th><th>상태</th><th>근거</th></tr>' + ACC.map(([t, s, n]) =>
+  `<tr><td>${t}</td><td>${s === 'ok' ? '<span class="badge b-ok">✅</span>' : s === 'mid' ? '<span class="badge b-mid">△</span>' : '<span class="badge b-no">❌</span>'}</td><td>${n}</td></tr>`).join('');
+</script>
+</body>
+</html>

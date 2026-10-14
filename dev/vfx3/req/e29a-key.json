@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a falling star arrow streaking diagonally downward to the right, a glowing five pointed star at its tip with a long sparkling tail behind it, nothing else, no character, no background shape",
+ "seed": 44
+}

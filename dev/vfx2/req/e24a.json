@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 48,
+  "height": 48
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a defensive wall of three tall kite shields standing upright side by side, overlapping edges, each shield with a simple crest emblem, glowing pale blue steel with white rim, front view, nothing else, no character, no background shape",
+ "seed": 24
+}

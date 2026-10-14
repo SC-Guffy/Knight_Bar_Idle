@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: sword swing smear trail, a wide curved crescent arc sweeping from top to bottom on the right side like a quarter moon, thin bright white leading edge, pale blue body, several tiny four-pointed stars and single dots sprinkled along and behind the arc like a constellation trail, nothing else, no character, no background shape, no sword",
+ "seed": 7
+}

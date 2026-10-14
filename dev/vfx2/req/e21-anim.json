@@ -1,0 +1,10 @@
+{
+ "first_frame": {
+  "type": "base64",
+  "base64": ""
+ },
+ "action": "the rock slab bursts up out of the ground, rises higher, dirt crumbs fall off, then it cracks",
+ "frame_count": 4,
+ "seed": 3,
+ "no_background": true
+}

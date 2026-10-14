@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: one long thin straight red slash line frozen in mid air, horizontal, sharp tapered pointed ends, white hot core, small hairline cracks along it, nothing else, no character, no background shape",
+ "seed": 7
+}

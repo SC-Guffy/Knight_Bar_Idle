@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 16,
+  "height": 16
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a small void energy orb projectile, a dark purple black core sphere with a thin bright magenta rim and three small dark wisps being sucked into it from behind on the left, flying right, nothing else, no character, no background shape",
+ "seed": 14
+}

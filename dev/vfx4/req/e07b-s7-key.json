@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a fence of thin vertical pillars of holy light standing in a wide flat ellipse on the ground seen from a low side angle, about eight slim glowing posts of light of equal height, golden, nothing else, no character, no background shape, no dome, no building",
+ "seed": 7
+}

@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: giant claw hand made entirely of lightning reaching down from above, five long jagged electric fingers spread wide pointing downward, bright white core lines, violet glow, crackling sparks at the fingertips, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "seed": 5
+}

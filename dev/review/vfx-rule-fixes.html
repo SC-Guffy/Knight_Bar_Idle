@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>하단바 섬광 수정 검토</title>
+<!-- 스펙: docs/specs/vfx-rule-fixes.md. 캡처는 dev/skills.html?patch=vfx-edge-probe 의 snapAt·snapBasic·snapBurst·snapDuel 로 찍었다 (전 = origin/season6 05d0005, 후 = 이 브랜치).
+     밝기 수치는 vfx-rule-fixes/edge-probe.json (probeAll). 투명한 곳(바탕화면 자리)은 회청색으로 깔았다. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 0 0 6px; }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child, td.l { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .ok { color: var(--green); } .bad { color: var(--red); }
+  ul, ol { margin: 4px 0; padding-left: 20px; }
+  code { background: #120f18; padding: 0 4px; border-radius: 3px; font-size: 12px; }
+  pre { background: #120f18; border: 1px solid var(--line); border-radius: 4px; padding: 8px; overflow-x: auto; font-size: 12px; white-space: pre; }
+  a { color: var(--blue); }
+  a.play { display: inline-block; padding: 0 8px; border: 1px solid #5a4b78; border-radius: 4px; background: #3a2f52; color: var(--ink); text-decoration: none; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pair figure { margin: 0; min-width: 0; }
+  .pair img { width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 3px; display: block; }
+  figcaption { color: var(--dim); font-size: 11px; }
+  .tabs { display: flex; gap: 6px; margin: 4px 0 6px; }
+  .tabs button { background: #2b2538; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 2px 10px; font: inherit; cursor: pointer; }
+  .tabs button.on { background: #3a2f52; color: var(--ink); border-color: #5a4b78; }
+  .head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin-bottom: 6px; }
+  @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>하단바 섬광 규칙 위반 11곳 + 평타 버그 3건</h1>
+  <div class="sub">스펙 <code>docs/specs/vfx-rule-fixes.md</code> · 브랜치 <code>impl-vfxfix</code> → <code>season6</code> · 규칙·수치 변화 없음 (연출만)</div>
+
+  <h2>요지</h2>
+  <div class="card">
+    <ul>
+      <li>게임은 바탕화면 위 하단바에 떠 있어서, 궁극기 말고는 하단바 전체를 번쩍이거나 어둡게 하지 않는다 (<code>skills.js</code> 머리 주석). 2차 스킬 ★★★ 11곳이 <code>dimBand</code> 로 하단바 전체를 덮고 있었다.</li>
+      <li>새 도구 두 개(<code>skills.js</code>, <code>dimBand</code> 바로 아래): <code>localFlash(x, y, r, alpha, rgb)</code> 원형 섬광(바깥 30% 서서히 0), <code>dimSpan(x0, x1, alpha, rgb, feather=24)</code> 가로 구간만 어둡게. 헤드샷은 조준경 바깥 고리만 어둡게 하는 <code>scopeVignette</code>, 별빛 화살비는 밤하늘 자체를 대상 ±120px 로 줄였다.</li>
+      <li>알파 최댓값·지속 시간은 그대로, 범위만 줄였다. <code>localFlash</code> 그림은 임시다 — 섬광 텍스처(K 시트)가 생기면 바꿀 자리라고 주석을 달았다.</li>
+      <li>평타: 공허궁 꼬리 색, 3차 무기 타격 섬광 색(<code>WEAPONS.*.burstRgb</code>), 결투·레이드 원거리 평타를 원정과 같은 그림(<code>drawProjectile</code>)으로.</li>
+    </ul>
+  </div>
+
+  <h2>확인 순서</h2>
+  <div class="card">
+    <ol>
+      <li>아래 "11곳" 카드의 ▶ 를 누르면 그 스킬 ★★★ 만 반복 재생된다. 하단바 양 끝(특히 오른쪽 끝)이 그대로인지 본다.</li>
+      <li>카드의 전/후 그림: b = 고치기 전 가장 많이 덮이던 순간, c = 그 0.4초 뒤. 회청색 = 바탕화면이 비치는 자리.</li>
+      <li>평타 버그: ▶ 로 공허궁 평타·3차 평타를 재생하고, 아래 확대 캡처와 비교한다.</li>
+      <li>밝기를 다시 재려면 <a href="../skills.html?patch=vfx-edge-probe">../skills.html?patch=vfx-edge-probe</a> 를 열고 콘솔에서 <code>probeAll()</code> (기준 |변화| ≤ 0.05).</li>
+    </ol>
+  </div>
+
+  <h2>수용 기준</h2>
+  <div class="card" id="accept"></div>
+
+  <h2>밝기 측정 — 스킬 28종 (궁극기 제외) ★★★</h2>
+  <div class="card scroll">
+    <div class="sub">하단바 양 끝 40px 평균 밝기, 시전 전 20프레임 평균 대비 시전 동안 최대 변화. 바뀌지 않은 스킬도 ±0.02~0.04 는 흔들림·잔상 때문에 생긴다.</div>
+    <table id="probe"><thead><tr><th>스킬</th><th>전 왼쪽</th><th>전 오른쪽</th><th>후 왼쪽</th><th>후 오른쪽</th><th>판정</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <h2>하단바 섬광 11곳 — 전후</h2>
+  <div id="fix11"></div>
+
+  <h2>평타 버그 1 — 공허궁 꼬리 색</h2>
+  <div class="card">
+    <div class="head"><h3>차원궁사 (voidBow)</h3><a class="play" href="../skills.html?mode=basic&cls=voidArcher" target="_blank">▶ 평타</a><span class="sub">마력탄 꼬리: 청록(기본값) → 자홍 <code>255,138,255</code></span></div>
+    <div class="pair">
+      <figure><img src="vfx-rule-fixes/basic-voidArcher-before.png" alt="전"><figcaption>전</figcaption></figure>
+      <figure><img src="vfx-rule-fixes/basic-voidArcher-after.png" alt="후"><figcaption>후</figcaption></figure>
+    </div>
+  </div>
+
+  <h2>평타 버그 2 — 3차 타격 섬광 색 (4배 확대)</h2>
+  <div id="burst"></div>
+
+  <h2>평타 버그 3 — 결투·레이드 원거리 평타</h2>
+  <div class="sub">결투 재생: server/duel.js <code>simulateDuel</code> 결과(평타만, <code>vfx-rule-fixes/duel-sample.json</code>)를 왼쪽 직업으로 바꿔 재생, 평타가 날아가는 0.07초 시점. 레이드도 같은 함수(<code>drawProjectile(flightShot(…))</code>)를 쓴다.</div>
+  <div id="duel"></div>
+</main>
+<script>
+  const NAMES = {"steelCleave":"강철 베기","piercingThrust":"관통 찌르기","rapidFire":"연사","judgment":"심판의 일격","sanctuary":"성역","gale":"질풍난무","iaido":"일섬","dragonFall":"용추락","dragonBreath":"용의 숨결","whirlwind":"대회전","earthSplitter":"대지 가르기","headshot":"헤드샷","armorPiercer":"철갑 관통탄","homingBolts":"유도 마탄","starfall":"별빛 화살비","manaBurst":"마력 폭발","meteor":"메테오","flameVortex":"화염 회오리","iceLance":"얼음창","blizzard":"블리자드","wideCleave":"대검 횡참","ramCharge":"돌진 격돌","cavalryCharge":"기병 돌격","shieldWall":"방패 벽","blastBolt":"폭열탄","boltStorm":"다연장 사격","chainLightning":"연쇄 번개","thunderstorm":"낙뢰"};
+  const FIX = [
+    ['gale', 'blademaster', '시전자~대상 ±60px 만 어둡게 (가장자리 24px)'],
+    ['iaido', 'blademaster', '달 둘레 반경 110px 원형 어둠'],
+    ['headshot', 'marksman', '조준경 바깥 ~ 반경 120px 만 어둡게'],
+    ['starfall', 'arcaneArcher', '대상 x ±120px 에만 밤하늘 (좌우 32px 서서히)'],
+    ['wideCleave', 'greatswordsman', '어둠: 시전자~대상 / 섬광: 낙하 지점 반경 90px'],
+    ['ramCharge', 'greatswordsman', '어둠: 시전자~대상 / 섬광: 내려찍는 지점 반경 90px'],
+    ['cavalryCharge', 'cavalier', '섬광: 충격파 지점 반경 90px'],
+    ['blastBolt', 'arbalest', '섬광: 착탄 지점 반경 100px'],
+    ['boltStorm', 'arbalest', '섬광: 마지막 살 착탄 지점 반경 80px'],
+    ['chainLightning', 'electromancer', '어둠: 손~대상 / 섬광: 움켜쥐는 지점 반경 100px'],
+    ['thunderstorm', 'electromancer', '어둠: 구름 아래 ±110px / 섬광: 기둥 번개 반경 100px'],
+  ];
+  const $ = (id) => document.getElementById(id);
+  const pair = (a, b, ca = '전', cb = '후') => `<div class="pair"><figure><img loading="lazy" src="${a}" alt="${ca}"><figcaption>${ca}</figcaption></figure><figure><img loading="lazy" src="${b}" alt="${cb}"><figcaption>${cb}</figcaption></figure></div>`;
+
+  $('fix11').innerHTML = FIX.map(([id, cls, what]) => `<div class="card" data-id="${id}">
+    <div class="head"><h3>${NAMES[id]} ★★★ <span class="sub">(${id})</span></h3><a class="play" href="../skills.html?cls=${cls}&skill=${id}&stage=3" target="_blank">▶ 재생</a><span class="sub">${what}</span><span class="sub" data-b></span></div>
+    <div class="tabs"><button class="on" data-f="b">b 가장 덮이던 순간</button><button data-f="c">c 0.4초 뒤</button></div>
+    <div data-pair>${pair(`../vfx-survey/${id}-b-before.png`, `../vfx-survey/${id}-b-after.png`)}</div></div>`).join('');
+  document.querySelectorAll('#fix11 .card').forEach((card) => {
+    const id = card.dataset.id;
+    card.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
+      card.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
+      card.querySelector('[data-pair]').innerHTML = pair(`../vfx-survey/${id}-${b.dataset.f}-before.png`, `../vfx-survey/${id}-${b.dataset.f}-after.png`);
+    });
+  });
+
+  $('burst').innerHTML = [
+    ['swordsaint', '검신 · 월광쌍검', '255,70,70 (검귀색)', '255,90,130 (잔상 분홍)'],
+    ['dragonlord', '용황 · 용황창', '190,150,255 (용기사 보라)', '255,120,220 (잔상 분홍)'],
+    ['deadeye', '신궁 · 태양궁', '255,255,220 (저격수 흰빛)', '255,230,120 (꼬리 금빛)'],
+  ].map(([cls, nm, a, b]) => `<div class="card"><div class="head"><h3>${nm}</h3><a class="play" href="../skills.html?mode=basic&cls=${cls}" target="_blank">▶ 평타</a><span class="sub">섬광 색 ${a} → ${b}</span></div>
+    ${pair(`vfx-rule-fixes/burst-${cls}-before.png`, `vfx-rule-fixes/burst-${cls}-after.png`)}</div>`).join('');
+
+  $('duel').innerHTML = [
+    ['electromancer', '뇌전술사 — 번개'], ['cryomancer', '빙결술사 — 얼음창'], ['arcaneArcher', '마궁수 — 마력탄'], ['marksman', '저격수 — 화살'], ['arbalest', '석궁사수 — 쇠뇌 살'],
+  ].map(([cls, nm]) => `<div class="card"><div class="head"><h3>${nm}</h3><span class="sub">전: 12×2 막대 / 후: 원정과 같은 그림</span></div>${pair(`vfx-rule-fixes/duel-${cls}-before.png`, `vfx-rule-fixes/duel-${cls}-after.png`)}</div>`).join('');
+
+  fetch('vfx-rule-fixes/edge-probe.json').then((r) => r.json()).then((d) => {
+    const fix = new Set(FIX.map((f) => f[0]));
+    const f = (v) => `<span class="${Math.abs(v) > 0.05 ? 'bad' : 'ok'}">${v.toFixed(3)}</span>`;
+    $('probe').querySelector('tbody').innerHTML = d.after.map(([id, L, R], i) => {
+      const [, bL, bR] = d.before[i], ok = Math.abs(L) <= 0.05 && Math.abs(R) <= 0.05;
+      return `<tr><td>${fix.has(id) ? '<b>' : ''}${NAMES[id] || id}${fix.has(id) ? '</b> ★' : ''} <span class="sub">${id}</span></td><td>${f(bL)}</td><td>${f(bR)}</td><td>${f(L)}</td><td>${f(R)}</td><td class="${ok ? 'ok' : 'bad'}">${ok ? '✅' : '❌'}</td></tr>`;
+    }).join('');
+    for (const [id] of FIX) { const a = d.after.find((r) => r[0] === id), b = d.before.find((r) => r[0] === id); const el = document.querySelector(`#fix11 [data-id="${id}"] [data-b]`); if (el) el.innerHTML = `양 끝 밝기 변화 ${Math.max(Math.abs(b[1]), Math.abs(b[2])).toFixed(2)} → <b class="ok">${Math.max(Math.abs(a[1]), Math.abs(a[2])).toFixed(3)}</b>`; }
+  });
+
+  $('accept').innerHTML = `<ul style="list-style:none;padding-left:0">
+    <li>✅ 11개 스킬 ★★★ 시전 동안 하단바 양 끝 40px 평균 밝기 변화 ±0.05 이하 — 최대 0.023 (고치기 전 0.18~0.37). 궁극기 제외 28종 모두 0.031 이하.</li>
+    <li>✅ 11개 스킬의 전후 b·c 캡처 — <code>dev/vfx-survey/&lt;id&gt;-{b,c}-{before,after}.png</code>, 이 페이지 위 카드.</li>
+    <li>✅ 공허궁 평타 꼬리가 자홍색.</li>
+    <li>✅ 검신·용황·신궁 평타 타격 섬광 색 = 잔상(꼬리) 색.</li>
+    <li>✅ 결투에서 뇌전술사·빙결술사·마궁수·저격수·석궁사수 평타가 원정과 같은 모양. 레이드는 같은 함수를 쓰고 화면 캡처는 하지 않았다.</li>
+    <li>✅ 스킬 40종 × 숙련 4단계(Lv1·★·★★·★★★) 점검 루프 예외 0건.</li>
+  </ul>`;
+</script>
+</body>
+</html>

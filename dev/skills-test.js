@@ -27,6 +27,9 @@ const SKIP_SCRIPTS = ['src/ui.js', 'src/net.js'];
     });
   }
   run();
+  // 시험 패치 (검토용): ?patch=<이름> 이면 dev/review/<이름>.js 를 마지막에 불러온다 (예: vfx-trial = PixelLab 텍스처 씌우기)
+  const patch = new URLSearchParams(location.search).get('patch');
+  if (patch && /^[\w-]+$/.test(patch)) { const el = document.createElement('script'); el.src = 'review/' + patch + '.js?t=' + Date.now(); document.body.appendChild(el); }
 })();
 
 function run() {
@@ -138,13 +141,20 @@ function run() {
     for (const k of st.skills) knight.cds[k] = k === id ? 0 : 999;
     knight.swing = -1;
     const hp0 = dummy.hp;
-    tryCastSkill(st, dummy);
+    if (isQiCls(S.cls)) {
+      // 파이터 계열: 기 게이지·투지 칸을 채우고 그 스킬만 (src/jobs/fighter.js). 장풍은 T.q3 면 가득(3단), 아니면 2단
+      const q = qiSt();
+      q.v = id === 'palmBlast' && !T.q3 ? qiNeed(id) : QI[S.cls].max;
+      for (const o in q.tj) q.tj[o] = o === id ? qiNeed(o) : 0;
+      tryCastSkill(st, dummy, id);
+    } else tryCastSkill(st, dummy);
     for (const k of st.skills) if (k !== id) knight.cds[k] = 0;
     T.last = { id, hp0 };
     renderInfo();
   }
 
   function nextSkill() {
+    if (T.lock) return;                     // 주소 ?skill= 로 연 경우: 그 스킬만 반복
     const list = skillsOf(T.cls).map((k) => k.id);
     const i = list.indexOf(T.skill);
     if (i < list.length - 1) { T.skill = list[i + 1]; return; }
@@ -288,7 +298,7 @@ function run() {
       <div class="meta">${k.stageDesc ? k.stageDesc[masteryOf(lv)] : k.desc}</div>`;
   }
   $('auto').onclick = () => { T.auto = !T.auto; renderUi(); };
-  $('allCls').onclick = () => { T.allCls = !T.allCls; if (T.allCls) T.auto = true; renderUi(); };
+  $('allCls').onclick = () => { T.allCls = !T.allCls; if (T.allCls) { T.auto = true; T.lock = false; } renderUi(); };
   $('basic').onclick = () => { T.basic = !T.basic; renderUi(); };
   $('pause').onclick = () => { T.paused = !T.paused; renderUi(); };
   $('step').onclick = () => { T.paused = true; T.stepOnce = true; renderUi(); };
@@ -300,7 +310,13 @@ function run() {
   // ── 시작 ──
   sizeStage();
   window.addEventListener('resize', sizeStage);
-  setClass(T.cls);
+  // 주소로 바로 열기 (검토 페이지 dev/review/*.html 링크용): ?cls=직업 id&skill=스킬 id&stage=0~3, 평타는 ?mode=basic&cls=직업 id
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('mode') === 'basic') T.mode = 'basic';
+  if (qs.has('stage')) T.stage = Math.max(0, Math.min(3, +qs.get('stage') || 0));
+  if (qs.get('q3')) T.q3 = true;          // 파이터 계열 장풍을 가득 찬 기(3단)로
+  setClass(CLASSES[qs.get('cls')] ? qs.get('cls') : T.cls);
+  if (T.mode === 'skill' && skillsOf(T.cls).some((k) => k.id === qs.get('skill'))) { T.skill = qs.get('skill'); T.lock = true; renderUi(); }
   renderInfo();
   requestAnimationFrame(frame);
   // 콘솔·자동 캡처용: skillTest.state 상태, setClass(id), cast(skillId), step(초) 한 번에 진행 후 그리기

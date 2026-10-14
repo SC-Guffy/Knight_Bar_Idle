@@ -1,0 +1,10 @@
+{
+ "first_frame": {
+  "type": "base64",
+  "base64": ""
+ },
+ "action": "pierce hit spark: the needle flash shoots longer both forward and backward, then thins into fine sparks and fades out completely",
+ "frame_count": 4,
+ "seed": 3,
+ "no_background": true
+}

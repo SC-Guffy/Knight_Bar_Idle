@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 48,
+  "height": 40
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: hemisphere qi barrier dome, a half bubble shield sitting on the ground, bright white thick rim along the dome edge, translucent looking pale lavender inside drawn with a few lighter curved highlight bands, hexagon-free smooth dome, flat bottom edge, dark outline, empty inside no character, nothing else, no character, no background shape, no text",
+ "seed": 157
+}

@@ -7,7 +7,9 @@
 //  ★★ 「쌍룡 강림」 용황 둘이 양쪽 끝에서 마주 날아와 교차하며 불을 쏟는다 — 하단바 전체가 불바다가 되고, 둘이 X 자로 내리꽂힌다
 //  ★★★ 「용신의 심판」 하단바보다 큰 용신의 눈이 하늘에 뜨고, 눈길이 닿는 곳마다 불똥이 떨어진다 — 하단바의 빛을 빨아들인 눈동자가
 //                  가늘어지는 순간 하늘에서 숨결이 내리꽂혀 땅 전체가 분홍빛 용암으로 녹아내린다
-// 용은 스프라이트가 아니라 경로를 따라 마디를 이어 그린다: 머리가 지나간 길(dePath)을 몸 길이만큼 거슬러 올라가 마디를 놓는다(deBody)
+// 용은 경로를 따라 마디를 이어 그린다: 머리가 지나간 길(dePath)을 몸 길이만큼 거슬러 올라가 마디를 놓는다(deBody)
+// 그림은 PixelLab 시트 (src/vfx-spear.js vfxDragon): 용황·쌍룡 = F08 머리 + 몸통 마디, 흑룡 = E15 머리 + 마디 (용추락과 같은 용).
+//  숨결·불꽃 줄 E17 (용의 숨결과 같은 불꽃) · 불덩이 폭발·명중 K32 · ★★★ 용신의 눈 배경 F09
 
 const DE_PAL = {
   // 흑룡: 검은 몸, 분홍 불꽃 갈기
@@ -18,6 +20,8 @@ const DE_PAL = {
   violet: { out: '#0e0626', body: '#4c28b8', dark: '#2a1470', scale: '#a688ff', belly: '#d8ccff', mane: '#e8dcff', mane2: '#9a5cff', horn: '#f6f0ff', eye: '#ffe066' },
 };
 const DE_FIRE = ['#8a1f6a', '#ff4dd2', '#ff9fe8', '#ffffff'];
+// 팔레트 → 시트 (머리·마디)와 다시 칠할 색
+const DE_TEX = { black: ['e15h', 'e15s', '#6a3a8a'], emperor: ['f08h', 'f08s', '#e04cc0'], violet: ['f08h', 'f08s', '#9a7cff'] };
 const DE_FIRE_V = ['#4a1aa0', '#a46cff', '#e0c8ff', '#ffffff'];
 
 // 키프레임 [[t, x, y], ...] 을 매끄럽게 잇는 경로 (Catmull-Rom). 범위 밖은 양끝 방향으로 곧게 늘인다
@@ -60,151 +64,10 @@ function deBody(path, t, L, N) {
 function deCircle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2); ctx.fill(); }
 function dePoly(pts) { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.fill(); }
 
-// 용 한 마리: pts 머리→꼬리, o = { r 굵기, pal, open 입 벌림 0~1, side 등 쪽(오른쪽으로 나는 용은 -1), alpha }
-// 기운 → 등지느러미 → 다리 → 테두리 → 몸 → 배 비늘 → 비늘 무늬 → 꼬리 불꽃 → 머리(갈기·뿔·턱·이빨·눈·수염) 순서로 그린다
+// 용 한 마리: pts 머리→꼬리, o = { r 굵기, pal, open 입 벌림(시트는 벌린 입 한 장), side 등 쪽(오른쪽으로 나는 용은 -1), alpha }
 function deDragon(pts, o) {
-  const P = o.pal, n = pts.length, R = o.r, side = o.side || -1;
-  if (n < 4) return;
-  const rad = (i) => { const s = i / (n - 1); return R * (s < 0.08 ? 0.72 + 0.28 * s / 0.08 : Math.max(0.1, 1 - 0.9 * Math.pow((s - 0.08) / 0.92, 1.15))); };
-  // 마디마다 몸이 향하는 방향(머리 쪽)과 등 쪽 법선
-  const fr = pts.map((p, i) => {
-    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
-    let tx = a.x - b.x, ty = a.y - b.y; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
-    return { tx, ty, nx: -ty * side, ny: tx * side };      // (nx, ny) 등 쪽
-  });
-  ctx.save();
-  const ga = o.alpha == null ? 1 : o.alpha;
-  // 몸을 감싼 용의 기운
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.fillStyle = P.mane2;
-  ctx.globalAlpha = ga * 0.12;
-  for (let i = 0; i < n; i += 3) deCircle(pts[i].x, pts[i].y, rad(i) * 1.9);
-  ctx.globalAlpha = ga;
-  ctx.globalCompositeOperation = 'source-over';
-  // 등지느러미: 뒤로 젖혀진 가시가 마디마다 일렁인다
-  for (let i = 3; i < n - 2; i += 2) {
-    const p = pts[i], f = fr[i], r = rad(i), L = r * (1.1 + 0.25 * Math.sin(clock * 14 + i));
-    const bx = p.x + f.nx * r * 0.7, by = p.y + f.ny * r * 0.7;
-    const tipx = bx + f.nx * L - f.tx * L * 0.8, tipy = by + f.ny * L - f.ty * L * 0.8;
-    ctx.fillStyle = P.out;
-    dePoly([[bx + f.tx * r * 0.9, by + f.ty * r * 0.9], [tipx, tipy], [bx - f.tx * r * 0.7, by - f.ty * r * 0.7]]);
-    ctx.fillStyle = i % 4 === 1 ? P.mane : P.mane2;
-    dePoly([[bx + f.tx * r * 0.6, by + f.ty * r * 0.6], [tipx - f.nx, tipy - f.ny], [bx - f.tx * r * 0.4, by - f.ty * r * 0.4]]);
-  }
-  // 다리 넷 (몸통 앞뒤 두 쌍): 배 쪽으로 뻗어 발톱을 오므렸다 편다
-  ctx.lineCap = 'round';
-  for (const fi of [0.2, 0.24, 0.52, 0.56]) {
-    const i = Math.round(fi * (n - 1)), p = pts[i], f = fr[i], r = rad(i), sw = Math.sin(clock * 9 + fi * 20);
-    const kx = p.x - f.nx * r * 1.6 - f.tx * r * (0.6 + 0.3 * sw), ky = p.y - f.ny * r * 1.6 - f.ty * r * (0.6 + 0.3 * sw);
-    const fx = kx - f.nx * r * 0.9 + f.tx * r * 0.5, fy = ky - f.ny * r * 0.9 + f.ty * r * 0.5;
-    ctx.strokeStyle = P.out; ctx.lineWidth = r * 0.75;
-    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
-    ctx.strokeStyle = P.dark; ctx.lineWidth = r * 0.45;
-    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
-    ctx.strokeStyle = P.horn; ctx.lineWidth = Math.max(1, r * 0.16);
-    for (let c = -1; c <= 1; c++) {
-      ctx.beginPath(); ctx.moveTo(fx, fy);
-      ctx.lineTo(fx - f.nx * r * 0.5 + f.tx * r * (0.35 * c + 0.3), fy - f.ny * r * 0.5 + f.ty * r * (0.35 * c + 0.3)); ctx.stroke();
-    }
-  }
-  // 테두리 → 몸
-  ctx.fillStyle = P.out;
-  for (let i = n - 1; i >= 0; i--) deCircle(pts[i].x, pts[i].y, rad(i) + 1.5);
-  ctx.fillStyle = P.body;
-  for (let i = n - 1; i >= 0; i--) deCircle(pts[i].x, pts[i].y, rad(i));
-  // 등 쪽 그림자 줄 + 배 비늘 띠
-  ctx.fillStyle = P.dark;
-  for (let i = n - 1; i >= 0; i--) { const r = rad(i); deCircle(pts[i].x + fr[i].nx * r * 0.5, pts[i].y + fr[i].ny * r * 0.5, r * 0.42); }
-  ctx.fillStyle = P.belly;
-  for (let i = n - 1; i >= 1; i--) { const r = rad(i); deCircle(pts[i].x - fr[i].nx * r * 0.52, pts[i].y - fr[i].ny * r * 0.52, r * 0.34); }
-  // 배 비늘 마디 줄
-  ctx.strokeStyle = P.dark; ctx.lineWidth = 1;
-  for (let i = 2; i < n - 1; i += 2) {
-    const r = rad(i), cx = pts[i].x - fr[i].nx * r * 0.52, cy = pts[i].y - fr[i].ny * r * 0.52;
-    ctx.beginPath(); ctx.moveTo(cx + fr[i].nx * r * 0.34, cy + fr[i].ny * r * 0.34); ctx.lineTo(cx - fr[i].nx * r * 0.34, cy - fr[i].ny * r * 0.34); ctx.stroke();
-  }
-  // 등 비늘: 반짝이는 V 무늬
-  ctx.fillStyle = P.scale;
-  for (let i = 1; i < n - 2; i += 2) {
-    const r = rad(i); if (r < 2.5) continue;
-    const cx = pts[i].x + fr[i].nx * r * 0.2, cy = pts[i].y + fr[i].ny * r * 0.2, f = fr[i];
-    dePoly([[cx + f.tx * r * 0.35, cy + f.ty * r * 0.35], [cx - f.tx * r * 0.2 + f.nx * r * 0.35, cy - f.ty * r * 0.2 + f.ny * r * 0.35],
-      [cx - f.tx * r * 0.05, cy - f.ty * r * 0.05], [cx - f.tx * r * 0.2 - f.nx * r * 0.3, cy - f.ty * r * 0.2 - f.ny * r * 0.3]]);
-  }
-  // 꼬리 끝 불꽃 술
-  {
-    const p = pts[n - 1], f = fr[n - 1], L = R * 1.6;
-    for (let j = -1; j <= 1; j++) {
-      const w = Math.sin(clock * 16 + j) * R * 0.4;
-      ctx.fillStyle = j ? P.mane2 : P.mane;
-      dePoly([[p.x + f.nx * R * 0.3, p.y + f.ny * R * 0.3], [p.x - f.tx * L + f.nx * (j * R * 0.7 + w), p.y - f.ty * L + f.ny * (j * R * 0.7 + w)], [p.x - f.nx * R * 0.3, p.y - f.ny * R * 0.3]]);
-    }
-  }
-  deHead(pts[0], Math.atan2(fr[0].ty, fr[0].tx), R, P, o.open || 0, side);
-  ctx.restore();
-}
-// 용 머리: 앞이 +x 인 좌표에서 그린다 (등 쪽이 위로 오게 뒤집는다)
-function deHead(h, ang, R, P, open, side) {
-  const k = R / 6.5;
-  ctx.save();
-  ctx.translate(h.x, h.y); ctx.rotate(ang); ctx.scale(1, -side);
-  const Q = (pts) => dePoly(pts.map(([x, y]) => [x * k, y * k]));
-  // 갈기: 머리 뒤로 흩날리는 불꽃 혀
-  for (let j = 0; j < 7; j++) {
-    const by = -5 + j * 1.6, L = 11 + 4 * Math.sin(clock * 13 + j * 1.3), up = -2.5 + j * 0.9;
-    ctx.fillStyle = j % 2 ? P.mane2 : P.mane;
-    Q([[-2, by - 1.2], [-2 - L, by + up + Math.sin(clock * 17 + j) * 1.5], [-2, by + 1.2]]);
-  }
-  // 뿔 두 개 (뒤로 길게 휘었다)
-  ctx.lineCap = 'round';
-  for (const [x0, cx, cy, ex, ey, w] of [[0, -7, -11, -17, -11, 1], [2, -4, -14, -12, -16, 0.8]]) {
-    ctx.strokeStyle = P.out; ctx.lineWidth = 3.4 * k * w;
-    ctx.beginPath(); ctx.moveTo(x0 * k, -5 * k); ctx.quadraticCurveTo(cx * k, cy * k, ex * k, ey * k); ctx.stroke();
-    ctx.strokeStyle = P.horn; ctx.lineWidth = 1.8 * k * w;
-    ctx.beginPath(); ctx.moveTo(x0 * k, -5 * k); ctx.quadraticCurveTo(cx * k, cy * k, ex * k, ey * k); ctx.stroke();
-  }
-  // 아래턱 (벌어진다)
-  ctx.save();
-  ctx.translate(-1 * k, 2 * k); ctx.rotate(open * 0.6);
-  ctx.fillStyle = P.out; Q([[-1, -2], [17.5, -0.5], [16.5, 2.8], [1, 5]]);
-  ctx.fillStyle = P.body; Q([[0, -1.2], [16.5, 0], [15.5, 2], [1.5, 4]]);
-  ctx.fillStyle = P.belly; Q([[2, 2.5], [14, 1.6], [13, 2.6], [2, 3.8]]);
-  ctx.fillStyle = '#ffffff';
-  for (let x = 5; x < 16; x += 2.6) Q([[x, -0.6], [x + 0.8, -2.6], [x + 1.6, -0.6]]);
-  // 턱수염 가시
-  ctx.fillStyle = P.mane2;
-  for (let j = 0; j < 3; j++) Q([[2 + j * 3, 4], [-3 + j * 3, 8 + j], [5 + j * 3, 3.6]]);
-  ctx.restore();
-  // 벌린 입 안의 불빛
-  if (open > 0.05) {
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha *= Math.min(1, open * 1.5);
-    ctx.fillStyle = '#ff9fe8'; Q([[2, 1.5], [19, 0.5], [18, 2 + open * 10]]);
-    ctx.fillStyle = '#ffffff'; Q([[6, 2], [18, 1], [17, 2 + open * 6]]);
-    ctx.restore();
-  }
-  // 위 머리뼈
-  ctx.fillStyle = P.out; Q([[-7, -5.6], [0, -7.2], [7.5, -5.6], [14, -3.6], [19.6, -2], [20.6, 0.6], [17.5, 2.2], [4, 2.8], [-5, 3.6], [-8, 0]]);
-  ctx.fillStyle = P.body; Q([[-6, -4.8], [0, -6.3], [7, -4.8], [13.5, -2.9], [19, -1.4], [19.6, 0.4], [17, 1.4], [4, 2], [-4.5, 2.8], [-7, 0]]);
-  ctx.fillStyle = P.scale; Q([[-3, -5.3], [6, -4.9], [13, -3], [6, -3.6]]);       // 이마에서 콧등까지 빛나는 능선
-  ctx.fillStyle = P.dark; Q([[1, -4.6], [8, -4.4], [6, -3.2]]);                   // 눈두덩
-  ctx.fillStyle = '#ffffff';
-  for (let x = 6; x < 18; x += 2.6) Q([[x, 1.7], [x + 0.8, 3.8], [x + 1.6, 1.6]]);
-  // 콧구멍
-  ctx.fillStyle = P.out; Q([[17.5, -1.4], [18.6, -1.4], [18.6, -0.6], [17.5, -0.6]]);
-  // 눈: 빛나는 세로 동공
-  ctx.shadowColor = P.eye; ctx.shadowBlur = 10;
-  ctx.fillStyle = P.eye; ctx.beginPath(); ctx.ellipse(4.2 * k, -2.6 * k, 2.3 * k, 1.15 * k, -0.15, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = P.out; ctx.fillRect(4.0 * k, -3.5 * k, 0.6 * k, 1.8 * k);
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(5 * k, -3.2 * k, 0.6 * k, 0.6 * k);
-  // 수염: 코끝에서 뒤로 길게 흩날린다
-  ctx.strokeStyle = P.mane; ctx.lineWidth = Math.max(1, 0.7 * k);
-  for (const s of [1, -1]) {
-    ctx.beginPath(); ctx.moveTo(17 * k, 0.5 * k);
-    ctx.bezierCurveTo(10 * k, (6 + 3 * Math.sin(clock * 8 + s)) * k, 0, (2 + s * 4 + 3 * Math.sin(clock * 6 + s)) * k, (-14 + s * 2) * k, (7 + 5 * Math.sin(clock * 7 + s * 2)) * k);
-    ctx.stroke();
-  }
-  ctx.restore();
+  const T = DE_TEX[Object.keys(DE_PAL).find((k) => DE_PAL[k] === o.pal) || 'emperor'];
+  vfxDragon(pts, { head: T[0], seg: T[1], color: T[2], r: o.r, side: o.side, alpha: o.alpha });
 }
 // 입의 화면 위치 (머리 앞쪽)
 function deMouth(pts, R) {
@@ -212,31 +75,12 @@ function deMouth(pts, R) {
   return { x: a.x + (a.x - b.x) / l * 18 * k, y: a.y + (a.y - b.y) / l * 18 * k + 1.5 * k };
 }
 
-// 화염 숨결: (x0,y0)에서 (x1,y1)까지 넓어지는 불꽃 원뿔. 가장자리가 일렁이고 흰 심이 떨린다
+// 화염 숨결: (x0,y0)에서 (x1,y1)까지 넓어지는 불꽃 원뿔(E17)을 늘여 돌린다. w1: 끝 반폭(px)
 function deBreath(x0, y0, x1, y1, w0, w1, alpha, fire = DE_FIRE) {
-  if (alpha <= 0) return;
-  const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, st = 14;
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  for (const [sc, col, al] of [[1.25, fire[0], 0.45], [1, fire[1], 0.6], [0.6, fire[2], 0.7], [0.22, fire[3], 0.85]]) {
-    ctx.globalAlpha = alpha * al; ctx.fillStyle = col;
-    ctx.beginPath();
-    for (let i = 0; i <= st; i++) {
-      const s = i / st, w = mix(w0, w1, s) * sc * (1 + 0.18 * Math.sin(clock * 40 + s * 11 + sc * 3));
-      const x = x0 + dx * s + nx * w, y = y0 + dy * s + ny * w; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-    }
-    for (let i = st; i >= 0; i--) {
-      const s = i / st, w = mix(w0, w1, s) * sc * (1 + 0.18 * Math.sin(clock * 37 + s * 13 - sc * 2));
-      ctx.lineTo(x0 + dx * s - nx * w, y0 + dy * s - ny * w);
-    }
-    ctx.closePath(); ctx.fill();
-  }
-  // 닿은 자리에서 퍼지는 불빛
-  ctx.globalAlpha = alpha * 0.6;
-  const g = ctx.createRadialGradient(x1, y1, 1, x1, y1, w1 * 1.8);
-  g.addColorStop(0, fire[2]); g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g; ctx.fillRect(x1 - w1 * 1.8, y1 - w1 * 1.8, w1 * 3.6, w1 * 3.6);
-  ctx.restore();
+  const S = VFX_SHEETS.e17;
+  if (alpha <= 0 || !S) return;
+  const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1;
+  vfxDraw(ctx, 'e17', fire[1], vfxLoop('e17', 14), (x0 + x1) / 2, (y0 + y1) / 2, { rot: Math.atan2(dy, dx), sx: L / (S.fw * VFX_DOT), sy: Math.max(0.5, (w1 * 2.2) / (S.h * VFX_DOT)), alpha });
 }
 // 숨결 원뿔을 따라 불티가 흩어진다
 function deBreathParts(x0, y0, x1, y1, n, fire = DE_FIRE) {
@@ -245,62 +89,25 @@ function deBreathParts(x0, y0, x1, y1, n, fire = DE_FIRE) {
     parts.push({ x, y, vx: (x1 - x0) * rand(0.4, 1) + rand(-40, 40), vy: (y1 - y0) * rand(0.4, 1) + rand(-40, 20), g: -40, size: Math.random() < 0.35 ? 3 : 2, color: fire[1 + (i % 3)], life: rand(0.2, 0.4), t: 0, add: true });
   }
 }
-// 땅을 따라 넘실대는 불꽃 줄 (x0~x1, 높이 hgt)
+// 땅을 따라 넘실대는 불꽃 줄 (x0~x1, 높이 hgt): 위로 세운 불꽃 원뿔(E17)을 촘촘히 늘어세운다 — 장마다 프레임·높이를 엇갈린다
 function deFireRow(x0, x1, hgt, alpha, fire = DE_FIRE, seed = 0) {
   if (x1 < x0) [x0, x1] = [x1, x0];
   x0 = Math.max(-8, x0); x1 = Math.min(W + 8, x1);
-  if (x1 - x0 < 2 || hgt < 1 || alpha <= 0) return;
-  const gy = groundY() - 4;
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = alpha * 0.55;
-  const g = ctx.createLinearGradient(0, gy - hgt * 1.6, 0, gy + 4);
-  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, fire[1]);
-  ctx.fillStyle = g; ctx.fillRect(x0, gy - hgt * 1.6, x1 - x0, hgt * 1.6 + 6);
-  for (let x = Math.ceil(x0 / 6) * 6; x <= x1; x += 6) {
-    const ph = x * 0.37 + seed, h = hgt * (0.55 + 0.3 * Math.sin(clock * 11 + ph) + 0.15 * Math.sin(clock * 23 + ph * 2.3));
-    const sw = Math.sin(clock * 9 + ph) * 3;
-    ctx.globalAlpha = alpha * 0.8; ctx.fillStyle = fire[1];
-    dePoly([[x - 5, gy + 4], [x + sw, gy - h], [x + 5, gy + 4]]);
-    ctx.fillStyle = fire[2];
-    dePoly([[x - 2.5, gy + 4], [x + sw * 0.6, gy - h * 0.6], [x + 2.5, gy + 4]]);
-    ctx.globalAlpha = alpha * 0.7; ctx.fillStyle = fire[3];
-    dePoly([[x - 1, gy + 4], [x + sw * 0.3, gy - h * 0.25], [x + 1, gy + 4]]);
+  const S = VFX_SHEETS.e17;
+  if (x1 - x0 < 2 || hgt < 1 || alpha <= 0 || !S) return;
+  const gy = groundY() - 2, fw = S.fw * VFX_DOT, step = 16;
+  for (let x = Math.ceil(x0 / step) * step; x <= x1; x += step) {
+    const ph = x * 0.37 + seed, h = hgt * (1.6 + 0.4 * Math.sin(clock * 11 + ph));
+    vfxDraw(ctx, 'e17', fire[1], (Math.floor(clock * 12 + ph) % 5 + 5) % 5, x, gy - h / 2, { rot: -Math.PI / 2, sx: h / fw, sy: 0.45, alpha: alpha * 0.9 });
   }
-  ctx.restore();
 }
-// 불덩이 폭발: 둥근 화염 고리가 퍼지고 가운데에서 불기둥이 솟는다 (size 1 = 보통)
+// 불덩이 폭발(K32 분홍 용염 폭발): 바닥 기준, size 1 = 보통. 불티는 보조
 function deBlast(a, x, size, fire = DE_FIRE, life = 0.8) {
-  const gy = groundY() - 4, tongues = Array.from({ length: 16 }, (_, j) => ({ ang: (j / 16) * Math.PI * 2 + rand(-0.1, 0.1), l: rand(0.7, 1.2) }));
-  aFx(a, 0, life, (u) => {
-    const e = easeOut(Math.min(1, u / 0.35)), fade = u < 0.4 ? 1 : 1 - (u - 0.4) / 0.6, R = 44 * size * e, cy = gy - 22 * size;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    // 불기둥
-    const ph = 160 * size * Math.min(1, u / 0.2), pw = 18 * size * (1 - u * 0.6);
-    ctx.globalAlpha = fade * 0.7;
-    const g = ctx.createLinearGradient(x - pw, 0, x + pw, 0);
-    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.3, fire[1]); g.addColorStop(0.5, fire[3]); g.addColorStop(0.7, fire[1]); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.fillRect(x - pw, gy - ph, pw * 2, ph + 6);
-    // 화염 고리: 혀가 사방으로 뻗는다
-    for (const T of tongues) {
-      const r0 = R * 0.4, r1 = R * T.l * (1 + 0.1 * Math.sin(clock * 30 + T.ang * 5));
-      const ca = Math.cos(T.ang), sa = Math.sin(T.ang) * 0.55, nx = -sa, ny = ca;
-      ctx.globalAlpha = fade * 0.75; ctx.fillStyle = fire[1];
-      dePoly([[x + ca * r0 + nx * 6 * size, cy + sa * r0 + ny * 6 * size], [x + ca * r1, cy + sa * r1], [x + ca * r0 - nx * 6 * size, cy + sa * r0 - ny * 6 * size]]);
-      ctx.fillStyle = fire[2]; ctx.globalAlpha = fade * 0.7;
-      dePoly([[x + ca * r0 + nx * 3 * size, cy + sa * r0 + ny * 3 * size], [x + ca * r1 * 0.75, cy + sa * r1 * 0.75], [x + ca * r0 - nx * 3 * size, cy + sa * r0 - ny * 3 * size]]);
-    }
-    // 가운데 섬광
-    ctx.globalAlpha = (1 - u) * 0.9;
-    const c = ctx.createRadialGradient(x, cy, 1, x, cy, 30 * size);
-    c.addColorStop(0, '#ffffff'); c.addColorStop(0.4, fire[2]); c.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = c; ctx.fillRect(x - 30 * size, cy - 30 * size, 60 * size, 60 * size);
-    ctx.restore();
-  });
-  for (let j = 0; j < Math.round(26 * size); j++) {
+  const gy = groundY() - 2, sc = size >= 2 ? 2 : size >= 1.3 ? 4 / 3 : 1;
+  texFx('k32', x, gy + 4, fire[1], { anchor: 'b', scale: sc, life: life * 0.7, fade: 0.35 });
+  for (let j = 0; j < Math.round(12 * size); j++) {
     const ang = rand(-Math.PI, 0), v = rand(80, 260) * Math.sqrt(size);
-    parts.push({ x: x + rand(-8, 8), y: gy - 10, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, g: 260, size: Math.random() < 0.4 ? 3 : 2, color: fire[1 + (j % 3)], life: rand(0.4, 0.8), t: 0, add: true });
+    parts.push({ x: x + rand(-8, 8), y: gy - 10, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, g: 260, size: 2, color: fire[1 + (j % 3)], life: rand(0.4, 0.8), t: 0, add: true });
   }
 }
 // 공용 타이밍
@@ -502,74 +309,19 @@ function deStage2(a) {
 }
 
 // ── ★★★ 용신의 심판 ──
-// 용신의 눈: 하단바보다 큰 아몬드 모양 눈. 비늘 가죽에 둘러싸여 있고, 금빛 홍채에 세로 동공이 적을 좇는다
-function deGodEye(ex, ey, ew, eh, open, look, slit, glow) {
+// 용신의 눈(F09): 구름 사이로 뜬 거대한 용의 눈과 용암 줄기가 흐르는 땅 — 하단바 폭에 맞춰 원래 색으로 그린다 (궁극기 배경)
+//  open(0~1): 아래에서 떠오르며 짙어진다. 눈 자리는 시트의 가로 50%·세로 22% (deEyeAt)
+function deGodEye(open) {
+  const S = VFX_SHEETS.f09;
+  if (!S || !S.img || !S.img.complete || open <= 0) return;
+  const w = W + 8, h = w * S.img.naturalHeight / S.img.naturalWidth, top = groundY() + 4 - h + 10 * (1 - open);
   ctx.save();
-  // 눈을 둘러싼 비늘 가죽
-  ctx.globalAlpha = Math.min(1, open * 3);
-  ctx.save();
-  ctx.translate(ex, ey); ctx.scale(1, (eh * 1.3) / (ew * 1.4));
-  const sk = ctx.createRadialGradient(0, 0, ew * 0.5, 0, 0, ew * 1.4);
-  sk.addColorStop(0, 'rgba(18,5,26,1)'); sk.addColorStop(0.7, 'rgba(18,5,26,0.92)'); sk.addColorStop(1, 'rgba(18,5,26,0)');
-  ctx.fillStyle = sk; ctx.beginPath(); ctx.arc(0, 0, ew * 1.4, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-  ctx.strokeStyle = 'rgba(255,77,210,0.22)'; ctx.lineWidth = 1.5;
-  for (let r = 0; r < 5; r++) {
-    const span = ew * (1.05 + 0.04 * r);
-    for (let x = ex - span; x < ex + span; x += 14) {
-      const xx = x + (r % 2) * 7;
-      ctx.beginPath(); ctx.arc(xx, ey - eh * 1.15 + r * 9, 7, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
-      ctx.beginPath(); ctx.arc(xx, ey + eh * 1.15 - r * 9, 7, 1.15 * Math.PI, 1.85 * Math.PI); ctx.stroke();
-    }
-  }
-  // 눈꼬리 양쪽 뿔 같은 가시
-  ctx.fillStyle = '#2a0c36';
-  for (const s of [-1, 1]) {
-    dePoly([[ex + s * ew * 0.9, ey - eh * 0.5], [ex + s * ew * 1.55, ey - eh * 1.1], [ex + s * ew * 1.1, ey - eh * 0.15]]);
-    dePoly([[ex + s * ew * 0.95, ey + eh * 0.3], [ex + s * ew * 1.45, ey + eh * 0.75], [ex + s * ew * 1.05, ey + eh * 0.05]]);
-  }
-  // 아몬드 눈매 (open 만큼 벌어진다)
-  const top = eh * 1.9 * open, bot = eh * 1.7 * open;
-  const almond = () => {
-    ctx.beginPath(); ctx.moveTo(ex - ew, ey);
-    ctx.quadraticCurveTo(ex, ey - top, ex + ew, ey);
-    ctx.quadraticCurveTo(ex, ey + bot, ex - ew, ey); ctx.closePath();
-  };
-  ctx.globalAlpha = 1;
-  ctx.shadowColor = '#ff4dd2'; ctx.shadowBlur = 24 * glow;
-  almond(); ctx.fillStyle = '#ff7a3a'; ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.save();
-  almond(); ctx.clip();
-  const g = ctx.createLinearGradient(0, ey - eh, 0, ey + eh);
-  g.addColorStop(0, '#c4206a'); g.addColorStop(0.5, '#ffb03a'); g.addColorStop(1, '#c4206a');
-  ctx.fillStyle = g; ctx.fillRect(ex - ew, ey - eh, ew * 2, eh * 2);
-  // 홍채
-  const ix = ex + look, ir = eh * 0.95;
-  const ig = ctx.createRadialGradient(ix, ey, 2, ix, ey, ir);
-  ig.addColorStop(0, mixHex('#fff6c0', '#ffffff', glow)); ig.addColorStop(0.45, mixHex('#ffcc33', '#ffffff', glow * 0.6)); ig.addColorStop(0.85, '#ff4dd2'); ig.addColorStop(1, '#3a0a3a');
-  ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(ix, ey, ir, 0, Math.PI * 2); ctx.fill();
-  // 홍채 결 (가는 빛살)
-  ctx.strokeStyle = 'rgba(90,10,40,0.45)'; ctx.lineWidth = 1;
-  for (let j = 0; j < 28; j++) {
-    const A = (j / 28) * Math.PI * 2 + 0.05;
-    ctx.beginPath(); ctx.moveTo(ix + Math.cos(A) * ir * 0.3, ey + Math.sin(A) * ir * 0.3); ctx.lineTo(ix + Math.cos(A) * ir * 0.92, ey + Math.sin(A) * ir * 0.92); ctx.stroke();
-  }
-  // 세로 동공 (slit 이 작을수록 가늘다)
-  const pw = ir * (0.08 + 0.22 * slit);
-  ctx.shadowColor = '#ff4dd2'; ctx.shadowBlur = 10;
-  ctx.fillStyle = '#0a0208';
-  ctx.beginPath(); ctx.ellipse(ix, ey, pw, ir * 0.9, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowBlur = 0;
-  // 젖은 눈빛 하이라이트
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.beginPath(); ctx.ellipse(ix - ir * 0.45, ey - ir * 0.45, ir * 0.14, ir * 0.08, -0.5, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-  // 눈꺼풀 테두리
-  almond(); ctx.strokeStyle = '#05010a'; ctx.lineWidth = 4; ctx.stroke();
-  ctx.strokeStyle = '#ff4dd2'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.imageSmoothingEnabled = false;
+  ctx.globalAlpha *= Math.min(1, open * 1.4);
+  ctx.drawImage(S.img, -4, Math.round(top), w, h);
   ctx.restore();
 }
+const deEyeAt = () => { const S = VFX_SHEETS.f09, r = S && S.img && S.img.naturalWidth ? S.img.naturalHeight / S.img.naturalWidth : 100 / 240, h = (W + 8) * r; return { x: W / 2, y: groundY() + 4 - h + h * 0.22 }; };
 // 녹아내리는 땅: 분홍빛 용암이 하단바 바닥을 덮고 끓어오른다 (x0~x1 까지 번졌다)
 function deMolten(x0, x1, lvl, alpha, seed) {
   if (x1 < x0) [x0, x1] = [x1, x0];
@@ -610,14 +362,9 @@ function deEmber(a, delay, from, to, life, size) {
   let p0 = null, p1 = null;
   aFx(a, Math.max(0, delay), life, (u) => {
     if (!p0) { p0 = from(); p1 = to(); }
-    const e = easeIn(u), x = mix(p0.x, p1.x, e), y = mix(p0.y, p1.y, e), tx = mix(p0.x, p1.x, Math.max(0, e - 0.25)), ty = mix(p0.y, p1.y, Math.max(0, e - 0.25));
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-    ctx.strokeStyle = '#ff4dd2'; ctx.globalAlpha = 0.6; ctx.lineWidth = 6 * size;
-    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(x, y); ctx.stroke();
-    ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = 1; ctx.lineWidth = 2 * size;
-    ctx.beginPath(); ctx.moveTo(mix(tx, x, 0.5), mix(ty, y, 0.5)); ctx.lineTo(x, y); ctx.stroke();
-    ctx.fillStyle = '#ff9fe8'; deCircle(x, y, 5 * size); ctx.fillStyle = '#ffffff'; deCircle(x, y, 2.5 * size);
-    ctx.restore();
+    const e = easeIn(u), x = mix(p0.x, p1.x, e), y = mix(p0.y, p1.y, e);
+    // 꼬리를 끄는 불똥: 불꽃 원뿔(E17)을 떨어지는 쪽 반대로 돌려 꼬리처럼 (넓은 끝이 뒤)
+    vfxDraw(ctx, 'e17', DE_FIRE[1], vfxLoop('e17', 16), x - (p1.x - p0.x) * 0.06, y - (p1.y - p0.y) * 0.06, { rot: Math.atan2(p0.y - p1.y, p0.x - p1.x), scale: size >= 1 ? 2 / 3 : 2 / 3, sx: size, sy: size });
   }, () => {
     if (!p1) return;
     const fx = p1.x;
@@ -627,18 +374,13 @@ function deEmber(a, delay, from, to, life, size) {
 }
 function deStage3(a) {
   const D = deDur(a), ht = deHitT(a), tf = ht[ht.length - 1], tb = ht[ht.length - 2], life = D + 0.45, gy = groundY();
-  const tx0 = a.tx(), ex = mix(W / 2, tx0, 0.35), ey = 40, ew = Math.max(150, Math.min(440, W * 0.36)), eh = 66;
-  const lookOf = () => Math.max(-ew * 0.35, Math.min(ew * 0.35, (a.tx() - ex) * 0.4));
-  const iris = () => ({ x: ex + lookOf(), y: ey + eh * 0.25 });
+  const eh = 66, iris = deEyeAt;
   // 뒤 레이어: 깊은 어둠 + 용신의 눈
   backFx(a, 0, life, (u) => {
     const t = u * life;
     dimBand(0.72 * deEnv(t, 0.1, D + 0.3, 0.6, 0.4), '8,0,14');
     const open = easeOut(segU(t, 0.55, 1.05)) * (t > D - 0.05 ? Math.max(0, 1 - (t - D + 0.05) / 0.3) : 1);
-    if (open <= 0) return;
-    // 동공은 처음엔 둥글다가 빛을 빨아들일수록 실처럼 가늘어지고, 숨결을 뿜을 때 홍채가 하얗게 달아오른다
-    const slit = 1 - segU(t, 2.1, tb), glow = Math.max(segU(t, 2.1, tb) * 0.6, t > tb ? deEnv(t, tb, D, 0.05, 0.3) : 0);
-    deGodEye(ex, ey + 6 * (1 - open), ew, eh, open, lookOf(), slit, glow);
+    deGodEye(open);
   });
   // 녹아내리는 땅 (숨결이 닿은 자리에서 양쪽 끝까지 번진다)
   aFx(a, 0, life, (u) => {
@@ -656,7 +398,7 @@ function deStage3(a) {
       deBreath(I.x, I.y, x, gy - 4, w0, w1, k);
     }
     // 하단바 전체가 하얗게 탄다
-    if (t > tf - 0.02 && t < tf + 0.35) dimBand(0.75 * (1 - segU(t, tf, tf + 0.35)), '255,220,245');
+    if (t > tf - 0.02 && t < tf + 0.15) dimBand(0.6 * (1 - segU(t, tf, tf + 0.15)), '255,220,245');     // 막타 섬광: α ≤ 0.6, 0.15초 (스펙 정지 기준표)
   }, null, (u) => {
     const t = u * life, I = iris();
     if (t > 2.05 && t < tb) {
@@ -674,24 +416,6 @@ function deStage3(a) {
     for (let j = 0; j < 2; j++) { const x = rand(20, W - 20); deEmber(a, at + rand(-0.05, 0.08), iris, () => ({ x, y: gy - 6 }), 0.2, 0.7); }
   }
 }
-// 타격 이미지: 분홍 불꽃 비늘이 둥글게 튀어 나가며 사그라든다 (마지막 일격은 크게 여섯 장)
-function deScaleMark(x, y, color, big) {
-  const n = big ? 6 : 3, s = big ? 1.6 : 1, rot = rand(0, Math.PI);
-  skFx(null, 0, 0.42, (u) => {
-    const e = easeOut(Math.min(1, u / 0.5)), fade = u < 0.4 ? 1 : 1 - (u - 0.4) / 0.6;
-    for (let j = 0; j < n; j++) {
-      const A = rot + (j / n) * Math.PI * 2, r = 6 + 16 * s * e;
-      ctx.save();
-      ctx.globalAlpha = fade;
-      ctx.translate(x + Math.cos(A) * r, y + Math.sin(A) * r * 0.8); ctx.rotate(A);
-      ctx.fillStyle = OUTLINE; dePoly([[-5 * s, -4 * s], [5 * s, 0], [-5 * s, 4 * s], [-3 * s, 0]]);
-      ctx.fillStyle = color; dePoly([[-4 * s, -3 * s], [4 * s, 0], [-4 * s, 3 * s], [-2.5 * s, 0]]);
-      ctx.fillStyle = '#ffffff'; dePoly([[-1 * s, -1 * s], [3 * s, 0], [-1 * s, 1 * s]]);
-      ctx.restore();
-    }
-  });
-}
-
 Object.assign(SKILL_FX, {
   dragonEmperor: {
     // 몸을 낮췄다가 → 창을 하늘로 곧게 치켜들고 버틴다(★★★ 는 떠오른다) → 마지막 일격에 맞춰 앞으로 내지르고 → 거둔다
@@ -715,18 +439,16 @@ Object.assign(SKILL_FX, {
     hit(a, i, n) {
       const m = Math.min(3, a.mast || 0), last = i === n - 1, x = a.tx();
       if (!last) {
-        for (const t of a.targets(i)) for (let j = 0; j < 6; j++) parts.push({ x: t.x + rand(-6, 6), y: t.y + rand(-6, 6), vx: rand(-60, 60), vy: rand(-120, -40), g: -30, size: 2, color: DE_FIRE[1 + (j % 3)], life: rand(0.3, 0.5), t: 0, add: true });
         if (m === 3 && i === n - 2) { deBlast(a, x, 1.3); impact({ stop: 0.1, shake: 0.5 }); }     // ★★★ 숨결이 처음 땅에 닿는 순간
         else impact({ stop: 0.02, shake: 0.14 });
         return;
       }
       if (m === 0) { deBlast(a, x, 1); impact({ stop: 0.16, shake: 0.6 }); return; }
       // ★·★★: 내리꽂히는 순간 하단바 전체가 분홍빛으로 번쩍인다
-      if (m < 3) aFx(a, 0, 0.3, (u) => dimBand(0.45 * (1 - u), '255,170,230'));
+      if (m < 3) aFx(a, 0, 0.15, (u) => dimBand(0.45 * (1 - u), '255,170,230'));
       if (m === 1) {
         deBlast(a, x, 1.7, DE_FIRE, 1);
-        for (let j = 0; j < 30; j++) parts.push({ x: x + rand(-60, 60), y: groundY() - 4, vx: rand(-60, 60), vy: rand(-300, -120), g: 380, size: 3, color: j % 3 ? '#5a2a3a' : '#ff9fe8', life: rand(0.5, 0.9), t: 0 });
-        impact({ stop: 0.2, shake: 0.7 });
+          impact({ stop: 0.2, shake: 0.7 });
         return;
       }
       if (m === 2) { deBlast(a, x - 14, 1.6, DE_FIRE, 1); deBlast(a, x + 14, 1.6, DE_FIRE_V, 1); impact({ stop: 0.22, shake: 0.75 }); return; }
@@ -734,7 +456,8 @@ Object.assign(SKILL_FX, {
       for (const s of [-1, 1]) for (let j = 1; j <= 3; j++) skLater(a, j * 0.05, () => deBlast(a, x + s * j * W * 0.12, 1.1, DE_FIRE, 0.7));
       impact({ stop: 0.26, shake: 0.85 });
     },
-    marks(a, t, pow, i, n) { deScaleMark(t.x, t.y, '#ff4dd2', i === n - 1); },
+    // 명중 그림 K32 (분홍 용염 폭발): 잔타는 작게, 막타는 크게
+    hitTex(a, t, share, i, n) { vfxSkillHit('k32', a, t, share, i, n); },
     kb: 20,
   },
 });

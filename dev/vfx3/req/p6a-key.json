@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a single huge siege ballista bolt flying horizontally pointing right, very thick heavy dark wooden shaft with iron bands, a big blunt cannonball shaped iron warhead on the right tip, square leather fins at the left end, side view, nothing else, no character, no background shape",
+ "seed": 15
+}

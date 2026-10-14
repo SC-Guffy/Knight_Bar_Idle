@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a huge eastern dragon emperor head in side view facing right, wide open roaring jaws with fangs, a crown of long branching golden horns, flowing flame mane behind the head, long whiskers, glowing eye, dark magenta scales with hot pink edges, pixel art creature sprite, nothing else, no character, no background shape",
+ "seed": 48
+}

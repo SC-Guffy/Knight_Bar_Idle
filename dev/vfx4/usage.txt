@@ -1,0 +1,83 @@
+e09 key s7 (첫 묶음)
+e10 key s7 (첫 묶음)
+k06 key s7 (첫 묶음)
+21:17:08 key h06 seed 7
+21:17:38 key h07 seed 7
+e11 key s7 (첫 묶음)
+21:18:00 key h08 seed 7
+21:18:28 key h18 seed 7
+21:19:07 key h19 seed 7
+21:20:02 key h20 seed 7
+21:20:47 key w1a seed 7
+21:21:39 key w3 seed 7
+21:22:20 key w3a seed 7
+21:22:52 key w4 seed 7
+21:23:22 key w4a seed 7
+21:25:17 key e06 seed 7
+21:25:57 key k05 seed 7
+21:26:20 key e05 seed 7
+21:26:53 key e44 seed 7
+21:27:40 key e07 seed 7
+21:28:10 key e07b seed 7
+21:28:26 anim h06 seed 9 from h06-key.png
+21:28:57 key e08 seed 7
+21:29:27 key k07 seed 7
+21:30:04 key e12 seed 7
+21:30:07 anim h07 seed 9 from h07-key.png
+21:30:36 key e13 seed 7
+21:31:11 key k09 seed 7
+21:31:37 key e14 seed 7
+21:32:11 anim h08 seed 9 from h08-key.png
+21:32:34 key k10 seed 7
+21:33:10 key f02 seed 7
+21:33:43 anim h18 seed 9 from h18-key.png
+21:34:03 key k29 seed 7
+21:34:50 key f04 seed 7
+21:34:58 anim e06 seed 9 from e06-key.png
+21:34:59 anim h20 seed 9 from h20-key.png
+21:35:28 key h19 seed 11
+21:35:46 key k30 seed 7
+21:35:54 key k10 seed 21
+21:35:57 anim k05 seed 9 from k05-key.png
+21:36:21 key w3a seed 11
+21:36:32 key f04 seed 21
+21:36:37 key f06 seed 7
+21:36:49 key w4 seed 11
+21:36:49 anim e07b seed 9 from e07b-key.png
+21:37:05 key f07 seed 7
+21:37:26 key e09 seed 11
+21:37:36 key k31 seed 7
+21:37:46 anim f02 seed 9 from f02-key.png
+21:37:59 key e11 seed 11
+21:38:13 anim k06 seed 9 from k06-key.png
+21:38:16 key f22 seed 7
+21:38:39 key k08 seed 7
+21:38:59 key f03 seed 7
+21:39:28 anim k29 seed 9 from k29-key.png
+21:39:51 anim k10 seed 9 from k10-key.png
+21:39:52 key f01 seed 7
+21:40:36 key f05 seed 7
+21:40:37 anim h19 seed 9 from h19-key.png
+21:40:41 anim k07 seed 9 from k07-key.png
+21:42:26 key k07 seed 21
+21:42:39 anim e09 seed 9 from e09-key.png
+21:42:41 anim e12 seed 9 from e12-key.png
+21:42:59 key f22 seed 21
+21:43:49 anim e11 seed 9 from e11-key.png
+21:43:55 anim f03 seed 9 from f03-key.png
+21:44:33 anim k09 seed 9 from k09-key.png
+21:44:38 key k31 seed 21
+21:45:06 anim k07 seed 9 from k07-key.png
+21:45:17 key h18 seed 21
+21:45:24 anim f07 seed 9 from f07-key.png
+21:45:36 key f04 seed 11
+21:45:45 key e44 seed 11
+21:45:54 anim e14 seed 9 from e14-key.png
+21:46:07 key f02s seed 11
+21:46:37 anim f22 seed 9 from f22-key.png
+21:47:16 anim k30 seed 9 from k30-key.png
+21:47:50 anim f04 seed 9 from f04-key.png
+21:48:04 anim e44 seed 9 from e44-key.png
+21:49:19 anim k31 seed 9 from k31-key.png
+21:51:36 anim k08 seed 9 from k08-key.png
+21:51:42 anim h18 seed 9 from h18-key.png

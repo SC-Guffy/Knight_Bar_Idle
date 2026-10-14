@@ -1,0 +1,31 @@
+{"kind": "cand", "tex": "w1b", "model": "sdxl", "seed": 1, "n": 4, "sec": 35.51, "per": 8.88, "w": 1024, "h": 1024}
+{"kind": "cand", "tex": "w1b", "model": "sdxl", "seed": 5, "n": 4, "sec": 33.29, "per": 8.32, "w": 1024, "h": 1024}
+{"kind": "cand", "tex": "w1b", "model": "zimg", "seed": 1, "n": 4, "sec": 65.16, "per": 16.29, "w": 1024, "h": 1024}
+{"kind": "cand", "tex": "w1b", "model": "zimg", "seed": 5, "n": 4, "sec": 51.87, "per": 12.97, "w": 1024, "h": 1024}
+{"kind": "cand", "tex": "h1", "model": "sdxl", "seed": 1, "n": 4, "sec": 47.03, "per": 11.76, "w": 1024, "h": 1024}
+{"kind": "cand", "tex": "h1", "model": "sdxl", "seed": 5, "n": 4, "sec": 32.64, "per": 8.16, "w": 1024, "h": 1024}
+{"kind": "cand", "tex": "h1", "model": "zimg", "seed": 1, "n": 4, "sec": 41.6, "per": 10.4, "w": 1024, "h": 1024}
+{"kind": "cand", "tex": "h1", "model": "zimg", "seed": 5, "n": 4, "sec": 34.76, "per": 8.69, "w": 1024, "h": 1024}
+{"kind": "cand", "tex": "c1", "model": "sdxl", "seed": 1, "n": 4, "sec": 34.28, "per": 8.57, "w": 1344, "h": 768}
+{"kind": "cand", "tex": "c1", "model": "sdxl", "seed": 5, "n": 4, "sec": 25.02, "per": 6.25, "w": 1344, "h": 768}
+{"kind": "cand", "tex": "c1", "model": "zimg", "seed": 1, "n": 4, "sec": 30.92, "per": 7.73, "w": 1344, "h": 768}
+{"kind": "cand", "tex": "c1", "model": "zimg", "seed": 5, "n": 4, "sec": 29.03, "per": 7.26, "w": 1344, "h": 768}
+{"kind": "sheet", "tex": "h1", "model": "zimg", "seed": 100, "sec": 19.38}
+{"kind": "sheet", "tex": "h1", "model": "zimg", "seed": 101, "sec": 5.69}
+{"kind": "sheet", "tex": "h1", "model": "zimg", "seed": 102, "sec": 5.45}
+{"kind": "sheet", "tex": "h1", "model": "zimg", "seed": 103, "sec": 5.4}
+{"kind": "sheet", "tex": "w1", "model": "zimg", "seed": 100, "sec": 12.49}
+{"kind": "sheet", "tex": "w1", "model": "zimg", "seed": 101, "sec": 6.33}
+{"kind": "sheet", "tex": "w1", "model": "zimg", "seed": 102, "sec": 6.23}
+{"kind": "sheet", "tex": "w1", "model": "zimg", "seed": 103, "sec": 5.95}
+{"kind": "sheet", "tex": "c1", "model": "zimg", "seed": 100, "sec": 19.75}
+{"kind": "sheet", "tex": "c1", "model": "zimg", "seed": 101, "sec": 6.61}
+{"kind": "sheet", "tex": "c1", "model": "zimg", "seed": 102, "sec": 6.46}
+{"kind": "sheet", "tex": "c1", "model": "zimg", "seed": 103, "sec": 6.69}
+{"kind": "anim", "tex": "h1", "model": "zimg", "key": 4, "denoise": 0.45, "sec": [24.69, 0, 11.45, 11.45, 10.54]}
+{"kind": "anim", "tex": "w1", "model": "zimg", "key": 6, "denoise": 0.45, "sec": [23.04, 12.19, 12.36, 11.01, 10.63]}
+{"kind": "anim", "tex": "h1", "model": "sdxl", "key": 8, "denoise": 0.45, "sec": [16.18, 0, 10.84, 12.03, 12.03]}
+{"kind": "anim", "tex": "w1", "model": "sdxl", "key": 6, "denoise": 0.45, "sec": [12.43, 10.58, 10.37, 12.03, 12.02]}
+{"kind": "sheet", "tex": "h1", "model": "sdxl", "seed": 100, "sec": 6.49}
+{"kind": "sheet", "tex": "h1", "model": "sdxl", "seed": 101, "sec": 6.75}
+{"kind": "bench", "res": {"sdxl 1024 1장": 6.51, "sdxl 1024 4장 배치": 6.64, "sdxl 768 1장": 4.64, "zimg 1024 1장": 7.38, "zimg 1024 4장 배치": 7.42, "zimg 768 1장": 4.2}}

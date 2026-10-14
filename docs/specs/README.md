@@ -48,6 +48,15 @@
 | [growth-compression.md](growth-compression.md) | 완료 (0.21.0) | 성장 곡선 압축 — 몬스터 ×1.06·×1.04/스테이지(옆 레이드 보스 약 7배), 장비·훈련 배율 같은 비율로, 훈련 : 장비 체감 4 : 6. 경제는 2단계 |
 | [gold-trade-and-resource-guide.md](gold-trade-and-resource-guide.md) | 완료 (0.20.14) | 후반 성장 곡선 완화(스테이지 100 부터 몬스터 체력 ×1.19·공격력 ×1.145) · 교역 하루 5+Lv 회·값 ×1.3 · 캠프 재화 6칸 누르면 얻는 곳/쓰는 곳 |
 | [admin-token-reissue.md](admin-token-reissue.md) | 완료 | 운영: 관리자 복구 코드 재발급 `POST /api/admin/token` — 옛 코드는 401 `revoked`(기기 기록 안 지움) |
+| [roadmap.md](roadmap.md) | 방향 확정 | **패치 로드맵** — 시즌6(권투가·성벽 지키기·교관 재가동·강화 +30·자잘이) · 시즌7~(암살자·사무라이·해머전사·스킬 룬). "결정 사항" 표가 기준, 항목별 스펙은 착수 때 따로 |
+| [enhance-30.md](enhance-30.md) | 구현 끝 (season6, 배포 전) | ⚒️ 강화 최대 +30: +16~25 초기화 절반 · +26~30 성공 15→11%·하락 30%·초기화 4% (주문서 구간) · 비용·배율 식 그대로(+30 ×8.2) · 옵션 줄 일반 0~초월·태초 6(+30 에서 6번째) · 태초 값 배율 2.0 · gearV 9 이행 (검토 `dev/review/enhance-30.html`) |
+| [castle-defense.md](castle-defense.md) | 진행 중 — 구현 끝, 배포 전 | 🏰 성벽 지키기 (시즌6 서브 콘텐츠): 스테이지 40 해금 · 1~100단계(적 = 스테이지 20+2L) · 10웨이브(5·10 보스) · 기사가 막고 쓰러진 동안만 성벽이 맞음 · 🧱 성벽돌 업그레이드 6종(전부 약 10일) · 📕 수련의 서 하루 10~13권 · 성벽 위 교관 · 입장권 하루 3장+골드 구매·소탕 (검토 `dev/review/castle-defense.html`) |
+| [tower-packs.md](tower-packs.md) | 확정 | 도전의 탑 무리 층: 끝자리 3·6·9층은 정예 무리 3마리(마리당 체력 정예 ×0.4·공격 ×1), 광폭화·보상·소탕 그대로 (`dev/tower-pack-sim.js`, 검토 `dev/review/tower-packs.html`) |
+| [ticket-buy.md](ticket-buy.md) | 확정 | 탑·미궁 입장권 골드 추가 구매 — 둘 다 골드만(탑 마력석 제거), ×0.5→1→2→3.5→6 이후 ×1.7, 산 입장권 5장까지. 미궁 기준값 몹 골드 ×600(사냥 1시간치). 검토 `dev/review/ticket-buy.html` |
+| [boxer-class.md](boxer-class.md) | 확정 (구현 전) | 신규 계열 **파이터** 7종(스트라이커·킥복서·기공사 → 챔피언·템페스트·그랜드마스터) — 쿨타임 대신 기 게이지(주 기술) + 투지(물려받은 기술·Lv70·궁극기), 2차마다 채우는 법이 다름, 통짜 스프라이트 시트·이펙트 텍스처 48장, 기준 그림 7:3 v2 (검토 `dev/review/boxer.html`) |
+| [legacy-class-sheets.md](legacy-class-sheets.md) | 확정 (구현 전) | 기존 직업 29종 통짜 스프라이트 시트 전환 — 칸 64/96/128, 계열 4개 동시, 포즈=PixelLab 애니(기준 그림 = 지금 스프라이트), 3차는 2차 편집, ComfyUI 는 보조, 계열 170회, SHEET_ON 되돌리기 |
+| [skill-vfx.md](skill-vfx.md) | 확정 (명중 분리판, 퀄업 구현 전) | 스킬 VFX 퀄업 — 스킬 40종 + 평타 29종 전수조사 · 이펙트 그림은 전부 PixelLab 텍스처 167장(무기 궤적 15·평타 명중 직업마다 29·투사체 12·공용 배경 7·스킬 본체 43·궁극기 21·스킬 명중 스킬마다 40, 약 740회) · ⑤-0 검흔 시험 · 정지·흔들림 기준 · 계열별 패치 순서 (검토 `dev/review/skill-vfx.html`) |
+| [vfx-rule-fixes.md](vfx-rule-fixes.md) | 확정 (0.21, 구현 전) | 2차 스킬 ★★★ 하단바 전체 섬광 11곳 → 타격 지점 둘레로 · 공허궁 꼬리 색 · 3차 타격 섬광 색 · 결투·레이드 원거리 평타 모양 |
 | [art-upgrade.md](art-upgrade.md) | 진행 중 | AI 이미지 생성 → 도트 복원으로 배경·UI·아이콘 퀄업 |
 | [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
 | [forge-temper.md](forge-temper.md) | 완료 | 대장간 🔥 담금질대: +20 까지 강화 성공↑·하락↓, +20 이상은 그대로 |
@@ -56,7 +65,7 @@
 | [reward-inversion-audit.md](reward-inversion-audit.md) | 완료 (0.20.11) | 보상 역전 전수조사: 탑 입장 소탕분 보장·원정 보스 진행 유실·진화★ 손해·1차 스킬 계승 약화·레이드 보상 눈금·세트 서열·입장권 서버 시각 등 |
 | [gear-options.md](gear-options.md) | 완료 (0.20.0) | 장비 강화 구간별 옵션 줄 · 등급 희소성 드랍 개편 · 🎲 재굴림권(재굴림대) |
 | [unique-procs.md](unique-procs.md) | 완료 (0.20.0) | 이름 있는 장비·레이드 세트 고유 발동 효과 |
-| [training-mentors.md](training-mentors.md) | 보류 — 0.20.6 에 꺼 둠 (`MENTOR_ON`) | 훈련 1차 만렙 50 · 2차 훈련 🎓 교관 수련(교관 5명 × 별 5, 골드 확률 수련 + 마지막 별은 레벨 스케일링 승부). 지금은 훈련 Lv 200 으로 되돌려 둠 |
+| [training-mentors.md](training-mentors.md) | 확정 (10-13, 시즌6 재가동 — 구현 전, 지금 코드는 `MENTOR_ON = false`) | 🎓 교관 수련 재가동: 교관 5명 × 별 5, ★1~4 📕 수련의 서 확정 상승(11/16/22/28/33 = 110권 ≈ 무료 10일, 골드 없음) · ★5 교관 승부 무료 하루 3회 · 최고 스테이지 40 에서 열림 · 1차 훈련 Lv 200 유지 · 훈련장 아래 🎯/🎓 탭. 검토 `dev/review/mentors.html` |
 | [duel-gap-closer.md](duel-gap-closer.md) | 완료 | 돌진기가 사거리 밖에서 달려붙는 이동기 + 직업 체력 근접 ×1.1 · 원거리 ×0.9 — 근접 vs 원거리 손해 보정 |
 | [duel-length.md](duel-length.md) | 완료 | 결투 체력 ×2(%회복은 늘리기 전 기준) + 성기사·성좌기사·천마장군 방어·회복 하향 — 스킬 한두 방에 끝나지 않게 |
 | [raid-difficulty.md](raid-difficulty.md) | 완료 | 레이드 보스 세기 = 입장 + 9 − 인원 보정 (4인 바로 · AI 파티 +8 · 혼자 +20), 전 보스는 스근하게 |

@@ -1,7 +1,9 @@
 'use strict';
 // 재료의 미궁 = 보스 러시 + 슬롯머신. core.js 처럼 DOM 을 모르고 S 상태만 바꾼다. 하단바 연출(보스·슬롯머신·쏟아지는 재화)은 world.js 의 updateDungeon.
 //  S.dg = {
-//    tixDay, tixUsed: 오늘 쓴 입장권 수 (하루 DG_TICKETS 장),
+//    tixDay, tixUsed: 오늘 쓴 무료 입장권 수 (하루 DG_TICKETS 장),
+//    tixExtra: 사서 가진 입장권 (자정에 사라지지 않음, 무료를 다 쓴 뒤에 쓴다, 최대 SUB_TICKET_HOLD),
+//    buyDay, bought: 오늘(buyDay) 산 장수 — 살수록 비싸진다 (탑과 따로 센다),
 //    best: 한 판에 가장 많이 잡은 보스 수, perfects: 통산 퍼펙트 횟수,
 //    run: 진행 중인 도전 | null,
 //    last: 마지막 결과 { reason, bosses, got, kills, spins, dur, at, best(신기록), seen } | null,
@@ -17,7 +19,8 @@
 //  - 난이도는 내 전투력 기준이다: dgLimitStage = 지금 능력치로 보스를 겨우 잡는 스테이지. 첫 보스는 거기서 DG_OFF0 만큼 아래, 한 마리마다 +DG_STEP.
 //    보스 하나마다 기대 피해가 ×1.46 (스테이지당 ×1.10 이 4칸, 0.21.0 성장 압축 전엔 스테이지당 ×1.44 · 1칸) 이라 누구나 8~9 마리쯤에서 쓰러진다 (시뮬: 중앙 9, 10%~90% 가 8~9). 성장하면 같은 '보스 9' 가 더 센 놈이고 보상도 커진다.
 //  - 재화 1칸 값(dgUnitValue): 한 판 기대 칸(DG_RUN_UNITS)이 목재·철광석·마력석은 내 건물 다음 레벨 비용 평균의 DG_RUN_SHARE 배가 되게 —
-//    재화 여섯에 나뉘니 한 판에 재화당 다음 레벨의 25% 쯤, 하루 입장권 3장이면 75% ("살짝 모자란 듯"). 골드는 사냥 30분치, 강화석·비전서는 보조 수급.
+//    재화 여섯에 나뉘니 한 판에 재화당 다음 레벨의 25% 쯤, 하루 입장권 3장이면 75% ("살짝 모자란 듯"). 골드는 나누기 전 사냥 30분치(한 판 실제 몫은 그 6분의 1쯤, 사냥 약 5분치), 강화석·비전서는 보조 수급.
+//  - 입장권: 하루 DG_TICKETS 장 무료. 더 필요하면 골드로 산다 (dgTicketPrice, 탑과 같은 곡선 · 기준값 DG_TICKET_GOLD)
 
 const DG_UNLOCK_STAGE = 15;
 const DG_TICKETS = 3;
@@ -45,7 +48,7 @@ const DG_RES = {
 };
 const DG_RES_IDS = Object.keys(DG_RES);
 
-const freshDungeon = () => ({ tixDay: '', tixUsed: 0, best: 0, perfects: 0, run: null, last: null });
+const freshDungeon = () => ({ tixDay: '', tixUsed: 0, tixExtra: 0, buyDay: '', bought: 0, best: 0, perfects: 0, run: null, last: null });
 
 const dgUnlocked = () => S.best >= DG_UNLOCK_STAGE;
 const dgRand = (a, b) => a + Math.random() * (b - a);
@@ -59,9 +62,34 @@ const dgRound = (x) => Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1 : 
 const dgRandRes = (except) => dgPickW(DG_RES_IDS.filter((r) => r !== except), (r) => DG_RES[r].w);
 
 // ── 입장권 ──
-function dgTickets() {
+// 오늘 남은 무료 입장권
+function dgFreeTickets() {
   if (newDay(S.dg.tixDay)) { S.dg.tixDay = todayKey(); S.dg.tixUsed = 0; }
   return Math.max(0, DG_TICKETS - S.dg.tixUsed);
+}
+// 지금 쓸 수 있는 입장권 (무료 + 산 것)
+const dgTickets = () => dgFreeTickets() + (S.dg.tixExtra || 0);
+// 무료 입장권부터 쓴다
+const useDgTicket = () => { if (dgFreeTickets() > 0) S.dg.tixUsed++; else S.dg.tixExtra = Math.max(0, (S.dg.tixExtra || 0) - 1); };
+// 구매: 오늘 n번째 구매는 subTicketMult(n) 배 (data.js, 탑과 같은 곡선, 구매 수는 따로)
+const dgTicketsBoughtToday = () => (newDay(S.dg.buyDay) ? 0 : (S.dg.bought || 0));
+function dgTicketPrice() {
+  return { gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * DG_TICKET_GOLD * subTicketMult(dgTicketsBoughtToday()))) };
+}
+function dgTicketBlocker() {
+  if (!dgUnlocked()) return `스테이지 ${DG_UNLOCK_STAGE} 도달 시 열려요`;
+  if (!srvClock.known) return '서버 시각 확인 중';
+  if ((S.dg.tixExtra || 0) >= SUB_TICKET_HOLD) return `산 입장권은 ${SUB_TICKET_HOLD}장까지 가질 수 있어요`;
+  if (S.gold < dgTicketPrice().gold) return '골드 부족';
+  return '';
+}
+function buyDgTicket() {
+  if (dgTicketBlocker()) return false;
+  S.gold -= dgTicketPrice().gold;
+  if (newDay(S.dg.buyDay)) { S.dg.buyDay = todayKey(); S.dg.bought = 0; }
+  S.dg.bought = (S.dg.bought || 0) + 1;
+  S.dg.tixExtra = (S.dg.tixExtra || 0) + 1;
+  return true;
 }
 
 // ── 전투력 기준 스테이지 ──
@@ -99,10 +127,10 @@ function dgNextBuildCost(k) {
 }
 function dgUnitValue(r, best = S.best) {
   switch (r) {
-    case 'gold': return monsterStats(best, false).gold * 300 / DG_RUN_UNITS;
+    case 'gold': return monsterStats(best, false).gold * 300 / DG_RUN_UNITS;   // 나누기 전 사냥 30분치 → 한 판 몫은 약 5분치
     case 'wood': return Math.max(1, dgNextBuildCost('wood') * DG_RUN_SHARE / DG_RUN_UNITS);
     case 'ore': return Math.max(1, dgNextBuildCost('ore') * DG_RUN_SHARE / DG_RUN_UNITS);
-    // 마력석은 건물 Lv5 부터 들어서 그 전엔 전직·탑 입장권 몫으로 조금
+    // 마력석은 건물 Lv5 부터 들어서 그 전엔 전직 몫으로 조금
     case 'mana': return Math.max(0.4, dgNextBuildCost('mana') * DG_RUN_SHARE / DG_RUN_UNITS);
     case 'stones': return (40 + 0.4 * best) / DG_RUN_UNITS;
     case 'tomes': return (8 + best / 8) / DG_RUN_UNITS;
@@ -119,12 +147,12 @@ function dgBlocker() {
   if (!dgUnlocked()) return `스테이지 ${DG_UNLOCK_STAGE} 도달 시 열려요`;
   if (S.phase !== 'camp') return '캠프에서만 들어갈 수 있어요';
   if (!srvClock.known) return '서버 시각 확인 중';   // 날짜를 모르는 채 어제 입장권을 쓰면 확인된 뒤 다시 채워진다
-  if (dgTickets() <= 0) return '입장권이 없어요 (자정에 충전)';
+  if (dgTickets() <= 0) return '입장권이 없어요 (자정에 충전 · 구매 가능)';
   return '';
 }
 function startDungeon() {
   if (dgBlocker()) return false;
-  S.dg.tixUsed++;
+  useDgTicket();
   const uv = {};
   for (const r of DG_RES_IDS) uv[r] = dgUnitValue(r);
   S.dg.run = {

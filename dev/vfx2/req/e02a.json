@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a long horizontal glowing drill lance cone pointing right, spiral grooves twisting around the cone, sharp bright needle tip on the right, wide round base on the left with swirling wind streaks, white and mint green energy, nothing else, no character, no background shape",
+ "seed": 12
+}

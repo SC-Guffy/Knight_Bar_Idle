@@ -8,7 +8,7 @@ let campTab = 'report';
 // 🗺️ 도전 탭: 서브 콘텐츠 카드 목록(null)이거나 그중 하나를 펼친 상태('tower' | 'dungeon')
 let subView = null;
 // 탑·던전은 도전 탭 안의 카드라, 옛 탭 이름으로 열어도 그 카드를 펼친 도전 탭으로 간다
-const SUB_TABS = { tower: 1, dungeon: 1 };
+const SUB_TABS = { tower: 1, dungeon: 1, castle: 1 };
 // 🧑 캐릭터 탭: 장비·스킬·전직을 서브탭으로 품는다. sub 는 펼쳐 둔 서브탭, tree 는 전직 트리를 펼쳤는가 (null 이면 전직 가능할 때만)
 const charUi = { sub: 'gear', tree: null };
 const CHAR_SUBS = { gear: '📋 상태', skill: '⚡ 스킬', class: '⚜️ 전직' };   // gear 키는 옛 장비 탭 (세이브·링크 호환), 지금은 상태창 (능력치 출처 + 장비 교체·분해)
@@ -148,6 +148,7 @@ function renderHud() {
     S.phase === 'expedition' ? `⚔️ ${fmtTime(S.stamina / staDrain())}`
       : S.phase === 'tower' ? (S.tower.run ? `🗼 ${S.tower.run.floor}F · ${fmtTime(S.stamina / staDrain())}` : '✨ 귀환 중')
       : S.phase === 'dungeon' ? (S.dg.run ? `👑 보스 ${S.dg.run.k + (S.dg.run.fight ? 1 : 0)}` : '✨ 귀환 중')
+      : S.phase === 'castle' ? (S.castle.run ? `🏰 ${S.castle.run.lv}단계 · ${S.castle.run.wave}/${CASTLE_WAVES.length}` : '✨ 귀환 중')
       : S.phase === 'returning' ? '🏃 귀환 중'
         : `${campStatus().icon} ${campStatus().text}`);
 
@@ -156,6 +157,7 @@ function renderHud() {
     : S.phase === 'expedition' ? ['recall', '🏕 귀환', '귀환 명령 — 지금 원정을 마치고 캠프로']
     : S.phase === 'tower' && S.tower.run ? ['tower-retreat', '⬇️ 후퇴', '이 층에서 후퇴해 캠프로']
     : S.phase === 'dungeon' && S.dg.run ? ['dg-retreat', '🎒 나가기', '지금 나가기 — 모은 자원을 모두 가지고 캠프로']
+    : S.phase === 'castle' && S.castle.run ? ['castle-retreat', '🏳️ 후퇴', '후퇴 — 지금까지 막은 몫을 가지고 캠프로']
     : null;
   const hb = $('hbtn');
   hb.hidden = !cmd;
@@ -167,6 +169,7 @@ function renderHud() {
 
   tickLive($('hud'));
   renderDungeonPick();
+  renderCastleInfo();
   const todo = S.phase === 'camp' && !modalOpen() && !duelActive() && !raidActive() && campHasDot();
   hb.classList.toggle('rd', todo);
 
@@ -197,7 +200,7 @@ function openCamp(tab) {
   }
   campOpen = true;
   revealed = [];
-  campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : raidUi.room ? 'raid' : guideTab() || 'town');
+  campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : castleResultPending() ? 'castle' : raidUi.room ? 'raid' : guideTab() || 'town');
   markSubSeen();
   if (window.bar) window.bar.setCampMode(true);
   interactive = true;
@@ -216,6 +219,8 @@ function closeCamp() {
   towerResultViewed = false;
   if (dgResultViewed && S.dg.last) S.dg.last.seen = true;
   dgResultViewed = false;
+  if (castleResultViewed && S.castle.last) S.castle.last.seen = true;
+  castleResultViewed = false;
   $('camp').hidden = true;
   interactive = false;
   if (window.bar) window.bar.setCampMode(false);
@@ -451,41 +456,48 @@ function trainNextText(u, st) {
   return `+${d >= 0.1 ? Math.round(d * 100) : (d * 100).toFixed(1)}%`;
 }
 
-// 훈련장을 골랐을 때 건물 카드 아래에 붙는 훈련 칸 (옛 훈련 탭)
+// 훈련장을 골랐을 때 건물 카드 아래에 붙는 칸: 탭 두 개 🎯 훈련 · 🎓 교관 (고른 탭은 townUi.trainTab)
 function viewTraining() {
   if (!MENTOR_ON) return viewTrain1();
-  if (!trainDone()) return viewTrain1() + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — 1차 훈련 네 가지를 Lv ${TRAIN_MAX} 까지</span></div>`;
-  const done = `<div class="chips"><span class="chip">✅ 1차 훈련 수료 · ⚔️ 공격력 ×${trainAtkMultAt(TRAIN_MAX).toFixed(2)} · 🛡️ 체력 ×${trainHpMultAt(TRAIN_MAX).toFixed(2)} · 방어 -${(defRedAt(TRAIN_MAX) * 100).toFixed(1)}% · 💰 수완 +${Math.round(TRAIN_MAX * FORTUNE_PER_LV * 100)}%</span></div>`;
-  if (!mentorOpen(0) && !mentorDone(0)) return done + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — ${mentorLock(0)}</span></div>`;
-  return done + viewMentor();
+  const tab = townUi.trainTab === 'mentor' ? 'mentor' : 'train';
+  const tabs = `<div class="skchips">
+    <button class="skchip${tab === 'train' ? ' on' : ''}${rd(TRAINING.some(canTrain))}" data-action="train-tab" data-k="train">🎯 훈련</button>
+    <button class="skchip${tab === 'mentor' ? ' on' : ''}${rd(mentorTodo())}" data-action="train-tab" data-k="mentor">🎓 교관 <small>★${mentorStarSum()}/${MENTORS.length * MENTOR_STARS}</small></button>
+  </div>`;
+  if (tab === 'train') return tabs + viewTrain1();
+  if (mentorLock(0)) return tabs + `<div class="chips"><span class="chip">🔒 최고 스테이지 ${MENTOR_OPEN_STAGE} 에서 열려요 — 🏰 성벽 지키기에서 📕 수련의 서를 모아 교관에게 배워요</span></div>`;
+  return tabs + viewMentor();
 }
 
-// 2차 훈련 🎓 교관 수련: 교관 칩 줄 · 무대(mentor-stage.js) · 한 줄 안내와 버튼
+// 교관 별 보너스 글 — spText 는 % 를 정수로 반올림해서 (2.5% → 3%) 소수 한 자리까지 보인다
+const mentorSpText = (sp) => Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v).replace(/\d+(?=%)/, pct1(v))}`).join(' · ');
+// 🎓 교관 수련: 교관 칩 줄 · 무대(mentor-stage.js) · 한 줄 안내와 버튼
 function viewMentor() {
   const cur = mentorCur(), i = mentorView(), m = MENTORS[i], n = mentorStarsOf(i);
   const chips = MENTORS.map((x, k) => {
-    const lock = k > cur || (k === cur && mentorLock(k));
-    const tag = k < cur ? '★5' : k > cur ? (S.bld.training < x.bld ? `🔒 훈련장 Lv ${x.bld}` : '🔒') : lock ? `🔒 ${mentorLock(k)}` : `★${mentorStarsOf(k)}`;
+    const tag = k < cur ? '★5' : k > cur ? `🔒 ${MENTORS[k - 1].name} 수료` : `★${mentorStarsOf(k)}`;
     return `<button class="skchip${k === i ? ' on' : ''}" data-action="mentor-view" data-i="${k}" ${k > cur ? 'disabled' : ''}>${x.icon} ${x.name} <small>${tag}</small></button>`;
   }).join('');
   const busy = !!(mentorUi.anim || mentorUi.busy);
-  const now = spText(mentorSpAt(i)) || '아직 없음', full = spText(mentorSpAt(i, MENTOR_STARS));
+  const now = mentorSpText(mentorSpAt(i)) || '아직 없음', full = mentorSpText(mentorSpAt(i, MENTOR_STARS));
   let info, btn = '';
-  if (i < cur) info = `<b>✅ ${m.name} 수료</b><small>${full}</small>`;
-  else if (mentorLock(i)) info = `<b>🔒 ${mentorLock(i)}</b><small>별 5개 · ${full}</small>`;
+  if (cur >= MENTORS.length) info = `<b>✅ 모든 교관 수료 — 📕 은 더 필요 없어요</b><small>${m.name} · ${full}</small>`;
+  else if (i < cur) info = `<b>✅ ${m.name} 수료</b><small>${full}</small>`;
   else if (mentorDuelTurn(i)) {
-    const p = mentorPreview(i), me = profile().power;
+    const p = mentorPreview(i), me = profile().power, left = mentorDuelLeft();
     const verdict = !p ? '' : me >= p.power * 1.15 ? ' · <span style="color:#9fd49a">여유</span>' : me >= p.power * 0.9 ? ' · 비슷함' : ' · <span class="warn">버거움</span>';
     const blk = !activeToken() ? '서버 연결 필요' : mentorDuelBlocker(i);
-    info = `<b>⚔️ 마지막 별 — 교관과의 승부${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>지금 ${now} → 수료 ${full}</small>`;
-    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-duel" ${blk || busy ? 'disabled' : ''} title="${blk}">⚔️ 승부하기 <i class="gc"></i> ${fmt(mentorCost(i))}</button>`;
+    info = `<b>⚔️ 마지막 별 — 교관과의 승부 · 오늘 ${left}/${MENTOR_DUEL_DAY}${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>${left ? `지금 ${now} → 수료 ${full}` : '내일 다시 도전할 수 있어요'}</small>`;
+    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-duel" ${blk || busy ? 'disabled' : ''} title="${blk}">⚔️ 승부하기</button>`;
   } else {
-    const blk = mentorTryBlocker(i), eye = S.mentor.eye;
-    info = `<b>★${n + 1} 수련 · 성공 ${Math.round(mentorRate(i) * 100)}%${eye ? ` (눈도장 +${+(eye * mentorEye(i) * 100).toFixed(1)}%p)` : ''}</b><small>지금 ${now} → 다음 별 ${spText(mentorSpAt(i, n + 1))}</small>`;
-    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">🎓 수련하기 <i class="gc"></i> ${fmt(mentorCost(i))}</button>`;
+    const need = mentorNeed(i), have = mentorBooks(), lack = need - have;
+    const blk = mentorTryBlocker(i);
+    info = `<b>★${n + 1} 수련 · 📕 ${need} 필요 (보유 ${have})</b><small>지금 ${now} → 다음 별 ${mentorSpText(mentorSpAt(i, n + 1))}</small>`;
+    btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">📕 수련하기</button>`;
+    if (lack > 0) btn = `<span class="warn">📕 ${lack}권 모자라요</span>${btn}<button class="btn" data-action="goto-castle">🏰 성벽 지키기로</button>`;
   }
   return `
-    <div class="shead"><h3>🎓 교관 수련 <small>2차 훈련 · 별 ${mentorStarSum()}/${MENTORS.length * MENTOR_STARS} · ${m.icon} ${m.name} — ${m.place}</small></h3></div>
+    <div class="shead"><h3>🎓 교관 수련 <small>별 ${mentorStarSum()}/${MENTORS.length * MENTOR_STARS} · 📕 보유 ${mentorBooks()} · ${m.icon} ${m.name} — ${m.place}</small></h3></div>
     <div class="skchips">${chips}</div>
     <canvas class="mstage" data-action="mentor-skip" title="누르면 연출을 건너뛰어요"></canvas>
     <div class="mbar"><span class="grow">${info}</span>${btn}</div>`;
@@ -496,7 +508,7 @@ function mentorPreview(i) {
   if (p && p.key === key) return p;
   if (activeToken() && mentorUi.previewReq !== key) {
     mentorUi.previewReq = key;
-    fetchMentor(i).then((r) => { mentorUi.preview = { ...r, key }; if (campOpen) renderCamp(); }).catch(() => {});
+    fetchMentor(i).then((r) => { mentorUi.preview = { ...r, key }; mentorDuelSync(r.left); if (campOpen) renderCamp(); }).catch(() => {});
   }
   return p && p.i === i ? p : null;
 }
@@ -519,7 +531,7 @@ function viewTrain1() {
   const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u) && trainWorth(u));
   return `
     <div class="shead">
-      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — ${MENTOR_ON ? '초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요' : `공격력·체력 훈련은 단계마다 배율이 올라요 (지금 ⚔️ ${'×' + trainAtkMultAt(S.train.atk).toFixed(2)} · ❤️ ${'×' + trainHpMultAt(S.train.hp).toFixed(2)})`}</small></h3>
+      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — 공격력·체력 훈련은 단계마다 배율이 올라요 (지금 ⚔️ ${'×' + trainAtkMultAt(S.train.atk).toFixed(2)} · ❤️ ${'×' + trainHpMultAt(S.train.hp).toFixed(2)})</small></h3>
       <button class="btn${rd(TRAINING.some(canTrain))}" data-action="train-all" ${anyTrain ? '' : 'disabled'}>${ico('bolt')} 골고루 올리기</button>
     </div>
     <div class="tgrid">${cards}</div>`;
@@ -587,7 +599,7 @@ function skillList(id) {
     const dmg = k.ward ? `초당 ×${+(k.ward.tick * pow).toFixed(2)}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
-      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id), skillStage(k.id)) : k.name}</b> <small>${k.ult ? '💥 궁극기 · ' : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id), skillStage(k.id)) : k.name}</b> <small>${k.ult ? '💥 궁극기 · ' : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · ${k.qi && isQiCls(id) ? qiCdText(k, id, mine ? skillBonus(k.id) : undefined, cd) : `쿨 ${cd}초`} · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
         <span class="sdesc">${k.desc}</span></span>
     </div>`;
   }).join('')}</div>`;
@@ -721,7 +733,7 @@ function viewSkill() {
         ${max ? '' : `<div class="mseg"><div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div>
           <span class="mnum"><b>${s.have}</b>/${s.need}</span></div>`}
         <small class="mstat">${k.right
-          ? `쿨타임 ${cd(s.lv)}초 · 위력 ${mt(s.lv)}${treeSummary(k, b) ? ` <span class="tbon">${treeSummary(k, b)}</span>` : ''} · <span class="tnote">${max ? '' : '레벨업 = ⭐ 1 · '}성장은 전부 트리에서</span>`
+          ? `${k.qi && isQiCls(S.cls) ? qiCdText(k, S.cls, b, skillCd(k.id)) : `쿨타임 ${cd(s.lv)}초`} · 위력 ${mt(s.lv)}${treeSummary(k, b) ? ` <span class="tbon">${treeSummary(k, b)}</span>` : ''} · <span class="tnote">${max ? '' : '레벨업 = ⭐ 1 · '}성장은 전부 트리에서</span>`
           : `${max ? '' : '다음 레벨 · '}쿨타임 ${cd(s.lv)}초${max ? '' : ` → <b>${cd(s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}${b.pow || b.cd ? ` <span class="tbon">${b.pow ? `⚔️ +${treePct(TREE_POW * b.pow)}%` : ''}${b.pow && b.cd ? ' · ' : ''}${b.cd ? `⏱️ -${treePct(TREE_CD * b.cd)}%` : ''}</span>` : ''}`}</small>
       </div>
       <div class="act">${btns}</div>
@@ -1150,16 +1162,21 @@ function campDots() {
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '',
     // 던전: 처음 열렸거나, 안 본 결과가 있거나, 입장권이 남았을 때
     dungeon: dgUnlocked() && (!S.guide.dgSeen || dgResultPending() || dgTickets() > 0),
+    castle: castleDot(),             // 🏰 성벽 지키기 (castle-ui.js)
   };
 }
 const campHasDot = () => Object.values(campDots()).some(Boolean);
 
+// +26 부터는 주문서 없이 실패하면 하락이 성공보다 잦다 — 주문서 체크가 꺼져 있으면 확률 줄 끝에 경고 (docs/specs/enhance-30.md)
+const ENH_SCROLL_FROM = 25;
 function enhOdds(L) {
   const e = enhanceOddsAt(L, forgeFacLv('temper')), fail = 1 - e.rate;
-  const pct = (v) => (v * 100 < 1 && v > 0 ? (v * 100).toFixed(1) : Math.round(v * 100)) + '%';
+  // 10% 미만은 소수 한 자리 (초기화 0.7~3.6% 를 정수로 반올림하면 1·2·3% 로 뭉개진다)
+  const pct = (v) => (v * 100 < 10 ? Number((v * 100).toFixed(1)) : Math.round(v * 100)) + '%';
   const risk = [];
   if (e.down) risk.push(`<span class="warn">하락 ${pct(fail * e.down)}</span>`);
   if (e.reset) risk.push(`<span class="bad">초기화 ${pct(fail * e.reset)}</span>`);
+  if (L >= ENH_SCROLL_FROM && !(gearUi.protect && S.items.protect)) risk.push('<span class="bad">📜 없이는 밀리기 쉬워요</span>');
   return `성공 <b>${pct(e.rate)}</b>${risk.length ? ' · ' + risk.join(' · ') : ' · 실패해도 유지'}`;
 }
 
@@ -1207,7 +1224,7 @@ function gearSlotBtn(slot) {
   return `
     <button class="gsbtn s-${slot} ${gearSel().slot === slot ? 'on' : ''}" data-action="gear-sel-slot" data-slot="${slot}"
       style="--c:${it ? gearGrade(it).color : 'rgba(255,255,255,.18)'}" title="${def.name}">
-      <span class="gsbox${rd(gearBetter(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
+      <span class="gsbox${rd(gearBetter(slot))}">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(6, Math.floor(L / 5))}">+${L}</b></span>
       <span class="gsname ${it ? gnClass(it) : ''}">${it ? gearName(it) : def.name}</span>
     </button>`;
 }
@@ -1225,7 +1242,7 @@ const gearInfo = (it) => `
 
 // 옵션 줄 목록 (시즌6): 켜진 줄은 밝게, 아직 부위 강화가 안 닿은 줄은 🔒 흐리게, 쓰레기 옵션은 회색. 오른쪽 끝은 품질 S/A/B/C
 function optLinesHtml(it, enh = S.gear.enh[it.slot]) {
-  if (it.op && !it.op.length) return '<div class="gops"><div class="gop off">옵션 줄 없음 — 옵션 줄이 생기기 전에 얻은 장비예요</div></div>';
+  if (it.op && !it.op.length) return `<div class="gops"><div class="gop off">${it.g === 0 ? '옵션 줄 없음 · 일반 등급은 옵션 줄이 붙지 않아요 (고급부터 1줄)' : '옵션 줄 없음 — 옵션 줄이 생기기 전에 얻은 장비예요'}</div></div>`;
   if (!it.op) return '';
   return `<div class="gops">${it.op.map((o, i) => {
     const on = enh >= optNeed(i), rk = optRank(o.q), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk;
@@ -1275,7 +1292,7 @@ function landRerollFx(fx) {
 function forgeRerollRow(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot);
   if (!it) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">장비를 끼면 옵션을 다시 굴릴 수 있어요</span></div>`;
-  if (!(it.op || []).length) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">옵션 줄이 없는 장비예요 (옵션 줄이 생기기 전에 얻음) — 새로 얻는 장비부터 붙어요</span></div>`;
+  if (!(it.op || []).length) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">${it.g === 0 ? '일반 등급 장비는 옵션 줄이 없어요 — 고급부터 붙어요' : '옵션 줄이 없는 장비예요 (옵션 줄이 생기기 전에 얻음) — 새로 얻는 장비부터 붙어요'}</span></div>`;
   const c = rerollCost(it.g), enh = S.gear.enh[slot], fx = rrFx && rrFx.id === it.id ? rrFx : null, spinning = rrFx && !rrFx.done;
   const lines = (it.op || []).map((o, i) => {
     const on = enh >= optNeed(i), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk, blocker = spinning ? '굴리는 중이에요' : rerollBlocker(it, i);
@@ -1312,7 +1329,7 @@ function slotDetail(slot) {
     : `<div class="gtop"><div class="gicon big empty"></div><div class="gname empty">${def.name} 비어 있음</div></div><div class="gstat small">강화 단계는 장비를 끼면 적용돼요</div>`;
   const top = S.gear.top[slot] > L ? ` <small>최고 +${S.gear.top[slot]}</small>` : '';
   return `
-    <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b>${top}</div>
+    <div class="ghead"><span>${def.icon} ${def.name}</span><b class="lvl l${Math.min(6, Math.floor(L / 5))}">+${L}</b>${top}</div>
     ${item}
     ${gearLvLine(slot)}
     <div class="rfline"><span class="small">⚒️ 부위 강화 +${L}${L < ENHANCE_MAX ? ` → +${L + 1}` : ' (최대)'} — 마을 대장간에서 해요</span>
@@ -1343,7 +1360,7 @@ function forgeSlot(slot) {
   return `
     <div class="fslot s-${slot}${cls}" style="--c:${it ? gearGrade(it).color : 'rgba(255,255,255,.18)'}">
       <div class="fhead">
-        <span class="gsbox">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(5, Math.floor(L / 5))}">+${L}</b></span>
+        <span class="gsbox">${it ? gearIcon(it, 'big') : `<span class="gsempty">${def.icon}</span>`}<b class="lvl l${Math.min(6, Math.floor(L / 5))}">+${L}</b></span>
         <div class="finfo"><b>${def.icon} ${def.name}</b> ${top}<div class="gsname ${it ? gnClass(it) : ''}">${it ? gearName(it) : '비어 있음'}</div>${stat}</div>
       </div>
       <div class="genh">${enh}${res}</div>
@@ -1762,9 +1779,9 @@ function tellInbox() {
 // 누군가 +20 이상 강화에 성공하거나 강화가 초기화되면 모든 기사의 하단바 위로 소식이 흘러간다 (world.js 의 pushShout)
 const SHOUT_CHECK_EVERY = 15 * 1000;
 const shoutFeed = { after: 0, busy: false };
-// 조각마다 색을 따로: 닉네임은 하늘색, 강화 단계는 높을수록 금 → 주황 → 분홍 → 무지개(+25), 성공은 초록, 초기화는 빨강·잃은 단계는 회색으로 꺼짐
+// 조각마다 색을 따로: 닉네임은 하늘색, 강화 단계는 높을수록 금 → 주황 → 분홍 → 보라 → 하늘 → 무지개(최대 +30), 성공은 초록, 초기화는 빨강·잃은 단계는 회색으로 꺼짐
 const SHOUT_COL = { text: '#e6e6ee', nick: '#7cc4ff', good: '#7dffb0', bad: '#ff6b6b', lost: '#8a8a96' };
-const shoutLvCol = (L) => L >= ENHANCE_MAX ? 'rainbow' : L >= 24 ? '#ff5ac8' : L >= 22 ? '#ff9f1c' : L >= 20 ? '#ffd257' : '#e0b070';
+const shoutLvCol = (L) => L >= ENHANCE_MAX ? 'rainbow' : L >= 28 ? '#3ee8ff' : L >= 26 ? '#b36bff' : L >= 24 ? '#ff5ac8' : L >= 22 ? '#ff9f1c' : L >= 20 ? '#ffd257' : '#e0b070';
 function shoutText(m) {
   const g = GEAR_SLOTS[m.slot] || { name: '장비', icon: '⚒️' };
   const C = SHOUT_COL, head = [['📢 ', C.text], [botName(m), C.nick]];
@@ -1831,6 +1848,7 @@ function mailRewardText(r = {}) {
   if (r.stones) out.push(`💠 강화석 ×${r.stones}`);
   if (r.tomes) out.push(`📖 비전서 ×${r.tomes}`);
   if (r.raidTickets) out.push(`🎟 레이드 입장권 ×${r.raidTickets}`);
+  if (r.books) out.push(`📕 수련의 서 ×${r.books}`);
   return out;
 }
 function viewMail() {
@@ -1851,7 +1869,7 @@ function viewMail() {
           </button>
           ${on ? `
           <div class="mbd">
-            ${m.body.map((t) => `<p>${esc(t)}</p>`).join('')}
+            ${m.body.map((t) => (typeof t === 'function' ? t() : t)).filter(Boolean).map((t) => `<p>${esc(t)}</p>`).join('')}
             <div class="mrw">${mailRewardText(m.reward).map((t) => `<span class="chip">${t}</span>`).join('')}
               ${got ? '<span class="mdone">✔ 받았어요</span>' : `<button class="btn rd" data-action="mail-claim" data-id="${m.id}">${ico('gift')} 받기</button>`}</div>
           </div>` : ''}
@@ -2423,14 +2441,15 @@ function towerResultHtml(L) {
       <div class="act" style="margin-top:6px"><button class="go compact" data-action="tower-start" ${blocker ? 'disabled' : ''}>${ico('tower')} 다시 도전 (${towerCheckpoint()}F 부터 · ${ico('ticket')} ${towerTickets()}장 남음)</button>${blocker ? ` <span class="blocker">${blocker}</span>` : ''}</div>
     </div>`;
 }
-// 입장권 구매 한 줄: 가격 칩 + 구매 버튼
-function towerBuyRow() {
-  const p = towerTicketPrice(), tb = towerTicketBlocker(), n = towerTicketsBoughtToday();
+// 입장권 구매 한 줄 (탑·미궁 공용): 가격 칩 + 구매 버튼, 살 수 없으면 사유를 글씨로도
+function ticketBuyRow(action, price, blocker, boughtToday, held) {
   return `
-    <div class="tbuy">🎟 입장권 구매 <small>오늘 ${n}장 샀어요</small>
-      <span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip(ico('mana'), p.mana, S.mats.mana)}</span>
-      <button class="btn" data-action="tower-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button></div>`;
+    <div class="tbuy">🎟 입장권 구매 <small>오늘 ${boughtToday}장 샀어요 · 모아 둔 ${held}/${SUB_TICKET_HOLD}</small>
+      <span class="costs">${costChip('<i class="gc"></i>', price.gold, S.gold)}</span>
+      <button class="btn" data-action="${action}" ${blocker ? 'disabled' : ''} title="${esc(blocker)}">구매</button>${blocker ? `<span class="blocker">${blocker}</span>` : ''}</div>`;
 }
+const towerBuyRow = () => ticketBuyRow('tower-ticket', towerTicketPrice(), towerTicketBlocker(), towerTicketsBoughtToday(), S.tower.tixExtra || 0);
+const dgBuyRow = () => ticketBuyRow('dg-ticket', dgTicketPrice(), dgTicketBlocker(), dgTicketsBoughtToday(), S.dg.tixExtra || 0);
 function viewTower() {
   const t = S.tower, blocker = towerBlocker(), cp = towerCheckpoint();
   const nextFirst = Math.max(t.paid || 0, Math.floor(t.best / 10) * 10) + 10;   // 옛 곡선에서 옮긴 기록은 이미 받은 묶음(paid)이 더 높을 수 있다
@@ -2448,8 +2467,8 @@ function viewTower() {
     ${towerUnlocked() ? towerBuyRow() : ''}
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="skill">${ico('bolt')} 스킬 탭에서 스킬 강화하기 →</button></div>` : ''}
-    <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
-      체크포인트(10층 단위)부터 시작하고, 입장하면 소탕만큼(<b>최고 층 수 📖</b>) 기본으로 받고 깬 층마다 <b>📖 1권</b> 더. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${TOWER_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
+    <div class="hint">층마다 정예 몬스터 하나 — 3·6·9로 끝나는 층은 정예 무리 3마리 — 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
+      체크포인트(10층 단위)부터 시작하고, 입장하면 소탕만큼(<b>최고 층 수 📖</b>) 기본으로 받고 깬 층마다 <b>📖 1권</b> 더. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${SUB_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
       <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
@@ -2500,9 +2519,10 @@ function viewDungeon() {
   const tiers = DG_SLOT_TIER_IDS.map((id) => { const t = DG_SLOT_TIERS[id]; return `<span class="pchip static" title="${t.big ? `맞춘 재화 ${t.big}칸${t.small ? ` + 나머지 ${t.small}칸` : ''}` : `세 재화 ${t.small}칸씩`}">${id === 'perfect' ? '🌟' : id === 'pair' ? '🎉' : '🎲'} ${t.name} <small>${t.w}%</small></span>`; }).join('');
   return `
     <div class="mhead"><div><h3>${ico('pick')} 재료의 미궁</h3>
-      <small>🎟 입장권 <b>${dgTickets()}/${DG_TICKETS}</b> · 최고 기록 👑 ${d.best || 0}마리 · 통산 🌟 퍼펙트 ${d.perfects || 0}</small></div></div>
+      <small>🎟 입장권 <b>${dgFreeTickets()}/${DG_TICKETS}</b>${d.tixExtra ? ` + 구매 <b>${d.tixExtra}</b>` : ''} · 최고 기록 👑 ${d.best || 0}마리 · 통산 🌟 퍼펙트 ${d.perfects || 0}</small></div></div>
+    ${dgBuyRow()}
     ${fresh ? dgResultHtml(d.last) : ''}
-    <div class="hint">보스가 한 마리씩 나와요. 잡을 때마다 🎰 슬롯머신을 한 번 돌리고, 보스는 한 마리마다 1 스테이지씩 세져요 (지금 첫 보스 스테이지 ${s0}, 내 전투력에 맞춰요). 슬롯 보상은 보스를 잡을 때마다 +${Math.round(DG_BOSS_BONUS * 100)}%씩 커지고, 보스를 잡으면 체력이 ${Math.round(DG_HEAL * 100)}% 차요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요.</div>
+    <div class="hint">보스가 한 마리씩 나와요. 잡을 때마다 🎰 슬롯머신을 한 번 돌리고, 보스는 한 마리마다 1 스테이지씩 세져요 (지금 첫 보스 스테이지 ${s0}, 내 전투력에 맞춰요). 슬롯 보상은 보스를 잡을 때마다 +${Math.round(DG_BOSS_BONUS * 100)}%씩 커지고, 보스를 잡으면 체력이 ${Math.round(DG_HEAL * 100)}% 차요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요. 입장권이 모자라면 골드로 사서 쓸 수 있어요 (하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${SUB_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="dgrow"><span class="lbl">슬롯</span>${tiers}<span class="small">— 3칸이 멈추면 그림대로 재화가 쏟아져요</span></div>
     <div class="act" style="margin-top:8px"><button class="go compact${rd(blocker === '')}" data-action="dg-start" ${blocker ? 'disabled' : ''}>${ico('pick')} 입장 <small>${ico('ticket')}1</small></button> <span class="blocker">${blocker}</span></div>`;
 }
@@ -2512,7 +2532,7 @@ function viewDungeon() {
 // 매 프레임 drawSubPreviews), 오른쪽은 제목·한 줄 설명·상태 칩. 누르면 그 콘텐츠 화면(viewTower·viewDungeon)을 펼친다.
 // 새 콘텐츠는 SUB_CARDS 에 한 줄 보태고 view·칩·미리보기만 붙이면 된다. 마지막 카드는 늘 "Coming Soon".
 const SUB_CARDS = [
-  { k: 'tower', icon: 'tower', name: '도전의 탑', desc: '층마다 정예 하나, 10층마다 보스 — 오를수록 📖 비전서',
+  { k: 'tower', icon: 'tower', name: '도전의 탑', desc: '층마다 정예, 3·6·9층은 무리, 10층마다 보스 — 오를수록 📖 비전서',
     unlocked: () => towerUnlocked(), lockText: () => `스테이지 ${TOWER_UNLOCK_STAGE}에 열려요`, dot: (d) => d.tower, view: () => viewTower(),
     chips: () => {
       const t = S.tower, out = [];
@@ -2531,6 +2551,8 @@ const SUB_CARDS = [
       out.push([d.best ? `최고 👑 ${d.best}마리` : '아직 기록 없음', '']);
       return out;
     } },
+  { k: 'castle', icon: 'castle', name: '성벽 지키기', desc: '몰려오는 10웨이브를 막아라 — 🧱 성벽돌로 성벽을, 📕 수련의 서로 교관을 키워요',
+    unlocked: () => castleUnlocked(), lockText: () => `스테이지 ${CASTLE_UNLOCK_STAGE}에 열려요`, dot: (d) => d.castle, view: () => viewCastle(), chips: () => castleCardChips() },
 ];
 const subCard = (k) => SUB_CARDS.find((c) => c.k === k);
 // 카드를 펼쳐 보면 FTUE 의 "봤다" 표시
@@ -2538,6 +2560,7 @@ function markSubSeen() {
   if (campTab !== 'sub') return;
   if (subView === 'tower' && towerUnlocked()) S.guide.towerSeen = 1;
   if (subView === 'dungeon' && dgUnlocked()) S.guide.dgSeen = 1;
+  if (subView === 'castle' && castleUnlocked()) S.guide.castleSeen = 1;
 }
 function viewSub() {
   const c = subView && subCard(subView);
@@ -2573,7 +2596,7 @@ function drawSubPreviews() {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, w, h);
-    const draw = { tower: drawSubTower, dungeon: drawSubDungeon, soon: drawSubSoon }[cv.dataset.k];
+    const draw = { tower: drawSubTower, dungeon: drawSubDungeon, castle: drawSubCastle, soon: drawSubSoon }[cv.dataset.k];
     if (draw) draw(g, w, h);
   });
 }
@@ -2705,7 +2728,7 @@ function renderCamp() {
     ['char', `${ico('char')} 캐릭터`, dots.gear || dots.skill || dots.class ? DOT : ''],
     ['rank', `${ico('rank')} 랭킹`, inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
     ['raid', `${ico('raid')} 레이드`, S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
-    ['sub', `${ico('sub')} 도전`, dots.tower || dots.dungeon ? DOT : ''],
+    ['sub', `${ico('sub')} 도전`, dots.tower || dots.dungeon || dots.castle ? DOT : ''],
   ];
   const view = { mail: viewMail, report: viewReport, town: viewTown, char: viewChar, rank: viewRank, raid: viewRaid, sub: viewSub }[campTab]();
   const scroll = $('campBody') ? $('campBody').scrollTop : 0;
@@ -2779,6 +2802,12 @@ const ACTIONS = {
     save();
     renderCamp();
   },
+  'dg-ticket': () => {
+    if (!buyDgTicket()) return;
+    toast(`🎟 미궁 입장권을 샀어요 (지금 ${dgTickets()}장)`);
+    save();
+    renderCamp();
+  },
   'tower-sweep': () => {
     const n = sweepTower();
     if (!n) return;
@@ -2801,6 +2830,7 @@ const ACTIONS = {
     renderHud();
   },
   'dg-retreat': () => { dgRetreat(); renderHud(); },
+  ...CASTLE_ACTIONS,                  // 🏰 성벽 지키기 (castle-ui.js)
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),
   'res': (el) => { resOpen = resOpen === el.dataset.k ? null : el.dataset.k; },
@@ -2899,8 +2929,8 @@ const ACTIONS = {
   },
   'mentor-duel': () => {
     if (mentorUi.anim || mentorUi.busy) return;
-    const i = mentorCur(), paid = mentorPayDuel(i);
-    if (!paid) return;
+    const i = mentorCur();
+    if (mentorDuelBlocker(i) || !activeToken()) return;
     mentorUi.busy = true; mentorUi.view = i;
     requestMentorDuel(i).then((res) => {
       mentorUi.busy = false;
@@ -2910,12 +2940,14 @@ const ACTIONS = {
       if (campOpen) renderCamp();
     }).catch((e) => {
       mentorUi.busy = false;
-      mentorRefund(paid);
+      if (e.status === 429 && /모두/.test(e.message)) mentorDuelSync(0);   // 서버가 오늘 횟수를 다 썼다고 하면 맞춘다
       toast(`⚠️ 승부를 걸지 못했어요 — ${e.message}`, 5000);
       save();
       if (campOpen) renderCamp();
     });
   },
+  'train-tab': (el) => { townUi.trainTab = el.dataset.k; },
+  'goto-castle': () => { campTab = 'sub'; subView = typeof subCard === 'function' && subCard('castle') ? 'castle' : null; markSubSeen(); $('campBody').scrollTop = 0; },
   'buy': (el) => buySupply(el.dataset.id),
   'eat': eatLunch,
   'equip': (el) => { const id = Number(el.dataset.id); if (equipGear(id)) gearUi.sel = { slot: gearById(id).slot }; },
@@ -3217,9 +3249,11 @@ function resetWorld() {
   if (tw) endTowerView();
   if (S.phase === 'dungeon') { endDungeon('offline'); S.phase = 'camp'; }
   if (dv) endDungeonView();
+  if (S.phase === 'castle') { endCastle('offline'); S.phase = 'camp'; }
+  if (cdv) endCastleView();
   monsters = []; coins = []; floaters = []; shots = []; effects = []; drops = [];
   lapReady = false;
-  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null });
+  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null, qi: null });
   casts = []; skfx = []; cutin = null; hitstop = 0;
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
   Object.assign(inbox, { list: null, error: null, told: 0, newAfter: null, more: false });
@@ -3263,7 +3297,7 @@ hooks.onPenalty = (p) => {
 // 그사이 화면에서 흐른 시간(단조 시계)은 이미 실시간으로 진행됐으니 뺀다. 탑·미궁·귀환 중이던 건 시간과 상관없이 바로 정리
 const offline = { from: 0, mono: 0, pending: false };
 function catchUp() {
-  if (Date.now() - (S.lastSeen || 0) > 5000 && ['tower', 'dungeon', 'returning'].includes(S.phase)) simulate(0);
+  if (Date.now() - (S.lastSeen || 0) > 5000 && ['tower', 'dungeon', 'castle', 'returning'].includes(S.phase)) simulate(0);
   offline.from = S.lastSeen || 0; offline.mono = performance.now(); offline.pending = true;
   settleOffline();
 }
@@ -3373,6 +3407,11 @@ hooks.onDungeonEnd = (r) => {
   renderHud();
   if (!r) return;
   toast(`⛏️ ${DG_REASON[r.reason] || '던전 끝'} — ${dgResText(r.got, '받은 게 없어요')} · 기사를 클릭해 정산을 확인하세요`, 8000);
+};
+hooks.onCastleEnd = (r) => {
+  renderHud();
+  if (!r) return;
+  toast(`🏰 ${CASTLE_REASON[r.reason] || '도전 끝'} — ${r.lv}단계 막은 웨이브 ${r.waves}/${CASTLE_WAVES.length} · 🧱 +${fmt(r.bricks)} · 📕 +${r.books} · 기사를 클릭해 정산을 확인하세요`, 8000);
 };
 hooks.onArrive = () => {
   const r = S.report;
@@ -3535,6 +3574,7 @@ function boot() {
     else clock += dt;
     render();
     if (S.phase === 'dungeon') renderDungeonPick();
+    if (S.phase === 'castle') renderCastleInfo();
     if (campOpen && campTab === 'char') { drawClassPreviews(); drawGearHero(); }
     if (campOpen && campTab === 'sub' && !subView) drawSubPreviews();
     if (campOpen && campTab === 'town') { drawTown(); drawMentorStage(); }

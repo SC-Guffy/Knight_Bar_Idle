@@ -7,6 +7,7 @@
 //  ★★★ 「무명검·천지개벽」 흑백 세상에 꽃잎 칼날과 검선이 가득 차고, 하단바를 가로로 벤 한 칼에 위아래가 두 동강 나 어긋났다가 — 칼을 거두는 순간 다시 붙으며 그 틈으로 빛이 터진다
 // 이 파일의 도구는 모두 tc 로 시작한다 (다른 궁극기 파일과 이름이 겹치지 않게)
 
+// 그림은 PixelLab 시트 (src/vfx-sword.js): f04 분홍 검선 + 꽃잎 (선 길이에 맞춰 늘인다) · k30 천 갈래 검선 (막타). 흑백·화면 분할은 코드
 const TC_PINK = '#ff6a8a', TC_PETALS = ['#ffb7c8', '#ff8fab', '#ffd6e0', '#ff6a8a'];
 const tcHitT = (a, i) => a.k.hits[i][0] * a.k.dur;
 const tcLastT = (a) => tcHitT(a, a.k.hits.length - 1);
@@ -55,33 +56,25 @@ function tcLinesFx(a, life) {
   const L = (a.tcLines = []);
   aFx(a, 0, life, () => {
     const rel = a.tcRel != null ? clock - a.tcRel : -1;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
     for (const l of L) {
       const age = clock - l.at;
       if (age < 0) continue;
       const ca = Math.cos(l.ang), sa = Math.sin(l.ang), grow = easeOut(Math.min(1, age / 0.06));
       const x0 = l.x - ca * l.len / 2, y0 = l.y - sa * l.len / 2, x1 = x0 + ca * l.len * grow, y1 = y0 + sa * l.len * grow;
+      if (l.len * grow < 3) continue;
+      const sc = 2 / 3;
       if (rel < 0) {
-        // 멈춘 검선: 그어지는 순간은 굵고 하얗게, 그 뒤엔 머리카락처럼 가늘게 떨린다
-        const fl = 0.7 + 0.3 * Math.sin(clock * 34 + l.ph);
-        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
-        if (age < 0.1) { ctx.globalAlpha = 1 - age / 0.1; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4; ctx.stroke(); }
-        ctx.globalAlpha = 0.45 * fl; ctx.strokeStyle = l.c; ctx.lineWidth = 2.5; ctx.stroke();
-        ctx.globalAlpha = 0.95; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.8; ctx.stroke();
+        // 멈춘 검선: 그어지는 순간은 한 단계 굵게, 그 뒤엔 가늘게 떨린다
+        const fl = 0.75 + 0.25 * Math.sin(clock * 34 + l.ph);
+        swLine(ctx, 'f04', l.c, 0, x0, y0, x1, y1, { scale: sc, sy: age < 0.1 ? 2 : 1, alpha: fl });
         continue;
       }
       const r = rel / 0.55;
       if (r >= 1) continue;
-      // 터짐: 검선이 법선 쪽으로 벌어져 틈이 생기고, 틈 안이 분홍빛으로 탄다
-      const f = 1 - r, gap = 1 + l.gap * easeOut(Math.min(1, r / 0.35)), nx = -sa * gap / 2, ny = ca * gap / 2;
-      ctx.globalAlpha = 0.55 * f; ctx.fillStyle = l.c;
-      ctx.beginPath(); ctx.moveTo(x0 + nx, y0 + ny); ctx.lineTo(x1 + nx, y1 + ny); ctx.lineTo(x1 - nx, y1 - ny); ctx.lineTo(x0 - nx, y0 - ny); ctx.closePath(); ctx.fill();
-      ctx.globalAlpha = f; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(x0 + nx, y0 + ny); ctx.lineTo(x1 + nx, y1 + ny); ctx.moveTo(x0 - nx, y0 - ny); ctx.lineTo(x1 - nx, y1 - ny); ctx.stroke();
-      if (r < 0.18) { ctx.globalAlpha = 1 - r / 0.18; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+      // 터짐: 검선이 법선 쪽으로 벌어지며(두 장이 양쪽으로) 꽃잎을 놓는다
+      const gap = l.gap * easeOut(Math.min(1, r / 0.35)) / 2, nx = -sa * gap, ny = ca * gap, f = 1 + Math.min(3, Math.floor(r * 4));
+      for (const k of [1, -1]) swLine(ctx, 'f04', l.c, f, x0 + nx * k, y0 + ny * k, x1 + nx * k, y1 + ny * k, { scale: sc, flipY: k < 0, alpha: 1 - r });
     }
-    ctx.restore();
   });
 }
 function tcAddLine(a, x, y, ang, len, delay = 0, gap = 8, c = TC_PINK) {
@@ -109,24 +102,18 @@ function tcFlickerFx(a, x, facing) {
 function tcVanishFx(a) {
   const x = a.x(), y = groundY() - 22, d = a.dir;
   skFx(null, 0, 0.3, (u) => {
-    const grow = easeOut(Math.min(1, u / 0.15)), f = 1 - u;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = f; ctx.fillStyle = TC_PINK; ctx.fillRect(Math.min(x, x + d * 90 * grow), y - 2, 90 * grow, 4);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.min(x, x + d * 90 * grow), y - 0.5, 90 * grow, 1);
-    ctx.restore();
+    const grow = easeOut(Math.min(1, u / 0.15));
+    if (grow > 0.05) swLine(ctx, 'f04', TC_PINK, Math.min(4, Math.floor(u * 5)), x, y, x + d * 90 * grow, y, { scale: 2 / 3, alpha: 1 - u });
   });
-  for (let i = 0; i < 16; i++) parts.push({ x: x + rand(-6, 6), y: groundY() - rand(4, 36), vx: d * rand(20, 160), vy: rand(-60, 10), g: 40, size: Math.random() < 0.3 ? 3 : 2, color: TC_PETALS[i % 4], life: rand(0.4, 0.8), t: 0 });
+  for (let i = 0; i < 10; i++) parts.push({ x: x + rand(-6, 6), y: groundY() - rand(4, 36), vx: d * rand(20, 160), vy: rand(-60, 10), g: 40, size: Math.random() < 0.3 ? 3 : 2, color: TC_PETALS[i % 4], life: rand(0.4, 0.8), t: 0 });
 }
 // 딸깍: 칼을 거두는 손에서 하얀 불꽃과 작은 고리
 function tcClickFx(a) {
   const h = hand(a);
   skFx(null, 0, 0.3, (u) => {
-    ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(h.x, h.y, 3 + 14 * easeOut(u), 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(h.x - 10 * (1 - u), h.y - 0.5, 20 * (1 - u), 1); ctx.fillRect(h.x - 0.5, h.y - 10 * (1 - u), 1, 20 * (1 - u));
-    ctx.restore();
+    const L = 12 * (1 - u) + 2;
+    swLine(ctx, 'f04', '#ffffff', 0, h.x - L, h.y, h.x + L, h.y, { scale: 2 / 3, alpha: 1 - u });
+    swLine(ctx, 'f04', '#ffffff', 0, h.x, h.y - L, h.x, h.y + L, { scale: 2 / 3, alpha: 1 - u });
   });
   for (let i = 0; i < 8; i++) parts.push({ x: h.x, y: h.y, vx: rand(-70, 70), vy: rand(-90, -20), g: 300, size: 1, color: '#fff3c0', life: 0.25, t: 0, add: true });
 }
@@ -134,15 +121,11 @@ function tcClickFx(a) {
 function tcNick(x, y, size, life = 0.3) {
   const a0 = rand(-0.5, 0.5);
   skFx(null, 0, life, (u) => {
-    const L = size * Math.min(1, u / 0.15), f = 1 - u;
-    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const L = size * Math.min(1, u / 0.15) * 1.6 + 1;
     for (const an of [a0 + 0.8, a0 - 0.8]) {
       const ca = Math.cos(an) * L, sa = Math.sin(an) * L;
-      ctx.globalAlpha = 0.6 * f; ctx.strokeStyle = TC_PINK; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(x - ca, y - sa); ctx.lineTo(x + ca, y + sa); ctx.stroke();
-      ctx.globalAlpha = f; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.stroke();
+      swLine(ctx, 'f04', TC_PINK, Math.min(4, Math.floor(u * 5)), x - ca, y - sa, x + ca, y + sa, { scale: 2 / 3, alpha: 1 - u });
     }
-    ctx.restore();
   });
 }
 
@@ -279,15 +262,8 @@ function tcSplitFx(a, life, tf) {
 // ★★★ 다시 붙는 순간 그 틈에서 터지는 빛: 하단바 폭 전체의 가로 빛줄기가 위아래로 부풀었다 사라진다
 function tcSeamBurstFx(a, y) {
   aFx(a, 0, 0.8, (u) => {
-    const k = easeOut(Math.min(1, u / 0.12)), f = u < 0.2 ? 1 : 1 - (u - 0.2) / 0.8, h = 4 + 46 * k;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createLinearGradient(0, y - h, 0, y + h);
-    g.addColorStop(0, 'rgba(255,106,138,0)'); g.addColorStop(0.35, `rgba(255,140,170,${0.6 * f})`); g.addColorStop(0.5, `rgba(255,255,255,${f})`);
-    g.addColorStop(0.65, `rgba(255,140,170,${0.6 * f})`); g.addColorStop(1, 'rgba(255,106,138,0)');
-    ctx.fillStyle = g; ctx.fillRect(-60, y - h, W + 120, h * 2);
-    ctx.globalAlpha = f; ctx.fillStyle = '#ffffff'; ctx.fillRect(-60, y - 1.5 * (1 - u), W + 120, 3 * (1 - u) + 0.5);
-    ctx.restore();
+    const k = easeOut(Math.min(1, u / 0.12)), f = u < 0.2 ? 1 : 1 - (u - 0.2) / 0.8, h = 2 + 22 * k, fr = Math.min(4, Math.floor(u * 5));
+    for (const s of [-1, 1]) swLine(ctx, 'f04', s < 0 ? '#ffffff' : TC_PINK, fr, -60, y + s * h, W + 60, y + s * h, { scale: 1, flipY: s < 0, alpha: f });
   });
   const n = Math.round(Math.max(30, Math.min(110, W / 14)));
   for (let i = 0; i < n; i++) parts.push({ x: rand(0, W), y: y + rand(-3, 3), vx: rand(-40, 40), vy: (i % 2 ? -1 : 1) * rand(40, 160), g: 60, size: Math.random() < 0.3 ? 3 : 2, color: i % 3 ? TC_PETALS[i % 4] : '#ffffff', life: rand(0.5, 0.9), t: 0, add: true });
@@ -330,13 +306,13 @@ Object.assign(SKILL_FX, {
         a.tcRel = clock;
         tcClickFx(a);
         tcLineSparks(a);
-        for (const t of tgs) burst(t.x, t.y, 30, ['#ffffff', TC_PINK, '#ffd6e0'], 220, 3);
+        for (const t of tgs) { texFx('k30', t.x, t.y, TC_PINK, { scale: m >= 3 ? 4 / 3 : 1, life: 0.55, fade: 0.35 }); burst(t.x, t.y, 10, ['#ffffff', TC_PINK, '#ffd6e0'], 220, 3); }
         if (m >= 3) {
           tcSeamBurstFx(a, Math.min(a.ty(), groundY() - 28));
-          tcFlash(a, '255,220,232', 0.6, 0.4);
+          tcFlash(a, '255,220,232', 0.6, 0.15);
           impact({ stop: 0.3, shake: 0.85 });
         } else {
-          tcFlash(a, '255,190,210', [0.3, 0.42, 0.5][m], 0.32);
+          tcFlash(a, '255,190,210', [0.3, 0.42, 0.5][m], 0.15);
           impact({ stop: [0.16, 0.22, 0.24][m], shake: [0.45, 0.6, 0.7][m] });
         }
         return;
@@ -345,7 +321,7 @@ Object.assign(SKILL_FX, {
         // 두 동강: 하단바 끝에서 끝까지 가로로 한 칼
         tcAddLine(a, W / 2, Math.min(a.ty(), groundY() - 28), 0, W + 160, 0, 6, '#ffffff');
         tcFlash(a, '255,255,255', 0.35, 0.18);
-        for (const t of tgs) burst(t.x, t.y, 20, ['#ffffff', TC_PINK], 200, 3);
+        for (const t of tgs) burst(t.x, t.y, 8, ['#ffffff', TC_PINK], 200, 3);
         impact({ stop: 0.12, shake: 0.5 });
         return;
       }

@@ -4,7 +4,7 @@
 // 서버(server/bots.js)는 봇의 최고 스테이지에 맞는 줄을 골라(사이는 로그 보간) 봇의 랭킹·결투·레이드·월드 보스 능력치로 쓴다.
 //  node dev/bot-curve.js [--days 12] [--every 3] [--seed 0] [--out 파일] [--dry] [--rev <커밋>]
 //  --seed: 시드 묶음 번호, 밸런스 점검용으로 여러 벌 구울 때. --out: 다른 파일에 쓰기
-//  🎓 교관 수련도 한다 (progress-bot playMentors). --dry: 파일을 쓰지 않고 계열마다 1차 수료·교관 별 시각만 찍는다 (교관 난이도 확인용)
+//  🎓 교관 수련도 한다 (progress-bot playMentors — 📕 은 최고 스테이지 40 뒤 하루 12권 가정). --dry: 파일을 쓰지 않고 계열마다 교관 열림·★4·★5 시각만 찍는다 (교관 난이도 확인용)
 //  --rev: 그 커밋의 src 로 돌린다 (--dry 와 함께, 전체 봇으로 밸런스 전후 비교 — 끝에 스테이지 도달 시각 중앙값)
 //  --line <계열>: 그 계열만 (시드 그대로). MENTOR_LOG=1 이면 교관 승부마다 레벨·양쪽 전투력을 찍는다
 // 진행 봇의 하루(원정 → 정리·자동 장착·판매 → 레이드 3회 → 강화 → 건설 → 훈련)에 더해:
@@ -16,7 +16,8 @@ const vm = require('vm');
 
 const DAY = 86400, TICK = 60, TOWER_TOMES_PER_DAY = 4;
 // 3차 직업 = 계열. 시즌5 새 직업(파천검왕·천마장군·공성포수·뇌제와 그 2차 대검전사·랜서·석궁사수·뇌전술사)도 같은 비중
-const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'];
+// 파이터 계열(챔피언·템페스트·그랜드마스터, docs/specs/boxer-class.md 7절)을 더해 15계열
+const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord', 'champion', 'tempest', 'grandmaster'];
 
 const r3 = (x) => (Math.abs(x) >= 1000 ? Math.round(x) : Math.round(x * 1000) / 1000);
 
@@ -28,7 +29,7 @@ function runLine(line, { days, every, seed, rev }) {
     settleRaid, claimRaidChest, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip,
     classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, profile })`, ctx);
   const S = A.S(); S.gear.auto = true;
-  const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, spent: 0 };
+  const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {} };
   const chain = A.classPath(line).slice(1);       // squire 다음부터
   const rows = []; let nextAt = 1, t = 0, lastDay = -1, rid = 0;
   const reach = {};
@@ -105,7 +106,7 @@ function main() {
     const L = out.lines[line], last = L[L.length - 1];
     console.log(`${line.padEnd(15)} ${String(L.length).padStart(4)}줄 · 최고 스테이지 ${last[0]} · Lv ${last[1]} · ${last[2]} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
     const m = L.mentor, h = (x) => (x == null ? '-' : x.toFixed(0) + 'h');
-    console.log(`${''.padEnd(15)} 🎓 1차 수료 ${h(m.doneAt)} · 별 ${m.stars}/25 · 별 5/10/15/20/25 = ${[5, 10, 15, 20, 25].map((n) => h(m.starAt[n])).join(' / ')} · 훈련장 Lv6~14 = ${[6, 7, 8, 9, 10, 11, 12, 13, 14].map((n) => h((m.hallAt || {})[n])).join(' ')}`);
+    console.log(`${''.padEnd(15)} 🎓 열림 ${h(m.openAt)} · 별 ${m.stars}/25 · ★4 교관1~5 = ${[0, 1, 2, 3, 4].map((i) => h((m.m4 || [])[i])).join(' / ')} · ★5 = ${[0, 1, 2, 3, 4].map((i) => h((m.m5 || [])[i])).join(' / ')}`);
   });
   const med = (a) => { const b = [...a].sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; };
   const ms = LINES.filter((l) => out.lines[l]).map((l) => out.lines[l].mentor);

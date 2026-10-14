@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 48,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: heavy greatsword swing smear trail, one very thick wide flat band of motion blur curving downward on the right side, blunt heavy leading edge with a bright white rim, steel grey body breaking into chipped jagged chunks at the tail, nothing else, no character, no background shape, no sword",
+ "seed": 7
+}

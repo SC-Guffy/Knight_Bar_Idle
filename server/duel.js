@@ -20,7 +20,8 @@ const HP_TIE = 0.01;        // 시간 종료 때 남은 체력 비율 차이가 
 const DT = 0.05;
 // 돌진기: 사거리 밖에서도 상대가 이 거리(px) 안이면 DASH 속도로 달려붙어 닿는 순간 그 스킬을 쓴다 (docs/specs/duel-gap-closer.md).
 // 저장된 옛 프로필·봇에도 바로 먹도록 서버가 스킬 id 로 정한다 — 원정 쪽 src/classes.js SKILLS 의 gap 과 값을 맞춘다
-const GAP = { steelCleave: 120, piercingThrust: 120, gale: 180, iaido: 180, dragonFall: 180, earthSplitter: 180, ramCharge: 180, cavalryCharge: 180 };
+const GAP = { steelCleave: 120, piercingThrust: 120, gale: 180, iaido: 180, dragonFall: 180, earthSplitter: 180, ramCharge: 180, cavalryCharge: 180,
+  oneTwo: 120, ironRush: 180, flyingKick: 180 };
 const DASH = 500;           // px/s
 
 function mulberry32(seed) {
@@ -38,8 +39,62 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 // 스킬: 교전 중 쿨타임이 찬 스킬부터 쓰고(목록 앞쪽 우선), 시전 시간(dur) 동안은 평타를 멈춘다.
 // 첫 스킬은 교전 시작 직후, 나머지는 조금씩 늦게 준비된다. 원정과 같은 규칙 (src/classes.js SKILLS)
-const makeSkills = (p) => (p.skills || []).map((s, i) => ({ ...s, left: 0.3 + i * 1.5 }));
-function readySkill(me, dt) {
+const makeSkills = (p) => (p.skills || []).map((s, i) => ({ ...s, left: 0.3 + i * 1.5, ...(s.need ? { tj: s.need } : {}) }));
+
+// ── 파이터 계열: 쿨타임 대신 기 게이지 (클라이언트 src/fighter-data.js QI · src/jobs/fighter.js 와 같은 규칙, docs/specs/boxer-class.md 3·7절) ──
+// 프로필에 qi 규칙과 스킬마다 cost(주 기술 소모량) 또는 need(투지 기술 문턱)가 있으면 그것으로 돈다. 없으면(옛 프로필) 등가 cd 로 쿨타임 직업처럼.
+// 시작 때 기 게이지·투지 칸이 가득이다 (쿨타임 직업이 스킬이 준비된 채 시작하는 것과 같다). 쿨타임 직업은 이 코드를 지나지 않는다 (같은 seed 결과 그대로)
+const isQi = (me) => !!(me.p.qi && me.skills.some((s) => s.cost || s.need));
+function qiInit(me) {
+  if (!isQi(me)) return;
+  me.qi = { v: me.p.qi.max, aw: -1, hurtT: -1, hurtN: 0 };
+}
+// 충전 (각성 중이면 두 배, 최대치에서 멈춘다)
+function qiAdd(me, n, t) {
+  const q = me.qi, Q = me.p.qi;
+  if (!q || !(n > 0)) return;
+  q.v = Math.min(Q.max, q.v + n * (Q.awaken && t < q.aw ? Q.awaken.mult : 1));
+}
+// 평타 적중: hit (치명이면 critX 배). 결투·레이드는 대상이 하나라 multi 는 없다
+const qiOnHit = (me, crit, t) => me.qi && qiAdd(me, (me.p.qi.hit || 0) * (crit && me.p.qi.critX ? me.p.qi.critX : 1), t);
+// 맞았다: hurt (초당 hurtCap 까지). 기막(qiHurt) 보호막 동안은 그 배수
+function qiOnHurt(me, t) {
+  const q = me.qi, Q = me.p.qi;
+  if (!q || !Q.hurt) return;
+  if (Math.floor(t) !== q.hurtT) { q.hurtT = Math.floor(t); q.hurtN = 0; }
+  const n = Math.min(Q.hurt * (me.ward && t < me.ward.until && me.ward.qiHurt ? me.ward.qiHurt : 1), (Q.hurtCap || Q.hurt) * (me.ward && t < me.ward.until && me.ward.qiHurt ? me.ward.qiHurt : 1) - q.hurtN);
+  if (n > 0) { q.hurtN += n; qiAdd(me, n, t); }
+}
+// 쓸 수 있는가: 투지 기술은 투지 칸 ≥ 문턱, 주 기술은 기 ≥ 소모량 (dash 가 아니면 keep 만큼 남겨 둔다 — 킥복서 돌진용 1칸)
+const qiCanUse = (me, s, dash) => (s.need ? s.tj >= s.need : s.cost ? me.qi.v >= s.cost + (dash ? 0 : me.p.qi.keep || 0) : false);
+// 쓴다: 소모·문턱만큼 빼고, 쓴 기만큼 모든 투지 칸을 채운다. 장풍(m3)은 가득이면 3단 (기를 가득 쓰고 위력 m3 배). 궁극기는 각성
+function qiUse(me, s, t) {
+  const q = me.qi, Q = me.p.qi;
+  let out = s;
+  if (s.need) s.tj -= s.need;
+  else {
+    let spend = s.cost;
+    if (s.m3 && q.v >= Q.max) { spend = s.cost * 1.5; out = { ...s, mult: s.mult * s.m3, q3: 1 }; }
+    q.v -= spend;
+    for (const o of me.skills) if (o.need) o.tj += spend;
+  }
+  if (s.awaken && Q.awaken) q.aw = t + s.dur + Q.awaken.dur;
+  return out;
+}
+// 교전 중 한 틱: 시전 중이 아니면 초당 충전, 그다음 준비된 기술 (투지 기술 먼저, 그다음 목록 앞쪽 = 해금 레벨 높은 것)
+function qiReady(me, dt, t) {
+  me.busy -= dt;
+  if (me.busy > 0) return null;
+  qiAdd(me, (me.p.qi.perSec || 0) * dt, t);
+  const pick = me.skills.find((s) => s.need && qiCanUse(me, s)) || me.skills.find((s) => s.cost && qiCanUse(me, s));
+  if (!pick) return null;
+  me.busy = pick.dur;
+  me.cd = Math.max(me.cd, pick.dur);
+  return qiUse(me, pick, t);
+}
+
+function readySkill(me, dt, t = 0) {
+  if (me.qi) return qiReady(me, dt, t);
   me.busy -= dt;
   let pick = null;
   for (const s of me.skills) {
@@ -70,6 +125,7 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     dash: null, dashed: null, stopT: null, dealt: 0,
   });
   const a = make(pa, 0, 1), b = make(pb, START_DIST, -1);
+  qiInit(a); qiInit(b);
   const events = [];
   let t = 0;
   let bigHit = 0;   // 결투 중 가장 큰 한 방 (맞은 쪽 최대 체력 비율)
@@ -81,11 +137,13 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     const dmg = me.p.atk * base * (crit ? me.p.critMult : 1) * (0.9 + rng() * 0.2) * (1 - op.p.guard) * wardCut(op, t);
     op.hp -= dmg;
     me.dealt += dmg;
+    if (kind === 'hit') qiOnHit(me, crit, t);
+    qiOnHurt(op, t);
     bigHit = Math.max(bigHit, dmg / op.max);
     if (me.p.heal) me.hp = Math.min(me.max, me.hp + me.healBase * me.p.heal);
     if (sk && sk.lc) me.hp = Math.min(me.max, me.hp + dmg * sk.lc);      // lc: 스킬 흡혈 (트리 V2)
     if (sk && sk.ward) {
-      me.ward = { until: t + sk.dur + sk.ward.dur, guard: sk.ward.guard };
+      me.ward = { until: t + sk.dur + sk.ward.dur, guard: sk.ward.guard, ...(sk.qiHurt ? { qiHurt: sk.qiHurt } : {}) };
       me.hp = Math.min(me.max, me.hp + me.healBase * sk.ward.heal);
     }
     events.push({
@@ -105,18 +163,21 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
       if (dist > reach) {
         if (!me.dash) {
           for (const s of me.skills) if (s.gap) s.left -= DT;
-          const g = me.skills.find((s) => s.gap && s.left <= 0 && dist - reach <= s.gap);
+          const g = me.skills.find((s) => s.gap && (me.qi ? qiCanUse(me, s, true) : s.left <= 0) && dist - reach <= s.gap);
           if (g) me.dash = me.dashed = { sk: g, t: round1(t), x: round1(me.x) };
         }
-        me.x += me.dir * Math.min((me.dash ? DASH : WALK) * DT, dist - reach);
+        const step = Math.min((me.dash ? DASH : WALK) * DT, dist - reach);
+        me.x += me.dir * step;
+        if (me.dash && me.qi && me.p.qi.dashPx) qiAdd(me, step * me.p.qi.dashPx, t);     // 킥복서: 돌진한 거리만큼 기
         continue;
       }
       if (me.stopT == null) me.stopT = round1(t);
       if (me.dash) {
         // 돌진이 닿았다: 그 스킬을 바로 쓴다
-        const sk = me.dash.sk;
+        let sk = me.dash.sk;
         me.dash = null;
         sk.left = sk.cd;
+        if (me.qi) sk = qiUse(me, sk, t);
         me.busy = sk.dur;
         me.cd = Math.max(me.cd, sk.dur);
         hit(me, op, side, 'skill', sk);
@@ -125,7 +186,7 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
       me.cd -= DT;
       me.leapCd -= DT;
       if (me.leapCd <= 0) { me.leapCd = me.p.leap.every; hit(me, op, side, 'leap'); continue; }
-      const sk = readySkill(me, DT);
+      const sk = readySkill(me, DT, t);
       if (sk) { hit(me, op, side, 'skill', sk); continue; }
       if (me.busy <= 0 && me.cd <= 0) { me.cd = 1 / me.p.aspd; hit(me, op, side, 'hit'); }
     }
@@ -160,4 +221,4 @@ function eloDelta(winnerRating, loserRating, k = 32) {
   return Math.max(1, Math.round(k * (1 - expected)));
 }
 
-module.exports = { GAP, simulateDuel, eloDelta, makeSkills, readySkill, wardCut };
+module.exports = { GAP, simulateDuel, eloDelta, makeSkills, readySkill, wardCut, qiInit, qiOnHit, qiOnHurt };

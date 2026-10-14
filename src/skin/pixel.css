@@ -183,6 +183,9 @@ canvas.town { outline: 2px solid var(--px-ink); outline-offset: 0; box-shadow: 0
 .mchip { background: #2a2444; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #6f58a8; }
 .stchip { background: #1e2a3a; box-shadow: 0 0 0 1px var(--px-ink), inset 0 0 0 1px #3f7fa8; }
 .lvl { background: var(--px-ink); box-shadow: inset 0 0 0 1px var(--px-hi); }
+/* +25 금빛 · +30 무지개 배지는 바탕색이 곧 표시라 위의 어두운 바탕을 다시 덮는다 (글씨가 어두워서 바탕이 없으면 안 보임) */
+.lvl.l5, .gsbox .lvl.l5 { background: linear-gradient(90deg, #ffd257, #ff9f1c); }
+.lvl.l6, .gsbox .lvl.l6 { background: linear-gradient(90deg, #ff6b6b, #ffd257, #7dffb0, #3ee8ff, #b36bff, #ff5ac8) 0 0 / 200% 100%; }
 #campModal nav i:not(.pi) { box-shadow: 0 0 0 1px var(--px-ink); }
 .sg .ms button { box-shadow: inset 0 0 0 2px var(--px-ink), 0 0 0 2px var(--px-hi); }
 

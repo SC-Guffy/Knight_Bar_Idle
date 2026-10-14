@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>입장권 골드 구매 — 스펙 검토</title>
+<!-- 스펙: docs/specs/ticket-buy.md. 게임 코드는 바꾸지 않는다. 가격 식은 src/tower.js towerTicketPrice 와 같은 식을 여기서 다시 계산한다
+     (몹 골드 = src/data.js monsterStats 의 2 × 1.2^(스테이지−1)). 미궁 한 판 가치는 진행 봇 스냅샷(스펙 §4 표)을 스테이지 사이에서 로그 보간한다. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --hl: #3b2a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .hl { background: var(--hl); border: 2px solid var(--gold); }
+  .hl h3 { margin: 0 0 6px; color: var(--gold); font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  td.l { text-align: left; white-space: normal; }
+  .scroll { overflow-x: auto; }
+  canvas { display: block; width: 100%; height: 300px; background: #0f0d14; border: 1px solid var(--line); border-radius: 4px; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  input[type=number] { width: 72px; background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; }
+  input[type=range] { width: 200px; }
+  b.v { color: var(--gold); }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); }
+  .strike { text-decoration: line-through; color: var(--dim); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 3px; background: #2f2840; color: var(--dim); font-size: 11px; }
+  .legend span { margin-right: 14px; }
+  .legend i { display: inline-block; width: 14px; height: 8px; vertical-align: middle; margin-right: 4px; }
+  /* 게임 구매 줄 흉내 (src/ui.js towerBuyRow) */
+  .tbuy { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; background: #1b1724; border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; margin: 6px 0; }
+  .tbuy small { color: var(--dim); }
+  .chip { display: inline-block; padding: 1px 6px; border-radius: 3px; background: #2f2840; }
+  .chip.lack { color: var(--red); }
+  .tbuy .btn { margin-left: auto; padding: 2px 12px; border-radius: 3px; border: 1px solid #6a5a2a; background: #4a3b16; color: var(--gold); font: inherit; }
+  .tbuy .btn[disabled] { opacity: .45; }
+  .tbuy .blocker { color: var(--red); font-size: 11px; }
+  .lbl { color: var(--dim); font-size: 11px; width: 100%; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎟 입장권 골드 구매 (도전의 탑 · 재료의 미궁) — 스펙 검토</h1>
+  <div class="sub">스펙 <code>docs/specs/ticket-buy.md</code> (상태: 확정 · 2026-10-13). 아래 입력칸을 바꾸면 표·그래프가 다시 계산된다. 게임 코드는 아직 바꾸지 않았다.</div>
+
+  <h2>1. 스펙 요지</h2>
+  <div class="grid2">
+    <div class="card">
+      <b>목표</b>
+      <ul>
+        <li>하루 무료 3장을 다 쓴 뒤에도 <b>골드로</b> 탑·미궁에 더 들어간다 (골드 하수구).</li>
+        <li>탑·미궁 구매 규칙을 하나로: "골드만 있으면 산다, 살수록 비싸진다".</li>
+        <li>하루 2~3장은 무리 없이, 4장째부터 확 부담.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <b>핵심 규칙</b>
+      <ul>
+        <li>오늘 n번째 구매 배율 ×0.5 → 1 → 2 → 3.5 → 6, 이후 ×1.7씩. <b>자정에 초기화</b>, 구매 수는 <b>콘텐츠마다 따로</b>.</li>
+        <li>산 입장권은 콘텐츠마다 <b>5장까지</b>, 자정에 사라지지 않음. <b>무료부터</b> 쓴다.</li>
+        <li>탑: 골드 그대로(몹 골드 ×300 = 사냥 30분치), <b>마력석 제거</b>.</li>
+        <li>미궁: <b>몹 골드 ×600</b> (사냥 1시간치) — 한 판 보상 가치에 맞춤.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card hl">
+    <h3>사용자가 정할 것</h3>
+    <ul>
+      <li>미궁 기준값 <b>×600</b> (추천). ×300 이면 중반부터 미궁 입장권이 창고 교역보다 싼 목재·철광석 구매 수단이 된다 → 아래 2·3절에서 기준값을 바꿔 비교.</li>
+      <li>탑은 마력석만 빼고 골드를 올리지 않는다 (추천). 빠지는 마력석이 보유량 대비 작다 → 4절.</li>
+    </ul>
+  </div>
+
+  <h2>2. n번째 구매 가격</h2>
+  <div class="ctl">
+    <label>최고 스테이지 <input type="range" id="stR" min="15" max="200" value="60"> <input type="number" id="st" min="1" max="400" value="60"></label>
+    <label>미궁 기준값 × <input type="number" id="dgBase" min="50" max="3000" step="50" value="600"></label>
+    <label>탑 기준값 × <input type="number" id="twBase" min="50" max="3000" step="50" value="300"></label>
+  </div>
+  <div class="sub" id="mobLine"></div>
+  <div class="scroll"><table id="priceTbl"></table></div>
+  <div class="sub" style="margin-top:4px">"사냥 시간치"는 몹 골드 × 300 = 30분 (골드 보너스 제외 명목값, src/data.js 주석). 탑은 지금도 같은 골드에 마력석이 붙는다 — 바뀐 뒤엔 골드만.</div>
+
+  <h2>3. 미궁: 구매 가격 vs 한 판 보상 가치 (사냥 시간으로 환산)</h2>
+  <div class="legend sub"><span><i style="background:#8fd8ff"></i>n번째 구매 가격 (미궁)</span><span><i style="background:#5a4f6e"></i>탑과 같은 ×300 이었다면</span><span><i style="background:#7dffb0;height:2px"></i>지금 스테이지 미궁 한 판 가치</span></div>
+  <canvas id="chart"></canvas>
+  <div class="sub" id="valLine" style="margin-top:4px"></div>
+  <div class="card" style="margin-top:8px">
+    <b>미궁 한 판 기대 보상 (진행 봇 스냅샷 · 시드 7)</b> <span class="tag">dgUnitValue × DG_RUN_UNITS × 그림 가중치 비율</span>
+    <div class="scroll"><table id="dgTbl"></table></div>
+    <div class="sub">🪵+🪨 환산: 창고 첫 교역(몹 골드 × 200 = 사냥 20분치 → 창고 2시간 생산량) 비율. 두 번째 교역부터 값이 2배씩 오르니 낮게 잡은 값. 골드 몫은 사냥 약 5분치 (dungeon.js 주석의 "30분치"는 재화 6종이 나누기 전 값 — 구현 때 바로잡는다).</div>
+  </div>
+
+  <h2>4. 지금 대비 바뀌는 점</h2>
+  <div class="grid2">
+    <div class="card">
+      <b>구매 줄 (전 → 후)</b>
+      <div class="lbl">도전의 탑 · 지금</div>
+      <div class="tbuy" id="rowTowerOld"></div>
+      <div class="lbl">도전의 탑 · 바뀐 뒤 (마력석 칩 제거, 모아 둔 x/5 추가)</div>
+      <div class="tbuy" id="rowTowerNew"></div>
+      <div class="lbl">재료의 미궁 · 새로 생김 (산 입장권 5장 가득일 때)</div>
+      <div class="tbuy" id="rowDgFull"></div>
+      <div class="sub">실제 모양은 구현 때 게임 화면 스크린샷으로 확인한다 (수용 기준).</div>
+    </div>
+    <div class="card">
+      <b>탑에서 없어지는 마력석</b> <span class="tag">(4 + 최고 스테이지/20) × 배율, 2장째부터</span>
+      <div class="scroll"><table id="manaTbl"></table></div>
+      <div class="sub">진행 봇 보유 💎: 스테이지 30 = 70 · 60 = 878 · 100 = 2.9천. 막 열리는 30 에선 마력석이 실제로 구매를 막았지만, 4장째 골드가 사냥 1시간 45분치라 골드가 충분히 제동을 건다.</div>
+    </div>
+  </div>
+  <div class="card">
+    <b>그 밖에 바뀌는 점</b>
+    <table>
+      <tr><th>항목</th><th style="text-align:left">지금</th><th style="text-align:left">바뀐 뒤</th></tr>
+      <tr><td>미궁 추가 구매</td><td class="l">없음 (하루 3장 끝)</td><td class="l">골드로 구매, 산 입장권 5장까지</td></tr>
+      <tr><td>미궁 입장 막힘 문구</td><td class="l">입장권이 없어요 (자정에 충전)</td><td class="l">입장권이 없어요 (자정에 충전 · 구매 가능)</td></tr>
+      <tr><td>미궁 머리 줄</td><td class="l">🎟 입장권 2/3</td><td class="l">🎟 입장권 2/3 + 구매 1</td></tr>
+      <tr><td>도전 탭 미궁 칩·레드닷</td><td class="l">무료 장수</td><td class="l">무료 + 산 것 합계 (코드는 dgTickets() 가 합계를 돌려주면 그대로)</td></tr>
+      <tr><td>구매 불가 사유</td><td class="l">탑: 버튼 툴팁에만</td><td class="l">탑·미궁: 툴팁 + 구매 줄 끝에 작은 글씨 (모바일에서도 보이게)</td></tr>
+      <tr><td>상수</td><td class="l">TOWER_TICKET_STEPS · GROW · HOLD · MANA</td><td class="l">SUB_TICKET_STEPS · GROW · HOLD 공용 + subTicketMult(n), TOWER_TICKET_GOLD 300, DG_TICKET_GOLD 600, MANA 삭제</td></tr>
+    </table>
+  </div>
+
+  <h2>5. 세이브 이행</h2>
+  <div class="card">
+    <ul>
+      <li><code>S.dg</code> 에 탑과 같은 이름으로 <code>tixExtra: 0</code> · <code>buyDay: ''</code> · <code>bought: 0</code> 추가 → <code>freshDungeon()</code> 기본값에 넣으면 끝.</li>
+      <li><code>core.js migrate</code> 가 <code>Object.assign(fresh, 옛 세이브)</code> 로 얕게 병합하므로 옛 세이브는 0장·오늘 0장 구매로 열린다. 별도 이행 코드·환급·알림 없음.</li>
+      <li>탑 세이브 필드는 그대로. 이미 쓴 마력석은 돌려주지 않는다 (산 시점 규칙대로 산 것).</li>
+      <li>서버는 탑·미궁 입장권을 검증하지 않는다 (<code>server/</code> 에 사용처 없음) → 서버 변경 없음.</li>
+    </ul>
+  </div>
+
+  <h2>6. 수용 기준 (구현 뒤 확인)</h2>
+  <div class="card">
+    <table>
+      <tr><th>상태</th><th style="text-align:left">기준</th></tr>
+      <tr><td>⬜</td><td class="l">탑 구매에 마력석이 들지 않는다 (💎 0 으로 3장 산 뒤 4장째 구매 성공)</td></tr>
+      <tr><td>⬜</td><td class="l">탑 골드 가격 그대로 — 스테이지 60, n=0~5: 14,086,878 / 28,173,757 / 56,347,514 / 98,608,150 / 169,042,543 / 287,372,323</td></tr>
+      <tr><td>⬜</td><td class="l">미궁 가격 — 스테이지 60, n=0~5: 28,173,757 / 56,347,514 / 112,695,028 / 197,216,300 / 338,085,086 / 574,744,646 · 스테이지 15 첫 구매 7,703</td></tr>
+      <tr><td>⬜</td><td class="l">구매 수는 콘텐츠마다 따로 (탑 3장 산 뒤에도 미궁은 ×0.5)</td></tr>
+      <tr><td>⬜</td><td class="l">산 입장권 5장 한도 · 골드 부족 · 해금 전(스테이지 15 미만) 구매 불가</td></tr>
+      <tr><td>⬜</td><td class="l">무료부터 쓴다 (tixUsed 1→2→3 뒤에 tixExtra 감소), 다 쓰면 "자정에 충전 · 구매 가능"</td></tr>
+      <tr><td>⬜</td><td class="l">자정이 지나면 무료 3장·가격 ×0.5 로 돌아오고 산 입장권은 남는다</td></tr>
+      <tr><td>⬜</td><td class="l">옛 세이브(S.dg 새 필드 없음)가 migrate 에서 에러 없이 0장으로 열린다</td></tr>
+      <tr><td>⬜</td><td class="l">UI 스크린샷: 미궁 구매 줄, 탑 구매 줄 마력석 칩 없음, 5장 가득 시 비활성 + 사유 글씨, 도전 탭 칩 합계</td></tr>
+      <tr><td>⬜</td><td class="l">회귀: node dev/progress-bot.js --days 3 에러 없음, 미궁 한 판 정산 정상</td></tr>
+    </table>
+    <div class="sub">확인 스니펫은 스펙 "수용 기준"에 있다. 오프라인 게임은 먼저 <code>setServerTime(Date.now())</code>.</div>
+  </div>
+</main>
+<script>
+'use strict';
+const STEPS = [0.5, 1, 2, 3.5, 6], GROW = 1.7, HOLD = 5, MANA0 = 4;
+const mult = (n) => (n < STEPS.length ? STEPS[n] : STEPS[STEPS.length - 1] * Math.pow(GROW, n - STEPS.length + 1));
+const mobGold = (s) => 2 * Math.pow(1.2, s - 1);
+// 진행 봇 스냅샷: 스테이지 → [💰, 🪵, 🪨, 💎, 💠, 📖, 🪵분, 🪨분, 봇 시간]
+const SNAP = [
+  [15, 1.3e3, 24.7, 24.7, 8.1, 6.7, 1.3, 9, 12, 1], [30, 1.94e4, 25.5, 24.7, 8.1, 7.6, 1.5, 9, 12, 2], [40, 1.2e5, 62.4, 25.1, 8.1, 8.1, 1.7, 22, 13, 10],
+  [60, 4.6e6, 249.6, 100.7, 8.1, 9.3, 2.0, 67, 39, 33], [80, 1.767e8, 537.6, 293.6, 8.1, 10.5, 2.3, 112, 86, 52], [100, 6.776e9, 1100, 587.4, 8.1, 11.6, 2.6, 171, 134, 79],
+  [120, 2.598e11, 2200, 1200, 9.8, 12.8, 2.9, 262, 206, 137],
+];
+// 한 판 가치(분) = 🪵+🪨 교역 환산 + 골드 몫 약 5분 (💎💠📖 은 금액 환산이 없어 빼고 본다 — 보수적으로)
+const runMin = (s) => {
+  const pts = SNAP.map((r) => [r[0], r[7] + r[8] + 5]);
+  if (s <= pts[0][0]) return pts[0][1];
+  if (s >= pts[pts.length - 1][0]) { const [a, b] = pts.slice(-2); return b[1] * Math.pow(b[1] / a[1], (s - b[0]) / (b[0] - a[0])); }
+  for (let i = 1; i < pts.length; i++) if (s <= pts[i][0]) { const a = pts[i - 1], b = pts[i], t = (s - a[0]) / (b[0] - a[0]); return a[1] * Math.pow(b[1] / a[1], t); }
+};
+// 숫자 → 1.2만 · 3.4억 · 5.6조
+function kfmt(x) {
+  x = Math.floor(x);
+  const U = [[1e16, '경'], [1e12, '조'], [1e8, '억'], [1e4, '만']];
+  for (const [v, u] of U) if (x >= v) { const q = x / v; return (q >= 100 ? Math.floor(q).toLocaleString() : q.toFixed(q >= 10 ? 1 : 2).replace(/\.?0+$/, '')) + u; }
+  return x.toLocaleString();
+}
+const hfmt = (min) => (min < 60 ? `${Math.round(min)}분` : `${(min / 60).toFixed(min < 600 ? 2 : 1).replace(/\.?0+$/, '')}시간`);
+const $ = (id) => document.getElementById(id);
+
+function costRow(el, label, sub, chips, can, why) {
+  el.innerHTML = `🎟 ${label} <small>${sub}</small> ${chips.map(([ic, v, lack]) => `<span class="chip${lack ? ' lack' : ''}">${ic} ${kfmt(v)}</span>`).join('')}
+    ${why ? `<span class="blocker">${why}</span>` : ''}<button class="btn" ${can ? '' : 'disabled'} title="${why || ''}">구매</button>`;
+}
+
+function render() {
+  const s = Math.max(1, Math.min(400, +$('st').value || 1)), dgB = +$('dgBase').value || 600, twB = +$('twBase').value || 300;
+  const g = mobGold(s), half = g * 300;   // 30분치
+  $('mobLine').innerHTML = `몹 골드(스테이지 ${s}) <b class="v">${kfmt(g)}</b> · 사냥 30분치 ≈ ${kfmt(half)} · 미궁 한 판 가치 ≈ <b class="v">${hfmt(runMin(s))}</b> 치 (스냅샷 보간)`;
+  // 가격 표
+  const rv = runMin(s);
+  let h = `<tr><th>구매</th><th>배율</th><th>사냥 시간치 (미궁)</th><th>탑 지금 💰 + 💎</th><th>탑 바뀐 뒤 💰</th><th>미궁 💰 (×${dgB})</th><th>미궁 누적</th><th>미궁 한 판 대비</th></tr>`;
+  let cum = 0;
+  for (let n = 0; n < 8; n++) {
+    const k = mult(n), tw = Math.max(1, Math.floor(g * twB * k)), mana = n === 0 ? 0 : Math.floor((MANA0 + s / 20) * k), dg = Math.max(1, Math.floor(g * dgB * k));
+    cum += dg;
+    const min = (dgB * k) / 10, r = rv / min;
+    const cls = r >= 1.2 ? 'ok' : r >= 0.8 ? 'mid' : 'bad';
+    h += `<tr><td>${n + 1}장째</td><td>×${+k.toFixed(2)}</td><td>${hfmt(min)}</td><td>${kfmt(tw)}${mana ? ` <span class="bad">+ 💎${mana}</span>` : ''}</td><td>${kfmt(tw)}</td><td><b class="v">${kfmt(dg)}</b></td><td>${kfmt(cum)}</td><td class="${cls}">${r >= 1.2 ? '이득' : r >= 0.8 ? '제값' : '비쌈'} (${r.toFixed(2)}배)</td></tr>`;
+  }
+  $('priceTbl').innerHTML = h;
+  $('valLine').innerHTML = `스테이지 ${s} 미궁 한 판 ≈ <b class="v">${hfmt(rv)}</b> 치 (🪵+🪨 교역 환산 + 골드 5분, 💎💠📖 제외). 초록 선보다 낮은 막대는 그 장까지 이득.`;
+  drawChart(s, dgB, rv);
+  // 스냅샷 표
+  let t = '<tr><th>스테이지 (봇 시각)</th><th>💰</th><th>🪵</th><th>🪨</th><th>💎</th><th>💠</th><th>📖</th><th>🪵+🪨 환산</th></tr>';
+  for (const r of SNAP) t += `<tr${Math.abs(r[0] - s) < 10 ? ' style="background:#2b2538"' : ''}><td>${r[0]} (${r[9]}h)</td><td>${kfmt(r[1])}</td><td>${kfmt(r[2])}</td><td>${kfmt(r[3])}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${r[7]}+${r[8]} = ${r[7] + r[8]}분</td></tr>`;
+  $('dgTbl').innerHTML = t;
+  // 마력석 표
+  let m = '<tr><th>스테이지</th><th>2장째</th><th>3장째</th><th>4장째</th><th>5장째</th><th>합계</th></tr>';
+  for (const st of [...new Set([30, 60, 100, s])].sort((a, b) => a - b)) {
+    const v = [1, 2, 3, 4].map((n) => Math.floor((MANA0 + st / 20) * mult(n)));
+    m += `<tr${st === s ? ' style="background:#2b2538"' : ''}><td>${st}${st === s ? ' (입력)' : ''}</td>${v.map((x) => `<td class="strike">${x}</td>`).join('')}<td class="strike">${v.reduce((a, b) => a + b, 0)}</td></tr>`;
+  }
+  $('manaTbl').innerHTML = m;
+  // 구매 줄 흉내 (오늘 2장 샀다고 가정)
+  const k2 = mult(2), gold = Math.floor(g * twB * k2), mana2 = Math.floor((MANA0 + s / 20) * k2);
+  costRow($('rowTowerOld'), '입장권 구매', '오늘 2장 샀어요', [['💰', gold, false], ['💎', mana2, false]], true, '');
+  costRow($('rowTowerNew'), '입장권 구매', '오늘 2장 샀어요 · 모아 둔 1/5', [['💰', gold, false]], true, '');
+  costRow($('rowDgFull'), '입장권 구매', `오늘 2장 샀어요 · 모아 둔 ${HOLD}/${HOLD}`, [['💰', Math.floor(g * dgB * k2), false]], false, `산 입장권은 ${HOLD}장까지 가질 수 있어요`);
+}
+
+function drawChart(s, dgB, rv) {
+  const cv = $('chart'), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const N = 8, padL = 52, padR = 12, padT = 14, padB = 30;
+  const mins = Array.from({ length: N }, (_, n) => (dgB * mult(n)) / 10), alt = Array.from({ length: N }, (_, n) => (300 * mult(n)) / 10);
+  const top = Math.max(rv * 1.15, ...mins.slice(0, 6)) ;
+  const y = (v) => padT + (H - padT - padB) * (1 - Math.min(v, top) / top);
+  c.font = '11px Galmuri11, sans-serif'; c.fillStyle = '#a59cb8'; c.strokeStyle = '#3a3348'; c.lineWidth = 1;
+  // 눈금
+  const stepH = [0.5, 1, 2, 4, 8, 12, 24, 48].find((h) => top / 60 / h <= 6) || 96;
+  for (let v = 0; v <= top; v += stepH * 60) { c.beginPath(); c.moveTo(padL, y(v) + .5); c.lineTo(W - padR, y(v) + .5); c.stroke(); c.textAlign = 'right'; c.fillText(hfmt(v), padL - 6, y(v) + 4); }
+  const bw = (W - padL - padR) / N;
+  for (let n = 0; n < N; n++) {
+    const x0 = padL + n * bw;
+    c.fillStyle = '#5a4f6e'; c.fillRect(x0 + bw * 0.12, y(alt[n]), bw * 0.3, y(0) - y(alt[n]));
+    c.fillStyle = mins[n] <= rv ? '#8fd8ff' : '#4d7690'; c.fillRect(x0 + bw * 0.45, y(mins[n]), bw * 0.4, y(0) - y(mins[n]));
+    if (mins[n] > top) { c.fillStyle = '#ece6f6'; c.textAlign = 'center'; c.fillText(hfmt(mins[n]) + ' ↑', x0 + bw * 0.65, padT + 10); }
+    c.fillStyle = '#a59cb8'; c.textAlign = 'center'; c.fillText(`${n + 1}장째 ×${+mult(n).toFixed(1)}`, x0 + bw / 2, H - 10);
+  }
+  c.strokeStyle = '#7dffb0'; c.lineWidth = 2; c.beginPath(); c.moveTo(padL, y(rv)); c.lineTo(W - padR, y(rv)); c.stroke();
+  c.fillStyle = '#7dffb0'; c.textAlign = 'left'; c.fillText(`한 판 ≈ ${hfmt(rv)}`, padL + 4, y(rv) - 4);
+}
+
+$('stR').addEventListener('input', () => { $('st').value = $('stR').value; render(); });
+$('st').addEventListener('input', () => { $('stR').value = $('st').value; render(); });
+for (const id of ['dgBase', 'twBase']) $(id).addEventListener('input', render);
+window.addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>

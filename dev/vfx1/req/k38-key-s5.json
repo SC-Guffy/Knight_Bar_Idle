@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: wall of white fire crashing down, a towering wave of blinding white flames with orange edges curling forward and breaking over the ground, flat bottom, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "seed": 5
+}

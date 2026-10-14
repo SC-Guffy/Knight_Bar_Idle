@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a burst of dozens of thin straight pink slash lines radiating from the center in all directions like a starburst, white cores, a few cherry blossom petals, nothing else, no character, no background shape, no circle",
+ "seed": 7
+}

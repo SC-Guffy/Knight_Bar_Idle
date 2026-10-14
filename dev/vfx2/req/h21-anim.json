@@ -1,0 +1,10 @@
+{
+ "first_frame": {
+  "type": "base64",
+  "base64": ""
+ },
+ "action": "flame stab hit: the pink flame tongues curl and spin around the flash, flare up, then burn out into small embers",
+ "frame_count": 4,
+ "seed": 3,
+ "no_background": true
+}

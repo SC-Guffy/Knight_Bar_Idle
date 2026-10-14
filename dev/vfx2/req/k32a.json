@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: big magenta dragon fire explosion, a fiery burst shaped like a roaring dragon head made of pink flames, curling flame tongues and sparks, bright white hot core, nothing else, no character, no background shape",
+ "seed": 32
+}
