@@ -30,7 +30,7 @@ Object.assign(CLASSES, {
   },
   striker: {
     tier: 2, from: 'fighter', name: '스트라이커', icon: '👊', weapon: 'steelGauntlet',
-    mods: { atk: 1.75, hp: 1.87, aspd: 1.6, crit: 0.18, critMult: 0.3 },
+    mods: { atk: 1.75, hp: 1.75, aspd: 1.6, crit: 0.18, critMult: 0.3 },
     desc: '강철 건틀릿으로 한 놈을 두들긴다. 치명타가 터질수록 기가 두 배로 찬다.',
     look: { sheet: 'striker', fx: '#ff5a3a' },
   },
@@ -48,7 +48,7 @@ Object.assign(CLASSES, {
   },
   champion: {
     tier: 3, from: 'striker', name: '챔피언', icon: '🦁', weapon: 'kingGauntlet',
-    mods: { atk: 1.74, hp: 2.45, aspd: 1.85, crit: 0.25, critMult: 0.5 },
+    mods: { atk: 1.7, hp: 2.3, aspd: 1.85, crit: 0.25, critMult: 0.5 },
     desc: '황금 사자의 주먹. 각성하면 기가 두 배로 찬다.',
     look: { sheet: 'champion', fx: '#ffd257' },
   },

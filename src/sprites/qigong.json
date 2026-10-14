@@ -1,1 +1,32 @@
-{"w": 64, "h": 64, "foot": [32, 58], "placeholder": true, "anims": {"idle": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "guard": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "walk": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "dash": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "atkA": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "atkB": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "charge": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "release": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "skillA": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "skillB": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "awaken": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "hurt": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "death": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}, "sit": {"row": 0, "frames": 1, "fps": 6, "loop": true, "hit": 0}}, "pts": {"idle": [[48, 38, 29, 23]], "guard": [[48, 38, 29, 23]], "walk": [[48, 38, 29, 23]], "dash": [[48, 38, 29, 23]], "atkA": [[48, 38, 29, 23]], "atkB": [[48, 38, 29, 23]], "charge": [[48, 38, 29, 23]], "release": [[48, 38, 29, 23]], "skillA": [[48, 38, 29, 23]], "skillB": [[48, 38, 29, 23]], "awaken": [[48, 38, 29, 23]], "hurt": [[48, 38, 29, 23]], "death": [[48, 38, 29, 23]], "sit": [[48, 38, 29, 23]]}}
+{"w": 64, "h": 64, "foot": [32, 58],
+ "anims": {
+  "idle": {"row": 0, "frames": 4, "fps": 6, "loop": true},
+  "guard": {"row": 1, "frames": 4, "fps": 8, "loop": true},
+  "walk": {"row": 2, "frames": 6, "fps": 10, "loop": true},
+  "dash": {"row": 3, "frames": 2, "fps": 12, "loop": true},
+  "atkA": {"row": 4, "frames": 4, "fps": 14, "loop": false, "hit": 1},
+  "atkB": {"row": 5, "frames": 4, "fps": 14, "loop": false, "hit": 1},
+  "charge": {"row": 6, "frames": 4, "fps": 10, "loop": true},
+  "release": {"row": 7, "frames": 3, "fps": 12, "loop": false, "hit": 1},
+  "skillA": {"row": 8, "frames": 4, "fps": 14, "loop": false, "hit": 2},
+  "skillB": {"row": 9, "frames": 4, "fps": 14, "loop": true, "hit": 0},
+  "hurt": {"row": 10, "frames": 2, "fps": 12, "loop": false},
+  "death": {"row": 11, "frames": 5, "fps": 8, "loop": false},
+  "sit": {"row": 12, "frames": 2, "fps": 2, "loop": true}
+ },
+ "pts": {
+  "idle": [[49, 40, 34, 24], [49, 41, 34, 25], [49, 41, 34, 25], [49, 40, 34, 24]],
+  "guard": [[48, 39, 32, 23], [48, 40, 32, 24], [48, 40, 32, 24], [48, 39, 32, 23]],
+  "walk": [[49, 42, 33, 23], [46, 44, 33, 21], [42, 41, 31, 19], [40, 42, 31, 20], [40, 42, 30, 20], [42, 50, 31, 21]],
+  "dash": [[38, 38, 26, 26], [51, 43, 40, 26]],
+  "atkA": [[46, 46, 33, 24], [51, 34, 31, 20], [51, 34, 31, 20], [48, 39, 32, 23]],
+  "atkB": [[42, 39, 34, 24], [58, 38, 35, 23], [58, 38, 35, 23], [48, 39, 32, 23]],
+  "charge": [[46, 46, 33, 24], [42, 39, 34, 24], [43, 34, 35, 25], [42, 33, 34, 24]],
+  "release": [[43, 34, 35, 25], [51, 34, 31, 20], [51, 34, 31, 20]],
+  "skillA": [[42, 33, 34, 24], [58, 38, 35, 23], [59, 38, 36, 23], [59, 38, 36, 23]],
+  "skillB": [[49, 36, 34, 21], [49, 37, 34, 22], [49, 37, 34, 22], [49, 36, 34, 21]],
+  "hurt": [[44, 43, 32, 23], [37, 43, 25, 23]],
+  "death": [[43, 40, 35, 24], [45, 34, 37, 25], [45, 40, 37, 27], [50, 46, 38, 36], [49, 49, 40, 41]],
+  "sit": [[46, 49, 33, 21], [46, 50, 33, 22]]
+ }
+}

@@ -57,18 +57,19 @@ def components(im):
     return comps
 
 
-def tidy(im, pal, minc=12, outline=True):
+def tidy(im, pal, minc=12, outline=True, main=False, drop=None):
     """반투명 정리 → 팔레트 스냅 → 작은 찌꺼기 제거 → 외곽선 통일."""
     im = im.copy(); w, h = im.size; px = im.load(); cache = {}
     for y in range(h):
         for x in range(w):
             c = px[x, y]
-            px[x, y] = (0, 0, 0, 0) if c[3] < 128 else _near(c, pal, cache)
+            if c[3] < 128 or (drop and drop(c)): px[x, y] = (0, 0, 0, 0)
+            else: px[x, y] = _near(c, pal, cache)
     comps = components(im)
     if comps:
         big = max(len(c) for c in comps)
         for c in comps:
-            if len(c) < big and len(c) < minc:
+            if len(c) < big and (len(c) < minc or main):
                 for p in c: px[p] = (0, 0, 0, 0)
     if outline:
         edge = lambda x, y: any(not (0 <= x + dx < w and 0 <= y + dy < h) or px[x + dx, y + dy][3] == 0 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))

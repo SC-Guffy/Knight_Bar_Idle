@@ -9,7 +9,16 @@ sys.path.insert(0, os.path.join(HERE, '..', '..', 'pixellab'))
 from pl import call
 from PIL import Image
 RAW = os.path.join(HERE, 'raw'); os.makedirs(RAW, exist_ok=True)
-FLOOR = 1340
+FLOOR = 1085   # 2차 지시: 계정 1,069 아래로 내려가기 전에 멈춤 (여유 16)
+CAP2 = 90      # 2차 지시: 이번 몫 최대 90 (잔량 차이 합)
+
+def spent2():
+    t = 0; on = False
+    for ln in open(os.path.join(HERE, 'usage.md'), encoding='utf-8'):
+        if ln.startswith('## 2차 진행'): on = True
+        if on and ln.startswith('| x') and '→' in ln:
+            a, b = ln.rsplit('|', 2)[-2].split('→'); t += float(a) - float(b)
+    return t
 
 def bal():
     for _ in range(3):
@@ -30,11 +39,12 @@ def images(o, out):
 def run(ep, body, name):
     b0 = bal()
     if b0 is None or b0 < FLOOR: print('STOP balance', b0); sys.exit(2)
-    for attempt in range(4):
+    if spent2() > CAP2 - 2: print('STOP cap', spent2()); sys.exit(2)
+    for attempt in range(30):
         st, r = call('POST', ep, body)
         if st in (200, 202): break
         print('HTTP', st, str(r)[:300])
-        if st == 429 or st >= 500: time.sleep(15); continue
+        if st == 429 or st >= 500: time.sleep(30); continue
         sys.exit(1)
     else: sys.exit(1)
     job = r.get('background_job_id') if isinstance(r, dict) else None

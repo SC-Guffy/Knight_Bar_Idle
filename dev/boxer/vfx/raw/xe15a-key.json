@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 48
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: rising wind aura effect, two or three white and pale mint wind ribbons spiraling upward from the ground in a tall hollow helix, wider at the bottom near the feet, thin curling tips at the top, empty transparent space in the middle, dark outline, abstract wind only, nobody inside, nothing else, no character, no background shape, no text",
+ "seed": 167
+}

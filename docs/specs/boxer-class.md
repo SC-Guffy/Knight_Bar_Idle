@@ -1,6 +1,6 @@
 # 신규 직업 계열: 파이터 (7종)
 
-- 상태: 진행 중 — ① 1차 파이터 구현 끝, 배포 전 (② 2차 · ③ 3차 진행 중. 서버 배포 필요)
+- 상태: 진행 중 — ① 1차·② 2차 구현 끝, 배포 전 (③ 3차 진행 중, 2차 스킬 명중 텍스처 XK02~07·XE16 생성 중. 서버 배포 필요)
 - 관련 코드: src/classes.js (`WEAPONS`·`CLASSES`·`SKILLS`·`CLASS_REQ`·`SKILL_DMG`·`INHERIT_DMG`·`TREE_RIGHT`·`SPEC_TYPES`·`skillCdOf`), src/skills.js (`tickSkills`·`tryCastSkill`·`drawSkillIcons`·`SKILL_FX`), src/world.js (`fightTick`·`dashSkill`·`drawHero`·`drawHeroRaw`), src/core.js (`stats`·`dpsOf`·`profile`), src/procs.js (`procOnCast`), src/body2.js (`applyHiRes`), src/ui.js (`viewClass`·스킬 탭), server/duel.js (`readySkill`·`GAP`), server/raid.js, server/bots.js (`LINES`), server/bot-curve.json, server/mentor-k.json, dev/bot-curve.js, dev/duel-balance.js
 - 관련 스펙: [roadmap.md](roadmap.md) "결정 사항"·"D. 권투가", [character-sprites.md](character-sprites.md) (통짜 스프라이트), [skill-tree-nodes.md](skill-tree-nodes.md), [duel-gap-closer.md](duel-gap-closer.md), [unique-procs.md](unique-procs.md)
 - 최종 갱신: 2026-10-14 (① 1차 구현 — impl-boxer)
@@ -629,6 +629,15 @@
   - 확인한 것(실제 게임 `update` 루프·함수 단위): 파이터 평타 +4.5·100 에서 원투 → 0, `knight.cds` 비어 있음 · 스트라이커 치명 +6 / 아니면 +3 · 붕권이 기 150 쓸 때마다 · 킥복서 1·2·3·4마리 +6.5·+9·+11.5·+11.5, 사거리 안 기 150 이면 주 기술 안 씀·200 이면 회전 발차기, 기 105·147 로 돌진 · 기공사 교전 중 초당 +5(걷는 중 0), 피격 초당 6 상한, 기막 중 12, 200 에서 2단·300 에서 3단(×1.636) · ☯️ 10칸 붕권 150→90, 툴팁 "기 소모 -40%" · 우로보로스 파이터 10→60, 기공사 0→150 · 직업 트리 375px 에서 1차 다섯 칸 넘침 0 · 서버 결투가 기 규칙으로 시전(옛 서버는 등가 cd).
   - 시험장 22스킬 × 숙련 4단계 = 88번 시전 예외 0.
   - PixelLab: 이 작업 상한 450회. 파이터 시트 약 16회 + 파이터 텍스처(XW1·XH1·XE01·XE02·XK01) 약 15회 등 지금까지 31회 (1769 → 1738). 시트·텍스처 생성은 하위 에이전트 두 개가 이어서 한다(기록 `dev/boxer/sheets/usage.md`·`dev/boxer/vfx/usage.md`).
+
+- 2026-10-14: **② 2차 3종** (impl-boxer).
+  - 시트: 스트라이커·킥복서·기공사 13동작씩 (`src/sprites/*.png/json`, 미리보기 `dev/boxer/sheets/<cls>-preview.png`, GIF `dev/boxer/sheets/gif/`). 키 자세(평타·스킬)는 pixen 편집으로 뽑아 팔·다리가 끝까지 뻗는다. 아쉬운 점: 스트라이커 건틀릿이 기준 그림보다 조금 작고 앉기가 웅크림에 가깝다, 킥복서 날아 차기는 선 그림을 위로 올린 것, 킥복서 앉기 정면, 기공사 걷기 앞 2프레임이 살짝 정면.
+  - 스트라이커 시트의 잽·스트레이트는 주먹이 프레임 밖으로 잘려 그림을 2~3칸 왼쪽으로 옮겼다(발 가운데 29~30).
+  - 텍스처(2차): XW2·XW3(2프레임)·XW4, XH2·XH4·XH6, XP1, XE03·XE04·XE05·XE07·XE08·XE10·XE12·XE14·XE15. 크기는 매니페스트 기준(대부분 32도트). 남은 것: XE16, XK02~XK07 (사용자 결정: 명중은 돌려 쓰지 않고 새로 뽑는다).
+  - 연출: 기 가득 오라는 2/3 크기·옅게(몸을 덮지 않게), 회전 발차기 띠는 숙련 단계별 2/3·2/3·1·4/3.
+  - 검증: 시험장에서 2차 스킬 6종 × Lv1·★★★ 시작·막타 캡처 `dev/boxer/shots/t2-skills.png`, 평타 1·2차 넷 `t2-basic.png`·`-gray.png` (흑백으로도 충격 별 / 금속 링 / 반달 호 / 동심 파문으로 다르다).
+  - 밸런스: 챔피언 계열 진행이 빨라(+5.1%/+5.9%) 스트라이커 hp 1.87→1.75, 챔피언 atk 1.7·hp 2.3 → 시드 6벌 4일 +2.6% · 12일 +3.6%. 템페스트 atk 2.25·hp 2.05 (+1.6%/+2.1%).
+  - **PixelLab 사용량 사고**: 시트·텍스처 두 하위 작업이 동시에 돌며 응답 `usage`(호출당 1.0)로 셌는데, 계정 잔량은 1769→1345 로 424 줄었다(호출 합 92회). 다른 세션의 동시 사용인지 실제 차감 단가인지 로드맵 세션에 확인 요청했다. 사용자 결정(로드맵 경유): 이 작업 상한 450→**700회**(잔량 차이로 센다, 하한 잔량 1,069), 3차 시트는 2차 시트를 편집해서, 2차 미완 텍스처는 새로 뽑기, 변형이 많이 필요하면 ComfyUI 먼저. 이후 PixelLab 작업은 한 번에 하나씩 돌리고 호출 전후 잔량을 기록한다.
 
 ## 남은 일 / 미정
 

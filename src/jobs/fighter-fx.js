@@ -62,7 +62,7 @@ function qiAura(x, gy) {
   q.auraK = Math.max(0, Math.min(1, (q.auraK || 0) + (on ? 0.08 : -0.06)));
   if (!q.auraK || !id || !qiTex(id)) return;
   const f = Math.floor(clock * 10) % VFX_SHEETS[id].frames;
-  vfxDraw(ctx, id, q.aw > 0 ? '#ffd257' : CLASSES[S.cls].look.fx, f, x, gy + 2, { anchor: 'b', alpha: 0.75 * q.auraK });
+  vfxDraw(ctx, id, q.aw > 0 ? '#ffd257' : CLASSES[S.cls].look.fx, f, x, gy + 2, { anchor: 'b', scale: q.aw > 0 ? 1 : 2 / 3, alpha: (q.aw > 0 ? 0.6 : 0.4) * q.auraK });
 }
 
 // ── 스킬 공용 도구 ──
@@ -179,7 +179,7 @@ Object.assign(SKILL_FX, {
       const d = a.k ? a.k.dur : 1.1, t = u * d, n = a.k.hits.length;
       return { sheet: { anim: 'skillB', frame: Math.floor(t * 14 * Math.max(1, n / 2)) % 4 }, lift: 3 * Math.sin(Math.PI * u) };
     },
-    cues: (a) => a.k.hits.map((h) => [Math.max(0, h[0] - 0.12), (a) => texFx('xe08', a.x(), groundY() - 16, a.color, { life: 0.26, flip: a.dir < 0, scale: a.mast >= 2 ? 4 / 3 : 1, fade: 0.3 })]),
+    cues: (a) => a.k.hits.map((h) => [Math.max(0, h[0] - 0.12), (a) => texFx('xe08', a.x(), groundY() - 12, a.color, { life: 0.26, flip: a.dir < 0, scale: [2 / 3, 2 / 3, 1, 4 / 3][a.mast], alpha: 0.85, fade: 0.3 })]),
     hitTex(a, t, share, i, n) { qiHitTex('xk05', a, t, i === n - 1 && a.mast >= 2); },
     hit(a, i, n) {
       if (a.mast >= 3 && i === n - 1) texFx('xe09', a.tx(), groundY(), a.color, { anchor: 'b', life: 0.7, fade: 0.3 });

@@ -43,7 +43,8 @@ def run(ep, body, cls, purpose, outpre, est=1):
     if s['start'] is None: s['start'] = b0
     if b0 is None: sys.exit('balance 조회 실패')
     if b0 - est < FLOOR: sys.exit(f'STOP: 잔량 {b0} — 하한 {FLOOR}')
-    if s['used'] + est > CAP: sys.exit(f'STOP: 자기 사용 {s["used"]} + {est} > {CAP}')
+    s.setdefault('nom', float(len(s['calls'])))
+    if s['nom'] + est > CAP: sys.exit(f'STOP: 자기 사용(명목) {s["nom"]} + {est} > {CAP}')
     for attempt in range(4):
         st, r = call('POST', ep, body)
         if st in (200, 202): break
@@ -62,6 +63,18 @@ def run(ep, body, cls, purpose, outpre, est=1):
         else: print('TIMEOUT', job); r = None
     imgs = []
     if r is not None: images(r, imgs)
+    def find_usage(o):
+        if isinstance(o, dict):
+            if 'usage' in o and o['usage']: return o['usage']
+            for v in o.values():
+                u = find_usage(v)
+                if u: return u
+        elif isinstance(o, list):
+            for v in o:
+                u = find_usage(v)
+                if u: return u
+    ru = find_usage(r); print('response usage:', ru)
+    if isinstance(ru, dict) and ru.get('type') == 'generations': est = ru.get('generations', est)
     os.makedirs(os.path.dirname(outpre), exist_ok=True)
     for i, b in enumerate(imgs):
         if ',' in b[:40]: b = b.split(',', 1)[1]
@@ -69,7 +82,7 @@ def run(ep, body, cls, purpose, outpre, est=1):
     time.sleep(3)
     b1 = bal()
     used = round(b0 - b1, 2) if b1 is not None else est
-    s['used'] = round(s['used'] + used, 2)
+    s['used'] = round(s['used'] + used, 2); s['nom'] = round(s.get('nom', 0) + est, 2)
     s['calls'].append({'cls': cls, 'ep': ep, 'purpose': purpose, 'used': used, 'bal': b1})
     json.dump(s, open(STATE, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     new = not os.path.exists(LOG)
@@ -77,8 +90,8 @@ def run(ep, body, cls, purpose, outpre, est=1):
         if new:
             f.write(f'# 직업 스프라이트 시트 — PixelLab 사용 기록\n\n시작 잔량: {s["start"]} (상한: 자기 호출 {CAP}회, 계정 잔량 {FLOOR} 아래면 멈춤)\n\n'
                     '| # | 직업 | 엔드포인트 | 목적 | 사용 | 누적(자기) | 계정 잔량 |\n|---|---|---|---|---|---|---|\n')
-        f.write(f'| {len(s["calls"])} | {cls} | `{ep}` | {purpose} | {used} | {s["used"]} | {b1} |\n')
-    print('saved', len(imgs), 'used', used, 'self', s['used'], 'bal', b1)
+        f.write(f'| {len(s["calls"])} | {cls} | `{ep}` | {purpose} | {used} / {est} | {s["used"]} / {s["nom"]} | {b1} |\n')
+    print('saved', len(imgs), 'used', used, 'self', s['used'], 'nom', s['nom'], 'bal', b1)
     return len(imgs)
 
 

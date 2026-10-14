@@ -18,6 +18,7 @@ def opt(k, d=None, flag=False):
 anchor = opt('--anchor', 'c'); flip = opt('--flip', False, True); mn = int(opt('--min', 3)); levels = opt('--levels', False, True)
 dedark = opt('--dedark', False, True); fit = opt('--fit', False, True); note = opt('--note', ''); shift = opt('--shift', '0,0')
 sx, sy = map(int, shift.split(','))
+stretch = float(opt('--stretch', 0)); killblack = opt('--black', False, True); addline = opt('--outline', False, True)
 files = a
 L = lambda c: (0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]) / 255
 N4 = ((1, 0), (-1, 0), (0, 1), (0, -1))
@@ -26,7 +27,7 @@ def clean(im):
     W, H = im.size; px = im.load()
     for y in range(H):
         for x in range(W):
-            px[x, y] = (0, 0, 0, 0) if px[x, y][3] < 128 else px[x, y][:3] + (255,)
+            px[x, y] = (0, 0, 0, 0) if px[x, y][3] < 128 or (killblack and max(px[x, y][:3]) <= 8) else px[x, y][:3] + (255,)
     edge = [(x, y) for x in range(W) for y in (0, H - 1)] + [(x, y) for y in range(H) for x in (0, W - 1)]
     bgc = {px[p][:3] for p in edge if px[p][3] and max(px[p][:3]) - min(px[p][:3]) < 12 and 70 < sum(px[p][:3]) / 3 < 200}
     near = lambda c: any(abs(c[0] - b[0]) + abs(c[1] - b[1]) + abs(c[2] - b[2]) <= 18 for b in bgc)
@@ -66,6 +67,15 @@ def finish(im):
                 for x in range(W):
                     c = px[x, y]
                     if c[3] and L(c) >= 0.2: px[x, y] = tuple(min(255, int(v * k)) for v in c[:3]) + (255,)
+    if stretch:
+        # 밝기 [stretch, 1] → [0.2, 1] 로 늘려 램프 단을 벌림 (색상 차이로만 나뉜 층을 밝기 층으로)
+        for y in range(H):
+            for x in range(W):
+                c = px[x, y]
+                l = L(c)
+                if c[3] and l >= 0.2:
+                    t = max(0.2, min(1, 0.2 + (l - stretch) / (1 - stretch) * 0.8)); g = int(t * 255)
+                    px[x, y] = (g, g, g, 255)
     out = []
     for y in range(H):
         for x in range(W):
@@ -74,6 +84,9 @@ def finish(im):
                 edge = any(not (0 <= x + dx < W and 0 <= y + dy < H) or not px[x + dx, y + dy][3] for dx, dy in N4)
                 out.append(((x, y), (11, 13, 20, 255) if edge else (78, 78, 88, 255)))
     for p, c in out: px[p] = c
+    if addline:
+        add = [(x, y) for y in range(H) for x in range(W) if not px[x, y][3] and any(0 <= x + dx < W and 0 <= y + dy < H and px[x + dx, y + dy][3] and px[x + dx, y + dy][:3] != (11, 13, 20) for dx, dy in N4)]
+        for p in add: px[p] = (11, 13, 20, 255)
     return im
 
 fr = [clean(Image.open(f).convert('RGBA')) for f in files]

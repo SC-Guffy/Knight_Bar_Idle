@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: big qi energy ball projectile flying right, a round orb with a bright white hot core, swirling pale lavender energy layers around it, a short flame-like wispy tail streaming to the left, dark outline, filling most of the canvas, nothing else, no character, no background shape, no text",
+ "seed": 127
+}
