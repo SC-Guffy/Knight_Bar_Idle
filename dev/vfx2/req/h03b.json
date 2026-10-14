@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: melee pierce hit flash, one long thin horizontal white lens shaped flash like a needle, with a small bright diamond burst in the middle and two short thin rays crossing it, pale mint green rim, compact, no circle, nothing else, no character, no background shape",
+ "seed": 47
+}

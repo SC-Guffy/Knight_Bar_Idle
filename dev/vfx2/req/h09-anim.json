@@ -1,0 +1,10 @@
+{
+ "first_frame": {
+  "type": "base64",
+  "base64": ""
+ },
+ "action": "stab hit: the puncture flash pops bright, the scale chips fly outward and tumble, then everything fades away",
+ "frame_count": 4,
+ "seed": 3,
+ "no_background": true
+}

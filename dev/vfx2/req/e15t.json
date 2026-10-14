@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a long straight horizontal piece of a purple serpent dragon body seen from the side, a thick scaly tube running across the whole width from the left edge to the right edge, no head, no tail, overlapping scales on top, ridged pale belly plates along the bottom, a row of small dorsal spikes on top, pixel art, nothing else, no character, no background shape",
+ "seed": 51
+}

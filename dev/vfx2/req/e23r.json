@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a spectral cavalry knight riding a galloping horse to the right, side view, the rider holds a long lance pointing forward, horse and rider made of glowing pale light with a dark outline, mane flowing, pixel art sprite, nothing else, no character, no background shape",
+ "seed": 37
+}

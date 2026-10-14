@@ -6,24 +6,22 @@
 //  ★★ 「왕복 돌격」 지나친 뒤 미끄러지며 돌아서서(등을 보인다) 반대쪽으로 한 번 더 — 잔상이 겹친다
 //  ★★★ 「천마 돌격」 발밑에 빛의 천마가 나타나 기사를 태우고 하단바를 가로질러 달린다 — 발굽마다 빛이 튀고 끝에서 충격파
 // ── 방패 벽 ──
-//  Lv1 「방패 들기」 발밑에 푸른 빛의 원 (3초)
-//  ★ 「방패 벽」 방패를 땅에 박으면 푸른 반투명 장벽(돔)이 선다 (4초), 문장이 빛난다
-//  ★★ 「철옹성」 돔 둘레에 작은 방패 넷이 떠서 돌며 지킨다
+//  Lv1 「방패 들기」 앞쪽에 문장 방패 벽(E24)이 작게 선다 (3초)
+//  ★ 「방패 벽」 방패를 땅에 박으면 문장 방패 셋이 벽처럼 솟는다 (4초), 테두리가 빛난다
+//  ★★ 「철옹성」 방패 벽 둘레에 작은 방패 넷이 떠서 돌며 지킨다
+//  (성기사 성역의 빛 원·돔과 겹치지 않게, 앞을 막는 "벽면"으로 형태를 나눴다 — 스펙 색깔놀이 점검)
 //  ★★★ 「불굴의 성벽」 양옆에 성가퀴가 있는 돌 성벽이 솟고 — 끝날 때 무너지며 충격파 (finish)
 // 하단바 전체를 덮지 않는다: 천마의 질주도 기사가 달린 자리에만 빛이 남는다
+// 그림은 PixelLab 시트 (src/vfx-spear.js): 창끝 빛줄 W7(천마장군 W7a) · 천마 E23 · 방패 벽 E24 · 명중 K15·K16
 
 const CV_COL = { main: '#9fd8ff', hot: '#e8f6ff', deep: '#2f4f8a', steel: '#d8dde8' };
 
-// 창끝의 빛줄: 돌진하는 동안 창끝에서 앞으로 뻗는 푸른 선 (hand 자리 기준, ext 만큼 앞)
+// 창끝의 빛줄: 돌진하는 동안 창끝에서 앞으로 뻗는 돌격창 속도선(W7 키 그림, 천마장군은 W7a). hand 자리 기준, ext 만큼 앞
 function cvLanceLight(a, life) {
+  const id = a.cls === 'skyGeneral' ? 'w7a' : 'w7';
   aFx(a, 0, life, (u) => {
-    const h = hand(a), p = castPose(a.owner) || {}, L = 40 + (p.ext || 0) * 2, out = u > 0.85 ? (1 - u) / 0.15 : 1;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = out;
-    const g = ctx.createLinearGradient(h.x, h.y, h.x + a.dir * (L + 30), h.y);
-    g.addColorStop(0, 'rgba(159,216,255,0)'); g.addColorStop(0.6, 'rgba(159,216,255,0.7)'); g.addColorStop(1, 'rgba(255,255,255,0.9)');
-    ctx.fillStyle = g; ctx.fillRect(Math.min(h.x, h.x + a.dir * (L + 30)), h.y - 2, L + 30, 4);
-    ctx.restore();
+    const h = hand(a), p = castPose(a.owner) || {}, L = 70 + (p.ext || 0) * 2, out = u > 0.85 ? (1 - u) / 0.15 : 1, w0 = vfxW(id);
+    if (w0) vfxDraw(ctx, id, a.color, 0, h.x + a.dir * L / 2, h.y, { sx: L / w0, flip: a.dir < 0, alpha: out });
   }, null, () => { const h = hand(a); if (Math.random() < 0.6) parts.push({ x: h.x + a.dir * rand(20, 60), y: h.y + rand(-3, 3), vx: -a.dir * rand(40, 90), vy: rand(-15, 15), g: 0, size: 2, color: Math.random() < 0.5 ? CV_COL.main : '#ffffff', life: 0.25, t: 0, add: true }); });
 }
 // 돌진 흙먼지: 발뒤꿈치에서 뒤로 흩어지는 먼지
@@ -32,33 +30,13 @@ function cvDust(a, n = 2) {
 }
 function cvAfterimage(a, tint = CV_COL.main) { ghostFx(a, a.px(), (castPose(a.owner) || {}).facing || a.dir, tint, 0.2, castPose(a.owner) || {}, 0.28); }
 
-// ★★★ 천마: 기사 발밑에 빛으로 된 말. 몸통 타원 + 목·머리 + 네 다리(달리는 동안 흔들림) + 갈기 꼬리. backFx 라 기사 뒤에 그려진다
+// ★★★ 천마: 기사 발밑에 빛의 천마(E23)가 나타나 기사를 태운다 — 달리는 동안 질주 프레임, 아니면 첫 장. backFx 라 기사 뒤에 그려진다
 function cvHorseFx(a, life, runFrom, runTo) {
   backFx(a, 0, life, (u) => {
-    const t = u * life, x = a.px(), gy = groundY() - 2, d = a.dir;
-    const inA = easeOut(Math.min(1, t / 0.25)), out = t > life - 0.25 ? (life - t) / 0.25 : 1, al = inA * out;
-    const running = t > runFrom && t < runTo, ph = clock * (running ? 22 : 4);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.85 * al;
-    ctx.translate(x, gy); ctx.scale(d, 1);
-    ctx.shadowColor = CV_COL.main; ctx.shadowBlur = 12;
-    ctx.fillStyle = 'rgba(159,216,255,0.55)';
-    ctx.beginPath(); ctx.ellipse(-4, -22, 26 * inA, 11 * inA, 0, 0, Math.PI * 2); ctx.fill();          // 몸통
-    ctx.beginPath(); ctx.moveTo(16, -26); ctx.lineTo(34, -44); ctx.lineTo(40, -40); ctx.lineTo(30, -24); ctx.closePath(); ctx.fill();   // 목
-    ctx.beginPath(); ctx.ellipse(40, -44, 9, 5, -0.5, 0, Math.PI * 2); ctx.fill();                        // 머리
-    ctx.fillRect(44, -47, 6, 2);                                                                           // 귀 쪽 주둥이
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    for (let i = 0; i < 4; i++) {                                                                          // 다리
-      const lx = -18 + i * 11, sw = Math.sin(ph + i * 1.6) * (running ? 10 : 1.5);
-      ctx.beginPath(); ctx.moveTo(lx - 2, -14); ctx.lineTo(lx + sw - 1, 0); ctx.lineTo(lx + sw + 2, 0); ctx.lineTo(lx + 2, -14); ctx.closePath(); ctx.fill();
-    }
-    ctx.strokeStyle = 'rgba(232,246,255,0.9)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-    for (let i = 0; i < 5; i++) {                                                                          // 갈기·꼬리
-      const wv = Math.sin(clock * 9 + i) * 3;
-      ctx.beginPath(); ctx.moveTo(20 + i * 3, -36 - i * 2); ctx.lineTo(10 + i * 3 - wv, -44 - i * 3); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-28, -24 + i * 2); ctx.lineTo(-46 - i * 2 + wv, -18 + i * 4); ctx.stroke();
-    }
-    ctx.restore();
+    const t = u * life, inA = easeOut(Math.min(1, t / 0.25)), out = t > life - 0.25 ? (life - t) / 0.25 : 1;
+    const running = t > runFrom && t < runTo;
+    // 숙련 색(a.color)은 너무 옅어 흰 잔상에 묻힌다 → 말은 정해진 하늘색 램프 (천마장군은 금빛)
+    vfxDraw(ctx, 'e23', a.cls === 'skyGeneral' ? '#d8b850' : '#6fa4e0', running ? vfxLoop('e23', 14) : 0, a.px() - a.dir * 6, groundY() + 3, { anchor: 'b', scale: 2 / 3, sy: 0.4 + 0.6 * inA, flip: a.dir < 0, alpha: 0.85 * inA * out });
   }, null, (u) => {
     const t = u * life;
     if (t < runFrom || t > runTo) return;
@@ -67,35 +45,11 @@ function cvHorseFx(a, life, runFrom, runTo) {
   });
 }
 
-// 방패 벽: 푸른 반투명 돔 + 가운데 빛나는 문장 (★). wardFade 로 들어오고 나간다
-function cvDome(x, gy, rx, ry, f) {
-  ctx.save();
-  ctx.globalAlpha = f * (0.85 + 0.15 * Math.sin(clock * 5));
-  ctx.fillStyle = 'rgba(159,216,255,0.14)';
-  ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.fill();
-  ctx.strokeStyle = CV_COL.main; ctx.lineWidth = 2; ctx.shadowColor = CV_COL.main; ctx.shadowBlur = 8;
-  ctx.beginPath(); ctx.ellipse(x, gy, rx, ry, 0, Math.PI, 0); ctx.stroke();
-  ctx.shadowBlur = 0;
-  // 돔 표면의 육각 비늘 줄
-  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
-  for (const k of [0.45, 0.75]) { ctx.beginPath(); ctx.ellipse(x, gy, rx * k, ry * k, 0, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke(); }
-  ctx.restore();
-}
-function cvDomeFx(a, life) {
+// 방패 벽: 기사 앞에 문장 방패 셋이 선 벽면(E24)이 솟아오르고(앞 0.35초 동안 프레임 0~4), 서 있는 동안 테두리가 빛난다(3·4 번갈아). wardFade 로 들어오고 나간다
+function cvShieldWallFx(a, life, sc = 1, al = 1) {
   aFx(a, 0, life, (u) => {
-    const g = easeOut(Math.min(1, u * life / 0.25));
-    cvDome(a.x(), groundY(), 36 * g, 48 * g, wardFade(u, life));
-  });
-}
-function cvLightCircleFx(a, life) {
-  aFx(a, 0, life, (u) => {
-    const x = a.x(), gy = groundY(), f = wardFade(u, life), p = 0.85 + 0.15 * Math.sin(clock * 5);
-    ctx.save();
-    ctx.globalAlpha = f * 0.7; ctx.strokeStyle = CV_COL.main; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(x, gy - 1, 22 * p, 4 * p, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.globalAlpha = f * 0.18; ctx.fillStyle = CV_COL.hot;
-    ctx.beginPath(); ctx.ellipse(x, gy - 1, 22 * p, 4 * p, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    const t = u * life, f = t < 0.35 ? Math.floor(t / 0.35 * 5) : 3 + (Math.floor(clock * 4) % 2);
+    vfxDraw(ctx, 'e24', a.color, Math.min(4, f), a.x() + a.dir * 30 * sc, groundY() + 2, { anchor: 'b', scale: sc, flip: a.dir < 0, alpha: al * wardFade(u, life) });
   });
 }
 // 작은 방패 하나 (떠 있는 호위 방패·성벽 장식)
@@ -108,9 +62,8 @@ function cvMiniShield(x, y, s, f) {
   ctx.fillStyle = '#e0443c'; ctx.fillRect(x - 0.5 * s, y - 3 * s, 1 * s, 5 * s); ctx.fillRect(x - 2 * s, y - 1.5 * s, 4 * s, 1 * s);
   ctx.restore();
 }
-// ★★ 철옹성: 돔 + 둘레를 도는 호위 방패 넷
+// ★★ 철옹성: 방패 벽 + 둘레를 도는 호위 방패 넷
 function cvRampartFx(a, life) {
-  cvDomeFx(a, life);
   aFx(a, 0, life, (u) => {
     const x = a.x(), gy = groundY(), f = wardFade(u, life), g = easeOut(Math.min(1, u * life / 0.35));
     for (let i = 0; i < 4; i++) {
@@ -119,7 +72,7 @@ function cvRampartFx(a, life) {
     }
   });
 }
-// ★★★ 불굴의 성벽: 양옆에 성가퀴 달린 돌 성벽이 솟는다 (돔 포함). 끝나면 cvWallFallFx 가 무너뜨린다
+// ★★★ 불굴의 성벽: 양옆에 성가퀴 달린 돌 성벽이 솟는다 (방패 벽은 cues 가 따로 세운다). 끝나면 cvWallFallFx 가 무너뜨린다
 function cvWallShape(x, gy, k, side) {
   const w = 20, h = 46 * k, bx = x + side * 48;
   ctx.fillStyle = '#5a6578'; ctx.fillRect(bx - w / 2, gy - h, w, h);
@@ -129,7 +82,6 @@ function cvWallShape(x, gy, k, side) {
   cvMiniShield(bx, gy - h * 0.55, 1, 1);
 }
 function cvFortressFx(a, life) {
-  cvDomeFx(a, life);
   aFx(a, 0, life, (u) => {
     const x = a.x(), gy = groundY(), f = wardFade(u, life), k = easeOut(Math.min(1, u * life / 0.4));
     ctx.save();
@@ -147,12 +99,9 @@ function cvWallFallFx(a) {
   for (const s of [-1, 1]) { debris(x + s * 48, 16, ['#5a6578', '#7f8a9c', CV_COL.main], 1.5); for (let j = 0; j < 6; j++) parts.push({ x: x + s * rand(30, 60), y: gy - rand(10, 46), vx: s * rand(40, 120), vy: rand(-80, -20), g: 300, size: 3, color: j % 2 ? '#5a6578' : '#7f8a9c', life: rand(0.5, 0.8), t: 0 }); }
   impact({ stop: 0.08, shake: 0.35 });
 }
-// 방패 강타: 방패 앞에서 퍼지는 푸른 충격 호 + 흙먼지
+// 방패 강타: 방패 앞으로 흙먼지가 밀려 나간다 (맞는 그림은 대상 위 K16 — shieldWall.hitTex)
 function cvBashFx(a, size = 1) {
-  const x = a.px() + a.dir * 8, y = groundY() - 20;
-  crescentFx(x, y, 22 * size, a.dir > 0 ? -1.3 : Math.PI + 1.3, a.dir > 0 ? 1.3 : Math.PI - 1.3, a.dir, CV_COL.main, 5 * size, 0.3);
-  burst(x + a.dir * 6, y, Math.round(8 * size), [CV_COL.main, '#ffffff'], 110, 2, 60);
-  for (let j = 0; j < 6; j++) parts.push({ x: a.px() + a.dir * 14, y: groundY() - 2, vx: a.dir * rand(60, 140), vy: rand(-50, -10), g: 200, size: 2, color: j % 2 ? '#c9b38a' : CV_COL.hot, life: 0.4, t: 0 });
+  for (let j = 0; j < Math.round(6 * size); j++) parts.push({ x: a.px() + a.dir * 14, y: groundY() - 2, vx: a.dir * rand(60, 140), vy: rand(-50, -10), g: 200, size: 2, color: j % 2 ? '#c9b38a' : CV_COL.hot, life: 0.4, t: 0 });
 }
 
 // 돌격 자세의 틀: 웅크림(0~c0) → 질주(c0~c1, dx 0→D) → 멈춤(c1~h) → 복귀(h~1)
@@ -199,41 +148,42 @@ Object.assign(SKILL_FX, {
       const d = a.k.dur, m = a.mast, hits = a.k.hits;
       if (m === 0) return [[0.25, (a) => hopDustFx(a.px())]];
       const start = (at) => [at / d, (a) => { hopDustFx(a.px()); impact({ shake: 0.08 }); }];
-      if (m === 1) return [start(0.26), [0.27 / d, (a) => cvLanceLight(a, 0.4)], [(hits[0][0] * d - 0.03) / d, (a) => { const h = hand(a); streakFx(h.x + a.dir * 20, h.y, h.x + a.dir * 120, h.y, CV_COL.main, 5, 0.25); }]];
+      // 찌르는 순간 창끝에서 앞으로 꿰뚫는 속도선 (W7)
+      const pierce = (a, f = 1, len = 100) => { const h = hand(a); vfxThrustLine('w7', h.x + f * a.dir * 20, h.y, f * a.dir, len, a.color, { life: 0.25, move: (u) => 12 * easeOut(u) }); };
+      if (m === 1) return [start(0.26), [0.27 / d, (a) => cvLanceLight(a, 0.4)], [(hits[0][0] * d - 0.03) / d, (a) => pierce(a)]];
       if (m === 2) return [
         start(0.22), [0.23 / d, (a) => cvLanceLight(a, 0.45)],
-        [(hits[0][0] * d - 0.03) / d, (a) => { const h = hand(a); streakFx(h.x + a.dir * 20, h.y, h.x + a.dir * 120, h.y, CV_COL.main, 5, 0.25); }],
+        [(hits[0][0] * d - 0.03) / d, (a) => pierce(a)],
         [0.7 / d, (a) => { for (let j = 0; j < 8; j++) parts.push({ x: a.px() + a.dir * 4, y: groundY() - 1, vx: a.dir * rand(30, 90), vy: rand(-40, -10), g: 180, size: 2, color: '#c9b38a', life: 0.4, t: 0 }); }],
         [0.96 / d, (a) => { hopDustFx(a.px()); cvLanceLight(a, 0.38); impact({ shake: 0.08 }); }],
-        [(hits[1][0] * d - 0.03) / d, (a) => { const h = hand(a), f = (castPose(a.owner) || {}).facing || 1; streakFx(h.x - f * a.dir * 20, h.y, h.x - f * a.dir * 120, h.y, CV_COL.main, 5, 0.25); }],
+        [(hits[1][0] * d - 0.03) / d, (a) => pierce(a, -((castPose(a.owner) || {}).facing || 1))],
       ];
       const boom = hits[3][0] * d;
       return [
         [0.3 / d, (a) => { cvHorseFx(a, boom - 0.3 + 0.3, 0.25, 1.15); gatherFx(a.px(), groundY() - 20, [CV_COL.main, '#ffffff'], 3, 30); }],
         [0.55 / d, (a) => { ringFx(a.px(), CV_COL.main, 1.0, 0.4); impact({ shake: 0.12 }); cvLanceLight(a, boom - 0.55); }],
-        ...hits.slice(0, 3).map((h) => [(h[0] * d - 0.03) / d, (a) => { const hd = hand(a); streakFx(hd.x + a.dir * 20, hd.y, hd.x + a.dir * 110, hd.y, CV_COL.hot, 4, 0.2); }]),
+        ...hits.slice(0, 3).map((h) => [(h[0] * d - 0.03) / d, (a) => pierce(a, 1, 90)]),
         [(boom - 0.02) / d, (a) => {
+          // 멈추는 자리의 창끝 돌파 충격(K15)이 터진다 (하단바 끝 가까이라 1배 — 양 끝 밝기 기준)
           const x = a.px() + a.dir * 30;
           impact({ stop: 0.14, shake: 0.55 });
-          ringFx(x, CV_COL.main, 1.8, 0.55); ringFx(x, '#ffffff', 1.1, 0.4);
-          waveFx(a, x, groundY() - 14, 120, CV_COL.main, 0.45, 1.6);
+          ringFx(x, CV_COL.main, 1.8, 0.55);
+          texFx('k15', x - a.dir * 44, groundY() - 18, a.color, { scale: 1, life: 0.4, flip: a.dir < 0, fade: 0.3 });
           debris(x, 14, ['#c9b38a', CV_COL.main, '#ffffff'], 1.6);
-          skFx(null, 0, 0.25, (u) => localFlash(x, groundY() - 14, 90, 0.45 * (1 - u), '200,230,255'));   // 충격파 지점 둘레만
+          skFx(null, 0, 0.25, (u) => localFlash(x - a.dir * 50, groundY() - 14, 44, 0.45 * (1 - u), '200,230,255'));   // 충격파 지점 둘레만
         }],
       ];
     },
     hit(a, i, n) {
-      const m = a.mast, tg = a.targets(i), last = i === n - 1;
-      if (m === 0) { for (const t of tg) burst(t.x, t.y, 6, [CV_COL.hot, '#ffffff'], 100); impact({ stop: 0.04, shake: 0.1 }); return; }
-      if (m >= 3 && last) { for (const t of tg) { burst(t.x, t.y, 22, [CV_COL.main, '#ffffff', CV_COL.hot], 220, 3, 280); starFx(t.x, t.y, 14, CV_COL.hot, 0.3); } return; }
-      for (const t of tg) burst(t.x, t.y, m >= 3 ? 8 : 14, [CV_COL.main, '#ffffff', CV_COL.hot], 160);
+      const m = a.mast, last = i === n - 1;
+      if (m === 0) { impact({ stop: 0.04, shake: 0.1 }); return; }
+      if (m >= 3 && last) return;
       impact(m >= 3 ? { stop: 0.03, shake: 0.12 } : { stop: 0.08, shake: 0.3 });
     },
-    marks(a, t, pow, i, n) {
-      if (!a.mast) return;
-      const f = (castPose(a.owner) || {}).facing || 1, dir = a.dir * (a.mast === 2 && i === 1 ? -1 : 1) * f;
-      drillFx(t.x, t.y, dir, CV_COL.main, 0.5);
-      if (a.mast >= 3 && i === n - 1) slashMarkFx(t.x, t.y, Math.PI / 2, 30 + 8 * pow, '#ffffff', 2.5, 0.4, 0.04);
+    // 명중 그림 K15 (창끝 돌파 충격 + 말발굽 먼지). ★★ 되돌아 찌르는 둘째 타격은 반대로 뒤집는다
+    hitTex(a, t, share, i, n) {
+      const back = a.mast === 2 && i === 1 ? -((castPose(a.owner) || {}).facing || 1) : 1;
+      vfxSkillHit('k15', { mast: a.mast, color: a.color, dir: a.dir * back }, t, share, i, n, { dx: 4 });
     },
     kb: 28, launch: true,
   },
@@ -251,11 +201,12 @@ Object.assign(SKILL_FX, {
     cues: (a) => {
       const k = a.k, s = k.stage || 0, d = k.dur, life = d * (1 - 0.3) + k.ward.dur;
       return [[0.3, (a) => {
-        if (s === 0) { cvLightCircleFx(a, life); return; }
+        if (s === 0) { cvShieldWallFx(a, life, 2 / 3, 0.8); return; }
         const x = a.x();
         impact({ stop: 0.06, shake: 0.15 });
         ringFx(x, CV_COL.main, 1.2, 0.5); debris(x + a.dir * 10, 10, ['#c9b38a', CV_COL.main]);
-        if (s === 1) { cvDomeFx(a, life); return; }
+        cvShieldWallFx(a, life);
+        if (s === 1) return;
         for (let j = 0; j < 12; j++) parts.push({ x: x + rand(-18, 18), y: groundY() - rand(4, 36), vx: rand(-12, 12), vy: rand(-70, -35), g: -15, size: 3, color: j % 2 ? CV_COL.main : '#ffffff', life: 0.8, t: 0, add: true });
         if (s === 2) cvRampartFx(a, life); else cvFortressFx(a, life);
       }]];
@@ -263,11 +214,11 @@ Object.assign(SKILL_FX, {
     hit(a, i, n) {
       const m = a.mast, last = i === n - 1;
       cvBashFx(a, m >= 3 && last ? 1.6 : m >= 2 ? 1.2 : 1);
-      for (const t of a.targets(i)) burst(t.x, t.y, m ? 10 : 5, [CV_COL.main, '#ffffff'], 120);
       impact(m >= 3 && last ? { stop: 0.1, shake: 0.4 } : { stop: 0.04, shake: 0.15 });
     },
     finish(a) { cvWallFallFx(a); },
-    marks(a, t) { if (a.mast) crackFx(t.x, t.y, CV_COL.main, 0.5); },
+    // 명중 그림 K16 (방패 문양이 찍히는 둔탁한 충격)
+    hitTex(a, t, share, i, n) { vfxSkillHit('k16', a, t, share, i, n, { dx: 2 }); },
     kb: 22,
   },
 });

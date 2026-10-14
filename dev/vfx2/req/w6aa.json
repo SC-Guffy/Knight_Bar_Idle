@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 48,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: wide axe swing afterimage arc sweeping from top to bottom on the right side, the outer rim made of jagged sawtooth teeth like a saw blade, bright white teeth tips, deep orange red body, broken stone chips at the tail end, no weapon, nothing else, no character, no background shape",
+ "seed": 9
+}

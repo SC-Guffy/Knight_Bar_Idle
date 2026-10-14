@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a whirling storm of many spinning crescent axe blades orbiting in a flat circular ring, motion streaks connecting them, sparks flying off, bright steel white edges and orange glow, nothing else, no character, no background shape",
+ "seed": 20
+}

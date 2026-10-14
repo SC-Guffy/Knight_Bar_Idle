@@ -1,0 +1,13 @@
+{
+ "outline": "lineless",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 240,
+  "height": 100
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: dark night sky background with one gigantic glowing dragon eye with a slit pupil opening in the clouds at the top, and cracked ground with glowing magenta lava rivers at the bottom, wide landscape, game background, nothing else, no character, no background shape",
+ "seed": 9
+}

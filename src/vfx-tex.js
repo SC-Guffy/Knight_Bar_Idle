@@ -158,6 +158,7 @@ function vfxSmear(g, w, h0, a0, h1, a1, len, tipOnly) {
 }
 // 한 장을 상태에 맞춰 그린다. thin: 휘두르는 중 / fade: 명중 뒤 4단계로 늘이며 흐려지고 조금 더 돈다 (q = 0~1)
 function vfxSmearDraw(g, p, rgb, mode, q) {
+  if (p.draw) return p.draw(g, rgb, mode, q);                 // 무기 계열 파일이 자기 그리기를 준 잔상 (src/vfx-spear.js 장병기)
   const tip = p.id === 'w2';
   const o = { scale: tip ? 1 : 2 / 3, rot: p.rot, flipY: p.flipY };
   if (mode === 'thin') { o.sy = tip ? 1 : 0.6; o.alpha = 0.95; }

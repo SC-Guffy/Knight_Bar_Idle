@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 48
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: impact burst of golden light spears, five long thin golden lances of light stabbing down diagonally into one point, a bright white starburst flash where they meet, short golden rays and sparks flying out, nothing else, no ground, no grass, no landscape, nothing else, no character, no background shape",
+ "seed": 55
+}

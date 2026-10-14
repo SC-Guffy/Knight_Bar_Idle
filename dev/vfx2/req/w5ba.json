@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 48,
+  "height": 48
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: horizontal spear thrust trail pointing right, a thin straight white line with two pink flame tongues curling and wrapping around it like a spiral, hot magenta edges, sharp bright tip at the right end, flat and thin, centered vertically, nothing else, no character, no background shape",
+ "seed": 7
+}

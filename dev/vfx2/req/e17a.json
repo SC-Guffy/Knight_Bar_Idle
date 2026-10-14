@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a dragon fire breath stream blasting to the right, a cone of rolling flames that starts narrow on the left and widens to the right, curling flame tongues, bright white hot core, violet purple flames, nothing else, no character, no background shape",
+ "seed": 17
+}

@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: horizontal spear thrust motion blur, a long straight band pointing right made of small overlapping purple scale shaped streaks, tapering to a sharp white needle point, scale flakes peeling off at the tail, no arrow, no arrowhead, no weapon, nothing else, no character, no background shape",
+ "seed": 42
+}

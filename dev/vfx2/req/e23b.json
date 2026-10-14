@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 48
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: a glowing white pegasus horse charging forward to the right at full gallop, side view, wings folded, armored head plate, sky blue light trail behind its legs, pixel art creature sprite, nothing else, no character, no background shape",
+ "seed": 33
+}

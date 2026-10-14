@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 48,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: wide swing smear trail, a broad thick crescent arc sweeping from top to bottom on the right side like a quarter moon, the outer rim cut into big jagged sawtooth teeth, bright white tooth tips, deep red orange body fading darker inside, small stone chips at the tail end, no weapon, no handle, no blade object, nothing else, no character, no background shape",
+ "seed": 46
+}

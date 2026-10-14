@@ -2099,7 +2099,7 @@ function drawAtkFx(g, w, r, atk) {
   }
   // 3차 무기는 2차 연속기를 그대로 쓰므로(legacy.js) 섬광 색은 무기의 burstRgb 가 있으면 그것으로 (잔상 색과 맞춘다)
   const [at, moCol, size] = mo.burst || [], col = w.burstRgb || moCol;
-  if (at != null && s >= at && s < at + 0.16) {
+  if (at != null && s >= at && s < at + 0.16 && !w.texHit) {         // texHit: 명중 그림을 PixelLab 시트(H)로 그리는 무기는 벡터 섬광을 끈다 (src/vfx-*.js)
     const u = (s - at) / 0.16, k = 1 - u;
     let px, py;
     if (w.staff) {

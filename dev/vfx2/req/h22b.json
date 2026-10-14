@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: heavy chop hit impact, a thick diagonal slash gash with jagged torn sawtooth edges glowing white hot and orange, three small angular grey stone chunks flying out, compact, no weapon, no axe, no handle, nothing else, no character, no background shape",
+ "seed": 48
+}

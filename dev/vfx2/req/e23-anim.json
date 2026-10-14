@@ -1,0 +1,10 @@
+{
+ "first_frame": {
+  "type": "base64",
+  "base64": ""
+ },
+ "action": "the horse gallops forward, legs in a full running cycle, mane and tail streaming, looping",
+ "frame_count": 4,
+ "seed": 3,
+ "no_background": true
+}

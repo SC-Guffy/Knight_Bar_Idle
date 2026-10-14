@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 48,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: wide halberd swing smear trail, a broad thick crescent arc sweeping from top to bottom on the right side, the outer edge shaped like a big axe blade with a sharp bright white rim, orange body fading to dark at the inner side, tail dissolving into small chips, no weapon, nothing else, no character, no background shape",
+ "seed": 8
+}
