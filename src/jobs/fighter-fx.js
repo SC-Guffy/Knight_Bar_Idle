@@ -108,7 +108,7 @@ Object.assign(SKILL_FX, {
       const t1 = h[0][0] * d, t2 = h[1][0] * d, step = m ? 6 : 2;
       if (t < (t1 + t2) / 2) return { sheet: { anim: 'atkA', u: qiSeg(t, t1 - 0.1, t1 + 0.12) }, dx: step * qiSeg(t, 0, t1) };
       if (h[2] && t >= (t2 + h[2][0] * d) / 2) return { sheet: { anim: 'release', u: qiSeg(t, h[2][0] * d - 0.08, h[2][0] * d + 0.2) }, dx: step + 4, skew: 0.12 };
-      return { sheet: { anim: 'atkB', u: qiSeg(t, t2 - 0.1, t2 + 0.14) }, dx: step + 2 * qiSeg(t, t1, t2), skew: 0.1 * qiSeg(t, t1, t2) };
+      return { sheet: { anim: 'atkB', u: qiSeg(t, t2 - 0.1, t2 + 0.14) }, dx: step + 6 * qiSeg(t, t1, t2), skew: 0.18 * qiSeg(t, t1, t2) };   // 스트레이트: 잽보다 크게 내딛고 몸을 숙인다
     },
     hitTex(a, t, share, i, n) { qiHitTex('xk01', a, t, i === n - 1 && a.mast >= 3); },
     hit(a, i, n) {

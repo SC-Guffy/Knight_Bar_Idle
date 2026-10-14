@@ -47,7 +47,10 @@ const makeSkills = (p) => (p.skills || []).map((s, i) => ({ ...s, left: 0.3 + i 
 const isQi = (me) => !!(me.p.qi && me.skills.some((s) => s.cost || s.need));
 function qiInit(me) {
   if (!isQi(me)) return;
-  me.qi = { v: me.p.qi.max, aw: -1, hurtT: -1, hurtN: 0 };
+  // duelStart: 결투·레이드 시작 기 (그랜드마스터 200). 투지 칸도 같은 비율로 시작한다 — 첫 순간 궁극기·기막·장풍 몰아치기 방지
+  const Q = me.p.qi, r = Q.duelStart != null ? Math.min(1, Q.duelStart / Q.max) : 1;
+  me.qi = { v: Q.max * r, aw: -1, hurtT: -1, hurtN: 0 };
+  if (r < 1) for (const s of me.skills) if (s.need) s.tj = s.need * r;
 }
 // 충전 (각성 중이면 두 배, 최대치에서 멈춘다)
 function qiAdd(me, n, t) {

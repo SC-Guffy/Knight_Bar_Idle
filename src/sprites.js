@@ -94,7 +94,11 @@ function drawHeroSheet(g, id, x, gy, pose) {
   if (pose.onlyWeapon) return;
   const s = sheetOf(id), meta = s.meta, fx = CLASSES[id].look.fx;
   const facing = pose.facing < 0 ? -1 : 1, D = SHEET_DOT;
-  const dx = Math.round(pose.dx || 0), lift = pose.lift || 0, sx = pose.sx || 1, sy = pose.sy || 1, skew = pose.skew || 0;
+  if (!s.ok && s.img && s.img.complete && s.img.naturalWidth) s.ok = true;
+  const sf = s.ok && meta ? sheetFrame(meta, pose) : null, lean = CLASSES[id].look.lean;
+  // look.lean: 평타 뒷손 스트레이트(atkB) 타격 두 장에서 몸을 앞으로 더 숙인다 (허리·어깨 회전 — 잽과 구분)
+  const leanOn = lean && !pose.sheet && sf && sf.anim === 'atkB' && Math.abs(sf.f - (meta.anims.atkB.hit || 1) - 0.5) <= 0.5;
+  const dx = Math.round(pose.dx || 0) + (leanOn ? 3 : 0), lift = pose.lift || 0, sx = pose.sx || 1, sy = pose.sy || 1, skew = (pose.skew || 0) + (leanOn ? lean : 0);
   g.save();
   g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;
   g.imageSmoothingEnabled = false;
@@ -102,7 +106,6 @@ function drawHeroSheet(g, id, x, gy, pose) {
   g.scale(facing, 1);
   if (skew) g.transform(1, 0, -skew, 1, 0, 0);          // 앞(+)으로 기울면 위쪽이 앞으로
   g.scale(sx, sy);
-  if (!s.ok && s.img && s.img.complete && s.img.naturalWidth) s.ok = true;
   if (!s.ok || !meta) {
     // 아직 못 불러왔다: 직업색 실루엣만 (몸 크기 대략)
     g.fillStyle = pose.tint || fx;
@@ -111,7 +114,7 @@ function drawHeroSheet(g, id, x, gy, pose) {
     g.restore();
     return;
   }
-  const { anim, f } = sheetFrame(meta, pose), a = meta.anims[anim];
+  const { anim, f } = sf, a = meta.anims[anim];
   const src = pose.tint ? sheetTinted(s, pose.tint) : s.img;
   const W = meta.w || 64, H = meta.h || 64, ft = meta.foot || [32, 58];
   g.drawImage(src, f * W, a.row * H, W, H, -ft[0] * D, -ft[1] * D, W * D, H * D);

@@ -68,16 +68,46 @@ def short(im, arm_x, yc, back=9, down=0):
     return o
 
 
+def pivot(im, hipx, y0, foot=58, back=2, heel=2):
+    """뒷발 피벗: 엉덩이(hipx) 뒤쪽 다리를 무릎(y0) 아래로 갈수록 뒤로 back 칸 뻗고, 뒷발 뒤꿈치(왼쪽 끝)를 heel 칸 든다"""
+    P = im.load(); leg = px.region(im, lambda x, y, p: x < hipx and y >= y0)
+    if not leg: return im
+    o = im.copy(); px.erase(o, leg); Q = o.load()
+    moved = {}
+    for (x, y) in leg: moved[(x - round(back * (y - y0) / max(1, foot - y0)), y)] = P[x, y]
+    fx = [x for (x, y) in moved if y >= foot - 4]
+    xl, xr = (min(fx), max(fx)) if fx else (0, 1)
+    for (x, y), c in sorted(moved.items(), key=lambda t: -t[0][1]):
+        r = round(heel * (xr - x) / max(1, xr - xl)) if y >= foot - 4 else 0
+        if 0 <= x < 64 and 0 <= y - r < 64: Q[x, y - r] = c
+    px.drop_specks(o); px.outline(o)
+    return o
+
+
+def stretch(im, xm, yc, E, h=5):
+    """뻗은 팔을 E 칸 늘린다: yc±h 줄에서 xm 오른쪽을 E 칸 밀고, 빈 칸은 xm 열을 되풀이"""
+    if E <= 0: return im
+    P = im.load(); o = im.copy(); Q = o.load()
+    for y in range(max(0, yc - h), min(64, yc + h + 1)):
+        for x in range(63, xm, -1):
+            Q[x, y] = P[x - E, y] if x - E > xm else P[xm, y]
+    px.outline(o)
+    return o
+
+
 def put(sh, m, a, f, im):
     A = m['anims'][a]
     sh.paste(Image.new('RGBA', (64, 64), (0, 0, 0, 0)), (f * 64, A['row'] * 64)); sh.alpha_composite(im, (f * 64, A['row'] * 64))
 
 
-def boxer(c, arm_x, chin_from, chin_box, erase_low):
+def boxer(c, arm_x, chin_from, chin_box, erase_low, hipx, knee):
     sh, m = load(c)
     dk = px.darker_map(px.palette(sh))
     st = straight(c, sh, m, dk, arm_x, chin_from, chin_box, erase_low)
-    for f, im in st.items(): put(sh, m, 'atkB', f, im)
+    for f, im in st.items():
+        t = tip(im)
+        st[f] = pivot(stretch(im, arm_x + 6, t[1], min(4, 62 - t[0])), hipx, knee)
+        put(sh, m, 'atkB', f, st[f])
     if c != 'fighter':                                # 내지르기(붕권·궁극기 막타)도 뒷손 스트레이트로
         for f, im in straight(c, sh, m, dk, arm_x, chin_from, chin_box, erase_low, 'release').items(): put(sh, m, 'release', f, im)
     if 'skillA' in m['anims']:
@@ -87,6 +117,11 @@ def boxer(c, arm_x, chin_from, chin_box, erase_low):
         frames = [short(jab, sx, tj[1], 9, 0), short(stf, sx, ts[1], 9, 0), short(jab, sx, tj[1], 11, 4), short(stf, sx, ts[1], 11, 4)]
         A = m['anims']['skillA']
         for f in range(A['frames']): put(sh, m, 'skillA', f, frames[f % 4])
+    # 잽은 짧게 (스트레이트보다 4칸 덜 뻗는다 — 2026-10-15 사용자: 스트레이트가 잽보다 길게)
+    A = m['anims']['atkA']; h = A.get('hit', 1)
+    for f in (h, h + 1):
+        im = fr(sh, m, 'atkA', f); t = tip(im)
+        put(sh, m, 'atkA', f, short(im, arm_x + 4, t[1], 4, 0))
     sh.save(px.SP(c, 'png'))
     return sh
 
@@ -109,9 +144,9 @@ def kicker(c, leg_x):
 
 
 if __name__ == '__main__':
-    boxer('striker', 38, ('atkA', 1), (28, 29, 40, 41), True)
-    boxer('champion', 40, ('atkA', 1), None, False)
-    boxer('fighter', 37, ('guard', 0), None, False)
+    boxer('striker', 38, ('atkA', 1), (28, 29, 40, 41), True, 32, 51)
+    boxer('champion', 40, ('atkA', 1), None, False, 33, 50)
+    boxer('fighter', 37, ('guard', 0), None, False, 31, 50)
     kicker('kickboxer', 39)
     kicker('tempest', 39)
     os.system('node "' + os.path.join(HERE, '..', 'sheet-meta.js') + '"')
@@ -232,7 +267,7 @@ def tempest():
     # 앉기: 그랜드마스터 무릎 꿇기 하체(남색 장삼 → 흰 바지) + 템페스트 상체(가드 0번)
     gm = Image.open(px.SP('grandmaster', 'png')).convert('RGBA'); gmm = json.load(open(px.SP('grandmaster', 'json')))
     pants = sorted([q for q in px.palette(sh) if abs(q[0] - q[1]) < 14 and abs(q[1] - q[2]) < 14 and px.lum(q) > 120], key=px.lum)
-    up = fr(sh, m, 'guard', 0)
+    up = fr(sh, m, 'idle', 0)                       # 서 있는 상체(팔 내림) — 가드 상체는 팔이 들려 깨져 보였다
     for f in range(m['anims']['sit']['frames']):
         base = fr(gm, gmm, 'sit', min(f, gmm['anims']['sit']['frames'] - 1))
         P = base.load(); low = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); L = low.load()
@@ -243,8 +278,9 @@ def tempest():
                 if not v[3]: continue
                 if v in robe and pants: L[x, y] = pants[min(len(pants) - 1, int(robe.index(v) / max(1, len(robe) - 1) * (len(pants) - 1)))]
                 elif px.is_skin(v) or v == px.OUTLINE: L[x, y] = v
+        low = low.crop((26, 0, 64, 64)); lo = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); lo.alpha_composite(low, (26, 0))   # 장삼 뒤 자락은 버린다
         upc = up.crop((0, 0, 64, 45))
-        o = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); o.alpha_composite(upc, (-3, -3 + f)); o.alpha_composite(low, (0, 0))
+        o = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); o.alpha_composite(lo, (0, 0)); o.alpha_composite(upc, (-2, 4 + f))
         px.drop_specks(o); px.outline(o)
         put(sh, m, 'sit', f, o)
     # 각성: 높이 찬 다리(앞차기 1번) + 허리 둘레 회오리 고리 (뒤 반은 몸 뒤, 앞 반은 몸 위, 프레임마다 무늬가 돈다)
