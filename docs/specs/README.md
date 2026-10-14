@@ -43,6 +43,7 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
+| [build-rush.md](build-rush.md) | 완료 (0.21.1) | 건설 즉시 완료 — 남은 1분당 최고 스테이지 잡몹 골드 ×2.2 (남은 1시간 ≈ 원정 30분 골드) |
 | [building-materials-and-training.md](building-materials-and-training.md) | 완료 (0.20.15) | 건물 목재·철광석 비용 Lv8 위로 ×1.5 · 교역 1회 = 다음 건물 비용 10% · 공격력·체력 훈련 배율(훈련 : 장비 ≈ 3:7) |
 | [growth-compression.md](growth-compression.md) | 완료 (0.21.0) | 성장 곡선 압축 — 몬스터 ×1.06·×1.04/스테이지(옆 레이드 보스 약 7배), 장비·훈련 배율 같은 비율로, 훈련 : 장비 체감 4 : 6. 경제는 2단계 |
 | [gold-trade-and-resource-guide.md](gold-trade-and-resource-guide.md) | 완료 (0.20.14) | 후반 성장 곡선 완화(스테이지 100 부터 몬스터 체력 ×1.19·공격력 ×1.145) · 교역 하루 5+Lv 회·값 ×1.3 · 캠프 재화 6칸 누르면 얻는 곳/쓰는 곳 |

@@ -91,6 +91,7 @@ function campStatus() {
 // data-live="키" 요소는 틱마다 LIVE[키]() 로 글자만 갱신한다 (버튼을 다시 만들지 않도록)
 const LIVE = {
   buildLeft: () => (S.build ? fmtTime(S.build.remain) : ''),
+  rushPrice: () => fmt(rushPrice()),
   stockWood: () => `${fmt(Math.floor(stockNow('wood')))} / ${fmt(stockCapAt('wood', S.bld.storage))}`,
   stockOre: () => `${fmt(Math.floor(stockNow('ore')))} / ${fmt(stockCapAt('ore', S.bld.storage))}`,
   stockEta: () => {
@@ -120,6 +121,8 @@ function tickLive(root = document) {
       : el.dataset.bar === 'build' && S.build ? 1 - S.build.remain / S.build.total : 0;
     el.style.width = (100 * Math.max(0, Math.min(1, r))) + '%';
   });
+  const rush = root.querySelector('[data-action="build-rush"]');
+  if (rush) rush.disabled = !S.build || S.gold < rushPrice();
   const go = root.querySelector('[data-action="depart"]');
   if (go) {
     go.disabled = !!departBlocker();
@@ -369,7 +372,8 @@ function viewTown() {
   const id = townSel(), b = BUILDINGS[id], lv = S.bld[id];
   let act;
   if (S.build && S.build.id === id) {
-    act = `<div class="prog"><div data-bar="build"></div></div><div class="small">건설 중 · <span data-live="buildLeft"></span></div>`;
+    act = `<div class="prog"><div data-bar="build"></div></div><div class="small">건설 중 · <span data-live="buildLeft"></span></div>
+      <button class="btn" data-action="build-rush" ${S.gold < rushPrice() ? 'disabled' : ''}>즉시 완료 · <i class="gc"></i> <span data-live="rushPrice"></span></button>`;
   } else if (lv >= bldMax(id)) {
     act = '<div class="small">최대 레벨</div>';
   } else {
@@ -2869,6 +2873,7 @@ const ACTIONS = {
     }, 110);
   },
   'build': (el) => startBuild(el.dataset.id),
+  'build-rush': () => { rushBuild(); },
   'bag-up': () => { if (upgradeBag()) toast(`🎒 가방 Lv ${S.bagLv} — 무게 ${bagCap()}`); },
   'goto-inn': () => { townUi.sel = 'inn'; campTab = 'town'; $('campBody').scrollTop = 0; },
   'stock-claim': () => { const g = claimStock(); if (g) toast(`📦 창고 비축 수령 — 🪵 +${fmt(g.wood)} · 🪨 +${fmt(g.ore)}`); },

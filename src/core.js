@@ -602,6 +602,16 @@ function advanceBuild(sec) {
     hooks.onBuilt(id);
   }
 }
+// 남은 시간을 골드로 끝낸다 (data.js BUILD_RUSH_GOLD)
+const rushPrice = () => (S.build ? Math.max(1, Math.ceil(monsterStats(S.best, false).gold * BUILD_RUSH_GOLD * Math.ceil(S.build.remain / 60))) : 0);
+function rushBuild() {
+  if (!S.build) return false;
+  const p = rushPrice();
+  if (S.gold < p) return false;
+  S.gold -= p;
+  advanceBuild(S.build.remain);
+  return true;
+}
 
 // ───────────────────────── 창고: 비축 · 교역 ─────────────────────────
 // 비축은 서버 시각으로 흐른다. 서버 시각을 모르는 동안은 쌓지 않는다 (기기 시계를 돌려 채우지 못하게, 다음 서버 응답 뒤에 이어서 쌓임)

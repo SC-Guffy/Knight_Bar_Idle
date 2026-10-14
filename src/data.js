@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.21.0';
+const GAME_VERSION = '0.21.1';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -107,6 +107,8 @@ const stockCapAt = (k, lv) => stockRateAt(k, lv) * STOCK_HOURS;
 const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200, TRADE_GROW = 1.3, TRADE_SHARE = 0.1;
 const tradesAt = (lv) => (lv >= TRADE_LV ? 5 + lv : 0);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
+// 건설 즉시 완료 (0.21.1): 남은 1분당 최고 스테이지 잡몹 골드 × BUILD_RUSH_GOLD (원정 1시간 ≈ 잡몹 263마리라 남은 1시간 ≈ 원정 30분 골드). 기다릴수록 싸진다
+const BUILD_RUSH_GOLD = 2.2;
 
 const BUILDINGS = {
   // 교관 수련이 켜져 있으면 훈련장은 Lv10 이 끝 (1차 훈련 Lv1~5 · 교관 Lv6~10 — 그 위로는 열 것이 없다)
