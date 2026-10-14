@@ -118,6 +118,7 @@ const dgActive = () => S.phase === 'dungeon' && !!S.dg.run;
 function dgBlocker() {
   if (!dgUnlocked()) return `스테이지 ${DG_UNLOCK_STAGE} 도달 시 열려요`;
   if (S.phase !== 'camp') return '캠프에서만 들어갈 수 있어요';
+  if (!srvClock.known) return '서버 시각 확인 중';   // 날짜를 모르는 채 어제 입장권을 쓰면 확인된 뒤 다시 채워진다
   if (dgTickets() <= 0) return '입장권이 없어요 (자정에 충전)';
   return '';
 }

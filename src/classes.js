@@ -456,7 +456,7 @@ const CLASSES = {
   },
   paladin: {
     tier: 2, from: 'swordsman', name: '성기사', icon: '✨', weapon: 'holySword',
-    mods: { atk: 1.7, hp: 1.98, aspd: 1.05, crit: 0.06, guard: 0.15, heal: 0.012 },
+    mods: { atk: 1.49, hp: 1.98, aspd: 1.05, crit: 0.06, guard: 0.15, heal: 0.012 },
     desc: '성검과 방패. 받는 피해가 줄고 때릴 때마다 회복한다.',
     look: {
       body: BODY.paladin, fx: '#ffd257',
@@ -468,7 +468,7 @@ const CLASSES = {
   },
   blademaster: {
     tier: 2, from: 'swordsman', name: '검성', icon: '🗡️', weapon: 'dualBlades',
-    mods: { atk: 1.8, hp: 1.43, aspd: 1.8, crit: 0.2, critMult: 0.5, guard: 0.15 },
+    mods: { atk: 1.73, hp: 1.43, aspd: 1.8, crit: 0.2, critMult: 0.5, guard: 0.15 },
     desc: '쌍검으로 몰아친다. 매우 빠르고 치명타가 강하다.',
     look: {
       body: BODY.blademaster, fx: '#ff4d4d',
@@ -489,7 +489,7 @@ const CLASSES = {
   },
   dragoon: {
     tier: 2, from: 'lancer', name: '용기병', icon: '🐉', weapon: 'dragonSpear',
-    mods: { atk: 2.6, hp: 1.76, aspd: 0.9, crit: 0.1, guard: 0.1 },
+    mods: { atk: 2.31, hp: 1.76, aspd: 0.9, crit: 0.1, guard: 0.1 },
     desc: '용의 힘을 두른 창. 하늘에서 내리꽂고 용의 숨결을 뿜는다.',
     look: {
       body: BODY.dragoon, fx: '#b388ff',
@@ -499,7 +499,7 @@ const CLASSES = {
   },
   halberdier: {
     tier: 2, from: 'lancer', name: '할버디어', icon: '🪓', weapon: 'halberd',
-    mods: { atk: 2.7, hp: 2.09, aspd: 0.8, crit: 0.08 },
+    mods: { atk: 2.33, hp: 2.09, aspd: 0.8, crit: 0.08 },
     desc: '묵직한 할버드로 사거리 안의 적을 모두 휩쓸어 밀어낸다.',
     look: {
       body: BODY.halberdier, fx: '#ff9f40',
@@ -521,7 +521,7 @@ const CLASSES = {
   },
   marksman: {
     tier: 2, from: 'ranger', name: '저격수', icon: '🎯', weapon: 'longbow',
-    mods: { atk: 2.5, hp: 1.08, aspd: 0.8, crit: 0.3, critMult: 0.5 },
+    mods: { atk: 2.02, hp: 1.08, aspd: 0.8, crit: 0.3, critMult: 0.5 },
     desc: '아주 먼 거리에서 강력한 한 발. 치명타 확률이 높다.',
     look: {
       body: BODY.marksman, fx: '#e8e070',
@@ -533,7 +533,7 @@ const CLASSES = {
   },
   arcaneArcher: {
     tier: 2, from: 'ranger', name: '마궁수', icon: '🔮', weapon: 'arcaneBow',
-    mods: { atk: 1.7, hp: 1.08, aspd: 1.35, crit: 0.1 },
+    mods: { atk: 1.62, hp: 1.08, aspd: 1.35, crit: 0.1 },
     desc: '마력 화살 3발을 흩뿌려 여러 적을 동시에 맞힌다.',
     look: {
       body: BODY.arcaneArcher, fx: '#6ff3ff',
@@ -556,7 +556,7 @@ const CLASSES = {
   },
   pyromancer: {
     tier: 2, from: 'mage', name: '화염술사', icon: '🔥', weapon: 'flameStaff',
-    mods: { atk: 2.54, hp: 1.03, aspd: 1.0, crit: 0.1 },
+    mods: { atk: 2.14, hp: 1.03, aspd: 1.0, crit: 0.1 },
     desc: '불덩이를 던진다. 맞은 자리에서 터져 주변 적까지 함께 태운다.',
     look: {
       body: BODY.pyromancer, fx: '#ff7a2a',
@@ -567,7 +567,7 @@ const CLASSES = {
   },
   cryomancer: {
     tier: 2, from: 'mage', name: '빙결술사', icon: '❄️', weapon: 'frostStaff',
-    mods: { atk: 2.29, hp: 1.17, aspd: 1.1, crit: 0.14 },
+    mods: { atk: 1.99, hp: 1.17, aspd: 1.1, crit: 0.14 },
     desc: '얼음창을 멀리서 빠르게 꽂는다. 서리 갑옷이 받는 피해를 줄인다.',
     look: {
       body: BODY.cryomancer, fx: '#9fe8ff',
@@ -580,7 +580,7 @@ const CLASSES = {
   // ── 새 2차 (계열마다 세 번째 갈래, 2026-10 추가). 3차는 아직 없다 — 트리는 여기서 끝난다 ──
   greatswordsman: {
     tier: 2, from: 'swordsman', name: '대검전사', icon: '🪓', weapon: 'greatsword',
-    mods: { atk: 2.9, hp: 1.93, aspd: 0.75, crit: 0.08, critMult: 0.3, guard: 0.15 },
+    mods: { atk: 2.44, hp: 1.93, aspd: 0.75, crit: 0.08, critMult: 0.3, guard: 0.15 },
     desc: '양손 거대 대검. 느리지만 한 번 휘두르면 앞의 적 셋이 한꺼번에 갈라진다.',
     look: {
       body: BODY.greatswordsman, fx: '#ff8a5c',
@@ -591,7 +591,7 @@ const CLASSES = {
   },
   cavalier: {
     tier: 2, from: 'lancer', name: '랜서', icon: '🐎', weapon: 'lance',
-    mods: { atk: 2.3, hp: 2.2, aspd: 0.95, crit: 0.08, guard: 0.1 },
+    mods: { atk: 2.05, hp: 2.2, aspd: 0.95, crit: 0.08, guard: 0.1 },
     desc: '돌격창과 방패. 받는 피해가 줄고, 돌격하면 일직선의 적이 쓰러진다.',
     look: {
       body: BODY.cavalier, fx: '#9fd8ff',
@@ -602,7 +602,7 @@ const CLASSES = {
   },
   arbalest: {
     tier: 2, from: 'ranger', name: '석궁사수', icon: '🔩', weapon: 'ballista',
-    mods: { atk: 3.0, hp: 1.3, aspd: 0.62, crit: 0.14, critMult: 0.4 },
+    mods: { atk: 2.38, hp: 1.3, aspd: 0.62, crit: 0.14, critMult: 0.4 },
     desc: '기사만 한 거대 석궁. 아주 느리지만 한 발이 포탄처럼 무겁다.',
     look: {
       body: BODY.arbalest, fx: '#ffb86b',
@@ -614,7 +614,7 @@ const CLASSES = {
   },
   electromancer: {
     tier: 2, from: 'mage', name: '뇌전술사', icon: '⚡', weapon: 'stormStaff',
-    mods: { atk: 2.3, hp: 0.99, aspd: 1.2, crit: 0.16 },
+    mods: { atk: 1.99, hp: 0.99, aspd: 1.2, crit: 0.16 },
     desc: '번개를 쏜다. 맞은 적에서 둘에게 더 튀고, 빠르고 치명타가 잦다.',
     look: {
       body: BODY.electromancer, fx: '#b7e3ff',
@@ -627,7 +627,7 @@ const CLASSES = {
   // ── 새 2차의 3차 (2026-10 추가) ──
   tyrant: {
     tier: 3, from: 'greatswordsman', name: '파천검왕', icon: '👑', weapon: 'doomBlade',
-    mods: { atk: 3.3, hp: 2.53, aspd: 0.8, crit: 0.1, critMult: 0.5, guard: 0.15 },
+    mods: { atk: 2.94, hp: 2.53, aspd: 0.8, crit: 0.1, critMult: 0.5, guard: 0.15 },
     desc: '하늘을 가른 대검의 왕. 검을 들면 세계가 둘로 갈라진다.',
     look: {
       body: BODY.greatswordsman, fx: '#ff5a2a',
@@ -638,7 +638,7 @@ const CLASSES = {
   },
   skyGeneral: {
     tier: 3, from: 'cavalier', name: '천마장군', icon: '🏇', weapon: 'holyLance',
-    mods: { atk: 2.6, hp: 2.97, aspd: 1.0, crit: 0.1, guard: 0.18 },
+    mods: { atk: 2.38, hp: 2.97, aspd: 1.0, crit: 0.1, guard: 0.18 },
     desc: '빛의 천마 군단을 이끄는 장군. 창을 들면 하늘의 기병대가 함께 달린다.',
     look: {
       body: BODY.cavalier, fx: '#cfe8ff',
@@ -650,7 +650,7 @@ const CLASSES = {
   },
   siegeMaster: {
     tier: 3, from: 'arbalest', name: '공성포수', icon: '🏰', weapon: 'siegeBallista',
-    mods: { atk: 3.5, hp: 1.71, aspd: 0.65, crit: 0.18, critMult: 0.6 },
+    mods: { atk: 3, hp: 1.71, aspd: 0.65, crit: 0.18, critMult: 0.6 },
     desc: '성벽을 무너뜨리는 포수. 한 발이 요새를 통째로 무너뜨린다.',
     look: {
       body: BODY.arbalest, fx: '#ffb86b',
@@ -661,7 +661,7 @@ const CLASSES = {
   },
   thunderEmperor: {
     tier: 3, from: 'electromancer', name: '뇌제', icon: '⛈️', weapon: 'tempestStaff',
-    mods: { atk: 2.7, hp: 1.44, aspd: 1.25, crit: 0.2 },
+    mods: { atk: 2.43, hp: 1.44, aspd: 1.25, crit: 0.2 },
     desc: '천둥을 다스리는 황제. 홀을 들면 하늘 전체가 벼락이 된다.',
     look: {
       body: BODY.electromancer, fx: '#e0f0ff',
@@ -675,7 +675,7 @@ const CLASSES = {
   // ── 3차 (2차마다 하나). 2차의 스킬(물려받은 1차 스킬 포함)을 그대로 쓰고 궁극기가 더해진다 (숙련도는 스킬마다 따로) ──
   archon: {
     tier: 3, from: 'paladin', name: '성좌기사', icon: '🌟', weapon: 'starBlade',
-    mods: { atk: 2.03, hp: 2.64, aspd: 1.1, crit: 0.08, guard: 0.15, heal: 0.012 },
+    mods: { atk: 1.83, hp: 2.64, aspd: 1.1, crit: 0.08, guard: 0.15, heal: 0.012 },
     desc: '별자리를 두른 성기사. 하늘의 성좌를 불러 내려 전장을 심판한다.',
     look: {
       body: BODY.archon, fx: '#9fd8ff',
@@ -687,7 +687,7 @@ const CLASSES = {
   },
   swordsaint: {
     tier: 3, from: 'blademaster', name: '검신', icon: '🌸', weapon: 'moonBlades',
-    mods: { atk: 1.74, hp: 1.87, aspd: 2.2, crit: 0.28, critMult: 0.8, guard: 0.15 },
+    mods: { atk: 1.7, hp: 1.87, aspd: 2.2, crit: 0.28, critMult: 0.8, guard: 0.15 },
     desc: '검의 끝에 닿은 자. 칼을 뽑는 순간 전장 전체가 갈라진다.',
     look: {
       body: BODY.swordsaint, fx: '#ff6a8a',
@@ -697,7 +697,7 @@ const CLASSES = {
   },
   dragonlord: {
     tier: 3, from: 'dragoon', name: '용황', icon: '🐲', weapon: 'wyrmSpear',
-    mods: { atk: 3, hp: 2.31, aspd: 0.95, crit: 0.14, guard: 0.1 },
+    mods: { atk: 2.76, hp: 2.31, aspd: 0.95, crit: 0.14, guard: 0.1 },
     desc: '용들의 왕이 된 기병. 창을 들면 하늘에서 용황이 내려온다.',
     look: {
       body: BODY.dragonlord, fx: '#ff4dd2',
@@ -707,7 +707,7 @@ const CLASSES = {
   },
   warlord: {
     tier: 3, from: 'halberdier', name: '전쟁군주', icon: '⚒️', weapon: 'doomAxe',
-    mods: { atk: 3.18, hp: 2.75, aspd: 0.85, crit: 0.1 },
+    mods: { atk: 2.87, hp: 2.75, aspd: 0.85, crit: 0.1 },
     desc: '전쟁 그 자체가 된 거인. 도끼창을 내리찍으면 땅이 끝까지 무너진다.',
     look: {
       body: BODY.warlord, fx: '#ff7a2a',
@@ -717,7 +717,7 @@ const CLASSES = {
   },
   deadeye: {
     tier: 3, from: 'marksman', name: '신궁', icon: '☀️', weapon: 'sunBow',
-    mods: { atk: 2.61, hp: 1.4, aspd: 0.85, crit: 0.4, critMult: 0.8 },
+    mods: { atk: 2.23, hp: 1.4, aspd: 0.85, crit: 0.4, critMult: 0.8 },
     desc: '태양을 쏘아 떨어뜨렸다는 궁수. 시위를 당기면 하늘이 열린다.',
     look: {
       body: BODY.deadeye, fx: '#ffe066',
@@ -729,7 +729,7 @@ const CLASSES = {
   },
   voidArcher: {
     tier: 3, from: 'arcaneArcher', name: '차원궁사', icon: '🌀', weapon: 'voidBow',
-    mods: { atk: 1.72, hp: 1.4, aspd: 1.45, crit: 0.14 },
+    mods: { atk: 1.67, hp: 1.4, aspd: 1.45, crit: 0.14 },
     desc: '차원의 틈을 활시위로 삼는다. 화살 네 발이 공간을 찢으며 날아간다.',
     look: {
       body: BODY.voidArcher, fx: '#ff4dff',
@@ -740,7 +740,7 @@ const CLASSES = {
   },
   archmage: {
     tier: 3, from: 'pyromancer', name: '대마도사', icon: '☄️', weapon: 'infernoStaff',
-    mods: { atk: 2.93, hp: 1.35, aspd: 1.05, crit: 0.12 },
+    mods: { atk: 2.6, hp: 1.35, aspd: 1.05, crit: 0.12 },
     desc: '불의 근원에 닿은 마도사. 지팡이를 들면 하늘에서 겁화가 쏟아진다.',
     look: {
       body: BODY.pyromancer, fx: '#ff3b1f',
@@ -752,7 +752,7 @@ const CLASSES = {
   },
   frostlord: {
     tier: 3, from: 'cryomancer', name: '빙결의 군주', icon: '🧊', weapon: 'glacierStaff',
-    mods: { atk: 2.62, hp: 1.57, aspd: 1.15, crit: 0.18, guard: 0.15 },
+    mods: { atk: 2.36, hp: 1.57, aspd: 1.15, crit: 0.18, guard: 0.15 },
     desc: '만년설을 다스리는 군주. 숨을 내쉬면 전장의 시간까지 얼어붙는다.',
     look: {
       body: BODY.cryomancer, fx: '#cff6ff',
@@ -1558,12 +1558,8 @@ const SKILL_DMG = {
   // 3차 궁극기: Lv30 이면 그 직업 전체 DPS 를 +25% (Lv1 +17%). 3차 직업 전체는 2차보다 약 1.4배 (궁극기 포함, 공격력 보정으로 맞춤)
   archon: 1.5, swordsaint: 1.48, dragonlord: 1.47, warlord: 1.16, deadeye: 1.12, voidArcher: 2.87, archmage: 1.58, frostlord: 0.91,
 };
-// 2차 직업이 물려받은 1차 스킬의 위력 배수. 1차 스킬을 그대로 얹으면 직업마다 DPS 가 +15~43%(Lv30) 로 들쭉날쭉해서,
-// 계승 스킬이 2차 직업의 전체 DPS 를 Lv1 +5% → Lv30 +10% 만큼 올리도록 직업마다 맞췄다 (스킬 비중이 큰 직업일수록 낮다)
-const INHERIT_DMG = {
-  paladin: 0.46, blademaster: 0.77, dragoon: 0.49, halberdier: 0.43, marksman: 0.35, arcaneArcher: 0.74, pyromancer: 0.32, cryomancer: 0.37,
-  greatswordsman: 0.45, cavalier: 0.5, arbalest: 0.38, electromancer: 0.35,
-};
+// 물려받은 1차 스킬은 2차·3차에서도 위력·쿨타임이 그대로다 (0.20.11 — 전직하면 1차 스킬이 약해지던 INHERIT_DMG 를 없애고,
+//  그만큼 2·3차 직업의 공격력 배율(mods.atk)을 낮춰 직업 전체 DPS 는 그대로 맞췄다)
 // 숙련 단계(별). lv 는 그 별을 달 수 있게 되는 레벨 (진화 버튼은 스킬 탭). 이름과, 그 단계에서 바뀌는 모습
 const MASTERY = [
   null,
@@ -1588,27 +1584,13 @@ const masteryOf = (lv) => Math.min(3, Math.floor(lv / 10));
 const skillProg = (lv, star = masteryOf(lv)) => 0.7 * (lv - 1) / (SKILL_MAX - 1) + 0.1 * Math.max(0, Math.min(3, star));
 // 쿨타임 배수 (SKILLS 의 cd 에 곱한다)
 const skillCdAt = (lv, star) => SKILL_CD_LV1 + (SKILL_CD_MAX - SKILL_CD_LV1) * skillProg(lv, star);
-// 물려받은 1차 스킬의 한 방 최저선 (Lv1 총 배율). INHERIT_DMG 만 곱하면 한 방이 평타 치명(×2.5~3)보다 작아지는 직업이 있어서,
-// 그 아래면 위력을 여기까지 올리고 쿨타임도 같은 배수로 늘린다 — 가끔 터지지만 확실히 센 한 방, 전체 DPS 몫은 그대로
-const INHERIT_HIT = 3.5;
 // 스킬 전체 상향 (2026-10-06): 한 방 위력 ×1.6, 쿨타임 ×1.35 — 스킬이 평타보다 확실히 세게 느껴지도록.
 // 스킬 DPS 는 ×1.19 라 전체 DPS 는 Lv1~10 +3~9%, Lv30 +10~20% (스킬 비중이 큰 2차 직업일수록 더 오른다)
 const SKILL_POW_UP = 1.6;
 const SKILL_CD_UP = 1.35;
-// 물려받은 스킬의 위력 배수. 3차가 쓰는 1차 스킬은 그 계열 2차 직업이 쓸 때와 같다 (3차의 2차 스킬은 배수 없이 그대로)
-const inheritDmg = (k, owner) => {
-  if (owner === k.cls) return 1;
-  const via = CLASSES[owner] && CLASSES[owner].tier === 3 && CLASSES[k.cls].tier === 1 ? CLASSES[owner].from : owner;
-  return INHERIT_DMG[via] || 1;
-};
-const inheritBoost = (k, owner) => {
-  const d = inheritDmg(k, owner);
-  if (d === 1) return 1;
-  return Math.max(1, INHERIT_HIT / (skillMult(k) * (SKILL_DMG[k.cls] || 2) * SKILL_DMG_LV1 * d * SKILL_POW_UP));
-};
 // 트리 보너스 b: { star 단 별 수, pow 공격 특화 Lv 합, cd 쿨타임 특화 Lv 합 } — 숫자만 주면 별 수로 본다 (없으면 레벨로 가능한 최대 별, 특화 0)
 const treeBonus = (b) => (typeof b === 'number' ? { star: b } : b || {});
-// 쿨타임(초). owner 는 쓰는 기사의 직업 (물려받은 스킬이면 inheritBoost 만큼 길어진다)
+// 쿨타임(초). owner 는 쓰는 기사의 직업
 const skillCdOf = (k, lv, owner = k.cls, b) => {
   const t = treeBonus(b);
   if (k.right) {
@@ -1616,19 +1598,19 @@ const skillCdOf = (k, lv, owner = k.cls, b) => {
     const m = 1 - rightVal(k, 'cd', t), p0 = (SKILL_CD_LV1 - TREE2_CD) / (SKILL_CD_LV1 - SKILL_CD_MAX);
     return k.cdSpan
       ? Math.round((k.cdSpan[0] + (k.cdSpan[1] - k.cdSpan[0]) * p0) * m * 10) / 10
-      : Math.round(k.cd * TREE2_CD * SKILL_CD_UP * inheritBoost(k, owner) * m * 10) / 10;
+      : Math.round(k.cd * TREE2_CD * SKILL_CD_UP * m * 10) / 10;
   }
   const m = 1 - TREE_CD * (t.cd || 0);
   return k.cdSpan
     ? Math.round((k.cdSpan[0] + (k.cdSpan[1] - k.cdSpan[0]) * skillProg(lv, t.star)) * m * 10) / 10
-    : Math.round(k.cd * skillCdAt(lv, t.star) * SKILL_CD_UP * inheritBoost(k, owner) * m * 10) / 10;
+    : Math.round(k.cd * skillCdAt(lv, t.star) * SKILL_CD_UP * m * 10) / 10;
 };
-// 한 방 위력 배수 (SKILLS 배율에 곱한다). k 는 스킬, owner 는 쓰는 기사의 직업 (물려받은 1차 스킬이면 INHERIT_DMG·inheritBoost 를 곱한다)
+// 한 방 위력 배수 (SKILLS 배율에 곱한다). k 는 스킬, owner 는 쓰는 기사의 직업
 const skillPowAt = (k, lv, owner = k.cls, b) => {
   const t = treeBonus(b);
   // V2: Lv1 기준 위력에서 시작해 ⚔️ 피해 노드 칸만큼만 오른다 (레벨·별은 수치 0)
-  if (k.right) return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * SKILL_DMG_LV1 * (1 + TREE2_POW * (t.pow || 0)) * inheritDmg(k, owner) * inheritBoost(k, owner);
-  return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv, t.star)) * inheritDmg(k, owner) * inheritBoost(k, owner)
+  if (k.right) return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * SKILL_DMG_LV1 * (1 + TREE2_POW * (t.pow || 0));
+  return (SKILL_DMG[k.cls] || 2) * SKILL_POW_UP * (SKILL_DMG_LV1 + (1 - SKILL_DMG_LV1) * skillProg(lv, t.star))
     * (1 + TREE_POW * (t.pow || 0));
 };
 // 누적 비전서 → { lv, have 이번 레벨에 먹인 권수, need 이번 레벨에 필요한 권수 } (tier 는 skillTierOf)

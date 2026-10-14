@@ -27,7 +27,7 @@ const seasonChestBoss = () => Object.keys(RAID_BOSSES).filter(raidUnlocked).pop(
 function seasonReward(tier) {
   const boss = seasonChestBoss();
   const mult = tier.mult + (boss ? 0 : tier.chests);
-  const ms = monsterStats(S.best, true), scale = 1 + (S.best - 1) * 0.04;
+  const ms = bossLoot(S.best), scale = 1 + (S.best - 1) * 0.04;
   return {
     gold: Math.round(ms.gold * 6 * mult),
     wood: Math.round(50 * scale * mult), ore: Math.round(40 * scale * mult), mana: Math.round(10 * scale * mult),

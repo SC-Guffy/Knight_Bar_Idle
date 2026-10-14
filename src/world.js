@@ -132,6 +132,7 @@ function makeMonster(type, boss, x, st = monsterStats(S.stage, boss)) {
 
 function layoutLap() {
   lapReady = true;
+  if (S.run.cleared) finishLap();   // 보스를 잡은 채 바퀴가 새로 깔리면(절전 복귀·다시 불러오기) 진행부터 반영
   monsters.forEach(m => { if (!m.dying) m.dying = 0.001; });
   const pool = monsterPool(S.stage);
   const from = knight.x + 110;
@@ -155,6 +156,7 @@ function layoutLap() {
   if (boss) lapPlan.push({ type: zoneOf(S.stage).boss, boss: true, x: bossX(), g: packs.length });
   S.run.kills = 0; S.run.cleared = false;
   S.run.total = n + (boss ? 1 : 0);
+  S.run.boss = boss;
 }
 
 // 계획된 자리에 기사가 가까워지면 몬스터를 무리째 등장시킨다

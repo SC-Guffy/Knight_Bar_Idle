@@ -118,6 +118,8 @@ function gearScore(it) {
   let k = 1;
   for (const o of activeOpts(it)) sp[o.k] = (sp[o.k] || 0) + o.v;
   for (const [key, v] of Object.entries(sp)) if (OPT_SCORE[key] != null) k += v * OPT_SCORE[key]; else k += key === 'heal' ? v * 10 : key === 'goldPct' || key === 'expPct' ? v * 0.3 : key === 'crit' ? v * 3 : v;
+  // 고유 발동 효과(투척·불기둥 등)도 평균 배율로 (procAtkEv·procHpEv 와 같은 값) — 빼면 자동 장착이 발동 장비를 후보에서 떨군다
+  for (const p of procList(ITEM_PROCS[it.t])) k *= (1 + (p.ev || 0)) * (1 + (p.hv || 0));
   return base * k;
 }
 // 고유 장비 특수 효과 글 (없으면 '')

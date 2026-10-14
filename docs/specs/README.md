@@ -48,7 +48,8 @@
 | [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
 | [forge-temper.md](forge-temper.md) | 완료 | 대장간 🔥 담금질대: +20 까지 강화 성공↑·하락↓, +20 이상은 그대로 |
 | [skill-mastery-cost.md](skill-mastery-cost.md) | 완료 | 스킬 숙련도 비전서 요구량 차수별(1차 6·2차 10·궁극기 12권/레벨 최대) |
-| [ult-separate-mastery.md](ult-separate-mastery.md) | 완료 (0.20.7) | 3차 궁극기를 별도 스킬로 — 1차 스킬 유지(2차 때 위력), 궁극기 숙련도·트리 따로 (mastV 12) |
+| [ult-separate-mastery.md](ult-separate-mastery.md) | 완료 (0.20.7) | 3차 궁극기를 별도 스킬로 — 1차 스킬 유지(0.20.11 부터 2·3차에서도 원래 위력), 궁극기 숙련도·트리 따로 (mastV 12) |
+| [reward-inversion-audit.md](reward-inversion-audit.md) | 완료 (0.20.11) | 보상 역전 전수조사: 탑 입장 소탕분 보장·원정 보스 진행 유실·진화★ 손해·1차 스킬 계승 약화·레이드 보상 눈금·세트 서열·입장권 서버 시각 등 |
 | [gear-options.md](gear-options.md) | 완료 (0.20.0) | 장비 강화 구간별 옵션 줄 · 등급 희소성 드랍 개편 · 🎲 재굴림권(재굴림대) |
 | [unique-procs.md](unique-procs.md) | 완료 (0.20.0) | 이름 있는 장비·레이드 세트 고유 발동 효과 |
 | [training-mentors.md](training-mentors.md) | 보류 — 0.20.6 에 꺼 둠 (`MENTOR_ON`) | 훈련 1차 만렙 50 · 2차 훈련 🎓 교관 수련(교관 5명 × 별 5, 골드 확률 수련 + 마지막 별은 레벨 스케일링 승부). 지금은 훈련 Lv 200 으로 되돌려 둠 |

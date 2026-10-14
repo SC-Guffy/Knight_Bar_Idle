@@ -22,7 +22,7 @@ const wbUnlocked = () => S.best >= WB_UNLOCK;
 function wbReward(row) {
   const rel = row.total > 0 ? Math.min(WB_REL_MAX, (row.dmg / row.total) * Math.max(1, row.players)) : 0;
   const units = 1 + 2 * rel;
-  const ms = monsterStats(S.best, true), scale = 1 + (S.best - 1) * 0.04;
+  const ms = bossLoot(S.best), scale = 1 + (S.best - 1) * 0.04;
   const chestBoss = row.killed ? Object.keys(RAID_BOSSES).filter(raidUnlocked).pop() || null : null;
   const killMats = (row.killed && !chestBoss ? 1.5 : 1) * (1 + gearBonus().matPct);     // 레이드를 아직 못 열면 상자 대신 재화를 더 (🎲 재화 획득 옵션도 여기)
   return {

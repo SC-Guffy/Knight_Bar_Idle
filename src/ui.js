@@ -444,12 +444,6 @@ function trainNextText(u, st) {
   const d = trainGain(u, st, nx);
   return `+${d >= 0.1 ? Math.round(d * 100) : (d * 100).toFixed(1)}%`;
 }
-// 공격력·체력 훈련 한 단계가 지금 능력치를 몇 % 올리는지 (맨몸 단련이라 장비가 커지는 중후반엔 0 에 가깝다)
-function trainGain(u, st = stats(), nx) {
-  if (!nx) { S.train[u.id]++; nx = stats(); S.train[u.id]--; }
-  const k = u.id === 'atk' ? 'atk' : 'maxHp';
-  return nx[k] / st[k] - 1;
-}
 
 // 훈련장을 골랐을 때 건물 카드 아래에 붙는 훈련 칸 (옛 훈련 탭)
 function viewTraining() {
@@ -516,7 +510,7 @@ function viewTrain1() {
         <span class="cost">${maxed ? (lv >= u.max ? 'MAX' : '훈련장 필요') : '<i class="gc"></i> ' + fmt(cost)}</span>
       </button>`;
   }).join('');
-  const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u));
+  const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u) && trainWorth(u));
   return `
     <div class="shead">
       <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — ${MENTOR_ON ? '초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요' : '초반을 끌어 주고, 중후반 힘은 장비가 책임져요'}</small></h3>
@@ -729,12 +723,12 @@ function viewSkill() {
     ${ptLine}
     ${treeHtml(k)}`;
   const guide = guidePendingFeed()
-    ? `<div class="gtip big">👉 <b>📖 1권 쓰기</b>를 눌러 보세요 — 칸이 차면 레벨이 오르고, 쿨타임이 바로 줄고 위력이 올라요.</div>`
+    ? `<div class="gtip big">👉 <b>📖 1권 쓰기</b>를 눌러 보세요 — 칸이 차면 레벨이 올라 ⭐ 포인트 1개 — 트리 노드에 찍으면 위력이 오르고 쿨타임이 줄어요.</div>`
     : canInvestAny() && !S.guide.node ? `<div class="gtip big">⭐ 스킬 포인트가 생겼어요 — 레벨마다 1개씩, 구간 칸의 빛나는 노드를 눌러 두 노드에 나눠 찍어 보세요. 칸 경계의 진화 이정표는 포인트 없이 Lv·찍은 포인트 조건만 맞으면 열려요 (되돌리기는 무료).</div>`
     : S.tomes === 0 ? `<div class="gtip">📖 비전서는 ${towerUnlocked() ? `<button class="lnk" data-action="tab" data-tab="tower">${ico('tower')} 도전의 탑</button>에서 가장 많이 얻어요 (원정 보스·레이드 상자·결투 시즌에서도)` : `🗼 도전의 탑(스테이지 ${TOWER_UNLOCK_STAGE}에 열림)·원정 보스·레이드 상자·결투 시즌에서 얻어요`}</div>` : '';
   const note = (heroClass().tier >= 3
     ? '1·2차 스킬은 숙련도·트리 그대로 써요 (1차 스킬 위력은 2차 때와 같아요). 3차 궁극기는 Lv 100 에 열리고 숙련도를 따로 키워요.'
-    : '1차 스킬은 2차 전직 뒤에도 숙련도·트리 그대로 써요 (2차 직업에선 위력이 조금 줄어요). 3차 전직하면 궁극기가 새 스킬로 더해져요.')
+    : '1차 스킬은 2차·3차 전직 뒤에도 숙련도·트리·위력 그대로 써요. 3차 전직하면 궁극기가 새 스킬로 더해져요.')
     + ' 별 띠에서 고른 모습은 기술의 형태·연출만 바꾸고, 위력·쿨타임은 트리 기준이에요.';
   return `${head}${guideFlow('skill')}${guide}${chips}${card}<div class="hint">${note}</div>`;
 }
@@ -1130,7 +1124,7 @@ const rd = (on) => (on ? ' rd' : '');
 const canBuild = (id) => !S.build && S.bld[id] < bldMax(id) && canAfford(buildCost(id, S.bld[id]));
 // 훈련은 골드가 쌓이면 늘 할 수 있어서, 다음 단계 비용의 2배가 모였을 때만 찍는다 (버튼은 비용만 있으면 눌림)
 // 레드닷: 골드가 넉넉하고, 공격력·체력은 한 단계가 1% 이상 올려 줄 때만 (중후반엔 장비가 힘의 대부분이라 재촉하지 않는다)
-const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= 2 * trainCost(u) && (u.id !== 'atk' && u.id !== 'hp' || trainGain(u) >= 0.01);
+const canTrain = (u) => S.train[u.id] < trainMax(u) && S.gold >= 2 * trainCost(u) && trainWorth(u);
 // 자동 장착하면 더 강해지는 부위(세트 효과 포함)
 const gearBetter = (slot) => bestLoadout()[slot] !== S.gear.eq[slot];
 // 강화석은 강화에만 쓰니 비용이 모이면 바로 찍는다 (장비를 낀 부위만 — 빈 부위 강화는 급하지 않다)
@@ -1355,7 +1349,7 @@ function viewForge() {
   const html = `
     <div class="shead sub"><h3>${ico('anvil')} 부위 강화 ${stoneChip()}</h3>
       <button class="chk ${gearUi.protect ? 'on' : ''}" data-action="gear-protect" ${S.items.protect && anyRisky ? '' : 'disabled'}>
-        ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화가 있는 단계에서 강화할 때마다 1장 소모 · 원정 상자에서만 나옴</small></button></div>
+        ${gearUi.protect && S.items.protect ? '☑' : '☐'} 📜 보호 주문서 <small>(${S.items.protect || 0}) · 하락·초기화가 있는 단계에서 강화할 때마다 1장 소모 · 원정 상자·레이드·월드 보스에서 나옴</small></button></div>
     <div class="hint">강화 단계는 부위에 붙어 있어서 장비를 바꿔 껴도 그대로예요. 💠 강화석은 원정 보스를 잡거나 장비를 팔면 얻어요.</div>
     <div class="fslots">${Object.keys(GEAR_SLOTS).map(forgeSlot).join('')}</div>
     ${forgeRerollSection()}
@@ -1942,6 +1936,7 @@ setInterval(raidPoll, RAID_POLL_MS);
 function setRaidRoom(room) {
   raidUi.room = room;
   if (room && room.state === 'done' && room.result) onRaidResult(room.result);
+  else if (room && room.last) onRaidResult(room.last);   // 방장이 바로 다시 열어 놓쳤던 직전 결과
 }
 
 // 출정 결과를 받았다: 내 몫을 계산만 해 두고(보류) 하단바에서 재생한다. 보상은 재생이 끝나야 들어온다
@@ -2392,7 +2387,7 @@ function guideTick() {
   }
 }
 // 탑 → 비전서 → 스킬 강화 흐름을 한 줄로 (탑 탭·숙련도 패널 맨 위)
-const guideFlow = (here) => `<div class="gflow">${[['tower', '🗼 탑 오르기'], ['tome', '📖 비전서 획득'], ['skill', '⚡ 스킬 강화 (쿨타임↓ 위력↑)']]
+const guideFlow = (here) => `<div class="gflow">${[['tower', '🗼 탑 오르기'], ['tome', '📖 비전서 획득'], ['skill', '⚡ 스킬 레벨 → ⭐ 트리']]
   .map(([k, t]) => `<span class="${k === here ? 'on' : ''}">${t}</span>`).join('<i>→</i>')}</div>`;
 
 // ───────────────────────── 도전의 탑 ─────────────────────────
@@ -2432,7 +2427,7 @@ function towerBuyRow() {
 }
 function viewTower() {
   const t = S.tower, blocker = towerBlocker(), cp = towerCheckpoint();
-  const nextFirst = Math.floor(t.best / 10) * 10 + 10;
+  const nextFirst = Math.max(t.paid || 0, Math.floor(t.best / 10) * 10) + 10;   // 옛 곡선에서 옮긴 기록은 이미 받은 묶음(paid)이 더 높을 수 있다
   const m = towerMonster(cp), boss = towerBossFloor(cp);
   const L = t.last, fresh = towerResultPending();
   if (fresh) towerResultViewed = true;
@@ -2501,7 +2496,7 @@ function viewDungeon() {
     <div class="mhead"><div><h3>${ico('pick')} 재료의 미궁</h3>
       <small>🎟 입장권 <b>${dgTickets()}/${DG_TICKETS}</b> · 최고 기록 👑 ${d.best || 0}마리 · 통산 🌟 퍼펙트 ${d.perfects || 0}</small></div></div>
     ${fresh ? dgResultHtml(d.last) : ''}
-    <div class="hint">보스가 한 마리씩 나와요. 잡을 때마다 🎰 슬롯머신을 한 번 돌리고, 보스는 한 마리마다 1 스테이지씩 세져요 (지금 첫 보스 스테이지 ${s0}, 내 전투력에 맞춰요). 슬롯 보상은 보스를 잡을수록 ×${1 + DG_BOSS_BONUS}씩 커지고, 보스를 잡으면 체력이 ${Math.round(DG_HEAL * 100)}% 차요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요.</div>
+    <div class="hint">보스가 한 마리씩 나와요. 잡을 때마다 🎰 슬롯머신을 한 번 돌리고, 보스는 한 마리마다 1 스테이지씩 세져요 (지금 첫 보스 스테이지 ${s0}, 내 전투력에 맞춰요). 슬롯 보상은 보스를 잡을 때마다 +${Math.round(DG_BOSS_BONUS * 100)}%씩 커지고, 보스를 잡으면 체력이 ${Math.round(DG_HEAL * 100)}% 차요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요.</div>
     <div class="dgrow"><span class="lbl">슬롯</span>${tiers}<span class="small">— 3칸이 멈추면 그림대로 재화가 쏟아져요</span></div>
     <div class="act" style="margin-top:8px"><button class="go compact${rd(blocker === '')}" data-action="dg-start" ${blocker ? 'disabled' : ''}>${ico('pick')} 입장 <small>${ico('ticket')}1</small></button> <span class="blocker">${blocker}</span></div>`;
 }

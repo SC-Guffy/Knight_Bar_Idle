@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.20.10';
+const GAME_VERSION = '0.20.11';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -232,7 +232,7 @@ const SUPPLIES = {
   potion: { name: '회복 물약',  icon: '🧪', price: 10, w: 40, desc: '원정 중 체력 30% 이하에서 자동 사용 (쓰러짐 방지)' },
   charm:  { name: '행운의 부적', icon: '🍀', price: 30, w: 12, desc: '이번 원정 동안 좋은 등급의 전리품이 더 잘 나옴' },
   elixir: { name: '투지의 영약', icon: '🔥', price: 30, w: 13, desc: '이번 원정 동안 공격력 +30%' },
-  protect: { name: '보호 주문서', icon: '📜', price: 0, w: 60, shop: false, desc: '강화할 때 1장 써서, 실패로 단계가 떨어지거나 초기화되는 걸 막아 줌 (원정 상자에서만 나옴)' },
+  protect: { name: '보호 주문서', icon: '📜', price: 0, w: 60, shop: false, desc: '강화할 때 1장 써서, 실패로 단계가 떨어지거나 초기화되는 걸 막아 줌 (원정 상자·레이드 처치 상자·월드 보스에서 나옴)' },
   // 재굴림권: 상점에 없다(shop: false) — 레이드 처치 상자·월드 보스 보상에서만 (RARE_DROP)
   reroll: { name: '재굴림권', icon: '🎲', price: 0, w: 0, shop: false, desc: '대장간 🎲 옵션 재굴림대에서 장비 옵션 한 줄을 다시 굴림' },
 };
@@ -763,7 +763,7 @@ const SET_PROCS = {
   demonking:     { type: 'nova', mult: 0.8, radius: 60, color: '#c06bff', name: '흑염 폭발', say: '', ev: 0.06 },
   abysswatcher:  { type: 'gaze', thr: 0.3, v: 0.25, color: '#9a5cff', name: '심연의 응시', say: '', ev: 0.08 },
   skygriffin:    { type: 'stack', v: 0.04, max: 6, dur: 6, color: '#9fd8ff', name: '천공 질주', say: '천공의 패자!', ev: 0.12 },
-  sandworm:      { type: 'quake', every: 6, mult: 1.5, radius: 120, color: '#e8b56a', name: '개미지옥', say: '개미지옥!', ev: 0.05 },
+  sandworm:      { type: 'quake', every: 5, mult: 2, radius: 120, color: '#e8b56a', name: '개미지옥', say: '개미지옥!', ev: 0.08 },
   kraken:        { type: 'thorns', v: 0.2, color: '#2a8ad1', name: '먹물 반격', say: '', ev: 0.03, hv: 0.06 },
   fairyqueen:    { type: 'nova', mult: 0, heal: 0.04, radius: 0, color: '#ff9ff3', name: '꽃잎 회복', say: '', hv: 0.08 },
   colossus:      { type: 'meteor', every: 12, n: 1, mult: 3, beam: true, color: '#ff4d4d', name: '궤도 포격', say: '궤도 포격!', ev: 0.1 },
@@ -937,6 +937,10 @@ function monsterStats(stage, boss) {
     ? { hp: hp * 5 * (field ? 4 : 1), atk: atk * 1.4 * (field ? 1.6 : 1), gold: gold * 10 * f, exp: exp * 6 * f, boss: true }
     : { hp: hp * MOB_HP_MULT, atk, gold, exp, boss: false };
 }
+// 레이드·월드 보스·결투 시즌 보상의 보스 눈금 (골드·경험치). 필드 보스 ×1.5 는 원정의 벽에만 쓴다 —
+//  여기서 쓰면 스테이지가 20의 배수일 때만 튀어서, 더 센 보스(입장+2)를 잡거나 최고 스테이지가 오르면 오히려 덜 받았다.
+//  f: 고정 배율 (레이드는 1.5 — 사람 3~4인 파티가 받던 값을 모든 구성에 그대로)
+const bossLoot = (stage, f = 1) => { const m = monsterStats(stage, false); return { gold: m.gold * 10 * f, exp: m.exp * 6 * f }; };
 
 // ───────────────────────── 필드 ─────────────────────────
 // 20스테이지마다 필드가 바뀐다. 앞 필드의 마지막 보스를 한 번이라도 잡아야 다음 필드로 갈 수 있다.
@@ -2294,25 +2298,25 @@ const RAID_BOSSES = {
       pal: { B: '#2a1a4a', b: '#0d0818', W: '#7a4fd1', H: '#5ad1ff', G: '#5ad1ff', J: '#ff3b8a' } } },
   skygriffin: { name: '천공의 그리폰 왕', icon: '🦅', stage: 160, spr: 'rb_skygriffin', hit: 'feather', aoe: 'gale', fx: ['#9fd8ff', '#ffffff'], skill: '천공 돌풍',
     pal: { w: '#3a6bb8', W: '#e8f0ff', h: '#ffffff', K: '#1b1d27', y: '#ffd257', b: '#c9a26a', B: '#f0dcb0', t: '#8a6a3a', T: '#3a6bb8' },
-    set: { name: '천공의 패자', 2: { atkPct: 0.2, aspdPct: 0.12 }, 3: { hpPct: 0.2, crit: 0.08, critMult: 0.6, guard: 0.05 } },
+    set: { name: '천공의 패자', 2: { atkPct: 0.22, aspdPct: 0.12 }, 3: { hpPct: 0.2, crit: 0.09, critMult: 0.7, guard: 0.06 } },
     desc: '하늘에 뜬 섬들을 둥지 삼아 다스리는 그리폰들의 왕. 날개를 한 번 치면 구름이 갈라진다.',
     chest: { name: '그리폰 왕의 황금 둥지', n: [4, 5], w: [0, 0, 0, 5, 60, 29, 5, 1], sig: 0.09, spr: 'chest',
       pal: { B: '#c9a26a', b: '#8a6a3a', W: '#e8f0ff', H: '#ffd257', G: '#ffd257', J: '#3a6bb8' } } },
   sandworm: { name: '모래폭풍 대왕충', icon: '🪱', stage: 180, spr: 'rb_sandworm', hit: 'sandspit', aoe: 'quicksand', fx: ['#e8b56a', '#fff1c2'], skill: '개미지옥',
     pal: { o: '#5a3e1e', K: '#2a1408', t: '#f4f1e8', r: '#8a1f1f', s: '#c98b4a', S: '#e8b56a', d: '#b8925a', D: '#e0c080' },
-    set: { name: '모래 폭군', 2: { hpPct: 0.25 }, 3: { atkPct: 0.25, guard: 0.08, goldPct: 0.3 } },
+    set: { name: '모래 폭군', 2: { hpPct: 0.25, aspdPct: 0.15 }, 3: { atkPct: 0.35, guard: 0.08, crit: 0.06, critMult: 0.6, goldPct: 0.3 } },
     desc: '모래폭풍 사막 밑을 헤엄치는 산만 한 벌레. 사구가 움직인다 싶으면 이미 그 입 속이다.',
     chest: { name: '대왕충의 삼킨 보물', n: [5, 5], w: [0, 0, 0, 0, 58, 34, 6.5, 1.5], sig: 0.084, spr: 'chest',
       pal: { B: '#c98b4a', b: '#5a3e1e', W: '#e8b56a', H: '#fff1c2', G: '#ffd257', J: '#2a8ad1' } } },
   kraken: { name: '심해의 크라켄', icon: '🦑', stage: 200, spr: 'rb_kraken', hit: 'inkshot', aoe: 'tidal', fx: ['#2a8ad1', '#9fe8ff'], skill: '대해일',
     pal: { p: '#4a1030', P: '#b3264a', L: '#ff6b8a', Y: '#ffe066', K: '#0a0410', s: '#ffb3c6' },
-    set: { name: '심해의 군주', 2: { hpPct: 0.2, heal: 0.006 }, 3: { atkPct: 0.25, aspdPct: 0.15, guard: 0.07 } },
+    set: { name: '심해의 군주', 2: { hpPct: 0.2, heal: 0.006 }, 3: { atkPct: 0.25, aspdPct: 0.15, guard: 0.09, crit: 0.08, critMult: 0.45 } },
     desc: '가라앉은 신전을 제 둥지로 삼은 거대한 두족류. 촉수 하나가 신전 기둥보다 굵다.',
     chest: { name: '가라앉은 신전의 제단 궤', n: [5, 5], w: [0, 0, 0, 0, 50, 40, 8, 2], sig: 0.084, spr: 'jewelbox',
       pal: { B: '#1f4a6b', b: '#0d2438', W: '#9fe8ff', H: '#ffe066', G: '#ffe066', J: '#ff6b8a' } } },
   fairyqueen: { name: '요정 여왕 티타니아', icon: '🧚', stage: 220, spr: 'rb_fairyqueen', hit: 'pixie', aoe: 'thorns', fx: ['#7dffb0', '#ff9ff3'], skill: '가시덩굴 정원',
     pal: { W: '#2f7a4a', L: '#b3ffd9', G: '#ff9ff3', y: '#ffd257', h: '#ffe8a8', f: '#ffd9c2', K: '#1b1d27', d: '#3a9a5a', D: '#c9ffd9' },
-    set: { name: '요정 왕실', 2: { aspdPct: 0.15, expPct: 0.3 }, 3: { atkPct: 0.28, crit: 0.1, critMult: 0.6, heal: 0.006 } },
+    set: { name: '요정 왕실', 2: { aspdPct: 0.15, hpPct: 0.22, expPct: 0.3 }, 3: { atkPct: 0.4, crit: 0.1, critMult: 0.8, guard: 0.08, heal: 0.006 } },
     desc: '요정의 숲 가장 오래된 나무 위의 여왕. 웃으며 손짓하면 숲 전체가 가시로 변한다.',
     chest: { name: '여왕의 꽃잎 보석함', n: [5, 5], w: [0, 0, 0, 0, 40, 46, 11, 3], sig: 0.075, spr: 'jewelbox',
       pal: { B: '#3a9a5a', b: '#1f5a33', W: '#b3ffd9', H: '#ff9ff3', G: '#ffd257', J: '#ff9ff3' } } },
@@ -2324,7 +2328,7 @@ const RAID_BOSSES = {
       pal: { B: '#5a5f6a', b: '#2a2a33', W: '#8a8f9a', H: '#c9a227', G: '#c9a227', J: '#3ee8ff' } } },
   crystalspider: { name: '수정 여왕 거미', icon: '🕷️', stage: 260, spr: 'rb_crystalspider', hit: 'shard', aoe: 'prism', fx: ['#ff9ff3', '#9fe8ff'], skill: '프리즘 폭쇄',
     pal: { c: '#5a2a8a', C: '#c98bff', W: '#ffffff', s: '#2a2048', S: '#5a4a8a', R: '#ff4dff', K: '#ffffff' },
-    set: { name: '수정 여왕', 2: { crit: 0.1, critMult: 0.5 }, 3: { atkPct: 0.3, hpPct: 0.25, aspdPct: 0.15, guard: 0.06 } },
+    set: { name: '수정 여왕', 2: { crit: 0.1, critMult: 0.7 }, 3: { atkPct: 0.35, hpPct: 0.25, aspdPct: 0.18, guard: 0.08 } },
     desc: '등에 수정을 키우며 동굴을 통째로 거미줄로 감싼 여왕. 빛이 들면 동굴 전체가 칼날이 된다.',
     chest: { name: '수정 여왕의 알집', n: [5, 6], w: [0, 0, 0, 0, 20, 52, 22, 6], sig: 0.066, spr: 'jewelbox',
       pal: { B: '#3a2a5a', b: '#1b1530', W: '#c98bff', H: '#9fe8ff', G: '#ffffff', J: '#ff4dff' } } },

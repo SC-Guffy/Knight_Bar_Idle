@@ -405,6 +405,15 @@ const canLevelSkill = () => skillsOf(S.cls).some((k) => {
   return s.lv < SKILL_MAX && S.tomes >= s.need - s.have;
 });
 
+// 진화한 모습(별 단계)이 0단계보다 오래 시전하면 그동안 못 친 평타 피해만큼 스킬 피해를 얹는다 — 진화는 모습만 바뀌고 손해가 없게.
+//  돌려주는 값은 스킬 한 번의 피해 배율 (dpsOf·profile·skills.js 시전이 같이 쓴다)
+function stageComp(id, st) {
+  const k = skillAt(id, skillLv(id), skillStage(id)), lost = k.dur - skillAt(id, skillLv(id), 0).dur;
+  if (lost <= 0) return 1;
+  const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
+  const cast = (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id);
+  return cast > 0 ? 1 + perHit * st.shots * st.shotMult * st.aspd * lost / cast : 1;
+}
 // 한 마리를 상대로 한 초당 피해 (연발·스킬 포함). 스킬을 쓰는 동안은 평타를 멈춘다
 function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
@@ -415,7 +424,7 @@ function dpsOf(st) {
     busy += k.dur / cd;
     const hitV = k.crit ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
     // 고유 특수는 평균 피해로 환산해 넣는다 (classes.js specEv — 처형·보스 등 상황형은 일부만, 기절·골드 같은 운영형은 0)
-    extra += hitV * skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) / cd;
+    extra += hitV * skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) * stageComp(id, st) / cd;
   }
   // 고유 발동 효과(투척·불기둥 등)는 평균 피해 배율로 (gear.js procAtkEv)
   return (perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra) * procAtkEv();
@@ -440,7 +449,7 @@ function profile() {
       // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다.
       // 고유 특수(spec)는 서버가 모르는 상황형 효과라 평균 피해 배율(classes.js specEv)로 환산해 mult 에 녹인다 — 결투·레이드에선 그만큼 세진 한 방
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
-      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)), crit: !!k.crit,
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) * stageComp(id, st), crit: !!k.crit,
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
         ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : wd ? { ward: { dur: TREE_RIGHT.ward.dur, guard: wd, heal: 0 } } : {}) };
     }),
@@ -449,7 +458,7 @@ function profile() {
 
 const maxStamina = () => maxStaminaAt(S.bld.inn);
 const minDepartStamina = () => Math.ceil(maxStamina() * MIN_DEPART_RATIO);
-const bagCap = () => bagCapAt(S.bagLv) + gearBonus().bagCap;   // 🎲 가방 무게 옵션
+const bagCap = () => Math.ceil(bagCapAt(S.bagLv) + gearBonus().bagCap);   // 🎲 가방 무게 옵션 (소수 옵션은 올림 — 무게는 정수라 담을 수 있는 양은 그대로)
 const bagMaxLv = () => S.bld.inn;
 function bagUpBlocker() {
   if (S.bagLv >= bagMaxLv()) return '여관 Lv 이 더 필요해요';
@@ -516,11 +525,21 @@ function doTrain(id) {
   if (id === 'hp') S.hp += stats().maxHp - oldMax;
   return true;
 }
+// 공격력·체력 훈련 한 단계가 지금 능력치를 몇 % 올리는지 (맨몸 단련이라 장비가 커지는 중후반엔 0 에 가깝다)
+function trainGain(u, st = stats(), nx) {
+  if (!nx) { S.train[u.id]++; nx = stats(); S.train[u.id]--; }
+  const k = u.id === 'atk' ? 'atk' : 'maxHp';
+  return nx[k] / st[k] - 1;
+}
+// 올릴 값어치가 있는 훈련인가: 공격력·체력은 맨몸 수치가 포화되기 전까지만 (다음 단계가 맨몸 수치를 1% 도 못 올리면 — 약 Lv 32 —
+//  그 뒤로는 비용만 ×1.32 씩 오르고 거의 안 오른다). 장비 대비 비중(trainGain)으로 자르면 아직 쓸모 있는 초중반 훈련까지 건너뛴다
+const trainWorth = (u) => (u.id !== 'atk' && u.id !== 'hp') || trainSat(S.train[u.id] + 1) / Math.max(1e-9, trainSat(S.train[u.id])) - 1 >= 0.01 || S.train[u.id] < 10;
 // 골드가 되는 데까지 다음 단계가 가장 싼 훈련부터 하나씩 올린다 → 네 훈련에 드는 골드가 대충 고르게 나뉜다
+//  (포화돼 거의 안 오르는 공격력·체력은 건너뛴다 — 손으로 한 칸씩은 올릴 수 있다)
 function doTrainAll() {
   let n = 0;
   for (;;) {
-    const u = TRAINING.filter(x => S.train[x.id] < trainMax(x) && S.gold >= trainCost(x))
+    const u = TRAINING.filter(x => S.train[x.id] < trainMax(x) && S.gold >= trainCost(x) && trainWorth(x))
       .sort((a, b) => trainCost(a) - trainCost(b))[0];
     if (!u || !doTrain(u.id)) return n;
     n++;
@@ -702,6 +721,7 @@ function startExpedition({ charm = false, elixir = false } = {}) {
   if (departBlocker()) return false;
   if (charm && S.items.charm > 0) S.items.charm--; else charm = false;
   if (elixir && S.items.elixir > 0) S.items.elixir--; else elixir = false;
+  if (S.run.cleared) finishLap();   // 옛 저장: 보스를 잡고 바퀴를 못 마친 채 돌아온 기록
   S.trip = {
     start: Date.now(), dur: 0, kills: 0, bosses: 0, gold: 0, xp: 0, levels: 0,
     stageFrom: S.stage, stageTo: S.stage, boxes: GRADES.map(() => 0),
@@ -726,6 +746,8 @@ function endExpedition(reason, instant = false) {
   if (S.phase !== 'expedition') return;
   S.trip.reason = reason;
   S.bagHit = reason === 'bag';
+  // 보스를 잡고 바퀴 끝에 닿기 전에 끝났어도(가방 가득·지침·귀환) 스테이지는 올린다
+  if (S.run.cleared) finishLap();
   S.trip.stageTo = S.stage;
   S.phase = 'returning';
   hooks.onExpeditionEnd(reason);
@@ -795,7 +817,10 @@ function finishLap() {
 }
 
 // 보스는 바퀴의 마지막(화면 우하단) 몬스터
-const isBossNext = () => !S.run.farm && !S.run.cleared && S.run.kills === S.run.total - 1;
+// S.run.boss === false 면 보스 자리를 지나쳐 깐 바퀴 (보스 없음)
+const isBossNext = () => !S.run.farm && !S.run.cleared && S.run.boss !== false && S.run.kills === S.run.total - 1;
+// 오프라인 바퀴는 화면 크기·직전 바퀴와 상관없이 몬스터 SIM_LAP 마리(마지막이 보스)로 센다
+const SIM_LAP = 8;
 
 // 쓰러짐: 스태미나를 잃고 다시 일어나 이번 원정은 파밍만 한다.
 // 보스에게 졌으면 같은 스테이지에서, 일반 몬스터에게 졌으면 한 스테이지 아래에서 (필드 밖으로는 안 내려간다).
@@ -828,7 +853,7 @@ function simulate(sec) {
   let t = sec;
   let guard = 0;
   while (S.phase === 'expedition' && t > 0 && guard++ < 50000) {
-    if (S.run.kills >= S.run.total) finishLap();
+    if (S.run.kills >= S.run.total) { finishLap(); S.run.total = SIM_LAP; S.run.boss = true; }
     const st = stats();
     const boss = isBossNext();
     const m = monsterStats(S.stage, boss);

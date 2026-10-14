@@ -78,7 +78,7 @@ function settleRaid(result, nick) {
   const mult = (f.won ? 1 : RAID_FAIL_MULT) * (mvp ? RAID_MVP_MULT : 1) * bot;
   // 재화·경험치는 인원수만큼 강해진 보스의 스테이지 기준 (적은 인원으로 어렵게 잡을수록 많이). 단 내 최고 스테이지를 넘지는 않는다
   const rs = Math.max(b.stage, Math.min(S.best, Math.round(raidStageAt(b, result.party || result.members.length))));
-  const ms = monsterStats(rs, true), scale = 1 + (rs - 1) * 0.04, mat = mult * (1 + gearBonus().matPct);
+  const ms = bossLoot(rs, 1.5), scale = 1 + (rs - 1) * 0.04, mat = mult * (1 + gearBonus().matPct);
   const reward = {
     gold: Math.round(ms.gold * 8 * mult * goldMult()),
     wood: Math.round(60 * scale * mat), ore: Math.round(45 * scale * mat), mana: Math.round(12 * scale * mat),
@@ -138,7 +138,9 @@ function openRaidChest(c) {
     const all = raidSignatures(c.b), missing = all.filter((t) => !S.gear.inv.some((x) => x.t === t));
     const sigs = missing.length ? missing : all;
     const t = sigs[Math.floor(Math.random() * sigs.length)], d = GEAR_ITEMS[t];
-    out[0] = { k: 'gear', slot: d.slot, g: d.g, s: c.s, t, roll: Math.round((1 + Math.random() * 0.1) * 100) / 100 };
+    // 가장 낮은 등급 칸을 대신한다 (무작위 칸을 덮으면 더 좋은 전설·신화가 사라질 수 있다)
+    const lo = out.reduce((m, it, i) => (it.g < out[m].g ? i : m), 0);
+    out[lo] = { k: 'gear', slot: d.slot, g: d.g, s: c.s, t, roll: Math.round((1 + Math.random() * 0.1) * 100) / 100 };
   }
   return out.sort((a, b) => b.g - a.g);
 }

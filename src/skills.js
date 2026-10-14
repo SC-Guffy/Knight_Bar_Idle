@@ -257,12 +257,12 @@ function tryCastSkill(st, target, only = null) {
     knight.cds[id] = cdNow;
     procLater.push({ at: clock + 0.05, fn: () => procOnCast(id) });   // 우로보로스: 쿨타임 초기화 (시전 처리가 끝난 뒤)
     // 🌀 겹침: 12초 안에 다시 쓰면 한 겹씩 쌓이고(최대 5), 이번 시전은 지금까지 쌓인 겹 수만큼 세다
-    let stackMul = 1;
+    let stackMul = stageComp(id, st);   // 진화 모습이 오래 시전하는 만큼 (core.js stageComp)
     if (spT('stack')) {
       knight.stacks = knight.stacks || {};
       const s = knight.stacks[id], n = s && clock - s.t < 12 ? Math.min(5, s.n + 1) : 0;
       knight.stacks[id] = { n, t: clock };
-      stackMul = 1 + sp.v * n / 5;
+      stackMul *= 1 + sp.v * n / 5;
       if (n) addFloater(`${sp.icon} ${n}겹`, toScreen(knight.x), groundY() - 80, '#bfe9ff', 12);
     }
     // 💨 가속(시전 뒤 잠깐 평타가 빨라진다, world.js 평타 타이머) · ✨ 연계(다른 스킬 쿨타임을 당긴다)는 시전 즉시
@@ -333,7 +333,7 @@ function tryCastSkill(st, target, only = null) {
         }
         const max = stats().maxHp;
         // 보호막 스킬(성역)의 트리 V2: 🛡️ 철벽은 보호막 감소율에 더해지고(최대 90%), 🩸 흡혈은 보호막 초당 피해에도 적용 (tickSkills)
-        knight.ward = { left: k.ward.dur, guard: Math.min(0.9, k.ward.guard + wd), tick: k.ward.tick * skillPow(id), acc: 0, finish: (k.ward.finish || 0) * skillPow(id), lc, a };
+        knight.ward = { left: k.ward.dur, guard: Math.min(0.9, k.ward.guard + wd), tick: k.ward.tick * skillPow(id) * stageComp(id, st), acc: 0, finish: (k.ward.finish || 0) * skillPow(id) * stageComp(id, st), lc, a };
         S.hp = Math.min(max, S.hp + max * k.ward.heal);
         addFloater(`💚 +${fmt(max * k.ward.heal)}`, toScreen(knight.x), groundY() - 66, '#7dffb0', 13);
       },

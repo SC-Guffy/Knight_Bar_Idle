@@ -57,6 +57,7 @@ const towerRage = (t) => (t < TOWER_ENRAGE_SEC ? 1 : Math.pow(2, (t - TOWER_ENRA
 function towerBlocker() {
   if (!towerUnlocked()) return `스테이지 ${TOWER_UNLOCK_STAGE} 도달 시 열려요`;
   if (S.phase !== 'camp') return '캠프에서만 도전할 수 있어요';
+  if (!srvClock.known) return '서버 시각 확인 중';   // 날짜를 모르는 채 어제 입장권을 쓰면 확인된 뒤 다시 채워진다
   if (towerTickets() <= 0) return '입장권이 없어요 (자정에 충전 · 구매 가능)';
   if (S.stamina < minDepartStamina()) return `스태미나 ${minDepartStamina()} 이상 필요 (휴식 중)`;
   return '';
@@ -97,6 +98,7 @@ function towerTicketPrice() {
 }
 function towerTicketBlocker() {
   if (!towerUnlocked()) return `스테이지 ${TOWER_UNLOCK_STAGE} 도달 시 열려요`;
+  if (!srvClock.known) return '서버 시각 확인 중';
   if ((S.tower.tixExtra || 0) >= TOWER_TICKET_HOLD) return `산 입장권은 ${TOWER_TICKET_HOLD}장까지 가질 수 있어요`;
   const p = towerTicketPrice();
   if (S.gold < p.gold) return '골드 부족';
@@ -114,7 +116,7 @@ function buyTowerTicket() {
   return true;
 }
 // 소탕: 입장권 1장으로 최고 층 수만큼 비전서를 바로 받는다
-const towerSweepReady = () => towerUnlocked() && S.tower.best > 0 && towerTickets() > 0 && !S.tower.run;
+const towerSweepReady = () => towerUnlocked() && srvClock.known && S.tower.best > 0 && towerTickets() > 0 && !S.tower.run;
 function sweepTower() {
   if (!towerSweepReady()) return 0;
   useTowerTicket();

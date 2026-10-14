@@ -515,6 +515,8 @@ function roomView(r) {
     id: r.id, boss: r.boss, state: r.state, host: host ? host.nickname : null,
     members: r.members.map((m) => ({ nickname: m.nickname, cls: m.cls, level: m.level, power: m.power, best: m.best, ready: m.ready, host: m.key === r.host, ...(m.bot ? { bot: true } : {}) })),
     result: r.result, at: r.opened,
+    // 방장이 "다시 도전"으로 방을 다시 열어도 직전 결과를 남겨 둔다 — 그 사이 못 받아 간 파티원도 보상을 받게 (클라는 claimed 로 중복을 막는다)
+    ...(r.state === 'open' && r.last ? { last: r.last } : {}),
   };
 }
 
@@ -709,6 +711,7 @@ const raidRoutes = {
     const me = await authLite(req);
     const r = myRoom(me.key);
     if (!r || r.host !== me.key) throw new HttpError(403, '방장만 할 수 있어요');
+    r.last = r.result;
     r.state = 'open'; r.result = null; r.at = Date.now();
     r.members.forEach((m) => { m.ready = !!m.bot; });
     return { room: roomView(r) };
