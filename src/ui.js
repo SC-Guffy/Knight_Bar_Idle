@@ -2411,7 +2411,7 @@ function towerResultHtml(L) {
       <div class="reason">${TOWER_REASON[L.reason] || '도전 끝'}${L.cleared ? ` — ${L.start}F → ${top}F, <b>${L.cleared}개 층</b> 돌파` : ` — ${L.start}F 를 넘지 못했어요`}</div>
       ${rec}
       <div class="stats">
-        ${cell('📖 비전서', `+${fmt(L.tomes)}권`)}
+        ${cell('📖 비전서', `+${fmt(L.tomes)}권${L.base ? ` <small>(기본 ${fmt(L.base)})</small>` : ''}`)}
         ${cell('🗼 돌파', `${L.cleared}층`)}
         ${cell('⚔️ 처치', fmt(L.kills || 0))}
         ${cell('⏱ 시간', L.dur ? fmtTime(L.dur) : '-')}
@@ -2448,7 +2448,7 @@ function viewTower() {
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="skill">${ico('bolt')} 스킬 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나, 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
-      체크포인트(10층 단위)부터 시작하고, 깬 층마다 <b>📖 1권</b>. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${TOWER_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
+      체크포인트(10층 단위)부터 시작하고, 입장하면 소탕만큼(<b>최고 층 수 📖</b>) 기본으로 받고 깬 층마다 <b>📖 1권</b> 더. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${TOWER_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
       <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>

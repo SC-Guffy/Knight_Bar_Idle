@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.20.9';
+const GAME_VERSION = '0.20.10';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -58,7 +58,8 @@ const TOWER_ENRAGE_SEC = 10;          // 한 층에서 이만큼 싸우면 광�
 const TOWER_ENRAGE_DOUBLE = 2.5;
 // 탑 비전서: 올라가며 깬 층 하나에 1권 (하루 한도 없음) + 10층 단위 첫 돌파 묶음.
 //  입장권은 하루 TOWER_TICKETS 장 — 도전 입장 또는 소탕(입장 없이 최고 층 수만큼 📖)에 1장씩 (tower.js)
-//  숙련도는 스킬 하나 Lv30 에 239권 — 최고 15층이면 하루 소탕 15 + 등반 35권
+//  도전 입장은 소탕분(최고 층 수)을 기본 보장 + 깬 층마다 1권 — 소탕보다 손해 보는 일이 없다
+//  숙련도는 스킬 하나 Lv30 에 239권
 const TOWER_TICKETS = 3;
 // 탑 입장권 추가 구매 (tower.js buyTowerTicket). 입장권 1장 ≈ 소탕 한 번(최고 층 수만큼 📖)이라 레이드 입장권보다 훨씬 비싸게.
 //  골드 기준값 = 최고 스테이지 몬스터 골드 × TOWER_TICKET_GOLD. 원정은 약 6초에 1마리 → 몬스터 골드 × 300 ≈ 사냥 30분치 (골드 보너스 제외)
