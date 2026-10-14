@@ -50,13 +50,66 @@ function vfxQuantize(s) {
   for (let i = 0; i < w * h; i++) {
     if (p[i * 4 + 3] < 24) continue;
     const l = (0.3 * p[i * 4] + 0.59 * p[i * 4 + 1] + 0.11 * p[i * 4 + 2]) / 255;
-    lv[i] = l < 0.2 ? (s.soft ? 2 : 1) : 2 + Math.round(((l - 0.2) / 0.8) * 4);   // soft: 연기처럼 어두운 덩어리가 큰 시트는 외곽선색 대신 램프의 가장 어두운 단
+    // 외곽선(1)은 거의 무채색인 아주 어두운 픽셀만. 짙은 빨강·갈색처럼 색이 있는 어두운 픽셀(불꽃 꼬리·흙)은 램프의 가장 어두운 단(2)
+    const r = p[i * 4], gg = p[i * 4 + 1], b = p[i * 4 + 2], ink = Math.max(r, gg, b) < 48 && Math.max(r, gg, b) - Math.min(r, gg, b) < 28;
+    lv[i] = l < 0.2 ? (s.soft || !ink ? 2 : 1) : 2 + Math.round(((l - 0.2) / 0.8) * 4);   // soft: 연기처럼 어두운 덩어리가 큰 시트는 외곽선색 대신 램프의 가장 어두운 단
   }
+  // 화면을 거의 채우는 그림(밤하늘 배경 등)은 외곽선이 없으니 건드리지 않는다
+  let filled = 0;
+  for (let i = 0; i < w * h; i++) if (lv[i]) filled++;
+  if (filled < w * h * 0.6) vfxStripOutline(lv, w, h, s.frames, p);
   Object.assign(s, { w, h, fw: w / s.frames, lv, tint: new Map(), src: p });
   // 볼록한 쪽 방향 (0번 프레임의 불투명 픽셀 무게중심 − 테두리 상자 중심). 궤적을 돌릴 때 볼록한 쪽이 칼끝을 보게 한다
   let n = 0, sx = 0, sy = 0, x0 = s.fw, y0 = h, x1 = 0, y1 = 0;
   for (let y = 0; y < h; y++) for (let x = 0; x < s.fw; x++) if (lv[y * w + x]) { n++; sx += x; sy += y; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
   s.bulge = n ? Math.atan2(sy / n - (y0 + y1) / 2, sx / n - (x0 + x1) / 2) : 0;
+}
+
+// 검은 외곽선·지저분한 파티클 걷어 내기 (2026-10-15 사용자: "검은색 아웃라인 들어간 지저분한 파티클은 싫다").
+//  ① 바깥 외곽선: 어두운 픽셀(lv 1) 중 빈칸·그림 가장자리에서 어두운 픽셀만 밟아 닿는 것은 지운다 (두꺼운 외곽선도 한 번에).
+//  ② 그림 안쪽에 남은 어두운 픽셀은 검정이 아니라 램프의 가장 어두운 단(2)으로 올린다.
+//  ③ 외곽선을 벗긴 뒤 홀로 떨어진 1픽셀 점은 지운다. 프레임 경계를 넘어 이어 보지 않는다.
+function vfxStripOutline(lv, w, h, frames, p) {
+  const fw = w / (frames || 1), q = [];
+  const fx = (i) => Math.floor((i % w) / fw);
+  for (let i = 0; i < w * h; i++) {
+    if (lv[i] !== 1) continue;
+    const x = i % w, y = (i / w) | 0, f = fx(i);
+    const edge = x === f * fw || x === (f + 1) * fw - 1 || y === 0 || y === h - 1
+      || (x > 0 && fx(i - 1) === f && !lv[i - 1]) || (x < w - 1 && fx(i + 1) === f && !lv[i + 1])
+      || (y > 0 && !lv[i - w]) || (y < h - 1 && !lv[i + w]);
+    if (edge) { lv[i] = 0; q.push(i); }
+  }
+  while (q.length) {
+    const i = q.pop(), x = i % w, f = fx(i);
+    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i - w, i + w]) {
+      if (j < 0 || j >= w * h || lv[j] !== 1 || fx(j) !== f) continue;
+      lv[j] = 0; q.push(j);
+    }
+  }
+  // 안쪽에 남은 검은 픽셀: 둘레 색(검정 아닌 이웃들의 평균)으로 메워 얼룩 없이 덩어리에 녹인다
+  for (let i = 0; i < w * h; i++) {
+    if (lv[i] !== 1) continue;
+    const x = i % w; let n = 0, r = 0, g = 0, b = 0;
+    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i - w, i + w]) {
+      if (j < 0 || j >= w * h || lv[j] < 2) continue;
+      n++; r += p[j * 4]; g += p[j * 4 + 1]; b += p[j * 4 + 2];
+    }
+    lv[i] = 2;
+    if (n) { p[i * 4] = r / n; p[i * 4 + 1] = g / n; p[i * 4 + 2] = b / n; }
+  }
+  for (let i = 0; i < w * h; i++) {
+    if (!lv[i]) continue;
+    const x = i % w, f = fx(i);
+    let alone = true;
+    for (let dy = -1; dy <= 1 && alone; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const xx = x + dx, j = i + dy * w + dx;
+      if (xx < 0 || xx >= w || j < 0 || j >= w * h || fx(j) !== f) continue;
+      if (lv[j]) { alone = false; break; }
+    }
+    if (alone) lv[i] = 0;
+  }
 }
 
 // 'r,g,b' · '#rrggbb' · 'rgb(a)(…)' → [r, g, b]
