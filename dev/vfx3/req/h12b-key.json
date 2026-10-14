@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 24,
+  "height": 24
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a small bullet hole impact, one thick bright white round ring with a dark hole in the middle, three thick sharp light grey shards flying out to the right from the ring, bold simple shapes, nothing else, no character, no background shape",
+ "seed": 61
+}

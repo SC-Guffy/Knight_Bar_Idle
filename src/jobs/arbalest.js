@@ -9,7 +9,7 @@
 //  Lv1 「이연발」 살 두 발을 잇달아
 //  ★ 「다연장 사격」 탄창을 돌려 다섯 발 — 쏠 때마다 탄피(빈 살통)가 튀고 반동으로 몸이 밀린다
 //  ★★ 「쇠비」 하늘로 쏘아 올린 살들이 쇠비가 되어 적 머리 위에 쏟아져 박힌다
-//  ★★★ 「강철 폭풍」 석궁이 통째로 돌며 사방에 살을 뿌리고 — 마지막에 거대한 살이 일직선을 꿰어 화면 가장자리에 박힌다 (ballistaBoltFx)
+//  ★★★ 「강철 폭풍」 석궁이 통째로 돌며 사방에 살을 뿌리고 — 마지막에 살 일곱 자루가 낮은 부채꼴로 날아가 대상 둘레 땅에 울타리처럼 꽂힌다 (살비 abVolleyFx — 철갑 관통탄의 거대 살 한 자루와 다르게)
 // 하단바 전체를 덮지 않는다: 쇠비도 대상 둘레에만 떨어진다
 
 const AB_COL = { main: '#ffb86b', fire: '#ff7a2a', smoke: '#3a3030', steel: '#c9c2b4', wood: '#8a5a2b' };
@@ -53,43 +53,21 @@ function abArcFx(x0, y0, x1, y1, flight, peak, bomb = true, len = 16, onLand) {
     abBolt(x, y, Math.atan2(ny - y, nx - x), len, bomb);
   }, onLand, (u) => { if (Math.random() < 0.6) { const x = mix(x0, x1, u), y = mix(y0, y1, u) - peak * 4 * u * (1 - u); parts.push({ x, y, vx: rand(-10, 10), vy: rand(-10, 10), g: 0, size: 2, color: '#6a6a6a', life: 0.35, t: 0 }); } });
 }
-// 폭발: 주황 불덩이 → 검은 연기 뭉치 + 파편 + 충격 고리 + 땅의 그을음
+// 폭발 K21 (불덩이 + 연기 고리, 석궁사수·공성포수 전용 시트): 시트 5프레임으로 부풀고 연기로 흩어진다.
+//  size 를 도트가 깨지지 않는 배율로 (0.9 → 1, 1.6 → 4/3 …). 땅의 그을음·충격 고리·불티 몇 개는 그대로 (텍스처 ⑤-3)
 function abBlastFx(x, y, size = 1) {
   size *= 0.8 + 0.2 * fxVis;
-  skFx(null, 0, 0.45, (u) => {
-    const r = (10 + 26 * easeOut(Math.min(1, u * 2))) * size, fade = u < 0.3 ? 1 : 1 - (u - 0.3) / 0.7;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade;
-    ctx.fillStyle = AB_COL.fire; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, r * 0.25 * (1 - u), 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  });
-  const puffs = [];
-  for (let i = 0; i < Math.round(6 * size); i++) puffs.push({ an: rand(0, Math.PI * 2), v: rand(20, 50) * size, r: rand(6, 11) * size });
-  skFx(null, 0.08, 0.9, (u) => {
-    ctx.save(); ctx.globalAlpha = (1 - u) * 0.8; ctx.fillStyle = AB_COL.smoke;
-    for (const p of puffs) { ctx.beginPath(); ctx.arc(x + Math.cos(p.an) * p.v * u * 1.2, y - 10 * u + Math.sin(p.an) * p.v * u * 0.7, p.r * (0.6 + u), 0, Math.PI * 2); ctx.fill(); }
-    ctx.restore();
-  });
-  burst(x, y, Math.round(14 * size), [AB_COL.fire, '#ffe066', AB_COL.steel], 180 * size, 2, 260);
+  texFx('k21', x, y, 'raw', { scale: vfxNearScale(size * 0.9), life: 0.5, fade: 0.35 });
+  burst(x, y, Math.round(5 * size), [AB_COL.fire, '#ffe066'], 160 * size, 2, 260);
   ringFx(x, AB_COL.main, 1.1 * size, 0.45);
   scorchFx(x, groundY() - 2, AB_COL.smoke, 0.9);
 }
-// ★★★ 버섯구름: 큰 폭발 뒤 불기둥이 솟고 머리가 부풀어 오른다
-function abMushroomFx(x, life = 1.2) {
-  const gy = groundY();
+// ★★★ 버섯구름 E31: 땅에서 솟아(세로로 늘며) 시트 5프레임으로 부풀었다가 연기로 옅어진다
+function abMushroomFx(x, life = 1.2, sc = 4 / 3) {
+  const gy = groundY() + 2;
   skFx(null, 0, life, (u) => {
-    const h = 70 * easeOut(Math.min(1, u * 1.6)), fade = u > 0.6 ? 1 - (u - 0.6) / 0.4 : 1;
-    ctx.save();
-    ctx.globalAlpha = fade;
-    ctx.fillStyle = AB_COL.smoke; ctx.fillRect(x - 9, gy - h, 18, h);
-    ctx.fillStyle = AB_COL.fire; ctx.globalAlpha = fade * 0.5 * (1 - u); ctx.fillRect(x - 5, gy - h, 10, h);
-    ctx.globalAlpha = fade;
-    for (const [dx, r] of [[-18, 14], [0, 20], [18, 14], [-8, 12], [8, 12]]) { ctx.fillStyle = '#4a4040'; ctx.beginPath(); ctx.arc(x + dx * (0.6 + u * 0.6), gy - h - 4, r * (0.5 + u * 0.7), 0, Math.PI * 2); ctx.fill(); }
-    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade * (1 - u) * 0.8;
-    ctx.fillStyle = AB_COL.fire; ctx.beginPath(); ctx.arc(x, gy - h - 4, 16 * (0.5 + u), 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    const up = easeOut(Math.min(1, u * 3)), f = Math.min(4, Math.floor(u * 5)), fade = u > 0.7 ? 1 - (u - 0.7) / 0.3 : 1;
+    vfxDraw(ctx, 'e31', 'raw', f, x, gy, { anchor: 'b', scale: sc, sy: 0.35 + 0.65 * up, alpha: fade });
   });
 }
 // 쏠 때 튀는 빈 살통(탄피)
@@ -113,9 +91,29 @@ function abRainBolt(x, delay = 0, stick = 0.5) {
     ctx.beginPath(); ctx.moveTo(x0 - Math.cos(ang) * 40, y - 40); ctx.lineTo(x0, y); ctx.stroke(); ctx.restore();
     abBolt(x0, y, ang, 14);
   }, () => {
-    skFx(null, 0, stick, (u) => abBolt(x0 + Math.sin(u * 60) * (1 - u) * 1.5, gy - 2 + 3, ang, 14, false, u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4));
+    // 꽂힌 살 E32: 땅에 박혀 잠깐 떤다 (시트는 촉이 왼쪽 아래 — 촉이 아래를 보게 돌린다)
+    skFx(null, 0, stick, (u) => vfxDraw(ctx, 'e32', 'raw', 0, x0 + Math.sin(u * 60) * (1 - u) * 1.5, gy - 10, { scale: 2 / 3, rot: abE32Rot(ang), alpha: u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4 }));
     burst(x0, gy - 3, 4, ['#c9b38a', AB_COL.steel], 70, 2, 220);
   });
+}
+// E32 시트의 살은 촉이 왼쪽 아래(약 135°)를 본다 → ang 방향(촉이 가는 쪽)으로 돌리는 각도
+const abE32Rot = (ang) => ang - Math.PI * 0.75;
+// ★★★ 강철 폭풍 마무리 「살비」: 다연장이 한꺼번에 불을 뿜어 굵은 살 n 자루가 낮은 부채꼴로 날아가, 대상 앞뒤 땅에 울타리처럼 비스듬히 꽂힌다
+//  (철갑 관통탄의 거대 살 한 자루와 다르게 — 여러 자루가 대상 둘레를 덮는다). 꽂힌 살은 떨다가 사라진다
+function abVolleyFx(a, n = 7) {
+  const m = abMuzzle(a), gy = groundY(), tx = a.tx();
+  for (let j = 0; j < n; j++) {
+    const x1 = tx + a.dir * ((j - (n - 1) / 2) * 13 + rand(-4, 4)), y1 = gy - 6, fl = 0.1 + j * 0.018;
+    const ang = Math.atan2(y1 - m.y, x1 - m.x) + 0.35 * a.dir;
+    skFx(null, j * 0.012, fl, (u) => {
+      const x = mix(m.x, x1, u), y = mix(m.y, y1, u) - 22 * 4 * u * (1 - u);
+      abBolt(x, y, ang, 20, false);
+    }, () => {
+      skFx(null, 0, 0.9, (u) => vfxDraw(ctx, 'e32', 'raw', 0, x1 + Math.sin(u * 50) * (1 - u) * 1.2, y1 - 6, { scale: 1, rot: abE32Rot(ang), alpha: u < 0.7 ? 1 : 1 - (u - 0.7) / 0.3 }));
+      texFx('k22', x1, y1 - 4, 'raw', { scale: 2 / 3, life: 0.25, frames: 4 });
+      burst(x1, y1, 3, ['#c9b38a', AB_COL.steel], 80, 2, 220);
+    });
+  }
 }
 // ★★★ 사방으로 뿌리는 살: 기사 둘레의 무작위 점으로 날아가 박힌다
 function abSprayBolt(a) {
@@ -197,15 +195,14 @@ Object.assign(SKILL_FX, {
         }],
       ];
     },
+    // 명중 K21 (폭발 시트): Lv1 의 묵직한 한 발·★★★ 첫 살은 작은 폭발 한 번. ★·★★·★★★ 막타는 abBlastFx 가 같은 시트로 터뜨린다
+    hitTex(a, t, share, i) { if (a.mast === 0 || (a.mast >= 3 && i === 0)) texHit('k21', t.x, t.y, a, { life: 0.3 }); },
     hit(a, i, n) {
       const m = a.mast, tg = a.targets(i);
-      if (m === 0) { for (const t of tg) burst(t.x, t.y, 8, [AB_COL.steel, '#ffffff'], 120); impact({ stop: 0.05, shake: 0.15 }); return; }
+      if (m === 0) { impact({ stop: 0.05, shake: 0.15 }); return; }
       if (m === 1) { const t = tg[0] || { x: a.tx(), y: a.ty() }; abBlastFx(t.x, t.y, 1.2); impact({ stop: 0.1, shake: 0.4 }); return; }
       if (m === 2) { const t = tg[0] || { x: a.tx(), y: a.ty() }; abBlastFx(t.x + (i - 1) * 22, t.y + 6, 0.9); impact({ stop: 0.05, shake: 0.25 }); return; }
-      if (i === 0) { for (const t of tg) burst(t.x, t.y, 6, ['#ffffff', '#ffe066'], 90); return; }
-      for (const t of tg) burst(t.x, t.y, 16, [AB_COL.fire, '#ffe066', '#ffffff'], 220, 3, 280);
     },
-    marks(a, t, pow, i) { if (a.mast === 0 || (a.mast >= 3 && i === 0)) drillFx(t.x, t.y, a.dir, AB_COL.steel, 0.45); },
     kb: 22, launch: false,
   },
 
@@ -269,24 +266,19 @@ Object.assign(SKILL_FX, {
         [0.5 / d, (a) => { ringFx(a.px(), AB_COL.main, 1.0, 0.4); impact({ shake: 0.1 }); }],
         [(fin - 0.08) / d, (a) => {
           abMuzzleFlash(a, 1.8); impact({ stop: 0.1, shake: 0.5 });
-          ballistaBoltFx(a, groundY() - 24, 1.0);
+          abVolleyFx(a, 7);
           for (let j = 0; j < 8; j++) parts.push({ x: a.px(), y: groundY() - 2, vx: -a.dir * rand(60, 160), vy: rand(-70, -10), g: 200, size: 3, color: '#c9b38a', life: 0.45, t: 0 });
           { const x = a.tx(); skFx(null, 0, 0.2, (u) => localFlash(x, groundY() - 12, 80, 0.4 * (1 - u), '255,240,220')); }   // 마지막 살 착탄 지점 둘레만
         }],
       ];
     },
+    // 명중 K22 (연속 박힘 쇳조각). ★★★ 살비 마무리는 한 단계 크게
+    hitTex(a, t, share, i, n) { texHit('k22', t.x + rand(-4, 4), t.y + rand(-6, 6), a, { big: a.mast >= 3 && i === n - 1, life: 0.24 }); },
     hit(a, i, n) {
-      const m = a.mast, tg = a.targets(i), last = i === n - 1;
-      if (m === 0) { for (const t of tg) burst(t.x, t.y, 5, [AB_COL.steel, '#ffffff'], 100); impact({ shake: 0.06 }); return; }
-      if (m >= 3 && last) { for (const t of tg) { burst(t.x, t.y, 22, [AB_COL.steel, '#ffffff', AB_COL.main], 220, 3, 280); starFx(t.x, t.y, 14, '#ffe8c0', 0.3); } return; }
-      for (const t of tg) burst(t.x, t.y, m === 2 ? 6 : 8, [AB_COL.steel, '#ffffff', '#c9b38a'], 130, 2, 240);
+      const m = a.mast, last = i === n - 1;
+      if (m === 0) { impact({ shake: 0.06 }); return; }
+      if (m >= 3 && last) return;
       impact(m === 1 ? { stop: 0.02, shake: 0.1 } : { shake: 0.06 });
-    },
-    marks(a, t, pow, i, n) {
-      if (a.mast === 0) return;
-      if (a.mast >= 3 && i === n - 1) { drillFx(t.x, t.y, a.dir, AB_COL.main, 0.6); slashMarkFx(t.x, t.y, Math.PI / 2, 28 + 8 * pow, '#ffffff', 2.5, 0.4, 0.04); return; }
-      if (a.mast === 2) { crackFx(t.x, t.y + 6, AB_COL.steel, 0.4); return; }
-      if (i % 2 === 0) drillFx(t.x, t.y + rand(-4, 4), a.dir, AB_COL.steel, 0.4);
     },
     kb: 16,
   },

@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 24,
+  "height": 24
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a small magic rune hit, a thin glowing cyan hexagram six pointed star inside a thin ring, breaking apart into small sparkles, nothing else, no character, no background shape",
+ "seed": 32
+}

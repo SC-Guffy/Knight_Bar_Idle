@@ -2731,6 +2731,7 @@ function drawShots() {
 }
 // 원거리 평타 한 발 (원정·결투·레이드 공용). sh = { w: 무기, x, y, a: 날아가는 각도, trail: [[x, y], …] 최근 자리, ox/oy: 출발점 }
 function drawProjectile(sh) {
+  if (typeof vfxProjectile === 'function' && vfxProjectile(sh)) return;   // 텍스처 투사체 (src/vfx-ranger.js P 시트)
   const a = sh.w.arrow;
   if (a.qi && qiShotDraw(sh)) return;          // 기공사 계열 기탄 텍스처 (src/jobs/fighter-fx.js)
   if (a.shape === 'bolt') {

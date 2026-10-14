@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 24,
+  "height": 24
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a single heavy crossbow bolt stuck vertically into the ground pointing down, thick wooden shaft with leather fins on top, small dirt clods at the base, nothing else, no character, no background shape",
+ "seed": 45
+}

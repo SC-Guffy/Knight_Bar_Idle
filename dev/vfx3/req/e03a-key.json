@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 24,
+  "height": 24
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a green glowing arrow splitting into three arrows that fan out to the right, a small bright green flash at the split point, short wind streaks, nothing else, no character, no background shape",
+ "seed": 41
+}

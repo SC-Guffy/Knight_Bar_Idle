@@ -50,16 +50,10 @@ function sgCannonFx(a, life, shots, angOf) {
 }
 // 포구 위치 (포신 끝)
 function sgMuzzle(a) { const c = a.sgCannon; return c ? { x: c.x, y: c.y } : abMuzzle(a); }
-// 불타는 포탄 살: 포구에서 대상까지 flight 초, 꼬리에 불꽃
+// 불붙은 포탄 F15: 포구에서 대상까지 flight 초, 지나온 자리에 포탄 잔상 둘 + 불티 (텍스처 ⑤-3)
 function sgShellFx(x0, y0, x1, y1, flight, size = 1) {
-  const ang = Math.atan2(y1 - y0, x1 - x0);
-  skFx(null, 0, flight, (u) => {
-    const x = mix(x0, x1, u), y = mix(y0, y1, u);
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(255,160,60,0.6)'; ctx.lineWidth = 4 * size; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(x - Math.cos(ang) * 50, y - Math.sin(ang) * 50); ctx.lineTo(x, y); ctx.stroke(); ctx.restore();
-    abBolt(x, y, ang, 22 * size, true);
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = SG_COL.fire; ctx.beginPath(); ctx.arc(x - Math.cos(ang) * 6, y - Math.sin(ang) * 6, 5 * size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-  }, null, (u) => { if (Math.random() < 0.8) { const x = mix(x0, x1, u), y = mix(y0, y1, u); parts.push({ x, y, vx: rand(-20, 20), vy: rand(-30, 10), g: 40, size: 2, color: Math.random() < 0.5 ? SG_COL.fire : SG_COL.hot, life: 0.3, t: 0, add: true }); } });
+  texShotFx('f15', x0, y0, x1, y1, flight, 'raw', { scale: size >= 1.4 ? 2 : 4 / 3, tail: 2 });
+  skFx(null, 0, flight, null, null, (u) => { if (Math.random() < 0.8) { const x = mix(x0, x1, u), y = mix(y0, y1, u); parts.push({ x, y, vx: rand(-20, 20), vy: rand(-30, 10), g: 40, size: 2, color: Math.random() < 0.5 ? SG_COL.fire : SG_COL.hot, life: 0.3, t: 0, add: true }); } });
 }
 // ★★★ 요새: 하단바 끝에 솟는 적 요새 실루엣 (성벽 + 탑 둘), 무너질 때 조각으로 흩어진다
 function sgFortressFx(a, life, riseAt, fallAt) {
@@ -136,10 +130,12 @@ Object.assign(SKILL_FX, {
       if (m === 0) { for (const t of a.targets(i)) burst(t.x, t.y, 12, ['#c9c2b4', '#ffffff', SG_COL.fire], 160); if (last) { abBlastFx(tx, gy - 12, 1.3); impact({ stop: 0.12, shake: 0.5 }); } return; }
       if (first) { abBlastFx(tx, gy - 12, 1.6); impact({ stop: 0.1, shake: 0.5 }); return; }
       if (!last) { const tg = a.targets(i), t = tg[i % Math.max(1, tg.length)] || { x: tx, y: gy - 12 }; abBlastFx(t.x + rand(-12, 12), gy - 10, 1.0); impact({ stop: 0.03, shake: 0.25 }); return; }
-      abBlastFx(tx, gy - 14, m >= 3 ? 2.6 : 2.0); abMushroomFx(tx, 1.2); craterFx(tx, 1.0);
+      // 막타 K37 (요새 붕괴 대폭발): ★★★ 는 무너지는 요새 자리에, 그 아래는 대상 자리에 2배. 버섯구름 E31·폭발 K21 은 석궁사수와 같은 시트
+      texFx('k37', m >= 3 ? (a.dir > 0 ? W - 46 : 46) : tx, gy - 4, 'raw', { anchor: 'b', scale: 2, life: 0.9, fade: 0.4 });
+      abBlastFx(tx, gy - 14, m >= 3 ? 2.6 : 2.0); abMushroomFx(tx, 1.2, m >= 3 ? 2 : 4 / 3); craterFx(tx, 1.0);
       for (let x = 20; x < W; x += 60) abBlastFx(x + rand(-15, 15), gy - 8, 0.7);
       if (m >= 3) { for (let j = 0; j < 30; j++) parts.push({ x: rand(0, W), y: gy - rand(0, 60), vx: rand(-100, 100), vy: rand(-200, -40), g: 300, size: 3, color: j % 2 ? SG_COL.stone : SG_COL.fire, life: rand(0.5, 0.9), t: 0 }); }
-      aFx(a, 0, 0.35, (u) => dimBand((m >= 3 ? 0.9 : 0.6) * (1 - u), '255,235,210'));
+      aFx(a, 0, 0.15, (u) => dimBand(0.35 * (1 - u), '255,235,210'));   // 궁극기 막타 섬광 α 0.6 이하·0.15초. 막타 게임 정지(약 0.47초) 동안 첫 값 그대로 멈춰 보이므로 0.35 로 (마지막 그림 = K37 이 보이게)
       impact({ stop: m >= 3 ? 0.3 : 0.22, shake: m >= 3 ? 0.95 : 0.85 });
     },
     marks(a, t, pow, i, n) { if (i === 0 || i === n - 1) drillFx(t.x, t.y, a.dir, '#ffe8c0', 0.5); else scorchFx(t.x, groundY() - 2, SG_COL.smoke, 0.6); },

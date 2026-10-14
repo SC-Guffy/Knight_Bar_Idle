@@ -28,13 +28,17 @@ const vfxBase = (() => {
   const s = typeof document !== 'undefined' && document.currentScript && document.currentScript.src;
   return s ? s.replace(/[^/]*$/, '') + 'vfx/' : 'src/vfx/';
 })();
-if (typeof Image !== 'undefined') {
-  for (const [id, s] of Object.entries(VFX_SHEETS)) {
+// 시트를 등록하고 불러온다. 계열 패치 파일(src/vfx-*.js)도 이것으로 자기 시트를 더한다
+function vfxRegister(sheets) {
+  for (const [id, s] of Object.entries(sheets)) {
+    VFX_SHEETS[id] = s;
+    if (typeof Image === 'undefined') continue;
     s.img = new Image();
     s.img.onload = () => vfxQuantize(s);
     s.img.src = vfxBase + id + '.png';
   }
 }
+vfxRegister({ ...VFX_SHEETS });
 
 // 램프 양자화: 픽셀마다 0 = 빈칸, 1 = 외곽선, 2~6 = 밝기 5단 (0·.25·.5·.75·1)
 function vfxQuantize(s) {
@@ -47,7 +51,7 @@ function vfxQuantize(s) {
     const l = (0.3 * p[i * 4] + 0.59 * p[i * 4 + 1] + 0.11 * p[i * 4 + 2]) / 255;
     lv[i] = l < 0.2 ? 1 : 2 + Math.round(((l - 0.2) / 0.8) * 4);
   }
-  Object.assign(s, { w, h, fw: w / s.frames, lv, tint: new Map() });
+  Object.assign(s, { w, h, fw: w / s.frames, lv, tint: new Map(), src: p });
   // 볼록한 쪽 방향 (0번 프레임의 불투명 픽셀 무게중심 − 테두리 상자 중심). 궤적을 돌릴 때 볼록한 쪽이 칼끝을 보게 한다
   let n = 0, sx = 0, sy = 0, x0 = s.fw, y0 = h, x1 = 0, y1 = 0;
   for (let y = 0; y < h; y++) for (let x = 0; x < s.fw; x++) if (lv[y * w + x]) { n++; sx += x; sy += y; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
@@ -63,24 +67,31 @@ function vfxRgb(c) {
   return m ? [+m[1], +m[2], +m[3]] : [255, 255, 255];
 }
 // 직업 색으로 다시 칠한 시트 (색마다 한 번 만들어 둔다). 아직 안 불러왔으면 null
+//  color: 직업 색 하나 → 램프 [색×0.4 → 색 → 흰색] / 'raw' → 시트의 원래 색 그대로 (불·연기·쇠가 섞인 폭발, 화살처럼
+//         여러 색이 한 그림에 있어야 하는 것. 밝기 0.2 미만은 똑같이 외곽선 색) / [[r,g,b] × 5] → 그 램프 (어두운 쪽부터)
 //  cpu: 기사 보조 캔버스(willReadFrequently = CPU 캔버스, world.js drawHero)에 그릴 사본. GPU 캔버스를 CPU 캔버스에 그리면
 //       매번 GPU 에서 읽어 와 프레임이 몇 ms 씩 늘어난다 (⑤-0 fps 측정에서 확인)
 function vfxSheet(id, color, cpu = false) {
   const s = VFX_SHEETS[id];
   if (!s || !s.lv) return null;
-  const rgb = vfxRgb(color), key = rgb.join(',') + (cpu ? '|cpu' : '');
+  const custom = Array.isArray(color) && Array.isArray(color[0]), raw = color === 'raw';
+  const rgb = raw || custom ? null : vfxRgb(color), key = (raw ? 'raw' : custom ? color.join('|') : rgb.join(',')) + (cpu ? '|cpu' : '');
   if (s.tint.has(key)) return s.tint.get(key);
-  const dark = [rgb[0] * 0.38, rgb[1] * 0.38, rgb[2] * 0.45], ramp = [[11, 13, 20]];
-  for (let k = 0; k <= 4; k++) {
-    const t = k / 4;
-    ramp.push(t <= 0.5 ? dark.map((d, j) => d + (rgb[j] - d) * t * 2) : rgb.map((c, j) => c + (255 - c) * (t - 0.5) * 2));
+  let ramp = [[11, 13, 20]];
+  if (custom) ramp = ramp.concat(color);
+  else if (rgb) {
+    const dark = [rgb[0] * 0.38, rgb[1] * 0.38, rgb[2] * 0.45];
+    for (let k = 0; k <= 4; k++) {
+      const t = k / 4;
+      ramp.push(t <= 0.5 ? dark.map((d, j) => d + (rgb[j] - d) * t * 2) : rgb.map((c, j) => c + (255 - c) * (t - 0.5) * 2));
+    }
   }
   const cv = document.createElement('canvas'); cv.width = s.w; cv.height = s.h;
   const g = cv.getContext('2d', cpu ? { willReadFrequently: true } : undefined), d = g.createImageData(s.w, s.h), p = d.data;
   for (let i = 0; i < s.lv.length; i++) {
     const v = s.lv[i];
     if (!v) continue;
-    const c = ramp[v - 1];
+    const c = raw && v > 1 ? [s.src[i * 4], s.src[i * 4 + 1], s.src[i * 4 + 2]] : ramp[v - 1];
     p[i * 4] = c[0]; p[i * 4 + 1] = c[1]; p[i * 4 + 2] = c[2]; p[i * 4 + 3] = 255;
   }
   g.putImageData(d, 0, 0);
@@ -182,10 +193,13 @@ function vfxBasicRelease() {
   });
 }
 // 평타가 맞았다 (원정·탑·던전의 내 기사): 직업 명중 그림 + 연출 정지 (치명이면 더 길게 + 약한 흔들림)
-//  ranged: 원거리 착탄 — 명중 그림은 ⑤-3 에서, 지금은 치명일 때만 연출 정지
+//  ranged: 원거리 착탄 — 날아온 쪽(기사 쪽)을 향해 대상 가운데에. 시트의 color 가 있으면 그 색('raw' 등), 없으면 무기 색
 function vfxBasicHit(m, crit, ranged) {
-  const id = !ranged && VFX_BASIC_HIT[S.cls];
-  if (id && VFX_SHEETS[id] && !m.killed) {                     // 아직 시트가 없는 직업(예: 파이터 xh2~xh5)은 건너뛴다
+  const id = VFX_BASIC_HIT[S.cls];
+  if (id && ranged && VFX_SHEETS[id] && !m.killed) {
+    const s = VFX_SHEETS[id], f = knight.facing || 1, x = toScreen(m.x) + m.kb - f * (s.back || 3) + rand(-1, 1), y = Math.max(monsterTop(m) + 14, monsterMidY(m)) + rand(-2, 3);   // 얼굴을 가리지 않게 몸통에
+    texFx(id, x, y, s.color || heroWeapon().trail || heroWeapon().arrow.color, { life: s.life || 0.2, scale: crit ? ((s.scale || 1) < 1 ? 1 : 4 / 3) : s.scale || 1, fade: 0.3, flip: f < 0 });
+  } else if (id && !ranged && VFX_SHEETS[id] && !m.killed) {   // 아직 시트가 없는 직업(예: 파이터 xh2~xh5)은 건너뛴다
     // 대상 가운데에서 칼끝 쪽(기사 쪽)으로 조금, 얼굴보다 아래(몸통)에 — 얼굴을 가리지 않게
     const x = toScreen(m.x) + m.kb - (knight.facing || 1) * 5 + rand(-2, 2), y = Math.max(monsterTop(m) + 14, monsterMidY(m)) + rand(-2, 2);
     const sc = crit ? 1 : VFX_SHEETS[id].scale || 1;                // 치명은 1배 (평소 2/3)

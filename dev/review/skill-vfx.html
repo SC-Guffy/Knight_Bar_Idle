@@ -76,7 +76,7 @@
   <div class="sub">스펙: <code>docs/specs/skill-vfx.md</code> (이 페이지는 스펙 표를 그대로 읽어 그립니다) · 캡처: <code>dev/vfx-survey/</code> · 스킬 ★★★ 기준, Lv1 은 비교용 · 재생 버튼은 <code>dev/skills.html</code> 을 그 스킬로 엽니다</div>
   <div id="err"></div>
   <nav>
-    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#vfx4">⑤-4 검사 계열</a><a href="#vfx2">⑤-2 창기사 계열</a><a href="#vfx0">⑤-0 본작업</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
+    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#vfx4">⑤-4 검사 계열</a><a href="#vfx2">⑤-2 창기사 계열</a><a href="#vfx3">⑤-3 레인저</a><a href="#vfx0">⑤-0 본작업</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
   </nav>
 
   <h2 id="sum">요약</h2>
@@ -133,6 +133,14 @@
   <div id="vfx0Sheets" class="fam" style="grid-template-columns:repeat(4,1fr);margin:10px 0"></div>
   <div id="vfx0Nums"></div>
   <div id="vfx0List"></div>
+
+  <h2 id="vfx3">⑤-3 레인저 계열 — 활·석궁 7직업 (확인 대기)</h2>
+  <div class="sub">레인저·저격수·마궁수·석궁사수·신궁·차원궁사·공성포수. 코드 <code>src/vfx-ranger.js</code>(시트 등록·투사체·명중 도우미) + 각 스킬 파일, 시트 <code>src/vfx/*.png</code> 35장. 비교 그림은 위 줄 = 전(07c7a9c), 아래 줄 = 후, 칸은 첫 타격 직전 → 끝을 고르게 6장.
+    <br>▶ 평타: <span id="vfx3Basic"></span>
+    <br>▶ 스킬 (Lv1 · ★ · ★★ · ★★★): <span id="vfx3Play"></span></div>
+  <div id="vfx3Sheets" class="fam" style="grid-template-columns:repeat(6,1fr);margin:10px 0"></div>
+  <div id="vfx3Nums"></div>
+  <div id="vfx3List"></div>
 
   <h2 id="trial">⑤-0 시험 전후 — PixelLab 텍스처 (W1 장검 궤적 · H1 명중 섬광 · C1 초승달 참격)</h2>
   <div class="sub">위 줄 = 지금(사각 칸·벡터), 아래 줄 = 같은 프레임에 텍스처를 씌운 모습. 게임 src 는 그대로이고 시뮬레이터 패치(<code>dev/review/vfx-trial.js</code>)로 씌웠습니다. 성기사는 같은 텍스처를 금색으로 다시 칠한 것입니다.
@@ -441,6 +449,31 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
     .map((l) => `<li>${l.startsWith('- [x]') ? '✅' : '⬜'} ${md(l.replace(/^- \[.\] /, ''))}</li>`).join('');
   document.getElementById('todo').innerHTML = section(lines, '## 남은 일').filter((l) => l.startsWith('- '))
     .map((l) => `<li>${md(l.slice(2))}</li>`).join('');
+})();
+</script>
+<script>
+// ⑤-3 레인저 계열 절 (docs/specs/skill-vfx.md "⑤-3 본작업")
+(() => {
+  const V3 = '../vfx-survey/vfx3/', CLS = [['ranger', '레인저'], ['marksman', '저격수'], ['arcaneArcher', '마궁수'], ['arbalest', '석궁사수'], ['deadeye', '신궁'], ['voidArcher', '차원궁사'], ['siegeMaster', '공성포수']];
+  const SK = [['ranger', 'rapidFire', '연사'], ['marksman', 'headshot', '헤드샷'], ['marksman', 'armorPiercer', '철갑 관통탄'], ['arcaneArcher', 'homingBolts', '유도 마탄'], ['arcaneArcher', 'starfall', '별빛 화살비'],
+    ['arbalest', 'blastBolt', '폭열탄'], ['arbalest', 'boltStorm', '다연장 사격'], ['deadeye', 'sunArrow', '태양 관통'], ['voidArcher', 'dimensionCollapse', '차원 붕괴'], ['siegeMaster', 'siegeBarrage', '대공성포']];
+  document.getElementById('vfx3Basic').innerHTML = CLS.map(([c, n]) => `<a href="../skills.html?mode=basic&cls=${c}" target="_blank">${n}</a>`).join(' · ');
+  document.getElementById('vfx3Play').innerHTML = SK.map(([c, id, n]) => `${n} ` + [0, 1, 2, 3].map((s) => `<a href="../skills.html?cls=${c}&skill=${id}&stage=${s}" target="_blank">${['L1', '★', '★★', '★★★'][s]}</a>`).join('·')).join(' &nbsp;| ');
+  const SHEETS = [['p1', 'P1 단궁 화살'], ['p2', 'P2 장궁 화살'], ['p3', 'P3 태양 화살 루프'], ['p5', 'P5 공허탄 루프'], ['p6', 'P6 공성 거대 살'], ['f15', 'F15 포탄'],
+    ['h04', 'H04 레인저 명중 (화살 박힘)'], ['h12', 'H12 저격수 명중 (탄흔)'], ['h13', 'H13 마궁수 명중 (룬 고리)'], ['h14', 'H14 석궁사수 명중 (쪼개짐)'], ['h24', 'H24 신궁 명중 (태양 섬광)'], ['h25', 'H25 차원궁사 명중 (공허 균열)'],
+    ['h26', 'H26 공성포수 명중 (포격 폭발)'], ['e03', 'E03 분열 화살'], ['e25', 'E25 조준경'], ['e26', 'E26 관통 빔'], ['e27', 'E27 유도 마탄'], ['e28', 'E28 특이점 루프'],
+    ['e29', 'E29 별 화살'], ['e30', 'E30 밤하늘 루프'], ['e31', 'E31 버섯구름'], ['e32', 'E32 꽂힌 살'], ['k03', 'K03 연사 명중'], ['k17', 'K17 헤드샷 명중'],
+    ['k18', 'K18 철갑 관통 명중 (구멍)'], ['k19', 'K19 유도 마탄 명중'], ['k20', 'K20 별빛 명중'], ['k21', 'K21 폭발 (석궁사수·공성포수)'], ['k22', 'K22 다연장 명중'], ['k35', 'K35 태양 폭발'],
+    ['k36', 'K36 블랙홀 붕괴'], ['k37', 'K37 요새 대폭발'], ['f12', 'F12 태양 루프'], ['f13', 'F13 공허 균열 루프'], ['f14', 'F14 시공간 격자 (240×100)']];
+  document.getElementById('vfx3Sheets').innerHTML = SHEETS.map(([k, cap]) => `<figure><img src="../../src/vfx/${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap}</figcaption></figure>`).join('');
+  const fig = (f, cap) => `<figure style="margin:0 0 10px"><img src="${V3}${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px" onerror="this.parentNode.style.display='none'"><figcaption class="sub">${cap}</figcaption></figure>`;
+  document.getElementById('vfx3List').innerHTML = [
+    fig('family-bow-after', '계열 비교 (후) — 줄 = 2차 3종 + 3차 3종, 칸 = 스킬 2개 + 평타'), fig('family-bow-after-gray', '계열 비교 (후) 흑백 — 색 없이도 모양이 다른지'),
+    ...[['siegeBarrage', '대공성포'], ['sunArrow', '태양 관통'], ['dimensionCollapse', '차원 붕괴'], ['blastBolt', '폭열탄'], ['boltStorm', '다연장 사격 (살비)']].map(([id, n]) => fig(`cmp-${id}fin-s3`, `${n} ★★★ 막타 — 칸: 마지막 타격 +0·10·25·35·45·60 프레임 (막타 게임 정지 동안은 같은 장면)`)),
+    ...CLS.map(([c, n]) => fig(`cmp-basic-${c}`, `${n} 평타 — 칸: 명중 3·2·1프레임(×2) 전 → 명중 → 뒤`)),
+    ...SK.flatMap(([c, id, n]) => [0, 1, 2, 3].map((s) => fig(`cmp-${id}-s${s}`, `${n} ${['Lv1', '★', '★★', '★★★'][s]}`))),
+  ].join('');
+  fetch(V3 + 'nums.html').then((r) => (r.ok ? r.text() : '')).then((t) => { document.getElementById('vfx3Nums').innerHTML = t; });
 })();
 </script>
 </body>

@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 16,
+  "height": 16
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a tiny sniper bullet impact, a small round puncture hole ring with a bright white rim, a few sharp debris fragments spraying backward to the right, nothing else, no character, no background shape",
+ "seed": 31
+}

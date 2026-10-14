@@ -260,23 +260,10 @@ function dcRiftStage(a) {
     ctx.restore();
   });
 }
-// 찢기는 자국: 대상 위에 검은 틈이 X 자로 벌어졌다 닫힌다
+// 찢기는 자국: 대상 위에 공허 균열 F13 이 비스듬히 벌어졌다(가로로 열림) 닫힌다 (텍스처 ⑤-3). size 9~16 → 1/3~2/3배
 function dcTearFx(x, y, size, life = 0.3) {
-  const ang = rand(-0.9, 0.9);
-  skFx(null, 0, life, (u) => {
-    const open = Math.sin(Math.PI * u) * size * 0.28, len = size * easeOut(clamp01(u * 3));
-    ctx.save();
-    ctx.translate(Math.round(x), Math.round(y));
-    for (const r of [ang, ang + Math.PI / 2]) {
-      ctx.save(); ctx.rotate(r);
-      ctx.fillStyle = DC_MAG; ctx.globalAlpha = 0.9;
-      ctx.beginPath(); ctx.moveTo(-len, 0); ctx.lineTo(0, -open - 1.5); ctx.lineTo(len, 0); ctx.lineTo(0, open + 1.5); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#05000a';
-      ctx.beginPath(); ctx.moveTo(-len * 0.85, 0); ctx.lineTo(0, -open); ctx.lineTo(len * 0.85, 0); ctx.lineTo(0, open); ctx.closePath(); ctx.fill();
-      ctx.restore();
-    }
-    ctx.restore();
-  });
+  const ang = rand(-0.6, 0.6), sc = size >= 14 ? 2 / 3 : 1 / 3;
+  skFx(null, 0, life, (u) => vfxDraw(ctx, 'f13', DC_MAG, vfxLoopF('f13', 14), x, y, { scale: sc, rot: ang, sx: 0.15 + 0.85 * Math.sin(Math.PI * u), alpha: 0.95 }));
 }
 
 // ── ★★ 블랙홀 ──
@@ -336,7 +323,7 @@ function dcHoleStage(a) {
     // 마지막: 붕괴한 블랙홀이 터지며 하단바 전체로 빛 고리가 퍼진다
     if (t > fin) {
       const k = t - fin, e = easeOut(clamp01(k / 0.45));
-      if (k < 0.5) dimBand(0.75 * (1 - k / 0.5), '255,225,255');
+      if (k < 0.15) dimBand(0.35 * (1 - k / 0.15), '255,225,255');   // 궁극기 막타 섬광 α 0.6 이하·0.15초 (게임 정지 동안 첫 값으로 멈춰 보여 0.35)
       ctx.save();
       for (let j = 0; j < 3; j++) {
         const kk = easeOut(clamp01((k - j * 0.07) / 0.5));
@@ -418,18 +405,13 @@ function dcHorizonStage(a) {
       if (t < flip + 0.1) dimBand(0.9 * (1 - (t - flip) / 0.1), '255,255,255');
       // 소용돌이치는 시공간: 시간이 갈수록 더 세게 비틀리고 가운데로 끌려 든다
       const k = segU(t, flip, fold);
-      dcGrid(V, 0.8 + 5 * k * k + t * 0.6, 0.15 + 0.45 * k, '#2a0038', 0.55);
+      // 시공간 격자 F14 (하단바 전체, 가운데로 빨려 드는 깔때기) 를 숨 쉬듯 눌렀다 폈다 + 소용돌이치는 격자 한 겹
+      vfxDraw(ctx, 'f14', '#2a0038', 0, W / 2, H / 2, { scale: 1, sx: 1 + 0.06 * Math.sin(t * 5), sy: 1 - 0.12 * k, alpha: 0.7 });
       dcGrid(V, 0.8 + 5 * k * k + t * 0.6 + 0.25, 0.15 + 0.45 * k, '#c000c0', 0.3);
-      // 가운데의 사건의 지평선: 하얀 바탕에 뚫린 검은 구멍과 무지갯빛 테
-      const r = 8 + 5 * k + Math.sin(clock * 10) * 1;
-      ctx.save();
-      ctx.fillStyle = '#000000';
-      ctx.beginPath(); ctx.arc(V.x, V.y, r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#00e0c0'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(V.x, V.y, r + 2, clock * 4, clock * 4 + Math.PI * 1.3); ctx.stroke();
-      ctx.strokeStyle = DC_MAG;
-      ctx.beginPath(); ctx.arc(V.x, V.y, r + 4, -clock * 5, -clock * 5 + Math.PI * 1.1); ctx.stroke();
-      ctx.restore();
+      // 가운데의 사건의 지평선: 공허 균열 F13 (소용돌이 루프)이 4/3 → 2배로 벌어지고, 뒤에 반전된 균열 한 장이 거꾸로 돈다 (중반이 비어 보이지 않게)
+      const sc = k < 0.4 ? 4 / 3 : 2;
+      vfxDraw(ctx, 'f13', '#00e0c0', (vfxLoopF('f13', 10) + 2) % 5, V.x, V.y, { scale: sc * 1.5, flip: true, rot: -clock * 0.6, alpha: 0.35 });
+      vfxDraw(ctx, 'f13', DC_MAG, vfxLoopF('f13', 10), V.x, V.y, { scale: sc, rot: Math.sin(clock * 3) * 0.08 });
       if (hz.glitch > 0) { dcGlitch(3 + Math.round(4 * hz.glitch), 14 * hz.glitch); hz.glitch = Math.max(0, hz.glitch - 0.12); }
     }
     // 접힘: 모든 것이 돌며 한 점으로 빨려 든다
@@ -437,23 +419,17 @@ function dcHorizonStage(a) {
       const p = segU(t, fold, fin - 0.05), s = 1 - easeIn(p);
       dcGrid(V, 6 + 10 * p, 0.6 + 0.4 * p, '#c000c0', 0.5 * (1 - p));
       dcFold(V.x, V.y, s, p * p * 5);
-      // 남은 한 점이 점점 밝아진다
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      const g = ctx.createRadialGradient(V.x, V.y, 0, V.x, V.y, 6 + 20 * p);
-      g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, `rgba(255,120,255,${0.8 * p})`); g.addColorStop(1, 'rgba(255,77,255,0)');
-      ctx.fillStyle = g; ctx.fillRect(V.x - 30, V.y - 30, 60, 60);
-      ctx.restore();
+      // 균열이 돌며 한 점으로 오그라든다 (2 → 1/3배)
+      vfxDraw(ctx, 'f13', DC_MAG, vfxLoopF('f13', 16), V.x, V.y, { scale: vfxNearScale(2 * s + 0.2), rot: p * p * 5, alpha: 0.4 + 0.6 * s });
     }
     // 하얀 빛으로 펼쳐진다
     if (t >= fin) {
-      const k = t - fin, e = easeOut(clamp01(k / 0.3));
+      const k = t - fin;
       if (k < 0.08) dcVoid(0.95);
+      // 하얀 빛: 궁극기 막타 규칙대로 α 0.6 이하·0.15초 안에 (마지막 그림 = 블랙홀 붕괴 K36 이 보이게)
+      const al = 0.35 * (k < 0.03 ? k / 0.03 : 1 - segU(k, 0.03, 0.15));
+      if (al > 0) dimBand(al, '255,240,255');
       ctx.save();
-      const rad = 4 + (W + 100) * e, al = 1 - segU(k, 0.25, 1.0);
-      const g = ctx.createRadialGradient(V.x, V.y, 0, V.x, V.y, rad);
-      g.addColorStop(0, `rgba(255,255,255,${al})`); g.addColorStop(0.7, `rgba(255,240,255,${al})`); g.addColorStop(0.9, `rgba(255,120,255,${0.7 * al})`); g.addColorStop(1, 'rgba(0,224,192,0)');
-      ctx.fillStyle = g; ctx.fillRect(-60, -10, W + 120, H + 20);
       for (let j = 0; j < 3; j++) {
         const kk = easeOut(clamp01((k - 0.05 - j * 0.08) / 0.6));
         if (kk <= 0 || kk >= 1) continue;
@@ -552,13 +528,15 @@ Object.assign(SKILL_FX, {
       // ★★★
       if (i === n - 2) { impact({ stop: 0.1, shake: 0.35 }); return; }   // 접히기 시작
       if (last) {
-        for (const t of tg) { hitFx(t.x, t.y, '#ffffff', 3.2); burst(t.x, t.y, 30, ['#ffffff', DC_MAG, '#00e0c0'], 240, 3, 0); }
-        impact({ stop: 0.3, shake: 0.75 });
+        // 막타 K36 (블랙홀 수축 → 폭발): 지평선 자리에 2배, 대상마다 2/3배
+        texFx('k36', a.dcHz.V.x, a.dcHz.V.y, DC_MAG, { scale: 2, life: 0.6, fade: 0.4 });
+        for (const t of tg) texFx('k36', t.x, t.y, DC_MAG, { scale: 2 / 3, life: 0.4, fade: 0.35, delay: 0.06 });
+        impact({ stop: 0.3, shake: 0.85 });
         return;
       }
       a.dcHz.glitch = 1;
       for (const t of tg) { dcTearFx(t.x + rand(-8, 8), t.y + rand(-10, 6), 10, 0.22); burst(t.x, t.y, 5, ['#000000', '#00e0c0', DC_MAG], 110, 2, 0); }
-      impact({ shake: 0.08 });
+      impact({ shake: 0.14 });
     },
     kb: 20,
   },

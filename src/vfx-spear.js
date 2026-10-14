@@ -46,16 +46,7 @@ const VFX_SPEAR_WEAPON = { spear: 'w5', dragonSpear: 'w5a', wyrmSpear: 'w5b', ha
 for (const wid of Object.keys(VFX_SPEAR_WEAPON)) if (WEAPONS[wid]) WEAPONS[wid].texHit = true;    // 평타 끝의 벡터 원 섬광 대신 H 시트
 Object.assign(VFX_BASIC_HIT, { lancer: 'h03', dragoon: 'h09', halberdier: 'h10', cavalier: 'h11', dragonlord: 'h21', warlord: 'h22', skyGeneral: 'h23' });
 
-function vfxRegister(sheets) {
-  for (const [id, s] of Object.entries(sheets)) {
-    VFX_SHEETS[id] = s;
-    if (typeof Image === 'undefined') continue;
-    s.img = new Image();
-    s.img.onload = () => vfxQuantize(s);
-    s.img.src = vfxBase + id + '.png';
-  }
-}
-vfxRegister(VFX_SPEAR_SHEETS);
+vfxRegister(VFX_SPEAR_SHEETS);   // 공통 src/vfx-tex.js (⑤-3 과 같은 함수를 양쪽에서 만들어 공통으로 옮겼다)
 
 // 시트 한 장의 화면 폭(px)
 const vfxW = (id, sc = 1) => (VFX_SHEETS[id] && VFX_SHEETS[id].fw || 0) * sc * VFX_DOT;
