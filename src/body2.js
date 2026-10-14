@@ -559,6 +559,7 @@ function autoViews(torso) {
   const preOf = (id, src) => BODY2_OVERRIDE[id] || BODY2_OVERRIDE[Object.keys(BODY).find((k) => BODY[k] === src)] || epx2(src);
   for (const id in CLASSES) {
     const look = CLASSES[id].look, src = look.body;
+    if (look.sheet) continue;            // 통짜 스프라이트 시트 직업 (파이터 계열, src/sprites.js) — 조립식 몸통이 없다
     if (BODY2_OVERRIDE[id] && !BODY[id]) look.body = Object.assign(outline(BODY2_OVERRIDE[id]), { px: 0.5 });   // 몸통을 빌려 쓰던 직업의 전용 손도트
     else if (cache.has(look.body)) look.body = cache.get(look.body);
     {

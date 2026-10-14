@@ -1,0 +1,83 @@
+{
+ "start": 1769.0,
+ "used": 30.0,
+ "calls": [
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "idle: standing relaxed idle, breathing slowly, chest rises and fal",
+   "used": 2.0,
+   "bal": 1767.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view walk cycle to the right, legs clearly cross and al",
+   "used": 3.0,
+   "bal": 1763.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "charge: side view, crouches low in a wide stance and pulls both fist",
+   "used": 1.0,
+   "bal": 1762.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "death: side view, gets knocked out: staggers backward, knees buckle",
+   "used": 4.0,
+   "bal": 1758.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "hurt: side view, gets hit hard in the face and recoils, head and u",
+   "used": 2.0,
+   "bal": 1756.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-text-v3",
+   "purpose": "dash: side view, sprints forward to the right very fast, torso lea",
+   "used": 4.0,
+   "bal": 1751.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "idle: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 3.0,
+   "bal": 1748.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 1.0,
+   "bal": 1747.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "dash: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 4.0,
+   "bal": 1743.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "charge: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 3.0,
+   "bal": 1740.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-text-v3",
+   "purpose": "hurt: side view, body keeps facing right, heavyweight boxer with h",
+   "used": 3.0,
+   "bal": 1735.0
+  }
+ ]
+}

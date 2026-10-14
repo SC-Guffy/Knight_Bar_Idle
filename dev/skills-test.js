@@ -141,7 +141,13 @@ function run() {
     for (const k of st.skills) knight.cds[k] = k === id ? 0 : 999;
     knight.swing = -1;
     const hp0 = dummy.hp;
-    tryCastSkill(st, dummy);
+    if (isQiCls(S.cls)) {
+      // 파이터 계열: 기 게이지·투지 칸을 채우고 그 스킬만 (src/jobs/fighter.js). 장풍은 T.q3 면 가득(3단), 아니면 2단
+      const q = qiSt();
+      q.v = id === 'palmBlast' && !T.q3 ? qiNeed(id) : QI[S.cls].max;
+      for (const o in q.tj) q.tj[o] = o === id ? qiNeed(o) : 0;
+      tryCastSkill(st, dummy, id);
+    } else tryCastSkill(st, dummy);
     for (const k of st.skills) if (k !== id) knight.cds[k] = 0;
     T.last = { id, hp0 };
     renderInfo();
@@ -308,6 +314,7 @@ function run() {
   const qs = new URLSearchParams(location.search);
   if (qs.get('mode') === 'basic') T.mode = 'basic';
   if (qs.has('stage')) T.stage = Math.max(0, Math.min(3, +qs.get('stage') || 0));
+  if (qs.get('q3')) T.q3 = true;          // 파이터 계열 장풍을 가득 찬 기(3단)로
   setClass(CLASSES[qs.get('cls')] ? qs.get('cls') : T.cls);
   if (T.mode === 'skill' && skillsOf(T.cls).some((k) => k.id === qs.get('skill'))) { T.skill = qs.get('skill'); T.lock = true; renderUi(); }
   renderInfo();

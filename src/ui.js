@@ -599,7 +599,7 @@ function skillList(id) {
     const dmg = k.ward ? `초당 ×${+(k.ward.tick * pow).toFixed(2)}` : `×${+mult.toFixed(1)}${hitN > 1 ? ` (${hitN}회)` : ''}`;
     return `<div class="skill ${on ? 'on' : mine ? 'locked' : ''}">
       <span class="sicon">${k.icon}</span>
-      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id), skillStage(k.id)) : k.name}</b> <small>${k.ult ? '💥 궁극기 · ' : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · 쿨 ${cd}초 · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
+      <span class="sbody"><b>${mine ? skillNameAt(k, skillLv(k.id), skillStage(k.id)) : k.name}</b> <small>${k.ult ? '💥 궁극기 · ' : ''}${inh ? `${CLASSES[k.cls].name}에게서 계승 · ` : ''}${k.lv ? `Lv ${k.lv}` : '전직 즉시'} · ${k.qi && isQiCls(id) ? qiCdText(k, id, mine ? skillBonus(k.id) : undefined, cd) : `쿨 ${cd}초`} · ${dmg}${k.crit ? ' · 치명 확정' : ''}${mine && !on ? ' · 🔒' : ''}</small>
         <span class="sdesc">${k.desc}</span></span>
     </div>`;
   }).join('')}</div>`;
@@ -733,7 +733,7 @@ function viewSkill() {
         ${max ? '' : `<div class="mseg"><div class="cells">${Array.from({ length: s.need }, (_, i) => `<i class="${i < s.have ? 'on' : ''}"></i>`).join('')}</div>
           <span class="mnum"><b>${s.have}</b>/${s.need}</span></div>`}
         <small class="mstat">${k.right
-          ? `쿨타임 ${cd(s.lv)}초 · 위력 ${mt(s.lv)}${treeSummary(k, b) ? ` <span class="tbon">${treeSummary(k, b)}</span>` : ''} · <span class="tnote">${max ? '' : '레벨업 = ⭐ 1 · '}성장은 전부 트리에서</span>`
+          ? `${k.qi && isQiCls(S.cls) ? qiCdText(k, S.cls, b, skillCd(k.id)) : `쿨타임 ${cd(s.lv)}초`} · 위력 ${mt(s.lv)}${treeSummary(k, b) ? ` <span class="tbon">${treeSummary(k, b)}</span>` : ''} · <span class="tnote">${max ? '' : '레벨업 = ⭐ 1 · '}성장은 전부 트리에서</span>`
           : `${max ? '' : '다음 레벨 · '}쿨타임 ${cd(s.lv)}초${max ? '' : ` → <b>${cd(s.lv + 1)}초</b>`} · 위력 ${mt(s.lv)}${max ? '' : ` → <b>${mt(s.lv + 1)}</b>`}${b.pow || b.cd ? ` <span class="tbon">${b.pow ? `⚔️ +${treePct(TREE_POW * b.pow)}%` : ''}${b.pow && b.cd ? ' · ' : ''}${b.cd ? `⏱️ -${treePct(TREE_CD * b.cd)}%` : ''}</span>` : ''}`}</small>
       </div>
       <div class="act">${btns}</div>
@@ -3235,7 +3235,7 @@ function resetWorld() {
   if (cdv) endCastleView();
   monsters = []; coins = []; floaters = []; shots = []; effects = []; drops = [];
   lapReady = false;
-  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null });
+  Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, facing: 1, cds: {}, ward: null, warp: null, qi: null });
   casts = []; skfx = []; cutin = null; hitstop = 0;
   knight.x = S.phase === 'expedition' ? toWorld(CAMP_X + 90) : toWorld(CAMP_X);
   Object.assign(inbox, { list: null, error: null, told: 0, newAfter: null, more: false });

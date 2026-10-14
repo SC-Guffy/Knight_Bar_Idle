@@ -1610,6 +1610,7 @@ const inheritBoost = (k, owner) => {
 const treeBonus = (b) => (typeof b === 'number' ? { star: b } : b || {});
 // 쿨타임(초). owner 는 쓰는 기사의 직업 (물려받은 스킬이면 inheritBoost 만큼 길어진다)
 const skillCdOf = (k, lv, owner = k.cls, b) => {
+  if (k.qi) return qiCdOf(k, owner, b);      // 파이터 계열: 쿨타임 대신 기 — 등가 쿨타임 (src/fighter-data.js)
   const t = treeBonus(b);
   if (k.right) {
     // V2: 레벨·별로 줄지 않고 TREE2_CD 에서 시작, 쿨타임 노드(right cd)가 있으면 그만큼 더 준다
@@ -1685,6 +1686,8 @@ const TREE_RIGHT = {
   leech: { name: '흡혈',   icon: '🩸', full: 0.15, desc: (v) => `스킬 피해의 ${treePct(v)}% 를 체력으로` },
   ward:  { name: '철벽',   icon: '🛡️', full: 0.45, dur: 4, desc: (v) => `시전 뒤 4초간 받는 피해 -${treePct(v)}%` },   // 풀에 남겨 둔 예비 — 지금 쓰는 스킬 없음 (방어는 피해 노드와 저울질이 안 돼서 고유 특수로 바꿨다)
 };
+// 파이터 계열(k.qi) 스킬은 쿨타임 대신 기 — ⏱️ 자리가 ☯️ 기 절약 (소모량·문턱 ×(1 − v), docs/specs/boxer-class.md 4절)
+const TREE_RIGHT_QI = { cd: { name: '기 절약', icon: '☯️', full: 0.4, desc: (v) => `기 소모 -${treePct(v)}%` } };
 // ───────── 고유 특수 노드 (right 의 'spec') ─────────
 // 스킬마다 하나씩 다른 효과 k.spec = { type, name, icon, full, ...인자 }. 피해 노드와 진짜로 저울질되게 전부 공격·운영형이다 (방어 없음).
 //  type 은 공용 구현(아래 SPEC_TYPES, 효과는 skills.js tryCastSkill · world.js hitMonster·몬스터 틱·fightTick · core.js rewardKill 에 한 번씩)이고,
@@ -1702,18 +1705,18 @@ const SPEC_TYPES = {
   vuln:     { fmt: 'pct+', ev: 0.6,  desc: (v, s) => `맞은 적이 ${s.dur}초간 받는 모든 피해 +${treePct(v)}% (평타 포함)` },
   dot:      { fmt: 'pct+', ev: 1,    desc: (v, s) => `맞은 적에게 ${s.dur}초에 걸쳐 스킬 피해의 ${treePct(v)}% 를 추가로` },
   stun:     { fmt: 'sec',  ev: 0,    desc: (v) => `맞은 적이 ${v.toFixed(1)}초 멈춤 (보스는 절반)` },
-  refund:   { fmt: 'pct',  ev: 0.5,  desc: (v) => `처치할 때마다 이 스킬 쿨타임 ${treePct(v)}% 환급` },
+  refund:   { fmt: 'pct',  ev: 0.5,  desc: (v) => `처치할 때마다 이 스킬 쿨타임 ${treePct(v)}% 환급`, descQi: (v) => `처치할 때마다 이 스킬 소모 기의 ${treePct(v)}% 를 돌려받음` },
   haste:    { fmt: 'pct+', ev: 0.3,  desc: (v, s) => `시전 뒤 ${s.dur}초간 평타 속도 +${treePct(v)}%` },
-  chain:    { fmt: 'pct',  ev: 0.4,  desc: (v) => `시전 시 다른 스킬 쿨타임 ${treePct(v)}% 감소` },
+  chain:    { fmt: 'pct',  ev: 0.4,  desc: (v) => `시전 시 다른 스킬 쿨타임 ${treePct(v)}% 감소`, descQi: (v) => `시전 시 다른 스킬의 기·투지를 ${treePct(v)}% 채움` },
   range:    { fmt: 'pct+', ev: 0.3,  desc: (v) => `기술 범위 +${treePct(v)}%` },
   overkill: { fmt: 'pct',  ev: 0.3,  desc: (v) => `처치 시 넘친 피해의 ${treePct(v)}% 를 다음 적에게` },
   gold:     { fmt: 'pct+', ev: 0,    desc: (v) => `이 스킬로 처치한 적의 골드 +${treePct(v)}%` },
 };
 // 오른쪽 키의 효과 정의 { name, icon, full, desc(v) } — 'spec' 은 그 스킬의 k.spec, 나머지는 공용 풀
 const rightDef = (k, key) => {
-  if (key !== 'spec') return TREE_RIGHT[key];
-  const s = k.spec, T = SPEC_TYPES[s.type];
-  return { name: s.name, icon: s.icon, full: s.full, type: s.type, fmt: T.fmt, desc: (v) => T.desc(v, s) };
+  if (key !== 'spec') return k.qi && TREE_RIGHT_QI[key] || TREE_RIGHT[key];
+  const s = k.spec, T = SPEC_TYPES[s.type], d = k.qi && T.descQi || T.desc;
+  return { name: s.name, icon: s.icon, full: s.full, type: s.type, fmt: T.fmt, desc: (v) => d(v, s) };
 };
 // 짧은 표기: ⏱️ -15% · 💥 +4.4% · 🗡️ +30% · 💫 0.8초
 const rightShort = (k, key, v) => {

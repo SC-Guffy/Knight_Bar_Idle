@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 48,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: horizontal air pressure shockwave cone shooting to the right from a straight punch, a flat cone of wind that widens toward the right, two or three curved white pressure ripple arcs stacked inside the cone like parentheses, white leading arc at the right end, light grey and pale blue body, thin speed lines along the top and bottom edges, wide and flat, filling the width, nothing else, no character, no background shape, no text",
+ "seed": 7
+}

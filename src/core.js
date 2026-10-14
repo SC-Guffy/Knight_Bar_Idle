@@ -365,7 +365,9 @@ const skillStar = (id) => skillBonus(id).star;
 const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
 // 🎲 스킬 피해 옵션은 한 방 위력에 곱한다 (필드·결투·레이드가 모두 이 값을 쓴다)
 const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id)) * (1 + gearBonus().skillDmg);
-const skillCd = (id) => skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id));
+const skillCd = (id) => (SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
+// 파이터 계열 등가 쿨타임에 쓰는 공속·치명 (장비 포함, stats() 와 같은 식 — dpsOf 안에서 stats 를 다시 부르지 않게)
+const qiStats = () => { const m = heroClass().mods, gb = gearBonus(); return { aspd: 0.9 * (m.aspd || 1) * (1 + gb.aspdPct), crit: Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit) }; };
 // 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
 function nodeLock(id, nid) {
   const nd = nodeDef(id, nid);
@@ -454,6 +456,8 @@ function profile() {
     // 🎲 옵션 줄의 보스 피해·처형: 레이드·월드 보스 서버 전투(server/raid.js)가 쓴다
     ...bossOpts(),
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
+    // 파이터 계열: 기 규칙 (서버 duel.js·raid.js 가 실제로 충전·소모를 돌린다. 모르는 서버는 버리고 등가 cd 로 계산)
+    ...(isQiCls(S.cls) ? { qi: qiProfileOf(S.cls) } : {}),
     skills: st.skills.map((id) => {
       const k = skillAt(id, skillLv(id), skillStage(id));
       // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
@@ -462,6 +466,8 @@ function profile() {
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
       return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)), crit: !!k.crit,
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
+        ...(k.qi && isQiCls(S.cls) ? { [qiIsMain(id, S.cls) ? 'cost' : 'need']: qiCostOf(SKILLS[id], S.cls, skillBonus(id)), ...(id === 'palmBlast' ? { m3: QI_PALM3 } : {}), ...(k.ult ? { awaken: 1 } : {}),
+          ...(k.ward && k.ward.qiHurt ? { qiHurt: k.ward.qiHurt } : {}) } : {}),
         ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : wd ? { ward: { dur: TREE_RIGHT.ward.dur, guard: wd, heal: 0 } } : {}) };
     }),
   };

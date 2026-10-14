@@ -64,7 +64,7 @@ function startCast(owner, id, a, queue = false) {
   const lv = a.lv || (owner === 'hero' ? skillLv(id) : 1);
   // 적용한 별 단계: 내 기사는 스킬 탭에서 고른 모습, 재생은 기록의 단계 (옛 기록엔 없다 → 레벨로 가능한 최대)
   const stage = a.star != null ? a.star : owner === 'hero' ? skillStage(id) : masteryOf(lv);
-  const k = skillAt(id, lv, stage), fx = SKILL_FX[id];
+  const k = a.kOver || skillAt(id, lv, stage), fx = SKILL_FX[id];      // kOver: 이번 시전만의 모양 (장풍 3단 — src/jobs/fighter.js qiShape)
   Object.assign(a, { owner, id, k, u: 0, color: CLASSES[a.cls || S.cls].look.fx });
   a.cls = a.cls || S.cls;
   a.lv = lv;
@@ -216,6 +216,7 @@ function skillTargets(k, st) {
 // 쿨타임과 성역 보호막은 원정 내내 흐른다
 function tickSkills(dt, st) {
   for (const id of st.skills) if (knight.cds[id] > 0) knight.cds[id] -= dt;
+  if (qiOn()) qiTick(dt);                       // 파이터 계열: 쿨타임 대신 기 게이지 (src/jobs/fighter.js)
   if (knight.haste && (knight.haste.left -= dt) <= 0) knight.haste = null;   // 💨 고유 특수 가속 (world.js 평타 타이머가 읽는다)
   const w = knight.ward;
   if (!w) return;
@@ -248,19 +249,20 @@ function tickSkills(dt, st) {
 
 // 교전 중 쿨타임이 찬 스킬이 있으면 쓴다 (해금 레벨 높은 것부터). only: 그 스킬만 (돌진이 닿았을 때, world.js fightTick)
 function tryCastSkill(st, target, only = null) {
-  for (const id of st.skills) {
-    if ((knight.cds[id] || 0) > 0 || (only && id !== only)) continue;
-    const k0 = skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
+  const qi = qiOn();       // 파이터 계열: 기 게이지가 소모량(투지 칸이 문턱) 이상이면 쓴다 — 투지 기술 먼저 (src/jobs/fighter.js)
+  for (const id of qi ? qiOrder(st) : st.skills) {
+    if ((qi ? !qiCan(id, !!only) : (knight.cds[id] || 0) > 0) || (only && id !== only)) continue;
+    const k0 = qi ? qiShape(id, skillAt(id, skillLv(id), skillStage(id))) : skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
     // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 · 고유 특수 (core.js skillRight · skillSpec, 종류는 classes.js SPEC_TYPES)
     const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward'), sp = skillSpec(id);
     const spT = (t) => (sp && sp.type === t ? sp.v : 0);     // 이 스킬의 특수가 t 종류면 지금 값, 아니면 0
     // ↔️ 범위: 사거리·반경을 늘린 사본으로 대상을 고른다 (skillTargets 의 rangeUp, hitRange 가 펼쳐 넘긴다)
     const k = spT('range') ? { ...k0, rangeUp: sp.v } : k0;
     const cdNow = skillCd(id);
-    knight.cds[id] = cdNow;
+    const qiMul = qi ? qiCast(id) : ((knight.cds[id] = cdNow), 1);     // 장풍 3단은 위력 배수
     procLater.push({ at: clock + 0.05, fn: () => procOnCast(id) });   // 우로보로스: 쿨타임 초기화 (시전 처리가 끝난 뒤)
     // 🌀 겹침: 12초 안에 다시 쓰면 한 겹씩 쌓이고(최대 5), 이번 시전은 지금까지 쌓인 겹 수만큼 세다
-    let stackMul = 1;
+    let stackMul = qiMul;
     if (spT('stack')) {
       knight.stacks = knight.stacks || {};
       const s = knight.stacks[id], n = s && clock - s.t < 12 ? Math.min(5, s.n + 1) : 0;
@@ -270,11 +272,12 @@ function tryCastSkill(st, target, only = null) {
     }
     // 💨 가속(시전 뒤 잠깐 평타가 빨라진다, world.js 평타 타이머) · ✨ 연계(다른 스킬 쿨타임을 당긴다)는 시전 즉시
     if (spT('haste')) knight.haste = { left: sp.dur, v: sp.v };
-    if (spT('chain')) for (const o of st.skills) if (o !== id && knight.cds[o] > 0) knight.cds[o] = Math.max(0, knight.cds[o] - skillCd(o) * sp.v);
+    if (spT('chain') && qi) qiChain(id, sp.v);
+    else if (spT('chain')) for (const o of st.skills) if (o !== id && knight.cds[o] > 0) knight.cds[o] = Math.max(0, knight.cds[o] - skillCd(o) * sp.v);
     knight.swing = -1;
     let focus = target;
     const a = {
-      cls: S.cls, dir: 1, star: skillStage(id),
+      cls: S.cls, dir: 1, star: skillStage(id), ...(k0.q3 ? { kOver: k0, q3: true } : {}),
       x: () => toScreen(knight.x),
       tx: () => toScreen(focus.x) + focus.kb,
       ty: () => monsterMidY(focus),
@@ -316,7 +319,8 @@ function tryCastSkill(st, target, only = null) {
         }
         if (dbl && dealt > 0) addFloater(`${sp.icon} 2배!`, toScreen(focus.x), monsterTop(focus) - 24, '#ffd257', 13, true);
         // 🔁 환급: 처치한 수만큼 이 스킬 쿨타임을 돌려받는다
-        if (spT('refund') && kills) knight.cds[id] = Math.max(0, knight.cds[id] - cdNow * sp.v * kills);
+        if (spT('refund') && kills && qi) qiRefund(id, sp.v * kills);
+        else if (spT('refund') && kills) knight.cds[id] = Math.max(0, knight.cds[id] - cdNow * sp.v * kills);
         // ➡️ 관통: 넘친 피해의 일부가 아직 살아 있는 가장 가까운 적에게 (치명 없이)
         if (spT('overkill') && over > 0) {
           const next = monsters.filter((m) => !m.dying && m.hp > 0).sort((p, q) => aheadDist(knight.x, p.x) - aheadDist(knight.x, q.x))[0];
@@ -336,7 +340,7 @@ function tryCastSkill(st, target, only = null) {
         }
         const max = stats().maxHp;
         // 보호막 스킬(성역)의 트리 V2: 🛡️ 철벽은 보호막 감소율에 더해지고(최대 90%), 🩸 흡혈은 보호막 초당 피해에도 적용 (tickSkills)
-        knight.ward = { left: k.ward.dur, guard: Math.min(0.9, k.ward.guard + wd), tick: k.ward.tick * skillPow(id), acc: 0, finish: (k.ward.finish || 0) * skillPow(id), lc, a };
+        knight.ward = { left: k.ward.dur, guard: Math.min(0.9, k.ward.guard + wd), tick: k.ward.tick * skillPow(id), acc: 0, finish: (k.ward.finish || 0) * skillPow(id), lc, a, qiHurt: k.ward.qiHurt || 0 };
         S.hp = Math.min(max, S.hp + max * k.ward.heal);
         addFloater(`💚 +${fmt(max * k.ward.heal)}`, toScreen(knight.x), groundY() - 66, '#7dffb0', 13);
       },
@@ -3511,7 +3515,7 @@ function drawScreenFx() {
 function drawSkillIcons(x, y) {
   const ids = stats().skills.slice().reverse();
   ids.forEach((id, i) => {
-    const k = SKILLS[id], left = Math.max(0, knight.cds[id] || 0), ready = left <= 0;
+    const k = SKILLS[id], lack = k.qi && qiOn() ? qiLack(id) : null, left = lack != null ? lack : Math.max(0, knight.cds[id] || 0), ready = left <= 0;
     const bx = x + i * 13, sz = 11;
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(bx - 1, y - 1, sz + 2, sz + 2);
@@ -3522,7 +3526,7 @@ function drawSkillIcons(x, y) {
     ctx.globalAlpha = 1;
     if (!ready) {
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(bx, y, sz, Math.round(sz * Math.min(1, left / skillCd(id))));
+      ctx.fillRect(bx, y, sz, Math.round(sz * Math.min(1, lack != null ? lack : left / skillCd(id))));
     } else {
       ctx.strokeStyle = CLASSES[k.cls].look.fx; ctx.lineWidth = 1;
       ctx.globalAlpha = 0.6 + 0.4 * Math.sin(clock * 6);
@@ -3531,4 +3535,5 @@ function drawSkillIcons(x, y) {
     }
   });
   ctx.textBaseline = 'alphabetic';
+  if (qiOn()) qiDrawBar(x, y + 14, Math.max(26, ids.length * 13 - 2));     // 파이터 계열 기 게이지 막대 (src/jobs/fighter.js)
 }

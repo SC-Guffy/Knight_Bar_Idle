@@ -1,5 +1,5 @@
 'use strict';
-const { makeSkills, readySkill, wardCut } = require('./duel');
+const { makeSkills, readySkill, wardCut, qiInit, qiOnHit, qiOnHurt } = require('./duel');
 // 보스 레이드 전투 시뮬레이션. 결투처럼 서버에서 끝까지 계산하고, 파티원 모두가 같은 기록(events)을 하단바에서 재생한다.
 // 1~4명의 기사가 왼쪽에서 걸어와 각자 사거리에 들어오면 멈춰서 공격하고, 보스는 한 명을 때리거나 전원을 광역으로 친다.
 // 보스 이름·외형·전리품은 클라이언트 src/data.js 의 RAID_BOSSES 에 있다 (id·stage 가 이 표와 같아야 함).
@@ -100,6 +100,7 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
     cd: 0.2 + rng() * 0.4, stun: 0, leapCd: p.leap ? p.leap.every / 2 : Infinity, skills: makeSkills(p), busy: 0, ward: null,
     stopT: null, alive: true, dmg: 0, taken: 0, heal: 0, acc: null,
   }));
+  for (const k of ks) qiInit(k);       // 파이터 계열: 기 게이지 (duel.js)
   const events = [];
   let t = 0, lastFlush = 0;
   const hpList = () => ks.map((k) => Math.max(0, Math.round(k.hp)));
@@ -124,6 +125,7 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
     const dmg = Math.min(boss.hp, k.p.atk * base * (crit ? k.p.critMult : 1) * opt * (0.9 + rng() * 0.2));
     boss.hp -= dmg;
     k.dmg += dmg;
+    if (kind === 'hit') qiOnHit(k, crit, t);
     if (k.p.heal) {
       const h = Math.min(k.max - k.hp, k.max * k.p.heal);
       k.hp += h; k.heal += h;
@@ -133,7 +135,7 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
       k.hp += h; k.heal += h;
     }
     if (sk && sk.ward) {
-      k.ward = { until: t + sk.dur + sk.ward.dur, guard: sk.ward.guard };
+      k.ward = { until: t + sk.dur + sk.ward.dur, guard: sk.ward.guard, ...(sk.qiHurt ? { qiHurt: sk.qiHurt } : {}) };
       const h = Math.min(k.max - k.hp, k.max * sk.ward.heal);
       k.hp += h; k.heal += h;
     }
@@ -148,6 +150,7 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
     const dmg = boss.atk * mult * (t > enrageT ? 2 : 1) * (0.9 + rng() * 0.2) * (1 - k.p.guard) * wardCut(k, t);
     const d = Math.min(k.hp, dmg);
     k.hp -= d; k.taken += d;
+    qiOnHurt(k, t);
     return Math.round(dmg);
   };
   // 밀쳐 내고 기절시킨다. 기록에는 맞은 뒤 위치(x)와 남은 기절 시간(st)을 남겨 재생 때 그대로 따라 그린다
@@ -176,7 +179,7 @@ function simulateBossFight(bossId, def, bs, profiles, seed = (Math.random() * 2 
       if (k.stopT == null) k.stopT = round1(t);
       k.cd -= DT;
       k.leapCd -= DT;
-      const sk = readySkill(k, DT);
+      const sk = readySkill(k, DT, t);
       if (k.leapCd <= 0) { k.leapCd = k.p.leap.every; hit(k, 'leap'); }
       else if (sk) hit(k, 'skill', sk);
       else if (k.busy <= 0 && k.cd <= 0) { k.cd = 1 / k.p.aspd; hit(k, 'hit'); }

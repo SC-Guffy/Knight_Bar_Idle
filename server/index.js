@@ -58,7 +58,17 @@ function sanitizeProfile(p = {}) {
       ...(s.cp ? { cp: num(s.cp, 0, 0.5, 0) } : {}), ...(s.lc ? { lc: num(s.lc, 0, 0.3, 0) } : {}),
       ...(s.ward && typeof s.ward === 'object'
         ? { ward: { dur: num(s.ward.dur, 0, 8, 0), guard: num(s.ward.guard, 0, 0.8, 0), heal: num(s.ward.heal, 0, 0.5, 0) } } : {}),
+      // 파이터 계열 (server/duel.js qiReady): cost 주 기술 소모량 · need 투지 기술 문턱 · m3 장풍 3단 배수 · awaken 궁극기 각성 · qiHurt 기막 피격 충전 배수
+      ...(s.cost ? { cost: num(s.cost, 1, 1000, 100) } : {}), ...(s.need ? { need: num(s.need, 1, 2000, 100) } : {}),
+      ...(s.m3 ? { m3: num(s.m3, 1, 3, 1) } : {}), ...(s.awaken ? { awaken: 1 } : {}), ...(s.qiHurt ? { qiHurt: num(s.qiHurt, 1, 3, 1) } : {}),
     }));
+  // 파이터 계열 기 규칙 (src/fighter-data.js qiProfileOf)
+  const q = p.qi && typeof p.qi === 'object' ? p.qi : null;
+  const qi = q ? {
+    max: num(q.max, 1, 1000, 100), hit: num(q.hit, 0, 50, 0),
+    ...['critX', 'multi', 'perSec', 'hurt', 'hurtCap', 'dashPx', 'keep'].reduce((o, key) => (q[key] ? { ...o, [key]: num(q[key], 0, 500, 0) } : o), {}),
+    ...(q.awaken && typeof q.awaken === 'object' ? { awaken: { dur: num(q.awaken.dur, 0, 20, 6), mult: num(q.awaken.mult, 1, 4, 2) } } : {}),
+  } : null;
   return {
     cls: typeof p.cls === 'string' ? p.cls.slice(0, 24) : 'squire',
     level: Math.floor(num(p.level, 1, 1e6, 1)),
@@ -77,7 +87,7 @@ function sanitizeProfile(p = {}) {
     heal: num(p.heal, 0, 0.2, 0),
     // 장비 옵션 줄 (시즌6): 레이드·월드 보스 전투만 쓴다 (server/raid.js)
     ...(p.bossDmg ? { bossDmg: num(p.bossDmg, 0, 4, 0) } : {}), ...(p.exec ? { exec: num(p.exec, 0, 4, 0) } : {}),
-    leap, skills,
+    leap, skills, ...(qi ? { qi } : {}),
     power: Math.floor(num(p.power, 0, 1e150, 0)),
     tower: Math.floor(num(p.tower, 0, 1e5, 0)),   // 도전의 탑 최고 층 (탑 순위)
   };

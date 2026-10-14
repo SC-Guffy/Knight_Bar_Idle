@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: long flat horizontal air blast from a straight punch going right, a narrow wedge of compressed air that starts as a thin point on the left and widens to the right, three white curved pressure ripple arcs inside it like ))) , bright white rim, light grey and pale blue body, thin speed lines above and below, very flat, only one third of the canvas height tall, transparent around it, nothing else, no character, no background shape, no text",
+ "seed": 19
+}

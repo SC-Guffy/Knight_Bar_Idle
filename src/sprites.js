@@ -1,0 +1,117 @@
+'use strict';
+// 통짜 스프라이트 시트 직업 (파이터 계열, docs/specs/boxer-class.md 9절): 조립식 몸통·팔·다리 대신 PixelLab 시트 한 장.
+//  시트: src/sprites/<cls>.png — 동작마다 한 줄, 프레임 64×64 가로. 기준점 (32, 58) = 발 가운데 = 땅. 오른쪽만 그렸고 왼쪽은 좌우 반전.
+//  메타: src/sprites/<cls>.json 을 묶은 src/sprites/meta.js 의 SHEET_META[cls] = { anims: { key: { row, frames, fps, loop, hit } }, pts: { key: [[손x, 손y, 머리x, 머리y], …] } }
+//        (Electron 이 file:// 로 열려 JSON 을 fetch 할 수 없어서 JS 로 묶는다 — node dev/boxer/sheet-meta.js)
+//  1 시트 픽셀 = 고해상 도트 1칸 = 화면 PX/2 (1.5px). 지금 기사와 화면 크기가 같다.
+//  drawHero 가 look.sheet 직업이면 여기로 온다 (world.js). 스킬 자세의 dx·lift·skew·sx·sy 는 그림 전체에 변형으로,
+//  pose.sheet = { anim, frame } 또는 { anim, u 0~1 } 이면 그 동작을 그린다 (스킬 연출 SKILL_FX 의 pose 가 준다).
+//  pose.tint 한 색 실루엣(잔상) · pose.onlyWeapon 아무것도 안 그림(무기가 그림 안에 있다) · pose.flash 흰색으로 덮기.
+
+const SHEET_DOT = PX / 2;
+const SHEETS = {};
+const sheetBase = (() => {
+  const s = typeof document !== 'undefined' && document.currentScript && document.currentScript.src;
+  return s ? s.replace(/[^/]*$/, '') + 'sprites/' : 'src/sprites/';
+})();
+// 지연 생성·캐시 (zoneBg 처럼). 진행 봇 vm(가짜 document)에선 Image 가 없으니 아무것도 안 한다
+function sheetOf(cls) {
+  if (SHEETS[cls]) return SHEETS[cls];
+  const meta = typeof SHEET_META !== 'undefined' && SHEET_META[cls];
+  const s = (SHEETS[cls] = { meta, img: null, ok: false, tint: new Map() });
+  if (meta && typeof Image !== 'undefined') {
+    s.img = new Image();
+    s.img.onload = () => { s.ok = true; };
+    s.img.src = sheetBase + cls + '.png' + (meta.v ? '?v=' + meta.v : '');
+  }
+  return s;
+}
+
+// 지금 그릴 동작과 프레임 { anim, f }
+function sheetFrame(meta, pose) {
+  const A = meta.anims, has = (k) => !!A[k];
+  const loopF = (k, t) => Math.floor(t * (A[k].fps || 8)) % A[k].frames;
+  const onceF = (k, u) => Math.max(0, Math.min(A[k].frames - 1, Math.floor(u * A[k].frames)));
+  if (pose.sheet && has(pose.sheet.anim)) {
+    const k = pose.sheet.anim, sp = pose.sheet;
+    return { anim: k, f: sp.frame != null ? Math.max(0, Math.min(A[k].frames - 1, sp.frame)) : sp.u != null ? onceF(k, sp.u) : loopF(k, pose.t || 0) };
+  }
+  if (pose.down > 0 && has('death')) {                    // 쓰러짐: 다시 일어설 때까지 마지막 프레임 유지
+    const u = Math.min(1, (DEFEAT_DOWN_SEC - pose.down) / 0.7);
+    return { anim: 'death', f: onceF('death', u) };
+  }
+  if (pose.mode === 'sit' && has('sit')) return { anim: 'sit', f: loopF('sit', pose.t || 0) };
+  if (pose.dash && has('dash')) return { anim: 'dash', f: loopF('dash', pose.t || 0) };
+  if (pose.mode === 'walk' && has('walk')) return { anim: 'walk', f: Math.floor((pose.walkT || 0) * (A.walk.fps || 10)) % A.walk.frames };
+  if (pose.mode === 'stand' || pose.mode === 'idle') return { anim: 'idle', f: loopF('idle', pose.t || 0) };
+  if (pose.recoil > 0.35 && has('hurt')) return { anim: 'hurt', f: pose.recoil > 0.7 ? 0 : 1 };
+  if (pose.swing >= 0) {
+    // 평타 2종 번갈아 (knight.combo). 타격 프레임(hit)이 평타 타격 시점(근접 35% · 원거리 45%)에 오게 나눈다
+    const k = (pose.combo || 0) % 2 && has('atkB') ? 'atkB' : 'atkA', a = A[k], hit = a.hit != null ? a.hit : Math.floor(a.frames / 2);
+    const hs = pose.ranged ? 0.45 : 0.35, s = pose.swing;
+    const f = s < hs ? Math.floor(s / hs * hit) : hit + Math.floor((s - hs) / (1 - hs) * (a.frames - hit));
+    return { anim: k, f: Math.max(0, Math.min(a.frames - 1, f)) };
+  }
+  return { anim: has('guard') ? 'guard' : 'idle', f: loopF(has('guard') ? 'guard' : 'idle', pose.t || 0) };
+}
+
+// 한 색으로 칠한 시트 (잔상·실루엣). 색마다 한 번 만든다
+function sheetTinted(s, color) {
+  if (s.tint.has(color)) return s.tint.get(color);
+  const cv = document.createElement('canvas');
+  cv.width = s.img.naturalWidth; cv.height = s.img.naturalHeight;
+  const g = cv.getContext('2d');
+  g.drawImage(s.img, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = color; g.fillRect(0, 0, cv.width, cv.height);
+  s.tint.set(color, cv);
+  return cv;
+}
+
+function drawHeroSheet(g, id, x, gy, pose) {
+  if (pose.onlyWeapon) return;
+  const s = sheetOf(id), meta = s.meta, fx = CLASSES[id].look.fx;
+  const facing = pose.facing < 0 ? -1 : 1, D = SHEET_DOT;
+  const dx = Math.round(pose.dx || 0), lift = pose.lift || 0, sx = pose.sx || 1, sy = pose.sy || 1, skew = pose.skew || 0;
+  g.save();
+  g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;
+  g.imageSmoothingEnabled = false;
+  g.translate(Math.round(x + dx * facing), Math.round(gy - lift));
+  g.scale(facing, 1);
+  if (skew) g.transform(1, 0, -skew, 1, 0, 0);          // 앞(+)으로 기울면 위쪽이 앞으로
+  g.scale(sx, sy);
+  if (!s.ok && s.img && s.img.complete && s.img.naturalWidth) s.ok = true;
+  if (!s.ok || !meta) {
+    // 아직 못 불러왔다: 직업색 실루엣만 (몸 크기 대략)
+    g.fillStyle = pose.tint || fx;
+    g.globalAlpha *= 0.22;
+    g.fillRect(-7 * D, -34 * D, 14 * D, 34 * D);
+    g.restore();
+    return;
+  }
+  const { anim, f } = sheetFrame(meta, pose), a = meta.anims[anim];
+  const src = pose.tint ? sheetTinted(s, pose.tint) : s.img;
+  const W = meta.w || 64, H = meta.h || 64, ft = meta.foot || [32, 58];
+  g.drawImage(src, f * W, a.row * H, W, H, -ft[0] * D, -ft[1] * D, W * D, H * D);
+  if (pose.flash) {
+    // 피격 번쩍임: 흰 실루엣을 반투명으로 덮는다 (짧게 — 검흔·명중 그림이 묻히지 않게)
+    g.globalAlpha *= 0.55;
+    g.drawImage(sheetTinted(s, '#ffffff'), f * W, a.row * H, W, H, -ft[0] * D, -ft[1] * D, W * D, H * D);
+  }
+  g.restore();
+}
+
+// 지금 그리는 프레임의 기준점(hand·head)을 화면 좌표로. pose 가 없으면 내 기사의 지금 모습
+function sheetPoint(cls, which, x, gy, facing = 1, pose = null) {
+  const s = sheetOf(cls), meta = s.meta;
+  if (!meta) return [x + facing * 6 * PX, gy - 6 * PX];
+  pose = pose || { mode: knight.fighting ? 'fight' : 'walk', swing: knight.swing, combo: knight.combo, t: clock, walkT: knight.walkT, ranged: heroWeapon().kind === 'ranged', ...(castPose('hero') || {}) };
+  const { anim, f } = sheetFrame(meta, pose), P = (meta.pts[anim] || [])[f], ft = meta.foot || [32, 58], D = SHEET_DOT;
+  if (!P) return [x + facing * 6 * PX, gy - 6 * PX];
+  const px = which === 'head' ? P[2] : P[0], py = which === 'head' ? P[3] : P[1];
+  return [x + facing * ((pose.dx || 0) + (px - ft[0]) * D * (pose.sx || 1)), gy - (pose.lift || 0) + (py - ft[1]) * D * (pose.sy || 1)];
+}
+// 원거리(기공사) 평타가 나가는 자리 = 손바닥 끝 (world.js heroMuzzle)
+const sheetMuzzle = (cls, x, gy, facing) => sheetPoint(cls, 'hand', x, gy, facing);
+// 미리 받아 둔다 (처음 그릴 때 아직 없으면 실루엣만 보이므로)
+if (typeof SHEET_META !== 'undefined') for (const id in SHEET_META) sheetOf(id);

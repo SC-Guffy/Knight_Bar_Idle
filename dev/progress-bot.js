@@ -10,7 +10,7 @@ const vm = require('vm'), fs = require('fs'), path = require('path'), cp = requi
 const { simulateDuel } = require('../server/duel');
 const { mentorProfile } = require('../server/mentor');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['data', 'classes', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'castle', 'core'];
+const FILES = ['data', 'classes', 'fighter-data', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'castle', 'core'];
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140];
 const ENH_MARKS = [20, 25, 30];   // 어느 부위든 처음 이 강화 단계에 닿은 시간 (docs/specs/enhance-30.md)
 

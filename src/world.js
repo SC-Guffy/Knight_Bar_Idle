@@ -269,6 +269,7 @@ function hitMonster(m, mult = 1, o = {}) {
 //  무기 계열 파일이 CUT_WEAPON[id].muzzle(w, Ly, cut, r) 로 바꿀 수 있다
 function heroMuzzle(w) {
   const c = CLASSES[S.cls], look = c && c.look;
+  if (look && look.sheet) return sheetMuzzle(S.cls, toScreen(knight.x) - Math.round((knight.recoil || 0) * 3), groundY(), knight.facing || 1);   // 시트의 hand 점 (src/sprites.js)
   if (!look || !look.body.px || knight.swing < 0) return null;
   const mo = heroAtkOf(w, knight.combo);
   if (!mo || !mo.cuts) return null;
@@ -301,6 +302,7 @@ function releaseAttack(st) {
   } else {
     vfxBasicRelease();                  // 근접 잔상 텍스처가 명중 순간 늘어나며 사라진다 (src/vfx-tex.js)
     inRange.slice(0, st.targets).forEach(m => { hitMonster(m); vfxBasicHit(m, m.lastCrit); });
+    if (qiOn()) { qiOnBasic(Math.min(inRange.length, st.targets), inRange[0].lastCrit); qiBasicFx(inRange[0], knight.combo || 0); }   // 파이터 계열 기 충전 · 주먹/발 궤적 (src/jobs/fighter*.js)
   }
   procOnBasic(st);
 }
@@ -336,7 +338,7 @@ function updateExpedition(dt, gdt) {
 // 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree(px) (원정은 px 만큼 걷기, 탑은 층 정리)
 const DASH_SPEED = 500;   // 돌진기로 달려붙는 속도 px/s (결투 server/duel.js DASH 와 같다)
 // 사거리 밖 d(px) 앞의 적에게 쓸 수 있는 돌진기 (classes.js SKILLS 의 gap, 쿨타임이 찬 것 중 목록 앞쪽)
-const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && !(knight.cds[id] > 0) && d <= SKILLS[id].gap) || null;
+const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && (qiOn() ? qiCan(id, true) : !(knight.cds[id] > 0)) && d <= SKILLS[id].gap) || null;
 function fightTick(dt, st, onFree) {
   const phase = S.phase;
   const alive = monsters.filter(m => !m.dying)
@@ -388,6 +390,7 @@ function fightTick(dt, st, onFree) {
     knight.dash = target && !knight.pending ? knight.dash || dashSkill(st, gap) : null;
     if (knight.dash) {
       onFree(Math.min(DASH_SPEED * dt, gap));
+      qiOnDash(Math.min(DASH_SPEED * dt, gap));         // 킥복서: 돌진한 거리만큼 기
       knight.walkT += dt * 2;
       dashGhost('hero', S.cls, toScreen(knight.x), 1, knight.walkT);
     } else onFree();
@@ -421,6 +424,7 @@ function advanceMonsterAttack(m, dt, st) {
   S.hp -= dmg;
   knight.flash = 0.08;
   knight.recoil = 1;
+  qiOnHurt();                                      // 기공사: 맞을 때마다 기
   addFloater('-' + fmt(dmg), toScreen(knight.x) + rand(-4, 4), groundY() - 52, '#ff6b6b', 11);
   procAfterHurt(m, dmg, st);
   if (S.hp <= 0) procRebirth(st);
@@ -1234,6 +1238,7 @@ function update(dt) {
     if (dist <= step) {
       hitMonster(sh.m, sh.mult);
       vfxBasicHit(sh.m, sh.m.lastCrit, true);
+      if (qiOn()) { qiOnBasic(1, sh.m.lastCrit); qiRangedHit(sh.m); }
       // 화염 계열: 맞은 자리 주변의 다른 적도 splash 배율로 (원정에서만 — 결투·레이드는 상대가 하나라 상관없다)
       const sp = sh.w.splash, ar = sh.w.arrow;
       if (ar.shape === 'bolt') arcFx(sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, tx, ty, ar.color, ar.rgb, 0.16, 2);
@@ -2453,6 +2458,7 @@ function drawCutSmear(g, w, h0, a0, h1, a1, len, tipOnly = false) {
 //  바깥 실루엣의 검은 외곽선은 그대로 둔다. 한 색 잔상(tint)·무기만(onlyWeapon)·피격 번쩍임(flash)은 원래대로 그린다
 const heroSoft = { cv: null, g: null };
 function drawHero(g, id, x, gy, pose) {
+  if (CLASSES[id] && CLASSES[id].look.sheet) return drawHeroSheet(g, id, x, gy, pose);     // 통짜 스프라이트 시트 직업 (src/sprites.js)
   if (pose.tint || pose.onlyWeapon || pose.flash || typeof document === 'undefined') return drawHeroRaw(g, id, x, gy, pose);
   const T = g.getTransform(), dxa = Math.abs(pose.dx || 0), lift = Math.max(0, pose.lift || 0);
   const ux0 = x - 100 - dxa, ux1 = x + 100 + dxa, uy0 = gy - 150 - lift, uy1 = gy + 12;
@@ -2665,16 +2671,18 @@ function drawKnight() {
     mode: S.phase === 'camp' ? (sp ? 'fight' : 'sit') : knight.fighting ? 'fight' : 'walk',
     walkT: knight.walkT, swing: knight.swing, combo: knight.combo, facing: knight.facing, t: clock,
     flash: knight.flash > 0,
+    recoil: knight.recoil, down: knight.down, dash: !!knight.dash, ranged: heroWeapon().kind === 'ranged',    // 시트 직업의 피격·쓰러짐·돌진 동작 (src/sprites.js)
     alpha: (knight.down > 0 ? 0.35 + 0.25 * Math.sin(clock * 12) : 1) * vis,
   };
   if (sp) Object.assign(pose, sp, { alpha: pose.alpha * (sp.alpha == null ? 1 : sp.alpha) });
   if (sp) drawCastTrail('hero', S.cls, gy, knight.facing);
+  if (S.phase !== 'camp') qiAura(x, gy);      // 파이터 계열: 기가 가득이면 몸 뒤 오라 (src/jobs/fighter-fx.js)
   vfxCut.main = true; vfxCut.T = ctx.getTransform();          // 이 기사의 잔상만 명중 뒤 이어 그린다 (src/vfx-tex.js)
   drawHero(ctx, S.cls, x, gy, pose);
   vfxCut.main = false;
   if (S.phase !== 'camp' && !wp) {
     drawHpBar(x, gy - 58 - Math.min(lift, 40), 30, S.hp / stats().maxHp, '#ff5a5a');
-    drawSkillIcons(x - 15, gy - 58 - Math.min(lift, 40) - 12);
+    drawSkillIcons(x - 15, gy - 58 - Math.min(lift, 40) - 12 - (qiOn() ? 5 : 0));     // 파이터는 아래에 기 게이지 막대
   }
 }
 
@@ -2724,6 +2732,7 @@ function drawShots() {
 // 원거리 평타 한 발 (원정·결투·레이드 공용). sh = { w: 무기, x, y, a: 날아가는 각도, trail: [[x, y], …] 최근 자리, ox/oy: 출발점 }
 function drawProjectile(sh) {
   const a = sh.w.arrow;
+  if (a.qi && qiShotDraw(sh)) return;          // 기공사 계열 기탄 텍스처 (src/jobs/fighter-fx.js)
   if (a.shape === 'bolt') {
     // 번개탄: 출발점에서 지금 자리까지 꺾인 번개 줄 (속도가 빨라 한두 프레임이면 닿는다 — 닿은 뒤엔 arcFx 가 잠깐 남긴다)
     drawLightning(ctx, sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, sh.x, sh.y, a.color, a.rgb, 2, sh.ox || 0);
@@ -3112,7 +3121,7 @@ const dashGhostAt = {};
 function dashGhost(key, cls, x, facing, walkT) {
   if (clock - (dashGhostAt[key] || 0) < 0.05) return;
   dashGhostAt[key] = clock;
-  ghostFx({ cls }, x, facing, (CLASSES[cls] || CLASSES.squire).look.fx, 0.22, { mode: 'walk', walkT }, 0.4);
+  ghostFx({ cls }, x, facing, (CLASSES[cls] || CLASSES.squire).look.fx, 0.22, { mode: 'walk', walkT, dash: true }, 0.4);
 }
 
 function updateDuel() {

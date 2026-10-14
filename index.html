@@ -386,6 +386,13 @@
   .cnode.ready { animation: glow 1.6s ease-in-out infinite; }
   @keyframes glow { 50% { box-shadow: 0 0 12px rgba(125, 255, 176, .45); } }
   .cprev { width: 84px; height: 72px; display: block; }
+  /* 1차가 다섯(파이터 계열 추가)이라 좁은 화면에선 칸·미리보기를 줄여 한 줄에 넣는다 (docs/specs/boxer-class.md UI) */
+  @media (max-width: 480px) {
+    .ctree li { padding-left: 2px; padding-right: 2px; }
+    .cnode { width: clamp(54px, 15vw, 132px); }
+    .cnode .cprev { width: 100%; height: auto; aspect-ratio: 84 / 72; }
+    .cnode .cname { font-size: 11px; }
+  }
   /* 🧑 캐릭터 탭: 요약 띠 + 서브탭 (ui.js viewChar), 전직 카드 (viewClass) */
   .chead { display: flex; align-items: center; gap: 12px; margin: 10px 0 10px; padding: 6px 12px 6px 6px; border-radius: 12px; background: var(--soft); }
   .cprev.mini { width: 72px; height: 62px; flex: none; }
@@ -942,6 +949,7 @@
 <script src="src/iconmap.js"></script>
 <script src="src/icondraw.js"></script>
 <script src="src/classes.js"></script>
+<script src="src/fighter-data.js"></script>
 <script src="src/body2.js"></script>
 <script src="src/limbs.js"></script>
 <script src="src/gear.js"></script>
@@ -969,6 +977,11 @@
 <script src="src/drops.js"></script>
 <script src="src/skills.js"></script>
 <script src="src/vfx-tex.js"></script>
+<script src="src/sprites/meta.js"></script>
+<script src="src/sprites.js"></script>
+<script src="src/jobs/fighter.js"></script>
+<script src="src/vfx/xmeta.js"></script>
+<script src="src/jobs/fighter-fx.js"></script>
 <script src="src/procs.js"></script>
 <script src="src/ult/starJudgment.js"></script>
 <script src="src/ult/thousandCuts.js"></script>

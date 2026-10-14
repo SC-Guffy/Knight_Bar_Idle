@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: palm strike energy wave pushing right, three concentric curved ripple rings opening to the right in a short cone like sound waves, white innermost ring, pale lavender grey outer rings, small and round, clean concentric arcs, nothing else, no character, no background shape, no text",
+ "seed": 47
+}

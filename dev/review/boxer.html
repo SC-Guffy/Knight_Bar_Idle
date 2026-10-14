@@ -59,6 +59,33 @@
   <h1>🥊 파이터 계열 7종 — 스펙 검토</h1>
   <div class="sub">스펙: <code>docs/specs/boxer-class.md</code> (확정 2026-10-14 — 그림은 7:3 v2 3차 키 맞춤판) · 이 페이지는 게임 코드를 바꾸지 않습니다. 게이지 그래프는 스펙의 시작안 수치로 이 자리에서 계산합니다.</div>
 
+  <h2>0. 구현 진행 (impl-boxer, 포트 8861)</h2>
+  <p>단계: ① 1차 파이터 → ② 2차 3종 → ③ 3차 3종. 스펙 <code>docs/specs/boxer-class.md</code> "확인 방법"에 순서가 있다.</p>
+  <ul>
+    <li>스킬 시험장: <a href="../skills.html?cls=fighter&skill=oneTwo&stage=1">원투 스트레이트 ★</a> · <a href="../skills.html?mode=basic&cls=fighter">파이터 평타</a></li>
+    <li>실제 게임(오프라인): <a href="../../index.html?server=http://127.0.0.1:9">index.html?server=http://127.0.0.1:9</a> → 8초 뒤 콘솔에서 <code>dev/boxer/preset.js</code> 를 불러 <code>boxerPreset('fighter')</code> · <code>boxerWatch()</code></li>
+  </ul>
+  <h3>파이터 시트 (PixelLab, 11동작)</h3>
+  <img class="pix" src="../boxer/sheets/fighter-preview.png" alt="파이터 시트" style="max-width:640px">
+  <div class="anim" id="gifs"></div>
+  <h3>게임 캡처</h3>
+  <div class="gallery">
+    <figure><img class="pix" src="../boxer/shots/g-fighter.png"><figcaption>원정: 평타(위 2줄) · 원투 스트레이트 ★ (아래 2줄)</figcaption></figure>
+    <figure><img class="pix" src="../boxer/shots/g-fighter-zoom.png"><figcaption>평타 명중 4배 — 주먹 궤적 XW1 + 명중 XH1, 체력바 위 기 게이지(주황)</figcaption></figure>
+    <figure><img class="pix" src="../boxer/shots/f-ot-stages.png"><figcaption>원투 스트레이트 Lv1·★·★★·★★★ (첫 타 · 막타) — 명중 XK01, 충격파 XE01, 섬광 줄 XE02</figcaption></figure>
+  </div>
+  <script>
+    (() => {
+      const g = document.getElementById('gifs');
+      for (const cls of ['fighter', 'striker', 'kickboxer', 'qigong', 'champion', 'tempest', 'grandmaster'])
+        for (const a of ['idle', 'guard', 'walk', 'dash', 'atkA', 'atkB', 'charge', 'release', 'skillA', 'skillB', 'awaken', 'hurt', 'death', 'sit']) {
+          const im = new Image(); im.className = 'pix'; im.style.height = '128px';
+          im.onload = () => { const f = document.createElement('figure'); f.appendChild(im); const c = document.createElement('figcaption'); c.textContent = cls + ' ' + a; f.appendChild(c); g.appendChild(f); };
+          im.src = `../boxer/sheets/gif/${cls}-${a}.gif`;
+        }
+    })();
+  </script>
+
   <h2>1. 요지</h2>
   <div class="card hl">
     <b>파이터 계열 스킬에는 쿨타임이 없다.</b> 기(氣)를 모아서 쓴다. 2차마다 기를 채우는 방식이 다르다.

@@ -16,7 +16,8 @@ const vm = require('vm');
 
 const DAY = 86400, TICK = 60, TOWER_TOMES_PER_DAY = 4;
 // 3차 직업 = 계열. 시즌5 새 직업(파천검왕·천마장군·공성포수·뇌제와 그 2차 대검전사·랜서·석궁사수·뇌전술사)도 같은 비중
-const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'];
+// 파이터 계열(챔피언·템페스트·그랜드마스터, docs/specs/boxer-class.md 7절)을 더해 15계열
+const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord', 'champion', 'tempest', 'grandmaster'];
 
 const r3 = (x) => (Math.abs(x) >= 1000 ? Math.round(x) : Math.round(x * 1000) / 1000);
 

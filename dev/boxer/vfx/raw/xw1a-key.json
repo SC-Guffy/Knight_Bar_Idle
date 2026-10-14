@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: horizontal punch motion trail pointing right, short straight speed lines streaking behind a small bright white fist-shaped blur at the right end, thin and flat horizontal band, white core with pale steel blue speed lines, compact, no arm, no glove details, nothing else, no character, no background shape, no text",
+ "seed": 11
+}
