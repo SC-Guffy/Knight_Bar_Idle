@@ -176,7 +176,13 @@
   #acctModal { width: min(560px, 94vw); }
   #campModal header, #acctModal header { display: flex; align-items: center; gap: 16px; padding: 14px 18px 10px; }
   #campModal h2, #acctModal h2 { margin: 0; font-size: 17px; }
-  .res { display: flex; gap: 14px; flex: 1; justify-content: flex-end; }
+  .res { display: flex; gap: 4px 6px; flex: 1; justify-content: flex-end; flex-wrap: wrap; min-width: 0; }
+  .res > button { all: unset; cursor: pointer; padding: 2px 6px; white-space: nowrap; }
+  .res > button:hover, .res > button.on { background: var(--soft-hover); }
+  /* 재화 칸을 누르면 머리 아래 펼쳐지는 한 줄 안내 (ui.js viewResGuide) */
+  .resguide { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0 18px 8px; padding: 6px 10px; background: var(--soft); font-size: 12px; flex-shrink: 0; }
+  .resguide small { color: var(--muted); margin-right: 4px; }
+  .resguide .lnk { all: unset; cursor: pointer; color: #e2d2ff; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
   .x { all: unset; cursor: pointer; width: 26px; height: 26px; border-radius: 7px; text-align: center; line-height: 26px; color: var(--muted); }
   .x:hover { background: var(--soft-hover); color: var(--text); }
   /* 내용이 길어도 머리·탭·바닥은 줄어들지 않고 #campBody 만 스크롤 (nav 는 overflow 때문에 기본 최소 높이가 0 이라 잘렸다) */

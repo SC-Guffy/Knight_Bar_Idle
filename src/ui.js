@@ -103,6 +103,8 @@ const LIVE = {
   wood: () => fmt(S.mats.wood),
   ore: () => fmt(S.mats.ore),
   mana: () => fmt(S.mats.mana),
+  stones: () => fmt(S.stones),
+  tomes: () => fmt(S.tomes),
   stamina: () => `${Math.floor(S.stamina)} / ${maxStamina()} · 약 ${fmtTime(S.stamina / staDrain())} 원정`,
   hpLine: () => `${fmt(S.hp)} / ${fmt(stats().maxHp)}`,
   blocker: () => departBlocker() || '',
@@ -409,7 +411,7 @@ function viewStorage() {
     ? `<div class="fac"><span class="fname">${ico('scale')} 교역</span><span class="feff">창고 Lv${TRADE_LV} 에 열려요 — 남는 골드로 목재·철광석을 사요</span></div>`
     : `<div class="fac">
       <span class="fname">${ico('scale')} 교역 <small>오늘 ${tradesUsed()}/${tradesAt(lv)}</small></span>
-      <span class="feff">골드로 ${TRADE_HOURS}시간 생산량을 사요 · 살 때마다 값이 2배 · 자정에 초기화</span>
+      <span class="feff">골드로 ${TRADE_HOURS}시간 생산량을 사요 · 살 때마다 값 ×${TRADE_GROW} · 자정에 초기화</span>
       ${tradesLeft() ? `<span class="costs">${costChip('<i class="gc"></i>', tradePrice(), S.gold)}</span>` : ''}
       ${['wood', 'ore'].map((k) => `<button class="btn" data-action="trade" data-k="${k}" ${tb ? `disabled title="${tb}"` : ''}>${ico(k)} +${fmt(tradeAmount(k))}</button>`).join('')}
     </div>`;
@@ -2706,13 +2708,11 @@ function renderCamp() {
   $('campModal').innerHTML = `
     <header>
       <h2><span class="ttl">${ico('camp')} ${esc(activeNick())}의 캠프</span> <small class="sync" data-live="sync"></small></h2>
-      <div class="res">
-        <span><i class="gc"></i> <b data-live="gold"></b></span><span title="목재 — ⛏️ 재료의 미궁에서 가장 많이 · 📦 창고 비축·교역 (원정 골동품에서도 조금)">${ico('wood')} <b data-live="wood"></b></span>
-        <span title="철광석 — ⛏️ 재료의 미궁에서 가장 많이 · 📦 창고 비축·교역 (원정 골동품에서도 조금)">${ico('ore')} <b data-live="ore"></b></span><span title="마력석 — ⛏️ 재료의 미궁 · 레이드 · 원정 골동품">${ico('mana')} <b data-live="mana"></b></span>
-      </div>
+      <div class="res">${RES_GUIDE.map((r) => `<button class="${resOpen === r.k ? 'on' : ''}" data-action="res" data-k="${r.k}" title="${r.name} — 눌러서 얻는 곳·쓰는 곳 보기">${r.icon()} <b data-live="${r.k}"></b></button>`).join('')}</div>
       <button class="mailbtn ${campTab === 'mail' ? 'on' : ''}" data-action="tab" data-tab="mail" title="우편함">${ico('mail')}${mailUnclaimed() ? `<i>${mailUnclaimed()}</i>` : ''}</button>
       <button class="x" data-action="close" title="닫기 (Esc)">✕</button>
     </header>
+    ${viewResGuide()}
     <nav>${tabs.map(([id, label, badge]) => `<button class="${id === campTab ? 'on' : ''}" data-action="tab" data-tab="${id}">${label}${badge}</button>`).join('')}${window.bar ? `<button class="autohide ${autoHide ? 'on' : ''}" data-action="autohide" title="켜면 마우스가 하단바를 벗어나고 잠시 뒤 기사·HUD 가 숨고, 하단바에 마우스를 올리면 다시 보여요">${ico('hide')} 자동 숨기기 ${autoHide ? '켬' : '끔'}</button>` : ''}<span class="ver">v${GAME_VERSION}</span></nav>
     <section id="campBody">${view}</section>
     <footer>${viewDepart()}</footer>`;
@@ -2722,6 +2722,22 @@ function renderCamp() {
   if (campTab === 'char') { drawGearHero(); drawClassPreviews(); }      // 다시 그린 직후 한 프레임 비지 않게
   if (campTab === 'town') { drawTown(); drawMentorStage(); }
   if (campTab === 'sub') drawSubPreviews();
+}
+
+// 캠프 머리 재화 칸: 누르면 그 재화를 어디서 얻고 어디에 쓰는지 한 줄 (resOpen = 펼친 재화 k, 다시 누르면 닫힘)
+let resOpen = null;
+const RES_GUIDE = [
+  { k: 'gold', name: '골드', icon: () => '<i class="gc"></i>', get: '원정 처치 · 장비 판매 · 레이드', use: '훈련 · 건물 · 대장간 시설 · 보급품 · 창고 교역', trade: true },
+  { k: 'wood', name: '목재', icon: () => ico('wood'), get: '재료의 미궁 · 창고 비축·교역 · 원정 골동품', use: '건물 · 가방', trade: true },
+  { k: 'ore', name: '철광석', icon: () => ico('ore'), get: '재료의 미궁 · 창고 비축·교역 · 원정 골동품', use: '건물 · 대장간 시설 · 강화', trade: true },
+  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '재료의 미궁 · 레이드 · 원정 골동품', use: '전직 · 건물(Lv5부터) · 강화 · 재굴림 · 입장권' },
+  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '원정 보스 · 장비 판매', use: '장비 강화 · 재굴림' },
+  { k: 'tomes', name: '비전서', icon: () => ico('tome'), get: '도전의 탑 · 원정 보스 · 레이드 상자 · 결투 시즌', use: '스킬 숙련도' },
+];
+function viewResGuide() {
+  const r = RES_GUIDE.find((x) => x.k === resOpen);
+  if (!r) return '';
+  return `<div class="resguide">${r.icon()} <b>${r.name}</b><span><small>얻는 곳</small> ${r.get}</span><span><small>쓰는 곳</small> ${r.use}</span>${r.trade ? `<button class="lnk" data-action="res-trade">${ico('scale')} 창고 교역 →</button>` : ''}</div>`;
 }
 
 // ───────────────────────── 행동 ─────────────────────────
@@ -2783,6 +2799,8 @@ const ACTIONS = {
   'dg-retreat': () => { dgRetreat(); renderHud(); },
   'close': closeCamp,
   'autohide': () => setAutoHide(!autoHide),
+  'res': (el) => { resOpen = resOpen === el.dataset.k ? null : el.dataset.k; },
+  'res-trade': () => { resOpen = null; campTab = 'town'; townUi.sel = 'storage'; $('campBody').scrollTop = 0; },
   'tab': (el) => {
     campTab = normalizeTab(el.dataset.tab);
     markSubSeen();

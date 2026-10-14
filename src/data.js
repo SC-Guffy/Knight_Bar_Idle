@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.20.11';
+const GAME_VERSION = '0.20.12';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -100,10 +100,10 @@ const oldBagUpCost = (lv) => Math.round(50 * Math.pow(1.06, lv - 1));  // 0.19.3
 const STOCK_BASE = { wood: 10, ore: 7 }, STOCK_GROW = 1.3, STOCK_HOURS = 12;
 const stockRateAt = (k, lv) => Math.round(STOCK_BASE[k] * Math.pow(STOCK_GROW, lv - 1));   // 시간당
 const stockCapAt = (k, lv) => stockRateAt(k, lv) * STOCK_HOURS;
-// 창고 교역: 창고 Lv TRADE_LV 부터 골드로 목재·철광석을 산다. 한 번에 TRADE_HOURS 시간 생산량, 하루 2 + Lv/5 회 (목재·철광석 공용)
-//  가격 = 최고 스테이지 잡몹 골드 × TRADE_GOLD × 2^(오늘 교역한 횟수) — 골드가 스테이지를 따라 기하급수로 느는 경제라 가격도 스테이지를 따라간다
-const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200;
-const tradesAt = (lv) => (lv >= TRADE_LV ? 2 + Math.floor(lv / 5) : 0);
+// 창고 교역: 창고 Lv TRADE_LV 부터 골드로 목재·철광석을 산다. 한 번에 TRADE_HOURS 시간 생산량, 하루 5 + Lv 회 (목재·철광석 공용)
+//  가격 = 최고 스테이지 잡몹 골드 × TRADE_GOLD × TRADE_GROW^(오늘 교역한 횟수) — 골드가 스테이지를 따라 기하급수로 느는 경제라 가격도 스테이지를 따라간다
+const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200, TRADE_GROW = 1.3;
+const tradesAt = (lv) => (lv >= TRADE_LV ? 5 + lv : 0);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
 
 const BUILDINGS = {
@@ -924,9 +924,14 @@ const MOB_HP_MULT = 3;
 // 스테이지마다 몬스터 체력·공격력 배율 (server/raid.js·worldboss.js 의 MOB_*_GROW 와 같아야 함)
 //  시즌6: 등급 희소성 개편(gear-options)으로 장비가 약해진 만큼 1.23 · 1.17 에서 낮춰 진행 속도를 시즌5 와 맞췄다 (진행 봇)
 const MOB_HP_GROW = 1.221, MOB_ATK_GROW = 1.165;
+// 스테이지 MOB_LATE_FROM 부터는 더 완만하게 (0.20.12): 100 이후 레벨·장비가 몬스터를 점점 못 따라가 120~200 이 지나치게 늘어졌다.
+//  목표(진행 봇): 100 도달 시간을 T 라 하면 150 은 +1.3T, 200 은 +2.3T. server/raid.js 의 mobHpScale·mobAtkScale 과 같아야 함
+const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.197, MOB_LATE_ATK_GROW = 1.15;
+const mobHpScale = (s) => Math.pow(MOB_HP_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_HP_GROW, Math.max(0, s - MOB_LATE_FROM));
+const mobAtkScale = (s) => Math.pow(MOB_ATK_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_ATK_GROW, Math.max(0, s - MOB_LATE_FROM));
 function monsterStats(stage, boss) {
-  const hp = 14 * Math.pow(MOB_HP_GROW, stage - 1);
-  const atk = 3 * Math.pow(MOB_ATK_GROW, stage - 1);
+  const hp = 14 * mobHpScale(stage);
+  const atk = 3 * mobAtkScale(stage);
   const gold = 2 * Math.pow(1.2, stage - 1);
   const exp = 4 * Math.pow(1.16, stage - 1);
   // 필드 마지막 스테이지의 보스(필드 보스)는 필드마다 넘어야 하는 벽이다: 체력 ×4 · 공격력 ×1.6

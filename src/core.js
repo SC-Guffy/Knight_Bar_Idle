@@ -631,7 +631,7 @@ function claimStock() {
 const tradesUsed = () => (newDay(S.stock.tradeDay) ? 0 : S.stock.trades);
 const tradesLeft = () => Math.max(0, tradesAt(S.bld.storage) - tradesUsed());
 const tradeAmount = (k) => stockRateAt(k, S.bld.storage) * TRADE_HOURS;
-const tradePrice = () => Math.max(1, Math.floor(monsterStats(S.best, false).gold * TRADE_GOLD * Math.pow(2, tradesUsed())));
+const tradePrice = () => Math.max(1, Math.floor(monsterStats(S.best, false).gold * TRADE_GOLD * Math.pow(TRADE_GROW, tradesUsed())));
 function tradeBlocker() {
   if (S.bld.storage < TRADE_LV) return `창고 Lv${TRADE_LV} 에 교역이 열려요`;
   if (!srvClock.known) return '서버 시각 확인 중';
