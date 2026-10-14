@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: frozen glacier mountain range landscape, jagged icy mountain peaks along the bottom half, pale blue and white snow, green and cyan aurora ribbons waving across the dark night sky above, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 240,
+  "height": 100
+ },
+ "seed": 5
+}

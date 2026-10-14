@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: giant ice spear pointing straight down, a huge vertical crystal lance with a long sharp point at the bottom and a broad faceted jagged top, white bright edges, pale cyan body, crisp hard faces, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 32,
+  "height": 96
+ },
+ "seed": 5
+}

@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: collapsing red sun, a huge crimson burning sphere with cracks of white hot light splitting its surface and flares peeling off, dark red rim, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "seed": 5
+}

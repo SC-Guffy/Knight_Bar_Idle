@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: cracked glass impact, a spider web of thin sharp white crack lines radiating outward from one bright point with a few concentric broken rings, like shattered ice glass, white and pale blue lines only, mostly empty space between lines, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 48,
+  "height": 48
+ },
+ "seed": 5
+}

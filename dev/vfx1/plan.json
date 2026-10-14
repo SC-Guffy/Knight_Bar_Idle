@@ -1,0 +1,394 @@
+{
+ "w8": {
+  "gen": [
+   24,
+   24
+  ],
+  "seed": 5,
+  "desc": "horizontal magic comet streak flying to the right, a bright round glowing orb head on the right end and a smooth gently curved tapering tail of light fading out to the left, a few tiny sparkles along the tail, pale blue"
+ },
+ "h05": {
+  "gen": [
+   16,
+   16
+  ],
+  "seed": 3,
+  "desc": "tiny magic hit burst, a small bright white diamond rhombus shaped spark with four short pointed rays, pale blue rim, compact"
+ },
+ "h15": {
+  "gen": [
+   24,
+   24
+  ],
+  "seed": 3,
+  "desc": "small fire hit burst, a little flower shaped fireball explosion with five round flame petals, white yellow core, orange petals, dark red tips, a few embers"
+ },
+ "h16": {
+  "gen": [
+   24,
+   24
+  ],
+  "seed": 3,
+  "desc": "frost hit, a small ice crystal shattering into sharp angular shards flying outward, white center, pale cyan shards, crisp hard edges"
+ },
+ "h17": {
+  "gen": [
+   24,
+   24
+  ],
+  "seed": 3,
+  "desc": "electric hit, a small branching electric discharge spark, jagged zigzag lightning branches forking outward from a bright white point, pale violet glow"
+ },
+ "h27": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 3,
+  "desc": "small hellfire pillar erupting upward from the ground, a narrow tall column of roaring flame rising straight up with a flared top, white hot core, deep crimson and black edged flames"
+ },
+ "h28": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 3,
+  "desc": "three sharp glacier ice spikes jutting diagonally up out of the ground, tall pointed crystal spikes of different heights, white highlights, pale cyan body, flat base on the ground"
+ },
+ "h29": {
+  "gen": [
+   24,
+   24
+  ],
+  "seed": 3,
+  "desc": "electric discharge hit shaped like a royal crown, three sharp jagged zigzag lightning bolts pointing upward like crown spikes rising from a short bright horizontal electric band, crackling sparks, white core, golden yellow glow, not fire"
+ },
+ "p4": {
+  "gen": [
+   16,
+   16
+  ],
+  "seed": 3,
+  "desc": "small glowing magic orb projectile, a round ball of arcane light with a bright white core, pale blue rim and a short tail of tiny sparkles to the left"
+ },
+ "p7": {
+  "gen": [
+   16,
+   16
+  ],
+  "seed": 3,
+  "desc": "small fireball projectile flying to the right, round ball of fire with white yellow core, orange flames trailing to the left in a short tail"
+ },
+ "p8": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 3,
+  "desc": "hellfire comet projectile flying to the right, an elongated jagged spiky ball of dark crimson fire with a white hot core and a long ragged flame tail streaming to the left, black smoke edges"
+ },
+ "p9": {
+  "gen": [
+   16,
+   16
+  ],
+  "seed": 3,
+  "desc": "small ice crystal shard projectile pointing right, a sharp elongated diamond shaped crystal, white bright facet, pale cyan body, crisp edges"
+ },
+ "p10": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 3,
+  "desc": "a single sharp ice crystal spearhead pointing right, long narrow faceted icicle shape with a needle point on the right and a jagged broken crystal base on the left, no shaft, no stick, white bright facets, pale cyan body, horizontal, centered"
+ },
+ "p11": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 3,
+  "desc": "horizontal lightning bolt segment, one jagged sharp zigzag electric line with hard angular corners going straight across from the left edge to the right edge, tiny side sparks, bright white core with violet glow, centered vertically"
+ },
+ "p12": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 3,
+  "desc": "horizontal thick heavy lightning bolt segment, a thick jagged angular zigzag bolt three pixels wide going straight across from the left edge to the right edge with two bright golden knots, white core, golden yellow glow, centered vertically"
+ },
+ "e04": {
+  "gen": [
+   48,
+   48
+  ],
+  "seed": 5,
+  "desc": "magic nova explosion shaped like a diamond, a big rhombus shaped burst of arcane energy with a bright white diamond core and concentric diamond outlines expanding outward, pale blue light, sharp straight edges, symmetric"
+ },
+ "k04": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 5,
+  "desc": "magic hit, two nested diamond rhombus outlines of arcane light cracking and breaking apart into angular fragments, bright white center, pale blue edges"
+ },
+ "c9": {
+  "gen": [
+   64,
+   32
+  ],
+  "seed": 5,
+  "desc": "very flat thin magic circle lying on the ground seen from a low side angle, a wide flat ellipse with a thin bright rim, an inner ring and small rune marks between the rings, hollow empty center"
+ },
+ "e33": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 5,
+  "desc": "flaming meteor falling diagonally down to the right, a round craggy dark rock ball wrapped in fire with a long blazing flame tail streaming up to the upper left, white yellow hot front, orange and red flames"
+ },
+ "e34": {
+  "gen": [
+   64,
+   48
+  ],
+  "seed": 5,
+  "desc": "huge fiery explosion dome on the ground, a half dome of fire and smoke bursting up from a flat glowing lava pool, white yellow core at the bottom center, orange flames, dark red smoke edges, flat bottom"
+ },
+ "k23": {
+  "gen": [
+   48,
+   32
+  ],
+  "seed": 5,
+  "desc": "molten lava splash on the ground, blobs of glowing lava and broken dark rock chunks flying up and outward from an impact point, white yellow hot center, orange lava, dark rocks"
+ },
+ "e35": {
+  "gen": [
+   48,
+   96
+  ],
+  "seed": 5,
+  "desc": "tall fire tornado, a vertical spiral funnel of swirling flames, narrow at the bottom touching the ground and wide at the top, white yellow core streaks, orange and red spiral bands"
+ },
+ "e36": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 5,
+  "desc": "fire flower, a blooming flower made of flames with six pointed flame petals opening outward around a white hot center, orange petals, red tips"
+ },
+ "k24": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 5,
+  "desc": "swirling fire hit, a small whirlpool of embers and flame streaks spinning around a bright center point, curved flame strokes, orange and yellow, a few sparks"
+ },
+ "e37": {
+  "gen": [
+   48,
+   32
+  ],
+  "seed": 5,
+  "desc": "long thin ice lance pointing right, a horizontal spear made entirely of ice crystal with a very sharp pointed tip on the right and a jagged crystal back end, faceted, white bright top edge, pale cyan body, nothing else around it, centered vertically"
+ },
+ "e37b": {
+  "gen": [
+   32,
+   96
+  ],
+  "seed": 5,
+  "desc": "giant spear made entirely of ice crystal pointing straight down, no handle, no grip, a long vertical faceted icicle lance with a sharp point at the bottom and a broad jagged crystal crown at the top, white bright edges, pale cyan body"
+ },
+ "k25": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 5,
+  "desc": "ice lance impact burst, a sharp ice shard stuck in the middle with a big frost flower of six sharp crystal spikes bursting outward around it, large and bold, filling most of the canvas, white highlights, pale cyan crystals"
+ },
+ "e38": {
+  "gen": [
+   64,
+   48
+  ],
+  "seed": 5,
+  "desc": "blizzard gust, many diagonal streaks of wind blown snow and small hailstones flying down to the right, white snowflakes and pale blue wind streaks, evenly spread"
+ },
+ "e39": {
+  "gen": [
+   48,
+   48
+  ],
+  "seed": 5,
+  "desc": "cluster of large prism ice crystals bursting up from the ground, tall sharp hexagonal crystal pillars fanning outward from one point at the bottom, white bright facets, pale cyan body, flat base"
+ },
+ "k26": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 5,
+  "desc": "freezing hit, a thick jagged crust of frost and sharp ice crystals forming a rough ring around a center point, frost patches spreading outward, large and bold, filling most of the canvas, white and pale cyan"
+ },
+ "e40": {
+  "gen": [
+   64,
+   64
+  ],
+  "seed": 5,
+  "desc": "giant claw hand made entirely of lightning reaching down from above, five long jagged electric fingers spread wide pointing downward, bright white core lines, violet glow, crackling sparks at the fingertips"
+ },
+ "e41": {
+  "gen": [
+   24,
+   24
+  ],
+  "seed": 5,
+  "desc": "ball lightning, a round crackling orb of electricity with thick jagged electric arcs sticking out all around it, large and bold, filling most of the canvas, bright white core, pale violet glow"
+ },
+ "k27": {
+  "gen": [
+   32,
+   32
+  ],
+  "seed": 5,
+  "desc": "electric chain link hit, a bright white discharge flash in the center with thick jagged lightning sparks shooting out sideways to the left and right edges, large and bold, filling most of the canvas, white core, violet glow"
+ },
+ "e42": {
+  "gen": [
+   32,
+   96
+  ],
+  "seed": 5,
+  "desc": "massive thick vertical lightning bolt striking straight down from the top edge to the bottom edge, a wide jagged zigzag bolt with a bright white core several pixels thick and violet side branches, a wide bright flash where it hits the ground at the bottom"
+ },
+ "k28": {
+  "gen": [
+   32,
+   48
+  ],
+  "seed": 5,
+  "desc": "lightning strike impact on the ground, a jagged thick bolt coming down from the top into a bright flash at the bottom with short bolts splashing up and sideways, dark scorch on the ground, large and bold, filling most of the canvas, white and pale violet, transparent background"
+ },
+ "c15": {
+  "gen": [
+   64,
+   32
+  ],
+  "seed": 5,
+  "desc": "dark storm cloud, a wide flat bank of heavy dark grey rain clouds with lumpy rounded tops and a flat bottom, lighter grey highlights on top"
+ },
+ "c3": {
+  "gen": [
+   64,
+   32
+  ],
+  "seed": 5,
+  "desc": "very flat shockwave ring on the ground seen from a low side angle, a thin wide bright ellipse ring of dust and energy spreading outward along the floor, hollow empty center"
+ },
+ "f16": {
+  "gen": [
+   240,
+   40
+  ],
+  "seed": 5,
+  "desc": "a long wide sea of fire, a continuous row of tall roaring flames across the whole width, white yellow bases, orange middle, dark red tips, flat bottom edge"
+ },
+ "f17": {
+  "gen": [
+   64,
+   64
+  ],
+  "seed": 5,
+  "desc": "collapsing red sun, a huge crimson burning sphere with cracks of white hot light splitting its surface and flares peeling off, dark red rim"
+ },
+ "k38": {
+  "gen": [
+   64,
+   64
+  ],
+  "seed": 5,
+  "desc": "wall of white fire crashing down, a towering wave of blinding white flames with orange edges curling forward and breaking over the ground, flat bottom"
+ },
+ "f18": {
+  "gen": [
+   240,
+   100
+  ],
+  "seed": 5,
+  "desc": "frozen glacier mountain range landscape, jagged icy mountain peaks along the bottom half, pale blue and white snow, green and cyan aurora ribbons waving across the dark night sky above"
+ },
+ "f19": {
+  "gen": [
+   48,
+   48
+  ],
+  "seed": 5,
+  "desc": "giant snowflake made of ice crystal, a large six armed symmetric snowflake with branching sharp arms, white bright core, pale cyan arms, with a few glass shards floating around"
+ },
+ "k39": {
+  "gen": [
+   48,
+   64
+  ],
+  "seed": 5,
+  "desc": "frozen solid hit, a tall block of jagged ice crystals encasing a shape and cracking apart into sharp shards, white highlights, pale cyan ice, flat base"
+ },
+ "f20": {
+  "gen": [
+   96,
+   96
+  ],
+  "seed": 5,
+  "desc": "giant thunder god spirit made of storm clouds and lightning seen from the front, huge crowned bearded head and broad shoulders rising from dark clouds, glowing white eyes, lightning crackling in the beard and raised arm"
+ },
+ "f21": {
+  "gen": [
+   64,
+   64
+  ],
+  "seed": 5,
+  "desc": "throne made of lightning, a tall jagged throne shape formed from crackling electric bolts with a pointed back and arm rests, a net of lightning lines spreading on the ground below, white core, golden yellow glow"
+ },
+ "k40": {
+  "gen": [
+   48,
+   64
+  ],
+  "seed": 5,
+  "desc": "crown shaped lightning strike hitting the ground, a thick bolt coming straight down from the top that splits into a royal crown of five zigzag prongs at the bottom with a bright flash, white core, golden glow"
+ },
+ "e04b": {
+  "gen": [
+   32,
+   64
+  ],
+  "seed": 5,
+  "desc": "pillar of arcane energy erupting straight up from the ground, a narrow vertical column made of stacked glowing square and diamond blocks of magic light, bright white center line, pale blue blocks breaking apart and floating up at the top, flat base"
+ },
+ "e39b": {
+  "gen": [
+   64,
+   32
+  ],
+  "seed": 5,
+  "desc": "flat sheet of thick ice covering the ground seen from the side, a long horizontal strip of glossy pale cyan ice a few pixels thick with white shiny top edge, cracked hexagon pattern lines inside, small frost spikes standing on top, flat bottom"
+ },
+ "f19b": {
+  "gen": [
+   48,
+   48
+  ],
+  "seed": 5,
+  "desc": "cracked glass impact, a spider web of thin sharp white crack lines radiating outward from one bright point with a few concentric broken rings, like shattered ice glass, white and pale blue lines only, mostly empty space between lines"
+ }
+}

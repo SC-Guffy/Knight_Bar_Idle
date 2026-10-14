@@ -7,6 +7,7 @@
 //                   — 마지막에 위에서부터 차례로 터져 내려와 땅에서 불의 벽이 양쪽으로 퍼진다
 
 const FV_FIRE = { core: '#fff2c0', hot: '#ffcf4a', mid: '#ff7a2a', deep: '#c8301a', dark: '#5a160c' };
+const FV_CLOUD = ['#1a0806', '#4a1208', '#8a2410', '#d8501a', '#ff9a3a'];   // 불구름 램프 (C15 먹구름을 다시 칠함)
 // 불 색: Lv1·★ 은 회색빛으로 바래고, ★★★ 는 금빛이 살짝 섞인다
 function fvPal(a) {
   const m = a.mast || 0, out = {};
@@ -16,6 +17,7 @@ function fvPal(a) {
     else if (m >= 3) c = mixHex(c, MASTERY_GOLD, 0.15);
     out[key] = c;
   }
+  out.ramp = mgA(a, 'fire');          // 텍스처 램프 (src/vfx-mage.js)
   return out;
 }
 // 지팡이로 허공에 원을 그리며 불을 휘젓는다. ★★★ 는 떠올라 휘젓다가 폭발 순간 내려찍는다
@@ -38,71 +40,32 @@ function fvPose(u, a) {
 
 // 불기둥: 가운데 하얀 심을 품은 불길이 줄마다 출렁이며 솟고, 끝에서 불 혀가 갈라진다
 function fvPillar(x, gy, h, w, k, pal, seed) {
+  // 불기둥 = F16 불바다 시트의 좁은 토막(폭 w×2.4)을 세운다. 높이 h 에 맞는 배율 (2/3·1·4/3)
   if (k <= 0 || h < 2) return;
-  const cell = 3;
-  ctx.save();
-  // 불길은 보통 섞기로 칠한다 (lighter 로 겹치면 몸 위에서 하얗게 타 버린다)
-  for (let y = 0; y < h; y += cell) {
-    const v = y / h;
-    const half = w * (1 - v * 0.55) * (0.8 + 0.2 * Math.sin(clock * 18 + y * 0.4 + seed)), sway = Math.sin(clock * 7 + v * 5 + seed) * v * 3;
-    const cx = x + sway;
-    ctx.globalAlpha = k * (1 - v * 0.55);
-    ctx.fillStyle = v > 0.82 ? pal.deep : pal.mid;
-    ctx.fillRect(Math.round(cx - half), Math.round(gy - y - cell), Math.round(half * 2), cell);
-    const inner = half * (0.55 - v * 0.3);
-    if (inner > 0.6) { ctx.fillStyle = v < 0.45 ? pal.core : pal.hot; ctx.fillRect(Math.round(cx - inner), Math.round(gy - y - cell), Math.round(inner * 2), cell); }
-  }
-  // 꼭대기의 갈라진 불 혀 셋
-  for (let j = -1; j <= 1; j++) {
-    const fl = 4 + 6 * Math.abs(Math.sin(clock * 13 + j * 2 + seed));
-    ctx.globalAlpha = k * 0.7; ctx.fillStyle = pal.deep;
-    ctx.fillRect(Math.round(x + j * w * 0.45 - 1), Math.round(gy - h - fl), 3, Math.round(fl));
-  }
-  ctx.restore();
+  const s = VFX_SHEETS.f16;
+  if (!s || !s.lv) return;
+  const sc = h < 34 ? 2 / 3 : h < 52 ? 1 : 4 / 3, wd = (w * 2.4) / (sc * VFX_DOT), u0 = mgHash(Math.round(seed * 7) + 3) * Math.max(0, 1 - wd / s.fw);
+  vfxDraw(ctx, 'f16', pal.ramp, mgLoop('f16', 12, seed), x, gy + 1, { scale: sc, anchor: 'b', crop: [u0, Math.min(1, u0 + wd / s.fw)], alpha: Math.min(1, k * 1.4) });
 }
 // 회오리: 깔때기(아래 좁고 위 넓다) 안을 불꽃 세 가닥이 꼬이며 돈다. 앞쪽 가닥은 밝게, 뒤쪽은 어둡게.
 // cut: 이 y 보다 위는 그리지 않는다 (★★★ 위에서부터 터져 내릴 때)
 function fvTwister(x, gy, h, wBot, wTop, k, pal, ph, cut = -999) {
+  // 회오리 = E35 불 회오리 몸통 루프. 높이 h 에 맞는 배율 (2/3 = 96px · 1 = 144px · 4/3), cut 보다 위는 잘라 낸다 (★★★ 위에서부터 터져 내릴 때)
   if (k <= 0 || h < 3) return;
-  const cell = 3;
+  const sc = h < 110 ? 2 / 3 : h < 160 ? 1 : 4 / 3, full = mgPx('e35', sc) * 2;   // 시트 높이 = 폭 × 2
   ctx.save();
-  // 불길은 보통 섞기로 칠한다 (lighter 로 겹치면 몸 위에서 하얗게 타 버린다)
-  for (let y = 0; y < h; y += cell) {
-    const sy = gy - y - cell;
-    if (sy < cut) break;
-    const v = y / h, w = mix(wBot, wTop, v ** 0.8), cx = x + Math.sin(clock * 3 + v * 4) * v * 5;
-    // 깔때기 몸통: 옅게 빛나는 주황 띠 (어둡게 칠하면 바탕화면 위에서 탁해 보인다)
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = k * 0.16 * (1 - v * 0.4);
-    ctx.fillStyle = pal.mid;
-    ctx.fillRect(Math.round(cx - w), Math.round(sy), Math.round(w * 2), cell);
-    ctx.globalCompositeOperation = 'source-over';
-    // 불꽃 네 가닥: 위로 갈수록 더 감기며 돈다. 앞쪽은 밝고 굵게, 뒤쪽은 붉고 가늘게
-    for (let j = 0; j < 4; j++) {
-      const an = ph + j * (Math.PI / 2) + v * 6, depth = Math.sin(an);
-      const px = cx + Math.cos(an) * w, front = depth > 0;
-      ctx.globalAlpha = k * (front ? 1 : 0.6) * (1 - v * 0.3);
-      ctx.fillStyle = front ? (v < 0.25 ? pal.core : j % 2 ? pal.hot : pal.mid) : pal.deep;
-      ctx.fillRect(Math.round(px - 2), Math.round(sy), front ? 5 : 3, cell);
-    }
-  }
-  // 발밑: 빨려 드는 불의 소용돌이 고리
-  ctx.globalAlpha = k * 0.8;
-  for (let i = 0; i < 12; i++) {
-    const an = ph * 1.4 + (i / 12) * Math.PI * 2, r = wBot + 6;
-    ctx.fillStyle = Math.sin(an) > 0 ? pal.hot : pal.deep;
-    ctx.fillRect(Math.round(x + Math.cos(an) * r), Math.round(gy - 2 + Math.sin(an) * 2.5), 2, 2);
-  }
+  if (cut > -999) { ctx.beginPath(); ctx.rect(x - 300, cut, 600, 1000); ctx.clip(); }
+  vfxDraw(ctx, 'e35', pal.ramp, Math.floor(ph * 1.6) % 5, x, gy + 2, { scale: sc, anchor: 'b', sy: Math.max(0.5, Math.min(1, h / full)), flip: ph < 0, alpha: Math.min(1, k) });
   ctx.restore();
 }
 // 회오리 둘레를 도는 불티 (draw 안에서 회오리 위치를 따라간다)
 function fvEmbers(x, gy, h, w, ph, k, pal, n) {
+  // 회오리 둘레를 도는 불티 (작은 보조 불티, 수를 줄였다)
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < Math.ceil(n / 2); i++) {
     const v = ((i * 0.37 + ph * 0.08) % 1), an = ph * 1.7 + i * 2.4, r = w * (0.9 + v * 0.9);
-    const front = Math.sin(an) > 0;
-    ctx.globalAlpha = k * (front ? 0.95 : 0.4) * (1 - v * 0.5);
+    ctx.globalAlpha = k * (Math.sin(an) > 0 ? 0.95 : 0.4) * (1 - v * 0.5);
     ctx.fillStyle = i % 3 ? pal.hot : pal.core;
     ctx.fillRect(Math.round(x + Math.cos(an) * r), Math.round(gy - v * h), 2, 2);
   }
@@ -114,14 +77,9 @@ function fvPillarFx(a, life, rise, pulses) {
   const pal = fvPal(a), seed = rand(0, 9);
   aFx(a, 0, life, (u) => {
     const t = u * life, x = a.tx(), gy = groundY();
-    // 솟기 전: 땅에 붉은 점이 맥박친다
-    if (t < rise) {
-      const g = t / rise;
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.4 + 0.5 * g * Math.abs(Math.sin(clock * 20));
-      ctx.fillStyle = pal.mid; ctx.beginPath(); ctx.ellipse(x, gy - 1, 4 + 8 * g, 1.5 + 1.5 * g, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      return;
-    }
-    const s = t - rise, up = easeOut(clamp01(s / 0.12)), out = u > 0.82 ? (1 - u) / 0.18 : 1;
+    // 솟기 전: 땅의 C3 고리가 붉게 맥박친다
+    if (t < rise) { vfxDraw(ctx, 'c3', pal.ramp, Math.floor(clock * 14) % 3, x, gy + 1, { scale: 2 / 3, anchor: 'b', alpha: 0.5 + 0.4 * (t / rise) }); return; }
+    const s = t - rise, up = clamp01(s / 0.12), out = u > 0.82 ? (1 - u) / 0.18 : 1;
     const pl = pulses.reduce((m, p) => Math.max(m, 1 - Math.abs(t - p) / 0.09), 0);
     fvPillar(x, gy, (42 + 16 * Math.max(0, pl)) * up * (out < 1 ? 0.6 + 0.4 * out : 1), 8 + 3 * Math.max(0, pl), out, pal, seed);
   }, null, (u) => {
@@ -171,15 +129,9 @@ function fvTwinFx(a, life, mergeT) {
   // 맞부딪히는 순간: 불꽃 고리가 납작하게 퍼진다
   skLater(a, mergeT, () => {
     const cx = a.tx(), gy = groundY();
-    aFx(a, 0, 0.4, (u) => {
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - u;
-      ctx.strokeStyle = pal.hot; ctx.lineWidth = 3 * (1 - u) + 1;
-      ctx.beginPath(); ctx.ellipse(cx, gy - 30, 10 + 50 * easeOut(u), 4 + 10 * easeOut(u), 0, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = pal.core; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.ellipse(cx, gy - 30, 6 + 34 * easeOut(u), 2 + 7 * easeOut(u), 0, 0, Math.PI * 2); ctx.stroke();
-      ctx.restore();
-    });
-    burst(cx, gy - 30, 22, [pal.core, pal.hot, pal.mid], 170, 3, 120);
+    mgFx(a, 'c3', cx, gy + 1, pal.ramp, { scale: 4 / 3, life: 0.4, anchor: 'b', fade: 0.4 });
+    mgFx(a, 'e36', cx, gy - 30, pal.ramp, { scale: 1, life: 0.35, fade: 0.3 });
+    burst(cx, gy - 30, 10, [pal.core, pal.hot, pal.mid], 170, 2, 120);
     impact({ stop: 0.06, shake: 0.25 });
   });
 }
@@ -194,18 +146,11 @@ function fvStormFx(a, life, fallAt) {
     const ph = t * (12 + 10 * squeeze);
     fvTwister(cx, gy, H * grow, (16 + 6 * grow) * (1 - 0.35 * squeeze), (58 * grow) * (1 - 0.45 * squeeze), 1, pal, ph, cut);
     fvEmbers(cx, gy, H * grow * 0.8, 26, ph, 1, pal, 24);
-    // 꼭대기의 불구름: 납작하게 도는 어두운 불덩이 고리
+    // 꼭대기의 불구름: C15 먹구름을 불빛 램프로, 좌우 두 장이 서로 반대로 흐른다
     if (t < fallAt) {
-      ctx.save();
-      for (let i = 0; i < 22; i++) {
-        const an = -ph * 0.4 + (i / 22) * Math.PI * 2, r = 70 * grow * (1 - 0.3 * squeeze);
-        const y = 10 + Math.sin(an) * 6, s = 4 + (i % 3);
-        ctx.globalAlpha = 0.75 * grow;
-        ctx.fillStyle = Math.sin(an) > 0 ? pal.deep : pal.dark;
-        ctx.fillRect(Math.round(cx + Math.cos(an) * r - s / 2), Math.round(y - s / 2), s, s);
-        if (i % 4 === 0) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = pal.mid; ctx.fillRect(Math.round(cx + Math.cos(an) * r - 1), Math.round(y - 1), 2, 2); ctx.globalCompositeOperation = 'source-over'; }
-      }
-      ctx.restore();
+      const sc = grow < 0.5 ? 1 : 4 / 3, dx = Math.sin(ph * 0.15) * 8;
+      vfxDraw(ctx, 'c15', FV_CLOUD, mgLoop('c15', 6), cx - 34 + dx, 14, { scale: sc, alpha: 0.9 * grow });
+      vfxDraw(ctx, 'c15', FV_CLOUD, mgLoop('c15', 6, 2), cx + 34 - dx, 10, { scale: sc, flip: true, alpha: 0.9 * grow });
     }
   }, null, (u) => {
     const t = u * life;
@@ -231,36 +176,19 @@ function fvStormFx(a, life, fallAt) {
 }
 // 불꽃 송이: 한 점에서 꽃잎처럼 여덟 갈래 불꽃이 피었다 진다
 function fvBloomFx(a, x, y, R, pal) {
-  const rot = rand(0, 1);
-  aFx(a, 0, 0.35, (u) => {
-    const e = easeOut(u), k = 1 - u;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = k;
-    ctx.fillStyle = pal.core; ctx.beginPath(); ctx.arc(x, y, R * 0.6 * (1 - u * 0.8), 0, Math.PI * 2); ctx.fill();
-    for (let i = 0; i < 8; i++) {
-      const an = rot + (i / 8) * Math.PI * 2;
-      for (let s = 0.3; s <= 1; s += 0.17) {
-        const r = R * e * s * (i % 2 ? 0.8 : 1.15);
-        ctx.fillStyle = s > 0.8 ? pal.deep : s > 0.5 ? pal.mid : pal.hot;
-        ctx.fillRect(Math.round(x + Math.cos(an) * r - 1.5), Math.round(y + Math.sin(an) * r - 1.5), 3, 3);
-      }
-    }
-    ctx.restore();
-  });
+  // 불꽃 송이 = E36 불꽃 꽃이 피었다 진다 (R 12 이하 2/3배, 그 위 1배)
+  mgFx(a, 'e36', x, y, pal.ramp, { scale: R <= 12 ? 2 / 3 : 1, life: 0.35, fade: 0.3, rot: rand(-0.4, 0.4) });
 }
 // 마지막: 땅에서 불의 벽이 양쪽으로 밀려 나간다
 function fvWallFx(a, x, pal) {
+  // 마지막: 땅에서 불의 벽(F16 토막)이 양쪽으로 밀려 나간다
   const gy = groundY();
   aFx(a, 0, 0.6, (u) => {
     const e = easeOut(u), k = 1 - u;
-    for (const sd of [-1, 1]) {
-      const wx = x + sd * (10 + 90 * e);
-      fvPillar(wx, gy, 30 * k + 6, 5, k, pal, sd * 3);
-    }
-    fvPillar(x, gy, 44 * k, 12 * k + 2, k, pal, 0);
+    for (const sd of [-1, 1]) fvPillar(x + sd * (10 + 90 * e), gy, 30 * k + 14, 7, k, pal, sd * 3);
+    fvPillar(x, gy, 54 * k + 10, 14, k, pal, 0);
   });
-  burst(x, gy - 10, 34, [pal.core, pal.hot, pal.mid, pal.deep], 220, 3, 260);
+  burst(x, gy - 10, 16, [pal.core, pal.hot, pal.mid, pal.deep], 220, 2, 260);
   impact({ stop: 0.16, shake: 0.5 });
 }
 
@@ -292,15 +220,10 @@ Object.assign(SKILL_FX, {
       }
       impact({ shake: m === 0 ? 0.05 : last ? 0.15 : 0.04 });
     },
-    // 맞은 자리에 짧은 불꽃 호가 감긴다 (화살 긁힌 자국 대신)
-    marks(a, t, pow, i) {
-      const pal = fvPal(a), x = t.x, y = t.y + rand(-8, 6), r = 6 + 2 * Math.min(2, pow), a0 = rand(0, Math.PI * 2), sd = i % 2 ? 1 : -1;
-      aFx(a, 0, 0.22, (u) => {
-        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - u;
-        ctx.strokeStyle = pal.hot; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.ellipse(x, y, r + 3 * u, (r + 3 * u) * 0.35, 0, a0 + sd * u * 3, a0 + sd * u * 3 + 2.2); ctx.stroke();
-        ctx.restore();
-      });
+    // 명중 그림 K24 (불꽃 소용돌이에 휘말린 불티): Lv1 앞 3프레임, ★ 4프레임, ★★ 이상 전부. 2/3배, 돌아가는 쪽으로 좌우 반전
+    hitTex(a, t, share, i, n) {
+      const m = a.mast || 0;
+      mgFx(a, 'k24', t.x + rand(-4, 4), t.y + rand(-8, 6), mgA(a, 'fire'), { scale: m >= 3 && i === n - 2 ? 1 : 2 / 3, life: 0.26, frames: [3, 4, 5, 5][m], fade: 0.3, flip: i % 2 === 1 });
     },
     kb: 6,
   },

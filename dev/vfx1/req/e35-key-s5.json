@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: tall fire tornado, a vertical spiral funnel of swirling flames, narrow at the bottom touching the ground and wide at the top, white yellow core streaks, orange and red spiral bands, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 48,
+  "height": 96
+ },
+ "seed": 5
+}

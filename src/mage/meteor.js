@@ -16,6 +16,7 @@ function mtPal(a) {
     else if (m >= 3 && key !== 'rock') c = mixHex(c, MASTERY_GOLD, 0.15);
     out[key] = c;
   }
+  out.ramp = mgA(a, 'fire');          // 텍스처 램프 (src/vfx-mage.js)
   return out;
 }
 // 고정 난수: 운석 표면 무늬가 매 프레임 바뀌지 않게
@@ -43,93 +44,46 @@ const MT_POSE = [
 ];
 
 // 운석 한 덩이: 격자 도트로 그린 바위 + 갈라진 틈의 용암 + 떨어지는 쪽(앞아래) 가장자리가 달아올라 빛난다
-function mtRock(x, y, R, rot, pal, dir) {
-  const g = Math.max(2, Math.round(R / 6)), c = Math.cos(rot), s = Math.sin(rot);
-  const hx = dir * 0.6, hy = 0.8;                      // 달아오른 쪽 (진행 방향)
-  ctx.save();
-  // 둘레의 열기
-  ctx.globalCompositeOperation = 'lighter';
-  const gr = ctx.createRadialGradient(x, y, R * 0.5, x, y, R * 2.2);
-  gr.addColorStop(0, pal.mid + 'aa'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = gr; ctx.fillRect(x - R * 2.2, y - R * 2.2, R * 4.4, R * 4.4);
-  ctx.globalCompositeOperation = 'source-over';
-  for (let j = -R; j <= R; j += g) for (let i = -R; i <= R; i += g) {
-    const d = Math.hypot(i + g / 2, j + g / 2);
-    if (d > R) continue;
-    const ri = Math.round((i * c - j * s) / g), rj = Math.round((i * s + j * c) / g), n = mtHash(ri, rj);
-    const lit = ((i * hx + j * hy) / R + 1) / 2;   // 0 뒤쪽 ~ 1 앞쪽
-    let col = n < 0.5 ? pal.rock : pal.rockLit;
-    if (n > 0.82) col = pal.mid;                    // 갈라진 틈의 용암
-    if (n > 0.94) col = pal.hot;
-    if (d > R - g && lit > 0.55) col = lit > 0.8 ? pal.core : pal.hot;     // 달아오른 앞 가장자리
-    ctx.fillStyle = col;
-    ctx.fillRect(Math.round(x + i), Math.round(y + j), g, g);
-  }
-  ctx.restore();
+function mtRock(x, y, R, rot, pal, dir, alpha = 1) {
+  // E33 운석 (불꼬리가 왼쪽 위, 오른쪽 아래로 떨어지는 그림). 반지름 R 에 맞는 배율로, 왼쪽으로 떨어지면 좌우 반전
+  const sc = R <= 5 ? 2 / 3 : R <= 11 ? 1 : R <= 18 ? 4 / 3 : 2;
+  vfxDraw(ctx, 'e33', pal.ramp, mgLoop('e33', 12), x, y, { scale: sc, flip: dir < 0, alpha });
 }
 // 운석 낙하: (x0, y0) → (x1, y1), 갈수록 빨라진다. 지나간 자리에 가늘어지는 불꼬리와 불티
 function mtFallFx(a, x0, y0, x1, y1, R, life, opt = {}) {
-  const pal = mtPal(a), trail = [], spin = rand(4, 8) * (a.dir || 1);
+  const pal = mtPal(a);
   const ease = (u) => (opt.slow ? easeIn(u) * 0.65 + u * 0.35 : u * u * 0.5 + u * 0.5);
   const at = (u) => { const e = ease(u); return [mix(x0, x1, e), mix(y0, y1, e)]; };
-  const rad = (u) => (opt.grow ? R * mix(opt.grow, 1, ease(u)) : R);    // 다가올수록 커 보인다
+  const rad = (u) => (opt.grow ? R * mix(opt.grow, 1, ease(u)) : R);    // 다가올수록 커 보인다 (배율은 계단)
   aFx(a, 0, life, (u) => {
     const [x, y] = at(u);
-    trail.push([x, y]); if (trail.length > (opt.tail || 8)) trail.shift();
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.lineCap = 'round';
-    // 불꼬리: 바깥 주황 → 안쪽 노랑, 뒤로 갈수록 가늘다
-    for (const [col, wk, al] of [[pal.deep, 2.0, 0.45], [pal.mid, 1.4, 0.7], [pal.hot, 0.7, 0.9]]) {
-      ctx.strokeStyle = col;
-      for (let i = 1; i < trail.length; i++) {
-        const k = i / trail.length;
-        ctx.globalAlpha = al * k;
-        ctx.lineWidth = Math.max(1, rad(u) * wk * k);
-        ctx.beginPath(); ctx.moveTo(trail[i - 1][0], trail[i - 1][1]); ctx.lineTo(trail[i][0], trail[i][1]); ctx.stroke();
-      }
-    }
-    ctx.restore();
-    mtRock(x, y, Math.round(rad(u)), clock * spin, pal, a.dir);
+    // 불꼬리는 E33 시트에 그려져 있다. 낙하 방향과 시트의 기본 각도(45°) 차이만큼 돌린다
+    const ang = Math.atan2(y1 - y0, Math.abs(x1 - x0)) - Math.PI / 4;
+    vfxDraw(ctx, 'e33', pal.ramp, mgLoop('e33', 12), x, y, { scale: rad(u) <= 5 ? 2 / 3 : rad(u) <= 11 ? 1 : rad(u) <= 18 ? 4 / 3 : 2, flip: x1 < x0, rot: x1 < x0 ? -ang : ang });
   }, opt.onLand, (u) => {
-    const [x, y] = at(u), n = Math.max(1, Math.round(R / 4));
+    const [x, y] = at(u), n = Math.max(1, Math.round(R / 6));
     for (let i = 0; i < n; i++) {
       parts.push({ x: x + rand(-R, R) * 0.6, y: y + rand(-R, R) * 0.6, vx: (x0 - x1) * rand(0.2, 0.6) + rand(-20, 20), vy: (y0 - y1) * rand(0.1, 0.3) + rand(-30, 0), g: -40,
-        size: Math.random() < 0.3 ? 3 : 2, color: [pal.hot, pal.mid, pal.core][i % 3], life: rand(0.2, 0.4), t: 0, add: true });
+        size: 2, color: [pal.hot, pal.mid, pal.core][i % 3], life: rand(0.2, 0.4), t: 0, add: true });
     }
   });
 }
 // 떨어진 자리: 그을린 자국(어두운 타원) 위에 식어 가는 붉은 테두리
 function mtScorch(a, x, w, life) {
-  const gy = groundY(), pal = mtPal(a);
+  // 떨어진 자리: C3 바닥 고리가 불빛 램프로 퍼졌다가 식는다 (그을린 자국)
+  const pal = mtPal(a);
   backFx(a, 0, life, (u) => {
-    const k = u > 0.6 ? (1 - u) / 0.4 : 1;
-    ctx.save();
-    ctx.globalAlpha = 0.55 * k; ctx.fillStyle = '#1a0c08';
-    ctx.beginPath(); ctx.ellipse(x, gy, w, w * 0.18 + 1, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.8 * k * (1 - u * 0.6); ctx.strokeStyle = pal.mid; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(x, gy, w * 0.8, w * 0.14 + 1, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
+    vfxDraw(ctx, 'c3', pal.ramp, Math.min(4, Math.floor(u * 6)), x, groundY() + 1, { scale: w >= 14 ? 1 : 2 / 3, anchor: 'b', alpha: (u > 0.6 ? (1 - u) / 0.4 : 1) * 0.8 });
   });
 }
 // 불꽃 혀: 땅에서 일렁이며 솟는 도트 불꽃 (ox 칸마다 높이가 따로 출렁인다). 땅불·분출에 함께 쓴다
 function mtFlames(x, gy, halfW, h, k, pal, seed) {
-  const cell = 3;
-  ctx.save();
-  // 불길은 보통 섞기로 칠한다 (lighter 로 겹치면 몸 위에서 하얗게 타 버린다)
-  for (let ox = -halfW; ox <= halfW; ox += cell) {
-    const edge = 1 - Math.abs(ox) / (halfW + cell);
-    const hh = h * k * edge * (0.55 + 0.45 * Math.abs(Math.sin(clock * 11 + ox * 0.7 + seed)));
-    for (let y = 0; y < hh; y += cell) {
-      const v = y / Math.max(1, hh);
-      ctx.globalAlpha = (1 - v * 0.7) * Math.min(1, k * 1.5);
-      ctx.fillStyle = v < 0.25 ? pal.core : v < 0.5 ? pal.hot : v < 0.8 ? pal.mid : pal.deep;
-      const wob = Math.round(Math.sin(clock * 15 + y * 0.3 + ox) * v * 2);
-      ctx.fillRect(Math.round(x + ox + wob), Math.round(gy - y - cell), cell, cell);
-    }
-  }
-  ctx.restore();
+  // F16 불바다 시트의 한 토막(폭 halfW×2)을 땅에 세운다. 높이 h 에 맞는 배율, 세기 k 로 흐려진다
+  if (k <= 0.02) return;
+  const s = VFX_SHEETS.f16;
+  if (!s || !s.lv) return;
+  const sc = h <= 18 ? 2 / 3 : h <= 30 ? 1 : 4 / 3, wDots = (halfW * 2) / (sc * VFX_DOT), u0 = mgHash(Math.round(seed * 10)) * Math.max(0, 1 - wDots / s.fw);
+  vfxDraw(ctx, 'f16', pal.ramp, mgLoop('f16', 10, seed), x, gy + 1, { scale: sc, anchor: 'b', crop: [u0, Math.min(1, u0 + wDots / s.fw)], alpha: Math.min(1, k * 1.5) });
 }
 // 땅에 남는 불길 (★★ 유성우)
 function mtGroundFireFx(a, x, halfW, life) {
@@ -143,120 +97,55 @@ function mtGroundFireFx(a, x, halfW, life) {
 }
 // ★ 착탄: 위로 솟는 불꽃 분출 + 옆으로 퍼지는 불꽃 파도 + 불티
 function mtBlastFx(a, x, size) {
-  const pal = mtPal(a), gy = groundY(), seed = rand(0, 10);
-  aFx(a, 0, 0.55, (u) => {
-    const k = u < 0.15 ? u / 0.15 : 1 - (u - 0.15) / 0.85;
-    mtFlames(x, gy, 14 * size, 34 * size, k, pal, seed);
-    // 옆으로 밀려 나가는 불꽃 둑 (양쪽)
-    const spread = 10 + 34 * size * easeOut(u);
-    for (const sd of [-1, 1]) mtFlames(x + sd * spread, gy, 5 * size, 12 * size, (1 - u) * 0.9, pal, seed + sd);
-  });
-  burst(x, gy - 8, Math.round(16 * size), [pal.core, pal.hot, pal.mid, pal.deep], 170 * size, 3, 300);
+  // ★ 착탄: E34 돔 폭발(바닥에서 솟는 불·연기 반구 + 용암 웅덩이). size 1 = 1배, 0.6 = 2/3배
+  const pal = mtPal(a), gy = groundY();
+  mgFx(a, 'e34', x, gy + 2, pal.ramp, { scale: size >= 0.8 ? 1 : 2 / 3, life: 0.6, anchor: 'b', fade: 0.3 });
+  burst(x, gy - 8, Math.round(8 * size), [pal.core, pal.hot, pal.mid], 170 * size, 2, 300);
   mtScorch(a, x, 18 * size, 1.1);
 }
 // ★★★ 예고: 착탄 자리에 커지는 그림자와 붉게 맥박치는 열기 고리
 function mtOmenFx(a, x, life) {
+  // ★★★ 예고: 착탄 자리 바닥에 C3 고리가 붉게 맥박치며 점점 빨라지고, 열기가 피어오른다
   const gy = groundY(), pal = mtPal(a);
   backFx(a, 0, life, (u) => {
-    const g = easeIn(u), k = Math.min(1, u * 4);
-    ctx.save();
-    ctx.globalAlpha = 0.25 + 0.4 * g; ctx.fillStyle = '#12060a';
-    ctx.beginPath(); ctx.ellipse(x, gy, 8 + 40 * g, 2 + 6 * g, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = k * (0.4 + 0.4 * Math.abs(Math.sin(clock * (6 + 14 * g))));
-    ctx.strokeStyle = pal.deep; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(x, gy, 60, 9, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = pal.mid; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(x, gy, 60 * (1 - (clock * 1.5 % 1)), 9 * (1 - (clock * 1.5 % 1)), 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
+    const g = easeIn(u), sp = 6 + 14 * g, f = Math.floor(clock * sp) % 5;
+    vfxDraw(ctx, 'c3', pal.ramp, f, x, gy + 1, { scale: g < 0.4 ? 1 : 4 / 3, anchor: 'b', alpha: Math.min(1, u * 4) * (0.45 + 0.4 * g) });
   }, null, (u) => {
-    // 땅에서 열기가 피어오른다 (운석이 가까울수록 많이)
     if (Math.random() < 0.3 + u * 0.6) parts.push({ x: x + rand(-55, 55), y: gy - 2, vx: rand(-6, 6), vy: rand(-60, -25), g: -10, size: 2, color: Math.random() < 0.5 ? pal.mid : pal.deep, life: rand(0.3, 0.5), t: 0, add: true });
   });
 }
 // ★★★ 착탄 섬광: 땅에 반쯤 묻힌 하얀-주황 빛 돔이 부풀었다 꺼진다 (기사·대상 주변만, 하단바 전체는 덮지 않는다)
 function mtDomeFx(a, x, R, life) {
-  const gy = groundY(), pal = mtPal(a);
-  aFx(a, 0, life, (u) => {
-    const r = R * (0.4 + 0.6 * easeOut(u)), k = 1 - u;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.beginPath(); ctx.rect(x - r - 2, -40, r * 2 + 4, gy + 41); ctx.clip();
-    const gr = ctx.createRadialGradient(x, gy, 0, x, gy, r);
-    gr.addColorStop(0, `rgba(255,255,255,${0.95 * k})`); gr.addColorStop(0.35, pal.hot); gr.addColorStop(0.7, pal.deep + '66'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = k; ctx.fillStyle = gr;
-    ctx.beginPath(); ctx.arc(x, gy, r, Math.PI, 0); ctx.fill();
-    ctx.restore();
-  });
+  // ★★★ 착탄 섬광 = E34 돔 폭발 4/3배 (기사·대상 둘레만, 하단바 전체는 덮지 않는다)
+  mgFx(a, 'e34', x, groundY() + 2, mtPal(a).ramp, { scale: 4 / 3, life, anchor: 'b', fade: 0.35 });
 }
 // 땅을 훑는 충격파: 양쪽으로 달려가는 불 테두리 + 그 앞에서 흙·돌이 튀어 오른다
 function mtShockFx(a, x, reach, life, thick = 1) {
+  // 땅을 훑는 충격파 = C3 바닥 고리 (reach 에 맞는 배율) + 앞에서 흙·돌이 튀어 오른다 (보조 파편)
   const gy = groundY(), pal = mtPal(a);
-  aFx(a, 0, life, (u) => {
-    const e = easeOut(u), r = 8 + reach * e, k = 1 - u;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = k; ctx.strokeStyle = pal.mid; ctx.lineWidth = 4 * thick * k + 1;
-    ctx.beginPath(); ctx.ellipse(x, gy - 1, r, 4 + 8 * e * thick, 0, Math.PI, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = pal.core; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(x, gy - 1, r * 0.96, 3 + 6 * e * thick, 0, Math.PI, Math.PI * 2); ctx.stroke();
-    ctx.globalAlpha = k * 0.8; ctx.strokeStyle = pal.deep; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(x, gy, r, 3 + 3 * e, 0, 0, Math.PI); ctx.stroke();
-    ctx.restore();
-  }, null, (u) => {
-    if (u > 0.7 || Math.random() > 0.8) return;
+  mgFx(a, 'c3', x, gy + 1, pal.ramp, { scale: reach >= 120 ? 2 : 4 / 3, life, anchor: 'b', fade: 0.45, sy: thick < 1 ? 0.75 : 1 });
+  aFx(a, 0, life, null, null, (u) => {
+    if (u > 0.7 || Math.random() > 0.6) return;
     const r = 8 + reach * easeOut(u);
-    for (const sd of [-1, 1]) parts.push({ x: x + sd * r, y: gy - 2, vx: sd * rand(20, 60), vy: rand(-140, -60), g: 420, size: Math.random() < 0.3 ? 3 : 2, color: Math.random() < 0.5 ? '#5a3a2a' : pal.mid, life: rand(0.3, 0.5), t: 0 });
+    for (const sd of [-1, 1]) parts.push({ x: x + sd * r, y: gy - 2, vx: sd * rand(20, 60), vy: rand(-140, -60), g: 420, size: 2, color: Math.random() < 0.5 ? '#5a3a2a' : pal.mid, life: rand(0.3, 0.5), t: 0 });
   });
 }
 // 용암 덩이: 포물선으로 튀었다가 땅에 떨어지면 작은 용암 웅덩이로 남아 식는다
 function mtLavaFx(a, x, n, speed, puddleLife) {
-  const pal = mtPal(a), gy = groundY(), blobs = [];
-  n = Math.max(3, Math.round(n * fxVis));
-  for (let i = 0; i < n; i++) {
-    const an = -Math.PI / 2 + rand(-1.25, 1.25), v = speed * rand(0.5, 1);
-    blobs.push({ x, y: gy - 6, vx: Math.cos(an) * v, vy: Math.sin(an) * v, s: Math.random() < 0.35 ? 4 : 3, land: -1 });
+  // 사방으로 튄 용암 = K23 용암 튐 시트를 둘레 몇 곳에 차례로 (떨어진 자리에 웅덩이로 식는 그림까지 시트에 있다)
+  const pal = mtPal(a), gy = groundY(), k = Math.max(2, Math.round(n / 4 * fxVis));
+  for (let i = 0; i < k; i++) {
+    const sd = i % 2 ? 1 : -1, dx = sd * speed * rand(0.18, 0.4);
+    mgFx(a, 'k23', x + dx, gy + 2, pal.ramp, { scale: 2 / 3, life: 0.5 + puddleLife * 0.4, delay: 0.08 + i * 0.07, anchor: 'b', fade: 0.4, flip: sd < 0 });
   }
-  let last = 0;
-  const life = 1.2 + puddleLife;
-  aFx(a, 0, life, (u) => {
-    const t = u * life, dt = Math.max(0, t - last); last = t;
-    ctx.save();
-    for (const b of blobs) {
-      if (b.land < 0) {
-        b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 400 * dt;
-        if (b.y >= gy - 1 && b.vy > 0) { b.y = gy - 1; b.land = t; }
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = pal.hot; ctx.fillRect(Math.round(b.x - b.s / 2), Math.round(b.y - b.s / 2), b.s, b.s);
-        ctx.fillStyle = pal.core; ctx.fillRect(Math.round(b.x - 1), Math.round(b.y - 1), 1, 1);
-        ctx.globalAlpha = 0.5; ctx.fillStyle = pal.mid;
-        ctx.fillRect(Math.round(b.x - b.vx * 0.02 - 1), Math.round(b.y - b.vy * 0.02 - 1), 2, 2);
-        continue;
-      }
-      // 웅덩이: 납작하게 퍼졌다가 붉게 식는다
-      const v = clamp01((t - b.land) / puddleLife);
-      if (v >= 1) continue;
-      const w = b.s + 3 * easeOut(Math.min(1, v * 5));
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = 1 - v;
-      ctx.fillStyle = v < 0.4 ? pal.hot : v < 0.75 ? pal.mid : pal.deep;
-      ctx.fillRect(Math.round(b.x - w), Math.round(gy - 2), Math.round(w * 2), 2);
-      if (v < 0.5) { ctx.fillStyle = pal.core; ctx.fillRect(Math.round(b.x - 1), Math.round(gy - 2), 2, 1); }
-    }
-    ctx.restore();
-  });
 }
 // ★★★ 땅에 박힌 거대 운석: 갈라진 바위가 반쯤 묻혀 용암 빛을 내다가 식는다
 function mtCraterFx(a, x, R, life) {
+  // ★★★ 땅에 남은 자리: E34 마지막 그림(용암 웅덩이)이 남아 식고, 둘레에 불길(F16 토막)이 일렁인다
   const pal = mtPal(a), gy = groundY();
   aFx(a, 0, life, (u) => {
     const k = u > 0.7 ? (1 - u) / 0.3 : 1;
-    ctx.save();
-    ctx.globalAlpha = k;
-    ctx.beginPath(); ctx.rect(x - R * 2, gy - R * 2, R * 4, R * 2); ctx.clip();      // 땅 위만
-    mtRock(x, gy + R * 0.35, R, 0.3, { ...pal, rockLit: u < 0.5 ? pal.deep : pal.rockLit }, 0);
-    ctx.restore();
+    vfxDraw(ctx, 'e34', pal.ramp, VFX_SHEETS.e34.frames - 1, x, gy + 2, { scale: 4 / 3, anchor: 'b', alpha: k });
     mtFlames(x, gy, R * 1.1, 14, k * (1 - u * 0.5), pal, 3);
   });
 }
@@ -334,10 +223,10 @@ Object.assign(SKILL_FX, {
       for (const sd of [-1, 1]) mtBlastFx(a, x + sd * 30, 0.55);
       impact({ stop: 0.06, shake: 0.35 });
     },
-    // 맞은 자리에 불씨가 잠깐 붙어 탄다 (화살 긁힌 자국 대신)
-    marks(a, t, pow) {
-      const pal = mtPal(a), x = t.x + rand(-5, 5), y = t.y + rand(-4, 8), seed = rand(0, 9);
-      aFx(a, 0, 0.35, (u) => mtFlames(x, y, 3 + Math.min(4, pow * 2), 8 + 3 * Math.min(2, pow), 1 - u, pal, seed));
+    // 명중 그림 K23 (용암 튐 + 바위 조각, 바닥 기준): Lv1 앞 4프레임 2/3배, ★ 이상 전부, ★★★ 첫 타(거대 운석)만 4/3배
+    hitTex(a, t, share, i, n) {
+      const m = a.mast || 0, big = m >= 3 && i === 0;
+      mgFx(a, 'k23', t.x + rand(-3, 3), groundY() + 2, mgA(a, 'fire'), { scale: big ? 4 / 3 : m >= 2 && i === n - 1 ? 1 : 2 / 3, life: big ? 0.5 : 0.36, frames: m ? 99 : 4, anchor: 'b', fade: 0.3, flip: a.dir < 0 });
     },
     kb: 10,
   },

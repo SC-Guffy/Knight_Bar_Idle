@@ -35,17 +35,18 @@ const WEAPONS = {
   lance:       { name: '돌격창', kind: 'melee',  motion: 'thrust', range: 32, targets: 2, len: 16, lance: true, shaft: '#7a5a3a', tip: '#e8edf5', trail: '200,225,255', glow: '#9fd8ff' },
   ballista:    { name: '거대 석궁', kind: 'ranged', range: 160, targets: 1, shots: 1, size: 14, crossbow: true, wood: '#5a3a1e', steel: '#9a9aa6',
     arrow: { speed: 900, color: '#e8d9b0', trail: '230,210,160', bolt: true } },
-  stormStaff:  { name: '뇌전 지팡이', kind: 'ranged', range: 185, targets: 1, shots: 1, glow: '#b7e3ff', splash: { radius: 70, mult: 0.4, max: 2, arc: true },
-    staff: { len: 8, wood: '#2a2a44', head: '#ffe066', orb: '#b7e3ff', glowRgb: '183,227,255' },
-    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '183,227,255' } },
+  // 뇌전 색은 연보라 + 연노랑 빛 (빙결의 청백과 띄운다, skill-vfx.md ⑤-1), 뇌제는 금빛
+  stormStaff:  { name: '뇌전 지팡이', kind: 'ranged', range: 185, targets: 1, shots: 1, glow: '#b58cff', splash: { radius: 70, mult: 0.4, max: 2, arc: true },
+    staff: { len: 8, wood: '#2a2a44', head: '#ffe066', orb: '#c9a8ff', glowRgb: '181,140,255' },
+    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '181,140,255' } },
   // ── 새 2차의 3차 (평타 모션은 2차 것을 그대로, world.js HERO_ATK 별칭) ──
   doomBlade:     { name: '파천대검', kind: 'melee',  motion: 'swing',  range: 22, targets: 3, len: 18, wide: true, slab: true, twoHand: true, rest: -2.35, blade: '#1a0c0c', edge: '#ff8a5c', hilt: '#2a1010', trail: '255,110,60', glow: '#ff5a2a' },
   holyLance:     { name: '천마창',   kind: 'melee',  motion: 'thrust', range: 36, targets: 3, len: 18, lance: true, shaft: '#c9a227', tip: '#ffffff', trail: '220,235,255', glow: '#cfe8ff' },
   siegeBallista: { name: '공성 석궁', kind: 'ranged', range: 180, targets: 1, shots: 1, size: 16, crossbow: true, wood: '#2a1a10', steel: '#c9c2b4',
     arrow: { speed: 1000, color: '#ffe8c0', trail: '255,220,160', bolt: true } },
-  tempestStaff:  { name: '뇌제의 홀', kind: 'ranged', range: 195, targets: 1, shots: 1, glow: '#e0f0ff', splash: { radius: 90, mult: 0.45, max: 3, arc: true },
-    staff: { len: 9, wood: '#1a1a30', head: '#ffffff', orb: '#e0f0ff', glowRgb: '220,240,255' },
-    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '220,240,255' } },
+  tempestStaff:  { name: '뇌제의 홀', kind: 'ranged', range: 195, targets: 1, shots: 1, glow: '#ffe27a', splash: { radius: 90, mult: 0.45, max: 3, arc: true },
+    staff: { len: 9, wood: '#1a1a30', head: '#ffffff', orb: '#fff2b0', glowRgb: '255,226,122' },
+    arrow: { speed: 1400, color: '#ffffff', shape: 'bolt', rgb: '255,226,122' } },
   // ── 3차 ──
   infernoStaff: { name: '겁화의 지팡이', kind: 'ranged', range: 170, targets: 1, shots: 1, splash: { radius: 52, mult: 0.55 }, glow: '#ff3b1f',
     staff: { len: 9, wood: '#2a0e08', head: '#ffd257', orb: '#ff3b1f', glowRgb: '255,80,30' },
@@ -617,7 +618,7 @@ const CLASSES = {
     mods: { atk: 2.3, hp: 0.99, aspd: 1.2, crit: 0.16 },
     desc: '번개를 쏜다. 맞은 적에서 둘에게 더 튀고, 빠르고 치명타가 잦다.',
     look: {
-      body: BODY.electromancer, fx: '#b7e3ff',
+      body: BODY.electromancer, fx: '#b58cff',
       pal: { P: '#3a3a6a', p: '#26264a', c: '#ffe066', n: '#e8c84a', s: '#f0c29a', e: '#1b1d27', E: '#ffffff', y: '#b7e3ff', R: '#3a3a6a', r: '#26264a', b: '#1a1a30', l: '#26264a', k: '#1a1a30' },
       arm: ['#3a3a6a', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cloak', color: '#1a1a30' },
@@ -664,7 +665,7 @@ const CLASSES = {
     mods: { atk: 2.7, hp: 1.44, aspd: 1.25, crit: 0.2 },
     desc: '천둥을 다스리는 황제. 홀을 들면 하늘 전체가 벼락이 된다.',
     look: {
-      body: BODY.electromancer, fx: '#e0f0ff',
+      body: BODY.electromancer, fx: '#ffe27a',
       pal: { y: '#ffd257', C: '#ffffff', w: '#f4f1e8', s: '#f0c29a', e: '#e0f0ff', E: '#ffffff', R: '#1a1a40', r: '#10102a', c: '#e0f0ff', b: '#ffe066', l: '#10102a', k: '#0a0a1a' },
       arm: ['#1a1a40', '#f0c29a'],       // 팔·주먹 (body2.js 손도트와 짝)
       cape: { style: 'cape', color: '#2a2a6a' },
@@ -1326,10 +1327,10 @@ const SKILLS = {
     ],
     stageName: ['뇌제의 벼락', '뇌제 강림', '만뢰', '천둥의 왕좌'],
     stageDesc: [
-      '하단바 하늘이 먹구름으로 덮이고 거대한 벼락 한 줄기가 적을 꿰뚫은 뒤, 땅을 따라 번개가 양끝까지 번진다',
-      '번개로 된 뇌제의 형상이 하늘에 떠올라 손을 내리치면 하단바 전체에 벼락이 쏟아진다',
-      '하단바 하늘 끝에서 끝까지 번개가 그물처럼 얽히고, 수십 줄기 벼락이 땅을 두드린다',
-      '하늘에 번개의 왕좌가 나타나 하단바가 하얗게 멎고 — 왕좌에서 내리는 거대한 벼락 기둥이 모든 것을 띄운다',
+      '하단바 하늘이 먹구름으로 덮이고 금빛 벼락 한 줄기가 적에게 내리꽂혀 왕관 모양으로 터진 뒤, 땅을 따라 번개가 양끝까지 번진다',
+      '먹구름 위로 번개로 된 뇌신 거인이 떠올라 팔을 내리치면 하단바 전체에 금빛 벼락이 쏟아진다',
+      '뇌신 거인 아래로 하늘 끝에서 끝까지 금빛 번개 그물이 얽히고, 수십 줄기 벼락이 땅을 두드린다',
+      '뇌신 거인이 번개의 왕좌에 앉아 하단바가 하얗게 멎고 — 모든 적의 머리 위로 왕관 번개가 내리꽂혀 띄운다',
     ],
     desc: '하늘 전체를 벼락으로 바꿔 하단바의 모든 적을 내리친다. 맞은 적은 위압에 멈춘다.',
   },

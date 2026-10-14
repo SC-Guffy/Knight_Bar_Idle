@@ -224,12 +224,12 @@ Object.assign(HERO_ATK, {
   ],
   // 뇌전술사: 지팡이를 짧게 치켜들어 번개를 튕기듯 쏜다 ↔ 몸을 돌려 지팡이를 앞으로 내리그으며 쏜다, 청백 섬광
   stormStaff: [
-    { charge: [0.12, 0.44, '183,227,255'], burst: [0.45, '220,240,255', 1.2], keys: atkKeys(BOW_REST,
+    { charge: [0.12, 0.44, '181,140,255'], burst: [0.45, '220,240,255', 1.2], keys: atkKeys(BOW_REST,
       { s: 0.2,  h: [-0.5, -2.5], bowA: -0.55, pull: 6,  dx: -1, skew: -0.06, sy: 1.03, e: 'o' },
       { s: 0.4,  h: [-0.6, -2.7], bowA: -0.6,  pull: 12, dx: -1, skew: -0.08, sy: 1.04 },
       { s: 0.47, h: [1.8, -1],    bowA: 0.2,   pull: 0,  dx: 3,  skew: 0.1,   sy: 0.97, e: 'i' },
       { s: 0.7,  h: [0.8, -0.6],  bowA: 0.05,  pull: 0,  dx: 1,  skew: 0.04,  e: 'o' }) },
-    { charge: [0.12, 0.44, '183,227,255'], burst: [0.45, '255,255,255', 1.4], keys: atkKeys(BOW_REST,
+    { charge: [0.12, 0.44, '181,140,255'], burst: [0.45, '255,255,255', 1.4], keys: atkKeys(BOW_REST,
       { s: 0.2,  h: [-1, -4.5],   bowA: -1.2,  pull: 6,  dx: -2, skew: -0.12, sy: 1.05, lift: 2, e: 'o' },
       { s: 0.4,  h: [-1.2, -4.8], bowA: -1.3,  pull: 12, dx: -2, skew: -0.14, sy: 1.06, lift: 3 },
       { s: 0.47, h: [2, 0],       bowA: 0.45,  pull: 0,  dx: 4,  skew: 0.16,  sy: 0.93, lift: 0, e: 'i' },

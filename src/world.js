@@ -1241,7 +1241,7 @@ function update(dt) {
       if (qiOn()) { qiOnBasic(1, sh.m.lastCrit); qiRangedHit(sh.m); }
       // 화염 계열: 맞은 자리 주변의 다른 적도 splash 배율로 (원정에서만 — 결투·레이드는 상대가 하나라 상관없다)
       const sp = sh.w.splash, ar = sh.w.arrow;
-      if (ar.shape === 'bolt') arcFx(sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, tx, ty, ar.color, ar.rgb, 0.16, 2);
+      if (ar.shape === 'bolt' && !vfxShotArc(sh.w, sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, tx, ty, 0.16)) arcFx(sh.ox != null ? sh.ox : sh.x, sh.oy != null ? sh.oy : sh.y, tx, ty, ar.color, ar.rgb, 0.16, 2);
       if (sp) {
         // splash.max: 번지는 적 수 상한 (번개는 둘) · splash.arc: 맞은 적에서 다음 적으로 번개 줄이 차례로 튄다
         let n = 0;
@@ -1249,11 +1249,13 @@ function update(dt) {
           if (o === sh.m || o.dying || Math.abs(toScreen(o.x) - tx) > sp.radius) continue;
           if (sp.max && n >= sp.max) break;
           hitMonster(o, sh.mult * sp.mult, { kb: 6, color: ar.color });
-          if (sp.arc) arcFx(tx, ty, toScreen(o.x) + o.kb, monsterMidY(o), ar.color, ar.rgb, 0.2, 1.5, 0.05 * (n + 1));
+          if (sp.arc && !vfxShotArc(sh.w, tx, ty, toScreen(o.x) + o.kb, monsterMidY(o), 0.2, 0.05 * (n + 1))) arcFx(tx, ty, toScreen(o.x) + o.kb, monsterMidY(o), ar.color, ar.rgb, 0.2, 1.5, 0.05 * (n + 1));
           n++;
         }
-        burst(tx, ty, 10, [ar.color, '#ffe066', '#ffffff'], 90, 2, 120);
-        effects.push({ type: 'ring', x: tx, y: groundY() - 2, t: 0, color: ar.color });
+        if (!VFX_RANGED[sh.w.id]) {        // 텍스처 무기는 착탄 명중 그림(vfxBasicHit)이 맡는다
+          burst(tx, ty, 10, [ar.color, '#ffe066', '#ffffff'], 90, 2, 120);
+          effects.push({ type: 'ring', x: tx, y: groundY() - 2, t: 0, color: ar.color });
+        }
       }
       sh.done = true; continue;
     }
@@ -2116,6 +2118,7 @@ function drawAtkFx(g, w, r, atk) {
       const L = pole ? r.ext + (w.len + 3) * PX : (w.len + 1) * PX;
       px = r.fh[0] + Math.cos(r.wa) * L; py = r.fh[1] + Math.sin(r.wa) * L;
     }
+    if (vfxCastFlash(g, w, px, py, u)) { g.restore(); return; }     // 텍스처 섬광 (src/vfx-tex.js VFX_RANGED)
     const R = (6 + 14 * easeOutQ(u)) * size;
     g.strokeStyle = `rgba(${col},${0.8 * k})`;
     g.lineWidth = 2;
@@ -2731,7 +2734,7 @@ function drawShots() {
 }
 // 원거리 평타 한 발 (원정·결투·레이드 공용). sh = { w: 무기, x, y, a: 날아가는 각도, trail: [[x, y], …] 최근 자리, ox/oy: 출발점 }
 function drawProjectile(sh) {
-  if (typeof vfxProjectile === 'function' && vfxProjectile(sh)) return;   // 텍스처 투사체 (src/vfx-ranger.js P 시트)
+  if (vfxRangedProj(sh) || (typeof vfxProjectile === 'function' && vfxProjectile(sh))) return;   // 텍스처 투사체 (⑤-1 src/vfx-mage.js VFX_RANGED · ⑤-3 src/vfx-ranger.js P 시트)
   const a = sh.w.arrow;
   if (a.qi && qiShotDraw(sh)) return;          // 기공사 계열 기탄 텍스처 (src/jobs/fighter-fx.js)
   if (a.shape === 'bolt') {

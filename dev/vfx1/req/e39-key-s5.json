@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: cluster of large prism ice crystals bursting up from the ground, tall sharp hexagonal crystal pillars fanning outward from one point at the bottom, white bright facets, pale cyan body, flat base, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 48,
+  "height": 48
+ },
+ "seed": 5
+}

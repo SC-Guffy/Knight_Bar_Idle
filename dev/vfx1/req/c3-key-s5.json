@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: very flat shockwave ring on the ground seen from a low side angle, a thin wide bright ellipse ring of dust and energy spreading outward along the floor, hollow empty center, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "seed": 5
+}

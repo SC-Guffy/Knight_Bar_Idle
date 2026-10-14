@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: three sharp glacier ice spikes jutting diagonally up out of the ground, tall pointed crystal spikes of different heights, white highlights, pale cyan body, flat base on the ground, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "seed": 3
+}

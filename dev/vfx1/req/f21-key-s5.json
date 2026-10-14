@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: throne made of lightning, a tall jagged throne shape formed from crackling electric bolts with a pointed back and arm rests, a net of lightning lines spreading on the ground below, white core, golden yellow glow, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "seed": 5
+}

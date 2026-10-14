@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: ice lance impact, an ice shard stuck in the center with a frost flower of sharp crystals blooming around it, white highlights, pale cyan crystals, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "seed": 5
+}

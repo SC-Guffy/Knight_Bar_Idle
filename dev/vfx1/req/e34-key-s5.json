@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: huge fiery explosion dome on the ground, a half dome of fire and smoke bursting up from a flat glowing lava pool, white yellow core at the bottom center, orange flames, dark red smoke edges, flat bottom, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 64,
+  "height": 48
+ },
+ "seed": 5
+}

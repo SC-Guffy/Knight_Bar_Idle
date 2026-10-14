@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: massive thick vertical lightning bolt striking straight down from the top edge to the bottom edge, a wide jagged zigzag bolt with a bright white core several pixels thick and violet side branches, a wide bright flash where it hits the ground at the bottom, nothing else, no character, no person, no background shape",
+ "image_size": {
+  "width": 32,
+  "height": 96
+ },
+ "seed": 11
+}

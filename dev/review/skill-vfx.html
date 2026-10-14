@@ -76,7 +76,7 @@
   <div class="sub">스펙: <code>docs/specs/skill-vfx.md</code> (이 페이지는 스펙 표를 그대로 읽어 그립니다) · 캡처: <code>dev/vfx-survey/</code> · 스킬 ★★★ 기준, Lv1 은 비교용 · 재생 버튼은 <code>dev/skills.html</code> 을 그 스킬로 엽니다</div>
   <div id="err"></div>
   <nav>
-    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#vfx4">⑤-4 검사 계열</a><a href="#vfx2">⑤-2 창기사 계열</a><a href="#vfx3">⑤-3 레인저</a><a href="#vfx0">⑤-0 본작업</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
+    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#vfx1">⑤-1 마법사 계열</a><a href="#vfx4">⑤-4 검사 계열</a><a href="#vfx2">⑤-2 창기사 계열</a><a href="#vfx3">⑤-3 레인저</a><a href="#vfx0">⑤-0 본작업</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
   </nav>
 
   <h2 id="sum">요약</h2>
@@ -85,6 +85,9 @@
 
   <h2 id="rule">원칙 — 이펙트 그림은 전부 PixelLab 텍스처</h2>
   <div id="ruleBlock"></div>
+
+  <h2 id="vfx1">⑤-1 마법사 계열 — 스킬 10종 · 평타 7종 텍스처 (확인 대기)</h2>
+  <div id="vfx1Block"></div>
 
   <h2 id="vfx4">⑤-4 검사 계열 — 성기사·검성·대검전사·성좌기사·검신·파천검왕 (확인 대기)</h2>
   <div class="sub">스킬 9종(궁극기 3종 포함)과 평타 6종의 이펙트 그림을 PixelLab 시트로 바꿨습니다 (<code>src/vfx-sword.js</code> + 원래 파일 안의 그리기, 시트 <code>src/vfx/*.png</code>). 아래 그림은 모두 줄 = 전 / 후. 속도 ×0.25 로 보면 잘 보입니다.
@@ -451,6 +454,8 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
     .map((l) => `<li>${md(l.slice(2))}</li>`).join('');
 })();
 </script>
+<script src="vfx1.js"></script>
+
 <script>
 // ⑤-3 레인저 계열 절 (docs/specs/skill-vfx.md "⑤-3 본작업")
 (() => {
