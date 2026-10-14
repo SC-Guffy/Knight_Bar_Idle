@@ -184,7 +184,7 @@ function vfxBasicRelease() {
 //  ranged: 원거리 착탄 — 명중 그림은 ⑤-3 에서, 지금은 치명일 때만 연출 정지
 function vfxBasicHit(m, crit, ranged) {
   const id = !ranged && VFX_BASIC_HIT[S.cls];
-  if (id && !m.killed) {
+  if (id && VFX_SHEETS[id] && !m.killed) {                     // 아직 시트가 없는 직업(예: 파이터 xh2~xh5)은 건너뛴다
     // 대상 가운데에서 칼끝 쪽(기사 쪽)으로 조금, 얼굴보다 아래(몸통)에 — 얼굴을 가리지 않게
     const x = toScreen(m.x) + m.kb - (knight.facing || 1) * 5 + rand(-2, 2), y = Math.max(monsterTop(m) + 14, monsterMidY(m)) + rand(-2, 2);
     const sc = crit ? 1 : VFX_SHEETS[id].scale || 1;                // 치명은 1배 (평소 2/3)
