@@ -1298,7 +1298,7 @@ function forgeRerollRow(slot) {
 function forgeRerollSection() {
   const lv = forgeFacLv('enchant');
   return `
-    <div class="shead sub"><h3>${ico('dice')} 옵션 재굴림 <span class="stchip${S.items.reroll ? '' : ' none'}" title="재굴림권 — 레이드 처치 상자·월드 보스 보상에서 가끔 나와요">🎲 <b>${S.items.reroll || 0}</b></span></h3><small>${lv ? `줄 하나를 새로 굴려요 — 품질 ${Math.round(enchantQualAt(lv) * 100)}~100% · 쓰레기 옵션 −${lv}%p (재굴림대 Lv ${lv})` : '아래 🏗️ 시설에서 옵션 재굴림대를 지으면 낀 장비의 옵션 줄을 다시 굴릴 수 있어요'}</small></div>
+    <div class="shead sub"><h3>${ico('dice')} 옵션 재굴림 <span class="stchip${S.items.reroll ? '' : ' none'}" title="재굴림권 — 원정 상자에서 가끔, 레이드 처치 상자·월드 보스 보상에서 3~5장씩 나와요">🎲 <b>${S.items.reroll || 0}</b></span></h3><small>${lv ? `줄 하나를 새로 굴려요 — 품질 ${Math.round(enchantQualAt(lv) * 100)}~100% · 쓰레기 옵션 −${lv}%p (재굴림대 Lv ${lv})` : '아래 🏗️ 시설에서 옵션 재굴림대를 지으면 낀 장비의 옵션 줄을 다시 굴릴 수 있어요'}</small></div>
     ${lv ? Object.keys(GEAR_SLOTS).map(forgeRerollRow).join('') : ''}`;
 }
 
@@ -2268,7 +2268,7 @@ async function takeWbRewards(rows) {
 function wbRewardText(r, html = true) {
   const parts = [html ? gainText(r) : `골드 ${fmt(r.gold)} · 🪵 ${fmt(r.wood)} · 🪨 ${fmt(r.ore)} · 💎 ${fmt(r.mana)}`, `💠 ${r.stones}`, `📖 ${r.tomes}`];
   if (r.chests) parts.push(`🎁 ${html ? esc(RAID_BOSSES[r.boss].chest.name) : RAID_BOSSES[r.boss].chest.name}`);
-  if (r.items && r.items.reroll) parts.push('🎲 재굴림권');
+  if (r.items && r.items.reroll) parts.push(`🎲 재굴림권 ${r.items.reroll}`);
   if (r.items && r.items.protect) parts.push('📜 보호 주문서');
   return parts.join(' · ');
 }
@@ -2686,7 +2686,7 @@ function openRaidChestAt(i) {
   const got = claimRaidChest(i);
   for (const x of got) raidUi.revealed.push({ ...x, fresh: true });
   if (got.tomes) toast(`📖 비전서 +${got.tomes}`);
-  if (got.items && got.items.reroll) toast('🎲 재굴림권 획득!', 4000);
+  if (got.items && got.items.reroll) toast(`🎲 재굴림권 +${got.items.reroll}`, 4000);
   if (got.items && got.items.protect) toast('📜 보호 주문서 획득!', 4000);
   const sig = got.find((x) => GEAR_ITEMS[x.it.t].raid);
   const top = got.map((x) => x.it).sort((a, b) => b.g - a.g)[0];

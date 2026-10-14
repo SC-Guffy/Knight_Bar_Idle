@@ -45,8 +45,8 @@ function claimWbReward(row) {
   S.mats.wood += reward.wood; S.mats.ore += reward.ore; S.mats.mana += reward.mana;
   S.stones += reward.stones;
   S.tomes += reward.tomes;
-  // 🎲 재굴림권 · 📜 보호 주문서 (잡은 날은 확률 2배)
-  reward.items = rollRareDrops(row.killed ? RARE_DROP.wbKill : RARE_DROP.wb);
+  // 🎲 재굴림권 3~5장 확정 · 📜 보호 주문서 (잡은 날은 확률 2배)
+  reward.items = rollRareDrops(row.killed ? RARE_DROP.wbKill : RARE_DROP.wb, REROLL_DROP.wb);
   for (let i = 0; i < reward.chests; i++) S.raid.chests.push({ k: 'rbox', b: reward.boss, s: Math.max(RAID_BOSSES[reward.boss].stage, S.best || 1) });
   S.wb.last = { ...row, reward, at: Date.now() };
   return S.wb.last;

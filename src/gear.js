@@ -58,6 +58,8 @@ function openBox(b) {
   const n = lo + Math.floor(Math.random() * (hi - lo + 1));
   const out = [];
   for (let i = 0; i < n; i++) out.push(rollLoot(i === 0 ? b.g : Math.max(0, b.g - 1), b.s, !!b.boss && i === 0));
+  // 🎲 재굴림권: 상자마다 REROLL_DROP.box 확률로 한 장 더
+  if (Math.random() < REROLL_DROP.box) out.push({ k: 'use', id: 'reroll' });
   return out;
 }
 
@@ -424,7 +426,7 @@ function rerollBlocker(it, i) {
   if (!forgeFacLv('enchant')) return '마을 대장간에서 🎲 옵션 재굴림대를 먼저 지어야 해요';
   if (S.phase !== 'camp') return '캠프에서만 다시 굴릴 수 있어요';
   const c = rerollCost(it.g);
-  if ((S.items.reroll || 0) < c.reroll) return '재굴림권 부족 — 레이드 처치 상자·월드 보스에서 가끔 나와요';
+  if ((S.items.reroll || 0) < c.reroll) return '재굴림권 부족 — 원정 상자에서 가끔, 레이드 처치 상자·월드 보스 보상에서 3~5장씩 나와요';
   if (S.stones < c.stone) return '강화석 부족';
   if (S.mats.mana < c.mana) return '마력석 부족';
   return '';

@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.21.1';
+const GAME_VERSION = '0.21.2';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -240,16 +240,20 @@ const SUPPLIES = {
   charm:  { name: '행운의 부적', icon: '🍀', price: 30, w: 12, desc: '이번 원정 동안 좋은 등급의 전리품이 더 잘 나옴' },
   elixir: { name: '투지의 영약', icon: '🔥', price: 30, w: 13, desc: '이번 원정 동안 공격력 +30%' },
   protect: { name: '보호 주문서', icon: '📜', price: 0, w: 60, shop: false, desc: '강화할 때 1장 써서, 실패로 단계가 떨어지거나 초기화되는 걸 막아 줌 (원정 상자·레이드 처치 상자·월드 보스에서 나옴)' },
-  // 재굴림권: 상점에 없다(shop: false) — 레이드 처치 상자·월드 보스 보상에서만 (RARE_DROP)
+  // 재굴림권: 상점에 없다(shop: false) — 원정 상자·레이드 처치 상자·월드 보스 보상에서만 (REROLL_DROP)
   reroll: { name: '재굴림권', icon: '🎲', price: 0, w: 0, shop: false, desc: '대장간 🎲 옵션 재굴림대에서 장비 옵션 한 줄을 다시 굴림' },
 };
-// 재굴림권·보호 주문서 드랍 확률: 레이드 처치 상자 1개당 / 월드 보스 하루 보상(잡은 날은 kill)
+// 보호 주문서 드랍 확률: 레이드 처치 상자 1개당 / 월드 보스 하루 보상(잡은 날은 kill)
 //  (보호 주문서는 원정 상자가 주 공급처 — protect-scroll-drop.md. 레이드·월드 보스 몫은 덤)
 const RARE_DROP = {
-  raid: { reroll: 0.06, protect: 0.06 },
-  wb:   { reroll: 0.15, protect: 0.15 },
-  wbKill: { reroll: 0.3, protect: 0.3 },
+  raid: { protect: 0.06 },
+  wb:   { protect: 0.15 },
+  wbKill: { protect: 0.3 },
 };
+// 재굴림권은 확률 뽑기가 아니라 넉넉히 뿌린다 (reroll-drop.md)
+//  box: 원정 상자 하나 열 때마다 확률 (원정 1회 상자 약 13개 → 평균 1.5장)
+//  raid / wb: 레이드 처치 상자 하나 · 월드 보스 하루 보상마다 [최소, 최대]장 확정
+const REROLL_DROP = { box: 0.12, raid: [3, 5], wb: [3, 5] };
 // ───────────────────────── 우편함 ─────────────────────────
 // 모든 기사에게 보내는 우편. id 는 한 번 정하면 바꾸지 않는다 (받았는지를 S.mail.got 에 id 로 남긴다).
 // at ~ until 사이에만 우편함에 보인다. reward: { items: { 보급품 id: 개수 }, gold, stones, tomes, raidTickets }

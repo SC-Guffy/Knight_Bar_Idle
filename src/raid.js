@@ -153,13 +153,17 @@ function claimRaidChest(i) {
   // 📖 비전서 (스킬 숙련도): 상자마다 1~2권 (🎲 비전서 추가 확률 옵션만큼 한 권 더 나올 확률이 오른다)
   got.tomes = 1 + (Math.random() < 0.5 + gearBonus().tomePct ? 1 : 0);
   S.tomes += got.tomes;
-  // 🎲 재굴림권 · 📜 보호 주문서: 상자마다 낮은 확률로 (RARE_DROP.raid)
-  got.items = rollRareDrops(RARE_DROP.raid);
+  // 🎲 재굴림권 3~5장 확정 (REROLL_DROP.raid) · 📜 보호 주문서는 낮은 확률로 (RARE_DROP.raid)
+  got.items = rollRareDrops(RARE_DROP.raid, REROLL_DROP.raid);
   return got;
 }
-// 재굴림권·보호 주문서를 표의 확률로 굴려 바로 챙긴다. 받은 것 { reroll?: 1, protect?: 1 }
-function rollRareDrops(table) {
+// 재굴림권은 [최소, 최대]장 확정, 보호 주문서는 표의 확률로 굴려 바로 챙긴다. 받은 것 { reroll?: n, protect?: 1 }
+function rollRareDrops(table, reroll) {
   const out = {};
+  if (reroll) {
+    const n = reroll[0] + Math.floor(Math.random() * (reroll[1] - reroll[0] + 1));
+    if (n > 0) { out.reroll = n; S.items.reroll = (S.items.reroll || 0) + n; }
+  }
   for (const id of Object.keys(table)) if (Math.random() < table[id]) { out[id] = 1; S.items[id] = (S.items[id] || 0) + 1; }
   return out;
 }
