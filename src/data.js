@@ -928,14 +928,15 @@ const FORTUNE_PER_LV = 0.03;
 //  ★1~4: 📕 수련의 서(S.books — 🏰 성벽 지키기에서 얻는다) MENTOR_BOOKS[교관][별−1] 권을 내면 확정으로 별 하나. 골드는 받지 않는다
 //  ★5: 교관과의 승부 — 도전비 없음, 하루 MENTOR_DUEL_DAY 번 (서버가 센다, server/index.js)
 //  sp: 별 하나 몫 (gearBonus 에 더하는 키) · ★5 는 별 하나 몫의 2배 · 경험치 보너스는 없다 (1차 훈련이 Lv 200 이라 수완이 그대로라서)
+//  별 하나 몫은 0.20.0 판의 ×0.6 (10-14 사용자 결정 — 별 25개를 다 받은 14일 봇이 교관 끔보다 +8% 앞서서)
 //  승부 상대는 내 레벨·내 계열의 '기준 기사' 거울 × 교관 배수 (server/mentor.js) — 직업 상성 없이 '얼마나 골고루 갖췄나'만 본다
 //  bg: 무대 배경 (src/bg/<bg>.png, 'dojo' 는 mentor-stage.js 가 직접 그린다)
 const MENTORS = [
-  { id: 'sword',  name: '검술 사범',   icon: '🗡️', place: '도장',       bg: 'dojo',    sp: { atkPct: 0.025 } },
-  { id: 'shield', name: '방패 교관',   icon: '🛡️', place: '성채 연병장', bg: 'castle',  sp: { hpPct: 0.025, guard: 0.01 } },
-  { id: 'hunter', name: '숲의 사냥꾼', icon: '🏹', place: '깊은 숲',     bg: 'fairy',   sp: { aspdPct: 0.015, crit: 0.01 } },
-  { id: 'brute',  name: '화산 투사',   icon: '🔥', place: '화산 분화구', bg: 'volcano', sp: { critMult: 0.05, bossDmg: 0.03 } },
-  { id: 'sage',   name: '성좌의 은자', icon: '🌌', place: '구름 위',     bg: 'sky',     sp: { skillDmg: 0.03 } },
+  { id: 'sword',  name: '검술 사범',   icon: '🗡️', place: '도장',       bg: 'dojo',    sp: { atkPct: 0.015 } },
+  { id: 'shield', name: '방패 교관',   icon: '🛡️', place: '성채 연병장', bg: 'castle',  sp: { hpPct: 0.015, guard: 0.006 } },
+  { id: 'hunter', name: '숲의 사냥꾼', icon: '🏹', place: '깊은 숲',     bg: 'fairy',   sp: { aspdPct: 0.009, crit: 0.006 } },
+  { id: 'brute',  name: '화산 투사',   icon: '🔥', place: '화산 분화구', bg: 'volcano', sp: { critMult: 0.03, bossDmg: 0.018 } },
+  { id: 'sage',   name: '성좌의 은자', icon: '🌌', place: '구름 위',     bg: 'sky',     sp: { skillDmg: 0.018 } },
 ];
 const MENTOR_STARS = 5;
 const MENTOR_LAST_X = 2;                       // ★5 는 별 하나 몫 × 2
