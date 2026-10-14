@@ -9,7 +9,7 @@ const { simulateDuel, eloDelta } = require('./duel');
 const { RAID_BOSSES, MAX_PARTY, simulateRaid } = require('./raid');
 const { START_RATING, seasonAt, seasonRange, fresh } = require('./season');
 const WB = require('./worldboss');
-const { createBots } = require('./bots');
+const { createBots, curveMedianAt } = require('./bots');
 const { MENTOR_DUEL, mentorProfile } = require('./mentor');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -64,7 +64,7 @@ function sanitizeProfile(p = {}) {
       ...(s.ward && typeof s.ward === 'object'
         ? { ward: { dur: num(s.ward.dur, 0, 8, 0), guard: num(s.ward.guard, 0, 0.8, 0), heal: num(s.ward.heal, 0, 0.5, 0) } } : {}),
     }));
-  return {
+  const out = {
     cls: typeof p.cls === 'string' ? p.cls.slice(0, 24) : 'squire',
     level: Math.floor(num(p.level, 1, 1e6, 1)),
     best: Math.floor(num(p.best, 1, 1e6, 1)),
@@ -85,14 +85,18 @@ function sanitizeProfile(p = {}) {
     leap, skills,
     power: Math.floor(num(p.power, 0, 1e150, 0)),
     tower: Math.floor(num(p.tower, 0, 1e5, 0)),   // 도전의 탑 최고 층 (탑 순위)
+    gc: 1,
   };
+  // 성장 압축(0.21.0, docs/specs/growth-compression.md) 전 클라이언트가 올린 프로필 — 다시 접속할 때까지 같은 스테이지 봇 곡선 값으로
+  if (!p.gc) Object.assign(out, curveMedianAt(out.best));
+  return out;
 }
 
 // 랭킹·결투 목록에 보여 줄 공개 정보. 결투 기록은 이번 시즌 것 (지난 시즌 값이면 새로 시작한 값으로). bot: AI 기사 (클라이언트가 🤖 를 단다)
 const publicInfo = (acc) => {
   const a = fresh(acc);
   return {
-    nickname: a.nickname, cls: a.cls, level: a.level, best: a.best, power: a.power, tower: a.tower || 0,
+    nickname: a.nickname, cls: a.cls, level: a.level, best: a.best, power: a.profile && !a.profile.gc ? sanitizeProfile(a.profile).power : a.power, tower: a.tower || 0,
     rating: a.rating, wins: a.wins, losses: a.losses, attacks: a.attacks, updatedAt: a.updatedAt, ...(a.isBot ? { bot: true } : {}),
   };
 };
@@ -201,10 +205,11 @@ async function runDuel(me, op, practice = '') {
 // ───────────────────────── 라우트 ─────────────────────────
 // 클라이언트 버전 (src/data.js GAME_VERSION, 헤더 X-Game-Version). 보상 정산이 클라이언트에서 일어나는 기능은 구멍을 고친 뒤 예전 버전을 막는다
 //   0.19.11: 레이드 실패 보상 0 (예전 버전은 실패해도 재화 25%를 받아 입장권 한 장으로 무한 파밍이 됐다)
-const RAID_MIN_VERSION = '0.19.15';   // 0.19.15: 출정·준비 전에 세이브를 올려 서버가 입장권을 확인
+const RAID_MIN_VERSION = '0.21.0';    // 0.21.0: 성장 압축 (보스·기사 눈금이 바뀜) · 0.19.15: 출정·준비 전에 세이브를 올려 서버가 입장권을 확인
 //   0.19.12: 운영 차감 반영(0.19.10) + 배포 주소 ?speed= 배속 차단
 //   0.19.13: 운영 지급(gift) 반영 — 예전 버전은 지급을 차감으로 알고 ack 해 버려 선물이 사라진다
-const SAVE_MIN_VERSION = '0.20.0';    // 0.20.0: 훈련 Lv50·교관 수련·옵션 줄 세이브 이전 — 예전 버전이 이전 안 된 세이브로 덮어쓰지 못하게 (새로 고치면 로컬 진행이 이전돼서 올라온다)
+const SAVE_MIN_VERSION = '0.21.0';    // 0.21.0: 성장 압축 — 예전 눈금(공격력 1e20 쯤)의 프로필이 올라오지 않게 (새로 고치면 같은 세이브가 새 눈금으로 올라온다)
+//   0.20.0: 훈련 Lv50·교관 수련·옵션 줄 세이브 이전 — 예전 버전이 이전 안 된 세이브로 덮어쓰지 못하게
 //   0.19.15: 날짜·오프라인 시간을 서버 시각으로 (기기 시계 조작 차단)
 const verNum = (v) => String(v || '0').split('.').map((x) => parseInt(x, 10) || 0);
 function versionAtLeast(v, min) {

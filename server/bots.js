@@ -43,7 +43,8 @@ const DAY = 24 * 3600 * 1000;
 // 레이드: 봇 자리의 능력치 = 방장 전투력 × RAID_BOT_POWER, 보스 세기는 사람 + 봇 × RAID_BOT_SEAT 명 기준, 재화·경험치 × (1 − 봇 수 × RAID_BOT_CUT)
 // 레이드 난이도는 파티원 능력치보다 인원 보정(PARTY_GAP, 4인이면 보스가 13스테이지 약해짐)이 거의 다 정해서, 봇을 약하게만 하면(×0.35여도)
 // 혼자 + 봇 3 이 사람 4인 난이도를 그대로 얻는다. 그래서 봇 자리는 보스 보정에서 반 명으로 친다 → 혼자 + 봇 3 = 2.5인 보스 ≈ 사람 3인 파티가 잡는 수준
-const RAID_BOT_POWER = 0.8;
+// 0.21.0 성장 압축: 곡선이 완만해져 같은 배수가 더 많은 스테이지 차이가 되므로 0.8 → 0.5 (혼자 + AI 3 이 입장 + 8 쯤에서 잡게, dev/raid-curve.js)
+const RAID_BOT_POWER = 0.5;
 const BOT_TOP = 0.98;        // 맨 위 봇 목표 = 사람 1등 최고 스테이지 × 이것 (1등은 사람 몫)
 const BOT_BOTTOM = 0.3;      // 맨 아래 봇 목표 배수
 const BOT_DROP_OVER = 1.1;   // 목표의 이 배를 넘게 앞서 있으면 목표로 내린다
@@ -113,8 +114,14 @@ function toProfile(r, best, x) {
     cls: v('cls'), level: Math.max(1, Math.round(x.level)), best,
     atk: x.atk, maxHp: x.maxHp, aspd: v('aspd'), crit: v('crit'), critMult: v('critMult'), range: v('range'),
     shots: v('shots'), shotMult: v('shotMult'), guard: v('guard'), heal: v('heal'), leap: null,
-    skills: v('skills').map((s) => ({ ...s })), power: Math.round(x.power),
+    skills: v('skills').map((s) => ({ ...s })), power: Math.round(x.power), gc: 1,
   };
+}
+// 성장 압축(0.21.0) 전에 저장된 프로필은 공격력·체력·전투력이 예전 눈금(1e20 쯤)이라 새 기사와 섞어 싸울 수 없다.
+//  그 기사가 다시 접속해 세이브를 올리기 전까지, 같은 최고 스테이지의 봇 곡선(모든 계열 기하 평균)으로 대신한다 (server/index.js sanitizeProfile)
+function curveMedianAt(best) {
+  const ps = LINES.map((l) => curveAt(l, best)), g = (k) => Math.exp(ps.reduce((a, p) => a + Math.log(Math.max(1e-9, p[k])), 0) / ps.length);
+  return { atk: g('atk'), maxHp: g('maxHp'), power: Math.round(g('power')) };
 }
 // 장비·훈련 편차 g 를 곱한다 (전투력은 √(DPS×체력) 이라 둘 다 g 배면 전투력도 g 배)
 const scaled = (p, g) => ({ ...p, atk: p.atk * g, maxHp: p.maxHp * g, power: Math.round(p.power * g) });
@@ -334,4 +341,4 @@ function createBots(deps) {
   };
 }
 
-module.exports = { createBots, curveAt, curveAtLevel, spread, towerOf, CFG };
+module.exports = { createBots, curveAt, curveAtLevel, curveMedianAt, spread, towerOf, CFG, RAID_BOT_POWER };

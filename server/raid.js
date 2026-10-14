@@ -31,16 +31,19 @@ const RAID_BOSSES = {
 const SMASH_EVERY = 4;      // 평타 네 번째마다 강타
 const CC_HP = 1;            // 넉백·기절로 잃는 딜 시간을 메우려면 낮춘다 (0.8 이면 승률이 예전과 거의 같다). 1 = 메우지 않음 — 예전보다 어렵다
 const MAX_PARTY = 4;
-// 보스는 (입장 스테이지 + SOLO_ADD − 인원 보정) 스테이지의 능력치로 싸운다 (체력·공격력 모두).
+// 보스는 (입장 스테이지 + SOLO_ADD − RAID_SLOPE × (입장 − 40) − 인원 보정) 스테이지의 능력치 × RAID_HP_F·RAID_ATK_F 로 싸운다.
 //  새 보스가 열리면 사람 4인은 바로, 혼자 + AI 3 은 8스테이지쯤 뒤, 혼자는 다음 보스가 열릴 때쯤(입장 +20) 잡는다 — docs/specs/raid-difficulty.md
-//  예전엔 입장 × 2.0~1.2 배라 보스 하나 차이가 실제로 30스테이지(체력 400배)쯤 벌어져, 전 보스는 톡 치면 죽고 지금 보스는 AI 파티로도 못 잡았다
-//  인원 보정은 스테이지 '차이'로 준다 — 같은 레벨 기사가 늘어도 실제로는 +3.5(2인)·+6.4(3인)·+8.5(4인) 스테이지만큼만 세지므로
-//  그보다 조금 넉넉하게. 예전엔 비율(보스 스테이지 × 0.24~1.25)이라 리치 킹 1인→2인이 20스테이지나 쉬워져 고렙 한 명이 끌어 주면 6초 만에 끝났다
-//  클라이언트 src/data.js 의 RAID_SOLO_ADD·RAID_PARTY_GAP 와 같아야 함 (보상 계산)
-const SOLO_ADD = 9;
-const soloStage = (b) => b.stage + SOLO_ADD;
-const PARTY_GAP = [0, 5, 9, 13];
-// 소수 인원(AI 기사 자리를 반 명으로 칠 때)은 양옆 인원 사이를 잇는다 (2.5명 = 7스테이지)
+//  0.21.0 성장 압축(docs/specs/growth-compression.md): 곡선이 완만해져(옆 보스 약 7배) 같은 인원 차이가 더 많은 스테이지가 됐다 —
+//  사람이 늘면 보스가 세진다(인원 보정이 음수). 승률이 10%→90% 로 바뀌는 폭이 혼자 2~5 → 16~25스테이지 (dev/raid-curve.js)
+//  보상 스테이지는 클라이언트 src/data.js 의 RAID_SOLO_ADD·RAID_PARTY_GAP (압축 전 값 그대로 — 경제는 2단계에서)
+const SOLO_ADD = 0;
+// 0.21.0 성장 압축: 뒤 보스일수록 같은 '입장 + n' 에서 조금씩 더 어려워져서(스킬·옵션 같은 상한형 효과가 앞에서 먼저 차서) 입장 40 부터 스테이지 1 마다 RAID_SLOPE 만큼 덜 센 스테이지로
+const RAID_SLOPE = 0.02;
+// 같은 이유로 보스 세기를 스테이지를 빼서 낮추면 초반 완화 구간(스테이지 40 아래, data.js mobEarly)에 걸려서 배율로 낮춘다
+const RAID_HP_F = 1 / 4, RAID_ATK_F = 1 / 2.56;
+const soloStage = (b) => b.stage + SOLO_ADD - RAID_SLOPE * Math.max(0, b.stage - 40);
+const PARTY_GAP = [0, -10, -11.5, -12];
+// 소수 인원(AI 기사 자리를 반 명으로 칠 때)은 양옆 인원 사이를 잇는다 (2.5명 = −8.5스테이지)
 const partyGap = (n) => {
   const c = Math.max(1, Math.min(MAX_PARTY, n)), lo = Math.floor(c), hi = Math.ceil(c);
   return PARTY_GAP[lo - 1] + (PARTY_GAP[hi - 1] - PARTY_GAP[lo - 1]) * (c - lo);
@@ -71,16 +74,23 @@ function mulberry32(seed) {
 const round1 = (n) => Math.round(n * 10) / 10;
 
 // 클라이언트 data.js 의 monsterStats(필드 보스) 와 같은 기준 (MOB_* 와 mobHpScale·mobAtkScale 도 data.js 와 같아야 함 — 시즌6 에서 1.23·1.17 → 1.221·1.165,
-//  0.20.12 에서 스테이지 100 부터 1.197·1.15, 0.20.14 에서 1.19·1.145)
-const MOB_HP_GROW = 1.221, MOB_ATK_GROW = 1.165;
-const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.19, MOB_LATE_ATK_GROW = 1.145;
-const mobHpScale = (s) => Math.pow(MOB_HP_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_HP_GROW, Math.max(0, s - MOB_LATE_FROM));
-const mobAtkScale = (s) => Math.pow(MOB_ATK_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_ATK_GROW, Math.max(0, s - MOB_LATE_FROM));
+//  0.20.12 에서 스테이지 100 부터 1.197·1.15, 0.20.14 에서 1.19·1.145, 0.21.0 성장 압축에서 1.06·1.04 / 100 부터 1.0523·1.0355)
+const MOB_HP_GROW = 1.06, MOB_ATK_GROW = 1.04;
+const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.048, MOB_LATE_ATK_GROW = 1.032;
+// 초반 완화 (0.21.0): 스테이지 1 ~ MOB_EARLY_TO 사이는 몬스터를 조금 덜 세게 (1 − A × sin) — 스테이지 1 과 MOB_EARLY_TO 는 그대로.
+//  압축 전엔 훈련 맨몸 고정값이 초반에 크게 올라 첫 시간에 20스테이지쯤 갔다. 같은 체감이 나게 가운데(스테이지 20 쯤)를 가장 많이 덜어 준다
+const MOB_EARLY_TO = 40, MOB_EARLY_HP = 0.7, MOB_EARLY_ATK = 0.75;
+const mobEarly = (s, a) => (s >= MOB_EARLY_TO ? 1 : 1 - a * Math.sin(Math.PI * (Math.max(1, s) - 1) / (MOB_EARLY_TO - 1)));
+const mobHpScale = (s) => Math.pow(MOB_HP_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_HP_GROW, Math.max(0, s - MOB_LATE_FROM)) * mobEarly(s, MOB_EARLY_HP);
+const mobAtkScale = (s) => Math.pow(MOB_ATK_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_ATK_GROW, Math.max(0, s - MOB_LATE_FROM)) * mobEarly(s, MOB_EARLY_ATK);
+// 보스마다 다른 체력·공격력 배율(b.hp 20~40 · b.atk 1.5~2)도 성장 압축(0.21.0)에 맞춰 같은 비율로 줄인다 — 리치 킹(24 · 1.6) 기준
+//  압축 전엔 슬라임 킹 → 종언의 성좌신 차이가 약 2스테이지였는데 곡선이 완만해져 7스테이지가 되던 것을 다시 2스테이지쯤으로
+const BOSS_K = 0.28, BOSS_HP_REF = 24, BOSS_ATK_REF = 1.6;
 function bossStats(id, n) {
   const b = RAID_BOSSES[id], s = soloStage(b) - partyGap(n);
   return {
-    hp: 14 * mobHpScale(s) * 7.5 * b.hp * CC_HP,
-    atk: 3 * mobAtkScale(s) * 1.68 * b.atk,
+    hp: 14 * mobHpScale(s) * 7.5 * BOSS_HP_REF * Math.pow(b.hp / BOSS_HP_REF, BOSS_K) * CC_HP * RAID_HP_F,
+    atk: 3 * mobAtkScale(s) * 1.68 * BOSS_ATK_REF * Math.pow(b.atk / BOSS_ATK_REF, BOSS_K) * RAID_ATK_F,
   };
 }
 

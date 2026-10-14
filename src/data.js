@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.20.16';
+const GAME_VERSION = '0.21.0';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -48,12 +48,13 @@ const BOX_DROP = 0.05;                // 일반 몬스터 전리품 상자 드�
 // 도전의 탑 (src/tower.js)
 const TOWER_UNLOCK_STAGE = 30;        // 이 스테이지에 도달하면 열린다
 const TOWER_STAGE0 = 25;              // 층 난이도 = 스테이지 TOWER_STAGE0 + 층 × TOWER_STAGE_PER (1층 = 27, 10층 = 45, 20층 = 65, 50층 = 125스테이지)
-const TOWER_STAGE_PER = 2;            //  한 층 오를 때마다 체력 ×1.51 · 공격력 ×1.37 — 계단은 남기되, 층당 3스테이지(×1.86)는 후반에 기사 성장이 못 따라가 거의 안 올라서 완화
+const TOWER_STAGE_PER = 2;            //  한 층 오를 때마다 체력 ×1.12 · 공격력 ×1.08 (0.21.0 성장 압축 전엔 ×1.49 · ×1.36)
 // 탑 몬스터는 "덜 맞고 세게 친다": 막히는 층에서 서로 오래 버티며 늘어지지 않고 확실히 쓰러져 실패하게
-const TOWER_ELITE_HP = 2;             // 탑의 일반 몬스터는 정예: 같은 스테이지 몬스터의 체력 ×2 · 공격력 ×2.2
-const TOWER_ELITE_ATK = 2.2;
-const TOWER_BOSS_HP = 2;              // 10층 보스는 같은 스테이지 보스보다 체력 ×2 · 공격력 ×1.6 더 (바로 아래층 정예보다 확실히 세게)
-const TOWER_BOSS_ATK = 1.6;
+// 정예·보스 배율은 0.21.0 성장 압축에서 같은 비율(지수 0.28)로 줄였다 — 압축 전 ×2 · ×2.2 는 약 4스테이지어치였는데 그대로 두면 15스테이지어치가 돼 6층쯤 덜 오른다
+const TOWER_ELITE_HP = 1.21;          // 탑의 일반 몬스터는 정예: 같은 스테이지 몬스터의 체력 ×1.21 · 공격력 ×1.25
+const TOWER_ELITE_ATK = 1.25;
+const TOWER_BOSS_HP = 1.21;           // 10층 보스는 같은 스테이지 보스보다 체력 ×1.21 · 공격력 ×1.14 더 (바로 아래층 정예보다 확실히 세게)
+const TOWER_BOSS_ATK = 1.14;
 const TOWER_ENRAGE_SEC = 10;          // 한 층에서 이만큼 싸우면 광폭화: 그 뒤 TOWER_ENRAGE_DOUBLE 초마다 공격력 2배씩 (10초 ×1, 15초 ×4, 20초 ×16, 25초 ×64…)
 const TOWER_ENRAGE_DOUBLE = 2.5;
 // 탑 비전서: 올라가며 깬 층 하나에 1권 (하루 한도 없음) + 10층 단위 첫 돌파 묶음.
@@ -801,19 +802,21 @@ const procText = (p) => PROC_TYPES[p.type].text(p);
 function pct1(v) { const x = Math.round(v * 1000) / 10; return Number.isInteger(x) ? String(x) : x.toFixed(1); }
 // 공속은 무기에서(등급별 고정 %), 치명 확률은 장신구에서(등급별 고정) 얻는다. 둘 다 스테이지와 상관없고 강화로는 조금만 오른다 (SOFT_ENH)
 const WEAPON_ASPD = [0, 0.05, 0.1, 0.18, 0.28, 0.4, 0.55, 0.75];
-// 무기 공격력·갑옷 체력은 절대값이다 — 중후반 성장의 중심. 기본 위력은 착용한 기사의 레벨을 따라 커지고(gearAtkAt·gearHpAt),
-//  등급 stat·편차·강화 배율이 곱해진다. 레벨은 경험치로만 오르고(골드·건물로 못 산다) 내 모든 장비가 같은 레벨을 쓰므로,
-//  같은 부위 장비끼리는 등급이 곧 서열이다 (편차 ±10% 로는 한 등급을 못 넘는다).
-//  레벨마다 공격력 ×GEAR_ATK_GROW · 체력 ×GEAR_HP_GROW — 몬스터(체력 ×MOB_HP_GROW · 공격력 ×MOB_ATK_GROW / 스테이지)보다 조금 느려서,
-//  레벨만 올라서는 깊이 못 가고 좋은 등급(레이드)·강화가 벽을 넘게 해 준다
-const GEAR_ATK_GROW = 1.2, GEAR_HP_GROW = 1.16;
-// 기본값(0.1 · 1)은 플레이 시간 기준: 0.4 · 4 였을 때보다 같은 지점에 닿는 데 약 2배 걸린다 (다음 시즌 플탐 늘리기, 진행 봇 14일·16회)
-const gearAtkAt = (lv) => 0.1 * Math.pow(GEAR_ATK_GROW, lv);
-const gearHpAt = (lv) => 1 * Math.pow(GEAR_HP_GROW, lv);
+// 무기 공격력·갑옷 체력은 절대값이다. 기본 위력은 착용한 기사의 레벨을 따라 커지고(gearAtkAt·gearHpAt),
+//  (등급 stat × 편차)^GEAR_K · 강화 배율^GEAR_K 가 곱해진다. 레벨은 경험치로만 오르고(골드·건물로 못 산다) 내 모든 장비가 같은 레벨을 쓰므로,
+//  같은 부위 장비끼리는 등급이 곧 서열이다 (편차도 같이 압축해서 ±10% 로는 한 등급을 못 넘는다).
+// 성장 압축 (0.21.0, docs/specs/growth-compression.md): 몬스터가 스테이지마다 ×1.06·×1.04 로 완만해진 만큼
+//  레벨 성장·등급·강화 배율도 같은 비율로 줄였다 — 각 행위가 '몇 스테이지어치' 인지는 그대로, 보이는 숫자만 작다.
+//  체감(전투력 성장 몫) 훈련 : 장비 ≈ 4 : 6 (dev/growth-share.js)
+const GEAR_ATK_GROW = 1.034, GEAR_HP_GROW = 1.0246, GEAR_K = 0.2;
+const GEAR_ATK_BASE = 0.5, GEAR_HP_BASE = 1.15;
+const gearAtkAt = (lv) => GEAR_ATK_BASE * Math.pow(GEAR_ATK_GROW, lv - 1);
+const gearHpAt = (lv) => GEAR_HP_BASE * Math.pow(GEAR_HP_GROW, lv - 1);
 function gearBase(slot, g, roll, s) {
   const k = GRADES[g].stat * roll;
-  if (slot === 'weapon') return { atk: gearAtkAt(s) * k, aspdPct: WEAPON_ASPD[g] * roll };
-  if (slot === 'armor') return { hp: gearHpAt(s) * k };
+  if (slot === 'weapon') return { atk: gearAtkAt(s) * Math.pow(k, GEAR_K), aspdPct: WEAPON_ASPD[g] * roll };
+  if (slot === 'armor') return { hp: gearHpAt(s) * Math.pow(k, GEAR_K) };
+  // 장신구(치명)는 레벨 성장이 없는 상한형이라 압축하지 않는다
   return { crit: 0.02 * k, critMult: 0.2 * k };
 }
 // 강화가 공속·치명에는 단계당 4%만 곱해진다 (+25 에서 2배)
@@ -864,7 +867,8 @@ function enhanceOddsAt(L, temperLv) {
   return { rate: Math.min(0.95, e.rate + TEMPER_RATE * temperLv), down: e.down * (1 - TEMPER_DOWN * temperLv), reset: e.reset };
 }
 // 강화 단계가 장비 능력치에 곱하는 배율
-const enhanceMultAt = (L) => 1 + 0.12 * L + 0.004 * L * L;
+//  (압축 전 1 + 0.12L + 0.004L² 에 GEAR_K 지수 — +10 ×1.21 · +15 ×1.30 · +20 ×1.38 · +25 ×1.46)
+const enhanceMultAt = (L) => Math.pow(1 + 0.12 * L + 0.004 * L * L, GEAR_K);
 // L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)과 겹치지 않는다. 철광석은 늘, 마력석은 +10부터
 // 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 75개 · +15 약 320개 (부위마다)
 function enhanceCost(L) {
@@ -892,17 +896,14 @@ const CURIOS = {
 };
 
 // ───────────────────────── 훈련 (골드) ─────────────────────────
-// 공격력·체력 훈련은 맨몸 능력치다: 처음엔 단계마다 ×1.286 로 크게 오르다가 TRAIN_SAT 근처에서 포화해
-//  공격력 약 1,100 · 체력 약 6,600 에서 멈춘다 — 장비가 약한 초반을 끌어 주고, 중후반엔 장비(레벨 × 등급 × 강화)에 묻혀 미미해진다.
-//  훈련장을 올려도 무기·갑옷은 세지지 않는다 (골드·건물로 힘을 사지 못하게)
-const TRAIN_GROW = 1.286, TRAIN_SAT = 120;
-const trainSat = (t) => (Math.pow(TRAIN_GROW, t) - 1) / (1 + Math.pow(TRAIN_GROW, t) / TRAIN_SAT);
-const trainAtkAt = (t) => 6 + 9 * trainSat(t);
-const trainHpAt = (t) => 40 + 55 * trainSat(t);
-// 공격력·체력 훈련은 단계마다 배율도 준다 (0.20.15): 최종 공격력·체력 × (1 + TRAIN_PCT_MAX × t / (t + TRAIN_PCT_HALF))
-//  — 포화된 맨몸 수치는 중후반 장비에 묻혀 0% 가 되던 것을, 훈련 : 장비 ≈ 3 : 7 로 (Lv 30 +20% · Lv 90 +40%(몫 28%) · Lv 120 +45% · Lv 200 +54%)
-const TRAIN_PCT_MAX = 0.75, TRAIN_PCT_HALF = 80;
-const trainPctAt = (t) => TRAIN_PCT_MAX * t / (t + TRAIN_PCT_HALF);
+// 공격력·체력 훈련은 배율이다 (0.21.0 성장 압축): 최종 공격력 × TRAIN_ATK_GROW^Lv · 체력 × TRAIN_HP_GROW^Lv.
+//  장비(레벨·등급·강화)와 함께 몬스터 성장을 따라가는 두 축 — 체감(전투력 성장 몫) 훈련 : 장비 ≈ 4 : 6 (dev/growth-share.js).
+//  훈련장을 올려도 무기·갑옷은 세지지 않는다 (골드·건물로 장비 힘을 사지 못하게)
+const TRAIN_ATK_GROW = 1.0185, TRAIN_HP_GROW = 1.0303;
+const trainAtkMultAt = (t) => Math.pow(TRAIN_ATK_GROW, t);
+const trainHpMultAt = (t) => Math.pow(TRAIN_HP_GROW, t);
+// 맨몸 능력치 (장비 없이 훈련 0)
+const BASE_ATK = 6, BASE_HP = 40;
 const TRAINING = [
   { id: 'atk',  name: '⚔️ 공격력', max: TRAIN_MAX, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
   { id: 'hp',   name: '🛡️ 체력',   max: TRAIN_MAX, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },
@@ -946,24 +947,31 @@ const OLD_TRAINING = { spd: { base: 25, grow: 1.55 }, crit: { base: 30, grow: 1.
 // 잡몹 체력 배율: 한 방에 녹지 않고 두세 대는 맞고 쓰러지게 (보스 체력은 그대로)
 const MOB_HP_MULT = 3;
 // 스테이지마다 몬스터 체력·공격력 배율 (server/raid.js·worldboss.js 의 MOB_*_GROW 와 같아야 함)
-//  시즌6: 등급 희소성 개편(gear-options)으로 장비가 약해진 만큼 1.23 · 1.17 에서 낮춰 진행 속도를 시즌5 와 맞췄다 (진행 봇)
-const MOB_HP_GROW = 1.221, MOB_ATK_GROW = 1.165;
-// 스테이지 MOB_LATE_FROM 부터는 더 완만하게 (0.20.12): 100 이후 레벨·장비가 몬스터를 점점 못 따라가 120~200 이 지나치게 늘어졌다.
-//  목표(진행 봇): 100 도달 시간을 T 라 하면 150 은 +1.3T, 200 은 +2.3T. server/raid.js 의 mobHpScale·mobAtkScale 과 같아야 함
-const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.19, MOB_LATE_ATK_GROW = 1.145;
-const mobHpScale = (s) => Math.pow(MOB_HP_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_HP_GROW, Math.max(0, s - MOB_LATE_FROM));
-const mobAtkScale = (s) => Math.pow(MOB_ATK_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_ATK_GROW, Math.max(0, s - MOB_LATE_FROM));
+//  0.21.0 성장 압축(docs/specs/growth-compression.md): 1.221 · 1.165 → 1.06 · 1.04. 20스테이지(레이드 보스 간격) 난이도 차가 약 500~1,100배 → 약 7배.
+//  장비·훈련 배율도 같은 비율로 줄였다 (gearAtkAt·GEAR_K·trainAtkMultAt)
+const MOB_HP_GROW = 1.06, MOB_ATK_GROW = 1.04;
+// 스테이지 MOB_LATE_FROM 부터는 더 완만하게 (0.20.12, 압축 전 1.19·1.145 와 같은 비율): 100 이후 레벨·장비가 몬스터를 점점 못 따라가 120~200 이 지나치게 늘어졌다.
+//  server/raid.js 의 mobHpScale·mobAtkScale 과 같아야 함
+const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.048, MOB_LATE_ATK_GROW = 1.032;
+// 초반 완화 (0.21.0): 스테이지 1 ~ MOB_EARLY_TO 사이는 몬스터를 조금 덜 세게 (1 − A × sin) — 스테이지 1 과 MOB_EARLY_TO 는 그대로.
+//  압축 전엔 훈련 맨몸 고정값이 초반에 크게 올라 첫 시간에 20스테이지쯤 갔다. 같은 체감이 나게 가운데(스테이지 20 쯤)를 가장 많이 덜어 준다
+const MOB_EARLY_TO = 40, MOB_EARLY_HP = 0.7, MOB_EARLY_ATK = 0.75;
+const mobEarly = (s, a) => (s >= MOB_EARLY_TO ? 1 : 1 - a * Math.sin(Math.PI * (Math.max(1, s) - 1) / (MOB_EARLY_TO - 1)));
+const mobHpScale = (s) => Math.pow(MOB_HP_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_HP_GROW, Math.max(0, s - MOB_LATE_FROM)) * mobEarly(s, MOB_EARLY_HP);
+const mobAtkScale = (s) => Math.pow(MOB_ATK_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_ATK_GROW, Math.max(0, s - MOB_LATE_FROM)) * mobEarly(s, MOB_EARLY_ATK);
+// 필드 보스 벽 (0.21.0 성장 압축 전엔 ×4 · ×1.6 ≈ 5스테이지어치 — 압축 뒤 진행 봇 도달 시간이 예전과 같아지는 값으로)
+const FIELD_HP = 2, FIELD_ATK = 1.4;
 function monsterStats(stage, boss) {
   const hp = 14 * mobHpScale(stage);
   const atk = 3 * mobAtkScale(stage);
   const gold = 2 * Math.pow(1.2, stage - 1);
   const exp = 4 * Math.pow(1.16, stage - 1);
-  // 필드 마지막 스테이지의 보스(필드 보스)는 필드마다 넘어야 하는 벽이다: 체력 ×4 · 공격력 ×1.6
-  //  (일반 보스보다 약 5스테이지 더 센 셈 → 성장이 그만큼 쌓여야 다음 필드로 간다). 보상은 1.5배
+  // 필드 마지막 스테이지의 보스(필드 보스)는 필드마다 넘어야 하는 벽이다: 체력 ×FIELD_HP · 공격력 ×FIELD_ATK
+  //  (성장이 그만큼 쌓여야 다음 필드로 간다). 보상은 1.5배
   const field = boss && stage === zoneOf(stage).to;
   const f = field ? 1.5 : 1;
   return boss
-    ? { hp: hp * 5 * (field ? 4 : 1), atk: atk * 1.4 * (field ? 1.6 : 1), gold: gold * 10 * f, exp: exp * 6 * f, boss: true }
+    ? { hp: hp * 5 * (field ? FIELD_HP : 1), atk: atk * 1.4 * (field ? FIELD_ATK : 1), gold: gold * 10 * f, exp: exp * 6 * f, boss: true }
     : { hp: hp * MOB_HP_MULT, atk, gold, exp, boss: false };
 }
 // 레이드·월드 보스·결투 시즌 보상의 보스 눈금 (골드·경험치). 필드 보스 ×1.5 는 원정의 벽에만 쓴다 —
@@ -2386,9 +2394,8 @@ const RAID_TICKET_STEPS = [0.05, 1, 2, 3.5, 6];  // 오늘 n번째 구매의 기
 const RAID_TICKET_GROW = 1.6;          // 표를 넘어가면 한 장마다 × 1.6
 const RAID_MVP_MULT = 1.5;             // MVP 는 재화 1.5배
 const RAID_FAIL_MULT = 0;              // 실패하면 보상 없음 (입장권을 안 깎으므로 위로 보상을 주면 무한 파밍이 된다)
-// 보스가 실제로 싸우는 스테이지 = 입장 스테이지 + RAID_SOLO_ADD − 인원 보정 (server/raid.js 의 SOLO_ADD·PARTY_GAP 와 같아야 함).
-// 새 보스가 열리면 사람 4인은 바로, 혼자 + AI 3 은 8스테이지쯤 뒤, 혼자는 다음 보스가 열릴 때쯤 잡는다 (docs/specs/raid-difficulty.md)
-// 보상도 이 '실제로 싸운 스테이지' 기준이다
+// 레이드 보상(재화·경험치) 스테이지 = 입장 스테이지 + RAID_SOLO_ADD − 인원 보정 (src/raid.js settleRaid 에서 내 최고 스테이지로 상한).
+// 0.21.0 성장 압축 전엔 보스가 실제로 싸우는 스테이지와 같았는데, 보스 세기는 server/raid.js 가 따로 정하고 보상은 그대로 뒀다 (경제는 2단계)
 const RAID_SOLO_ADD = 9;
 const RAID_PARTY_GAP = [0, 5, 9, 13];
 const raidStageOf = (b, n) => b.stage + RAID_SOLO_ADD - RAID_PARTY_GAP[Math.max(1, Math.min(RAID_PARTY_GAP.length, n)) - 1];

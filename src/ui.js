@@ -451,7 +451,7 @@ function trainNextText(u, st) {
 function viewTraining() {
   if (!MENTOR_ON) return viewTrain1();
   if (!trainDone()) return viewTrain1() + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — 1차 훈련 네 가지를 Lv ${TRAIN_MAX} 까지</span></div>`;
-  const done = `<div class="chips"><span class="chip">✅ 1차 훈련 수료 · ⚔️ 맨몸 공격 ${fmt(trainAtkAt(TRAIN_MAX))} · 🛡️ 체력 ${fmt(trainHpAt(TRAIN_MAX))} · 방어 -${(defRedAt(TRAIN_MAX) * 100).toFixed(1)}% · 💰 수완 +${Math.round(TRAIN_MAX * FORTUNE_PER_LV * 100)}%</span></div>`;
+  const done = `<div class="chips"><span class="chip">✅ 1차 훈련 수료 · ⚔️ 공격력 ×${trainAtkMultAt(TRAIN_MAX).toFixed(2)} · 🛡️ 체력 ×${trainHpMultAt(TRAIN_MAX).toFixed(2)} · 방어 -${(defRedAt(TRAIN_MAX) * 100).toFixed(1)}% · 💰 수완 +${Math.round(TRAIN_MAX * FORTUNE_PER_LV * 100)}%</span></div>`;
   if (!mentorOpen(0) && !mentorDone(0)) return done + `<div class="chips"><span class="chip">🔒 🎓 교관 수련 — ${mentorLock(0)}</span></div>`;
   return done + viewMentor();
 }
@@ -515,7 +515,7 @@ function viewTrain1() {
   const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u) && trainWorth(u));
   return `
     <div class="shead">
-      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — ${MENTOR_ON ? '초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요' : `공격력·체력 훈련은 단계마다 배율도 올라요 (지금 ⚔️ ${'×' + (1 + trainPctAt(S.train.atk)).toFixed(2)} · ❤️ ${'×' + (1 + trainPctAt(S.train.hp)).toFixed(2)})`}</small></h3>
+      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — ${MENTOR_ON ? '초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요' : `공격력·체력 훈련은 단계마다 배율이 올라요 (지금 ⚔️ ${'×' + trainAtkMultAt(S.train.atk).toFixed(2)} · ❤️ ${'×' + trainHpMultAt(S.train.hp).toFixed(2)})`}</small></h3>
       <button class="btn${rd(TRAINING.some(canTrain))}" data-action="train-all" ${anyTrain ? '' : 'disabled'}>${ico('bolt')} 골고루 올리기</button>
     </div>
     <div class="tgrid">${cards}</div>`;
@@ -1394,18 +1394,18 @@ function heroStatsPanel(st) {
   const cls = `${c.icon} ${c.name}`;
   const from = (k, f) => parts.filter((p) => p.st[k]).map((p) => `· ${p.name} ${f(p.st[k])}`);
   const lines = (arr) => arr.filter((s) => s != null && s !== false).join('\n');
-  // 공격력·체력: 훈련 + 레벨 + 장비 절대값, 직업 배율, % 보너스
-  const absTip = (icon, label, total, trainV, trainLv, perLv, k, clsMul, pctK) => lines([
+  // 공격력·체력: 맨몸 + 장비 절대값, 직업 배율, % 보너스, 훈련 배율 (core.js stats)
+  const absTip = (icon, label, total, baseV, trainMul, trainLv, k, clsMul, pctK) => lines([
     `${icon} ${label} ${fmt(total)}`,
-    `· 훈련 Lv ${trainLv} ${fmt(trainV)} · 훈련 배율 ${x(1 + trainPctAt(trainLv))}`,
-    `· 기사 Lv ${S.level} +${fmt((S.level - 1) * perLv)}`,
+    `· 맨몸 ${fmt(baseV)}`,
     ...from(k, (v) => '+' + fmt(v)),
     clsMul && clsMul !== 1 && `· 직업 ${cls} ${x(clsMul)}`,
     ...from(pctK, (v) => '+' + pct(v)),
+    `· 훈련 Lv ${trainLv} ${x(trainMul)}`,
   ]);
   const rows = [
-    ['⚔️ 공격력', fmt(st.atk), absTip('⚔️', '공격력', st.atk, trainAtkAt(t.atk), t.atk, 1.5, 'atk', m.atk, 'atkPct')],
-    ['❤️ 체력', fmt(st.maxHp), absTip('❤️', '체력', st.maxHp, trainHpAt(t.hp), t.hp, 8, 'hp', m.hp, 'hpPct')],
+    ['⚔️ 공격력', fmt(st.atk), absTip('⚔️', '공격력', st.atk, BASE_ATK, trainAtkMultAt(t.atk), t.atk, 'atk', m.atk, 'atkPct')],
+    ['❤️ 체력', fmt(st.maxHp), absTip('❤️', '체력', st.maxHp, BASE_HP, trainHpMultAt(t.hp), t.hp, 'hp', m.hp, 'hpPct')],
     ['🛡️ 방어', `-${pct(st.defRed)}`, lines([
       `🛡️ 방어 -${pct(st.defRed)}`,
       `· 방어 훈련 Lv ${t.def}`])],
@@ -1904,7 +1904,7 @@ const raidUi = {
 let raidPollBusy = false;
 const RAID_POLL_MS = 2000;
 const RAID_FILL_HINT_MS = 45000;   // 방장 혼자(빈자리) 이만큼 기다리면 🤖 빈자리 채우기를 권한다
-const RAID_BOT_POWER = 0.8;        // AI 기사 자리의 전투력 = 방장 × 이 값 (server/bots.js 와 같아야 함, 안내 문구용)
+const RAID_BOT_POWER = 0.5;        // AI 기사 자리의 전투력 = 방장 × 이 값 (server/bots.js 와 같아야 함, 안내 문구용)
 
 const raidTabOpen = () => campOpen && campTab === 'raid';
 function raidRefresh() {

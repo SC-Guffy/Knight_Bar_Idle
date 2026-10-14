@@ -21,6 +21,7 @@ const hooks = {
 function freshState() {
   return {
     v: 2,
+    gcV: 1,   // 성장 압축(0.21.0) 뒤 세이브 — 처음 한 번 안내 (migrate)
     level: 1, exp: 0, gold: 0,
     mats: { wood: 0, ore: 0, mana: 0 },
     stage: 1, best: 1,
@@ -161,6 +162,9 @@ function migrate(o) {
     } else if (Object.keys(s.mast).length && !s.notice) s.notice = `📖 스킬 요구량 완화 — 비전서 요구량이 줄고 차수마다 달라졌어요 (1차 < 2차 < 궁극기). 먹인 권수는 그대로라 스킬 레벨이 올랐어요${back}`;
   }
   s.mastV = 12;
+  // 0.21.0 성장 압축 (docs/specs/growth-compression.md): 능력치·몬스터 숫자가 작아졌다 — 세이브는 그대로(레벨·등급·강화·훈련 단계로 다시 계산), 안내만
+  if (!o.gcV && (o.best || 1) > 1 && !s.notice) s.notice = '📉 성장 수치 정리 — 스테이지마다 몬스터가 20%씩 세지던 곡선을 완만하게 바꾸고, 장비·훈련 수치도 같은 비율로 줄였어요. 전투력 숫자는 작아졌지만 진행은 그대로예요. 레이드는 다음 보스도 해 볼 만하고 이전 보스는 한 방에 끝나지 않아요. 훈련(공격력·체력)이 이제 성장의 큰 축이에요';
+  s.gcV = 1;
   // 강화 비용이 골드 → 💠 강화석으로 바뀌었다: 처음 한 번 조금 넣어 준다
   if (!('stones' in o)) {
     s.stones = STONE_GIFT;
@@ -292,11 +296,10 @@ function stats(base = false) {
   const c = heroClass(), w = WEAPONS[c.weapon], m = c.mods;
   const t = S.train;
   const gb = gearBonus();
-  // 절대값 = 기본·훈련·레벨 + 무기 공격력 / 갑옷 체력 (기본 위력 = 기사 레벨). 여기에 직업·특수 효과 배율이 곱해진다
-  let atk = (trainAtkAt(t.atk) + (S.level - 1) * 1.5 + gb.atk)
-    * (m.atk || 1) * (1 + gb.atkPct) * (1 + trainPctAt(t.atk));
+  // 절대값 = 맨몸 + 무기 공격력 / 갑옷 체력 (기본 위력 = 기사 레벨). 여기에 직업·특수 효과·훈련 배율이 곱해진다 (0.21.0 성장 압축)
+  let atk = (BASE_ATK + gb.atk) * (m.atk || 1) * (1 + gb.atkPct) * trainAtkMultAt(t.atk);
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
-  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1) * (1 + gb.hpPct) * (1 + trainPctAt(t.hp));
+  const maxHp = (BASE_HP + gb.hp) * (m.hp || 1) * (1 + gb.hpPct) * trainHpMultAt(t.hp);
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
   const defRed = defRedAt(t.def);
@@ -437,6 +440,7 @@ function profile() {
   const st = stats(true);
   return {
     cls: S.cls, level: S.level, best: S.best, power: powerOf(st), tower: S.tower ? S.tower.best : 0,   // tower: 🗼 탑 순위
+    gc: 1,   // 성장 압축(0.21.0) 뒤의 눈금 — 서버가 예전 프로필과 가린다 (server/index.js sanitizeProfile)
     // 고유 발동 효과는 서버가 모르는 상황형이라 평균 배율로 공격력·체력에 녹인다 (gear.js procAtkEv·procHpEv)
     atk: st.atk * procAtkEv(), maxHp: st.maxHp * procHpEv(), aspd: st.aspd, crit: st.crit, critMult: st.critMult,
     range: st.range, shots: st.shots, shotMult: st.shotMult, guard: st.guard, heal: st.heal,
@@ -525,13 +529,13 @@ function doTrain(id) {
   if (id === 'hp') S.hp += stats().maxHp - oldMax;
   return true;
 }
-// 공격력·체력 훈련 한 단계가 지금 능력치를 몇 % 올리는지 (맨몸 수치는 중후반엔 묻히고 배율 trainPctAt 몫이 남는다)
+// 공격력·체력 훈련 한 단계가 지금 능력치를 몇 % 올리는지 (배율 trainAtkMultAt·trainHpMultAt)
 function trainGain(u, st = stats(), nx) {
   if (!nx) { S.train[u.id]++; nx = stats(); S.train[u.id]--; }
   const k = u.id === 'atk' ? 'atk' : 'maxHp';
   return nx[k] / st[k] - 1;
 }
-// 올릴 값어치가 있는 훈련인가 — 0.20.15 부터 공격력·체력도 단계마다 배율(trainPctAt)이 붙어 늘 값어치가 있다 (예전엔 포화 뒤 건너뜀)
+// 올릴 값어치가 있는 훈련인가 — 공격력·체력은 단계마다 배율이라 늘 값어치가 있다
 const trainWorth = () => true;
 // 골드가 되는 데까지 다음 단계가 가장 싼 훈련부터 하나씩 올린다 → 네 훈련에 드는 골드가 대충 고르게 나뉜다
 function doTrainAll() {
