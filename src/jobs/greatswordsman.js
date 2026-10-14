@@ -12,53 +12,40 @@
 //  ★★ 「철벽 돌파」 더 멀리 달리고 지나간 땅이 갈라지며, 뛰어올라 대검을 내리꽂아 충격파를 퍼뜨린다
 //  ★★★ 「패왕 돌격」 붉은 잔상을 끌며 하단바를 가로질러 달리고 — 높이 솟구쳐 거대한 대검으로 내리찍어 모두 띄운다
 // 하단바 전체를 덮지 않는다: 참격파·균열은 대상 쪽 일직선에만
+// 그림은 PixelLab 시트 (src/vfx-sword.js): e12 참격파 · e13 단두대 대검 · k09 횡참 명중 / e14 땅 파임 · k10 돌진 명중 (어깨 충돌)
+//  두 스킬의 마무리는 부품부터 다르다: 횡참 = 하늘에서 떨어지는 거대한 날 + 앞으로 갈라지는 참격, 돌진 격돌 = 어깨로 들이받는 원뿔 충격 + 땅을 갈아엎는 고랑
 
 const GS_COL = { main: '#ff8a5c', hot: '#ffd0a0', dark: '#7a2a1a', steel: '#d8dde8' };
 
 // 참격파: 대검이 지나간 자리에서 붉은 초승달이 앞으로 날아간다 (기존 waveFx 보다 넓고 납작하게)
 function gsWaveFx(a, x0, dist, life = 0.45, size = 1, delay = 0) {
-  size *= 0.8 + 0.2 * fxVis;
-  const d = a.dir, y = groundY() - HAND_Y + 2;
+  const d = a.dir, y = groundY() - HAND_Y + 2, sc = swScale(size >= 1.1 ? 4 / 3 : 1, a.mast || 0);
   skFx(null, delay, life, (u) => {
-    const x = x0 + d * dist * easeOut(u), fade = u > 0.6 ? (1 - u) / 0.4 : 1, r = 26 * size;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = fade;
-    ctx.translate(x, y); ctx.scale(d, 1);
-    for (const [col, lw] of [[GS_COL.main, 7], [GS_COL.hot, 3], ['#ffffff', 1.2]]) {
-      ctx.strokeStyle = col; ctx.lineWidth = lw * size; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.55, r, 0, -1.3, 1.3); ctx.stroke();
-    }
-    ctx.restore();
+    const x = x0 + d * dist * easeOut(u), fade = u > 0.6 ? (1 - u) / 0.4 : 1;
+    vfxDraw(ctx, 'e12', a.color, Math.min(4, Math.floor(u * 5)), x, y, { scale: sc, flip: d < 0, alpha: fade });
   }, null, (u) => {
-    if (Math.random() > 0.6) return;
+    if (Math.random() > 0.3) return;
     const x = x0 + d * dist * easeOut(u);
     parts.push({ x: x + rand(-4, 4), y: y + rand(-20, 20), vx: -d * rand(20, 60), vy: rand(-20, 20), g: 0, size: 2, color: Math.random() < 0.5 ? GS_COL.main : '#ffffff', life: 0.25, t: 0, add: true });
   });
 }
 
 // 거대 대검: 손에 든 대검 위에 몸만 한 강철 날을 덧그린다 (gripOf 가 실제 무기 각도를 따라간다). grow 0→1 로 자라고 glow 는 ★★★ 금빛
-function gsGiantBlade(a, grow, alpha = 1, glow = 0) {
-  const g = gripOf(a), L = 78 * grow, Wd = 14 * (0.5 + 0.5 * grow);
+//  시트는 칼끝이 아래(자루가 위)인 세로 그림 — 자루 끝을 손에 맞추고 칼 각도(g.ang)로 돌린다. grow 0→1 로 자란다
+function gsGiantBlade(a, grow, alpha = 1, glow = 0, id = 'e13', color = GS_COL.steel) {
+  const g = gripOf(a), s = VFX_SHEETS[id];
+  if (!s || !s.lv || grow <= 0) return;
+  const sc = 1, L = s.h * sc * VFX_DOT * grow, hilt = 10 * grow;
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(g.x, g.y); ctx.rotate(g.ang);
-  if (glow) { ctx.shadowColor = GS_COL.main; ctx.shadowBlur = 14 * glow; }
-  ctx.fillStyle = GS_COL.dark; ctx.fillRect(-10, -3, 14, 6);                                       // 손잡이
-  ctx.fillStyle = '#c9a227'; ctx.fillRect(2, -Wd * 0.9, 4, Wd * 1.8);                              // 가드
-  ctx.fillStyle = GS_COL.steel;
-  ctx.beginPath(); ctx.moveTo(6, -Wd / 2); ctx.lineTo(L - 12, -Wd / 2); ctx.lineTo(L, 0); ctx.lineTo(L - 12, Wd / 2); ctx.lineTo(6, Wd / 2); ctx.closePath(); ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(6, 0, L - 12, 1.5);                             // 능선
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(10, -Wd / 2 + 2, L - 22, 1.5);                           // 날의 빛
-  if (glow) { ctx.fillStyle = `rgba(255,138,92,${0.35 * glow})`; ctx.fillRect(6, -Wd / 2, L - 12, Wd); }
+  ctx.translate(g.x, g.y); ctx.rotate(g.ang - Math.PI / 2);                       // 시트의 아래(+y)가 칼끝 쪽
+  vfxDraw(ctx, id, color, 0, 0, L / 2 - hilt, { scale: sc, sx: 0.6 + 0.4 * grow, sy: grow, alpha: alpha * (0.9 + 0.1 * glow) });
   ctx.restore();
 }
-// ★★★ 단두대: from 초부터 life 동안 대검이 자라고 (hold 까지), 그 뒤엔 그대로 따라가다 사라진다
-function gsGuillotineFx(a, from, life, growFor) {
+// ★★★ 단두대: from 초부터 life 동안 대검이 자라고 (hold 까지), 그 뒤엔 그대로 따라가다 사라진다. id·color: 대검 시트 (파천참은 f06)
+function gsGuillotineFx(a, from, life, growFor, id = 'e13', color = GS_COL.steel) {
   aFx(a, from, life, (u) => {
     const t = u * life, grow = easeOut(Math.min(1, t / growFor)), out = u > 0.9 ? (1 - u) / 0.1 : 1;
-    gsGiantBlade(a, grow, out, 0.6 + 0.4 * Math.sin(clock * 10));
+    gsGiantBlade(a, grow, out, 0.6 + 0.4 * Math.sin(clock * 10), id, color);
   }, null, (u) => {
     if (u * life > growFor || Math.random() > 0.5) return;
     const g = gripOf(a);
@@ -71,14 +58,22 @@ function gsSparks(x, dir, n = 2) {
 }
 // 돌진 잔상: 붉은 기사 실루엣이 자리마다 남는다
 function gsAfterimage(a) { ghostFx(a, a.px(), a.dir, GS_COL.main, 0.22, castPose(a.owner) || {}, 0.3); }
-// 땅에 박히는 충격: 앞쪽 일직선으로 균열 + 송곳
-function gsSlamLine(a, x0, far, col = GS_COL.main) {
-  cracksFx(x0, x0 + a.dir * far, col, 1.1, 0.3);
-  const n = Math.round(far / 30);
-  for (let i = 0; i < n; i++) {
-    const x = x0 + a.dir * (18 + i * 30);
-    skLater(a, i * 0.03, () => { spikeFx(x, 14 + rand(0, 12), col, 0.5); debris(x, 3, ['#5a4a42', '#c9b38a']); });
-  }
+// 횡참 ★★★: 단두대가 떨어진 자리에서 앞으로 참격 충격(k09)이 줄줄이 갈라 나간다
+function gsCleaveLine(a, x0, far) {
+  const n = Math.max(2, Math.round(far / 34));
+  for (let i = 0; i < n; i++) skLater(a, i * 0.035, () => texFx('k09', x0 + a.dir * (24 + i * 34), groundY() - 10, a.color, { scale: 1, flip: a.dir < 0, life: 0.3, fade: 0.35 }));
+}
+// 돌진 격돌: 땅 파임 (e14 고랑 + 흙덩이) + 어깨 충돌 원뿔(k10). pow 1 = 내리찍기, 2 = 패왕 돌격 (크게)
+//  흙 고랑은 어두워서 하단바 양 끝(40px)에 걸치면 바탕화면 쪽 밝기가 바뀐다 — 끝에서 떨어뜨린다 (스펙 하단바 규칙)
+function gsGouge(a, x, pow = 1) {
+  const sc = pow >= 2 ? 4 / 3 : 1, half = 32 * VFX_DOT * sc + 40, gx = Math.max(half, Math.min(W - half, x));
+  texFx('e14', gx, groundY() + 6, '#c9b38a', { anchor: 'b', scale: sc, flip: a.dir < 0, life: 0.6, fade: 0.35 });
+  texFx('k10', Math.max(64, Math.min(W - 64, gx + a.dir * 10)), groundY() - 14, a.color, { scale: 1, flip: a.dir < 0, life: 0.35, fade: 0.3 });
+}
+// 달리며 대검 끝으로 땅을 갈아엎은 자리: 시전자 뒤로 고랑이 차례로 남는다
+function gsGougeTrail(a, x0, dist) {
+  const n = Math.max(1, Math.round(dist / 48));
+  for (let i = 0; i < n; i++) skLater(a, i * 0.08, () => { const x = x0 + a.dir * i * 48; if (x > 72 && x < W - 72) texFx('e14', x, groundY() + 6, '#a8946a', { anchor: 'b', scale: 2 / 3, flip: a.dir < 0, frames: 3, life: 0.5, fade: 0.4 }); });
 }
 
 // 횡참의 기본 자세 (★): 등 뒤로 넘겼다가 허리를 돌려 수평으로 휘두른다. sw 는 휘두르는 순간(0~1 비율)
@@ -137,26 +132,24 @@ Object.assign(SKILL_FX, {
         [(drop - 0.02) / d, (a) => {
           const h = hand(a), x0 = h.x + a.dir * 44, tg = a.targets(2), far = Math.max(150, ...tg.map((t) => Math.abs(t.x - a.px()) + 50));
           impact({ stop: 0.16, shake: 0.6 });
-          ringFx(x0, GS_COL.main, 1.6, 0.5);
-          ringFx(x0, '#ffffff', 1.0, 0.4);
-          debris(x0, 20, ['#5a4a42', '#c9b38a', GS_COL.main], 1.6);
-          gsSlamLine(a, x0, far);
-          skFx(null, 0, 0.25, (u) => localFlash(x0, groundY() - 16, 90, 0.5 * (1 - u), '255,220,200'));   // 낙하 지점 둘레만
+          texFx('k09', x0, groundY() - 24, a.color, { scale: 4 / 3, rot: Math.PI / 2, life: 0.45, fade: 0.35 });   // 날이 떨어진 자리: 세로로 선 횡참 충격
+          debris(x0, 10, ['#5a4a42', '#c9b38a', GS_COL.main], 1.6);
+          gsCleaveLine(a, x0, far);
+          skFx(null, 0, 0.15, (u) => localFlash(x0, groundY() - 16, 46, 0.3 * (1 - u), '255,220,200'));   // 낙하 지점 둘레만
         }],
       ];
     },
     hit(a, i, n) {
       const m = a.mast, tg = a.targets(i), last = i === n - 1;
-      if (m === 0) { for (const t of tg) burst(t.x, t.y, 5, [GS_COL.hot, '#ffffff'], 90); impact({ shake: 0.08 }); return; }
-      if (m >= 3 && last) { for (const t of tg) { burst(t.x, t.y, 22, [GS_COL.main, '#ffffff', GS_COL.steel], 200, 3, 260); starFx(t.x, t.y, 16, GS_COL.hot, 0.3); } return; }
-      for (const t of tg) burst(t.x, t.y, 12, [GS_COL.main, '#ffffff', GS_COL.hot], 150);
+      if (m === 0) { for (const t of tg) burst(t.x, t.y, 3, [GS_COL.hot, '#ffffff'], 90); impact({ shake: 0.08 }); return; }
+      if (m >= 3 && last) { for (const t of tg) burst(t.x, t.y, 8, [GS_COL.main, '#ffffff', GS_COL.steel], 200, 3, 260); return; }
+      for (const t of tg) burst(t.x, t.y, 4, [GS_COL.main, '#ffffff', GS_COL.hot], 150);
       impact(last ? { stop: 0.08, shake: 0.28 } : { stop: 0.04, shake: 0.15 });
     },
-    marks(a, t, pow, i, n) {
-      if (!a.mast) return;
-      const big = a.mast >= 3 && i === n - 1;
-      slashMarkFx(t.x, t.y + rand(-3, 3), (a.dir > 0 ? 0 : Math.PI) + rand(-0.08, 0.08), (big ? 56 : 40) + 10 * pow, a.color, (big ? 6 : 4) + pow, 0.5, 0, big ? 0 : (i % 2 ? -6 : 6));
-      if (big) slashMarkFx(t.x, t.y, Math.PI / 2 + (a.dir > 0 ? 0.15 : -0.15), 34 + 8 * pow, '#ffffff', 2.5, 0.4, 0.04);
+    // 명중: 수평 참격 충격 + 쇳조각 (k09). ★★★ 단두대는 세로로 세워 크게
+    hitTex(a, t, share, i, n) {
+      const m = a.mast || 0, big = m >= 3 && i === n - 1;
+      texFx('k09', t.x, t.y + (big ? 0 : rand(-3, 3)), a.color, { scale: swScale(1, m, big ? 1 : 0), rot: big ? Math.PI / 2 : 0, frames: swFrames(5, m), life: big ? 0.45 : 0.35, flip: a.dir < 0, fade: 0.3 });
     },
     kb: 20,
   },
@@ -209,51 +202,50 @@ Object.assign(SKILL_FX, {
     cues: (a) => {
       const d = a.k.dur, m = a.mast, hits = a.k.hits;
       if (m === 0) return [[0.3, (a) => hopDustFx(a.px())]];
-      const start = [0.3 / d, (a) => { hopDustFx(a.px()); impact({ shake: 0.08 }); ringFx(a.px(), GS_COL.main, 0.6, 0.3); }];
-      if (m === 1) return [start, [(hits[1][0] * d - 0.06) / d, (a) => { const h = hand(a); crescentFx(h.x + a.dir * 10, h.y, 30, a.dir > 0 ? 1.4 : Math.PI - 1.4, a.dir > 0 ? -1.6 : Math.PI + 1.6, a.dir, GS_COL.main, 5, 0.3); }]];
+      const start = [0.3 / d, (a) => { hopDustFx(a.px()); impact({ shake: 0.08 }); }];
+      // ★ 올려베기: 대검 궤적(W4)을 세워 아래에서 위로
+      if (m === 1) return [start, [(hits[1][0] * d - 0.06) / d, (a) => { const h = hand(a); texFx('w4', h.x + a.dir * 16, h.y - 10, a.color, { scale: 1, rot: -Math.PI / 2, flip: a.dir < 0, life: 0.25, fade: 0.6 }); }]];
       if (m === 2) return [
         start,
-        [0.55 / d, (a) => cracksFx(a.px() - a.dir * 10, a.px() + a.dir * 70, GS_COL.main, 1.0, 0.5)],
+        [0.55 / d, (a) => gsGougeTrail(a, a.px() - a.dir * 10, 70)],
         [(hits[2][0] * d - 0.02) / d, (a) => {
           const x = hand(a).x + a.dir * 20;
           impact({ stop: 0.1, shake: 0.4 });
-          ringFx(x, GS_COL.main, 1.3, 0.5); debris(x, 14, ['#5a4a42', '#c9b38a', GS_COL.main], 1.4);
-          quakeWaveFx(a, x - a.dir * 10, 110, 0.5, 0, 10);
+          gsGouge(a, x, 1); debris(x, 8, ['#5a4a42', '#c9b38a', GS_COL.main], 1.4);
         }],
       ];
+      // ★★★ 패왕 돌격: 달려 나가 대상에 어깨로 부딪히고(돌진 끝), 솟구쳐 내리찍으면 땅이 크게 갈아엎어진다 — 거대 대검(횡참 단두대)은 쓰지 않는다
       const slam = hits[3][0] * d;
       return [
         start,
-        [0.8 / d, (a) => cracksFx(a.px() - a.dir * 20, a.px() + a.dir * 120, GS_COL.main, 1.2, 0.6)],
-        [1.5 / d, (a) => gsGuillotineFx(a, 0, slam - 1.5 + 0.3, 0.3)],
+        [0.8 / d, (a) => gsGougeTrail(a, a.px() - a.dir * 20, 120)],
+        [1.35 / d, (a) => { const x = Math.max(64, Math.min(W - 64, a.px() + a.dir * 14)); texFx('k10', x, groundY() - 16, a.color, { scale: 1, flip: a.dir < 0, life: 0.35, fade: 0.3 }); impact({ shake: 0.3 }); }],
         [1.55 / d, (a) => aFx(a, 0, slam - 1.55, (u) => dimSpan(a.px() - a.dir * 30, a.tx() + a.dir * 40, 0.25 * Math.min(1, u * 3) * (u > 0.85 ? (1 - u) / 0.15 : 1), '20,5,0'))],   // 시전자~대상 구간만
         [(slam - 0.02) / d, (a) => {
-          const x = hand(a).x + a.dir * 40;
+          const x = hand(a).x + a.dir * 30;
           impact({ stop: 0.18, shake: 0.65 });
-          ringFx(x, GS_COL.main, 1.9, 0.55); ringFx(x, '#ffffff', 1.2, 0.4);
-          debris(x, 26, ['#5a4a42', '#c9b38a', GS_COL.main, GS_COL.steel], 1.8);
-          craterFx(x, 1.0);
-          quakeWaveFx(a, x - a.dir * 20, 150, 0.55, 0, 14);
-          quakeWaveFx({ ...a, dir: -a.dir }, x + a.dir * 20, 80, 0.5, 0.05, 8);
-          skFx(null, 0, 0.3, (u) => localFlash(x, groundY() - 16, 90, 0.6 * (1 - u), '255,230,210'));   // 내려찍는 지점 둘레만
+          gsGouge(a, x, 2);
+          debris(x, 12, ['#5a4a42', '#c9b38a', GS_COL.main, GS_COL.steel], 1.8);
+          const fx0 = Math.max(90, Math.min(W - 90, x));
+          skFx(null, 0, 0.15, (u) => localFlash(fx0, groundY() - 16, 46, 0.3 * (1 - u), '255,230,210'));   // 내려찍는 지점 둘레만 (하단바 끝에는 닿지 않게)
         }],
       ];
     },
     hit(a, i, n) {
       const m = a.mast, tg = a.targets(i), last = i === n - 1;
-      if (m === 0) { for (const t of tg) burst(t.x, t.y, 6, [GS_COL.hot, '#ffffff'], 100); impact({ stop: 0.04, shake: 0.12 }); return; }
+      if (m === 0) { for (const t of tg) burst(t.x, t.y, 3, [GS_COL.hot, '#ffffff'], 100); impact({ stop: 0.04, shake: 0.12 }); return; }
       if (last) {
-        for (const t of tg) { burst(t.x, t.y, m >= 3 ? 24 : 16, [GS_COL.main, '#ffffff', GS_COL.hot], m >= 3 ? 220 : 170, 3, 280); if (m >= 2) starFx(t.x, t.y, 14, GS_COL.hot, 0.3); }
+        for (const t of tg) burst(t.x, t.y, m >= 3 ? 8 : 6, [GS_COL.main, '#ffffff', GS_COL.hot], m >= 3 ? 220 : 170, 3, 280);
         if (m === 1) impact({ stop: 0.08, shake: 0.3 });
         return;
       }
-      for (const t of tg) burst(t.x, t.y, 8, [GS_COL.main, '#ffffff'], 120);
+      for (const t of tg) burst(t.x, t.y, 3, [GS_COL.main, '#ffffff'], 120);
       impact({ stop: 0.03, shake: 0.12 });
     },
-    marks(a, t, pow, i, n) {
-      if (!a.mast) return;
-      if (i === n - 1) { slashMarkFx(t.x, t.y, (a.dir > 0 ? -1.2 : Math.PI + 1.2), 42 + 10 * pow, a.color, 4.5 + pow, 0.5, 0, a.dir * 8); return; }
-      slashMarkFx(t.x + a.dir * 4, t.y + rand(-4, 4), (a.dir > 0 ? 0 : Math.PI) + rand(-0.1, 0.1), 30 + 8 * pow, a.color, 3 + pow, 0.4);
+    // 명중: 어깨 충돌 원뿔 충격파 + 흙 (k10) — 들이받는 쪽(앞)으로 터진다. 마무리는 조금 길게
+    hitTex(a, t, share, i, n) {
+      const m = a.mast || 0, last = i === n - 1;
+      texFx('k10', t.x - a.dir * 4, t.y + 2, a.color, { scale: swScale(2 / 3, m), frames: swFrames(5, m), life: last ? 0.42 : 0.35, flip: a.dir < 0, fade: 0.3 });
     },
     kb: 26, launch: true,
   },

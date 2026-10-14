@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: star knight hit mark, one bold four pointed star with long sharp rays and a bright white center, pale blue glow, around it five tiny stars connected to it by thin dotted lines like a constellation diagram, nothing else, no character, no background shape, no circle",
+ "seed": 21
+}

@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: fierce X slash hit, two crossing sharp red slash cuts with white cores, a darker red afterimage echo of the X slightly behind, small blood red droplets, nothing else, no character, no background shape, no circle",
+ "seed": 7
+}

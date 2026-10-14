@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: moonlight slash trail, two thin hairline crescent arcs nested one inside the other sweeping on the right side, empty transparent gap between them, sharp pointed tips, bright white edge with soft pink glow, three tiny cherry blossom petals trailing behind, nothing else, no character, no background shape, no sword, no filled moon",
+ "seed": 11
+}

@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: side view of flat ground cut by one perfectly straight horizontal glowing orange slit running from the left edge to the right edge at the bottom of the image, a row of small evenly spaced fire flames licking up from the slit, nothing else, no character, no background shape, no log, no wood, no sword, no smoke cloud",
+ "seed": 21
+}

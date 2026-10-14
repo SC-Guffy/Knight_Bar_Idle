@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 48
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: holy judgment impact on the ground: a bright golden cross brand mark on the floor at the bottom, a short narrow vertical beam of light landing on it from above, small sparks, nothing else, no character, no background shape",
+ "seed": 7
+}

@@ -4,7 +4,9 @@
 //  ★ 「파천·천지절단」 하단바 위 하늘에 하늘만 한 대검 그림자가 떠올라 가로로 휘둘러지고 — 하늘과 땅이 어긋났다가 맞물린다
 //  ★★ 「파천·백검난무」 하늘에서 수십 자루의 대검이 비처럼 쏟아져 꽂히고, 마지막에 거대한 날이 떨어져 전부 쓸어 낸다
 //  ★★★ 「세계참」 하단바가 세로로 둘로 갈라져 양쪽으로 벌어지고 — 틈으로 빛이 쏟아지다 닫히며 모든 것을 띄운다
-// 대검전사의 gsGiantBlade(손에 든 거대 날)·gsSlamLine 을 다시 쓴다 (src/jobs/greatswordsman.js)
+// 대검전사의 gsGuillotineFx(손에 든 거대 날)를 다시 쓰되 그림은 파천의 그림자 대검(f06)으로 바꾼다 (src/jobs/greatswordsman.js)
+// 그림은 PixelLab 시트 (src/vfx-sword.js): f05 붉은 하늘 · f06 그림자 대검 · f07 세계참 빛 틈 · f22 땅 베임 · k31 세로 틈 (막타)
+//  땅은 전쟁군주(천붕)의 지그재그 균열(wbFissure)과 나눈다: 파천참은 칼로 그은 듯한 곧은 베임 + 불길
 
 const SB_COL = { main: '#ff5a2a', hot: '#ffd0a0', steel: '#2e3038', edge: '#9aa0ac', gold: '#ffd257' };
 const sbDur = (a) => (a.k ? a.k.dur : 2.6);
@@ -13,58 +15,37 @@ const sbEnv = (t, from, to, fin, fout) => Math.min(clamp01((t - from) / fin), cl
 const sbBase = () => groundY() - 7;
 
 // 하늘의 어둠 + 땅의 열기
-function sbSky(a, life, dim, heat, color = '20,6,0') {
+function sbSky(a, life, dim, heat) {
   backFx(a, 0, life, (u) => {
     const t = u * life, k = sbEnv(t, 0.15, life - 0.15, 0.4, 0.3);
-    dimBand(dim * k, color);
-    if (heat > 0) {
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = heat * k;
-      const g = ctx.createLinearGradient(0, 40, 0, groundY());
-      g.addColorStop(0, 'rgba(255,90,42,0)'); g.addColorStop(1, 'rgba(255,90,42,0.6)');
-      ctx.fillStyle = g; ctx.fillRect(-20, 40, W + 40, groundY() - 40);
-      ctx.restore();
-    }
+    swBackdrop('f05', SB_COL.main, Math.min(1, (dim + heat) * 1.15) * k);
   });
 }
-// 하단바 끝까지 달리는 균열 + 불길 (양쪽으로)
+// 하단바 끝까지 달리는 땅 베임 + 불길 (양쪽으로). 곧은 칼자국 시트(f22)를 칸마다 이어 붙인다
 function sbFissureFx(a, x0, life, grow = 0.35) {
-  const by = sbBase(), sides = [];
-  for (const s of [-1, 1]) { const pts = [[x0, by]]; for (let x = x0 + s * 12; s > 0 ? x < W + 20 : x > -20; x += s * rand(9, 15)) pts.push([x, by + rand(-2.5, 1.5)]); sides.push(pts); }
-  const far = Math.max(x0, W - x0) + 20;
+  const by = sbBase(), far = Math.max(x0, W - x0) + 20;
   aFx(a, 0, life, (u) => {
     const t = u * life, reach = far * easeOut(Math.min(1, t / grow)), fade = u > 0.75 ? (1 - u) / 0.25 : 1;
-    ctx.save(); ctx.globalAlpha = fade;
-    ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createLinearGradient(0, by - 36, 0, by + 4);
-    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, SB_COL.main);
-    ctx.fillStyle = g; ctx.globalAlpha = fade * (0.5 + 0.2 * Math.sin(clock * 12));
-    ctx.fillRect(Math.max(0, x0 - reach), by - 36, Math.min(W, x0 + reach) - Math.max(0, x0 - reach), 40);
-    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = fade;
-    ctx.strokeStyle = '#1a0806'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
-    for (const pts of sides) { ctx.beginPath(); pts.forEach(([x, y], i) => { if (Math.abs(x - x0) > reach) return; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); }
-    ctx.strokeStyle = SB_COL.hot; ctx.lineWidth = 1;
-    for (const pts of sides) { ctx.beginPath(); pts.forEach(([x, y], i) => { if (Math.abs(x - x0) > reach) return; i ? ctx.lineTo(x, y - 1) : ctx.moveTo(x, y - 1); }); ctx.stroke(); }
-    ctx.restore();
+    const s = VFX_SHEETS.f22, tw = (s.fw || 64) * VFX_DOT;
+    for (const d of [-1, 1]) for (let k = 0; k * tw < reach; k++) {
+      const x = x0 + d * (k + 0.5) * tw, f = (Math.floor(clock * 10) + k * 2) % 5;
+      vfxDraw(ctx, 'f22', SB_COL.main, f, x, by + 4, { anchor: 'b', flip: (k + (d > 0 ? 0 : 1)) % 2 === 1, alpha: fade * (k * tw + tw > reach ? 0.6 : 1) });
+    }
   }, null, (u) => {
     const t = u * life, reach = far * easeOut(Math.min(1, t / grow));
-    if (Math.random() > 0.8) return;
+    if (Math.random() > 0.5) return;
     const x = x0 + rand(-reach, reach);
     if (x > 0 && x < W) parts.push({ x, y: by, vx: rand(-15, 15), vy: rand(-110, -50), g: 120, size: 2, color: Math.random() < 0.5 ? SB_COL.main : SB_COL.hot, life: rand(0.3, 0.6), t: 0, add: true });
   });
 }
-// 하늘에 뜨는 거대한 대검 그림자: (cx, cy) 를 중심으로 ang 방향, 길이 len
+// 하늘에 뜨는 거대한 대검 그림자 (f06): (cx, cy) 를 가운데로 ang 방향, 길이 len (배율 2/3·1·4/3·2 중 가까운 것에 늘림으로 맞춘다)
 function sbShadowBlade(cx, cy, ang, len, alpha, glow = 0) {
-  const th = len * 0.11;
+  const s = VFX_SHEETS.f06;
+  if (!s || !s.lv) return;
+  const h = s.h * VFX_DOT, sc = len > h * 1.6 ? 2 : len > h * 1.1 ? 4 / 3 : len > h * 0.8 ? 1 : 2 / 3;
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(cx, cy); ctx.rotate(ang);
-  if (glow) { ctx.shadowColor = SB_COL.main; ctx.shadowBlur = glow; }
-  ctx.fillStyle = '#1a0c0c'; ctx.fillRect(-len * 0.55 - len * 0.16, -th * 0.25, len * 0.16, th * 0.5);    // 손잡이
-  ctx.fillStyle = '#3a1414'; ctx.fillRect(-len * 0.55 - 4, -th * 0.9, 8, th * 1.8);                   // 가드
-  ctx.fillStyle = '#0f0808';
-  ctx.beginPath(); ctx.moveTo(-len * 0.55, -th / 2); ctx.lineTo(len * 0.5, -th / 2); ctx.lineTo(len * 0.56, th * 0.1); ctx.lineTo(len * 0.52, th / 2); ctx.lineTo(-len * 0.55, th / 2); ctx.closePath(); ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = SB_COL.main; ctx.globalAlpha = alpha * (0.7 + 0.3 * Math.sin(clock * 10)); ctx.fillRect(-len * 0.55, th / 2 - 2, len * 1.05, 2);   // 날 선
+  ctx.translate(cx, cy); ctx.rotate(ang - Math.PI / 2);
+  vfxDraw(ctx, 'f06', SB_COL.main, 0, 0, 0, { scale: sc, sy: len / (h * sc), alpha: alpha * (glow ? 0.9 + 0.1 * Math.sin(clock * 10) : 1) });
   ctx.restore();
 }
 // ★★ 하늘에서 떨어져 박히는 대검 한 자루
@@ -72,11 +53,10 @@ function sbRainBlade(x, delay, len = 34, stick = 0.7) {
   const gy = sbBase(), x0 = x + rand(-5, 5), ang = Math.PI / 2 + rand(-0.25, 0.25);
   skFx(null, delay, 0.14, (u) => {
     const y = mix(-30, gy, easeIn(u));
-    ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = SB_COL.main; ctx.fillRect(x0 - 1, y - 70, 2, 60); ctx.restore();
-    ctx.save(); ctx.translate(x0, y); ctx.rotate(ang - Math.PI); ctx.translate(-x0, -y); sbShadowBlade(x0 + len * 0.1, y, 0, len, 1); ctx.restore();
+    sbShadowBlade(x0 - Math.cos(ang) * len * 0.4, y - Math.sin(ang) * len * 0.4, ang, len * 1.6, 1);
   }, () => {
-    skFx(null, 0, stick, (u) => { const al = u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4; ctx.save(); ctx.translate(x0, gy + 2); ctx.rotate(ang - Math.PI + Math.sin(u * 50) * 0.03 * (1 - u)); sbShadowBlade(len * 0.1, 0, 0, len, al); ctx.restore(); });
-    burst(x0, gy - 4, 6, [SB_COL.main, SB_COL.hot, '#c9b38a'], 90, 2, 240);
+    skFx(null, 0, stick, (u) => { const al = u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4, wob = ang + Math.sin(u * 50) * 0.03 * (1 - u); sbShadowBlade(x0 - Math.cos(wob) * len * 0.5, gy + 2 - Math.sin(wob) * len * 0.5, wob, len * 1.6, al); });
+    burst(x0, gy - 4, 4, [SB_COL.main, SB_COL.hot, '#c9b38a'], 90, 2, 240);
     debris(x0, 4, ['#5a4a42', '#c9b38a']);
   });
 }
@@ -87,13 +67,9 @@ function sbWorldSplitFx(a, x, life, openAt, closeAt) {
     const open = t < openAt ? 0 : t < closeAt ? easeOut(Math.min(1, (t - openAt) / 0.35)) : Math.max(0, 1 - (t - closeAt) / 0.12);
     const gap = 26 * open;
     if (gap <= 0.5) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createLinearGradient(x - gap, 0, x + gap, 0);
-    g.addColorStop(0, 'rgba(255,230,200,0)'); g.addColorStop(0.5, 'rgba(255,245,230,0.95)'); g.addColorStop(1, 'rgba(255,230,200,0)');
-    ctx.fillStyle = g; ctx.fillRect(x - gap, -20, gap * 2, H + 40);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 1.5, -20, 3, H + 40);
-    ctx.restore();
+    const s = VFX_SHEETS.f07, sc = groundY() > 150 ? 4 / 3 : 1, fw = (s.fw || 32) * VFX_DOT * sc;
+    const f = t < closeAt ? Math.min(3, Math.floor((t - openAt) / 0.08)) : 4;
+    vfxDraw(ctx, 'f07', SB_COL.hot, f, x, groundY() + 4, { anchor: 'b', scale: sc, sx: Math.max(0.15, (gap * 2.4) / fw) });
     // 갈라진 양쪽 가장자리: 어긋난 검은 띠
     ctx.save(); ctx.fillStyle = '#05060a';
     ctx.fillRect(x - gap - 3, -20, 3, H + 40); ctx.fillRect(x + gap, -20, 3, H + 40);
@@ -162,38 +138,38 @@ Object.assign(SKILL_FX, {
         [0, (a) => [sbStage0, sbStage1, sbStage2, sbStage3][m](a)],
         [0.3 / D, (a) => { ringFx(a.x(), '#c9b38a', 0.8, 0.45); debris(a.x(), 10, ['#c9b38a', '#5a4a42']); impact({ shake: 0.15 }); }],
         // 공중에서 대검이 거대해진다 (첫 내리그음까지, ★★★ 는 마지막 일격까지 유지)
-        [(ts - 0.45) / D, (a) => gsGuillotineFx(a, 0, (m >= 3 ? tf : ts) - (ts - 0.45) + 0.25, 0.3)],
+        [(ts - 0.45) / D, (a) => gsGuillotineFx(a, 0, (m >= 3 ? tf : ts) - (ts - 0.45) + 0.25, 0.3, 'f06', SB_COL.main)],
       ];
     },
     hit(a, i, n) {
       const m = Math.min(3, a.mast || 0), last = i === n - 1, D = sbDur(a), ht = sbHitT(a), x0 = hand(a).x + a.dir * 40, tx = a.tx(), by = sbBase();
       const rocks = ['#5a4a42', '#c9b38a', SB_COL.main, SB_COL.hot];
       if (i === 0) {
-        ringFx(x0, SB_COL.main, 1.6, 0.55); ringFx(x0, '#ffffff', 0.9, 0.3);
-        debris(x0, 22 + 6 * m, rocks, 1.7);
+        texFx('k31', x0, sbBase() + 4, SB_COL.main, { anchor: 'b', scale: m >= 2 ? 4 / 3 : 1, life: 0.45, fade: 0.35 });
+        debris(x0, 12 + 4 * m, rocks, 1.7);
         sbFissureFx(a, x0, D - ht[0] + 0.3, 0.35);
-        aFx(a, 0, 0.25, (u) => dimBand(0.45 * (1 - u), '255,200,170'));
+        aFx(a, 0, 0.15, (u) => dimBand(0.45 * (1 - u), '255,200,170'));
         impact({ stop: m >= 3 ? 0.2 : 0.15, shake: 0.7 });
         for (const t of a.targets(0)) burst(t.x, t.y, 14, rocks, 180, 3, 260);
         return;
       }
       if (!last) {
-        for (const t of a.targets(i)) { burst(t.x, t.y, 8, [SB_COL.main, '#ffffff', SB_COL.hot], 140); if (m === 0 && i === 1) sbRainBlade(t.x, 0, 30, 0.4); }
-        if (m === 1) { for (let x = 20; x < W; x += 70) debris(x + rand(-10, 10), 3, rocks, 1.2); }
+        for (const t of a.targets(i)) { burst(t.x, t.y, 4, [SB_COL.main, '#ffffff', SB_COL.hot], 140); if (m === 0 && i === 1) sbRainBlade(t.x, 0, 30, 0.4); }
+        if (m === 1) { for (let x = 20; x < W; x += 70) debris(x + rand(-10, 10), 2, rocks, 1.2); }
         impact({ stop: 0.03, shake: 0.22 });
         return;
       }
       // 마지막 일격
-      if (m === 1) { ringFx(tx, SB_COL.main, 2.4, 0.6); for (let x = 10; x < W; x += 50) spikeFx(x, 14 + rand(0, 16), SB_COL.main, 0.5); aFx(a, 0, 0.3, (u) => dimBand(0.55 * (1 - u), '255,210,180')); impact({ stop: 0.22, shake: 0.85 }); }
-      else if (m === 2) { ringFx(tx, SB_COL.main, 2.4, 0.6); debris(tx, 30, rocks, 2); for (let x = 20; x < W; x += 45) sbRainBlade(x + rand(-8, 8), rand(0, 0.08), 26, 0.45); aFx(a, 0, 0.3, (u) => dimBand(0.55 * (1 - u), '255,210,180')); impact({ stop: 0.22, shake: 0.85 }); }
-      else if (m >= 3) { ringFx(tx, '#ffffff', 3, 0.6); for (let x = 10; x < W; x += 40) ringFx(x, SB_COL.hot, 0.6, 0.5); debris(tx, 36, rocks, 2.2); aFx(a, 0, 0.35, (u) => dimBand(0.9 * (1 - u), '255,245,230')); impact({ stop: 0.3, shake: 0.95 }); }
-      else { ringFx(tx, SB_COL.main, 1.8, 0.55); debris(tx, 18, rocks, 1.6); impact({ stop: 0.16, shake: 0.7 }); }
-      for (const t of a.targets(i)) burst(t.x, t.y, 20, rocks, 220, 3, 280);
+      const k31 = (sc) => texFx('k31', tx, sbBase() + 4, SB_COL.main, { anchor: 'b', scale: sc, life: 0.55, fade: 0.35 });
+      if (m === 1) { k31(4 / 3); for (let x = 30; x < W; x += 90) texFx('k31', x + rand(-10, 10), sbBase() + 4, SB_COL.main, { anchor: 'b', scale: 2 / 3, delay: Math.abs(x - tx) / 900, life: 0.4, fade: 0.4 }); aFx(a, 0, 0.15, (u) => dimBand(0.55 * (1 - u), '255,210,180')); impact({ stop: 0.22, shake: 0.85 }); }
+      else if (m === 2) { k31(4 / 3); debris(tx, 14, rocks, 2); for (let x = 20; x < W; x += 45) sbRainBlade(x + rand(-8, 8), rand(0, 0.08), 26, 0.45); aFx(a, 0, 0.15, (u) => dimBand(0.55 * (1 - u), '255,210,180')); impact({ stop: 0.22, shake: 0.85 }); }
+      else if (m >= 3) { k31(2); debris(tx, 16, rocks, 2.2); aFx(a, 0, 0.15, (u) => dimBand(0.6 * (1 - u), '255,245,230')); impact({ stop: 0.3, shake: 0.95 }); }
+      else { k31(1); debris(tx, 10, rocks, 1.6); impact({ stop: 0.16, shake: 0.7 }); }
+      for (const t of a.targets(i)) burst(t.x, t.y, 8, rocks, 220, 3, 280);
     },
-    marks(a, t, pow, i, n) {
+    hitTex(a, t, share, i, n) {
       const big = i === 0 || i === n - 1;
-      slashMarkFx(t.x, t.y, Math.PI / 2 + (a.dir > 0 ? 0.12 : -0.12), (big ? 60 : 36) + 10 * pow, a.color, (big ? 6 : 3.5) + pow, 0.5, 0, 0);
-      if (big) slashMarkFx(t.x, t.y, (a.dir > 0 ? 0 : Math.PI) + rand(-0.1, 0.1), 44 + 8 * pow, '#ffffff', 2.5, 0.4, 0.04);
+      texFx('k31', t.x, t.y + 30, a.color, { anchor: 'b', scale: big ? 1 : 2 / 3, life: 0.35, fade: 0.35, frames: big ? 5 : 3 });
     },
     kb: 22,
   },

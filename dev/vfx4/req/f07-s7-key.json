@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 100
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a narrow vertical crack of blinding white light splitting the world from top to bottom, glowing orange edges, small sparks, nothing else, no character, no background shape",
+ "seed": 7
+}

@@ -76,7 +76,7 @@
   <div class="sub">스펙: <code>docs/specs/skill-vfx.md</code> (이 페이지는 스펙 표를 그대로 읽어 그립니다) · 캡처: <code>dev/vfx-survey/</code> · 스킬 ★★★ 기준, Lv1 은 비교용 · 재생 버튼은 <code>dev/skills.html</code> 을 그 스킬로 엽니다</div>
   <div id="err"></div>
   <nav>
-    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#vfx2">⑤-2 창기사 계열</a><a href="#vfx0">⑤-0 본작업</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
+    <a href="#sum">요약</a><a href="#rule">원칙</a><a href="#vfx4">⑤-4 검사 계열</a><a href="#vfx2">⑤-2 창기사 계열</a><a href="#vfx0">⑤-0 본작업</a><a href="#trial">⑤-0 시험 전후</a><a href="#spot">먼저 볼 것</a><a href="#flash">하단바 섬광 11곳</a><a href="#skills">스킬 40종</a><a href="#basics">평타 29종</a><a href="#family">계열 비교</a><a href="#tex">텍스처 목록</a><a href="#stop">정지 기준</a><a href="#order">퀄업 순서</a><a href="#accept">수용 기준</a>
   </nav>
 
   <h2 id="sum">요약</h2>
@@ -85,6 +85,16 @@
 
   <h2 id="rule">원칙 — 이펙트 그림은 전부 PixelLab 텍스처</h2>
   <div id="ruleBlock"></div>
+
+  <h2 id="vfx4">⑤-4 검사 계열 — 성기사·검성·대검전사·성좌기사·검신·파천검왕 (확인 대기)</h2>
+  <div class="sub">스킬 9종(궁극기 3종 포함)과 평타 6종의 이펙트 그림을 PixelLab 시트로 바꿨습니다 (<code>src/vfx-sword.js</code> + 원래 파일 안의 그리기, 시트 <code>src/vfx/*.png</code>). 아래 그림은 모두 줄 = 전 / 후. 속도 ×0.25 로 보면 잘 보입니다.
+    <br>▶ 스킬: 심판의 일격 <a href="../skills.html?cls=paladin&skill=judgment&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=paladin&skill=judgment&stage=1" target="_blank">★</a> <a href="../skills.html?cls=paladin&skill=judgment&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=paladin&skill=judgment&stage=3" target="_blank">★★★</a> · 성역 <a href="../skills.html?cls=paladin&skill=sanctuary&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=paladin&skill=sanctuary&stage=1" target="_blank">★</a> <a href="../skills.html?cls=paladin&skill=sanctuary&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=paladin&skill=sanctuary&stage=3" target="_blank">★★★</a> · 질풍난무 <a href="../skills.html?cls=blademaster&skill=gale&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=blademaster&skill=gale&stage=1" target="_blank">★</a> <a href="../skills.html?cls=blademaster&skill=gale&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=blademaster&skill=gale&stage=3" target="_blank">★★★</a> · 일섬 <a href="../skills.html?cls=blademaster&skill=iaido&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=blademaster&skill=iaido&stage=1" target="_blank">★</a> <a href="../skills.html?cls=blademaster&skill=iaido&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=blademaster&skill=iaido&stage=3" target="_blank">★★★</a> · 대검 횡참 <a href="../skills.html?cls=greatswordsman&skill=wideCleave&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=greatswordsman&skill=wideCleave&stage=1" target="_blank">★</a> <a href="../skills.html?cls=greatswordsman&skill=wideCleave&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=greatswordsman&skill=wideCleave&stage=3" target="_blank">★★★</a> · 돌진 격돌 <a href="../skills.html?cls=greatswordsman&skill=ramCharge&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=greatswordsman&skill=ramCharge&stage=1" target="_blank">★</a> <a href="../skills.html?cls=greatswordsman&skill=ramCharge&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=greatswordsman&skill=ramCharge&stage=3" target="_blank">★★★</a> · 성좌 강림 <a href="../skills.html?cls=archon&skill=starJudgment&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=archon&skill=starJudgment&stage=1" target="_blank">★</a> <a href="../skills.html?cls=archon&skill=starJudgment&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=archon&skill=starJudgment&stage=3" target="_blank">★★★</a> · 천검 <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=1" target="_blank">★</a> <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=3" target="_blank">★★★</a> · 파천참 <a href="../skills.html?cls=tyrant&skill=skyBreak&stage=0" target="_blank">Lv1</a> <a href="../skills.html?cls=tyrant&skill=skyBreak&stage=1" target="_blank">★</a> <a href="../skills.html?cls=tyrant&skill=skyBreak&stage=2" target="_blank">★★</a> <a href="../skills.html?cls=tyrant&skill=skyBreak&stage=3" target="_blank">★★★</a>
+    <br>▶ 평타: <a href="../skills.html?mode=basic&cls=paladin" target="_blank">성기사</a> · <a href="../skills.html?mode=basic&cls=blademaster" target="_blank">검성</a> · <a href="../skills.html?mode=basic&cls=greatswordsman" target="_blank">대검전사</a> · <a href="../skills.html?mode=basic&cls=archon" target="_blank">성좌기사</a> · <a href="../skills.html?mode=basic&cls=swordsaint" target="_blank">검신</a> · <a href="../skills.html?mode=basic&cls=tyrant" target="_blank">파천검왕</a>
+    <br>▶ <a href="../../index.html?server=http://127.0.0.1:9" target="_blank">실제 게임 (오프라인)</a> — 상태는 스펙 "⑤-4 확인 방법"의 <code>vfx4Preset('tyrant', 3)</code></div>
+  <div id="vfx4Key" style="margin:8px 0"></div>
+  <div id="vfx4Sheets" class="fam" style="grid-template-columns:repeat(4,1fr);margin:10px 0"></div>
+  <div id="vfx4Nums"></div>
+  <div id="vfx4List"></div>
 
   <h2 id="vfx2">⑤-2 창기사 계열 — 텍스처 39장 + 시트 5장 (확인 대기)</h2>
   <div class="sub">창기사·용기병·할버디어·랜서·용황·전쟁군주·천마장군의 평타 궤적(W)·평타 명중(H)·스킬 본체(E)·스킬 명중(K)·궁극기(F)를 PixelLab 시트로 바꿨습니다. 코드는 <code>src/vfx-spear.js</code>(시트 등록·장병기 궤적·도트 용 마디·찌르기 줄) + 계열 연출 함수만 고쳤습니다. 원본·요청은 <code>dev/vfx2/</code>.
@@ -383,6 +393,31 @@ const applyCards = (box) => (st) => box.querySelectorAll('.card').forEach((c) =>
     ['steelCleave-s0', '강철 베기 Lv1 — E43 2/3 크기 + K01 앞 3프레임 (칸: 명중 −2·0·2·5·9 프레임)'], ['steelCleave-s1', '강철 베기 ★ — E43 + 날아가는 검풍(E43 이동) + K01 (고리는 아직 벡터)'], ['steelCleave-s2', '강철 베기 ★★ — K01 만 바뀜 (대검·바위 송곳은 ⑤-4)'], ['steelCleave-s3', '강철 베기 ★★★ — 첫 베기 E43, 천강검 막타 K01 4/3배 (하늘 검은 ⑤-4 E01)'],
     ['game-swordsman', '실제 게임(오프라인) 원정 — 강철 베기 ★ 명중 · 검사 평타 명중']]
     .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}vfx0/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');
+
+  // ⑤-4 검사 계열
+  document.getElementById('vfx4Key').innerHTML = `<table><tr><th>스펙 ⑤-4 핵심</th><th>한 것</th></tr>
+    <tr><td>대천사를 도트 천사 시트로</td><td>E06 날개 편 대천사 5프레임 (들어 올림 → 내리침). blur 필터·금색 덧칠 실루엣 제거</td></tr>
+    <tr><td>성역 = 바닥 성문양 + 빛 기둥 울타리 (랜서 방패 벽과 분리)</td><td>Lv1 「성광」 E07 성문양만 · ★ 성문양 + E07b 빛 기둥 울타리 · ★★ 더 큰 울타리 · ★★★ E08 성당. 돔(gradient 반원)·돌기둥 fillRect 제거 — 방패 벽의 원·돔 코드와 더는 겹치지 않는다</td></tr>
+    <tr><td>횡참 ↔ 돌진 격돌 피날레 분리</td><td>횡참 = E13 단두대 대검이 떨어지고 K09 참격이 앞으로 줄줄이 · 돌진 격돌 = K10 어깨 충돌 원뿔 + E14 땅 파임(달린 자리 고랑, 내리찍은 자리 큰 고랑). 링 2개·흰 섬광 공용 부품 제거, ★★★ 돌진은 거대 대검을 쓰지 않는다</td></tr>
+    <tr><td>일섬 핏빛 달을 도트로</td><td>E10 핏빛 보름달 (원+gradient 제거), 칼날선·납도 = E11, 명중 = K08</td></tr>
+    <tr><td>파천참 보강 (전쟁군주와 균열 함수 분리)</td><td>F05 붉은 하늘 · F22 곧은 칼자국 땅 베임(지그재그 균열 대신) · F06 그림자 대검(하늘의 대검·대검 비·공중 거대 날) · F07 세계참 빛 틈 · K31 세로 틈. 링·하단바 0.9 흰 섬광 제거</td></tr>
+    <tr><td>평타 3차를 2차와 다르게</td><td>성기사 W1(금빛)+H06 낙인 ↔ 성좌기사 W1a 별 궤적 + H18 별자리 · 검성 W3 두 줄 + H07 X ↔ 검신 W3a 초승달 + H19 고리·꽃잎 · 대검전사 W4 바람 띠 + H08 납작 충격 ↔ 파천검왕 W4a 불꽃 띠 + H20 불꽃 균열</td></tr>
+    <tr><td>성광 텍스처</td><td>E44 성광 빛기둥 (심판 Lv1 빛줄기·★ 빛기둥·★★★ 하늘의 빛, 성역 ★★★ 붕괴)</td></tr></table>`;
+  document.getElementById('vfx4Sheets').innerHTML = [['w1a', 'W1a 성좌검 궤적'], ['w3', 'W3 쌍검 궤적'], ['w3a', 'W3a 월광쌍검 궤적'], ['w4', 'W4 대검 궤적'], ['w4a', 'W4a 파천대검 궤적'],
+    ['h06', 'H06 성기사 명중'], ['h07', 'H07 검성 명중'], ['h08', 'H08 대검전사 명중'], ['h18', 'H18 성좌기사 명중'], ['h19', 'H19 검신 명중'], ['h20', 'H20 파천검왕 명중'],
+    ['e05', 'E05 성검'], ['e06', 'E06 대천사'], ['e44', 'E44 성광 빛기둥 (새로)'], ['k05', 'K05 심판 명중'], ['e07', 'E07 바닥 성문양'], ['e07b', 'E07b 빛 기둥 울타리'], ['e08', 'E08 성당'], ['k06', 'K06 성역 파동'],
+    ['e09', 'E09 시간 정지 검선'], ['k07', 'K07 질풍난무 명중'], ['e10', 'E10 핏빛 달'], ['e11', 'E11 칼집 일섬'], ['k08', 'K08 일섬 명중'],
+    ['e12', 'E12 참격파'], ['e13', 'E13 단두대 대검'], ['k09', 'K09 횡참 명중'], ['e14', 'E14 땅 파임'], ['k10', 'K10 돌진 명중'],
+    ['f01', 'F01 밤하늘'], ['f02', 'F02 기사 성좌'], ['f02s', 'F02s 별 반짝임 (K29 에서 잘라 냄)'], ['f03', 'F03 창세의 빛'], ['k29', 'K29 별 폭발'],
+    ['f04', 'F04 분홍 검선'], ['k30', 'K30 천 갈래 검선'], ['f05', 'F05 붉은 하늘'], ['f06', 'F06 그림자 대검'], ['f07', 'F07 세계참 빛 틈'], ['k31', 'K31 세로 틈'], ['f22', 'F22 땅 베임 (새로)']]
+    .map(([k, cap]) => `<figure><img src="../../src/vfx/${k}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;background:#0b0d14;cursor:zoom-in"><figcaption>${cap}</figcaption></figure>`).join('');
+  fetch(SHOT + 'vfx4/nums.html').then((r) => (r.ok ? r.text() : '')).then((t) => { document.getElementById('vfx4Nums').innerHTML = t; });
+  document.getElementById('vfx4List').innerHTML = [['family-sword', '계열 비교 (후) — 줄: 성기사·검성·대검전사·성좌기사·검신·파천검왕 / 칸: 스킬 1 ★★★ · 스킬 2 ★★★ · 평타 명중'], ['family-sword-gray', '같은 그림 흑백 — 실루엣만으로 구분되는지'],
+    ['basic', '평타 6종 — 줄마다 전 / 후 (명중 1프레임 전, 명중 0·1·2·4프레임)'],
+    ...[['judgment', '심판의 일격'], ['sanctuary', '성역'], ['gale', '질풍난무'], ['iaido', '일섬'], ['wideCleave', '대검 횡참'], ['ramCharge', '돌진 격돌'], ['starJudgment', '성좌 강림'], ['thousandCuts', '천검'], ['skyBreak', '파천참']]
+      .map(([f, nm]) => [f, `${nm} — 줄: 전 / 후, 칸: Lv1 · ★ · ★★ · ★★★ 가장 화려한 순간 · ★★★ 마지막 타격 뒤`]),
+    ['finale-split', '횡참 ★★★ ↔ 돌진 격돌 ★★★ 마무리 (전 / 후)']]
+    .map(([f, cap]) => `<figure style="margin:0 0 10px"><img src="${SHOT}vfx4/${f}.png" data-zoom="${cap}" style="width:100%;image-rendering:pixelated;cursor:zoom-in;border-radius:6px"><figcaption class="sub">${cap}</figcaption></figure>`).join('');
 
   // ⑤-0 시험 전후
   const TS = '../vfx-trial/';

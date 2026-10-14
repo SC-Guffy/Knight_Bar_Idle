@@ -1,0 +1,11 @@
+{
+ "image_size": {
+  "width": 240,
+  "height": 100
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "description": "pixel art game background: blood red burning sky, dark smoky clouds drifting in layers, small glowing embers floating, darker at the top, no ground, no characters, no text",
+ "seed": 7
+}

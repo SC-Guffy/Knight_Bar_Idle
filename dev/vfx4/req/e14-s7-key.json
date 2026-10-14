@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a deep gouge furrow plowed into the ground, side view, a long low trench with dirt clods and small rocks heaped up and kicked up along its edges, brown earth, nothing else, no character, no background shape",
+ "seed": 7
+}

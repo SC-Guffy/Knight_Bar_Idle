@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 96
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "pixel art game sprite on empty transparent background: a giant dark greatsword pointing straight down, perfectly vertical, black blade with a thin glowing orange red edge line, heavy crossguard and hilt at the top, nothing else, no character, no background",
+ "seed": 7
+}

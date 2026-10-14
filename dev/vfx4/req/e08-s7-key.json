@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "pixel art game sprite on empty transparent background: a glowing golden cathedral made of light, front view, three pointed spires with the tallest in the middle, a round rose window and an arched door, translucent holy light, nothing else, no character, no background",
+ "seed": 7
+}

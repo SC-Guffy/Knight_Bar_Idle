@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: heavy blunt hit impact, a wide flat horizontal shockwave burst squashed sideways like a flattened oval of force, three small chunky metal shards flying, white core and grey steel, nothing else, no character, no background shape, no circle, no star",
+ "seed": 7
+}

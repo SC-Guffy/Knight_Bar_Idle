@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 100
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: a tall narrow vertical tear of glowing orange light splitting the air from the top edge down to the ground, jagged bright white core, flames and rock debris bursting outward at the bottom, nothing else, no character, no background shape, no sword, no blade, no hilt, no weapon",
+ "seed": 21
+}

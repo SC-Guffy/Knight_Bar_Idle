@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 64
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "pixel art game sprite on empty transparent background: a holy longsword pointing straight down, perfectly vertical, golden crossguard and golden hilt at the top, long bright white blade with glowing pale gold edge, sharp tip at the bottom, nothing else, no character, no background",
+ "seed": 7
+}

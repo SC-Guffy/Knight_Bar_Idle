@@ -5,6 +5,8 @@
 //  ★★ 「십이성좌」 열두 성좌가 하늘에 차례로 켜지며 별비가 쏟아지고, 마지막에 모든 별이 적 위 한 점으로 모여 터진다
 //  ★★★ 「창세의 빛」 성운 낀 하늘에 금이 가 빛이 새고, 하늘의 별이 한꺼번에 떨어진 뒤 — 하늘이 활짝 열려 새하얀 빛이 하단바 전체를 덮는다
 // 이 파일의 도구는 모두 sj 로 시작한다 (다른 궁극기 파일과 이름이 겹치지 않게)
+// 그림은 PixelLab 시트 (src/vfx-sword.js): f01 밤하늘 · f02 기사 성좌 · f02s 별 반짝임 · f03 창세의 빛 · k29 별 폭발 낙인.
+//  하늘의 금(sjRiftFx 의 틈 모양)은 성좌기사의 고유 모티프라 코드 선으로 남기고, 틈에서 내려오는 빛살만 f03 으로 그린다
 
 const SJ_BLUE = '#9fd8ff', SJ_PALE = '#dff2ff', SJ_GOLD = '#fff0b8';
 const sjHitT = (a, i) => a.k.hits[i][0] * a.k.dur;               // i 번째 타격 시각(초)
@@ -15,21 +17,11 @@ function sjAim(a, i) {
   return list[i % list.length] || { x: a.tx(), y: a.ty() };
 }
 
-// 네 갈래 별: 가늘고 긴 마름모 팔 네 개와 하얀 심
+// 네 갈래 별: 별 반짝임 시트(f02s, 24도트 — 2/3배면 지름 24px). r = 팔 길이(px). 작은 별(r < 6)은 2/3배를 반으로 줄여 12px
 function sjSpark(x, y, r, col, al = 1) {
   if (r < 0.5 || al <= 0) return;
-  const q = Math.max(1, r * 0.2);
-  ctx.save();
-  ctx.globalAlpha = al;
-  ctx.fillStyle = col;
-  ctx.beginPath();
-  ctx.moveTo(x, y - r); ctx.lineTo(x + q, y - q); ctx.lineTo(x + r, y); ctx.lineTo(x + q, y + q);
-  ctx.lineTo(x, y + r); ctx.lineTo(x - q, y + q); ctx.lineTo(x - r, y); ctx.lineTo(x - q, y - q);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  const c = Math.max(2, Math.round(r * 0.3));
-  ctx.fillRect(Math.round(x - c / 2), Math.round(y - c / 2), c, c);
-  ctx.restore();
+  const f = Math.floor(clock * 10 + x * 0.13) % 5, half = r < 6;
+  vfxDraw(ctx, 'f02s', col, f, x, y, { scale: r < 10 ? 2 / 3 : r < 15 ? 1 : 4 / 3, sx: half ? 0.5 : 1, sy: half ? 0.5 : 1, alpha: al });
 }
 // 잠깐 반짝이고 사라지는 별 (타격 자국)
 function sjTwinkle(x, y, r, col, life = 0.3, delay = 0) {
@@ -48,30 +40,13 @@ function sjFlash(a, rgb, al, life, delay = 0) {
 function sjSkyFx(a, life, deep = false, dropAt = 99) {
   const n = Math.round(Math.max(50, Math.min(170, W / 6)));
   const stars = Array.from({ length: n }, () => [Math.random(), rand(0.08, 0.8), rand(0, 6), Math.random() < 0.18]);
-  const neb = deep ? Array.from({ length: 5 }, (_, i) => [rand(0.05, 0.95), rand(30, 70), rand(50, 90), i % 2 ? '120,90,255' : '60,200,255']) : [];
   backFx(a, 0, life, (u) => {
     const t = u * life, al = Math.min(1, t / 0.45) * (t > life - 0.4 ? Math.max(0, (life - t) / 0.4) : 1);
     if (al <= 0) return;
     const gy = groundY();
     ctx.save();
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, `rgba(3,6,26,${0.88 * al})`); g.addColorStop(0.65, `rgba(12,24,66,${0.74 * al})`); g.addColorStop(1, `rgba(28,48,110,${0.6 * al})`);
-    ctx.fillStyle = g; ctx.fillRect(-60, -240, W + 120, H + 480);
+    swBackdrop('f01', deep ? '#7f8cff' : SJ_BLUE, 0.85 * al);
     ctx.globalCompositeOperation = 'lighter';
-    // 성운: 보랏빛·청록빛 구름이 천천히 흐른다
-    for (const [fx, fy, r, rgb] of neb) {
-      const x = fx * W + Math.sin(clock * 0.4 + fy) * 10;
-      const ng = ctx.createRadialGradient(x, fy, 2, x, fy, r);
-      ng.addColorStop(0, `rgba(${rgb},${0.22 * al})`); ng.addColorStop(1, `rgba(${rgb},0)`);
-      ctx.fillStyle = ng; ctx.fillRect(x - r, fy - r, r * 2, r * 2);
-    }
-    // 은하수: 하단바를 비스듬히 가로지르는 옅은 빛 띠
-    ctx.save();
-    ctx.translate(W / 2, gy * 0.42); ctx.rotate(-0.1);
-    const mg = ctx.createLinearGradient(0, -18, 0, 18);
-    mg.addColorStop(0, 'rgba(160,200,255,0)'); mg.addColorStop(0.5, `rgba(170,210,255,${0.16 * al})`); mg.addColorStop(1, 'rgba(160,200,255,0)');
-    ctx.fillStyle = mg; ctx.fillRect(-W, -18, W * 2, 36);
-    ctx.restore();
     const left = 1 - clamp01((t - dropAt) / 0.9);
     for (const [fx, fy, ph, big] of stars) {
       const tw = 0.35 + 0.65 * Math.abs(Math.sin(clock * 2.6 + ph));
@@ -106,51 +81,15 @@ function sjFallFx(a, delay, life, x0, y0, x1, y1, size, col, onLand) {
 // 별이 땅에 닿았다: 세로 빛 틈 + 땅에 납작하게 퍼지는 빛 고리 + 네 갈래 섬광 + 별 조각
 function sjLandFx(x, y, pow = 1, col = SJ_BLUE) {
   const gy = groundY();
-  skFx(null, 0, 0.45, (u) => {
-    const k = easeOut(Math.min(1, u / 0.25)), f = 1 - u;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = f;
-    const hgt = (34 + 18 * pow) * (1 - 0.5 * u), w = Math.max(1, 3 * pow * f);
-    const g = ctx.createLinearGradient(0, gy - hgt, 0, gy);
-    g.addColorStop(0, 'rgba(159,216,255,0)'); g.addColorStop(1, 'rgba(230,245,255,0.95)');
-    ctx.fillStyle = g; ctx.fillRect(x - w / 2, gy - hgt, w, hgt);
-    ctx.strokeStyle = col; ctx.lineWidth = 2 * f + 0.5;
-    ctx.beginPath(); ctx.ellipse(x, gy - 1, 6 + 26 * pow * k, 2 + 3 * pow * k, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-    ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    sjSpark(x, y, (10 + 6 * pow) * (1 - u * 0.7), col, f);
-    ctx.restore();
-  });
-  for (let j = 0; j < Math.round(6 + 5 * pow); j++) {
+  skFx(null, 0, 0.45, (u) => sjSpark(x, y, (10 + 6 * pow) * (1 - u * 0.7), col, 1 - u));
+  for (let j = 0; j < Math.round(3 + 3 * pow); j++) {
     parts.push({ x: x + rand(-4, 4), y: gy - 3, vx: rand(-90, 90) * pow, vy: rand(-170, -50), g: 300, size: j % 3 ? 2 : 3, color: j % 2 ? col : '#ffffff', life: rand(0.35, 0.6), t: 0, add: true });
   }
 }
-// 큰 별이 터진다: 하얀 원이 부풀고 여덟 갈래 빛살이 돌며 뻗고, 땅을 따라 납작한 충격파가 멀리까지 퍼진다
+// 큰 별이 터진다: 별 폭발 낙인(k29). R = 크기(px) — 28 이하 1배, 그보다 크면 4/3
 function sjNovaFx(x, y, R, life = 0.8, col = SJ_BLUE) {
-  const gy = groundY(), rot = rand(0, 1);
-  skFx(null, 0, life, (u) => {
-    const k = easeOut(Math.min(1, u / 0.22)), f = 1 - u;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const rg = ctx.createRadialGradient(x, y, 1, x, y, R * k + 2);
-    rg.addColorStop(0, `rgba(255,255,255,${f})`); rg.addColorStop(0.35, `rgba(200,235,255,${0.7 * f})`); rg.addColorStop(1, 'rgba(159,216,255,0)');
-    ctx.fillStyle = rg; ctx.fillRect(x - R - 2, y - R - 2, R * 2 + 4, R * 2 + 4);
-    ctx.globalAlpha = f;
-    ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 8; i++) {
-      const an = rot + u * 0.6 + (i * Math.PI) / 4, len = R * (i % 2 ? 1.1 : 2.2) * k, wd = i % 2 ? 1.5 : 3;
-      ctx.save(); ctx.translate(x, y); ctx.rotate(an);
-      ctx.beginPath(); ctx.moveTo(0, -wd); ctx.lineTo(len, 0); ctx.lineTo(0, wd); ctx.closePath(); ctx.fill();
-      ctx.restore();
-    }
-    ctx.strokeStyle = col; ctx.lineWidth = 3 * f + 0.5;
-    ctx.beginPath(); ctx.ellipse(x, gy - 1, R * 3.2 * k, 4 + 6 * k, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(x, gy - 1, R * 2.2 * k, 3 + 4 * k, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-  });
-  for (let j = 0; j < 34; j++) {
+  texFx('k29', x, y, col, { scale: R > 32 ? 2 : R > 26 ? 4 / 3 : 1, life, fade: 0.35 });
+  for (let j = 0; j < 14; j++) {
     const an = rand(0, Math.PI * 2), v = rand(80, 260);
     parts.push({ x, y, vx: Math.cos(an) * v, vy: Math.sin(an) * v - 60, g: 220, size: j % 4 ? 2 : 3, color: j % 3 ? col : j % 2 ? SJ_GOLD : '#ffffff', life: rand(0.5, 0.9), t: 0, add: true });
   }
@@ -162,22 +101,9 @@ function sjBigStarFx(a, from, life) {
   aFx(a, from, life, (u) => {
     const t = u * life, gy = groundY(), x1 = a.tx(), grow = easeOut(Math.min(1, t / (life - fall)));
     const ft = clamp01((t - (life - fall)) / fall), x = mix(x1 - a.dir * 30, x1, ft), y = mix(32, gy - 12, ft * ft);
-    const R = 5 + 9 * grow;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    // 빛을 빨아들이는 둥근 후광
-    const rg = ctx.createRadialGradient(x, y, 1, x, y, R * 3);
-    rg.addColorStop(0, 'rgba(220,240,255,0.7)'); rg.addColorStop(1, 'rgba(159,216,255,0)');
-    ctx.fillStyle = rg; ctx.fillRect(x - R * 3, y - R * 3, R * 6, R * 6);
-    if (ft > 0) { ctx.globalAlpha = 0.8; ctx.fillStyle = SJ_PALE; ctx.fillRect(Math.round(x - 1), 30, 3, Math.max(0, y - 30)); ctx.globalAlpha = 1; }
-    // 여덟 갈래 별 (천천히 돈다)
-    ctx.translate(x, y); ctx.rotate(t * 1.6);
-    ctx.fillStyle = SJ_PALE;
-    ctx.beginPath();
-    for (let i = 0; i < 16; i++) { const r = i % 2 ? R * 0.38 : i % 4 ? R * 0.75 : R * 1.25, an = (i * Math.PI) / 8; i ? ctx.lineTo(Math.cos(an) * r, Math.sin(an) * r) : ctx.moveTo(Math.cos(an) * r, Math.sin(an) * r); }
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(-2, -2, 4, 4);
-    ctx.restore();
+    if (ft > 0) { ctx.save(); ctx.globalAlpha = 0.8; ctx.fillStyle = SJ_PALE; ctx.fillRect(Math.round(x - 1), 30, 3, Math.max(0, y - 30)); ctx.restore(); }
+    // 빛을 모으는 큰 별: 별 반짝임을 크게, 모일수록 한 단계씩 커지며 천천히 돈다
+    vfxDraw(ctx, 'f02s', SJ_PALE, Math.floor(clock * 10) % 5, x, y, { scale: grow < 0.5 ? 4 / 3 : 2, rot: t * 1.6 });
   }, null, (u) => {
     // 별로 빨려 드는 빛 알갱이
     if (u * life > life - 0.16 || Math.random() > 0.7) return;
@@ -216,67 +142,25 @@ function sjFigPt(a, name) {
   return { x: cx + a.dir * px * sc, y: gy - 2 + py * sc };
 }
 function sjKnightFx(a) {
-  const D = a.k.dur, tf = sjLastT(a), lit = sjFigLit(a);
+  const D = a.k.dur, tf = sjLastT(a), lit = sjFigLit(a), t0 = lit[SJ_FIG.order[0]], t1 = lit.hand;
   aFx(a, 0, D, (u) => {
     const t = u * D, out = t > tf + 0.05 ? clamp01(1 - (t - tf - 0.05) / 0.3) : 1;
-    if (out <= 0) return;
-    const P = {};
-    for (const n in SJ_FIG.pts) P[n] = sjFigPt(a, n);
+    if (out <= 0 || t < t0) return;
+    const gy = groundY(), s = VFX_SHEETS.f02, sc = gy > 110 ? 4 / 3 : 1, h = (s.h || 64) * VFX_DOT * sc;
+    const cx = a.x() - a.dir * 34, reveal = clamp01((t - t0) / (t1 - t0 + 0.1));
+    // 프레임: 들고 있는 동안 0, 내리긋는 0.13초 동안 1 → 4
+    const f = t < tf - 0.13 ? 0 : Math.min(4, 1 + Math.floor(((t - (tf - 0.13)) / 0.13) * 4));
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    // 성좌 몸 둘레의 옅은 빛
-    const c = P.waist, gl = ctx.createRadialGradient(c.x, c.y - 20, 4, c.x, c.y - 20, 80);
-    gl.addColorStop(0, `rgba(120,180,255,${0.22 * out * clamp01((t - 0.3) / 0.6)})`); gl.addColorStop(1, 'rgba(120,180,255,0)');
-    ctx.fillStyle = gl; ctx.fillRect(c.x - 80, c.y - 100, 160, 160);
-    // 별을 잇는 선: 두 끝이 켜진 뒤 0.1초 동안 그어진다
-    ctx.lineCap = 'round';
-    for (const [p, q] of SJ_FIG.lines) {
-      const k = clamp01((t - Math.max(lit[p], lit[q])) / 0.1);
-      if (k <= 0) continue;
-      const x1 = mix(P[p].x, P[q].x, k), y1 = mix(P[p].y, P[q].y, k);
-      ctx.globalAlpha = 0.25 * out; ctx.strokeStyle = SJ_BLUE; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(P[p].x, P[p].y); ctx.lineTo(x1, y1); ctx.stroke();
-      ctx.globalAlpha = 0.85 * out; ctx.strokeStyle = SJ_PALE; ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-    // 투구: 머리 별 둘레의 작은 별 고리
-    if (t > lit.head) {
-      ctx.globalAlpha = 0.7 * out; ctx.strokeStyle = SJ_BLUE; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(P.head.x, P.head.y, 7, 0, Math.PI * 2); ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-    for (const n in SJ_FIG.pts) {
-      const lt = t - lit[n];
-      if (lt < 0) continue;
-      const pop = lt < 0.12 ? 1 + 1.5 * (1 - lt / 0.12) : 1, tw = 0.8 + 0.2 * Math.sin(clock * 9 + P[n].x);
-      sjSpark(P[n].x, P[n].y, (n === 'head' || n === 'hand' ? 5 : 3.5) * pop * tw, SJ_BLUE, out);
-    }
-    // 성좌의 검: 손 별에서 뻗은 별빛 칼날. 내리긋는 동안 지나간 자리가 부채꼴 빛으로 남는다
-    const swordOn = clamp01((t - lit.hand - 0.05) / 0.25);
-    if (swordOn > 0) {
-      // 들고 있는 동안은 짧게(하단바 위로 삐져나가지 않게), 내리그을 때 하단바를 가를 만큼 길게 뻗는다
-      const h = P.hand, full = Math.max(120, Math.min(W * 0.7, Math.abs(a.tx() - h.x) * 1.25 + 40));
-      const ang = sjSwordAng(t, tf), A = (r) => (a.dir > 0 ? r : Math.PI - r);
-      const Ls = mix(26, full, easeOut(clamp01((ang + 0.9) / 1.2))) * easeOut(swordOn);
-      if (t > tf - 0.13) {
-        const a0 = A(Math.min(ang, -0.9)), a1 = A(ang), fade = t > tf ? clamp01(1 - (t - tf) / 0.3) : 1;
-        const wg = ctx.createRadialGradient(h.x, h.y, Ls * 0.2, h.x, h.y, Ls);
-        wg.addColorStop(0, 'rgba(159,216,255,0)'); wg.addColorStop(0.8, `rgba(170,220,255,${0.3 * fade})`); wg.addColorStop(1, `rgba(255,255,255,${0.7 * fade})`);
-        ctx.fillStyle = wg;
-        ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.arc(h.x, h.y, Ls, Math.min(a0, a1), Math.max(a0, a1)); ctx.closePath(); ctx.fill();
-      }
-      const ca = Math.cos(A(ang)), sa = Math.sin(A(ang)), tx = h.x + ca * Ls, ty = h.y + sa * Ls;
-      ctx.strokeStyle = SJ_BLUE; ctx.lineWidth = 5; ctx.globalAlpha = 0.3 * out;
-      ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(tx, ty); ctx.stroke();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.globalAlpha = out;
-      ctx.stroke();
-      // 날밑
-      const gx = h.x + ca * 10, gy2 = h.y + sa * 10;
-      ctx.beginPath(); ctx.moveTo(gx - sa * 9, gy2 + ca * 9); ctx.lineTo(gx + sa * 9, gy2 - ca * 9); ctx.stroke();
-      for (const f of [0.35, 0.65]) sjSpark(h.x + ca * Ls * f, h.y + sa * Ls * f, 3, SJ_BLUE, out);
-      sjSpark(tx, ty, 6, SJ_PALE, out);
-    }
+    ctx.beginPath(); ctx.rect(cx - 140, gy - 2 - h * reveal - 4, 280, h * reveal + 10); ctx.clip();     // 별이 발끝부터 켜진다
+    vfxDraw(ctx, 'f02', SJ_BLUE, f, cx, gy - 2, { anchor: 'b', scale: sc, flip: a.dir < 0, alpha: out * (0.85 + 0.15 * Math.sin(clock * 6)) });
     ctx.restore();
+    // 막 켜진 별 자리마다 반짝임이 한 번 부푼다
+    for (const n of SJ_FIG.order) {
+      const lt = t - lit[n];
+      if (lt < 0 || lt > 0.2) continue;
+      const P = sjFigPt(a, n);
+      sjSpark(P.x, P.y, 9 * (1 - lt / 0.2) + 3, SJ_PALE, out);
+    }
   }, () => {
     // 성좌가 흩어지며 별가루가 떠오른다
     for (const n in SJ_FIG.pts) {
@@ -336,11 +220,7 @@ function sjZodiacFx(a) {
       }
     }
     // 모여든 별이 한 점에서 부풀어 오른다
-    if (gk > 0) {
-      const R = 4 + 16 * gk, rg = ctx.createRadialGradient(P.x, P.y, 1, P.x, P.y, R * 2);
-      rg.addColorStop(0, 'rgba(255,255,255,0.95)'); rg.addColorStop(0.4, `rgba(180,225,255,${0.7 * gk})`); rg.addColorStop(1, 'rgba(159,216,255,0)');
-      ctx.globalAlpha = 1; ctx.fillStyle = rg; ctx.fillRect(P.x - R * 2, P.y - R * 2, R * 4, R * 4);
-    }
+    if (gk > 0) sjSpark(P.x, P.y, 4 + 16 * gk, SJ_PALE, 1);
     ctx.restore();
   });
 }
@@ -356,7 +236,7 @@ function sjRainFx(a, span, rate) {
       const x = d.x + d.vx * d.t, y = d.y + d.vy * d.t;
       ctx.globalAlpha = 0.8; ctx.strokeStyle = d.c; ctx.lineWidth = d.w;
       ctx.beginPath(); ctx.moveTo(x - d.vx * 0.05, y - d.vy * 0.05); ctx.lineTo(x, y); ctx.stroke();
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x - 1), Math.round(y - 1), 2, 2);
+      sjSpark(x, y, 3, d.c, 1);
     }
     ctx.restore();
   }, null, (u, dt) => {
@@ -382,7 +262,7 @@ function sjRainFx(a, span, rate) {
 function sjRiftFx(a, from, openAt, genAt) {
   const D = a.k.dur, life = D - from, cx0 = a.tx(), pts = [];
   for (let x = -36; x <= W + 36; x += 12) pts.push([x, 30 + rand(-5, 5)]);
-  const rays = Array.from({ length: Math.max(6, Math.round(W / 70)) }, () => [rand(0, W), rand(0, 6), rand(8, 18)]);
+  const rays = Array.from({ length: Math.max(6, Math.round(W / 70)) }, () => [rand(0, W), rand(0, 6)]);
   a.sjRiftY = (x) => {
     const f = (x + 36) / 12, i = Math.max(0, Math.min(pts.length - 2, Math.floor(f)));
     return mix(pts[i][1], pts[i + 1][1], clamp01(f - i));
@@ -397,13 +277,10 @@ function sjRiftFx(a, from, openAt, genAt) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     // 틈에서 비스듬히 내려오는 빛살
-    for (const [rx, ph, w] of rays) {
+    for (const [rx, ph] of rays) {
       if (Math.abs(rx - cx0) > reach) continue;
-      const y0 = a.sjRiftY(rx), sw = Math.sin(clock * 1.3 + ph) * 8, al = (0.08 + 0.12 * glow) * out;
-      const g = ctx.createLinearGradient(0, y0, 0, gy);
-      g.addColorStop(0, `rgba(255,250,235,${al})`); g.addColorStop(1, 'rgba(255,250,235,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.moveTo(rx - w * 0.2, y0); ctx.lineTo(rx + w * 0.2, y0); ctx.lineTo(rx + w * 1.6 + sw - a.dir * 14, gy); ctx.lineTo(rx - w * 1.6 + sw - a.dir * 14, gy); ctx.closePath(); ctx.fill();
+      const al = (0.2 + 0.3 * glow) * out * (0.8 + 0.2 * Math.sin(clock * 1.3 + ph));
+      vfxDraw(ctx, 'f03', SJ_GOLD, Math.floor(clock * 8 + ph) % 5, rx, gy, { anchor: 'b', scale: 2 / 3, sx: 0.6, alpha: al });
     }
     // 금: 위아래로 벌어진 틈을 하얗게 채운다 (바깥은 금빛 번짐)
     const edge = (g2) => {
@@ -441,37 +318,27 @@ function sjStarDropFx(a, span) {
 // 창세의 빛 (1): 하늘의 틈에서 새하얀 빛기둥이 대상에게 내리꽂힌다
 function sjGenesisFx(a, fall) {
   aFx(a, 0, fall, (u) => {
-    const x = a.tx(), y0 = a.sjRiftY ? a.sjRiftY(x) : 26, y1 = mix(y0, groundY(), easeIn(u)), w = 10 + 14 * u;
+    const x = a.tx(), y0 = a.sjRiftY ? a.sjRiftY(x) : 26, gy = groundY(), y1 = mix(y0, gy, easeIn(u));
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createLinearGradient(x - w, 0, x + w, 0);
-    g.addColorStop(0, 'rgba(255,240,184,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.95)'); g.addColorStop(1, 'rgba(255,240,184,0)');
-    ctx.fillStyle = g; ctx.fillRect(x - w, y0, w * 2, y1 - y0);
-    sjSpark(x, y1, 10 + 8 * u, SJ_GOLD, 1);
+    ctx.beginPath(); ctx.rect(x - 60, y0, 120, y1 - y0); ctx.clip();
+    vfxDraw(ctx, 'f03', SJ_GOLD, Math.min(1, Math.floor(u * 2)), x, gy, { anchor: 'b', scale: 4 / 3, sx: 0.5 + 0.5 * u });
     ctx.restore();
+    sjSpark(x, y1, 10 + 8 * u, SJ_GOLD, 1);
   });
 }
 // 창세의 빛 (2): 빛기둥이 옆으로 번져 하단바 전체를 새하얗게 덮었다가 걷히고, 땅 전체에서 빛 알갱이가 떠오른다
 function sjGenesisBurst(a) {
-  const cx = a.tx(), life = 0.85;
+  const cx = a.tx(), life = 0.85, gap = 46;
+  sjFlash(a, '255,250,235', 0.6, 0.15);                                    // 궁극기 막타: α 0.6, 0.15초 (마지막 그림이 보이게)
   aFx(a, 0, life, (u) => {
     const spread = easeOut(Math.min(1, u / 0.14)), half = (Math.max(cx, W - cx) + 60) * spread;
-    const f = u < 0.14 ? 1 : (1 - (u - 0.14) / 0.86) ** 2, gy = groundY();
-    ctx.save();
-    const g = ctx.createLinearGradient(cx - half, 0, cx + half, 0);
-    g.addColorStop(0, 'rgba(255,240,184,0)'); g.addColorStop(0.08, `rgba(255,244,210,${0.75 * f})`);
-    g.addColorStop(0.5, `rgba(255,255,255,${0.9 * f})`);
-    g.addColorStop(0.92, `rgba(255,244,210,${0.75 * f})`); g.addColorStop(1, 'rgba(255,240,184,0)');
-    ctx.fillStyle = g; ctx.fillRect(cx - half, -240, half * 2, H + 480);
-    // 그 안에서 세로 빛줄기가 일렁인다
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = f * 0.45; ctx.fillStyle = SJ_GOLD;
-    for (let x = cx - half + (((cx - half) % 23) + 23) % 23; x < cx + half; x += 23) {
-      ctx.fillRect(x, 0, 2 + 2 * Math.abs(Math.sin(x * 0.37 + clock * 6)), gy);
+    const f = u < 0.14 ? 1 : 1 - (u - 0.14) / 0.86, gy = groundY();
+    for (let k = 0; k * gap <= half; k++) for (const side of k ? [-1, 1] : [1]) {
+      const x = cx + side * k * gap, fr = Math.min(4, Math.floor(u * 5 + k * 0.5));
+      vfxDraw(ctx, 'f03', k ? SJ_GOLD : '#ffffff', fr, x, gy, { anchor: 'b', scale: k ? 1 : 4 / 3, alpha: f * (k ? 0.75 : 1) });
     }
-    ctx.restore();
   });
-  const n = Math.round(Math.max(30, Math.min(120, W / 14)));
+  const n = Math.round(Math.max(20, Math.min(70, W / 20)));
   for (let i = 0; i < n; i++) {
     parts.push({ x: rand(0, W), y: groundY() - rand(0, 20), vx: rand(-15, 15), vy: rand(-140, -50), g: -15, size: Math.random() < 0.3 ? 3 : 2, color: i % 3 ? SJ_GOLD : '#ffffff', life: rand(0.6, 1.1), t: 0, add: true });
   }
@@ -533,7 +400,7 @@ Object.assign(SKILL_FX, {
         sjFlash(a, '255,250,230', 0.4, 0.3);
         for (const t of tgs) {
           const y0 = a.sjRiftY ? a.sjRiftY(t.x) : 26;
-          skFx(null, 0, 0.35, (u) => { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - u; ctx.fillStyle = SJ_GOLD; ctx.fillRect(t.x - 6, y0, 12, gy - y0); ctx.fillStyle = '#ffffff'; ctx.fillRect(t.x - 2, y0, 4, gy - y0); ctx.restore(); });
+          skFx(null, 0, 0.35, (u) => vfxDraw(ctx, 'f03', SJ_GOLD, Math.min(4, Math.floor(u * 5)), t.x, gy, { anchor: 'b', scale: 1, sx: 0.4, alpha: 1 - u }));
           sjLandFx(t.x, gy - 8, 1.4, SJ_GOLD);
         }
         impact({ stop: 0.12, shake: 0.45 });
@@ -543,19 +410,19 @@ Object.assign(SKILL_FX, {
       const tx = a.tx();
       if (m === 0) {
         sjNovaFx(tx, a.ty(), 28, 0.8);
-        sjFlash(a, '200,230,255', 0.35, 0.3);
+        sjFlash(a, '200,230,255', 0.35, 0.15);
         impact({ stop: 0.16, shake: 0.5 });
       } else if (m === 1) {
         sjCutFx(tx, a.ty(), SJ_BLUE, 0.75);
         for (const t of tgs) sjNovaFx(t.x, t.y, 22, 0.7);
-        sjFlash(a, '210,235,255', 0.45, 0.32);
+        sjFlash(a, '210,235,255', 0.45, 0.15);
         impact({ stop: 0.2, shake: 0.6 });
       } else if (m === 2) {
         const py = gy - 52;
         sjNovaFx(tx, py, 38, 0.9);
-        skFx(null, 0, 0.4, (u) => { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - u; ctx.fillStyle = '#ffffff'; ctx.fillRect(tx - 3, py, 6, gy - py); ctx.restore(); });
+        skFx(null, 0, 0.4, (u) => vfxDraw(ctx, 'f03', '#ffffff', Math.min(4, Math.floor(u * 5)), tx, gy, { anchor: 'b', scale: 2 / 3, sx: 0.5, alpha: 1 - u }));
         for (const t of tgs) sjLandFx(t.x, gy - 8, 1.5);
-        sjFlash(a, '220,240,255', 0.55, 0.35);
+        sjFlash(a, '220,240,255', 0.55, 0.15);
         impact({ stop: 0.22, shake: 0.7 });
       } else {
         sjGenesisBurst(a);

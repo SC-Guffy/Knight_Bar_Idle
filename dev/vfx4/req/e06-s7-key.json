@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 64,
+  "height": 64
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "pixel art game sprite on empty transparent background: a giant archangel knight made entirely of golden light, side view facing right, armored body, two huge feathered wings spread wide behind, both hands holding a long sword raised high above the head, a halo ring above the head, glowing, nothing else, no background",
+ "seed": 7
+}

@@ -160,9 +160,10 @@ function vfxSmear(g, w, h0, a0, h1, a1, len, tipOnly) {
 function vfxSmearDraw(g, p, rgb, mode, q) {
   if (p.draw) return p.draw(g, rgb, mode, q);                 // 무기 계열 파일이 자기 그리기를 준 잔상 (src/vfx-spear.js 장병기)
   const tip = p.id === 'w2';
-  const o = { scale: tip ? 1 : 2 / 3, rot: p.rot, flipY: p.flipY };
+  const o = { scale: tip ? 1 : VFX_SHEETS[p.id].smear || 2 / 3, rot: p.rot, flipY: p.flipY };
   if (mode === 'thin') { o.sy = tip ? 1 : 0.6; o.alpha = 0.95; }
   else { o.sx = 1 + (tip ? 0.35 : 0.18) * q; o.sy = 1 - 0.25 * q; o.rot += tip ? 0 : 0.18 * q * (p.spin || 1); o.alpha = 1 - 0.75 * q; }
+  if (p.flat) { o.sy = mode === 'thin' ? 0.3 : 0.45 * (1 - 0.25 * q); o.rot = 0; }   // 대검 수평 휩쓸기: 호를 위아래로 납작하게 (src/vfx-sword.js)
   // 휘두르기는 회전한 뒤 상하 반전 (볼록한 축 기준) — vfxDraw 의 회전 → 반전 순서와 맞추려고 각도를 되돌려 넣는다
   if (o.flipY && !tip) { o.rot = p.rot + VFX_SHEETS[p.id].bulge * 2; }
   vfxDraw(g, p.id, rgb, 0, p.x, p.y, o);
