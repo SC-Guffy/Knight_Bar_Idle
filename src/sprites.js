@@ -10,6 +10,17 @@
 
 const SHEET_DOT = PX / 2;
 const SHEETS = {};
+// 기존 직업 시트 스위치 (docs/specs/legacy-class-sheets.md): 시트(SHEET_META)가 있어도 여기 true 인 직업만 시트로 그린다.
+//  false·빠짐 = 예전 조립식 (body2·limbs·motion·cuts 는 지우지 않는다). 계열 세션마다 자기 직업 줄만 더한다. 실행 중 SHEET_ON.x = false 로 바로 비교.
+//  주소에 ?sheets=0 이면 전부 끈다 (전후 비교).
+const SHEET_ON = {
+};
+if (typeof location !== 'undefined' && /[?&]sheets=0/.test(location.search || '')) for (const k in SHEET_ON) SHEET_ON[k] = false;
+// 이 직업을 시트로 그리나 (파이터 계열 look.sheet 는 항상)
+function heroSheetOn(id) {
+  const c = CLASSES[id];
+  return !!c && (!!c.look.sheet || (!!SHEET_ON[id] && typeof SHEET_META !== 'undefined' && !!SHEET_META[id]));
+}
 const sheetBase = (() => {
   const s = typeof document !== 'undefined' && document.currentScript && document.currentScript.src;
   return s ? s.replace(/[^/]*$/, '') + 'sprites/' : 'src/sprites/';
@@ -35,6 +46,17 @@ function sheetFrame(meta, pose) {
   if (pose.sheet && has(pose.sheet.anim)) {
     const k = pose.sheet.anim, sp = pose.sheet;
     return { anim: k, f: sp.frame != null ? Math.max(0, Math.min(A[k].frames - 1, sp.frame)) : sp.u != null ? onceF(k, sp.u) : loopF(k, pose.t || 0) };
+  }
+  // 기존 직업의 스킬 자세 (SKILL_FX pose 의 wa·pull 등): cast 줄에서 그 값이 가장 가까운 프레임 (cast.key = 자세 값 이름, cast.val = 프레임마다 값).
+  //  key 가 없으면 cast 를 반복. 몸의 dx·lift·skew·sx·sy 는 drawHeroSheet 가 그림 전체에 준다
+  if (has('cast') && (pose.wa != null || pose.pull != null)) {
+    const c = A.cast;
+    if (c.key && c.val && pose[c.key] != null) {
+      let best = 0;
+      for (let i = 1; i < c.val.length; i++) if (Math.abs(c.val[i] - pose[c.key]) < Math.abs(c.val[best] - pose[c.key])) best = i;
+      return { anim: 'cast', f: Math.min(c.frames - 1, best) };
+    }
+    return { anim: 'cast', f: loopF('cast', pose.t || 0) };
   }
   if (pose.down > 0 && has('death')) {                    // 쓰러짐: 다시 일어설 때까지 마지막 프레임 유지
     const u = Math.min(1, (DEFEAT_DOWN_SEC - pose.down) / 0.7);

@@ -269,7 +269,7 @@ function hitMonster(m, mult = 1, o = {}) {
 //  무기 계열 파일이 CUT_WEAPON[id].muzzle(w, Ly, cut, r) 로 바꿀 수 있다
 function heroMuzzle(w) {
   const c = CLASSES[S.cls], look = c && c.look;
-  if (look && look.sheet) return sheetMuzzle(S.cls, toScreen(knight.x) - Math.round((knight.recoil || 0) * 3), groundY(), knight.facing || 1);   // 시트의 hand 점 (src/sprites.js)
+  if (look && heroSheetOn(S.cls)) return sheetMuzzle(S.cls, toScreen(knight.x) - Math.round((knight.recoil || 0) * 3), groundY(), knight.facing || 1);   // 시트의 hand 점 (src/sprites.js)
   if (!look || !look.body.px || knight.swing < 0) return null;
   const mo = heroAtkOf(w, knight.combo);
   if (!mo || !mo.cuts) return null;
@@ -2461,7 +2461,7 @@ function drawCutSmear(g, w, h0, a0, h1, a1, len, tipOnly = false) {
 //  바깥 실루엣의 검은 외곽선은 그대로 둔다. 한 색 잔상(tint)·무기만(onlyWeapon)·피격 번쩍임(flash)은 원래대로 그린다
 const heroSoft = { cv: null, g: null };
 function drawHero(g, id, x, gy, pose) {
-  if (CLASSES[id] && CLASSES[id].look.sheet) return drawHeroSheet(g, id, x, gy, pose);     // 통짜 스프라이트 시트 직업 (src/sprites.js)
+  if (heroSheetOn(id)) return drawHeroSheet(g, id, x, gy, pose);     // 통짜 스프라이트 시트 직업 (src/sprites.js — 파이터 계열 + SHEET_ON 기존 직업)
   if (pose.tint || pose.onlyWeapon || pose.flash || typeof document === 'undefined') return drawHeroRaw(g, id, x, gy, pose);
   const T = g.getTransform(), dxa = Math.abs(pose.dx || 0), lift = Math.max(0, pose.lift || 0);
   const ux0 = x - 100 - dxa, ux1 = x + 100 + dxa, uy0 = gy - 150 - lift, uy1 = gy + 12;
