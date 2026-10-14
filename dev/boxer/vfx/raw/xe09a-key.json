@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 48,
+  "height": 64
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: tall vertical whirlwind tornado pillar standing on the ground, a spiraling column of wind wider at the top and narrow at the bottom, several white curved wind bands wrapping around it, pale mint and light grey, dark outline, small dust swirl at the base, abstract wind only, nothing else, no character, no background shape, no text",
+ "seed": 239
+}

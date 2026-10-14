@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: flying kick impact, a bold white wedge shaped shock splash pointing right like a sideways V with thick spikes, smooth curved wind streak arcs above and below sweeping backward to the left, pale mint and light grey, dark outline, bold clean shapes, no scattered dots, nothing else, no character, no background shape, no text",
+ "seed": 197
+}

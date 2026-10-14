@@ -26,13 +26,13 @@ Object.assign(CLASSES, {
     tier: 1, from: 'squire', name: '파이터', icon: '🥊', weapon: 'wrapKnuckle',
     mods: { atk: 1.05, hp: 1.38, aspd: 1.5, crit: 0.08 },
     desc: '붕대 감은 주먹. 평타가 빠르고, 기를 모아 원투 스트레이트를 터뜨린다.',
-    look: { sheet: 'fighter', fx: '#ffb35c' },
+    look: { sheet: 'fighter', fx: '#ffb35c', lean: 0.14 },
   },
   striker: {
     tier: 2, from: 'fighter', name: '스트라이커', icon: '👊', weapon: 'steelGauntlet',
-    mods: { atk: 1.62, hp: 1.75, aspd: 1.6, crit: 0.18, critMult: 0.3 },
+    mods: { atk: 2.52, hp: 1.75, aspd: 0.96, crit: 0.18, critMult: 0.3 },   // 결투 B안(2026-10-15): 공속 ×0.6·공격력 ×1.55 (dpsOf 거의 그대로, 진행 맞춤) → 0.22.0 원투 계승 약화 삭제분 ×0.927
     desc: '강철 건틀릿으로 한 놈을 두들긴다. 치명타가 터질수록 기가 두 배로 찬다.',
-    look: { sheet: 'striker', fx: '#ff5a3a' },
+    look: { sheet: 'striker', fx: '#ff5a3a', lean: 0.14 },
   },
   kickboxer: {
     tier: 2, from: 'fighter', name: '킥복서', icon: '🦶', weapon: 'ironShin',
@@ -48,19 +48,19 @@ Object.assign(CLASSES, {
   },
   champion: {
     tier: 3, from: 'striker', name: '챔피언', icon: '🦁', weapon: 'kingGauntlet',
-    mods: { atk: 1.59, hp: 2.3, aspd: 1.85, crit: 0.25, critMult: 0.5 },
+    mods: { atk: 3.13, hp: 2.3, aspd: 0.83, crit: 0.25, critMult: 0.5 },   // 결투 B안: 공속 ×0.45·공격력 ×1.96 → 계승 약화 삭제분 ×0.94
     desc: '황금 사자의 주먹. 각성하면 기가 두 배로 찬다.',
-    look: { sheet: 'champion', fx: '#ffd257' },
+    look: { sheet: 'champion', fx: '#ffd257', lean: 0.14 },
   },
   tempest: {
     tier: 3, from: 'kickboxer', name: '템페스트', icon: '🍃', weapon: 'galeShin',
-    mods: { atk: 2.1, hp: 2.05, aspd: 1.4, crit: 0.14 },
+    mods: { atk: 3.89, hp: 2.05, aspd: 0.7, crit: 0.14 },   // 결투 B안: 공속 ×0.5·공격력 ×1.85 → 계승 약화 삭제분 ×0.936
     desc: '폭풍을 두른 발. 적 사이를 누비며 하단바를 휩쓴다.',
     look: { sheet: 'tempest', fx: '#9ff0ff' },
   },
   grandmaster: {
     tier: 3, from: 'qigong', name: '그랜드마스터', icon: '☯️', weapon: 'qiGodBeads',
-    mods: { atk: 2.76, hp: 1.85, aspd: 1.05, crit: 0.16, guard: 0.1 },
+    mods: { atk: 2.77, hp: 1.85, aspd: 1.05, crit: 0.16, guard: 0.1 },
     desc: '기의 끝에 닿은 자. 등 뒤의 기의 거인이 장풍을 내리꽂는다.',
     look: { sheet: 'grandmaster', fx: '#e8e0ff' },
   },
@@ -78,10 +78,10 @@ const QI = {
   fighter:     { shape: 'bar', max: 100, hit: 4.5, main: { oneTwo: 100 }, need: {} },
   striker:     { shape: 'bar', max: 100, hit: 3, critX: 2, main: { ironRush: 100 }, need: { oneTwo: 100, crushFist: 150 } },
   kickboxer:   { ...QI_KICK, hit: 6.5, main: { flyingKick: 100, spinKick: 100 }, need: { oneTwo: 150 } },
-  qigong:      { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300 } },
+  qigong:      { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300 }, duelStart: 200 },   // 결투·레이드 시작 기 200 (그랜드마스터와 같이)
   champion:    { shape: 'bar', max: 100, hit: 2.5, critX: 2, main: { ironRush: 100 }, need: { oneTwo: 100, crushFist: 150, kingFist: 220 } },
   tempest:     { ...QI_KICK, hit: 5.8, main: { flyingKick: 100, spinKick: 100 }, need: { oneTwo: 150, heavenWind: 330 } },
-  grandmaster: { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300, qiGodDescent: 480 } },
+  grandmaster: { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300, qiGodDescent: 480 }, duelStart: 200 },   // 결투·레이드는 기 200(2단)에서 시작 — 첫 3단 장풍 쏠림 방지 (2026-10-15 사용자 B안)
 };
 const QI_AWAKEN = { dur: 6, mult: 2 };       // 3차 궁극기: 6초 동안 기 충전 두 배
 const QI_PALM3 = 3.6 / 2.2;                  // 장풍 3단 위력 배수 (2단 대비, 기 1당 위력이 크다)
@@ -95,20 +95,29 @@ function qiCostOf(k, cls = k.cls, b) {
   const base = q.main[k.id] != null ? q.main[k.id] : q.need[k.id] || 0;
   return Math.round(base * (1 - rightVal(k, 'cd', b)) * 10) / 10;
 }
-// 평균 충전 속도(기/초) — 스펙 7절: 평타 충전 × aspd × (1 + crit, 치명 두 배 직업만) × 0.9(시전 중 멈춤) + 초당 충전 + 피격 어림(초당 1회)
+// 평균 충전 속도(기/초) — 스펙 7절. 평타 충전 × aspd × (1 + crit, 치명 두 배 직업만) + 초당 충전 + 피격 어림(초당 1회).
+//  시전하는 동안은 평타·초당 충전이 멈춘다(피격 충전은 계속). 그래서 시전 시간 몫을 빼고 센다 (2026-10-14 구현 — 처음의 "× 0.9" 어림은
+//  스킬이 넷인 3차에서 실제 빈도보다 약 40% 높게 잡혀 결투 전투력이 부풀었다):
+//   기 1 을 쓸 때 시전에 드는 시간 B = Σ(시전 시간 ÷ 소모량·문턱) (주 기술은 쓰는 쪽 하나 + 투지 기술 전부, lvl 이 있으면 해금된 것만)
+//   멈추는 충전 R 이면 실제 속도 = R ÷ (1 + R × B) + 피격 충전
 //  st: { aspd, crit } (없으면 그 직업 기본치). 킥복서는 대상 1마리 기준 (결투·레이드와 같다)
-function qiRateOf(cls, st) {
+function qiRateOf(cls, st, lvl) {
   const q = QI[cls];
   if (!q) return 0;
   const m = CLASSES[cls].mods;
   st = st || { aspd: 0.9 * (m.aspd || 1), crit: Math.min(0.8, 0.05 + (m.crit || 0)) };
-  return (q.hit || 0) * st.aspd * (q.critX ? 1 + st.crit * (q.critX - 1) : 1) * 0.9 + (q.perSec || 0) + (q.hurt ? Math.min(q.hurt, q.hurtCap || q.hurt) : 0);
+  const R = (q.hit || 0) * st.aspd * (q.critX ? 1 + st.crit * (q.critX - 1) : 1) + (q.perSec || 0);
+  const on = (id) => lvl == null || lvl >= SKILLS[id].lv;
+  const mains = Object.keys(q.main).filter(on).sort((x, y) => SKILLS[y].lv - SKILLS[x].lv);
+  let B = mains.length ? SKILLS[mains[0]].dur / q.main[mains[0]] : 0;
+  for (const id in q.need) if (on(id)) B += SKILLS[id].dur / q.need[id];
+  return R / (1 + R * B) + (q.hurt ? Math.min(q.hurt, q.hurtCap || q.hurt) : 0);
 }
 // 등가 쿨타임(초): 소모량·문턱 ÷ 평균 충전 속도. 전투력·결투·레이드 프로필과 스킬 탭 "평균 약 n초" 가 쓴다
 //  lvl: 기사 레벨 — 주 기술이 둘(킥복서 돌진·회전)이면 사거리 안에선 해금 레벨이 높은 쪽만 쓰고 낮은 쪽은 돌진할 때만이라 QI_DASH_ONLY 배로 센다
 const QI_DASH_ONLY = 3;
 const qiCdOf = (k, cls = k.cls, b, st, lvl) => {
-  const owner = isQiCls(cls) ? cls : k.cls, r = qiRateOf(owner, st), Q = QI[owner];
+  const owner = isQiCls(cls) ? cls : k.cls, r = qiRateOf(owner, st, lvl), Q = QI[owner];
   if (!(r > 0)) return 99;
   const dashOnly = lvl != null && Q.main[k.id] != null && Object.keys(Q.main).some((o) => o !== k.id && SKILLS[o].lv > k.lv && lvl >= SKILLS[o].lv);
   return Math.round(qiCostOf(k, owner, b) / r * (dashOnly ? QI_DASH_ONLY : 1) * 10) / 10;
@@ -124,7 +133,7 @@ const qiProfileOf = (cls) => {
   const q = QI[cls];
   if (!q) return null;
   const o = { max: q.max, hit: q.hit || 0 };
-  for (const key of ['critX', 'multi', 'perSec', 'hurt', 'hurtCap', 'dashPx', 'keep']) if (q[key]) o[key] = q[key];
+  for (const key of ['critX', 'multi', 'perSec', 'hurt', 'hurtCap', 'dashPx', 'keep', 'duelStart']) if (q[key]) o[key] = q[key];
   if (CLASSES[cls].tier === 3) o.awaken = QI_AWAKEN;
   return o;
 };

@@ -1,0 +1,13 @@
+{
+ "image_size": {
+  "width": 32,
+  "height": 32
+ },
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "description": "isolated pixel art VFX sprite on empty transparent background: flying kick impact, a sharp triangular wedge shaped shock burst pointing right like an arrowhead splash, white core, with four small curved wind leaf fragments flying back up and down, pale mint and light grey, dark outline, nothing else, no character, no background shape, no text",
+ "seed": 191
+}

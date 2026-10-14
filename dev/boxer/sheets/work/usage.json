@@ -1,6 +1,6 @@
 {
  "start": 1769.0,
- "used": 384.0,
+ "used": 478.0,
  "calls": [
   {
    "cls": "fighter",
@@ -281,7 +281,78 @@
    "purpose": "walk: side view, body keeps facing right, champion boxer with gold",
    "used": 5.0,
    "bal": 1340.0
+  },
+  {
+   "cls": "champion",
+   "ep": "/edit-images-v2",
+   "purpose": "t1: ref-edit 4장",
+   "used": 12.0,
+   "bal": 1318.0
+  },
+  {
+   "cls": "champion",
+   "ep": "/edit-images-v2",
+   "purpose": "eA: ref-edit 13장",
+   "used": 12.0,
+   "bal": 1306.0
+  },
+  {
+   "cls": "champion",
+   "ep": "/edit-images-v2",
+   "purpose": "eB: ref-edit 15장",
+   "used": 14.0,
+   "bal": 1292.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-awaken: same character in side view facing right, awakening battle c",
+   "used": 3.0,
+   "bal": 1288.0
+  },
+  {
+   "cls": "grandmaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "k-awaken: same character in side view facing right, awakening: standin",
+   "used": 1.0,
+   "bal": 1287.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-images-v2",
+   "purpose": "eA: ref-edit 15장",
+   "used": 13.0,
+   "bal": 1274.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-images-v2",
+   "purpose": "eB: ref-edit 13장",
+   "used": 13.0,
+   "bal": 1261.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-images-v2",
+   "purpose": "eC: ref-edit 1장",
+   "used": 12.0,
+   "bal": 1249.0
+  },
+  {
+   "cls": "grandmaster",
+   "ep": "/edit-images-v2",
+   "purpose": "eA: ref-edit 15장",
+   "used": 1.0,
+   "bal": 1248.0
+  },
+  {
+   "cls": "grandmaster",
+   "ep": "/edit-images-v2",
+   "purpose": "eB: ref-edit 9장",
+   "used": 13.0,
+   "bal": 1225.0
   }
  ],
- "nom": 40.0
+ "nom": 122.0,
+ "p3": 82.0
 }

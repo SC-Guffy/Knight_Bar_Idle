@@ -67,7 +67,7 @@ function runLine(line, { days, every, seed, rev }) {
   const snap = () => {
     const p = A.profile();
     rows.push([p.best, p.level, p.cls, r3(p.atk), r3(p.maxHp), r3(p.aspd), r3(p.crit), r3(p.critMult), p.range, p.shots, r3(p.shotMult), r3(p.guard), r3(p.heal), p.power,
-      p.skills.map((k) => ({ ...k, cd: r3(k.cd), dur: r3(k.dur), mult: r3(k.mult), ...(k.cp ? { cp: r3(k.cp) } : {}), ...(k.lc ? { lc: r3(k.lc) } : {}) }))]);
+      p.skills.map((k) => ({ ...k, cd: r3(k.cd), dur: r3(k.dur), mult: r3(k.mult), ...(k.cp ? { cp: r3(k.cp) } : {}), ...(k.lc ? { lc: r3(k.lc) } : {}) })), p.qi || 0]);
   };
   while (t < days * DAY) {
     if (S.phase === 'expedition') { A.simulate(TICK); if (S.phase === 'returning') A.simulate(0); }
@@ -98,7 +98,7 @@ function main() {
     else if (argv[i] === '--out') outFile = path.resolve(argv[++i]);
   }
   const out = { v: 1, made: new Date().toISOString().slice(0, 10), days: opt.days,
-    cols: ['best', 'level', 'cls', 'atk', 'maxHp', 'aspd', 'crit', 'critMult', 'range', 'shots', 'shotMult', 'guard', 'heal', 'power', 'skills'], lines: {} };
+    cols: ['best', 'level', 'cls', 'atk', 'maxHp', 'aspd', 'crit', 'critMult', 'range', 'shots', 'shotMult', 'guard', 'heal', 'power', 'skills', 'qi'], lines: {} };
   LINES.forEach((line, i) => {
     if (opt.only && line !== opt.only) return;
     const t0 = Date.now();

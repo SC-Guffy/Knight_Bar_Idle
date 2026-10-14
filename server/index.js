@@ -71,7 +71,7 @@ function sanitizeProfile(p = {}) {
   const q = p.qi && typeof p.qi === 'object' ? p.qi : null;
   const qi = q ? {
     max: num(q.max, 1, 1000, 100), hit: num(q.hit, 0, 50, 0),
-    ...['critX', 'multi', 'perSec', 'hurt', 'hurtCap', 'dashPx', 'keep'].reduce((o, key) => (q[key] ? { ...o, [key]: num(q[key], 0, 500, 0) } : o), {}),
+    ...['critX', 'multi', 'perSec', 'hurt', 'hurtCap', 'dashPx', 'keep', 'duelStart'].reduce((o, key) => (q[key] ? { ...o, [key]: num(q[key], 0, 500, 0) } : o), {}),
     ...(q.awaken && typeof q.awaken === 'object' ? { awaken: { dur: num(q.awaken.dur, 0, 20, 6), mult: num(q.awaken.mult, 1, 4, 2) } } : {}),
   } : null;
   const out = {

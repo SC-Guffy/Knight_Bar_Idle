@@ -131,7 +131,16 @@ def erase(im, box):
     o = im.copy(); ImageDraw.Draw(o).rectangle(box, fill=(0, 0, 0, 0)); return o
 
 
-def pts_of(im, kick=False):
+def pts_of(im, kick=False, skip=None):
+    if skip:  # 몸이 아닌 장식(그랜드마스터 등 뒤 고리 등)은 빼고 잰다
+        im = im.copy(); q = im.load()
+        for y in range(64):
+            for x in range(64):
+                if q[x, y][3] and skip(q[x, y]): q[x, y] = (0, 0, 0, 0)
+        # 고리 바깥 외곽선 찌꺼기 제거: 작은 덩어리 버림
+        for c in components(im):
+            if len(c) < 40:
+                for p in c: q[p] = (0, 0, 0, 0)
     px = im.load(); bb = im.getbbox()
     top = bb[1]; xs = [x for x in range(64) if px[x, top][3]]
     head = [sum(xs) // len(xs), top]
@@ -147,7 +156,7 @@ def pts_of(im, kick=False):
     return hand + head
 
 
-def write_sheet(cls, anims, order, kick_anims=()):
+def write_sheet(cls, anims, order, kick_anims=(), skip=None):
     """anims: {name: {'frames': [Image], 'fps', 'loop', 'hit'?}} → src/sprites/<cls>.png/.json + 미리보기 + GIF."""
     n = max(len(anims[a]['frames']) for a in order)
     sheet = Image.new('RGBA', (64 * n, 64 * len(order)))
@@ -158,7 +167,7 @@ def write_sheet(cls, anims, order, kick_anims=()):
         m = {'row': r, 'frames': len(A['frames']), 'fps': A['fps'], 'loop': A['loop']}
         if 'hit' in A: m['hit'] = A['hit']
         meta['anims'][a] = m
-        auto = [pts_of(f, kick=a in kick_anims) for f in A['frames']]
+        auto = [pts_of(f, kick=a in kick_anims, skip=skip) for f in A['frames']]
         for k, p in (A.get('pts') or {}).items(): auto[k] = p
         meta['pts'][a] = auto
     sp = os.path.join(ROOT, 'src', 'sprites'); os.makedirs(sp, exist_ok=True)

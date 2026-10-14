@@ -102,12 +102,13 @@ Object.assign(SKILL_FX, {
   // ── 원투 스트레이트: 잽(atkA) → 스트레이트(release). ★ 일직선 충격파 XE01 · ★★ 훅까지 · ★★★ 섬광 줄 XE02 ──
   oneTwo: {
     kb: 8,
+    // 앞손 잽(atkA) → 뒷손 스트레이트(atkB)를 빠르게 잇고, 타격마다 명중을 따로 낸다. ★★ 이상 세 번째 타격은 내지르기(release)
     pose(u, a) {
       const d = a.k ? a.k.dur : 0.6, t = u * d, h = a.k ? a.k.hits : [[0.3], [0.6]], m = a.mast || 0;
       const t1 = h[0][0] * d, t2 = h[1][0] * d, step = m ? 6 : 2;
-      if (t < t1 + 0.08) return { sheet: { anim: 'atkA', u: qiSeg(t, t1 - 0.12, t1 + 0.12) }, dx: step * qiSeg(t, 0, t1) };
-      if (m >= 2 && h[2] && t >= t2 + 0.06) return { sheet: { anim: 'atkB', u: qiSeg(t, t2 + 0.06, h[2][0] * d + 0.1) }, dx: step + 3, skew: 0.08 };
-      return { sheet: { anim: 'release', u: qiSeg(t, t2 - 0.1, t2 + 0.2) }, dx: step + 2 * qiSeg(t, t1, t2), skew: 0.12 * qiSeg(t, t1, t2) };
+      if (t < (t1 + t2) / 2) return { sheet: { anim: 'atkA', u: qiSeg(t, t1 - 0.1, t1 + 0.12) }, dx: step * qiSeg(t, 0, t1) };
+      if (h[2] && t >= (t2 + h[2][0] * d) / 2) return { sheet: { anim: 'release', u: qiSeg(t, h[2][0] * d - 0.08, h[2][0] * d + 0.2) }, dx: step + 4, skew: 0.12 };
+      return { sheet: { anim: 'atkB', u: qiSeg(t, t2 - 0.1, t2 + 0.14) }, dx: step + 6 * qiSeg(t, t1, t2), skew: 0.18 * qiSeg(t, t1, t2) };   // 스트레이트: 잽보다 크게 내딛고 몸을 숙인다
     },
     hitTex(a, t, share, i, n) { qiHitTex('xk01', a, t, i === n - 1 && a.mast >= 3); },
     hit(a, i, n) {

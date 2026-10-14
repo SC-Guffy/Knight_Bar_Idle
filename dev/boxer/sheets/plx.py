@@ -6,8 +6,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', '..', 'pixellab'))
 from pl import call
 
-CAP = 180          # 이 작업 상한 (자기 호출만)
-FLOOR = 1340       # 계정 잔량 하한
+CAP = 180          # 1·2차 작업 상한 (자기 호출만)
+FLOOR = 300        # 계정 잔량 안전 바닥 (③ 3차부터; 1·2차 때는 1340)
+CAP3 = 200         # ③ 3차 시트 상한 — 응답 usage 합계로 센다
 LOG = os.path.join(HERE, 'usage.md')
 STATE = os.path.join(HERE, 'work', 'usage.json')
 
@@ -44,7 +45,8 @@ def run(ep, body, cls, purpose, outpre, est=1):
     if b0 is None: sys.exit('balance 조회 실패')
     if b0 - est < FLOOR: sys.exit(f'STOP: 잔량 {b0} — 하한 {FLOOR}')
     s.setdefault('nom', float(len(s['calls'])))
-    if s['nom'] + est > CAP: sys.exit(f'STOP: 자기 사용(명목) {s["nom"]} + {est} > {CAP}')
+    s.setdefault('p3', 0.0)
+    if s['p3'] + est > CAP3: sys.exit(f'STOP: ③ 사용 {s["p3"]} + {est} > {CAP3}')
     for attempt in range(4):
         st, r = call('POST', ep, body)
         if st in (200, 202): break
@@ -82,7 +84,7 @@ def run(ep, body, cls, purpose, outpre, est=1):
     time.sleep(3)
     b1 = bal()
     used = round(b0 - b1, 2) if b1 is not None else est
-    s['used'] = round(s['used'] + used, 2); s['nom'] = round(s.get('nom', 0) + est, 2)
+    s['used'] = round(s['used'] + used, 2); s['nom'] = round(s.get('nom', 0) + est, 2); s['p3'] = round(s.get('p3', 0) + est, 2)
     s['calls'].append({'cls': cls, 'ep': ep, 'purpose': purpose, 'used': used, 'bal': b1})
     json.dump(s, open(STATE, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     new = not os.path.exists(LOG)
@@ -90,8 +92,8 @@ def run(ep, body, cls, purpose, outpre, est=1):
         if new:
             f.write(f'# 직업 스프라이트 시트 — PixelLab 사용 기록\n\n시작 잔량: {s["start"]} (상한: 자기 호출 {CAP}회, 계정 잔량 {FLOOR} 아래면 멈춤)\n\n'
                     '| # | 직업 | 엔드포인트 | 목적 | 사용 | 누적(자기) | 계정 잔량 |\n|---|---|---|---|---|---|---|\n')
-        f.write(f'| {len(s["calls"])} | {cls} | `{ep}` | {purpose} | {used} / {est} | {s["used"]} / {s["nom"]} | {b1} |\n')
-    print('saved', len(imgs), 'used', used, 'self', s['used'], 'nom', s['nom'], 'bal', b1)
+        f.write(f'| {len(s["calls"])} | {cls} | `{ep}` | {purpose} | {used} / {est} | {s["used"]} / ③{s["p3"]} | {b1} |\n')
+    print('saved', len(imgs), 'used', used, 'self', s['used'], 'p3', s['p3'], 'bal', b1)
     return len(imgs)
 
 
@@ -108,5 +110,17 @@ if __name__ == '__main__':
         seed = int(a[6]) if len(a) > 6 else 0
         body = {'image': b64file(src), 'description': desc, 'seed': seed, 'no_background': True}
         run('/edit-image-pixen', body, cls, f'{name}: {desc[:60]}', os.path.join(HERE, 'work', cls, name))
+    elif a[1] == 'refedit':  # plx.py refedit <cls> <name> <ref.png> "<desc or ->" <seed> f1.png f2.png ... (64×64, 최대 15장)
+        cls, name, refp, desc, seed, fs = a[2], a[3], a[4], a[5], int(a[6]), a[7:]
+        body = {'method': 'edit_with_reference', 'image_size': {'width': 64, 'height': 64}, 'no_background': True, 'seed': seed,
+                'edit_images': [{'image': b64file(f), 'width': 64, 'height': 64} for f in fs],
+                'reference_image': {'image': b64file(refp), 'width': 64, 'height': 64}}
+        if desc != '-': body['description'] = desc
+        run('/edit-images-v2', body, cls, f'{name}: ref-edit {len(fs)}장', os.path.join(HERE, 'work', cls, name), est=1)
+    elif a[1] == 'tedit':  # 같은데 edit_with_text
+        cls, name, desc, seed, fs = a[2], a[3], a[4], int(a[5]), a[6:]
+        body = {'method': 'edit_with_text', 'image_size': {'width': 64, 'height': 64}, 'no_background': True, 'seed': seed, 'description': desc,
+                'edit_images': [{'image': b64file(f), 'width': 64, 'height': 64} for f in fs]}
+        run('/edit-images-v2', body, cls, f'{name}: text-edit {len(fs)}장', os.path.join(HERE, 'work', cls, name), est=1)
     elif a[1] == 'bal':
         print(bal(), state()['used'])

@@ -1,0 +1,1 @@
+3차 시트 완료 (2026-10-14, ③ 편집 방식): src/sprites/champion·tempest·grandmaster .png/.json — 14동작(awaken 포함). 부모 2차 시트 프레임을 edit-images-v2(edit_with_reference)로 3차 외형으로 바꿔 같은 자세·같은 프레임 수. 미리보기 dev/boxer/sheets/<cls>-preview.png
