@@ -16,6 +16,8 @@ const VFX_SHEETS = {
   h01: { frames: 4, scale: 2 / 3 },   // H01 견습 기사 평타 명중: 짧은 사선 + 양끝 불티 (스펙 24도트 → 32도트 시트를 2/3 로)
   h02: { frames: 5, scale: 2 / 3 },   // H02 검사 평타 명중: 별 섬광 + 교차 검흔 (⑤-0 시험 H1). 1배는 맞은 대상 얼굴을 다 가려서 2/3
   e43: { frames: 5 },    // E43 강철 베기 초승달 참격파 (⑤-0 시험 C1)
+  c17: { frames: 5 },    // C17 시전 오라: 속이 빈 불꽃 테두리 루프 (40종 공용, 기사 뒤에 바닥 기준)
+  c18: { frames: 5 },    // C18 발밑 빛 고리 루프 48×16 (64×32 로 뽑아 nearest 로 납작하게). ★★ 이상, ★★★ 는 금빛 고리를 한 겹 더
   k01: { frames: 5 },    // K01 강철 베기 명중: 땅 위 충격선(20번째 줄) + 아래 균열 + 강철 파편 3조각 (v2, 바닥 기준)
 };
 // 무기 → 평타 궤적 시트 (휘두르기, 찌르기). 직업 → 평타 명중 시트. 없으면 예전 그림
@@ -191,4 +193,16 @@ function vfxBasicHit(m, crit, ranged) {
   if (stats().aspd >= 2) stop /= 2;                 // 공속이 빠르면 끊겨 보이지 않게 절반
   visStop(stop);
   if (crit && !ranged) { shake = Math.max(shake, 0.08); shakeAmp = Math.max(shakeAmp, 3.6); }
+}
+
+// ───────── 시전 오라 (공용, skills.js drawAuras 가 부른다) ─────────
+// 숙련 ★ 부터: C17 불꽃 테두리 (★ 2/3배·흐리게, ★★ 이상 1배). ★★ 부터 발밑 C18 룬 고리, ★★★ 는 바깥에 금빛 고리 한 겹 더.
+// k: 시전 진행에 따른 세기(0~1, 켜졌다 꺼짐). 루프는 초당 10프레임, 시전마다 시작 프레임을 달리한다
+function vfxAura(x, y, gy, mast, color, k, seed = 0) {
+  if (!mast || k <= 0.02) return;
+  const f = Math.floor(clock * 10 + seed) % 5, t2 = mast >= 2;
+  vfxDraw(ctx, 'c17', color, f, x, y, { anchor: 'b', scale: t2 ? 1 : 2 / 3, alpha: (t2 ? 0.8 : 0.55) * k });
+  if (!t2) return;
+  if (mast >= 3) vfxDraw(ctx, 'c18', MASTERY_GOLD, (f + 2) % 5, x, gy, { scale: 1, alpha: 0.55 * k, flip: true });
+  vfxDraw(ctx, 'c18', color, f, x, gy, { scale: 2 / 3, alpha: 0.85 * k });
 }

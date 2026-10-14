@@ -982,30 +982,13 @@ function auraTick(c) {
 }
 function drawAuras() {
   for (const c of casts) {
-    // 오라는 ★ 숙련부터 (작게), ★★ 달인부터 크게 + 발밑 빛 고리
-    const t2 = c.a.mast >= 2, k = Math.sin(Math.PI * Math.min(1, c.a.u * 1.2));
+    // 오라는 ★ 숙련부터 (작게), ★★ 달인부터 크게 + 발밑 빛 고리. 그림은 PixelLab 시트 C17·C18 (src/vfx-tex.js vfxAura)
+    const k = Math.sin(Math.PI * Math.min(1, c.a.u * 1.2));
     if (k <= 0.02 || !c.a.mast) continue;
     const pose = c.fx.pose ? c.fx.pose(c.a.u, c.a) : {};
     if (pose.alpha === 0) continue;
-    const x = c.a.px(), y = groundY() - 24 - (pose.lift || 0), r = t2 ? 46 : 32;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = (t2 ? 0.38 : 0.25) * k * (0.85 + 0.15 * Math.sin(clock * 20));
-    const grad = ctx.createRadialGradient(x, y, 2, x, y, r);
-    grad.addColorStop(0, c.a.color); grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
-    if (t2) {
-      // 발밑에 도는 빛 고리
-      ctx.strokeStyle = c.a.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7 * k;
-      ctx.beginPath(); ctx.ellipse(x, groundY() - 1, 22 + 3 * Math.sin(clock * 8), 5, 0, 0, Math.PI * 2); ctx.stroke();
-      if (c.a.mast >= 3) {
-        // 극의: 바깥에 반대로 도는 금빛 고리 하나 더
-        ctx.strokeStyle = MASTERY_GOLD; ctx.lineWidth = 1; ctx.globalAlpha = 0.55 * k;
-        ctx.beginPath(); ctx.ellipse(x, groundY() - 1, 30 - 3 * Math.sin(clock * 6), 7, 0, 0, Math.PI * 2); ctx.stroke();
-      }
-    }
-    ctx.restore();
+    if (c.auraSeed == null) c.auraSeed = Math.floor(Math.random() * 5);
+    vfxAura(c.a.px(), groundY() - (pose.lift || 0), groundY() - 1, c.a.mast, c.a.color, k, c.auraSeed);
   }
 }
 

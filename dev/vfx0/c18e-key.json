@@ -1,0 +1,13 @@
+{
+ "outline": "selective outline",
+ "detail": "medium detail",
+ "view": "side",
+ "no_background": true,
+ "background_removal_task": "remove_complex_background",
+ "image_size": {
+  "width": 64,
+  "height": 32
+ },
+ "description": "isolated pixel art VFX sprite on empty transparent background: very flat thin magic circle lying on the ground seen almost edge-on, a wide ellipse four times wider than tall, thin two pixel bright white rim with tiny rune dots and a few sparkles, completely transparent inside, nothing else, no character, no background shape",
+ "seed": 44
+}
