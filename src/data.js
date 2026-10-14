@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.20.14';
+const GAME_VERSION = '0.20.15';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -100,9 +100,10 @@ const oldBagUpCost = (lv) => Math.round(50 * Math.pow(1.06, lv - 1));  // 0.19.3
 const STOCK_BASE = { wood: 10, ore: 7 }, STOCK_GROW = 1.3, STOCK_HOURS = 12;
 const stockRateAt = (k, lv) => Math.round(STOCK_BASE[k] * Math.pow(STOCK_GROW, lv - 1));   // 시간당
 const stockCapAt = (k, lv) => stockRateAt(k, lv) * STOCK_HOURS;
-// 창고 교역: 창고 Lv TRADE_LV 부터 골드로 목재·철광석을 산다. 한 번에 TRADE_HOURS 시간 생산량, 하루 5 + Lv 회 (목재·철광석 공용)
+// 창고 교역: 창고 Lv TRADE_LV 부터 골드로 목재·철광석을 산다. 한 번에 TRADE_HOURS 시간 생산량과 다음 건물 비용 평균의 TRADE_SHARE 중 큰 쪽
+//  (0.20.15 — 2시간 생산량만으론 건물 비용을 못 따라가 남는 골드를 재료로 바꿀 길이 없었다), 하루 5 + Lv 회 (목재·철광석 공용)
 //  가격 = 최고 스테이지 잡몹 골드 × TRADE_GOLD × TRADE_GROW^(오늘 교역한 횟수) — 골드가 스테이지를 따라 기하급수로 느는 경제라 가격도 스테이지를 따라간다
-const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200, TRADE_GROW = 1.3;
+const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200, TRADE_GROW = 1.3, TRADE_SHARE = 0.1;
 const tradesAt = (lv) => (lv >= TRADE_LV ? 5 + lv : 0);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
 
@@ -128,12 +129,15 @@ const BUILDINGS = {
 
 // 건물 최대 Lv (건물마다 max 가 있으면 그것, 없으면 BUILD_MAX)
 const bldMax = (id) => BUILDINGS[id].max || BUILD_MAX;
+// 목재·철광석은 Lv BUILD_MAT_KNEE 까지 ×2, 그 위로는 ×BUILD_MAT_LATE (0.20.15 — ×2 그대로면 Lv15 16만·Lv20 1,000만 목재로 수입이 못 따라갔다)
+const BUILD_MAT_KNEE = 8, BUILD_MAT_LATE = 1.5;
+const buildMatGrow = (lv) => Math.pow(2, Math.min(lv, BUILD_MAT_KNEE) - 1) * Math.pow(BUILD_MAT_LATE, Math.max(0, lv - BUILD_MAT_KNEE));
 function buildCost(id, lv) {
   const m = BUILDINGS[id].mul;
   return {
     gold: Math.floor(40 * Math.pow(1.9, lv - 1) * m.gold),
-    wood: Math.floor(20 * Math.pow(2, lv - 1) * m.wood),
-    ore: Math.floor(12 * Math.pow(2, lv - 1) * m.ore),
+    wood: Math.floor(20 * buildMatGrow(lv) * m.wood),
+    ore: Math.floor(12 * buildMatGrow(lv) * m.ore),
     // 마력석은 Lv5 → 6 부터 (초반 마력석은 전직·강화 몫으로 남도록), 오르는 폭도 목재·철광석보다 완만하게
     mana: lv >= 5 ? Math.floor(4 * Math.pow(1.7, lv - 5) * m.mana) : 0,
   };
@@ -895,6 +899,10 @@ const TRAIN_GROW = 1.286, TRAIN_SAT = 120;
 const trainSat = (t) => (Math.pow(TRAIN_GROW, t) - 1) / (1 + Math.pow(TRAIN_GROW, t) / TRAIN_SAT);
 const trainAtkAt = (t) => 6 + 9 * trainSat(t);
 const trainHpAt = (t) => 40 + 55 * trainSat(t);
+// 공격력·체력 훈련은 단계마다 배율도 준다 (0.20.15): 최종 공격력·체력 × (1 + TRAIN_PCT_MAX × t / (t + TRAIN_PCT_HALF))
+//  — 포화된 맨몸 수치는 중후반 장비에 묻혀 0% 가 되던 것을, 훈련 : 장비 ≈ 3 : 7 로 (Lv 30 +20% · Lv 90 +40%(몫 28%) · Lv 120 +45% · Lv 200 +54%)
+const TRAIN_PCT_MAX = 0.75, TRAIN_PCT_HALF = 80;
+const trainPctAt = (t) => TRAIN_PCT_MAX * t / (t + TRAIN_PCT_HALF);
 const TRAINING = [
   { id: 'atk',  name: '⚔️ 공격력', max: TRAIN_MAX, base: 10, grow: 1.32, show: (st) => fmt(st.atk) },
   { id: 'hp',   name: '🛡️ 체력',   max: TRAIN_MAX, base: 10, grow: 1.32, show: (st) => fmt(st.maxHp) },

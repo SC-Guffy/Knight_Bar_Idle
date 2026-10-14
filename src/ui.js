@@ -411,7 +411,7 @@ function viewStorage() {
     ? `<div class="fac"><span class="fname">${ico('scale')} 교역</span><span class="feff">창고 Lv${TRADE_LV} 에 열려요 — 남는 골드로 목재·철광석을 사요</span></div>`
     : `<div class="fac">
       <span class="fname">${ico('scale')} 교역 <small>오늘 ${tradesUsed()}/${tradesAt(lv)}</small></span>
-      <span class="feff">골드로 ${TRADE_HOURS}시간 생산량을 사요 · 살 때마다 값 ×${TRADE_GROW} · 자정에 초기화</span>
+      <span class="feff">골드로 목재·철광석을 사요 (다음 건물 비용의 ${Math.round(TRADE_SHARE * 100)}%↑) · 살 때마다 값 ×${TRADE_GROW} · 자정에 초기화</span>
       ${tradesLeft() ? `<span class="costs">${costChip('<i class="gc"></i>', tradePrice(), S.gold)}</span>` : ''}
       ${['wood', 'ore'].map((k) => `<button class="btn" data-action="trade" data-k="${k}" ${tb ? `disabled title="${tb}"` : ''}>${ico(k)} +${fmt(tradeAmount(k))}</button>`).join('')}
     </div>`;
@@ -515,7 +515,7 @@ function viewTrain1() {
   const anyTrain = TRAINING.some(u => S.train[u.id] < trainMax(u) && S.gold >= trainCost(u) && trainWorth(u));
   return `
     <div class="shead">
-      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — ${MENTOR_ON ? '초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요' : '초반을 끌어 주고, 중후반 힘은 장비가 책임져요'}</small></h3>
+      <h3>${ico('target')} 훈련 <small>최대 Lv ${cap} / ${TRAIN_MAX} (훈련장 Lv ${S.bld.training}) · 맨몸 단련 — ${MENTOR_ON ? '초반을 끌어 주고, 네 가지를 다 마치면 🎓 교관 수련이 열려요' : `공격력·체력 훈련은 단계마다 배율도 올라요 (지금 ⚔️ ${'×' + (1 + trainPctAt(S.train.atk)).toFixed(2)} · ❤️ ${'×' + (1 + trainPctAt(S.train.hp)).toFixed(2)})`}</small></h3>
       <button class="btn${rd(TRAINING.some(canTrain))}" data-action="train-all" ${anyTrain ? '' : 'disabled'}>${ico('bolt')} 골고루 올리기</button>
     </div>
     <div class="tgrid">${cards}</div>`;
@@ -1397,7 +1397,7 @@ function heroStatsPanel(st) {
   // 공격력·체력: 훈련 + 레벨 + 장비 절대값, 직업 배율, % 보너스
   const absTip = (icon, label, total, trainV, trainLv, perLv, k, clsMul, pctK) => lines([
     `${icon} ${label} ${fmt(total)}`,
-    `· 훈련 Lv ${trainLv} ${fmt(trainV)}`,
+    `· 훈련 Lv ${trainLv} ${fmt(trainV)} · 훈련 배율 ${x(1 + trainPctAt(trainLv))}`,
     `· 기사 Lv ${S.level} +${fmt((S.level - 1) * perLv)}`,
     ...from(k, (v) => '+' + fmt(v)),
     clsMul && clsMul !== 1 && `· 직업 ${cls} ${x(clsMul)}`,

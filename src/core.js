@@ -294,9 +294,9 @@ function stats(base = false) {
   const gb = gearBonus();
   // 절대값 = 기본·훈련·레벨 + 무기 공격력 / 갑옷 체력 (기본 위력 = 기사 레벨). 여기에 직업·특수 효과 배율이 곱해진다
   let atk = (trainAtkAt(t.atk) + (S.level - 1) * 1.5 + gb.atk)
-    * (m.atk || 1) * (1 + gb.atkPct);
+    * (m.atk || 1) * (1 + gb.atkPct) * (1 + trainPctAt(t.atk));
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
-  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1) * (1 + gb.hpPct);
+  const maxHp = (trainHpAt(t.hp) + (S.level - 1) * 8 + gb.hp) * (m.hp || 1) * (1 + gb.hpPct) * (1 + trainPctAt(t.hp));
   const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
   const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
   const defRed = defRedAt(t.def);
@@ -525,17 +525,15 @@ function doTrain(id) {
   if (id === 'hp') S.hp += stats().maxHp - oldMax;
   return true;
 }
-// 공격력·체력 훈련 한 단계가 지금 능력치를 몇 % 올리는지 (맨몸 단련이라 장비가 커지는 중후반엔 0 에 가깝다)
+// 공격력·체력 훈련 한 단계가 지금 능력치를 몇 % 올리는지 (맨몸 수치는 중후반엔 묻히고 배율 trainPctAt 몫이 남는다)
 function trainGain(u, st = stats(), nx) {
   if (!nx) { S.train[u.id]++; nx = stats(); S.train[u.id]--; }
   const k = u.id === 'atk' ? 'atk' : 'maxHp';
   return nx[k] / st[k] - 1;
 }
-// 올릴 값어치가 있는 훈련인가: 공격력·체력은 맨몸 수치가 포화되기 전까지만 (다음 단계가 맨몸 수치를 1% 도 못 올리면 — 약 Lv 32 —
-//  그 뒤로는 비용만 ×1.32 씩 오르고 거의 안 오른다). 장비 대비 비중(trainGain)으로 자르면 아직 쓸모 있는 초중반 훈련까지 건너뛴다
-const trainWorth = (u) => (u.id !== 'atk' && u.id !== 'hp') || trainSat(S.train[u.id] + 1) / Math.max(1e-9, trainSat(S.train[u.id])) - 1 >= 0.01 || S.train[u.id] < 10;
+// 올릴 값어치가 있는 훈련인가 — 0.20.15 부터 공격력·체력도 단계마다 배율(trainPctAt)이 붙어 늘 값어치가 있다 (예전엔 포화 뒤 건너뜀)
+const trainWorth = () => true;
 // 골드가 되는 데까지 다음 단계가 가장 싼 훈련부터 하나씩 올린다 → 네 훈련에 드는 골드가 대충 고르게 나뉜다
-//  (포화돼 거의 안 오르는 공격력·체력은 건너뛴다 — 손으로 한 칸씩은 올릴 수 있다)
 function doTrainAll() {
   let n = 0;
   for (;;) {
@@ -630,7 +628,7 @@ function claimStock() {
 }
 const tradesUsed = () => (newDay(S.stock.tradeDay) ? 0 : S.stock.trades);
 const tradesLeft = () => Math.max(0, tradesAt(S.bld.storage) - tradesUsed());
-const tradeAmount = (k) => stockRateAt(k, S.bld.storage) * TRADE_HOURS;
+const tradeAmount = (k) => Math.max(stockRateAt(k, S.bld.storage) * TRADE_HOURS, Math.floor(dgNextBuildCost(k) * TRADE_SHARE));
 const tradePrice = () => Math.max(1, Math.floor(monsterStats(S.best, false).gold * TRADE_GOLD * Math.pow(TRADE_GROW, tradesUsed())));
 function tradeBlocker() {
   if (S.bld.storage < TRADE_LV) return `창고 Lv${TRADE_LV} 에 교역이 열려요`;
