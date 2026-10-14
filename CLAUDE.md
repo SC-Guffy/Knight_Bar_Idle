@@ -33,7 +33,7 @@
 
 - **색깔놀이 금지**: 직업 외형(`src/body2.js` `BODY2_OVERRIDE` 등)을 색만 바꾼 같은 실루엣으로 만들지 않는다. 머리 모양·모자/후드·옷 종류·어깨 실루엣·소품이 달라야 한다. 같은 계열 직업을 나란히 찍어(`cutShot`) 실루엣만 보고도 구분되는지 확인한다. 2차→3차는 특징을 이어 가되(예: 화염 포니테일 → 쌍뿔+포니테일) 다른 계열과는 틀부터 다르게 한다. (사용자에게 두 번 지적받은 규칙)
 - **VFX는 PixelLab 텍스처로 그린다** (2026-10-13 사용자 지시): 검흔·궤적·충격파·폭발·불꽃·연기·파편·섬광·마법진 같은 이펙트의 그림은 PixelLab 으로 뽑은 텍스처(스프라이트 시트)를 쓴다. 코드는 위치·크기·회전·타이밍·색 램프만 맡는다. `fillRect` 사각 픽셀 파티클을 터뜨리거나 canvas path·gradient 로 그리는 것을 주된 그림으로 삼지 않는다. 기준은 [docs/specs/skill-vfx.md](docs/specs/skill-vfx.md).
-- **유료 생성 서비스는 아껴 쓴다** (2026-10-14 사용자 지시): 시안·변형·프레임은 로컬 ComfyUI(`C:\AI\ComfyUI`, 무제한)로 먼저 뽑고, 최종으로 고른 것만 PixelLab(Tier 1, 월 2,000회) 등 유료 서비스에 넣는다. PixelLab 애니 도구는 호출 한 번에 8~16회가 차감되니, 사용량은 호출 수가 아니라 `GET /v2/balance` 잔량 차이로 세고 작업마다 상한을 정해 지킨다. 기록: [docs/specs/art-upgrade.md](docs/specs/art-upgrade.md) "로컬 생성(ComfyUI) 시험".
+- **유료 생성 서비스는 아껴 쓴다** (2026-10-14 사용자 지시): 시안·변형·프레임은 로컬 ComfyUI(`C:\AI\ComfyUI`, 무제한)로 먼저 뽑고, 최종으로 고른 것만 PixelLab(Tier 1, 월 2,000회) 등 유료 서비스에 넣는다. 작업마다 유료 상한을 정하고, 자기 몫은 **응답의 usage 합계**로 센다(계정 하나를 여러 세션이 같이 쓰므로 잔량 차이로 세면 서로 섞인다). 계정 잔량(PixelLab `GET /v2/balance`)은 안전 바닥(300)으로만 본다. 기록: [docs/specs/art-upgrade.md](docs/specs/art-upgrade.md) "로컬 생성(ComfyUI) 시험".
 - AI 생성 아트는 "AI 티 안 나는, 저해상도지만 고퀄 도트"가 목표. 진행 상황과 파이프라인: [docs/specs/art-upgrade.md](docs/specs/art-upgrade.md).
 - OpenRouter 키는 Windows 사용자 환경변수 `OPENROUTER_API_KEY` (`[Environment]::GetEnvironmentVariable('OPENROUTER_API_KEY','User')`). 다른 PC에는 없을 수 있다. **키 값은 절대 출력·기록·커밋하지 않는다.**
 
