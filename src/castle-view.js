@@ -169,7 +169,7 @@ function castleSupport(dt, Ly) {
     if (cdv.catT <= 0 && f) {
       cdv.catT = CASTLE_CAT_SEC;
       cdv.catSwing = 0.001;
-      const dmg = atk * (1 + 0.3 * castleUp('catapult'));
+      const dmg = atk * (1 + CASTLE_CAT_PER * castleUp('catapult'));
       cdv.proj.push({ kind: 'stone', x0: slots.cat.x, y0: slots.cat.y - 18, m: f, t: 0, dur: 0.9, arc: 60, hit: (m, x) => {
         for (const o of monsters) if (!o.dying && Math.abs(toScreen(o.x) - x) <= CASTLE_CAT_R) castleSupportHit(o, dmg, '#ffd2a0');
         effects.push({ type: 'ring', x, y: groundY() - 2, t: 0, life: 0.45, size: 0.7, color: 'rgba(214,196,150,0.9)' });

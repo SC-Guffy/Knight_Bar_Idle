@@ -10,9 +10,9 @@
 //    last: 마지막 결과 { lv, reason, waves, kills, pts, downs, bricks, books, first, best, dur, at, seen } | null,
 //  }
 // 규칙
-//  - 최고 스테이지 CASTLE_UNLOCK_STAGE 에 열린다. 도전 단계 = 깬 최고 + 1 (최대 100). 단계 L 의 적 = 스테이지 20 + 2L 급.
+//  - 최고 스테이지 CASTLE_UNLOCK_STAGE 에 열린다. 도전 단계 = 깬 최고 + 1 (최대 100). 단계 L 의 적 = 스테이지 10 + 2L 급 (castleStage).
 //  - 10웨이브 (5·10웨이브는 보스). 다음 웨이브는 앞 웨이브 시작 12초(+망루) 뒤, 앞 웨이브를 다 잡으면 3초 뒤.
-//  - 기사가 성문 앞에서 몸으로 막는다. 몬스터 공격력 ×4 (보스 ×12·×16). 쓰러지면 5초 뒤 일어나고, 그동안 성벽에 닿은 몬스터가 성벽을 친다.
+//  - 기사가 성문 앞에서 몸으로 막는다. 몬스터 공격력 ×1.47 (보스 ×2·×2.16). 쓰러지면 5초 뒤 일어나고, 그동안 성벽에 닿은 몬스터가 성벽을 친다.
 //  - 10웨이브가 나온 뒤 120초 안에 다 잡아야 한다. 성벽 내구도 0 이면 즉시 실패.
 //  - 보상: 🧱 = 처치 점수 × (1 + L/100), 첫 돌파는 ×2. 📕 = 막은 웨이브 × (0.34 + 0.001L) (확률 올림). 소탕 = 최고 단계 다 막은 몫.
 
@@ -21,16 +21,19 @@ const CASTLE_MAX_LV = 100;
 const CASTLE_TICKETS = 3;                 // 하루 무료 입장권
 const CASTLE_TICKET_GOLD = 300;           // 구매 기준값 = 최고 스테이지 몹 골드 × 300 (탑과 같음, 사냥 30분치)
 const CASTLE_TICKET_HOLD = SUB_TICKET_HOLD;   // 산 입장권 보유 한도 (탑·미궁과 같음, data.js)
-const castleStage = (L) => 20 + 2 * L;
-// 웨이브 구성: n 일반 몬스터, b 보스 (1 = 보스 체력 ×12, 2 = 거대 보스 체력 ×20)
+// 단계 L 의 적 = 스테이지 CASTLE_STAGE0 + CASTLE_STAGE_PER × L (0.22.0 압축 곡선 재조정: 20 + 2L → 10 + 2L — 업그레이드 0 이면 최고 스테이지 100 에서 약 35단계 = 스테이지 80. 압축 전엔 약 11.5 스테이지 아래를 막았고, 지금은 약 20 아래)
+const CASTLE_STAGE0 = 10, CASTLE_STAGE_PER = 2;
+const castleStage = (L) => Math.max(1, Math.round(CASTLE_STAGE0 + CASTLE_STAGE_PER * L));
+// 웨이브 구성: n 일반 몬스터, b 보스 (1 = 보스 체력 ×2, 2 = 거대 보스 체력 ×2.31)
 const CASTLE_WAVES = [{ n: 10 }, { n: 11 }, { n: 12 }, { n: 13 }, { n: 10, b: 1 }, { n: 14 }, { n: 15 }, { n: 16 }, { n: 17 }, { n: 12, b: 2 }];
-const CASTLE_BOSS_HP = [0, 12, 20];
-const CASTLE_ATK_MULT = 4;                // 기사를 칠 때 몬스터 공격력 (같은 스테이지 일반 몬스터 ×4)
-const CASTLE_BOSS_ATK = [0, 3, 4];        // 보스는 그 × 3 (= ×12), 거대 보스 × 4 (= ×16)
+// 몬스터 배율은 0.21.0 성장 압축(docs/specs/growth-compression.md)에 맞춰 탑처럼 지수 0.28 로 줄였다 (압축 전 체력 ×12·×20, 공격력 ×4, 보스 ×3·×4)
+const CASTLE_BOSS_HP = [0, 2, 2.31];
+const CASTLE_ATK_MULT = 1.47;             // 기사를 칠 때 몬스터 공격력 (같은 스테이지 일반 몬스터 ×1.47)
+const CASTLE_BOSS_ATK = [0, 1.36, 1.47];  // 보스는 그 × 1.36 (= ×2), 거대 보스 × 1.47 (= ×2.16)
 const CASTLE_BOSS_CD = 2;                 // 보스 공격 간격
 const CASTLE_BOSS_PTS = 10;               // 처치 점수: 일반 1, 보스 10 → 다 잡으면 150
 const CASTLE_FULL_PTS = CASTLE_WAVES.reduce((a, w) => a + w.n + (w.b ? CASTLE_BOSS_PTS : 0), 0);
-const CASTLE_WAVE_GAP = 12;               // 웨이브 간격 (망루 +0.5초/Lv)
+const CASTLE_WAVE_GAP = 12;               // 웨이브 간격 (망루 +CASTLE_WATCH_PER 초/Lv)
 const CASTLE_EARLY = 3;                   // 앞 웨이브를 다 잡으면 이 초 뒤에 다음 웨이브
 const CASTLE_LIMIT_SEC = 120;             // 10웨이브가 나온 뒤 제한 시간
 const CASTLE_RESPAWN_SEC = 5;             // 쓰러지면 이 초 뒤 성문 앞에서 체력 가득으로 일어난다
@@ -44,23 +47,26 @@ const CASTLE_BRICK_PER = 100;             // 🧱 = 점수 × (1 + L/100)
 const CASTLE_BOOK_K0 = 0.34, CASTLE_BOOK_K1 = 0.001;     // 📕 = 막은 웨이브 × (0.34 + 0.001L)
 // 업그레이드 6종 (각 Lv10, 비용 18 × 1.4^n 을 5 단위로)
 const CASTLE_UP_MAX = 10;
+// 업그레이드 Lv 당 효과 (성벽 보강 내구도 · 망루 초 · 해자 이동 시간 · 군기 공격력 · 투석기 배율)
+//  초당 피해 쪽(군기·궁수대·투석기)은 압축 곡선에서 같은 %가 스테이지 3~4칸어치라 줄였다 (압축 전 군기 5%·궁수 ×0.08·투석기 0.3). 시간·내구도 쪽은 그대로
+const CASTLE_WALL_PER = 15, CASTLE_WATCH_PER = 0.5, CASTLE_MOAT_PER = 0.03, CASTLE_BANNER_PER = 0.0125, CASTLE_CAT_PER = 0.075;
+const CASTLE_ARCHER_PER = 0.02;           // 궁수대 초당 피해 = 지원군 위력 × CASTLE_ARCHER_PER × Lv
 const CASTLE_UPS = [
-  { id: 'wall',     icon: '🧱', name: '성벽 보강', per: '내구도 +15',             fx: (lv) => `내구도 ${CASTLE_WALL_HP + 15 * lv}` },
-  { id: 'watch',    icon: '⏳', name: '망루',     per: '웨이브 간격 +0.5초',      fx: (lv) => `웨이브 간격 ${CASTLE_WAVE_GAP + 0.5 * lv}초` },
-  { id: 'moat',     icon: '🌊', name: '해자',     per: '몬스터 이동 시간 +3%',    fx: (lv) => `이동 시간 +${3 * lv}%` },
-  { id: 'banner',   icon: '🚩', name: '군기',     per: '기사 공격력 +5%',         fx: (lv) => `공격력 +${5 * lv}%` },
-  { id: 'archer',   icon: '🏹', name: '궁수대',   per: '기사 초당 피해 ×0.08',       fx: (lv) => (lv ? `궁수 ${castleArchers(lv)}명 · 기사 초당 피해 ×${(0.08 * lv).toFixed(2)}` : '궁수 없음') },
-  { id: 'catapult', icon: '💥', name: '투석기',   per: '6초마다 광역 ×(1+0.3Lv)', fx: (lv) => (lv ? `6초마다 반경 48px 초당 피해 ×${(1 + 0.3 * lv).toFixed(1)}` : '투석기 없음') },
+  { id: 'wall',     icon: '🧱', name: '성벽 보강', per: `내구도 +${CASTLE_WALL_PER}`,             fx: (lv) => `내구도 ${CASTLE_WALL_HP + CASTLE_WALL_PER * lv}` },
+  { id: 'watch',    icon: '⏳', name: '망루',     per: `웨이브 간격 +${CASTLE_WATCH_PER}초`,      fx: (lv) => `웨이브 간격 ${+(CASTLE_WAVE_GAP + CASTLE_WATCH_PER * lv).toFixed(1)}초` },
+  { id: 'moat',     icon: '🌊', name: '해자',     per: `몬스터 이동 시간 +${+(CASTLE_MOAT_PER * 100).toFixed(1)}%`,    fx: (lv) => `이동 시간 +${+(CASTLE_MOAT_PER * 100 * lv).toFixed(1)}%` },
+  { id: 'banner',   icon: '🚩', name: '군기',     per: `기사 공격력 +${+(CASTLE_BANNER_PER * 100).toFixed(1)}%`,         fx: (lv) => `공격력 +${+(CASTLE_BANNER_PER * 100 * lv).toFixed(1)}%` },
+  { id: 'archer',   icon: '🏹', name: '궁수대',   per: `기사 초당 피해 ×${CASTLE_ARCHER_PER}`,       fx: (lv) => (lv ? `궁수 ${castleArchers(lv)}명 · 기사 초당 피해 ×${(CASTLE_ARCHER_PER * lv).toFixed(2)}` : '궁수 없음') },
+  { id: 'catapult', icon: '💥', name: '투석기',   per: `6초마다 광역 ×(1+${CASTLE_CAT_PER}Lv)`, fx: (lv) => (lv ? `6초마다 반경 48px 초당 피해 ×${(1 + CASTLE_CAT_PER * lv).toFixed(2)}` : '투석기 없음') },
 ];
 const CASTLE_UP_IDS = CASTLE_UPS.map((u) => u.id);
 const castleUpCostAt = (n) => Math.round((18 * Math.pow(1.4, n)) / 5) * 5;
 const castleArchers = (lv) => Math.min(4, Math.ceil(lv / 3));
-const CASTLE_ARCHER_PER = 0.08;           // 궁수대 초당 피해 = 지원군 위력 × 0.08 × Lv
 // 지원군 위력 = 기사의 단일 대상 초당 피해 (dpsOf, 군기 포함). 공격력(stats().atk)만 쓰면 스킬 비중이 큰 후반 기사(초당 피해 = 공격력 × 4~100)에서
 //  지원군이 사실상 0 이 되어서, 스펙 시뮬의 가정(지원군 기준 ≈ 기사 처치 속도)대로 초당 피해에 묶었다 (2026-10-14 구현 중 변경, castle-defense.md)
 const castlePow = (st = stats()) => dpsOf(st);
 const CASTLE_CAT_SEC = 6, CASTLE_CAT_R = 48;
-const CASTLE_MENTOR_SEC = 10, CASTLE_MENTOR_PER = 0.4;   // 교관: 10초마다 지원군 위력 × 0.4 × 별
+const CASTLE_MENTOR_SEC = 10, CASTLE_MENTOR_PER = 0.1;   // 교관: 10초마다 지원군 위력 × 0.1 × 별 (압축 전 0.4 — 궁수대처럼 4분의 1)
 
 const freshCastle = () => ({ best: 0, bricks: 0, up: Object.fromEntries(CASTLE_UP_IDS.map((id) => [id, 0])), tixDay: '', tixUsed: 0, tixExtra: 0, buyDay: '', bought: 0, run: null, last: null });
 // 옛 세이브: up 에 없는 항목을 0 으로
@@ -73,10 +79,10 @@ const castleNextLv = () => Math.min(CASTLE_MAX_LV, S.castle.best + 1);
 const castleActive = () => S.phase === 'castle' && !!S.castle.run;
 const castleUp = (id) => S.castle.up[id] || 0;
 // stats() 가 곱하는 성벽 배율 (core.js) — 🚩 군기. 랭킹·결투용 stats(true) 에는 넣지 않는다
-const castleFx = () => ({ atk: 0.05 * castleUp('banner') });
-const castleWallMax = () => CASTLE_WALL_HP + 15 * castleUp('wall');
-const castleWaveGap = () => CASTLE_WAVE_GAP + 0.5 * castleUp('watch');
-const castleLaneSec = (boss) => (boss ? CASTLE_BOSS_LANE_SEC : CASTLE_LANE_SEC) * (1 + 0.03 * castleUp('moat'));
+const castleFx = () => ({ atk: CASTLE_BANNER_PER * castleUp('banner') });
+const castleWallMax = () => CASTLE_WALL_HP + CASTLE_WALL_PER * castleUp('wall');
+const castleWaveGap = () => CASTLE_WAVE_GAP + CASTLE_WATCH_PER * castleUp('watch');
+const castleLaneSec = (boss) => (boss ? CASTLE_BOSS_LANE_SEC : CASTLE_LANE_SEC) * (1 + CASTLE_MOAT_PER * castleUp('moat'));
 
 // ── 보상 ──
 const castleBricksOf = (L, pts) => Math.round(pts * (1 + L / CASTLE_BRICK_PER));
@@ -219,16 +225,19 @@ function endCastle(reason) {
 // 실제 전투를 근사한다: 레인 480px, 기사 앞 16px 줄, 몬스터 공격력 ×4, 쓰러지면 5초·성벽 피해, 제한 시간 120초, 웨이브 사이 회복.
 //  o = { L, dps 단일 대상 초당 피해 (= 지원군 위력), maxHp, guard, heal(초당 회복량, 흡혈), range px, aoe 한 번에 같이 맞는 수(1~), up, stars [교관별 별] }
 // 광역은 "앞 몬스터 근처(30px)에 같이 들어가는 몫"으로 근사한다. 같은 시드라 결과가 고정된다
+// 시뮬 보정: 간이 시뮬은 기사 자신의 처치 속도를 실제 전투보다 낮게 본다 (스킬 광역·관통·치명 몰림을 다 못 셈). 압축 곡선에선 단계 하나가 체력 ×1.12 뿐이라
+//  처치 속도 2배 오차가 6단계 차이가 된다 (압축 전엔 ×1.49 라 2단계) — 봇 세이브 실측(신궁·할버디어 최고 100)에 맞춘 배수 (0.22.0)
+const CASTLE_SIM_DPS = 2.5;
 function castleSimRun(o) {
   let seed = 7; const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
   const u = o.up || {}, lv = (k) => u[k] || 0, LANE = CASTLE_LANE_MAX, dt = 0.1;
   const stage = castleStage(o.L), base = monsterStats(stage, false);
-  const gap = CASTLE_WAVE_GAP + 0.5 * lv('watch'), moat = 1 + 0.03 * lv('moat');
-  const bannerK = 1 + 0.05 * lv('banner'), dps = o.dps * bannerK, atk = dps;     // 지원군 위력 = 군기 포함 초당 피해
+  const gap = CASTLE_WAVE_GAP + CASTLE_WATCH_PER * lv('watch'), moat = 1 + CASTLE_MOAT_PER * lv('moat');
+  const bannerK = 1 + CASTLE_BANNER_PER * lv('banner'), dps = o.dps * bannerK, atk = dps;     // 지원군 위력 = 군기 포함 초당 피해
   const arch = atk * CASTLE_ARCHER_PER * lv('archer') + (o.stars || []).reduce((a, s) => a + atk * CASTLE_MENTOR_PER * s / CASTLE_MENTOR_SEC, 0);
-  const cat = lv('catapult') ? atk * (1 + 0.3 * lv('catapult')) : 0;
+  const cat = lv('catapult') ? atk * (1 + CASTLE_CAT_PER * lv('catapult')) : 0;
   const reach = (o.range || 20) + 12, mreach = 26;
-  let t = 0, wall = CASTLE_WALL_HP + 15 * lv('wall'), kh = o.maxHp, down = 0, downs = 0, mobs = [], wi = 0, nextAt = 1.5, catT = CASTLE_CAT_SEC, tLast = null;
+  let t = 0, wall = CASTLE_WALL_HP + CASTLE_WALL_PER * lv('wall'), kh = o.maxHp, down = 0, downs = 0, mobs = [], wi = 0, nextAt = 1.5, catT = CASTLE_CAT_SEC, tLast = null;
   const left = [];
   while (t < 900) {
     if (wi < 10 && t >= nextAt) {
@@ -256,7 +265,7 @@ function castleSimRun(o) {
       if (tgt.length) {
         kh = Math.min(o.maxHp, kh + (o.heal || 0) * dt);
         const f = tgt[0], near = tgt.filter((m) => m.x - f.x <= 30).slice(0, Math.ceil(o.aoe || 1));
-        near.forEach((m, i) => (m.hp -= dps * dt * (i === 0 ? 1 : Math.min(1, (o.aoe || 1) - i))));
+        near.forEach((m, i) => (m.hp -= dps * CASTLE_SIM_DPS * dt * (i === 0 ? 1 : Math.min(1, (o.aoe || 1) - i))));
       }
     }
     if (mobs.length) {
