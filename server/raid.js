@@ -71,9 +71,9 @@ function mulberry32(seed) {
 const round1 = (n) => Math.round(n * 10) / 10;
 
 // 클라이언트 data.js 의 monsterStats(필드 보스) 와 같은 기준 (MOB_* 와 mobHpScale·mobAtkScale 도 data.js 와 같아야 함 — 시즌6 에서 1.23·1.17 → 1.221·1.165,
-//  0.20.12 에서 스테이지 100 부터 1.197·1.15)
+//  0.20.12 에서 스테이지 100 부터 1.197·1.15, 0.20.14 에서 1.19·1.145)
 const MOB_HP_GROW = 1.221, MOB_ATK_GROW = 1.165;
-const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.197, MOB_LATE_ATK_GROW = 1.15;
+const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.19, MOB_LATE_ATK_GROW = 1.145;
 const mobHpScale = (s) => Math.pow(MOB_HP_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_HP_GROW, Math.max(0, s - MOB_LATE_FROM));
 const mobAtkScale = (s) => Math.pow(MOB_ATK_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_ATK_GROW, Math.max(0, s - MOB_LATE_FROM));
 function bossStats(id, n) {

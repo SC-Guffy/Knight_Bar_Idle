@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.20.13';
+const GAME_VERSION = '0.20.14';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -942,7 +942,7 @@ const MOB_HP_MULT = 3;
 const MOB_HP_GROW = 1.221, MOB_ATK_GROW = 1.165;
 // 스테이지 MOB_LATE_FROM 부터는 더 완만하게 (0.20.12): 100 이후 레벨·장비가 몬스터를 점점 못 따라가 120~200 이 지나치게 늘어졌다.
 //  목표(진행 봇): 100 도달 시간을 T 라 하면 150 은 +1.3T, 200 은 +2.3T. server/raid.js 의 mobHpScale·mobAtkScale 과 같아야 함
-const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.197, MOB_LATE_ATK_GROW = 1.15;
+const MOB_LATE_FROM = 100, MOB_LATE_HP_GROW = 1.19, MOB_LATE_ATK_GROW = 1.145;
 const mobHpScale = (s) => Math.pow(MOB_HP_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_HP_GROW, Math.max(0, s - MOB_LATE_FROM));
 const mobAtkScale = (s) => Math.pow(MOB_ATK_GROW, Math.min(s, MOB_LATE_FROM) - 1) * Math.pow(MOB_LATE_ATK_GROW, Math.max(0, s - MOB_LATE_FROM));
 function monsterStats(stage, boss) {
