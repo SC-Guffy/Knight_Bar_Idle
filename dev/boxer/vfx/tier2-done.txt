@@ -1,0 +1,1 @@
+2026-10-14 2차 묶음 완료: xw2 xw3(2프레임) xw4 xh2 xh4 xh6 xp1 xe03 xe04 xe05 xe07 xe08 xe10 xe12 xe14 xe15 xe16 xk02 xk03 xk04 xk05 xk06 xk07. 프레임 수·크기는 manifest.json 기준(스펙과 다른 것 많음 — 예: xk02·xk05 4프레임, xe08·xe12·xe14~16 5프레임).

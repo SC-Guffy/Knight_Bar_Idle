@@ -50,8 +50,8 @@ const BOT_DROP_OVER = 1.1;   // 목표의 이 배를 넘게 앞서 있으면 목
 const RAID_BOT_SEAT = 0.5;
 const RAID_BOT_CUT = 0.1;
 
-// 3차 직업 = 계열 (dev/bot-curve.js 의 LINES). 순번대로 돌려 직업이 고르게 나온다 — 시즌5 새 계열 넷을 앞에 둬서 봇이 적어도 빠지지 않게
-const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord']
+// 3차 직업 = 계열 (dev/bot-curve.js 의 LINES). 순번대로 돌려 직업이 고르게 나온다 — 새 계열(시즌6 파이터 셋, 시즌5 넷)을 앞에 둬서 봇이 적어도 빠지지 않게
+const LINES = ['champion', 'tempest', 'grandmaster', 'tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord']
   .filter((l) => CURVE.lines[l]);
 
 // ───────────────────────── 이름 ─────────────────────────
@@ -114,6 +114,7 @@ function toProfile(r, best, x) {
     atk: x.atk, maxHp: x.maxHp, aspd: v('aspd'), crit: v('crit'), critMult: v('critMult'), range: v('range'),
     shots: v('shots'), shotMult: v('shotMult'), guard: v('guard'), heal: v('heal'), leap: null,
     skills: v('skills').map((s) => ({ ...s })), power: Math.round(x.power),
+    ...(COL.qi != null && v('qi') ? { qi: { ...v('qi') } } : {}),      // 파이터 계열 기 규칙 (server/duel.js qiReady)
   };
 }
 // 장비·훈련 편차 g 를 곱한다 (전투력은 √(DPS×체력) 이라 둘 다 g 배면 전투력도 g 배)

@@ -69,3 +69,33 @@
 |---|---|---|---|
 | xe16a | create-image-pixen | 1 | 1340.0 → 1338.0 |
 | xe16 | animate-with-text-v3 | 1 | 1338.0 → 1334.0 |
+| xk02a | create-image-pixen | 1 | 1333.0 → 1332.0 |
+| xk03a | create-image-pixen | 1 | 1332.0 → 1332.0 |
+| xk04a | create-image-pixen | 1 | 1331.0 → 1330.0 |
+
+(셈법 변경: 이후 줄의 5번째 칸 = 응답 usage. 계정 바닥 300, 재개분 몫 usage 합 최대 120)
+
+| 이름 | 엔드포인트 | 회수 | 잔량 전 → 후 | usage |
+|---|---|---|---|---|
+| xk03 | animate-with-text-v3 | 1 | 1329.0 → 1317.0 | 1.0 |
+| xk02 | animate-with-text-v3 | 1 | 1316.0 → 1304.0 | 1.0 |
+| xk04 | animate-with-text-v3 | 1 | 1304.0 → 1302.0 | 1.0 |
+| xk02b | create-image-pixen | 1 | 1302.0 → 1291.0 | 1.0 |
+| xk04b | create-image-pixen | 1 | 1291.0 → 1290.0 | 1.0 |
+| xk04c | create-image-pixen | 1 | 1289.0 → 1288.0 | 1.0 |
+| xk02 | animate-with-text-v3 | 1 | 1288.0 → 1285.0 | 1.0 |
+| xk04 | animate-with-text-v3 | 1 | 1285.0 → 1285.0 | 1.0 |
+| xk05a | create-image-pixen | 1 | 1284.0 → 1274.0 | 1.0 |
+| xk06a | create-image-pixen | 1 | 1273.0 → 1273.0 | 1.0 |
+| xk07a | create-image-pixen | 1 | 1272.0 → 1272.0 | 1.0 |
+| xk05 | animate-with-text-v3 | 1 | 1271.0 → 1260.0 | 1.0 |
+| xk06 | animate-with-text-v3 | 1 | 1260.0 → 1260.0 | 1.0 |
+| xk07 | animate-with-text-v3 | 1 | 1260.0 → 1249.0 | 1.0 |
+| xe06a | create-image-pixen | 1 | 1238.0 → 1238.0 | 1.0 |
+| xe09a | create-image-pixen | 1 | 1238.0 → 1236.0 | 1.0 |
+| xe11a | create-image-pixen | 1 | 1236.0 → 1235.0 | 1.0 |
+| xe13a | create-image-pixen | 1 | 1235.0 → 1225.0 | 1.0 |
+| xe06 | animate-with-text-v3 | 1 | 1224.0 → 1223.0 | 1.0 |
+| xe09 | animate-with-text-v3 | 1 | 1223.0 → 1222.0 | 1.0 |
+| xe11 | animate-with-text-v3 | 1 | 1222.0 → 1222.0 | 1.0 |
+| xe13 | animate-with-text-v3 | 1 | 1222.0 → 1211.0 | 1.0 |

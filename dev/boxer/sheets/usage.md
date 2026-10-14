@@ -60,3 +60,24 @@
 - 자기 호출 40회(응답 `usage` 기준 각 1 = 명목 40) + 앱 재시작 때 끊긴 striker hurt 1회 추정 = **약 41회**. 상한 180회 안.
 - 시작 잔량 1,769 → 끝 잔량 1,340 (계정 전체 −429). 차이의 대부분(약 388)은 같은 계정을 동시에 쓴 이펙트 세션 몫이다. 내 호출 하나가 걸리는 1~5분 동안 다른 세션이 생성해서 "호출 전후 잔량 차"가 10~27씩 잡혔다. 응답 본문의 `usage` 는 animate·pixen 모두 매번 1.0 이었다.
 - 계정 잔량이 하한 1,340 에 닿아(#40 직후) 멈췄다. tempest·grandmaster walk 는 호출하지 않았다(STOP).
+
+## ③ 3차 시트 (편집 방식, 상한 usage 합계 200, 계정 바닥 300)
+
+| # | 직업 | 엔드포인트 | 목적 | 잔량차 / usage | 누적 잔량차 / ③누적 usage | 계정 잔량 |
+|---|---|---|---|---|---|---|
+| 41 | champion | `/edit-images-v2` | t1: ref-edit 4장 | 12.0 / 10.0 | 396.0 / ③10.0 | 1318.0 |
+| 42 | champion | `/edit-images-v2` | eA: ref-edit 13장 | 12.0 / 10.0 | 408.0 / ③20.0 | 1306.0 |
+| 43 | champion | `/edit-images-v2` | eB: ref-edit 15장 | 14.0 / 10.0 | 422.0 / ③30.0 | 1292.0 |
+| 44 | tempest | `/edit-image-pixen` | k-awaken: same character in side view facing right, awakening battle c | 3.0 / 1.0 | 425.0 / ③31.0 | 1288.0 |
+| 45 | grandmaster | `/edit-image-pixen` | k-awaken: same character in side view facing right, awakening: standin | 1.0 / 1.0 | 426.0 / ③32.0 | 1287.0 |
+| 46 | tempest | `/edit-images-v2` | eA: ref-edit 15장 | 13.0 / 10.0 | 439.0 / ③42.0 | 1274.0 |
+| 47 | tempest | `/edit-images-v2` | eB: ref-edit 13장 | 13.0 / 10.0 | 452.0 / ③52.0 | 1261.0 |
+| 48 | tempest | `/edit-images-v2` | eC: ref-edit 1장 | 12.0 / 10.0 | 464.0 / ③62.0 | 1249.0 |
+| 49 | grandmaster | `/edit-images-v2` | eA: ref-edit 15장 | 1.0 / 10.0 | 465.0 / ③72.0 | 1248.0 |
+| 50 | grandmaster | `/edit-images-v2` | eB: ref-edit 9장 | 13.0 / 10.0 | 478.0 / ③82.0 | 1225.0 |
+
+### ③ 정리
+
+- 응답 usage 합계 **82** (상한 200): 시험 10 + champion 20 + tempest 31(편집 2회 20 + 각성 pixen 1 + 각성 다시 칠하기 10) + grandmaster 21(편집 2회 20 + 각성 pixen 1).
+- `edit-images-v2` (edit_with_reference, 64×64) 는 장 수와 관계없이 호출 1회 = usage 10 (4장·13장·15장 모두 10). 응답에 결과가 두 벌 들어 있다(앞 n장 = 뒤 n장).
+- 계정 잔량 1,340 → 1,225 (바닥 300).

@@ -9,15 +9,17 @@ sys.path.insert(0, os.path.join(HERE, '..', '..', 'pixellab'))
 from pl import call
 from PIL import Image
 RAW = os.path.join(HERE, 'raw'); os.makedirs(RAW, exist_ok=True)
-FLOOR = 1085   # 2차 지시: 계정 1,069 아래로 내려가기 전에 멈춤 (여유 16)
-CAP2 = 90      # 2차 지시: 이번 몫 최대 90 (잔량 차이 합)
+FLOOR = 320    # 계정 안전 바닥 300 (CLAUDE.md) + 여유
+CAP2 = 120     # 재개분 몫: 응답 usage 합 최대 120 (usage 없으면 잔량 차이)
 
 def spent2():
     t = 0; on = False
     for ln in open(os.path.join(HERE, 'usage.md'), encoding='utf-8'):
         if ln.startswith('## 2차 진행'): on = True
-        if on and ln.startswith('| x') and '→' in ln:
-            a, b = ln.rsplit('|', 2)[-2].split('→'); t += float(a) - float(b)
+        if on and ln.startswith('| x'):
+            cols = [c.strip() for c in ln.strip().strip('|').split('|')]
+            if len(cols) >= 5 and cols[4] not in ('', '?'): t += float(cols[4])
+            elif '→' in cols[3]: a, b = cols[3].split('→'); t += float(a) - float(b)
     return t
 
 def bal():
@@ -57,6 +59,24 @@ def run(ep, body, name):
             if s == 'completed': r = j; break
             if s == 'failed': print('FAILED', str(j)[:500]); sys.exit(1)
         else: print('TIMEOUT'); sys.exit(1)
+    us = []
+    def fu(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k == 'usage': us.append(v)
+                elif k != 'base64': fu(v)
+        elif isinstance(o, list):
+            for v in o: fu(v)
+    fu(r)
+    def num(u):
+        if isinstance(u, (int, float)): return float(u)
+        if isinstance(u, dict):
+            for k in ('generations', 'usd', 'credits', 'total'):
+                if isinstance(u.get(k), (int, float)): return float(u[k])
+            return sum(num(v) for v in u.values() if isinstance(v, (int, float, dict)))
+        return 0.0
+    used = max(num(u) for u in us) if us else None  # 같은 usage 가 두 번 들어 있어 최대값
+    print('usage', json.dumps(us)[:300])
     imgs = []; images(r, imgs)
     out = []
     for b in imgs:
@@ -65,7 +85,7 @@ def run(ep, body, name):
     time.sleep(1)
     b1 = bal()
     with open(os.path.join(HERE, 'usage.md'), 'a', encoding='utf-8') as f:
-        f.write(f'| {name} | {ep.split("/")[-1]} | 1 | {b0} → {b1} |\n')
+        f.write(f'| {name} | {ep.split("/")[-1]} | 1 | {b0} → {b1} | {used if used is not None else "?"} |\n')
     print('images', len(out), 'balance', b0, '->', b1)
     return out
 
@@ -92,3 +112,6 @@ elif cmd == 'anim':
     json.dump(meta, open(os.path.join(RAW, name + '-anim.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     ims = run('/animate-with-text-v3', body, name)
     for i, f in enumerate(ims): f.save(os.path.join(RAW, f'{name}-{i}.png'))
+
+if cmd == 'spent':
+    print('spent', spent2(), 'balance', bal())

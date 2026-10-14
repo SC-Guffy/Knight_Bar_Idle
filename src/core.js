@@ -458,7 +458,9 @@ function profile() {
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     // 파이터 계열: 기 규칙 (서버 duel.js·raid.js 가 실제로 충전·소모를 돌린다. 모르는 서버는 버리고 등가 cd 로 계산)
     ...(isQiCls(S.cls) ? { qi: qiProfileOf(S.cls) } : {}),
-    skills: st.skills.map((id) => {
+    // 서버는 스킬을 앞에서 3개만 받는다(server/index.js sanitizeProfile). 파이터 계열 3차는 [궁극기·투지·원투·주 기술] 순이라 주 기술이 잘리면
+    // 기를 쓰지 않아 투지도 멈춘다 → 물려받은 원투(1차)를 맨 뒤로 보내 그것이 빠지게 한다 (다른 3차도 1차 스킬이 빠진다)
+    skills: (isQiCls(S.cls) ? [...st.skills.filter((id) => SKILLS[id].cls !== 'fighter' || S.cls === 'fighter'), ...st.skills.filter((id) => SKILLS[id].cls === 'fighter' && S.cls !== 'fighter')] : st.skills).map((id) => {
       const k = skillAt(id, skillLv(id), skillStage(id));
       // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
       // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다.
