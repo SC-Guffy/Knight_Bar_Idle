@@ -8,7 +8,8 @@
 #    out = overlay(frame, frame_wpn_mask, grip_xy, tip_xy, ws, front=glove_pts)
 #      frame_wpn_mask: 지울 무기 칸 집합 {(x,y)}, grip_xy: 프레임의 손 점, tip_xy: 무기 끝 쪽 아무 점 (방향만 쓴다)
 #      front: 무기 위에 다시 그릴 칸 (손·장갑) 집합
-#    ws 대신 WeaponTable([(그림, 각도, 손 점), …]) 을 주면 가장 가까운 각도 그림을 돌리지 않고 얹는다 (가는 장검용)
+#    ws 대신 WeaponTable 을 주면 가장 가까운 각도 그림을 돌리지 않고 얹는다 (가는 장검처럼 돌리면 끊기는 무기용)
+#      tbl = WeaponTable.from_rig([(그림, 각도 라디안), …])   # 리그로 무기만 각도마다 찍은 그림 (pose.wa)
 #  보조: axis(pts) 주축, grip_tip(wpn_pts, glove_pts) 손 점과 끝 점, diff_pts(a, b) 두 그림이 다른 칸
 #  python -I -B wpn.py  → 자기 시험 (가짜 막대를 돌려 얹기)
 import math
@@ -73,14 +74,25 @@ class WeaponTable:
     def __init__(self, items):
         self.items = [WeaponSprite(img, grip, ang) for img, ang, grip in items]
 
+    @classmethod
+    def from_rig(cls, shots, hand=2.5):
+        """리그로 무기만 각도마다 찍은 그림들 [(그림, 각도 라디안), …] → 표. 손 점 = 칼자루 끝(각도 반대쪽 끝 칸)에서 hand 칸 안쪽.
+        캡처 예: drawHero(g, id, x, gy, { mode: 'fight', swing: -1, wa: -Math.PI + k * Math.PI / 12, onlyWeapon: true }) — 각도를 직접 주므로 자세와 상관없다"""
+        items = []
+        for img, a in shots:
+            P = img.load(); d = (math.cos(a), math.sin(a))
+            pts = [(x, y) for y in range(img.height) for x in range(img.width) if P[x, y][3]]
+            if not pts: continue
+            pom = min(pts, key=lambda p: p[0] * d[0] + p[1] * d[1])
+            items.append((img, a, (pom[0] + hand * d[0], pom[1] + hand * d[1])))
+        return cls(items)
+
     def pick(self, ang):
-        e = min(self.items, key=lambda w: abs(math.remainder(w.ang - ang, 2 * math.pi)))
-        return WeaponSprite(e.img, e.grip, ang)        # 각도를 목표로 바꿔 둔다 → overlay 가 돌리지 않음
+        return min(self.items, key=lambda w: abs(math.remainder(w.ang - ang, 2 * math.pi)))
 
 
 def rotsprite(img, deg, pivot, S=8):
     """pivot 칸 둘레로 deg 도(화면 기준 시계 방향 +) 돌린 그림과 새 pivot 칸. 크게 키워 nearest 로 돌리고 칸 가운데를 표본"""
-    if abs(deg) < 1e-6: return img, pivot           # 돌릴 것 없음 (WeaponTable)
     W, H = img.size; px, py = int(round(pivot[0])), int(round(pivot[1]))
     r = int(math.ceil(max(math.hypot(x - px, y - py) for x in (0, W) for y in (0, H)))) + 2
     D = 2 * r + 1                                  # pivot 칸이 정가운데 (r, r) 에 오는 정사각 캔버스
@@ -142,8 +154,10 @@ def overlay(frame, wpn_mask, grip_xy, tip_xy, ws, front=(), line=True):
                         O[q] = (0, 0, 0, 0)
     fill_holes(out, wpn_mask)
     ang = math.atan2(tip_xy[1] - grip_xy[1], tip_xy[0] - grip_xy[0])
-    if hasattr(ws, 'pick'): ws = ws.pick(ang)
-    rot, piv = rotsprite(ws.img, math.degrees(ang - ws.ang), ws.grip)
+    if isinstance(ws, WeaponTable):
+        e = ws.pick(ang); rot, piv = e.img, e.grip          # 각도 표: 가장 가까운 각도 그림을 돌리지 않고
+    else:
+        rot, piv = rotsprite(ws.img, math.degrees(ang - ws.ang), ws.grip)
     x0, y0 = round(grip_xy[0] - piv[0]), round(grip_xy[1] - piv[1])
     R = rot.load()
     for y in range(rot.height):

@@ -97,18 +97,11 @@ def solid(mask, G):
 
 
 def weapon_sprite(cls, N):
-    """직업 무기 각도 표 (공용 wpn.WeaponTable): 리그 pose.wa = -π + kπ/12 로 무기만 찍은 24장 (ref/wl-<cls>-k.png).
+    """직업 무기 각도 표 (공용 wpn.WeaponTable.from_rig): 리그 pose.wa = -π + kπ/12 로 무기만 찍은 24장 (ref/wl-<cls>-k.png).
     장검은 1~2칸 굵기라 한 장을 돌리면(RotSprite) 칼날이 점선으로 끊겨서, 각도마다 게임이 그린 그림을 그대로 쓴다"""
-    items = []
-    for k in range(24):
-        f = os.path.join(HERE, 'ref', f'wl-{cls}-{k}.png')
-        if not os.path.exists(f): return None
-        im = crop_cell(Image.open(f).convert('RGBA'), N); px = im.load()
-        pts = [(x, y) for y in range(N) for x in range(N) if px[x, y][3]]
-        ang = -math.pi + k * math.pi / 12; d = (math.cos(ang), math.sin(ang))
-        pom = min(pts, key=lambda p: p[0] * d[0] + p[1] * d[1])            # 칼자루 끝
-        items.append((im, ang, (pom[0] + 2.5 * d[0], pom[1] + 2.5 * d[1])))  # 손은 칼자루 끝에서 2.5칸 위
-    return WeaponTable(items)
+    fs = [os.path.join(HERE, 'ref', f'wl-{cls}-{k}.png') for k in range(24)]
+    if not all(os.path.exists(f) for f in fs): return None
+    return WeaponTable.from_rig([(crop_cell(Image.open(f).convert('RGBA'), N), -math.pi + k * math.pi / 12) for k, f in enumerate(fs)])
 
 
 def overlay_weapon(o, MP, ws, force=None):
