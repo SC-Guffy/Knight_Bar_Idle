@@ -3,6 +3,7 @@
 #   python -I plx.py anim <cls> <name> <first.png> "<action>" [frames=8] [seed=0]   → work/<cls>/<name>-<i>.png
 #   python -I plx.py edit <cls> <name> <src.png> "<description>" [seed=0]
 #   python -I plx.py bal
+#  승인 게이트: approved.txt 에 "<cls>/<name>" 줄이 있어야 호출한다 (CLAUDE.md "무작정 뽑지 않는다")
 import sys, os, json, time, base64
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
@@ -51,7 +52,17 @@ def find_usage(o):
             if u: return u
 
 
+APPROVED = os.path.join(HERE, 'approved.txt')     # 로드맵 세션이 승인한 호출 이름 (한 줄에 하나, "<cls>/<name>") — 없으면 호출하지 않는다
+
+
+def approved(cls, name):
+    if not os.path.exists(APPROVED): return False
+    return f'{cls}/{name}' in {l.strip() for l in open(APPROVED, encoding='utf-8') if l.strip() and not l.startswith('#')}
+
+
 def run(ep, body, cls, purpose, outpre):
+    name = os.path.basename(outpre)
+    if not approved(cls, name): sys.exit(f'STOP: {cls}/{name} 는 승인 목록(approved.txt)에 없다')
     s = state()
     b0 = bal()
     if b0 is None: sys.exit('balance 조회 실패')

@@ -23,8 +23,8 @@ PLAN = {
     'idle': dict(fps=6, loop=True),
     'guard': dict(fps=6, loop=True),
     'walk': dict(fps=10, loop=True),
-    'atkA': dict(fps=14, loop=False, hit=4),
-    'atkB': dict(fps=14, loop=False, hit=4),
+    'atkA': dict(fps=12, loop=False, hit=2),          # 원형 4프레임: 당김·겨눔(타격)·유지·복귀
+    'atkB': dict(fps=12, loop=False, hit=2),
     'cast': dict(fps=10, loop=False),
     'hurt': dict(fps=12, loop=False),
     'death': dict(fps=8, loop=False),
