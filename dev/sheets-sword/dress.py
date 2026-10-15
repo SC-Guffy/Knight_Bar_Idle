@@ -115,7 +115,7 @@ LAST = {}      # 마지막 dress 의 손 점·각도·머리 위 (시트 메타 
 def find_hands(MP, n, force):
     """손 점 n 개 (앞=오른쪽부터). 몸통 가까이의 장갑 덩어리 → 없으면 어깨에서 그 손 각도 쪽으로 가장 멀리 뻗은 팔 끝(몸통 색)"""
     body = {p for p, k in MP.items() if k[0] in ('torso', 'helm')}
-    near = lambda c: any((x + a, y + b) in body for x, y in c for a in (-2, -1, 0, 1, 2) for b in (-2, -1, 0, 1, 2))
+    near = lambda c: any((x + a, y + b) in body for x, y in c for a in range(-4, 5) for b in range(-4, 5))
     gl = [c for c in comps({p for p, k in MP.items() if k[0] == 'glove'}) if len(c) >= 2 and near(c)]
     gl.sort(key=lambda c: -max(x for x, _ in c))
     hands = [((sum(x for x, _ in c) / len(c), sum(y for _, y in c) / len(c)), c) for c in gl[:n]]
