@@ -122,3 +122,12 @@ function mentorBonus() {
   MENTORS.forEach((m, i) => { for (const [k, v] of Object.entries(mentorSpAt(i))) if (v) out[k] = (out[k] || 0) + v; });
   return out;
 }
+
+// 별이 기사를 얼마나 바꾸는지 재는 스냅샷 (화면 안내용 — 랭킹·결투와 같은 stats(true)·powerOf)
+const mentorSnap = () => { const st = stats(true); return { st, gb: gearBonus(), power: powerOf(st) }; };
+// 교관 i 의 별을 잠깐 n 개로 바꿔서 잰다
+function mentorSnapAt(i, n) {
+  const keep = S.mentor.stars[i];
+  S.mentor.stars[i] = n;
+  try { return mentorSnap(); } finally { S.mentor.stars[i] = keep; }
+}

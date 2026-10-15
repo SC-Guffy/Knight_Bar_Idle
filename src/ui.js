@@ -470,7 +470,47 @@ function viewTraining() {
 }
 
 // 교관 별 보너스 글 — spText 는 % 를 정수로 반올림해서 (2.5% → 3%) 소수 한 자리까지 보인다
-const mentorSpText = (sp) => Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v).replace(/\d+(?=%)/, pct1(v))}`).join(' · ');
+const mentorSpText = (sp) => Object.entries(sp).map(([k, v]) => `${SPECIAL_STATS[k].name} ${SPECIAL_STATS[k].fmt(v).replace(/[\d.]+(?=%)/, pct1(v))}`).join(' · ');
+// 교관 별이 바꾸는 실제 능력치 (스냅샷 s = mentorSnap) — 키는 MENTORS[].sp. 작은 수는 fmt 가 버림해서 +1.5% 가 안 보이므로 소수 한 자리
+const mfmt = (v) => (v < 100 ? (Math.round(v * 10) / 10).toFixed(1) : fmt(v));
+const MENTOR_STAT_SHOW = {
+  atkPct:   ['공격력', (s) => mfmt(s.st.atk)],
+  hpPct:    ['체력', (s) => mfmt(s.st.maxHp)],
+  guard:    ['받는 피해 감소', (s) => `${pct1(s.st.guard)}%`],
+  aspdPct:  ['공격 속도', (s) => `${s.st.aspd.toFixed(2)}회/초`],
+  crit:     ['치명 확률', (s) => `${pct1(s.st.crit)}%`],
+  critMult: ['치명 피해', (s) => `${Math.round(s.st.critMult * 100)}%`],
+  bossDmg:  ['보스 피해', (s) => `+${pct1(s.gb.bossDmg)}%`],
+  skillDmg: ['스킬 피해', (s) => `+${pct1(s.gb.skillDmg)}%`],
+};
+// 전투력(powerOf) 숫자에 안 잡히는 효과
+const MENTOR_NO_POWER = { guard: '받는 피해', bossDmg: '보스 피해' };
+// 스냅샷 a → b 에서 교관 i 가 올리는 능력치 글 (full: 늘어난 값까지)
+function mentorStatDiff(i, a, b, full) {
+  return Object.keys(MENTORS[i].sp).map((k) => {
+    const [name, f] = MENTOR_STAT_SHOW[k];
+    const d = k === 'atkPct' ? b.st.atk - a.st.atk : k === 'hpPct' ? b.st.maxHp - a.st.maxHp : 0;
+    return `${name} ${f(a)} → <b class="up">${f(b)}</b>${full && d > 0 ? ` (+${mfmt(d)})` : ''}`;
+  }).join(' · ');
+}
+const mentorPowerDiff = (a, b, full) => {
+  const d = b.power - a.power;
+  if (d <= 0) return `💪 전투력 ${fmt(b.power)} (거의 그대로)`;
+  return full ? `💪 전투력 ${fmt(a.power)} → <b class="up">${fmt(b.power)}</b> (+${fmt(d)} · +${pct1(d / Math.max(1, a.power))}%)` : `💪 전투력 <b class="up">+${fmt(d)}</b>`;
+};
+const mentorNoPowerNote = (i) => {
+  const ks = Object.keys(MENTORS[i].sp).filter((k) => MENTOR_NO_POWER[k]);
+  return ks.length ? ` · ※ ${ks.map((k) => MENTOR_NO_POWER[k]).join('·')}는 전투력 숫자엔 안 잡혀요` : '';
+};
+// 누르기 전 미리보기: 지금 → 별 n 개
+const mentorNextText = (i, n) => { const a = mentorSnap(), b = mentorSnapAt(i, n); return `${mentorStatDiff(i, a, b)} · ${mentorPowerDiff(a, b)}${mentorNoPowerNote(i)}`; };
+// 별을 단 직후 결과 줄 (mentorUi.gain — 연출이 끝난 뒤 보인다)
+function mentorGainLine(i) {
+  const g = mentorUi.gain;
+  if (!g || g.i !== i || mentorUi.anim) return '';
+  const title = g.star >= MENTOR_STARS ? '수료 결과' : `★${g.star} 수련 결과`;
+  return `<div class="mbar mgain"><span class="grow"><b>📈 ${title}</b><small>${mentorStatDiff(i, g.a, g.b, true)} · ${mentorPowerDiff(g.a, g.b, true)}${mentorNoPowerNote(i)}</small></span></div>`;
+}
 // 🎓 교관 수련: 교관 칩 줄 · 무대(mentor-stage.js) · 한 줄 안내와 버튼
 function viewMentor() {
   const cur = mentorCur(), i = mentorView(), m = MENTORS[i], n = mentorStarsOf(i);
@@ -487,12 +527,12 @@ function viewMentor() {
     const p = mentorPreview(i), me = profile().power, left = mentorDuelLeft();
     const verdict = !p ? '' : me >= p.power * 1.15 ? ' · <span style="color:#9fd49a">여유</span>' : me >= p.power * 0.9 ? ' · 비슷함' : ' · <span class="warn">버거움</span>';
     const blk = !activeToken() ? '서버 연결 필요' : mentorDuelBlocker(i);
-    info = `<b>⚔️ 마지막 별 — 교관과의 승부 · 오늘 ${left}/${MENTOR_DUEL_DAY}${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>${mentorDuelStageLock(i) ? `🔒 ${mentorDuelStageLock(i)}할 수 있어요 — 조금 더 강해져서 오세요 · 수료 ${full}` : left ? `지금 ${now} → 수료 ${full}` : '내일 다시 도전할 수 있어요'}</small>`;
+    info = `<b>⚔️ 마지막 별 — 교관과의 승부 · 오늘 ${left}/${MENTOR_DUEL_DAY}${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>${mentorDuelStageLock(i) ? `🔒 ${mentorDuelStageLock(i)}할 수 있어요 — 조금 더 강해져서 오세요 · 수료 ${full}` : left ? `지금 ${now} → 수료 ${full}` : '내일 다시 도전할 수 있어요'}<br>수료하면: ${mentorNextText(i, MENTOR_STARS)}</small>`;
     btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-duel" ${blk || busy ? 'disabled' : ''} title="${blk}">⚔️ 승부하기</button>`;
   } else {
     const need = mentorNeed(i), have = mentorBooks(), lack = need - have;
     const blk = mentorTryBlocker(i);
-    info = `<b>★${n + 1} 수련 · 📕 ${need} 필요 (보유 ${have})</b><small>지금 ${now} → 다음 별 ${mentorSpText(mentorSpAt(i, n + 1))}</small>`;
+    info = `<b>★${n + 1} 수련 · 📕 ${need} 필요 (보유 ${have})</b><small>지금 ${now} → 다음 별 ${mentorSpText(mentorSpAt(i, n + 1))}<br>다음 별: ${mentorNextText(i, n + 1)}</small>`;
     btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">📕 수련하기</button>`;
     if (lack > 0) btn = `<span class="warn">📕 ${lack}권 모자라요</span>${btn}<button class="btn" data-action="goto-castle">🏰 성벽 지키기로</button>`;
   }
@@ -500,7 +540,7 @@ function viewMentor() {
     <div class="shead"><h3>🎓 교관 수련 <small>별 ${mentorStarSum()}/${MENTORS.length * MENTOR_STARS} · 📕 보유 ${mentorBooks()} · ${m.icon} ${m.name} — ${m.place}</small></h3></div>
     <div class="skchips">${chips}</div>
     <canvas class="mstage" data-action="mentor-skip" title="누르면 연출을 건너뛰어요"></canvas>
-    <div class="mbar"><span class="grow">${info}</span>${btn}</div>`;
+    <div class="mbar"><span class="grow">${info}</span>${btn}</div>${mentorGainLine(i)}`;
 }
 // 승부 차례 교관의 전투력 (서버 미리보기, 내 레벨이 바뀌면 다시 묻는다)
 function mentorPreview(i) {
@@ -2920,22 +2960,23 @@ const ACTIONS = {
   'goto-forge': () => { townUi.sel = 'forge'; campTab = 'town'; $('campBody').scrollTop = 0; },
   'train': (el) => doTrain(el.dataset.id),
   'train-all': () => { const n = doTrainAll(); if (n) toast(`🎯 훈련 ${n}단계 올렸어요`, 2500); },
-  'mentor-view': (el) => { mentorUi.view = Number(el.dataset.i); },
+  'mentor-view': (el) => { mentorUi.view = Number(el.dataset.i); if (mentorUi.gain && mentorUi.gain.i !== mentorUi.view) mentorUi.gain = null; },
   'mentor-skip': mentorSkip,
   'mentor-try': () => {
     if (mentorUi.anim) return;
-    const i = mentorCur(), r = mentorTry(i);
-    if (r) { mentorUi.view = i; mentorPlayTry(i, r); }
+    const i = mentorCur(), a = mentorSnap(), r = mentorTry(i);
+    if (r) { mentorUi.view = i; mentorUi.gain = { i, star: r.star, a, b: mentorSnap() }; mentorPlayTry(i, r, mentorUi.gain); }
   },
   'mentor-duel': () => {
     if (mentorUi.anim || mentorUi.busy) return;
     const i = mentorCur();
     if (mentorDuelBlocker(i) || !activeToken()) return;
-    mentorUi.busy = true; mentorUi.view = i;
+    mentorUi.busy = true; mentorUi.view = i; mentorUi.gain = null;
+    const before = mentorSnap();
     requestMentorDuel(i).then((res) => {
       mentorUi.busy = false;
-      mentorSettle(i, res);
-      mentorPlayDuel(i, res);
+      if (mentorSettle(i, res)) mentorUi.gain = { i, star: MENTOR_STARS, a: before, b: mentorSnap() };
+      mentorPlayDuel(i, res, mentorUi.gain);
       save();
       if (campOpen) renderCamp();
     }).catch((e) => {

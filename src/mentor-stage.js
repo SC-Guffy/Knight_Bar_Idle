@@ -3,7 +3,7 @@
 // 왼쪽에 내 기사, 오른쪽에 큼직한 교관, 뒤에 교관 장소 배경. 수련(★1~4)과 승부(★5)의 연출을 그린다.
 // 결과는 연출 전에 이미 정해져 있다 (mentor.js mentorTry — 📕 로 확정 · 서버 승부). 무대를 누르면 연출을 건너뛴다.
 
-const mentorUi = { view: null, anim: null, preview: null, busy: false };
+const mentorUi = { view: null, anim: null, preview: null, busy: false, gain: null };   // gain: 방금 단 별의 전후 스냅샷 (ui.js mentorGainLine)
 const MS_CELL = 4;                 // 교관 도트 1칸 = 4px (기사는 PX=3 — 교관이 한눈에 크게 보이게)
 const MS_W = 28, MS_H = 32;        // 교관 스프라이트 칸 수 (발끝 가운데 = 14열)
 
@@ -398,6 +398,11 @@ function drawFxText(g, x, W, H) {
     g.strokeStyle = '#1a1424'; g.lineWidth = 8; g.strokeRect(-w / 2, -h / 2, w, h);
     g.strokeStyle = x.col; g.lineWidth = 4; g.strokeRect(-w / 2, -h / 2, w, h);
     msBigText(g, x.text, x.size || 28, x.col);
+  } else if (x.kind === 'gain') {
+    // 전투력 증가 — 천천히 떠오르며 사라진다
+    g.globalAlpha = Math.min(1, age / 0.12) * (age > 1.3 ? Math.max(0, 1 - (age - 1.3) / 0.5) : 1);
+    g.translate(Math.round(x.x), Math.round(x.y - age * 10));
+    msBigText(g, x.text, x.size || 18, x.col);
   } else if (x.kind === 'banner') {
     const sc = age < 0.1 ? 0.5 + age / 0.1 * 0.7 : age < 0.18 ? 1.2 - (age - 0.1) / 0.08 * 0.2 : 1;
     const bh = 40, y = Math.round(x.y);
@@ -484,7 +489,7 @@ const msLaunch = (a) => Object.assign(a.k, { fly: true, vx: -300, vy: 260, spin:
 
 // ★1~4 수련 연출 (결과 r = mentorTry 의 반환 — 실패가 없어서 성공 연출만, 약 3초)
 //  📕 이 기사 머리 위에서 펼쳐져 교관 쪽으로 날아감 (T0) → 달려 들어가 공격 1회 · 교관이 막음 → 끄덕 + 대사 → 큰 별이 칸에 쾅
-function mentorPlayTry(i, r) {
+function mentorPlayTry(i, r, gain) {
   const m = MENTORS[i], say = MENTOR_SAY[m.id];
   const T0 = 0.45, swings = 1;
   const R0 = T0 + 0.24 + swings * 0.36 + 0.1, R = R0;
@@ -509,6 +514,8 @@ function mentorPlayTry(i, r) {
   });
   msCue(a, R + 1.2, (a, W) => msSlam(a, W, a.star - 1, false));
   msCue(a, R + 1.33, (a, W, H) => { msFx(a, { kind: 'banner', text: `★${a.star} 수련 완료!`, y: H * 0.46, col: '#ffe066', size: 28 }); msConfetti(a, W, 30); a.k.hop = a.lt; });
+  msGainCue(a, gain, R + 1.4);
+  a.end = Math.max(a.end, gain ? R + 2.9 : 0);
   a.say = pickSay(say.ok);
   mentorUi.anim = a;
 }
@@ -525,11 +532,16 @@ function drawRedBook(g, cx, cy, s, open) {
   }
 }
 // 승부(★5) 연출 (서버 결과 res)
-function mentorPlayDuel(i, res) {
+// 별을 단 뒤 '전투력 +n' 이 떠오른다 (gain = ui.js mentorUi.gain)
+function msGainCue(a, gain, at) {
+  if (!gain || gain.b.power <= gain.a.power) return;
+  msCue(a, at, (a, W, H) => msFx(a, { kind: 'gain', text: `전투력 +${fmt(gain.b.power - gain.a.power)}`, x: W / 2, y: H * 0.64, col: '#7dffb0', size: 18 }));
+}
+function mentorPlayDuel(i, res, gain) {
   const f = res.fight, say = MENTOR_SAY[MENTORS[i].id];
   const speed = Math.max(1, f.dur / 7);
   const a = msNewAnim('duel', i, { res, ok: res.won, star: MENTOR_STARS, stars: MENTOR_STARS - 1, speed, F0: 1.2, shown: 0, hpShow: { a: 1, b: 1 }, hpChip: { a: 1, b: 1 },
-    end: Infinity, say: res.won ? say.win : pickSay(say.lose) });
+    end: Infinity, say: res.won ? say.win : pickSay(say.lose), gain });
   // 등장: 조명 · VS
   msCue(a, 0, (a) => { a.spotT = 0.5; a.zoomT = 1.05; });
   msCue(a, 0.3, (a, W, H) => { msHit(a, 0.05, 4); msFx(a, { kind: 'stamp', text: 'VS', x: W / 2, y: H * 0.45, col: '#ffb13b', size: 32, rot: 0, life: 0.8 }); });
@@ -552,7 +564,8 @@ function msDuelFinish(a, W, H, P) {
       msSlam(a, W, MENTOR_STARS - 1, true);
     });
     msCue(a, D + 1.95, (a, W, H) => { msHit(a, 0.05, 6); msFx(a, { kind: 'stamp', text: '수료!', x: W * 0.44, y: H * 0.44, col: '#ffe066', size: 34, rot: -0.16 }); msConfetti(a, W, 50); a.spotT = 0; a.k.hop = a.lt; });
-    a.end = D + 4.0;
+    msGainCue(a, a.gain, D + 2.3);
+    a.end = D + (a.gain ? 4.2 : 4.0);
   } else {
     msLaunch(a);
     msBurst(a, P.kx + 6, P.gy - 34, 16, ['#ffffff', '#ff8080', '#ffd0a0'], 230, { g: 300, life: 0.45, size: 4 });
@@ -593,7 +606,7 @@ function msStep(a, dt, W, H, P) {
   while (a.cues.length && a.cues[0][0] <= a.lt) a.cues.shift()[1](a, W, H, P);
   msStepParts(a, dt);
   for (const x of a.fx) x.age += dt;
-  a.fx = a.fx.filter((x) => x.kind === 'stamp' ? x.age < (x.life || 99) : x.kind === 'banner' ? x.age < 1.6 : x.age < 0.8);
+  a.fx = a.fx.filter((x) => x.kind === 'stamp' ? x.age < (x.life || 99) : x.kind === 'banner' ? x.age < 1.6 : x.kind === 'gain' ? x.age < 1.8 : x.age < 0.8);
   const k = a.k;
   if (k.fly) {
     k.ox += k.vx * dt; k.lift += k.vy * dt; k.vy -= 1000 * dt; k.rot += k.spin * dt;
