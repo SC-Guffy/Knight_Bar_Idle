@@ -1,0 +1,6 @@
+shots/
+work/
+out/
+frames-rig/
+*.log
+__pycache__/

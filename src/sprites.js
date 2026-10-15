@@ -16,6 +16,8 @@ const SHEETS = {};
 const SHEET_ON = {
   // 레인저 계열 (칸 96 · 공성포수 128, dev/bowsheets) — 시트를 사용자가 승인하면 true
   ranger: false, marksman: false, arcaneArcher: false, arbalest: false, deadeye: false, voidArcher: false, siegeMaster: false,
+  // 창기사 계열 (dev/spear/build.py, 칸 96·할버드 128) — 생성 시트가 승인되면 true
+  lancer: false, dragoon: false, halberdier: false, cavalier: false, dragonlord: false, warlord: false, skyGeneral: false,
 };
 if (typeof location !== 'undefined' && /[?&]sheets=0/.test(location.search || '')) for (const k in SHEET_ON) SHEET_ON[k] = false;
 // 이 직업을 시트로 그리나 (파이터 계열 look.sheet 는 항상)
@@ -55,8 +57,10 @@ function sheetFrame(meta, pose) {
   if (has('cast') && (pose.wa != null || pose.pull != null)) {
     const k = has('castUp') && (pose.bowA || 0) <= -0.55 ? 'castUp' : 'cast', c = A[k];
     if (c.key && c.val && pose[c.key] != null) {
+      // wrap: 값이 각도(라디안)라 한 바퀴 돌면 같은 자세 (할버드 대회전처럼 wa 가 ±2π 를 넘는 스킬)
+      const v = pose[c.key], T = Math.PI * 2, dist = (a) => c.wrap ? Math.abs((((a - v + Math.PI) % T) + T) % T - Math.PI) : Math.abs(a - v);
       let best = 0;
-      for (let i = 1; i < c.val.length; i++) if (Math.abs(c.val[i] - pose[c.key]) < Math.abs(c.val[best] - pose[c.key])) best = i;
+      for (let i = 1; i < c.val.length; i++) if (dist(c.val[i]) < dist(c.val[best])) best = i;
       return { anim: k, f: Math.min(c.frames - 1, best) };
     }
     return { anim: k, f: loopF(k, pose.t || 0) };
