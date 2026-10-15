@@ -16,7 +16,7 @@ const SHEETS = {};
 const SHEET_ON = {
   // 레인저 계열 (칸 96 · 공성포수 128, dev/bowsheets) — 시트를 사용자가 승인하면 true
   ranger: false, marksman: false, arcaneArcher: false, arbalest: false, deadeye: false, voidArcher: false, siegeMaster: false,
-  // 창기사 계열 (dev/spear/build.py, 칸 96·할버드 128) — 생성 시트가 승인되면 true
+  // 창기사 계열 (칸 128, 원형 마네킹 → 입히기·덧그리기 dev/spear/gen.py·build.py) — 시트 있음, 켤지 사용자 확인 (false)
   lancer: false, dragoon: false, halberdier: false, cavalier: false, dragonlord: false, warlord: false, skyGeneral: false,
   // 마법사 계열 (칸 96, dev/sheets-mage — 시험: dev/skills.html?patch=sheets-mage) — 시트를 사용자가 승인하면 true
   mage: false, pyromancer: false, cryomancer: false, electromancer: false, archmage: false, frostlord: false, thunderEmperor: false,

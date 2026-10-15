@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
 from pl import call
 
-CAP = 90
+CAP = 11          # 로드맵 승인 2026-10-16: 원형 마네킹 6호출 usage 11, 재시도 0
 FLOOR = 300
 LOG = os.path.join(HERE, 'usage.md')
 STATE = os.path.join(HERE, 'usage.json')

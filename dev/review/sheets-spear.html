@@ -28,7 +28,7 @@
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 창기사 · 용기병 · 할버디어 · 랜서 · 용황 · 전쟁군주 · 천마장군 · 2026-10-15</p>
 
 <div class="box">
-  <b>지금 상태</b>: PixelLab <b>0회</b> (보류 — 검사 계열 시범 승인 뒤 계획서 재승인). 생성 없이 할 수 있는 준비만 했다.
+  <b>지금 상태</b>: 7종 시트 완성 (PixelLab usage 11, 6절). <code>SHEET_ON</code> 은 false — 켤지 사용자 확인. 아래 1~5절은 준비 단계 기록이다.
   <ul>
     <li>7종 기준 그림: 지금 게임의 대기 자세를 1도트 = 1px 로 찍어 칸(7종 모두 128 — 2026-10-16 창도 96 → 128)과 발 기준점에 맞췄다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
@@ -125,17 +125,55 @@ PixelLab 은 이 마네킹만 움직이고, 직업은 프레임마다 <b>입힌�
 <div class="scroll box"><img class="px" id="dress" alt="입히기"></div>
 <p class="sub">랜서·천마장군·할버디어·전쟁군주 줄은 왼쪽 1장 = 지금 그림, 나머지 6장 = 전투 대기 · 대기 · 임시 자세 4를 입힌 것.</p>
 
-<h2>6. 해 보는 법</h2>
+<h2>6. 생성 시트 결과 — PixelLab usage 11 (2026-10-16)</h2>
+<div class="box"><b>방식</b>: 원형 마네킹만 PixelLab 으로 움직이고(6호출, usage 11, 재시도 0), 7종은 입히기 + 무기 덧그리기 + 실루엣 장식으로 만들었다 (<code>dev/spear/gen.py</code> → <code>build.py --src gen</code> → <code>src/sprites/&lt;직업&gt;.png/.json</code>).
+<ul><li>공용 대기 4f(usage 1)·걷기 8f(2), 찌르기형 평타A 찌르기·평타B 내리찍기 8f(각 2), 휩쓸기형 평타A 휩쓸기·평타B 내려찍기 8f(각 2).</li>
+<li>대기 애니는 3·4번에서 창이 눕고 이펙트 그림이 섞여 1·2번만 왕복해 쓴다 (다시 뽑지 않음). 떨어진 이펙트·반짝이는 지웠다.</li>
+<li>시전(cast) 줄은 평타 16장의 무기 각도를 재 각도순으로 골랐다: 창 6장(−1.78 ~ +0.16), 할버드 7장(−2.99 ~ +0.01, 한 바퀴 wrap).</li>
+<li>무기 축은 RANSAC 직선으로 잡는다 — 생성 애니는 투구 밝은 회색도 무기 색으로 섞여 들어온다. 손 점은 몸통 가까운 장갑, 끝은 손에서 먼 쪽 (공용 <code>wpn.py</code> 에 <code>line_fit</code>·<code>near_line</code> 추가).</li>
+<li>할버드 칸 발을 56 → 66 으로 옮겼다 (뒤로 젖힌 휩쓸기 −44). 7종 모두 잘림 없음.</li>
+<li>몸 움직임 (덧그리기 전 마네킹, 무기 뺀 몸이 첫 프레임과 겹치는 정도): 찌르기 최저 0.11·머리 15칸 이동(크게 내디딤) · 걷기 발 벌어짐 7~20칸(다리 엇갈림) · 내리찍기 0.55 · 휩쓸기 0.55 · 내려찍기 0.7.</li>
+<li><code>SHEET_ON</code> 은 <b>false 유지</b> — 켤지는 사용자 확인 (검사 계열은 검수 미달로 다시 껐다). 해 보기: 아래 7절.</li></ul></div>
+<h3>전후 나란히 움직임 (왼쪽 지금 · 오른쪽 시트)</h3>
+<div class="tabs" id="gbtabs"></div><div class="tabs" id="gbanim"></div>
+<div class="grid" id="gbgif" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+<h3>줄 세우기 — 지금(위) · 시트(아래)</h3>
+<div class="tabs" id="lutabs"></div>
+<div class="scroll box"><img class="px" id="lu-b" alt="지금"><img class="px" id="lu-a" alt="시트" style="margin-top:6px"></div>
+<h3>동작별 프레임 몽타주 (시트 그대로, 칸 테두리·발·hand·head)</h3>
+<div class="tabs" id="gftabs"></div>
+<div class="scroll box"><img class="px" id="gframes" alt="프레임"></div>
+<h3>원형 마네킹 원본 (PixelLab 결과 그대로, 0번 = 넣은 첫 프레임)</h3>
+<div class="tabs" id="mqtabs"></div>
+<div class="scroll box"><img class="px" id="mqimg" alt="마네킹"></div>
+<table style="margin-top:10px">
+  <tr><th>수용 기준</th><th>결과</th></tr>
+  <tr><td>7종 시트로 그려지고 대기·걷기·평타 2종·시전·피격·사망·앉기가 움직인다</td><td class="ok">✅ 스킬 시험장 7종 스킬 10종 × 숙련 0~3 = 40회 시전 예외 0, 시전 중 cast 프레임이 각도 따라 바뀜 · 오프라인 원정 7종 각 20초 예외 0 · 앉기는 조립식(시트에 줄 없음)으로 예전과 픽셀 같음</td></tr>
+  <tr><td>어떤 동작에서도 무기 끝이 칸에서 잘리지 않는다</td><td class="ok">✅ build.py 잘림 검사 7종 모두 없음 (몽타주 빨간 테두리 0)</td></tr>
+  <tr><td>전후 그림체가 이어지고 같은 계열 2·3차가 흑백 실루엣으로 구분된다</td><td class="wait">사용자 확인 — 실루엣 줄 (깃발 / 날개 망토 / 방패 / 할버드 / 왕관·꼬리 / 후광·방패 / 뿔 투구·도끼창)</td></tr>
+  <tr><td>스킬 시전·궁극기·결투·레이드·마을 앉기가 깨지지 않는다</td><td class="ok">✅ 같은 drawHero 경로 — 시전 40회·원정 확인, 좌우 반전 대칭, 앉기 조립식</td></tr>
+  <tr><td>SHEET_ON 을 끄면 예전으로</td><td class="ok">✅ 실행 중 SHEET_ON.x = false / 주소 ?sheets=0</td></tr>
+  <tr><td>fps 가 떨어지지 않는다</td><td class="ok">✅ drawHero 1000번: 시트 3~12ms · 조립식 700~780ms</td></tr>
+  <tr><td>PixelLab 사용량 기록</td><td class="ok">✅ usage 11 (응답 usage 합, <code>dev/spear/usage.md</code>), ComfyUI 0장</td></tr>
+</table>
+
+<h2>7. 해 보는 법</h2>
 <ul>
+  <li><b>주소로 켜서 보기</b> (<code>?sheetsOn=</code>): <a href="../skills.html?mode=basic&cls=dragoon&sheetsOn=lancer,dragoon,halberdier,cavalier,dragonlord,warlord,skyGeneral">평타 (7종 켬)</a> ·
+    <a href="../skills.html?cls=dragoon&skill=dragonFall&stage=1&sheetsOn=dragoon">용기병 용추락</a> · <a href="../skills.html?cls=halberdier&skill=whirlwind&stage=1&sheetsOn=halberdier">할버디어 대회전</a> ·
+    <a href="../skills.html?cls=skyGeneral&skill=cavalryLegion&stage=3&sheetsOn=skyGeneral">천마장군 천마군단</a> · <a href="../skills.html?cls=warlord&skill=worldBreaker&stage=3&sheetsOn=warlord">전쟁군주 천붕</a> ·
+    비교는 같은 주소에서 <code>&amp;sheetsOn=</code> 을 뺀다.</li>
+  <li><b>시트 켜고 보기</b>: 스킬 시험장 콘솔에서 <code>SHEET_ON.dragoon = true</code> (7종 모두 같은 식). 오프라인 게임은 <code>index.html?server=http://127.0.0.1:9&amp;sheetsOn=dragoon</code> 8초 뒤 <code>dev/spear/preset.js</code> 를 불러 <code>SHEET_ON.dragoon = true; spearPreset('dragoon', 2, 12)</code>.</li>
   <li>스킬 시험장(지금 그림): <a href="../skills.html?cls=dragoon&skill=dragonFall&stage=1">용기병 용추락</a> · <a href="../skills.html?cls=halberdier&skill=whirlwind&stage=1">할버디어 대회전</a> · <a href="../skills.html?mode=basic&cls=lancer">창기사 평타</a></li>
   <li>임시 시트로 렌더러 연결을 다시 시험하려면 (커밋하지 않는다):<br>
     <code>dev/skills.html</code> 콘솔에서 <code>spear/capture.js</code> 를 불러 <code>await spearCap('dragoon')</code> (수신기 <code>python -I dev/spear/recv.py dev/spear/shots 8896</code>) →
     <code>python -I dev/spear/build.py dragoon --install</code> → <code>node dev/boxer/sheet-meta.js</code> → 새로고침 뒤 <code>SHEET_ON.dragoon = true</code>. 끝나면 <code>git checkout src/sprites/meta.js</code> 하고 <code>src/sprites/dragoon.*</code> 를 지운다.</li>
 </ul>
 
-<h2>7. 정할 것</h2>
+<h2>8. 정할 것</h2>
 <ol>
-  <li><b>원형 공유 계획</b>: 찌르기형 5종(창기사·용기병·랜서·용황·천마장군)과 휩쓸기형 2종이 마네킹 동작을 나눠 쓴다. PixelLab 계획서는 검사 계열 시범 결과를 본 뒤 다시 올린다.</li>
+  <li><b>켤지</b>: 7종 <code>SHEET_ON</code> 을 켤지 (직업별로 정할 수 있다). 검사 계열은 "몸·팔이 거의 안 움직이고 칼만 돈다"로 미달이었다 — 창 계열은 찌르기에서 앞발 디딤·몸 숙임, 휩쓸기에서 허리 비틀기가 들어가 있지만 걷기는 다리 움직임이 작다.</li>
+  <li><b>걷기 보강</b>: 걷기가 약하면 걷기만 다시 뽑기 (usage 2) 또는 ComfyUI 사이 프레임.</li>
 </ol>
 </main>
 <script>
@@ -153,6 +191,14 @@ const AN = ['idle', 'guard', 'walk', 'atkA', 'atkB', 'cast', 'hurt', 'death', 's
 tabs('gtabs', [['dragoon', '용기병'], ['halberdier', '할버디어']], (c) => { document.getElementById('gifs').innerHTML = AN.map((a) => `<div class="card"><img src="sheets-spear/gif/${c}-${a}.gif" alt="${a}"><div>${a}</div></div>`).join(''); });
 tabs('stabs', [['guard-color', '전투 대기 컬러'], ['guard-gray', '흑백'], ['guard-sil', '실루엣'], ['idle-color', '대기 컬러'], ['idle-sil', '대기 실루엣']], (k) => { document.getElementById('sil3').src = 'sheets-spear/sil3-' + k + '.png'; });
 tabs('dtabs', ['lancer', 'dragoon', 'dragonlord', 'cavalier', 'skyGeneral', 'halberdier', 'warlord'].map((c) => [c, NAME[c]]), (c) => { document.getElementById('dress').src = 'sheets-spear/dress-' + c + '.png'; });
+const ORD7 = ['lancer', 'dragoon', 'cavalier', 'halberdier', 'dragonlord', 'skyGeneral', 'warlord'];
+let gbC = 'dragoon';
+const gbShow = () => { document.getElementById('gbgif').innerHTML = ['idle', 'walk', 'atkA', 'atkB'].map((a) => `<div class="card"><img src="sheets-spear/gen/gif/${gbC}-${a}-ba.gif" alt="${a}"><div>${a}</div></div>`).join('') + ['cast', 'hurt', 'death'].map((a) => `<div class="card"><img src="sheets-spear/gen/gif/${gbC}-${a}.gif" alt="${a}"><div>${a} (시트)</div></div>`).join(''); };
+tabs('gbtabs', ORD7.map((c) => [c, NAME[c]]), (c) => { gbC = c; gbShow(); });
+document.getElementById('gbanim').remove();
+tabs('lutabs', [['guard-color', '전투 대기 컬러'], ['guard-gray', '흑백'], ['guard-sil', '실루엣'], ['atkA-color', '찌르기·휩쓸기 컬러'], ['atkA-sil', '찌르기·휩쓸기 실루엣']], (k) => { document.getElementById('lu-b').src = 'sheets-spear/gen/before-' + k + '.png'; document.getElementById('lu-a').src = 'sheets-spear/gen/after-' + k + '.png'; });
+tabs('gftabs', ORD7.map((c) => [c, NAME[c]]), (c) => { document.getElementById('gframes').src = 'sheets-spear/gen/' + c + '-frames.png'; });
+tabs('mqtabs', [['idle', '대기 4f'], ['walk', '걷기 8f'], ['spearA', '찌르기 8f'], ['spearB', '내리찍기 8f'], ['halbA', '휩쓸기 8f'], ['halbB', '내려찍기 8f']], (k) => { document.getElementById('mqimg').src = 'sheets-spear/gen/mq-' + k + '.png'; });
 </script>
 </body>
 </html>

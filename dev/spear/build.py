@@ -16,7 +16,7 @@ OUT_C = (0x0b, 0x0d, 0x14, 255)
 # 칸 크기·발 기준점 (스펙 "칸 크기"). 2026-10-16: 창 계열도 128 — 마네킹에 입히고 직업 무기를 덧그리면(dev/spear/dress.py)
 #  용창·용황창이 마네킹 창보다 길어 찌르기 끝이 발 앞 +87, 용기병 날개꼴 망토가 뒤 −27 까지 나가 96 칸(발 24)에 안 들어간다.
 #  할버드·도끼창은 휘두르기 뒤 −48 · 앞 +59. 넘어짐(death)은 앞으로 쓰러져 뒤가 잘리지 않는다
-SPEAR, SWEEP = (128, (36, 112)), (128, (56, 112))
+SPEAR, SWEEP = (128, (36, 112)), (128, (66, 112))   # 할버드: 생성 휩쓸기가 뒤로 −56 넘게 젖혀 발을 66 으로
 CELL = {'lancer': SPEAR, 'dragoon': SPEAR, 'dragonlord': SPEAR, 'cavalier': SPEAR, 'skyGeneral': SPEAR, 'halberdier': SWEEP, 'warlord': SWEEP}
 # 시전 줄: 스킬 자세의 무기 각도 wa 와 가장 가까운 프레임 (src/sprites.js sheetFrame). 할버드는 한 바퀴 돌아 wrap
 CAST = {
@@ -24,7 +24,7 @@ CAST = {
     'sweep': {'val': [-3.14, -2.36, -1.57, -0.79, 0, 0.79, 1.57, 2.36], 'wrap': True},
 }
 KIND = lambda cls: 'sweep' if CELL[cls] is SWEEP else 'spear'
-ORDER = ['idle', 'guard', 'walk', 'atkA', 'atkB', 'cast', 'hurt', 'death', 'sit']
+ALL = ['idle', 'guard', 'walk', 'atkA', 'atkB', 'cast', 'hurt', 'death', 'sit']
 
 
 def solid(im):
@@ -106,17 +106,24 @@ def build(cls, src='rig'):
     A['walk'] = dict(frames=frames(cls, src, 'walk'), fps=10, loop=True)
     A['atkA'] = dict(frames=atkA, fps=14, loop=False, hit=len(atkA) * 35 // 100)
     A['atkB'] = dict(frames=atkB, fps=14, loop=False, hit=len(atkB) * 35 // 100)
-    cast = frames(cls, src, 'cast', len(CAST[k]['val']))
-    A['cast'] = dict(frames=cast, fps=10, loop=True, key='wa', val=CAST[k]['val'][:len(cast)], wrap=CAST[k]['wrap'])
+    cj = os.path.join(HERE, 'frames', cls, 'cast.json')
+    if src == 'gen' and os.path.exists(cj):       # gen.py 가 평타 프레임 무기 각도로 고른 시전 줄
+        cm = json.load(open(cj)); cast = frames(cls, src, 'cast', len(cm['val']))
+        A['cast'] = dict(frames=cast, fps=10, loop=True, key='wa', val=cm['val'][:len(cast)], wrap=cm['wrap'])
+    else:
+        cast = frames(cls, src, 'cast', len(CAST[k]['val']))
+        A['cast'] = dict(frames=cast, fps=10, loop=True, key='wa', val=CAST[k]['val'][:len(cast)], wrap=CAST[k]['wrap'])
     base = idle[0]
     A['hurt'] = dict(frames=[lean(base, foot, 9, -2), lean(base, foot, 4, -1)], fps=12, loop=False)
     A['death'] = dict(frames=[lean(base, foot, a) for a in (-12, -30, -55, -78, -90)], fps=8, loop=False)
-    A['sit'] = dict(frames=[from_rig(cls, 'sit', i) for i in (0, 1)] if src == 'rig' or not os.path.exists(os.path.join(HERE, 'frames', cls, 'sit-0.png')) else frames(cls, src, 'sit'), fps=2, loop=True)
+    # 앉기: 생성 시트에는 줄을 두지 않는다 → 게임이 조립식 앉기로 그린다 (src/sprites.js, 스펙 "sit 은 조립식 유지" 확정)
+    if src == 'rig': A['sit'] = dict(frames=[from_rig(cls, 'sit', i) for i in (0, 1)], fps=2, loop=True)
     return A
 
 
 def write(cls, A, install=False):
     S, foot = CELL[cls]
+    ORDER = [a for a in ALL if a in A and A[a]['frames']]
     n = max(len(A[a]['frames']) for a in ORDER)
     sheet = Image.new('RGBA', (S * n, S * len(ORDER)))
     meta = {'w': S, 'h': S, 'foot': list(foot), 'anims': {}, 'pts': {}}

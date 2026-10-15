@@ -4,7 +4,7 @@
 #  실루엣 바꾸기 (로드맵 결정 "생성 때 틀을 바꾼다"): 창기사 깃발 · 용기병 용비늘 어깨+날개꼴 망토 · 용황 왕관형 투구+큰 꼬리 장식 — FEAT 에 손 도트로.
 #  입력: shots/<name>-<자세>-<full|noacc|nocape|nosh|wcol>.png (capture.js spearParts, 160칸 발 (80,140))
 #  python -I dress.py   → out/dress/*.png, ../review/sheets-spear/mq-*.png · dress-*.png
-import os, sys
+import os, sys, math
 from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 SW = os.path.join(HERE, '..', 'sheets-sword')
@@ -12,12 +12,14 @@ sys.path.insert(0, SW)
 sys.path.insert(0, os.path.join(HERE, '..', 'boxer', 'sheets'))
 from parts import parts, lum, OUT_C, bands, diff_mask
 from mannequin import RAMP
-from dress import classify, ramp_of, anchor, big, solid, palette_of, comfy_pass
+import importlib.util
+_sp = importlib.util.spec_from_file_location('sw_dress', os.path.join(SW, 'dress.py')); _sw = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(_sw)
+classify, ramp_of, anchor, big, solid, palette_of = _sw.classify, _sw.ramp_of, _sw.anchor, _sw.big, _sw.solid, _sw.palette_of   # 검사 세션 dress.py (이름이 겹쳐 따로 불러온다)
 from common import tidy
 sys.path.insert(0, os.path.join(HERE, '..', 'sheets-common'))
-from wpn import WeaponSprite, overlay, grip_tip, diff_pts
+from wpn import WeaponSprite, overlay, grip_tip, diff_pts, line_fit, near_line  # grip_tip: 직업 무기 그림 쪽 (from_capture)
 
-CELL = {'spear': (128, (36, 112)), 'halberd': (128, (56, 112))}
+CELL = {'spear': (128, (36, 112)), 'halberd': (128, (66, 112))}
 ARCH = {'lancer': 'spear', 'dragoon': 'spear', 'dragonlord': 'spear', 'cavalier': 'spear', 'skyGeneral': 'spear',
         'halberdier': 'halberd', 'warlord': 'halberd'}
 LINE = 'line'
@@ -65,6 +67,41 @@ def mannequin(arch, pose):
         for p in ps:
             L = lum(F[p]); O[p] = RAMP[k][0 if L < t1 else 1 if L < t2 else 2] + (255,)
     return o
+
+
+def weapon_axis(MP):
+    """마네킹 프레임 부위 지도 → (지울 무기 칸, 손 점, 끝 점, 앞에 다시 그릴 손 칸) 또는 None.
+    무기 칸: RANSAC 직선(line_fit) 가까운 칸 (생성 애니에선 투구 밝은 회색도 무기 색으로 섞인다).
+    손 점: 몸통 가운데를 무기 직선에 내린 자리 ±10칸 안의 장갑 (손은 늘 몸 가까이 — 할버드 날 금 테두리가 장갑색이라 장갑만으론 틀린다).
+    끝: 손에서 먼 쪽. 양 끝 거리가 비슷하면(차이 30% 미만) 날 때문에 폭이 넓은 쪽"""
+    cand = [p for p, v in MP.items() if v[0] == 'blade']; glove = [p for p, v in MP.items() if v[0] == 'glove']
+    torso = [p for p, v in MP.items() if v[0] == 'torso']
+    c, d, inl = line_fit(cand) if len(cand) >= 6 else (None, None, [])
+    if len(inl) < 6: return None
+    T = lambda p: (p[0] - c[0]) * d[0] + (p[1] - c[1]) * d[1]
+    P = lambda tt: (c[0] + d[0] * tt, c[1] + d[1] * tt)
+    ts = [T(p) for p in inl]; t0, t1 = min(ts), max(ts)
+    if torso:
+        tc = T((sum(p[0] for p in torso) / len(torso), sum(p[1] for p in torso) / len(torso)))
+    else:
+        tc = (t0 + t1) / 2
+    tc = max(t0, min(t1, tc))
+    gl = [p for p in near_line(glove, c, d, 4, tc - 10, tc + 10)]
+    tg = sum(T(p) for p in gl) / len(gl) if gl else tc
+    d0, d1 = abs(tg - t0), abs(t1 - tg)
+    if abs(d0 - d1) < 0.3 * (t1 - t0):
+        wide = lambda te: sum(1 for p in near_line(cand + glove, c, d, 7, te - 10, te + 10) if abs((p[0] - c[0]) * d[1] - (p[1] - c[1]) * d[0]) > 1.5)
+        te = t1 if wide(t1) >= wide(t0) else t0
+    else:
+        te = t1 if d1 > d0 else t0
+    g, t = P(tg), P(te)
+    a0, a1 = (te - 12, te + 2) if te > tg else (te - 2, te + 12)      # 끝쪽 12칸 = 창날·도끼날 (넓게 지운다)
+    mask = set(near_line(cand, c, d, 2.5, t0 - 1, t1 + 1)) | set(near_line(cand, c, d, 7, a0, a1)) | set(near_line(glove, c, d, 7, a0, a1))
+    # 손에서 끝 쪽으로 12칸 넘게 떨어진 직선 근처는 무기 자리 — 부위와 상관없이 지운다 (마네킹 날의 빨강·외곽선 조각이 남지 않게)
+    lo, hi = (tg + 12, te + 3) if te > tg else (te - 3, tg - 12)
+    mask |= set(near_line(list(MP), c, d, 7, lo, hi))
+    gl = [p for p in glove if math.hypot(p[0] - g[0], p[1] - g[1]) <= 4 and p not in mask]
+    return mask, g, t, gl
 
 
 def dress(cls, M, ref_pose='guard'):
@@ -123,11 +160,17 @@ def dress(cls, M, ref_pose='guard'):
         if p[1] < neck and inN(q) and not O[q][3]: O[q] = Gpx[p]
     pal = palette_of(G)
     # 무기 덧그리기 (사용자 결정 2026-10-16): 마네킹 모양 무기를 지우고 원래 직업 무기를 같은 손 점·각도로 얹는다 (dev/sheets-common/wpn.py)
-    blade = {p for p, v in MP.items() if v[0] == 'blade'}; glove = [p for p, v in MP.items() if v[0] == 'glove']
-    if blade:
+    #  생성 애니는 색이 조금 바뀌어 투구 밝은 회색이 무기 색으로 섞인다 → 무기 칸은 RANSAC 직선(line_fit) 가까운 칸만, 옮긴 머리 칸은 빼고
+    headq = {mv(p, hoff) for p in head}
+    W = weapon_axis(MP)
+    if W:
+        mask, g, t, gl = W; mask -= headq
+        # 떠 있는 무기 색 칸 (생성 애니가 넣은 이펙트 그림·반짝이): 무기 직선 밖이고 몸 칸에서 3칸 넘게 떨어진 것은 지운다
+        body = {p for p, v in MP.items() if v[0] not in ('blade', LINE)} | headq
+        for p in [p for p, v in MP.items() if v[0] in ('blade', LINE) and p not in mask and p not in headq]:
+            if not any((p[0] + a, p[1] + b) in body for a in range(-3, 4) for b in range(-3, 4)): O[p] = (0, 0, 0, 0)
         ws = WeaponSprite.from_capture(full, cap('p-' + cls, ref_pose, 'wcol', arch), [p for p, k in CP.items() if k == 'glove'])
-        g, t = grip_tip(blade, glove)
-        o = overlay(o, blade, g, t, ws, front=glove)
+        o = overlay(o, mask, g, t, ws, front=[p for p in gl if p not in headq])
     return o, MP, pal, ramps
 
 

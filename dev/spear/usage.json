@@ -1,0 +1,53 @@
+{
+ "used": 11.0,
+ "calls": [
+  {
+   "cls": "mq",
+   "ep": "/animate-with-text-v3",
+   "purpose": "idle: side view facing right, small chibi knight game sprite with ",
+   "used": 1.0,
+   "bal": 1204.0,
+   "n": 5
+  },
+  {
+   "cls": "mq",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view facing right, small chibi knight game sprite with ",
+   "used": 2.0,
+   "bal": 1198.0,
+   "n": 9
+  },
+  {
+   "cls": "mq",
+   "ep": "/animate-with-text-v3",
+   "purpose": "spearA: side view facing right, small chibi knight game sprite with ",
+   "used": 2.0,
+   "bal": 1193.0,
+   "n": 9
+  },
+  {
+   "cls": "mq",
+   "ep": "/animate-with-text-v3",
+   "purpose": "spearB: side view facing right, small chibi knight game sprite with ",
+   "used": 2.0,
+   "bal": 1184.0,
+   "n": 9
+  },
+  {
+   "cls": "mq",
+   "ep": "/animate-with-text-v3",
+   "purpose": "halbA: side view facing right, small chibi knight game sprite with ",
+   "used": 2.0,
+   "bal": 1178.0,
+   "n": 9
+  },
+  {
+   "cls": "mq",
+   "ep": "/animate-with-text-v3",
+   "purpose": "halbB: side view facing right, small chibi knight game sprite with ",
+   "used": 2.0,
+   "bal": 1175.0,
+   "n": 9
+  }
+ ]
+}

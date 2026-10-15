@@ -11,7 +11,8 @@
 #      front: 무기 위에 다시 그릴 칸 (손·장갑) 집합
 #    ws 대신 WeaponTable 을 주면 가장 가까운 각도 그림을 돌리지 않고 얹는다 (가는 장검처럼 돌리면 끊기는 무기용)
 #      tbl = WeaponTable.from_rig([(그림, 각도 라디안), …])   # 리그로 무기만 각도마다 찍은 그림 (pose.wa)
-#  보조: axis(pts) 주축, grip_tip(wpn_pts, glove_pts, end=None, tip_hint=None) 손 점과 끝 점 (tip_hint = 끝 쪽 점, 예: 지팡이 구슬), diff_pts(a, b) 두 그림이 다른 칸
+#  보조: axis(pts) 주축, grip_tip(wpn_pts, glove_pts, end=None, tip_hint=None) 손 점과 끝 점 (tip_hint = 끝 쪽 점, 예: 지팡이 구슬), diff_pts(a, b) 두 그림이 다른 칸,
+#        line_fit(pts) 다른 부위가 섞인 후보에서 무기 직선(RANSAC), near_line(pts, c, d, tol) 직선 가까운 칸
 #  python -I -B wpn.py  → 자기 시험 (가짜 막대를 돌려 얹기)
 import math
 from PIL import Image
@@ -184,6 +185,33 @@ def overlay(frame, wpn_mask, grip_xy, tip_xy, ws, front=(), line=True, under=Non
     for p in front:
         if F[p][3]: O[p] = F[p]
     return outline(out) if line else out
+
+
+def line_fit(pts, iters=400, tol=1.5, seed=1):
+    """무기 칸 후보(다른 부위가 섞여도)에서 가장 많은 점을 지나는 직선 (RANSAC). → (점, 단위벡터, 직선 위 점들)
+    생성 애니는 색이 조금 바뀌어 투구 밝은 회색 같은 칸이 무기 색으로 섞인다 — 무기는 긴 직선이라 직선으로 가른다"""
+    import random
+    pts = list(pts); rnd = random.Random(seed); best = (None, None, [])
+    if len(pts) < 2: return best
+    for _ in range(iters):
+        a, b = rnd.sample(pts, 2)
+        dx, dy = b[0] - a[0], b[1] - a[1]; L = math.hypot(dx, dy)
+        if L < 6: continue
+        d = (dx / L, dy / L)
+        inl = [p for p in pts if abs((p[0] - a[0]) * d[1] - (p[1] - a[1]) * d[0]) <= tol]
+        if len(inl) > len(best[2]): best = (a, d, inl)
+    if best[0] is None: return best
+    c, d = axis(best[2])                        # 고른 점들로 다시 맞춘다
+    return c, d, [p for p in pts if abs((p[0] - c[0]) * d[1] - (p[1] - c[1]) * d[0]) <= tol]
+
+
+def near_line(pts, c, d, tol, t0=None, t1=None):
+    """직선에서 tol 안이고 (주면) 축 위치 t0~t1 안인 점"""
+    out = []
+    for p in pts:
+        t = (p[0] - c[0]) * d[0] + (p[1] - c[1]) * d[1]
+        if abs((p[0] - c[0]) * d[1] - (p[1] - c[1]) * d[0]) <= tol and (t0 is None or t0 <= t <= t1): out.append(p)
+    return out
 
 
 if __name__ == '__main__':

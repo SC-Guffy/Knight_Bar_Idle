@@ -1,6 +1,9 @@
 shots/
-work/
+work/*
+!work/mq/
+!work/mq-in/
 out/
+frames/
 frames-rig/
 *.log
 __pycache__/
