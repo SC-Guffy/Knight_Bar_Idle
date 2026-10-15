@@ -49,14 +49,15 @@ function sheetFrame(meta, pose) {
   }
   // 기존 직업의 스킬 자세 (SKILL_FX pose 의 wa·pull 등): cast 줄에서 그 값이 가장 가까운 프레임 (cast.key = 자세 값 이름, cast.val = 프레임마다 값).
   //  key 가 없으면 cast 를 반복. 몸의 dx·lift·skew·sx·sy 는 drawHeroSheet 가 그림 전체에 준다
+  //  활·석궁: 하늘로 겨눈 자세(bowA ≤ -0.55, 화살비·포격)는 castUp 줄이 있으면 그 줄에서 같은 식으로 고른다
   if (has('cast') && (pose.wa != null || pose.pull != null)) {
-    const c = A.cast;
+    const k = has('castUp') && (pose.bowA || 0) <= -0.55 ? 'castUp' : 'cast', c = A[k];
     if (c.key && c.val && pose[c.key] != null) {
       let best = 0;
       for (let i = 1; i < c.val.length; i++) if (Math.abs(c.val[i] - pose[c.key]) < Math.abs(c.val[best] - pose[c.key])) best = i;
-      return { anim: 'cast', f: Math.min(c.frames - 1, best) };
+      return { anim: k, f: Math.min(c.frames - 1, best) };
     }
-    return { anim: 'cast', f: loopF('cast', pose.t || 0) };
+    return { anim: k, f: loopF(k, pose.t || 0) };
   }
   if (pose.down > 0 && has('death')) {                    // 쓰러짐: 다시 일어설 때까지 마지막 프레임 유지
     const u = Math.min(1, (DEFEAT_DOWN_SEC - pose.down) / 0.7);
