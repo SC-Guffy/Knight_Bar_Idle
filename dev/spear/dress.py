@@ -14,6 +14,8 @@ from parts import parts, lum, OUT_C, bands, diff_mask
 from mannequin import RAMP
 from dress import classify, ramp_of, anchor, big, solid, palette_of, comfy_pass
 from common import tidy
+sys.path.insert(0, os.path.join(HERE, '..', 'sheets-common'))
+from wpn import WeaponSprite, overlay, grip_tip, diff_pts
 
 CELL = {'spear': (96, (24, 84)), 'halberd': (128, (56, 112))}
 ARCH = {'lancer': 'spear', 'dragoon': 'spear', 'dragonlord': 'spear', 'cavalier': 'spear', 'skyGeneral': 'spear',
@@ -120,6 +122,12 @@ def dress(cls, M, ref_pose='guard'):
         q = mv(p, hoff)
         if p[1] < neck and inN(q) and not O[q][3]: O[q] = Gpx[p]
     pal = palette_of(G)
+    # 무기 덧그리기 (사용자 결정 2026-10-16): 마네킹 모양 무기를 지우고 원래 직업 무기를 같은 손 점·각도로 얹는다 (dev/sheets-common/wpn.py)
+    blade = {p for p, v in MP.items() if v[0] == 'blade'}; glove = [p for p, v in MP.items() if v[0] == 'glove']
+    if blade:
+        ws = WeaponSprite.from_capture(full, cap('p-' + cls, ref_pose, 'wcol', arch), [p for p, k in CP.items() if k == 'glove'])
+        g, t = grip_tip(blade, glove)
+        o = overlay(o, blade, g, t, ws, front=glove)
     return o, MP, pal, ramps
 
 
@@ -147,6 +155,16 @@ def geo(MP):
     tip = max(blade, key=lambda p: (p[0] - p[1] * 0.0)) if blade else None
     return dict(hx=(min(hrow) + max(hrow)) // 2, hy=hb, htop=min(y for _, y in helm), hx0=min(x for x, _ in helm), hx1=max(x for x, _ in helm),
                 tx0=tx0, tx1=tx1, ty0=ty0, ty1=ty1, tip=tip, blade=blade)
+
+
+def wpn_now(o, cls, pz):
+    """덧그린 프레임에서 직업 무기 칸 (무기 색에 가까운 칸 중 몸 오른쪽 위) — 깃발 자리 찾기용"""
+    W = Image.open(os.path.join(HERE, 'shots', f'p-{cls}-guard-full.png')).convert('RGBA')
+    cols = {c[:3] for c in (W.get_flattened_data() if hasattr(W, 'get_flattened_data') else W.getdata()) if c[3]}
+    full = cap('p-' + cls, 'guard', 'noacc', ARCH[cls]); wcol = cap('p-' + cls, 'guard', 'wcol', ARCH[cls])
+    F = full.load(); wc = {F[p][:3] for p in diff_pts(full, wcol) if F[p][3]} - {OUT_C[:3]}
+    O = o.load()
+    return [(x, y) for y in range(o.height) for x in range(o.width) if O[x, y][3] and O[x, y][:3] in wc]
 
 
 def feat_lancer(o, g, P):
@@ -260,7 +278,7 @@ if __name__ == '__main__':
             o = tidy(o, pl, minc=6)
             o.save(os.path.join(od, f'{cls}-{pz}-d0.png'))
             if cls in FEAT:
-                g = geo(MP); f = o.copy(); FEAT[cls](f, g, P); f = outline_out(f)
+                g = geo(MP); g['blade'] = wpn_now(o, cls, pz); f = o.copy(); FEAT[cls](f, g, P); f = outline_out(f)
                 f.save(os.path.join(od, f'{cls}-{pz}-new.png'))
         cap('p-' + cls, 'guard', 'full', ARCH[cls]).save(os.path.join(od, f'{cls}-orig.png'))
     print('ok', od)
