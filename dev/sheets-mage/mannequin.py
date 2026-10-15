@@ -5,7 +5,8 @@
 #  마네킹: 견습 마법사 몸에서 모자·머리카락을 빼고(민머리 + 눈) 부위마다 다른 색 3단으로 칠한다 → mq/staff.png (96칸, 발 44·88)
 #    PixelLab 애니가 이 색을 지키면 프레임마다 부위를 색으로 다시 가를 수 있다 (검사 계열 dev/sheets-sword 와 같은 생각).
 #  입히기 dress(cls, M): 마네킹 프레임 M 의 부위 → 직업 그림. 머리(모자·머리카락·관·후광)와 지팡이 머리(갈래+구슬)는 직업 그림에서 통째로 옮기고
-#    (머리는 마네킹 머리 아랫줄 가운데, 지팡이 머리는 구슬 가운데에 맞춤), 몸통·바지·신발·손·자루는 같은 자리 직업 색 → 없으면 직업 부위 3단 색.
+#    (머리는 마네킹 머리 아랫줄 가운데에 맞춤), 몸통·바지·신발·손은 같은 자리 직업 색 → 없으면 직업 부위 3단 색.
+#    지팡이는 덧그리기: 게임이 그리는 그 직업 지팡이 도트 표(staffcells.json, 7종 × 72각도)를 마네킹 손→구슬 각도·구슬 자리에 찍는다.
 #  python -I mannequin.py  → mq/staff.png, mq/dress-<cls>.png, mq/electro-b.png (뇌전술사 새 머리 시안) + 미리보기
 import os, sys
 from PIL import Image, ImageDraw
@@ -144,7 +145,7 @@ def dress(cls, M, head_img=None):
     R = {k: ramp_of(v) for k, v in cols.items()}
     # 몸: 같은 자리가 같은 부위면 직업 색, 아니면 직업 램프 (없으면 마네킹 램프 그대로)
     for p, (k, i) in mp.items():
-        if k in ('head', 'fork', 'orb'): continue
+        if k in ('head', 'shaft', 'fork', 'orb'): continue        # 지팡이는 덧그리기
         if k == 'line': O[p] = OUT_C; continue
         if P.get(p) == k or (k in BODY and P.get(p) in BODY): O[p] = f[p]; continue      # 같은 자리 직업 몸 색 (무늬 유지)
         r = R.get(k) or R.get('torso') if k != 'shaft' else R.get('shaft')
@@ -158,24 +159,76 @@ def dress(cls, M, head_img=None):
         if q not in mp and not O[q][3]: O[q] = f[p]
     # 머리: 직업 머리 띠 칸(외곽선 포함)을 마네킹 머리 아랫줄 가운데에 맞춰 옮긴다
     mh = [p for p, (k, i) in mp.items() if k == 'head']
-    hp = [p for p in ((x, y) for y in range(neck) for x in range(F.width)) if Hsrc[p][3] and P.get(p) not in ('shaft', 'fork', 'orb')]
+    STF = ('shaft', 'fork', 'orb')
+    near_staff = lambda p: any(P.get((p[0] + a, p[1] + b)) in STF for a in (-1, 0, 1) for b in (-1, 0, 1))
+    # 지팡이 칸과 그 둘레 외곽선은 머리에서 뺀다 (지팡이는 덧그리기가 따로 그림)
+    hp = [p for p in ((x, y) for y in range(neck) for x in range(F.width)) if Hsrc[p][3] and P.get(p) not in STF
+          and not (lum(Hsrc[p]) < 24 and near_staff(p))]
     if mh and hp:
         ax, ay = anchor(mh); bx, by = anchor([p for p in hp if p[1] < neck])
         dx, dy = round(ax - bx), round(ay - by)
         for p in hp:
             q = (p[0] + dx, p[1] + dy)
             if 0 <= q[0] < o.width and 0 <= q[1] < o.height: O[q] = Hsrc[p]
-    # 지팡이 머리: 직업의 갈래+구슬 칸을 마네킹 구슬 가운데에 맞춰 옮긴다
-    mo = [p for p, (k, i) in mp.items() if k == 'orb']
-    co = [p for p, k in P.items() if k == 'orb']
-    if mo and co:
-        ax, ay = centroid(mo); bx, by = centroid(co)
-        dx, dy = round(ax - bx), round(ay - by)
-        for p, k in P.items():
-            if k in ('fork', 'orb') or (k == 'line' and any(P.get((p[0] + a, p[1] + b)) in ('fork', 'orb') for a in (-1, 0, 1) for b in (-1, 0, 1))):
-                q = (p[0] + dx, p[1] + dy)
-                if 0 <= q[0] < o.width and 0 <= q[1] < o.height: O[q] = f[p]
-    return tidy(o, palette(F))
+    # 지팡이 덧그리기 (공용 방식, 0회): 마네킹 지팡이를 지우고 그 직업의 원래 지팡이 도트(게임 stStaffCells 표, staffcells.json)를
+    #  마네킹의 쥔 손 → 구슬 각도에 가장 가까운 각도로 골라 구슬 가운데에 맞춰 찍는다. 손은 그 위에 다시 칠한다 (자루를 쥔다)
+    overdraw_staff(o, mp, cls)
+    T = staff_cells()
+    return tidy(o, palette(F) + [hexrgb(c) + (255,) for c in T['pal']])
+
+
+STAFF_OF = {'mage': 'wand', 'pyromancer': 'flameStaff', 'cryomancer': 'frostStaff', 'electromancer': 'stormStaff',
+            'archmage': 'infernoStaff', 'frostlord': 'glacierStaff', 'thunderEmperor': 'tempestStaff'}
+_CELLS = None
+
+
+def staff_cells():
+    global _CELLS
+    if _CELLS is None:
+        import json
+        _CELLS = json.load(open(os.path.join(HERE, 'staffcells.json'), encoding='utf-8'))
+    return _CELLS
+
+
+def hexrgb(h):
+    """'#rrggbb' 또는 'rgb(r, g, b)' (게임 spriteShadeCol 결과)"""
+    if h.startswith('#'): return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
+    return tuple(int(float(v)) for v in h[h.index('(') + 1:h.index(')')].split(',')[:3])
+
+
+def overdraw_staff(o, mp, cls):
+    import math
+    O = o.load()
+    st = [p for p, (k, i) in mp.items() if k in ('shaft', 'fork', 'orb')]
+    orb = [p for p, (k, i) in mp.items() if k == 'orb']
+    if not orb: return
+    sts = set(st)
+    # 쥔 손 = 자루에 닿은 손 칸
+    grip = [p for p, (k, i) in mp.items() if k == 'hand' and any((p[0] + a, p[1] + b) in sts for a in (-1, 0, 1) for b in (-1, 0, 1))]
+    hand_cols = {p: O[p] for p, (k, i) in mp.items() if k == 'hand'}
+    # 마네킹 지팡이와 그 둘레 외곽선 지우기
+    for p in st: O[p] = (0, 0, 0, 0)
+    for p, (k, i) in mp.items():
+        if k == 'line' and not any(mp.get((p[0] + a, p[1] + b), ('',))[0] not in ('line', 'shaft', 'fork', 'orb', '')
+                                   for a in (-1, 0, 1) for b in (-1, 0, 1) if (a, b) != (0, 0)):
+            O[p] = (0, 0, 0, 0)
+    oc = centroid(orb)
+    gc = centroid(grip) if grip else centroid([p for p, (k, i) in mp.items() if k == 'shaft'] or orb)
+    ang = math.atan2(oc[1] - gc[1], oc[0] - gc[0])
+    T = staff_cells(); W = T['w'][STAFF_OF[cls]]
+    A = min(W['a'], key=lambda a: abs(math.atan2(math.sin(a['ang'] - ang), math.cos(a['ang'] - ang))))
+    hx, hy = oc[0] - A['orb'][0], oc[1] - A['orb'][1]                         # 구슬 가운데를 맞춘 손 자리
+    cells = {}
+    for i, j, ci in A['c']:
+        q = (round(hx + i), round(hy + j))
+        if 0 <= q[0] < o.width and 0 <= q[1] < o.height: cells[q] = hexrgb(T['pal'][ci]) + (255,)
+    for q, c in cells.items(): O[q] = c
+    # 지팡이 둘레 외곽선 (게임 컷 그림처럼). 먼저 둘러야 어두운 자루가 tidy 에서 외곽선으로 바뀌지 않는다
+    for (x, y) in cells:
+        for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            q = (x + a, y + b)
+            if 0 <= q[0] < o.width and 0 <= q[1] < o.height and q not in cells and not O[q][3]: O[q] = OUT_C
+    for p, c in hand_cols.items(): O[p] = c
 
 
 def electro_head():
@@ -236,9 +289,9 @@ def sheet(ims, labels, path, S=4, sil=False, crop=(14, 34, 78, 96), gray=False):
 if __name__ == '__main__':
     os.makedirs(os.path.join(HERE, 'mq'), exist_ok=True)
     M = mannequin(); M.save(os.path.join(HERE, 'mq', 'staff.png'))
-    D = {c: dress(c, M) for c in IDS}
-    for c, im in D.items(): im.save(os.path.join(HERE, 'mq', f'dress-{c}.png'))
     eh = electro_head(); eh.save(os.path.join(HERE, 'mq', 'electro-head.png'))
+    D = {c: dress(c, M, head_img=eh if c == 'electromancer' else None) for c in IDS}     # 뇌전술사 = 시안 B 확정 (2026-10-16)
+    for c, im in D.items(): im.save(os.path.join(HERE, 'mq', f'dress-{c}.png'))
     eb = dress('electromancer', M, head_img=eh); eb.save(os.path.join(HERE, 'mq', 'electro-b.png'))
     orig = [img(f'cap1-fight-{c}') for c in IDS]
     sheet([M] + orig, ['mannequin'] + IDS, os.path.join(HERE, 'mq', '_orig.png'))
