@@ -155,19 +155,22 @@ def axis(pts, by_tips=True):
     return mx, my, d
 
 
+sys.path.insert(0, os.path.join(ROOT, 'dev', 'sheets-common'))
+from wpn import rotsprite      # 계열 공용 무기 덧그리기의 돌리기 (RotSprite 식 — 1px 선이 끊기지 않는다)
+
+
 def place(sprite, src_c, dst_c, ang, scale=1.0):
-    """sprite {(x,y): 색} 을 src_c 둘레로 ang 도 돌리고 scale 배 해서 dst_c 에 (칸마다 원본을 되짚어 가장 가까운 칸)"""
+    """sprite {(x,y): 색} 을 src_c 둘레로 ang 도(화면 시계 방향 +) 돌리고 scale 배 해서 dst_c 에 → {(x,y): 색}"""
     if not sprite: return {}
-    a = math.radians(ang); ca, sa = math.cos(a), math.sin(a)
-    xs = [p[0] for p in sprite]; ys = [p[1] for p in sprite]
-    R = max(max(xs) - min(xs), max(ys) - min(ys)) * scale + 4
-    out = {}
-    for ty in range(int(dst_c[1] - R), int(dst_c[1] + R) + 1):
-        for tx in range(int(dst_c[0] - R), int(dst_c[0] + R) + 1):
-            dx, dy = (tx - dst_c[0]) / scale, (ty - dst_c[1]) / scale
-            q = (round(dx * ca + dy * sa + src_c[0]), round(-dx * sa + dy * ca + src_c[1]))
-            if q in sprite: out[tx, ty] = sprite[q]
-    return out
+    xs = [p[0] for p in sprite]; ys = [p[1] for p in sprite]; x0, y0 = min(xs), min(ys)
+    img = Image.new('RGBA', (max(xs) - x0 + 1, max(ys) - y0 + 1)); P = img.load()
+    for (x, y), c in sprite.items(): P[x - x0, y - y0] = c
+    piv = (src_c[0] - x0, src_c[1] - y0)
+    if scale != 1.0:
+        img = img.resize((round(img.width * scale), round(img.height * scale)), Image.NEAREST); piv = (piv[0] * scale, piv[1] * scale)
+    rot, rp = rotsprite(img, ang, piv); R = rot.load()
+    ox, oy = round(dst_c[0] - rp[0]), round(dst_c[1] - rp[1])
+    return {(ox + x, oy + y): R[x, y] for y in range(rot.height) for x in range(rot.width) if R[x, y][3]}
 
 
 def crescent(cx, cy):
