@@ -2,7 +2,9 @@
 // 레인저 계열 캡처 (dev/skills.html 에서 불러 쓴다 — 게임 스크립트를 다 읽은 뒤):
 //   const s = document.createElement('script'); s.src = '/dev/bowsheets/capture.js?t=' + Date.now(); document.body.appendChild(s);
 //   await bowCapture()   → dev/shots/<이름>.png (8배, 수신기 127.0.0.1:8893 — python -I dev/shot-recv.py 의 포트만 바꾼 것)
-// 직업마다 5장 (대기 자세): full 전체 · noacc 망토 뺌 · body 몸만 한 색(tint, 무기 없음) · wpn 무기만(onlyWeapon) · limb 무기만, 시위 없이 (덧그리기용)
+// 직업마다 4장 (대기 자세): full 전체 · noacc 망토 뺌 · body 몸만 한 색(tint, 무기 없음)
+//   · wcol 무기 색(활대·몸체 w.wood, 석궁 쇠 w.steel)만 #ff00ff 로 바꿔 같은 자세로 — full 과 다른 칸 = 무기 (공용 dev/sheets-common/wpn.py from_capture)
+//     빛 색(w.glow)은 그대로 둔다: 시위가 빛 색이라 바꾸면 시위까지 무기 그림에 들어간다 (대신 빛나는 활은 양 끝 1~2칸이 빠진다)
 // 원형 마네킹 (망토 없음, 부위색은 dress.py 가 칠한다): mq-bow = 저격수 몸 + 장궁 · mq-xbow = 석궁사수 몸 + 거대 석궁 · mq-siege = 석궁사수 몸 + 공성 석궁(128칸)
 //   검사 계열은 검사 몸을 빌렸지만, 활은 쥔 손·팔 자세가 직업 손도트(body2.js)를 따라가서 같은 계열 몸을 빌린다
 //   대기 + 시험 자세(가짜 동작 프레임 — 입히기가 자세가 바뀌어도 되는지 보는 용, 최종에는 안 씀): 시위 반·끝, 하늘 겨눔, 걷기 두 칸
@@ -21,35 +23,20 @@
     return (await fetch('http://127.0.0.1:8893/save?name=' + encodeURIComponent(name), { method: 'POST', body: cv.toDataURL('image/png') })).text();
   }
   async function four(name, id, pose) {
-    const look = CLASSES[id].look, cape = look.cape;
+    const look = CLASSES[id].look, cape = look.cape, w = WEAPONS[CLASSES[id].weapon], wood = w.wood, steel = w.steel;
     await save(`${name}-full`, id, pose);
+    w.wood = '#ff00ff'; if (w.crossbow) w.steel = '#ff00ff';
+    try { await save(`${name}-wcol`, id, pose); } finally { w.wood = wood; w.steel = steel; }
     look.cape = null; await save(`${name}-noacc`, id, pose);
     await save(`${name}-body`, id, { ...pose, tint: '#ff00ff' });
-    await save(`${name}-wpn`, id, { ...pose, onlyWeapon: true });
     look.cape = cape;
   }
-  // 시위 없이 활대·석궁 몸체만 (world.js drawBow·drawCrossbow 의 활대·몸체 부분과 같은 그림)
-  const limbBow = (g, w, hx, hy) => {
-    const r = w.size; g.save(); g.lineCap = 'round'; g.strokeStyle = w.wood; g.lineWidth = 3;
-    g.beginPath(); g.moveTo(hx, hy - r); g.quadraticCurveTo(hx + r * 0.75, hy, hx, hy + r); g.stroke(); g.restore();
-  };
-  const limbXbow = (g, w, hx, hy) => {
-    const r = w.size, fx = hx + r * 0.9; g.save(); g.lineCap = 'round';
-    g.fillStyle = w.wood; g.fillRect(hx - r * 0.7, hy - 1.5, r * 1.75, 3); g.fillRect(hx - r * 0.7, hy, r * 0.3, 4);
-    g.fillStyle = w.steel || '#9a9aa6'; g.fillRect(hx + r * 0.1, hy - 2.5, 3, 5);
-    g.strokeStyle = w.steel || '#9a9aa6'; g.lineWidth = 3;
-    g.beginPath(); g.moveTo(fx, hy - r * 0.8); g.quadraticCurveTo(fx + r * 0.35, hy, fx, hy + r * 0.8); g.stroke(); g.restore();
-  };
   window.bowCapture = async function () {
     const orig = drawCrossbow, origB = drawBow, out = [];
     drawCrossbow = (g, w, hx, hy, pull) => orig(g, w, hx, hy, pull, false);
     drawBow = (g, w, hx, hy, pull) => origB(g, w, hx, hy, pull, false);
     try {
       for (const id of IDS) { await four('c-' + id, id, TEST.stand); out.push(id); }
-      drawBow = limbBow; drawCrossbow = limbXbow;
-      for (const id of IDS) await save(`c-${id}-limb`, id, { ...TEST.stand, onlyWeapon: true });
-      drawCrossbow = (g, w, hx, hy, pull) => orig(g, w, hx, hy, pull, false);
-      drawBow = (g, w, hx, hy, pull) => origB(g, w, hx, hy, pull, false);
       // 마네킹: 같은 계열 몸(망토 없음)에 원형 무기를 쥐인 임시 직업
       for (const [mq, wpn, from] of [['mq-bow', 'longbow', 'marksman'], ['mq-xbow', 'ballista', 'arbalest'], ['mq-siege', 'siegeBallista', 'arbalest']]) {
         const base = CLASSES[from]; heroPalCache[mq] = null;

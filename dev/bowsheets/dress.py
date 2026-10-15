@@ -83,10 +83,18 @@ def weapon_ramp(colors):
     return best
 
 
+def wmask_img(n):
+    """무기 칸 그림: full 과 wcol(무기 색만 #ff00ff) 이 다른 칸 (onlyWeapon 캡처는 쓰지 않는다 — 공용 규칙)"""
+    full = load(n + '-full'); F = full.load(); o = Image.new('RGBA', full.size); O = o.load()
+    for p in diff_pts(full, load(n + '-wcol')):
+        if F[p][3]: O[p] = F[p]
+    return o
+
+
 def mannequin(arch, test):
     n = f'{arch}-{test}'; full = load(n + '-noacc')
     g = ground_of(load(f'{arch}-stand-noacc'))        # 걷기 등에서 발이 떠도 띠는 대기 자세 땅으로
-    return paint(full, parts(full, load(n + '-body'), load(n + '-wpn'), g))
+    return paint(full, parts(full, load(n + '-body'), wmask_img(n), g))
 
 
 def classify(M):
@@ -156,21 +164,7 @@ def axis(pts, by_tips=True):
 
 
 sys.path.insert(0, os.path.join(ROOT, 'dev', 'sheets-common'))
-from wpn import rotsprite      # 계열 공용 무기 덧그리기의 돌리기 (RotSprite 식 — 1px 선이 끊기지 않는다)
-
-
-def place(sprite, src_c, dst_c, ang, scale=1.0):
-    """sprite {(x,y): 색} 을 src_c 둘레로 ang 도(화면 시계 방향 +) 돌리고 scale 배 해서 dst_c 에 → {(x,y): 색}"""
-    if not sprite: return {}
-    xs = [p[0] for p in sprite]; ys = [p[1] for p in sprite]; x0, y0 = min(xs), min(ys)
-    img = Image.new('RGBA', (max(xs) - x0 + 1, max(ys) - y0 + 1)); P = img.load()
-    for (x, y), c in sprite.items(): P[x - x0, y - y0] = c
-    piv = (src_c[0] - x0, src_c[1] - y0)
-    if scale != 1.0:
-        img = img.resize((round(img.width * scale), round(img.height * scale)), Image.NEAREST); piv = (piv[0] * scale, piv[1] * scale)
-    rot, rp = rotsprite(img, ang, piv); R = rot.load()
-    ox, oy = round(dst_c[0] - rp[0]), round(dst_c[1] - rp[1])
-    return {(ox + x, oy + y): R[x, y] for y in range(rot.height) for x in range(rot.width) if R[x, y][3]}
+from wpn import rotsprite, WeaponSprite, grip_tip, overlay, diff_pts      # 계열 공용 무기 덧그리기 (RotSprite 식)
 
 
 def crescent(cx, cy):
@@ -243,44 +237,36 @@ def props(cls, CP):
     return out
 
 
-# 무기 덧그리기 (공용 방식, 2026-10-16 승인): 마네킹 무기에서 각도·가운데를 재고, 그 자리에 원래 직업 무기 그림(시위 없는 활대·몸체 c-<직업>-limb)을 얹는다.
-#  시위는 마네킹 것(당긴 모양)을 직업 시위색으로. alt(틀 바꾸기): 공성포수는 어깨 거치(1.2배, 위·뒤로), 차원궁사는 초승달 활
+# 무기 덧그리기 (공용 dev/sheets-common/wpn.py, 2026-10-16 승인): 직업 무기 그림 = full 과 wcol(무기 색만 #ff00ff) 이 다른 칸 (WeaponSprite.from_capture).
+#  프레임: grip_tip(마네킹 활대 칸, 손 칸, end='up') 의 손 점(축 가운데)·끝 점(위 끝)에 overlay. 석궁은 쇠 활대 칸으로만 잰다(axis_sel) — T자 전체 주축은 가림에 따라 90° 바뀐다.
+#  시위는 프레임마다 모양이 달라(당김) 무기와 같이 돌릴 수 없다 → 마네킹 시위 칸(무기 밝은 단)을 직업 시위색으로 under 에 그린다.
+#  alt(틀 바꾸기): 공성포수는 어깨 거치(무기 그림 1.2배, 손 점을 위·뒤로), 차원궁사는 초승달 활
 XBOW = ('arbalest', 'siegeMaster')
 
 
-def weapon_layer(cls, MP, alt):
-    # 직업 무기 그림 = 시위 없는 활대·몸체 중 대기 그림에서 실제 보이는 칸 (석궁 개머리는 팔에 가린다 — 마네킹도 같은 칸만 보이므로 축이 맞는다)
-    #  모양은 실제 게임 그림(무기만 캡처 wpn)에서, 시위 없는 그림(limb)은 활대·몸체 색표로만 쓴다 (석궁은 도트 격자 컷이라 다시 그린 그림과 1~2칸 어긋난다)
-    #  가려지는 곳(석궁 개머리 위 손)은 쥔 손을 무기 위에 다시 그려서 맞춘다
-    lim = load(f'c-{cls}-limb'); L = lim.load(); wp0 = load(f'c-{cls}-wpn'); P0 = wp0.load()
-    lcol = {L[x, y][:3] for y in range(lim.height) for x in range(lim.width) if L[x, y][3]}
-    spr = {(x, y): P0[x, y] for y in range(wp0.height) for x in range(wp0.width) if P0[x, y][3] and P0[x, y][:3] in lcol}
-    tips = cls not in XBOW
-    if tips:      # 활: 활대 전체의 축·양 끝 가운데 ↔ 마네킹 활대(나무 단)
-        ref = list(spr); mw = [p for p, (k, i) in MP.items() if k == 'weapon' and i == 0]
-    else:         # 석궁: 쇠 활대(밝은 쪽 색)끼리 ↔ 마네킹 쇠 단 (개머리는 손에 가려 들쭉날쭉)
-        steel = max(lcol, key=lambda c: lum(c)); ref = [p for p, c in spr.items() if c[:3] == steel] or list(spr)
-        mw = [p for p, (k, i) in MP.items() if k == 'weapon' and i == 1]
-    cc = axis(ref, True)
-    if alt and cls == 'voidArcher':
-        spr = crescent(round(cc[0]) - 2, round(cc[1])); cc = axis(list(spr), True)
-    if len(mw) < 6: return {}, {}
-    mc = axis(mw, True)
-    ang = mc[2] - cc[2]
-    if ang > 90: ang -= 180
-    if ang < -90: ang += 180
-    scale, sh = (1.2, (-2, -6)) if alt and cls == 'siegeMaster' else (1.0, (0, 0))
-    limb = place(spr, cc[:2], (mc[0] + sh[0], mc[1] + sh[1]), ang, scale)
-    wp = load(f'c-{cls}-wpn'); Wp = wp.load()
-    sc = [Wp[x, y] for y in range(wp.height) for x in range(wp.width) if Wp[x, y][3] and (x, y) not in spr]
-    scol = max(set(sc), key=sc.count) if sc else (255, 255, 255, 255)
-    string = {(x + sh[0], y + sh[1]): scol for (x, y), (k, i) in MP.items() if k == 'weapon' and i == 2}
-    return limb, string
+def class_weapon(cls, CP, alt):
+    full, wc = load(f'c-{cls}-full'), load(f'c-{cls}-wcol')
+    glove = [p for p, k in CP.items() if k == 'glove']
+    # 활·석궁 모두 end='up' (가운데·위 끝). 석궁은 T자라 쇠 활대(밝은 칸)로만 각도를 잰다 — 마네킹 쪽도 쇠 단만 (dress2)
+    end = 'up'; sel = (lambda c: lum(c) >= 90) if cls in XBOW else None
+    ws = WeaponSprite.from_capture(full, wc, glove, end, sel)
+    if alt and cls == 'voidArcher':                     # 초승달 활: 쥔 자리(가운데)에서 위 끝으로
+        sp = crescent(0, 0); xs = [p[0] for p in sp]; ys = [p[1] for p in sp]; x0, y0 = min(xs), min(ys)
+        img = Image.new('RGBA', (max(xs) - x0 + 1, max(ys) - y0 + 1)); P = img.load()
+        for (x, y), c in sp.items(): P[x - x0, y - y0] = c
+        ws = WeaponSprite(img, (-x0 + 2, -y0), math.atan2(-16, -3))
+    if alt and cls == 'siegeMaster':
+        k = 1.2; img = ws.img.resize((round(ws.img.width * k), round(ws.img.height * k)), Image.NEAREST)
+        ws = WeaponSprite(img, (ws.grip[0] * k, ws.grip[1] * k), ws.ang)
+    # 시위 색 = 무기도 몸도 아닌 칸 중 가장 많은 색 (빛나는 활은 빛 색)
+    na = load(f'c-{cls}-noacc'); F, B, D = na.load(), load(f'c-{cls}-body').load(), diff_pts(full, wc)     # 망토 없는 그림에서 (망토 색이 섞이지 않게)
+    sc = [F[x, y] for y in range(na.height) for x in range(na.width) if F[x, y][3] and not B[x, y][3] and (x, y) not in D and lum(F[x, y]) >= 24]
+    return ws, (max(set(sc), key=sc.count) if sc else (217, 210, 192, 255)), end
 
 
 def dress2(cls, M, alt=True):
     """덧그리기 + (alt) 틀 바꾸기 판 입히기"""
-    full, noacc, body, wpn = (load(f'c-{cls}-{k}') for k in ('full', 'noacc', 'body', 'wpn'))
+    full, noacc, body, wpn = (load(f'c-{cls}-{k}') if k != 'wpn' else wmask_img(f'c-{cls}') for k in ('full', 'noacc', 'body', 'wpn'))
     W = full.width; inN = lambda p: 0 <= p[0] < W and 0 <= p[1] < W
     g = ground_of(noacc); neck = g - 19
     CP = parts(noacc, body, wpn); C = noacc.load(); Fp = full.load()
@@ -307,7 +293,6 @@ def dress2(cls, M, alt=True):
         q = mv(p, off)
         if inN(q) and q not in MP: O[q] = Fp[p]
     put('back', True)
-    limb, string = weapon_layer(cls, MP, alt)
     near = lambda x, y, f: any(f(MP.get((x + a, y + b), ('',))[0]) for a in (-1, 0, 1) for b in (-1, 0, 1))
     for (x, y), (k, i) in MP.items():                    # 몸: 부위 램프, 몸통은 직업 무늬 우선 (마네킹 무기는 덧그리기로 바꾼다)
         if k == 'weapon': continue
@@ -320,28 +305,41 @@ def dress2(cls, M, alt=True):
             q = (x - off[0], y - off[1])
             if CP.get(q) == 'torso': c = C[q]
         O[x, y] = c[:3] + (255,)
-    put('front')
-    for p, c in list(string.items()) + list(limb.items()):
-        if inN(p): O[p] = c[:3] + (255,)
-    for (x, y), (k, i) in MP.items():                    # 쥔 손은 무기 위
+    for (x, y), (k, i) in MP.items():                    # 쥔 손 (overlay 의 front)
         if k == 'glove': O[x, y] = ramps['glove'][i][:3] + (255,)
+    put('front')
+    # 무기: 공용 overlay
+    ws, scol, end = class_weapon(cls, CP, alt)
+    limb_pts = [p for p, (k, i) in MP.items() if k == 'weapon' and (i == 1 if cls in XBOW else i != 2)]
+    glove_pts = [p for p, (k, i) in MP.items() if k == 'glove']
+    sh = (-2, -6) if alt and cls == 'siegeMaster' else (0, 0)
+    under = {(x + sh[0], y + sh[1]): scol[:3] + (255,) for (x, y), (k, i) in MP.items() if k == 'weapon' and i == 2}
+    before = {(x, y) for y in range(W) for x in range(W) if O[x, y][3]}
+    if len(limb_pts) >= 6:
+        gp, tp = grip_tip(limb_pts, glove_pts, end)
+        gp, tp = (gp[0] + sh[0], gp[1] + sh[1]), (tp[0] + sh[0], tp[1] + sh[1])
+        o = overlay(o, set(), gp, tp, ws, front=glove_pts if not sh[1] else (), line=False, under=under); O = o.load()
+    wpn_now = {(x, y) for y in range(W) for x in range(W) if O[x, y][3]} - before
     head = {p for p, k in CP.items() if p[1] < neck and k not in ('weapon', 'line', 'glove')}
     head |= {p for p, k in CP.items() if k == 'line' and p[1] < neck + 1 and any((p[0] + a, p[1] + b) in head for a in (-1, 0, 1) for b in (-1, 0, 1))}
     for p in head:
         q = mv(p, hoff)
-        if inN(q) and q not in limb: O[q] = C[p]
+        if inN(q) and q not in wpn_now: O[q] = C[p]
     put('head')
     pal = sorted({c for c in (full.get_flattened_data() if hasattr(full, 'get_flattened_data') else full.getdata()) if c[3]})
     for _, _, sp in PR:
         for c in sp.values():
             if c not in pal: pal.append(c)
     if OUT_C not in pal: pal.append(OUT_C)
-    return tidy(o, pal, minc=6)
+    keep = {p: O[p] for p in wpn_now if O[p][3]}
+    o = tidy(o, pal, minc=6); T = o.load()
+    for p, c in keep.items(): T[p] = c          # 1칸 두께의 어두운 활대·석궁 몸체는 전부 가장자리라 tidy 가 외곽선으로 칠한다 → 덧그린 무기 색으로 되돌림
+    return o
 
 
 def dress(cls, M):
     """첫 시안 (v1): 무기까지 마네킹 모양으로 칠한다 — 비교용으로 남김"""
-    full, noacc, body, wpn = (load(f'c-{cls}-{k}') for k in ('full', 'noacc', 'body', 'wpn'))
+    full, noacc, body = (load(f'c-{cls}-{k}') for k in ('full', 'noacc', 'body')); wpn = wmask_img(f'c-{cls}')
     W = full.width; inN = lambda p: 0 <= p[0] < W and 0 <= p[1] < W
     g = ground_of(noacc); neck = g - 19
     CP = parts(noacc, body, wpn); C = noacc.load(); Fp = full.load()

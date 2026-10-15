@@ -4,8 +4,9 @@
 #
 #  쓰는 법 (PIL RGBA, 알파 0/255):
 #    from wpn import WeaponSprite, overlay
-#    ws = WeaponSprite.from_capture(full, wcol, grip)       # 직업 그림 + 무기 색만 바꿔 찍은 그림 → 무기 그림, grip = 손 점 (x, y)
-#    out = overlay(frame, frame_wpn_mask, grip_xy, tip_xy, ws, front=glove_pts)
+#    ws = WeaponSprite.from_capture(full, wcol, glove_pts[, end, axis_sel])  # 직업 그림 + 무기 색만 바꿔 찍은 그림 → 무기 그림
+#      end="up": 활처럼 가운데를 쥐는 무기 (손 점 = 축 가운데, 끝 = 위 끝) · axis_sel(색): 각도를 잴 칸만 (석궁 쇠 활대 등, 프레임 grip_tip 에도 같은 부분만)
+#    out = overlay(frame, frame_wpn_mask, grip_xy, tip_xy, ws, front=glove_pts[, under={(x,y): 색}])   # under: 지운 뒤 얹기 전에 그릴 칸 (활 시위)
 #      frame_wpn_mask: 지울 무기 칸 집합 {(x,y)}, grip_xy: 프레임의 손 점, tip_xy: 무기 끝 쪽 아무 점 (방향만 쓴다)
 #      front: 무기 위에 다시 그릴 칸 (손·장갑) 집합
 #    ws 대신 WeaponTable 을 주면 가장 가까운 각도 그림을 돌리지 않고 얹는다 (가는 장검처럼 돌리면 끊기는 무기용)
@@ -32,8 +33,10 @@ def axis(pts):
     return (cx, cy), (math.cos(a), math.sin(a))
 
 
-def grip_tip(wpn_pts, glove_pts):
-    """무기 칸과 손(장갑) 칸 → (손 점, 끝 점). 손 점 = 손 가운데를 무기 축에 내린 발, 끝 = 손에서 먼 쪽 끝"""
+def grip_tip(wpn_pts, glove_pts, end=None):
+    """무기 칸과 손(장갑) 칸 → (손 점, 끝 점). 손 점 = 손 가운데를 무기 축에 내린 발, 끝 = 손에서 먼 쪽 끝.
+    end='up': 활처럼 가운데를 쥐는 무기 — 손 점 = 축의 가운데, 끝 = 화면 위쪽 끝 (양 끝이 손에서 똑같이 멀어
+      "먼 끝"이 프레임마다 바뀌어 180° 뒤집히거나, 손이 한쪽 끝에 붙으면 손 점과 끝 점이 겹쳐 각도가 0 이 된다)"""
     c, d = axis(list(wpn_pts))
     ts = [(p[0] - c[0]) * d[0] + (p[1] - c[1]) * d[1] for p in wpn_pts]
     t0, t1 = min(ts), max(ts)
@@ -44,6 +47,8 @@ def grip_tip(wpn_pts, glove_pts):
         tg = t0 + (t1 - t0) * 0.3
     tg = max(t0, min(t1, tg))
     tt = t1 if abs(t1 - tg) >= abs(t0 - tg) else t0
+    if end == 'up':
+        tg = (t0 + t1) / 2; tt = t0 if c[1] + d[1] * t0 < c[1] + d[1] * t1 else t1
     P = lambda t: (c[0] + d[0] * t, c[1] + d[1] * t)
     return P(tg), P(tt)
 
@@ -55,13 +60,16 @@ class WeaponSprite:
         self.img, self.grip, self.ang = img, grip, ang
 
     @classmethod
-    def from_capture(cls, full, wcol, glove_pts):
+    def from_capture(cls, full, wcol, glove_pts, end=None, axis_sel=None):
+        """axis_sel(색) → bool: 손 점·각도를 잴 칸만 고른다 (석궁처럼 T자라 전체 주축이 가림에 따라 90° 바뀌는 무기 — 쇠 활대만 등).
+        프레임 쪽 grip_tip 에도 같은 부분 칸을 넘겨야 각도가 맞는다"""
         pts = diff_pts(full, wcol)
         F = full.load(); W, H = full.size
         img = Image.new('RGBA', (W, H)); O = img.load()
         for p in pts:
             if F[p][3]: O[p] = F[p]
-        g, t = grip_tip(pts, glove_pts)
+        ap = [p for p in pts if F[p][3] and axis_sel(F[p])] if axis_sel else []
+        g, t = grip_tip(ap if len(ap) >= 4 else pts, glove_pts, end)
         bb = img.getbbox()
         img = img.crop(bb); g = (g[0] - bb[0], g[1] - bb[1]); t = (t[0] - bb[0], t[1] - bb[1])
         return cls(img, g, math.atan2(t[1] - g[1], t[0] - g[0]))
@@ -138,8 +146,9 @@ def outline(im, keep=()):
     return im
 
 
-def overlay(frame, wpn_mask, grip_xy, tip_xy, ws, front=(), line=True):
-    """frame 의 무기 칸을 지우고 ws 를 grip_xy 에 tip_xy 방향으로 얹는다. front 칸(손)은 무기 위로 다시 그린다"""
+def overlay(frame, wpn_mask, grip_xy, tip_xy, ws, front=(), line=True, under=None):
+    """frame 의 무기 칸을 지우고 ws 를 grip_xy 에 tip_xy 방향으로 얹는다. front 칸(손)은 무기 위로 다시 그린다.
+    under {(x,y): 색}: 무기를 지운 뒤, 얹기 전에 그릴 칸 — 활 시위처럼 프레임마다 모양이 바뀌어 무기 그림과 같이 돌릴 수 없는 것"""
     out = frame.copy(); O = out.load(); F = frame.load()
     for p in wpn_mask: O[p] = (0, 0, 0, 0)
     # 지운 칸에 붙은 외곽선 찌꺼기(무기 외곽선)도 지운다: 무기 칸 옆의 외곽선 중 몸 칸과 안 닿는 것
@@ -153,6 +162,8 @@ def overlay(frame, wpn_mask, grip_xy, tip_xy, ws, front=(), line=True):
                                and (q[0] + c, q[1] + d) not in wpn_mask for c, d in ((1, 0), (-1, 0), (0, 1), (0, -1))):
                         O[q] = (0, 0, 0, 0)
     fill_holes(out, wpn_mask)
+    for p, c in (under or {}).items():
+        if 0 <= p[0] < W and 0 <= p[1] < H: O[p] = c
     ang = math.atan2(tip_xy[1] - grip_xy[1], tip_xy[0] - grip_xy[0])
     if isinstance(ws, WeaponTable):
         e = ws.pick(ang); rot, piv = e.img, e.grip          # 각도 표: 가장 가까운 각도 그림을 돌리지 않고
