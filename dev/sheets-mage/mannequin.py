@@ -6,13 +6,15 @@
 #    PixelLab 애니가 이 색을 지키면 프레임마다 부위를 색으로 다시 가를 수 있다 (검사 계열 dev/sheets-sword 와 같은 생각).
 #  입히기 dress(cls, M): 마네킹 프레임 M 의 부위 → 직업 그림. 머리(모자·머리카락·관·후광)와 지팡이 머리(갈래+구슬)는 직업 그림에서 통째로 옮기고
 #    (머리는 마네킹 머리 아랫줄 가운데에 맞춤), 몸통·바지·신발·손은 같은 자리 직업 색 → 없으면 직업 부위 3단 색.
-#    지팡이는 덧그리기: 게임이 그리는 그 직업 지팡이 도트 표(staffcells.json, 7종 × 72각도)를 마네킹 손→구슬 각도·구슬 자리에 찍는다.
-#  python -I mannequin.py  → mq/staff.png, mq/dress-<cls>.png, mq/electro-b.png (뇌전술사 새 머리 시안) + 미리보기
+#    지팡이는 덧그리기: 공용 dev/sheets-common/wpn.py — 직업 지팡이 그림을 마네킹 손 점·끝 방향에 돌려 얹는다.
+#  python -I -B mannequin.py  → mq/staff.png, mq/dress-<cls>.png, mq/electro-b.png (뇌전술사 새 머리 시안) + 미리보기
 import os, sys
 from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from build import tidy, palette, OUT_C, lum
+sys.path.insert(0, os.path.join(HERE, '..', 'sheets-common'))
+from wpn import WeaponSprite, overlay, grip_tip
 
 IDS = ['mage', 'pyromancer', 'cryomancer', 'electromancer', 'archmage', 'frostlord', 'thunderEmperor']
 KEY = {'shaft': (255, 0, 255), 'fork': (0, 255, 0), 'orb': (0, 255, 255)}
@@ -170,65 +172,32 @@ def dress(cls, M, head_img=None):
         for p in hp:
             q = (p[0] + dx, p[1] + dy)
             if 0 <= q[0] < o.width and 0 <= q[1] < o.height: O[q] = Hsrc[p]
-    # 지팡이 덧그리기 (공용 방식, 0회): 마네킹 지팡이를 지우고 그 직업의 원래 지팡이 도트(게임 stStaffCells 표, staffcells.json)를
-    #  마네킹의 쥔 손 → 구슬 각도에 가장 가까운 각도로 골라 구슬 가운데에 맞춰 찍는다. 손은 그 위에 다시 칠한다 (자루를 쥔다)
-    overdraw_staff(o, mp, cls)
-    T = staff_cells()
-    return tidy(o, palette(F) + [hexrgb(c) + (255,) for c in T['pal']])
+    # 지팡이 덧그리기 (공용 모듈 dev/sheets-common/wpn.py, 0회): 직업 지팡이 그림(전체 캡처와 지팡이 색만 바꾼 key 캡처의 차이)을
+    #  마네킹 지팡이 칸의 손 점·끝 방향에 RotSprite 로 돌려 얹고, 쥔 손은 그 위에 다시 그린다
+    overdraw_staff(o, mp, cls, P)
+    return tidy(o, palette(F) + palette(img(f'cap1-fight-{cls}')))
 
 
-STAFF_OF = {'mage': 'wand', 'pyromancer': 'flameStaff', 'cryomancer': 'frostStaff', 'electromancer': 'stormStaff',
-            'archmage': 'infernoStaff', 'frostlord': 'glacierStaff', 'thunderEmperor': 'tempestStaff'}
-_CELLS = None
+STF = ('shaft', 'fork', 'orb')
+_WS = {}
 
 
-def staff_cells():
-    global _CELLS
-    if _CELLS is None:
-        import json
-        _CELLS = json.load(open(os.path.join(HERE, 'staffcells.json'), encoding='utf-8'))
-    return _CELLS
+def staff_sprite(cls, P):
+    """직업 지팡이 그림 (wpn.WeaponSprite). 손 점 = 지팡이에 닿은 직업 손 칸"""
+    if cls not in _WS:
+        sts = {p for p, k in P.items() if k in STF}
+        glove = [p for p, k in P.items() if k == 'hand' and any((p[0] + a, p[1] + b) in sts for a in (-1, 0, 1) for b in (-1, 0, 1))]
+        _WS[cls] = WeaponSprite.from_capture(img(f'cap1-fight-{cls}'), img(f'cap1-key-{cls}'), glove)
+    return _WS[cls]
 
 
-def hexrgb(h):
-    """'#rrggbb' 또는 'rgb(r, g, b)' (게임 spriteShadeCol 결과)"""
-    if h.startswith('#'): return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
-    return tuple(int(float(v)) for v in h[h.index('(') + 1:h.index(')')].split(',')[:3])
-
-
-def overdraw_staff(o, mp, cls):
-    import math
-    O = o.load()
-    st = [p for p, (k, i) in mp.items() if k in ('shaft', 'fork', 'orb')]
-    orb = [p for p, (k, i) in mp.items() if k == 'orb']
-    if not orb: return
-    sts = set(st)
-    # 쥔 손 = 자루에 닿은 손 칸
-    grip = [p for p, (k, i) in mp.items() if k == 'hand' and any((p[0] + a, p[1] + b) in sts for a in (-1, 0, 1) for b in (-1, 0, 1))]
-    hand_cols = {p: O[p] for p, (k, i) in mp.items() if k == 'hand'}
-    # 마네킹 지팡이와 그 둘레 외곽선 지우기
-    for p in st: O[p] = (0, 0, 0, 0)
-    for p, (k, i) in mp.items():
-        if k == 'line' and not any(mp.get((p[0] + a, p[1] + b), ('',))[0] not in ('line', 'shaft', 'fork', 'orb', '')
-                                   for a in (-1, 0, 1) for b in (-1, 0, 1) if (a, b) != (0, 0)):
-            O[p] = (0, 0, 0, 0)
-    oc = centroid(orb)
-    gc = centroid(grip) if grip else centroid([p for p, (k, i) in mp.items() if k == 'shaft'] or orb)
-    ang = math.atan2(oc[1] - gc[1], oc[0] - gc[0])
-    T = staff_cells(); W = T['w'][STAFF_OF[cls]]
-    A = min(W['a'], key=lambda a: abs(math.atan2(math.sin(a['ang'] - ang), math.cos(a['ang'] - ang))))
-    hx, hy = oc[0] - A['orb'][0], oc[1] - A['orb'][1]                         # 구슬 가운데를 맞춘 손 자리
-    cells = {}
-    for i, j, ci in A['c']:
-        q = (round(hx + i), round(hy + j))
-        if 0 <= q[0] < o.width and 0 <= q[1] < o.height: cells[q] = hexrgb(T['pal'][ci]) + (255,)
-    for q, c in cells.items(): O[q] = c
-    # 지팡이 둘레 외곽선 (게임 컷 그림처럼). 먼저 둘러야 어두운 자루가 tidy 에서 외곽선으로 바뀌지 않는다
-    for (x, y) in cells:
-        for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            q = (x + a, y + b)
-            if 0 <= q[0] < o.width and 0 <= q[1] < o.height and q not in cells and not O[q][3]: O[q] = OUT_C
-    for p, c in hand_cols.items(): O[p] = c
+def overdraw_staff(o, mp, cls, P):
+    mask = {p for p, (k, i) in mp.items() if k in STF}
+    if not mask: return
+    glove = [p for p, (k, i) in mp.items() if k == 'hand' and any((p[0] + a, p[1] + b) in mask for a in (-1, 0, 1) for b in (-1, 0, 1))]
+    g, t = grip_tip(mask, glove)
+    out = overlay(o, mask, g, t, staff_sprite(cls, P), front=glove)
+    o.paste(out, (0, 0))
 
 
 def electro_head():
