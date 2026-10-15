@@ -354,7 +354,7 @@ function fightTick(dt, st, onFree) {
   for (const m of alive) {
     const d = aheadDist(knight.x, m.x);
     if (d <= reachTo(m) + 4) m.engaged = true;
-    const stop = Math.max(monsterReach(m), prev + 16);
+    const stop = m.pileStop != null ? m.pileStop : Math.max(monsterReach(m), prev + 16);   // pileStop: 성벽 지키기 1:n — 줄 없이 겹겹이 붙는 자리 (castle-view.js castleMove)
     const stunned = m.stun > 0;                       // 💫 고유 특수 기절: 제자리에 멈춘다 (공격도 아래에서 막는다)
     m.moving = m.engaged && d > stop && !m.anim && !stunned;
     if (m.engaged && d > stop && !stunned) m.x -= Math.min(MONSTER_SPEED * dt, d - stop);
@@ -403,7 +403,7 @@ function fightTick(dt, st, onFree) {
     if (m.dying || S.phase !== phase || knight.down > 0) continue;
     if (m.stun > 0) { m.anim = null; continue; }           // 💫 기절: 휘두르던 것도 멈추고 새 공격도 못 한다
     if (m.anim && advanceMonsterAttack(m, dt, st)) break;   // true = 기사가 쓰러짐
-    if (aheadDist(knight.x, m.x) > monsterReach(m) + 1) continue;
+    if (aheadDist(knight.x, m.x) > monsterReach(m) + (m.pileReach || 0) + 1) continue;   // pileReach: 성벽 지키기 무리 뒷줄도 밀어붙이며 친다
     m.atkTimer -= dt;
     if (m.atkTimer > 0 || m.anim) continue;
     const cd = m.atkCd || MONSTERS[m.type].atkCd || 1.4;    // atkCd: 성벽 지키기 보스(2초)
@@ -420,7 +420,7 @@ function advanceMonsterAttack(m, dt, st) {
   if (a.hit || a.t < a.dur * mo.hitAt) return false;
   a.hit = true;
   // 공중에 있거나 그새 사거리 밖이면 빗나감
-  if (heroAirborne() || aheadDist(knight.x, m.x) > monsterReach(m) + 1) return false;
+  if (heroAirborne() || aheadDist(knight.x, m.x) > monsterReach(m) + (m.pileReach || 0) + 1) return false;
   strikeFx(m);
   const dmg = procBeforeHurt(m.atk * rand(0.9, 1.1) * (1 - st.guard) * (knight.ward ? 1 - knight.ward.guard : 1));   // 회피·보호막 (procs.js)
   S.hp -= dmg;
@@ -2897,6 +2897,7 @@ function monsterPose(m) {
     const br = Math.sin(m.t * 3.5);                           // 숨쉬기
     pose.sy = 1 + br * 0.04; pose.sx = 1 - br * 0.02;
   }
+  if (m.lift) pose.dy -= m.lift;                             // 성벽 지키기 무리: 위아래로 조금씩 흩어져 두께 있게 (castle-view.js castleSpawn)
   if (m.air != null) pose.dy -= Math.sin(Math.PI * Math.min(1, m.air / 0.6)) * (m.boss ? 12 : 34);   // 공중에 띄워졌다 떨어진다
   if (m.hurt) {                                               // 맞으면 찌그러지며 뒤로 젖혀진다
     const h = m.hurt * m.hurt;

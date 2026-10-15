@@ -1,7 +1,8 @@
 'use strict';
 // 🏰 성벽 지키기 하단바 연출. 규칙(웨이브·보상·업그레이드)은 src/castle.js. 스펙: docs/specs/castle-defense.md
-// 캠프에서 빛에 싸여 사라짐 → 왼쪽 성벽 앞 성문에 나타남 → 오른쪽 끝에서 웨이브가 4마리씩 쏟아져 레인을 건너온다 →
-// 기사 앞에 줄을 서서 기사를 친다 (전투는 원정 fightTick 그대로) → 기사가 쓰러지면 5초 동안 몬스터가 성벽으로 몰려가 친다 →
+// 캠프에서 빛에 싸여 사라짐 → 화면 왼쪽 끝 성벽 앞 성문에 나타남 → 화면 오른쪽 끝에서 5마리 무리가 달려와 전장(480px)을 건너온다 →
+// 줄을 서지 않고 기사 앞에 겹겹이 붙어 모두가 기사를 친다 (1:n 포위, 2차 개편 10-15. 전투는 원정 fightTick 그대로) →
+// 🔥 끓는 기름 버튼(castleOil): 성벽 위 가마솥을 쏟아 성문 앞 무리에 피해 + 화상 → 기사가 쓰러지면 5초 동안 몬스터가 성벽으로 몰려가 친다 →
 // 성벽 위 궁수·투석기·교관이 같이 싸운다 → 성공(깃발·색종이)·실패(먼지) 뒤 귀환 빛으로 캠프.
 // sub: warpOut 캠프에서 사라짐 | fight 진행 | end 끝 연출 | home 귀환 빛
 // 그림: 성벽·궁수·투석기·돌은 도트 오브젝트(코드). 지원군 명중 이펙트는 지금 기존 burst·ring 을 빌려 쓴다 —
@@ -9,28 +10,37 @@
 let cdv = null;
 const CW_W = 64, CW_H = 70;                 // 성벽 폭·높이 px
 const castleInside = () => !!cdv && cdv.sub !== 'warpOut';
-// 레인 길이 = min(창 폭 − 성벽 폭, 480). 창이 넓으면 전장을 오른쪽에 붙이고 성벽 왼쪽은 성 안 풍경
+// 성벽은 언제나 화면 왼쪽 끝. 전장 = 성문부터 min(창 폭 − 성벽 폭, 480)px. 몬스터는 화면 오른쪽 끝(spawnX)에서 달려 나와
+//  전장 끝(fieldX)에 들어서면 정해진 속도로 걷는다 → 창 폭과 상관없이 판 흐름이 같다
 function castleLayout() {
   const lane = Math.max(120, Math.min(W - CW_W, CASTLE_LANE_MAX));
-  const wallX = Math.max(0, Math.round(W - lane - CW_W)), gateX = wallX + CW_W;
-  return { lane, wallX, gateX, homeX: gateX + 10, spawnX: gateX + lane, top: groundY() - CW_H };
+  const wallX = 0, gateX = CW_W;
+  return { lane, wallX, gateX, homeX: gateX + 10, fieldX: gateX + lane, spawnX: Math.max(gateX + lane, W + 10), top: groundY() - CW_H };
 }
+const CASTLE_RUSH_SEC = 1.2;
+const CASTLE_PILE_DEPTH = 40;              // 무리 두께 px (몬스터 사거리에 더해 이만큼 뒤에서도 친다)               // 화면 끝 → 전장 끝을 달려오는 시간 (창이 넓을 때만)
 
 function beginCastleView() {
-  cdv = { sub: 'warpOut', t: 0, hold: 0, res: null, q: [], proj: [], arch: 0, catT: CASTLE_CAT_SEC, mt: {}, downT: 0, wallHit: 0, flag: 0 };
+  cdv = { sub: 'warpOut', t: 0, hold: 0, res: null, q: [], proj: [], arch: 0, catT: CASTLE_CAT_SEC, mt: {}, downT: 0, wallHit: 0, flag: 0, oilCd: 0, oil: 0, pile: 0 };
   monsters = []; shots = []; lapReady = false;
   Object.assign(knight, { down: 0, fighting: false, pending: false, swing: -1, ward: null });
   warpKnight('out');
 }
 function endCastleView() { cdv = null; }
 
-// 몬스터 한 마리를 오른쪽 끝에 세운다 (spec: castle.js castleWaveMobs 의 한 줄)
+// 몬스터 한 마리를 화면 오른쪽 끝에 세운다 (spec: castle.js castleWaveMobs 의 한 줄). 무리 안에서 조금씩 흩어진다
+//  pileOff: 기사 앞에 붙을 때 무리 안에서 서는 깊이(0~1, 겹겹이 서게) · lift: 위아래 몇 px (무리가 두께 있게)
+//  무리 두께 = 몬스터 사거리 + CASTLE_PILE_DEPTH. 사거리 안에만 서면 9마리가 18px 안에 겹쳐 2~3마리로 보여서, 뒷줄도 치게 하고 넓게 세웠다
 function castleSpawn(sp, wi, j) {
   const Ly = castleLayout();
-  const m = makeMonster(sp.type, !!sp.boss, toWorld(Ly.spawnX + 6 + j * PACK_GAP), { hp: sp.hp, atk: sp.atk, gold: 0, exp: 0, boss: !!sp.boss });
+  const m = makeMonster(sp.type, !!sp.boss, toWorld(Ly.spawnX + 6 + rand(0, 20)), { hp: sp.hp, atk: sp.atk, gold: 0, exp: 0, boss: !!sp.boss });
   m.wi = wi; m.pts = sp.pts; m.atkCd = sp.cd; m.spd = Ly.lane / castleLaneSec(!!sp.boss);
+  m.spdK = sp.boss ? 1 : rand(CASTLE_SPD_JIT[0], CASTLE_SPD_JIT[1]);   // 저마다 빠르기가 달라 덩어리가 아니라 우르르 흩어져 달려온다
   if (sp.boss === 2) m.scale = Math.round(PX * 2.5);
   m.wallT = rand(0.2, 0.8);
+  m.pileOff = sp.boss ? 0 : rand(0, 1); m.lift = sp.boss ? 0 : Math.round(rand(0, 8));   // pileOff 는 붙는 깊이 비율 (0 = 무리 맨 뒤, 1 = 기사 몸에 붙음)
+  m.pileReach = sp.boss ? 0 : CASTLE_PILE_DEPTH;      // 무리 뒷줄도 앞줄을 밀어붙이며 친다 (world.js fightTick 의 몬스터 사거리에 더한다)
+  m.atkTimer = rand(0, sp.cd);              // 한꺼번에 붙어도 같은 박자로 치지 않게
   monsters.push(m);
 }
 // 처치 (hitMonster·지원군): 점수·웨이브 남은 수
@@ -53,6 +63,47 @@ function castleSupportHit(m, dmg, color = '#c9e6ff', kb = 0) {
   m.dying = 0.001; m.killed = true;
   shatter(m);
   castleViewKill(m);
+}
+
+// 🔥 끓는 기름 (castle-defense.md "끓는 기름"): 버튼(castle-ui.js) → 성벽 위 가마솥이 기울고 0.35초 뒤 성문 앞 CASTLE_OIL_R px 에 쏟아진다.
+//  즉시 피해 지원군 위력 × CASTLE_OIL_K + 화상 CASTLE_OIL_BURN_SEC 초 (초당 × CASTLE_OIL_BURN, 0.5초마다 나눠 넣는다). 기사가 쓰러져 있어도 쓸 수 있다
+const CASTLE_OIL_DELAY = 0.35;
+const castleOilReady = () => !!cdv && cdv.sub === 'fight' && !!S.castle.run && cdv.oilCd <= 0;
+function castleOil() {
+  if (!castleOilReady()) return false;
+  cdv.oilCd = CASTLE_OIL_CD; cdv.oil = 0.001;
+  const Ly = castleLayout(), gy = groundY(), pow = castlePow(), x0 = Ly.gateX, x1 = Ly.gateX + CASTLE_OIL_R;
+  // 쏟아지는 줄기 → 바닥에서 용암 돔처럼 끓어오름 + 튀는 기름 (PixelLab 시트 e34·k23 을 불 램프로)
+  texFx('e34', (x0 + x1) / 2, gy + 2, MG_RAMP.fire, { anchor: 'b', scale: 4 / 3, life: 0.9, delay: CASTLE_OIL_DELAY, fade: 0.35 });
+  texFx('k23', x0 + 26, gy + 2, MG_RAMP.fire, { anchor: 'b', life: 0.6, delay: CASTLE_OIL_DELAY + 0.05 });
+  texFx('k23', x1 - 18, gy + 2, MG_RAMP.fire, { anchor: 'b', flip: true, life: 0.6, delay: CASTLE_OIL_DELAY + 0.12 });
+  skFx(null, CASTLE_OIL_DELAY, 0, null, () => {
+    if (!cdv || !S.castle.run) return;
+    shake = Math.max(shake, 0.3);
+    for (const m of monsters) {
+      if (m.dying) continue;
+      const x = toScreen(m.x);
+      if (x < x0 - 4 || x > x1 + monsterWidth(m) / 2) continue;
+      m.burn = { t: CASTLE_OIL_BURN_SEC, tick: 0.5, dmg: pow * CASTLE_OIL_BURN * 0.5 };
+      castleSupportHit(m, pow * CASTLE_OIL_K, '#ffb13b');
+      if (!m.dying) m.stun = Math.max(m.stun || 0, CASTLE_OIL_STUN * (m.boss ? 0.5 : 1));
+    }
+  });
+  showBanner('🔥 끓는 기름!', '#ffb13b', 18, 1.2);
+  return true;
+}
+function castleBurnTick(dt) {
+  for (const m of monsters) {
+    const b = m.burn;
+    if (!b || m.dying) continue;
+    b.t -= dt;
+    if ((b.tick -= dt) <= 0) {
+      b.tick += 0.5;
+      texFx('h15', toScreen(m.x) + rand(-4, 4), groundY() - rand(4, 14), MG_RAMP.fire, { scale: 2 / 3, life: 0.35 });
+      castleSupportHit(m, b.dmg, '#ff8a3a');
+    }
+    if (b.t <= 0) m.burn = null;
+  }
 }
 
 function castleViewDown() {
@@ -102,25 +153,30 @@ function castleEndRun(reason) {
 }
 function castleRetreat() { castleEndRun('retreat'); }
 
-// 몬스터 이동: 기사가 서 있으면 기사 앞에 16px 간격 줄, 쓰러져 있으면 줄을 풀고 성벽(성문)으로 몰려간다
+// 몬스터 이동 (1:n 포위): 줄을 서지 않는다. 기사가 서 있으면 모두 기사 사거리 안까지 와서 겹겹이 붙고(pileStop — fightTick 도 이 자리를 쓴다),
+//  쓰러져 있으면 성벽(성문)으로 몰려간다. 화면 끝 → 전장 끝은 달려온다
 function castleMove(dt, Ly) {
   const alive = monsters.filter((m) => !m.dying).sort((a, b) => aheadDist(knight.x, a.x) - aheadDist(knight.x, b.x));
-  let prev = -1e9;
+  const rush = Math.max(0, Ly.spawnX - Ly.fieldX) / CASTLE_RUSH_SEC;
+  let pile = 0;
   for (const m of alive) {
     const d = aheadDist(knight.x, m.x);
-    const stop = knight.down > 0 ? Math.max(1, monsterWidth(m) / 2 - 8) : Math.max(monsterReach(m), prev + 16);
+    const stop = knight.down > 0 ? Math.max(1, monsterWidth(m) / 2 - 8) : Math.max(4, (monsterReach(m) + (m.pileReach || 0)) * (1 - 0.9 * (m.pileOff || 0)));
+    m.pileStop = knight.down > 0 ? null : stop;
     const stunned = m.stun > 0;
     m.moving = d > stop + 0.5 && !m.anim && !stunned;
-    if (d > stop && !stunned) m.x -= Math.min(m.spd * dt, d - stop);
-    prev = aheadDist(knight.x, m.x);
+    const spd = (toScreen(m.x) > Ly.fieldX ? Math.max(m.spd * 3, rush) : m.spd) * (m.spdK || 1);
+    if (d > stop && !stunned) m.x -= Math.min(spd * dt, d - stop);
+    if (knight.down <= 0 && aheadDist(knight.x, m.x) <= monsterReach(m) + (m.pileReach || 0) + 1) pile++;
   }
+  if (dt > 0) cdv.pile = pile;
   return alive;
 }
 // 쓰러진 동안: 성문에 닿은 몬스터가 모두 성벽을 친다 (일반 1.4초마다 3, 보스 2초마다 24)
 function castleWallAttacks(dt, alive, Ly) {
   for (const m of alive) {
     if (m.anim) { m.anim.t += dt; if (m.anim.t >= m.anim.dur) m.anim = null; }
-    if (aheadDist(knight.x, m.x) > monsterWidth(m) / 2 + 4) continue;
+    if (m.stun > 0 || aheadDist(knight.x, m.x) > monsterWidth(m) / 2 + 4) continue;   // 💫 기름에 데어 멈칫한 동안은 성벽도 못 친다
     if ((m.wallT -= dt) > 0) continue;
     const hit = m.boss ? CASTLE_WALL_HIT.boss : CASTLE_WALL_HIT.mob;
     m.wallT = hit.cd;
@@ -138,15 +194,15 @@ const castleFront = () => monsters.filter((m) => !m.dying).sort((a, b) => aheadD
 // 성벽 위 자리: 궁수 · 투석기 · 교관 (창이 좁으면 교관은 특기 차례인 한 명만)
 function castleSlots(Ly) {
   const top = Ly.top, n = castleArchers(castleUp('archer'));
-  const archers = Array.from({ length: n }, (_, i) => ({ x: Ly.gateX - 8 - i * 9, y: top }));
+  const archers = Array.from({ length: n }, (_, i) => ({ x: Ly.gateX - 20 - i * 9, y: top }));
   const cat = castleUp('catapult') ? { x: Ly.wallX >= 30 ? Ly.wallX - 14 : Ly.wallX + 12, y: Ly.wallX >= 30 ? groundY() : top } : null;
   const ms = castleMentors(), mpos = [];
-  const room = Math.max(1, Math.floor((Ly.gateX - 8 - n * 9 - (cat && Ly.wallX < 30 ? 26 : 0)) / 24));
-  ms.forEach((m, k) => mpos.push({ ...m, x: Ly.gateX - 14 - n * 9 - k * 24, vis: true }));
+  const room = Math.max(1, Math.floor((Ly.gateX - 20 - n * 9 - (cat && Ly.wallX < 30 ? 26 : 0)) / 24));
+  ms.forEach((m, k) => mpos.push({ ...m, x: Ly.gateX - 26 - n * 9 - k * 24, vis: true }));
   if (ms.length > room) {
     // 다음 특기 차례인 교관 하나만 보인다
     const next = ms.reduce((a, m) => ((cdv.mt[m.id] ?? 99) < (cdv.mt[a.id] ?? 99) ? m : a), ms[0]);
-    mpos.forEach((p) => { p.vis = p.id === next.id; p.x = Ly.gateX - 14 - n * 9; });
+    mpos.forEach((p) => { p.vis = p.id === next.id; p.x = Ly.gateX - 26 - n * 9; });
   }
   return { archers, cat, mentors: mpos };
 }
@@ -241,6 +297,7 @@ function updateCastle(dt) {
   if (cdv.wallHit > 0) cdv.wallHit -= dt;
   if (cdv.flag) cdv.flag += dt;
   if (cdv.catSwing) { cdv.catSwing += dt; if (cdv.catSwing > 0.5) cdv.catSwing = 0; }
+  if (cdv.oil) { cdv.oil += dt; if (cdv.oil > 1) cdv.oil = 0; }
   switch (cdv.sub) {
     case 'warpOut':
       if ((cdv.t += dt) >= WARP_SEC) {
@@ -254,10 +311,12 @@ function updateCastle(dt) {
     case 'fight': {
       if (!run) { cdv.sub = 'end'; cdv.t = 0; cdv.hold = 0.3; break; }
       run.t += dt;
-      // 웨이브: 시간이 되면 4마리씩 0.5초 간격으로 쏟아낸다 (보스는 무리 맨 뒤)
+      // 웨이브: 시간이 되면 5마리 무리를 1.5초 간격으로 쏟아낸다 (보스는 무리 맨 뒤)
       if (run.wave < CASTLE_WAVES.length && run.t >= run.nextAt) {
         const w = castleNextWave();
-        w.mobs.forEach((sp, i) => cdv.q.push({ at: run.t + Math.floor(i / CASTLE_SPAWN_PACK) * CASTLE_SPAWN_GAP + (sp.boss ? CASTLE_SPAWN_GAP : 0), sp, wi: w.wi, j: i % CASTLE_SPAWN_PACK }));
+        // 무리마다 1.5초 칸 안에서 제각각 튀어나온다 (한 덩어리로 붙어 오지 않게 — 사용자 10-15 "우르르 와서 앞에서 뭉치게")
+        w.mobs.forEach((sp, i) => cdv.q.push({ at: run.t + Math.floor(i / CASTLE_SPAWN_PACK) * CASTLE_SPAWN_GAP + (sp.boss ? CASTLE_SPAWN_GAP : rand(0, CASTLE_SPAWN_GAP)), sp, wi: w.wi, j: i % CASTLE_SPAWN_PACK }));
+        cdv.q.sort((a, b) => a.at - b.at);
         if (w.boss) { showBanner(w.last ? '👑 BOSS WAVE! 거대 보스' : '👑 BOSS WAVE!', '#ff5a5a', 22, 2.4); shake = Math.max(shake, 0.35); }
         else showBanner(`WAVE ${w.wi + 1}`, '#ffd257', 20, 1.6);
       }
@@ -284,7 +343,9 @@ function updateCastle(dt) {
         if (!alive.some((m) => aheadDist(knight.x, m.x) <= reachTo(m) + 4)) S.hp = Math.min(st.maxHp, S.hp + st.maxHp * CASTLE_REGEN * dt);
       }
       castleSupport(dt, Ly);
+      castleBurnTick(dt);
       castleProjTick(dt);
+      if (cdv.oilCd > 0) cdv.oilCd -= dt;
       break;
     }
     case 'end':
@@ -312,23 +373,13 @@ function updateCastle(dt) {
 
 // ───────── 그리기 ─────────
 const cR = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
-// 바닥: 적 스테이지 필드의 원경·지면 + 성 안 풍경 + 해자 + 성벽
+// 바닥: 적 스테이지 필드의 원경·지면 + 해자 + 성벽 (성벽은 화면 왼쪽 끝 — 2차 개편에서 성 안 풍경은 뺐다)
 function drawCastleGround() {
   const run = S.castle.run || (cdv && cdv.res), L = run ? run.lv : castleNextLv();
   const z = zoneOf(castleStage(L)), gr = z.ground, gy = groundY(), Ly = castleLayout();
   drawZoneBg(gr.deco, gy);
   cR(0, gy, W, 3, gr.line); cR(0, gy + 3, W, H - gy - 3, gr.soil);
   for (let x = Ly.gateX + 4; x < W; x += 14) cR(x + ((x * 7) % 5), gy - 2 - ((x * 13) % 3) * 2, 2, 2 + ((x * 13) % 3) * 2, gr.grass);
-  // 성 안: 저녁 하늘 띠와 지붕 실루엣 (창이 넓을 때만 보인다)
-  if (Ly.wallX > 8) {
-    cR(0, gy - 84, Ly.wallX, 84, 'rgba(30,26,44,0.85)');
-    for (let x = 6, k = 0; x < Ly.wallX - 10; x += 34, k++) {
-      const h = 22 + ((k * 37) % 4) * 8, w = 24;
-      cR(x, gy - h, w, h, '#2c2638'); cR(x - 3, gy - h - 4, w + 6, 4, '#3d3450');
-      cR(x + 8, gy - h + 8, 4, 5, (Math.floor(clock * 0.7 + k) % 3) ? '#ffcf6a' : '#a07a3a');
-      if (k % 3 === 1) { cR(x + 6, gy - h - 26, 12, 22, '#2c2638'); cR(x + 4, gy - h - 30, 16, 4, '#3d3450'); cR(x + 11, gy - h - 40, 2, 10, '#5a4a6a'); cR(x + 13, gy - h - 40, 7, 5, '#c84a4a'); }
-    }
-  }
   // 해자: 성벽 앞 물길
   if (castleUp('moat')) {
     const mw = 10 + castleUp('moat') * 2;
@@ -396,6 +447,20 @@ function drawCastleFx() {
     const a = -2.4 + sw * 1.9, L = 16;
     for (let i = 0; i <= L; i += 2) cR(c.x + Math.cos(a) * i, c.y - 14 + Math.sin(a) * i, 2, 2, '#8a6038');
     if (!sw && cdv.catT > 0.6) cR(c.x + Math.cos(a) * L - 2, c.y - 14 + Math.sin(a) * L - 2, 4, 4, '#8a8292');
+  }
+  // 🔥 가마솥: 성문 위 흉벽 끝. 쿨이 차면 김이 오르고, 쏟을 때 앞으로 기울며 기름 줄기가 성문 앞으로 떨어진다
+  {
+    const cx = Ly.gateX - 6, cy = Ly.top - 8, u = cdv.oil, tilt = u ? Math.sin(Math.min(1, u / 0.25) * Math.PI / 2) * (u < 0.7 ? 1 : Math.max(0, (1 - u) / 0.3)) : 0;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(tilt * 0.9);
+    cR(-7, -9, 14, 9, '#2a2630'); cR(-8, -10, 16, 2, '#4a4454'); cR(-6, -8, 12, 2, cdv.oilCd <= 0 ? '#ff9a3a' : '#7a4a2a');
+    cR(-9, -7, 2, 3, '#4a4454'); cR(7, -7, 2, 3, '#4a4454');
+    ctx.restore();
+    cR(cx - 5, cy - 1, 2, 3, '#6a4a2a'); cR(cx + 3, cy - 1, 2, 3, '#6a4a2a');
+    if (cdv.oilCd <= 0 && !u && Math.floor(clock * 6) % 2) cR(cx - 2 + Math.round(Math.sin(clock * 3) * 2), cy - 14 - ((clock * 10) % 6), 2, 2, 'rgba(230,230,240,0.6)');
+    if (u > 0.15 && u < 0.55) for (let i = 0; i < 8; i++) {
+      const k = (u - 0.15) / 0.4, y = cy + i * ((gy - cy) / 8) * Math.min(1, k * 1.6);
+      cR(cx + 8 + i * 3 + rand(-1, 1), y, 4, (gy - cy) / 8, i % 2 ? '#ffcf4a' : '#ff7a2a');
+    }
   }
   // 교관: 칸당 1px (28×32). 특기를 쓸 때 앞으로 기울고 번쩍
   for (const m of slots.mentors) {

@@ -12,7 +12,7 @@ const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ?
 const BESTS = arg('best', '40,60,80,100,120,140,160,180,200').split(',').map(Number);
 const curve = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'server', 'bot-curve.json'), 'utf8'));
 const ctx = makeGame();
-const G = vm.runInContext('({ castleSimRun, castleLimitLv, CASTLE_UP_IDS, CLASSES, WEAPONS })', ctx);
+const G = vm.runInContext('({ castleSimRun, castleLimitLv, castleSimHits, CASTLE_UP_IDS, CLASSES, WEAPONS })', ctx);
 const col = (row, k) => row[curve.cols.indexOf(k)];
 
 // 봇 곡선 줄 하나 → 시뮬 입력
@@ -25,7 +25,7 @@ function inputOf(row, up, stars) {
   const w = G.WEAPONS[G.CLASSES[col(row, 'cls')].weapon];
   const aoe = Math.max(1, w.targets || 1) + (w.kind === 'ranged' && w.splash ? 1 : 0) + 0.5;
   const maxHp = col(row, 'maxHp');
-  return { dps, atk, maxHp, guard: col(row, 'guard'), heal: col(row, 'heal') * maxHp * aspd, range: col(row, 'range'), aoe, up, stars };
+  return { dps, hits: G.castleSimHits({ aspd, shots: col(row, 'shots') }), atk, maxHp, guard: col(row, 'guard'), heal: col(row, 'heal') * maxHp * aspd, range: col(row, 'range'), aoe, up, stars };
 }
 // 그 최고 스테이지에 가장 가까운(넘지 않는) 줄
 const rowAt = (lines, B) => lines.filter((r) => col(r, 'best') <= B).pop() || lines[0];

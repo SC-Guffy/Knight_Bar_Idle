@@ -6,16 +6,24 @@ const castleUi = { sel: null };       // 펼친 업그레이드 칩
 const castleResultPending = () => !!S.castle.last && S.castle.last.seen === false;
 let castleResultViewed = false;
 
-// 하단바 위 상태 칩 (#dgInfo 자리): 🏰 12단계 · 웨이브 4/10 · 🧱 78/100 · 처치 41 · 💀 1 (+ ⏱️ 남은 시간)
+// 하단바 위 상태 칩 (#dgInfo 자리): 🏰 12단계 · 웨이브 4/10 · 🧱 78/100 · ⚔️ 포위 5 · 처치 41 · 💀 1 (+ ⏱️ 남은 시간) + 🔥 끓는 기름 버튼
+//  버튼은 한 번만 만들고 글자·상태만 바꾼다 (innerHTML 을 다시 넣으면 누르는 도중 버튼이 바뀐다)
 function renderCastleInfo() {
   const run = S.phase === 'castle' ? S.castle.run : null, info = $('dgInfo');
   if (!run || !castleInside()) return;
   info.hidden = false;
-  const left = castleTimeLeft(run);
+  if (!$('cdOil')) info.innerHTML = '<span id="cdChips" style="display:contents"></span><button id="cdOil" class="dchip cdoil" data-action="castle-oil" title="끓는 기름 — 성문 앞 무리에 큰 피해 + 화상 + 기절 (${CASTLE_OIL_CD}초마다)"></button>';
+  const left = castleTimeLeft(run), pile = cdv ? cdv.pile : 0;
   const html = `<span class="dchip">🏰 ${run.lv}단계 · 웨이브 ${run.wave}/${CASTLE_WAVES.length}</span>
     <span class="dchip" title="성벽 내구도">${ico('wall')} ${Math.ceil(run.wallHp)}/${run.wallMax}</span>
+    <span class="dchip" title="지금 기사에게 붙은 적"${pile >= 8 ? ' style="color:#ff8f8f;border-color:rgba(255,90,90,.6)"' : ''}>⚔️ 포위 ${pile}</span>
     <span class="dchip">처치 ${run.kills}${run.downs ? ` · 💀 ${run.downs}` : ''}</span>${left != null ? `<span class="dchip"${left < 20 ? ' style="color:#ff8f8f"' : ''}>⏱️ 남은 시간 ${Math.ceil(left)}초</span>` : ''}`;
-  if (info.innerHTML !== html) info.innerHTML = html;
+  const chips = $('cdChips');
+  if (chips.innerHTML !== html) chips.innerHTML = html;
+  const btn = $('cdOil'), ready = castleOilReady(), txt = ready ? '🔥 끓는 기름' : `🔥 ${Math.ceil(Math.max(0, cdv ? cdv.oilCd : 0))}초`;
+  if (btn.textContent !== txt) btn.textContent = txt;
+  btn.disabled = !ready;
+  btn.classList.toggle('ready', ready);
 }
 
 // 판정 칩: 지금 능력치로 도전 단계를 막을 수 있을지 (castle.js castleVerdict — 간이 시뮬 한계 단계와 견줌)
@@ -113,6 +121,7 @@ const CASTLE_ACTIONS = {
     renderHud();
   },
   'castle-retreat': () => { castleRetreat(); renderHud(); },
+  'castle-oil': () => { castleOil(); renderCastleInfo(); },
   'castle-sweep': () => {
     const r = sweepCastle();
     if (!r) return;

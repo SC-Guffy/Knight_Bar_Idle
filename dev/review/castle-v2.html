@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>성벽 지키기 2차 개편 — 검토</title>
+<!-- 스펙: docs/specs/castle-defense.md "2차 개편 (1:n 포위전)". 캡처는 dev/review/castle-v2/*.png (게임 하단바 캔버스를 그대로 떠서 2~3배 확대) -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --hl: #3b2a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .hl { background: var(--hl); border: 2px solid var(--gold); }
+  .hl h3 { margin: 0 0 6px; color: var(--gold); font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  canvas { display: block; max-width: 100%; image-rendering: pixelated; background: #0f0d14; border: 1px solid var(--line); border-radius: 4px; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  input[type=number] { width: 64px; background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; }
+  input[type=range] { width: 160px; }
+  b.v { color: var(--gold); }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 3px; background: #2f2840; color: var(--dim); font-size: 11px; }
+  .legend span { margin-right: 14px; }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+</style>
+<style>
+  img.shot { display: block; max-width: 100%; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; margin: 4px 0; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 720px) { .pair { grid-template-columns: 1fr; } }
+  .cap { color: var(--dim); font-size: 12px; }
+  ul.chk { list-style: none; padding-left: 0; } ul.chk li { margin: 3px 0; }
+</style>
+</head>
+<body><main>
+<h1>🏰 성벽 지키기 2차 개편 — 1:n 포위전 + 🔥 끓는 기름</h1>
+<div class="sub">2026-10-15 · 구현 끝, 사용자 확인 대기 · 테스트: <code>http://localhost:8846/index.html?server=http://127.0.0.1:9</code></div>
+
+<div class="card hl">
+<h3>요지</h3>
+<ul>
+<li><b>성벽은 화면 왼쪽 끝</b>. 몬스터는 화면 오른쪽 끝에서 달려와 성문 앞 480px 전장에 들어선다.</li>
+<li><b>줄 서기 없음 → 포위</b>: 잡몹이 기사 앞 (사거리 + 40px) 두께로 겹겹이 붙고, <b>붙은 몬스터가 전부</b> 친다. 못 잡으면 쌓이고, 쌓이면 녹는다. 상태 칩 <code>⚔️ 포위 n</code>.</li>
+<li><b>잡몹 260</b> (1차 130 × 2), 5마리 무리가 1.5초 간격. 체력 ×0.4 · 공격력 ×2.4. 전장 건너는 시간 5초 (1차 12초). 단계 L 적 = 스테이지 4 + 2L (1차 10 + 2L).</li>
+<li><b>🔥 끓는 기름</b> 버튼: 쿨 15초, 성문 앞 90px에 기사 초당 피해 ×6 + 화상 3초 + 1.5초 기절. 그림은 기존 PixelLab 시트(e34·k23·h15)를 불 램프로 — 유료 생성 0회.</li>
+<li><b>보상 그대로</b>: 잡몹 점수 0.5 → 다 잡으면 150점 (🧱·📕·소탕 1차와 같음).</li>
+</ul>
+</div>
+
+<div class="card hl">
+<h3>⏱️ 템포 조정 (10-15) — 이 카드가 아래 수치보다 우선</h3>
+<ul>
+<li>웨이브 간격 12 → <b>10초</b>, 다 잡으면 3초 → <b>1초</b> 뒤 다음 웨이브. 판 약 128초 → <b>약 100~110초</b>.</li>
+<li>잡몹 260 × 체력 0.4 → <b>130 × 체력 1</b>, 단계에 따라 마릿수 40% → 100% (30단계부터 전부). 다 잡으면 늘 150점.</li>
+<li>성벽 위 교관 끔 (검기 파동 없음). 단계 대응 <b>−8 + 2L</b>.</li>
+<li>실측 (최고 100): 전쟁군주 34 · 대마법사 34 · 검성 24 · 신궁 22 — <b>광역 유리 콘텐츠로 확정</b> (사용자 10-15).</li>
+<li>왜 마릿수를 줄였나: 한 발에 한 마리 잡는 기사는 잡몹이 약하면 공격 횟수에 막혀 단계와 상관없이 진다 (잡몹 195 · 간격 9초 안에서 신궁 11단계).</li>
+</ul>
+</div>
+<h2>1. 전후 비교 (창 1280, 최고 스테이지 100 전쟁군주)</h2>
+<div class="cap">1차 — 전장을 오른쪽에 붙여 성벽이 x≈736, 왼쪽은 성 안 풍경. 몬스터는 기사 앞에 16px 간격으로 줄을 선다.</div>
+<img class="shot" src="castle-v2/before-full.png" alt="1차 전체">
+<div class="cap">2차 — 성벽이 왼쪽 끝. 몬스터는 화면 끝에서 달려와 기사 앞에 무리로 붙는다.</div>
+<img class="shot" src="castle-v2/after-full.png" alt="2차 전체">
+<div class="pair">
+<div><div class="cap">1차 확대 (성벽부터 420px)</div><img class="shot" src="castle-v2/before-pile.png" alt="1차 확대"></div>
+<div><div class="cap">2차 확대 — 포위 8마리</div><img class="shot" src="castle-v2/after-pile.png" alt="2차 확대"></div>
+</div>
+
+<h2>2. 🔥 끓는 기름 (누른 뒤 0.5초 · 0.8초 · 1.4초)</h2>
+<img class="shot" src="castle-v2/oil-1.png" alt="기름 1">
+<div class="pair">
+<img class="shot" src="castle-v2/oil-2.png" alt="기름 2">
+<img class="shot" src="castle-v2/oil-3.png" alt="기름 3">
+</div>
+<div class="cap">가마솥이 기울며 기름 줄기 → 바닥에서 불 돔(e34)이 끓어올라 무리 피해 + 화상 불티(h15). 살아남은 적은 1.5초 멈칫.</div>
+
+<h2>3. 실측 — 실제 전투 (템포 조정 전 값 — 지금 값은 맨 위 카드) (봇 세이브 최고 100, 업그레이드 0, 단계마다 2판)</h2>
+<div class="scroll"><table>
+<tr><th>계열</th><th>간이 시뮬 한계</th><th>실제 한계</th><th>기름 매번 쓰면</th><th>한계+1 실패 모습</th></tr>
+<tr><td>전쟁군주 (할버드)</td><td>35</td><td>34~35</td><td>35</td><td>붕괴 · 쓰러짐 3 · 포위 최대 12</td></tr>
+<tr><td>검성</td><td>34</td><td>34~35</td><td>35</td><td>붕괴 · 쓰러짐 3~5</td></tr>
+<tr><td>대마법사 (원거리)</td><td>36</td><td>34</td><td>36</td><td>붕괴 · 쓰러짐 4 · 포위 최대 23</td></tr>
+<tr><td>신궁 (원거리)</td><td>32</td><td>31</td><td>31</td><td>붕괴 · 쓰러짐 3 · 포위 최대 17</td></tr>
+</table></div>
+<div class="cap">계열 차이 4 (1차 기준 8 이하). 한계 −5 단계(전쟁군주 29): 포위 평균 2.5 · 최대 7 · 쓰러짐 0. 성공 판 124~133초.</div>
+
+<h2>4. 간이 시뮬 — 계열별 한계 단계 (판정 칩이 쓰는 값, <code>node dev/castle-sim.js</code>)</h2>
+<div class="card"><b>업그레이드 0</b><div class="scroll"><table><tr><th>계열 \ 내 최고 스테이지</th><th>40</th><th>60</th><th>80</th><th>100</th><th>120</th><th>150</th><th>200</th></tr><tr><td>tyrant</td><td>15</td><td>20</td><td>24</td><td>33</td><td>41</td><td>53</td><td>82</td></tr><tr><td>skyGeneral</td><td>15</td><td>20</td><td>23</td><td>33</td><td>39</td><td>50</td><td>74</td></tr><tr><td>siegeMaster</td><td>7</td><td>17</td><td>19</td><td>23</td><td>27</td><td>38</td><td>58</td></tr><tr><td>thunderEmperor</td><td>4</td><td>20</td><td>22</td><td>29</td><td>40</td><td>52</td><td>75</td></tr><tr><td>archon</td><td>13</td><td>18</td><td>22</td><td>25</td><td>32</td><td>44</td><td>72</td></tr><tr><td>swordsaint</td><td>12</td><td>19</td><td>22</td><td>28</td><td>39</td><td>52</td><td>80</td></tr><tr><td>dragonlord</td><td>15</td><td>20</td><td>23</td><td>29</td><td>41</td><td>50</td><td>74</td></tr><tr><td>warlord</td><td>15</td><td>20</td><td>23</td><td>32</td><td>39</td><td>51</td><td>74</td></tr><tr><td>deadeye</td><td>12</td><td>18</td><td>21</td><td>27</td><td>31</td><td>46</td><td>72</td></tr><tr><td>voidArcher</td><td>13</td><td>21</td><td>22</td><td>32</td><td>41</td><td>52</td><td>76</td></tr><tr><td>archmage</td><td>2</td><td>19</td><td>21</td><td>31</td><td>40</td><td>52</td><td>73</td></tr><tr><td>frostlord</td><td>3</td><td>18</td><td>21</td><td>28</td><td>35</td><td>48</td><td>66</td></tr><tr><td>champion</td><td>14</td><td>18</td><td>22</td><td>31</td><td>41</td><td>51</td><td>72</td></tr><tr><td>tempest</td><td>15</td><td>19</td><td>23</td><td>31</td><td>44</td><td>57</td><td>81</td></tr><tr><td>grandmaster</td><td>14</td><td>18</td><td>21</td><td>27</td><td>35</td><td>46</td><td>67</td></tr><tr><td><b>최저/중앙/최고</b></td><td><b>2/13/15</b></td><td><b>17/19/21</b></td><td><b>19/22/24</b></td><td><b>23/29/33</b></td><td><b>27/39/44</b></td><td><b>38/51/57</b></td><td><b>58/74/82</b></td></tr></table></div></div>
+<div class="card"><b>업그레이드 6종 전부 Lv10</b><div class="scroll"><table><tr><th>계열 \ 내 최고 스테이지</th><th>40</th><th>60</th><th>80</th><th>100</th><th>120</th><th>150</th><th>200</th></tr><tr><td>tyrant</td><td>19</td><td>27</td><td>33</td><td>41</td><td>50</td><td>65</td><td>95</td></tr><tr><td>skyGeneral</td><td>20</td><td>25</td><td>30</td><td>44</td><td>51</td><td>64</td><td>88</td></tr><tr><td>siegeMaster</td><td>19</td><td>23</td><td>29</td><td>40</td><td>48</td><td>66</td><td>87</td></tr><tr><td>thunderEmperor</td><td>20</td><td>26</td><td>30</td><td>42</td><td>52</td><td>67</td><td>91</td></tr><tr><td>archon</td><td>20</td><td>24</td><td>35</td><td>40</td><td>47</td><td>61</td><td>87</td></tr><tr><td>swordsaint</td><td>19</td><td>27</td><td>34</td><td>47</td><td>54</td><td>68</td><td>96</td></tr><tr><td>dragonlord</td><td>20</td><td>26</td><td>31</td><td>42</td><td>52</td><td>62</td><td>90</td></tr><tr><td>warlord</td><td>20</td><td>25</td><td>32</td><td>42</td><td>50</td><td>65</td><td>89</td></tr><tr><td>deadeye</td><td>19</td><td>24</td><td>31</td><td>42</td><td>49</td><td>62</td><td>90</td></tr><tr><td>voidArcher</td><td>20</td><td>27</td><td>30</td><td>44</td><td>51</td><td>64</td><td>88</td></tr><tr><td>archmage</td><td>19</td><td>25</td><td>31</td><td>42</td><td>50</td><td>65</td><td>88</td></tr><tr><td>frostlord</td><td>20</td><td>26</td><td>32</td><td>43</td><td>51</td><td>66</td><td>86</td></tr><tr><td>champion</td><td>20</td><td>25</td><td>33</td><td>45</td><td>55</td><td>69</td><td>91</td></tr><tr><td>tempest</td><td>20</td><td>26</td><td>33</td><td>43</td><td>53</td><td>67</td><td>93</td></tr><tr><td>grandmaster</td><td>20</td><td>25</td><td>31</td><td>41</td><td>49</td><td>65</td><td>87</td></tr><tr><td><b>최저/중앙/최고</b></td><td><b>19/20/20</b></td><td><b>23/25/27</b></td><td><b>29/31/35</b></td><td><b>40/42/47</b></td><td><b>47/51/55</b></td><td><b>61/65/69</b></td><td><b>86/89/96</b></td></tr></table></div></div>
+<div class="cap">기준 (1차와 같음): 업그레이드 0 · 최고 100 → 28~42, 차이 8 이하 / 전부 Lv10 · 최고 200 → 85~95.</div>
+
+<h2>5. 수용 기준</h2>
+<ul class="chk">
+<li class="ok">✅ 성벽이 화면 왼쪽 끝 (1280 캡처 확인 · 코드상 모든 폭 x=0)</li>
+<li class="ok">✅ 줄 없이 무리로 붙고, 붙은 몬스터가 모두 친다</li>
+<li class="ok">✅ 한계 단계에서 포위 8 이상 쌓였다 풀린다 (12~23)</li>
+<li class="mid">△ 한계 −5 평균 포위 2 이하 → 실측 2.5 (근접)</li>
+<li class="ok">✅ 원거리도 한계 근처에서 붙는다 (신궁 최대 17)</li>
+<li class="ok">✅ 한계 +1 에서 첫 쓰러짐에 바로 무너지지 않는다 (3~5번 쓰러진 뒤)</li>
+<li class="ok">✅ 최고 100 계열 한계 31~35 (시뮬 29~36), 판 4분 안</li>
+<li class="mid">△ 끓는 기름: 무리가 걷힌다 ✅ · 매번 쓰면 한계 0~2단계 (기준 1~3보다 약함)</li>
+<li class="ok">✅ 보상 150점 → 🧱·📕 1차와 같음</li>
+</ul>
+
+<h2>6. 정할 것</h2>
+<ul>
+<li>끓는 기름 세기: 지금은 "잘 쓰면 0~2단계". 더 세게(필수 버튼) vs 지금처럼(보조 반격)?</li>
+<li>난이도 대응: 단계 4+2L 로 1차와 같은 진행감(최고 100 → 약 33단계)에 맞췄다. 기존 유저의 깬 단계는 그대로 두고 다음 단계부터 새 규칙이다.</li>
+<li>배포: 확인되면 GAME_VERSION 올려 main 푸시.</li>
+</ul>
+<h2>7. 진행 봇 수급 전후 (<code>node dev/progress-bot.js --days 14 --seeds 2</code>, 전 = HEAD)</h2>
+<div class="scroll"><table>
+<tr><th>항목</th><th>1차</th><th>2차 (템포 전)</th><th>2차 (지금)</th></tr>
+<tr><td>🏰 열림 (시간)</td><td>2.4</td><td>2.4</td><td>2.4</td></tr>
+<tr><td>🏰 14일 최고 단계</td><td>42</td><td>45</td><td>42</td></tr>
+<tr><td>📕 하루 수급 (열린 뒤)</td><td>11.8</td><td>11.8</td><td>11.9</td></tr>
+<tr><td>🏰 업그레이드 완료 (열린 뒤 일)</td><td>6.9</td><td>6.9</td><td>6.9</td></tr>
+</table></div>
+<div class="cap">봇은 판정 칩용 간이 시뮬 한계로 오른다. 수급(📕·🧱 → 업그레이드 기간)은 그대로, 단계만 3 높게 오른다 (단계 대응 4+2L 이 시뮬 기준 약간 쉬움).</div>
+</main></body></html>
