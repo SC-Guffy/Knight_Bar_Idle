@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>레인저 계열 시트 준비</title>
+<style>
+  :root { --bg: #14161d; --panel: #1c1f29; --line: #2f3342; --ink: #e6e8ef; --dim: #9aa0b4; --ok: #6fdc8c; --no: #ff7a7a; --wait: #ffd257; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 system-ui, 'Malgun Gothic', sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 17px; margin: 30px 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  .sub { color: var(--dim); margin: 0 0 16px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; } th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #232736; } code { background: #232736; padding: 0 4px; border-radius: 3px; }
+  img.px { image-rendering: pixelated; max-width: 100%; display: block; }
+  .scroll { overflow-x: auto; } .tabs button { background: #232736; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; margin: 0 4px 6px 0; cursor: pointer; }
+  .tabs button.on { background: #3d7bff; border-color: #3d7bff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center; font-size: 12px; }
+  .card img { width: 100%; image-rendering: pixelated; background: #0f1117; }
+  .ok { color: var(--ok); } .no { color: var(--no); } .wait { color: var(--wait); }
+  a { color: #8fb6ff; }
+</style>
+</head>
+<body><main>
+<h1>레인저 계열 통짜 시트 — 0회 준비</h1>
+<p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 레인저 · 저격수 · 마궁수 · 석궁사수 · 신궁 · 차원궁사 · 공성포수 · 2026-10-15</p>
+
+<div class="box">
+  <b>지금 상태</b>: PixelLab <b>0회</b> (보류 — 검사 계열 시범 승인 뒤 계획서 재승인). 생성 없이 할 수 있는 준비만 했다.
+  <ul>
+    <li>2차 포함 7종 기준 그림: 지금 게임의 대기 자세를 8배로 찍어 1배 도트로 줄였다. 칸 96(공성포수 128), 발 기준점 고정, 화살·석궁 살은 빼고 찍었다.</li>
+    <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
+    <li>동작 키 매핑: 하늘로 겨눈 스킬 자세(<code>bowA ≤ -0.55</code>)는 <code>castUp</code> 줄로 가게 공용 <code>sheetFrame</code> 에 한 줄 더했다 (줄이 없으면 예전대로 <code>cast</code>).</li>
+    <li>96/128 칸 시트 쓰기 <code>dev/bowsheets/sheet.py</code> (칸 가장자리 닿음 검사·hand/head 점 자동) — 임시 시트로 게임 연결을 시험할 때 쓴다 (<code>placeholder.py</code>, 커밋 안 함).</li>
+  </ul>
+</div>
+
+<h2>1. 칸 크기와 발 기준점</h2>
+<table>
+  <tr><th>직업</th><th>무기</th><th>칸</th><th>발 기준점 (x, y)</th><th>지금 리그 최대 범위 (발 기준, 도트)</th><th>여백</th></tr>
+  <tr><td>레인저</td><td>단궁</td><td>96×96</td><td>(42, 86)</td><td>x −16 ~ +22 · y −35 ~ +1</td><td class="ok">사방 20칸 이상</td></tr>
+  <tr><td>저격수</td><td>장궁</td><td>96×96</td><td>(42, 86)</td><td>x −19 ~ +24 · y −35 ~ +1</td><td class="ok">사방 20칸 이상</td></tr>
+  <tr><td>마궁수</td><td>마력궁</td><td>96×96</td><td>(42, 86)</td><td>x −18 ~ +23 · y −38 ~ +1</td><td class="ok">사방 20칸 이상</td></tr>
+  <tr><td>석궁사수</td><td>거대 석궁</td><td>96×96</td><td>(42, 86)</td><td>x −20 ~ +29 · y −34 ~ +2</td><td class="ok">앞 25칸</td></tr>
+  <tr><td>신궁</td><td>태양궁</td><td>96×96</td><td>(42, 86)</td><td>x −19 ~ +25 · y −35 ~ +1</td><td class="ok">사방 20칸 이상</td></tr>
+  <tr><td>차원궁사</td><td>차원궁</td><td>96×96</td><td>(42, 86)</td><td>x −18 ~ +23 · y −39 ~ +1</td><td class="ok">사방 20칸 이상</td></tr>
+  <tr><td>공성포수</td><td>공성 석궁</td><td>128×128</td><td>(58, 116)</td><td>x −21 ~ +30 · y −34 ~ +2</td><td class="ok">앞 40칸</td></tr>
+</table>
+<p class="sub">측정: 기사 리그를 1도트 = 1px 로 그려 불투명 범위를 쟀다 — 대기·전투 대기·앉기·걷기 8프레임·평타 4종 전 구간(0.05 간격)·시전(pull 0/6/13 × bowA 0 ~ −1.4). 발 기준점은 기준 그림을 찍은 원점과 같아서, 시트를 켜도 서는 자리·그림자가 예전과 같다.
+지금 리그로는 공성포수도 96 칸에 들어간다(앞 30칸). 128 은 PixelLab 애니가 석궁을 더 크게 그릴 때를 대비한 여유다 — <b>정할 것 ①</b>.</p>
+
+<div class="box"><b>자리 맞춤 확인</b> — 왼쪽 지금 조립식, 오른쪽 같은 그림을 임시 시트(96 칸, 발 42·86)로 <code>SHEET_ON</code> 을 켜서 그린 것. 불투명 픽셀 겹침 저격수 95% · 공성포수 92%(숨쉬기·리그 이음새 차이), 좌우 반전도 같다.
+<img class="px" src="sheets-bow/align-marksman.png" alt="자리 맞춤" style="max-width:570px"></div>
+
+<h2>2. 기준 그림 (지금 게임 그대로, 칸·발 기준점 표시)</h2>
+<div class="tabs" id="tabs"></div>
+<div class="scroll box"><img class="px" id="lineup" alt="기준 그림 줄 세우기"></div>
+<p class="sub">빨간 줄 = 발 기준점(땅). 회색 테두리 = 칸 끝. 흑백·실루엣은 같은 계열 구분 확인용이다(2차: 깃털 모자 / 고글·코트 / 후드·망토 / 투구·석궁, 3차는 2차 특징을 잇는다).</p>
+<div class="grid" id="cards"></div>
+
+<h2>3. 동작 키 매핑 (게임 상태 → 시트 줄)</h2>
+<table>
+  <tr><th>줄</th><th>게임에서 언제</th><th>프레임 고르는 법 (<code>src/sprites.js sheetFrame</code>)</th><th>만드는 법 (계획 — 승인 전)</th></tr>
+  <tr><td><code>idle</code></td><td>캠프·마을 서 있기 (mode stand/idle)</td><td>fps 반복</td><td>기준 그림 + 숨쉬기 (PixelLab 없이)</td></tr>
+  <tr><td><code>guard</code></td><td>교전 중 평타 사이</td><td>fps 반복</td><td>idle 재사용, 무게중심 1칸 낮춤</td></tr>
+  <tr><td><code>walk</code></td><td>원정 이동·결투 접근</td><td>walkT × fps</td><td>PixelLab 애니 (체형 A 활 / B 석궁 공유)</td></tr>
+  <tr><td><code>atkA</code> · <code>atkB</code></td><td>평타 (knight.combo 홀짝)</td><td>hit 프레임이 원거리 타격 시점 45% 에 오게</td><td>시위 당김→발사→복귀 / 하늘 겨눠 쏘기</td></tr>
+  <tr><td><code>cast</code></td><td>스킬 자세 (pose.pull, bowA &gt; −0.55)</td><td><code>key: "pull"</code>, <code>val</code> 이 가장 가까운 프레임 (예 [0, 4, 8, 12])</td><td>atkA 의 시위 당김 프레임 재사용</td></tr>
+  <tr><td><code>castUp</code> (새)</td><td>하늘로 겨눈 스킬 (화살비·태양 화살·포격, bowA ≤ −0.55)</td><td>같은 규칙</td><td>atkB(하늘 겨누기) 프레임 재사용</td></tr>
+  <tr><td><code>hurt</code></td><td>맞아서 밀림 (recoil &gt; 0.35)</td><td>recoil 크기로 0/1</td><td>idle 1장 + 코드 반동·흰 번쩍임</td></tr>
+  <tr><td><code>death</code></td><td>체력 0 (down)</td><td>한 번, 마지막 유지</td><td>hurt 1장 + 코드 넘어짐</td></tr>
+  <tr><td><code>sit</code></td><td>마을·캠프 앉기</td><td>fps 2 반복</td><td>기존 앉기 유지 또는 idle 하반신 ComfyUI</td></tr>
+</table>
+<ul class="sub">
+  <li>몸 이동·띄움·기울임(dx·lift·skew·sx·sy)은 지금처럼 시트 그림 전체에 변형으로 준다 (석궁사수 강철 폭풍의 석궁 회전 bowA 0 ~ −4π 는 가장 가까운 줄로만 — 회전 그림은 없다).</li>
+  <li>화살이 나가는 자리: 시트의 <code>hand</code> 점(앞쪽 끝 = 활·석궁 끝)을 <code>heroMuzzle</code> 이 쓴다. 석궁사수 스킬의 <code>abMuzzle</code> 은 리그 셈이라 시트를 켠 뒤 위치를 다시 맞춘다.</li>
+  <li>스킬 잔상 <code>onlyWeapon</code> 은 시트에선 아무것도 안 그린다 (무기가 그림 안에 있음 — 파이터와 같음).</li>
+</ul>
+
+<h2>4. 생성 계획 (로드맵 세션 제출, 보류)</h2>
+<table>
+  <tr><th>단계</th><th>PixelLab</th><th>내용</th></tr>
+  <tr><td>기준선 (저격수)</td><td>최대 5회 (보류)</td><td>walk · shoot · shoot2 3회 + 포즈가 틀릴 때만 재시도 2</td></tr>
+  <tr><td>석궁 원형 (석궁사수)</td><td>최대 3회</td><td>walk · shoot</td></tr>
+  <tr><td>나머지 5종</td><td>0 ~ 직업당 1~2</td><td>원형 프레임 위에 ComfyUI 로 직업 입히기 → 안 되면 키 자세 편집</td></tr>
+  <tr><td>합계</td><td>예상 5~15, 최대 20 (상한 90)</td><td>지금까지 <b>0회</b> · <code>dev/bowsheets/approved.txt</code> 비어 있음 (승인된 이름만 호출 가능)</td></tr>
+</table>
+
+<h2>5. 확인 링크 (지금 조립식 그대로)</h2>
+<p>
+  <a href="../skills.html?mode=basic&cls=ranger">레인저 평타</a> ·
+  <a href="../skills.html?mode=basic&cls=marksman">저격수 평타</a> ·
+  <a href="../skills.html?mode=basic&cls=arcaneArcher">마궁수 평타</a> ·
+  <a href="../skills.html?mode=basic&cls=arbalest">석궁사수 평타</a> ·
+  <a href="../skills.html?mode=basic&cls=deadeye">신궁 평타</a> ·
+  <a href="../skills.html?mode=basic&cls=voidArcher">차원궁사 평타</a> ·
+  <a href="../skills.html?mode=basic&cls=siegeMaster">공성포수 평타</a>
+</p>
+
+<h2>6. 수용 기준 (이번 준비 단계)</h2>
+<table>
+  <tr><th>기준</th><th>상태</th></tr>
+  <tr><td>계열 7종 시트로 그려지고 동작이 움직인다</td><td class="wait">생성 보류 — 아직</td></tr>
+  <tr><td>어떤 동작에서도 무기 끝이 칸에서 잘리지 않는다</td><td class="ok">✅ 지금 리그 전 동작이 칸 안 (1절). 생성 뒤 <code>sheet.py</code> 가장자리 검사로 다시 확인</td></tr>
+  <tr><td>기존 그림과 그림체가 이어지고 2차·3차가 흑백 실루엣으로 구분된다</td><td class="wait">기준 그림 = 기존 그대로 (2절) — 시트 생성 뒤 비교</td></tr>
+  <tr><td><code>SHEET_ON</code> 을 끄면 예전 조립식</td><td class="ok">✅ 7종 줄 <code>false</code>, 시트가 없으면 켜도 조립식 (<code>heroSheetOn</code>)</td></tr>
+  <tr><td>PixelLab 사용량 기록</td><td class="ok">✅ 0회 (<code>dev/bowsheets/usage.md</code> 는 첫 호출 때 생긴다)</td></tr>
+</table>
+</main>
+<script>
+  const IDS = [['ranger', '레인저'], ['marksman', '저격수'], ['arcaneArcher', '마궁수'], ['arbalest', '석궁사수'], ['deadeye', '신궁'], ['voidArcher', '차원궁사'], ['siegeMaster', '공성포수']];
+  const TABS = [['ref-color', '대기 · 컬러'], ['ref-gray', '대기 · 흑백'], ['ref-sil', '대기 · 실루엣'], ['ref-fight-color', '전투 대기 · 컬러'], ['ref-fight-gray', '전투 대기 · 흑백'], ['ref-fight-sil', '전투 대기 · 실루엣']];
+  const tabs = document.getElementById('tabs'), img = document.getElementById('lineup');
+  let cur = 'ref-color';
+  try { cur = localStorage.getItem('sheets-bow-tab') || cur; } catch (e) {}
+  const show = (k) => { cur = k; img.src = 'sheets-bow/' + k + '.png'; [...tabs.children].forEach((b) => b.classList.toggle('on', b.dataset.k === k)); try { localStorage.setItem('sheets-bow-tab', k); } catch (e) {} };
+  for (const [k, n] of TABS) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = k; b.onclick = () => show(k); tabs.appendChild(b); }
+  show(TABS.some((t) => t[0] === cur) ? cur : 'ref-color');
+  const cards = document.getElementById('cards');
+  for (const [id, n] of IDS) cards.insertAdjacentHTML('beforeend', `<div class="card"><img src="sheets-bow/${id}.png" alt="${n}"><div>${n} · 대기</div><img src="sheets-bow/${id}-fight.png" alt="${n} 전투 대기"><div>전투 대기 (1배 원본)</div></div>`);
+</script>
+</body>
+</html>
