@@ -483,33 +483,28 @@ const MENTOR_STAT_SHOW = {
   bossDmg:  ['보스 피해', (s) => `+${pct1(s.gb.bossDmg)}%`],
   skillDmg: ['스킬 피해', (s) => `+${pct1(s.gb.skillDmg)}%`],
 };
-// 전투력(powerOf) 숫자에 안 잡히는 효과
-const MENTOR_NO_POWER = { guard: '받는 피해', bossDmg: '보스 피해' };
-// 스냅샷 a → b 에서 교관 i 가 올리는 능력치 글 (full: 늘어난 값까지)
+// 스냅샷 a → b 에서 교관 i 가 올리는 능력치 글 (full: 공격력·체력은 실제로 몇 % 커졌는지까지)
 function mentorStatDiff(i, a, b, full) {
   return Object.keys(MENTORS[i].sp).map((k) => {
     const [name, f] = MENTOR_STAT_SHOW[k];
-    const d = k === 'atkPct' ? b.st.atk - a.st.atk : k === 'hpPct' ? b.st.maxHp - a.st.maxHp : 0;
-    return `${name} ${f(a)} → <b class="up">${f(b)}</b>${full && d > 0 ? ` (+${mfmt(d)})` : ''}`;
+    const r = k === 'atkPct' ? b.st.atk / a.st.atk - 1 : k === 'hpPct' ? b.st.maxHp / a.st.maxHp - 1 : 0;
+    return `${name} ${f(a)} → <b class="up">${f(b)}</b>${full && r > 0 ? ` (+${pct1(r)}%)` : ''}`;
   }).join(' · ');
 }
-const mentorPowerDiff = (a, b, full) => {
-  const d = b.power - a.power;
-  if (d <= 0) return `💪 전투력 ${fmt(b.power)} (거의 그대로)`;
-  return full ? `💪 전투력 ${fmt(a.power)} → <b class="up">${fmt(b.power)}</b> (+${fmt(d)} · +${pct1(d / Math.max(1, a.power))}%)` : `💪 전투력 <b class="up">+${fmt(d)}</b>`;
-};
-const mentorNoPowerNote = (i) => {
-  const ks = Object.keys(MENTORS[i].sp).filter((k) => MENTOR_NO_POWER[k]);
-  return ks.length ? ` · ※ ${ks.map((k) => MENTOR_NO_POWER[k]).join('·')}는 전투력 숫자엔 안 잡혀요` : '';
+// 별 하나가 더해 준 몫 (교관 i 의 별 n−1 → n) — 연출에 떠오르는 글
+const mentorStarGainText = (i, n) => {
+  const a = mentorSpAt(i, n - 1), b = mentorSpAt(i, n), d = {};
+  for (const k of Object.keys(b)) d[k] = Math.round((b[k] - (a[k] || 0)) * 10000) / 10000;
+  return mentorSpText(d);
 };
 // 누르기 전 미리보기: 지금 → 별 n 개
-const mentorNextText = (i, n) => { const a = mentorSnap(), b = mentorSnapAt(i, n); return `${mentorStatDiff(i, a, b)} · ${mentorPowerDiff(a, b)}${mentorNoPowerNote(i)}`; };
+const mentorNextText = (i, n) => mentorStatDiff(i, mentorSnap(), mentorSnapAt(i, n));
 // 별을 단 직후 결과 줄 (mentorUi.gain — 연출이 끝난 뒤 보인다)
 function mentorGainLine(i) {
   const g = mentorUi.gain;
   if (!g || g.i !== i || mentorUi.anim) return '';
   const title = g.star >= MENTOR_STARS ? '수료 결과' : `★${g.star} 수련 결과`;
-  return `<div class="mbar mgain"><span class="grow"><b>📈 ${title}</b><small>${mentorStatDiff(i, g.a, g.b, true)} · ${mentorPowerDiff(g.a, g.b, true)}${mentorNoPowerNote(i)}</small></span></div>`;
+  return `<div class="mbar mgain"><span class="grow"><b>📈 ${title} — ${g.text}</b><small>${mentorStatDiff(i, g.a, g.b, true)}</small></span></div>`;
 }
 // 🎓 교관 수련: 교관 칩 줄 · 무대(mentor-stage.js) · 한 줄 안내와 버튼
 function viewMentor() {
@@ -2965,7 +2960,7 @@ const ACTIONS = {
   'mentor-try': () => {
     if (mentorUi.anim) return;
     const i = mentorCur(), a = mentorSnap(), r = mentorTry(i);
-    if (r) { mentorUi.view = i; mentorUi.gain = { i, star: r.star, a, b: mentorSnap() }; mentorPlayTry(i, r, mentorUi.gain); }
+    if (r) { mentorUi.view = i; mentorUi.gain = { i, star: r.star, a, b: mentorSnap(), text: mentorStarGainText(i, r.star) }; mentorPlayTry(i, r, mentorUi.gain); }
   },
   'mentor-duel': () => {
     if (mentorUi.anim || mentorUi.busy) return;
@@ -2975,7 +2970,7 @@ const ACTIONS = {
     const before = mentorSnap();
     requestMentorDuel(i).then((res) => {
       mentorUi.busy = false;
-      if (mentorSettle(i, res)) mentorUi.gain = { i, star: MENTOR_STARS, a: before, b: mentorSnap() };
+      if (mentorSettle(i, res)) mentorUi.gain = { i, star: MENTOR_STARS, a: before, b: mentorSnap(), text: mentorStarGainText(i, MENTOR_STARS) };
       mentorPlayDuel(i, res, mentorUi.gain);
       save();
       if (campOpen) renderCamp();

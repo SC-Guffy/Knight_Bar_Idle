@@ -532,10 +532,10 @@ function drawRedBook(g, cx, cy, s, open) {
   }
 }
 // 승부(★5) 연출 (서버 결과 res)
-// 별을 단 뒤 '전투력 +n' 이 떠오른다 (gain = ui.js mentorUi.gain)
+// 별을 단 뒤 이번 별이 올려 준 능력치(예: '공격력 +1.5%')가 떠오른다 (gain = ui.js mentorUi.gain)
 function msGainCue(a, gain, at) {
-  if (!gain || gain.b.power <= gain.a.power) return;
-  msCue(a, at, (a, W, H) => msFx(a, { kind: 'gain', text: `전투력 +${fmt(gain.b.power - gain.a.power)}`, x: W / 2, y: H * 0.64, col: '#7dffb0', size: 18 }));
+  if (!gain || !gain.text) return;
+  msCue(a, at, (a, W, H) => msFx(a, { kind: 'gain', text: gain.text, x: W / 2, y: H * 0.64, col: '#7dffb0', size: W < 420 ? 14 : 18 }));
 }
 function mentorPlayDuel(i, res, gain) {
   const f = res.fight, say = MENTOR_SAY[MENTORS[i].id];

@@ -66,7 +66,7 @@
 | [reward-inversion-audit.md](reward-inversion-audit.md) | 완료 (0.20.11) | 보상 역전 전수조사: 탑 입장 소탕분 보장·원정 보스 진행 유실·진화★ 손해·1차 스킬 계승 약화·레이드 보상 눈금·세트 서열·입장권 서버 시각 등 |
 | [gear-options.md](gear-options.md) | 완료 (0.20.0) | 장비 강화 구간별 옵션 줄 · 등급 희소성 드랍 개편 · 🎲 재굴림권(재굴림대) |
 | [unique-procs.md](unique-procs.md) | 완료 (0.20.0) | 이름 있는 장비·레이드 세트 고유 발동 효과 |
-| [training-mentors.md](training-mentors.md) | 확정 (10-13, 시즌6 재가동 — 구현 전, 지금 코드는 `MENTOR_ON = false`) | 🎓 교관 수련 재가동: 교관 5명 × 별 5, ★1~4 📕 수련의 서 확정 상승(11/16/22/28/33 = 110권 ≈ 무료 10일, 골드 없음) · ★5 교관 승부 무료 하루 3회 · 최고 스테이지 40 에서 열림 · 1차 훈련 Lv 200 유지 · 훈련장 아래 🎯/🎓 탭 · 0.22.4 별 달면 능력치·전투력 전후 표시(확인 대기). 검토 `dev/review/mentors.html` |
+| [training-mentors.md](training-mentors.md) | 확정 (10-13, 시즌6 재가동 — 구현 전, 지금 코드는 `MENTOR_ON = false`) | 🎓 교관 수련 재가동: 교관 5명 × 별 5, ★1~4 📕 수련의 서 확정 상승(11/16/22/28/33 = 110권 ≈ 무료 10일, 골드 없음) · ★5 교관 승부 무료 하루 3회 · 최고 스테이지 40 에서 열림 · 1차 훈련 Lv 200 유지 · 훈련장 아래 🎯/🎓 탭 · 0.22.4 별 달면 스탯 전후 표시(확인 대기). 검토 `dev/review/mentors.html` |
 | [duel-gap-closer.md](duel-gap-closer.md) | 완료 | 돌진기가 사거리 밖에서 달려붙는 이동기 + 직업 체력 근접 ×1.1 · 원거리 ×0.9 — 근접 vs 원거리 손해 보정 |
 | [duel-length.md](duel-length.md) | 완료 | 결투 체력 ×2(%회복은 늘리기 전 기준) + 성기사·성좌기사·천마장군 방어·회복 하향 — 스킬 한두 방에 끝나지 않게 |
 | [raid-difficulty.md](raid-difficulty.md) | 완료 | 레이드 보스 세기 = 입장 + 9 − 인원 보정 (4인 바로 · AI 파티 +8 · 혼자 +20), 전 보스는 스근하게 |
