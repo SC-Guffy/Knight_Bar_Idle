@@ -30,7 +30,7 @@
 <div class="box">
   <b>지금 상태</b>: PixelLab <b>0회</b> (보류 — 검사 계열 시범 승인 뒤 계획서 재승인). 생성 없이 할 수 있는 준비만 했다.
   <ul>
-    <li>7종 기준 그림: 지금 게임의 대기 자세를 1도트 = 1px 로 찍어 칸(창 96, 할버드·도끼창 128)과 발 기준점에 맞췄다.</li>
+    <li>7종 기준 그림: 지금 게임의 대기 자세를 1도트 = 1px 로 찍어 칸(7종 모두 128 — 2026-10-16 창도 96 → 128)과 발 기준점에 맞췄다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
     <li>동작 키 매핑: 스킬 자세의 무기 각도 <code>wa</code> → <code>cast</code> 줄. 공용 <code>sheetFrame</code> 에 <code>cast.wrap</code>(각도를 한 바퀴로 감싸 비교)을 더했다 — 할버드 대회전 <code>wa</code> 가 −6.5 ~ +7.8 로 돈다.</li>
     <li>시트 조립 <code>dev/spear/build.py</code>: 프레임 소스(지금은 기존 그림 자리표시, 나중엔 생성 결과)와 상관없이 같은 규격으로 시트·메타·몽타주·GIF 를 만든다. 칸 가장자리 닿음(잘림) 검사, hand(무기 끝)·head 점 자동.</li>
@@ -40,18 +40,19 @@
 <h2>1. 칸 크기와 발 기준점</h2>
 <table>
   <tr><th>직업</th><th>무기 (motion)</th><th>칸</th><th>발 (x, y)</th><th>지금 리그 최대 범위 (발 기준, 도트)</th><th>잘림</th></tr>
-  <tr><td>창기사</td><td>창 (thrust)</td><td>96×96</td><td>(24, 84)</td><td>x −16 ~ +67 · y −51 ~ +9</td><td class="ok">없음</td></tr>
-  <tr><td>용기병</td><td>용창 (thrust)</td><td>96×96</td><td>(24, 84)</td><td>x −16 ~ +67 · y −59 ~ +9</td><td class="ok">없음</td></tr>
-  <tr><td>랜서</td><td>돌격창+방패 (thrust)</td><td>96×96</td><td>(24, 84)</td><td>x −16 ~ +63 · y −45 ~ +9</td><td class="ok">없음</td></tr>
-  <tr><td>용황</td><td>용황창 (thrust)</td><td>96×96</td><td>(24, 84)</td><td>x −16 ~ +67 · y −62 ~ +9</td><td class="ok">없음</td></tr>
-  <tr><td>천마장군</td><td>성창+방패 (thrust)</td><td>96×96</td><td>(24, 84)</td><td>x −16 ~ +67 · y −49 ~ +9</td><td class="ok">없음</td></tr>
+  <tr><td>창기사</td><td>창 (thrust)</td><td>128×128</td><td>(36, 112)</td><td>x −16 ~ +67 · y −51 ~ +9</td><td class="ok">없음</td></tr>
+  <tr><td>용기병</td><td>용창 (thrust)</td><td>128×128</td><td>(36, 112)</td><td>x −16 ~ +67 · y −59 ~ +9</td><td class="ok">없음</td></tr>
+  <tr><td>랜서</td><td>돌격창+방패 (thrust)</td><td>128×128</td><td>(36, 112)</td><td>x −16 ~ +63 · y −45 ~ +9</td><td class="ok">없음</td></tr>
+  <tr><td>용황</td><td>용황창 (thrust)</td><td>128×128</td><td>(36, 112)</td><td>x −16 ~ +67 · y −62 ~ +9</td><td class="ok">없음</td></tr>
+  <tr><td>천마장군</td><td>성창+방패 (thrust)</td><td>128×128</td><td>(36, 112)</td><td>x −16 ~ +67 · y −49 ~ +9</td><td class="ok">없음</td></tr>
   <tr><td>할버디어</td><td>할버드 (sweep)</td><td>128×128</td><td>(56, 112)</td><td>x −45 ~ +61 · y −69 ~ +9</td><td class="ok">없음</td></tr>
   <tr><td>전쟁군주</td><td>도끼창 (sweep)</td><td>128×128</td><td>(56, 112)</td><td>x −49 ~ +66 · y −73 ~ +9</td><td class="ok">없음</td></tr>
 </table>
-<p class="sub">측정: 리그를 1도트 = 1px 로 그려 불투명 범위를 쟀다 — 대기 4·전투 대기 4·걷기 8·평타 2종 각 8·시전(무기 각도 9/8가지)·앉기 2. 창은 찌르는 쪽(앞 +67)이 길어서 발을 왼쪽(24)에 두었다.
-넘어짐(death)은 앞으로 쓰러지게 만들어 뒤가 잘리지 않는다. 창 시전의 아래 겨눔(wa ≥ 1.2, 용추락 내리꽂기)은 창끝이 땅 아래로 내려가 칸 아래 여백 12칸을 쓴다.</p>
+<div class="box"><b>2026-10-16 칸 변경 — 창도 128</b>: 마네킹에 입히고 직업 무기를 덧그린 범위를 재니 발 기준 −27 ~ +87 (용기병 날개꼴 망토 뒤 −27, 용황창·용창 찌르기 끝 +87) 이라 96 칸(발 24)에서 잘렸다. 창 계열도 128 칸, 발 (36, 112) 로 바꿨다 (스펙 칸 크기 절 갱신). 아래 표의 "지금 리그 범위"는 바꾸기 전 지금 그림 기준이다.</div>
+<p class="sub">측정: 리그를 1도트 = 1px 로 그려 불투명 범위를 쟀다 — 대기 4·전투 대기 4·걷기 8·평타 2종 각 8·시전(무기 각도 9/8가지)·앉기 2. 창은 찌르는 쪽이 길어서 발을 왼쪽(36)에 두었다.
+넘어짐(death)은 앞으로 쓰러지게 만들어 뒤가 잘리지 않는다. 창 시전의 아래 겨눔(wa ≥ 1.2, 용추락 내리꽂기)은 창끝이 땅 아래로 내려가 칸 아래 여백 16칸을 쓴다.</p>
 
-<div class="box"><b>자리 맞춤 확인</b> — 같은 그림을 임시 시트로 넣고 <code>SHEET_ON</code> 을 켜서 그렸을 때 불투명 범위(화면 px, 발 기준):
+<div class="box"><b>자리 맞춤 확인</b> — 같은 그림을 임시 시트(그때 96 칸)로 넣고 <code>SHEET_ON</code> 을 켜서 그렸을 때 불투명 범위(화면 px, 발 기준):
 용기병 시트 x −13 ~ 34 · y −70 ~ 1 / 조립식 x −14 ~ 33 · y −71 ~ 1, 할버디어 시트 x −18 ~ 28 · y −69 ~ 1 / 조립식 x −18 ~ 28 · y −70 ~ 1 → <b class="ok">1px 안으로 같다</b> (차이는 숨쉬기 1칸).
 스킬 시험장에서 두 직업의 스킬 4개 × 숙련 0~3단을 시트로 끝까지 돌려 <b class="ok">예외 0</b>.</div>
 
@@ -98,11 +99,11 @@
 <div class="grid" id="gifs"></div>
 
 <h2>5. 원형 마네킹과 직업 입히기 (0회 시안, 2026-10-15)</h2>
-<div class="box">검사 계열 시범과 같은 방식이다 (<code>dev/sheets-sword/</code> 의 부위 가르기·램프를 그대로 쓴다). 장식 없는 검사 몸에 창(96칸)·할버드(128칸)만 끼워 부위마다 다른 색으로 칠한 것이 <b>원형 마네킹</b>이다.
+<div class="box">검사 계열 시범과 같은 방식이다 (<code>dev/sheets-sword/</code> 의 부위 가르기·램프를 그대로 쓴다). 장식 없는 검사 몸에 창·할버드(둘 다 128칸)만 끼워 부위마다 다른 색으로 칠한 것이 <b>원형 마네킹</b>이다.
 PixelLab 은 이 마네킹만 움직이고, 직업은 프레임마다 <b>입힌다</b>. 머리·후광·방패·망토는 직업 그림에서 옮기고, 몸은 직업 부위 램프로 칠한 뒤 팔레트를 고정한다.
 도구 <code>dev/spear/dress.py</code> (캡처 <code>spearParts</code>). 아래 임시 자세(평타 15·30·45·70%)는 지금 리그로 만든 시험용이며 최종 시트에는 쓰지 않는다.</div>
 <h3>원형 마네킹 — 왼쪽부터 전투 대기 · 대기 · 임시 자세 4</h3>
-<div class="scroll box"><img class="px" src="sheets-spear/mq-spear.png" alt="창 마네킹"><p class="sub">창 원형 (96칸, 발 24·84) — 창기사 · 용기병 · 랜서 · 용황 · 천마장군</p>
+<div class="scroll box"><img class="px" src="sheets-spear/mq-spear.png" alt="창 마네킹"><p class="sub">창 원형 (128칸, 발 36·112) — 창기사 · 용기병 · 랜서 · 용황 · 천마장군</p>
 <img class="px" src="sheets-spear/mq-halberd.png" alt="할버드 마네킹"><p class="sub">할버드 원형 (128칸, 발 56·112) — 할버디어 · 전쟁군주</p></div>
 
 <h3>실루엣 바꾸기 — 창기사 · 용기병 · 용황 (사용자 결정 "생성 때 틀을 바꾼다")</h3>
@@ -134,20 +135,19 @@ PixelLab 은 이 마네킹만 움직이고, 직업은 프레임마다 <b>입힌�
 
 <h2>7. 정할 것</h2>
 <ol>
-  <li><b>칸 여유</b>: 용황창은 마네킹 창보다 길어서, 임시 찌르기 자세(45%)에서 창끝이 96칸 오른쪽 끝에 닿는다. 실제 마네킹 동작이 나오면 <code>build.py</code> 잘림 검사로 보고, 닿으면 창 칸의 발을 왼쪽으로 옮기거나(24 → 18) 용황만 112칸으로 한다.</li>
   <li><b>원형 공유 계획</b>: 찌르기형 5종(창기사·용기병·랜서·용황·천마장군)과 휩쓸기형 2종이 마네킹 동작을 나눠 쓴다. PixelLab 계획서는 검사 계열 시범 결과를 본 뒤 다시 올린다.</li>
 </ol>
 </main>
 <script>
 const ORDER = ['lancer', 'dragoon', 'cavalier', 'halberdier', 'dragonlord', 'skyGeneral', 'warlord'];
 const NAME = { lancer: '창기사', dragoon: '용기병', cavalier: '랜서', halberdier: '할버디어', dragonlord: '용황', skyGeneral: '천마장군', warlord: '전쟁군주' };
-const CELL = { halberdier: 128, warlord: 128 };
+const CELL = {};
 function tabs(el, items, on) {
   const box = document.getElementById(el); box.innerHTML = '';
   items.forEach(([k, label], i) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { [...box.children].forEach((x) => x.classList.remove('on')); b.classList.add('on'); on(k); }; box.appendChild(b); if (!i) b.click(); });
 }
 tabs('tabs', [['idle-color', '대기 컬러'], ['idle-gray', '대기 흑백'], ['idle-sil', '대기 실루엣'], ['guard-color', '전투 대기 컬러'], ['guard-sil', '전투 대기 실루엣']], (k) => { document.getElementById('lineup').src = 'sheets-spear/lineup-' + k + '.png'; });
-document.getElementById('cards').innerHTML = ORDER.map((c) => `<div class="card"><img src="sheets-spear/ref-${c}.png" alt="${NAME[c]}"><div>${NAME[c]} · ${CELL[c] || 96}칸</div></div>`).join('');
+document.getElementById('cards').innerHTML = ORDER.map((c) => `<div class="card"><img src="sheets-spear/ref-${c}.png" alt="${NAME[c]}"><div>${NAME[c]} · ${CELL[c] || 128}칸</div></div>`).join('');
 tabs('ftabs', ORDER.map((c) => [c, NAME[c]]), (c) => { document.getElementById('frames').src = 'sheets-spear/' + c + '-frames.png'; });
 const AN = ['idle', 'guard', 'walk', 'atkA', 'atkB', 'cast', 'hurt', 'death', 'sit'];
 tabs('gtabs', [['dragoon', '용기병'], ['halberdier', '할버디어']], (c) => { document.getElementById('gifs').innerHTML = AN.map((a) => `<div class="card"><img src="sheets-spear/gif/${c}-${a}.gif" alt="${a}"><div>${a}</div></div>`).join(''); });

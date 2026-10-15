@@ -13,20 +13,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT_C = (0x0b, 0x0d, 0x14, 255)
 
-# 칸 크기·발 기준점 (스펙 "칸 크기": 창·용창·돌격창 96, 할버드·도끼창 128).
-#  지금 게임 그림을 1배로 잰 범위(발 기준): 창 찌르기 앞 +67·뒤 −16·위 −62, 할버드 휘두르기 앞 +67·뒤 −49·위 −73.
-#  창은 찌르는 앞쪽으로 발을 왼쪽에 둔다. 넘어짐(death)은 앞으로 쓰러져 뒤쪽이 잘리지 않는다
-CELL = {
-    'lancer': (96, (24, 84)), 'dragoon': (96, (24, 84)), 'dragonlord': (96, (24, 84)),
-    'cavalier': (96, (24, 84)), 'skyGeneral': (96, (24, 84)),
-    'halberdier': (128, (56, 112)), 'warlord': (128, (56, 112)),
-}
+# 칸 크기·발 기준점 (스펙 "칸 크기"). 2026-10-16: 창 계열도 128 — 마네킹에 입히고 직업 무기를 덧그리면(dev/spear/dress.py)
+#  용창·용황창이 마네킹 창보다 길어 찌르기 끝이 발 앞 +87, 용기병 날개꼴 망토가 뒤 −27 까지 나가 96 칸(발 24)에 안 들어간다.
+#  할버드·도끼창은 휘두르기 뒤 −48 · 앞 +59. 넘어짐(death)은 앞으로 쓰러져 뒤가 잘리지 않는다
+SPEAR, SWEEP = (128, (36, 112)), (128, (56, 112))
+CELL = {'lancer': SPEAR, 'dragoon': SPEAR, 'dragonlord': SPEAR, 'cavalier': SPEAR, 'skyGeneral': SPEAR, 'halberdier': SWEEP, 'warlord': SWEEP}
 # 시전 줄: 스킬 자세의 무기 각도 wa 와 가장 가까운 프레임 (src/sprites.js sheetFrame). 할버드는 한 바퀴 돌아 wrap
 CAST = {
     'spear': {'val': [-1.57, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, 1.57], 'wrap': False},
     'sweep': {'val': [-3.14, -2.36, -1.57, -0.79, 0, 0.79, 1.57, 2.36], 'wrap': True},
 }
-KIND = lambda cls: 'sweep' if CELL[cls][0] == 128 else 'spear'
+KIND = lambda cls: 'sweep' if CELL[cls] is SWEEP else 'spear'
 ORDER = ['idle', 'guard', 'walk', 'atkA', 'atkB', 'cast', 'hurt', 'death', 'sit']
 
 

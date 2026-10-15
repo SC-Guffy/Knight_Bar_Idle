@@ -17,7 +17,7 @@ from common import tidy
 sys.path.insert(0, os.path.join(HERE, '..', 'sheets-common'))
 from wpn import WeaponSprite, overlay, grip_tip, diff_pts
 
-CELL = {'spear': (96, (24, 84)), 'halberd': (128, (56, 112))}
+CELL = {'spear': (128, (36, 112)), 'halberd': (128, (56, 112))}
 ARCH = {'lancer': 'spear', 'dragoon': 'spear', 'dragonlord': 'spear', 'cavalier': 'spear', 'skyGeneral': 'spear',
         'halberdier': 'halberd', 'warlord': 'halberd'}
 LINE = 'line'
@@ -208,7 +208,8 @@ def feat_dragoon(o, g, P):
              '#aAaaAa#',
              '.#a#a#a#',
              '..#.#.#.']
-    stamp(o, scale, g['tx1'] - 5, g['ty0'] - 3, C)
+    # 앞 어깨 = 몸통 앞 끝이지만 팔을 뻗은 자세에선 몸통 칸이 팔까지 이어지므로 투구 앞 끝 + 2 를 넘지 않게
+    stamp(o, scale, min(g['tx1'], g['hx1'] + 2) - 5, g['ty0'] - 3, C)
 
 
 def feat_dragonlord(o, g, P):
