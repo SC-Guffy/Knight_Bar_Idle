@@ -9,9 +9,16 @@ lum = lambda c: c[0] * .3 + c[1] * .59 + c[2] * .11
 PARTS = ['helm', 'torso', 'legs', 'boots', 'glove', 'blade']
 
 
-def cap(name):
+def cap(name, full='guard'):
+    """(전체, 몸 한 색, 무기만). full='noacc' 면 방패·망토를 뺀 그림을 전체로"""
     R = lambda k: Image.open(os.path.join(HERE, 'ref', f'{name}-{k}.png')).convert('RGBA')
-    return R('guard'), R('body'), R('wpn')
+    return R(full), R('body'), R('wpn')
+
+
+def diff_mask(a, b):
+    """두 캡처가 다른 칸 (a 에만 있는 소품: 방패·망토)"""
+    A, B = a.load(), b.load()
+    return {(x, y) for y in range(a.height) for x in range(a.width) if A[x, y][3] and A[x, y] != B[x, y]}
 
 
 def bands(full):

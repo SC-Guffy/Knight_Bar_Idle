@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>검사 계열 시트 시범</title>
+<!-- 스펙: docs/specs/legacy-class-sheets.md (검사 계열 + 견습, 와이어프레임 시험). 게임 코드는 바꾸지 않는다.
+     그림 만드는 법: dev/sheets-sword/ (mannequin.py 원형 마네킹, dress.py 직업 입히기, montage.py). PixelLab 0회. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --cell: #0f0d14; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub, .dim { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 8px 0; }
+  figure { margin: 0; text-align: center; }
+  figure img { display: block; width: calc(64px * var(--z)); height: calc(64px * var(--z)); image-rendering: pixelated; background: var(--cell); border: 1px solid var(--line); border-radius: 3px; }
+  figure img.c96 { width: calc(96px * var(--z)); height: calc(96px * var(--z)); }
+  figcaption { font-size: 11px; color: var(--dim); margin-top: 3px; max-width: calc(96px * var(--z)); }
+  .arrow { align-self: center; color: var(--dim); font-size: 18px; }
+  body { --z: 4; }
+  body.z3 { --z: 3; } body.z6 { --z: 6; }
+  body.gray figure img { filter: grayscale(1); }
+  body.sil figure img { filter: brightness(0); background: #d8d2e4; }
+  .ctl { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); }
+  button { background: #2f2840; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 3px 10px; font: inherit; cursor: pointer; }
+  button.on { border-color: var(--gold); color: var(--gold); }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); }
+  .sw { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; vertical-align: -2px; margin-right: 3px; }
+  ul { margin: 4px 0; padding-left: 20px; }
+  @media (max-width: 600px) { body { --z: 3; } }
+</style>
+</head>
+<body>
+<main>
+<h1>검사 계열 + 견습 — 통짜 시트 시범 0단계</h1>
+<div class="sub">와이어프레임 방식 시험: 원형 마네킹(부위색) → 직업 입히기. <b>PixelLab 0회</b> · ComfyUI 4장 · 2026-10-15</div>
+
+<div class="ctl">
+  <button data-v="" class="on">컬러</button><button data-v="gray">흑백</button><button data-v="sil">실루엣</button>
+  <span class="dim" style="align-self:center">｜ 배율</span>
+  <button data-z="z3">3×</button><button data-z="" class="on">4×</button><button data-z="z6">6×</button>
+</div>
+
+<h2>요지</h2>
+<div class="card">
+  <ul>
+    <li><b>목표</b>: 기존 직업 8종을 통짜 스프라이트 시트로. 포즈는 PixelLab, 나머지는 아낀다 (스펙 계열 상한 90회, 목표 40~60).</li>
+    <li><b>와이어프레임 방식</b>(로드맵 지시): 직업색·장식 없는 <b>무기 원형별 마네킹</b>의 동작만 PixelLab 으로 뽑고, 프레임마다 직업 옷·투구·소품·색을 입힌다 (ComfyUI·코드, 무료).</li>
+    <li>마네킹은 부위마다 다른 색(아래 범례)이라, 동작 뒤에도 프레임마다 부위를 다시 가를 수 있다. 이 색 지도가 입히기의 밑그림이다.</li>
+    <li><b>이번 0단계는 PixelLab 을 쓰지 않았다.</b> 정지 그림(대기 1장)으로 입히기가 직업 정체성을 지키는지 본다. 동작 프레임은 1단계 승인 뒤에 뽑는다.</li>
+  </ul>
+</div>
+
+<h2>① 기준 그림 — 지금 게임 대기 자세 (64칸, 발 = (32, 58))</h2>
+<div class="row">
+  <figure><img src="sheets-sword/swordsman-orig.png" alt=""><figcaption>검사 (장검)</figcaption></figure>
+  <figure><img src="sheets-sword/paladin-orig.png" alt=""><figcaption>성기사 (성검·방패·후광)</figcaption></figure>
+  <figure><img src="sheets-sword/squire-orig.png" alt=""><figcaption>견습 기사 (참고)</figcaption></figure>
+  <figure><img src="sheets-sword/archon-orig.png" alt=""><figcaption>성좌기사 (참고, 3차)</figcaption></figure>
+</div>
+<div class="dim">게임의 drawHero 로 2배 캔버스에 그린 뒤 3px 칸 가운데 색을 집어 1px = 고해상 도트 1칸으로 복원했다. 장검·성검은 대기에서 64칸 안에 여유 있게 들어간다 (칼끝 위 여백 약 20px). 평타에서 칼을 머리 위로 들면 64칸 위로 넘칠 수 있어 <b>PixelLab 은 96칸에 넣고 뽑은 뒤</b> 다 들어가면 64칸으로 자른다.</div>
+
+<h2>② 무기 원형 마네킹 (PixelLab 첫 프레임으로 넣을 그림)</h2>
+<div class="row">
+  <figure><img src="sheets-sword/mq-sword.png" alt=""><figcaption>장검 원형 (64) — 견습·검사·성기사·성좌기사</figcaption></figure>
+  <figure><img src="sheets-sword/mq-dual.png" alt=""><figcaption>쌍검 원형 (64) — 검성·검신</figcaption></figure>
+  <figure><img class="c96" src="sheets-sword/mq-great.png" alt=""><figcaption>대검 원형 (96) — 대검전사·파천검왕</figcaption></figure>
+</div>
+<div class="card">
+  부위색 범례:
+  <span class="sw" style="background:#7d8798"></span>투구
+  <span class="sw" style="background:#a8323a"></span>몸통·팔
+  <span class="sw" style="background:#3a4f8c"></span>바지
+  <span class="sw" style="background:#5e3e26"></span>장화
+  <span class="sw" style="background:#c99a3a"></span>장갑(손)
+  <span class="sw" style="background:#d0d8e4"></span>칼날 · 외곽선 #0b0d14<br>
+  <span class="dim">장식 없는 검사 몸에 무기만 바꿔 끼워 그렸다 (망토 없음). 원래 그림의 밝기 3단을 부위 램프 3단으로 옮겨 명암은 남겼다.</span>
+</div>
+
+<h2>③ 직업 입히기 — 정지 그림 (마네킹 → 직업)</h2>
+<div class="card dim">
+  방법 (dev/sheets-sword/dress.py): ① 마네킹 픽셀을 부위색으로 다시 가름 → ② 머리(투구+볏·후광·뿔)는 직업 그림에서 통째로 옮겨 마네킹 투구 아랫줄 가운데에 맞춤 →
+  ③ 몸통은 직업 무늬를 몸 이동량만큼 옮기고, 못 덮은 칸(뻗은 팔 등)은 직업 부위 램프로 칠함 → ④ 방패(몸 앞)·망토(몸 뒤)는 리그에서 소품만 떼어 몸과 같이 옮김 →
+  ⑤ 원래 직업 팔레트로 고정·외곽선 정리.
+</div>
+<div class="row">
+  <figure><img src="sheets-sword/swordsman-orig.png" alt=""><figcaption>검사 지금</figcaption></figure>
+  <span class="arrow">→</span>
+  <figure><img src="sheets-sword/swordsman-d0.png" alt=""><figcaption>검사 입힘</figcaption></figure>
+  <span style="width:24px"></span>
+  <figure><img src="sheets-sword/paladin-orig.png" alt=""><figcaption>성기사 지금</figcaption></figure>
+  <span class="arrow">→</span>
+  <figure><img src="sheets-sword/paladin-d0.png" alt=""><figcaption>성기사 입힘</figcaption></figure>
+</div>
+<div class="row">
+  <figure><img src="sheets-sword/squire-orig.png" alt=""><figcaption>견습 지금</figcaption></figure>
+  <span class="arrow">→</span>
+  <figure><img src="sheets-sword/squire-d0.png" alt=""><figcaption>견습 입힘</figcaption></figure>
+  <span style="width:24px"></span>
+  <figure><img src="sheets-sword/archon-orig.png" alt=""><figcaption>성좌기사 지금</figcaption></figure>
+  <span class="arrow">→</span>
+  <figure><img src="sheets-sword/archon-d0.png" alt=""><figcaption>성좌기사 입힘</figcaption></figure>
+</div>
+<div class="card">
+  <b>관찰</b>
+  <ul>
+    <li class="ok">검사는 지금 그림과 거의 같다 (마네킹이 검사 몸이라 당연 — 입히기가 그림을 망가뜨리지 않는다는 확인).</li>
+    <li class="ok">성기사: 후광·볏 투구·십자 방패·가슴 문양·크림색 갑옷이 유지된다. 실루엣 보기로도 방패·후광이 그대로 보인다.</li>
+    <li class="mid">칼 모양은 원형(장검) 그대로라 성검의 손잡이 모양이 단순해진다 (색만 금빛). 필요하면 원형 칼 위에 직업 칼 그림을 각도 맞춰 덮는 단계를 더한다.</li>
+    <li class="mid">성좌기사(3차)는 방패 안 별 문양이 조금 뭉개진다. 3차는 스펙대로 2차 편집으로 장식을 더한다.</li>
+  </ul>
+</div>
+
+<h2>④ ComfyUI 다듬기 (Z-Image img2img → 팔레트 고정)</h2>
+<div class="row">
+  <figure><img src="sheets-sword/paladin-d0.png" alt=""><figcaption>입힘 (다듬기 없음)</figcaption></figure>
+  <figure><img src="sheets-sword/paladin-d0-c25.png" alt=""><figcaption>denoise 0.25</figcaption></figure>
+  <figure><img src="sheets-sword/paladin-d0-c4.png" alt=""><figcaption>denoise 0.4</figcaption></figure>
+  <span style="width:24px"></span>
+  <figure><img src="sheets-sword/swordsman-d0.png" alt=""><figcaption>검사 입힘</figcaption></figure>
+  <figure><img src="sheets-sword/swordsman-d0-c25.png" alt=""><figcaption>0.25</figcaption></figure>
+  <figure><img src="sheets-sword/swordsman-d0-c4.png" alt=""><figcaption>0.4</figcaption></figure>
+</div>
+<div class="dim">정지 그림은 이미 깨끗해서 다듬기 차이가 거의 없다 (0.4 는 다리 명암이 조금 뭉개짐). ComfyUI 는 PixelLab 동작 프레임의 이음새·번진 픽셀 정리와 사이 프레임 채우기에 쓴다. 실루엣은 입힌 그림 그대로 잠근다.</div>
+
+<h2>⑤ 입히기 견고성 시험 — 움직이는 자세에서도 되나</h2>
+<div class="card dim"><b>주의: 이 줄의 마네킹 프레임은 PixelLab 결과가 아니라 지금 게임 리그로 그린 임시 평타 자세다</b> (사용자가 리그 포즈는 쓰지 않기로 했으므로 최종에는 쓰지 않는다). 몸이 기울고 팔·칼이 움직여도 머리·방패·후광이 제자리를 따라가는지만 본다.</div>
+<div class="row">
+  <figure><img src="sheets-sword/mq-t15.png" alt=""><figcaption>마네킹(임시)</figcaption></figure>
+  <figure><img src="sheets-sword/mq-t30.png" alt=""><figcaption></figcaption></figure>
+  <figure><img src="sheets-sword/mq-t45.png" alt=""><figcaption></figcaption></figure>
+  <figure><img src="sheets-sword/mq-t70.png" alt=""><figcaption></figcaption></figure>
+</div>
+<div class="row">
+  <figure><img src="sheets-sword/paladin-t15.png" alt=""><figcaption>성기사 입힘</figcaption></figure>
+  <figure><img src="sheets-sword/paladin-t30.png" alt=""><figcaption></figcaption></figure>
+  <figure><img src="sheets-sword/paladin-t45.png" alt=""><figcaption></figcaption></figure>
+  <figure><img src="sheets-sword/paladin-t70.png" alt=""><figcaption></figcaption></figure>
+</div>
+<div class="row">
+  <figure><img src="sheets-sword/archon-t15.png" alt=""><figcaption>성좌기사 입힘</figcaption></figure>
+  <figure><img src="sheets-sword/archon-t30.png" alt=""><figcaption></figcaption></figure>
+  <figure><img src="sheets-sword/archon-t45.png" alt=""><figcaption></figcaption></figure>
+  <figure><img src="sheets-sword/archon-t70.png" alt=""><figcaption></figcaption></figure>
+</div>
+<div class="dim">머리·후광·방패는 따라간다. 방패는 몸 이동만 따라가고 기울기는 따라가지 않는다 (PixelLab 프레임에서 몸이 크게 기울면 방패 각도가 어색할 수 있음 → 그때는 방패 덩어리를 투구 각도만큼 돌리는 단계를 더한다).</div>
+
+<h2>⑥ PixelLab 1단계 계획 (승인 요청, 최대 3회)</h2>
+<table>
+  <tr><th>#</th><th>무엇</th><th>첫 프레임</th><th>프레임</th><th>왜 PixelLab</th></tr>
+  <tr><td>1</td><td>장검 마네킹 <b>walk</b> (8프레임)</td><td>② 장검 원형, 96칸</td><td>8</td><td rowspan="2">팔·다리·칼이 함께 움직이는 새 포즈는 ComfyUI img2img 로 안 나온다 (낮은 denoise = 포즈 그대로, 높이면 몸이 무너짐). 리그 밑그림은 사용자 거부.</td></tr>
+  <tr><td>2</td><td>장검 마네킹 <b>atkA</b> (내려베기, 8프레임)</td><td>② 장검 원형, 96칸</td><td>8</td></tr>
+  <tr><td>3</td><td>성기사 직접 <b>atkA</b> (기준선)</td><td>① 성기사 지금 그림, 96칸</td><td>8</td><td>와이어프레임(1·2 + 입히기) 판과 같은 동작을 직접 판과 나란히 비교하려고. 이 1회로 "직접 vs 원형+입히기"를 정한다.</td></tr>
+</table>
+<div class="card">
+  <ul>
+    <li><b>재시도 0회</b>. 1회 = 응답 usage 1 (호출 한 번에 동작 전체 8프레임).</li>
+    <li><b>실패하면</b> 다시 뽑지 않는다: 정면으로 돌거나 깨진 프레임은 버리고, 남은 키 프레임 사이를 ComfyUI img2img(기준 그림 고정)로 채운다. 부위색 번짐은 가장 가까운 부위색으로 다시 가르고 손 픽셀 수정. 칼끝 잘림은 96칸이라 거의 없음. 포즈 자체가 틀리면(베기가 아님) 그 동작은 멈추고 다시 묻는다.</li>
+    <li>1단계가 통과하면 계열 전체 예상: 공용 idle·walk 2 + 장검 atkA·atkB·cast 3 + 쌍검 3 + 대검 3 = <b>약 11~13회</b> (8직업 × 5동작 직접 = 40회 대비). 견습·1차·3차는 0회 (입히기·편집).</li>
+  </ul>
+</div>
+
+<h2>사용량</h2>
+<table>
+  <tr><th>항목</th><th>수</th><th>비고</th></tr>
+  <tr><td>PixelLab (응답 usage 합계)</td><td class="ok">0</td><td>계열 상한 90. 계획 승인 전 호출 없음</td></tr>
+  <tr><td>ComfyUI (Z-Image img2img)</td><td>8장</td><td>④ 다듬기 비교 (로컬, 무료)</td></tr>
+</table>
+</main>
+<script>
+  for (const b of document.querySelectorAll('[data-v]')) b.onclick = () => {
+    document.body.classList.remove('gray', 'sil'); if (b.dataset.v) document.body.classList.add(b.dataset.v);
+    document.querySelectorAll('[data-v]').forEach((x) => x.classList.toggle('on', x === b));
+  };
+  for (const b of document.querySelectorAll('[data-z]')) b.onclick = () => {
+    document.body.classList.remove('z3', 'z6'); if (b.dataset.z) document.body.classList.add(b.dataset.z);
+    document.querySelectorAll('[data-z]').forEach((x) => x.classList.toggle('on', x === b));
+  };
+</script>
+</body>
+</html>

@@ -76,6 +76,7 @@
     - 그리기: 4명 × 300번에 조립식 1,072ms → 시트 3.9ms.
   - 호출 래퍼 `dev/sheets-mage/plx.py`: 응답 usage 합계로 세고, 상한 90, 잔량 300 바닥에서 멈춘다.
   - 검토 페이지 `dev/review/sheets-mage.html`.
+- 2026-10-15: 검사 계열 시범 0단계 (PixelLab 0회, ComfyUI 8장). 와이어프레임 방식 시험(로드맵 지시): 장식 없는 검사 몸에 무기만 바꾼 **원형 마네킹 3종(장검·쌍검·대검)**을 부위색(투구·몸통·바지·장화·장갑·칼날)으로 칠해 만들고, 마네킹 → 직업 **입히기**(머리·방패·망토는 직업 그림에서 옮기고 몸은 직업 램프, 팔레트 고정)를 정지 그림과 임시 자세로 확인. 도구 `dev/sheets-sword/` (`mannequin.py`·`dress.py`·`plx.py` 상한 90), 검토 `dev/review/sheets-sword.html`. 1단계 PixelLab 계획(최대 3회: 마네킹 walk·atkA, 성기사 직접 atkA) 승인 대기. 공용 코드: `src/sprites.js` `SHEET_ON`·`heroSheetOn`, 스킬 자세(wa·pull) → `cast` 줄.
 
 - 2026-10-15 창기사 계열 (impl-sheets-spear, 포트 8882): **PixelLab 0회** 준비. 칸 창·용창·돌격창 96 발 (24, 84), 할버드·도끼창 128 발 (56, 112) — 지금 리그 전 동작 범위(앞 +67, 뒤 −49, 위 −73)를 재서 정함.
   `SHEET_ON` 7종 줄(false). 공용 `sheetFrame` 에 `cast.wrap`(각도를 한 바퀴로 감싸 가장 가까운 프레임 — 할버드 대회전 wa −6.5~+7.8) 추가. 조립 `dev/spear/build.py`(프레임 소스 무관, 잘림 검사·hand=무기 끝 자동, hurt·death 는 대기 1장 기울여 파생, sit 은 지금 앉기),

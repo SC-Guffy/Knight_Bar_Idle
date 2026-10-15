@@ -21,7 +21,7 @@ ARCH = {'sword': ('mq-sword', 64), 'dual': ('mq-dual', 64), 'great': ('mq-great'
 
 
 def make(cls, N):
-    full, body, wpn = cap(cls); F = full.load(); W, H = full.size
+    full, body, wpn = cap(cls, 'noacc'); F = full.load(); W, H = full.size      # 마네킹은 망토 없이; W, H = full.size
     part = parts(full, body, wpn)
     # 부위마다 원래 밝기 3단 → 램프
     o = Image.new('RGBA', (W, H)); O = o.load()
