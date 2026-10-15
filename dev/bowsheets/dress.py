@@ -126,8 +126,20 @@ def ramp_q(colors, qs=(0.15, 0.45, 0.75)):
 
 
 def anchor(pm, part):
-    ps = [p for p, k in pm.items() if (k[0] if isinstance(k, tuple) else k) == part]
+    """부위 아랫줄 가운데. 가장 큰 덩어리만 본다 (PixelLab 프레임은 발밑 그림자·장화에 머리색 비슷한 칸이 생겨 아랫줄이 발로 잡힌다)"""
+    ps = set(p for p, k in pm.items() if (k[0] if isinstance(k, tuple) else k) == part)
     if not ps: return None
+    left, best = set(ps), set()
+    while left:
+        st = [left.pop()]; comp = set(st)
+        while st:
+            x, y = st.pop()
+            for a in (-1, 0, 1):
+                for b in (-1, 0, 1):
+                    q = (x + a, y + b)
+                    if q in left: left.discard(q); comp.add(q); st.append(q)
+        if len(comp) > len(best): best = comp
+    ps = best
     yb = max(y for _, y in ps); row = [x for x, y in ps if y == yb]
     return ((min(row) + max(row)) / 2, yb)
 
@@ -264,8 +276,57 @@ def class_weapon(cls, CP, alt):
     return ws, (max(set(sc), key=sc.count) if sc else (217, 210, 192, 255)), end
 
 
-def dress2(cls, M, alt=True):
-    """덧그리기 + (alt) 틀 바꾸기 판 입히기"""
+def geom(cls, M):
+    """마네킹 프레임의 (손 점, 끝 점) — 무기 칸이 모자라면 None (build.py 가 이웃 프레임으로 메운다)"""
+    MP = classify(M)
+    glove = [p for p, (k, i) in MP.items() if k == 'glove']
+    if cls in XBOW:
+        # 석궁: 손보다 앞의 쇠·시위 칸 중 가장 큰 덩어리 (PixelLab 프레임은 투구 회색이 쇠 회색과 섞인다)
+        gx = sum(p[0] for p in glove) / len(glove) if glove else 0
+        cand = {p for p, (k, i) in MP.items() if k == 'weapon' and i >= 1 and p[0] > gx + 1}
+        limb = list(biggest(cand))
+    else:
+        limb = [p for p, (k, i) in MP.items() if k == 'weapon' and i != 2]
+    return grip_tip(limb, glove, 'up') if len(limb) >= 6 else None
+
+
+def biggest(pts):
+    left, best = set(pts), set()
+    while left:
+        st = [left.pop()]; comp = set(st)
+        while st:
+            x, y = st.pop()
+            for a in (-1, 0, 1):
+                for b in (-1, 0, 1):
+                    q = (x + a, y + b)
+                    if q in left: left.discard(q); comp.add(q); st.append(q)
+        if len(comp) > len(best): best = comp
+    return best
+
+
+def glove_c(M):
+    gl = [p for p, (k, i) in classify(M).items() if k == 'glove']
+    return (sum(p[0] for p in gl) / len(gl), sum(p[1] for p in gl) / len(gl)) if gl else None
+
+
+def line_pts(a, b):
+    n = max(1, round(max(abs(b[0] - a[0]), abs(b[1] - a[1]))))
+    return {(round(a[0] + (b[0] - a[0]) * k / n), round(a[1] + (b[1] - a[1]) * k / n)) for k in range(n + 1)}
+
+
+def code_string(gp, tp, pull, col):
+    """활 시위: 위 끝(tp) → 당긴 점 → 아래 끝(손 점 기준 대칭). pull = 활대 축에서 몸 쪽(뒤)으로 당긴 도트"""
+    lo = (2 * gp[0] - tp[0], 2 * gp[1] - tp[1])
+    dx, dy = tp[0] - gp[0], tp[1] - gp[1]; L = math.hypot(dx, dy) or 1; nx, ny = -dy / L, dx / L
+    if nx > 0: nx, ny = -nx, -ny
+    # 쉴 때 시위는 양 끝을 잇는 직선 (활대 곡선의 뒤) — 손 점에서 2칸 뒤
+    nock = (gp[0] + nx * (2 + pull), gp[1] + ny * (2 + pull))
+    c = col[:3] + (255,)
+    return {p: c for p in line_pts(tp, nock) | line_pts(nock, lo)}
+
+
+def dress2(cls, M, alt=True, wfix=None, shoulder=True):
+    """덧그리기 + (alt) 틀 바꾸기 판 입히기. wfix = {'gp','tp'} 손 점·끝 점 덮어쓰기(무기가 빠진 프레임), {'pull'} 활 시위를 코드로"""
     full, noacc, body, wpn = (load(f'c-{cls}-{k}') if k != 'wpn' else wmask_img(f'c-{cls}') for k in ('full', 'noacc', 'body', 'wpn'))
     W = full.width; inN = lambda p: 0 <= p[0] < W and 0 <= p[1] < W
     g = ground_of(noacc); neck = g - 19
@@ -310,13 +371,16 @@ def dress2(cls, M, alt=True):
     put('front')
     # 무기: 공용 overlay
     ws, scol, end = class_weapon(cls, CP, alt)
-    limb_pts = [p for p, (k, i) in MP.items() if k == 'weapon' and (i == 1 if cls in XBOW else i != 2)]
     glove_pts = [p for p, (k, i) in MP.items() if k == 'glove']
-    sh = (-2, -6) if alt and cls == 'siegeMaster' else (0, 0)
+    # 정지 시안(리그 자세)만 공성 석궁을 어깨로 옮긴다. PixelLab 공성 원형은 첫 프레임부터 어깨 거치라 옮기지 않는다 (shoulder=False)
+    sh = (-2, -6) if alt and cls == 'siegeMaster' and shoulder else (0, 0)
     under = {(x + sh[0], y + sh[1]): scol[:3] + (255,) for (x, y), (k, i) in MP.items() if k == 'weapon' and i == 2}
+    g = geom(cls, M) if not wfix or 'gp' not in wfix else (wfix['gp'], wfix['tp'])
+    if wfix and wfix.get('pull') is not None and g and cls not in XBOW:      # 활 시위를 코드로 (PixelLab 이 가는 시위를 지우거나 흩뜨린다)
+        under = code_string(g[0], g[1], wfix['pull'], scol)
     before = {(x, y) for y in range(W) for x in range(W) if O[x, y][3]}
-    if len(limb_pts) >= 6:
-        gp, tp = grip_tip(limb_pts, glove_pts, end)
+    if g:
+        gp, tp = g
         gp, tp = (gp[0] + sh[0], gp[1] + sh[1]), (tp[0] + sh[0], tp[1] + sh[1])
         o = overlay(o, set(), gp, tp, ws, front=glove_pts if not sh[1] else (), line=False, under=under); O = o.load()
     wpn_now = {(x, y) for y in range(W) for x in range(W) if O[x, y][3]} - before

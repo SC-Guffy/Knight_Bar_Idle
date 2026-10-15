@@ -1,0 +1,69 @@
+{
+ "used": 12.0,
+ "calls": [
+  {
+   "cls": "mq-bow",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right the whole time, small chibi archer ",
+   "usage": 2.0,
+   "n": 9,
+   "bal_before": 1206.0
+  },
+  {
+   "cls": "mq-bow",
+   "ep": "/animate-with-text-v3",
+   "purpose": "shoot: side view, body keeps facing right the whole time, small chibi archer ",
+   "usage": 2.0,
+   "n": 9,
+   "bal_before": 1200.0
+  },
+  {
+   "cls": "mq-bow",
+   "ep": "/animate-with-text-v3",
+   "purpose": "shootUp: side view, body keeps facing right the whole time, small chibi archer ",
+   "usage": 1.0,
+   "n": 5,
+   "bal_before": 1189.0
+  },
+  {
+   "cls": "mq-xbow",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right the whole time, small chibi crossbo",
+   "usage": 2.0,
+   "n": 9,
+   "bal_before": 1187.0
+  },
+  {
+   "cls": "mq-xbow",
+   "ep": "/animate-with-text-v3",
+   "purpose": "shoot: side view, body keeps facing right the whole time, small chibi crossbo",
+   "usage": 1.0,
+   "n": 5,
+   "bal_before": 1180.0
+  },
+  {
+   "cls": "mq-xbow",
+   "ep": "/animate-with-text-v3",
+   "purpose": "shootUp: side view, body keeps facing right the whole time, small chibi crossbo",
+   "usage": 1.0,
+   "n": 5,
+   "bal_before": 1175.0
+  },
+  {
+   "cls": "mq-siege",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right the whole time, small chibi siege g",
+   "usage": 1.0,
+   "n": 5,
+   "bal_before": 1174.0
+  },
+  {
+   "cls": "mq-siege",
+   "ep": "/animate-with-text-v3",
+   "purpose": "shoot: side view, body keeps facing right the whole time, small chibi siege g",
+   "usage": 2.0,
+   "n": 9,
+   "bal_before": 1174.0
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+mq-bow/walk
+mq-bow/shoot
+mq-bow/shootUp
+mq-xbow/walk
+mq-xbow/shoot
+mq-xbow/shootUp
+mq-siege/walk
+mq-siege/shoot
