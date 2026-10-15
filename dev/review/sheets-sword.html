@@ -204,7 +204,7 @@
 </div>
 
 <h2>⑧ 무기 덧그리기 (사용자 결정, PixelLab 0회)</h2>
-<div class="card dim">마네킹 칼은 지우고, 노란 장갑(손) 자리와 칼날 덩어리의 축 각도에 맞춰 <b>원래 직업 무기 그림</b>을 얹는다. 무기 그림은 게임 리그로 15° 간격 24장을 뽑아 둔 것 (<code>ref/wl-&lt;직업&gt;-k.png</code>). 손잡이 끝에서 2.5칸 위를 손에 맞춘다. 각도를 정해 주면 사이 프레임도 만든다.</div>
+<div class="card dim">마네킹 칼은 지우고, 노란 장갑(손) 자리와 칼날 덩어리의 축 각도에 맞춰 <b>원래 직업 무기 그림</b>을 얹는다. 공용 모듈 <code>dev/sheets-common/wpn.py</code> 의 <code>overlay</code> 를 쓴다. 장검은 1~2칸 굵기라 한 장을 돌리면(RotSprite) 칼날이 점선으로 끊겨서, 게임 리그로 15° 간격 24장을 뽑은 <b>각도 표</b>(<code>WeaponTable</code>, 공용 모듈에 추가)에서 가장 가까운 각도를 돌리지 않고 얹는다. 손잡이 끝에서 2.5칸 위를 장갑 가운데에 맞춘다. 각도를 정해 주면 사이 프레임도 만든다.</div>
 <div class="row">
   <figure><img src="sheets-sword/paladin-orig.png" alt=""><figcaption>성기사 지금</figcaption></figure><figure><img src="sheets-sword/paladin-d0.png" alt=""><figcaption>입힘 (칼 = 원형 장검)</figcaption></figure><figure><img src="sheets-sword/paladin-d0ov.png" alt=""><figcaption>입힘 + 덧그리기 (금빛 성검)</figcaption></figure>
   <span style="width:24px"></span>

@@ -8,6 +8,7 @@
 #    out = overlay(frame, frame_wpn_mask, grip_xy, tip_xy, ws, front=glove_pts)
 #      frame_wpn_mask: 지울 무기 칸 집합 {(x,y)}, grip_xy: 프레임의 손 점, tip_xy: 무기 끝 쪽 아무 점 (방향만 쓴다)
 #      front: 무기 위에 다시 그릴 칸 (손·장갑) 집합
+#    ws 대신 WeaponTable([(그림, 각도, 손 점), …]) 을 주면 가장 가까운 각도 그림을 돌리지 않고 얹는다 (가는 장검용)
 #  보조: axis(pts) 주축, grip_tip(wpn_pts, glove_pts) 손 점과 끝 점, diff_pts(a, b) 두 그림이 다른 칸
 #  python -I -B wpn.py  → 자기 시험 (가짜 막대를 돌려 얹기)
 import math
@@ -65,8 +66,21 @@ class WeaponSprite:
         return cls(img, g, math.atan2(t[1] - g[1], t[0] - g[0]))
 
 
+class WeaponTable:
+    """각도별 무기 그림 표 (리그로 각도마다 찍은 그림). overlay 에 WeaponSprite 대신 주면 가장 가까운 각도 그림을 돌리지 않고 얹는다.
+    가는 장검처럼 돌리면 칼날이 점선으로 끊기는 무기용. 만들기: WeaponTable([(그림, 각도 라디안, 손 점), …])"""
+
+    def __init__(self, items):
+        self.items = [WeaponSprite(img, grip, ang) for img, ang, grip in items]
+
+    def pick(self, ang):
+        e = min(self.items, key=lambda w: abs(math.remainder(w.ang - ang, 2 * math.pi)))
+        return WeaponSprite(e.img, e.grip, ang)        # 각도를 목표로 바꿔 둔다 → overlay 가 돌리지 않음
+
+
 def rotsprite(img, deg, pivot, S=8):
     """pivot 칸 둘레로 deg 도(화면 기준 시계 방향 +) 돌린 그림과 새 pivot 칸. 크게 키워 nearest 로 돌리고 칸 가운데를 표본"""
+    if abs(deg) < 1e-6: return img, pivot           # 돌릴 것 없음 (WeaponTable)
     W, H = img.size; px, py = int(round(pivot[0])), int(round(pivot[1]))
     r = int(math.ceil(max(math.hypot(x - px, y - py) for x in (0, W) for y in (0, H)))) + 2
     D = 2 * r + 1                                  # pivot 칸이 정가운데 (r, r) 에 오는 정사각 캔버스
@@ -128,6 +142,7 @@ def overlay(frame, wpn_mask, grip_xy, tip_xy, ws, front=(), line=True):
                         O[q] = (0, 0, 0, 0)
     fill_holes(out, wpn_mask)
     ang = math.atan2(tip_xy[1] - grip_xy[1], tip_xy[0] - grip_xy[0])
+    if hasattr(ws, 'pick'): ws = ws.pick(ang)
     rot, piv = rotsprite(ws.img, math.degrees(ang - ws.ang), ws.grip)
     x0, y0 = round(grip_xy[0] - piv[0]), round(grip_xy[1] - piv[1])
     R = rot.load()

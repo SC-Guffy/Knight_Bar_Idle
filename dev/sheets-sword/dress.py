@@ -13,6 +13,8 @@ sys.path.insert(0, os.path.join(HERE, '..', 'boxer', 'sheets'))
 from parts import cap, parts, lum, OUT_C, bands, diff_mask
 from mannequin import RAMP, ARCH, make
 from common import tidy, components
+sys.path.insert(0, os.path.join(HERE, '..', 'sheets-common'))
+from wpn import WeaponTable, grip_tip, overlay, axis
 
 LINE = 'line'
 
@@ -94,53 +96,34 @@ def solid(mask, G):
     return {(x, y) for y, xs in rows.items() for x in range(min(xs), max(xs) + 1) if G.getpixel((x, y))[3]}
 
 
-def weapon_lib(cls, N):
-    """직업 무기를 15° 간격 24장 (ref/wl-<cls>-k.png, 리그 pose.wa = -π + kπ/12). [(각도, {칸: 색}, 손잡이 점)]"""
-    out = []
+def weapon_sprite(cls, N):
+    """직업 무기 각도 표 (공용 wpn.WeaponTable): 리그 pose.wa = -π + kπ/12 로 무기만 찍은 24장 (ref/wl-<cls>-k.png).
+    장검은 1~2칸 굵기라 한 장을 돌리면(RotSprite) 칼날이 점선으로 끊겨서, 각도마다 게임이 그린 그림을 그대로 쓴다"""
+    items = []
     for k in range(24):
         f = os.path.join(HERE, 'ref', f'wl-{cls}-{k}.png')
         if not os.path.exists(f): return None
         im = crop_cell(Image.open(f).convert('RGBA'), N); px = im.load()
-        pts = {(x, y): px[x, y] for y in range(N) for x in range(N) if px[x, y][3]}
-        a = -math.pi + k * math.pi / 12; d = (math.cos(a), math.sin(a))
+        pts = [(x, y) for y in range(N) for x in range(N) if px[x, y][3]]
+        ang = -math.pi + k * math.pi / 12; d = (math.cos(ang), math.sin(ang))
         pom = min(pts, key=lambda p: p[0] * d[0] + p[1] * d[1])            # 칼자루 끝
-        out.append((a, pts, (pom[0] + 2.5 * d[0], pom[1] + 2.5 * d[1])))   # 손은 칼자루 끝에서 2.5칸 위
-    return out
+        items.append((im, ang, (pom[0] + 2.5 * d[0], pom[1] + 2.5 * d[1])))  # 손은 칼자루 끝에서 2.5칸 위
+    return WeaponTable(items)
 
 
-def overlay_weapon(o, MP, lib, force=None):
-    """덧그리기: 마네킹 칼날을 지우고, 장갑(손)·칼끝 각도에 맞는 직업 무기 그림을 얹는다. 장갑은 무기 위에 다시 칠한다"""
-    O = o.load(); N = o.width
-    blade = [p for p, k in MP.items() if k[0] == 'blade']
+def overlay_weapon(o, MP, ws, force=None):
+    """덧그리기 (공용 wpn.overlay): 마네킹 칼날 칸을 지우고 손(장갑)·칼 축 각도에 직업 무기를 얹는다. force = 각도(도) 지정"""
+    blade = {p for p, k in MP.items() if k[0] == 'blade'}
     glove = [p for p, k in MP.items() if k[0] == 'glove']
-    if not blade or not lib: return o
-    if glove: hand = (sum(x for x, _ in glove) / len(glove), sum(y for _, y in glove) / len(glove))
-    else:
-        body = [p for p, k in MP.items() if k[0] in ('torso', 'helm')]
-        c = (sum(x for x, _ in body) / len(body), sum(y for _, y in body) / len(body))
-        hand = min(blade, key=lambda p: (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2)
-    # 칼 = 가장 큰 칼날 덩어리. 축은 그 덩어리의 주축(PCA), 방향은 손에서 먼 쪽
-    sw = max(comps(set(blade)), key=len)
-    mx = sum(x for x, _ in sw) / len(sw); my = sum(y for _, y in sw) / len(sw)
-    sxx = sum((x - mx) ** 2 for x, _ in sw); syy = sum((y - my) ** 2 for _, y in sw); sxy = sum((x - mx) * (y - my) for x, y in sw)
-    th = 0.5 * math.atan2(2 * sxy, sxx - syy); d = (math.cos(th), math.sin(th))
-    if (mx - hand[0]) * d[0] + (my - hand[1]) * d[1] < 0: d = (-d[0], -d[1])
-    a = math.atan2(d[1], d[0])
-    if force is not None: a = math.radians(force)          # 사이 프레임: 각도를 정해서 얹는다
-    ang, pts, grip = min(lib, key=lambda e: abs(math.remainder(e[0] - a, 2 * math.pi)))
-    # 마네킹 칼날 + 칼날에만 붙은 외곽선 지우기
-    bs = set(blade)
-    body = {p for p, k in MP.items() if k[0] not in ('blade', LINE)}
-    for p in bs: O[p] = (0, 0, 0, 0)
-    for p, k in MP.items():
-        if k[0] == LINE and any((p[0] + a2, p[1] + b2) in bs for a2 in (-1, 0, 1) for b2 in (-1, 0, 1))                 and not any((p[0] + a2, p[1] + b2) in body for a2 in (-1, 0, 1) for b2 in (-1, 0, 1)):
-            O[p] = (0, 0, 0, 0)
-    dx, dy = round(hand[0] - grip[0]), round(hand[1] - grip[1])
-    for (x, y), c in pts.items():
-        q = (x + dx, y + dy)
-        if 0 <= q[0] < N and 0 <= q[1] < N: O[q] = c
-    for p in glove: pass   # 장갑 색은 dress 가 다시 칠한다
-    return o
+    if not blade or ws is None: return o
+    sw = max(comps(blade), key=len)                     # 칼 = 가장 큰 칼날 덩어리 (흩어진 회색 칸에 각도가 끌려가지 않게)
+    (cx, cy), d = axis(list(sw))
+    g = (sum(x for x, _ in glove) / len(glove), sum(y for _, y in glove) / len(glove)) if glove else grip_tip(sw, glove)[0]   # 손 = 장갑 가운데
+    if (cx - g[0]) * d[0] + (cy - g[1]) * d[1] < 0: d = (-d[0], -d[1])                       # 칼끝 = 손에서 칼날 덩어리 쪽
+    t = (g[0] + 10 * d[0], g[1] + 10 * d[1])
+    if force is not None:
+        a = math.radians(force); t = (g[0] + 10 * math.cos(a), g[1] + 10 * math.sin(a))
+    return overlay(o, blade, g, t, ws, front=glove, line=False)
 
 
 def dress(cls, M, arch, N, weapon=True, ang=None):
@@ -193,7 +176,7 @@ def dress(cls, M, arch, N, weapon=True, ang=None):
         q = mv(p, hoff)
         if inN(q): O[q] = Cpx[p]
     if weapon:
-        o = overlay_weapon(o, MP, weapon_lib(cls, N), ang); O = o.load()
+        o = overlay_weapon(o, MP, weapon_sprite(cls, N), ang); O = o.load()
         for p, (k, i) in MP.items():
             if k == 'glove': O[p] = ramps['glove'][i][:3] + (255,)
     return o, C, ramps
