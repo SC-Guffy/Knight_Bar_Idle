@@ -111,11 +111,17 @@ def bob(im, cut, d):
 
 
 def fall(im, ang, ref_feet):
-    """발끝을 축으로 뒤(왼쪽)로 ang 도 넘어뜨린다. 넘어진 뒤 가장 낮은 줄을 땅에 맞춘다."""
-    fx, fy = feet(im)
-    o = im.rotate(ang, resample=Image.NEAREST, center=(fx, fy), expand=False)
+    """발끝을 축으로 뒤(왼쪽)로 ang 도 넘어뜨린다. 넘어진 뒤 가장 낮은 줄을 땅에 맞춘다.
+    넓은 캔버스에서 돌린 뒤, 지팡이가 칸 왼쪽 밖으로 나가면 칸 안에 들어오게 앞(오른쪽)으로 민다 (잘리지 않게)"""
+    fx, fy = feet(im); W, H = im.size
+    big = Image.new('RGBA', (W * 2, H * 2)); big.paste(im, (W // 2, H // 2))
+    o = big.rotate(ang, resample=Image.NEAREST, center=(fx + W // 2, fy + H // 2), expand=False)
     bb = o.getbbox()
-    return shift(o, 0, ref_feet[1] - (bb[3] - 1)) if bb else o
+    if not bb: return Image.new('RGBA', im.size)
+    dy = ref_feet[1] - (bb[3] - 1 - H // 2)
+    dx = max(0, 1 - (bb[0] - W // 2))                                  # 왼쪽 끝이 칸 안(1칸 여백)
+    out = Image.new('RGBA', im.size); out.paste(o.crop((W // 2 - dx, H // 2 - dy, W // 2 - dx + W, H // 2 - dy + H)), (0, 0))
+    return out
 
 
 def orb_pt(im, orb, foot_y):

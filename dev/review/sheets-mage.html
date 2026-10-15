@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>마법사 계열 시트 준비</title>
+<title>마법사 계열 시트</title>
 <style>
   :root { --bg: #14161d; --panel: #1c1f29; --line: #2f3342; --ink: #e6e8ef; --dim: #9aa0b4; --ok: #6fdc8c; --no: #ff7a7a; --wait: #ffd257; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 system-ui, 'Malgun Gothic', sans-serif; }
@@ -24,10 +24,10 @@
 </style>
 </head>
 <body><main>
-<h1>마법사 계열 통짜 시트 — 0회 준비</h1>
+<h1>마법사 계열 통짜 시트</h1>
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 마법사 · 화염술사 · 빙결술사 · 뇌전술사 · 대마도사 · 빙결의 군주 · 뇌제 · 2026-10-15</p>
 <div class="box">
-  <b>지금 상태</b>: PixelLab <b>0회</b> (보류 — 검사 계열 시범 승인 뒤 계획서 재승인). 생성 없이 할 수 있는 준비만 했다.
+  <b>지금 상태 (2026-10-16)</b>: 7종 시트 완성 — PixelLab usage <b>7</b> (로드맵 승인 7, 재시도 0) · ComfyUI 0장. 게임 스위치(<code>SHEET_ON</code>)는 꺼 둠 — 켤지 정할 것. 아래는 준비 단계 기록.
   <ul>
     <li>7종 기준 그림: 지금 게임 그림을 3배로 찍어 1배 도트로 줄였다. 칸은 96, 발 기준점은 (44, 88)이다. 마력탄·지팡이 빛은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다. 모두 <code>false</code> 이고, 시트가 승인되면 켠다. 주소에 <code>?sheets=0</code> 을 붙이면 전부 꺼진다.</li>
@@ -38,6 +38,28 @@
     <li>연결 시험 <code>dev/skills.html?patch=sheets-mage</code>: 기준 그림 한 장으로 만든 시험 시트를 끼워 게임에서 돌린다. 시험 시트는 <code>src/sprites</code> 에 넣지 않았다.</li>
   </ul>
 </div>
+
+<h2>0. 결과 — 7종 시트 (PixelLab usage 7 · ComfyUI 0장) <span class="wait">· 게임 스위치는 꺼 둠, 켤지 정할 것</span></h2>
+<div class="box">
+  <b>무엇</b>: 지팡이 원형 마네킹 한 장으로 PixelLab 원형 동작 5개를 만들었다. idle 4f · walk 8f · atkA 4f · atkB 4f · cast 8f 이고 usage 합계 7, 재시도 0이다(로드맵 승인 그대로).
+  원형 동작 프레임마다 7종을 입혔다(<code>dev/sheets-mage/pipeline.py</code>). 머리는 직업 그림에서 옮기고, 지팡이는 공용 <code>wpn.py</code> 로 덧그렸다. 뇌전술사는 시안 B 머리다.
+  cast 키 자세 5장은 지팡이 각도로 골랐다. 시트는 <code>src/sprites/&lt;직업&gt;.png·json</code> 에 넣었다.
+  <ul>
+    <li>원형 애니가 "이펙트 없이"라고 해도 구슬에서 빛줄기·흰 덩어리를 그렸다. 다시 뽑지 않고 고쳤다: 몸과 떨어진 덩어리는 버리고, 몸에 붙은 빛줄기는 구슬색으로 잡혀 덧그리기 때 지워진다.
+      지팡이를 통째로 빛줄기로 바꾼 프레임은 손에서 빛줄기 방향으로 직업 지팡이를 세운다.</li>
+    <li>cast 에 "머리 뒤로 젖혀 든" 자세는 없었다. bowA −1.4 키는 머리 위로 세운 자세로 대신한다.</li>
+    <li><b>게임 스위치</b>: <code>SHEET_ON</code> 마법사 7종은 <b>false</b> 그대로다. 공유 코드를 켜는 것은 사용자 확인 뒤에 한다. 아래 링크는 시험 패치로 그 페이지 안에서만 켠다.</li>
+  </ul>
+</div>
+<h3>7종이 같이 움직이는 모습 (idle → walk → atkA → atkB → cast 키 5장 → hurt → death, 3배)</h3>
+<div class="scroll box"><img class="px" src="sheets-mage/sheet-anim.gif" alt="시트 애니" style="max-width:none;width:1120px"></div>
+<div class="tabs" id="smtabs"></div>
+<div class="scroll box"><img class="px" id="smimg" alt="시트 몽타주" style="max-width:none;width:1600px"></div>
+<p class="sub">한 줄이 한 직업이다. 칸은 idle · walk 3장 · atkA 2장 · atkB 2장 · cast 5장(bowA −1.4 · −0.7 · −0.2 · 0.7 · 1.2) · hurt · death 끝이다.</p>
+<h3>게임 안 전후 (dev/skills.html 평타 모드, 같은 순간 — 왼쪽 조립식, 오른쪽 시트)</h3>
+<div class="scroll box"><img class="px" src="sheets-mage/game-before-after.png" alt="게임 전후" style="max-width:none;width:960px"></div>
+<h3>원형 마네킹 애니 원본 (PixelLab, 첫 칸 = 넣은 첫 프레임)</h3>
+<div class="scroll box"><img class="px" src="sheets-mage/mq-raw.png" alt="원형 애니" style="max-width:none;width:1296px"></div>
 
 <h2>1. 칸 크기와 발 기준점</h2>
 <table>
@@ -143,7 +165,7 @@
 </table>
 
 <h2>5. 확인 링크</h2>
-<p>시험 시트 켬 (기준 그림 한 장 — 자리·연결만):
+<p>시트 켬 (시험 패치 — 그 페이지 안에서만 SHEET_ON 을 켠다):
   <a href="../skills.html?patch=sheets-mage&mode=basic&cls=mage">마법사</a> ·
   <a href="../skills.html?patch=sheets-mage&mode=basic&cls=pyromancer">화염술사</a> ·
   <a href="../skills.html?patch=sheets-mage&mode=basic&cls=cryomancer">빙결술사</a> ·
@@ -158,13 +180,13 @@
 <h2>6. 수용 기준 (이번 준비 단계)</h2>
 <table>
   <tr><th>기준</th><th>상태</th></tr>
-  <tr><td>계열 7종 시트로 그려지고 동작이 움직인다</td><td class="wait">생성 보류 — 아직. 연결은 시험 시트로 확인했다: walk·idle·guard·평타 2종 번갈아·cast·hurt·death·앉기(조립식)</td></tr>
-  <tr><td>어떤 동작에서도 무기 끝이 칸에서 잘리지 않는다</td><td class="ok">✅ 지금 리그 전 동작이 96 칸 안이다(1절, 앞 여백 4칸 이상). 생성 뒤 동작별 프레임 몽타주로 다시 본다</td></tr>
-  <tr><td>기존 그림과 그림체가 이어지고 2차·3차가 흑백 실루엣으로 구분된다</td><td class="wait">기준 그림은 기존 그대로다(2절). 시트 생성 뒤 비교한다</td></tr>
-  <tr><td>스킬 시전·궁극기·결투·레이드·마을이 깨지지 않는다. 전 직업 시전 예외 0</td><td class="ok">✅ 시험 시트를 켠 채 7종 × 스킬 × ★0~3 = 88회 시전, 평타 각 4초 → 예외 0</td></tr>
+  <tr><td>계열 7종 시트로 그려지고 동작이 움직인다</td><td class="ok">✅ 7종 · idle·guard·walk·atkA·atkB·cast(5 키 자세)·hurt·death 가 움직인다 (0절 GIF). 앉기는 조립식 유지(결정). 게임 스위치는 끔 — 켤지 정할 것</td></tr>
+  <tr><td>어떤 동작에서도 무기 끝이 칸에서 잘리지 않는다</td><td class="ok">✅ 7종 시트 전 프레임이 칸 가장자리에 닿지 않는다 (자동 검사 — 사망 넘어짐은 칸 안으로 밀어 고침)</td></tr>
+  <tr><td>기존 그림과 그림체가 이어지고 2차·3차가 흑백 실루엣으로 구분된다</td><td class="ok">✅ 머리·지팡이·옷 색이 기존 그대로 이어지고(0절 게임 전후), 흑백 몽타주에서 7종이 갈린다. △ 3차는 키 40 몸이 견습 마네킹(35)에 맞춰 조금 작아졌다 — 3차 큰 마네킹은 필요하면 계획서</td></tr>
+  <tr><td>스킬 시전·궁극기·결투·레이드·마을이 깨지지 않는다. 전 직업 시전 예외 0</td><td class="ok">✅ 진짜 시트를 켠 채 7종 × 스킬 × ★0~3 = 88회 시전(궁극기 포함), 평타 각 5초 → 예외 0. 오프라인 원정 걷기·캠프 앉기(조립식) 확인. △ 결투·레이드는 같은 drawHero 경로라 따로 찍지 않음</td></tr>
   <tr><td><code>SHEET_ON</code> 을 끄면 예전 조립식</td><td class="ok">✅ 7종 줄 <code>false</code>. 시트가 없으면 켜도 조립식(<code>heroSheetOn</code>), <code>?sheets=0</code> 이면 전부 끔</td></tr>
-  <tr><td>fps 가 떨어지지 않는다</td><td class="ok">✅ 4명 × 300번 그리기: 조립식 1,072ms → 시트 3.9ms (이음새 정리 getImageData 가 빠짐)</td></tr>
-  <tr><td>PixelLab 사용량 기록</td><td class="ok">✅ 0회 (<code>dev/sheets-mage/usage.md</code> 는 첫 호출 때 생긴다)</td></tr>
+  <tr><td>fps 가 떨어지지 않는다</td><td class="ok">✅ 4명 × 300번 그리기: 조립식 926ms → 시트 13.6ms (진짜 시트, 구슬 빛 포함)</td></tr>
+  <tr><td>PixelLab 사용량 기록</td><td class="ok">✅ 응답 usage 합계 7 (승인 7, 재시도 0) — <code>dev/sheets-mage/usage.md</code>. ComfyUI 0장</td></tr>
 </table>
 
 <h2>7. 정할 것</h2>
@@ -173,7 +195,7 @@
   <li>sit 는 기존 조립식 앉기 유지 → <b>확정</b> (2026-10-15 사용자).</li>
   <li>뇌전술사 실루엣 → <b>시안 B 확정</b> (2026-10-16 사용자).</li>
   <li>3차 → <b>2차 시트 편집</b>, 깨지면 그때 큰 마네킹 계획서 (2026-10-16 사용자).</li>
-  <li>남은 것: PixelLab 원형 애니 계획서 — 검사 계열 시범 결과가 나온 뒤 낸다 (사용량 기준: 8프레임 = usage 2, 4프레임 = usage 1).</li>
+  <li><b>마법사 계열 7종 시트를 게임에서 켤까?</b> (<code>src/sprites.js</code> <code>SHEET_ON</code> 마법사 줄 7개 true) — 지금은 꺼 둠. 직업별로 골라 켤 수도 있다.</li>
 </ol>
 </main>
 <script>
@@ -192,6 +214,7 @@
     for (const [k, n] of list) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = k; b.onclick = () => sh(k); box.appendChild(b); }
     sh(list.some((t) => t[0] === c) ? c : list[0][0]);
   };
+  tabSet(document.getElementById('smtabs'), document.getElementById('smimg'), [['sheet-montage', '시트 · 컬러'], ['sheet-montage-gray', '시트 · 흑백']], 'sheets-mage-sm');
   tabSet(document.getElementById('mqtabs'), document.getElementById('mqimg'), [['mq_dress', '입힌 결과 · 컬러'], ['mq_orig', '원래 그림 · 컬러'], ['mq_dress-gray', '입힌 결과 · 흑백'], ['mq_orig-gray', '원래 그림 · 흑백']], 'sheets-mage-mq');
   tabSet(document.getElementById('eltabs'), document.getElementById('elimg'), [['mq_electro', '컬러'], ['mq_electro-gray', '흑백'], ['mq_electro-sil', '실루엣']], 'sheets-mage-el');
   const cards = document.getElementById('cards');

@@ -8,7 +8,7 @@
 #    (머리는 마네킹 머리 아랫줄 가운데에 맞춤), 몸통·바지·신발·손은 같은 자리 직업 색 → 없으면 직업 부위 3단 색.
 #    지팡이는 덧그리기: 공용 dev/sheets-common/wpn.py — 직업 지팡이 그림을 마네킹 손 점·끝 방향에 돌려 얹는다.
 #  python -I -B mannequin.py  → mq/staff.png, mq/dress-<cls>.png, mq/electro-b.png (뇌전술사 새 머리 시안) + 미리보기
-import os, sys
+import os, sys, math
 from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -131,6 +131,21 @@ def anchor(ps):
     return (sum(xs) / len(xs), ys)
 
 
+def biggest(ps):
+    """8방향으로 이어진 가장 큰 덩어리 (부위색이 조금 번져 다른 곳에 생긴 칸은 뺀다)"""
+    left, best = set(ps), []
+    while left:
+        st = [left.pop()]; c = []
+        while st:
+            p = st.pop(); c.append(p)
+            for a in (-1, 0, 1):
+                for b in (-1, 0, 1):
+                    q = (p[0] + a, p[1] + b)
+                    if q in left: left.remove(q); st.append(q)
+        if len(c) > len(best): best = c
+    return best
+
+
 def centroid(ps):
     return (sum(p[0] for p in ps) / len(ps), sum(p[1] for p in ps) / len(ps))
 
@@ -152,15 +167,15 @@ def dress(cls, M, head_img=None):
         if P.get(p) == k or (k in BODY and P.get(p) in BODY): O[p] = f[p]; continue      # 같은 자리 직업 몸 색 (무늬 유지)
         r = R.get(k) or R.get('torso') if k != 'shaft' else R.get('shaft')
         O[p] = (r[i] if r else RAMP[k][i]) + (255,)
-    # 소품: 마네킹 실루엣 밖의 직업 칸 (망토·목도리 자락·뒷머리 — 지팡이 제외). 마네킹 몸통 무게중심 이동량으로 옮긴다
+    # 소품: 마네킹 실루엣 밖의 직업 몸통·바지 띠 칸 (망토 자락). 마네킹 몸통 무게중심 이동량으로 옮긴다
     mt = [p for p, (k, i) in mp.items() if k == 'torso']; ct = [p for p, k in P.items() if k == 'torso']
     tdx, tdy = (round(centroid(mt)[0] - centroid(ct)[0]), round(centroid(mt)[1] - centroid(ct)[1])) if mt and ct else (0, 0)
     for p, k in P.items():
         q = (p[0] + tdx, p[1] + tdy)
-        if k in ('shaft', 'fork', 'orb') or not (0 <= q[0] < o.width and 0 <= q[1] < o.height): continue
+        if k not in ('torso', 'legs', 'boots') or not (0 <= q[0] < o.width and 0 <= q[1] < o.height): continue     # 망토 자락만 (머리 띠는 머리와 같이, 손·지팡이는 따로)
         if q not in mp and not O[q][3]: O[q] = f[p]
     # 머리: 직업 머리 띠 칸(외곽선 포함)을 마네킹 머리 아랫줄 가운데에 맞춰 옮긴다
-    mh = [p for p, (k, i) in mp.items() if k == 'head']
+    mh = biggest([p for p, (k, i) in mp.items() if k == 'head'])
     STF = ('shaft', 'fork', 'orb')
     near_staff = lambda p: any(P.get((p[0] + a, p[1] + b)) in STF for a in (-1, 0, 1) for b in (-1, 0, 1))
     # 지팡이 칸과 그 둘레 외곽선은 머리에서 뺀다 (지팡이는 덧그리기가 따로 그림)
@@ -191,12 +206,29 @@ def staff_sprite(cls, P):
     return _WS[cls]
 
 
+def staff_grip(mp):
+    """마네킹 프레임 → (지팡이 칸, 쥔 손 칸, 손 점, 끝 점).
+    지팡이 칸 = 지팡이 부위색의 가장 큰 덩어리 (눈 반짝임처럼 떨어진 구슬색 칸은 뺀다 — 덧그리기 때 같이 지움).
+    쥔 손 = 지팡이에 닿은 손 칸, 없으면 손 칸 전체(가장 큰 덩어리) — 애니가 구슬에서 빛줄기를 그려 지팡이 칸이 길어져도 손 점이 손에 붙게"""
+    allst = [p for p, (k, i) in mp.items() if k in STF]
+    mask = set(biggest(allst))
+    hand = [p for p, (k, i) in mp.items() if k == 'hand']
+    glove = [p for p in hand if any((p[0] + a, p[1] + b) in mask for a in (-1, 0, 1) for b in (-1, 0, 1))] or biggest(hand)
+    orb = [p for p in mask if mp[p][0] == 'orb']
+    if not mask: return mask, set(allst), glove, None, None
+    hint = centroid(orb) if orb else None
+    if not any(mp[p][0] == 'shaft' for p in mask) and glove:
+        # 자루가 없다 (애니가 지팡이를 빛줄기로 바꿔 그림): 손에서 가장 먼 칸 쪽을 끝으로 — 손에서 그 방향으로 지팡이를 세운다
+        gc = centroid(glove); hint = max(mask, key=lambda p: (p[0] - gc[0]) ** 2 + (p[1] - gc[1]) ** 2)
+    g, t = grip_tip(mask, glove, tip_hint=hint)
+    if math.hypot(t[0] - g[0], t[1] - g[1]) < 2 and hint: t = hint      # 손 점과 끝 점이 겹치면 끝 = hint
+    return mask, set(allst) - mask, glove, g, t
+
+
 def overdraw_staff(o, mp, cls, P):
-    mask = {p for p, (k, i) in mp.items() if k in STF}
+    mask, stray, glove, g, t = staff_grip(mp)
     if not mask: return
-    glove = [p for p, (k, i) in mp.items() if k == 'hand' and any((p[0] + a, p[1] + b) in mask for a in (-1, 0, 1) for b in (-1, 0, 1))]
-    g, t = grip_tip(mask, glove)
-    out = overlay(o, mask, g, t, staff_sprite(cls, P), front=glove)
+    out = overlay(o, mask | stray, g, t, staff_sprite(cls, P), front=glove)
     o.paste(out, (0, 0))
 
 

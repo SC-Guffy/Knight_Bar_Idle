@@ -27,16 +27,34 @@ def frames(src, name):
         if im.size != (96, 96):                                 # 칸이 다르면 발 바닥 가운데를 맞춰 96 칸에
             o = Image.new('RGBA', (96, 96)); bb = im.getbbox()
             o.paste(im, (build.FOOT[0] - (bb[0] + bb[2]) // 2, build.FOOT[1] - bb[3] + 1)); im = o
-        out.append(build.tidy(im, RAMP_PAL))                    # 부위색으로 고정 (애니가 색을 조금 바꿔도)
+        out.append(keep_main(build.tidy(im, RAMP_PAL)))         # 부위색으로 고정 (애니가 색을 조금 바꿔도) + 몸과 떨어진 덩어리(애니가 멋대로 그린 빛) 버림
     return out
 
 
+def keep_main(im):
+    """8방향으로 이어진 가장 큰 덩어리만 남긴다. 몸에 붙은 빛줄기는 구슬색으로 잡혀 지팡이 덧그리기 때 지워진다"""
+    px = im.load(); W, H = im.size; seen = set(); comps = []
+    for y in range(H):
+        for x in range(W):
+            if px[x, y][3] and (x, y) not in seen:
+                st, c = [(x, y)], []; seen.add((x, y))
+                while st:
+                    p = st.pop(); c.append(p)
+                    for a in (-1, 0, 1):
+                        for b in (-1, 0, 1):
+                            q = (p[0] + a, p[1] + b)
+                            if 0 <= q[0] < W and 0 <= q[1] < H and q not in seen and px[q][3]: seen.add(q); st.append(q)
+                comps.append(c)
+    big = max(comps, key=len) if comps else []
+    for c in comps:
+        if c is not big:
+            for p in c: px[p] = (0, 0, 0, 0)
+    return im
+
+
 def staff_angle(F):
-    mp = m.classify(F)
-    mask = {p for p, (k, i) in mp.items() if k in m.STF}
+    mask, stray, glove, g, t = m.staff_grip(m.classify(F))
     if len(mask) < 6: return None
-    glove = [p for p, (k, i) in mp.items() if k == 'hand' and any((p[0] + a, p[1] + b) in mask for a in (-1, 0, 1) for b in (-1, 0, 1))]
-    g, t = grip_tip(mask, glove)
     return math.atan2(t[1] - g[1], t[0] - g[0])
 
 

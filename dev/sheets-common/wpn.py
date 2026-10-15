@@ -11,7 +11,7 @@
 #      front: 무기 위에 다시 그릴 칸 (손·장갑) 집합
 #    ws 대신 WeaponTable 을 주면 가장 가까운 각도 그림을 돌리지 않고 얹는다 (가는 장검처럼 돌리면 끊기는 무기용)
 #      tbl = WeaponTable.from_rig([(그림, 각도 라디안), …])   # 리그로 무기만 각도마다 찍은 그림 (pose.wa)
-#  보조: axis(pts) 주축, grip_tip(wpn_pts, glove_pts) 손 점과 끝 점, diff_pts(a, b) 두 그림이 다른 칸
+#  보조: axis(pts) 주축, grip_tip(wpn_pts, glove_pts, end=None, tip_hint=None) 손 점과 끝 점 (tip_hint = 끝 쪽 점, 예: 지팡이 구슬), diff_pts(a, b) 두 그림이 다른 칸
 #  python -I -B wpn.py  → 자기 시험 (가짜 막대를 돌려 얹기)
 import math
 from PIL import Image
@@ -33,8 +33,10 @@ def axis(pts):
     return (cx, cy), (math.cos(a), math.sin(a))
 
 
-def grip_tip(wpn_pts, glove_pts, end=None):
+def grip_tip(wpn_pts, glove_pts, end=None, tip_hint=None):
     """무기 칸과 손(장갑) 칸 → (손 점, 끝 점). 손 점 = 손 가운데를 무기 축에 내린 발, 끝 = 손에서 먼 쪽 끝.
+    tip_hint: 끝 쪽에 있는 점 (지팡이 구슬 가운데 등). 주면 그쪽 끝을 끝으로 고른다 — 손 칸이 안 잡힌 프레임에서
+      "먼 끝"을 거꾸로 골라 180° 뒤집히는 것을 막는다. 손 칸이 없으면 손 점은 끝에서 70% 자리.
     end='up': 활처럼 가운데를 쥐는 무기 — 손 점 = 축의 가운데, 끝 = 화면 위쪽 끝 (양 끝이 손에서 똑같이 멀어
       "먼 끝"이 프레임마다 바뀌어 180° 뒤집히거나, 손이 한쪽 끝에 붙으면 손 점과 끝 점이 겹쳐 각도가 0 이 된다)"""
     c, d = axis(list(wpn_pts))
@@ -47,6 +49,10 @@ def grip_tip(wpn_pts, glove_pts, end=None):
         tg = t0 + (t1 - t0) * 0.3
     tg = max(t0, min(t1, tg))
     tt = t1 if abs(t1 - tg) >= abs(t0 - tg) else t0
+    if tip_hint is not None:
+        th = (tip_hint[0] - c[0]) * d[0] + (tip_hint[1] - c[1]) * d[1]
+        tt = t1 if abs(t1 - th) < abs(t0 - th) else t0
+        if not glove_pts: tg = tt + (t0 + t1 - 2 * tt) * 0.7
     if end == 'up':
         tg = (t0 + t1) / 2; tt = t0 if c[1] + d[1] * t0 < c[1] + d[1] * t1 else t1
     P = lambda t: (c[0] + d[0] * t, c[1] + d[1] * t)
