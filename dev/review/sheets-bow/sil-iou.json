@@ -22,7 +22,7 @@
   "deadeye|siegeMaster": 0.713,
   "voidArcher|siegeMaster": 0.725
  },
- "dress": {
+ "v1": {
   "ranger|marksman": 0.831,
   "ranger|arcaneArcher": 0.847,
   "ranger|arbalest": 0.639,
@@ -44,5 +44,28 @@
   "deadeye|voidArcher": 0.865,
   "deadeye|siegeMaster": 0.648,
   "voidArcher|siegeMaster": 0.683
+ },
+ "v2": {
+  "ranger|marksman": 0.835,
+  "ranger|arcaneArcher": 0.809,
+  "ranger|arbalest": 0.657,
+  "ranger|deadeye": 0.748,
+  "ranger|voidArcher": 0.678,
+  "ranger|siegeMaster": 0.658,
+  "marksman|arcaneArcher": 0.823,
+  "marksman|arbalest": 0.647,
+  "marksman|deadeye": 0.748,
+  "marksman|voidArcher": 0.636,
+  "marksman|siegeMaster": 0.654,
+  "arcaneArcher|arbalest": 0.725,
+  "arcaneArcher|deadeye": 0.834,
+  "arcaneArcher|voidArcher": 0.685,
+  "arcaneArcher|siegeMaster": 0.733,
+  "arbalest|deadeye": 0.642,
+  "arbalest|voidArcher": 0.596,
+  "arbalest|siegeMaster": 0.815,
+  "deadeye|voidArcher": 0.662,
+  "deadeye|siegeMaster": 0.647,
+  "voidArcher|siegeMaster": 0.592
  }
 }

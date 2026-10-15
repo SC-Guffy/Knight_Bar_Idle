@@ -110,6 +110,13 @@ def ramp_of(colors):
     return out
 
 
+def ramp_q(colors, qs=(0.15, 0.45, 0.75)):
+    """직업 부위 색 → 3단: 빈도까지 넣어 밝기순으로 줄 세운 뒤 15·45·75% 자리 색. 드문 밝은 장식선(차원궁사 분홍 등)이 넓은 면을 칠하지 않게"""
+    if not colors: return None
+    cs = sorted(colors, key=lum); n = len(cs)
+    return [cs[min(n - 1, int(q * n))] for q in qs]
+
+
 def anchor(pm, part):
     ps = [p for p, k in pm.items() if (k[0] if isinstance(k, tuple) else k) == part]
     if not ps: return None
@@ -131,7 +138,206 @@ def big(mask, minc=12):
     return out
 
 
+import math
+
+
+def axis(pts, by_tips=True):
+    """점들의 주축 각도(도, -90~90]와 가운데. by_tips: 축 방향 양 끝의 가운데 (활), 아니면 무게중심 (석궁 T자)"""
+    n = len(pts); mx = sum(p[0] for p in pts) / n; my = sum(p[1] for p in pts) / n
+    sxx = sum((p[0] - mx) ** 2 for p in pts); syy = sum((p[1] - my) ** 2 for p in pts); sxy = sum((p[0] - mx) * (p[1] - my) for p in pts)
+    a = 0.5 * math.atan2(2 * sxy, sxx - syy); ux, uy = math.cos(a), math.sin(a)
+    if by_tips:
+        pr = [(p[0] - mx) * ux + (p[1] - my) * uy for p in pts]; lo, hi = min(pr), max(pr)
+        mx, my = mx + ux * (lo + hi) / 2, my + uy * (lo + hi) / 2
+    d = math.degrees(a)
+    if d <= -90: d += 180
+    if d > 90: d -= 180
+    return mx, my, d
+
+
+def place(sprite, src_c, dst_c, ang, scale=1.0):
+    """sprite {(x,y): 색} 을 src_c 둘레로 ang 도 돌리고 scale 배 해서 dst_c 에 (칸마다 원본을 되짚어 가장 가까운 칸)"""
+    if not sprite: return {}
+    a = math.radians(ang); ca, sa = math.cos(a), math.sin(a)
+    xs = [p[0] for p in sprite]; ys = [p[1] for p in sprite]
+    R = max(max(xs) - min(xs), max(ys) - min(ys)) * scale + 4
+    out = {}
+    for ty in range(int(dst_c[1] - R), int(dst_c[1] + R) + 1):
+        for tx in range(int(dst_c[0] - R), int(dst_c[0] + R) + 1):
+            dx, dy = (tx - dst_c[0]) / scale, (ty - dst_c[1]) / scale
+            q = (round(dx * ca + dy * sa + src_c[0]), round(-dx * sa + dy * ca + src_c[1]))
+            if q in sprite: out[tx, ty] = sprite[q]
+    return out
+
+
+def crescent(cx, cy):
+    """차원궁사 초승달 활 (세로): 양 끝이 뒤로 휜 초승달 날 — 짙은 보라 몸 + 분홍 안쪽 날"""
+    D, L, T = (0x2a, 0x12, 0x50, 255), (0xff, 0x8a, 0xff, 255), (0xff, 0x4d, 0xff, 255)
+    sp = {}
+    for i in range(-16, 17):
+        t = i / 16; y = cy + i; x = cx + round(8 * (1 - t * t)) - 3
+        sp[x, y] = D; sp[x + 1, y] = L
+        if abs(t) < 0.7: sp[x - 1, y] = D
+    for k in range(1, 4):                       # 양 끝 날: 뒤·바깥으로
+        sp[cx - 3 - k, cy - 16 - k] = T if k < 3 else L
+        sp[cx - 3 - k, cy + 16 + k] = T if k < 3 else L
+    return sp
+
+
+def disk(cx, cy, r, fill, edge, rays=None):
+    sp = {}
+    for y in range(cy - r - 3, cy + r + 4):
+        for x in range(cx - r - 3, cx + r + 4):
+            d = math.hypot(x - cx, y - cy)
+            if d <= r - 1: sp[x, y] = fill
+            elif d <= r + 0.3: sp[x, y] = edge
+    if rays:
+        for k in range(8):
+            a = k * math.pi / 4 + math.pi / 8
+            for rr in (r + 2, r + 3): sp[round(cx + rr * math.cos(a)), round(cy + rr * math.sin(a))] = rays
+    return sp
+
+
+def ring(cx, cy, r, c1, c2):
+    """끊긴 고리 (차원 틈): 바깥 c1, 안쪽 c2, 45도마다 끊는다"""
+    sp = {}
+    for k in range(int(4 * math.pi * r)):
+        a = k / (2 * r)
+        if math.degrees(a) % 45 < 9: continue
+        sp[round(cx + r * math.cos(a)), round(cy + r * math.sin(a))] = c1
+        sp[round(cx + (r - 1) * math.cos(a)), round(cy + (r - 1) * math.sin(a))] = c2
+    return sp
+
+
+def bbox_of(CP, k):
+    ps = [p for p, v in CP.items() if v == k]
+    return min(p[0] for p in ps), min(p[1] for p in ps), max(p[0] for p in ps), max(p[1] for p in ps)
+
+
+# 실루엣 틀 바꾸기 (2026-10-16 사용자 승인): 직업 대기 그림 좌표로 소품을 그린다.
+#  층: back(몸 뒤, 빈 칸) · front(몸 위, 무기 아래) · head(머리 위). 기준: 'head' 는 머리 이동(hoff), 'body' 는 몸 이동(off) 을 따라간다
+def props(cls, CP):
+    out = []
+    hx0, hy0, hx1, hy1 = bbox_of(CP, 'helm'); tx0, ty0, tx1, ty1 = bbox_of(CP, 'torso')
+    if cls == 'voidArcher':
+        hood, tip = (0x3a, 0x1a, 0x6a, 255), (0xff, 0x8a, 0xff, 255)
+        horn = {}
+        for k in range(5):                       # 후드 위 뿔 두 갈래 (뒤로 휨)
+            horn[hx0 + 5 - k // 2, hy0 - k] = tip if k == 4 else hood
+            horn[hx0 + 11 - k // 2, hy0 - k + 1] = tip if k == 4 else hood
+            if k < 2: horn[hx0 + 6 - k // 2, hy0 - k] = hood; horn[hx0 + 12 - k // 2, hy0 - k + 1] = hood
+        out.append(('head', 'head', horn))
+        out.append(('back', 'body', ring(tx0 - 1, ty0 + 3, 9, (0xff, 0x4d, 0xff, 255), (0x3a, 0x1a, 0x6a, 255))))
+    if cls == 'deadeye':                         # 머리 뒤 태양 원반 (후광)
+        out.append(('back', 'head', disk(hx0 + 4, hy0 + 5, 8, (0xff, 0xd2, 0x57, 255), (0xc9, 0xa2, 0x27, 255), rays=(0xff, 0xf0, 0xb0, 255))))
+    if cls == 'siegeMaster':                     # 앞 어깨 큰 견갑 (둥근 판)
+        st, hi, dk = (0x6a, 0x70, 0x7c, 255), (0xa8, 0xae, 0xb8, 255), (0x3a, 0x3e, 0x48, 255)
+        pd = {}; cx, cy = tx1 - 4, ty0 + 2
+        for y in range(cy - 3, cy + 4):
+            for x in range(cx - 5, cx + 6):
+                if ((x - cx) / 5.5) ** 2 + ((y - cy) / 3.6) ** 2 <= 1: pd[x, y] = hi if y < cy - 1 else st if y < cy + 2 else dk
+        out.append(('front', 'body', pd))
+    return out
+
+
+# 무기 덧그리기 (공용 방식, 2026-10-16 승인): 마네킹 무기에서 각도·가운데를 재고, 그 자리에 원래 직업 무기 그림(시위 없는 활대·몸체 c-<직업>-limb)을 얹는다.
+#  시위는 마네킹 것(당긴 모양)을 직업 시위색으로. alt(틀 바꾸기): 공성포수는 어깨 거치(1.2배, 위·뒤로), 차원궁사는 초승달 활
+XBOW = ('arbalest', 'siegeMaster')
+
+
+def weapon_layer(cls, MP, alt):
+    # 직업 무기 그림 = 시위 없는 활대·몸체 중 대기 그림에서 실제 보이는 칸 (석궁 개머리는 팔에 가린다 — 마네킹도 같은 칸만 보이므로 축이 맞는다)
+    #  모양은 실제 게임 그림(무기만 캡처 wpn)에서, 시위 없는 그림(limb)은 활대·몸체 색표로만 쓴다 (석궁은 도트 격자 컷이라 다시 그린 그림과 1~2칸 어긋난다)
+    #  가려지는 곳(석궁 개머리 위 손)은 쥔 손을 무기 위에 다시 그려서 맞춘다
+    lim = load(f'c-{cls}-limb'); L = lim.load(); wp0 = load(f'c-{cls}-wpn'); P0 = wp0.load()
+    lcol = {L[x, y][:3] for y in range(lim.height) for x in range(lim.width) if L[x, y][3]}
+    spr = {(x, y): P0[x, y] for y in range(wp0.height) for x in range(wp0.width) if P0[x, y][3] and P0[x, y][:3] in lcol}
+    tips = cls not in XBOW
+    if tips:      # 활: 활대 전체의 축·양 끝 가운데 ↔ 마네킹 활대(나무 단)
+        ref = list(spr); mw = [p for p, (k, i) in MP.items() if k == 'weapon' and i == 0]
+    else:         # 석궁: 쇠 활대(밝은 쪽 색)끼리 ↔ 마네킹 쇠 단 (개머리는 손에 가려 들쭉날쭉)
+        steel = max(lcol, key=lambda c: lum(c)); ref = [p for p, c in spr.items() if c[:3] == steel] or list(spr)
+        mw = [p for p, (k, i) in MP.items() if k == 'weapon' and i == 1]
+    cc = axis(ref, True)
+    if alt and cls == 'voidArcher':
+        spr = crescent(round(cc[0]) - 2, round(cc[1])); cc = axis(list(spr), True)
+    if len(mw) < 6: return {}, {}
+    mc = axis(mw, True)
+    ang = mc[2] - cc[2]
+    if ang > 90: ang -= 180
+    if ang < -90: ang += 180
+    scale, sh = (1.2, (-2, -6)) if alt and cls == 'siegeMaster' else (1.0, (0, 0))
+    limb = place(spr, cc[:2], (mc[0] + sh[0], mc[1] + sh[1]), ang, scale)
+    wp = load(f'c-{cls}-wpn'); Wp = wp.load()
+    sc = [Wp[x, y] for y in range(wp.height) for x in range(wp.width) if Wp[x, y][3] and (x, y) not in spr]
+    scol = max(set(sc), key=sc.count) if sc else (255, 255, 255, 255)
+    string = {(x + sh[0], y + sh[1]): scol for (x, y), (k, i) in MP.items() if k == 'weapon' and i == 2}
+    return limb, string
+
+
+def dress2(cls, M, alt=True):
+    """덧그리기 + (alt) 틀 바꾸기 판 입히기"""
+    full, noacc, body, wpn = (load(f'c-{cls}-{k}') for k in ('full', 'noacc', 'body', 'wpn'))
+    W = full.width; inN = lambda p: 0 <= p[0] < W and 0 <= p[1] < W
+    g = ground_of(noacc); neck = g - 19
+    CP = parts(noacc, body, wpn); C = noacc.load(); Fp = full.load()
+    A, Bn = full.load(), noacc.load()
+    cape = big({(x, y) for y in range(W) for x in range(W) if A[x, y][3] and A[x, y] != Bn[x, y]})
+    ramps = {k: (weapon_ramp if k == 'weapon' else ramp_q)([C[p] for p, kk in CP.items() if kk == k]) for k in RAMP}
+    for k in RAMP:
+        if ramps[k] is None: ramps[k] = ramps['torso']
+    base = classify(mannequin(ARCH[cls], 'stand')); MP = classify(M)
+    ba, ma = anchor(base, 'helm'), anchor(MP, 'helm') or anchor(base, 'helm')
+    ca = anchor({p: k for p, k in CP.items() if p[1] < neck}, 'helm')
+    off = (round(ma[0] - ba[0]), round(ma[1] - ba[1])); hoff = (round(ma[0] - ca[0]), round(ma[1] - ca[1]))
+    o = Image.new('RGBA', (W, W)); O = o.load(); mv = lambda p, d: (p[0] + d[0], p[1] + d[1])
+    PR = props(cls, CP) if alt else []
+
+    def put(layer, empty_only=False):
+        for lay, ref, sp in PR:
+            if lay != layer: continue
+            d = hoff if ref == 'head' else off
+            for p, c in sp.items():
+                q = mv(p, d)
+                if inN(q) and (not empty_only or not O[q][3]): O[q] = c
+    for p in cape:                                       # 망토 (몸 뒤, 빈 칸에만)
+        q = mv(p, off)
+        if inN(q) and q not in MP: O[q] = Fp[p]
+    put('back', True)
+    limb, string = weapon_layer(cls, MP, alt)
+    near = lambda x, y, f: any(f(MP.get((x + a, y + b), ('',))[0]) for a in (-1, 0, 1) for b in (-1, 0, 1))
+    for (x, y), (k, i) in MP.items():                    # 몸: 부위 램프, 몸통은 직업 무늬 우선 (마네킹 무기는 덧그리기로 바꾼다)
+        if k == 'weapon': continue
+        if k == 'line':
+            if near(x, y, lambda v: v == 'weapon') and not near(x, y, lambda v: v not in ('weapon', 'line', '')): continue   # 무기에만 붙은 외곽선
+            O[x, y] = OUT_C; continue
+        if k == 'helm': continue
+        c = ramps[k][i]
+        if k == 'torso':
+            q = (x - off[0], y - off[1])
+            if CP.get(q) == 'torso': c = C[q]
+        O[x, y] = c[:3] + (255,)
+    put('front')
+    for p, c in list(string.items()) + list(limb.items()):
+        if inN(p): O[p] = c[:3] + (255,)
+    for (x, y), (k, i) in MP.items():                    # 쥔 손은 무기 위
+        if k == 'glove': O[x, y] = ramps['glove'][i][:3] + (255,)
+    head = {p for p, k in CP.items() if p[1] < neck and k not in ('weapon', 'line', 'glove')}
+    head |= {p for p, k in CP.items() if k == 'line' and p[1] < neck + 1 and any((p[0] + a, p[1] + b) in head for a in (-1, 0, 1) for b in (-1, 0, 1))}
+    for p in head:
+        q = mv(p, hoff)
+        if inN(q) and q not in limb: O[q] = C[p]
+    put('head')
+    pal = sorted({c for c in (full.get_flattened_data() if hasattr(full, 'get_flattened_data') else full.getdata()) if c[3]})
+    for _, _, sp in PR:
+        for c in sp.values():
+            if c not in pal: pal.append(c)
+    if OUT_C not in pal: pal.append(OUT_C)
+    return tidy(o, pal, minc=6)
+
+
 def dress(cls, M):
+    """첫 시안 (v1): 무기까지 마네킹 모양으로 칠한다 — 비교용으로 남김"""
     full, noacc, body, wpn = (load(f'c-{cls}-{k}') for k in ('full', 'noacc', 'body', 'wpn'))
     W = full.width; inN = lambda p: 0 <= p[0] < W and 0 <= p[1] < W
     g = ground_of(noacc); neck = g - 19
@@ -202,18 +408,22 @@ if __name__ == '__main__':
         fr = [mannequin(arch, t) for t in TESTS]
         for t, im in zip(TESTS, fr): im.save(os.path.join(MQ, f'{arch}-{t}.png'))
         tile([tight(f, FOOT(arch)) for f in fr]).save(os.path.join(REV, f'{arch}.png'))
+    # v1 = 첫 시안 (무기도 마네킹 모양) · v2 = 무기 덧그리기 + 실루엣 틀 바꾸기 (2026-10-16 승인안)
     rows = {}
     for cls in IDS:
-        fr = [dress(cls, Image.open(os.path.join(MQ, f'{ARCH[cls]}-{t}.png')).convert('RGBA')) for t in TESTS]
-        for t, im in zip(TESTS, fr): im.save(os.path.join(MQ, f'dress-{cls}-{t}.png'))
-        orig = load(f'c-{cls}-full'); rows[cls] = (orig, fr)
-        tile([tight(orig, FOOT(cls))] + [tight(f, FOOT(cls)) for f in fr]).save(os.path.join(REV, f'dress-{cls}.png'))
+        orig = load(f'c-{cls}-full'); rows[cls] = {'orig': orig}
+        for ver, fn, pre in (('v1', dress, 'dress'), ('v2', dress2, 'dress2')):
+            fr = [fn(cls, Image.open(os.path.join(MQ, f'{ARCH[cls]}-{t}.png')).convert('RGBA')) for t in TESTS]
+            for t, im in zip(TESTS, fr): im.save(os.path.join(MQ, f'{pre}-{cls}-{t}.png'))
+            rows[cls][ver] = fr
+            tile([tight(orig, FOOT(cls))] + [tight(f, FOOT(cls)) for f in fr]).save(os.path.join(REV, f'{pre}-{cls}.png'))
     for mode in ('color', 'gray', 'sil'):
-        tile([tight(rows[c][0], FOOT(c)) for c in IDS], mode=mode).save(os.path.join(REV, f'line-orig-{mode}.png'))
-        tile([tight(rows[c][1][0], FOOT(c)) for c in IDS], mode=mode).save(os.path.join(REV, f'line-dress-{mode}.png'))
+        tile([tight(rows[c]['orig'], FOOT(c)) for c in IDS], mode=mode).save(os.path.join(REV, f'line-orig-{mode}.png'))
+        tile([tight(rows[c]['v1'][0], FOOT(c)) for c in IDS], mode=mode).save(os.path.join(REV, f'line-dress-{mode}.png'))
+        tile([tight(rows[c]['v2'][0], FOOT(c)) for c in IDS], mode=mode).save(os.path.join(REV, f'line-dress2-{mode}.png'))
     res = {}
-    for kind, idx in (('orig', None), ('dress', 0)):
-        M = {c: mask(rows[c][0] if idx is None else rows[c][1][0]) for c in IDS}
+    for kind in ('orig', 'v1', 'v2'):
+        M = {c: mask(rows[c][kind] if kind == 'orig' else rows[c][kind][0]) for c in IDS}
         res[kind] = {f'{a}|{b}': round(iou(M[a], M[b], FOOT(a), FOOT(b)), 3) for i, a in enumerate(IDS) for b in IDS[i + 1:]}
     json.dump(res, open(os.path.join(REV, 'sil-iou.json'), 'w'), indent=1)
     for kind in res:
