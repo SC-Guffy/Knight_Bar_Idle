@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 2.0,
+ "used": 4.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -8,7 +8,21 @@
    "purpose": "walk: side view, body keeps facing right, small armored knight in ",
    "used": 2.0,
    "bal": 1209.0
+  },
+  {
+   "cls": "mq-sword",
+   "ep": "/animate-with-text-v3",
+   "purpose": "atkA: side view, body keeps facing right, small armored knight in ",
+   "used": 1.0,
+   "bal": 1208.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/animate-with-text-v3",
+   "purpose": "atkA: side view, body keeps facing right, small holy paladin knigh",
+   "used": 1.0,
+   "bal": 1207.0
   }
  ],
- "nom": 2.0
+ "nom": 4.0
 }

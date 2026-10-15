@@ -41,8 +41,8 @@
 </head>
 <body>
 <main>
-<h1>검사 계열 + 견습 — 통짜 시트 시범 0단계</h1>
-<div class="sub">와이어프레임 방식 시험: 원형 마네킹(부위색) → 직업 입히기. <b>PixelLab usage 2</b> · ComfyUI 8장 · 2026-10-15</div>
+<h1>검사 계열 + 견습 — 통짜 시트 시범 (0·1단계)</h1>
+<div class="sub">와이어프레임 방식 시험: 원형 마네킹(부위색) → 직업 입히기. <b>PixelLab usage 4</b> · ComfyUI 10장 · 2026-10-15</div>
 
 <div class="ctl">
   <button data-v="" class="on">컬러</button><button data-v="gray">흑백</button><button data-v="sil">실루엣</button>
@@ -203,7 +203,60 @@
   </ul>
 </div>
 
-<h2>⑥ PixelLab 1단계 계획 (승인 요청, 최대 3회)</h2>
+<h2>⑧ 무기 덧그리기 (사용자 결정, PixelLab 0회)</h2>
+<div class="card dim">마네킹 칼은 지우고, 노란 장갑(손) 자리와 칼날 덩어리의 축 각도에 맞춰 <b>원래 직업 무기 그림</b>을 얹는다. 무기 그림은 게임 리그로 15° 간격 24장을 뽑아 둔 것 (<code>ref/wl-&lt;직업&gt;-k.png</code>). 손잡이 끝에서 2.5칸 위를 손에 맞춘다. 각도를 정해 주면 사이 프레임도 만든다.</div>
+<div class="row">
+  <figure><img src="sheets-sword/paladin-orig.png" alt=""><figcaption>성기사 지금</figcaption></figure><figure><img src="sheets-sword/paladin-d0.png" alt=""><figcaption>입힘 (칼 = 원형 장검)</figcaption></figure><figure><img src="sheets-sword/paladin-d0ov.png" alt=""><figcaption>입힘 + 덧그리기 (금빛 성검)</figcaption></figure>
+  <span style="width:24px"></span>
+  <figure><img src="sheets-sword/swordsman-orig.png" alt=""><figcaption>검사 지금</figcaption></figure><figure><img src="sheets-sword/swordsman-d0ov.png" alt=""><figcaption>입힘 + 덧그리기</figcaption></figure>
+</div>
+<div class="row">
+  <figure><img class="gif" src="sheets-sword/walkov-paladin.gif" alt=""><figcaption>성기사 걷기 + 덧그리기</figcaption></figure><figure><img class="gif" src="sheets-sword/walkov-swordsman.gif" alt=""><figcaption>검사 걷기 + 덧그리기</figcaption></figure>
+</div>
+<div class="row" style="--z:2.5">
+<figure><img src="sheets-sword/walkov-paladin-0.png" alt=""><figcaption>0</figcaption></figure><figure><img src="sheets-sword/walkov-paladin-1.png" alt=""><figcaption>1</figcaption></figure><figure><img src="sheets-sword/walkov-paladin-2.png" alt=""><figcaption>2</figcaption></figure><figure><img src="sheets-sword/walkov-paladin-3.png" alt=""><figcaption>3</figcaption></figure><figure><img src="sheets-sword/walkov-paladin-4.png" alt=""><figcaption>4</figcaption></figure><figure><img src="sheets-sword/walkov-paladin-5.png" alt=""><figcaption>5</figcaption></figure><figure><img src="sheets-sword/walkov-paladin-6.png" alt=""><figcaption>6</figcaption></figure><figure><img src="sheets-sword/walkov-paladin-7.png" alt=""><figcaption>7</figcaption></figure><figure><img src="sheets-sword/walkov-paladin-8.png" alt=""><figcaption>8</figcaption></figure>
+</div>
+
+<h2>⑨ 1단계 결과 — 평타 내려베기: ② 마네킹+입히기 vs ③ 직접 (PixelLab 각 1회, 4프레임 usage 1)</h2>
+<div class="row">
+  <figure><img class="gif" src="sheets-sword/atk-dress.gif" alt=""><figcaption>② 마네킹 + 입히기 + 덧그리기</figcaption></figure>
+  <figure><img class="gif" src="sheets-sword/atk-direct.gif" alt=""><figcaption>③ 성기사 직접 (PixelLab)</figcaption></figure>
+</div>
+<div class="row"><figure><img src="sheets-sword/atk-dress-0.png" alt=""><figcaption>대기 (넣은 그림)</figcaption></figure><figure><img src="sheets-sword/atk-dress-2.png" alt=""><figcaption>들기</figcaption></figure><figure><img src="sheets-sword/atk-dress-4.png" alt=""><figcaption>베기 (수평)</figcaption></figure><figure><img src="sheets-sword/atk-dress-down.png" alt=""><figcaption>내려친 끝 *</figcaption></figure></div>
+<div class="row"><figure><img src="sheets-sword/atk-direct-0.png" alt=""><figcaption>대기 (넣은 그림)</figcaption></figure><figure><img src="sheets-sword/atk-direct-2.png" alt=""><figcaption>들기</figcaption></figure><figure><img src="sheets-sword/atk-direct-3.png" alt=""><figcaption>내려침</figcaption></figure><figure><img src="sheets-sword/atk-direct-4.png" alt=""><figcaption>회수</figcaption></figure></div>
+<div class="card dim">* 덧그리기로 만든 프레임: 4번 몸에 칼만 35° 아래로 얹었다 (마네킹 3번은 칼이 사라져 뺐다).</div>
+<h3 style="color:var(--gold);font-size:13px">PixelLab 원본 (가공 전, 96칸)</h3>
+<div class="row" style="--z:2"><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-mq-raw-0.png" alt=""><figcaption>마네킹 0</figcaption></figure><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-mq-raw-1.png" alt=""><figcaption>마네킹 1</figcaption></figure><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-mq-raw-2.png" alt=""><figcaption>마네킹 2</figcaption></figure><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-mq-raw-3.png" alt=""><figcaption>마네킹 3</figcaption></figure><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-mq-raw-4.png" alt=""><figcaption>마네킹 4</figcaption></figure></div>
+<div class="row" style="--z:2"><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-pal-raw-0.png" alt=""><figcaption>성기사 직접 0</figcaption></figure><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-pal-raw-1.png" alt=""><figcaption>성기사 직접 1</figcaption></figure><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-pal-raw-2.png" alt=""><figcaption>성기사 직접 2</figcaption></figure><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-pal-raw-3.png" alt=""><figcaption>성기사 직접 3</figcaption></figure><figure><img style="width:calc(80px*var(--z));height:calc(90px*var(--z))" src="sheets-sword/atk-pal-raw-4.png" alt=""><figcaption>성기사 직접 4</figcaption></figure></div>
+<div class="card">
+  <b>관찰</b>
+  <ul>
+    <li class="bad">② 마네킹 원본은 실패에 가깝다: 1번에서 몸이 정면으로 돌고 칼이 거대한 회색 덩어리(잔상)가 되며, 3·4번은 칼이 사라진다.</li>
+    <li class="ok">그래도 입히기(옆모습 머리·방패를 얹음) + 덧그리기(성검을 손·각도에 얹음)를 거치면 0·2·4번과 덧그린 1장으로 "들었다 앞으로 내려베기"가 읽힌다. 칼이 굵고 분명하다.</li>
+    <li class="ok">③ 직접은 옆모습·방패·후광이 끝까지 안정적이다. 1번은 빛 이펙트 덩어리라 뺐다.</li>
+    <li class="mid">③ 은 칼이 가늘고 작아 들어 올린 칼이 잘 안 보이고, 팔 동작이 작다. 덧그리기를 ③ 에도 쓰려면 직접 그림에서 칼을 찾아 지워야 한다 (마네킹처럼 칼날 색이 따로 있지 않아 어렵다).</li>
+    <li class="bad">ComfyUI 사이 프레임(③ 2·3번을 반씩 겹쳐 img2img, denoise 0.45·0.6)은 칼이 사라져 못 썼다. 사이 프레임은 덧그리기(각도 지정)로 만드는 편이 낫다.</li>
+  </ul>
+</div>
+
+<h2>⑩ 계열 나머지 계획 (다시 계산: 8프레임 = usage 2, 4프레임 = usage 1) — 승인 요청</h2>
+<table>
+  <tr><th>안</th><th>무엇</th><th>usage</th></tr>
+  <tr><td><b>A (추천)</b><br>원형 + 입히기 + 덧그리기</td><td>
+    공용 마네킹 <b>idle</b> 4f (1) · 장검 원형 <b>atkB</b> 4f (1) · 쌍검 원형 atkA·atkB (2) · 대검 원형 atkA·atkB (2).<br>
+    걷기는 이미 뽑은 장검 걷기에 쌍검·대검을 덧그리기 (0). cast = atkA 의 들기 프레임 + 이펙트(VFX 텍스처) (0). guard·hurt·death·sit 은 스펙대로 파생 (0).<br>
+    견습·1차·3차 = 같은 원형 프레임에 그 직업을 입히기 (0).</td><td><b>6</b></td></tr>
+  <tr><td>B<br>2차 직접</td><td>성기사 atkB (1) · 검사 atkA·atkB (2) · 검성 (2) · 대검전사 (2) + 공용 idle (1). 견습·1차·3차는 2차 편집.</td><td>8</td></tr>
+</table>
+<div class="card">
+  <ul>
+    <li>모두 4프레임·재시도 0. 이번 단계까지 쓴 4 를 더하면 계열 합계 A = 10, B = 12 (상한 90, 목표 40~60보다 훨씬 적음).</li>
+    <li>실패하면 다시 뽑지 않는다: 깨진 프레임은 빼고 덧그리기(각도 지정)로 사이·대체 프레임을 만든다. 몸이 정면으로 돌아도 머리·방패를 옆모습으로 얹어 가린다. 포즈 자체가 틀리면 멈추고 다시 묻는다.</li>
+    <li>쌍검은 뒷손 칼도 덧그려야 해서 장갑이 두 덩어리로 갈라지는지 원형 결과를 보고 판단한다.</li>
+  </ul>
+</div>
+
+<h2>⑥ PixelLab 1단계 계획 (완료) (승인 요청, 최대 3회)</h2>
 <table>
   <tr><th>#</th><th>무엇</th><th>첫 프레임</th><th>프레임</th><th>왜 PixelLab</th></tr>
   <tr><td>1</td><td>장검 마네킹 <b>walk</b> (8프레임)</td><td>② 장검 원형, 96칸</td><td>8</td><td rowspan="2">팔·다리·칼이 함께 움직이는 새 포즈는 ComfyUI img2img 로 안 나온다 (낮은 denoise = 포즈 그대로, 높이면 몸이 무너짐). 리그 밑그림은 사용자 거부.</td></tr>
@@ -221,8 +274,8 @@
 <h2>사용량</h2>
 <table>
   <tr><th>항목</th><th>수</th><th>비고</th></tr>
-  <tr><td>PixelLab (응답 usage 합계)</td><td class="mid">2</td><td>1단계 ① 걷기 8프레임 1회 = usage 2 (계획서의 "1회 = 1" 과 다름 → ②·③ 은 프레임 수를 로드맵에 확인 중). 계열 상한 90</td></tr>
-  <tr><td>ComfyUI (Z-Image img2img)</td><td>8장</td><td>④ 다듬기 비교 (로컬, 무료)</td></tr>
+  <tr><td>PixelLab (응답 usage 합계)</td><td class="mid">4</td><td>1단계: ① 걷기 8프레임 = 2, ② 마네킹 평타 4프레임 = 1, ③ 성기사 직접 평타 4프레임 = 1. 계열 상한 90, 잔량 1,207</td></tr>
+  <tr><td>ComfyUI (Z-Image img2img)</td><td>10장</td><td>④ 다듬기 비교 8 + ⑨ 사이 프레임 시도 2 (로컬, 무료)</td></tr>
 </table>
 </main>
 <script>
