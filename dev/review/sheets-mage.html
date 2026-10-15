@@ -94,6 +94,38 @@
 <div class="box"><b>시험 시트 미리보기</b> (화염술사, 기준 그림 한 장 + 파생 동작). 빨간 점은 hand(구슬)이고 파란 점은 head 다. 실제 동작 그림은 생성 승인 뒤에 들어간다.
 <div class="scroll"><img class="px" src="sheets-mage/stub-pyromancer.png" alt="시험 시트" style="max-width:none;width:1010px"></div></div>
 
+<h2>3-1. 지팡이 원형 마네킹 · 직업 입히기 시안 (정지 그림, PixelLab 0회 · ComfyUI 0장) — <span class="wait">검사 대기</span></h2>
+<div class="box">
+  <b>무엇</b>: 검사 계열과 같은 "와이어프레임" 방식의 마법사판이다.
+  <ul>
+    <li><b>마네킹</b>(왼쪽 첫 칸): 견습 마법사 몸에서 모자·머리카락을 빼고 민머리에 눈만 남겼다. 부위마다 다른 색 3단으로 칠했다.
+      부위는 머리, 몸통(빨강), 바지(파랑), 신발(갈색), 손(금색), 지팡이 자루(초록)·갈래(보라)·구슬(청록)이다.
+      PixelLab 애니가 이 색을 지키면 프레임마다 부위를 색으로 다시 가를 수 있다.</li>
+    <li><b>입히기</b> (<code>dev/sheets-mage/mannequin.py dress</code>):
+      <ul>
+        <li>머리(모자·머리카락·관·후광)와 지팡이 머리(갈래+구슬)는 직업 그림에서 통째로 옮긴다. 머리는 마네킹 머리 아랫줄 가운데에, 지팡이 머리는 구슬 가운데에 맞춘다.</li>
+        <li>몸·자루는 같은 자리 직업 색으로 칠하고, 없으면 직업 부위 3단 색으로 칠한다.</li>
+        <li>마네킹 밖의 망토·목도리 자락은 몸통과 같은 이동량으로 옮긴다.</li>
+      </ul></li>
+    <li><b>지팡이 부위 가르기</b>: 지팡이 색만 자루 #ff00ff·갈래 #00ff00·구슬 #00ffff 로 바꿔 한 번 더 찍었다. 두 장의 차이로 칸을 정확히 갈랐다(손이 쥔 자리도).</li>
+  </ul>
+</div>
+<div class="tabs" id="mqtabs"></div>
+<div class="scroll box"><img class="px" id="mqimg" alt="마네킹 입히기"></div>
+<ul class="sub">
+  <li><b>2차·견습은 잘 이어진다</b>: 마법사·화염술사·빙결술사·뇌전술사는 원래 그림과 거의 같다(목도리 자락 포함). 몸 비율이 마네킹과 같아서다.</li>
+  <li><span class="wait">3차는 몸이 5칸 더 크다</span>(키 40 · 2차 35). 그래서 견습 몸 마네킹에 입히면 대마도사·빙결의 군주의 옷 무늬가 어긋나고 얼룩진다.
+    3차는 스펙대로 <b>2차 시트를 키 자세 편집</b>으로 만들거나, 3차용 큰 마네킹을 따로 두는 것이 맞다 — <b>정할 것 ④</b>.</li>
+  <li>정지 그림은 마네킹과 직업이 같은 자세라 쉽다. 실제 시험은 PixelLab 원형 애니(팔·지팡이가 움직인 프레임)에 입혀 보는 것이다. 검사 계열 시범 결과로 방식이 정해지면 계획서를 다시 낸다.</li>
+</ul>
+<h3>뇌전술사 실루엣 바꾸기 시안 B — 모자 대신 뻗친 머리 + 뿔 장식 관 (사용자 결정 ③)</h3>
+<div class="tabs" id="eltabs"></div>
+<div class="scroll box"><img class="px" id="elimg" alt="뇌전술사 시안"></div>
+<ul class="sub">
+  <li>모자를 지우고 금발을 뒤로 뻗친 다발로 바꿨다. 이마에는 남색 관과 앞쪽 하늘색 보석을 넣고, 관 양끝에서 V 자로 벌어지는 하늘색 번개 뿔 둘을 세웠다. 코드로 그린 손도트 시안이다(<code>electro_head</code>).</li>
+  <li>실루엣: 마법사는 뾰족 모자 하나, 시안 B 는 위로 벌어진 뿔 둘에 뒤로 뻗친 머리다. 흑백·실루엣에서 바로 갈린다. 화염술사(뒤통수 불꽃 다발 + 목도리)와도 틀이 다르다.</li>
+  <li>3차 뇌제는 지금 흰 머리에 금관·후광이다. 시안 B 를 따르면 "뿔 관 → 더 큰 금빛 뿔 관 + 후광"으로 이어진다(3차 편집 때 반영).</li>
+</ul>
 <h2>4. 생성 계획 (로드맵 세션 제출, 보류)</h2>
 <table>
   <tr><th>단계</th><th>PixelLab</th><th>내용</th></tr>
@@ -129,9 +161,10 @@
 
 <h2>7. 정할 것</h2>
 <ol>
-  <li><b>견습 지팡이(마법사)도 96 칸</b>으로 해도 될까? 스펙 표는 64 지만, 64 면 평타 때 지팡이 끝이 잘린다.</li>
-  <li><b>sit 는 기존 조립식 앉기 유지</b>로 할까, ComfyUI 인페인트로 시트 앉기를 만들까? (지금 연결은 유지 쪽이다.)</li>
-  <li>마법사·뇌전술사 실루엣이 비슷하다(둘 다 뾰족 모자). 직업 입히기 단계에서 모자·머리 모양을 더 벌릴까?</li>
+  <li>견습 지팡이(마법사)도 96 칸 → <b>확정</b> (2026-10-15 사용자).</li>
+  <li>sit 는 기존 조립식 앉기 유지 → <b>확정</b> (2026-10-15 사용자).</li>
+  <li>마법사·뇌전술사 실루엣 → <b>생성 때 바꾸기로 결정</b> (3-1 시안 B: 뻗친 머리 + 뿔 관). 시안 B 를 그대로 쓸까, 더 다듬을까?</li>
+  <li><b>3차 입히기</b>: 몸이 커서 견습 몸 마네킹으로는 어긋난다. 2차 시트를 편집해서 만들까(스펙대로), 3차용 큰 마네킹을 따로 둘까?</li>
 </ol>
 </main>
 <script>
@@ -143,6 +176,15 @@
   const show = (k) => { cur = k; img.src = 'sheets-mage/' + k + '.png'; [...tabs.children].forEach((b) => b.classList.toggle('on', b.dataset.k === k)); try { localStorage.setItem('sheets-mage-tab', k); } catch (e) {} };
   for (const [k, n] of TABS) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = k; b.onclick = () => show(k); tabs.appendChild(b); }
   show(TABS.some((t) => t[0] === cur) ? cur : 'ref-fight-color');
+  const tabSet = (box, im, list, key) => {
+    let c = list[0][0];
+    try { c = localStorage.getItem(key) || c; } catch (e) {}
+    const sh = (k) => { c = k; im.src = 'sheets-mage/' + k + '.png'; [...box.children].forEach((b) => b.classList.toggle('on', b.dataset.k === k)); try { localStorage.setItem(key, k); } catch (e) {} };
+    for (const [k, n] of list) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = k; b.onclick = () => sh(k); box.appendChild(b); }
+    sh(list.some((t) => t[0] === c) ? c : list[0][0]);
+  };
+  tabSet(document.getElementById('mqtabs'), document.getElementById('mqimg'), [['mq_dress', '입힌 결과 · 컬러'], ['mq_orig', '원래 그림 · 컬러'], ['mq_dress-gray', '입힌 결과 · 흑백'], ['mq_orig-gray', '원래 그림 · 흑백']], 'sheets-mage-mq');
+  tabSet(document.getElementById('eltabs'), document.getElementById('elimg'), [['mq_electro', '컬러'], ['mq_electro-gray', '흑백'], ['mq_electro-sil', '실루엣']], 'sheets-mage-el');
   const cards = document.getElementById('cards');
   for (const [id, n] of IDS) cards.insertAdjacentHTML('beforeend', `<div class="card"><img src="sheets-mage/${id}-fight.png" alt="${n} 전투 대기"><div>${n} · 전투 대기 (기준)</div><img src="sheets-mage/${id}.png" alt="${n}"><div>대기 (1배 원본)</div></div>`);
 </script>
