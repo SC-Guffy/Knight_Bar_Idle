@@ -88,9 +88,14 @@ def main():
     head = m.electro_head()
     for cls in m.IDS:
         d = os.path.join(HERE, 'work', cls, 'pick'); shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
+        bad = []
         for k, fr in A.items():
             for i, F in enumerate(fr):
-                m.dress(cls, F, head_img=head if cls == 'electromancer' else None).save(os.path.join(d, f'{k}-{i}.png'))
+                im = m.dress(cls, F, head_img=head if cls == 'electromancer' else None)
+                if im.info.get('bad'): bad.append(f'{k}-{i}')
+                im.save(os.path.join(d, f'{k}-{i}.png'))
+        json.dump(bad, open(os.path.join(d, '_bad.json'), 'w'))                 # 머리-몸 연결 검사에 걸린 프레임 → build 가 이웃 프레임으로
+        if bad: print(f'  [검사] {cls} 머리 떨어짐:', ', '.join(bad))
         build.build(cls, d, out, KEYS)
 
 

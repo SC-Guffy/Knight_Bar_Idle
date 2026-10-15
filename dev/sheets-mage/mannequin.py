@@ -131,6 +131,21 @@ def anchor(ps):
     return (sum(xs) / len(xs), ys)
 
 
+def comps(ps):
+    """칸 목록 → 8방향으로 이어진 덩어리들"""
+    left, out = set(ps), []
+    while left:
+        st = [left.pop()]; c = []
+        while st:
+            p = st.pop(); c.append(p)
+            for a in (-1, 0, 1):
+                for b in (-1, 0, 1):
+                    q = (p[0] + a, p[1] + b)
+                    if q in left: left.remove(q); st.append(q)
+        out.append(c)
+    return out
+
+
 def biggest(ps):
     """8방향으로 이어진 가장 큰 덩어리 (부위색이 조금 번져 다른 곳에 생긴 칸은 뺀다)"""
     left, best = set(ps), []
@@ -163,7 +178,10 @@ def dress(cls, M, head_img=None):
     # 몸: 같은 자리가 같은 부위면 직업 색, 아니면 직업 램프 (없으면 마네킹 램프 그대로)
     for p, (k, i) in mp.items():
         if k in ('head', 'shaft', 'fork', 'orb'): continue        # 지팡이는 덧그리기
-        if k == 'line': O[p] = OUT_C; continue
+        if k == 'line':
+            # 몸 부위에 닿은 외곽선만 (마네킹 민머리·지팡이·애니 빛줄기의 외곽선은 그리지 않는다 — 머리·지팡이는 따로 옮겨 그리고 tidy 가 다시 두른다)
+            if any(mp.get((p[0] + a, p[1] + b), ('',))[0] in BODY for a in (-1, 0, 1) for b in (-1, 0, 1)): O[p] = OUT_C
+            continue
         if P.get(p) == k or (k in BODY and P.get(p) in BODY): O[p] = f[p]; continue      # 같은 자리 직업 몸 색 (무늬 유지)
         r = R.get(k) or R.get('torso') if k != 'shaft' else R.get('shaft')
         O[p] = (r[i] if r else RAMP[k][i]) + (255,)
@@ -175,7 +193,11 @@ def dress(cls, M, head_img=None):
         if k not in ('torso', 'legs', 'boots') or not (0 <= q[0] < o.width and 0 <= q[1] < o.height): continue     # 망토 자락만 (머리 띠는 머리와 같이, 손·지팡이는 따로)
         if q not in mp and not O[q][3]: O[q] = f[p]
     # 머리: 직업 머리 띠 칸(외곽선 포함)을 마네킹 머리 아랫줄 가운데에 맞춰 옮긴다
-    mh = biggest([p for p, (k, i) in mp.items() if k == 'head'])
+    # 마네킹 머리 = 머리색 덩어리 중 몸통에 닿은 것 (애니가 그린 흰 덩어리처럼 머리색으로 잡힌 떨어진 칸은 뺀다)
+    torso = {p for p, (k, i) in mp.items() if k in ('torso', 'hand')}
+    hcs = comps([p for p, (k, i) in mp.items() if k == 'head'])
+    touch = [c for c in hcs if any((p[0] + a, p[1] + b) in torso for p in c for a in (-2, -1, 0, 1, 2) for b in (-2, -1, 0, 1, 2))]
+    mh = max(touch, key=len) if touch else []
     STF = ('shaft', 'fork', 'orb')
     near_staff = lambda p: any(P.get((p[0] + a, p[1] + b)) in STF for a in (-1, 0, 1) for b in (-1, 0, 1))
     # 지팡이 칸과 그 둘레 외곽선은 머리에서 뺀다 (지팡이는 덧그리기가 따로 그림)
@@ -187,10 +209,16 @@ def dress(cls, M, head_img=None):
         for p in hp:
             q = (p[0] + dx, p[1] + dy)
             if 0 <= q[0] < o.width and 0 <= q[1] < o.height: O[q] = Hsrc[p]
+    # 자동 검사 (머리-몸 연결): 옮긴 머리 칸이 몸 칸(2칸 안)에 닿아야 한다. 아니면 o.info['bad'] 로 표시 → pipeline 이 조립 때 이웃 프레임으로 바꾼다
+    placed = {(p[0] + dx, p[1] + dy) for p in hp} if (mh and hp) else set()
+    bodyp = {p for p, (k, i) in mp.items() if k in BODY}
+    bad = 'no-head' if not placed else (None if any((x + a, y + b) in bodyp for (x, y) in placed for a in (-2, -1, 0, 1, 2) for b in (-2, -1, 0, 1, 2)) else 'head-off')
     # 지팡이 덧그리기 (공용 모듈 dev/sheets-common/wpn.py, 0회): 직업 지팡이 그림(전체 캡처와 지팡이 색만 바꾼 key 캡처의 차이)을
     #  마네킹 지팡이 칸의 손 점·끝 방향에 RotSprite 로 돌려 얹고, 쥔 손은 그 위에 다시 그린다
     overdraw_staff(o, mp, cls, P)
-    return tidy(o, palette(F) + palette(img(f'cap1-fight-{cls}')))
+    out = tidy(o, palette(F) + palette(img(f'cap1-fight-{cls}')))
+    out.info['bad'] = bad
+    return out
 
 
 STF = ('shaft', 'fork', 'orb')

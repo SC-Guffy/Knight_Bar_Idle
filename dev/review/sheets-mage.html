@@ -27,7 +27,7 @@
 <h1>마법사 계열 통짜 시트</h1>
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 마법사 · 화염술사 · 빙결술사 · 뇌전술사 · 대마도사 · 빙결의 군주 · 뇌제 · 2026-10-15</p>
 <div class="box">
-  <b>지금 상태 (2026-10-16)</b>: 7종 시트 완성 — PixelLab usage <b>7</b> (로드맵 승인 7, 재시도 0) · ComfyUI 0장. 게임 스위치(<code>SHEET_ON</code>)는 꺼 둠 — 켤지 정할 것. 아래는 준비 단계 기록.
+  <b>지금 상태 (2026-10-16)</b>: 7종 시트를 만들었으나 <span class="no">로드맵 검수 품질 미달 — 보류</span> (방식 재검토 중). PixelLab usage <b>7</b> (승인 7, 재시도 0, 추가 호출 금지) · ComfyUI 0장. 게임 스위치(<code>SHEET_ON</code>)는 꺼 둠.
   <ul>
     <li>7종 기준 그림: 지금 게임 그림을 3배로 찍어 1배 도트로 줄였다. 칸은 96, 발 기준점은 (44, 88)이다. 마력탄·지팡이 빛은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다. 모두 <code>false</code> 이고, 시트가 승인되면 켠다. 주소에 <code>?sheets=0</code> 을 붙이면 전부 꺼진다.</li>
@@ -39,7 +39,7 @@
   </ul>
 </div>
 
-<h2>0. 결과 — 7종 시트 (PixelLab usage 7 · ComfyUI 0장) <span class="wait">· 게임 스위치는 꺼 둠, 켤지 정할 것</span></h2>
+<h2>0. 결과 — 7종 시트 (PixelLab usage 7 · ComfyUI 0장) <span class="no">· 검수 품질 미달, 보류 (스위치 꺼 둠)</span></h2>
 <div class="box">
   <b>무엇</b>: 지팡이 원형 마네킹 한 장으로 PixelLab 원형 동작 5개를 만들었다. idle 4f · walk 8f · atkA 4f · atkB 4f · cast 8f 이고 usage 합계 7, 재시도 0이다(로드맵 승인 그대로).
   원형 동작 프레임마다 7종을 입혔다(<code>dev/sheets-mage/pipeline.py</code>). 머리는 직업 그림에서 옮기고, 지팡이는 공용 <code>wpn.py</code> 로 덧그렸다. 뇌전술사는 시안 B 머리다.
@@ -58,6 +58,21 @@
 <p class="sub">한 줄이 한 직업이다. 칸은 idle · walk 3장 · atkA 2장 · atkB 2장 · cast 5장(bowA −1.4 · −0.7 · −0.2 · 0.7 · 1.2) · hurt · death 끝이다.</p>
 <h3>게임 안 전후 (dev/skills.html 평타 모드, 같은 순간 — 왼쪽 조립식, 오른쪽 시트)</h3>
 <div class="scroll box"><img class="px" src="sheets-mage/game-before-after.png" alt="게임 전후" style="max-width:none;width:960px"></div>
+<h3>로드맵 검수 지적과 처리 (2026-10-16)</h3>
+<table>
+  <tr><th>지적</th><th>원인</th><th>처리 (0회)</th></tr>
+  <tr><td>① 머리 위 떨어진 검은 호 (대기·피격·사망)</td><td>애니가 그린 구슬 빛줄기의 외곽선 조각, 마네킹 민머리 외곽선</td><td class="ok">✅ 몸 부위에 닿은 외곽선만 그린다. 시트 조립에 <b>자동 검사</b>: 떨어진 덩어리 40칸 미만은 지운다(기준 그림의 후광·자락 크기는 허용)</td></tr>
+  <tr><td>② atkB 첫 장 머리가 위로 뜸</td><td>애니가 그린 흰 덩어리가 머리색으로 잡혀 마네킹 머리로 쓰임</td><td class="ok">✅ 마네킹 머리 = 몸통에 닿은 머리색 덩어리. <b>자동 검사</b>: 옮긴 머리가 몸 2칸 안에 닿지 않으면(머리-몸 연결) 그 프레임을 이웃 프레임으로 바꾼다. 떨어진 큰 덩어리(40칸 이상)도 같은 처리</td></tr>
+  <tr><td>③ 얼굴이 마네킹 민머리 덩어리</td><td>머리 기준점이 틀린 프레임에서 직업 머리가 비켜 앉고 마네킹 머리 외곽선이 남음</td><td class="wait">△ ①② 수정으로 직업 머리가 제자리에 붙는다. 머리를 통째로 옮기는 방식이라 고개 돌림·표정은 없다</td></tr>
+  <tr><td>④ 몸·팔 움직임이 작고 지팡이만 돈다</td><td>아래 몸 움직임 검사 — 원형 애니 자체가 그렇다</td><td class="no">❌ 방식 재검토 대상 (아래)</td></tr>
+</table>
+<h3>몸 움직임 검사 — 덧그리기 전 원형 프레임에서 지팡이 칸(회색)을 뺀 몸 (<code>motion_check.py</code>)</h3>
+<div class="scroll box"><img class="px" src="sheets-mage/mq-motion.png" alt="몸 움직임" style="max-width:none;width:1500px"></div>
+<ul class="sub">
+  <li>칸 아래 숫자: 첫 프레임 대비 몸 실루엣 겹침(IoU) · 손 이동 · 머리 이동 (칸). 손이 안 잡힌 프레임은 손 이동이 크게 나온다(cast 1·3).</li>
+  <li><b>손(금색 장갑)만 움직인다</b>: 평타 앞으로 2~5칸, 치켜들기 위로 9~12칸. <b>몸통 덩어리는 그대로</b>(겹침 0.6~0.9), 머리 0~4칸, 걷기에서 다리가 거의 엇갈리지 않는다.</li>
+  <li>추정: 마네킹이 팔·다리가 드러나지 않는 통 로브 덩어리라 PixelLab 이 팔만 조금 들고 몸을 그대로 두었다. 다음 방식은 소매(팔)와 다리가 따로 보이는 원형, 또는 스켈레톤·큰 해상도(검사 세션 조사 중)가 필요해 보인다.</li>
+</ul>
 <h3>원형 마네킹 애니 원본 (PixelLab, 첫 칸 = 넣은 첫 프레임)</h3>
 <div class="scroll box"><img class="px" src="sheets-mage/mq-raw.png" alt="원형 애니" style="max-width:none;width:1296px"></div>
 
@@ -195,7 +210,7 @@
   <li>sit 는 기존 조립식 앉기 유지 → <b>확정</b> (2026-10-15 사용자).</li>
   <li>뇌전술사 실루엣 → <b>시안 B 확정</b> (2026-10-16 사용자).</li>
   <li>3차 → <b>2차 시트 편집</b>, 깨지면 그때 큰 마네킹 계획서 (2026-10-16 사용자).</li>
-  <li><b>마법사 계열 7종 시트를 게임에서 켤까?</b> (<code>src/sprites.js</code> <code>SHEET_ON</code> 마법사 줄 7개 true) — 지금은 꺼 둠. 직업별로 골라 켤 수도 있다.</li>
+  <li>마법사 계열 시트 켜기 → <b>보류</b> (로드맵 검수 품질 미달, 방식 재검토 중 — 2026-10-16). 스위치는 꺼 둠.</li>
 </ol>
 </main>
 <script>

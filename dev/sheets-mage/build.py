@@ -2,6 +2,7 @@
 #  입력: <src>/<동작>-<i>.png (96×96, 오른쪽 보기 — PixelLab 애니·ComfyUI 수리 결과를 골라 이 이름으로 둔다)
 #        ref/<cls>.png = 지금 게임 그림 (전투 대기 컷, down.py 가 줄인 cap1-fight 를 복사 — 1칸 = 1px, 발 바닥 줄·발 가운데·팔레트의 기준)
 #  핵심 5동작(idle·walk·atkA·atkB·cast)만 입력을 쓰고 나머지는 거기서 만든다 (스펙 "사용량 줄이기"):
+#  자동 검사(check_frame): 몸과 떨어진 덩어리 — 작은 조각은 지우고, 큰 덩어리(떨어진 머리)가 있는 프레임은 이웃 프레임으로 바꾼다 (기준 그림의 후광·자락은 허용)
 #    guard = idle 을 윗몸 1칸 낮춤 · hurt = idle 첫 장을 뒤로 밀기 · death = hurt 를 발끝 기준으로 뒤로 넘어뜨림 · sit 없음(게임이 예전 앉기를 쓴다)
 #  출력: <out>/<cls>.png·.json (기본 src/sprites) + 미리보기 dev/sheets-mage/preview/<cls>.png (4배, hand 빨강·head 파랑)
 #  hand = 지팡이 구슬 가운데 (평타가 나가는 자리·구슬 빛 자리, src/sprites.js sheetStaffGlow)
@@ -162,6 +163,45 @@ def head_pt(im):
     return [fx, top]
 
 
+def comps8(im):
+    """8방향으로 이어진 덩어리들 (칸 목록) — 큰 것부터"""
+    px = im.load(); W, H = im.size; seen = set(); out = []
+    for y in range(H):
+        for x in range(W):
+            if px[x, y][3] and (x, y) not in seen:
+                st, c = [(x, y)], []; seen.add((x, y))
+                while st:
+                    p = st.pop(); c.append(p)
+                    for a in (-1, 0, 1):
+                        for b in (-1, 0, 1):
+                            q = (p[0] + a, p[1] + b)
+                            if 0 <= q[0] < W and 0 <= q[1] < H and q not in seen and px[q][3]: seen.add(q); st.append(q)
+                out.append(c)
+    return sorted(out, key=len, reverse=True)
+
+
+SMALL = 40          # 이보다 작은 떨어진 조각은 지운다 (외곽선 호·빛 찌꺼기). 크면 프레임을 버린다 (떨어진 머리 등)
+
+
+def check_frame(im, ref_extra):
+    """자동 검사 (로드맵 검수 ①②): 몸과 떨어진 덩어리.
+    ref_extra = 기준 그림에서 몸과 원래 떨어져 있는 덩어리 크기 목록 (후광·목도리 자락) — 그만큼은 허용한다.
+    → (고친 그림, 문제 목록). 문제에 'big' 이 있으면 그 프레임은 쓰지 않는다"""
+    cs = comps8(im); extra = cs[1:]; allow = sorted(ref_extra, reverse=True)
+    out = im.copy(); px = out.load(); issues = []
+    for c in extra:
+        # 기준 그림의 떨어진 덩어리와 크기가 비슷하면(±50%) 하나씩 허용
+        hit = next((a for a in allow if 0.5 * a <= len(c) <= 1.5 * a), None)
+        if hit is not None: allow.remove(hit); continue
+        bb = (min(p[0] for p in c), min(p[1] for p in c), max(p[0] for p in c), max(p[1] for p in c))
+        if len(c) < SMALL:
+            for p in c: px[p] = (0, 0, 0, 0)
+            issues.append(('small', len(c), bb))
+        else:
+            issues.append(('big', len(c), bb))
+    return out, issues
+
+
 def load_anim(src, name):
     fs = sorted((f for f in os.listdir(src) if re.fullmatch(rf'{name}-\d+\.png', f)), key=lambda f: int(f.rsplit('-', 1)[1][:-4]))
     return [Image.open(os.path.join(src, f)).convert('RGBA') for f in fs]
@@ -176,6 +216,22 @@ def build(cls, src, out, cast_vals=None):
         fr = load_anim(src, k)
         if not fr: sys.exit(f'{src}/{k}-*.png 가 없다')
         A[k] = [T(f, 'ground' if k == 'walk' else 'feet') for f in fr]
+    # 자동 검사: 떨어진 덩어리 — 작은 것은 지우고, 큰 것(떨어진 머리 등)이 있는 프레임은 같은 동작의 이웃 프레임으로 바꾼다
+    ref_extra = [len(c) for c in comps8(tidy(ref, pal))[1:]]
+    pre_bad = set(json.load(open(os.path.join(src, '_bad.json')))) if os.path.exists(os.path.join(src, '_bad.json')) else set()   # 입히기의 머리-몸 연결 검사
+    report = {}
+    for k in list(A):
+        fixed, bad = [], []
+        for i, f in enumerate(A[k]):
+            g, iss = check_frame(f, ref_extra)
+            if f'{k}-{i}' in pre_bad: iss = iss + [('head-off', 0, None)]
+            if iss: report[f'{k}{i}'] = iss
+            fixed.append(g); bad.append(any(t in ('big', 'head-off') for t, n, bb in iss))
+        good = [i for i, b in enumerate(bad) if not b]
+        if not good: print(f'  [검사] {cls} {k}: 모든 프레임에 큰 떨어진 덩어리 — 그대로 둔다'); A[k] = fixed; continue
+        A[k] = [fixed[i] if not bad[i] else fixed[min(good, key=lambda j: abs(j - i))] for i in range(len(fixed))]
+    if report:
+        print(f'  [검사] {cls}:', '; '.join(f"{k} " + ','.join(f'{t}{n}' for t, n, bb in v) for k, v in report.items()))
     i0 = A['idle'][0]
     waist = rf[1] - 12
     A['guard'] = [bob(f, waist, 1) for f in A['idle']]
