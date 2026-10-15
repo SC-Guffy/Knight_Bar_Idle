@@ -19,12 +19,14 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center; font-size: 12px; }
   .card img { width: 100%; image-rendering: pixelated; background: #0f1117; }
+  .iou td, .iou th { text-align: center; padding: 3px 5px; } .hi { background: #6a2a30; } .mid { background: #4a3a20; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; } .grid2 > div { overflow-x: auto; }
   .ok { color: var(--ok); } .no { color: var(--no); } .wait { color: var(--wait); }
   a { color: #8fb6ff; }
 </style>
 </head>
 <body><main>
-<h1>레인저 계열 통짜 시트 — 0회 준비</h1>
+<h1>레인저 계열 통짜 시트 — 0회 준비 · 마네킹 시안</h1>
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 레인저 · 저격수 · 마궁수 · 석궁사수 · 신궁 · 차원궁사 · 공성포수 · 2026-10-15</p>
 
 <div class="box">
@@ -59,6 +61,41 @@
 <div class="scroll box"><img class="px" id="lineup" alt="기준 그림 줄 세우기"></div>
 <p class="sub">빨간 줄 = 발 기준점(땅). 회색 테두리 = 칸 끝. 흑백·실루엣은 같은 계열 구분 확인용이다(2차: 깃털 모자 / 고글·코트 / 후드·망토 / 투구·석궁, 3차는 2차 특징을 잇는다).</p>
 <div class="grid" id="cards"></div>
+
+<h2>2-2. 원형 마네킹 + 직업 입히기 시안 (PixelLab 0회)</h2>
+<div class="box">검사 계열 시범과 같은 방식이다. 장식을 뺀 몸에 원형 무기를 쥐인 <b>마네킹</b>을 부위색(머리 회색·몸통 빨강·바지 파랑·장화 갈색·손 금색·무기 흰색)으로 칠한다. PixelLab 은 이 마네킹의 동작만 뽑는다(체형마다 한 번).
+그 프레임마다 색으로 부위를 다시 가르고 <b>직업을 입힌다</b>.
+<ul>
+<li>머리(모자·후드·관)는 직업 그림에서 통째로 옮긴다.</li>
+<li>몸통 무늬·망토는 몸이 움직인 만큼 옮긴다.</li>
+<li>바지·장화·손·무기는 직업 램프로 칠한다. 무기는 재질 밝기 단(나무·쇠·시위)으로 옮긴다.</li>
+<li>마지막에 직업 팔레트로 고정하고 외곽선을 정리한다.</li>
+</ul>
+아래 프레임은 지금 리그로 만든 <b>가짜 동작</b>이다(대기 · 시위 반 · 시위 끝 · 하늘 겨눔 · 걷기 2). 자세가 바뀌어도 입히기가 되는지 보는 용도이고, 최종 시트에는 쓰지 않는다.
+<ul class="sub"><li>원형 3종: <b>활</b> = 저격수 몸 + 장궁 (레인저·저격수·마궁수·신궁·차원궁사) · <b>석궁</b> = 석궁사수 몸 + 거대 석궁 (석궁사수) · <b>공성</b> = 석궁사수 몸 + 공성 석궁, 128 칸 (공성포수).</li>
+<li>검사 계열은 검사 몸을 빌렸다. 활은 쥔 손·팔 자세가 직업 손도트를 따라가서, 같은 계열 몸을 빌렸다. 검사 몸에 활을 쥐이면 활이 옆으로 내려간다.</li></ul></div>
+<p><b>마네킹</b> (위부터 활 · 석궁 · 공성)</p>
+<div class="scroll box"><img class="px" src="sheets-bow/mq-bow.png" alt="활 마네킹"><img class="px" src="sheets-bow/mq-xbow.png" alt="석궁 마네킹"><img class="px" src="sheets-bow/mq-siege.png" alt="공성 마네킹"></div>
+<p><b>입히기</b> (맨 왼쪽 = 지금 게임 원본, 그 오른쪽 6칸 = 마네킹 프레임에 입힌 것)</p>
+<div class="scroll box" id="dressRows"></div>
+<p><b>7종 한 줄 — 원본 vs 입힌 대기</b></p>
+<div class="tabs" id="tabs2"></div>
+<div class="scroll box"><div class="sub">지금 원본</div><img class="px" id="lineO" alt="원본 줄"><div class="sub" style="margin-top:8px">마네킹에 입힌 대기</div><img class="px" id="lineD" alt="입힌 줄"></div>
+<p><b>실루엣 겹침</b> (발 기준점을 맞춘 불투명 영역 IoU, 1 = 똑같음). <span class="hi" style="padding:0 4px">0.90 이상</span> <span class="mid" style="padding:0 4px">0.85 이상</span></p>
+<div class="grid2"><div><div class="sub">지금 원본</div><table class="iou"><tr><th></th><th>레인저</th><th>저격수</th><th>마궁수</th><th>석궁사수</th><th>신궁</th><th>차원궁사</th><th>공성포수</th></tr><tr><th>레인저</th><td>—</td><td>0.68</td><td>0.74</td><td>0.78</td><td>0.71</td><td>0.73</td><td>0.77</td></tr><tr><th>저격수</th><td>0.68</td><td>—</td><td>0.63</td><td>0.67</td><td>0.78</td><td>0.62</td><td>0.66</td></tr><tr><th>마궁수</th><td>0.74</td><td>0.63</td><td>—</td><td>0.75</td><td>0.71</td><td class="hi">0.94</td><td>0.75</td></tr><tr><th>석궁사수</th><td>0.78</td><td>0.67</td><td>0.75</td><td>—</td><td>0.72</td><td>0.73</td><td class="hi">0.91</td></tr><tr><th>신궁</th><td>0.71</td><td>0.78</td><td>0.71</td><td>0.72</td><td>—</td><td>0.69</td><td>0.71</td></tr><tr><th>차원궁사</th><td>0.73</td><td>0.62</td><td class="hi">0.94</td><td>0.73</td><td>0.69</td><td>—</td><td>0.72</td></tr><tr><th>공성포수</th><td>0.77</td><td>0.66</td><td>0.75</td><td class="hi">0.91</td><td>0.71</td><td>0.72</td><td>—</td></tr></table></div><div><div class="sub">마네킹에 입힌 대기</div><table class="iou"><tr><th></th><th>레인저</th><th>저격수</th><th>마궁수</th><th>석궁사수</th><th>신궁</th><th>차원궁사</th><th>공성포수</th></tr><tr><th>레인저</th><td>—</td><td>0.83</td><td>0.85</td><td>0.64</td><td class="mid">0.87</td><td>0.84</td><td>0.62</td></tr><tr><th>저격수</th><td>0.83</td><td>—</td><td>0.81</td><td>0.64</td><td class="mid">0.87</td><td class="mid">0.89</td><td>0.63</td></tr><tr><th>마궁수</th><td>0.85</td><td>0.81</td><td>—</td><td>0.70</td><td class="mid">0.89</td><td class="mid">0.89</td><td>0.68</td></tr><tr><th>석궁사수</th><td>0.64</td><td>0.64</td><td>0.70</td><td>—</td><td>0.66</td><td>0.70</td><td class="hi">0.92</td></tr><tr><th>신궁</th><td class="mid">0.87</td><td class="mid">0.87</td><td class="mid">0.89</td><td>0.66</td><td>—</td><td class="mid">0.86</td><td>0.65</td></tr><tr><th>차원궁사</th><td>0.84</td><td class="mid">0.89</td><td class="mid">0.89</td><td>0.70</td><td class="mid">0.86</td><td>—</td><td>0.68</td></tr><tr><th>공성포수</th><td>0.62</td><td>0.63</td><td>0.68</td><td class="hi">0.92</td><td>0.65</td><td>0.68</td><td>—</td></tr></table></div></div>
+<div class="box"><b>읽기</b>
+<ul>
+<li><b>지금 원본에서 이미 닮은 짝</b>은 같은 계열의 2차→3차 두 쌍이다. 마궁수–차원궁사 0.94(같은 후드+망토)와 석궁사수–공성포수 0.91(같은 몸 BODY.arbalest, 석궁만 큼)이다. 스펙의 "2차·3차는 흑백 실루엣으로 구분"에 걸린다.</li>
+<li><b>입히면 다 비슷해진다</b> (0.86~0.92). 몸·팔·무기가 원형 하나라서, 차이는 머리·망토에서만 난다. 레인저의 짧은 활도 장궁 길이가 된다.</li>
+</ul></div>
+<div class="box"><b>생성 때 틀을 바꾸는 안</b> (제안 — 정할 것 ②)
+<table>
+<tr><th>짝</th><th>바꾸는 곳</th><th>방법 (유료 최소)</th></tr>
+<tr><td>마궁수 → <b>차원궁사</b></td><td>후드 위 뿔 모양 두 갈래 + 등 뒤에 떠 있는 차원 고리, 망토 끝을 갈라진 조각으로. 활은 양 끝이 초승달 날인 큰 활.</td><td>3차 = 2차 시트 키 자세 편집(스펙). 머리·등 소품은 입히기 단계에서 "직업 소품"으로 몸통처럼 옮긴다 → 프레임마다 그리지 않음</td></tr>
+<tr><td>석궁사수 → <b>공성포수</b></td><td>어깨 위로 걸쳐 드는 거치식 공성 석궁(128 칸, 활대 폭 2배), 큰 어깨 갑옷, 등에 살 묶음 통. 다리를 넓게 벌린 자세.</td><td>공성 원형을 석궁 원형과 따로 둔다(이미 128 칸 따로). 공성 원형 걷기·쏘기만 PixelLab — 석궁 원형 재사용 대신 +2회</td></tr>
+<tr><td><b>레인저</b>(1차) vs 2차 활잡이</td><td>짧은 활 + 큰 깃털 모자(지금 특징 유지)</td><td>입히기 때 무기 부위만 0.75배로 줄여 붙인다(코드, 0회)</td></tr>
+<tr><td>저격수 → 신궁 (0.78)</td><td>지금도 관·금빛 망토로 구분되나, 입히면 0.87 로 가까워진다. 등 뒤 태양 원반(후광)을 소품으로.</td><td>3차 편집 때 소품 추가(0회~1회)</td></tr>
+</table></div>
 
 <h2>3. 동작 키 매핑 (게임 상태 → 시트 줄)</h2>
 <table>
@@ -118,6 +155,12 @@
   const show = (k) => { cur = k; img.src = 'sheets-bow/' + k + '.png'; [...tabs.children].forEach((b) => b.classList.toggle('on', b.dataset.k === k)); try { localStorage.setItem('sheets-bow-tab', k); } catch (e) {} };
   for (const [k, n] of TABS) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = k; b.onclick = () => show(k); tabs.appendChild(b); }
   show(TABS.some((t) => t[0] === cur) ? cur : 'ref-color');
+  const dr = document.getElementById('dressRows');
+  for (const [id, n] of IDS) dr.insertAdjacentHTML('beforeend', `<div class="sub">${n}</div><img class="px" src="sheets-bow/dress-${id}.png" alt="${n} 입히기">`);
+  const tabs2 = document.getElementById('tabs2'), lo = document.getElementById('lineO'), ld = document.getElementById('lineD');
+  const show2 = (m) => { lo.src = 'sheets-bow/line-orig-' + m + '.png'; ld.src = 'sheets-bow/line-dress-' + m + '.png'; [...tabs2.children].forEach((b) => b.classList.toggle('on', b.dataset.k === m)); };
+  for (const [m, n] of [['color', '컬러'], ['gray', '흑백'], ['sil', '실루엣']]) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = m; b.onclick = () => show2(m); tabs2.appendChild(b); }
+  show2('color');
   const cards = document.getElementById('cards');
   for (const [id, n] of IDS) cards.insertAdjacentHTML('beforeend', `<div class="card"><img src="sheets-bow/${id}.png" alt="${n}"><div>${n} · 대기</div><img src="sheets-bow/${id}-fight.png" alt="${n} 전투 대기"><div>전투 대기 (1배 원본)</div></div>`);
 </script>
