@@ -42,7 +42,7 @@
 <body>
 <main>
 <h1>검사 계열 + 견습 — 통짜 시트</h1>
-<div class="sub">와이어프레임 방식 시험: 원형 마네킹(부위색) → 직업 입히기. <b>PixelLab usage 10</b> · ComfyUI 10장 · 2026-10-15</div>
+<div class="sub">와이어프레임 방식 시험: 원형 마네킹(부위색) → 직업 입히기. <b>PixelLab usage 18</b> · ComfyUI 10장 · 2026-10-15</div>
 
 <div class="ctl">
   <button data-v="" class="on">컬러</button><button data-v="gray">흑백</button><button data-v="sil">실루엣</button>
@@ -56,11 +56,41 @@
     <li><b>목표</b>: 기존 직업 8종을 통짜 스프라이트 시트로. 포즈는 PixelLab, 나머지는 아낀다 (스펙 계열 상한 90회, 목표 40~60).</li>
     <li><b>와이어프레임 방식</b>(로드맵 지시): 직업색·장식 없는 <b>무기 원형별 마네킹</b>의 동작만 PixelLab 으로 뽑고, 프레임마다 직업 옷·투구·소품·색을 입힌다 (ComfyUI·코드, 무료).</li>
     <li>마네킹은 부위마다 다른 색(아래 범례)이라, 동작 뒤에도 프레임마다 부위를 다시 가를 수 있다. 이 색 지도가 입히기의 밑그림이다.</li>
-    <li><b>결과</b>: 8종 시트를 게임에 켰다 (아래 ★). PixelLab 계열 합계 usage 10.</li>
+    <li><b>결과</b>: 1차 시트 8종은 검수 미달로 껐다(★). 몸·팔을 움직이려고 스켈레톤 애니를 시험했다(◆). PixelLab 계열 합계 usage 18.</li>
   </ul>
 </div>
 
-<h2>★ 완성 시트 8종 — 게임에 켬 (SHEET_ON, PixelLab 계열 합계 10)</h2>
+<h2>◆ 시험: 몸·팔·칼이 같이 움직이게 — 성기사 내려베기 (2026-10-16)</h2>
+<div class="card">
+  <b>세 판을 같은 크기로 비교</b> (모두 96칸 시트로 줄인 결과, 왼쪽 큰 GIF = 4배, 오른쪽 = 게임에 가까운 2배)
+  <ul>
+    <li><b>③ 기존</b>: animate-with-text-v3, 96칸 4프레임 (usage 1)</li>
+    <li><b>A 스켈레톤</b>: animate-with-skeleton-v3, 192칸 8프레임 (usage 3). 관절 시퀀스를 손으로 크게 과장해 설계했다(아래 막대 인형): 크게 젖혀 들기 → 앞발 디딤·머리 위 → 앞으로 → 상체 숙여 내려침 → 끝까지 → 회수 → 가드. 모델이 그린 가는 칼 선을 지우고 손목 좌표에 성검을 덧그렸다.</li>
+    <li><b>B 텍스트 개선판</b>: animate-with-text-v3, 192칸 8프레임, 제약 문구·이펙트 단어를 뺀 큰 동작 설명 (usage <b class="bad">5</b> — 192칸은 값이 커진다)</li>
+  </ul>
+</div>
+<div class="row"><figure><img class="gif" src="sheets-sword/skel-C-x4.gif" alt=""><figcaption>③ 기존 (96칸 4f)</figcaption></figure><figure><img class="gif" src="sheets-sword/skel-A-x4.gif" alt=""><figcaption>A 스켈레톤 + 덧그리기</figcaption></figure><figure><img class="gif" src="sheets-sword/skel-B-x4.gif" alt=""><figcaption>B 텍스트 개선판</figcaption></figure></div>
+<div class="row"><figure><img class="gif" src="sheets-sword/skel-C-x2.gif" alt=""><figcaption>③ (게임 크기 근처)</figcaption></figure><figure><img class="gif" src="sheets-sword/skel-A-x2.gif" alt=""><figcaption>A</figcaption></figure><figure><img class="gif" src="sheets-sword/skel-B-x2.gif" alt=""><figcaption>B</figcaption></figure></div>
+<h3 style="font-size:13px;color:var(--gold)">프레임 띠</h3>
+<div><img src="sheets-sword/skel-C-strip.png" style="max-width:100%;image-rendering:pixelated" alt=""><div class="dim">③</div></div>
+<div><img src="sheets-sword/skel-A-strip.png" style="max-width:100%;image-rendering:pixelated" alt=""><div class="dim">A</div></div>
+<div><img src="sheets-sword/skel-B-strip.png" style="max-width:100%;image-rendering:pixelated" alt=""><div class="dim">B</div></div>
+<h3 style="font-size:13px;color:var(--gold)">A 에 넣은 관절 시퀀스 (막대 인형: 주황 = 칼 든 앞팔·앞다리, 파랑 = 방패 팔·뒷다리, 노랑 = 덧그릴 칼 각도)</h3>
+<img src="sheets-sword/skel-stick-all.png" style="max-width:100%;image-rendering:pixelated" alt="">
+<h3 style="font-size:13px;color:var(--gold)">PixelLab 원본 (192칸, 가공 전)</h3>
+<div><img src="sheets-sword/skel-Araw.png" style="max-width:100%;image-rendering:pixelated" alt=""><div class="dim">A 원본 — 모델이 "오른손 비움"을 무시하고 가는 칼 선을 그림(후처리에서 지움)</div></div>
+<div><img src="sheets-sword/skel-Braw.png" style="max-width:100%;image-rendering:pixelated" alt=""><div class="dim">B 원본 — 금빛 불꽃·회색 먼지 이펙트를 또 그림, 몸은 뻣뻣</div></div>
+<div class="card">
+  <b>관찰</b>
+  <ul>
+    <li class="ok">A: 몸이 뒤로 젖혀졌다 앞으로 숙여지고, 팔이 머리 위까지 올라갔다 내려오며, 앞발을 디딘다. 칼이 손을 따라가서 "따로 노는" 느낌이 없다. 성기사 후광·방패·크림색 갑옷 유지.</li>
+    <li class="mid">A: 줄였을 때 1~2프레임은 팔이 몸과 겹쳐 덩어리처럼 보인다. 후광이 프레임마다 조금 흔들린다.</li>
+    <li class="bad">B: 큰 동작을 말해도 몸은 거의 그대로이고 칼 대신 이펙트(불꽃·먼지)가 커진다. 값도 192칸에서 5로 비싸다.</li>
+    <li class="dim">③: 팔 동작이 작고 칼이 가늘다 (96칸에 키 35px, 4프레임).</li>
+  </ul>
+  <b class="bad">사용량 초과</b>: 이번 시험 usage 8 (A 3 + B 5) — 승인 상한 5 를 3 넘었다. B 의 값을 2로 예상했지만 192칸 텍스트 애니는 5였다. 계열 합계 18 (상한 90).
+</div>
+<h2>★ 1차 시트 8종 — 검수 미달로 다시 끔 (몸·팔이 거의 안 움직이고 칼만 돎)</h2>
 <div class="card">
   <ul>
     <li>PixelLab 은 원형 마네킹의 <b>몸(팔) 자세</b>만 쓴다: 장검 걷기 8f · 내려베기 4f · 대기 4f · 가로베기 4f, 쌍검 2종, 대검 2종 (usage 합계 10). 칼은 PixelLab 이 잔상·이펙트로 뭉개서, 동작마다 칼 각도를 정해 직업 무기를 덧그렸다 (<code>dev/sheets-sword/build.py</code> SPEC).</li>
@@ -345,6 +375,7 @@
 <table>
   <tr><th>항목</th><th>수</th><th>비고</th></tr>
   <tr><td>PixelLab (응답 usage 합계)</td><td class="mid">10</td><td>1단계 4 (걷기 8f 2 · 마네킹 내려베기 1 · 성기사 직접 내려베기 1) + 나머지 A 6 (공용 대기 · 장검 가로베기 · 쌍검 2 · 대검 2), 재시도 0. 계열 상한 90, 잔량 1,188</td></tr>
+  <tr><td>PixelLab 시험 (◆)</td><td class="bad">8</td><td>A 스켈레톤 8f 192칸 = 3, B 텍스트 8f 192칸 = 5 (승인 상한 5 를 3 초과). 계열 합계 18</td></tr>
   <tr><td>ComfyUI (Z-Image img2img)</td><td>10장</td><td>④ 다듬기 비교 8 + ⑨ 사이 프레임 시도 2 (로컬, 무료)</td></tr>
 </table>
 </main>

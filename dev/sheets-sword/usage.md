@@ -13,3 +13,5 @@
 | 7 | mq-dual | `/animate-with-text-v3` | atkB: side view, body keeps facing right, small armored knight in  | 7.0 / 1.0 | 16.0 / 8.0 | 1195.0 |
 | 8 | mq-great | `/animate-with-text-v3` | atkA: side view, body keeps facing right, small armored knight in  | 6.0 / 1.0 | 22.0 / 9.0 | 1189.0 |
 | 9 | mq-great | `/animate-with-text-v3` | atkB: side view, body keeps facing right, small armored knight in  | 1.0 / 1.0 | 23.0 / 10.0 | 1188.0 |
+| 10 | paladin | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 3.0 / 3.0 | 26.0 / 13.0 | 1168.0 |
+| 11 | paladin | `/animate-with-text-v3` | textB: a holy paladin knight lifts his golden sword high behind his | 5.0 / 5.0 | 31.0 / 18.0 | 1163.0 |

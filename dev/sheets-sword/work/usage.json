@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 23.0,
+ "used": 31.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -64,7 +64,21 @@
    "purpose": "atkB: side view, body keeps facing right, small armored knight in ",
    "used": 1.0,
    "bal": 1188.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelA: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 1168.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/animate-with-text-v3",
+   "purpose": "textB: a holy paladin knight lifts his golden sword high behind his",
+   "used": 5.0,
+   "bal": 1163.0
   }
  ],
- "nom": 10.0
+ "nom": 18.0
 }
