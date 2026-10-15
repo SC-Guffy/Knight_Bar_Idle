@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>마법사 계열 시트 준비</title>
+<style>
+  :root { --bg: #14161d; --panel: #1c1f29; --line: #2f3342; --ink: #e6e8ef; --dim: #9aa0b4; --ok: #6fdc8c; --no: #ff7a7a; --wait: #ffd257; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 system-ui, 'Malgun Gothic', sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 17px; margin: 30px 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  .sub { color: var(--dim); margin: 0 0 16px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; } th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #232736; } code { background: #232736; padding: 0 4px; border-radius: 3px; }
+  img.px { image-rendering: pixelated; max-width: 100%; display: block; }
+  .scroll { overflow-x: auto; } .tabs button { background: #232736; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; margin: 0 4px 6px 0; cursor: pointer; }
+  .tabs button.on { background: #3d7bff; border-color: #3d7bff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center; font-size: 12px; }
+  .card img { width: 100%; image-rendering: pixelated; background: #0f1117; }
+  .ok { color: var(--ok); } .no { color: var(--no); } .wait { color: var(--wait); }
+  a { color: #8fb6ff; }
+</style>
+</head>
+<body><main>
+<h1>마법사 계열 통짜 시트 — 0회 준비</h1>
+<p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 마법사 · 화염술사 · 빙결술사 · 뇌전술사 · 대마도사 · 빙결의 군주 · 뇌제 · 2026-10-15</p>
+<div class="box">
+  <b>지금 상태</b>: PixelLab <b>0회</b> (보류 — 검사 계열 시범 승인 뒤 계획서 재승인). 생성 없이 할 수 있는 준비만 했다.
+  <ul>
+    <li>7종 기준 그림: 지금 게임 그림을 3배로 찍어 1배 도트로 줄였다. 칸은 96, 발 기준점은 (44, 88)이다. 마력탄·지팡이 빛은 빼고 찍었다.</li>
+    <li><code>SHEET_ON</code> 에 7종 줄을 넣었다. 모두 <code>false</code> 이고, 시트가 승인되면 켠다. 주소에 <code>?sheets=0</code> 을 붙이면 전부 꺼진다.</li>
+    <li>동작 키 매핑: 마법사 스킬 자세는 지팡이 기울기 <code>bowA</code> 만 줄 때가 있다. 그래서 공용 <code>sheetFrame</code> 의 cast 조건에 <code>bowA</code> 를 더했다. cast 줄은 <code>key: "bowA"</code> 로 프레임을 고른다.</li>
+    <li>지팡이 구슬 빛은 시트에 넣지 않는다. 공용 <code>drawHeroSheet</code> 가 <code>hand</code> 점(구슬 가운데)에 코드로 얹는다(<code>sheetStaffGlow</code>). 스킬이 마력을 모으면(<code>pull</code>) 커진다.</li>
+    <li>앉기 줄이 없는 기존 직업 시트는 마을·캠프 앉기만 예전 조립식으로 그린다.</li>
+    <li>시트 조립 <code>dev/sheets-mage/build.py</code>: 팔레트 고정, 외곽선 통일, 발 맞춤, hand·head 점을 자동으로 잡는다. guard·hurt·death 는 PixelLab 없이 idle 에서 만든다.</li>
+    <li>연결 시험 <code>dev/skills.html?patch=sheets-mage</code>: 기준 그림 한 장으로 만든 시험 시트를 끼워 게임에서 돌린다. 시험 시트는 <code>src/sprites</code> 에 넣지 않았다.</li>
+  </ul>
+</div>
+
+<h2>1. 칸 크기와 발 기준점</h2>
+<table>
+  <tr><th>직업</th><th>무기</th><th>칸</th><th>발 기준점 (x, y)</th><th>지금 리그 최대 범위 (발 기준, 도트)</th><th>여백 (앞 · 뒤 · 위)</th></tr>
+  <tr><td>마법사</td><td>견습 지팡이</td><td>96×96</td><td>(44, 88)</td><td>x −16 ~ +41 · y −50 ~ +3</td><td class="ok">10 · 28 · 38</td></tr>
+  <tr><td>화염술사</td><td>화염 지팡이</td><td>96×96</td><td>(44, 88)</td><td>x −23 ~ +45 · y −51 ~ +4</td><td class="ok">6 · 21 · 37</td></tr>
+  <tr><td>빙결술사</td><td>서리 지팡이</td><td>96×96</td><td>(44, 88)</td><td>x −13 ~ +45 · y −38 ~ +4</td><td class="ok">6 · 31 · 50</td></tr>
+  <tr><td>뇌전술사</td><td>뇌전 지팡이</td><td>96×96</td><td>(44, 88)</td><td>x −19 ~ +44 · y −55 ~ +4</td><td class="ok">7 · 25 · 33</td></tr>
+  <tr><td>대마도사</td><td>겁화의 지팡이</td><td>96×96</td><td>(44, 88)</td><td>x −22 ~ +47 · y −54 ~ +5</td><td class="ok">4 · 22 · 34</td></tr>
+  <tr><td>빙결의 군주</td><td>빙하의 홀</td><td>96×96</td><td>(44, 88)</td><td>x −16 ~ +47 · y −42 ~ +5</td><td class="ok">4 · 28 · 46</td></tr>
+  <tr><td>뇌제</td><td>뇌제의 홀</td><td>96×96</td><td>(44, 88)</td><td>x −19 ~ +45 · y −59 ~ +5</td><td class="ok">6 · 25 · 29</td></tr>
+</table>
+<p class="sub">측정: 기사 리그를 1도트 = 1px 로 그려 불투명 범위를 쟀다. 전투 대기, 평타 2종 전 구간(0.05 간격), 스킬 자세(bowA −1.6 ~ 1.2)를 모두 넣었다. 앞쪽 최대값에는 평타 섬광도 들어 있다.
+<b>견습 지팡이도 96 칸</b>이다. 스펙 표는 견습 지팡이를 64 칸에 두지만, 평타 때 지팡이 끝이 발에서 앞으로 41칸까지 나간다. 64 칸(발 x 32)이면 앞이 31칸이라 잘린다. 그래서 <b>정할 것 ①</b>에 올렸다.
+발 x 를 칸 가운데(48)보다 4칸 뒤에 둔 것은 3차 홀이 앞으로 47칸까지 나가서다.</p>
+<div class="box"><b>자리 맞춤 확인</b> — 왼쪽은 지금 조립식, 오른쪽은 같은 그림으로 만든 시험 시트(96 칸, 발 44·88)를 <code>SHEET_ON</code> 을 켜서 그린 것이다. 윗줄은 오른쪽 보기, 아랫줄은 왼쪽 보기다.
+7종 모두 가장 잘 맞는 이동량이 좌우 양쪽에서 <b>(0, 0)</b>이고, 조립식의 불투명 칸을 100% 덮는다. 시트 쪽은 바깥 외곽선 1칸이 더 둘러진다(스펙 "외곽선 #0b0d14 통일").
+<div class="scroll"><img class="px" src="sheets-mage/align.png" alt="자리 맞춤"></div></div>
+
+<h2>2. 기준 그림 (지금 게임 그대로, 칸·발 기준점 표시)</h2>
+<div class="tabs" id="tabs"></div>
+<div class="scroll box"><img class="px" id="lineup" alt="기준 그림 줄 세우기"></div>
+<p class="sub">빨간 줄은 발 기준점(땅)이고 회색 테두리는 칸 끝이다. 기준 그림은 <b>전투 대기</b> 판이다. 컷 모드라 도트가 깔끔하다(색 39~69개). 대기 판은 구슬 빛 번짐이 섞여 색이 60~140개다.
+흑백·실루엣은 같은 계열 구분을 보려고 넣었다.
+<span class="wait">지금 그림에서도 마법사와 뇌전술사는 둘 다 뾰족 모자라 실루엣이 비슷하다.</span> 다만 뇌전술사는 금발 긴 머리가 다르다. 시트 생성 때 직업 입히기에서 더 벌릴지 <b>정할 것 ③</b>.</p>
+<div class="grid" id="cards"></div>
+
+<h2>3. 동작 키 매핑 (게임 상태 → 시트 줄)</h2>
+<table>
+  <tr><th>줄</th><th>게임에서 언제</th><th>프레임 고르는 법 (<code>src/sprites.js sheetFrame</code>)</th><th>만드는 법 (계획 — 승인 전)</th></tr>
+  <tr><td><code>idle</code></td><td>캠프·마을 서 있기 (mode stand/idle)</td><td>fps 6 반복</td><td>원형 애니 (PixelLab, 승인 시)</td></tr>
+  <tr><td><code>guard</code></td><td>교전 중 평타 사이</td><td>fps 6 반복</td><td>idle 재사용, 윗몸 1칸 낮춤 (<code>build.py</code>)</td></tr>
+  <tr><td><code>walk</code></td><td>원정 이동·결투 접근</td><td>walkT × fps 10</td><td>원형 애니 — 로브 체형 7종 공유</td></tr>
+  <tr><td><code>atkA</code> · <code>atkB</code></td><td>평타 (knight.combo 홀짝)</td><td>hit 프레임이 원거리 타격 시점 45% 에 오게</td><td>앞으로 겨눠 쏘기 / 치켜들었다 내리꽂기</td></tr>
+  <tr><td><code>cast</code></td><td>스킬 자세 전부 (pose.bowA·pull)</td><td><code>key: "bowA"</code>, <code>val</code> 이 가장 가까운 프레임 — 아래 다섯 키 자세</td><td>원형 cast 애니 8장에서 다섯 장을 고른다</td></tr>
+  <tr><td><code>hurt</code></td><td>맞아서 밀림 (recoil &gt; 0.35)</td><td>recoil 크기로 0/1</td><td>idle 1장을 뒤로 2·1칸 + 코드 흰 번쩍임</td></tr>
+  <tr><td><code>death</code></td><td>체력 0 (down)</td><td>한 번, 마지막 유지</td><td>hurt 1장을 발끝 축으로 0·25·50·75·90° 넘어뜨림</td></tr>
+  <tr><td><code>sit</code></td><td>마을·캠프 앉기</td><td>줄이 없으면 예전 조립식 앉기</td><td>기존 앉기 유지 (PixelLab 0)</td></tr>
+</table>
+<h3 style="margin-top:14px">cast 다섯 키 자세 — 실제 스킬 자세의 <code>bowA</code> 분포로 정함</h3>
+<table>
+  <tr><th>bowA</th><th>자세</th><th>스킬 시전 중 차지 비율 (7종 × 스킬 × ★0~3, 88회 · 60fps 표본)</th></tr>
+  <tr><td>−1.4</td><td>지팡이를 머리 위로 치켜듦 (메테오·뇌우·궁극기 모으기)</td><td>16% (−1.6 ~ −1.2)</td></tr>
+  <tr><td>−0.7</td><td>비스듬히 들어 마력을 모음</td><td>4% (−1.0 ~ −0.6)</td></tr>
+  <tr><td>−0.2</td><td>세워 들고 집중 (회오리·블리자드 유지)</td><td>42% (−0.4 ~ 0.0)</td></tr>
+  <tr><td>0.7</td><td>앞으로 겨눔 (발사 순간)</td><td>22% (0.2 ~ 0.8)</td></tr>
+  <tr><td>1.2</td><td>앞 땅에 내리꽂음 (마력 폭발 ★★·궁극기 마무리)</td><td>6% (1.0 ~ 1.2)</td></tr>
+</table>
+<ul class="sub">
+  <li>몸 이동·띄움·기울임(dx·lift·skew·sx·sy)은 지금처럼 시트 그림 전체에 변형으로 준다.</li>
+  <li>마력탄이 나가는 자리는 시트의 <code>hand</code> 점(구슬 가운데)이다. <code>heroMuzzle</code> 이 이 점을 쓴다. 구슬 빛(<code>sheetStaffGlow</code>)도 같은 점에 그린다.</li>
+  <li>스킬 잔상 <code>onlyWeapon</code> 은 시트에선 아무것도 안 그린다. 무기가 그림 안에 있어서다(파이터와 같음).</li>
+</ul>
+<div class="box"><b>시험 시트 미리보기</b> (화염술사, 기준 그림 한 장 + 파생 동작). 빨간 점은 hand(구슬)이고 파란 점은 head 다. 실제 동작 그림은 생성 승인 뒤에 들어간다.
+<div class="scroll"><img class="px" src="sheets-mage/stub-pyromancer.png" alt="시험 시트" style="max-width:none;width:1010px"></div></div>
+
+<h2>4. 생성 계획 (로드맵 세션 제출, 보류)</h2>
+<table>
+  <tr><th>단계</th><th>PixelLab</th><th>내용</th></tr>
+  <tr><td>원형 (로브 체형 마네킹 또는 화염술사)</td><td>최대 5 ~ 7회 (보류)</td><td>idle · walk · atkA · atkB · cast 를 동작마다 1회 8프레임 · 포즈가 틀릴 때만 재시도 2</td></tr>
+  <tr><td>나머지 6종</td><td>0 목표</td><td>원형 프레임 위에 ComfyUI 로 직업 입히기 (검사 계열 시범 결과를 따름) → 안 되면 직업당 기준 편집 1 + 5동작, 다시 계획서</td></tr>
+  <tr><td>합계</td><td>예상 5 ~ 7, 최대 41 (상한 90)</td><td>지금까지 <b>0회</b> · 래퍼 <code>dev/sheets-mage/plx.py</code>(응답 usage 합계, 상한 90, 잔량 300 바닥)</td></tr>
+</table>
+
+<h2>5. 확인 링크</h2>
+<p>시험 시트 켬 (기준 그림 한 장 — 자리·연결만):
+  <a href="../skills.html?patch=sheets-mage&mode=basic&cls=mage">마법사</a> ·
+  <a href="../skills.html?patch=sheets-mage&mode=basic&cls=pyromancer">화염술사</a> ·
+  <a href="../skills.html?patch=sheets-mage&mode=basic&cls=cryomancer">빙결술사</a> ·
+  <a href="../skills.html?patch=sheets-mage&mode=basic&cls=electromancer">뇌전술사</a> ·
+  <a href="../skills.html?patch=sheets-mage&mode=basic&cls=archmage">대마도사</a> ·
+  <a href="../skills.html?patch=sheets-mage&mode=basic&cls=frostlord">빙결의 군주</a> ·
+  <a href="../skills.html?patch=sheets-mage&mode=basic&cls=thunderEmperor">뇌제</a>
+  · 스킬: <a href="../skills.html?patch=sheets-mage&cls=pyromancer&skill=meteor&stage=3">화염술사 메테오 ★★★</a></p>
+<p>지금 조립식 그대로: <a href="../skills.html?patch=sheets-mage&sheets=0&mode=basic&cls=pyromancer">화염술사 평타 (sheets=0)</a> ·
+  콘솔 <code>sheetsMage.diff('pyromancer')</code> = 같은 자세를 조립식·시트로 그려 다른 칸 수</p>
+
+<h2>6. 수용 기준 (이번 준비 단계)</h2>
+<table>
+  <tr><th>기준</th><th>상태</th></tr>
+  <tr><td>계열 7종 시트로 그려지고 동작이 움직인다</td><td class="wait">생성 보류 — 아직. 연결은 시험 시트로 확인했다: walk·idle·guard·평타 2종 번갈아·cast·hurt·death·앉기(조립식)</td></tr>
+  <tr><td>어떤 동작에서도 무기 끝이 칸에서 잘리지 않는다</td><td class="ok">✅ 지금 리그 전 동작이 96 칸 안이다(1절, 앞 여백 4칸 이상). 생성 뒤 동작별 프레임 몽타주로 다시 본다</td></tr>
+  <tr><td>기존 그림과 그림체가 이어지고 2차·3차가 흑백 실루엣으로 구분된다</td><td class="wait">기준 그림은 기존 그대로다(2절). 시트 생성 뒤 비교한다</td></tr>
+  <tr><td>스킬 시전·궁극기·결투·레이드·마을이 깨지지 않는다. 전 직업 시전 예외 0</td><td class="ok">✅ 시험 시트를 켠 채 7종 × 스킬 × ★0~3 = 88회 시전, 평타 각 4초 → 예외 0</td></tr>
+  <tr><td><code>SHEET_ON</code> 을 끄면 예전 조립식</td><td class="ok">✅ 7종 줄 <code>false</code>. 시트가 없으면 켜도 조립식(<code>heroSheetOn</code>), <code>?sheets=0</code> 이면 전부 끔</td></tr>
+  <tr><td>fps 가 떨어지지 않는다</td><td class="ok">✅ 4명 × 300번 그리기: 조립식 1,072ms → 시트 3.9ms (이음새 정리 getImageData 가 빠짐)</td></tr>
+  <tr><td>PixelLab 사용량 기록</td><td class="ok">✅ 0회 (<code>dev/sheets-mage/usage.md</code> 는 첫 호출 때 생긴다)</td></tr>
+</table>
+
+<h2>7. 정할 것</h2>
+<ol>
+  <li><b>견습 지팡이(마법사)도 96 칸</b>으로 해도 될까? 스펙 표는 64 지만, 64 면 평타 때 지팡이 끝이 잘린다.</li>
+  <li><b>sit 는 기존 조립식 앉기 유지</b>로 할까, ComfyUI 인페인트로 시트 앉기를 만들까? (지금 연결은 유지 쪽이다.)</li>
+  <li>마법사·뇌전술사 실루엣이 비슷하다(둘 다 뾰족 모자). 직업 입히기 단계에서 모자·머리 모양을 더 벌릴까?</li>
+</ol>
+</main>
+<script>
+  const IDS = [['mage', '마법사'], ['pyromancer', '화염술사'], ['cryomancer', '빙결술사'], ['electromancer', '뇌전술사'], ['archmage', '대마도사'], ['frostlord', '빙결의 군주'], ['thunderEmperor', '뇌제']];
+  const TABS = [['ref-fight-color', '전투 대기 · 컬러 (기준)'], ['ref-fight-gray', '전투 대기 · 흑백'], ['ref-fight-sil', '전투 대기 · 실루엣'], ['ref-color', '대기 · 컬러'], ['ref-gray', '대기 · 흑백'], ['ref-sil', '대기 · 실루엣']];
+  const tabs = document.getElementById('tabs'), img = document.getElementById('lineup');
+  let cur = 'ref-fight-color';
+  try { cur = localStorage.getItem('sheets-mage-tab') || cur; } catch (e) {}
+  const show = (k) => { cur = k; img.src = 'sheets-mage/' + k + '.png'; [...tabs.children].forEach((b) => b.classList.toggle('on', b.dataset.k === k)); try { localStorage.setItem('sheets-mage-tab', k); } catch (e) {} };
+  for (const [k, n] of TABS) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = k; b.onclick = () => show(k); tabs.appendChild(b); }
+  show(TABS.some((t) => t[0] === cur) ? cur : 'ref-fight-color');
+  const cards = document.getElementById('cards');
+  for (const [id, n] of IDS) cards.insertAdjacentHTML('beforeend', `<div class="card"><img src="sheets-mage/${id}-fight.png" alt="${n} 전투 대기"><div>${n} · 전투 대기 (기준)</div><img src="sheets-mage/${id}.png" alt="${n}"><div>대기 (1배 원본)</div></div>`);
+</script>
+</body>
+</html>

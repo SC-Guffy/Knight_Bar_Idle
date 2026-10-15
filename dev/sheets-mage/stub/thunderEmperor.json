@@ -1,0 +1,22 @@
+{"w": 96, "h": 96, "foot": [44, 88],
+ "anims": {
+  "idle": {"row": 0, "frames": 1, "fps": 6, "loop": true},
+  "guard": {"row": 1, "frames": 1, "fps": 6, "loop": true},
+  "walk": {"row": 2, "frames": 1, "fps": 10, "loop": true},
+  "atkA": {"row": 3, "frames": 1, "fps": 14, "loop": false, "hit": 0},
+  "atkB": {"row": 4, "frames": 1, "fps": 14, "loop": false, "hit": 0},
+  "cast": {"row": 5, "frames": 1, "fps": 10, "loop": false, "key": "bowA", "val": [0]},
+  "hurt": {"row": 6, "frames": 2, "fps": 12, "loop": false},
+  "death": {"row": 7, "frames": 5, "fps": 8, "loop": false}
+ },
+ "pts": {
+  "idle": [[57, 51, 44, 44]],
+  "guard": [[57, 52, 44, 45]],
+  "walk": [[57, 51, 44, 44]],
+  "atkA": [[57, 51, 44, 44]],
+  "atkB": [[57, 51, 44, 44]],
+  "cast": [[57, 51, 44, 44]],
+  "hurt": [[55, 51, 42, 44], [56, 51, 43, 44]],
+  "death": [[55, 51, 42, 44], [40, 46, 37, 44], [40, 64, 30, 47], [46, 71, 28, 61], [33, 68, 20, 65]]
+ }
+}

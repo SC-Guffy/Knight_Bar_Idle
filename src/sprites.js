@@ -18,6 +18,8 @@ const SHEET_ON = {
   ranger: false, marksman: false, arcaneArcher: false, arbalest: false, deadeye: false, voidArcher: false, siegeMaster: false,
   // 창기사 계열 (dev/spear/build.py, 칸 96·할버드 128) — 생성 시트가 승인되면 true
   lancer: false, dragoon: false, halberdier: false, cavalier: false, dragonlord: false, warlord: false, skyGeneral: false,
+  // 마법사 계열 (칸 96, dev/sheets-mage — 시험: dev/skills.html?patch=sheets-mage) — 시트를 사용자가 승인하면 true
+  mage: false, pyromancer: false, cryomancer: false, electromancer: false, archmage: false, frostlord: false, thunderEmperor: false,
 };
 if (typeof location !== 'undefined' && /[?&]sheets=0/.test(location.search || '')) for (const k in SHEET_ON) SHEET_ON[k] = false;
 // 이 직업을 시트로 그리나 (파이터 계열 look.sheet 는 항상)
@@ -54,7 +56,7 @@ function sheetFrame(meta, pose) {
   // 기존 직업의 스킬 자세 (SKILL_FX pose 의 wa·pull 등): cast 줄에서 그 값이 가장 가까운 프레임 (cast.key = 자세 값 이름, cast.val = 프레임마다 값).
   //  key 가 없으면 cast 를 반복. 몸의 dx·lift·skew·sx·sy 는 drawHeroSheet 가 그림 전체에 준다
   //  활·석궁: 하늘로 겨눈 자세(bowA ≤ -0.55, 화살비·포격)는 castUp 줄이 있으면 그 줄에서 같은 식으로 고른다
-  if (has('cast') && (pose.wa != null || pose.pull != null)) {
+  if (has('cast') && (pose.wa != null || pose.pull != null || pose.bowA != null)) {     // bowA: 지팡이·활 기울기 (마법사 계열은 cast.key = 'bowA')
     const k = has('castUp') && (pose.bowA || 0) <= -0.55 ? 'castUp' : 'cast', c = A[k];
     if (c.key && c.val && pose[c.key] != null) {
       // wrap: 값이 각도(라디안)라 한 바퀴 돌면 같은 자세 (할버드 대회전처럼 wa 가 ±2π 를 넘는 스킬)
@@ -121,6 +123,8 @@ function drawHeroSheet(g, id, x, gy, pose) {
     g.restore();
     return;
   }
+  // 앉기 줄이 없는 기존 직업 시트는 마을·캠프 앉기를 예전 조립식으로 (스펙: sit 는 기존 앉기 유지 가능)
+  if (pose.mode === 'sit' && !meta.anims.sit && !CLASSES[id].look.sheet && typeof drawHeroRaw === 'function') { g.restore(); return drawHeroRaw(g, id, x, gy, pose); }
   const { anim, f } = sf, a = meta.anims[anim];
   const src = pose.tint ? sheetTinted(s, pose.tint) : s.img;
   const W = meta.w || 64, H = meta.h || 64, ft = meta.foot || [32, 58];
@@ -130,7 +134,18 @@ function drawHeroSheet(g, id, x, gy, pose) {
     g.globalAlpha *= 0.55;
     g.drawImage(sheetTinted(s, '#ffffff'), f * W, a.row * H, W, H, -ft[0] * D, -ft[1] * D, W * D, H * D);
   }
+  if (!pose.tint) sheetStaffGlow(g, id, meta, anim, f, pose.pull || 0);
   g.restore();
+}
+// 지팡이 구슬 빛 (마법사 계열): 시트에는 구슬만 그리고 빛은 여기서 hand 점(= 구슬 가운데)에 얹는다.
+//  pull(0~13, 스킬이 마력을 모은 정도)만큼 커지고 짙어진다 — 조립식 drawStaff 의 빛과 같은 크기·색
+function sheetStaffGlow(g, id, meta, anim, f, pull) {
+  const w = WEAPONS[CLASSES[id].weapon], st = w && w.staff, P = st && (meta.pts[anim] || [])[f];
+  if (!P) return;
+  const ft = meta.foot || [32, 58], D = SHEET_DOT, k = Math.min(1, pull / 12), R = PX * (1.1 + 0.9 * k);
+  const ox = (P[0] - ft[0]) * D, oy = (P[1] - ft[1]) * D;
+  g.fillStyle = `rgba(${st.glowRgb},${0.16 + 0.22 * k})`;
+  g.beginPath(); g.arc(ox, oy, R * (1.8 + 0.8 * k), 0, Math.PI * 2); g.fill();
 }
 
 // 지금 그리는 프레임의 기준점(hand·head)을 화면 좌표로. pose 가 없으면 내 기사의 지금 모습
