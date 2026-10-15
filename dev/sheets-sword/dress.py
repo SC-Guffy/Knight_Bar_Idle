@@ -20,8 +20,10 @@ LINE = 'line'
 
 
 def crop_cell(im, N):
+    """캡처(96칸 발 (48,88) 또는 128칸 발 (64,118)) → N칸 발 (N/2, N-6)"""
     fx, fy = N // 2, N - 6
-    return im.crop((48 - fx, 88 - fy, 48 - fx + N, 88 - fy + N))
+    ox, oy = (64, 118) if im.width == 128 else (48, 88)
+    return im.crop((ox - fx, oy - fy, ox - fx + N, oy - fy + N))
 
 
 def classify(M):
@@ -37,7 +39,10 @@ def classify(M):
             out[x, y] = (best[1], best[2])
     # 투구 = 투구색 중 가장 큰 덩어리 (칼자루 끝 같은 회색 잔 칸은 칼날로)
     hs = {p for p, k in out.items() if k[0] == 'helm'}
-    keep = max(comps(hs), key=len, default=set())
+    torso = {p for p, k in out.items() if k[0] == 'torso'}
+    def touch(c):        # 몸통 칸과 2칸 안에서 닿는 수 (PixelLab 이 그린 회색 잔상 덩어리가 아니라 몸 위의 투구)
+        return sum(1 for (x, y) in c if any((x + a, y + b) in torso for a in (-2, -1, 0, 1, 2) for b in (0, 1, 2)))
+    keep = max(comps(hs), key=lambda c: (touch(c) > 0, touch(c) * 4 + len(c)), default=set())
     for p in hs - keep: out[p] = ('blade', out[p][1])
     return out
 
@@ -104,19 +109,60 @@ def weapon_sprite(cls, N):
     return WeaponTable.from_rig([(crop_cell(Image.open(f).convert('RGBA'), N), -math.pi + k * math.pi / 12) for k, f in enumerate(fs)])
 
 
+LAST = {}      # 마지막 dress 의 손 점·각도·머리 위 (시트 메타 hand/head 점, build.py)
+
+
+def find_hands(MP, n, force):
+    """손 점 n 개 (앞=오른쪽부터). 몸통 가까이의 장갑 덩어리 → 없으면 어깨에서 그 손 각도 쪽으로 가장 멀리 뻗은 팔 끝(몸통 색)"""
+    body = {p for p, k in MP.items() if k[0] in ('torso', 'helm')}
+    near = lambda c: any((x + a, y + b) in body for x, y in c for a in (-2, -1, 0, 1, 2) for b in (-2, -1, 0, 1, 2))
+    gl = [c for c in comps({p for p, k in MP.items() if k[0] == 'glove'}) if len(c) >= 2 and near(c)]
+    gl.sort(key=lambda c: -max(x for x, _ in c))
+    hands = [((sum(x for x, _ in c) / len(c), sum(y for _, y in c) / len(c)), c) for c in gl[:n]]
+    torso = [p for p, k in MP.items() if k[0] == 'torso']
+    if len(hands) < n and torso and force:
+        tx = sum(x for x, _ in torso) / len(torso); ty = min(y for _, y in torso) + 3
+        for i in range(len(hands), n):
+            f = force[i] if i < len(force) and force[i] is not None else 0
+            d = (math.cos(math.radians(f)), math.sin(math.radians(f)))
+            tip = max(torso, key=lambda p: (p[0] - tx) * d[0] + (p[1] - ty) * d[1])
+            if any(abs(tip[0] - h[0][0]) + abs(tip[1] - h[0][1]) < 3 for h in hands): continue
+            hands.append(((tip[0], tip[1]), []))
+    return hands
+
+
 def overlay_weapon(o, MP, ws, force=None):
-    """덧그리기 (공용 wpn.overlay): 마네킹 칼날 칸을 지우고 손(장갑)·칼 축 각도에 직업 무기를 얹는다. force = 각도(도) 지정"""
+    """덧그리기 (공용 wpn.overlay): 마네킹 칼날 칸(+ PixelLab 이 덧그린 잔상·이펙트)을 지우고 손마다 직업 무기를 얹는다.
+    force = 손마다 각도(도) 목록 (앞손부터) — None 이면 그 손 가까운 칼날 덩어리의 축, 칼날이 없으면 그 손은 빈손"""
     blade = {p for p, k in MP.items() if k[0] == 'blade'}
-    glove = [p for p, k in MP.items() if k[0] == 'glove']
-    if not blade or ws is None: return o
-    sw = max(comps(blade), key=len)                     # 칼 = 가장 큰 칼날 덩어리 (흩어진 회색 칸에 각도가 끌려가지 않게)
-    (cx, cy), d = axis(list(sw))
-    g = (sum(x for x, _ in glove) / len(glove), sum(y for _, y in glove) / len(glove)) if glove else grip_tip(sw, glove)[0]   # 손 = 장갑 가운데
-    if (cx - g[0]) * d[0] + (cy - g[1]) * d[1] < 0: d = (-d[0], -d[1])                       # 칼끝 = 손에서 칼날 덩어리 쪽
-    t = (g[0] + 10 * d[0], g[1] + 10 * d[1])
-    if force is not None:
-        a = math.radians(force); t = (g[0] + 10 * math.cos(a), g[1] + 10 * math.sin(a))
-    return overlay(o, blade, g, t, ws, front=glove, line=False)
+    if ws is None: return o
+    if force is not None and not isinstance(force, (list, tuple)): force = [force]
+    nh = len(ws) if isinstance(ws, list) else 1
+    out = o; O = out.load()
+    for p in blade: O[p] = (0, 0, 0, 0)            # 칼날·이펙트 지우기
+    for p, k in MP.items():
+        if k[0] == LINE and any((p[0] + a2, p[1] + b2) in blade for a2 in (-1, 0, 1) for b2 in (-1, 0, 1))                 and not any(MP.get((p[0] + a2, p[1] + b2), ('x',))[0] not in ('blade', LINE, 'x') for a2 in (-1, 0, 1) for b2 in (-1, 0, 1)):
+            O[p] = (0, 0, 0, 0)
+    # 몸에 안 붙은 장갑색 덩어리(이펙트 손잡이 등)도 지운다
+    bodyk = {p for p, k in MP.items() if k[0] in ('torso', 'helm', 'legs', 'boots')}
+    for c in comps({p for p, k in MP.items() if k[0] == 'glove'}):
+        if not any((x + a, y + b) in bodyk for x, y in c for a in (-2, -1, 0, 1, 2) for b in (-2, -1, 0, 1, 2)):
+            for p in c: O[p] = (0, 0, 0, 0)
+    bcs = [c for c in comps(blade) if len(c) >= 4]
+    LAST['hands'] = []
+    for i, (g, hand) in enumerate(find_hands(MP, nh, force)):
+        w = ws[i] if isinstance(ws, list) else ws
+        f = force[i] if force is not None and i < len(force) else None
+        if f is not None:
+            a = math.radians(f); d = (math.cos(a), math.sin(a))
+        else:
+            near = [c for c in bcs if min((x - g[0]) ** 2 + (y - g[1]) ** 2 for x, y in c) <= 16]
+            if not near: continue
+            (cx, cy), d = axis(list(max(near, key=len)))
+            if (cx - g[0]) * d[0] + (cy - g[1]) * d[1] < 0: d = (-d[0], -d[1])
+        out = overlay(out, set(), g, (g[0] + 10 * d[0], g[1] + 10 * d[1]), w, front=list(hand), line=False)
+        LAST['hands'].append((g, math.atan2(d[1], d[0])))
+    return out
 
 
 def dress(cls, M, arch, N, weapon=True, ang=None):
@@ -169,7 +215,9 @@ def dress(cls, M, arch, N, weapon=True, ang=None):
         q = mv(p, hoff)
         if inN(q): O[q] = Cpx[p]
     if weapon:
-        o = overlay_weapon(o, MP, weapon_sprite(cls, N), ang); O = o.load()
+        ws = weapon_sprite(cls, N)
+        if ws is not None and arch == 'dual': ws = [ws, ws]
+        o = overlay_weapon(o, MP, ws, ang); O = o.load()
         for p, (k, i) in MP.items():
             if k == 'glove': O[p] = ramps['glove'][i][:3] + (255,)
     return o, C, ramps
@@ -206,7 +254,7 @@ PROMPT = {
 if __name__ == '__main__':
     cls, src, arch, out = sys.argv[1:5]
     den = float(sys.argv[5]) if len(sys.argv) > 5 else 0
-    ang = float(sys.argv[6]) if len(sys.argv) > 6 else None      # 무기 각도(도, 0 = 앞, -90 = 위) — 덧그리기 사이 프레임
+    ang = [None if v == '-' else float(v) for v in sys.argv[6].split(',')] if len(sys.argv) > 6 else None   # 손마다 무기 각도(도, 0 = 앞, -90 = 위, - = 자동) — 덧그리기
     M = Image.open(src).convert('RGBA'); N = M.width
     o, C, _ = dress(cls, M, arch, N, ang=ang)
     pal = palette_of(C)

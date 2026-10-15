@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 4.0,
+ "used": 23.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -22,7 +22,49 @@
    "purpose": "atkA: side view, body keeps facing right, small holy paladin knigh",
    "used": 1.0,
    "bal": 1207.0
+  },
+  {
+   "cls": "mq-sword",
+   "ep": "/animate-with-text-v3",
+   "purpose": "idle: side view, body keeps facing right, small armored knight in ",
+   "used": 1.0,
+   "bal": 1206.0
+  },
+  {
+   "cls": "mq-sword",
+   "ep": "/animate-with-text-v3",
+   "purpose": "atkB: side view, body keeps facing right, small armored knight in ",
+   "used": 1.0,
+   "bal": 1205.0
+  },
+  {
+   "cls": "mq-dual",
+   "ep": "/animate-with-text-v3",
+   "purpose": "atkA: side view, body keeps facing right, small armored knight in ",
+   "used": 3.0,
+   "bal": 1202.0
+  },
+  {
+   "cls": "mq-dual",
+   "ep": "/animate-with-text-v3",
+   "purpose": "atkB: side view, body keeps facing right, small armored knight in ",
+   "used": 7.0,
+   "bal": 1195.0
+  },
+  {
+   "cls": "mq-great",
+   "ep": "/animate-with-text-v3",
+   "purpose": "atkA: side view, body keeps facing right, small armored knight in ",
+   "used": 6.0,
+   "bal": 1189.0
+  },
+  {
+   "cls": "mq-great",
+   "ep": "/animate-with-text-v3",
+   "purpose": "atkB: side view, body keeps facing right, small armored knight in ",
+   "used": 1.0,
+   "bal": 1188.0
   }
  ],
- "nom": 4.0
+ "nom": 10.0
 }

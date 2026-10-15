@@ -7,3 +7,9 @@
 | 1 | mq-sword | `/animate-with-text-v3` | walk: side view, body keeps facing right, small armored knight in  | 2.0 / 2.0 | 2.0 / 2.0 | 1209.0 |
 | 2 | mq-sword | `/animate-with-text-v3` | atkA: side view, body keeps facing right, small armored knight in  | 1.0 / 1.0 | 3.0 / 3.0 | 1208.0 |
 | 3 | paladin | `/animate-with-text-v3` | atkA: side view, body keeps facing right, small holy paladin knigh | 1.0 / 1.0 | 4.0 / 4.0 | 1207.0 |
+| 4 | mq-sword | `/animate-with-text-v3` | idle: side view, body keeps facing right, small armored knight in  | 1.0 / 1.0 | 5.0 / 5.0 | 1206.0 |
+| 5 | mq-sword | `/animate-with-text-v3` | atkB: side view, body keeps facing right, small armored knight in  | 1.0 / 1.0 | 6.0 / 6.0 | 1205.0 |
+| 6 | mq-dual | `/animate-with-text-v3` | atkA: side view, body keeps facing right, small armored knight in  | 3.0 / 1.0 | 9.0 / 7.0 | 1202.0 |
+| 7 | mq-dual | `/animate-with-text-v3` | atkB: side view, body keeps facing right, small armored knight in  | 7.0 / 1.0 | 16.0 / 8.0 | 1195.0 |
+| 8 | mq-great | `/animate-with-text-v3` | atkA: side view, body keeps facing right, small armored knight in  | 6.0 / 1.0 | 22.0 / 9.0 | 1189.0 |
+| 9 | mq-great | `/animate-with-text-v3` | atkB: side view, body keeps facing right, small armored knight in  | 1.0 / 1.0 | 23.0 / 10.0 | 1188.0 |
