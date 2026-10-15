@@ -19,6 +19,7 @@
   .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 8px 0; }
   figure { margin: 0; text-align: center; }
   figure img { display: block; width: calc(64px * var(--z)); height: calc(64px * var(--z)); image-rendering: pixelated; background: var(--cell); border: 1px solid var(--line); border-radius: 3px; }
+  figure img.gif { width: auto; height: auto; image-rendering: pixelated; }
   figure img.c96 { width: calc(96px * var(--z)); height: calc(96px * var(--z)); }
   figcaption { font-size: 11px; color: var(--dim); margin-top: 3px; max-width: calc(96px * var(--z)); }
   .arrow { align-self: center; color: var(--dim); font-size: 18px; }
@@ -41,7 +42,7 @@
 <body>
 <main>
 <h1>검사 계열 + 견습 — 통짜 시트 시범 0단계</h1>
-<div class="sub">와이어프레임 방식 시험: 원형 마네킹(부위색) → 직업 입히기. <b>PixelLab 0회</b> · ComfyUI 4장 · 2026-10-15</div>
+<div class="sub">와이어프레임 방식 시험: 원형 마네킹(부위색) → 직업 입히기. <b>PixelLab usage 2</b> · ComfyUI 8장 · 2026-10-15</div>
 
 <div class="ctl">
   <button data-v="" class="on">컬러</button><button data-v="gray">흑백</button><button data-v="sil">실루엣</button>
@@ -153,6 +154,55 @@
 </div>
 <div class="dim">머리·후광·방패는 따라간다. 방패는 몸 이동만 따라가고 기울기는 따라가지 않는다 (PixelLab 프레임에서 몸이 크게 기울면 방패 각도가 어색할 수 있음 → 그때는 방패 덩어리를 투구 각도만큼 돌리는 단계를 더한다).</div>
 
+<h2>⑦ 1단계 결과 — 걷기 (PixelLab 1회, usage 2)</h2>
+<div class="card dim">장검 마네킹 첫 프레임 → PixelLab <code>animate-with-text-v3</code> 8프레임(0 = 넣은 그림). 그 프레임마다 ③과 같은 방법으로 성기사·검사를 입혔다. 아래 GIF 는 칼이 수평으로 자리 잡은 3~8프레임 반복(10fps).</div>
+<div class="row">
+  <figure><img class="gif" src="sheets-sword/walk-mq.gif" alt=""><figcaption>마네킹 (PixelLab)</figcaption></figure>
+  <figure><img class="gif" src="sheets-sword/walk-paladin.gif" alt=""><figcaption>성기사 입힘</figcaption></figure>
+  <figure><img class="gif" src="sheets-sword/walk-swordsman.gif" alt=""><figcaption>검사 입힘</figcaption></figure>
+</div>
+<div class="row" style="--z:2.5">
+  <figure><img src="sheets-sword/walk-mq-0.png" alt=""><figcaption>0</figcaption></figure>
+  <figure><img src="sheets-sword/walk-mq-1.png" alt=""><figcaption>1</figcaption></figure>
+  <figure><img src="sheets-sword/walk-mq-2.png" alt=""><figcaption>2</figcaption></figure>
+  <figure><img src="sheets-sword/walk-mq-3.png" alt=""><figcaption>3</figcaption></figure>
+  <figure><img src="sheets-sword/walk-mq-4.png" alt=""><figcaption>4</figcaption></figure>
+  <figure><img src="sheets-sword/walk-mq-5.png" alt=""><figcaption>5</figcaption></figure>
+  <figure><img src="sheets-sword/walk-mq-6.png" alt=""><figcaption>6</figcaption></figure>
+  <figure><img src="sheets-sword/walk-mq-7.png" alt=""><figcaption>7</figcaption></figure>
+  <figure><img src="sheets-sword/walk-mq-8.png" alt=""><figcaption>8</figcaption></figure>
+</div>
+<div class="row" style="--z:2.5">
+  <figure><img src="sheets-sword/walk-paladin-0.png" alt=""><figcaption>0</figcaption></figure>
+  <figure><img src="sheets-sword/walk-paladin-1.png" alt=""><figcaption>1</figcaption></figure>
+  <figure><img src="sheets-sword/walk-paladin-2.png" alt=""><figcaption>2</figcaption></figure>
+  <figure><img src="sheets-sword/walk-paladin-3.png" alt=""><figcaption>3</figcaption></figure>
+  <figure><img src="sheets-sword/walk-paladin-4.png" alt=""><figcaption>4</figcaption></figure>
+  <figure><img src="sheets-sword/walk-paladin-5.png" alt=""><figcaption>5</figcaption></figure>
+  <figure><img src="sheets-sword/walk-paladin-6.png" alt=""><figcaption>6</figcaption></figure>
+  <figure><img src="sheets-sword/walk-paladin-7.png" alt=""><figcaption>7</figcaption></figure>
+  <figure><img src="sheets-sword/walk-paladin-8.png" alt=""><figcaption>8</figcaption></figure>
+</div>
+<div class="row" style="--z:2.5">
+  <figure><img src="sheets-sword/walk-swordsman-0.png" alt=""><figcaption>0</figcaption></figure>
+  <figure><img src="sheets-sword/walk-swordsman-1.png" alt=""><figcaption>1</figcaption></figure>
+  <figure><img src="sheets-sword/walk-swordsman-2.png" alt=""><figcaption>2</figcaption></figure>
+  <figure><img src="sheets-sword/walk-swordsman-3.png" alt=""><figcaption>3</figcaption></figure>
+  <figure><img src="sheets-sword/walk-swordsman-4.png" alt=""><figcaption>4</figcaption></figure>
+  <figure><img src="sheets-sword/walk-swordsman-5.png" alt=""><figcaption>5</figcaption></figure>
+  <figure><img src="sheets-sword/walk-swordsman-6.png" alt=""><figcaption>6</figcaption></figure>
+  <figure><img src="sheets-sword/walk-swordsman-7.png" alt=""><figcaption>7</figcaption></figure>
+  <figure><img src="sheets-sword/walk-swordsman-8.png" alt=""><figcaption>8</figcaption></figure>
+</div>
+<div class="card">
+  <ul>
+    <li class="ok">부위색이 9프레임 내내 유지돼 입히기가 그대로 된다. 후광·볏 투구·십자 방패·망토가 프레임마다 제자리를 따라간다.</li>
+    <li class="ok">다리가 번갈아 앞뒤로 나간다 (보폭은 작은 편).</li>
+    <li class="mid">칼이 0~2프레임에 비스듬히 든 자세에서 수평으로 내려가고 다시 올라오지 않는다 (예전 견습 시험과 같은 현상). 반복에는 3~8프레임만 쓰고, 대기 → 걷기 넘어갈 때 칼 각도가 바뀌는 것은 게임에서 짧게 섞는다.</li>
+    <li class="mid">투구 분류: 칼자루 끝 회색이 투구로 잡혀 머리가 발 쪽에 붙던 문제를 "가장 큰 회색 덩어리 = 투구" 로 고쳤다.</li>
+  </ul>
+</div>
+
 <h2>⑥ PixelLab 1단계 계획 (승인 요청, 최대 3회)</h2>
 <table>
   <tr><th>#</th><th>무엇</th><th>첫 프레임</th><th>프레임</th><th>왜 PixelLab</th></tr>
@@ -171,7 +221,7 @@
 <h2>사용량</h2>
 <table>
   <tr><th>항목</th><th>수</th><th>비고</th></tr>
-  <tr><td>PixelLab (응답 usage 합계)</td><td class="ok">0</td><td>계열 상한 90. 계획 승인 전 호출 없음</td></tr>
+  <tr><td>PixelLab (응답 usage 합계)</td><td class="mid">2</td><td>1단계 ① 걷기 8프레임 1회 = usage 2 (계획서의 "1회 = 1" 과 다름 → ②·③ 은 프레임 수를 로드맵에 확인 중). 계열 상한 90</td></tr>
   <tr><td>ComfyUI (Z-Image img2img)</td><td>8장</td><td>④ 다듬기 비교 (로컬, 무료)</td></tr>
 </table>
 </main>

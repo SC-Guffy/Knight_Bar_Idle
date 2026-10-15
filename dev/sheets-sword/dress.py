@@ -33,7 +33,25 @@ def classify(M):
             if lum(c) < 24: out[x, y] = (LINE, 0); continue
             best = min(pal, key=lambda p: 3 * (p[0][0] - c[0]) ** 2 + 6 * (p[0][1] - c[1]) ** 2 + 2 * (p[0][2] - c[2]) ** 2)
             out[x, y] = (best[1], best[2])
+    # 투구 = 투구색 중 가장 큰 덩어리 (칼자루 끝 같은 회색 잔 칸은 칼날로)
+    hs = {p for p, k in out.items() if k[0] == 'helm'}
+    keep = max(comps(hs), key=len, default=set())
+    for p in hs - keep: out[p] = ('blade', out[p][1])
     return out
+
+
+def comps(mask):
+    left, res = set(mask), []
+    while left:
+        st = [left.pop()]; c = set(st)
+        while st:
+            x, y = st.pop()
+            for a in (-1, 0, 1):
+                for b in (-1, 0, 1):
+                    q = (x + a, y + b)
+                    if q in left: left.discard(q); c.add(q); st.append(q)
+        res.append(c)
+    return res
 
 
 def ramp_of(colors):

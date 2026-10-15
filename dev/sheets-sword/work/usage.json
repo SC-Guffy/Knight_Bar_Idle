@@ -1,0 +1,14 @@
+{
+ "start": 1211.0,
+ "used": 2.0,
+ "calls": [
+  {
+   "cls": "mq-sword",
+   "ep": "/animate-with-text-v3",
+   "purpose": "walk: side view, body keeps facing right, small armored knight in ",
+   "used": 2.0,
+   "bal": 1209.0
+  }
+ ],
+ "nom": 2.0
+}
