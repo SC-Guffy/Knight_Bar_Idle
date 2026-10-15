@@ -424,18 +424,15 @@ function rerollBlocker(it, i) {
   if (!it || !it.op || !it.op[i]) return '장비와 옵션 줄을 골라 주세요';
   if (!forgeFacLv('enchant')) return '마을 대장간에서 🎲 옵션 재굴림대를 먼저 지어야 해요';
   if (S.phase !== 'camp') return '캠프에서만 다시 굴릴 수 있어요';
-  const c = rerollCost(it.g);
-  if ((S.items.reroll || 0) < c.reroll) return '재굴림권 부족 — 원정 상자에서 가끔, 레이드 처치 상자·월드 보스 보상에서 3~5장씩 나와요';
-  if (S.stones < c.stone) return '강화석 부족';
-  if (S.mats.mana < c.mana) return '마력석 부족';
+  if ((S.items.reroll || 0) < rerollCost().reroll) return '재굴림권 부족 — 원정 상자에서 가끔, 레이드 처치 상자·월드 보스 보상에서 3~5장씩 나와요';
   return '';
 }
 // { it, i, from, to } 또는 null
 function rerollLine(id, i) {
   const it = gearById(id);
   if (rerollBlocker(it, i)) return null;
-  const c = rerollCost(it.g), lv = forgeFacLv('enchant');
-  S.items.reroll -= c.reroll; S.stones -= c.stone; S.mats.mana -= c.mana;
+  const lv = forgeFacLv('enchant');
+  S.items.reroll -= rerollCost().reroll;
   const from = it.op[i], to = rollOptLine(it.g, enchantQualAt(lv), 0.01 * lv), oldMax = stats().maxHp;
   it.op[i] = to;
   keepHpRatio(oldMax);

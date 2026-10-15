@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.23.0';
+const GAME_VERSION = '0.23.1';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -175,10 +175,11 @@ const FORGE_FAC = {
 // 분해대: 판매 강화석 ×(1 + 0.1·Lv) (Lv20 ×3)
 const salvageMultAt = (lv) => 1 + 0.1 * lv;
 // 옵션 재굴림대 (시즌6, 0.18 의 마법부여대(it.en)를 대신한다 — 시설 id 'enchant' 와 Lv 은 그대로)
-//  장비 옵션 줄(it.op, 아래 GEAR_OPTS) 하나를 🎲 재굴림권 + 💠 강화석 + 💎 마력석으로 다시 굴린다.
+//  장비 옵션 줄(it.op, 아래 GEAR_OPTS) 하나를 🎲 재굴림권 1장으로 다시 굴린다.
+//  0.23.1 에 💠 강화석·💎 마력석 비용을 뺐다 — 강화석은 강화 전용으로 두고, 재굴림은 재굴림권(상점 없음, 드랍만)이 묶는다
 //  품질 바닥 enchantQualAt(Lv) (Lv당 4%, Lv20 80%), 쓰레기 옵션 확률 −1%p/Lv (최소 OPT_JUNK_MIN)
 const enchantQualAt = (lv) => Math.min(1, 0.04 * lv);
-const rerollCost = (g) => ({ reroll: 1, stone: GEAR_STONES[g], mana: 2 + 2 * g });
+const rerollCost = () => ({ reroll: 1 });
 
 // ───────────────────────── 장비 옵션 줄 (시즌6) ─────────────────────────
 // 장비를 얻을 때 등급별 줄 수(OPT_LINES)만큼 옵션을 미리 굴려 둔다. 줄 i(0부터)는 그 부위 강화가 OPT_STEP·(i+1) 에 닿으면 켜진다

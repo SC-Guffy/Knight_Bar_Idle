@@ -1328,7 +1328,7 @@ function forgeRerollRow(slot) {
   const def = GEAR_SLOTS[slot], it = equipped(slot);
   if (!it) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">장비를 끼면 옵션을 다시 굴릴 수 있어요</span></div>`;
   if (!(it.op || []).length) return `<div class="fac"><span class="fname">${def.icon} ${def.name}</span><span class="feff">${it.g === 0 ? '일반 등급 장비는 옵션 줄이 없어요 — 고급부터 붙어요' : '옵션 줄이 없는 장비예요 (옵션 줄이 생기기 전에 얻음) — 새로 얻는 장비부터 붙어요'}</span></div>`;
-  const c = rerollCost(it.g), enh = S.gear.enh[slot], fx = rrFx && rrFx.id === it.id ? rrFx : null, spinning = rrFx && !rrFx.done;
+  const enh = S.gear.enh[slot], fx = rrFx && rrFx.id === it.id ? rrFx : null, spinning = rrFx && !rrFx.done;
   const lines = (it.op || []).map((o, i) => {
     const on = enh >= optNeed(i), junk = GEAR_OPTS[o.k] && GEAR_OPTS[o.k].junk, blocker = spinning ? '굴리는 중이에요' : rerollBlocker(it, i);
     if (fx && fx.i === i && !fx.done) {
@@ -1343,7 +1343,7 @@ function forgeRerollRow(slot) {
   return `
     <div class="fac rrfac" style="--c:${gearGrade(it).color}">
       <span class="fname">${gearIcon(it)} <span class="${gnClass(it)}">${gearName(it)}</span> <small>${def.name} +${enh}</small></span>
-      <span class="costs">🎲 1 ${costChip(ico('stone'), c.stone, S.stones)}${costChip(ico('mana'), c.mana, S.mats.mana)}</span>
+      <span class="costs">🎲 1</span>
       <div class="rrlines">${lines}</div>
     </div>`;
 }
@@ -2792,8 +2792,8 @@ const RES_GUIDE = [
   { k: 'gold', name: '골드', icon: () => '<i class="gc"></i>', get: '원정 처치 · 장비 판매 · 레이드', use: '훈련 · 건물 · 대장간 시설 · 보급품 · 창고 교역', trade: true },
   { k: 'wood', name: '목재', icon: () => ico('wood'), get: '재료의 미궁 · 창고 비축·교역 · 원정 골동품', use: '건물 · 가방', trade: true },
   { k: 'ore', name: '철광석', icon: () => ico('ore'), get: '재료의 미궁 · 창고 비축·교역 · 원정 골동품', use: '건물 · 대장간 시설', trade: true },
-  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '재료의 미궁 · 레이드 · 원정 골동품', use: '전직 · 건물(Lv5부터) · 강화 · 재굴림 · 입장권' },
-  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '원정 보스 · 장비 판매', use: '장비 강화 · 재굴림' },
+  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '재료의 미궁 · 레이드 · 원정 골동품', use: '전직 · 건물(Lv5부터) · 강화 · 입장권' },
+  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '원정 보스 · 장비 판매', use: '장비 강화' },
   { k: 'tomes', name: '비전서', icon: () => ico('tome'), get: '도전의 탑 · 원정 보스 · 레이드 상자 · 결투 시즌', use: '스킬 숙련도' },
 ];
 function viewResGuide() {
