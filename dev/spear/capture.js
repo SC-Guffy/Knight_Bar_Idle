@@ -26,3 +26,36 @@ window.spearCap = async function (id, port = 8896, opt = {}) {
   out.push(id, 'cast wa', WA.join(' '));
   return out.join(' ');
 };
+
+// 마네킹·입히기용 부위 캡처 (dev/spear/dress.py): 같은 자세를 full(전체) · noacc(망토·방패·후광 뺌) · nocape · nosh · wpn(무기만) 으로.
+//  opt.weapon 이면 그 무기로 바꿔 끼운다 (마네킹 = 검사 몸 + 창/할버드). 이름 <name>-<자세>-<종류>.png
+//  pose: guard(전투 대기) · idle · t15/t30/t45/t70 (평타 진행 — 입히기 시험용 임시 자세, 최종 시트에는 안 씀)
+window.spearParts = async function (id, name, port = 8896, opt = {}) {
+  const c = CLASSES[id], look0 = c.look, w0 = c.weapon;
+  const POSES = { guard: { mode: 'fight' }, idle: { mode: 'stand' } };
+  for (const s of opt.swings || []) POSES['t' + Math.round(s * 100)] = { mode: 'fight', swing: s, combo: 0 };
+  const save = async (nm, pose) => {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 160;
+    const g = cv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.setTransform(2 / PX, 0, 0, 2 / PX, 80, 140);
+    drawHero(g, id, 0, 0, { t: 0, walkT: 0, swing: -1, facing: 1, ...pose });
+    await fetch(`http://127.0.0.1:${port}/save?name=${name}-${nm}`, { method: 'POST', body: cv.toDataURL() });
+  };
+  try {
+    if (opt.weapon) c.weapon = opt.weapon;
+    for (const [pn, pose] of Object.entries(POSES)) {
+      c.look = look0; await save(pn + '-full', pose);
+      c.look = { ...look0, cape: null, shield: null, halo: false }; await save(pn + '-noacc', pose);
+      // 무기 칸: onlyWeapon 은 전투 대기 자세를 따르지 않아(창을 세운다) 쓰지 않는다. 무기 색만 바꿔 한 번 더 찍고 달라진 칸 = 무기 (dress.py)
+      const wk = c.weapon, w0x = WEAPONS[wk], mag = {};
+      for (const [k, v] of Object.entries(w0x)) if (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)) mag[k] = '#ff00ff';
+      WEAPONS[wk] = { ...w0x, ...mag, glow: null, trail: '255,0,255' };
+      try { await save(pn + '-wcol', pose); } finally { WEAPONS[wk] = w0x; }
+      c.look = { ...look0, cape: null }; await save(pn + '-nocape', pose);
+      c.look = { ...look0, shield: null }; await save(pn + '-nosh', pose);
+    }
+  } finally { c.look = look0; c.weapon = w0; }
+  return name + ' ' + Object.keys(POSES).join(',');
+};
