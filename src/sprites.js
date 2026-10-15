@@ -20,6 +20,8 @@ const SHEET_ON = {
   lancer: false, dragoon: false, halberdier: false, cavalier: false, dragonlord: false, warlord: false, skyGeneral: false,
   // 마법사 계열 (칸 96, dev/sheets-mage — 시험: dev/skills.html?patch=sheets-mage) — 시트를 사용자가 승인하면 true
   mage: false, pyromancer: false, cryomancer: false, electromancer: false, archmage: false, frostlord: false, thunderEmperor: false,
+  // 검사 계열 + 견습 (칸 장검·쌍검 64 · 대검 96, 원형 마네킹 → 입히기 dev/sheets-sword) — 시트를 사용자가 승인하면 true
+  squire: false, swordsman: false, paladin: false, blademaster: false, greatswordsman: false, archon: false, swordsaint: false, tyrant: false,
 };
 if (typeof location !== 'undefined' && /[?&]sheets=0/.test(location.search || '')) for (const k in SHEET_ON) SHEET_ON[k] = false;
 // 이 직업을 시트로 그리나 (파이터 계열 look.sheet 는 항상)
