@@ -368,7 +368,6 @@ function enhanceBlocker(slot) {
   if (S.phase !== 'camp') return '캠프에서만 강화할 수 있어요';
   const c = enhanceCostOf(slot);
   if (S.stones < c.stone) return '강화석 부족';
-  if (S.mats.ore < c.ore) return '철광석 부족';
   if (S.mats.mana < c.mana) return '마력석 부족';
   return '';
 }
@@ -385,7 +384,7 @@ function enhance(slot, protect = false) {
   const e = enhanceOddsAt(from, forgeFacLv('temper'));
   const c = enhanceCostOf(slot);
   const oldMax = stats().maxHp;
-  S.stones -= c.stone; S.mats.ore -= c.ore; S.mats.mana -= c.mana;
+  S.stones -= c.stone; S.mats.mana -= c.mana;
   const used = protect && S.items.protect > 0 && enhRisky(from);
   if (used) S.items.protect--;
 

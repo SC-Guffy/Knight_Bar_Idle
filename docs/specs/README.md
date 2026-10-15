@@ -43,6 +43,7 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
+| [dungeon-reward-buff.md](dungeon-reward-buff.md) | 완료 (0.22.3) | 재료의 미궁 보상 ×2(강화석 ×3) · 강화 비용에서 🪨 철광석 제외 (검토 `dev/review/dungeon-buff.html`) |
 | [build-rush.md](build-rush.md) | 완료 (0.21.1) | 건설 즉시 완료 — 남은 1분당 최고 스테이지 잡몹 골드 ×2.2 (남은 1시간 ≈ 원정 30분 골드) |
 | [building-materials-and-training.md](building-materials-and-training.md) | 완료 (0.20.15) | 건물 목재·철광석 비용 Lv8 위로 ×1.5 · 교역 1회 = 다음 건물 비용 10% · 공격력·체력 훈련 배율(훈련 : 장비 ≈ 3:7) |
 | [growth-compression.md](growth-compression.md) | 완료 (0.21.0) | 성장 곡선 압축 — 몬스터 ×1.06·×1.04/스테이지(옆 레이드 보스 약 7배), 장비·훈련 배율 같은 비율로, 훈련 : 장비 체감 4 : 6. 경제는 2단계 |

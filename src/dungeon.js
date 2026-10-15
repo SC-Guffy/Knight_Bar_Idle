@@ -19,7 +19,8 @@
 //  - 난이도는 내 전투력 기준이다: dgLimitStage = 지금 능력치로 보스를 겨우 잡는 스테이지. 첫 보스는 거기서 DG_OFF0 만큼 아래, 한 마리마다 +DG_STEP.
 //    보스 하나마다 기대 피해가 ×1.46 (스테이지당 ×1.10 이 4칸, 0.21.0 성장 압축 전엔 스테이지당 ×1.44 · 1칸) 이라 누구나 8~9 마리쯤에서 쓰러진다 (시뮬: 중앙 9, 10%~90% 가 8~9). 성장하면 같은 '보스 9' 가 더 센 놈이고 보상도 커진다.
 //  - 재화 1칸 값(dgUnitValue): 한 판 기대 칸(DG_RUN_UNITS)이 목재·철광석·마력석은 내 건물 다음 레벨 비용 평균의 DG_RUN_SHARE 배가 되게 —
-//    재화 여섯에 나뉘니 한 판에 재화당 다음 레벨의 25% 쯤, 하루 입장권 3장이면 75% ("살짝 모자란 듯"). 골드는 나누기 전 사냥 30분치(한 판 실제 몫은 그 6분의 1쯤, 사냥 약 5분치), 강화석·비전서는 보조 수급.
+//    재화 여섯에 나뉘어 한 판에 목재·철광석이 다음 레벨의 약 60%, 하루 입장권 3장이면 약 1.8 레벨어치. 골드는 나누기 전 사냥 60분치(한 판 실제 몫은 사냥 약 10분치).
+//    0.22.3 에 전부 ×2, 강화석은 ×3 (사용자 "수급량이 너무 작아" — 그 전엔 재화당 다음 레벨의 25%, 강화석 한 판 9~23개).
 //  - 입장권: 하루 DG_TICKETS 장 무료. 더 필요하면 골드로 산다 (dgTicketPrice, 탑과 같은 곡선 · 기준값 DG_TICKET_GOLD)
 
 const DG_UNLOCK_STAGE = 15;
@@ -119,7 +120,7 @@ const dgBossStage = (run = S.dg.run) => run.stage0 + run.k * DG_STEP;
 const DG_SLOT_AVG = (() => { const tot = DG_SLOT_TIER_IDS.reduce((a, id) => a + DG_SLOT_TIERS[id].w, 0); return DG_SLOT_TIER_IDS.reduce((a, id) => { const t = DG_SLOT_TIERS[id]; return a + (t.w / tot) * (t.big ? t.big + t.small : 3 * t.small); }, 0); })();
 const DG_RUN_BOSSES = 9;
 const DG_RUN_UNITS = DG_SLOT_AVG * Array.from({ length: DG_RUN_BOSSES }, (_, k) => 1 + DG_BOSS_BONUS * k).reduce((a, b) => a + b, 0);
-const DG_RUN_SHARE = 1.5;
+const DG_RUN_SHARE = 3;
 function dgNextBuildCost(k) {
   const ids = Object.keys(BUILDINGS);
   const sum = ids.reduce((a, id) => a + buildCost(id, Math.min(S.bld[id], bldMax(id) - 1))[k], 0);
@@ -127,13 +128,13 @@ function dgNextBuildCost(k) {
 }
 function dgUnitValue(r, best = S.best) {
   switch (r) {
-    case 'gold': return monsterStats(best, false).gold * 300 / DG_RUN_UNITS;   // 나누기 전 사냥 30분치 → 한 판 몫은 약 5분치
+    case 'gold': return monsterStats(best, false).gold * 600 / DG_RUN_UNITS;   // 나누기 전 사냥 60분치 → 한 판 몫은 약 10분치
     case 'wood': return Math.max(1, dgNextBuildCost('wood') * DG_RUN_SHARE / DG_RUN_UNITS);
     case 'ore': return Math.max(1, dgNextBuildCost('ore') * DG_RUN_SHARE / DG_RUN_UNITS);
     // 마력석은 건물 Lv5 부터 들어서 그 전엔 전직 몫으로 조금
-    case 'mana': return Math.max(0.4, dgNextBuildCost('mana') * DG_RUN_SHARE / DG_RUN_UNITS);
-    case 'stones': return (40 + 0.4 * best) / DG_RUN_UNITS;
-    case 'tomes': return (8 + best / 8) / DG_RUN_UNITS;
+    case 'mana': return Math.max(0.8, dgNextBuildCost('mana') * DG_RUN_SHARE / DG_RUN_UNITS);
+    case 'stones': return (120 + 1.2 * best) / DG_RUN_UNITS;
+    case 'tomes': return (16 + best / 4) / DG_RUN_UNITS;
   }
   return 0;
 }

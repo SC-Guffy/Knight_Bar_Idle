@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미궁 보상 상향 — 스펙 검토</title>
+<!-- 스펙: docs/specs/dungeon-reward-buff.md. 수치는 src/dungeon.js dgUnitValue · src/data.js enhanceCost 를 Node 에서 계산한 값 (2026-10-15). -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .up { color: var(--green); font-weight: 700; }
+  .bad { color: var(--red); }
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 6px 0; color: var(--dim); }
+  input[type=number] { width: 56px; background: #0f0d14; color: var(--ink); border: 1px solid var(--line); padding: 2px 4px; font: inherit; }
+</style>
+</head>
+<body>
+<main>
+<h1>🌀 재료의 미궁 보상 상향 · 강화에서 🪨 철광석 빼기</h1>
+<div class="sub">스펙 <code>docs/specs/dungeon-reward-buff.md</code> · 0.22.3 · 2026-10-15</div>
+
+<div class="card">
+  <b>요지</b>
+  <ul>
+    <li>미궁 한 판 보상: 목재·철광석·마력석·골드·비전서 <b>×2</b>, 강화석 <b>×3</b>. 슬롯 확률·보스 난이도·입장권은 그대로.</li>
+    <li>강화 비용에서 🪨 철광석을 뺌 → 💠 강화석(+ +10부터 💎 마력석)만. 철광석은 건물·대장간 시설 전용.</li>
+  </ul>
+</div>
+
+<h2>① 왜 철광석이 먼저 떨어졌나 — 부위 하나 강화 기대 소모 (주문서 없이, 담금질대 0)</h2>
+<div class="scroll"><table>
+  <tr><th>구간</th><th>🪨 철광석 (지금)</th><th>💠 강화석</th><th>시도 1회 🪨 / 💠</th></tr>
+  <tr><td>0 → +10</td><td>52</td><td>47</td><td>12 / 9</td></tr>
+  <tr><td>0 → +15</td><td>179</td><td>141</td><td>30 / 21</td></tr>
+  <tr><td>0 → +20</td><td>545</td><td>379</td><td>76 / 46</td></tr>
+  <tr><td>0 → +25</td><td>1,659</td><td>1,032</td><td>190 / 101</td></tr>
+  <tr><td>+25 → +30 (주문서)</td><td class="bad">11,336</td><td>5,646</td><td>395 / 189 (+29)</td></tr>
+</table></div>
+<p class="sub">철광석은 ×1.2/단계, 강화석은 ×1.17/단계라 고강일수록 철광석이 2배 가까이 든다. +25→+30 한 부위 철광석 ≈ 건물 한 레벨(스테이지 300 기준 약 12,700). → <b>새 비용: 철광석 0</b>.</p>
+
+<h2>② 미궁 한 판 기대 획득 (보스 9마리)</h2>
+<div class="ctl">
+  <label>목재·철광석·마력석·골드·비전서 배율 <input id="mA" type="number" step="0.5" value="2"></label>
+  <label>강화석 배율 <input id="mS" type="number" step="0.5" value="3"></label>
+  <span>(바꿔 보면 표가 다시 계산됨 — 적용값은 2 · 3)</span>
+</div>
+<div class="scroll"><table id="t"></table></div>
+<p class="sub">다음 건물 🪨 = 건물 4종 다음 레벨 철광석 비용 평균. 지금은 한 판에 그 약 30%, 바꾸면 약 60% (하루 3판이면 1.8 레벨어치 — 목재도 같은 비율).</p>
+
+<h2>확인 방법 (게임)</h2>
+<div class="card">
+  <ol>
+    <li><code>http://localhost:8765/index.html?server=http://127.0.0.1:9</code> (오프라인) — 캠프 → 마을 → 대장간 → 부위 강화. 비용 칩에 🪨 이 없어야 함.</li>
+    <li>콘솔: <code>S.best=200; S.stones=5000; S.mats.mana=5000; S.mats.ore=0; S.gear.enh.weapon=25; render()</code> → 철광석 0 이어도 강화 가능.</li>
+    <li>미궁 기대치: <code>DG_RES_IDS.map(r =&gt; r + ' ' + Math.round(dgUnitValue(r) * DG_RUN_UNITS))</code></li>
+  </ol>
+</div>
+</main>
+<script>
+// 지금(×1) 기준 한 판 기대 획득 — node 로 dgUnitValue × DG_RUN_UNITS × 그림 가중치 비율
+const BASE = [
+  { st: 60,  bld: 6,  ore: 83,   wood: 202,  mana: 8,  stones: 9,  tomes: 2, next: 278 },
+  { st: 120, bld: 9,  ore: 501,  wood: 1210, mana: 8,  stones: 13, tomes: 3, next: 1670 },
+  { st: 200, bld: 12, ore: 1691, wood: 4082, mana: 34, stones: 17, tomes: 4, next: 5637 },
+  { st: 300, bld: 14, ore: 3805, wood: 9185, mana: 99, stones: 23, tomes: 6, next: 12684 },
+];
+const f = (n) => Math.round(n).toLocaleString('ko-KR');
+function draw() {
+  const a = +document.getElementById('mA').value || 1, s = +document.getElementById('mS').value || 1;
+  let h = '<tr><th>최고 스테이지 · 건물 Lv</th><th>🪵 목재</th><th>🪨 철광석</th><th>다음 건물 🪨</th><th>💎 마력석</th><th>💠 강화석</th><th>📖 비전서</th></tr>';
+  for (const r of BASE) {
+    const c = (v, m) => `${f(v)} → <span class="up">${f(v * m)}</span>`;
+    h += `<tr><td>${r.st} · Lv${r.bld}</td><td>${c(r.wood, a)}</td><td>${c(r.ore, a)}</td><td>${f(r.next)}</td><td>${c(r.mana, a)}</td><td>${c(r.stones, s)}</td><td>${c(r.tomes, a)}</td></tr>`;
+  }
+  document.getElementById('t').innerHTML = h;
+}
+document.getElementById('mA').oninput = document.getElementById('mS').oninput = draw;
+draw();
+</script>
+</body>
+</html>

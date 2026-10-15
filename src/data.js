@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.22.2';
+const GAME_VERSION = '0.22.3';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -825,13 +825,13 @@ function enhanceOddsAt(L, temperLv) {
 const ENH_HI_FROM = 25, ENH_HI_STEP = 1.054;
 const enhanceMultBase = (L) => Math.pow(1 + 0.12 * L + 0.004 * L * L, GEAR_K);
 const enhanceMultAt = (L) => (L <= ENH_HI_FROM ? enhanceMultBase(L) : enhanceMultBase(ENH_HI_FROM) * Math.pow(ENH_HI_STEP, L - ENH_HI_FROM));
-// L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)과 겹치지 않는다. 철광석은 늘, 마력석은 +10부터
+// L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)·건물과 겹치지 않는다. 마력석은 +10부터
 // 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 75개 · +15 약 320개 (부위마다). +25→+30 을 주문서로 가면 약 5,600개
+// 철광석은 0.22.3 에서 뺐다 — 건물과 나눠 쓰는데 강화 쪽이 ×1.2 로 불어 +25→+30 한 부위에 약 1.1만(건물 한 레벨어치)이 들어,
+//  강화석보다 철광석이 먼저 떨어졌다. 강화를 묶는 건 💠 강화석 하나 (docs/specs/enhance-30.md "철광석 제외")
 function enhanceCost(L) {
   return {
     stone: Math.floor(2 * Math.pow(1.17, L)),
-    // 철광석은 건물과 나눠 쓰므로 가볍게 (×4 였을 땐 강화를 먼저 하면 건물을 못 올려 진행이 멈췄다 — 강화를 묶는 건 💠 강화석)
-    ore: Math.floor(2 * Math.pow(1.2, L)),
     mana: L >= 10 ? Math.floor(2 * Math.pow(1.22, L - 10)) : 0,
   };
 }
