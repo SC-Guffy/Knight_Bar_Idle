@@ -237,6 +237,7 @@ const lastMentor = new Map();  // key → 마지막 교관 승부 시각
 const MENTOR_COOLDOWN_MS = 3000;
 const MENTOR_DUEL_DAY = 3;               // 🎓 교관 승부 하루 횟수 (src/data.js MENTOR_DUEL_DAY 와 같게, 한국 시간 자정 초기화)
 const MENTOR_OPEN_STAGE = 40;            // 교관이 열리는 최고 스테이지 (src/data.js 와 같게)
+const MENTOR_FIRST_DUEL_STAGE = 70;      // 첫 교관 ★5 승부를 걸 수 있는 최고 스테이지 (0.22.1, src/data.js 와 같게)
 const mentorDay = new Map();  // key → { day, n } 오늘 건 교관 승부 수
 const mentorLeft = (key) => { const u = mentorDay.get(key); return MENTOR_DUEL_DAY - (u && u.day === kstDay() ? u.n : 0); };
 const DUEL_RATED_DAY = 100;              // 하루에 점수가 오가는 결투 수 (넘으면 연습 결투)
@@ -480,6 +481,7 @@ const routes = {
     if ((stars[i] || 0) !== 4) throw new HttpError(403, '★4 까지 받은 교관과만 승부할 수 있어요');
     for (let j = 0; j < i; j++) if ((stars[j] || 0) < 5) throw new HttpError(403, '앞 교관 수련을 먼저 마쳐야 해요');
     if (!(me.state && me.state.best >= MENTOR_OPEN_STAGE)) throw new HttpError(403, `최고 스테이지 ${MENTOR_OPEN_STAGE} 부터 교관과 승부할 수 있어요`);
+    if (i === 0 && !(me.state.best >= MENTOR_FIRST_DUEL_STAGE)) throw new HttpError(403, `최고 스테이지 ${MENTOR_FIRST_DUEL_STAGE} 부터 첫 교관과 승부할 수 있어요`);
     const now = Date.now(), since = now - (lastMentor.get(me.key) || 0);
     if (since < MENTOR_COOLDOWN_MS) throw new HttpError(429, `${Math.ceil((MENTOR_COOLDOWN_MS - since) / 1000)}초 뒤에 다시 도전할 수 있어요`);
     // 하루 MENTOR_DUEL_DAY 번 (도전비가 없어서 — 덜 갖춘 기사가 계속 눌러 이기지 못하게)

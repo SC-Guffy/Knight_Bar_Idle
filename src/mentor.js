@@ -73,6 +73,8 @@ function mentorDuelSync(left) {
   if (!Number.isFinite(left)) return;
   S.mentor.duel = { day: todayKey(), n: Math.max(0, Math.min(MENTOR_DUEL_DAY, MENTOR_DUEL_DAY - left)) };
 }
+// 첫 교관 승부는 최고 스테이지 MENTOR_FIRST_DUEL_STAGE 부터 (0.22.1 — server/index.js 도 같은 조건)
+const mentorDuelStageLock = (i) => (i === 0 && S.best < MENTOR_FIRST_DUEL_STAGE ? `최고 스테이지 ${MENTOR_FIRST_DUEL_STAGE} 부터 승부` : '');
 // 승부(★5)를 걸 수 없는 이유 ('' = 가능)
 function mentorDuelBlocker(i = mentorCur()) {
   if (i >= MENTORS.length) return '모든 교관 수료';
@@ -80,6 +82,7 @@ function mentorDuelBlocker(i = mentorCur()) {
   if (lock) return lock;
   if (S.phase !== 'camp') return '캠프에서만';
   if (!mentorDuelTurn(i)) return `★${MENTOR_STARS - 1} 까지 먼저`;
+  if (mentorDuelStageLock(i)) return mentorDuelStageLock(i);
   if (mentorDuelLeft() <= 0) return '오늘 승부를 모두 했어요';
   return '';
 }
@@ -99,6 +102,7 @@ function mentorTodo() {
   const i = mentorCur();
   if (!mentorOpen(i)) return false;
   if (!mentorDuelTurn(i)) return mentorBooks() >= mentorNeed(i);
+  if (mentorDuelStageLock(i)) return false;
   if (typeof activeToken === 'function' && !activeToken()) return false;
   return mentorDuelLeft() > 0 && (S.mentor.duel.day !== todayKey() || S.mentor.duel.n === 0);
 }

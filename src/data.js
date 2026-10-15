@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.22.0';
+const GAME_VERSION = '0.22.1';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -906,8 +906,12 @@ function enhanceOddsAt(L, temperLv) {
   return { rate: Math.min(0.95, e.rate + TEMPER_RATE * temperLv), down: e.down * (1 - TEMPER_DOWN * temperLv), reset: e.reset };
 }
 // 강화 단계가 장비 능력치에 곱하는 배율
-//  (압축 전 1 + 0.12L + 0.004L² 에 GEAR_K 지수 — +10 ×1.21 · +15 ×1.30 · +20 ×1.38 · +25 ×1.46 · +30 ×1.52)
-const enhanceMultAt = (L) => Math.pow(1 + 0.12 * L + 0.004 * L * L, GEAR_K);
+//  +0~+25: 압축 전 1 + 0.12L + 0.004L² 에 GEAR_K 지수 (+10 ×1.21 · +15 ×1.30 · +20 ×1.38 · +25 ×1.454)
+//  +26~+30 (0.22.1): +25 값에 단계마다 ×ENH_HI_STEP — 압축식 그대로면 +25→+30 이 +4.7% 뿐이라 (스테이지 1칸 ≈ ×1.06 보다 작음),
+//   +30 ×1.891 = +25 의 1.30 배 (스테이지 약 4.5칸어치). +0~+25 는 그대로
+const ENH_HI_FROM = 25, ENH_HI_STEP = 1.054;
+const enhanceMultBase = (L) => Math.pow(1 + 0.12 * L + 0.004 * L * L, GEAR_K);
+const enhanceMultAt = (L) => (L <= ENH_HI_FROM ? enhanceMultBase(L) : enhanceMultBase(ENH_HI_FROM) * Math.pow(ENH_HI_STEP, L - ENH_HI_FROM));
 // L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)과 겹치지 않는다. 철광석은 늘, 마력석은 +10부터
 // 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 75개 · +15 약 320개 (부위마다). +25→+30 을 주문서로 가면 약 5,600개
 function enhanceCost(L) {
@@ -973,9 +977,12 @@ const MENTORS = [
 const MENTOR_STARS = 5;
 const MENTOR_LAST_X = 2;                       // ★5 는 별 하나 몫 × 2
 const MENTOR_OPEN_STAGE = 40;                  // 첫 교관이 열리는 최고 스테이지 (🏰 성벽 지키기 해금과 같은 값)
-// ★1~4 에 드는 📕 (교관별 합 11/16/22/28/33 = 110권 ≈ 성벽 무료 입장 약 10일분)
-const MENTOR_BOOKS = [[2, 2, 3, 4], [2, 3, 5, 6], [3, 4, 7, 8], [4, 6, 8, 10], [5, 7, 9, 12]];
+// ★1~4 에 드는 📕 (교관별 합 9/18/22/28/33 = 110권 ≈ 성벽 무료 입장 약 10일분)
+//  0.22.1: 교관1 11 → 9 (성벽 첫날 무료 3판은 판당 3~4권이라 최소 9권 — 첫날 ★4 가 확실히 되게), 줄인 2권은 교관2 로 옮겨 교관2 이후 누적·기간은 그대로
+const MENTOR_BOOKS = [[2, 2, 2, 3], [3, 4, 5, 6], [3, 4, 7, 8], [4, 6, 8, 10], [5, 7, 9, 12]];
 const MENTOR_DUEL_DAY = 3;                     // ★5 승부 하루 횟수 (한국 시간 자정 초기화)
+// 0.22.1: 첫 교관(검술 사범) ★5 승부는 최고 스테이지 이만큼부터 (server/index.js 와 같게). 진행 봇 기준 스테이지 70 ≈ 7시간 → 첫 ★5 약 8시간
+const MENTOR_FIRST_DUEL_STAGE = 70;
 // 예전 훈련(공속·치명)은 없어졌다. 예전 세이브에 남은 단계는 쓴 골드를 돌려준다 (core.js migrate)
 const OLD_TRAINING = { spd: { base: 25, grow: 1.55 }, crit: { base: 30, grow: 1.6 } };
 

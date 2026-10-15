@@ -39,7 +39,7 @@ function makeGame(rev) {
 
 // 🎓 교관 수련을 하는 src 면 그 함수들, 아니면 null
 // MENTOR_OFF=1: 교관을 하지 않는다 (같은 코드에서 교관 켬/끔 비교용)
-const mentorApi = (ctx) => process.env.MENTOR_OFF ? null : vm.runInContext(`typeof mentorNeed === 'function' && MENTOR_ON ? { mentorCur, mentorOpen, mentorDuelTurn, mentorDuelLeft, mentorSettle, mentorTry, mentorNeed, mentorStarSum, profile, MENTORS, MENTOR_OPEN_STAGE } : null`, ctx);
+const mentorApi = (ctx) => process.env.MENTOR_OFF ? null : vm.runInContext(`typeof mentorNeed === 'function' && MENTOR_ON ? { mentorCur, mentorOpen, mentorDuelTurn, mentorDuelLeft, mentorSettle, mentorTry, mentorNeed, mentorStarSum, profile, MENTORS, MENTOR_OPEN_STAGE, MENTOR_FIRST_DUEL_STAGE: typeof MENTOR_FIRST_DUEL_STAGE === 'number' ? MENTOR_FIRST_DUEL_STAGE : 0 } : null`, ctx);
 // 📕 수련의 서 수입 가정: 최고 스테이지 MENTOR_OPEN_STAGE 이후 하루 이만큼 (🏰 성벽 봇이 생기기 전까지 — 탑 TOWER_TOMES_PER_DAY 처럼). MENTOR_BOOKS_DAY 로 바꿔 본다
 const MENTOR_BOOKS_DAY = Number(process.env.MENTOR_BOOKS_DAY || 12);
 // 교관 수련 한 차례: 수련(★1~4)은 📕 이 되는 만큼, 승부(★5)는 하루 MENTOR_DUEL_DAY 번 (server/duel.js 로 바로 계산).
@@ -56,7 +56,7 @@ function playMentors(M, S, day, t, ms) {
     if (!M.mentorOpen(i)) break;
     if (M.mentorDuelTurn(i)) {
       const left = M.mentorDuelLeft();
-      if (left <= 0) break;
+      if (left <= 0 || (i === 0 && S.best < M.MENTOR_FIRST_DUEL_STAGE)) break;
       const me = M.profile(), op = mentorProfile(i, S.level, me.cls), won = simulateDuel(me, op).winner === 'a';
       // MENTOR_LOG=1: 승부마다 한 줄 (교관 난이도 이상 추적용)
       if (process.env.MENTOR_LOG) console.log(`  [교관${i + 1}] ${(t / 3600).toFixed(0)}h Lv${S.level} ${me.cls} 나 ${me.power.toExponential(2)} · 교관 ${op.cls} ${op.power.toExponential(2)} → ${won ? '승' : '패'}`);

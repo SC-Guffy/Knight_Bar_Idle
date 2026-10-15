@@ -5,7 +5,7 @@
 - 브랜치: `season6` (③ 성벽 지키기와 같은 패치로 낸다 — [roadmap.md](roadmap.md) 진행 순서)
 - 관련 스펙: [castle-defense.md](castle-defense.md) (📕 수련의 서 수급 — 작성 중), [roadmap.md](roadmap.md) "결정 사항"
 - 관련 코드: src/data.js (`MENTOR_ON`, `TRAIN_MAX`, `trainCapAt`, `TRAINING`, `BUILDINGS.training`, `MENTORS`·`MENTOR_*`), src/mentor.js (규칙: `mentorLock`·`mentorNeed`·`mentorTry`·`mentorDuelLeft`·`mentorSettle`·`mentorTodo`·`migrateMentor`·보너스), src/mentor-stage.js (무대: 교관 스프라이트·배경·연출·대사), src/core.js (`freshState` `books`, migrate → `migrateMentor`, `claimMail` 의 `books`), src/gear.js (`gearBonus`·`gearBonusParts` — 교관 보너스 합산), src/ui.js (`viewTraining` 탭·`viewMentor`·`mentorSpText`·`mentorPreview`, 액션 `train-tab`·`goto-castle`·`mentor-*`, 우편 `books`·함수 문단), src/town.js (`townTodo`), src/net.js (`fetchMentor`·`requestMentorDuel`), server/index.js (`GET /api/mentor`·`POST /api/mentor/duel` — `MENTOR_DUEL_DAY`·`mentorDay` 하루 횟수, `MENTOR_OPEN_STAGE`), server/mentor.js (교관 프로필·배수), server/mentor-k.json (계열×교관×레벨 배수 표), server/bots.js (`curveAtLevel`), server/bot-curve.json, dev/mentor-sim.js (배수 보정), dev/progress-bot.js·dev/bot-curve.js (`playMentors`)
-- 최종 갱신: 2026-10-14
+- 최종 갱신: 2026-10-15 (0.22.1 첫 교관 ★5 약 8시간)
 
 ## 이번 개정 요약 (0.20.0 판 → 시즌6 판)
 
@@ -68,8 +68,8 @@
 
 | 교관 | ★1 | ★2 | ★3 | ★4 | ★1~4 합 | 누적 | 무료 입장만으로 (📕 하루 11.1권 — 성벽 L30 3판) |
 |---|---|---|---|---|---|---|---|
-| 1 검술 사범 | 2 | 2 | 3 | 4 | 11 | 11 | 1.0일 |
-| 2 방패 교관 | 2 | 3 | 5 | 6 | 16 | 27 | 1.4일 (누적 2.4일) |
+| 1 검술 사범 | 2 | 2 | **2** | **3** | **9** (0.22.0 11) | 9 | 첫날 (성벽 무료 3판 최소 9권) |
+| 2 방패 교관 | **3** | **4** | 5 | 6 | **18** (0.22.0 16) | 27 | 1.4일 (누적 2.4일) |
 | 3 숲의 사냥꾼 | 3 | 4 | 7 | 8 | 22 | 49 | 2.0일 (누적 4.4일) |
 | 4 화산 투사 | 4 | 6 | 8 | 10 | 28 | 77 | 2.5일 (누적 6.9일) |
 | 5 성좌의 은자 | 5 | 7 | 9 | 12 | 33 | 110 | 3.0일 (누적 **9.9일**) |
@@ -82,6 +82,11 @@
 - 결과를 클라이언트에서 정한다 (확률이 없어서 조작 여지는 📕 수량뿐 — 세이브 검증은 다른 재화와 같은 수준).
 
 ### ★5 — 교관과의 승부 (유지, 도전비만 바꿈)
+
+- **0.22.1 — 첫 교관(검술 사범)만**: ★5 승부는 **최고 스테이지 70** 부터 (`MENTOR_FIRST_DUEL_STAGE = 70`, server/index.js 도 같은 값으로 403). ★1~4 📕 은 11 → 9 (줄인 2권은 교관2 ★1·★2 로 옮겨 교관2 이후 누적은 27·49·77·110 그대로).
+  - 이유 (사용자 지시 10-15 "첫 교관 ★5 를 약 8시간 안에"): 0.22.0 은 첫날 성벽 3판(기대 ~10.2권)이 교관1 11권에 모자라 ★4 가 이튿날로 밀리고, 승부도 하루 3번이라 진행 봇 첫 ★5 가 24~48시간이었다.
+    📕 만 9권으로 줄이면 성벽이 열리는 2.2시간에 ★4 → 곧바로 승부라 2.5시간에 끝나 첫 교관이 '열자마자 끝'이 된다. 그래서 첫 승부를 스테이지 70(봇 약 7시간)에 묶었다.
+  - 화면: 승부 차례인데 스테이지가 모자라면 `🔒 최고 스테이지 70 부터 승부할 수 있어요 — 조금 더 강해져서 오세요 · 수료 …`, 버튼 잠김, 레드닷 없음 (`mentorDuelStageLock`).
 
 - **도전비 없음, 하루 3회** (`MENTOR_DUEL_DAY = 3`, 한국 시간 자정 초기화). 지면 그날 횟수만 쓴다.
   - 근거: 도전비를 📕 으로 받으면 지는 게 별 하나 몫 재화를 날리는 일이라 너무 아프다. 골드로 받으면 재화가 둘이 되어 "재화 하나 = 쓰는 곳 하나"가 깨진다. 무료·무제한이면 승률 8% 인 덜 갖춘 기사도 계속 눌러서 이긴다 → 하루 횟수로 막는다.
@@ -253,6 +258,10 @@
 
 - 2026-10-14 **별 하나 몫 ×0.6** (사용자 결정 ②, 로드맵 세션 전달): `MENTORS[].sp` 를 공격 1.5% · 체력 1.5%/받는 피해 0.6% · 공속 0.9%/치명 0.6%p · 치명 피해 3%/보스 1.8% · 스킬 1.8% 로. 별 25개 = 공격·체력 +9% · 받는 피해 −3.6% · 공속 +5.4% · 치명 +3.6%p · 치명 피해 +18% · 보스·스킬 피해 +10.8%. bot-curve·mentor-k 다시 구움. 봇에 `MENTOR_OFF=1` (같은 코드에서 교관 끔 비교) 추가. 결과는 위 "시즌6 판 확인 결과".
 - 2026-10-14 **사용자 결정 (로드맵 세션 전달)**: 별 몫은 ×0.6 그대로. 진행 속도 판정 잣대는 같은 시드 계열별 차(평균 +3.6% · 레벨 +3.2%)로 한다 — 전체 중앙값(+6.5%)은 끔 쪽 6계열이 스테이지 200 문턱에서 멈춰 켬 쪽이 문턱을 넘느냐로 크게 흔들려서. 진행 속도 수용 기준 ✅.
+- 2026-10-15 **0.22.1 첫 교관 ★5 약 8시간** (사용자 지시, 로드맵 세션 전달): 위 ★5 절 "0.22.1" 참고. 고친 곳: src/data.js `MENTOR_BOOKS`·`MENTOR_FIRST_DUEL_STAGE`, src/mentor.js `mentorDuelStageLock`(→ `mentorDuelBlocker`·`mentorTodo`), src/ui.js 승부 안내 줄, server/index.js `POST /api/mentor/duel`, dev/progress-bot.js `playMentors`(첫 승부 스테이지 확인), dev/review/mentors.html 요구량 표.
+  - 진행 봇 `node dev/progress-bot.js --days 2 --seeds 4 --rev origin/main --rev .` 두 번: 첫 ★5(별 5) 중앙값 24.1h → 9.5h · 7.9h. 5일 · 8시드 시드별 첫 ★5: 0.22.0 2.1~48h (중앙 24.1) → 5.0 · 5.1 · 5.3 · 5.9 · 7.9 · 9.5 · 9.7 · 48.0h (중앙 약 7~8h, 48h 한 시드는 0.22.0 에서도 48h 인 승부 약한 계열).
+    별 10 · 15 중앙값 48 · 96h 그대로 (5일 · 4시드 48.0/96.2 · 8시드 48.1/96~120 — 봇 승부는 server/duel 의 시드 없는 난수라 실행마다 흔들림).
+  - 확인 방법 (오프라인 게임 콘솔): `S.best = 60; S.mentor.stars = [4,0,0,0,0]; townUi.sel = 'training'; townUi.trainTab = 'mentor'; openCamp('town');` → 잠김 문구 · `S.best = 70; renderCamp();` → 승부 버튼 (서버 연결 필요).
 
 ## 남은 일 / 미정
 

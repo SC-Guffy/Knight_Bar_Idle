@@ -487,7 +487,7 @@ function viewMentor() {
     const p = mentorPreview(i), me = profile().power, left = mentorDuelLeft();
     const verdict = !p ? '' : me >= p.power * 1.15 ? ' · <span style="color:#9fd49a">여유</span>' : me >= p.power * 0.9 ? ' · 비슷함' : ' · <span class="warn">버거움</span>';
     const blk = !activeToken() ? '서버 연결 필요' : mentorDuelBlocker(i);
-    info = `<b>⚔️ 마지막 별 — 교관과의 승부 · 오늘 ${left}/${MENTOR_DUEL_DAY}${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>${left ? `지금 ${now} → 수료 ${full}` : '내일 다시 도전할 수 있어요'}</small>`;
+    info = `<b>⚔️ 마지막 별 — 교관과의 승부 · 오늘 ${left}/${MENTOR_DUEL_DAY}${p ? ` · 교관 전투력 ${fmt(p.power)} / 내 ${fmt(me)}${verdict}` : ''}</b><small>${mentorDuelStageLock(i) ? `🔒 ${mentorDuelStageLock(i)}할 수 있어요 — 조금 더 강해져서 오세요 · 수료 ${full}` : left ? `지금 ${now} → 수료 ${full}` : '내일 다시 도전할 수 있어요'}</small>`;
     btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-duel" ${blk || busy ? 'disabled' : ''} title="${blk}">⚔️ 승부하기</button>`;
   } else {
     const need = mentorNeed(i), have = mentorBooks(), lack = need - have;
