@@ -12,7 +12,7 @@ const SHEET_DOT = PX / 2;
 const SHEETS = {};
 // 기존 직업 시트 스위치 (docs/specs/legacy-class-sheets.md): 시트(SHEET_META)가 있어도 여기 true 인 직업만 시트로 그린다.
 //  false·빠짐 = 예전 조립식 (body2·limbs·motion·cuts 는 지우지 않는다). 계열 세션마다 자기 직업 줄만 더한다. 실행 중 SHEET_ON.x = false 로 바로 비교.
-//  주소에 ?sheets=0 이면 전부 끈다 (전후 비교).
+//  주소에 ?sheets=0 이면 전부 끈다 (전후 비교). ?sheetsOn=직업,직업 이면 그 직업만 켠다 (켜기 전 게임에서 시험 — 오프라인 게임·스킬 시험장 모두)
 const SHEET_ON = {
   // 레인저 계열 (칸 96 · 공성포수 128, dev/bowsheets) — 시트를 사용자가 승인하면 true
   ranger: false, marksman: false, arcaneArcher: false, arbalest: false, deadeye: false, voidArcher: false, siegeMaster: false,
@@ -24,6 +24,7 @@ const SHEET_ON = {
   squire: false, swordsman: false, paladin: false, blademaster: false, greatswordsman: false, archon: false, swordsaint: false, tyrant: false,
 };
 if (typeof location !== 'undefined' && /[?&]sheets=0/.test(location.search || '')) for (const k in SHEET_ON) SHEET_ON[k] = false;
+if (typeof location !== 'undefined') { const m = /[?&]sheetsOn=([\w,]+)/.exec(location.search || ''); if (m) for (const k of m[1].split(',')) SHEET_ON[k] = true; }
 // 이 직업을 시트로 그리나 (파이터 계열 look.sheet 는 항상)
 function heroSheetOn(id) {
   const c = CLASSES[id];

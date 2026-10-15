@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>레인저 계열 시트 준비</title>
+<title>레인저 계열 시트</title>
 <style>
   :root { --bg: #14161d; --panel: #1c1f29; --line: #2f3342; --ink: #e6e8ef; --dim: #9aa0b4; --ok: #6fdc8c; --no: #ff7a7a; --wait: #ffd257; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 system-ui, 'Malgun Gothic', sans-serif; }
@@ -26,11 +26,11 @@
 </style>
 </head>
 <body><main>
-<h1>레인저 계열 통짜 시트 — 0회 준비 · 마네킹 시안 v2</h1>
+<h1>레인저 계열 통짜 시트</h1>
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 레인저 · 저격수 · 마궁수 · 석궁사수 · 신궁 · 차원궁사 · 공성포수 · 2026-10-15</p>
 
 <div class="box">
-  <b>지금 상태</b>: PixelLab <b>0회</b> (보류 — 검사 계열 시범 승인 뒤 계획서 재승인). 생성 없이 할 수 있는 준비만 했다.
+  <b>지금 상태 (2026-10-16)</b>: 7종 시트 완성, PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
   <ul>
     <li>2차 포함 7종 기준 그림: 지금 게임의 대기 자세를 8배로 찍어 1배 도트로 줄였다. 칸 96(공성포수 128), 발 기준점 고정, 화살·석궁 살은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
@@ -38,6 +38,42 @@
     <li>96/128 칸 시트 쓰기 <code>dev/bowsheets/sheet.py</code> (칸 가장자리 닿음 검사·hand/head 점 자동) — 임시 시트로 게임 연결을 시험할 때 쓴다 (<code>placeholder.py</code>, 커밋 안 함).</li>
   </ul>
 </div>
+
+<h2 id="result">0. 결과 — 7종 시트 (PixelLab usage 12, 2026-10-16)</h2>
+<div class="box">
+<b>무엇</b>: 원형 3종(활·석궁·공성)의 동작만 PixelLab 으로 뽑았다(8개 호출, usage 합계 <b>12</b>, 재시도 0). 그 프레임에 7종을 입히고 무기를 덧그려 <code>src/sprites/&lt;직업&gt;.png/.json</code> 7장을 만들었다(칸 96, 공성포수 128).
+<code>SHEET_ON</code> 은 <b>꺼 둔 채</b>다. 켤지는 사용자가 정한다. 시험할 때는 주소에 <code>?sheetsOn=직업,…</code> 를 붙인다(공용 한 줄).
+<ul>
+<li><b>줄</b>: 대기 4 · 전투 대기 4 · 걷기 8(공성 4) · 평타 A 8(석궁 4) · 평타 B · 시전(pull 값으로 프레임 고름) · 하늘 시전 castUp · 피격 2 · 사망 5. 앉기는 예전 조립식이다(공용 규칙).</li>
+<li><b>수리</b> (재호출 없이):
+  <ul>
+  <li>활 쏘기에서 PixelLab 이 가는 활대를 지운 프레임은 이웃 프레임의 손→활 관계로 덧그렸다.</li>
+  <li>활 시위는 코드로 그린다(당김 1→3→5→8→8→놓음).</li>
+  <li>석궁은 투구 회색이 쇠 회색과 섞여서, 손 앞의 가장 큰 덩어리로만 각도를 잰다.</li>
+  <li>걷기 중 각도가 튄 프레임은 이웃 값으로 메웠다.</li>
+  </ul></li>
+<li><b>아쉬운 점</b>:
+  <ul>
+  <li>활 쏘기 동작에서 몸 움직임이 작다(PixelLab 이 앞팔만 조금 움직였다). 당김은 코드 시위가 보여 준다.</li>
+  <li>활 하늘 쏘기는 45° 겨눔이 아니라 활을 머리 위로 세워 드는 동작으로 나왔다.</li>
+  <li>공성포수 쏘기 후반에 팔 쪽 붉은 찌꺼기가 조금 있다.</li>
+  </ul></li>
+</ul>
+</div>
+<div class="box"><b>재생</b> — 직업과 동작을 골라 본다 (시트를 그대로 4배로 재생, 칸 테두리 = 96/128 칸 끝, 빨간 줄 = 발 기준점)
+<div class="tabs" id="pCls"></div><div class="tabs" id="pAnim"></div>
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end"><div><div class="sub">지금 게임 (조립식 대기)</div><img class="px" id="pOrig" style="width:192px;background:#0f1117"></div>
+<div><div class="sub">시트</div><canvas id="pCv" width="384" height="384" style="image-rendering:pixelated;background:#0f1117;max-width:100%"></canvas></div></div>
+<div class="sub" id="pInfo"></div></div>
+<div class="box"><b>게임에서 보기</b>:
+<a href="../skills.html?mode=basic&cls=marksman&sheetsOn=ranger,marksman,arcaneArcher,arbalest,deadeye,voidArcher,siegeMaster">스킬 시험장 — 시트 켬</a>
+· <a href="../skills.html?mode=basic&cls=marksman">같은 곳, 조립식(전)</a>
+· 오프라인 게임: <code>index.html?server=http://127.0.0.1:9&amp;sheetsOn=ranger,marksman,arcaneArcher,arbalest,deadeye,voidArcher,siegeMaster</code> (콘솔 <code>S.cls='marksman'; depart()</code>)</div>
+<p><b>7종 대기 한 줄 — 지금 원본 vs 시트</b> (흑백·실루엣 탭은 위 2-2 절과 같다)</p>
+<div class="scroll box"><div class="sub">지금 원본</div><img class="px" src="sheets-bow/line-orig-color.png"><div class="sub" style="margin-top:6px">시트 대기 첫 프레임</div><img class="px" src="sheets-bow/line-sheet-color.png">
+<div class="sub" style="margin-top:6px">시트 실루엣</div><img class="px" src="sheets-bow/line-sheet-sil.png"></div>
+<p class="sub">시트 실루엣 겹침: 가장 높은 짝 레인저–저격수 0.84 (0.85 이상 없음). 2→3차: 마궁수–차원궁사 0.74 · 저격수–신궁 0.74 · 석궁사수–공성포수 0.83.</p>
+<details class="box"><summary>동작별 프레임 몽타주 (7종)</summary><div class="scroll" id="monts"></div></details>
 
 <h2>1. 칸 크기와 발 기준점</h2>
 <table>
@@ -137,16 +173,21 @@
   <li>스킬 잔상 <code>onlyWeapon</code> 은 시트에선 아무것도 안 그린다 (무기가 그림 안에 있음 — 파이터와 같음).</li>
 </ul>
 
-<h2>4. 생성 계획 (로드맵 세션 제출, 보류)</h2>
+<h2>4. PixelLab 사용 (로드맵 승인 8개, 상한 12)</h2>
 <table>
-  <tr><th>단계</th><th>PixelLab</th><th>내용</th></tr>
-  <tr><td>기준선 (저격수)</td><td>최대 5회 (보류)</td><td>walk · shoot · shoot2 3회 + 포즈가 틀릴 때만 재시도 2</td></tr>
-  <tr><td>석궁 원형 (석궁사수)</td><td>최대 3회</td><td>walk · shoot</td></tr>
-  <tr><td>나머지 5종</td><td>0 ~ 직업당 1~2</td><td>원형 프레임 위에 ComfyUI 로 직업 입히기 → 안 되면 키 자세 편집</td></tr>
-  <tr><td>합계</td><td>예상 5~15, 최대 20 (상한 90)</td><td>지금까지 <b>0회</b> · <code>dev/bowsheets/approved.txt</code> 비어 있음 (승인된 이름만 호출 가능)</td></tr>
+  <tr><th>#</th><th>원형/동작</th><th>프레임</th><th>usage</th><th>결과</th></tr>
+  <tr><td>1</td><td>활 / walk</td><td>8</td><td>2</td><td>부위색 유지, 다리 교차 좋음</td></tr>
+  <tr><td>2</td><td>활 / shoot</td><td>8</td><td>2</td><td>가는 활대를 지움 · 몸 움직임 작음 → 활 덧그리기·시위 코드로 수리</td></tr>
+  <tr><td>3</td><td>활 / shootUp</td><td>4</td><td>1</td><td>첫 프레임 활대를 1칸 굵게(0회) 넣어 활 유지 · 45° 대신 머리 위로 세움</td></tr>
+  <tr><td>4</td><td>석궁 / walk</td><td>8</td><td>2</td><td>좋음 (마지막 1장 석궁 빠짐 → 이웃으로)</td></tr>
+  <tr><td>5</td><td>석궁 / shoot</td><td>4</td><td>1</td><td>움직임 작음 → 평타 B 는 반동 1칸 코드</td></tr>
+  <tr><td>6</td><td>석궁 / shootUp</td><td>4</td><td>1</td><td>2장 석궁 빠짐(팔은 올림) → 올린 손에 45° 위로 덧그림</td></tr>
+  <tr><td>7</td><td>공성 / walk</td><td>4</td><td>1</td><td>어깨 거치 무게감 걷기</td></tr>
+  <tr><td>8</td><td>공성 / shoot</td><td>8</td><td>2</td><td>큰 반동으로 석궁이 들림 · 후반 팔 찌꺼기 약간</td></tr>
+  <tr><th colspan="3">합계</th><th>12</th><td>재시도 0 · 기록 <code>dev/bowsheets/usage.md</code> · 계정 잔량 1,171 (바닥 300 위)</td></tr>
 </table>
 
-<h2>5. 확인 링크 (지금 조립식 그대로)</h2>
+<h2>5. 확인 링크 (조립식 — 시트를 켜려면 주소에 &amp;sheetsOn=직업)</h2>
 <p>
   <a href="../skills.html?mode=basic&cls=ranger">레인저 평타</a> ·
   <a href="../skills.html?mode=basic&cls=marksman">저격수 평타</a> ·
@@ -157,14 +198,16 @@
   <a href="../skills.html?mode=basic&cls=siegeMaster">공성포수 평타</a>
 </p>
 
-<h2>6. 수용 기준 (이번 준비 단계)</h2>
+<h2>6. 수용 기준</h2>
 <table>
   <tr><th>기준</th><th>상태</th></tr>
-  <tr><td>계열 7종 시트로 그려지고 동작이 움직인다</td><td class="wait">생성 보류 — 아직</td></tr>
-  <tr><td>어떤 동작에서도 무기 끝이 칸에서 잘리지 않는다</td><td class="ok">✅ 지금 리그 전 동작이 칸 안 (1절). 생성 뒤 <code>sheet.py</code> 가장자리 검사로 다시 확인</td></tr>
-  <tr><td>기존 그림과 그림체가 이어지고 2차·3차가 흑백 실루엣으로 구분된다</td><td class="wait">기준 그림 = 기존 그대로 (2절) — 시트 생성 뒤 비교</td></tr>
-  <tr><td><code>SHEET_ON</code> 을 끄면 예전 조립식</td><td class="ok">✅ 7종 줄 <code>false</code>, 시트가 없으면 켜도 조립식 (<code>heroSheetOn</code>)</td></tr>
-  <tr><td>PixelLab 사용량 기록</td><td class="ok">✅ 0회 (<code>dev/bowsheets/usage.md</code> 는 첫 호출 때 생긴다)</td></tr>
+  <tr><td>계열 7종이 시트로 그려지고 대기·걷기·평타 2종·시전·피격·사망이 움직인다 (앉기는 공용 규칙으로 조립식)</td><td class="ok">✅ 7종 9줄 (0절 재생), 스킬 시험장·오프라인 원정에서 시트로 그려짐</td></tr>
+  <tr><td>어떤 동작에서도 무기 끝이 칸에서 잘리지 않는다</td><td class="ok">✅ 7종 전 프레임 칸 가장자리 닿음 0 (<code>sheet.py</code> 검사)</td></tr>
+  <tr><td>기존 그림과 그림체가 이어지고 2차·3차가 흑백 실루엣으로 구분된다</td><td class="ok">✅ 머리·몸통 무늬·망토는 원본에서 옮김, 무기는 원래 무기 그림. 실루엣 겹침 최대 0.84, 2→3차 0.74·0.74·0.83</td></tr>
+  <tr><td>스킬 시전·궁극기·결투·레이드·마을 화면이 깨지지 않는다, 전 직업 시전 예외 0</td><td class="ok">✅ 7종 스킬 23개 × 숙련 0~3단 = 88번 시전 예외 0 (스킬 시험장, 시트 켬). 마을 앉기는 조립식</td></tr>
+  <tr><td><code>SHEET_ON</code> 을 끄면 예전 조립식</td><td class="ok">✅ 커밋은 7종 모두 false. <code>?sheetsOn=</code> 으로만 켜짐, <code>?sheets=0</code> 으로 끔</td></tr>
+  <tr><td>fps 가 떨어지지 않는다 (4인)</td><td class="ok">✅ 4명 × 300번 그리기: 조립식 922ms → 시트 12ms</td></tr>
+  <tr><td>PixelLab 사용량·ComfyUI 사용 기록</td><td class="ok">✅ usage 12 (4절), ComfyUI 0장</td></tr>
 </table>
 </main>
 <script>
@@ -183,6 +226,43 @@
   const show2 = (m) => { lo.src = 'sheets-bow/line-orig-' + m + '.png'; ld.src = 'sheets-bow/line-dress-' + m + '.png'; ld2.src = 'sheets-bow/line-dress2-' + m + '.png'; [...tabs2.children].forEach((b) => b.classList.toggle('on', b.dataset.k === m)); };
   for (const [m, n] of [['color', '컬러'], ['gray', '흑백'], ['sil', '실루엣']]) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = m; b.onclick = () => show2(m); tabs2.appendChild(b); }
   show2('color');
+
+  // ── 결과 재생 ──
+  const pc = document.getElementById('pCv'), pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false;
+  const P = { cls: 'marksman', anim: 'atkA', meta: null, img: null, f: 0, t: 0 };
+  const loadCls = async (c) => {
+    P.cls = c; P.meta = await (await fetch('../../src/sprites/' + c + '.json', { cache: 'no-store' })).json();
+    P.img = new Image(); P.img.src = '../../src/sprites/' + c + '.png?t=' + Date.now();
+    document.getElementById('pOrig').src = 'sheets-bow/' + c + '.png';
+    if (!P.meta.anims[P.anim]) P.anim = 'idle';
+    const pa = document.getElementById('pAnim'); pa.innerHTML = '';
+    for (const a in P.meta.anims) { const b = document.createElement('button'); b.textContent = a; b.onclick = () => { P.anim = a; P.f = 0; mark(); }; b.dataset.k = a; pa.appendChild(b); }
+    mark();
+  };
+  const mark = () => {
+    [...document.getElementById('pCls').children].forEach((b) => b.classList.toggle('on', b.dataset.k === P.cls));
+    [...document.getElementById('pAnim').children].forEach((b) => b.classList.toggle('on', b.dataset.k === P.anim));
+    const A = P.meta && P.meta.anims[P.anim];
+    if (A) document.getElementById('pInfo').textContent = `${P.anim}: ${A.frames}프레임 · ${A.fps}fps` + (A.hit != null ? ` · 타격 ${A.hit}` : '') + (A.val ? ` · pull ${A.val.join(', ')}` : '');
+  };
+  for (const [id, n] of IDS) { const b = document.createElement('button'); b.textContent = n; b.dataset.k = id; b.onclick = () => loadCls(id); document.getElementById('pCls').appendChild(b); }
+  let last = performance.now();
+  const tick = (now) => {
+    const M = P.meta, A = M && M.anims[P.anim];
+    if (A && P.img && P.img.complete) {
+      P.t += (now - last) / 1000;
+      if (P.t > 1 / A.fps) { P.t = 0; P.f = P.f + 1 >= A.frames ? (A.loop ? 0 : (P.hold = (P.hold || 0) + 1) > 6 ? (P.hold = 0, 0) : A.frames - 1) : P.f + 1; }
+      const W = M.w, S = pc.width / W;
+      pg.clearRect(0, 0, pc.width, pc.height);
+      pg.drawImage(P.img, P.f * W, A.row * W, W, W, 0, 0, pc.width, pc.height);
+      pg.strokeStyle = '#2f3342'; pg.strokeRect(0.5, 0.5, pc.width - 1, pc.height - 1);
+      pg.fillStyle = '#ff5a5a'; pg.fillRect((M.foot[0] - 4) * S, (M.foot[1] + 1) * S, 8 * S, 2);
+    }
+    last = now; requestAnimationFrame(tick);
+  };
+  loadCls('marksman'); requestAnimationFrame(tick);
+  const mo = document.getElementById('monts');
+  for (const [id, n] of IDS) mo.insertAdjacentHTML('beforeend', `<div class="sub">${n}</div><img class="px" src="sheets-bow/sheet-${id}.png" alt="${n} 몽타주" style="max-width:100%">`);
   const cards = document.getElementById('cards');
   for (const [id, n] of IDS) cards.insertAdjacentHTML('beforeend', `<div class="card"><img src="sheets-bow/${id}.png" alt="${n}"><div>${n} · 대기</div><img src="sheets-bow/${id}-fight.png" alt="${n} 전투 대기"><div>전투 대기 (1배 원본)</div></div>`);
 </script>

@@ -67,5 +67,28 @@
   "deadeye|voidArcher": 0.7,
   "deadeye|siegeMaster": 0.62,
   "voidArcher|siegeMaster": 0.613
+ },
+ "sheet": {
+  "ranger|marksman": 0.844,
+  "ranger|arcaneArcher": 0.82,
+  "ranger|arbalest": 0.647,
+  "ranger|deadeye": 0.74,
+  "ranger|voidArcher": 0.675,
+  "ranger|siegeMaster": 0.629,
+  "marksman|arcaneArcher": 0.819,
+  "marksman|arbalest": 0.636,
+  "marksman|deadeye": 0.738,
+  "marksman|voidArcher": 0.671,
+  "marksman|siegeMaster": 0.62,
+  "arcaneArcher|arbalest": 0.718,
+  "arcaneArcher|deadeye": 0.826,
+  "arcaneArcher|voidArcher": 0.739,
+  "arcaneArcher|siegeMaster": 0.692,
+  "arbalest|deadeye": 0.626,
+  "arbalest|voidArcher": 0.592,
+  "arbalest|siegeMaster": 0.828,
+  "deadeye|voidArcher": 0.711,
+  "deadeye|siegeMaster": 0.616,
+  "voidArcher|siegeMaster": 0.597
  }
 }

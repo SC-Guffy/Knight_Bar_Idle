@@ -39,6 +39,7 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 
 ## 스킬·평타 시뮬레이터 (`dev/skills.html`)
 
+- 통짜 시트 켜 보기: 주소에 `?sheetsOn=직업,직업` (예 `dev/skills.html?mode=basic&cls=marksman&sheetsOn=marksman`, 오프라인 게임 `index.html?server=http://127.0.0.1:9&sheetsOn=…`) — `SHEET_ON` 이 false 여도 그 직업만 시트로. `?sheets=0` 은 전부 끔.
 - 계정이 필요 없다. `http://localhost:<포트>/dev/skills.html`.
 - `window.skillTest = { state, setClass(id), setStage(0..3), cast(skillId), step(sec) }`. `step(1/60)` 반복 = 프레임마다 tick + render 라서 그리기 에러도 드러난다. 시간은 대기 대신 `step()` 으로 진행한다.
 - 전체 점검 루프: 직업마다 `setClass` → 스킬마다 `setStage(st)` (★ 노드도 `S.tree` 에 반영됨) → `cast(id)` → `step(1/60)` × (dur + 1.5초, ward 스킬은 + ward.dur).

@@ -145,7 +145,9 @@
     - 통 로브 마네킹이라 PixelLab 이 팔만 움직인 것으로 보인다. 다음 원형은 소매·다리가 드러나야 한다.
 
 - 2026-10-16: 검사 계열 검수 미달(로드맵): 공격 프레임에서 몸·팔이 거의 그대로이고 칼만 돌며, 걷기 다리 움직임도 작다 → SHEET_ON 다시 끔(시트 파일은 남김). PixelLab 0회 조사(공개 API 스키마 `GET /v2/openapi.json`): `animate-with-skeleton-v3`(베타) = 직업 그림 한 장 + 그 자세 관절 18개 + 프레임마다 관절 18개(3~15프레임, 256칸까지, 값 3f=2·8f=3·15f=4, 3~5분, 무기 관절은 없음), `animate-with-skeleton`(옛, 3프레임 고정·forced palette), `animate-pixminimax`(MiniMax 영상 모델, 첫·끝 프레임, 64칸 8f=1), `animate-with-text-v3` 픽셀 예산 w×h×프레임 ≤ 524,288(256칸이면 8프레임). 안: 리그(HERO_ATK)의 프레임별 관절을 뽑아 skeleton-v3 로 몸·팔을 움직이고, 칼은 같은 프레임의 리그 칼 각도로 덧그리기. 캐릭터가 96칸에 30px 남짓이라 2~3배로 키워 넣고 줄인다. 로드맵 승인 대기.
+- 2026-10-16 레인저 계열 7종 시트 완성 (로드맵 승인 계획 8개, **PixelLab usage 12**, 재시도 0, ComfyUI 0장): 원형 3종(활 96 · 석궁 96 · 공성 128 어깨 거치) 동작만 PixelLab — 활 walk 8f·shoot 8f·shootUp 4f, 석궁 walk 8f·shoot 4f·shootUp 4f, 공성 walk 4f·shoot 8f. 7종 입히기 + 무기 덧그리기(공용 wpn.py) → `src/sprites/<직업>.png/.json` 7장 (`dev/bowsheets/build.py pl`). 줄: idle·guard·walk·atkA·atkB·cast(pull)·castUp(pull, bowA ≤ -0.55)·hurt·death, sit 은 조립식. 수리(재호출 없음): PixelLab 이 가는 활대를 지운 프레임은 이웃 프레임의 손→활 관계로, 활 시위는 코드(당김 1→3→5→8→8→놓음), 석궁은 투구 회색과 섞여 손 앞 가장 큰 덩어리로만 각도, 걷기 중 각도 튐은 이웃 값. `SHEET_ON` 은 7종 false 유지 (켤지 사용자 결정). 공용 `sprites.js` 에 `?sheetsOn=직업,…` (켜기 전 게임에서 시험) 한 줄. 검증: 스킬 시험장 7종 스킬 23개 × 숙련 0~3단 88시전 예외 0, 칸 가장자리 닿음 0, 4명×300번 그리기 922ms → 12ms, 실루엣 겹침 최대 0.84 (2→3차 0.74·0.74·0.83), 오프라인 원정 걷기·평타 확인. 아쉬운 점: 활 쏘기 몸 움직임이 작음(앞팔만), 활 하늘 쏘기가 45° 대신 머리 위로 세움, 공성포수 쏘기 후반 팔 찌꺼기. 검토 `dev/review/sheets-bow.html` 0절.
 ## 남은 일 / 미정
+- 레인저 계열: 7종 시트를 사용자가 보고 직업별로 `SHEET_ON` 을 켤지 정한다 (dev/review/sheets-bow.html 0절, `?sheetsOn=`). 활 쏘기 몸 움직임이 모자라면 활 shoot 만 다시 뽑는 안(usage 2)을 계획서로.
 - 계열별 구현 세션 결과를 받아 전후 비교를 사용자에게 보여 주고 직업별로 켤지 정한다.
 - 예산이 모자라면 남은 직업은 다음 달 초기화분으로 넘긴다.
 - 2026-10-14: 사용자 요청으로 생성 방식을 바꿈 — 포즈는 기존 조립식 리그가 그리고 ComfyUI img2img(낮은 denoise)로 한 장 그림처럼 다듬은 뒤 원래 팔레트로 고정. PixelLab 은 예외만, 계열 상한 150 → 40. 예상 PixelLab 사용량 600~750 → 0~160.
