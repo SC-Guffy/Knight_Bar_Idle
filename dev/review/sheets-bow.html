@@ -30,7 +30,7 @@
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 레인저 · 저격수 · 마궁수 · 석궁사수 · 신궁 · 차원궁사 · 공성포수 · 2026-10-15</p>
 
 <div class="box">
-  <b>지금 상태 (2026-10-16)</b>: 7종 시트 완성, PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
+  <b>지금 상태 (2026-10-16, 보류)</b>: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
   <ul>
     <li>2차 포함 7종 기준 그림: 지금 게임의 대기 자세를 8배로 찍어 1배 도트로 줄였다. 칸 96(공성포수 128), 발 기준점 고정, 화살·석궁 살은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
@@ -74,6 +74,21 @@
 <div class="sub" style="margin-top:6px">시트 실루엣</div><img class="px" src="sheets-bow/line-sheet-sil.png"></div>
 <p class="sub">시트 실루엣 겹침: 가장 높은 짝 레인저–저격수 0.84 (0.85 이상 없음). 2→3차: 마궁수–차원궁사 0.74 · 저격수–신궁 0.74 · 석궁사수–공성포수 0.83.</p>
 <details class="box"><summary>동작별 프레임 몽타주 (7종)</summary><div class="scroll" id="monts"></div></details>
+
+<h2 id="motion">0-1. 덧그리기 전 PixelLab 원본 — 몸·팔이 실제로 움직였나 (2026-10-16 로드맵 검수 요청)</h2>
+<div class="box"><b>결론: 공격 동작은 몸·팔이 거의 안 움직였다.</b> 검사 계열과 같은 문제다(덧그리기 탓이 아니라 PixelLab 원본부터 작다).
+<table>
+<tr><th>원형/동작</th><th>눈으로 본 움직임</th><th>판정</th></tr>
+<tr><td>활 / shoot 8f</td><td>뒷손으로 시위를 당기는 동작이 없다. 앞팔을 내밀고 조금 드는 정도(손 이동 최대 약 4도트), 활대도 지워짐</td><td class="no">미달</td></tr>
+<tr><td>활 / shootUp 4f</td><td>팔을 머리 위로 크게 올림(움직임은 큼) — 활 당기기는 없음, 활을 칼처럼 치켜듦</td><td class="wait">동작 다름</td></tr>
+<tr><td>석궁 / shoot 4f</td><td>거의 정지 (겨눈 자세 그대로, 손 1~2칸)</td><td class="no">미달</td></tr>
+<tr><td>석궁 / shootUp 4f</td><td>팔을 들어 올림 (석궁은 2장에서 사라짐)</td><td class="wait">약함</td></tr>
+<tr><td>공성 / shoot 8f</td><td>윗몸이 젖혀지고 팔이 올라가는 반동이 보임</td><td class="ok">보통</td></tr>
+<tr><td>걷기 3종</td><td>다리 교차·몸 들썩임 분명</td><td class="ok">좋음</td></tr>
+</table>
+<p class="sub">아래 숫자 "body %" 는 첫 프레임과 다른 몸 칸 비율이다. 그런데 PixelLab 은 가만히 있는 프레임도 다시 그려서 15~25% 는 잡음이다. "hand" 는 손(금색) 가운데 이동 도트다. 판단은 그림으로 한다. 수치는 <code>dev/review/sheets-bow/motion.json</code>(<code>dev/bowsheets/motion.py</code>).</p>
+</div>
+<div class="scroll box" id="rawRows"></div>
 
 <h2>1. 칸 크기와 발 기준점</h2>
 <table>
@@ -263,6 +278,10 @@
   loadCls('marksman'); requestAnimationFrame(tick);
   const mo = document.getElementById('monts');
   for (const [id, n] of IDS) mo.insertAdjacentHTML('beforeend', `<div class="sub">${n}</div><img class="px" src="sheets-bow/sheet-${id}.png" alt="${n} 몽타주" style="max-width:100%">`);
+
+  const rr = document.getElementById('rawRows');
+  for (const [n, t] of [['mq-bow-shoot', '활 쏘기 8f'], ['mq-bow-shootUp', '활 하늘 쏘기 4f'], ['mq-xbow-shoot', '석궁 쏘기 4f'], ['mq-xbow-shootUp', '석궁 하늘 쏘기 4f'], ['mq-siege-shoot', '공성 쏘기 8f'], ['mq-bow-walk', '활 걷기 8f'], ['mq-xbow-walk', '석궁 걷기 8f'], ['mq-siege-walk', '공성 걷기 4f']])
+    rr.insertAdjacentHTML('beforeend', `<div class="sub">${t} (맨 왼쪽 = 첫 프레임)</div><img class="px" src="sheets-bow/raw-${n}.png" alt="${t}">`);
   const cards = document.getElementById('cards');
   for (const [id, n] of IDS) cards.insertAdjacentHTML('beforeend', `<div class="card"><img src="sheets-bow/${id}.png" alt="${n}"><div>${n} · 대기</div><img src="sheets-bow/${id}-fight.png" alt="${n} 전투 대기"><div>전투 대기 (1배 원본)</div></div>`);
 </script>
