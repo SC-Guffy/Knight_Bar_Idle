@@ -143,6 +143,14 @@ PixelLab 은 이 마네킹만 움직이고, 직업은 프레임마다 <b>입힌�
 <h3>동작별 프레임 몽타주 (시트 그대로, 칸 테두리·발·hand·head)</h3>
 <div class="tabs" id="gftabs"></div>
 <div class="scroll box"><img class="px" id="gframes" alt="프레임"></div>
+<h3>몸 움직임 확인 — 덧그리기 전 마네킹 (로드맵 검수 요청)</h3>
+<div class="box">줄마다 위 = PixelLab 원본, 가운데 = 무기 칸을 뺀 몸, 아래 = 첫 프레임(파랑)과 이 프레임(주황) 겹침 (흰색 = 겹침). <code>dev/spear/motion.py</code>.
+<ul><li><b>찌르기</b>: 몸이 실제로 움직인다 — 앞발 디딤으로 다리가 벌어지고(발 16 → 23칸) 팔이 뻗고 몸통이 앞으로 나간다 (몸 겹침 최저 0.11).</li>
+<li><b>내리찍기 · 휩쓸기 · 내려찍기</b>: 팔은 머리 위로 올라갔다 내려오지만 <b>다리는 거의 그대로</b>(발 15~17칸 고정)이고 몸통은 조금 기울 뿐이다 (겹침 0.55~0.74). 검사 계열 지적("몸은 그대로, 무기만 돈다")에 가까운 쪽.</li>
+<li><b>걷기</b>: 다리가 엇갈린다 (발 7~20칸) — 다만 보폭이 작다.</li>
+<li>표의 머리 이동 18~25칸(휩쓸기·내려찍기)은 머리 위로 든 손을 머리로 잰 값이다. 실제 머리 이동은 2~4칸.</li></ul></div>
+<div class="tabs" id="mvtabs"></div>
+<div class="scroll box"><img class="px" id="mvimg" alt="몸 움직임"></div>
 <h3>원형 마네킹 원본 (PixelLab 결과 그대로, 0번 = 넣은 첫 프레임)</h3>
 <div class="tabs" id="mqtabs"></div>
 <div class="scroll box"><img class="px" id="mqimg" alt="마네킹"></div>
@@ -172,7 +180,7 @@ PixelLab 은 이 마네킹만 움직이고, 직업은 프레임마다 <b>입힌�
 
 <h2>8. 정할 것</h2>
 <ol>
-  <li><b>켤지</b>: 7종 <code>SHEET_ON</code> 을 켤지 (직업별로 정할 수 있다). 검사 계열은 "몸·팔이 거의 안 움직이고 칼만 돈다"로 미달이었다 — 창 계열은 찌르기에서 앞발 디딤·몸 숙임, 휩쓸기에서 허리 비틀기가 들어가 있지만 걷기는 다리 움직임이 작다.</li>
+  <li><b>켤지</b> (로드맵 보류 중 — 방식 재검토): 7종 <code>SHEET_ON</code> 을 켤지 (직업별로 정할 수 있다). 검사 계열은 "몸·팔이 거의 안 움직이고 칼만 돈다"로 미달이었다 — 창 계열은 찌르기에서 앞발 디딤·몸 숙임, 휩쓸기에서 허리 비틀기가 들어가 있지만 걷기는 다리 움직임이 작다.</li>
   <li><b>걷기 보강</b>: 걷기가 약하면 걷기만 다시 뽑기 (usage 2) 또는 ComfyUI 사이 프레임.</li>
 </ol>
 </main>
@@ -199,6 +207,7 @@ document.getElementById('gbanim').remove();
 tabs('lutabs', [['guard-color', '전투 대기 컬러'], ['guard-gray', '흑백'], ['guard-sil', '실루엣'], ['atkA-color', '찌르기·휩쓸기 컬러'], ['atkA-sil', '찌르기·휩쓸기 실루엣']], (k) => { document.getElementById('lu-b').src = 'sheets-spear/gen/before-' + k + '.png'; document.getElementById('lu-a').src = 'sheets-spear/gen/after-' + k + '.png'; });
 tabs('gftabs', ORD7.map((c) => [c, NAME[c]]), (c) => { document.getElementById('gframes').src = 'sheets-spear/gen/' + c + '-frames.png'; });
 tabs('mqtabs', [['idle', '대기 4f'], ['walk', '걷기 8f'], ['spearA', '찌르기 8f'], ['spearB', '내리찍기 8f'], ['halbA', '휩쓸기 8f'], ['halbB', '내려찍기 8f']], (k) => { document.getElementById('mqimg').src = 'sheets-spear/gen/mq-' + k + '.png'; });
+tabs('mvtabs', [['spearA', '찌르기'], ['spearB', '내리찍기'], ['halbA', '휩쓸기'], ['halbB', '내려찍기'], ['walk', '걷기']], (k) => { document.getElementById('mvimg').src = 'sheets-spear/gen/motion-' + k + '.png'; });
 </script>
 </body>
 </html>
