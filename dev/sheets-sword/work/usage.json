@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 55.0,
+ "used": 70.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -162,7 +162,42 @@
    "purpose": "skel-atk: /animate-with-skeleton-v3",
    "used": 13.0,
    "bal": 1046.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-atk2: /animate-with-skeleton-v3",
+   "used": 7.0,
+   "bal": 1035.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "key1: Same paladin knight, same big visored helmet, golden halo, w",
+   "used": 1.0,
+   "bal": 1028.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2: Same paladin knight, same big visored helmet, golden halo, w",
+   "used": 5.0,
+   "bal": 1023.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3: Same paladin knight, same big visored helmet, golden halo, w",
+   "used": 1.0,
+   "bal": 1022.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "key4: Same paladin knight, same big visored helmet, golden halo, w",
+   "used": 1.0,
+   "bal": 1021.0
   }
  ],
- "nom": 33.0
+ "nom": 41.0
 }

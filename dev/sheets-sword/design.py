@@ -108,6 +108,17 @@ WHO_N10 = {'greatswordsman': 'A battle-hardened greatsword warrior with no helme
            'a stern face with a scar seen in profile, huge layered dark iron pauldrons much wider than the head, a thick dark iron breastplate over a brown leather tunic, '
            'one wide orange belt, dark iron gauntlets and greaves, both fists gripping the long hilt at the chest, an enormous wide greatsword resting on the right shoulder pointing up and back, '
            'the blade wider than the head with a dark edge line. Not silver, not a knight helmet, no plume.'}
+# 11차 대검전사 (10차 비평: 얼굴 정면·어두운 철이 검정 덩어리·칼날 가늘거나 두 자루) → 옆모습 밑그림(mannequin_gs2) + 중간 회색 철 + 밝은 강철 대검 한 자루
+WHO_N11 = {'greatswordsman': 'A greatsword warrior seen in strict side profile facing right, small face in profile with a stern eyebrow, short spiky dark brown hair '
+           'tied with an orange headband whose short tails hang back, big rounded medium gray iron pauldron with light gray highlights, '
+           'medium gray iron breastplate over a brown leather tunic, one wide orange belt, gray iron greaves, '
+           'both fists gripping one long hilt at the chest, one single enormous greatsword with a very wide bright silver blade resting on the right shoulder pointing up and back. '
+           'No helmet, no plume, no black areas, only one sword.'}
+# 12차 대검전사 (11차: 옆모습은 됐지만 큰 맨얼굴·디테일 적음 → 로드맵이 탈락시킨 그림체) → 검사 N2 밑그림·밀도 + 검사와 다른 투구 실루엣
+WHO_N12 = {'greatswordsman': 'A heavy greatsword knight: an open steel barbute helmet with a T-shaped face opening and a short bristly orange crest on top, '
+           'huge layered steel pauldrons with brass rims much wider than the helmet, a thick steel breastplate with brass trim, one wide orange sash belt, '
+           'a short brown leather skirt, steel greaves, no cape, both gauntlets gripping one long hilt at the chest, '
+           'one enormous greatsword with a very wide bright steel blade resting on the right shoulder pointing up and back.'}
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -129,7 +140,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -149,12 +160,18 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
                 if dk == 'N5':         # 대검전사: 넓은 대검을 그려 넣은 밑그림 (글로는 46칸에서 칼이 가늘어짐)
                     init = Image.open(os.path.join(D, 'mannequin-gs.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'N12':
+                    init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N12[cls]), seed=s, denoise=0.92, init=init)
+                elif dk == 'N11':
+                    init = Image.open(os.path.join(D, 'mannequin-gs2.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N11[cls]), seed=s, denoise=0.85, init=init)
                 elif dk == 'N10':
                     init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N10[cls]), seed=s, denoise=0.92, init=init)

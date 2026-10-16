@@ -1,0 +1,3 @@
+s1=greatswordsman-N10-23
+s2=greatswordsman-N10-37
+s3=greatswordsman-N10-77

@@ -44,25 +44,58 @@ def pose(neck, hand, front_foot=(98, 178), lean=0, crouch=0, elbow_up=True, reac
     return p
 
 
-BASE = pose((88, 104), (119, 145), elbow_up=False)                     # 중립 대기 (pixen 편집 목표 자세, 첫 프레임 관절)
+V2 = os.environ.get('ANIM_V') == '2'
+# 2차 (로드맵 A 승인): 192칸에 캐릭터 2배(키 약 98, 통과한 마법사·레인저는 키 92) + 몸 이동 2배. 설계 좌표 p → 192: (p + (DX, DY)) * 2/3 + OFF
+SC, OFF, N0 = 2 / 3, (32, 62), (88, 104)
+
+
+def T(p):
+    return ((p[0] + DX) * SC + OFF[0], (p[1] + DY) * SC + OFF[1])
+
+
+def pose2(neck, hand, front_foot=(98, 178), lean=0, crouch=0, elbow_up=True, reach=None):
+    nb = T(N0); nx, ny = nb[0] + (neck[0] - N0[0]) * SC * 2, nb[1] + (neck[1] - N0[1]) * SC * 2
+    hx_, hy_ = nx + (hand[0] - neck[0]) * SC, ny + (hand[1] - neck[1]) * SC
+    p = {'NECK': (nx, ny)}
+    p['RIGHT SHOULDER'] = (nx + 10, ny + 4); p['LEFT SHOULDER'] = (nx - 9, ny + 4)
+    h = (hx_, hy_); sh = p['RIGHT SHOULDER']; L = (UA + FA) * SC
+    if reach:
+        a = math.atan2(h[1] - sh[1], h[0] - sh[0]); h = (sh[0] + math.cos(a) * L * reach, sh[1] + math.sin(a) * L * reach)
+    dx, dy = h[0] - sh[0], h[1] - sh[1]; D_ = max(1e-6, min(math.hypot(dx, dy), L - 1e-3)); base = math.atan2(dy, dx); l = L / 2
+    a = math.acos(max(-1, min(1, D_ / (2 * l)))); a1 = base - a if elbow_up else base + a
+    p['RIGHT ELBOW'] = (sh[0] + l * math.cos(a1), sh[1] + l * math.sin(a1)); p['RIGHT ARM'] = (sh[0] + D_ * math.cos(base), sh[1] + D_ * math.sin(base))
+    p['LEFT ELBOW'] = (nx - 9, ny + 13); p['LEFT ARM'] = (nx - 5, ny + 20)          # 방패 손: 가슴 앞 고정 (몸만 따라감)
+    hy = 162 + crouch * SC; hx = nx - lean * SC * 2
+    p['RIGHT HIP'] = (hx + 3, hy); p['LEFT HIP'] = (hx - 5, hy)
+    ff = (104 + (front_foot[0] - 98) * SC * 2, 180); bf = (88, 180)
+    p['RIGHT KNEE'] = ((p['RIGHT HIP'][0] + ff[0]) / 2 + 2 + crouch * SC * 2 / 3, (hy + 180) / 2); p['RIGHT LEG'] = ff
+    p['LEFT KNEE'] = ((p['LEFT HIP'][0] + bf[0]) / 2 - 1 - crouch * SC / 2, (hy + 180) / 2); p['LEFT LEG'] = bf
+    for k, (dx2, dy2) in HEAD.items(): p[k] = (nx + dx2 * SC, ny + dy2 * SC)
+    return p
+
+
+P_ = pose2 if V2 else pose
+
+
+BASE = P_((88, 104), (119, 145), elbow_up=False)                     # 중립 대기 (pixen 편집 목표 자세, 첫 프레임 관절)
 # 3등신이라 팔(31px)이 머리 위로 못 넘어간다 → 들어올림은 손을 머리 옆·뒤 어깨 높이에 두고 칼날이 위·뒤로 솟게 (치비식)
 # 성기사 평타 = 크게 젖혀 내려베기 15프레임 (손 목표, 칼 각도 도: 0 = 앞, -90 = 위)
 SEQ = [
-    ('준비', pose((88, 104), (114, 138), elbow_up=False), -40),
-    ('웅크림', pose((86, 108), (100, 116), crouch=6), -110),
-    ('들어올림', pose((84, 110), (90, 106), crouch=8), -125),
-    ('머리 뒤로', pose((82, 110), (70, 108), crouch=8), -140),
-    ('버팀', pose((82, 109), (69, 107), crouch=8), -145),
-    ('앞발 디딤', pose((90, 104), (86, 98), front_foot=(110, 178)), -105),
-    ('휘두름 시작', pose((96, 106), (110, 98), front_foot=(114, 178), lean=-4), -60),
-    ('휘두름', pose((100, 110), (124, 106), front_foot=(116, 178), lean=-6, crouch=4, elbow_up=False, reach=0.95), 0),
-    ('타격', pose((103, 115), (128, 124), front_foot=(116, 178), lean=-8, crouch=10, elbow_up=False, reach=0.95), 35),
-    ('끝까지', pose((103, 117), (124, 138), front_foot=(116, 178), lean=-8, crouch=12, elbow_up=False, reach=0.95), 62),
-    ('멈춤', pose((103, 117), (124, 139), front_foot=(116, 178), lean=-8, crouch=12, elbow_up=False, reach=0.95), 64),
-    ('회수 1', pose((98, 112), (118, 136), front_foot=(110, 178), lean=-4, crouch=6, elbow_up=False, reach=0.95), 40),
-    ('회수 2', pose((94, 108), (112, 136), front_foot=(104, 178), crouch=2, elbow_up=False), 10),
-    ('가라앉음', pose((90, 105), (106, 134), front_foot=(100, 178), elbow_up=False), -25),
-    ('준비', pose((88, 104), (114, 138), elbow_up=False), -40),
+    ('준비', P_((88, 104), (114, 138), elbow_up=False), -40),
+    ('웅크림', P_((86, 108), (100, 116), crouch=6), -110),
+    ('들어올림', P_((84, 110), (90, 106), crouch=8), -125),
+    ('머리 뒤로', P_((82, 110), (70, 108), crouch=8), -140),
+    ('버팀', P_((82, 109), (69, 107), crouch=8), -145),
+    ('앞발 디딤', P_((90, 104), (86, 98), front_foot=(110, 178)), -105),
+    ('휘두름 시작', P_((96, 106), (110, 98), front_foot=(114, 178), lean=-4), -60),
+    ('휘두름', P_((100, 110), (124, 106), front_foot=(116, 178), lean=-6, crouch=4, elbow_up=False, reach=0.95), 0),
+    ('타격', P_((103, 115), (128, 124), front_foot=(116, 178), lean=-8, crouch=10, elbow_up=False, reach=0.95), 35),
+    ('끝까지', P_((103, 117), (124, 138), front_foot=(116, 178), lean=-8, crouch=12, elbow_up=False, reach=0.95), 62),
+    ('멈춤', P_((103, 117), (124, 139), front_foot=(116, 178), lean=-8, crouch=12, elbow_up=False, reach=0.95), 64),
+    ('회수 1', P_((98, 112), (118, 136), front_foot=(110, 178), lean=-4, crouch=6, elbow_up=False, reach=0.95), 40),
+    ('회수 2', P_((94, 108), (112, 136), front_foot=(104, 178), crouch=2, elbow_up=False), 10),
+    ('가라앉음', P_((90, 105), (106, 134), front_foot=(100, 178), elbow_up=False), -25),
+    ('준비', P_((88, 104), (114, 138), elbow_up=False), -40),
 ]
 BONES = [('NECK', 'RIGHT SHOULDER'), ('RIGHT SHOULDER', 'RIGHT ELBOW'), ('RIGHT ELBOW', 'RIGHT ARM'), ('NECK', 'LEFT SHOULDER'),
          ('LEFT SHOULDER', 'LEFT ELBOW'), ('LEFT ELBOW', 'LEFT ARM'), ('NECK', 'RIGHT HIP'), ('RIGHT HIP', 'RIGHT KNEE'),
@@ -70,6 +103,8 @@ BONES = [('NECK', 'RIGHT SHOULDER'), ('RIGHT SHOULDER', 'RIGHT ELBOW'), ('RIGHT 
 
 
 def ref192():
+    if V2:
+        c = Image.new('RGBA', (N, N)); c.alpha_composite(Image.open(os.path.join(OUT, 'paladin64-idle.png')).convert('RGBA').resize((128, 128), Image.NEAREST), OFF); return c
     return Image.open(os.path.join(OUT, 'paladin64-idle.png')).convert('RGBA').resize((N, N), Image.NEAREST)
 
 
@@ -80,10 +115,10 @@ def stick(p, ang, under=None, S=2):
     d = ImageDraw.Draw(im)
     col = lambda a, b: (255, 120, 90) if 'RIGHT' in a + b else (90, 170, 255) if 'LEFT' in a + b else (230, 230, 230)
     for a, b in BONES: d.line([(p[a][0] * S, p[a][1] * S), (p[b][0] * S, p[b][1] * S)], fill=col(a, b), width=S + 1)
-    hx, hy = p['NECK'][0] + 3, p['NECK'][1] - 22
-    d.ellipse([(hx - 22) * S, (hy - 24) * S, (hx + 22) * S, (hy + 22) * S], outline=(230, 230, 230), width=S)    # 큰 투구 (3등신)
+    r = 22 * (SC if V2 else 1); hx, hy = p['NECK'][0] + 3 * r / 22, p['NECK'][1] - r
+    d.ellipse([(hx - r) * S, (hy - r - 2) * S, (hx + r) * S, (hy + r) * S], outline=(230, 230, 230), width=S)    # 큰 투구 (3등신)
     g = p['RIGHT ARM']; a = math.radians(ang)
-    d.line([(g[0] * S, g[1] * S), ((g[0] + 40 * math.cos(a)) * S, (g[1] + 40 * math.sin(a)) * S)], fill=(255, 215, 80), width=S + 1)
+    d.line([(g[0] * S, g[1] * S), ((g[0] + 40 * (SC if V2 else 1) * math.cos(a)) * S, (g[1] + 40 * (SC if V2 else 1) * math.sin(a)) * S)], fill=(255, 215, 80), width=S + 1)
     d.line([(40 * S, 178 * S), (160 * S, 178 * S)], fill=(80, 80, 100), width=1)
     return im.crop((40 * S, 20 * S, 186 * S, 186 * S))
 
@@ -93,15 +128,15 @@ def kp(p):
 
 
 if __name__ == '__main__':
-    os.makedirs(OUT, exist_ok=True)
-    ref = ref192(); ref.save(os.path.join(OUT, 'paladin192-ref.png'))
+    os.makedirs(OUT, exist_ok=True); tag = '2' if V2 else ''
+    ref = ref192(); ref.save(os.path.join(OUT, f'paladin192-ref{tag}.png'))
     tiles = [stick(BASE, -40, ref)] + [stick(p, a) for _, p, a in SEQ]
     W, H = tiles[0].size; cols = 8; rows = (len(tiles) + cols - 1) // cols
     mont = Image.new('RGBA', ((W + 6) * cols, (H + 6) * rows), (40, 42, 52, 255))
     for i, t in enumerate(tiles): mont.paste(t, ((i % cols) * (W + 6), (i // cols) * (H + 6)))
-    mont.save(os.path.join(OUT, 'paladin-atk-stick.png'))
+    mont.save(os.path.join(OUT, f'paladin-atk{tag}-stick.png'))
     fr = [t.convert('RGB') for t in tiles[1:]]
-    fr[0].save(os.path.join(OUT, 'paladin-atk-stick.gif'), save_all=True, append_images=fr[1:], duration=70, loop=0)
+    fr[0].save(os.path.join(OUT, f'paladin-atk{tag}-stick.gif'), save_all=True, append_images=fr[1:], duration=70, loop=0)
     json.dump({'base': kp(BASE), 'frames': [kp(p) for _, p, _ in SEQ], 'angles': [a for _, _, a in SEQ], 'names': [n for n, _, _ in SEQ]},
-              open(os.path.join(OUT, 'paladin-atk.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+              open(os.path.join(OUT, f'paladin-atk{tag}.json'), 'w', encoding='utf-8'), ensure_ascii=False)
     print('frames', len(SEQ), 'montage', mont.size)

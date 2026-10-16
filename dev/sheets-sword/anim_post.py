@@ -15,12 +15,18 @@ def near(c, pal):
     return min(pal, key=lambda p: sum((c[i] - p[i]) ** 2 for i in range(3)))
 
 
+V2 = os.environ.get('ANIM_V') == '2'
+K, OFF = (2, (32, 62)) if V2 else (3, (0, 0))      # 2차: 캐릭터를 192칸에 2배로 넣었다 (anim_plan.py)
+
+
 def down(im, pal):
-    W = im.width // 3; o = Image.new('RGBA', (W, W)); P = im.load(); O = o.load()
+    im = im.crop((OFF[0], OFF[1], OFF[0] + 64 * K, OFF[1] + 64 * K)) if V2 else im
+    W = 64; o = Image.new('RGBA', (W, W)); P = im.load(); O = o.load(); need = 2 if K == 2 else 4
     for y in range(W):
         for x in range(W):
-            cs = [P[3 * x + a, 3 * y + b] for a in range(3) for b in range(3) if P[3 * x + a, 3 * y + b][3] >= 200]
-            if len(cs) >= 4: O[x, y] = near(max(set(cs), key=cs.count), pal)
+            if K * x + K > im.width or K * y + K > im.height: continue
+            cs = [P[K * x + a, K * y + b] for a in range(K) for b in range(K) if P[K * x + a, K * y + b][3] >= 200]
+            if len(cs) >= need: O[x, y] = near(max(set(cs), key=cs.count), pal)
     return o
 
 
@@ -58,20 +64,21 @@ def sword(im, g, ang, L=13):
 
 
 if __name__ == '__main__':
-    d = json.load(open(os.path.join(A, 'paladin-atk.json'), encoding='utf-8'))
+    tag = '2' if V2 else ''
+    d = json.load(open(os.path.join(A, f'paladin-atk{tag}.json'), encoding='utf-8'))
     pal = palette(Image.open(os.path.join(A, 'paladin64-idle.png')).convert('RGBA'))
     fr = []
     for i in range(15):
-        im = Image.open(os.path.join(HERE, 'work', 'paladin', f'skel-atk-{i}.png')).convert('RGBA')
+        im = Image.open(os.path.join(HERE, 'work', 'paladin', f'skel-atk{tag}-{i}.png')).convert('RGBA')
         o = main_blob(down(im, pal))
-        h = next(k for k in d['frames'][i] if k['label'] == 'RIGHT ARM'); g = (h['x'] * 64, h['y'] * 64)
-        o = sword(o, g, d['angles'][i]); o.save(os.path.join(A, f'paladin-atk-{i}.png')); fr.append(o)
+        h = next(k for k in d['frames'][i] if k['label'] == 'RIGHT ARM'); g = ((h['x'] * 192 - OFF[0]) / K, (h['y'] * 192 - OFF[1]) / K)
+        o = sword(o, g, d['angles'][i]); o.save(os.path.join(A, f'paladin-atk{tag}-{i}.png')); fr.append(o)
     strip = Image.new('RGBA', (64 * 15, 64)); [strip.alpha_composite(f, (64 * i, 0)) for i, f in enumerate(fr)]
-    strip.save(os.path.join(A, 'paladin-atk-strip.png'))
+    strip.save(os.path.join(A, f'paladin-atk{tag}-strip.png'))
     g = []
     for f in fr:
         b = Image.new('RGBA', (64, 64), (38, 40, 50, 255)); b.alpha_composite(f); g.append(b.convert('RGB').resize((256, 256), Image.NEAREST))
-    g[0].save(os.path.join(A, 'paladin-atk-x4.gif'), save_all=True, append_images=g[1:], duration=70, loop=0)
+    g[0].save(os.path.join(A, f'paladin-atk{tag}-x4.gif'), save_all=True, append_images=g[1:], duration=70, loop=0)
     sv = Image.new('RGBA', (64 * 8 * 3, 64 * 2 * 3), (38, 40, 50, 255))
     for i, f in enumerate(fr): sv.alpha_composite(f.resize((192, 192), Image.NEAREST), ((i % 8) * 192, (i // 8) * 192))
-    sv.save(os.path.join(A, '_post-atk.png')); print('ok', len(pal))
+    sv.save(os.path.join(A, f'_post-atk{tag}.png')); print('ok', len(pal))

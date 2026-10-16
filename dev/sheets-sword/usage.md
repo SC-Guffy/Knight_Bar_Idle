@@ -27,3 +27,8 @@
 | 21 | blademaster | `/image-to-pixelart` | n7ref: /image-to-pixelart | 1.0 / 1.0 | 41.0 / 28.0 | 1088.0 |
 | 22 | paladin | `/edit-image-pixen` | pixen-idle: Same paladin knight, same helmet, halo, armor colors and shi | 1.0 / 1.0 | 42.0 / 29.0 | 1059.0 |
 | 23 | paladin | `/animate-with-skeleton-v3` | skel-atk: /animate-with-skeleton-v3 | 13.0 / 4.0 | 55.0 / 33.0 | 1046.0 |
+| 24 | paladin | `/animate-with-skeleton-v3` | skel-atk2: /animate-with-skeleton-v3 | 7.0 / 4.0 | 62.0 / 37.0 | 1035.0 |
+| 25 | paladin | `/edit-image-pixen` | key1: Same paladin knight, same big visored helmet, golden halo, w | 1.0 / 1.0 | 63.0 / 38.0 | 1028.0 |
+| 26 | paladin | `/edit-image-pixen` | key2: Same paladin knight, same big visored helmet, golden halo, w | 5.0 / 1.0 | 68.0 / 39.0 | 1023.0 |
+| 27 | paladin | `/edit-image-pixen` | key3: Same paladin knight, same big visored helmet, golden halo, w | 1.0 / 1.0 | 69.0 / 40.0 | 1022.0 |
+| 28 | paladin | `/edit-image-pixen` | key4: Same paladin knight, same big visored helmet, golden halo, w | 1.0 / 1.0 | 70.0 / 41.0 | 1021.0 |
