@@ -73,5 +73,6 @@ def score(out):
 
 
 if __name__ == '__main__':
+    sys.stdout.reconfigure(encoding='utf-8')   # Windows 콘솔(cp949)에 없는 '—' 등으로 죽지 않게
     if sys.argv[1] == '--score': score(sys.argv[2])
     else: build(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else 30, int(sys.argv[3]) if len(sys.argv) > 3 else 16)

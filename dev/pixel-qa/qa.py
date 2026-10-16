@@ -1,6 +1,7 @@
 # 도트 품질 검수 0~2단 (스펙 docs/specs/pixel-qa.md): 게임 모습 만들기 → 규격 검사 → 자동 지표 → 검수 시트 PNG
-#   python3 dev/pixel-qa/qa.py <시트.png> --id k22 [--color raw|#rrggbb] [--frames 5] [--scale 2] [--tile] [--intent "목표 모습"] [--out 폴더]
+#   python3 dev/pixel-qa/qa.py <시트.png> --id k22 [--kind vfx|char] [--color raw|#rrggbb] [--frames 5] [--scale 2] [--tile] [--intent "목표 모습"] [--out 폴더]
 #   --scale: 게임에서 그리는 배율(2/3·1·4/3·2) — 장면 줄에서 기사 옆 크기를 맞춘다
+#   --kind char: 캐릭터 시트. ⓪ 게임 모습 = 시트 그대로 (VFX 로더의 외곽선 벗기기·밝기 5단·직업색 칠하기를 안 거친다 — 거치면 14색 그림이 65색이 되어 색 경보가 잘못 뜬다)
 #   --id 가 등록된 시트면 frames·soft·keepInk·inkColor 와 원래 색 여부를 src/ 에서 읽는다. --color 로 덮어쓴다.
 # 결과: <out>/sheet.png (비평용 검수 시트), <out>/game.png (게임 모습 1배), <out>/metrics.json
 # 3단 비평은 세션이 pixel-critic 서브에이전트(.claude/agents/pixel-critic.md)에 sheet.png + metrics.json 을 넘겨서 한다.
@@ -175,20 +176,21 @@ def qa_sheet(game, frames, knight=KNIGHT, scale=1.0):
     return out
 
 
-def run(png, sid=None, color=None, frames=None, tile=False, intent='', out=None, opts=None, raw_flag=None, tmp=None, scale=1.0):
+def run(png, sid=None, color=None, frames=None, tile=False, intent='', out=None, opts=None, raw_flag=None, tmp=None, scale=1.0, kind='vfx'):
     opts = dict(opts or sheet_opts().get(sid, {}))
     if frames: opts['frames'] = frames
     opts.setdefault('frames', 5); fr = opts['frames']
+    if kind == 'char': color = 'raw'
     if color is None:
         rf = raw_flag if raw_flag is not None else usage_raw().get(sid, False)
         color = 'raw' if rf else CLASS
     raw = np.asarray(Image.open(png).convert('RGBA')).copy()
-    game = render([('x', raw, opts, color)], tmp)['x']
+    game = raw.copy() if kind == 'char' else render([('x', raw, opts, color)], tmp)['x']
     fail, warn, strip = gates(raw, game, fr, tile)
     m = metrics(game, fr) or {}
     if m: m.pop('_n'); m['strip'] = strip
     flags = [{'k': k, 'why': why} for k, (f, why) in FLAGS.items() if m and f(m)]
-    res = dict(id=sid, file=os.path.relpath(png, ROOT), frames=fr, color=color, size=list(raw.shape[1::-1]), scale=scale, intent=intent,
+    res = dict(id=sid, kind=kind, file=os.path.relpath(png, ROOT), frames=fr, color=color, size=list(raw.shape[1::-1]), scale=scale, intent=intent,
                gate={'pass': not fail, 'fail': fail, 'warn': warn}, metrics=m, flags=flags)
     if out:
         os.makedirs(out, exist_ok=True)
@@ -199,10 +201,12 @@ def run(png, sid=None, color=None, frames=None, tile=False, intent='', out=None,
 
 
 if __name__ == '__main__':
+    sys.stdout.reconfigure(encoding='utf-8')   # Windows 콘솔(cp949)에 없는 '—' 등으로 죽지 않게
     ap = argparse.ArgumentParser()
     ap.add_argument('png'); ap.add_argument('--id'); ap.add_argument('--color'); ap.add_argument('--frames', type=int)
     ap.add_argument('--tile', action='store_true'); ap.add_argument('--intent', default=''); ap.add_argument('--out'); ap.add_argument('--scale', type=float, default=1.0)
+    ap.add_argument('--kind', choices=('vfx', 'char'), default='vfx')
     a = ap.parse_args()
     sid = a.id or os.path.splitext(os.path.basename(a.png))[0]
-    res, _ = run(a.png, sid, a.color, a.frames, a.tile, a.intent, a.out or os.path.join(ROOT, 'dev/pixel-qa/out', sid), scale=a.scale)
+    res, _ = run(a.png, sid, a.color, a.frames, a.tile, a.intent, a.out or os.path.join(ROOT, 'dev/pixel-qa/out', sid), scale=a.scale, kind=a.kind)
     print(json.dumps(res, ensure_ascii=False, indent=1))

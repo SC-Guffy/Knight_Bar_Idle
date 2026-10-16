@@ -74,6 +74,10 @@
 ```bash
 python3 dev/pixel-qa/qa.py <시트.png> --kind vfx --id k22 --intent "흰·노랑 짧은 별 섬광 + 은회색 쇳조각 2~3개" [--vs 비교.png ...]
 ```
+- 캐릭터 시트는 `--kind char`: ⓪ 게임 모습 = 시트 그대로 (VFX 로더의 외곽선 벗기기·밝기 5단·직업색 칠하기를 거치지 않는다). 경보 기준값은 아직 VFX 것이다 — 캐릭터 판정이 쌓이면 따로 잡는다.
+- 비평 에이전트 `pixel-critic` 은 저장소(`Knight_Bar_Idle/` 또는 그 작업트리)를 작업 폴더로 연 세션에서만 이름으로 잡힌다. 다른 폴더(예: knight_bar 루트)에서 연 세션은 일반 에이전트에 `dev/pixel-qa/critic.md` 를 먼저 읽게 하고 검수 시트·metrics.json 만 넘긴다(결과는 같다 — 이번 시험 45회도 이 방식).
+- Windows: 스크립트가 json·콘솔을 utf-8 로 쓴다 (`-X utf8` 없이 돌아감, 10-17).
+
 → `dev/pixel-qa/out/<id>/` 에 검수 시트 PNG, `metrics.json` 이 생긴다. 그다음 세션이 `pixel-critic` 서브에이전트(Agent 도구)에 넘긴다 → `verdict.json` 이 나오고 보고 페이지가 갱신된다.
 생성·수리 에이전트(다음 단계 스펙)는 이 판정을 받아 반복하고, 유료 호출 상한은 각 작업 계획서를 따른다.
 
@@ -128,6 +132,8 @@ python3 dev/pixel-qa/qa.py <시트.png> --kind vfx --id k22 --intent "흰·노�
   - 게임 모습 픽셀 비교: skills.html 콘솔에서 `(0,eval)('VFX_SHEETS')` 로 시트가 올라온 것을 확인하고 `vfxSheet(id, 색, true)` 캔버스의 getImageData 를 `qa.py --out dev/pixel-qa/out/cmp-<id>` 의 game.png 와 비교 → 3장 0픽셀 차이.
   - 순위(`rank.py`, `dev/review/pixel-qa/rank/`): 텍스처별 16장을 섞은 번호로 대조 시트(원본 · 게임 모습 4배) 한 장 + 번호별 지표를 비평 1회에 넘겨 순위. 77% 로 통과. 지표 순위(경보 수 → 부스러기 → 밝기 폭)는 32% 로 우연 수준 — 후보 고르기도 비평이 해야 한다.
   - 비평 45회(오경보 30 · 블라인드 12 · 순위 3, 일반 에이전트에 critic.md 를 읽히고 검수 시트·metrics.json 만 넘김, 취향 기록 예시는 넣지 않음), 유료 호출 0회.
+
+- 2026-10-17: 통짜 시트(캐릭터) 세션들의 제보로 `qa.py --kind char` 추가(레인저 세션 임시판 `impl-sheets-bow/dev/bowsheets/qa_run.py` 의 render 바꿔치기를 정식 옵션으로). 석궁사수 B-11 시안으로 확인: char 는 게임 모습이 원본과 픽셀 동일·13색 그대로, vfx 로 돌리면 4색으로 바뀐다. 콘솔 출력도 utf-8 로 고정.
 
 ## 남은 일 / 미정
 
