@@ -118,22 +118,30 @@ PICK = {'lancer': ('lancer-23', 204, 843), 'dragoon': ('dragoon-11', 312, 750), 
 
 
 def shrink_pick(cls):
-    import numpy as np
+    """대표 시안 → 몸 키 46칸 (공용 dev/sheets-common/shrink.py shrink_body)"""
+    sys.path.insert(0, os.path.join(HERE, '..', 'sheets-common'))
+    from shrink import shrink_body
     name, top, foot = PICK[cls]
-    im = Image.open(os.path.join(RAW, name + '.png')).convert('RGB'); a = np.asarray(im).copy()
-    border = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]]); a[foot + 1:] = np.median(border, axis=0)     # 발밑 그림자 지우기
-    im = Image.fromarray(a)
-    _, m = SW.fg(im); ys, _x = np.nonzero(m); y0, y1 = np.percentile(ys, [0.3, 99.9])
-    o = SW.shrink(im, max(8, round((int(y1) + 1 - int(y0)) / ((foot - top) / H))))
-    # 발밑에 남은 바닥 줄: 맨 아래 줄이 위 줄보다 1.4배 넘게 넓으면 지운다 (두 번까지)
-    P = o.load(); W_, H_ = o.size
-    for _ in range(2):
-        bb = o.getbbox(); yb = bb[3] - 1
-        w = lambda y: [x for x in range(W_) if P[x, y][3]]
-        a_, b_ = w(yb), w(yb - 1)
-        if a_ and b_ and (max(a_) - min(a_)) > 1.4 * (max(b_) - min(b_)):
-            for x in range(W_): P[x, yb] = (0, 0, 0, 0)
-    return o.crop(o.getbbox())
+    return shrink_body(Image.open(os.path.join(RAW, name + '.png')), top, foot, H)
+
+
+# 용기병 명암 대비 (로드맵 검수 2026-10-16: 보라 한 톤 덩어리라 어두운 배경에 묻힘) — 고른 시안(dragoon-11)을 밑그림으로 낮은 denoise 로
+#  밝은 비늘 하이라이트 · 배 쪽 밝은 판 · 투구 눈 빛을 더한다. 디자인(실루엣)은 그대로 둔다
+CONTRAST = ('A dragon knight in deep purple plate armor with strong contrast: bright lavender and pale violet highlights on every scale edge, '
+            'a light cream-colored armored belly and chest plates, glowing bright yellow eyes in the dragon-head helmet with a long snout visor '
+            'and two horns curving back, layered dragon-scale pauldron with bright rim light, a bat-wing shaped cape with lighter violet membrane '
+            'and dark ribs, holding a long purple dragon spear with a bright violet winged spearhead.')
+
+
+def gen_contrast():
+    from comfy import gen as G
+    init = Image.open(os.path.join(RAW, 'dragoon-11.png')).convert('RGB')
+    for dn in (0.5, 0.62):
+        for sd in (11, 23, 37, 51):
+            out = os.path.join(RAW, f'dragoonC{int(dn * 100)}-{sd}.png')
+            if os.path.exists(out): continue
+            ims, dt = G('zimg', SW.STYLE.format(who=CONTRAST, body=BODY), seed=sd, denoise=dn, init=init)
+            ims[0].save(out); print('contrast', dn, sd, f'{dt:.1f}s', flush=True)
 
 
 def shrink_all():
@@ -148,6 +156,7 @@ def shrink_all():
 if __name__ == '__main__':
     if sys.argv[1] == 'gen': gen(sys.argv[2:] or list(WHO))
     elif sys.argv[1] == 'shrink': shrink_all()
+    elif sys.argv[1] == 'contrast': gen_contrast()
     elif sys.argv[1] == 'pick':
         os.makedirs(PX, exist_ok=True)
         for c in PICK: shrink_pick(c).save(os.path.join(PX, f'pick-{c}-h{H}.png'))
