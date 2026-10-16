@@ -1,0 +1,33 @@
+{
+ "id": "m1",
+ "file": "dev\\sheets-sword\\design\\px\\swordsman-N2-23-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  53,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 13,
+  "low": 0.397,
+  "edge": 0.41,
+  "lone": 0.063,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.357,
+  "area": [
+   1060
+  ]
+ },
+ "flags": []
+}

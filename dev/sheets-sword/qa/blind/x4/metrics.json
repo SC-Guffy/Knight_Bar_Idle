@@ -1,0 +1,33 @@
+{
+ "id": "x4",
+ "file": "",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  48,
+  54
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.833,
+  "colors": 28,
+  "low": 0.27,
+  "edge": 0.354,
+  "lone": 0.119,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.34,
+  "area": [
+   882
+  ]
+ },
+ "flags": []
+}

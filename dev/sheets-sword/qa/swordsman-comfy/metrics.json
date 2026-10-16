@@ -1,0 +1,33 @@
+{
+ "id": "swordsman-comfy",
+ "file": "dev\\sheets-sword\\design\\px\\swordsman-B2-11-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  49,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 14,
+  "low": 0.454,
+  "edge": 0.415,
+  "lone": 0.066,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.361,
+  "area": [
+   990
+  ]
+ },
+ "flags": []
+}

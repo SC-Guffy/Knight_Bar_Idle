@@ -36,6 +36,30 @@ WHO_R = {
                       'with bright orange accents, a huge greatsword with a wide steel blade resting on his right shoulder, gripped with both hands. '
                       'Bright rim light on the armor edges, high contrast, readable on a dark background.',
 }
+# 새로 그리기 (2026-10-17 사용자: "기존 비주얼을 따라갈 필요 없이 컨셉에만 알맞게") — 직업 이름·역할·무기만 보고, 지금 스프라이트는 안 쓴다.
+#  밑그림은 직업과 무관한 3등신 회색 마네킹(design/mannequin-3h.png, 48칸 격자) — 비율·옆모습·큰 도트만 잡아 준다
+STYLE_N = ('Pixel art style. One single full-body 2D side-scroller game character sprite, about 48 pixels tall, big chunky pixels, '
+           '3 heads tall stylized proportions with a large head, strict side profile facing right, standing in a ready stance. '
+           '{who} Simple clean shading with 3 tones per material, bright readable colors, bold 1-pixel dark outline, '
+           'plain flat light gray background, nothing else.')
+WHO_N = {
+    'swordsman': 'A young swordsman knight: polished silver half-plate armor over a royal blue tunic, a visored helmet with a blue plume, a short blue cape, a straight steel longsword held forward in the right hand.',
+    'paladin': 'A holy paladin: white and cream plate armor with gold trim, a glowing golden halo floating above the helmet, a gold kite shield with a white cross on the left arm, a golden longsword in the right hand.',
+    'blademaster': 'A sword saint dual wielder: black and crimson samurai armor, a horned kabuto helmet with a red visor slit, a long red scarf flowing behind, two curved katanas, one in each hand, blades bright silver with red edge.',
+    'greatswordsman': 'A greatsword berserker: spiky dark hair, rugged face, steel pauldrons and brown leather armor with orange accents, a huge wide steel greatsword resting on the right shoulder, gripped with both hands.',
+}
+# 2차 (비평 반영): 46칸에서 머리가 작아 보여 마네킹 머리를 키움(22/48), 어두운 몸은 짙은 남회색 3단, 다리 짧고 굵게
+STYLE_N2 = ('Pixel art style. One single full-body 2D side-scroller game character sprite, big chunky pixels, '
+            'super deformed chibi with an oversized head about one third of the total height, short stocky body, short thick legs, '
+            'strict side profile facing right, standing in a ready stance. {who} Flat cel shading with exactly 3 tones per material '
+            '(light, mid, shadow), no dithering, no noise, no scattered highlight pixels, bright readable colors, bold 1-pixel dark outline, '
+            'plain flat light gray background, nothing else.')
+WHO_N2 = {
+    'swordsman': 'A young swordsman knight: bright polished silver plate armor (light gray, not blue), a big visored helmet with one clear horizontal visor slit and a blue plume, a royal blue tabard, a short blue cape darker than the tabard, a straight steel longsword held forward in the right hand.',
+    'paladin': 'A holy paladin: white plate armor with cream mid tones and gold trim on the chest and shoulders, a golden halo ring floating above the big helmet, a white kite shield with a gold rim and a gold cross on the left arm, a golden longsword in the right hand.',
+    'blademaster': 'A sword saint dual wielder: dark slate blue-gray samurai armor plates (not pure black) laced with bright crimson cords, a big horned kabuto helmet with a red visor slit, a long red scarf flowing behind, two curved katanas with gold guards, one held forward low and one held up behind.',
+    'greatswordsman': 'A greatsword berserker: big head with spiky black hair, steel pauldrons, mid-brown leather armor with a few wide orange bands, a huge greatsword with a very wide steel blade resting on the right shoulder, both fists on the hilt in front of the chest.',
+}
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -56,7 +80,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -74,12 +98,18 @@ def init_stretch(cls, f):
 def gen(dirs):
     from comfy import gen as G
     os.makedirs(RAW, exist_ok=True)
-    for cls in (CLS_ONLY or WHO):
+    for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
             todo = [s for s in SEEDS if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
-                if dk == 'S':          # 같은 비율·밝기: 형태가 좋은 검사 B2-11 원본을 밑그림으로, 직업만 바꿔 그린다
+                if dk == 'N2':
+                    init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N2[cls]), seed=s, denoise=0.92, init=init)
+                elif dk == 'N':          # 컨셉만 보고 새로: 직업 무관 3등신 마네킹 밑그림
+                    init = Image.open(os.path.join(D, 'mannequin-3h.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N.format(who=WHO_N[cls]), seed=s, denoise=0.92, init=init)
+                elif dk == 'S':          # 같은 비율·밝기: 형태가 좋은 검사 B2-11 원본을 밑그림으로, 직업만 바꿔 그린다
                     init = Image.open(os.path.join(RAW, 'swordsman-B2-11.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE.format(who=WHO_R[cls], body=DIRS['B']), seed=s, denoise=0.88, init=init)
                 elif dk in STRETCH:

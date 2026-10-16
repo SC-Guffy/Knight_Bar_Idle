@@ -1,0 +1,6 @@
+x1=paladin-pl
+x2=swordsman-comfy
+x3=paladin-polish
+x4=swordsman-pl
+x5=paladin-comfy
+x6=swordsman-polish

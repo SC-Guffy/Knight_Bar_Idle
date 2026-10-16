@@ -1,0 +1,9 @@
+{"n1 swordsman-N-11": {"scores":[2,3,2,2,3,5,4],"avg":3.0,"verdict":"regen"},
+ "n2 swordsman-N-37": {"scores":[2,3,3,3,3,5,4],"avg":3.29,"verdict":"regen"},
+ "n3 paladin-N-11": {"scores":[3,3,2,3,3,5,4],"avg":3.29,"verdict":"regen"},
+ "n4 paladin-N-23": {"scores":[3,4,4,3,3,5,4],"avg":3.71,"verdict":"pass"},
+ "n5 blademaster-N-23": {"scores":[2,3,3,2,3,5,4],"avg":3.14,"verdict":"regen"},
+ "n6 blademaster-N-11": {"scores":[2,3,3,2,3,5,4],"avg":3.14,"verdict":"regen"},
+ "n7 greatswordsman-N-23": {"scores":[2,3,3,3,3,5,4],"avg":3.29,"verdict":"regen"},
+ "n8 greatswordsman-N-51": {"scores":[2,3,3,2,3,5,4],"avg":3.14,"verdict":"regen"},
+ "common": "46px 에서 머리가 작아 5~6등신으로 보임 · 어두운 직업은 검정 덩어리 · 은빛이 남색으로"}

@@ -1,0 +1,6 @@
+{"x1 paladin-pl": {"scores": [4,4,4,3,4,5,4], "avg": 4.0, "verdict": "pass"},
+ "x2 swordsman-comfy": {"scores": [3,3,2,2,3,5,4], "avg": 3.14, "verdict": "regen"},
+ "x3 paladin-polish": {"scores": [2,3,3,3,3,5,4], "avg": 3.29, "verdict": "regen", "why": "5~6등신 비율·방패 십자 안 보임·후광 판처럼"},
+ "x4 swordsman-pl": {"scores": [3,3,2,3,2,5,4], "avg": 3.14, "verdict": "regen", "why": "갑옷 AI 얼룩 질감·면갑 뭉개짐·3/4 구도"},
+ "x5 paladin-comfy": {"scores": [4,3,4,3,2,5,4], "avg": 3.57, "verdict": "fix", "why": "방패 AI 계조 덩어리·몸통 판금 구분 없음"},
+ "x6 swordsman-polish": {"scores": [3,3,3,2,2,5,4], "avg": 3.14, "verdict": "regen", "why": "면갑·어깨·망토 덩어리·4등신"}}

@@ -1,0 +1,33 @@
+{
+ "id": "n3",
+ "file": "dev\\sheets-sword\\design\\px\\paladin-N-11-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  45,
+  55
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.937,
+  "colors": 13,
+  "low": 0.401,
+  "edge": 0.386,
+  "lone": 0.078,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.335,
+  "area": [
+   830
+  ]
+ },
+ "flags": []
+}

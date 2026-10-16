@@ -1,0 +1,33 @@
+{
+ "id": "n8",
+ "file": "dev\\sheets-sword\\design\\px\\greatswordsman-N-51-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  38,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.723,
+  "colors": 9,
+  "low": 0.651,
+  "edge": 0.374,
+  "lone": 0.081,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.381,
+  "area": [
+   810
+  ]
+ },
+ "flags": []
+}

@@ -1,0 +1,33 @@
+{
+ "id": "m5",
+ "file": "dev\\sheets-sword\\design\\px\\blademaster-N2-11-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  54,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.912,
+  "colors": 11,
+  "low": 0.521,
+  "edge": 0.334,
+  "lone": 0.042,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.329,
+  "area": [
+   994
+  ]
+ },
+ "flags": []
+}

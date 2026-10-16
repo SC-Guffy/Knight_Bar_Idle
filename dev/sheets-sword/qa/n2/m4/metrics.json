@@ -1,0 +1,33 @@
+{
+ "id": "m4",
+ "file": "dev\\sheets-sword\\design\\px\\paladin-N2-51-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  47,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.943,
+  "colors": 14,
+  "low": 0.336,
+  "edge": 0.383,
+  "lone": 0.074,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.361,
+  "area": [
+   949
+  ]
+ },
+ "flags": []
+}

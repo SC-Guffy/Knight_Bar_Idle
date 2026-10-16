@@ -1,0 +1,33 @@
+{
+ "id": "paladin-comfy",
+ "file": "dev\\sheets-sword\\design\\px\\paladin-B2-51-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  47,
+  55
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.893,
+  "colors": 14,
+  "low": 0.321,
+  "edge": 0.398,
+  "lone": 0.083,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.339,
+  "area": [
+   876
+  ]
+ },
+ "flags": []
+}

@@ -1,0 +1,8 @@
+n1=swordsman-N-11
+n2=swordsman-N-37
+n3=paladin-N-11
+n4=paladin-N-23
+n5=blademaster-N-23
+n6=blademaster-N-11
+n7=greatswordsman-N-23
+n8=greatswordsman-N-51

@@ -1,0 +1,33 @@
+{
+ "id": "m7",
+ "file": "dev\\sheets-sword\\design\\px\\greatswordsman-N2-23-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  38,
+  55
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.824,
+  "colors": 8,
+  "low": 0.618,
+  "edge": 0.326,
+  "lone": 0.043,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.4,
+  "area": [
+   836
+  ]
+ },
+ "flags": []
+}

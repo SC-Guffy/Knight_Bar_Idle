@@ -1,0 +1,33 @@
+{
+ "id": "n2",
+ "file": "dev\\sheets-sword\\design\\px\\swordsman-N-37-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  54,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.939,
+  "colors": 11,
+  "low": 0.45,
+  "edge": 0.431,
+  "lone": 0.081,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.276,
+  "area": [
+   836
+  ]
+ },
+ "flags": []
+}

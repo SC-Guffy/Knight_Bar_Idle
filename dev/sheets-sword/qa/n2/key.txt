@@ -1,0 +1,8 @@
+m1=swordsman-N2-23
+m2=swordsman-N2-37
+m3=paladin-N2-23
+m4=paladin-N2-51
+m5=blademaster-N2-11
+m6=blademaster-N2-23
+m7=greatswordsman-N2-23
+m8=greatswordsman-N2-51
