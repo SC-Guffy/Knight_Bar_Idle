@@ -1,0 +1,65 @@
+{
+ "bow-walk": {
+  "RIGHT ARM": 13.4,
+  "LEFT ARM": 5.1,
+  "NECK": 3.6,
+  "RIGHT LEG": 6.0,
+  "LEFT LEG": 7.1
+ },
+ "bow-shoot": {
+  "RIGHT ARM": 36.3,
+  "LEFT ARM": 22.5,
+  "NECK": 5.6,
+  "RIGHT LEG": 4.1,
+  "LEFT LEG": 3.4
+ },
+ "bow-sky": {
+  "RIGHT ARM": 35.3,
+  "LEFT ARM": 29.7,
+  "NECK": 13.9,
+  "RIGHT LEG": 6.0,
+  "LEFT LEG": 2.9
+ },
+ "xbow-walk": {
+  "RIGHT ARM": 10.3,
+  "LEFT ARM": 6.6,
+  "NECK": 4.0,
+  "RIGHT LEG": 5.7,
+  "LEFT LEG": 6.6
+ },
+ "xbow-shoot": {
+  "RIGHT ARM": 22.1,
+  "LEFT ARM": 17.6,
+  "NECK": 12.0,
+  "RIGHT LEG": 4.4,
+  "LEFT LEG": 5.9
+ },
+ "xbow-sky": {
+  "RIGHT ARM": 32.6,
+  "LEFT ARM": 24.0,
+  "NECK": 15.8,
+  "RIGHT LEG": 5.7,
+  "LEFT LEG": 4.2
+ },
+ "siege-walk": {
+  "RIGHT ARM": 3.7,
+  "LEFT ARM": 5.2,
+  "NECK": 4.7,
+  "RIGHT LEG": 6.0,
+  "LEFT LEG": 7.0
+ },
+ "siege-shoot": {
+  "RIGHT ARM": 19.7,
+  "LEFT ARM": 16.6,
+  "NECK": 16.2,
+  "RIGHT LEG": 9.4,
+  "LEFT LEG": 5.9
+ },
+ "siege-sky": {
+  "RIGHT ARM": 20.8,
+  "LEFT ARM": 17.3,
+  "NECK": 16.0,
+  "RIGHT LEG": 4.0,
+  "LEFT LEG": 15.0
+ }
+}
