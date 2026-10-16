@@ -65,7 +65,7 @@ function viewCastle() {
   const ms = castleMentors();
   return `
     <div class="mhead"><div><h3>${ico('castle')} 성벽 지키기</h3>
-      <small>🎟 입장권 <b>${castleFreeTickets()}/${CASTLE_TICKETS}</b>${c.tixExtra ? ` + 구매 <b>${c.tixExtra}</b>` : ''} · 최고 <b>${c.best ? `${c.best}단계` : '기록 없음'}</b></small></div>
+      <small>🎟 입장권 <b>${castleFreeTickets()}/${CASTLE_TICKETS}</b>${c.tixExtra ? ` + 구매 <b>${c.tixExtra}</b>` : ''} · 최고 <b>${c.best ? `${c.best}/${CASTLE_MAX_LV}단계` : '기록 없음'}</b></small></div>
       <small>${ico('wall')} <b>${fmt(c.bricks)}</b> · 📕 <b>${fmt(S.books || 0)}</b></small></div>
     ${castleBuyRow()}
     ${fresh ? castleResultHtml(c.last) : ''}
@@ -78,7 +78,7 @@ function viewCastle() {
     ${castleUpRow()}
     ${ms.length ? `<div class="dgline">🎓 성벽 위 교관 ${ms.length}명 · 별 ${ms.reduce((a, m) => a + m.stars, 0)}/${MENTORS.length * MENTOR_STARS} — 10초마다 특기 (공격력 × 0.4 × 별)</div>` : ''}
     <div class="hint">오른쪽에서 10웨이브가 몰려와요 (5·10웨이브는 보스). 기사는 성문 앞에서 몸으로 막고, <b>기사가 쓰러진 ${CASTLE_RESPAWN_SEC}초 동안만 성벽이 맞아요</b>. 성벽이 무너지거나, 10웨이브가 나온 뒤 ${CASTLE_LIMIT_SEC}초 안에 다 못 잡으면 실패예요. 물약은 못 쓰고, 웨이브 사이에 체력이 조금씩 차요.
-      보상은 끝날 때 — ${ico('wall')} 성벽돌(처치 점수 × (1 + 단계/100), 첫 돌파 ×2)과 📕 수련의 서(막은 웨이브마다). 깬 최고 단계는 입장권 1장으로 소탕할 수 있어요. 입장권은 하루 ${CASTLE_TICKETS}장, 모자라면 골드로 사요 (산 입장권은 ${CASTLE_TICKET_HOLD}장까지).</div>`;
+      보상은 끝날 때 — ${ico('wall')} 성벽돌(처치 점수 × (1 + 단계/${CASTLE_BRICK_PER}), 첫 돌파 ×2)과 📕 수련의 서(막은 웨이브마다). 깬 최고 단계는 입장권 1장으로 소탕할 수 있어요. 입장권은 하루 ${CASTLE_TICKETS}장, 모자라면 골드로 사요 (산 입장권은 ${CASTLE_TICKET_HOLD}장까지).</div>`;
 }
 // 도전 탭 카드 칩
 function castleCardChips() {
