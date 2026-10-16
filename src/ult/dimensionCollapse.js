@@ -129,27 +129,23 @@ function dcCrackTree(cx, cy) {
   }
   return lines;
 }
+// 금은 E45 공허 균열 마디 타일을 마디마다 그 방향으로 돌리고 길이만큼 늘여 이어 붙인다 (좌우 끝이 같은 모양이라 이음새가 안 보인다)
 function dcDrawCracks(lines, reach, al, hot) {
-  ctx.save();
-  ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
-  for (const pass of [0, 1, 2]) {
-    ctx.globalCompositeOperation = pass === 0 ? 'lighter' : 'source-over';
-    for (const L of lines) {
-      if (L.pts[0][2] > reach) continue;
-      ctx.globalAlpha = al * (pass === 0 ? 0.35 : 1);
-      ctx.strokeStyle = pass === 0 ? DC_MAG : pass === 1 ? (hot ? '#ffffff' : DC_MAG) : (hot ? DC_PALE : '#ffffff');
-      ctx.lineWidth = pass === 0 ? L.wid * 3 : pass === 1 ? L.wid : 1;
-      ctx.beginPath();
-      ctx.moveTo(L.pts[0][0], L.pts[0][1]);
-      for (let j = 1; j < L.pts.length; j++) {
-        const [x, y, d] = L.pts[j];
-        if (d > reach) { const [px, py, pd] = L.pts[j - 1], k = (reach - pd) / (d - pd); ctx.lineTo(mix(px, x, k), mix(py, y, k)); break; }
-        ctx.lineTo(x, y);
-      }
-      ctx.stroke();
+  const col = hot ? DC_PALE : DC_MAG;
+  for (let li = 0; li < lines.length; li++) {
+    const L = lines[li];
+    if (L.pts[0][2] > reach) continue;
+    const sc = L.wid >= 2.5 ? 1 : 2 / 3, tw = 32 * VFX_DOT * sc, f = (Math.floor(clock * 12) + li) % 4;
+    for (let j = 1; j < L.pts.length; j++) {
+      const [px, py, pd] = L.pts[j - 1];
+      let [x, y, d] = L.pts[j];
+      if (pd > reach) break;
+      if (d > reach) { const k = (reach - pd) / (d - pd); x = mix(px, x, k); y = mix(py, y, k); }
+      const len = Math.hypot(x - px, y - py);
+      if (len < 1) continue;
+      vfxDraw(ctx, 'e45', col, f, (px + x) / 2, (py + y) / 2, { scale: sc, rot: Math.atan2(y - py, x - px), sx: (len + 2) / tw, alpha: al });
     }
   }
-  ctx.restore();
 }
 function dcCrackStage(a) {
   const d = a.k.dur, hits = a.k.hits.map((h) => h[0] * d), F = DC_FIRE[0], land = F + 0.18, fin = hits[hits.length - 1], life = d + 0.6;
@@ -451,6 +447,7 @@ function dcHorizonStage(a) {
 
 Object.assign(SKILL_FX, {
   dimensionCollapse: {
+    hitK: 'k36',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
     pose(u, a) {
       const m = (a && a.mast) || 0, d = a && a.k ? a.k.dur : 2.8, t = u * d, F = DC_FIRE[m], A = DC_BOWA[m];
       const end = a && a.k ? a.k.hits[a.k.hits.length - 1][0] * d : d * 0.9;
@@ -476,7 +473,7 @@ Object.assign(SKILL_FX, {
           const C = a.dcCrack.C;
           aFx(a, 0, 0.2, (u) => dimBand(0.5 * (1 - u), '255,170,255'));
           for (let k = 0; k < 36; k++) { const ang = rand(0, Math.PI * 2), v = rand(80, 280); parts.push({ x: C.x, y: C.y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v * 0.6, g: 120, size: Math.random() < 0.4 ? 4 : 2, color: [DC_MAG, '#ffffff', '#12001c', DC_PALE][k % 4], life: rand(0.4, 0.8), t: 0 }); }
-          for (const t of tg) { hitFx(t.x, t.y, DC_MAG, 2.6); dcTearFx(t.x, t.y, 16, 0.35); }
+          for (const t of tg) { hitFx(t.x, t.y, DC_MAG, 2.6, 'k36'); dcTearFx(t.x, t.y, 16, 0.35); }
           impact({ stop: 0.2, shake: 0.5 });
           return;
         }
@@ -494,7 +491,7 @@ Object.assign(SKILL_FX, {
             ctx.save(); ctx.globalAlpha = 1 - u; ctx.fillStyle = '#ffffff'; ctx.fillRect(-20, Math.round(ry) - 2 + u * 2, W + 40, Math.max(1, 4 * (1 - u))); ctx.restore();
           });
           for (let k = 0; k < 30; k++) parts.push({ x: rand(0, W), y: ry, vx: rand(-40, 40), vy: rand(-160, 160), g: 0, size: Math.random() < 0.3 ? 3 : 2, color: k % 2 ? DC_MAG : '#ffffff', life: rand(0.3, 0.6), t: 0, add: true });
-          for (const t of tg) { hitFx(t.x, t.y, DC_MAG, 2.8); burst(t.x, t.y, 24, [DC_MAG, '#ffffff', '#12001c'], 200, 2, 0); }
+          for (const t of tg) { hitFx(t.x, t.y, DC_MAG, 2.8, 'k36'); burst(t.x, t.y, 24, [DC_MAG, '#ffffff', '#12001c'], 200, 2, 0); }
           impact({ stop: 0.22, shake: 0.55 });
           return;
         }
@@ -511,7 +508,7 @@ Object.assign(SKILL_FX, {
         const B = a.dcHole.B;
         if (last) {
           for (let k = 0; k < 44; k++) { const ang = rand(0, Math.PI * 2), v = rand(120, 320); parts.push({ x: B.x, y: B.y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v * 0.5, g: 60, size: Math.random() < 0.4 ? 3 : 2, color: [DC_MAG, '#ffffff', '#ffb04d', '#b98cff'][k % 4], life: rand(0.4, 0.8), t: 0, add: true }); }
-          for (const t of tg) { hitFx(t.x, t.y, '#ffffff', 3); burst(t.x, t.y, 22, [DC_MAG, '#ffffff'], 200, 2, 0); }
+          for (const t of tg) { hitFx(t.x, t.y, '#ffffff', 3, 'k36'); burst(t.x, t.y, 22, [DC_MAG, '#ffffff'], 200, 2, 0); }
           impact({ stop: 0.26, shake: 0.65 });
           return;
         }

@@ -1,0 +1,53 @@
+{
+ "frames": [
+  {
+   "filename": "knightbar-xw4a-lotus 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 24,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "knightbar-xw4a-lotus.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 24,
+   "h": 24
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 12,
+   "y": 12
+  },
+  "frameTags": [
+   {
+    "name": "knightbar-xw4a-lotus",
+    "from": 0,
+    "to": 0,
+    "direction": "forward"
+   }
+  ]
+ }
+}

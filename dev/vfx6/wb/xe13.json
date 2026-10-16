@@ -1,0 +1,8 @@
+{"recipe": {"canvas": {"w": 48, "h": 16}, "frames": 6, "fps": 12, "loop": true,
+ "ramps": {"main": ["#6e6e7a", "#9a9aa6", "#c6c6d0", "#ececf2", "#ffffff"], "ring": ["#6e6e7a", "#9a9aa6", "#c6c6d0", "#ececf2", "#ffffff"]},
+ "outline": {"mode": "none"}, "detail": 0,
+ "layers": [
+  {"id": "ring", "type": "ring", "ramp": "ring", "radius": 21, "squash": 0.28, "width": 1, "soft": 0, "intensity": 0.5, "outline": false},
+  {"id": "motes", "type": "particles", "z": "front", "mode": "orbit", "radius": 21, "squash": 0.28, "count": 3, "spacing": "even", "cycles": 1, "shape": "dot", "size": [3, 3], "shrink": 0, "intensity": 1, "outline": false},
+  {"id": "tail", "type": "particles", "mode": "orbit", "radius": 21, "squash": 0.28, "count": 9, "spacing": "even", "cycles": 1, "shape": "dot", "size": [2, 2], "shrink": 0, "intensity": 0.8, "outline": false}
+ ]}}

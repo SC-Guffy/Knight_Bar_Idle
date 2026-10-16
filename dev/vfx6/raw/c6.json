@@ -24,7 +24,7 @@
     "x": 0.4782608695652174,
     "y": 0.5
    },
-   "duration": 83
+   "duration": 100
   },
   {
    "filename": "knightbar-c6-smoke 1.png",
@@ -50,7 +50,7 @@
     "x": 0.4782608695652174,
     "y": 0.5
    },
-   "duration": 83
+   "duration": 100
   },
   {
    "filename": "knightbar-c6-smoke 2.png",
@@ -76,36 +76,10 @@
     "x": 0.4782608695652174,
     "y": 0.5
    },
-   "duration": 83
+   "duration": 100
   },
   {
    "filename": "knightbar-c6-smoke 3.png",
-   "frame": {
-    "x": 69,
-    "y": 0,
-    "w": 23,
-    "h": 24
-   },
-   "rotated": false,
-   "trimmed": false,
-   "spriteSourceSize": {
-    "x": 0,
-    "y": 0,
-    "w": 23,
-    "h": 24
-   },
-   "sourceSize": {
-    "w": 23,
-    "h": 24
-   },
-   "pivot": {
-    "x": 0.4782608695652174,
-    "y": 0.5
-   },
-   "duration": 83
-  },
-  {
-   "filename": "knightbar-c6-smoke 4.png",
    "frame": {
     "x": 0,
     "y": 24,
@@ -128,10 +102,10 @@
     "x": 0.4782608695652174,
     "y": 0.5
    },
-   "duration": 83
+   "duration": 100
   },
   {
-   "filename": "knightbar-c6-smoke 5.png",
+   "filename": "knightbar-c6-smoke 4.png",
    "frame": {
     "x": 23,
     "y": 24,
@@ -154,10 +128,10 @@
     "x": 0.4782608695652174,
     "y": 0.5
    },
-   "duration": 83
+   "duration": 100
   },
   {
-   "filename": "knightbar-c6-smoke 6.png",
+   "filename": "knightbar-c6-smoke 5.png",
    "frame": {
     "x": 46,
     "y": 24,
@@ -180,36 +154,10 @@
     "x": 0.4782608695652174,
     "y": 0.5
    },
-   "duration": 83
+   "duration": 100
   },
   {
-   "filename": "knightbar-c6-smoke 7.png",
-   "frame": {
-    "x": 69,
-    "y": 24,
-    "w": 23,
-    "h": 24
-   },
-   "rotated": false,
-   "trimmed": false,
-   "spriteSourceSize": {
-    "x": 0,
-    "y": 0,
-    "w": 23,
-    "h": 24
-   },
-   "sourceSize": {
-    "w": 23,
-    "h": 24
-   },
-   "pivot": {
-    "x": 0.4782608695652174,
-    "y": 0.5
-   },
-   "duration": 83
-  },
-  {
-   "filename": "knightbar-c6-smoke 8.png",
+   "filename": "knightbar-c6-smoke 6.png",
    "frame": {
     "x": 0,
     "y": 48,
@@ -232,10 +180,10 @@
     "x": 0.4782608695652174,
     "y": 0.5
    },
-   "duration": 83
+   "duration": 100
   },
   {
-   "filename": "knightbar-c6-smoke 9.png",
+   "filename": "knightbar-c6-smoke 7.png",
    "frame": {
     "x": 23,
     "y": 48,
@@ -258,7 +206,7 @@
     "x": 0.4782608695652174,
     "y": 0.5
    },
-   "duration": 83
+   "duration": 100
   }
  ],
  "meta": {
@@ -266,7 +214,7 @@
   "image": "knightbar-c6-smoke.png",
   "format": "RGBA8888",
   "size": {
-   "w": 92,
+   "w": 69,
    "h": 72
   },
   "scale": "1",
@@ -279,7 +227,7 @@
    {
     "name": "knightbar-c6-smoke",
     "from": 0,
-    "to": 9,
+    "to": 7,
     "direction": "forward"
    }
   ]

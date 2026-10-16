@@ -19,6 +19,13 @@ const VFX_SHEETS = {
   c17: { frames: 5 },    // C17 시전 오라: 속이 빈 불꽃 테두리 루프 (40종 공용, 기사 뒤에 바닥 기준)
   c18: { frames: 5 },    // C18 발밑 빛 고리 루프 48×16 (64×32 로 뽑아 nearest 로 납작하게). ★★ 이상, ★★★ 는 금빛 고리를 한 겹 더
   k01: { frames: 5 },    // K01 강철 베기 명중: 땅 위 충격선(20번째 줄) + 아래 균열 + 강철 파편 3조각 (v2, 바닥 기준)
+  // 빈 곳 채우기 (2026-10-16, docs/specs/skill-vfx.md "빈 곳 채우기 계획") — 무료 워크벤치·ComfyUI 시안, 외곽선 없음
+  e01: { frames: 3 },    // E01 강철 베기 ★★★ 천강검: 0 꽂힌 칼 · 1·2 떨어지는 칼 + 위 잔상 (32×96, 칼끝 줄 E01_TIP)
+  e45: { frames: 4 },    // E45 차원 붕괴 공허 균열 마디 타일 32×8: 좌우 끝이 4.5줄에서 같은 모양 → 금 마디마다 돌려 이어 붙인다
+  c6: { frames: 7 },     // C6 연기·포연 한 덩이: 퍼졌다 흩어짐 (23×24, 공용)
+  c7: { frames: 4 },     // C7 흙·바위 조각 하나 회전 루프 (16×16) — 코드가 여러 개를 던진다
+  c8: { frames: 6 },     // C8 지면 균열: 가운데서 좌우로 갈라져 퍼짐 (64×16, 가운데 8줄이 땅선)
+  c16: { frames: 4 },    // C16 별 반짝임 루프 (8×8)
 };
 // 무기 → 평타 궤적 시트 (휘두르기, 찌르기). 직업 → 평타 명중 시트. 없으면 예전 그림
 const VFX_WEAPON = { sword: ['w1', 'w2'], knightSword: ['w1', 'w2'] };
@@ -196,6 +203,19 @@ function vfxDraw(g, id, color, f, x, y, o = {}) {
   g.drawImage(cv, Math.max(0, Math.min(s.frames - 1, f)) * s.fw + c0, 0, cw, s.h, -w / 2, o.anchor === 'b' ? -h : -h / 2, w, h);
   g.restore();
   return true;
+}
+
+// 띠 시트(C8 지면 균열 등)를 x0 에서 dir 쪽으로 len 만큼 이어 붙인다. 끝 토막은 잘라 그린다(crop).
+//  o: vfxDraw 옵션 + { overlap 겹칠 도트(기본 4), vary 토막마다 상하 뒤집어 같은 모양 반복을 숨김(기본 true) }
+function vfxTileRun(g, id, color, f, x0, y, len, dir, o = {}) {
+  const s = VFX_SHEETS[id];
+  if (!s || !s.fw || len <= 0) return;
+  const sc = (o.scale || 1) * VFX_DOT, tw = s.fw * sc, step = tw - (o.overlap == null ? 4 : o.overlap) * sc;
+  for (let i = 0, d = 0; d < len; i++, d += step) {
+    const k = Math.min(1, (len - d) / tw), cx = x0 + dir * (d + (tw * k) / 2);
+    // 오른쪽으로 가면 토막의 왼쪽부터, 왼쪽으로 가면 오른쪽부터 보인다
+    vfxDraw(g, id, color, f, cx, y, { ...o, crop: dir > 0 ? [0, k] : [1 - k, 1], flipY: o.vary !== false && i % 2 === 1 });
+  }
 }
 
 // 시트 애니메이션을 한 번 재생한다 (스킬 이펙트 목록 skfx 에 얹는다 → 히트스톱·연출 정지와 같이 멈춘다)

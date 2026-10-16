@@ -55,10 +55,8 @@ function mbShards(a, x, y, n, speed, life, cols) {
     ctx.save();
     for (const p of list) {
       p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 240 * dt; p.vx *= 1 - 2 * dt;
-      const s = p.s * (1 - u * 0.6);
-      ctx.globalAlpha = 1 - u;
-      ctx.fillStyle = p.c;
-      ctx.beginPath(); ctx.moveTo(p.x, p.y - s); ctx.lineTo(p.x + s * 0.6, p.y); ctx.lineTo(p.x, p.y + s); ctx.lineTo(p.x - s * 0.6, p.y); ctx.closePath(); ctx.fill();
+      // 조각 그림은 C7 바위 조각 시트를 마력 색으로 다시 칠해 돌린다
+      vfxDraw(ctx, 'c7', p.c, Math.floor(u * 12 + p.s * 3) % 4, p.x, p.y, { scale: p.s * (1 - u * 0.6) > 2.5 ? 1 : 2 / 3, alpha: 1 - u });
     }
     ctx.restore();
   });

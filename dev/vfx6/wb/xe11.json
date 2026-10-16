@@ -1,0 +1,8 @@
+{"recipe": {"canvas": {"w": 16, "h": 16}, "frames": 4, "fps": 12, "loop": false,
+ "ramps": {"main": ["#6e6e7a", "#9a9aa6", "#c6c6d0", "#ececf2", "#ffffff"]},
+ "outline": {"mode": "none"}, "detail": 0,
+ "layers": [
+  {"id": "shard", "type": "shape", "points": [[0, -6], [3, 0], [0, 6], [-3, 0]], "fill": "radial", "bevel": 2,
+   "rotation": {"from": 0, "to": 135}, "scale": {"keys": [[0, 1], [0.5, 0.8], [1, 0.45]]}, "intensity": {"keys": [[0, 1], [1, 0.75]]}, "outline": false},
+  {"id": "core", "type": "glow", "radius": {"keys": [[0, 2], [1, 1]]}, "shape": "hard", "z": "front", "intensity": 1, "outline": false}
+ ]}}
