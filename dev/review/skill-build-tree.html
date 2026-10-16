@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>스킬 빌드 트리 시안</title>
 <!-- 스펙: docs/specs/skill-build-tree.md. 검사 계열 트리 시안 — 수치는 시안. 레벨 속도는 dev/lifespan-bot.js (0.24.4) 중앙값 -->
+<link rel="stylesheet" href="../../src/skin/icons.css">
 <style>
   @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
   @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
@@ -39,21 +40,45 @@
   .stat b { color: var(--gold); }
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 10px; align-items: start; }
   @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
-  .tree { position: relative; width: 1080px; height: 560px; background: radial-gradient(circle at 18% 52%, #2a2340 0, var(--bg) 60%); border: 1px solid var(--line); border-radius: 6px; }
+  .tree { position: relative; width: 1080px; height: 600px; background: radial-gradient(circle at 18% 52%, #2a2340 0, var(--bg) 60%); border: 1px solid var(--line); border-radius: 6px; }
   .tree svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  .lane { position: absolute; left: 400px; right: 8px; border-radius: 6px; font-size: 11px; padding: 2px 8px; }
-  .n { position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; width: 46px; height: 46px; border: 2px solid var(--line); background: #1d1928; color: var(--dim); cursor: pointer; font: 700 15px Galmuri11, sans-serif; padding: 0; border-radius: 50%; }
-  .n.stat { width: 30px; height: 30px; font-size: 11px; }
-  .n.active, .n.ult { border-radius: 8px; transform: translate(-50%, -50%) rotate(45deg); }
-  .n.active > span, .n.ult > span { transform: rotate(-45deg); }
-  .n.key { border-radius: 4px; width: 42px; height: 42px; }
+  .lane { position: absolute; left: 400px; right: 8px; border-radius: 6px; font-size: 11px; padding: 2px 8px; text-align: right; }
+  /* 노드: 게임 도트 아이콘(src/skin/icons.css)을 입힌다. 액티브 = 스킬 버튼처럼 두꺼운 틀 + 큰 아이콘 + 칸 수 뱃지·눈금, 궁극기 = 금테 이중 틀 + 왕관, 융합 = 두 부모 아이콘 대각선 반반,
+     변형 = 원 안 아이콘, 키스톤 = 이중 테 사각, 스탯 = 작은 원. 못 찍음 = 흑백, 찍을 수 있음 = 갈래 색 테두리 빛, 찍음 = 컬러 + 갈래 색 틀 */
+  .n { --c: #8f7cc0; position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; padding: 0; cursor: pointer; border: 2px solid var(--line); background: #1d1928; border-radius: 50%; }
+  .n .pi { image-rendering: pixelated; pointer-events: none; }
+  .n .ico { position: relative; display: grid; place-items: center; filter: grayscale(1) brightness(.75); }
+  .n.got .ico { filter: none; }
+  .n.can:not(.got) .ico { filter: saturate(.55) brightness(.9); }
+  .n.stat { width: 32px; height: 32px; }
+  .n.mod { width: 44px; height: 44px; }
+  .n.key { width: 46px; height: 46px; border-radius: 4px; border-width: 4px; border-style: double; }
+  .n.uvar { width: 46px; height: 46px; border-radius: 8px; }
+  .n.active, .n.fusion { width: 58px; height: 58px; border-radius: 7px; border-width: 3px; background: linear-gradient(#2a2438, #15121c); box-shadow: inset 0 0 0 2px #0008, 0 3px 0 #0007; }
+  .n.ult { width: 66px; height: 66px; border-radius: 8px; border: 4px double var(--gold); background: linear-gradient(#3a2e18, #17120a); box-shadow: inset 0 0 0 2px #0008, 0 3px 0 #0007; }
   .n.fusion { border-style: dashed; }
-  .n .rk { position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); font: 10px Galmuri11, sans-serif; color: var(--dim); white-space: nowrap; }
-  .n.active .rk, .n.ult .rk { transform: rotate(-45deg) translate(-2px, 22px); left: auto; bottom: auto; }
-  .n.can { color: var(--ink); border-color: #8f7cc0; box-shadow: 0 0 0 3px #8f7cc033; }
-  .n.got { color: #17141f; }
-  .n.lock { opacity: .35; cursor: not-allowed; }
-  .n.sel { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .n .tile { width: 42px; height: 42px; display: grid; place-items: center; border: 2px solid #0009; border-radius: 3px; box-shadow: inset 0 0 0 1px #fff3; }
+  .n .split { position: relative; display: block; width: 42px; height: 42px; }
+  .n .split > * { position: absolute; inset: 0; }
+  .n .split > :first-child { clip-path: polygon(0 0, 100% 0, 0 100%); }
+  .n .split > :last-child { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+  .n .split::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top left, transparent calc(50% - 1px), #ffffffcc 50%, transparent calc(50% + 1px)); }
+  .n .lvb { position: absolute; right: -8px; bottom: -8px; min-width: 18px; height: 16px; padding: 0 3px; border-radius: 3px; background: #0d0b12; border: 1px solid var(--c); color: var(--ink); font: 700 11px/14px Galmuri11, sans-serif; font-style: normal; text-align: center; }
+  .n .meter { position: absolute; left: 5px; right: 5px; bottom: 2px; height: 3px; background: #0009; }
+  .n .meter > b { display: block; height: 100%; background: var(--c); }
+  .n .crown { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); }
+  .n .badge { position: absolute; right: -14px; bottom: -14px; background: #0d0b12; border: 1px solid var(--gold); border-radius: 50%; width: 20px; height: 20px; display: grid; place-items: center; }
+  .n .rk { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); font: 10px Galmuri11, sans-serif; font-style: normal; color: var(--dim); white-space: nowrap; text-shadow: 0 1px 0 #000; }
+  .n.active .rk, .n.fusion .rk, .n.ult .rk { top: calc(100% + 9px); color: var(--ink); }
+  .n.fusion .rk { top: 50%; left: calc(100% + 12px); transform: translateY(-50%); text-align: left; }   /* 융합은 갈래 사이 틈에 있어 이름표를 옆으로 */
+  .n.fusion[data-lbl=l] .rk { left: auto; right: calc(100% + 12px); text-align: right; }
+  .n.can { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 30%, transparent); }
+  .n.got { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, #15121c); }
+  .n.active.got, .n.fusion.got { box-shadow: 0 0 10px color-mix(in srgb, var(--c) 55%, transparent), 0 3px 0 #0007; }
+  .n.ult.got { box-shadow: 0 0 14px #ffd25788; }
+  .n.lock { opacity: .45; cursor: not-allowed; }
+  .n.sel { outline: 2px solid var(--gold); outline-offset: 4px; }
+  .slot .pi, #pool .pi { vertical-align: -9px; margin-right: 4px; }
   .side { position: sticky; top: env(safe-area-inset-top, 0px); display: grid; gap: 8px; }
   .slots { display: grid; gap: 4px; }
   .slot { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px dashed var(--line); border-radius: 4px; min-height: 30px; }
@@ -124,8 +149,8 @@
 <div class="bar" id="presets"></div>
 <div class="bar stat" id="summary"></div>
 <div class="legend">
-  <span>◆ 액티브 (칸당 2, 10칸)</span><span>● 변형 (4)</span><span>■ 키스톤 (8)</span><span>· 스탯 (1, 5칸)</span><span>★ 궁극기 (3차, 칸당 2, 10칸)</span><span>점선 = 융합 (칸당 3, 5칸)</span>
-  <span>✧ 궁극기 변형 (6, 셋 중 하나)</span><span>클릭 +1 · 우클릭/Shift+클릭 −1 · 3차 키스톤은 그 갈래 12포인트 · 융합은 두 갈래 6포인트씩</span>
+  <span>큰 사각 틀 = 액티브 (칸당 2, 10칸 · 오른쪽 아래 숫자 = 찍은 칸)</span><span>원 = 변형 (4)</span><span>이중 테 사각 = 키스톤 (8)</span><span>작은 원 = 스탯 (1, 5칸)</span><span>금테 + 왕관 = 궁극기 (3차, 칸당 2, 10칸)</span><span>점선 틀 · 반반 아이콘 = 융합 (칸당 3, 5칸)</span>
+  <span>천검 + 작은 뱃지 = 궁극기 변형 (6, 셋 중 하나)</span><span>새 스킬·융합·변형 아이콘은 UI 아이콘을 얹은 임시 — 구현 때 전용 아이콘</span><span>클릭 +1 · 우클릭/Shift+클릭 −1 · 3차 키스톤은 그 갈래 12포인트 · 융합은 두 갈래 6포인트씩</span>
 </div>
 <div class="layout">
   <div class="scroll"><div class="tree" id="tree"><svg id="edges"></svg></div></div>
@@ -216,8 +241,30 @@ const BY = Object.fromEntries(N.map((n) => [n.id, n]));
 const SPEC = { uvar: { cost: 6, max: 1, glyph: '✧' }, stat: { cost: 1, max: 5, glyph: '·' }, active: { cost: 2, max: 10, glyph: '◆' }, mod: { cost: 4, max: 1, glyph: '●' }, key: { cost: 8, max: 1, glyph: '■' }, ult: { cost: 2, max: 10, glyph: '★' }, fusion: { cost: 3, max: 5, glyph: '✦' } };
 const LANE_COLOR = { c: 'var(--lc)', a: 'var(--lp)', b: 'var(--lb)', k: 'var(--lg)' };
 const LANE_NAME = { a: '⚡ 연타 갈래', b: '🗡️ 발도 갈래', k: '🌙 검기 갈래' };
-const LANE_SUB = { a: '질풍난무 · 많이 · 빠르게 — 보호막 보스에 강함', b: '일섬 · 한 방 · 처형 — 광폭화 보스에 강함', k: '검기 · 멀리 · 넓게 — 졸개 소환 보스에 강함' };
-const SX = 88, SY = 76, OX = 40, OY = 40;
+const LANE_SUB = { a: '🛡️ 보호막에 강함', b: '🔥 광폭화에 강함', k: '👥 졸개에 강함' };   // 갈래 제목은 오른쪽 위에 짧게 (노드와 안 겹치게)
+// 노드 아이콘 (src/skin/icons.png 의 이름). sk-* 는 지금 게임의 스킬 아이콘, 나머지는 UI 도트 아이콘.
+// 새 스킬·융합·궁극기 변형은 아직 전용 아이콘이 없어 UI 아이콘을 갈래 색 타일에 얹은 임시 — 구현 때 전용 스킬 아이콘(dev/make-icons.js)을 만든다
+const ICON = {
+  c_atk: 'muscle', c_hp: 'heart', c_spd: 'boot', c_crit: 'target', c_def: 'shield', c_cdr: 'hourglass',
+  slash: 'sk-steelCleave', s_twin: 'repeat', k_blade: 'stopwatch',
+  gale: 'sk-gale', a_more: 'sword', a_bleed: 'blood', whirl: 'tornado', a_follow: 'wing', a_stat: 'dash', a_key: 'anger', a_k3: 'infinity', uv_a: 'sword',
+  iaido: 'sk-iaido', b_reset: 'ghost', b_exec: 'skull', flash: 'bolt', b_after: 'shootingstar', b_stat: 'star', b_key: 'eye', b_k3: 'nazar', uv_b: 'dagger',
+  wave: 'moon', k_wave: 'crescent', k_pierce: 'arrowright', storm: 'cyclone', k_split: 'spark', k_stat: 'ruler', k_key: 'glow', k_k3: 'chains', uv_k: 'storm',
+  ult: 'sk-thousandCuts', f_ab: ['sk-gale', 'sk-iaido'], f_bk: ['sk-iaido', 'moon'], f_ak: ['tornado', 'moon'],
+};
+const TILE = { a: 'linear-gradient(135deg, #6b4a12, #2a1e08)', b: 'linear-gradient(135deg, #14506a, #0a2230)', k: 'linear-gradient(135deg, #6a2a14, #2a1008)', c: 'linear-gradient(135deg, #3d2f6a, #1a1430)' };
+const pi = (name, px) => `<i class="pi pi-${name}" style="width:${px}px;height:${px}px"></i>`;
+// 액티브·융합 칸 안의 그림: 스킬 아이콘(sk-*)은 자체 틀이 있어 3배 그대로, UI 아이콘은 갈래 색 타일에 2배로 얹는다
+const skillTile = (name, lane) => (name.startsWith('sk-') ? pi(name, 42) : `<span class="tile" style="background:${TILE[lane] || TILE.c}">${pi(name, 28)}</span>`);
+const slotIcon = (n) => { const ic = ICON[n.id]; return pi(Array.isArray(ic) ? ic[0] : ic, 28); };
+function iconHtml(n) {
+  const ic = ICON[n.id];
+  if (n.t === 'fusion') return `<span class="split">${skillTile(ic[0], n.lanes[0])}${skillTile(ic[1], n.lanes[1])}</span>`;
+  if (n.t === 'active' || n.t === 'ult') return skillTile(ic, n.lane);
+  if (n.t === 'uvar') return pi('sk-thousandCuts', 28) + `<span class="badge">${pi(ic, 14)}</span>`;
+  return pi(ic, n.t === 'stat' ? 14 : 28);
+}
+const SX = 88, SY = 80, OX = 44, OY = 44;
 const px = (n) => [OX + n.x * SX, OY + n.y * SY];
 
 const st = { lv: 112, rk: {}, eq: [], sel: null };
@@ -257,7 +304,10 @@ function buildDom() {
   for (const n of N) {
     const b = document.createElement('button'); b.id = 'n-' + n.id; b.className = 'n ' + n.t;
     const [x, y] = px(n); b.style.left = x + 'px'; b.style.top = y + 'px';
-    b.innerHTML = `<span>${SPEC[n.t].glyph}</span><i class="rk"></i>`;
+    b.style.setProperty('--c', n.t === 'fusion' ? 'var(--pink)' : n.t === 'ult' ? 'var(--gold)' : LANE_COLOR[n.lane]);
+    const rich = ['active', 'fusion', 'ult'].includes(n.t);
+    if (n.t === 'fusion' && n.x < 4) b.dataset.lbl = 'l';   // 줄기 쪽 융합(칼날 폭풍)은 이름표를 왼쪽에
+    b.innerHTML = `<span class="ico">${iconHtml(n)}</span>${rich ? '<i class="meter"><b></b></i><i class="lvb"></i>' : ''}${n.t === 'ult' ? `<span class="crown">${pi('crown', 14)}</span>` : ''}<i class="rk"></i>`;
     b.title = n.n;
     b.onclick = (e) => { st.sel = n.id; e.shiftKey ? sub(n.id) : add(n.id); render(); };
     b.oncontextmenu = (e) => { e.preventDefault(); st.sel = n.id; sub(n.id); render(); };
@@ -276,12 +326,13 @@ function render() {
   for (const n of N) {
     const b = document.getElementById('n-' + n.id), r = st.rk[n.id] || 0, col = n.t === 'fusion' ? 'var(--pink)' : LANE_COLOR[n.lane];
     b.className = 'n ' + n.t + (r ? ' got' : canAdd(n) ? ' can' : open(n) ? '' : ' lock') + (st.sel === n.id ? ' sel' : '');
-    b.style.background = r ? col : ''; b.style.borderColor = r || canAdd(n) ? col : '';
+    const mx = SPEC[n.t].max, lvb = b.querySelector('.lvb');
+    if (lvb) { lvb.textContent = r; b.querySelector('.meter b').style.width = (100 * r / mx) + '%'; }
     // 열리는 조건을 숫자로 (레퍼런스 ③ — 디아블로4 묶음 게이트·하데스 듀오): 융합은 두 갈래 포인트, 3차 키스톤은 그 갈래 포인트
     const LN = { a: '연타', b: '발도', k: '검기' };
     const gate = !r && n.t === 'fusion' ? ' · ' + n.lanes.map((l) => `${LN[l]} ${Math.min(6, lanePts(l))}/6`).join(' ')
       : !r && n.min ? ` · ${LN[n.lane]} ${Math.min(n.min, lanePts(n.lane))}/${n.min}` : '';
-    b.querySelector('.rk').textContent = `${n.n}${SPEC[n.t].max > 1 ? ` ${r}/${SPEC[n.t].max}` : ''}${gate}`;
+    b.querySelector('.rk').textContent = `${n.n}${mx > 1 && !lvb ? ` ${r}/${mx}` : ''}${gate}`;   // 액티브·융합·궁극기는 칸 수를 뱃지·눈금으로
   }
   // 선
   const svg = document.getElementById('edges'); svg.innerHTML = '';
@@ -298,13 +349,13 @@ function render() {
   for (let i = 0; i < 4; i++) {
     const id = st.eq[i];
     if (i >= S) h += `<div class="slot locked">🔒 ${['', '2차 전직 · 골드', 'Lv80 · 💎300', 'Lv120 · 💎1,500'][i]}</div>`;
-    else h += id ? `<div class="slot full">${SPEC[BY[id].t].glyph} ${BY[id].n} <span class="sub">${st.rk[id]}칸</span></div>` : '<div class="slot">빈 칸</div>';
+    else h += id ? `<div class="slot full">${slotIcon(BY[id])} ${BY[id].n} <span class="sub">${st.rk[id]}칸</span></div>` : '<div class="slot">빈 칸</div>';
   }
   const ult = st.rk.ult > 0, uv = N.find((n) => n.t === 'uvar' && st.rk[n.id] > 0);
   h += T >= 3 ? `<div class="slot ${ult ? 'full' : ''}">★ 궁극기: ${ult ? (uv ? uv.n : '천검') : '비어 있음'}</div>` : '<div class="slot locked">★ 궁극기 칸 (3차)</div>';
   slots.innerHTML = h;
   const learned = N.filter((n) => ['active', 'fusion'].includes(n.t) && st.rk[n.id] > 0);
-  document.getElementById('pool').innerHTML = learned.map((n) => `<button id="eq-${n.id}" class="${st.eq.includes(n.id) ? 'on' : ''}" data-id="${n.id}">${n.n}</button>`).join('') || '<span class="sub">배운 액티브가 없어요</span>';
+  document.getElementById('pool').innerHTML = learned.map((n) => `<button id="eq-${n.id}" class="${st.eq.includes(n.id) ? 'on' : ''}" data-id="${n.id}">${slotIcon(n)}${n.n}</button>`).join('') || '<span class="sub">배운 액티브가 없어요</span>';
   document.querySelectorAll('#pool button').forEach((b) => (b.onclick = () => { const id = b.dataset.id; if (st.eq.includes(id)) st.eq = st.eq.filter((x) => x !== id); else if (st.eq.length < slotsAt(st.lv)) st.eq.push(id); else flash('칸이 다 찼어요 — 먼저 하나를 빼세요'); render(); }));
   if (st.sel) showDetail(BY[st.sel]);
 }
