@@ -146,6 +146,29 @@ LABEL = {'idle': '대기 4f', 'walk': '걷기 8f', 'thrust': '찌르기 8f (찌�
          'sweep': '휩쓸기 8f (휩쓸기형 평타A)', 'chop': '내려찍기 8f (휩쓸기형 평타B)'}
 
 
+# ── 그림체 B(3등신)·키 46px 로 맞추기 (2026-10-16 사용자 확정) ──
+#  위 시퀀스는 지금 비율(2.5등신, 192칸에서 키 약 60)로 설계했다. 시트 칸 128 에 키 46 이면 192칸 생성에서는 키 약 69 (×1.5).
+#  3등신: 머리 23 · 몸통 20 · 다리 26. 발에서 잰 높이를 구간마다 다시 매기고(발 176 · 엉덩이 159→150 · 목 134→130 · 정수리 116→107),
+#  가로는 발 x 둘레로 1.15배. 새 기준 그림이 나오면 BASE 를 그 그림에서 다시 읽어 바꾼다
+B46 = True
+_KO = [176, 159, 134, 116, 60]          # 지금 비율의 높이 마디 (발 · 엉덩이 · 목 · 정수리 · 머리 위 손 끝까지 넉넉히)
+_KN = [176, 150, 130, 107, 40]          # B 3등신 · 키 69 (192칸)
+
+
+def _remap_y(y):
+    for i in range(len(_KO) - 1):
+        a, b = _KO[i], _KO[i + 1]
+        if b <= y <= a or i == len(_KO) - 2:
+            t = (y - a) / (b - a)
+            return _KN[i] + t * (_KN[i + 1] - _KN[i])
+    return y
+
+
+def to_b46(p):
+    if not B46: return p
+    return {k: (round(FOOT[0] + (x - FOOT[0]) * 1.15, 1), round(_remap_y(y), 1)) for k, (x, y) in p.items()}
+
+
 def kp(p):
     return [{'x': round(x / N, 4), 'y': round(y / N, 4), 'label': k, 'z_index': Z.get(k, 5)} for k, (x, y) in p.items()]
 
@@ -156,31 +179,33 @@ def stick(p, ang, S=3, ghost=None):
     if ghost is not None:
         for a, b in BONES: d.line([(ghost[a][0] * S, ghost[a][1] * S), (ghost[b][0] * S, ghost[b][1] * S)], fill=(60, 64, 80), width=S)
     a = math.radians(ang); g = p['RIGHT ARM']
-    d.line([((g[0] - 30 * math.cos(a)) * S, (g[1] - 30 * math.sin(a)) * S), ((g[0] + 34 * math.cos(a)) * S, (g[1] + 34 * math.sin(a)) * S)], fill=(255, 215, 80), width=S)
-    tip = (g[0] + 34 * math.cos(a), g[1] + 34 * math.sin(a))
+    L0, L1 = (34, 40) if B46 else (30, 34)
+    d.line([((g[0] - L0 * math.cos(a)) * S, (g[1] - L0 * math.sin(a)) * S), ((g[0] + L1 * math.cos(a)) * S, (g[1] + L1 * math.sin(a)) * S)], fill=(255, 215, 80), width=S)
+    tip = (g[0] + L1 * math.cos(a), g[1] + L1 * math.sin(a))
     d.polygon([((tip[0] + 6 * math.cos(a)) * S, (tip[1] + 6 * math.sin(a)) * S), ((tip[0] - 3 * math.sin(a)) * S, (tip[1] + 3 * math.cos(a)) * S),
                ((tip[0] + 3 * math.sin(a)) * S, (tip[1] - 3 * math.cos(a)) * S)], fill=(255, 240, 160))
     col = lambda a_, b_: (255, 120, 90) if 'RIGHT' in a_ + b_ else (90, 170, 255) if 'LEFT' in a_ + b_ else (230, 230, 230)
     for a_, b_ in sorted(BONES, key=lambda e: 'RIGHT' in e[0] + e[1]):
         d.line([(p[a_][0] * S, p[a_][1] * S), (p[b_][0] * S, p[b_][1] * S)], fill=col(a_, b_), width=S + 1)
-    hx, hy = p['NECK'][0] + 2, p['NECK'][1] - 9
-    d.ellipse([(hx - 8) * S, (hy - 8) * S, (hx + 8) * S, (hy + 8) * S], outline=(230, 230, 230), width=S)
-    d.line([(40 * S, FOOT[1] * S), (160 * S, FOOT[1] * S)], fill=(80, 80, 100), width=1)
-    return im.crop((40 * S, 70 * S, 175 * S, 182 * S))
+    R = 11 if B46 else 8
+    hx, hy = p['NECK'][0] + 2, p['NECK'][1] - R - 1
+    d.ellipse([(hx - R) * S, (hy - R) * S, (hx + R) * S, (hy + R) * S], outline=(230, 230, 230), width=S)
+    d.line([(30 * S, FOOT[1] * S), (175 * S, FOOT[1] * S)], fill=(80, 80, 100), width=1)
+    return im.crop((30 * S, 50 * S, 185 * S, 182 * S))
 
 
 if __name__ == '__main__':
     os.makedirs(SK, exist_ok=True)
     for name, frames in ACTIONS.items():
-        fr = [(p, a if a is not None else spear_ang(p)) for p, a in frames]
-        base = STAND if name in ('idle', 'walk') else pose()      # 머리 관절까지 채운 기준 자세
+        fr = [(to_b46(p), a if a is not None else spear_ang(p)) for p, a in frames]      # 각도는 변환 전 손 방향 (가로 1.15배로 조금 눕는 것 방지)
+        base = to_b46(STAND if name in ('idle', 'walk') else pose())      # 머리 관절까지 채운 기준 자세
         tiles = [stick(p, a, ghost=base) for p, a in fr]
         W_, H_ = tiles[0].size; mont = Image.new('RGBA', ((W_ + 6) * len(tiles), H_), (40, 42, 52, 255))
         for i, t in enumerate(tiles): mont.paste(t, (i * (W_ + 6), 0))
         mont.save(os.path.join(SK, f'stick-{name}.png'))
         g = [t.convert('RGB') for t in tiles]
         g[0].save(os.path.join(SK, f'stick-{name}.gif'), save_all=True, append_images=g[1:], duration=120 if name not in ('idle',) else 250, loop=0)
-        json.dump({'action': name, 'label': LABEL[name], 'canvas': N, 'foot': FOOT, 'frames': [kp(p) for p, _ in fr], 'spear_deg': [a for _, a in fr],
+        json.dump({'action': name, 'label': LABEL[name], 'canvas': N, 'foot': FOOT, 'proportion': 'B 3등신 키 69/192 (시트 46/128)' if B46 else '지금 비율', 'frames': [kp(p) for p, _ in fr], 'spear_deg': [a for _, a in fr],
                    'first_frame_keypoints': kp(base)}, open(os.path.join(SK, f'{name}.json'), 'w'), ensure_ascii=False)
         # 몸 움직임 크기 (막대 인형 기준): 목·앞손·앞발이 기준 자세에서 가장 멀리 간 거리
         far = lambda k: max(math.hypot(p[k][0] - base[k][0], p[k][1] - base[k][1]) for p, _ in fr)

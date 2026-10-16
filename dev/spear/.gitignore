@@ -7,3 +7,4 @@ frames/
 frames-rig/
 *.log
 __pycache__/
+design/raw/
