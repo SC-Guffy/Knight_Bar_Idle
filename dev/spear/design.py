@@ -137,6 +137,76 @@ def gen3(classes):
             ims[0].save(out); print(cls, 'v3', s, f'{dt:.1f}s', flush=True)
 
 
+# ── 시안 v4 (2026-10-16 사용자: "기존 비주얼을 따라갈 필요 없이 컨셉에만 알맞게 새로") ──
+#  지금 스프라이트 밑그림 img2img 는 그만둔다. 3등신 비율 가이드(회색 머리 원·몸통·다리 덩어리, 옆모습)만 깔고 denoise 0.92 로
+#  컨셉 프롬프트대로 새로 그린다 (가이드: 굵은 도트 마네킹, denoise 0.85) (글로만 쓰면 5~6등신이 나온다 — 검사 세션 1차 시도). 가이드의 정수리·발 높이로 몸 키 46칸에 줄인다.
+GUIDE = dict(top=170, foot=870)          # 가이드 정수리·발바닥 y (1024) → 몸 키 700, 머리 233 (3등신)
+WHO4 = {
+    'lancer': 'A young lancer knight warrior, proud upright heroic stance, chest out, a polished steel breastplate and round steel '
+              'shoulder pauldrons over a forest green tunic, an open-faced steel sallet helmet with a short green plume, a short dark '
+              'green cape, steel gauntlets and greaves, holding a long steel-tipped spear angled forward with a small green swallowtail '
+              'pennant just below the spearhead. A disciplined soldier, not a peasant.',
+    'dragoon': 'A dragon knight warrior standing upright with a straight back, wearing a helmet shaped like a dragon skull with a long '
+               'pointed snout, sharp white fangs and two long horns sweeping straight backward, glowing bright yellow eyes, deep purple '
+               'scale-mail armor with bright lavender highlights on every scale and a pale cream armored belly plate, a tattered bat-wing '
+               'cape with clawed membranes spreading behind the shoulders, a thin whip-like dragon tail, holding a long dragon spear with '
+               'a serrated fang-shaped spearhead. Clearly a dragon, not an insect or beetle, no round shell on the back.',
+    'halberdier': 'A heavy halberdier warrior with an inverted triangle body: very broad shoulders with large square steel pauldrons, '
+                  'a broad chest, a narrow waist cinched by a thick leather belt, thick armored arms, strong legs, an orange surcoat with '
+                  'diagonal stripes, a bucket helmet with one horizontal eye slit, holding a big halberd with a large axe blade, a back '
+                  'hook and a top spike. Muscular and armored, not fat, no belly.',
+    'cavalier': 'A cavalry lancer knight in a royal blue surcoat over silver plate armor, a crested helmet with a tall red feather plume, '
+                'a kite shield with a red emblem on the left arm, holding a very thick cone-shaped steel jousting lance as thick as the arm '
+                'with a large round vamplate hand guard, the long lance clearly visible pointing forward.',
+}
+
+
+def guide():
+    """3등신 옆모습 비율 가이드 (1024): 16px 굵은 도트로 그린 민무늬 마네킹 — 검은 외곽선·위 밝고 아래 어두운 명암.
+    흐린 회색 덩어리(첫 시도)는 denoise 0.92 에서 무시돼 5~6등신 일러스트가 나왔다. 도트 그림처럼 보이는 가이드라야 비율·그림체를 따른다"""
+    B = 16; Wc = 1024 // B
+    t, f = GUIDE['top'] // B, GUIDE['foot'] // B; hh = (f - t) / 3; cx = 470 // B
+    cells = {}
+    def box(x0, y0, x1, y1, c):
+        for y in range(int(y0), int(y1)):
+            for x in range(int(x0), int(x1)): cells[(x, y)] = c
+    skin, dark, mid, lite = (150, 150, 160), (95, 96, 108), (130, 131, 142), (175, 176, 186)
+    for y in range(t, int(t + hh)):                                   # 머리 (원)
+        for x in range(int(cx - hh * 0.6), int(cx + hh * 0.6) + 1):
+            if ((x - cx) / (hh * 0.55)) ** 2 + ((y - t - hh / 2) / (hh / 2)) ** 2 <= 1: cells[(x, y)] = lite if y < t + hh * 0.45 else skin
+    box(cx - hh * 0.5, t + hh * 0.95, cx + hh * 0.5, t + hh * 1.5, lite)          # 가슴
+    box(cx - hh * 0.5, t + hh * 1.5, cx + hh * 0.5, t + hh * 2.0, mid)            # 배·허리
+    box(cx - hh * 0.42, t + hh * 2.0, cx - hh * 0.05, f, dark)                     # 뒷다리
+    box(cx + hh * 0.05, t + hh * 2.0, cx + hh * 0.42, f, mid)                      # 앞다리
+    box(cx + hh * 0.3, t + hh * 1.05, cx + hh * 0.72, t + hh * 1.75, skin)         # 앞팔
+    im = Image.new('RGB', (Wc, Wc), (200, 200, 204)); P = im.load()
+    for (x, y), c in cells.items(): P[x, y] = c
+    for (x, y) in list(cells):                                                     # 외곽선
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            q = (x + dx, y + dy)
+            if q not in cells and 0 <= q[0] < Wc and 0 <= q[1] < Wc: P[q] = (20, 22, 30)
+    return im.resize((1024, 1024), Image.NEAREST)
+
+
+def gen4(classes, seeds=SEEDS):
+    from comfy import gen as G
+    gd = guide(); gd.save(os.path.join(RAW, '_guide4.png'))
+    for cls in classes:
+        for s in seeds:
+            out = os.path.join(RAW, f'{cls}4-{s}.png')
+            if os.path.exists(out): continue
+            ims, dt = G('zimg', SW.STYLE.format(who=WHO4[cls], body=BODY), seed=s, denoise=0.85, init=gd)
+            ims[0].save(out); print(cls, 'v4', s, f'{dt:.1f}s', flush=True)
+
+
+def shrink4(name):
+    sys.path.insert(0, os.path.join(HERE, '..', 'sheets-common'))
+    from shrink import shrink_body, body_bounds
+    im = Image.open(os.path.join(RAW, name + '.png'))
+    top, foot = body_bounds(im) or (GUIDE['top'], GUIDE['foot'])      # 모델이 가이드보다 크거나 작게 그려도 실제 몸 높이로
+    return shrink_body(im, top, foot, H)
+
+
 def gen(classes):
     from comfy import gen as G
     os.makedirs(RAW, exist_ok=True)
@@ -195,6 +265,12 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'shrink': shrink_all()
     elif sys.argv[1] == 'contrast': gen_contrast()
     elif sys.argv[1] == 'gen3': gen3(sys.argv[2:] or list(WHO3))
+    elif sys.argv[1] == 'gen4': gen4(sys.argv[2:] or list(WHO4))
+    elif sys.argv[1] == 'shrink4':
+        os.makedirs(PX, exist_ok=True)
+        for f in sorted(os.listdir(RAW)):
+            if f.endswith('.png') and '4-' in f and not f.startswith('_'):
+                o = shrink4(f[:-4]); o.save(os.path.join(PX, f[:-4] + f'-h{H}.png')); print(f[:-4], o.size)
     elif sys.argv[1] == 'pick':
         os.makedirs(PX, exist_ok=True)
         for c in PICK: shrink_pick(c).save(os.path.join(PX, f'pick-{c}-h{H}.png'))
