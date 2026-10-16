@@ -131,7 +131,8 @@ function dcCrackTree(cx, cy) {
 }
 // 금은 E45 공허 균열 마디 타일을 마디마다 그 방향으로 돌리고 길이만큼 늘여 이어 붙인다 (좌우 끝이 같은 모양이라 이음새가 안 보인다)
 function dcDrawCracks(lines, reach, al, hot) {
-  const col = hot ? DC_PALE : DC_MAG;
+  // 타일 심지가 이미 흰색이라 색은 늘 보라 — 터지는 순간(hot)엔 빛을 한 번 더 더한다
+  const col = DC_MAG;
   for (let li = 0; li < lines.length; li++) {
     const L = lines[li];
     if (L.pts[0][2] > reach) continue;
@@ -143,7 +144,9 @@ function dcDrawCracks(lines, reach, al, hot) {
       if (d > reach) { const k = (reach - pd) / (d - pd); x = mix(px, x, k); y = mix(py, y, k); }
       const len = Math.hypot(x - px, y - py);
       if (len < 1) continue;
-      vfxDraw(ctx, 'e45', col, f, (px + x) / 2, (py + y) / 2, { scale: sc, rot: Math.atan2(y - py, x - px), sx: (len + 2) / tw, alpha: al });
+      const o = { scale: sc, rot: Math.atan2(y - py, x - px), sx: (len + 2) / tw, alpha: al };
+      vfxDraw(ctx, 'e45', col, f, (px + x) / 2, (py + y) / 2, o);
+      if (hot) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; vfxDraw(ctx, 'e45', col, f, (px + x) / 2, (py + y) / 2, { ...o, alpha: al * 0.35 }); ctx.restore(); }
     }
   }
 }

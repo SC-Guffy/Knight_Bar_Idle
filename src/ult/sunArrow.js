@@ -167,9 +167,9 @@ function saAimStage(a) {
     for (let k = 0; k < 4; k++) { const ang = k * Math.PI / 2 - t * 2; ctx.fillRect(Math.round(x + Math.cos(ang) * (r + 2)) - 1, Math.round(y + Math.sin(ang) * (r + 2)) - 1, 3, 3); }
     if (lock) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5); }
     ctx.restore();
-    // 시위 끝에 작은 태양(F12)이 모여 커진다
+    // 시위 끝에 작은 태양 빛(H24 앞 두 장)이 모여 일렁인다 — 과녁을 잡으면 1배로
     const h = hand(a);
-    vfxDraw(ctx, 'f12', 'raw', vfxLoopF('f12', 10), h.x + a.dir * 8, h.y, { scale: 2 / 3, alpha: al * (lock ? 0.75 + 0.25 * Math.sin(clock * 40) : 0.85) });
+    vfxDraw(ctx, 'h24', 'raw', Math.floor(clock * 10) % 2, h.x + a.dir * 8, h.y, { scale: p > 0.7 ? 1 : 2 / 3, alpha: al * (lock ? 0.75 + 0.25 * Math.sin(clock * 40) : 0.85) });
   }, null, () => {
     if (Math.random() < 0.5) {
       const h = hand(a), ang = rand(0, Math.PI * 2), r = rand(24, 40);
@@ -191,8 +191,8 @@ function saLightArrowFx(a) {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(-20, Math.round(y0) - 1, W + 40, 2);
     ctx.restore();
-    // 시위 앞에서 작은 태양(F12)이 터져 퍼진다
-    vfxDraw(ctx, 'f12', 'raw', vfxLoopF('f12', 14), x0 + a.dir * 20 * easeOut(u), y0, { scale: u < 0.3 ? 2 / 3 : 1, alpha: 1 - u });
+    // 시위 앞에서 작은 태양 섬광(H24)이 터진다 — F12 는 2/3 배로도 기사를 가려서 신궁 평타 섬광을 크게 쓴다
+    if (u < 0.5) vfxDraw(ctx, 'h24', 'raw', Math.min(4, Math.floor(u * 10)), x0 + a.dir * 10, y0, { scale: 4 / 3, flip: a.dir < 0, alpha: 1 - u });
     if (t < 0.1) saArrow(hx, y0, a.dir > 0 ? 0 : Math.PI, 26, '#ffffff', '#ffffff');
   });
   for (let i = 0; i < 10; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * rand(60, 160), vy: rand(-70, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
