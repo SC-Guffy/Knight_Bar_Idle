@@ -21,3 +21,5 @@
 | 15 | cryomancer | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 35.0 | 1064.0 |
 | 16 | electromancer | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 39.0 | 1064.0 |
 | 17 | electromancer | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 43.0 | 1055.0 |
+| 18 | electromancer | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 47.0 | 1024.0 |
+| 19 | electromancer | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 51.0 | 1017.0 |

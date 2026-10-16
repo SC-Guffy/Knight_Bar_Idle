@@ -19,3 +19,4 @@ cryomancer/skelA
 cryomancer/skelB
 electromancer/skelA
 electromancer/skelB
+# 로드맵 승인 2026-10-17: 뇌전술사 A·B 재생성 각 1회 (usage 최대 8, 재시도 0) — 같은 이름 재사용, 1회차는 work/electromancer/run1

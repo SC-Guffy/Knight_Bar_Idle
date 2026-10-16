@@ -273,8 +273,68 @@ def build(cls, src, out, cast_vals=None):
     print(cls, 'sheet', sheet.size, 'colors', len({c for c in pixels(sheet) if c[3]}))
 
 
+# ── 관절 애니(skelgen.py, 2026-10-17) 시트: 3등신 키 46 · 칸 96 · 발 (33, 바닥 줄) ──
+#  입력: skel/<cls>/A-wpn/0..14 (평타A 0~6 · 평타B 7~13 · 기준 자세 14), B-wpn/0..14 (시전 0~6 · 걷기 7~14), <A|B>-tips.json (지팡이 끝)
+#  idle = 기준 자세에 숨쉬기(윗몸 1칸 내림) 4f · guard·hurt·death 는 위 build 와 같은 방식. 팔레트 다시 칠하기(tidy)는 하지 않는다 (새 그림 팔레트 유지)
+#  hit: 평타A 3 (끝까지 뻗은 수평 겨눔) · 평타B 4 (앞 땅에 내리꽂음) — skel.py MOVES atkA/atkB 설계
+SKEL_HIT = {'atkA': 3, 'atkB': 4}
+SKEL_CAST = [-0.2, -0.2, -0.7, -1.4, -1.4, 0.7, 1.2]          # skel.py MOVES cast 의 bowA (cast 줄 key)
+
+
+def build_skel(cls, out):
+    d = os.path.join(HERE, 'skel', cls)
+    fr = lambda p: [Image.open(os.path.join(d, f'{p}-wpn', f'{i}.png')).convert('RGBA') for i in range(15)]
+    tp = lambda p: json.load(open(os.path.join(d, f'{p}-tips.json')))
+    FA, FB, TA, TB = fr('A'), fr('B'), tp('A'), tp('B')
+    base, tbase = FA[14], TA[14]
+    bb = base.getbbox(); foot = (33, bb[3] - 1); waist = foot[1] - 16
+    A = {'idle': [base, base, bob(base, waist, 1), bob(base, waist, 1)],
+         'walk': FB[7:15], 'atkA': FA[0:7], 'atkB': FA[7:14], 'cast': FB[0:7]}
+    T = {'idle': [tbase, tbase, [tbase[0], tbase[1] + 1], [tbase[0], tbase[1] + 1]],
+         'walk': TB[7:15], 'atkA': TA[0:7], 'atkB': TA[7:14], 'cast': TB[0:7]}
+    A['guard'] = [bob(f, waist, 1) for f in A['idle']]; T['guard'] = [[t[0], t[1] + 1] for t in T['idle']]
+    A['hurt'] = [shift(base, -2, 0), shift(base, -1, 0)]; T['hurt'] = [[tbase[0] - 2, tbase[1]], [tbase[0] - 1, tbase[1]]]
+    A['death'] = [A['hurt'][0]] + [fall(A['hurt'][0], a, foot) for a in (25, 50, 75, 90)]; T['death'] = [T['hurt'][0]] * 5
+    plan = dict(PLAN); plan['idle'] = dict(fps=4, loop=True); plan['guard'] = dict(fps=4, loop=True)
+    plan['walk'] = dict(fps=10, loop=True); plan['atkA'] = dict(fps=16, loop=False, hit=SKEL_HIT['atkA'])
+    plan['atkB'] = dict(fps=16, loop=False, hit=SKEL_HIT['atkB']); plan['cast'] = dict(fps=10, loop=False)
+    n = max(len(A[k]) for k in ORDER)
+    sheet = Image.new('RGBA', (N * n, N * len(ORDER)))
+    meta = {'anims': {}, 'pts': {}}
+    for r, k in enumerate(ORDER):
+        for i, f in enumerate(A[k]): sheet.alpha_composite(f, (N * i, N * r))
+        m = {'row': r, 'frames': len(A[k]), **plan[k]}
+        if k == 'cast': m['key'] = 'bowA'; m['val'] = SKEL_CAST
+        meta['anims'][k] = m
+        # hand = 지팡이 끝(칸 안으로 자름) · head = 정수리
+        meta['pts'][k] = [[max(0, min(N - 1, t[0])), max(0, min(N - 1, t[1]))] + head_pt(f) for f, t in zip(A[k], T[k])]
+    os.makedirs(out, exist_ok=True)
+    sheet.save(os.path.join(out, f'{cls}.png'))
+    with open(os.path.join(out, f'{cls}.json'), 'w', encoding='utf-8') as f:
+        f.write(f'{{"w": {N}, "h": {N}, "foot": {json.dumps(list(foot))},\n "anims": {{\n')
+        f.write(',\n'.join(f'  "{k}": {json.dumps(meta["anims"][k])}' for k in ORDER))
+        f.write('\n },\n "pts": {\n')
+        f.write(',\n'.join(f'  "{k}": {json.dumps(meta["pts"][k])}' for k in ORDER))
+        f.write('\n }\n}\n')
+    S, L = 3, 90
+    pv = Image.new('RGBA', (L + N * n * S, N * len(ORDER) * S), (20, 22, 29, 255))
+    pv.alpha_composite(sheet.resize((sheet.width * S, sheet.height * S), Image.NEAREST), (L, 0))
+    dr = ImageDraw.Draw(pv)
+    for r, k in enumerate(ORDER):
+        dr.text((4, r * N * S + 8), k, fill=(255, 220, 90)); dr.text((4, r * N * S + 22), f"{len(A[k])}f", fill=(170, 170, 190))
+        dr.line([(L, r * N * S), (pv.width, r * N * S)], fill=(50, 52, 64))
+        for i, p in enumerate(meta['pts'][k]):
+            ox, oy = L + i * N * S, r * N * S
+            dr.rectangle([ox + p[0] * S - 1, oy + p[1] * S - 1, ox + p[0] * S + 2, oy + p[1] * S + 2], outline=(255, 60, 60))
+            dr.rectangle([ox + p[2] * S - 1, oy + p[3] * S - 1, ox + p[2] * S + 2, oy + p[3] * S + 2], outline=(80, 160, 255))
+    os.makedirs(os.path.join(HERE, 'preview'), exist_ok=True)
+    pv.save(os.path.join(HERE, 'preview', f'{cls}.png'))
+    print(cls, 'sheet', sheet.size, 'foot', foot, 'colors', len({c for c in pixels(sheet) if c[3]}))
+
+
 if __name__ == '__main__':
     a = sys.argv; cls = a[1]
+    if '--skel' in a: build_skel(cls, a[a.index('--out') + 1] if '--out' in a else os.path.join(ROOT, 'src', 'sprites')); sys.exit(0)
     src = a[a.index('--src') + 1] if '--src' in a else os.path.join(HERE, 'work', cls, 'pick')
     out = a[a.index('--out') + 1] if '--out' in a else os.path.join(ROOT, 'src', 'sprites')
     vals = json.loads(a[a.index('--cast') + 1]) if '--cast' in a else None

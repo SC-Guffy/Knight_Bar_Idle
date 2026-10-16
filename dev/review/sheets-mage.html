@@ -27,7 +27,7 @@
 <h1>마법사 계열 통짜 시트</h1>
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 마법사 · 화염술사 · 빙결술사 · 뇌전술사 · 대마도사 · 빙결의 군주 · 뇌제 · 2026-10-15</p>
 <div class="box">
-  <b>지금 상태 (2026-10-16)</b>: <b>새 방향 준비 중 (맨 위 ★ 절)</b>. 아래 0절의 마네킹 시트는 폐기된 방식이다 — 7종 시트를 만들었으나 <span class="no">로드맵 검수 품질 미달 — 보류</span> (방식 재검토 중). PixelLab usage <b>7</b> (승인 7, 재시도 0, 추가 호출 금지) · ComfyUI 0장. 게임 스위치(<code>SHEET_ON</code>)는 꺼 둠.
+  <b>지금 상태 (2026-10-17)</b>: <b>▣4 관절 애니 시트 4종 완성 · 검수 합격, 켤지 사용자 확인 대기</b>. (이전 기록) <b>(2026-10-16)</b>: <b>새 방향 준비 중 (맨 위 ★ 절)</b>. 아래 0절의 마네킹 시트는 폐기된 방식이다 — 7종 시트를 만들었으나 <span class="no">로드맵 검수 품질 미달 — 보류</span> (방식 재검토 중). PixelLab usage <b>7</b> (승인 7, 재시도 0, 추가 호출 금지) · ComfyUI 0장. 게임 스위치(<code>SHEET_ON</code>)는 꺼 둠.
   <ul>
     <li>7종 기준 그림: 지금 게임 그림을 3배로 찍어 1배 도트로 줄였다. 칸은 96, 발 기준점은 (44, 88)이다. 마력탄·지팡이 빛은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다. 모두 <code>false</code> 이고, 시트가 승인되면 켠다. 주소에 <code>?sheets=0</code> 을 붙이면 전부 꺼진다.</li>
@@ -36,6 +36,50 @@
     <li>앉기 줄이 없는 기존 직업 시트는 마을·캠프 앉기만 예전 조립식으로 그린다.</li>
     <li>시트 조립 <code>dev/sheets-mage/build.py</code>: 팔레트 고정, 외곽선 통일, 발 맞춤, hand·head 점을 자동으로 잡는다. guard·hurt·death 는 PixelLab 없이 idle 에서 만든다.</li>
     <li>연결 시험 <code>dev/skills.html?patch=sheets-mage</code>: 기준 그림 한 장으로 만든 시험 시트를 끼워 게임에서 돌린다. 시험 시트는 <code>src/sprites</code> 에 넣지 않았다.</li>
+  </ul>
+</div>
+
+<h2>▣4 관절 애니 시트 — 2차 4종 · 도트 검수 8줄 모두 합격 (2026-10-17, PixelLab usage 40 · 계열 합계 51) <span class="wait">· 사용자 확인 대기 (SHEET_ON 꺼 둠)</span></h2>
+<div class="box">
+  <b>무엇</b>: ▣3 기준 그림(지팡이를 지운 빈손)을 첫 프레임으로, 관절 15프레임을 지정해 PixelLab <code>animate-with-skeleton-v3</code> 로 몸 전체를 움직였다 (직업당 2회: 평타A 7·평타B 7·기준 1 / 시전 7·걷기 8).
+  모델이 그린 지팡이·불꽃·연기는 후처리로 지우고 원래 지팡이를 손에 덧그렸다. 대기(idle)는 기준 자세 + 숨쉬기, guard·hurt·death 는 기준 자세에서 만든다.
+  <ul>
+    <li>칸 96 · 발 (33, 88~89) · 키 약 46 · 평타 hit 프레임 A=3(끝까지 뻗은 겨눔), B=4(앞 땅에 내리꽂음) · cast 줄 key <code>bowA</code> = [-0.2,-0.2,-0.7,-1.4,-1.4,0.7,1.2] · hand 점 = 지팡이 끝</li>
+    <li>후처리 공용 모듈: <code>dev/sheets-common/skelpost.py</code> (뼈대 둘레 팔다리 보존 · 모델 이펙트 지우기 · 실제 팔 끝에 손 맞추기 · 무기 축 재기). 직업별 흐름은 <code>dev/sheets-mage/skelgen.py post</code>, 조립은 <code>build.py &lt;cls&gt; --skel</code>.</li>
+    <li>지팡이 그림: 화염술사·빙결술사 = 기준 그림의 지팡이, 마법사·뇌전술사 = 게임 지팡이 캡처 1.5배 (기준 그림 쪽이 너무 작거나 조각남).</li>
+    <li>뇌전술사는 1회차가 몸을 뒤로 돌려(얼굴 사라짐) 불합격 → 로드맵 승인으로 "끝까지 오른쪽 옆모습" 조건·새 시드로 2회차. 평타 기준 자세(14번=0번)는 기준 그림을 쓴다.</li>
+  </ul>
+</div>
+<div class="box">
+  <b>도트 검수</b> (<code>qa.py --kind char</code> 자동 게이트 8줄 통과 + 비평 <code>critic.md</code>, 합격선 전 항목 3 이상 · 평균 3.5 이상)
+  <table>
+    <tr><th>직업</th><th>평타 A+B (15f)</th><th>시전+걷기 (15f)</th><th>남은 작은 흠 (합격선 안)</th></tr>
+    <tr><td>마법사</td><td class="ok">3.71</td><td class="ok">3.57</td><td>시전 0·1번 수정이 얼굴을 조금 가림 · 지팡이 1.5배 확대 계단(확대해야 보임)</td></tr>
+    <tr><td>화염술사</td><td class="ok">3.71</td><td class="ok">3.57 (5차)</td><td>시전 0·1, 걷기 10·11번 불꽃이 얼굴 옆에 겹침 · 걷기 보폭 작음 · 평타 12번 포니테일 끝 꺾임</td></tr>
+    <tr><td>빙결술사</td><td class="ok">3.71</td><td class="ok">3.71</td><td>평타 7·13번 자루가 몸통을 가로지름 · 걷기 보폭 작음</td></tr>
+    <tr><td>뇌전술사</td><td class="ok">3.57 (재생성)</td><td class="ok">3.57 (재생성)</td><td>평타 4·11·12번 구슬이 칸 끝에 닿음 · 시전 3·4번 손에 하늘색 뭉치 · 평타 2번 회색 그루터기</td></tr>
+  </table>
+  판정 파일: <code>dev/sheets-mage/skel/&lt;cls&gt;/qa&lt;A|B&gt;/verdict.json</code> (지난 회차는 <code>r1~r4/</code>)
+</div>
+<div class="tabs" id="s4tabs"></div>
+<div class="box scroll" id="s4view"></div>
+<script>
+(function(){
+  const C=[['mage','마법사'],['pyromancer','화염술사'],['cryomancer','빙결술사'],['electromancer','뇌전술사']];
+  const tabs=document.getElementById('s4tabs'), view=document.getElementById('s4view');
+  function show(k){ for(const b of tabs.children) b.classList.toggle('on', b.dataset.k===k);
+    view.innerHTML=`<p>평타A · 평타B · 시전 · 걷기 (게임 fps, 3배)</p><img class="px" src="sheets-mage/${k}.gif">
+      <p style="margin-top:10px">시트 전체 (줄: idle · guard · walk · atkA · atkB · cast · hurt · death)</p><img class="px" style="width:768px" src="sheets-mage/${k}-sheet.png">
+      <p style="margin-top:10px">후처리 과정 (줄마다: 모델 원본 / 몸만 / 지팡이 덧그림)</p><img class="px" src="../sheets-mage/skel/${k}/post-A.png"><img class="px" src="../sheets-mage/skel/${k}/post-B.png">`; }
+  for(const [k,n] of C){ const b=document.createElement('button'); b.textContent=n; b.dataset.k=k; b.onclick=()=>show(k); tabs.appendChild(b); }
+  show('mage');
+})();
+</script>
+<div class="box">
+  <b>게임에서 확인</b> (서버: <code>python -m http.server 8884 --bind 127.0.0.1 -d impl-sheets-mage</code>)
+  <ul>
+    <li>스킬·평타 시험장: <a href="../skills.html?sheetsOn=mage,pyromancer,cryomancer,electromancer">dev/skills.html?sheetsOn=mage,pyromancer,cryomancer,electromancer</a> → 직업 버튼(마법사·화염술사·빙결술사·뇌전술사) → 모드 "평타만" / "스킬", 속도 ×0.25 로 프레임 확인</li>
+    <li>게임: <a href="../../index.html?sheetsOn=mage,pyromancer,cryomancer,electromancer">index.html?sheetsOn=…</a> (원정·마을에서 해당 직업 기사가 시트로 그려짐) · 비교: <code>?sheets=0</code></li>
   </ul>
 </div>
 
