@@ -27,7 +27,8 @@ FIX = {'lancer': ('surcoat_green',),          # 검수 r2: 녹색 없음
        'halberdier': ('surcoat_orange', 'tabard', 'shoulders'),   # tabard: 반바지처럼 갈린 주황 → 한 장 서코트 (로드맵 2026-10-17)
        'cavalier': ('surcoat_blue', 'red_up')}
 # v11 3등신 재정리본 (SPEC 키별): 이미 색이 맞아 수리가 적다. 용기병만 은→보라 판금
-FIX.update({'lancer11': ('green_up',), 'dragoon11': ('purple_light',), 'halberdier11': (), 'cavalier11': ('surcoat_blue',)})   # 정리본 녹색·파랑이 탁하고 작다
+FIX.update({'lancer12': ('green_up', 'plate_flat'), 'dragoon12': ('plate_flat', 'purple_light'),   # plate_flat: 검수 r4 점박이 잡음
+             'lancer11': ('green_up',), 'dragoon11': ('purple_light',), 'halberdier11': (), 'cavalier11': ('surcoat_blue',)})   # 정리본 녹색·파랑이 탁하고 작다
 # 무기를 얹은 뒤 하는 수리: 용기병 노란 눈 (무기 색을 빼야 머리 앞 끝을 찾는다)
 AFTER = {'dragoon': ('eye_after',)}
 FIST = set()             # v6 정리본은 쥔 손이 보임
@@ -102,8 +103,10 @@ def reduce(im, n):
     rep = {c: c for c in cnt}
     ch = lambda c: max(c) - min(c)
     d2 = lambda a, b: 3 * (a[0] - b[0]) ** 2 + 4 * (a[1] - b[1]) ** 2 + 2 * (a[2] - b[2]) ** 2 + 12 * (ch(a) - ch(b)) ** 2   # 채도 차 벌점: 유채색이 회색에 먹히지 않게
+    skin = lambda c: c[0] > 150 and c[0] - c[2] > 30 and c[1] > 100 and c[0] - c[1] < 70     # 얼굴 살색: 칸이 적어도 합칠 차례를 늦춘다 (창기사 v12 얼굴이 사라졌다)
+    wt = lambda c: cnt[c] * (6 if skin(c) else 1)
     while len(cnt) > n:
-        c = min(cnt, key=cnt.get); k = cnt.pop(c)
+        c = min(cnt, key=wt); k = cnt.pop(c)
         t = min(cnt, key=lambda o: d2(c, o)); cnt[t] += k
         for a in rep:
             if rep[a] == c: rep[a] = t
@@ -127,9 +130,22 @@ def POL_comps(im):
     return out
 
 
-def post(name):
+def shrink64(name):
+    """축소본 (로드맵 2026-10-17, 검사 계열 교훈: 시안이 46칸에서 이미 또렷하면 image-to-pixelart 가 손·표정을 지운다):
+    원본을 공용 shrink_body 로 몸 키 46칸 도트로 줄여 정리본(64)과 같은 자리(발 y=60, 가운데 x=32)에 놓는다 → work/<cls>/<name>-sh-0.png"""
+    from shrink import shrink_body
+    cls, _ = parse(name)
+    im = Image.open(os.path.join(RAW, name + '.png')).convert('RGB'); top, foot = body_bounds(im)
+    o = shrink_body(im, top, foot, BODY, shadow=False).convert('RGBA'); bb = o.getbbox(); o = o.crop(bb)
+    c = Image.new('RGBA', (OUTN, OUTN), (200, 200, 204, 255))       # 정리본처럼 단색 바탕 (unbg 가 뗀다)
+    c.alpha_composite(o, (OUTN // 2 - o.width // 2, OUTN - 4 - o.height))
+    c.save(os.path.join(HERE, 'work', cls, f'{name}-sh-0.png'))
+
+
+def post(name, src='pl'):
     cls, sk = parse(name)
-    raw = Image.open(os.path.join(HERE, 'work', cls, f'{name}-pl-0.png')).convert('RGBA')
+    if src == 'sh': shrink64(name)
+    raw = Image.open(os.path.join(HERE, 'work', cls, f'{name}-{src}-0.png')).convert('RGBA')
     clean = POL.unbg(raw); bb = clean.getbbox(); clean = clean.crop(bb)
     # v11: 공용 polish 의 14색 줄이기가 작은 색 영역(녹색 서코트·빨간 볏·주황 천)을 회색에 섞어 지운다 → 20색으로 (공용 파일은 그대로)
     pol = POL.rim(POL.outline(POL.despeckle((reduce(clean.copy(), 22) if sk != cls else POL.quant(clean.copy(), 14)))))   # 손질 먼저 (무기 색이 14색 줄이기에 섞여 몸 색이 탁해지지 않게)
@@ -150,10 +166,11 @@ def post(name):
             if len(c) < 6 and len(c) < big:
                 for p_ in c: P_[p_] = (0, 0, 0, 0)
     pol = reduce(pol, 18) if sk != cls else POL.quant(pol, 20)   # 위 테 밝히기·무기 색으로 25~30색이 돼 색 경보(>24) → 마지막에 20색
-    clean.save(os.path.join(PL, f'{name}-clean.png')); pol.save(os.path.join(PL, f'{name}-polish.png'))
+    tag = '' if src == 'pl' else '-sh'
+    clean.save(os.path.join(PL, f'{name}{tag}-clean.png')); pol.save(os.path.join(PL, f'{name}{tag}-polish.png'))
     print(name, 'clean', clean.size, 'polish', pol.size)
 
 
 if __name__ == '__main__':
-    fn = {'prep': prep, 'post': post}[sys.argv[1]]
+    fn = {'prep': prep, 'post': post, 'postsh': lambda n: post(n, 'sh')}[sys.argv[1]]
     for n in sys.argv[2:]: fn(n)

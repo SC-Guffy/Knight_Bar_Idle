@@ -174,6 +174,40 @@ def purple_plate(im, ramp=((30, 24, 48), (64, 52, 98), (104, 90, 146), (150, 138
     return im
 
 
+def plate_flat(im, levels=4, passes=2):
+    """판금 면 정리 (검수 r4 "갑옷 전체가 회색 점박이 잡음, 명암 면이 안 섬"): 무채색 칸을 밝기 분위수로 4단 회색에 다시 넣고,
+    8이웃 중 5칸 이상이 같은 색이면 그 색으로 흡수해 큰 면을 만든다. 맨 밝은 단은 하이라이트로 남긴다"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    gray = lambda c: c[3] and c != OUT and _hls(c)[2] < 0.18
+    pts = [(x, y) for y in range(H) for x in range(W) if gray(P[x, y])]
+    if len(pts) < 20: return im
+    vals = sorted(lum(P[p]) for p in pts)
+    cut = [vals[int(len(vals) * k / levels)] for k in range(1, levels)]
+    ramp = []
+    for k in range(levels):
+        band = [P[p] for p in pts if sum(lum(P[p]) >= c for c in cut) == k]
+        ramp.append(tuple(round(sum(c[i] for c in band) / len(band)) for i in range(3)) + (255,) if band else (128, 128, 128, 255))
+    for p in pts: P[p] = ramp[sum(lum(P[p]) >= c for c in cut)]
+    # 몸 안쪽에 갇힌 외곽선색 점(4이웃이 모두 몸 칸이고 그중 3칸 이상 판금) → 판금 다수색 (검수 r4 "점박이")
+    for y in range(1, H - 1):
+        for x in range(1, W - 1):
+            if P[x, y] != OUT: continue
+            n4 = [P[x + 1, y], P[x - 1, y], P[x, y + 1], P[x, y - 1]]
+            if all(c[3] for c in n4):
+                g = [c for c in n4 if c in ramp]
+                if len(g) >= 3: P[x, y] = max(set(g), key=g.count); pts.append((x, y))
+    S = set(pts)
+    for _ in range(passes):
+        ch = []
+        for (x, y) in pts:
+            nb = [P[x + a, y + b] for a in (-1, 0, 1) for b in (-1, 0, 1) if (a or b) and (x + a, y + b) in S]
+            if nb:
+                best = max(set(nb), key=nb.count)
+                if nb.count(best) >= 5 and best != P[x, y] and P[x, y] != ramp[-1]: ch.append(((x, y), best))
+        for p, c in ch: P[p] = c
+    return im
+
+
 def purple_light(im):
     """용기병 v11: purple_plate 를 한 단 밝게 (어두운 보라 덩어리로 뭉침)"""
     return purple_plate(im, ((40, 30, 66), (84, 66, 132), (130, 110, 184), (176, 160, 222), (230, 224, 250)))

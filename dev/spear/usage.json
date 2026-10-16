@@ -1,5 +1,5 @@
 {
- "used": 21.0,
+ "used": 23.0,
  "calls": [
   {
    "cls": "mq",
@@ -127,6 +127,22 @@
    "purpose": "cavalier11-11-pl: 기준 그림 정리 256→64",
    "used": 1.0,
    "bal": 1068.0,
+   "n": 1
+  },
+  {
+   "cls": "lancer",
+   "ep": "/image-to-pixelart",
+   "purpose": "lancer12-11-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 1054.0,
+   "n": 1
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/image-to-pixelart",
+   "purpose": "dragoon12-51-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 1052.0,
    "n": 1
   }
  ]

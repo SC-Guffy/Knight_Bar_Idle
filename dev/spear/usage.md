@@ -20,3 +20,5 @@
 | 14 | dragoon | `/image-to-pixelart` | dragoon11-51-pl: 기준 그림 정리 256→64 | 1.0 | 19.0 | 1070.0 |
 | 15 | halberdier | `/image-to-pixelart` | halberdier11-51-pl: 기준 그림 정리 256→64 | 1.0 | 20.0 | 1069.0 |
 | 16 | cavalier | `/image-to-pixelart` | cavalier11-11-pl: 기준 그림 정리 256→64 | 1.0 | 21.0 | 1068.0 |
+| 17 | lancer | `/image-to-pixelart` | lancer12-11-pl: 기준 그림 정리 256→64 | 1.0 | 22.0 | 1054.0 |
+| 18 | dragoon | `/image-to-pixelart` | dragoon12-51-pl: 기준 그림 정리 256→64 | 1.0 | 23.0 | 1052.0 |

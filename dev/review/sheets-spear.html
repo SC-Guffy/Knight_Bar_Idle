@@ -37,25 +37,25 @@
   </ul>
 </div>
 
-<h2>◆ 도트 검수 합격 대표 4종 (2026-10-17) — 창기사 · 용기병 · 할버디어 · 랜서</h2>
-<div class="box"><b>흐름</b> (사용자 지시 "컨셉에만 알맞게 새로" · "도트 퀄리티 검수 에이전트로 통과시켜"):
-<ol><li>직업별 3등신 도트 마네킹 가이드 + 컨셉 프롬프트 → ComfyUI (<code>dev/spear/design5.py</code>). 1차(v4) 16장은 검수 합격 0 — 창 1~2px·어두운 한 톤·체형 가이드 약함.</li>
-<li>46칸 직접 축소본으로 형태(의도·읽힘·규칙) 순위 → 직업별 1장 (<code>qa/rank-*.json</code>).</li>
-<li>PixelLab image-to-pixelart 256→64 직업당 1회 + 창기사 재정리 1회 (로드맵 승인, 재시도 0) → 검사 세션 polish.</li>
-<li>스크립트 수리 (<code>fix.py</code>, 손 픽셀 수정 없음): 용기병 얼룩 정리·배 띠·노란 눈 / 할버디어 주황 서코트·어깨 넓히기 / 랜서 파랑 서코트·빨강 볏·방패.</li>
-<li>무기 바꾸기 (<code>pix.py wpnfix</code>): 정리본에서 무기 직선을 찾아 지우고 코드로 그린 무기를 얹음 — 창·용창 3px, 할버드 3단 명암 반달 도끼날·갈고리·창끝, 끊김 없는 원뿔 랜스·둥근 보호대.</li>
-<li>검수: <code>dev/pixel-qa/qa.py --kind char</code> → 비평(<code>critic.md</code>). 목표 문장에 사용자 지적 4건(잡졸·장수풍뎅이·배불뚝이·가는 창)과 같은 계열 실루엣 겹침. 합격선: 전 항목 3+ · 평균 3.5.</li></ol>
-PixelLab 누계 usage 16 (마네킹 11 + 정리 5). 검수 비평 반복: 창기사 4회 · 용기병 3회 · 할버디어 5회 · 랜서 4회.</div>
+<h2>◆ 도트 검수 합격 4종 — 사용자 검수 반영판 (2026-10-17) · 창기사 · 용기병 · 할버디어 · 랜서</h2>
+<div class="box"><b>사용자 검수 반영</b>: "용기병은 사람기사로가야해" → 사람 기사 + 용 투구(얼굴 보임), 꼬리 없음 · 할버디어 허벅지 살색 → 천 서코트 · 랜서 사탕 줄무늬 랜스 → 은색 원뿔 + 파란 손잡이·보호대.
+<ol><li>재검수(r2)에서 같은 그림이 "6등신 사실 비율"로 지적돼 3등신 큰 머리 문구(<code>design5.py CHIBI</code>)로 다시 생성(v11) → 할버디어·랜서 합격.</li>
+<li><b>교훈: 닫힌 투구는 46px 에서 얼굴 없는 덩어리</b> — 창기사 '회색 골렘' 2.86, 용기병 '가고일' 3.14. 그림체 B 기준(마법사·레인저)은 얼굴이 보이므로 얼굴 트인 투구로 v12 (창기사 sallet, 용기병 = 용 윗턱이 이마를 덮고 아래 사람 얼굴).</li>
+<li>ComfyUI 단계에서 비율·용 투구를 먼저 비평 통과 → 1장만 PixelLab image-to-pixelart. 정리본과 축소본(<code>pix.py postsh</code>) 둘 다 검수 — 축소본은 얼굴이 사라져 낮음(창기사 3.29, 용기병 3.00) → 정리본 채택.</li>
+<li>스크립트 수리(손 픽셀 없음): 색 줄이기 <code>pix.py reduce</code>(적게 쓰인 색부터 합치기·채도 벌점·살색 가중 — median-cut 이 볏·서코트·얼굴을 지웠다), 판금 면 정리 <code>fix.plate_flat</code>(4단 + 외톨이 점 흡수), 녹색·보라·파랑 램프, 코드 무기(창·용창 자루 4칸, 은색 3단 랜스).</li></ol>
+PixelLab 계열 누계 usage 23 (로드맵 승인 cap 23).</div>
 <div class="tabs" id="v5tabs"></div>
 <div class="scroll box"><img class="px" id="v5img" alt="합격 줄 세우기"></div>
+<p class="sub">그림체 일치 — 마법사·전격술사·레인저·저격수(합격 기준)와 나란히:</p>
+<div class="scroll box"><img class="px" src="sheets-spear/v5/style-match.png" alt="계열 간 그림체 비교"></div>
 <table>
-  <tr><th>직업</th><th>점수 의도/읽힘/깔끔/명암/도트/움직임/규칙</th><th>평균</th><th>판정</th><th>남은 흠 (비평, 선택 손질)</th><th>검수 시트</th></tr>
-  <tr><td>창기사</td><td>3/4/3/3/3/5/4</td><td>3.57</td><td class="ok">pass</td><td>녹색이 깃발에만, 판금 하이라이트가 점처럼</td><td><a href="sheets-spear/v5/lancer-sheet.png">보기</a></td></tr>
-  <tr><td>용기병</td><td>3/4/3/3/3/5/4</td><td>3.57</td><td class="ok">pass</td><td>3등신보다 길쭉, 창끝이 용 이빨로 덜 읽힘, 배 띠가 붕대처럼</td><td><a href="sheets-spear/v5/dragoon-sheet.png">보기</a></td></tr>
-  <tr><td>할버디어</td><td>3/4/3/3/3/5/4</td><td>3.57</td><td class="ok">pass</td><td>투구가 작아 4등신 쪽, 어깨 잡점, 서코트 작음</td><td><a href="sheets-spear/v5/halberdier-sheet.png">보기</a></td></tr>
-  <tr><td>랜서</td><td>4/4/3/3/3/5/4</td><td>3.71</td><td class="ok">pass</td><td>몸통·다리가 어둡게 뭉침, 볏이 가늚, 랜스 평면색</td><td><a href="sheets-spear/v5/cavalier-sheet.png">보기</a></td></tr>
+  <tr><th>직업</th><th>그림</th><th>점수 의도/읽힘/깔끔/명암/도트/움직임/규칙</th><th>평균</th><th>판정</th><th>남은 흠 (비평)</th><th>검수 시트</th></tr>
+  <tr><td>창기사</td><td><code>lancer12-11</code></td><td>3/3/4/3/4/5/3</td><td>3.57</td><td class="ok">pass</td><td>녹색이 망토·깃발·목에만, 투구와 몸통이 한 덩어리, 창이 몸 앞을 가로지름</td><td><a href="sheets-spear/v5/lancer-sheet.png">보기</a></td></tr>
+  <tr><td>용기병</td><td><code>dragoon12-51</code></td><td>3/3/4/3/3/5/4</td><td>3.57</td><td class="ok">pass</td><td>용 투구 주둥이·뿔이 46px 에서 '뾰족한 투구'로만, 보라 한 톤, 창끝이 용 이빨로 안 읽힘, 머리가 조금 작음</td><td><a href="sheets-spear/v5/dragoon-sheet.png">보기</a></td></tr>
+  <tr><td>할버디어</td><td><code>halberdier11-51</code></td><td>3/4/4/3/4/5/3</td><td>3.71</td><td class="ok">pass</td><td>역삼각 어깨 약함, 주황 서코트가 작은 앞치마, 뒤 갈고리 작음</td><td><a href="sheets-spear/v5/halberdier-sheet.png">보기</a></td></tr>
+  <tr><td>랜서</td><td><code>cavalier11-11</code></td><td>3/4/3/4/3/5/4</td><td>3.71</td><td class="ok">pass</td><td>랜스 원뿔 음영 약해 긴 칼처럼 읽힐 여지, 파랑 서코트 작음, 방패 존재감 약함</td><td><a href="sheets-spear/v5/cavalier-sheet.png">보기</a></td></tr>
 </table>
-<p class="sub">같은 계열 실루엣 겹침(IoU, 발 맞춤): 창기사–할버디어 0.67 · 창기사–용기병 0.58 · 용기병–할버디어 0.56 · 랜서–나머지 0.40~0.44 (모두 0.8 미만).</p>
+<p class="sub">같은 계열 실루엣 겹침(IoU, 발 맞춤): 창기사–용기병 0.61 · 용기병–할버디어 0.64 · 창기사–할버디어 0.52 · 랜서–나머지 0.26~0.40 (모두 0.8 미만).</p>
 
 <h2>▣ 새 디자인 시안 — 그림체 B(3등신) · 키 46px (2026-10-16, PixelLab 0회 · ComfyUI 20장)</h2>
 <div class="box"><b>사용자 확정</b>: 그림체 B(3등신), 게임 안 키 1.3배(약 46px). 기준 시안은 검사 세션 <code>sheets-sword.html</code> ▣ 절.
