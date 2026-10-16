@@ -1,0 +1,9 @@
+{"p1 swordsman-clean (N2-23 → PixelLab)": {"scores":[4,4,4,4,3,5,4],"avg":4.0,"verdict":"pass"},
+ "p2 swordsman-polish": {"scores":[4,4,4,4,3,5,4],"avg":4.0,"verdict":"pass"},
+ "p3 paladin-clean (N2-51 → PixelLab)": {"scores":[3,3,3,3,3,5,4],"avg":3.43,"verdict":"fix","why":"투구 눈 틈 없음·색 43"},
+ "p4 paladin-polish": {"scores":[3,3,4,3,3,5,4],"avg":3.57,"verdict":"pass","why":"투구 바이저 없어 알처럼 — 다듬기 권장"},
+ "p5 blademaster-clean (N2-23 밝힘 → PixelLab)": {"scores":[3,3,3,3,3,5,4],"avg":3.43,"verdict":"fix","why":"두 칼 수평 겹침·하반신 어두움·외톨이 점"},
+ "p6 blademaster-polish": {"scores":[3,3,3,3,3,5,4],"avg":3.43,"verdict":"fix"},
+ "p7 greatswordsman-clean (N3-97 → PixelLab)": {"scores":[2,3,3,2,3,5,4],"avg":3.14,"verdict":"regen","why":"대검이 좁아짐·빈손·적갈색 덩어리"},
+ "p8 greatswordsman-polish": {"scores":[2,3,3,2,3,5,4],"avg":3.14,"verdict":"regen"},
+ "p9 blademaster-fix (스크립트 밝힘)": {"note":"몸은 밝아졌으나 색 줄이며 얼굴·스카프 뭉개짐, 칼 겹침 그대로 → 비평 생략, 디자인 재시안으로"}}
