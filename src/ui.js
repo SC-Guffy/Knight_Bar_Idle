@@ -28,8 +28,8 @@ const departOpts = { charm: false, elixir: false };
 // ───────────────────────── 클릭 통과 제어 ─────────────────────────
 // 평소엔 HUD/말풍선 위에서만 클릭을 받고, 캠프 창이 열리면 창 전체가 클릭을 받는다.
 let interactive = false;
-function setInteractive(on) {
-  if (on === interactive) return;
+function setInteractive(on, force) {
+  if (on === interactive && !force) return;
   interactive = on;
   if (window.bar) window.bar.setInteractive(on);
 }
@@ -203,7 +203,7 @@ function openCamp(tab) {
   campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : castleResultPending() ? 'castle' : raidUi.room ? 'raid' : guideTab() || 'town');
   markSubSeen();
   if (window.bar) window.bar.setCampMode(true);
-  interactive = true;
+  setInteractive(true, true);
   $('camp').hidden = false;
   renderCamp();
   renderHud();
@@ -222,7 +222,7 @@ function closeCamp() {
   if (castleResultViewed && S.castle.last) S.castle.last.seen = true;
   castleResultViewed = false;
   $('camp').hidden = true;
-  interactive = false;
+  setInteractive(false, true);   // main 에도 알린다 — 안 알리면 탑(전체 높이 창)에서 화면 전체가 클릭을 먹는다
   if (window.bar) window.bar.setCampMode(false);
   save();
   renderHud();
@@ -3101,7 +3101,7 @@ function openAccount() {
   acctOpen = true;
   showCode = false;
   if (window.bar) window.bar.setCampMode(true);
-  interactive = true;
+  setInteractive(true, true);
   $('acct').hidden = false;
   renderAccount();
   renderHud();
@@ -3110,7 +3110,7 @@ function closeAccount() {
   if (!acctOpen || !activeNick() || acctBusy) return;
   acctOpen = false;
   $('acct').hidden = true;
-  interactive = false;
+  setInteractive(false, true);   // main 에도 알린다 — 안 알리면 탑(전체 높이 창)에서 화면 전체가 클릭을 먹는다
   if (window.bar) window.bar.setCampMode(false);
   renderHud();
   scheduleFade();
