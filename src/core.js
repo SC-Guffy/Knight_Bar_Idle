@@ -299,6 +299,7 @@ const GUILD_HOST = (() => { try { return window.parent !== window && window.pare
 function loadState(o) {
   S = freshState();
   try { if (o) S = migrate(o); } catch {}
+  if (T7_PICK_URL && S.t7) S.t7.pick = true;   // ?t7=1: 시즌7 트리 시제품을 1차 검사 단계부터 (src/tree7.js)
   if (GUILD_HOST) GUILD_HOST.bindShared(S);
   seenBase.at = S.lastSeen || 0; seenBase.mono = performance.now();
   if (S.hp == null) S.hp = stats().maxHp;

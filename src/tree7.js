@@ -14,6 +14,7 @@
 const TREE7_CLS = ['swordsman', 'blademaster', 'swordsaint'];
 const t7On = (cls = S.cls) => !T7_OFF && TREE7_CLS.includes(cls) && (cls !== 'swordsman' || !!(S.t7 && S.t7.pick));
 let T7_OFF = false;   // 측정용: 켜면 이 줄기도 지금 시스템 (dev/lifespan-bot.js --old 1)
+const T7_PICK_URL = typeof location !== 'undefined' && /[?&]t7=1/.test(location.search || '');   // 게임 주소 ?t7=1 → 이 캐릭터를 시제품 줄기로 (core.js loadState)
 
 // 종류별 비용·최대 칸 (스펙 "노드 종류·비용")
 const T7_SPEC = {

@@ -1,10 +1,10 @@
 'use strict';
-// 스킬 빌드 트리 시안(dev/review/skill-build-tree.html) 전용 도트 아트 — 노드 아이콘과 노드 틀.
+// 시즌7 스킬 빌드 트리 도트 아트 — 노드 아이콘과 노드 틀 (게임 src/tree7-ui.js 와 시안 dev/review/skill-build-tree.html 이 같이 쓴다).
 // 그리는 법은 게임 아이콘(dev/make-icons.js)과 같다: 12×12 글자 도트 + 공용 팔레트 → 칠한 칸 상하좌우에 잉크 외곽선 → 14×14.
-// 스킬 아이콘(액티브·융합·궁극기 변형)은 지금 sk-* 아이콘처럼 모서리 뺀 배지 + 속성색 2톤 바탕, 변형·키스톤은 바탕 없는 상징.
-// 노드 틀(액티브 사각·궁극기 금테+왕관·변형 원·키스톤 팔각·스탯 작은 원)도 같은 팔레트의 도트로 만든다 (CSS 테두리·그라디언트 대신).
-// 지금 게임 스킬(강철 베기·질풍난무·일섬·천검)과 스탯은 src/skin/icons.png 의 아이콘을 그대로 쓴다 (sk-* · UI 아이콘).
-// 구현 때: 이 파일의 아이콘 그림을 dev/icon-art 로 옮겨 make-icons.js 로 굽는다 (사용자 확인 뒤).
+// 스킬 아이콘(새 액티브·융합·궁극기 변형)은 지금 sk-* 아이콘처럼 모서리 뺀 배지 + 속성색 2톤 바탕, 변형·키스톤은 바탕 없는 상징.
+// 노드 틀(액티브 사각·궁극기 금테+왕관·융합 점선·변형 원·키스톤 팔각·스탯 작은 원)도 같은 팔레트의 도트로 그린다 (CSS 테두리·그라디언트 대신).
+// 지금 게임 스킬(강철 베기·질풍난무·일섬·천검)과 스탯은 src/skin/icons.png 의 아이콘(sk-* · UI)을 그대로 쓴다.
+// 게임은 CSP 가 data: 이미지를 막아서 canvas 에 바로 그린다 (TreeArt.paint). 시안 페이지는 data URL(node·icon)도 쓴다.
 (function () {
   const INK = '#0b0a14';
   const PAL = {
@@ -528,30 +528,31 @@
   ];
 
   // 격자 그리기 → canvas
-  function paint(ctx, g, ox, oy) {
+  function draw(ctx, g, ox, oy) {
     g.forEach((row, y) => row.forEach((c, x) => { if (c) { ctx.fillStyle = c; ctx.fillRect(ox + x, oy + y, 1, 1); } }));
   }
   // 아이콘 시트(src/skin/icons.png)에서 이름 하나를 그린다 (지금 게임 아이콘: sk-* · UI)
   let sheet = null;
+  const SHEET_URL = new URL('skin/icons.png', document.currentScript ? document.currentScript.src : location.href).href;   // 이 파일 옆 src/skin
   function sheetReady() {
     if (sheet) return sheet.ready;
-    sheet = new Image(); sheet.src = '../../src/skin/icons.png';
+    sheet = new Image(); sheet.src = SHEET_URL;
     sheet.ready = new Promise((ok) => { sheet.onload = ok; });
     return sheet.ready;
   }
   function drawIcon(ctx, name, ox, oy) {
-    if (BADGE[name]) return paint(ctx, grid(BADGE[name]), ox, oy);
-    if (SYM[name]) return paint(ctx, grid(SYM[name]), ox, oy);
+    if (BADGE[name]) return draw(ctx, grid(BADGE[name]), ox, oy);
+    if (SYM[name]) return draw(ctx, grid(SYM[name]), ox, oy);
     const k = ICON_NAMES.indexOf(name);
-    if (k >= 0) ctx.drawImage(sheet, k * 14, 0, 14, 14, ox, oy, 14, 14);
+    if (k >= 0 && sheet && sheet.complete) ctx.drawImage(sheet, k * 14, 0, 14, 14, ox, oy, 14, 14);
   }
 
   const cache = {};
-  // 노드 하나의 그림 → { url, w, h } (도트 1칸 = 1px, 화면에선 정수배로 키운다)
+  // 노드 크기 (도트 칸)
+  const SIZE = { active: [22, 22], fusion: [22, 22], ult: [26, 31], uvar: [22, 22], mod: [20, 20], key: [22, 22], stat: [18, 18] };
+  // 노드 하나를 canvas 에 그린다 (canvas 크기를 도트 칸 수로 맞춘다 — 화면 크기는 CSS 로 정수배)
   //  kind: active|ult|fusion|uvar|mod|key|stat · icon: 아이콘 이름 · state: got|can|lock · lane · pips/max: 찍은 칸
-  function node(kind, icon, state, lane, pips = 0, max = 1) {
-    const key = [kind, icon, state, lane, pips, max].join('|');
-    if (cache[key]) return cache[key];
+  function paint(cv, kind, icon, state, lane, pips = 0, max = 1) {
     let w, h, frame, ix, iy, fy = 0;
     if (kind === 'active') { w = h = 22; frame = squareFrame(22, state, lane, pips, max); ix = iy = 4; }
     else if (kind === 'fusion') { w = h = 22; frame = fusionFrame(22, state, pips, max); ix = iy = 4; }
@@ -560,13 +561,23 @@
     else if (kind === 'mod') { w = h = 20; frame = ringFrame(20, state, lane, 2); ix = iy = 3; }
     else if (kind === 'key') { w = h = 22; frame = octFrame(22, state, lane); ix = iy = 4; }
     else { w = h = 18; frame = ringFrame(18, state, lane, 1); ix = iy = 2; }
-    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    cv.width = w; cv.height = h;
     const ctx = cv.getContext('2d');
-    paint(ctx, frame, 0, fy);
-    if (kind === 'ult') paint(ctx, CROWN.map((r) => [...r].map((ch) => (ch === '.' ? null : ch === 'K' ? INK : PAL[ch]))), 7, 0);
+    ctx.clearRect(0, 0, w, h);
+    draw(ctx, frame, 0, fy);
+    if (kind === 'ult') draw(ctx, CROWN.map((r) => [...r].map((ch) => (ch === '.' ? null : ch === 'K' ? INK : PAL[ch]))), 7, 0);
     drawIcon(ctx, icon, ix, iy);
-    return (cache[key] = { url: cv.toDataURL(), w, h });
+    return cv;
   }
+  // 시안 페이지용: 같은 그림의 data URL { url, w, h }
+  function node(kind, icon, state, lane, pips = 0, max = 1) {
+    const key = [kind, icon, state, lane, pips, max].join('|');
+    if (cache[key]) return cache[key];
+    const cv = paint(document.createElement('canvas'), kind, icon, state, lane, pips, max);
+    return (cache[key] = { url: cv.toDataURL(), w: cv.width, h: cv.height });
+  }
+  // 아이콘만 14×14 canvas 에 (장착 칸·목록)
+  function paintIcon(cv, name) { cv.width = cv.height = 14; const c = cv.getContext('2d'); c.clearRect(0, 0, 14, 14); drawIcon(c, name, 0, 0); return cv; }
   // 아이콘만 (장착 칸·목록용) 14×14
   function icon(name) {
     const key = 'icon|' + name;
@@ -575,5 +586,5 @@
     drawIcon(cv.getContext('2d'), name, 0, 0);
     return (cache[key] = { url: cv.toDataURL(), w: 14, h: 14 });
   }
-  window.TreeArt = { ready: sheetReady, node, icon, BADGE, SYM };
+  window.TreeArt = { ready: sheetReady, paint, paintIcon, node, icon, SIZE, BADGE, SYM };
 })();

@@ -721,6 +721,7 @@ function treeHtml(k) {
 }
 
 function viewSkill() {
+  if (t7On()) return viewTree7();   // 시즌7 트리 시제품 캐릭터 (src/tree7-ui.js)
   const list = skillsOf(S.cls);
   const head = `<div class="mhead"><div><h3>${ico('bolt')} 스킬</h3>
       <small>칸 1개 = 비전서 1권 · 칸을 다 채우면 레벨 업 · ⭐ 포인트 = 레벨 (Lv10 이면 10개) → 단계 게이지에 투자</small></div>
@@ -1192,7 +1193,7 @@ function campDots() {
     report: S.bag.length > 0 || (!!S.report && S.report !== reportSeen),
     town: Object.keys(BUILDINGS).some(townTodo),       // 건설 · 훈련장의 훈련 · 대장간 시설 (town.js townTodo)
     gear: Object.keys(GEAR_SLOTS).some(gearBetter),      // 부위 강화 레드닷은 마을(대장간) 쪽 (town.js townTodo)
-    skill: canLevelSkill() || canInvestAny(),
+    skill: t7On() ? t7Dot() : canLevelSkill() || canInvestAny(),
     class: anyClassReady(),
     rank: inboxUnread() > 0,
     mail: mailUnclaimed() > 0,
@@ -2785,7 +2786,7 @@ function renderCamp() {
   $('campBody').scrollTop = scroll;
   tickLive($('campModal'));
   paintGearIcons($('campModal'));
-  if (campTab === 'char') { drawGearHero(); drawClassPreviews(); }      // 다시 그린 직후 한 프레임 비지 않게
+  if (campTab === 'char') { drawGearHero(); drawClassPreviews(); paintTree7($('campModal')); }      // 다시 그린 직후 한 프레임 비지 않게
   if (campTab === 'town') { drawTown(); drawMentorStage(); }
   if (campTab === 'sub') drawSubPreviews();
 }
@@ -3417,6 +3418,7 @@ async function enterAccount(nick, known) {
   pushSave(true).then(() => { loadSeason(true); loadWorldBoss(true); loadInbox(); });
 }
 
+if (typeof T7_ACTIONS !== 'undefined') Object.assign(ACTIONS, T7_ACTIONS);   // 시즌7 트리 화면 버튼 (src/tree7-ui.js)
 document.addEventListener('click', (e) => {
   if (e.target.id === 'camp') { closeCamp(); return; }      // 바깥 어두운 영역
   if (e.target.id === 'acct') { closeAccount(); return; }
