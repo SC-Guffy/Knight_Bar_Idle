@@ -1,0 +1,216 @@
+{
+ "marksman-B5-11": {
+  "scores": {
+   "intent": 3,
+   "read": 3,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "3등신에 젊은 얼굴·밝음, 벨트·두 다리·내민 팔로 통짜 해결. 노란 고글 없음·활이 어두움은 아쉬움",
+  "fix": "(선택) 고글 띠 덧칠·활 테두리 밝힘"
+ },
+ "marksman-B5-23": {
+  "scores": {
+   "intent": 2,
+   "read": 2,
+   "clean": 4,
+   "value": 2,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "regen",
+  "summary": "왼쪽을 봄, 몸 전체 어두운 덩어리"
+ },
+ "marksman-B5-37": {
+  "scores": {
+   "intent": 2,
+   "read": 3,
+   "clean": 3,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "regen",
+  "summary": "실사 비율(머리 1/5), 왼쪽을 봄, 바닥 그림자"
+ },
+ "marksman-B5-51": {
+  "scores": {
+   "intent": 2,
+   "read": 2,
+   "clean": 3,
+   "value": 2,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "regen",
+  "summary": "얼굴이 가려짐, 어둡게 뭉개짐 (lrange 경보 동의)"
+ },
+ "best": "marksman-B5-11",
+ "ranger-B5-11": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 3,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "모자·깃털·적갈 머리·벨트·두 다리 읽힘. 가슴 도트 조금 지글거림"
+ },
+ "ranger-B5-23": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "외곽선·덩어리 가장 깔끔, 통짜·뭉개짐·노인 얼굴 모두 피함. 바지가 조금 어두움"
+ },
+ "ranger-B5-37": {
+  "scores": {
+   "intent": 3,
+   "read": 2,
+   "clean": 2,
+   "value": 2,
+   "pixel": 2,
+   "motion": 5,
+   "rules": 3
+  },
+  "verdict": "regen",
+  "summary": "얼굴·깃털 안 읽힘, 부스러기, 어두운 상체"
+ },
+ "ranger-B5-51": {
+  "scores": {
+   "intent": 2,
+   "read": 3,
+   "clean": 2,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 3
+  },
+  "verdict": "regen",
+  "summary": "흰 깃털·크림 셔츠 없음, 주황 일색, 잡선"
+ },
+ "arcaneArcher-B5-11": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 3,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "오른쪽 3등신 젊은 얼굴·하늘색 눈·룬, 벨트·다리 틈. 발밑 분홍 막대, 후드 끝 약함"
+ },
+ "arcaneArcher-B5-23": {
+  "scores": {
+   "intent": 2,
+   "read": 3,
+   "clean": 3,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "regen",
+  "summary": "왼쪽 사격 자세, 실사 비율, 얼굴 가림"
+ },
+ "arcaneArcher-B5-37": {
+  "scores": {
+   "intent": 1,
+   "read": 3,
+   "clean": 4,
+   "value": 2,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "regen",
+  "summary": "후드 없음, 왼쪽, 어두운 덩어리"
+ },
+ "arcaneArcher-B5-51": {
+  "scores": {
+   "intent": 3,
+   "read": 3,
+   "clean": 3,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "fix",
+  "summary": "얼굴이 어두운 가면, 몸 어두움"
+ },
+ "best-ranger": "ranger-B5-23",
+ "best-arcaneArcher": "arcaneArcher-B5-11",
+ "arbalest-B5-11": {
+  "scores": {
+   "intent": 2,
+   "read": 3,
+   "clean": 2,
+   "value": 2,
+   "pixel": 2,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "regen",
+  "summary": "통 투구에 얼굴 없음, 무기가 총처럼, 상체 어두운 덩어리"
+ },
+ "arbalest-B5-23": {
+  "scores": {
+   "intent": 3,
+   "read": 3,
+   "clean": 3,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "fix",
+  "summary": "젊은 얼굴·밝음은 가장 가깝지만 투구·석궁 특징 약함, 망토가 하체와 뭉침"
+ },
+ "arbalest-B5-37": {
+  "scores": {
+   "intent": 3,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "상하체 분리·팔다리 틈·석궁 형태·깔끔한 도트. 얼굴이 어둡고(붉은 눈) 갑옷 톤이 무거움"
+ },
+ "arbalest-B5-51": {
+  "scores": {
+   "intent": 2,
+   "read": 2,
+   "clean": 3,
+   "value": 2,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "regen",
+  "summary": "정면 구도, 어두운 덩어리, 무기가 막대"
+ },
+ "best-arbalest": "arbalest-B5-37",
+ "best-marksman": "marksman-B5-11"
+}

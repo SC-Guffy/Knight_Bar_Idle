@@ -1,0 +1,74 @@
+{
+ "ranger-11": {
+  "legs": 1.0,
+  "arms": 0.84
+ },
+ "ranger-23": {
+  "legs": 0.79,
+  "arms": 0.74
+ },
+ "ranger-37": {
+  "legs": 0.79,
+  "arms": 0.8
+ },
+ "ranger-51": {
+  "legs": 0.67,
+  "arms": 0.52
+ },
+ "marksman-11": {
+  "legs": 1.0,
+  "arms": 0.9
+ },
+ "marksman-23": {
+  "legs": 1.0,
+  "arms": 0.95
+ },
+ "marksman-37": {
+  "legs": 0.88,
+  "arms": 0.86
+ },
+ "marksman-51": {
+  "legs": 0.87,
+  "arms": 0.71
+ },
+ "arcaneArcher-11": {
+  "legs": 0.86,
+  "arms": 0.95
+ },
+ "arcaneArcher-23": {
+  "legs": 1.0,
+  "arms": 0.84
+ },
+ "arcaneArcher-37": {
+  "legs": 1.0,
+  "arms": 0.84
+ },
+ "arcaneArcher-51": {
+  "legs": 0.71,
+  "arms": 0.74
+ },
+ "arbalest-11": {
+  "legs": 0.71,
+  "arms": 0.58
+ },
+ "arbalest-23": {
+  "legs": 0.5,
+  "arms": 0.37
+ },
+ "arbalest-37": {
+  "legs": 0.53,
+  "arms": 0.48
+ },
+ "arbalest-51": {
+  "legs": 0.64,
+  "arms": 0.42
+ },
+ "ref-swordsman": {
+  "legs": 0.43,
+  "arms": 0.53
+ },
+ "ref-paladin": {
+  "legs": 0.79,
+  "arms": 0.68
+ }
+}
