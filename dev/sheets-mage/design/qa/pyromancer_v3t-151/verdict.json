@@ -1,0 +1,32 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 3,
+  "pixel": 4,
+  "motion": 5,
+  "rules": 4
+ },
+ "verdict": "pass",
+ "round": 3,
+ "avg": 3.86,
+ "defects": [
+  {
+   "frame": 1,
+   "where": "발밑",
+   "what": "바닥 그림자 띠"
+  },
+  {
+   "frame": 1,
+   "where": "눈",
+   "what": "작음"
+  },
+  {
+   "frame": 1,
+   "where": "머리띠",
+   "what": "띠로 안 읽힘"
+  }
+ ],
+ "summary": "포니테일·민소매·짧은 붉은 치마·두 다리와 부츠가 잘 읽히는 화염술사 시안, 바닥 띠는 지워야 함"
+}

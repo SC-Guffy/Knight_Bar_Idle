@@ -58,6 +58,112 @@ WHO['electromancer_f'] = (FEM + 'spiky swept-back blonde hair, a navy circlet wi
 STRETCH, DENOISE = 1.5, 0.82
 
 
+# ── v2: 컨셉만 보고 새로 그리기 (2026-10-16 사용자 "기존 비주얼을 따라갈 필요없이 새롭게, 컨셉에만 알맞게" + "조금 더 여성스럽게") ──
+#  지금 스프라이트 밑그림을 쓰지 않는다. 두 가지를 같이 뽑아 비교한다:
+#   t = 순수 txt2img · s = 3등신 막대 인형(skel.py to_b 기준 자세)으로 만든 중립 회색 실루엣을 아주 약하게(denoise 0.9) 깐 판
+#   (검사 세션 기록: 글로만 "3등신" 이면 모델이 5~6등신 실사로 그린다 — 실루엣은 비율만 잡고 모습은 정하지 않는다)
+STYLE2 = ('Pixel art style. One single full-body 2D game character sprite of a cute young woman mage, side view in profile, facing right, standing in a ready pose, '
+          '{who} Chibi-like stylized proportions exactly 3 heads tall: big head, short body, legs visible. Soft rounded face with big eyes, not exaggerated. '
+          'Short skirted robe above the knees and boots so both legs are clearly visible, sleeves that show the forearms. '
+          'Plain flat light gray background, nothing else, no text, no ground shadow. Crisp clean hard pixels, bold dark outline, limited palette of about 14 colors, '
+          'large clean flat color areas, clear readable silhouette, light from the upper right.')
+WHO2 = {
+    'mage': 'Apprentice wizard: a big wide-brimmed blue pointed hat whose tip bends backward, long wavy brown hair, a blue tunic dress with a leather belt and a small pouch, '
+            'holding a short wooden staff with a small sky-blue orb.',
+    'pyromancer': 'Fire mage: very long fiery orange hair in a high ponytail streaming far behind her like flames, a red headband, a sleeveless red and gold top with bracers, '
+                  'an orange sash flowing behind, a short dark red skirt, sandals, holding a long dark staff topped with a golden flame-shaped fork and a fire orb.',
+    'cryomancer': 'Ice mage: a round pale blue hood pushed back so her face is clearly visible, a long white braid over the shoulder, a fluffy white fur collar, '
+                  'a short shoulder cape, long white gloves, ice crystal ornaments, a short pale blue skirt, white fur boots, holding a long pale blue staff topped with an ice crystal fork.',
+    'electromancer': 'Storm mage: spiky swept-back blonde hair, a navy circlet with two tall light blue lightning-bolt horns spreading in a V shape, '
+                     'a short fitted navy coat dress with gold buttons and two split coat tails, fingerless gloves, navy tights and boots, '
+                     'holding a long dark staff with a zigzag forked head and a violet crystal orb.',
+}
+SEEDS_T, SEEDS_S = [101, 113], [127, 139]
+# v3 (비평 1차 결과 반영, 2026-10-17): 순흑 옷이 명암 없이 뭉침·얼굴 안 보임·흰 림라이트 1도트 잡점·바닥 그림자가 공통 지적.
+#  모든 v3 에 공통 문구를 더하고, 직업별로 지적된 곳을 고친다. 시드 113 은 그림에 액자를 넣어 빼고 새 시드
+STYLE3_ADD = (' Mid-tone colors with clear 3-step shading on every cloth area, no pure black areas except the thin outline. '
+              'A clearly readable face with skin tone and two large dark eyes. No white rim light, no sparkles, no stray dots, no ground shadow, no base plate, no frame.')
+WHO3 = {
+    'pyromancer': 'Fire mage: very long fiery orange hair in a high ponytail streaming behind her, a red headband, a sleeveless crimson top with gold trim and bracers, '
+                  'an orange sash, a short dark red skirt that is clearly darker and redder than the hair, sandals, '
+                  'holding a long solid unbroken dark wooden staff topped with a golden flame-shaped fork.',
+    'cryomancer': 'Ice mage: her pale blue hood is PULLED BACK onto her shoulders, a long white braid hanging over the front of her shoulder, a fluffy white fur collar, '
+                  'a SHORT shoulder capelet only (no long cape), mid-tone ice-blue tunic with dark navy shading, long white gloves, a short ice-blue skirt, white fur boots, '
+                  'holding a long pale blue staff topped with an ice crystal fork.',
+    'electromancer': 'Storm mage: spiky swept-back blonde hair, a navy circlet with two tall light blue lightning-bolt horns spreading in a V shape, '
+                     'a short fitted MID-TONE NAVY BLUE (not black) coat dress with a row of gold buttons, lighter blue cuffs, readable folds, two clean split coat tails, '
+                     'sleeves rolled up showing the forearms, navy blue stockings and brown boots, holding a long dark staff with a zigzag forked head and a violet crystal orb.',
+}
+SEEDS3_T, SEEDS3_S = [151, 163], [173, 181]
+# v4 (비평 3차: 빙결·뇌전 얼굴이 축소에서 검게 막힘 — 큰 검은 눈·앞머리 외곽선·3/4 정면 얼굴이 46px 한 칸에 겹친다. 일부는 왼쪽을 봄)
+STYLE4_ADD = (' Strict side profile view facing to the right, the whole face visible and not covered by hair, short bangs, bright skin tone, '
+              'simple small dark eyes, no thick black lines on the face.')
+WHO4 = {
+    'cryomancer': WHO3['cryomancer'].replace('her pale blue hood is PULLED BACK onto her shoulders',
+                                             'her medium-blue hood is pulled back behind her neck with a visibly darker blue rim than her hair')
+                  .replace('a long white braid hanging over the front of her shoulder', 'a long white braid with light gray shading on each section hanging over her shoulder'),
+    'electromancer': WHO3['electromancer'].replace('spiky swept-back blonde hair', 'short spiky blonde hair swept back behind her head, short bangs')
+                     .replace('navy blue stockings and brown boots', 'navy blue stockings with a visible gap between her two legs and brown boots'),
+}
+SEEDS4 = [201, 213, 227, 239, 241, 257]
+
+
+def gen4(classes):
+    from comfy import gen as G
+    for cls in classes:
+        for sd in SEEDS4:
+            out = os.path.join(RAW, f'{cls}_v4t-{sd}.png')
+            if os.path.exists(out): continue
+            ims, dt = G('zimg', STYLE2.format(who=WHO4[cls]) + STYLE3_ADD + STYLE4_ADD, seed=sd)
+            ims[0].save(out); print(cls, 'v4', sd, f'{dt:.1f}s', flush=True)
+
+
+def gen3(classes):
+    from comfy import gen as G
+    sil = Image.open(os.path.join(RAW, '_init-sil.png')).convert('RGB')
+    for cls in classes:
+        for mode, seeds in (('t', SEEDS3_T), ('s', SEEDS3_S)):
+            for sd in seeds:
+                out = os.path.join(RAW, f'{cls}_v3{mode}-{sd}.png')
+                if os.path.exists(out): continue
+                pr = STYLE2.format(who=WHO3[cls]) + STYLE3_ADD
+                ims, dt = (G('zimg', pr, seed=sd) if mode == 't' else G('zimg', pr, seed=sd, denoise=0.9, init=sil))
+                ims[0].save(out); print(cls, 'v3', mode, sd, f'{dt:.1f}s', flush=True)
+
+
+def silhouette_init():
+    """3등신 중립 실루엣 (skel.py 기준 자세 to_b(pose()), 192칸 → 1024): 회색 몸·큰 머리·지팡이. 모습(옷·머리)은 정하지 않는다"""
+    import importlib.util
+    from PIL import ImageDraw
+    sys.path.insert(0, os.path.join(HERE, '..', 'sheets-sword'))
+    sp = importlib.util.spec_from_file_location('mskel', os.path.join(HERE, 'skel.py')); sk = importlib.util.module_from_spec(sp); sp.loader.exec_module(sk)
+    p = sk.to_b(sk.pose()); S = 1024 / 192 * 1.25; ox, oy = -60, -260          # 192칸 좌표 → 1024 (가운데로)
+    T = lambda q: (q[0] * S + ox + 130, q[1] * S + oy)
+    im = Image.new('RGB', (1024, 1024), (200, 200, 204)); d = ImageDraw.Draw(im); col = (120, 122, 132)
+    for a, b, w in [('NECK', 'RIGHT HIP', 34), ('NECK', 'LEFT HIP', 34), ('RIGHT HIP', 'RIGHT KNEE', 20), ('RIGHT KNEE', 'RIGHT LEG', 18), ('LEFT HIP', 'LEFT KNEE', 20),
+                    ('LEFT KNEE', 'LEFT LEG', 18), ('RIGHT SHOULDER', 'RIGHT ELBOW', 14), ('RIGHT ELBOW', 'RIGHT ARM', 13), ('LEFT SHOULDER', 'LEFT ELBOW', 14), ('LEFT ELBOW', 'LEFT ARM', 13)]:
+        d.line([T(p[a]), T(p[b])], fill=col, width=int(w * 2.2))          # 굵게 — 몸이 이어져 보이게
+    hx, hy = T((p['NECK'][0] + 3, p['NECK'][1] - 17)); R = 16 * S
+    d.ellipse([hx - R, hy - R, hx + R, hy + R], fill=col)
+    g = T(p['RIGHT ARM']); import math; a = math.radians(-80)
+    d.line([(g[0] - 16 * S * math.cos(a), g[1] - 16 * S * math.sin(a)), (g[0] + 52 * S * math.cos(a), g[1] + 52 * S * math.sin(a))], fill=(100, 90, 80), width=12)
+    return im
+
+
+def gen2(classes):
+    from comfy import gen as G
+    os.makedirs(RAW, exist_ok=True)
+    sil = silhouette_init(); sil.save(os.path.join(RAW, '_init-sil.png'))
+    for cls in classes:
+        for mode, seeds in (('t', SEEDS_T), ('s', SEEDS_S)):
+            for sd in seeds:
+                out = os.path.join(RAW, f'{cls}_v2{mode}-{sd}.png')
+                if os.path.exists(out): continue
+                pr = STYLE2.format(who=WHO2[cls])
+                ims, dt = (G('zimg', pr, seed=sd) if mode == 't' else G('zimg', pr, seed=sd, denoise=0.9, init=sil))
+                ims[0].save(out); print(cls, mode, sd, f'{dt:.1f}s', flush=True)
+
+
 def ref_img(cls):
     """지금 게임 그림 (96칸, 발 44·88). 뇌전술사는 시안 B 머리"""
     cls = cls.split('_')[0].rstrip('2')
@@ -93,30 +199,36 @@ def gen(classes):
             ims[0].save(out); print(cls, s, f'{dt:.1f}s', flush=True)
 
 
-def shrink2(im, H, ncol=14, line_frac=0.45):          # 기본값: 12·14·16색 × 0.30·0.45·0.55 비교에서 14색·0.45 가 가장 깔끔
+def shrink2(im, H, ncol=14, line_frac=0.7, body=None):           # 기본값: 14색. 외곽선 칸 기준은 지금 그림 밑그림판 0.45 → 컨셉 새 그림(두꺼운 선) 0.7 (비교 2026-10-17)
     """뭉개짐 줄인 축소 (로드맵 검수 "명암 덩어리·얼굴 흐림"): 칸 안 색을 평균하지 않는다.
     1) 1024 원본의 몸 칸만 먼저 ncol 색으로 줄인다(색 번호) — 같은 재질은 같은 색 번호라 축소 뒤 색이 들쭉날쭉하지 않다
     2) 칸마다: 아주 어두운(외곽선) 칸이 line_frac 이상이면 외곽선 #0b0d14 — 1~2px 선(눈·옷 경계)이 살아남는다. 아니면 최빈 색 번호
-    3) 외톨이 점(상하좌우 네 이웃과 모두 다른 칸) 지우기 → 바깥 외곽선 1칸"""
+    3) 외톨이 점(상하좌우 네 이웃과 모두 다른 칸) 지우기 → 바깥 외곽선 1칸
+    body = (top, foot): 1024 원본의 머리 꼭대기·발바닥 y (모자 장식·지팡이 제외) — 주면 그 몸 키가 H 칸이 되게 칸 크기를 정한다
+      (공용 dev/sheets-common/shrink.py shrink_body 와 같은 생각: 지팡이를 머리 위로 세운 직업도 몸 키가 같게). 발바닥 아래 그림자는 지운다"""
     import numpy as np
     sys.path.insert(0, os.path.join(HERE, '..', 'sheets-sword'))
     import importlib.util
     sp = importlib.util.spec_from_file_location('sword_design', os.path.join(HERE, '..', 'sheets-sword', 'design.py'))
     sd = importlib.util.module_from_spec(sp); sp.loader.exec_module(sd)
     a, m = sd.fg(im)
+    if body: m[body[1] + 1:] = False                 # 발밑 그림자·바닥 줄
     ys, xs = np.nonzero(m)
     if len(xs) == 0: return None
     y0, y1 = np.percentile(ys, [0.3, 99.9]); x0, x1 = np.percentile(xs, [0.3, 99.7])
     y0, y1, x0, x1 = int(y0), int(y1) + 1, int(x0), int(x1) + 1
+    if body:
+        cell = (body[1] + 1 - body[0]) / H
+        H = int(np.ceil((y1 - y0) / cell))           # 지팡이·모자까지 담는 출력 높이
     lum = a[..., 0] * .3 + a[..., 1] * .59 + a[..., 2] * .11
-    dark = m & (lum < 45)
+    dark = m & (lum < 30)                            # 외곽선 = 아주 어두운 칸만 (45 면 남색 코트(밝기 ~41)까지 외곽선이 되어 검게 뭉침 — 비평 지적)
     # 1) 몸 칸 색 줄이기 (어두운 선 칸 제외)
-    body = m & ~dark
-    pix = a[body].astype(np.uint8)
+    bm = m & ~dark
+    pix = a[bm].astype(np.uint8)
     q = Image.fromarray(pix.reshape(-1, 1, 3), 'RGB').quantize(colors=ncol, method=Image.Quantize.MEDIANCUT)
     pal = np.array(q.getpalette()[:ncol * 3], np.uint8).reshape(-1, 3)
-    idx = np.full(m.shape, -1, np.int32); idx[body] = np.asarray(q).reshape(-1)
-    cell = (y1 - y0) / H; W = int(np.ceil((x1 - x0) / cell))
+    idx = np.full(m.shape, -1, np.int32); idx[bm] = np.asarray(q).reshape(-1)
+    cell = (y1 - y0) / H if not body else cell; W = int(np.ceil((x1 - x0) / cell))
     out = np.zeros((H, W, 4), np.uint8)
     for j in range(H):
         for i in range(W):
@@ -136,6 +248,27 @@ def shrink2(im, H, ncol=14, line_frac=0.45):          # 기본값: 12·14·16색
             nb = [tuple(out[j + b, i + a2]) for a2, b in ((1, 0), (-1, 0), (0, 1), (0, -1)) if 0 <= i + a2 < W and 0 <= j + b < H and out[j + b, i + a2, 3]]
             if len(nb) >= 3 and tuple(out[j, i]) not in nb:
                 o[j, i] = max(set(nb), key=nb.count)
+    # 발밑 그림자·바닥 줄: 맨 아래 줄이 바로 위 줄보다 1.4배 넘게 넓으면 지운다 (최대 2줄, 공용 shrink_body 와 같은 규칙)
+    for _ in range(2):
+        rows = [j for j in range(o.shape[0]) if o[j, :, 3].any()]
+        if len(rows) < 3: break
+        wd = lambda j: (lambda xs: xs.max() - xs.min() if len(xs) else 0)(np.nonzero(o[j, :, 3])[0])
+        if wd(rows[-1]) > 1.4 * max(1, wd(rows[-2])): o[rows[-1]] = 0
+        else: break
+    # 몸에서 떨어진 작은 조각(8방향 3칸 이하) 지우기 — 비평 지적 "머리카락 끝·챙 끝 외톨이 어두운 도트"
+    al = o[..., 3] > 0; seen = np.zeros_like(al)
+    for j in range(H):
+        for i in range(W):
+            if al[j, i] and not seen[j, i]:
+                st, comp = [(j, i)], []; seen[j, i] = True
+                while st:
+                    y, x = st.pop(); comp.append((y, x))
+                    for dy in (-1, 0, 1):
+                        for dx in (-1, 0, 1):
+                            yy, xx = y + dy, x + dx
+                            if 0 <= yy < H and 0 <= xx < W and al[yy, xx] and not seen[yy, xx]: seen[yy, xx] = True; st.append((yy, xx))
+                if len(comp) <= 3:
+                    for y, x in comp: o[y, x] = 0
     img = Image.fromarray(o, 'RGBA')
     # 바깥 외곽선 1칸
     P = img.load(); Wd, Hd = img.size
@@ -172,5 +305,9 @@ def shrink_all(H=46):
 
 if __name__ == '__main__':
     if sys.argv[1] == 'gen': gen(sys.argv[2:] or list(WHO))
+    elif sys.argv[1] == 'gen2': gen2(sys.argv[2:] or list(WHO2))
+    elif sys.argv[1] == 'gen3': gen3(sys.argv[2:] or list(WHO3))
+    elif sys.argv[1] == 'gen4': gen4(sys.argv[2:] or list(WHO4))
+    elif sys.argv[1] == 'sil': silhouette_init().save(os.path.join(RAW, '_init-sil.png'))
     elif sys.argv[1] == 'shrink': shrink_all()
     elif sys.argv[1] == 'shrink2': shrink2_all(ncol=int(sys.argv[2]) if len(sys.argv) > 2 else 14)

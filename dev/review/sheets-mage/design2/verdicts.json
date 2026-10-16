@@ -1,0 +1,144 @@
+[
+ {
+  "cls": "mage",
+  "id": "mage_v2s-139",
+  "name": "마법사",
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 3
+  },
+  "avg": 3.86,
+  "summary": "모자·긴 머리·파란 튜닉 드레스로 견습 마법사가 한눈에 읽히고 깔끔해서 통과",
+  "defects": [
+   {
+    "frame": 1,
+    "where": "얼굴 눈",
+    "what": "눈이 점 1개 수준"
+   },
+   {
+    "frame": 1,
+    "where": "치마 아래 다리·부츠",
+    "what": "두 다리가 확실히 갈려 보이지 않음"
+   },
+   {
+    "frame": 1,
+    "where": "소매·팔뚝",
+    "what": "팔뚝이 짧음"
+   },
+   {
+    "frame": 1,
+    "where": "모자·드레스 (흑백)",
+    "what": "같은 중간 회색으로 묶임"
+   }
+  ]
+ },
+ {
+  "cls": "pyromancer",
+  "id": "pyromancer_v3s-173",
+  "name": "화염술사",
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "avg": 4.0,
+  "summary": "포니테일·머리띠·민소매·붉은 치마·두 다리와 부츠가 모두 읽히는 깔끔한 화염술사 시안",
+  "defects": [
+   {
+    "frame": 1,
+    "where": "얼굴 눈",
+    "what": "눈이 1~2도트로 작다"
+   },
+   {
+    "frame": 1,
+    "where": "치마 아래 다리·부츠",
+    "what": "흑백에서 다리·부츠 경계가 약하다"
+   },
+   {
+    "frame": 1,
+    "where": "포니테일",
+    "what": "불꽃처럼 솟기보다 풀어 내린 긴 머리처럼 읽힌다"
+   }
+  ]
+ },
+ {
+  "cls": "cryomancer",
+  "id": "cryomancer_v4t-257",
+  "name": "빙결술사",
+  "scores": {
+   "intent": 3,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "avg": 3.86,
+  "summary": "후드·큰 눈·장갑·두 다리와 부츠가 잘 읽히고 명암도 서서 통과",
+  "defects": [
+   {
+    "frame": 1,
+    "where": "후드 아래 어깨",
+    "what": "흰 땋은 머리가 안 보이고 흰 앞머리만"
+   },
+   {
+    "frame": 1,
+    "where": "등 뒤 망토",
+    "what": "망토가 길어 짧은 치마보다 긴 로브처럼 보임"
+   },
+   {
+    "frame": 1,
+    "where": "망토 아래 왼쪽 끝",
+    "what": "어두운 잡티 1~2도트"
+   }
+  ]
+ },
+ {
+  "cls": "electromancer",
+  "id": "electromancer_v4t-227",
+  "name": "뇌전술사",
+  "scores": {
+   "intent": 3,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "avg": 3.86,
+  "summary": "얼굴·눈·팔·두 다리·부츠가 잘 보이고 여성스러워져 통과",
+  "defects": [
+   {
+    "frame": 1,
+    "where": "머리 위 뿔",
+    "what": "뿔이 짧고 둥글어 고양이 귀처럼 읽힘, 남색 관이 거의 안 보임"
+   },
+   {
+    "frame": 1,
+    "where": "코트 앞판",
+    "what": "금 단추가 게임 배율에서 안 보임"
+   },
+   {
+    "frame": 1,
+    "where": "머리카락",
+    "what": "뒤로 뻗친 금발보다 단발에 가까움"
+   },
+   {
+    "frame": 1,
+    "where": "드레스·꼬리",
+    "what": "흑백에서 어두운 한 덩어리에 가까움"
+   }
+  ]
+ }
+]
