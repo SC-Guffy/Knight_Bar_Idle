@@ -13,6 +13,13 @@ if (typeof Image !== 'undefined') {
     s.img.src = vfxBase + id + '.png';
   }
 }
+// 아직 안 뽑은 3차·★★★ 텍스처는 같은 계열 2차 그림을 빌려 쓴다 (없으면 그 자리 연출이 통째로 빈다 — 궁극기가 동작만 반복하던 원인).
+//  진짜 시트가 xmeta.js 에 오면 위 등록이 먼저라 이 별칭은 저절로 빠진다
+const QI_TEX_FALLBACK = {
+  xh3: 'xh2', xh5: 'xh4', xh7: 'xh6', xp2: 'xp1', xw2a: 'xw2', xw3a: 'xw3', xw4a: 'xw4',
+  xe06: 'xe05', xe09: 'xe08', xe11: 'xh6', xe13: 'xe16', xk08: 'xk03', xk09: 'xk05', xk10: 'xk06',
+};
+for (const [id, from] of Object.entries(QI_TEX_FALLBACK)) if (!VFX_SHEETS[id] && VFX_SHEETS[from]) VFX_SHEETS[id] = VFX_SHEETS[from];
 const qiTex = (id) => !!(VFX_SHEETS[id] && VFX_SHEETS[id].lv);
 // 직업 → 평타 궤적(XW)·명중(XH). 킥복서 계열 XW 는 2프레임(0 앞차기 · 1 돌려차기)
 Object.assign(VFX_BASIC_HIT, { fighter: 'xh1', striker: 'xh2', champion: 'xh3', kickboxer: 'xh4', tempest: 'xh5' });
@@ -85,9 +92,20 @@ function qiDust(a, n = 4) {
 }
 
 // 궁극기 공통 틀: 각성(awaken) → 직업 기술 동작 반복 → 내지르기(release) 막타
-function qiUltFx(loopAnim, lastTex) {
+//  shot: 원거리(그랜드마스터)는 연타마다 손바닥에서 기탄(XE10)이 날아가 그 타격 순간에 닿고, 막타는 거대 기탄
+function qiUltFx(loopAnim, lastTex, shot = false) {
   return {
     kb: 10,
+    cues: shot ? (a) => {
+      const d = a.k.dur, hits = a.k.hits, n = hits.length;
+      return hits.map((h, i) => {
+        const last = i === n - 1, fly = last ? 0.28 : 0.13, at = Math.max(0, h[0] - fly / d);
+        return [at, (a) => {
+          const p = qiHand(a), ty = a.ty() + (last ? 0 : rand(-8, 6)), sc = last ? 2 : 2 / 3 + 0.2 * Math.min(2, a.mast);
+          skFx(a.owner, 0, fly, (u) => vfxDraw(ctx, 'xe10', a.color, Math.floor(clock * 14) % 4, mix(p.x, a.tx(), u), mix(p.y, ty, u), { scale: sc, flip: a.dir < 0 }));
+        }];
+      }).sort((x, y) => x[0] - y[0]);
+    } : undefined,
     pose(u, a) {
       const d = a.k ? a.k.dur : 2.6, t = u * d, last = a.k.hits[a.k.hits.length - 1][0] * d;
       if (t < 0.5) return { sheet: { anim: 'awaken', u: qiSeg(t, 0, 0.5) } };
@@ -214,7 +232,7 @@ Object.assign(SKILL_FX, {
   // ── 3차 궁극기 (각성): 자리 연출 — 3차 단계(③)에서 XF 배경·XK 막타로 채운다 ──
   kingFist: qiUltFx('skillA', 'xk08'),
   heavenWind: qiUltFx('skillB', 'xk09'),
-  qiGodDescent: qiUltFx('skillA', 'xk10'),
+  qiGodDescent: qiUltFx('skillA', 'xk10', true),
 
   // ── 기막: 기막 자세(skillB) → 반구 막 XE12 가 보호막 동안. ★★ 고리 XE13 · ★★★ 끝에 막이 터진다 XK07 ──
   qiBarrier: {
