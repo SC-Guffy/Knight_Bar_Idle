@@ -27,7 +27,7 @@ FIX = {'lancer': ('surcoat_green',),          # 검수 r2: 녹색 없음
        'halberdier': ('surcoat_orange', 'tabard', 'shoulders'),   # tabard: 반바지처럼 갈린 주황 → 한 장 서코트 (로드맵 2026-10-17)
        'cavalier': ('surcoat_blue', 'red_up')}
 # v11 3등신 재정리본 (SPEC 키별): 이미 색이 맞아 수리가 적다. 용기병만 은→보라 판금
-FIX.update({'lancer12': ('green_up', 'plate_flat'), 'dragoon12': ('plate_flat', 'purple_light'),   # plate_flat: 검수 r4 점박이 잡음
+FIX.update({'lancer12': ('green_up', 'plate_flat', 'surcoat_green'), 'dragoon12': ('plate_flat', 'purple_split'),   # plate_flat: 검수 r4 점박이 잡음
              'lancer11': ('green_up',), 'dragoon11': ('purple_light',), 'halberdier11': (), 'cavalier11': ('surcoat_blue',)})   # 정리본 녹색·파랑이 탁하고 작다
 # 무기를 얹은 뒤 하는 수리: 용기병 노란 눈 (무기 색을 빼야 머리 앞 끝을 찾는다)
 AFTER = {'dragoon': ('eye_after',)}

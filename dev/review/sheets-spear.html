@@ -37,6 +37,14 @@
   </ul>
 </div>
 
+<h2>◇ 관절 애니 시험 — 창기사 찌르기 8f (2026-10-17, PixelLab usage 4)</h2>
+<div class="box"><ol><li>첫 프레임 = <b>pixen 중립 대기</b>(무기 없음·팔 내림, usage 1) — 레인저 교훈: 무기를 든 첫 프레임은 팔 관절을 안 따른다.</li>
+<li><code>dev/spear/skelfit.py</code>: 설계 찌르기(<code>skel.py</code>)의 뼈 <b>각도</b> + 첫 프레임 그림에서 읽은 뼈 <b>길이</b>, 다리는 발을 땅에 두고 무릎 역산 → animate-with-skeleton-v3 192칸 8f (usage 3).</li>
+<li><code>dev/spear/anim_post.py</code>: 2×2 최빈색으로 96칸 → 128칸 발 x 36 → 그림에서 손(살색 덩어리)을 찾아 그 직선으로 모델 창 지우기 → 코드 창 → 8프레임 공통 팔레트 22색.</li>
+<li>검수: 1차 3.14 fix(창이 손보다 3칸 위 — 관절 좌표·갈색 직선 기준) → 손 찾기로 고쳐 <b>3.86 pass</b> (4/4/4/4/4/3/4). 남은 흠: 젖히는 예비동작·팔 뻗음이 약함.</li></ol></div>
+<div class="scroll box"><img class="px" src="sheets-spear/anim/anim-lancer-thrust.gif" alt="창기사 찌르기"> <img class="px" src="sheets-spear/anim/anim-lancer-thrust.png" alt="8프레임" style="max-width:100%"></div>
+<p class="sub"><a href="sheets-spear/anim/lancer-thrust-sheet.png">검수 시트</a> · <a href="sheets-spear/anim/stick-fit-lancer-thrust.png">관절 맞춤 막대 인형</a></p>
+
 <h2>◆ 도트 검수 합격 4종 — 사용자 검수 반영판 (2026-10-17) · 창기사 · 용기병 · 할버디어 · 랜서</h2>
 <div class="box"><b>사용자 검수 반영</b>: "용기병은 사람기사로가야해" → 사람 기사 + 용 투구(얼굴 보임), 꼬리 없음 · 할버디어 허벅지 살색 → 천 서코트 · 랜서 사탕 줄무늬 랜스 → 은색 원뿔 + 파란 손잡이·보호대.
 <ol><li>재검수(r2)에서 같은 그림이 "6등신 사실 비율"로 지적돼 3등신 큰 머리 문구(<code>design5.py CHIBI</code>)로 다시 생성(v11) → 할버디어·랜서 합격.</li>

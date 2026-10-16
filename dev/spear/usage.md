@@ -22,3 +22,5 @@
 | 16 | cavalier | `/image-to-pixelart` | cavalier11-11-pl: 기준 그림 정리 256→64 | 1.0 | 21.0 | 1068.0 |
 | 17 | lancer | `/image-to-pixelart` | lancer12-11-pl: 기준 그림 정리 256→64 | 1.0 | 22.0 | 1054.0 |
 | 18 | dragoon | `/image-to-pixelart` | dragoon12-51-pl: 기준 그림 정리 256→64 | 1.0 | 23.0 | 1052.0 |
+| 19 | lancer | `/edit-image-pixen` | neutral: same young chibi lancer knight, same face, same colors and o | 1.0 | 24.0 | 1043.0 |
+| 20 | lancer | `/animate-with-skeleton-v3` | skel-thrust: animate-with-skeleton-v3 192 8f | 3.0 | 27.0 | 1032.0 |

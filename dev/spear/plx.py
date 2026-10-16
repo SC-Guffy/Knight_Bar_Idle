@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
 from pl import call
 
-CAP = 23          # 로드맵 승인: 원형 마네킹 usage 11 + 기준 그림 정리 직업당 1회 7 (2026-10-17) + v11 3등신 재정리 4 (2026-10-17, 재시도 0) + v12 얼굴 투구 2 (2026-10-17, 재시도 0)
+CAP = 27          # 로드맵 승인: 원형 마네킹 usage 11 + 기준 그림 정리 직업당 1회 7 (2026-10-17) + v11 3등신 재정리 4 (2026-10-17, 재시도 0) + v12 얼굴 투구 2 (2026-10-17, 재시도 0) + 관절 애니 시험 4 (창기사 pixen 중립 1 + 찌르기 8f 3, 2026-10-17, 재시도 0)
 FLOOR = 300
 LOG = os.path.join(HERE, 'usage.md')
 STATE = os.path.join(HERE, 'usage.json')
@@ -113,5 +113,9 @@ if __name__ == '__main__':
         body = {'image': b64file(src), 'image_size': {'width': 256, 'height': 256}, 'output_size': {'width': 64, 'height': 64},
                 'fixer': True, 'init_image_strength': 200, 'seed': seed}
         run('/image-to-pixelart', body, cls, f'{name}: 기준 그림 정리 256→64', os.path.join(HERE, 'work', cls, name))
+    elif a[1] == 'skel':       # plx.py skel <cls> <act>  — skelfit.py 가 만든 skel/req-<cls>-<act>.json 본문으로 animate-with-skeleton-v3 (192칸)
+        cls, act = a[2], a[3]
+        body = json.load(open(os.path.join(HERE, 'skel', f'req-{cls}-{act}.json'), encoding='utf-8'))
+        run('/animate-with-skeleton-v3', body, cls, f'skel-{act}: animate-with-skeleton-v3 192 {len(body["keypoints"])}f', os.path.join(HERE, 'work', cls, f'skel-{act}'))
     elif a[1] == 'bal':
         print('balance', bal(), 'self', state()['used'])

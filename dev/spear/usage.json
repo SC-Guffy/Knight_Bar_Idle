@@ -1,5 +1,5 @@
 {
- "used": 23.0,
+ "used": 27.0,
  "calls": [
   {
    "cls": "mq",
@@ -144,6 +144,22 @@
    "used": 1.0,
    "bal": 1052.0,
    "n": 1
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi lancer knight, same face, same colors and o",
+   "used": 1.0,
+   "bal": 1043.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-thrust: animate-with-skeleton-v3 192 8f",
+   "used": 3.0,
+   "bal": 1032.0,
+   "n": 8
   }
  ]
 }
