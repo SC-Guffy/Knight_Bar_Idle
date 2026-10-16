@@ -1,6 +1,7 @@
 'use strict';
 // 수명 봇 (개발용, docs/specs/balance-lifespan.md). progress-bot 의 하루를 N일 돌리며 하루마다 스냅샷 → JSON. 접속 패턴(--mode bot|heavy|casual)으로 실제 유저 근사, --rush 1 은 남는 골드로 건설 즉시 완료.
 //  node dev/lifespan-bot.js --days 60 --seeds 15 --mode heavy --out life-heavy.json
+//  --cap <시간>: 원정 한 번 길이 상한 (그 시간이 되면 귀환, docs/specs/skill-build-tree.md) · 결과에 원정마다 trips 기록
 //  bot: 24시간 매 분 관리 · heavy: 08~24시 매시간 · casual: 8·12·19·23시 4번
 const vm = require('vm');
 
@@ -28,13 +29,13 @@ function playCastle(C, S, t, cs) {
   }
 }
 
-let RUSH = 0;
+let RUSH = 0, CAP = 0;
 function runOne({ days, seed, mode }) {
   let s = seed * 9301 + 49297; const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
   const ctx = makeGame(); ctx.Math.random = rnd;
   const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, bagWeight, bagCap, upgradeBag, claimStock, trade, tradeBlocker, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt, bldMax,
-    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, CLASSES, profile, TRAIN_MAX, rushBuild, rushPrice })`, ctx);
+    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, CLASSES, profile, TRAIN_MAX, rushBuild, rushPrice, endExpedition })`, ctx);
   const C = vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
   const cs = {}, M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
   const S = A.S(); S.gear.auto = true;
@@ -47,10 +48,12 @@ function runOne({ days, seed, mode }) {
     for (const id of ids) for (const nid of Object.keys(A.treeNodesOf(A.SKILLS[id]))) for (let i = 0; i < 40 && A.canInvest(id, nid); i++) A.investNode(id, nid);
   };
   let rid = 0, t = 0, lastDay = -1, raidTop = 0;
+  const trips = [];
   const sell = () => { const l = S.gear.inv.filter((x) => !A.isEquipped(x) && !A.isSetGear(x)); if (l.length) A.sellGear(l); };
   const chores = () => {
     const w = A.bagWeight();
     for (const it of S.bag) for (const x of (it.k === 'box' ? A.openBox(it) : [it])) A.claimLoot(x);
+    if (S.report) { const r = S.report; trips.push({ day: +(t / DAY).toFixed(3), dur: r.dur, trips: r.trips || 1, from: r.stageFrom, to: r.stageTo, bossFail: !!r.bossFail, levels: r.levels, inn: S.bld.inn, lv: S.level }); }
     S.bag = []; S.report = null;
     A.autoEquip(); sell();
     if (S.bagHit) while (A.bagCap() < w * 1.3) { if (!A.upgradeBag()) break; }
@@ -97,18 +100,18 @@ function runOne({ days, seed, mode }) {
   };
   let nextSnap = DAY;
   while (t < days * DAY) {
-    if (S.phase === 'expedition') { A.simulate(TICK); if (S.phase === 'returning') A.simulate(0); }
+    if (S.phase === 'expedition') { A.simulate(TICK); if (CAP && S.phase === 'expedition' && S.trip.dur >= CAP * 3600) A.endExpedition('manual', true); if (S.phase === 'returning') A.simulate(0); }
     else if (isCheck(t)) { chores(); if (!A.departBlocker()) A.startExpedition(); else A.advanceCamp(TICK); }
     else A.advanceCamp(TICK);
     t += TICK; ctx.__T += TICK * 1000;
     if (t >= nextSnap) { snap(); nextSnap += DAY; }
   }
-  return { line, snaps };
+  return { line, snaps, trips };
 }
 
 const argv = process.argv.slice(2), opt = { days: 30, seeds: 6, mode: 'bot', out: null };
 for (let i = 0; i < argv.length; i++) { const k = argv[i].replace(/^--/, ''); opt[k] = isNaN(Number(argv[i + 1])) ? argv[i + 1] : Number(argv[i + 1]); i++; }
-RUSH = Number(opt.rush || 0);
+RUSH = Number(opt.rush || 0); CAP = Number(opt.cap || 0);
 const res = [];
 for (let sd = 1; sd <= opt.seeds; sd++) { const t0 = Date.now(); res.push(runOne({ days: opt.days, seed: sd, mode: opt.mode })); console.error(`seed ${sd} ${res.at(-1).line} ${((Date.now() - t0) / 1000).toFixed(0)}s best ${res.at(-1).snaps.at(-1).best}`); }
 require('fs').writeFileSync(opt.out || `life-${opt.mode}.json`, JSON.stringify({ opt, res }));

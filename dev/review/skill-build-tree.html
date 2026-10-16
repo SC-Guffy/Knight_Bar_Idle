@@ -25,7 +25,8 @@
   th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: right; white-space: nowrap; }
   th { background: var(--panel2); color: var(--dim); font-weight: 400; }
   td:first-child, th:first-child { text-align: left; }
-  td.l { text-align: left; white-space: normal; }
+  td.l { text-align: left; white-space: normal; min-width: 160px; }
+  a { color: var(--blue); }
   .scroll { overflow-x: auto; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 8px 0; }
   .bar label { color: var(--dim); }
@@ -75,6 +76,24 @@
   <div class="card"><h3>장착 칸 1 → 4</h3><p>많이 찍어도 쓰는 건 칸 수만큼. Lv25 골드 · Lv60 💎300 · Lv120 💎1,500 으로 늘린다. 궁극기 칸은 따로.</p></div>
   <div class="card"><h3>보스 벽 · 비전서 없앰</h3><p>10·20칸 보스에 기믹(보호막·졸개·광폭화·장판)을 붙여 빌드로 뚫는 벽으로. 📖 수급처는 경험치로 바꾼다.</p></div>
 </div>
+
+<h2>레퍼런스 게임</h2>
+<p class="sub">2026-10-16 조사. 각 게임의 방식이 우리 시안의 어느 부분과 같은지, 무엇을 가져오고 무엇을 피할지. 출처는 표 아래.</p>
+<div class="scroll"><table>
+<tr><th>게임</th><th>방식</th><th>우리 시안에서</th><th>가져올 점 / 피할 점</th></tr>
+<tr><td>로스트아크 · 트라이포드</td><td class="l">스킬마다 3단계(스킬 Lv 4·7·10에 열림). 1·2단계는 셋 중 하나, 3단계는 둘 중 하나. 언제든 무료로 바꿈</td><td class="l">● 변형 노드 · ★ 궁극기 변형(셋 중 하나)</td><td class="l">한 스킬 안에서 "셋 중 하나"를 고르는 맛이 크다. 바꾸는 게 무료라 실험이 쉽다 → 우리 초기화도 싸게 유지</td></tr>
+<tr><td>디아블로 4 · 스킬 트리</td><td class="l">스킬 → 강화 → 업그레이드 둘 중 하나. 일정 포인트를 넣어야 다음 묶음이 열리고(궁극기 묶음 23포인트), 궁극기는 하나만</td><td class="l">갈래 12포인트 이상 → 3차 노드 · 궁극기 칸 1개</td><td class="l">"이 묶음에 n포인트" 게이트가 직관적이다. 우리 게이트도 트리에 숫자로 보여 준다</td></tr>
+<tr><td>라스트 에포크 · 스킬 특화</td><td class="l">스킬마다 따로 트리. 특화 칸은 레벨에 따라 최대 5개(액션바 칸 수와 같음). 특화를 풀면 그 스킬 포인트는 사라짐</td><td class="l">장착 칸 1 → 4 · 액티브마다 변형</td><td class="l">칸이 늘 때마다 "새 스킬 하나 더"라는 큰 순간이 생긴다. 포인트가 사라지는 초기화는 피한다(방치형엔 가혹)</td></tr>
+<tr><td>디아블로 3 · 룬</td><td class="l">스킬마다 룬 5개 중 하나. 레벨업으로 얻고, 속성·모양·동작이 바뀜</td><td class="l">● 변형 = 화면에서 보이는 변화</td><td class="l">변형은 숫자보다 "모양이 바뀌는 것"이어야 기억에 남는다 → 우리 변형 노드 원칙과 같음</td></tr>
+<tr><td>패스 오브 엑자일 · 키스톤</td><td class="l">큰 대가 + 큰 규칙(예: 혼돈 면역 대신 최대 생명 1). 빌드를 한 방향으로 묶음</td><td class="l">▲ 키스톤</td><td class="l">키스톤은 <b>단점이 분명해야</b> 빌드가 갈린다. 지금 시안의 키스톤 단점을 더 또렷하게</td></tr>
+<tr><td>하데스 · 듀오 축복</td><td class="l">두 신의 특정 축복을 모두 가져야 나오는 합체 축복</td><td class="l">✦ 융합 (두 갈래 6포인트씩)</td><td class="l">"둘 다 타면 열린다"는 같은 결. 하데스는 조건을 숨기고 확률로 주지만, 방치형은 트리에 조건을 보여 주는 쪽이 맞다</td></tr>
+<tr><td>뱀파이어 서바이버즈 · 진화</td><td class="l">무기 만렙 + 짝 패시브 → 확 바뀐 진화 무기</td><td class="l">✦ 융합 · ★ 궁극기 변형</td><td class="l">조건을 채우면 그림이 크게 바뀌는 순간이 가장 큰 재미. 융합은 그림 변화를 아끼지 말 것</td></tr>
+<tr><td>탭 타이탄 2 (방치형)</td><td class="l">트리 4개, 트리마다 갈래 3개. 초기화는 다이아(유료 재화), 쓴 포인트에 비례</td><td class="l">갈래 3개 · 초기화</td><td class="l">구조가 가장 가깝다. 다만 초기화가 비싸 "정답 갈래 하나에 몰빵"이 됐다 → 우리는 골드로 싸게</td></tr>
+<tr><td>방치형 보스 벽 (Idle Ronin 등)</td><td class="l">특정 스테이지(4·9로 끝나는 칸) 보스만 체력 10배 → 그 칸에서 막힘</td><td class="l">10·20칸 보스 벽</td><td class="l">막히는 칸이 정해져 있어야 "벽"으로 느낀다. 우리는 체력 배율에 더해 기믹으로 "빌드를 바꾸면 뚫린다"를 준다</td></tr>
+</table></div>
+<p><b>시안에 반영할 만한 것</b> (사용자 결정 대기):
+① 키스톤마다 단점을 분명히(PoE) · ② 초기화는 싸게, 포인트 손실 없이(로아·탭타2 반면교사) · ③ 갈래 게이트·융합 조건을 트리에 숫자로 보여 주기(D4·하데스) · ④ 변형 노드를 로아처럼 "스킬마다 단계별 셋 중 하나"로 바꿀지 — 지금 시안은 갈래 안에서 자유롭게 여러 개를 찍는다.</p>
+<p class="sub">출처: <a href="https://lostark.wiki.fextralife.com/Tripods">Lost Ark Tripods (Fextralife)</a> · <a href="https://www.thegamer.com/lost-ark-tripod-skill-upgrades-explained/">TheGamer</a> · <a href="https://maxroll.gg/d4/getting-started/skill-trees">Maxroll D4 Skill Trees</a> · <a href="https://support.lastepoch.com/hc/en-us/articles/46363203944859-Skill-Specialization">Last Epoch Support</a> · <a href="https://maxroll.gg/last-epoch/resources/passives-and-skills">Maxroll Last Epoch</a> · <a href="https://diablo.fandom.com/wiki/Skill_rune">Diablo Wiki Skill rune</a> · <a href="https://www.poewiki.net/wiki/Keystone">PoE Wiki Keystone</a> · <a href="https://primagames.com/tips/hades-what-are-duo-boons-how-get-duo-boons">Primagames Hades Duo</a> · <a href="https://vampire-survivors.fandom.com/wiki/Evolution">VS Wiki Evolution</a> · <a href="https://www.bluestacks.com/blog/game-guides/tap-titans-2/tt2-skill-tree-guide-en.html">BlueStacks TT2</a> · <a href="https://onirealms.com/guides/how-idle-rpgs-work/">How Idle RPGs Work</a></p>
 
 <h2>직접 찍어 보기</h2>
 <div class="bar">
