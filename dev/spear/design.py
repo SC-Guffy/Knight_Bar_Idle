@@ -100,6 +100,43 @@ def shrink_body(im, cls):
     return SW.shrink(im, max(8, round((int(y1) + 1 - int(y0)) / body_cell(cls))))
 
 
+# ── 재시안 v3 (2026-10-16 사용자 검수: "창기사 잡졸 같다 / 용기병 장수풍뎅이 같다 / 할버디어 배불뚝이 / 랜서 창이 가늘다") ──
+#  시드 11·23 = 목 아래 늘린 밑그림(밑그림 3: 용기병은 장수풍뎅이처럼 보인 입힌 그림 대신 지금 게임 그림), 37·51 = 검사 세션 B 시안 원본
+#  (swordsman-B2-11, 그림체 기준)을 밑그림으로 직업만 바꿔 그림 — 계열이 달라도 비율·밝기가 같게. 모두 denoise 0.88
+WHO3 = {
+    'lancer': 'A young lancer knight warrior with a proud upright heroic stance, a steel breastplate and round steel shoulder pauldrons '
+              'over a green tunic, an open-faced steel sallet helmet with a short green plume, a short dark green cape, steel gauntlets '
+              'and greaves, holding a long steel-tipped spear upright-forward with a small green swallowtail pennant just below the spearhead.',
+    'dragoon': 'A dragon knight warrior standing upright with a straight back, wearing a helmet shaped like a dragon skull with a long '
+               'pointed snout, sharp white fangs and two long horns sweeping straight backward, glowing bright yellow eyes, purple scale-mail '
+               'armor with bright lavender highlights on every scale and a pale cream armored belly, a tattered bat-wing cape with clawed '
+               'membranes spreading behind the shoulders, a thin whip-like dragon tail, holding a long dragon spear with a serrated '
+               'fang-shaped spearhead. Looks like a dragon, not an insect.',
+    'halberdier': 'A heavy halberdier warrior with an inverted triangle body: very broad shoulders with large square steel pauldrons, '
+                  'a broad chest, a narrow waist cinched by a thick leather belt, thick armored arms, slim legs, an orange surcoat with '
+                  'diagonal stripes, a bucket helmet with one horizontal eye slit, holding a big halberd with a large axe blade, a back '
+                  'hook and a top spike.',
+    'cavalier': 'A cavalry lancer knight in a royal blue surcoat over silver plate armor, a crested helmet with a tall red feather plume, '
+                'a kite shield with a red emblem on the left arm, holding a very thick cone-shaped steel jousting lance as thick as the arm, '
+                'with a large round vamplate hand guard, the lance clearly visible and pointing forward.',
+}
+INIT3 = {'lancer': ('shot', 'p-lancer-guard-full.png'), 'dragoon': ('shot', 'p-dragoon-guard-full.png'),
+         'halberdier': ('shot', 'p-halberdier-guard-full.png'), 'cavalier': ('dress', 'cavalier-guard-d0.png')}
+
+
+def gen3(classes):
+    from comfy import gen as G
+    base = Image.open(os.path.join(RAW, '_base-swordsman-B2-11.png')).convert('RGB')
+    for cls in classes:
+        INIT[cls + '3'] = INIT3[cls]
+        init = init_stretch(cls + '3'); init.save(os.path.join(RAW, f'_init-{cls}3.png'))
+        for s in SEEDS:
+            out = os.path.join(RAW, f'{cls}3-{s}.png')
+            if os.path.exists(out): continue
+            ims, dt = G('zimg', SW.STYLE.format(who=WHO3[cls], body=BODY), seed=s, denoise=0.88, init=init if s in (11, 23) else base)
+            ims[0].save(out); print(cls, 'v3', s, f'{dt:.1f}s', flush=True)
+
+
 def gen(classes):
     from comfy import gen as G
     os.makedirs(RAW, exist_ok=True)
@@ -157,6 +194,7 @@ if __name__ == '__main__':
     if sys.argv[1] == 'gen': gen(sys.argv[2:] or list(WHO))
     elif sys.argv[1] == 'shrink': shrink_all()
     elif sys.argv[1] == 'contrast': gen_contrast()
+    elif sys.argv[1] == 'gen3': gen3(sys.argv[2:] or list(WHO3))
     elif sys.argv[1] == 'pick':
         os.makedirs(PX, exist_ok=True)
         for c in PICK: shrink_pick(c).save(os.path.join(PX, f'pick-{c}-h{H}.png'))

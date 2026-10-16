@@ -6,7 +6,7 @@
 #
 #    from shrink import shrink_body
 #    o = shrink_body(Image.open('raw.png'), top=312, foot=750, H=46)     # top·foot = 1024 원본 y (눈으로 읽거나 다른 방법으로)
-#  발밑 그림자(발바닥 아래)는 줄이기 전에 바탕색으로 지우고, 줄인 뒤 맨 아래 바닥 줄(위 줄보다 1.4배 넘게 넓음)도 지운다.
+#  ncol: 팔레트 색 수 (로드맵 2026-10-16: 12~16색, 기본 16). 발밑 그림자(발바닥 아래)는 줄이기 전에 바탕색으로 지우고, 줄인 뒤 맨 아래 바닥 줄(위 줄보다 1.4배 넘게 넓음)도 지운다.
 import os, importlib.util
 import numpy as np
 from PIL import Image
@@ -16,7 +16,7 @@ _sp = importlib.util.spec_from_file_location('sw_design', os.path.join(_HERE, '.
 _SW = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(_SW)
 
 
-def shrink_body(im, top, foot, H=46, shadow=True):
+def shrink_body(im, top, foot, H=46, shadow=True, ncol=16):
     im = im.convert('RGB')
     if shadow:
         a = np.asarray(im).copy()
@@ -25,7 +25,7 @@ def shrink_body(im, top, foot, H=46, shadow=True):
     _, m = _SW.fg(im); ys, _ = np.nonzero(m)
     if len(ys) == 0: return None
     y0, y1 = np.percentile(ys, [0.3, 99.9])                       # 검사 shrink 가 쓰는 세로 범위와 같게
-    o = _SW.shrink(im, max(8, round((int(y1) + 1 - int(y0)) / ((foot - top) / H))))
+    o = _SW.shrink(im, max(8, round((int(y1) + 1 - int(y0)) / ((foot - top) / H))), ncol=ncol)
     if o is None: return None
     P = o.load(); W_ = o.width
     for _ in range(2):
