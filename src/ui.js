@@ -2171,7 +2171,7 @@ function viewRaidRoom() {
   let buy = '';
   if (!ticket && room.state === 'open') {
     const p = ticketPrice(), tb = ticketBlocker();
-    buy = `<span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip(ico('mana'), p.mana, S.mats.mana)}</span>
+    buy = `<span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}</span>
       <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">${ico('ticket')} 입장권 구매</button>`;
   }
   let acts;
@@ -2233,7 +2233,7 @@ function viewRaidLobby() {
       <div class="info"><b>레이드 입장권 <small>보유 ${S.raid.tickets} / ${RAID_TICKET_MAX}</small></b>
         <div class="eff">매일 자정에 ${RAID_TICKET_FREE}장까지 무료로 채워져요(우편으로 받은 건 넘어도 그대로). 클리어했을 때만 1장 쓰여요(실패하면 그대로, 보상도 없음). 하루 첫 구매는 헐값, 그다음부터 점점 비싸져요 — 오늘 ${bought}장 샀어요 (자정에 초기화).</div></div>
       <div class="act">
-        <div class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip(ico('mana'), p.mana, S.mats.mana)}</div>
+        <div class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}</div>
         <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button>
       </div>
     </div>`;
@@ -2789,12 +2789,12 @@ function renderCamp() {
 // 캠프 머리 재화 칸: 누르면 그 재화를 어디서 얻고 어디에 쓰는지 한 줄 (resOpen = 펼친 재화 k, 다시 누르면 닫힘)
 let resOpen = null;
 const RES_GUIDE = [
-  { k: 'gold', name: '골드', icon: () => '<i class="gc"></i>', get: '원정 처치 · 장비 판매 · 레이드', use: '훈련 · 건물 · 대장간 시설 · 보급품 · 창고 교역', trade: true },
-  { k: 'wood', name: '목재', icon: () => ico('wood'), get: '재료의 미궁 · 창고 비축·교역 · 원정 골동품', use: '건물 · 가방', trade: true },
-  { k: 'ore', name: '철광석', icon: () => ico('ore'), get: '재료의 미궁 · 창고 비축·교역 · 원정 골동품', use: '건물 · 대장간 시설', trade: true },
-  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '재료의 미궁 · 레이드 · 원정 골동품', use: '전직 · 건물(Lv5부터) · 강화 · 입장권' },
-  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '원정 보스 · 장비 판매', use: '장비 강화' },
-  { k: 'tomes', name: '비전서', icon: () => ico('tome'), get: '도전의 탑 · 원정 보스 · 레이드 상자 · 결투 시즌', use: '스킬 숙련도' },
+  { k: 'gold', name: '골드', icon: () => '<i class="gc"></i>', get: '원정 처치 · 장비 판매 · 재료의 미궁 · 레이드 · 탑 · 월드 보스', use: '창고 교역 · 훈련 · 건물 · 보급품 · 입장권 · 즉시 완료', trade: true },
+  { k: 'wood', name: '목재', icon: () => ico('wood'), get: '재료의 미궁 · 원정 골동품 · 창고 비축·교역 · 레이드 · 월드 보스', use: '건물 · 가방', trade: true },
+  { k: 'ore', name: '철광석', icon: () => ico('ore'), get: '원정 골동품 · 재료의 미궁 · 창고 비축·교역 · 레이드 · 월드 보스', use: '건물 · 대장간 시설', trade: true },
+  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '원정 골동품 · 레이드 · 재료의 미궁 · 월드 보스', use: '강화(+10부터) · 전직' },
+  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '장비 판매(분해대) · 원정 보스 · 재료의 미궁 · 월드 보스', use: '장비 강화' },
+  { k: 'tomes', name: '비전서', icon: () => ico('tome'), get: '재료의 미궁 · 원정 보스 · 레이드 상자 · 도전의 탑 · 월드 보스 · 결투 시즌', use: '스킬 숙련도' },
 ];
 function viewResGuide() {
   const r = RES_GUIDE.find((x) => x.k === resOpen);

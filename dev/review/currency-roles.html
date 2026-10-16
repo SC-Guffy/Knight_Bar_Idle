@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재화 역할 정리 — 스펙 검토</title>
+<!-- 스펙: docs/specs/currency-roles.md. 봇 수치는 dev/currency-bot.js (7일 · 12시드 중앙값) 결과를 아래 DATA 에 넣은 것 (2026-10-16). 비용 표는 src/data.js 식을 그대로 옮겨 계산. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --warn: #ffb35c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: var(--gold); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .ok { color: var(--green); } .bad { color: var(--red); font-weight: 700; } .warn { color: var(--warn); font-weight: 700; }
+  .m td { text-align: center; } .m td:first-child { text-align: left; }
+  .m .x { background: #2a3a2f; color: var(--green); }
+  .m .c { background: #4a2430; color: #ffc0c0; font-weight: 700; }
+  .m .o { background: #3d3222; color: var(--warn); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chips button { background: #2b2538; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 2px 10px; font: inherit; cursor: pointer; }
+  .chips button.on { background: #4b3f66; border-color: #8f7cc0; }
+  .bars { display: grid; grid-template-columns: minmax(110px, max-content) 1fr max-content; gap: 3px 8px; align-items: center; font-size: 12px; }
+  .bar { height: 12px; border-radius: 2px; }
+  .bar.in { background: #4f9e74; } .bar.out { background: #b0626f; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 6px 0; color: var(--dim); }
+  input[type=number] { width: 60px; background: #0f0d14; color: var(--ink); border: 1px solid var(--line); padding: 2px 4px; font: inherit; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+  .rec { border-color: #8f7cc0; }
+  svg text { fill: var(--dim); font: 10px Galmuri11, sans-serif; }
+  code { color: var(--blue); }
+  ul { margin: 4px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+<h1>🪙🪵🪨💎💠📖 재화 역할 정리</h1>
+<div class="sub">스펙 <code>docs/specs/currency-roles.md</code> · 초안 · 2026-10-16 · 근거 <code>dev/currency-bot.js</code> (진행 봇 7일 · 12시드 중앙값)</div>
+
+<div class="card">
+  <b>요지</b> — 원칙: 재화마다 역할 하나. 수급·소모가 안 맞으면 다른 재화를 끼우지 말고 그 소모량·수급량을 조절한다.
+  <ul>
+    <li class="ok">이미 정리됨: 🪵 목재(건설) · 📖 비전서(숙련도, 99% 소모) · 📕 수련의 서 · 🧱 성벽돌 · 🎲 재굴림권 · 📜 보호 주문서</li>
+    <li><span class="warn">① 🪨 철광석</span> — 역할(건물+대장간 시설)은 맞지만 시설이 건물 몫을 먹는다 → <b>시설 철광석 ×0.5</b></li>
+    <li><span class="bad">② 💎 마력석</span> — 강화·건물·시설·전직·레이드 입장권 다섯 곳에 조금씩, 그런데 31% 만 씀 → <b>하나로 모으기 (안 A 고강화 재료 추천 / 안 B 건설 재료)</b></li>
+    <li><span class="warn">③ 💠 강화석</span> — 강화 전용인데 44% 만 씀(분해대가 판매 강화석 ×3) → <b>강화 강화석 ×1.5</b></li>
+  </ul>
+  <b>결정할 것</b>: ② 안 A / 안 B · 각 계수 (시설 철광석 ×0.5 · 강화 마력석 ×3 · 강화석 ×1.5) · 이미 쓴 건물·시설 마력석 환급 안 함
+</div>
+
+<h2>1. 역할 지도 — 재화 × 쓰는 곳 (지금 코드)</h2>
+<div class="scroll"><table class="m" id="sinkMap"></table></div>
+<p class="sub"><span class="m"><span class="x" style="padding:0 6px">●</span></span> 역할 안 · <span class="m"><span class="o" style="padding:0 6px">●</span></span> 역할 안이지만 양 문제 · <span class="m"><span class="c" style="padding:0 6px">●</span></span> 겹침(역할 밖). 칸 안 숫자 = 봇 7일 지출에서 차지한 비율.</p>
+
+<h3>얻는 곳</h3>
+<div class="scroll"><table class="m" id="srcMap"></table></div>
+
+<h2>2. 봇 장부 — 어디서 얼마 들어오고 어디로 나가나</h2>
+<div class="chips" id="curPick"></div>
+<div class="chips" id="scnPick"></div>
+<div class="card"><div id="ledger"></div></div>
+<h3>안별 한눈에</h3>
+<div class="scroll"><table id="cmp"></table></div>
+<p class="sub">현재 = HEAD 0.23.1 · 시설 끔 = 대장간 시설을 안 올린 봇 · ① = 시설 철광석 ×0.5 · A = ① + 안 A + ③ · B = ① + 안 B + ③. 최종 스테이지는 시드에 따라 ±10 정도 흔들린다. 봇은 +15 위 강화를 보호 주문서가 있을 때만, 레이드 입장권은 사지 않는다(따로 하루 3장 사도 마력석 지출 차이 &lt; 3%).</p>
+<h3>소모처별 막힘 — '다음 한 번'을 살 수 없었을 때 모자랐던 재화 (확인 횟수 대비)</h3>
+<div class="scroll"><table id="blk"></table></div>
+
+<h2>3. 제안 ① 🪨 대장간 시설 철광석</h2>
+<div class="ctl"><label>시설 철광석 배율 <input id="oreK" type="number" step="0.1" value="0.5"></label><span>(제안 0.5)</span></div>
+<div class="scroll"><table id="oreT"></table></div>
+<p class="sub">시설 3종이 다 올라가므로 '시설 셋'이 대장간 건물 한 레벨보다 크면 건물을 막는다. 시설을 안 올린 봇은 건물 철광석 막힘 45% → 4%.</p>
+
+<h2>4. 제안 ② 💎 마력석 — 안 A / 안 B</h2>
+<div class="two">
+  <div class="card rec"><b>안 A — 고강화 재료 (추천)</b>
+    <ul><li>쓰는 곳: ⚒️ 강화 +10~ · 전직</li><li>뺌: 건물 · 대장간 시설 · 레이드 입장권</li><li>강화 마력석 ×3, 미궁 마력석 = (100 + 1.5·최고 스테이지)/판 (스테이지 200 에서 지금과 비슷)</li><li>지출의 71% 가 이미 강화 → 바뀌는 게 적고, 건물 비용이 3종으로 단순해짐</li></ul></div>
+  <div class="card"><b>안 B — 건설 재료</b>
+    <ul><li>쓰는 곳: 🏠 건물 · 대장간 시설 · 전직</li><li>뺌: 강화 · 레이드 입장권</li><li>건물·시설 마력석 ×4 (미궁도 자동 ×4)</li><li>강화가 💠 하나로만 묶임. 다만 목재·철광석과 같은 '건설'이라 색이 없고 ×4 로도 60% 남음</li></ul></div>
+</div>
+<h3>마력석 보유량 (하루 끝, 봇 중앙값)</h3>
+<div class="card"><svg id="manaSvg" viewBox="0 0 600 190" width="100%"></svg></div>
+<h3>안 A 강화 1회 비용</h3>
+<div class="ctl"><label>강화 마력석 배율 <input id="manaK" type="number" step="0.5" value="3"></label><label>강화석 배율 (③) <input id="stoneK" type="number" step="0.1" value="1.5"></label></div>
+<div class="scroll"><table id="enhT"></table></div>
+
+<h2>5. 제안 ③ 💠 강화석 ×1.5</h2>
+<div class="card">
+  <ul>
+    <li>수입의 91% 가 장비 판매, 분해대가 최대 ×3. 시설을 끄면 강화석 지출/수입 44% → 81% — 분해대가 철광석만 먹고 하는 일이 없는 상태.</li>
+    <li>강화를 실제로 묶는 건 +15 위의 📜 보호 주문서(102% 소모)와 확률. 강화석은 한 번도 막히지 않았다.</li>
+    <li>강화석 소모를 ×1.5 (위 표 💠 열) → 봇(A) 지출/수입 44% → 70%, 강화 합 74 → 77 (줄지 않음).</li>
+    <li class="sub">봇은 +15 위를 주문서 있을 때만 밀어 강화석 소모를 덜 잡는다 — 실제 유저 기준으로는 보수적인 값. 라이브 보유량을 보고 바꿔도 된다.</li>
+  </ul>
+</div>
+
+<h2>6. 관찰 (이번엔 안 고침)</h2>
+<div class="card"><ul>
+  <li>🪙 골드 지출은 사실상 전부 창고 교역. 건물·시설·2차 전직 골드는 고정 지수식이라 원정 골드(10<sup>26</sup>)에 비해 0 — '죽은 비용', 성장 압축 경제 2단계에서.</li>
+  <li>🎲 재굴림권: 봇이 재굴림을 안 해 7일 385장 그대로. 실제 소모는 라이브로.</li>
+  <li>전직 3차 골드 5×10<sup>10</sup> 은 스테이지 100 즈음 꽤 큰 벽 — 골드는 공용 화폐라 그대로.</li>
+</ul></div>
+
+<h2>7. 재화 안내 줄 (캠프 머리 재화 칸) — 지금 → 고친 뒤</h2>
+<div class="scroll"><table id="guideT"></table></div>
+</main>
+
+<script>
+const DATA = {"base":{"best":277,"bldSum":46,"enhSum":74,"forgeSum":30,"blocked":{"강화":{},"건물":{"gold":0.01,"wood":0.892,"ore":0.447},"대장간 시설":{"gold":0.031,"ore":1},"전직":{"gold":0.4},"가방":{}},"cur":{"wood":{"inc":{"원정 상자":58031,"창고 비축":13478,"레이드 승리":21497,"창고 교역":33989,"재료의 미궁":100803},"out":{"건물":132228,"가방":2905},"left":89592,"in":227798,"outT":135133},"ore":{"inc":{"창고 비축":9403,"원정 상자":40091,"레이드 승리":16112,"창고 교역":15164,"재료의 미궁":37917},"out":{"건물":49792,"대장간 시설":17181},"left":52225,"in":118687,"outT":66973},"mana":{"inc":{"원정 상자":15462,"레이드 승리":4294,"재료의 미궁":789},"out":{"강화":4540,"전직":190,"대장간 시설":636,"건물":1043},"left":14389,"in":20545,"outT":6409},"stones":{"inc":{"원정 사냥":1110,"장비 판매":24836,"재료의 미궁":1086},"out":{"강화":11930},"left":13934,"in":27032,"outT":11930},"tomes":{"inc":{"도전의 탑(가정 4권/일)":32,"원정 사냥":65,"레이드 처치 상자":61,"재료의 미궁":165},"out":{"스킬 숙련도":319},"left":0,"in":323,"outT":319},"books":{"inc":{"성벽 지키기":84},"out":{"교관 수련":67},"left":16,"in":84,"outT":67},"bricks":{"inc":{"성벽 지키기":7548},"out":{"성벽 업그레이드":7530},"left":18,"in":7548,"outT":7530},"reroll":{"inc":{"레이드 처치 상자":157,"원정 상자":230},"out":{},"left":388,"in":387,"outT":0},"protect":{"inc":{"원정 상자":127,"레이드 처치 상자":2},"out":{"강화":131},"left":0,"in":129,"outT":131}},"mana":[{"day":1,"best":86,"in":880,"out":213,"have":639},{"day":2,"best":137,"in":2448,"out":829,"have":1585},{"day":3,"best":180,"in":5210,"out":1662,"have":3488},{"day":4,"best":219,"in":7952,"out":3162,"have":4820},{"day":5,"best":240,"in":11210,"out":4788,"have":7196},{"day":6,"best":260,"in":16355,"out":5815,"have":10268},{"day":7,"best":277,"in":19567,"out":6649,"have":13116}]},"noforge":{"best":280,"bldSum":46,"enhSum":77,"forgeSum":0,"blocked":{"강화":{},"건물":{"gold":0.01,"wood":1,"ore":0.037},"전직":{"gold":0.85},"가방":{}},"cur":{"wood":{"inc":{"원정 상자":55476,"창고 비축":11549,"레이드 승리":21449,"창고 교역":50027,"재료의 미궁":98376},"out":{"건물":153792,"가방":1657},"left":93298,"in":236877,"outT":155449},"ore":{"inc":{"창고 비축":8041,"원정 상자":41352,"레이드 승리":16074,"창고 교역":8795,"재료의 미궁":44805},"out":{"건물":59318},"left":61679,"in":119067,"outT":59318},"mana":{"inc":{"원정 상자":15490,"레이드 승리":4287,"재료의 미궁":849},"out":{"강화":4447,"전직":190,"건물":1395},"left":15023,"in":20626,"outT":6032},"stones":{"inc":{"원정 사냥":1046,"장비 판매":12601,"재료의 미궁":1092},"out":{"강화":11990},"left":3857,"in":14739,"outT":11990},"tomes":{"inc":{"도전의 탑(가정 4권/일)":32,"원정 사냥":59,"레이드 처치 상자":60,"재료의 미궁":165},"out":{"스킬 숙련도":315},"left":0,"in":316,"outT":315},"books":{"inc":{"성벽 지키기":85},"out":{"교관 수련":67},"left":17,"in":85,"outT":67},"bricks":{"inc":{"성벽 지키기":7548},"out":{"성벽 업그레이드":7530},"left":18,"in":7548,"outT":7530},"reroll":{"inc":{"레이드 처치 상자":155,"원정 상자":254},"out":{},"left":408,"in":409,"outT":0},"protect":{"inc":{"원정 상자":141,"레이드 처치 상자":2},"out":{"강화":144},"left":1,"in":143,"outT":144}},"mana":[{"day":1,"best":80,"in":871,"out":143,"have":725},{"day":2,"best":137,"in":2785,"out":594,"have":2191},{"day":3,"best":180,"in":5187,"out":1017,"have":4398},{"day":4,"best":219,"in":8910,"out":1768,"have":7006},{"day":5,"best":240,"in":12579,"out":2790,"have":9574},{"day":6,"best":260,"in":16710,"out":3896,"have":12001},{"day":7,"best":280,"in":20022,"out":5508,"have":14225}]},"ore":{"best":293,"bldSum":46,"enhSum":77,"forgeSum":30,"blocked":{"강화":{},"건물":{"gold":0.01,"wood":0.96,"ore":0.393},"대장간 시설":{"gold":0.068,"ore":0.998},"전직":{},"가방":{}},"cur":{"wood":{"inc":{"원정 상자":61420,"창고 비축":13354,"레이드 승리":21465,"창고 교역":44579,"재료의 미궁":101754},"out":{"건물":134532,"가방":1657},"left":95380,"in":242572,"outT":136189},"ore":{"inc":{"창고 비축":9333,"원정 상자":39980,"레이드 승리":16088,"창고 교역":11560,"재료의 미궁":42822},"out":{"건물":51865,"대장간 시설":8583},"left":55794,"in":119783,"outT":60448},"mana":{"inc":{"원정 상자":14916,"레이드 승리":4288,"재료의 미궁":828},"out":{"강화":4421,"대장간 시설":636,"전직":190,"건물":1088},"left":14168,"in":20032,"outT":6335},"stones":{"inc":{"원정 사냥":1114,"장비 판매":26446,"재료의 미궁":1107},"out":{"강화":12063},"left":19010,"in":28667,"outT":12063},"tomes":{"inc":{"도전의 탑(가정 4권/일)":32,"원정 사냥":67,"레이드 처치 상자":62,"재료의 미궁":168},"out":{"스킬 숙련도":326},"left":0,"in":329,"outT":326},"books":{"inc":{"성벽 지키기":84},"out":{"교관 수련":67},"left":16,"in":84,"outT":67},"bricks":{"inc":{"성벽 지키기":7548},"out":{"성벽 업그레이드":7530},"left":18,"in":7548,"outT":7530},"reroll":{"inc":{"레이드 처치 상자":153,"원정 상자":226},"out":{},"left":378,"in":379,"outT":0},"protect":{"inc":{"원정 상자":135,"레이드 처치 상자":2},"out":{"강화":136},"left":0,"in":137,"outT":136}},"mana":[{"day":1,"best":84,"in":924,"out":274,"have":624},{"day":2,"best":140,"in":2609,"out":943,"have":1577},{"day":3,"best":180,"in":4898,"out":1814,"have":2984},{"day":4,"best":216,"in":8471,"out":3383,"have":5167},{"day":5,"best":248,"in":11861,"out":4541,"have":7349},{"day":6,"best":276,"in":16365,"out":5280,"have":9670},{"day":7,"best":293,"in":20277,"out":6592,"have":13156}]},"A":{"best":280,"bldSum":46,"enhSum":77,"forgeSum":33,"blocked":{"강화":{},"건물":{"gold":0.01,"wood":0.992,"ore":0.288},"대장간 시설":{"gold":0.077,"ore":0.992},"전직":{"gold":0.85},"가방":{}},"cur":{"wood":{"inc":{"원정 상자":55132,"창고 비축":12577,"레이드 승리":21280,"창고 교역":42521,"재료의 미궁":98616},"out":{"건물":134532,"가방":2905},"left":91137,"in":230126,"outT":137437},"ore":{"inc":{"창고 비축":8773,"레이드 승리":15953,"원정 상자":39435,"창고 교역":11737,"재료의 미궁":39894},"out":{"건물":49792,"대장간 시설":14628},"left":54516,"in":115792,"outT":64420},"mana":{"inc":{"원정 상자":15510,"레이드 승리":4256,"재료의 미궁":1389},"out":{"강화":12566,"전직":190},"left":8003,"in":21155,"outT":12756},"stones":{"inc":{"원정 사냥":892,"장비 판매":22466,"재료의 미궁":1101},"out":{"강화":17213},"left":9899,"in":24459,"outT":17213},"tomes":{"inc":{"도전의 탑(가정 4권/일)":32,"원정 사냥":51,"레이드 처치 상자":60,"재료의 미궁":168},"out":{"스킬 숙련도":311},"left":0,"in":311,"outT":311},"books":{"inc":{"성벽 지키기":85},"out":{"교관 수련":67},"left":17,"in":85,"outT":67},"bricks":{"inc":{"성벽 지키기":7548},"out":{"성벽 업그레이드":7530},"left":18,"in":7548,"outT":7530},"reroll":{"inc":{"레이드 처치 상자":152,"원정 상자":237},"out":{},"left":392,"in":389,"outT":0},"protect":{"inc":{"원정 상자":130,"레이드 처치 상자":3},"out":{"강화":132},"left":0,"in":133,"outT":132}},"mana":[{"day":1,"best":80,"in":858,"out":184,"have":697},{"day":2,"best":133,"in":2688,"out":888,"have":1662},{"day":3,"best":172,"in":5148,"out":1973,"have":2664},{"day":4,"best":216,"in":7861,"out":3925,"have":3956},{"day":5,"best":240,"in":11144,"out":7642,"have":4030},{"day":6,"best":260,"in":15485,"out":9899,"have":4298},{"day":7,"best":280,"in":20358,"out":12756,"have":6863}]},"B":{"best":280,"bldSum":46,"enhSum":75,"forgeSum":33,"blocked":{"강화":{},"건물":{"gold":0.01,"wood":0.996,"ore":0.303},"대장간 시설":{"gold":0.077,"ore":0.983},"전직":{"gold":0.824},"가방":{}},"cur":{"wood":{"inc":{"원정 상자":49752,"창고 비축":11806,"레이드 승리":21766,"창고 교역":47405,"재료의 미궁":99078},"out":{"건물":143316,"가방":4777},"left":89780,"in":229807,"outT":148093},"ore":{"inc":{"창고 비축":8221,"레이드 승리":16317,"원정 상자":37031,"창고 교역":11737,"재료의 미궁":40101},"out":{"건물":51865,"대장간 시설":14628},"left":50722,"in":113407,"outT":66493},"mana":{"inc":{"원정 상자":14271,"레이드 승리":4352,"재료의 미궁":3096},"out":{"대장간 시설":4152,"전직":190,"건물":4480},"left":14239,"in":21719,"outT":8822},"stones":{"inc":{"원정 사냥":1020,"장비 판매":22455,"재료의 미궁":1068},"out":{"강화":15773},"left":8627,"in":24543,"outT":15773},"tomes":{"inc":{"도전의 탑(가정 4권/일)":32,"원정 사냥":55,"레이드 처치 상자":61,"재료의 미궁":162},"out":{"스킬 숙련도":311},"left":0,"in":310,"outT":311},"books":{"inc":{"성벽 지키기":85},"out":{"교관 수련":67},"left":17,"in":85,"outT":67},"bricks":{"inc":{"성벽 지키기":7548},"out":{"성벽 업그레이드":7530},"left":18,"in":7548,"outT":7530},"reroll":{"inc":{"레이드 처치 상자":156,"원정 상자":237},"out":{},"left":394,"in":393,"outT":0},"protect":{"inc":{"원정 상자":133,"레이드 처치 상자":3},"out":{"강화":134},"left":0,"in":136,"outT":134}},"mana":[{"day":1,"best":80,"in":858,"out":424,"have":434},{"day":2,"best":133,"in":2561,"out":1442,"have":1015},{"day":3,"best":170,"in":4395,"out":2598,"have":1821},{"day":4,"best":211,"in":6604,"out":4006,"have":2448},{"day":5,"best":240,"in":11351,"out":6046,"have":4554},{"day":6,"best":260,"in":14885,"out":7478,"have":7790},{"day":7,"best":280,"in":19719,"out":8386,"have":12505}]}};
+const CUR = { wood: '🪵 목재', ore: '🪨 철광석', mana: '💎 마력석', stones: '💠 강화석', tomes: '📖 비전서', books: '📕 수련의 서', bricks: '🧱 성벽돌', reroll: '🎲 재굴림권', protect: '📜 보호 주문서' };
+const SCN = { base: '현재', noforge: '시설 끔', ore: '① 시설 🪨×0.5', A: 'A (①+안A+③)', B: 'B (①+안B+③)' };
+const f = (x) => (x == null ? '-' : Math.abs(x) >= 1e6 ? x.toExponential(1) : Math.round(x).toLocaleString());
+const pct = (a, b) => (b ? Math.round(a / b * 100) + '%' : '-');
+const $ = (id) => document.getElementById(id);
+
+// ── 1. 역할 지도 ──
+const SINKS = ['건물', '대장간 시설', '가방', '강화', '재굴림', '전직', '스킬 숙련도', '교관 수련', '성벽 업그레이드', '훈련', '창고 교역', '보급품·즉시 완료', '입장권 구매'];
+// 칸 종류: x 역할 안 · o 양 문제 · c 겹침
+const MAP = {
+  '🪙 골드': { '건물': 'x', '대장간 시설': 'x', '전직': 'x', '훈련': 'x', '창고 교역': 'x', '보급품·즉시 완료': 'x', '입장권 구매': 'x' },
+  '🪵 목재': { '건물': 'x', '가방': 'x' },
+  '🪨 철광석': { '건물': 'x', '대장간 시설': 'o' },
+  '💎 마력석': { '건물': 'c', '대장간 시설': 'c', '강화': 'c', '전직': 'c', '입장권 구매': 'c' },
+  '💠 강화석': { '강화': 'o' },
+  '📖 비전서': { '스킬 숙련도': 'x' },
+  '📕 수련의 서': { '교관 수련': 'x' },
+  '🧱 성벽돌': { '성벽 업그레이드': 'x' },
+  '🎲 재굴림권': { '재굴림': 'x' },
+  '📜 보호 주문서': { '강화': 'x' },
+};
+const KEYOF = { '🪵 목재': 'wood', '🪨 철광석': 'ore', '💎 마력석': 'mana', '💠 강화석': 'stones', '📖 비전서': 'tomes', '📕 수련의 서': 'books', '🧱 성벽돌': 'bricks', '🎲 재굴림권': 'reroll', '📜 보호 주문서': 'protect' };
+const SINK_TAG = { '스킬 숙련도': '스킬 숙련도', '교관 수련': '교관 수련', '성벽 업그레이드': '성벽 업그레이드', '입장권 구매': '레이드 입장권 구매' };
+function sinkMap() {
+  let h = '<tr><th>재화</th>' + SINKS.map((s) => `<th>${s}</th>`).join('') + '</tr>';
+  for (const [c, row] of Object.entries(MAP)) {
+    const d = DATA && KEYOF[c] && DATA.base.cur[KEYOF[c]];
+    h += `<tr><td>${c}</td>` + SINKS.map((s) => {
+      const k = row[s]; if (!k) return '<td></td>';
+      const v = d && d.out[SINK_TAG[s] || s];
+      return `<td class="${k}">${v && d.outT ? Math.round(v / d.outT * 100) + '%' : '●'}</td>`;
+    }).join('') + '</tr>';
+  }
+  $('sinkMap').innerHTML = h;
+}
+const SRCS = ['원정 사냥', '원정 상자', '장비 판매', '창고 비축·교역', '재료의 미궁', '레이드', '탑', '월드 보스', '결투 시즌', '성벽 지키기', '우편'];
+const SMAP = {
+  '🪙 골드': ['원정 사냥', '원정 상자', '장비 판매', '재료의 미궁', '레이드', '탑', '월드 보스', '결투 시즌', '우편'],
+  '🪵 목재': ['원정 상자', '창고 비축·교역', '재료의 미궁', '레이드', '월드 보스', '결투 시즌'],
+  '🪨 철광석': ['원정 상자', '창고 비축·교역', '재료의 미궁', '레이드', '월드 보스', '결투 시즌'],
+  '💎 마력석': ['원정 상자', '재료의 미궁', '레이드', '월드 보스', '결투 시즌'],
+  '💠 강화석': ['원정 사냥', '장비 판매', '재료의 미궁', '월드 보스', '우편'],
+  '📖 비전서': ['원정 사냥', '재료의 미궁', '레이드', '탑', '월드 보스', '결투 시즌', '우편'],
+  '📕 수련의 서': ['성벽 지키기', '우편'],
+  '🧱 성벽돌': ['성벽 지키기'],
+  '🎲 재굴림권': ['원정 상자', '레이드', '월드 보스'],
+  '📜 보호 주문서': ['원정 상자', '레이드', '월드 보스'],
+};
+const SRC_TAG = { '원정 사냥': ['원정 사냥'], '원정 상자': ['원정 상자'], '장비 판매': ['장비 판매'], '창고 비축·교역': ['창고 비축', '창고 교역'], '재료의 미궁': ['재료의 미궁'], '레이드': ['레이드 승리', '레이드 처치 상자'], '탑': ['도전의 탑(가정 4권/일)'], '성벽 지키기': ['성벽 지키기'] };
+function srcMap() {
+  let h = '<tr><th>재화</th>' + SRCS.map((s) => `<th>${s}</th>`).join('') + '</tr>';
+  for (const [c, list] of Object.entries(SMAP)) {
+    const d = DATA && KEYOF[c] && DATA.base.cur[KEYOF[c]];
+    h += `<tr><td>${c}</td>` + SRCS.map((s) => {
+      if (!list.includes(s)) return '<td></td>';
+      const v = d && (SRC_TAG[s] || []).reduce((a, t) => a + (d.inc[t] || 0), 0);
+      return `<td class="x">${v && d.in ? Math.round(v / d.in * 100) + '%' : '●'}</td>`;
+    }).join('') + '</tr>';
+  }
+  $('srcMap').innerHTML = h;
+}
+
+// ── 2. 장부 ──
+let cur = 'mana', scn = 'base';
+function picks() {
+  $('curPick').innerHTML = Object.entries(CUR).map(([k, n]) => `<button class="${k === cur ? 'on' : ''}" data-c="${k}">${n}</button>`).join('');
+  $('scnPick').innerHTML = Object.entries(SCN).map(([k, n]) => `<button class="${k === scn ? 'on' : ''}" data-s="${k}">${n}</button>`).join('');
+}
+function ledger() {
+  const d = DATA[scn].cur[cur];
+  if (!d) { $('ledger').innerHTML = '<span class="sub">이 안에서는 기록 없음</span>'; return; }
+  const max = Math.max(...Object.values(d.inc), ...Object.values(d.out), 1);
+  const rows = (o, cls, sign, tot) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([t, v]) => `<span>${sign} ${t}</span><div class="bar ${cls}" style="width:${Math.max(1, v / max * 100)}%"></div><span>${f(v)} · ${pct(v, tot)}</span>`).join('');
+  $('ledger').innerHTML = `<div style="margin-bottom:6px"><b>${CUR[cur]}</b> · ${SCN[scn]} — 수입 ${f(d.in)} · 지출 ${f(d.outT)} · <b>지출/수입 ${pct(d.outT, d.in)}</b> · 남음 ${f(d.left)}</div>
+    <div class="bars">${rows(d.inc, 'in', '+', d.in)}${rows(d.out, 'out', '−', d.outT)}</div>`;
+}
+function cmp() {
+  const ks = Object.keys(SCN);
+  let h = '<tr><th></th>' + ks.map((k) => `<th>${SCN[k]}</th>`).join('') + '</tr>';
+  const row = (name, fn, cls) => { h += `<tr><td>${name}</td>` + ks.map((k) => `<td class="${cls ? cls(k) : ''}">${fn(DATA[k])}</td>`).join('') + '</tr>'; };
+  row('최종 스테이지', (d) => d.best); row('건물 Lv 합', (d) => f(d.bldSum)); row('강화 합(3부위)', (d) => f(d.enhSum)); row('시설 Lv 합', (d) => f(d.forgeSum));
+  for (const c of ['wood', 'ore', 'mana', 'stones', 'tomes']) row(`${CUR[c]} 지출/수입`, (d) => (d.cur[c] ? pct(d.cur[c].outT, d.cur[c].in) : '-'));
+  for (const c of ['ore', 'mana', 'stones']) row(`${CUR[c]} 남음`, (d) => f(d.cur[c] && d.cur[c].left));
+  row('🪨 중 대장간 시설 몫', (d) => pct(d.cur.ore.out['대장간 시설'] || 0, d.cur.ore.outT));
+  row('건물 막힘: 🪨', (d) => (d.blocked['건물'] && d.blocked['건물'].ore ? Math.round(d.blocked['건물'].ore * 100) + '%' : '0%'));
+  $('cmp').innerHTML = h;
+}
+function blk() {
+  const d = DATA.base.blocked, ks = ['gold', 'wood', 'ore', 'mana', 'stones'], nm = { gold: '🪙', wood: '🪵', ore: '🪨', mana: '💎', stones: '💠' };
+  let h = '<tr><th>소모처 (현재)</th>' + ks.map((k) => `<th>${nm[k]}</th>`).join('') + '</tr>';
+  for (const [s, b] of Object.entries(d)) h += `<tr><td>${s}</td>` + ks.map((k) => `<td class="${(b[k] || 0) > 0.3 ? 'bad' : ''}">${b[k] ? Math.round(b[k] * 100) + '%' : ''}</td>`).join('') + '</tr>';
+  $('blk').innerHTML = h;
+}
+
+// ── 3. 시설 철광석 ──
+const bmg = (lv) => Math.pow(2, Math.min(lv, 8) - 1) * Math.pow(1.5, Math.max(0, lv - 8));
+function oreT() {
+  const k = Number($('oreK').value) || 0;
+  let h = '<tr><th>Lv → +1</th><th>시설 하나 🪨 지금</th><th>제안</th><th>시설 셋 (제안)</th><th>대장간 건물 🪨</th><th>셋 / 건물 지금 → 제안</th></tr>';
+  for (const lv of [3, 5, 8, 10, 12, 14]) {
+    const now = Math.floor(20 * Math.pow(1.7, lv)), nw = Math.floor(now * k), b = Math.floor(12 * bmg(lv) * 1.6);
+    h += `<tr><td>${lv}</td><td>${f(now)}</td><td class="ok">${f(nw)}</td><td>${f(nw * 3)}</td><td>${f(b)}</td><td><span class="${now * 3 > b ? 'bad' : ''}">${(now * 3 / b).toFixed(2)}</span> → <span class="${nw * 3 > b ? 'warn' : 'ok'}">${(nw * 3 / b).toFixed(2)}</span></td></tr>`;
+  }
+  $('oreT').innerHTML = h;
+}
+
+// ── 4. 마력석 보유 곡선 ──
+function manaSvg() {
+  const W = 600, H = 190, L = 44, R = 10, T = 10, B = 24, sc = { base: '#a59cb8', A: '#7dffb0', B: '#8fd8ff' };
+  const all = ['base', 'A', 'B'].flatMap((k) => DATA[k].mana.map((r) => r.have));
+  const max = Math.max(...all) * 1.1, days = DATA.base.mana.length;
+  const x = (d) => L + (d - 1) / (days - 1) * (W - L - R), y = (v) => H - B - v / max * (H - T - B);
+  let s = '';
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4; s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#3a3348"/><text x="${L - 4}" y="${y(v) + 3}" text-anchor="end">${f(v)}</text>`; }
+  for (let d = 1; d <= days; d++) s += `<text x="${x(d)}" y="${H - 8}" text-anchor="middle">${d}일</text>`;
+  const labs = [];
+  for (const k of ['base', 'A', 'B']) {
+    const pts = DATA[k].mana.map((r) => `${x(r.day)},${y(r.have)}`).join(' ');
+    s += `<polyline points="${pts}" fill="none" stroke="${sc[k]}" stroke-width="2"/>`;
+    const last = DATA[k].mana[days - 1]; labs.push({ k, v: last.have, y: y(last.have) - 5 });
+  }
+  labs.sort((p, q) => p.y - q.y).forEach((l, i, a) => { if (i && l.y - a[i - 1].y < 12) l.y = a[i - 1].y + 12; s += `<text x="${x(days) - 8}" y="${l.y}" text-anchor="end" style="fill:${sc[l.k]}">${SCN[l.k]} ${f(l.v)}</text>`; });
+  $('manaSvg').innerHTML = s;
+}
+function enhT() {
+  const mk = Number($('manaK').value) || 0, sk = Number($('stoneK').value) || 0;
+  let h = '<tr><th>강화 단계</th><th>💠 지금</th><th>💠 제안</th><th>💎 지금</th><th>💎 안 A</th><th>💎 안 B</th></tr>';
+  for (const L of [5, 10, 15, 20, 25, 29]) {
+    const m = (k) => (L >= 10 ? Math.floor(2 * k * Math.pow(1.22, L - 10)) : 0);
+    h += `<tr><td>+${L} → +${L + 1}</td><td>${f(Math.floor(2 * Math.pow(1.17, L)))}</td><td class="ok">${f(Math.floor(2 * sk * Math.pow(1.17, L)))}</td><td>${f(m(1))}</td><td class="ok">${f(m(mk))}</td><td>0</td></tr>`;
+  }
+  $('enhT').innerHTML = h;
+}
+
+// ── 7. 재화 안내 ──
+const GUIDE = [
+  ['🪙 골드', '원정 처치 · 장비 판매 · 레이드 / 훈련 · 건물 · 대장간 시설 · 보급품 · 창고 교역', '원정 처치 · 장비 판매 · 재료의 미궁 · 레이드 · 탑 · 월드 보스 / 창고 교역 · 훈련 · 건물 · 보급품 · 입장권 · 즉시 완료'],
+  ['🪨 철광석', '재료의 미궁 · 창고 비축·교역 · 원정 골동품 / 건물 · 대장간 시설', '(그대로) + 레이드 · 월드 보스'],
+  ['💎 마력석', '재료의 미궁 · 레이드 · 원정 골동품 / 전직 · 건물(Lv5부터) · 강화 · 입장권', '(안 A) 원정 골동품 · 레이드 · 재료의 미궁 · 월드 보스 / 강화(+10부터) · 전직'],
+  ['💠 강화석', '원정 보스 · 장비 판매 / 장비 강화', '장비 판매(분해대) · 원정 보스 · 재료의 미궁 · 월드 보스 / 장비 강화'],
+  ['📖 비전서', '도전의 탑 · 원정 보스 · 레이드 상자 · 결투 시즌 / 스킬 숙련도', '+ 재료의 미궁 · 월드 보스'],
+];
+function guideT() { $('guideT').innerHTML = '<tr><th>재화</th><th>지금 (얻는 곳 / 쓰는 곳)</th><th>고친 뒤</th></tr>' + GUIDE.map((r) => `<tr><td>${r[0]}</td><td style="text-align:left;white-space:normal">${r[1]}</td><td style="text-align:left;white-space:normal" class="ok">${r[2]}</td></tr>`).join(''); }
+
+function all() { picks(); ledger(); }
+document.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.c) cur = b.dataset.c; if (b.dataset.s) scn = b.dataset.s; all(); });
+for (const id of ['oreK']) $(id).addEventListener('input', oreT);
+for (const id of ['manaK', 'stoneK']) $(id).addEventListener('input', enhT);
+sinkMap(); srcMap(); all(); cmp(); blk(); oreT(); manaSvg(); enhT(); guideT();
+</script>
+</body>
+</html>
