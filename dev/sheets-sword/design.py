@@ -21,6 +21,12 @@ WHO = {
     'swordsman': 'A swordsman knight in polished silver plate armor with a royal blue tabard, a blue plume on a visored helmet, '
                  'a short blue cape, a steel longsword in the right hand.',
 }
+WHO.update({
+    'blademaster': 'A dual-wielding blade master in sleek black lacquered armor with crimson trim, a horned black helmet with a red eye slit, '
+                   'a long red scarf flowing behind, a slim crimson katana in each hand.',
+    'greatswordsman': 'A rugged greatsword warrior with spiky black hair and a scarred face, dark iron armor with orange-brown leather, '
+                      'bare muscular arms, a huge heavy dark iron greatsword resting on the shoulder, gripped with both hands.',
+})
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -59,7 +65,7 @@ def init_stretch(cls, f):
 def gen(dirs):
     from comfy import gen as G
     os.makedirs(RAW, exist_ok=True)
-    for cls in WHO:
+    for cls in (CLS_ONLY or WHO):
         for dk in dirs:
             todo = [s for s in SEEDS if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
@@ -131,6 +137,9 @@ def shrink_all():
             o = shrink(im, H)
             if o is not None: o.save(os.path.join(PX, f[:-4] + f'-h{H}.png'))
     print('shrunk', len(os.listdir(PX)))
+
+
+CLS_ONLY = [c for c in os.environ.get('DESIGN_CLS', '').split(',') if c]
 
 
 if __name__ == '__main__':

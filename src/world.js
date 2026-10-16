@@ -2686,8 +2686,9 @@ function drawKnight() {
   drawHero(ctx, S.cls, x, gy, pose);
   vfxCut.main = false;
   if (S.phase !== 'camp' && !wp) {
-    drawHpBar(x, gy - 58 - Math.min(lift, 40), 30, S.hp / stats().maxHp, '#ff5a5a');
-    drawSkillIcons(x - 15, gy - 58 - Math.min(lift, 40) - 12 - (qiOn() ? 5 : 0));     // 파이터는 아래에 기 게이지 막대
+    const top = heroTop(S.cls);                 // 머리 위 높이 (시트 직업은 그림 키에 맞춤, src/sprites.js)
+    drawHpBar(x, gy - top - Math.min(lift, 40), 30, S.hp / stats().maxHp, '#ff5a5a');
+    drawSkillIcons(x - 15, gy - top - Math.min(lift, 40) - 12 - (qiOn() ? 5 : 0));     // 파이터는 아래에 기 게이지 막대
   }
 }
 
@@ -3217,7 +3218,7 @@ function drawDuel() {
     }
 
     // 이름표와 체력바
-    const top = gy - 58 - lift;
+    const top = gy - heroTop(who.cls) - lift;
     ctx.globalAlpha = alpha;
     drawHpBar(x, top, 34, hp[side] / max[side], side === 'a' ? '#5fcf5a' : '#ff5a5a');
     ctx.font = 'bold 11px -apple-system, sans-serif';
@@ -4224,6 +4225,7 @@ function drawRaid() {
   }
 
   // ── 파티 ──
+  const partyTop = Math.max(...d.res.members.map((m) => heroTop(m.cls)));     // 이름표 높이는 파티에서 가장 큰 키에 맞춰 번갈아 (키가 다른 시트 직업끼리 겹치지 않게)
   d.res.members.forEach((m, i) => {
     const c = clsOf(m.cls), x = raidKnightX(i, pt), k = f.knights[i];
     const L = d.last[i], s = L ? clock - L.at : Infinity;
@@ -4253,7 +4255,7 @@ function drawRaid() {
       drawProjectile(flightShot(wpn, x0, ax, gy - 6 * PX, 1));
     }
     // 이름표가 겹치지 않게 번갈아 높이를 다르게 한다
-    const top = gy - 58 - (i % 2) * 14;
+    const top = gy - partyTop - (i % 2) * 14;
     drawHpBar(x, top, 26, d.hpK[i] / k.max, me ? '#5fcf5a' : '#7cc4ff');
     label(`${done && !d.res.world && f.mvp === i ? '👑' : c.icon} ${m.bot ? '🤖' : ''}${m.nickname}`, x, top - 4, me ? '#ffd257' : '#f3efe6');
   });

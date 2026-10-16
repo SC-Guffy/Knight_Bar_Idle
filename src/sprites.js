@@ -30,6 +30,16 @@ function heroSheetOn(id) {
   const c = CLASSES[id];
   return !!c && (!!c.look.sheet || (!!SHEET_ON[id] && typeof SHEET_META !== 'undefined' && !!SHEET_META[id]));
 }
+// 머리 위 이름표·체력바·스킬 아이콘 높이 (땅에서 위로, 화면 px). 조립식 = 58.
+//  시트 직업은 대기 프레임의 머리 위(pts head y, 후광 포함)에서 6px 위 — 키를 키운 새 그림(1.3배, 스펙 legacy-class-sheets.md)도 머리와 안 겹친다
+const HERO_TOP = 58;
+function heroTop(cls) {
+  if (!heroSheetOn(cls)) return HERO_TOP;
+  const m = SHEET_META[cls], hs = m.pts && m.pts.idle;
+  if (!hs || !hs.length) return HERO_TOP;
+  const ft = m.foot || [32, 58], top = Math.min(...hs.map((p) => p[3]));
+  return Math.max(HERO_TOP, Math.round((ft[1] - top) * SHEET_DOT + 6));
+}
 const sheetBase = (() => {
   const s = typeof document !== 'undefined' && document.currentScript && document.currentScript.src;
   return s ? s.replace(/[^/]*$/, '') + 'sprites/' : 'src/sprites/';
