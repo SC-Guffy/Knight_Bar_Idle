@@ -1,4 +1,2 @@
-ranger/ref64
-marksman/ref64
-arcaneArcher/ref64
-arbalest/ref64
+marksman/skel-shoot
+marksman/skel-walk

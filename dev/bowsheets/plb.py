@@ -3,6 +3,7 @@
 #   python -I plb.py anim <cls> <name> <first.png> "<action>" [frames=4] [seed=0]   → work/<cls>/<name>-<i>.png
 #   python -I plb.py edit <cls> <name> <src.png> "<description>" [seed=0]
 #   python -I plb.py topix <cls> <board256.png> [seed=1]   → work/<cls>/ref64-<i>.png  (image-to-pixelart 256→64, 원본 충실, 기준 그림 정리)
+#   python -I plb.py skel <cls> <act>   → skel/req-<cls>-<act>.json 본문으로 animate-with-skeleton-v3 → work/<cls>/skel-<act>-<i>.png (skelgen.py req 로 만든 본문)
 #   python -I plb.py bal
 import sys, os, json, time, base64
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -109,5 +110,9 @@ if __name__ == '__main__':
         cls, board = a[2], a[3]; seed = int(a[4]) if len(a) > 4 else 1
         body = {'image': b64(board), 'image_size': {'width': 256, 'height': 256}, 'output_size': {'width': 64, 'height': 64}, 'seed': seed}
         run('/image-to-pixelart', body, cls, 'ref64: image-to-pixelart 256->64', os.path.join(HERE, 'work', cls, 'ref64'))
+    elif a[1] == 'skel':
+        cls, act = a[2], a[3]
+        body = json.load(open(os.path.join(HERE, 'skel', f'req-{cls}-{act}.json'), encoding='utf-8'))
+        run('/animate-with-skeleton-v3', body, cls, f'skel-{act}: animate-with-skeleton-v3 192 {len(body["keypoints"])}f', os.path.join(HERE, 'work', cls, f'skel-{act}'))
     elif a[1] == 'bal':
         print('balance', bal(), 'self', state()['used'])

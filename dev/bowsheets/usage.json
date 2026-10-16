@@ -1,5 +1,5 @@
 {
- "used": 16.0,
+ "used": 22.0,
  "calls": [
   {
    "cls": "mq-bow",
@@ -96,6 +96,22 @@
    "usage": 1.0,
    "n": 1,
    "bal_before": 1116.0
+  },
+  {
+   "cls": "marksman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1110.0
+  },
+  {
+   "cls": "marksman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1106.0
   }
  ]
 }

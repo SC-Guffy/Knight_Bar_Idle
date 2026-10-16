@@ -16,3 +16,5 @@
 | 10 | marksman | `/image-to-pixelart` | ref64: image-to-pixelart 256->64 | 1.0 | 14.0 | 1119.0 |
 | 11 | arcaneArcher | `/image-to-pixelart` | ref64: image-to-pixelart 256->64 | 1.0 | 15.0 | 1118.0 |
 | 12 | arbalest | `/image-to-pixelart` | ref64: image-to-pixelart 256->64 | 1.0 | 16.0 | 1116.0 |
+| 13 | marksman | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 19.0 | 1110.0 |
+| 14 | marksman | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 22.0 | 1106.0 |
