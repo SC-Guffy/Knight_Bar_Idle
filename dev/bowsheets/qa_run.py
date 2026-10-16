@@ -1,6 +1,6 @@
 # 레인저 계열 디자인 후보 검수 0~2단 (docs/specs/pixel-qa.md): 46px 후보마다 dev/pixel-qa/qa.py → dev/bowsheets/qa/<판>-<직업>-<시드>/sheet.png·metrics.json
 #  3단 비평은 세션이 서브에이전트(critic.md 지침)에 sheet.png·metrics.json·목표 모습(INTENT)을 넘겨서 한다 → verdict.json
-#   C:\AI\ComfyUI\.venv\Scripts\python.exe -I -B -X utf8 dev/bowsheets/qa_run.py <판> [직업 ...]   (-X utf8: qa.py 가 json 을 기본 인코딩으로 쓴다)
+#   C:\AI\ComfyUI\.venv\Scripts\python.exe -I -B -X utf8 dev/bowsheets/qa_run.py <판> [직업 ...]   
 import os, sys, json, subprocess
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
 PXD = os.path.join(HERE, 'design', 'px'); QA = os.path.join(HERE, 'qa')
@@ -16,22 +16,14 @@ INTENT = {
 }
 
 
-def load_qa():
-    """dev/pixel-qa/qa.py 를 불러 캐릭터용으로: ⓪ 게임 모습 = 시트 그대로 (VFX 로더의 외곽선 벗기기·밝기 5단·직업색 칠하기는 캐릭터에 안 쓴다 —
-    그대로 두면 14색 그림이 65색으로 바뀌어 색 경보가 잘못 뜬다). 규격·지표·검수 시트는 qa.py 그대로"""
-    import importlib.util
-    sp = importlib.util.spec_from_file_location('pixel_qa', os.path.join(ROOT, 'dev', 'pixel-qa', 'qa.py')); qa = importlib.util.module_from_spec(sp); sp.loader.exec_module(qa)
-    qa.render = lambda items, tmp=None: {k: im for k, im, o, c in items}
-    return qa
-
-
 def run(ver, classes):
-    qa = load_qa(); out = {}
+    sys.path.insert(0, os.path.join(ROOT, 'dev', 'pixel-qa')); import qa      # 정식 검수 도구 --kind char (자체 감싸개는 2026-10-17 정식으로 바꿈)
+    out = {}
     for c in classes:
         for f in sorted(os.listdir(PXD)):
             if not f.startswith(f'{c}-{ver}-'): continue
             sid = f[:-len('-h46.png')]
-            res, _ = qa.run(os.path.join(PXD, f), sid, 'raw', 1, False, c, os.path.join(QA, sid))
+            res, _ = qa.run(os.path.join(PXD, f), sid, frames=1, intent=c, out=os.path.join(QA, sid), kind='char')
             out[sid] = {'flags': [x['k'] for x in res['flags']], 'colors': res['metrics']['colors'], 'lrange': res['metrics']['lrange'], 'crumbs': res['metrics']['crumbs']}
     json.dump({'common': COMMON, 'intent': INTENT}, open(os.path.join(QA, 'intent.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     return out

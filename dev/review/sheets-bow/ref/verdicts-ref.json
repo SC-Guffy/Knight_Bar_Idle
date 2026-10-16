@@ -1,0 +1,59 @@
+{
+ "ref-ranger-clean": {
+  "scores": {
+   "intent": 3,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "모자+큰 깃털 실루엣 또렷, 상·하체·두 다리 분리. 활 든 팔이 몸 뒤쪽을 향함, 바지 어두움",
+  "avg": 3.86
+ },
+ "ref-marksman-clean": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 3,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "(흰 점 지우기 + 안쪽 명도 올림 수리 뒤) 고글·스카프·재킷·벨트·두 다리 읽힘. 스카프·머리 끝 부스러기, 노랑이 고글뿐",
+  "avg": 3.71
+ },
+ "ref-arcaneArcher-clean": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 3,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "뾰족 후드·망토·마력궁 가장 또렷, 얼굴 귀여움. 하반신 남색이 뭉침",
+  "avg": 3.71
+ },
+ "ref-arbalest-clean": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "summary": "(흰 잔여 점 지움) 젊은 얼굴, 해골 느낌 없음, 다리 분리. 붉은 몸통이 어둡게 뭉치고 주황이 빠짐",
+  "avg": 3.86
+ },
+ "polish": "손질본(공용 polish 14색)은 4종 모두 남색·초록·피부가 검정으로 무너져 정리본보다 낮음 (마궁수·석궁사수 regen, 저격수 fix, 레인저 pass 3.71) → 정리본(clean) 채택"
+}

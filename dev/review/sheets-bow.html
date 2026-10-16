@@ -30,7 +30,7 @@
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 레인저 · 저격수 · 마궁수 · 석궁사수 · 신궁 · 차원궁사 · 공성포수 · 2026-10-15</p>
 
 <div class="box">
-  <b>지금 상태 (2026-10-16, 새 방향)</b>: <a href="#design5">B5절</a> 컨셉으로 새로 그린 시안 — 검수 통과 대표 4종 (사용자 검사 대기) · B절은 이전 시안 · 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 — <a href="#redesign">A절</a>(브리프·관절 설계, 0회). 이전 시트(마네킹 방식)는 보류: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
+  <b>지금 상태 (2026-10-16, 새 방향)</b>: <a href="#ref">C절</a> 기준 그림 정리 4종 검수 합격 + 관절 애니 계획서(로드맵 승인 대기) · <a href="#design5">B5절</a> 시안 · B절은 이전 시안 · 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 — <a href="#redesign">A절</a>(브리프·관절 설계, 0회). 이전 시트(마네킹 방식)는 보류: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
   <ul>
     <li>2차 포함 7종 기준 그림: 지금 게임의 대기 자세를 8배로 찍어 1배 도트로 줄였다. 칸 96(공성포수 128), 발 기준점 고정, 화살·석궁 살은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
@@ -38,6 +38,55 @@
     <li>96/128 칸 시트 쓰기 <code>dev/bowsheets/sheet.py</code> (칸 가장자리 닿음 검사·hand/head 점 자동) — 임시 시트로 게임 연결을 시험할 때 쓴다 (<code>placeholder.py</code>, 커밋 안 함).</li>
   </ul>
 </div>
+
+<h2 id="ref">C. 기준 그림 정리 — PixelLab image-to-pixelart + 검수 합격 (2026-10-17, PixelLab 4 · 계열 누적 16)</h2>
+<div class="box"><ul>
+<li><b>석궁사수 얼굴</b>: B5-37 얼굴이 회색·붉은 눈이라 해골처럼 보인다는 지적을 받았다. 그래서 "면갑을 올린 투구 아래 밝은 피부의 젊은 사람 얼굴, 붉은 눈·해골·가면 아님"으로 4장을 다시 뽑았다(B5f, ComfyUI). 검수 결과 73번이 유일하게 46px 에서 사람 얼굴로 읽혔다. 왼쪽을 봐서 좌우로 뒤집었다(스크립트).</li>
+<li><b>정리</b> (로드맵 미리 승인, 직업당 1회, 재시도 0):
+  <ul>
+  <li>ComfyUI 원본에서 바탕·발밑 그림자를 떼고, 몸 키를 256칸 판의 184(= 출력 46)로 맞춘다(<code>dev/bowsheets/board.py</code>).</li>
+  <li>PixelLab <code>image-to-pixelart</code> 256 → 64 로 정리한다(usage 각 1, 4종 = 4).</li>
+  </ul></li>
+<li><b>손질 비교</b>: 정리본(clean = 공용 <code>polish.unbg</code>, 바탕만 뗌)과 손질본(polish = 공용 14색·외톨이 점·외곽선·위 하이라이트)을 둘 다 검수했다.
+  손질본은 4종 모두 남색·초록·피부가 검정으로 무너져 점수가 낮았다. 그래서 <b>정리본을 채택</b>한다(공용 메모 "손질이 점수를 늘 올리지 않는다"와 같다).</li>
+<li><b>무료 수리</b> (검수 판정 fix, 스크립트만 — <code>dev/bowsheets/ref_qa.py</code>):
+  <ul>
+  <li>저격수: 바탕 떼기 잔여 흰 점을 지우고, 외곽선은 둔 채 안쪽 명도를 올렸다(명암 2 → 3).</li>
+  <li>석궁사수: 흰 잔여 점을 지웠다.</li>
+  </ul></li>
+<li><b>검수</b>: 정식 <code>dev/pixel-qa/qa.py --kind char</code> 와 보정된 <code>critic.md</code> 비평(general-purpose)으로 했다. <b>4종 합격</b>: 레인저 3.86 · 저격수 3.71 · 마궁수 3.71 · 석궁사수 3.86.</li>
+<li><b>남은 지적</b> (합격, 선택 수리):
+  <ul>
+  <li>레인저: 활 든 팔이 몸 뒤쪽을 향한다. 동작은 관절 애니가 새로 잡는다.</li>
+  <li>저격수: 노랑이 고글뿐이다.</li>
+  <li>마궁수: 하반신 남색이 뭉친다.</li>
+  <li>석궁사수: 주황이 빠졌고 붉은 몸통이 어둡다.</li>
+  </ul></li>
+</ul></div>
+<p><b>검사 계열 기준 그림(맨 앞 검사·성기사)과 나란히</b> — 컬러 · 흑백 · 실루엣 (4배)</p>
+<div class="scroll box"><img class="px" src="sheets-bow/ref/line-color.png" style="max-width:none"><img class="px" src="sheets-bow/ref/line-gray.png" style="max-width:none;margin-top:6px"><img class="px" src="sheets-bow/ref/line-sil.png" style="max-width:none;margin-top:6px"></div>
+<p><b>PixelLab 원본 · 정리본(채택) · 손질본 · 점수</b> (점수는 정리본)</p>
+<div class="scroll"><table><tr><th>직업</th><th>PixelLab 64</th><th>정리본 ★</th><th>손질본</th><th>의도</th><th>읽힘</th><th>깔끔</th><th>명암</th><th>도트</th><th>움직임</th><th>규칙</th><th>평균</th><th>판정</th><th>비평 요약</th></tr><tr><td>레인저 (B5-23)</td><td><img class="px" src="sheets-bow/ref/ranger-pl.png" style="height:128px"></td><td><img class="px" src="sheets-bow/ref/ranger-clean.png" style="height:128px"></td><td><img class="px" src="sheets-bow/ref/ranger-polish.png" style="height:128px"></td><td>3</td><td>4</td><td>4</td><td>3</td><td>4</td><td>5</td><td>4</td><td><b>3.86</b></td><td class="ok">pass</td><td style="font-size:12px">모자+큰 깃털 실루엣 또렷, 상·하체·두 다리 분리. 활 든 팔이 몸 뒤쪽을 향함, 바지 어두움</td></tr><tr><td>저격수 (B5-11)</td><td><img class="px" src="sheets-bow/ref/marksman-pl.png" style="height:128px"></td><td><img class="px" src="sheets-bow/ref/marksman-clean.png" style="height:128px"></td><td><img class="px" src="sheets-bow/ref/marksman-polish.png" style="height:128px"></td><td>4</td><td>4</td><td>3</td><td>3</td><td>3</td><td>5</td><td>4</td><td><b>3.71</b></td><td class="ok">pass</td><td style="font-size:12px">(흰 점 지우기 + 안쪽 명도 올림 수리 뒤) 고글·스카프·재킷·벨트·두 다리 읽힘. 스카프·머리 끝 부스러기, 노랑이 고글뿐</td></tr><tr><td>마궁수 (B5-11)</td><td><img class="px" src="sheets-bow/ref/arcaneArcher-pl.png" style="height:128px"></td><td><img class="px" src="sheets-bow/ref/arcaneArcher-clean.png" style="height:128px"></td><td><img class="px" src="sheets-bow/ref/arcaneArcher-polish.png" style="height:128px"></td><td>4</td><td>4</td><td>3</td><td>3</td><td>3</td><td>5</td><td>4</td><td><b>3.71</b></td><td class="ok">pass</td><td style="font-size:12px">뾰족 후드·망토·마력궁 가장 또렷, 얼굴 귀여움. 하반신 남색이 뭉침</td></tr><tr><td>석궁사수 (B5f-73 좌우 반전)</td><td><img class="px" src="sheets-bow/ref/arbalest-pl.png" style="height:128px"></td><td><img class="px" src="sheets-bow/ref/arbalest-clean.png" style="height:128px"></td><td><img class="px" src="sheets-bow/ref/arbalest-polish.png" style="height:128px"></td><td>4</td><td>4</td><td>4</td><td>3</td><td>3</td><td>5</td><td>4</td><td><b>3.86</b></td><td class="ok">pass</td><td style="font-size:12px">(흰 잔여 점 지움) 젊은 얼굴, 해골 느낌 없음, 다리 분리. 붉은 몸통이 어둡게 뭉치고 주황이 빠짐</td></tr></table></div>
+<p><b>정리본 검수 시트</b></p>
+<div class="scroll box"><div style="display:flex;gap:10px"><figure style="margin:0"><img src="sheets-bow/ref/sheet-ranger-clean.png" style="width:300px"><figcaption class="sub">레인저 (B5-23)</figcaption></figure><figure style="margin:0"><img src="sheets-bow/ref/sheet-marksman-clean.png" style="width:300px"><figcaption class="sub">저격수 (B5-11)</figcaption></figure><figure style="margin:0"><img src="sheets-bow/ref/sheet-arcaneArcher-clean.png" style="width:300px"><figcaption class="sub">마궁수 (B5-11)</figcaption></figure><figure style="margin:0"><img src="sheets-bow/ref/sheet-arbalest-clean.png" style="width:300px"><figcaption class="sub">석궁사수 (B5f-73 좌우 반전)</figcaption></figure></div></div>
+<h3>C-1. 관절 애니 계획서 (로드맵 승인 대기)</h3>
+<table>
+<tr><th>#</th><th>직업</th><th>동작 (관절 시퀀스 A-2)</th><th>엔드포인트·크기</th><th>usage</th></tr>
+<tr><td>1~3</td><td>레인저</td><td>걷기 · 쏘기(시위 귀까지) · 하늘 45° 쏘기</td><td rowspan="4"><code>animate-with-skeleton-v3</code> 192칸 8프레임 (+ 첫 프레임)</td><td>3 × 3 = 9</td></tr>
+<tr><td>4~6</td><td>저격수</td><td>같은 셋</td><td>9</td></tr>
+<tr><td>7~9</td><td>마궁수</td><td>같은 셋</td><td>9</td></tr>
+<tr><td>10~12</td><td>석궁사수</td><td>걷기 · 겨눔·반동·재장전 · 하늘 45° 포격</td><td>9</td></tr>
+<tr><th colspan="4">합계 (재시도 0)</th><th>36 → 계열 누적 52 (상한 90)</th></tr>
+</table>
+<ul class="sub">
+<li><b>근거</b>: skeleton-v3 192칸 8f = usage 3 이다(검사 계열 성기사 실측, <code>dev/sheets-sword/usage.md</code> #10). 15f = 4. 텍스트 애니 192칸은 5 라서 쓰지 않는다.</li>
+<li><b>첫 프레임</b>: 정리본(키 46)을 96칸 발 (48, 88)에 놓고 2배 = 192칸(키 약 92)이다. 관절 시퀀스(<code>dev/bowsheets/skel.py</code>, 46px·3등신 비율, 발 96·176)와 맞는다.</li>
+<li><b>무기 지우기</b>: 64칸 정리본에서 1~2칸 두께 선(활대·시위)을 열림 연산으로 지우고 몸에 붙은 덩어리만 남긴다(스크립트, 0회). 석궁 몸체처럼 두꺼워 남는 부분은 덧그리는 무기가 덮는다.</li>
+<li><b>무기 덧그리기</b>: 공용 <code>wpn.py</code> 를 쓴다(활 <code>end='up'</code>, 석궁 <code>axis_sel</code>, 시위 <code>under</code>). 손목 좌표는 관절 시퀀스의 RIGHT/LEFT ARM 이다. 무기 그림은 지금 게임 무기를 1.3배로 쓴다.</li>
+<li><b>파생 (0회)</b>: 대기·전투 대기(첫 프레임 + 숨쉬기), 시전 cast(쏘기 프레임을 pull 값으로), castUp(하늘 쏘기), 피격·사망(코드), 앉기(조립식).</li>
+<li><b>실패 수리 (재호출 없음)</b>: 몸이 돌아선·팔다리 깨진 프레임은 이웃 프레임 복제나 ComfyUI img2img 낮은 denoise 로 고친다. 결과 프레임은 모두 <code>qa.py --kind char --frames 8</code> 와 비평으로 검수하고, 합격분만 보고한다.</li>
+<li>3차(신궁·차원궁사·공성포수)는 2차 기준 그림 편집 + 같은 방식이다. 공성포수 공성 원형 몫(+2)을 포함해 따로 계획서를 낸다.</li>
+</ul>
 
 <h2 id="design5">B5. 컨셉으로 새로 그린 시안 — 검수 통과 대표 (2026-10-17, ComfyUI 16장 · PixelLab 0)</h2>
 <div class="box"><ul>
