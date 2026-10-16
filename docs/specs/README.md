@@ -59,6 +59,7 @@
 | [legacy-class-sheets.md](legacy-class-sheets.md) | 확정 (구현 전) | 기존 직업 29종 통짜 스프라이트 시트 전환 — 칸 64/96/128, 계열 4개 동시, 포즈=PixelLab 애니(기준 그림 = 지금 스프라이트), 3차는 2차 편집, ComfyUI 는 보조, 계열 170회, SHEET_ON 되돌리기 |
 | [skill-vfx.md](skill-vfx.md) | 확정 (명중 분리판, 퀄업 구현 전) | 스킬 VFX 퀄업 — 스킬 40종 + 평타 29종 전수조사 · 이펙트 그림은 전부 PixelLab 텍스처 167장(무기 궤적 15·평타 명중 직업마다 29·투사체 12·공용 배경 7·스킬 본체 43·궁극기 21·스킬 명중 스킬마다 40, 약 740회) · ⑤-0 검흔 시험 · 정지·흔들림 기준 · 계열별 패치 순서 (검토 `dev/review/skill-vfx.html`) |
 | [vfx-rule-fixes.md](vfx-rule-fixes.md) | 확정 (0.21, 구현 전) | 2차 스킬 ★★★ 하단바 전체 섬광 11곳 → 타격 지점 둘레로 · 공허궁 꼬리 색 · 3차 타격 섬광 색 · 결투·레이드 원거리 평타 모양 |
+| [pixel-qa.md](pixel-qa.md) | 초안 (설계) | 도트 품질 검수 에이전트 — 게임 로더 그대로 거친 모습 → 규격 검사 → 자동 지표(경보·근거) → Claude 비평 서브에이전트(채점표 7항목, pass/fix/regen) + 사용자 판정 취향 기록. 보정: 지표만으로 탈락 6장 중 4장, 오경보 16% (검토 `dev/review/pixel-qa.html`) |
 | [art-upgrade.md](art-upgrade.md) | 진행 중 | AI 이미지 생성 → 도트 복원으로 배경·UI·아이콘 퀄업 |
 | [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
 | [forge-temper.md](forge-temper.md) | 완료 | 대장간 🔥 담금질대: +20 까지 강화 성공↑·하락↓, +20 이상은 그대로 |

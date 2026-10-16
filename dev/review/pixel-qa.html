@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>도트 품질 검수 — 스펙 검토</title>
+<!-- 스펙: docs/specs/pixel-qa.md. 수치는 dev/pixel-qa/calib.py 가 만든 pixel-qa/calib.json (게임 로더를 거친 모습 기준) 을 그대로 읽는다. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --hl: #3b2a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .hl { background: var(--hl); border: 2px solid var(--gold); }
+  .hl h3 { margin: 0 0 6px; color: var(--gold); font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  td.l { text-align: left; white-space: normal; }
+  .scroll { overflow-x: auto; }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+  .flow .st { flex: 1 1 170px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+  .flow .st b { color: var(--gold); display: block; margin-bottom: 2px; }
+  .flow .ar { align-self: center; color: var(--dim); }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 3px; background: #2f2840; color: var(--dim); font-size: 11px; }
+  .tag.f { background: #4a1f25; color: #ffb3b3; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 6px 0 10px; }
+  .ctl label { color: var(--dim); display: inline-flex; gap: 6px; align-items: center; }
+  .ctl b { color: var(--gold); min-width: 34px; display: inline-block; }
+  input[type=range] { width: 150px; }
+  .score { display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; }
+  .pair { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .pair:last-child { border-bottom: 0; }
+  .pair .nm { color: var(--dim); font-size: 12px; }
+  .pair .nm b { color: var(--ink); font-size: 13px; }
+  .shot { background: #0f0d14; border-radius: 4px; padding: 6px; overflow-x: auto; }
+  .shot img { image-rendering: pixelated; display: block; }
+  .shot .m { font-size: 11px; color: var(--dim); margin-top: 3px; white-space: normal; }
+  .fa { font-size: 11px; color: var(--dim); }
+  code { background: #120f18; padding: 0 4px; border-radius: 3px; }
+  pre { background: #120f18; padding: 8px; border-radius: 4px; overflow-x: auto; font-size: 11px; }
+</style>
+</head>
+<body>
+<main>
+<h1>도트 품질 검수 에이전트 — 설계 검토</h1>
+<div class="sub">스펙 <code>docs/specs/pixel-qa.md</code> · 상태 초안 · 2026-10-16 · 유료 호출 0회</div>
+
+<div class="card hl">
+  <h3>요지</h3>
+  <ul>
+    <li>목표: 사람 손질 없이 품질을 올리는 <b>생성 → 검수 → 수리</b> 반복 루프의 첫 부품. 그림을 <b>게임에 들어간 모습으로</b> 보고 합격(pass) · 무료 수리(fix) · 다시 뽑기(regen)를 판정하고 근거와 고칠 방법을 낸다.</li>
+    <li>구조: ⓪ 게임 로더 그대로 돌려 게임 모습 만들기 → ① 규격 검사 → ② 자동 지표(경보·근거) → ③ Claude 비평 서브에이전트(채점표 7항목) + 사용자 판정을 쌓는 <b>취향 기록</b>.</li>
+    <li>보정 결과: <b>지표만으로는 부족하다</b>. 탈락 6장 중 4장만 잡고, 확정 시트 170장 중 16%를 잘못 잡는다. 그래서 지표는 경보로만 쓰고 판정은 비평이 한다.</li>
+    <li>첫 적용은 VFX 시트(정답 자료가 가장 많음) → 캐릭터 시트(색깔놀이 실루엣 검사 추가) → 아이콘·배경.</li>
+  </ul>
+</div>
+
+<h2>흐름</h2>
+<div class="flow">
+  <div class="st"><b>⓪ 게임 모습</b>src/vfx-tex.js 로더(외곽선 벗기기·5단 양자화)와 직업색 칠하기를 node vm 으로 실제 코드 그대로 → 배율·장면 합성·흑백</div>
+  <div class="ar">→</div>
+  <div class="st"><b>① 규격</b>크기·반투명·칸 잘림·빈 프레임·타일 이음·깎인 비율 ≤ 0.6<br><span class="sub">통과/불통</span></div>
+  <div class="ar">→</div>
+  <div class="st"><b>② 지표</b>부스러기·깎인 비율·밝기 폭·색 수 (+ 참고 지표)<br><span class="sub">경보와 근거, 단독 탈락 없음</span></div>
+  <div class="ar">→</div>
+  <div class="st"><b>③ 비평</b>pixel-critic 서브에이전트: 검수 시트 + 목표 모습 + 경보 + 취향 기록 예시 → 점수·결함·판정·고칠 방법</div>
+</div>
+<div class="card sub" style="margin-top:8px">사용자 판정(맞음/틀림 + 이유)은 <code>dev/pixel-qa/labels.jsonl</code> 에 쌓인다. 비평 예시와 지표 기준값을 여기서 다시 잡는다.</div>
+
+<h2>보정 — 지표 경보만으로 되는가 (값을 바꿔 보세요)</h2>
+<div class="card">
+  <div class="ctl" id="ctl"></div>
+  <div class="score" id="score"></div>
+  <div class="fa" id="falist" style="margin-top:6px"></div>
+</div>
+
+<h2>다시 뽑기 6쌍 — 게임 로더를 거친 모습 (위 탈락 · 아래 합격)</h2>
+<div class="sub">직업색 시트는 대표색 #4da6ff 로 칠했다. 빨간 칩 = 지금 기준에서 뜬 경보. 탈락 이유는 사용자 판정(10-16) 그대로다.</div>
+<div class="card" id="pairs"></div>
+
+<h2>비평 채점표 (1~5)</h2>
+<div class="card scroll"><table>
+  <tr><th>항목</th><th class="l" style="text-align:left">보는 것</th></tr>
+  <tr><td>1 의도 일치</td><td class="l">스펙의 "목표 모습" 문장대로인가, 엉뚱한 물체(칼·산·요새)가 없는가</td></tr>
+  <tr><td>2 읽힘</td><td class="l">게임 배율에서 모양이 한눈에 들어오는가 (견습 기사 옆 크기)</td></tr>
+  <tr><td>3 깔끔함</td><td class="l">부스러기·색종이·지글거림</td></tr>
+  <tr><td>4 명암</td><td class="l">밝은 쪽이 주인공, 어두운 덩어리로 뭉개지지 않음, 흑백으로도 모양이 섬</td></tr>
+  <tr><td>5 도트다움</td><td class="l">AI 흐림 계조·계단 잡음·섞인 도트 크기·1도트 하이라이트 소실</td></tr>
+  <tr><td>6 움직임</td><td class="l">커짐 → 절정 → 흩어짐, 튀지 않음, 마지막 프레임이 자연스럽게 사라짐</td></tr>
+  <tr><td>7 프로젝트 규칙</td><td class="l">검은 외곽선 파티클 금지 · 색깔놀이 금지 · UI 톤(남보라+은회색)</td></tr>
+</table>
+<p class="sub">합격선(추천): 모든 항목 3 이상 + 평균 3.5 이상. 1·3·4 중 하나라도 2 이하면 regen 쪽. 비평은 정답을 모르는 상태로 본다.</p>
+<pre>{ "scores": {"intent":4,"read":3,"clean":2,"value":4,"pixel":3,"motion":3,"rules":5},
+  "defects": [{"frame":2,"where":"오른쪽 위","what":"2~3픽셀 잡색 파편 9개 — 색종이처럼 보임"}],
+  "verdict": "regen",
+  "fix": {"how":"파편을 은회색 3조각으로 줄이라고 프롬프트 수정","tool":"vfx_workbench"} }   ← 출력 양식 (예시)</pre>
+</div>
+
+<h2>수용 기준</h2>
+<div class="card"><ul>
+  <li>❌ ⓪ 게임 모습이 실제 게임과 같다 — dev/skills.html 1배 캡처와 픽셀 비교 3장 (구현 뒤)</li>
+  <li>❌ 블라인드 시험: 다시 뽑기 6쌍 중 탈락작 5/6 이상을 맞히고 결함 설명이 사용자 이유와 맞음</li>
+  <li>❌ 오경보: 확정 시트 무작위 30장 중 regen 3장 이하</li>
+  <li>❌ 순위: ComfyUI 후보 48장에서 기존 "쓸 만함"의 70% 이상이 상위 절반</li>
+  <li>❌ 한 장 검수 2분 안, 유료 호출 0</li>
+  <li>❌ 검수 보고 페이지로 판정 근거를 볼 수 있음 — 사용자 확인</li>
+</ul><p class="sub">지금은 설계 단계라 전부 미시험이다. 확정 뒤 구현하면서 하나씩 채운다.</p></div>
+
+<h2>결정할 것</h2>
+<div class="card"><ol>
+  <li><b>비평 모델</b>: Claude 서브에이전트 1명으로 시작(추가 비용 0, 추천) / 처음부터 OpenRouter 비전 모델로 교차 비평(유료). 추천은 블라인드 시험이 미달일 때만 교차를 붙이는 것.</li>
+  <li><b>첫 적용 범위</b>: VFX 먼저(추천) / 캐릭터 시트 먼저</li>
+  <li><b>합격선</b>: 전 항목 3+ · 평균 3.5+ (추천) / 더 엄격하게</li>
+</ol></div>
+</main>
+<script>
+const KEYS = ['k22', 'e18', 'e14', 'k36', 'k32', 'k37'];
+const WHY = { k22: '색종이 부스러기', e18: '지글거리는 노이즈', e14: '뭉개진 흙 띠', k36: '검은 몸이라 벗기면 테두리만', k32: '어두운 몸이 뭉개짐', k37: '요새가 조각조각' };
+const RULES = [
+  { k: 'crumbs', name: '부스러기 >', v: 5.2, min: 0, max: 20, step: 0.2, f: (g, t) => g.crumbs > t },
+  { k: 'strip', name: '깎인 비율 >', v: 0.6, min: 0, max: 1, step: 0.02, f: (g, t) => g.strip > t },
+  { k: 'lrange', name: '밝기 폭 <', v: 0.25, min: 0, max: 0.8, step: 0.01, f: (g, t) => g.lrange < t },
+  { k: 'colors', name: '색 수 >', v: 24, min: 3, max: 120, step: 1, f: (g, t) => g.colors > t },
+];
+let D = null;
+const flags = (g) => RULES.filter((r) => r.f(g, r.v)).map((r) => r.k);
+function draw() {
+  const acc = Object.keys(D).filter((k) => k.startsWith('vfx/') && !KEYS.includes(k.slice(4)));
+  const caught = KEYS.filter((k) => flags(D['old/' + k].game).length).length;
+  const newF = KEYS.filter((k) => flags(D['vfx/' + k].game).length).length;
+  const fa = acc.filter((k) => flags(D[k].game).length);
+  document.getElementById('score').innerHTML =
+    `<span>탈락작 잡음 <b class="${caught >= 5 ? 'ok' : 'bad'}">${caught} / 6</b></span>` +
+    `<span>합격작 잘못 잡음 <b class="${newF ? 'bad' : 'ok'}">${newF} / 6</b></span>` +
+    `<span>확정 시트 오경보 <b class="${fa.length / acc.length <= 0.1 ? 'ok' : 'bad'}">${fa.length} / ${acc.length} (${Math.round(fa.length / acc.length * 100)}%)</b></span>`;
+  document.getElementById('falist').textContent = fa.length ? '오경보 시트: ' + fa.map((k) => k.slice(4) + '(' + flags(D[k].game).join('·') + ')').join(', ') : '';
+  document.getElementById('pairs').innerHTML = KEYS.map((k) => {
+    const row = (p, lab) => {
+      const g = D[p + '/' + k].game, fl = flags(g);
+      const src = `pixel-qa/rendered/${p}-${k}.png`, w = g && D[p + '/' + k] ? null : null;
+      return `<div class="shot"><img src="${src}" onload="this.width=this.naturalWidth*(this.naturalWidth>200?2:3)">` +
+        `<div class="m">${lab} · 부스러기 ${g.crumbs} · 깎임 ${g.strip} · 밝기 폭 ${g.lrange} · 색 ${g.colors} · 어두운 단 ${g.low} ` +
+        (fl.length ? fl.map((x) => `<span class="tag f">${x}</span>`).join(' ') : '<span class="tag">경보 없음</span>') + '</div></div>';
+    };
+    return `<div class="pair"><div class="nm"><b>${k}</b><br>탈락 이유:<br>${WHY[k]}</div><div>${row('old', '탈락')}${row('vfx', '합격')}</div></div>`;
+  }).join('');
+}
+fetch('pixel-qa/calib.json').then((r) => r.json()).then((d) => {
+  D = d;
+  document.getElementById('ctl').innerHTML = RULES.map((r, i) =>
+    `<label>${r.name} <input type="range" min="${r.min}" max="${r.max}" step="${r.step}" value="${r.v}" data-i="${i}"><b id="v${i}">${r.v}</b></label>`).join('');
+  document.querySelectorAll('#ctl input').forEach((el) => el.oninput = () => {
+    const r = RULES[+el.dataset.i]; r.v = +el.value; document.getElementById('v' + el.dataset.i).textContent = r.v; draw();
+  });
+  draw();
+});
+</script>
+</body>
+</html>
