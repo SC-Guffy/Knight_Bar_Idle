@@ -13,39 +13,14 @@ PICK = {'mage': 'mage_v2s-139', 'pyromancer': 'pyromancer_v3s-173', 'cryomancer'
 
 
 def prep(cls, h=184, seed=7, strength=200):
-    import to_pixel as TP, shrink as SH
-    src = os.path.join(HERE, 'design', 'raw', PICK[cls] + '.png'); im = Image.open(src).convert('RGB')
-    box, bg = TP.fg_box(im)
-    bb = SH.body_bounds(im)
-    body = (bb[1] - bb[0]) if bb else (box[3] - box[1])
-    ch = im.crop(box); s = h / body
-    W, Hh = round(ch.width * s), round(ch.height * s)
-    k = min(1.0, 248 / W, (256 - 12 - 2) / Hh)               # 판 밖으로 나가면 줄인다 (몸 키가 그만큼 작아짐)
-    ch = ch.resize((round(W * k), round(Hh * k)), Image.LANCZOS)
-    sq = Image.new('RGB', (256, 256), bg); sq.paste(ch, ((256 - ch.width) // 2, 256 - 12 - ch.height))
-    os.makedirs(PL, exist_ok=True); req = os.path.join(PL, f'req-{cls}.json')
-    sq.save(os.path.join(PL, f'req-{cls}-in.png'))
-    buf = io.BytesIO(); sq.save(buf, 'PNG')
-    json.dump({'image': {'type': 'base64', 'base64': base64.b64encode(buf.getvalue()).decode(), 'format': 'png'},
-               'image_size': {'width': 256, 'height': 256}, 'output_size': {'width': 64, 'height': 64}, 'fixer': True,
-               'init_image_strength': strength, 'seed': seed}, open(req, 'w'))
-    print(cls, 'body px', body, 'scale', round(s * k, 3), 'body on board', round(body * s * k), '-> 64 칸', round(body * s * k / 4, 1), 'shrunk' if k < 1 else '')
+    """공용 to_pixel.prep(body=True) — 몸 키를 h 에 맞춘다 (2026-10-17 이 계열에서 만들어 공용으로 옮김)"""
+    import to_pixel as TP
+    os.makedirs(PL, exist_ok=True)
+    TP.prep(os.path.join(HERE, 'design', 'raw', PICK[cls] + '.png'), os.path.join(PL, f'req-{cls}.json'), h, 64, seed, strength, body=True)
+    print(cls, 'req', os.path.join(PL, f'req-{cls}.json'))
 
 
-def strip_ground(im, k=1.3, rows=4):
-    """발밑 그림자 판: 맨 아래 줄이 바로 위 줄보다 k 배 넘게 넓으면 지운다 (최대 rows 줄). 공용 clean 이 남기는 회색·파란 받침"""
-    im = im.convert('RGBA'); P = im.load(); W, H = im.size
-    def wd(y):
-        xs = [x for x in range(W) if P[x, y][3]]
-        return (xs[-1] - xs[0] + 1) if xs else 0
-    for _ in range(rows):
-        bb = im.getbbox()
-        if not bb: break
-        y = bb[3] - 1
-        if wd(y) > k * max(1, wd(y - 3)):                    # 판이 2~3줄 두께라 3줄 위(발목 근처)와 비교
-            for x in range(W): P[x, y] = (0, 0, 0, 0)
-        else: break
-    return im.crop(im.getbbox())
+from to_pixel import strip_ground          # 공용으로 옮김 (dev/sheets-common/to_pixel.py)
 
 
 INTENT = None

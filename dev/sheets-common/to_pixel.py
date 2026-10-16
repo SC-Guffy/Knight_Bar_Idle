@@ -3,9 +3,9 @@
 #  → 캐릭터를 256 정사각에 키 184px(=64 출력에서 46칸)로 앉혀 PixelLab 이 64칸으로 다시 그리게 한다(fixer=원본 충실).
 #  값: 응답 usage 1.0/회 (검사 계열 2026-10-16, 256→64). 호출은 각 계열의 PixelLab 래퍼(plx.py raw)로 — 상한·사용량 기록은 계열마다.
 #  쓰는 법:
-#    python -I -B dev/sheets-common/to_pixel.py prep <원본1024.png> <req.json> [--h 184] [--out 64] [--seed 7]
+#    python -I -B dev/sheets-common/to_pixel.py prep <원본1024.png> <req.json> [--h 184] [--out 64] [--seed 7] [--body (몸 키 기준, 무기 머리 위로 든 그림)]
 #    MSYS_NO_PATHCONV=1 python -I <계열>/plx.py raw <cls> <이름> /image-to-pixelart <req.json>     (Git Bash 는 경로 변환을 꺼야 한다)
-#    python -I -B dev/sheets-common/to_pixel.py clean <결과64.png> <정리본.png>                    → 바탕(테두리 색)·떨어진 잡점 떼고 바짝 자름
+#    python -I -B dev/sheets-common/to_pixel.py clean <결과64.png> <정리본.png> [--ground]           → 바탕(테두리 색)·떨어진 잡점 떼고 바짝 자름 (--ground: 발밑 받침 판도)
 #    이어서 polish.py (손질) → qa_char.py + 비평(dev/pixel-qa/critic.md) 으로 검수
 import os, sys, json, base64, io, argparse
 from PIL import Image
@@ -26,10 +26,22 @@ def fg_box(im, thr=40):
     return (k(xs, 0.003), k(ys, 0.003), k(xs, 0.997) + 2, k(ys, 0.999) + 2), bg
 
 
-def prep(src, req, h=184, out=64, seed=7, strength=200):
+def prep(src, req, h=184, out=64, seed=7, strength=200, body=False):
+    """body=True: 그림 전체(무기 포함) 높이 대신 몸 키(shrink.body_bounds — 머리 꼭대기~발바닥, 몸과 떨어진 가는 무기 제외)를 h 에 맞춘다.
+    지팡이·창을 머리 위로 든 그림이 작아지지 않게 (마법사 계열 2026-10-17). 판(256, 아래 여백 12)을 넘으면 그만큼 줄인다"""
     im = Image.open(src).convert('RGB'); box, bg = fg_box(im)
-    ch = im.crop(box); s = h / ch.height; ch = ch.resize((max(1, round(ch.width * s)), h), Image.LANCZOS)
-    if ch.width > 248: ch = ch.resize((248, round(ch.height * 248 / ch.width)), Image.LANCZOS)
+    ch = im.crop(box)
+    if body:
+        sys.path.insert(0, HERE)
+        from shrink import body_bounds
+        bb = body_bounds(im)
+        span = (bb[1] - bb[0]) if bb else ch.height
+        s = h / span; W, H_ = round(ch.width * s), round(ch.height * s)
+        k = min(1.0, 248 / W, (256 - 12 - 2) / H_)
+        ch = ch.resize((max(1, round(W * k)), max(1, round(H_ * k))), Image.LANCZOS)
+    else:
+        s = h / ch.height; ch = ch.resize((max(1, round(ch.width * s)), h), Image.LANCZOS)
+        if ch.width > 248: ch = ch.resize((248, round(ch.height * 248 / ch.width)), Image.LANCZOS)
     sq = Image.new('RGB', (256, 256), bg); sq.paste(ch, ((256 - ch.width) // 2, 256 - 12 - ch.height))
     sq.save(os.path.splitext(req)[0] + '-in.png')
     buf = io.BytesIO(); sq.save(buf, 'PNG')
@@ -40,14 +52,36 @@ def prep(src, req, h=184, out=64, seed=7, strength=200):
     return req
 
 
-def clean(src, dst, thr=22):
+def strip_ground(im, k=1.3, rows=4, look=3):
+    """발밑 받침(그림자 판): 맨 아래 줄이 look 줄 위보다 k 배 넘게 넓으면 지운다 (최대 rows 줄).
+    PixelLab 결과에 회색·파란 판이 2~3줄 두께로 붙어 unbg 로 안 지워지는 경우 (마법사 계열 2026-10-17). 손질(polish) 전에 쓴다"""
+    im = im.convert('RGBA'); P = im.load(); W, H = im.size
+    def wd(y):
+        xs = [x for x in range(W) if P[x, y][3]]
+        return (xs[-1] - xs[0] + 1) if xs else 0
+    for _ in range(rows):
+        bb = im.getbbox()
+        if not bb: break
+        y = bb[3] - 1
+        if wd(y) > k * max(1, wd(y - look)):
+            for x in range(W): P[x, y] = (0, 0, 0, 0)
+        else: break
+    return im.crop(im.getbbox())
+
+
+def clean(src, dst, thr=22, ground=False):
+    """ground=True: 바탕을 뗀 뒤 발밑 받침도 지운다 (strip_ground)"""
     sys.path.insert(0, HERE)
     from polish import unbg
-    c = unbg(Image.open(src), thr); c = c.crop(c.getbbox()); c.save(dst); return dst
+    c = unbg(Image.open(src), thr); c = c.crop(c.getbbox())
+    if ground: c = strip_ground(c)
+    c.save(dst); return dst
 
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser(); ap.add_argument('cmd'); ap.add_argument('a'); ap.add_argument('b')
     ap.add_argument('--h', type=int, default=184); ap.add_argument('--out', type=int, default=64); ap.add_argument('--seed', type=int, default=7)
+    ap.add_argument('--body', action='store_true', help='prep: 몸 키(body_bounds)를 --h 에 맞춤 (무기 포함 높이 대신)')
+    ap.add_argument('--ground', action='store_true', help='clean: 발밑 받침(그림자 판)도 지움')
     a = ap.parse_args()
-    print(prep(a.a, a.b, a.h, a.out, a.seed) if a.cmd == 'prep' else clean(a.a, a.b))
+    print(prep(a.a, a.b, a.h, a.out, a.seed, body=a.body) if a.cmd == 'prep' else clean(a.a, a.b, ground=a.ground))
