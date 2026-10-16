@@ -49,6 +49,7 @@ vfxAddSheets({
   k38: { soft: true, frames: 7 },    // K38 종언의 겁화 막타: 하얀 불의 벽 (바닥 기준)
   f18: { frames: 5 },    // F18 절대영도: 빙하 산맥 + 오로라 배경 240×100
   f19: { frames: 7 },    // F19 절대영도: 거대 눈꽃 + 유리 파편
+  f19b: { frames: 1 },   // F19b 절대영도: 유리 금 도장 (azCracks)
   k39: { frames: 7 },    // K39 절대영도 막타: 전신 결빙 → 산산조각 (바닥 기준)
   f20: { soft: true, frames: 7 },    // F20 뇌제 강림: 뇌신 거인
   f21: { frames: 5 },    // F21 뇌제 강림: 번개 왕좌 + 그물
