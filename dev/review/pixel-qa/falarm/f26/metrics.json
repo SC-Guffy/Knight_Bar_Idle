@@ -1,0 +1,37 @@
+{
+ "id": "f26",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  240,
+  32
+ ],
+ "scale": 1.0,
+ "intent": "횡참 명중: 수평 참격 충격 + 쇳조각 — 쓰는 곳: greatswordsman.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 2.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.123,
+  "edge": 0.586,
+  "lone": 0.274,
+  "flick": 0.305,
+  "churn": 0.304,
+  "fill": 0.25,
+  "area": [
+   497,
+   532,
+   404,
+   270,
+   220
+  ],
+  "strip": 0.234
+ },
+ "flags": []
+}

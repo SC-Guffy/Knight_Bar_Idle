@@ -1,0 +1,33 @@
+{
+ "id": "f30",
+ "file": "(blind)",
+ "frames": 1,
+ "color": "#4da6ff",
+ "size": [
+  21,
+  13
+ ],
+ "scale": 1.0,
+ "intent": "W8 지팡이 구슬 궤적 (키 그림 한 장, 머리가 오른쪽) — 마법사 계열 7종이 속성 램프로 다시 칠함 — 쓰는 곳: vfx-mage.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.414,
+  "colors": 4,
+  "low": 0.019,
+  "edge": 0.649,
+  "lone": 0.462,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.19,
+  "area": [
+   52
+  ],
+  "strip": 0.453
+ },
+ "flags": []
+}

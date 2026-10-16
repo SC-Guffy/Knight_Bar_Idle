@@ -1,0 +1,42 @@
+{
+ "id": "f12",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  320,
+  100
+ ],
+ "scale": 1.0,
+ "intent": "창세의 빛 — 쓰는 곳: starJudgment.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 6.4,
+  "lrange": 0.414,
+  "colors": 4,
+  "low": 0.0,
+  "edge": 0.241,
+  "lone": 0.131,
+  "flick": 0.597,
+  "churn": 0.49,
+  "fill": 0.093,
+  "area": [
+   1273,
+   929,
+   593,
+   144,
+   48
+  ],
+  "strip": 0.0
+ },
+ "flags": [
+  {
+   "k": "crumbs",
+   "why": "부스러기 덩어리가 많다 (프레임당 > 5.2)"
+  }
+ ]
+}

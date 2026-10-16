@@ -1,0 +1,39 @@
+{
+ "id": "f24",
+ "file": "(blind)",
+ "frames": 7,
+ "color": "#4da6ff",
+ "size": [
+  322,
+  46
+ ],
+ "scale": 1.0,
+ "intent": "E04 마력 폭발: 마름모 노바 — 쓰는 곳: manaBurst.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 1.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.067,
+  "edge": 0.468,
+  "lone": 0.219,
+  "flick": 0.587,
+  "churn": 0.73,
+  "fill": 0.284,
+  "area": [
+   752,
+   734,
+   874,
+   520,
+   68,
+   534,
+   732
+  ],
+  "strip": 0.199
+ },
+ "flags": []
+}

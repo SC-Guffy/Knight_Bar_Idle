@@ -1,0 +1,37 @@
+{
+ "id": "f13",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  240,
+  16
+ ],
+ "scale": 1.0,
+ "intent": "C18 발밑 빛 고리 루프 48×16 (64×32 로 뽑아 nearest 로 납작하게). ★★ 이상, ★★★ 는 금빛 고리를 한 겹 더 — 쓰는 곳: vfx-tex.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.59,
+  "colors": 5,
+  "low": 0.015,
+  "edge": 0.693,
+  "lone": 0.407,
+  "flick": 0.091,
+  "churn": 0.167,
+  "fill": 0.191,
+  "area": [
+   145,
+   143,
+   135,
+   151,
+   159
+  ],
+  "strip": 0.001
+ },
+ "flags": []
+}

@@ -1,0 +1,33 @@
+{
+ "id": "f22",
+ "file": "(blind)",
+ "frames": 1,
+ "color": "#4da6ff",
+ "size": [
+  32,
+  32
+ ],
+ "scale": 1.0,
+ "intent": "P6 공성 거대 살, 포탄형 촉 (공성포수) — 쓰는 곳: vfx-ranger.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 2.0,
+  "lrange": 0.541,
+  "colors": 4,
+  "low": 0.392,
+  "edge": 0.435,
+  "lone": 0.063,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.14,
+  "area": [
+   143
+  ],
+  "strip": 0.48
+ },
+ "flags": []
+}

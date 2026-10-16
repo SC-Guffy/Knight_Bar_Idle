@@ -1,0 +1,35 @@
+{
+ "id": "f06",
+ "file": "(blind)",
+ "frames": 1,
+ "color": "#4da6ff",
+ "size": [
+  240,
+  100
+ ],
+ "scale": 1.0,
+ "intent": "붉은 하늘 배경 — 쓰는 곳: skyBreak.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 왼쪽·오른쪽·위 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.358,
+  "colors": 6,
+  "low": 0.13,
+  "edge": 0.197,
+  "lone": 0.028,
+  "flick": 0,
+  "churn": 0,
+  "fill": 1.0,
+  "area": [
+   24000
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

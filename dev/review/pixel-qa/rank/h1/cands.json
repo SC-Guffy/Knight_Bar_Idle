@@ -1,0 +1,309 @@
+{
+ "use": "H1 평타 명중 키 그림 (32×32 한 장, 나중에 5프레임으로 애니) — 별 섬광. 직업색 시트",
+ "cands": {
+  "1": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.202,
+    "edge": 0.668,
+    "lone": 0.265,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.436,
+    "area": [
+     446
+    ],
+    "strip": 0.281
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "2": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.094,
+    "edge": 0.611,
+    "lone": 0.367,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.25,
+    "area": [
+     256
+    ],
+    "strip": 0.437
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "3": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.148,
+    "edge": 0.521,
+    "lone": 0.173,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.435,
+    "area": [
+     445
+    ],
+    "strip": 0.205
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "4": {
+   "metrics": {
+    "crumbs": 1.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.089,
+    "edge": 0.566,
+    "lone": 0.321,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.109,
+    "area": [
+     112
+    ],
+    "strip": 0.509
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "5": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.159,
+    "edge": 0.643,
+    "lone": 0.277,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.398,
+    "area": [
+     408
+    ],
+    "strip": 0.285
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "6": {
+   "metrics": {
+    "crumbs": 1.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.126,
+    "edge": 0.497,
+    "lone": 0.243,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.233,
+    "area": [
+     239
+    ],
+    "strip": 0.423
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "7": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.126,
+    "edge": 0.537,
+    "lone": 0.247,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.193,
+    "area": [
+     198
+    ],
+    "strip": 0.442
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "8": {
+   "metrics": {
+    "crumbs": 1.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.123,
+    "edge": 0.569,
+    "lone": 0.224,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.271,
+    "area": [
+     277
+    ],
+    "strip": 0.375
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "9": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.182,
+    "edge": 0.449,
+    "lone": 0.154,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.273,
+    "area": [
+     280
+    ],
+    "strip": 0.375
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "10": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.159,
+    "edge": 0.471,
+    "lone": 0.23,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.289,
+    "area": [
+     296
+    ],
+    "strip": 0.391
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "11": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.121,
+    "edge": 0.652,
+    "lone": 0.349,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.291,
+    "area": [
+     298
+    ],
+    "strip": 0.335
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "12": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.089,
+    "edge": 0.349,
+    "lone": 0.172,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.176,
+    "area": [
+     180
+    ],
+    "strip": 0.412
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "13": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.129,
+    "edge": 0.524,
+    "lone": 0.248,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.197,
+    "area": [
+     202
+    ],
+    "strip": 0.371
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "14": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.133,
+    "edge": 0.529,
+    "lone": 0.292,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.117,
+    "area": [
+     120
+    ],
+    "strip": 0.489
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "15": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.197,
+    "edge": 0.612,
+    "lone": 0.248,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.343,
+    "area": [
+     351
+    ],
+    "strip": 0.301
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "16": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.198,
+    "edge": 0.552,
+    "lone": 0.237,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.35,
+    "area": [
+     358
+    ],
+    "strip": 0.274
+   },
+   "flags": [],
+   "gate_fail": []
+  }
+ }
+}

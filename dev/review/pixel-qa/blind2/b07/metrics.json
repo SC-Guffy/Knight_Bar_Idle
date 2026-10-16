@@ -1,0 +1,37 @@
+{
+ "id": "b07",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#ff4dff",
+ "size": [
+  320,
+  64
+ ],
+ "scale": 2,
+ "intent": "차원 붕괴(궁극기) 마지막 타격 — 공간이 무너지는 막타. 직업색(자홍)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.6,
+  "lrange": 0.41,
+  "colors": 3,
+  "low": 0.128,
+  "edge": 0.244,
+  "lone": 0.139,
+  "flick": 0.784,
+  "churn": 0.573,
+  "fill": 0.179,
+  "area": [
+   1168,
+   1000,
+   493,
+   668,
+   344
+  ],
+  "strip": 0.001
+ },
+ "flags": []
+}

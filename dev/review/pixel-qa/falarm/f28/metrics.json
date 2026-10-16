@@ -1,0 +1,42 @@
+{
+ "id": "f28",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  320,
+  13
+ ],
+ "scale": 1.0,
+ "intent": "분홍 검선 + 꽃잎 (늘여서 쓴다) — 쓰는 곳: thousandCuts.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.208,
+  "colors": 4,
+  "low": 0.006,
+  "edge": 0.069,
+  "lone": 0.024,
+  "flick": 0.451,
+  "churn": 0.258,
+  "fill": 0.039,
+  "area": [
+   55,
+   53,
+   27,
+   23,
+   6
+  ],
+  "strip": 0.114
+ },
+ "flags": [
+  {
+   "k": "lrange",
+   "why": "밝기 폭이 좁아 한 덩어리로 뭉개진다 (< 0.25)"
+  }
+ ]
+}

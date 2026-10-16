@@ -1,0 +1,36 @@
+{
+ "id": "f18",
+ "file": "(blind)",
+ "frames": 4,
+ "color": "#4da6ff",
+ "size": [
+  128,
+  32
+ ],
+ "scale": 1.0,
+ "intent": "H01 견습 기사 평타 명중: 짧은 사선 + 양끝 불티 (스펙 24도트 → 32도트 시트를 2/3 로) — 쓰는 곳: vfx-tex.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.414,
+  "colors": 3,
+  "low": 0.737,
+  "edge": 0.319,
+  "lone": 0.168,
+  "flick": 0.897,
+  "churn": 0.76,
+  "fill": 0.064,
+  "area": [
+   186,
+   62,
+   9,
+   5
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

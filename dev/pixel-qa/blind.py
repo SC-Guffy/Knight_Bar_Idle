@@ -25,20 +25,20 @@ def build(out, seed=7):
     for i, (k, which, png) in enumerate(items):
         bid = f'b{i + 1:02d}'; c = CASES[k]
         run(png, k, c['color'], 5, c.get('tile', False), c['use'], os.path.join(out, bid), scale=c['scale'])
-        m = json.load(open(os.path.join(out, bid, 'metrics.json')))
+        m = json.load(open(os.path.join(out, bid, 'metrics.json'), encoding='utf8'))
         m['id'] = bid; m['file'] = '(blind)'   # 이름·경로를 지운다
-        json.dump(m, open(os.path.join(out, bid, 'metrics.json'), 'w'), ensure_ascii=False, indent=1)
+        json.dump(m, open(os.path.join(out, bid, 'metrics.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
         key[bid] = {'id': k, 'which': which, 'truth': 'fail' if which == 'old' else 'pass'}
-    json.dump(key, open(os.path.join(out, 'key.json'), 'w'), ensure_ascii=False, indent=1)
+    json.dump(key, open(os.path.join(out, 'key.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     print('built', len(key))
 
 
 def score(out):
-    key = json.load(open(os.path.join(out, 'key.json')))
+    key = json.load(open(os.path.join(out, 'key.json'), encoding='utf8'))
     rows, hit_fail, false_fail = [], 0, 0
     for bid, t in sorted(key.items()):
         p = os.path.join(out, bid, 'verdict.json')
-        v = json.load(open(p)) if os.path.exists(p) else None
+        v = json.load(open(p, encoding='utf8')) if os.path.exists(p) else None
         verdict = v['verdict'] if v else '?'
         sc = v['scores'] if v else {}
         avg = round(sum(sc.values()) / len(sc), 2) if sc else None
@@ -46,13 +46,14 @@ def score(out):
         if t['truth'] == 'fail' and said_fail: hit_fail += 1
         if t['truth'] == 'pass' and said_fail: false_fail += 1
         rows.append(dict(bid=bid, **t, verdict=verdict, avg=avg, scores=sc, summary=v.get('summary') if v else '', defects=v.get('defects') if v else [],
-                         flags=json.load(open(os.path.join(out, bid, 'metrics.json')))['flags']))
+                         flags=json.load(open(os.path.join(out, bid, 'metrics.json'), encoding='utf8'))['flags']))
     res = dict(caught=hit_fail, of=6, false_fail=false_fail, rows=rows)
-    json.dump(res, open(os.path.join(out, 'score.json'), 'w'), ensure_ascii=False, indent=1)
+    json.dump(res, open(os.path.join(out, 'score.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     print(f'탈락작 잡음 {hit_fail}/6 · 합격작을 탈락시킴 {false_fail}/6')
     for r in rows: print(r['bid'], r['id'], r['which'], '→', r['verdict'], r['avg'], r['summary'])
 
 
 if __name__ == '__main__':
+    sys.stdout.reconfigure(encoding='utf-8')   # Windows 콘솔(cp949)에 없는 '—' 등으로 죽지 않게
     if sys.argv[1] == '--score': score(sys.argv[2])
     else: build(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else 7)
