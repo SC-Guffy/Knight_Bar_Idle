@@ -38,13 +38,41 @@
 <body>
 <main>
   <h1>VFX 다시 뽑기 계획 — 품질 낮은 6장</h1>
-  <div class="dim">2026-10-16 · 스펙 <code>docs/specs/skill-vfx.md</code> "다시 뽑기 계획" · 승인 전에는 유료 호출 0회</div>
+  <div class="dim">2026-10-16 · 스펙 <code>docs/specs/skill-vfx.md</code> "다시 뽑기 계획" · 사용자 승인(상한 26회) 뒤 진행 — 유료 2회 사용</div>
   <div class="chips">
     <span class="chip warn"><b>유료 상한 26회</b> (예상 8~14)</span>
     <span class="chip">계정 잔량 <b>1,163</b> / 2,000 (10-16) · 안전 바닥 300</span>
     <span class="chip ok">1단계 무료 <b>vfx_workbench</b> — k22·e18·k36</span>
     <span class="chip blue">ComfyUI 는 Windows PC 에만 — 이 맥에서는 못 씀</span>
   </div>
+
+  <h2>결과 (2026-10-16 진행 — 확인 대기)</h2>
+  <div class="chips">
+    <span class="chip ok"><b>유료 2회</b> / 상한 26 (k32 키 1 + 애니 1)</span>
+    <span class="chip ok">무료 vfx_workbench 5장 — k22·e18·k36 + 계획보다 앞당긴 e14·k37</span>
+    <span class="chip">내 몫 2회는 응답 usage 합계 · 계정 잔량 1,129 (같은 계정을 다른 세션도 씀)</span>
+  </div>
+  <div class="wrap"><table>
+    <thead><tr><th>시트</th><th>만든 길</th><th class="num">유료</th><th class="num">둘레 어두운 비율</th><th class="num">깎인 비율</th><th class="num">부스러기/장</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr><td><b>k22</b> 다연장 명중</td><td>workbench (섬광 + 은회색 쇳조각 3)</td><td class="num">0</td><td class="num">0.00</td><td class="num">0%</td><td class="num">0</td><td>색종이 부스러기 → 별 섬광</td></tr>
+      <tr><td><b>e18</b> 용의 숨결 타일</td><td>workbench (물결 띠, 폭 34 에 2주기)</td><td class="num">0</td><td class="num">0.00</td><td class="num">0%</td><td class="num">0</td><td>끝 열 = 첫 열로 이음매 맞춤, 너무 하얘서 바깥 띠를 직업색 단으로 내림</td></tr>
+      <tr><td><b>k36</b> 차원 붕괴 막타</td><td>workbench (고리·소용돌이 수축 → 섬광 → 고리 폭발)</td><td class="num">0</td><td class="num">0.00</td><td class="num">0%</td><td class="num">0.6</td><td>검은 몸 없음</td></tr>
+      <tr><td><b>k37</b> 대공성포 막타</td><td>workbench (불덩이 + 돌덩이 5 + 먼지)</td><td class="num">0</td><td class="num">0.00</td><td class="num">0%</td><td class="num">0.8</td><td>계획은 유료였으나 무료로 기준 통과</td></tr>
+      <tr><td><b>e14</b> 대검 땅 파임</td><td>workbench (고랑 + 밝은 윗선 + 흙덩이 3)</td><td class="num">0</td><td class="num">0.00</td><td class="num">0%</td><td class="num">0</td><td>계획은 유료였으나 무료로 기준 통과</td></tr>
+      <tr><td><b>k32</b> 용황 막타</td><td>PixelLab 키 1 + 애니 1 → 앞 3장 + 무료 후처리 2장</td><td class="num">2</td><td class="num">0.00</td><td class="num">0%</td><td class="num">0.4</td><td>워크벤치는 머리 속 명암을 못 넣어 유료로. 애니가 "터짐" 대신 진해지기만 해서 뒤 2장은 <code>dev/vfx5/burst.py</code>(테두리 침식 + 입 앞 섬광·고리)</td></tr>
+    </tbody>
+  </table></div>
+  <p class="dim">게임 전후 (<code>dev/skills.html</code> ★★★, 그 시트가 그려지는 순간 세 장면 · 왼쪽 전 / 오른쪽 후):</p>
+  <div class="grid" style="grid-template-columns:1fr">
+    <figure class="card" style="margin:0"><b>k22 다연장 사격</b><img src="vfx-regen/k22.png" style="width:100%;image-rendering:pixelated" alt="k22 전후"></figure>
+    <figure class="card" style="margin:0"><b>e18 용의 숨결</b><img src="vfx-regen/e18.png" style="width:100%;image-rendering:pixelated" alt="e18 전후"></figure>
+    <figure class="card" style="margin:0"><b>k36 차원 붕괴</b><img src="vfx-regen/k36.png" style="width:100%;image-rendering:pixelated" alt="k36 전후"></figure>
+    <figure class="card" style="margin:0"><b>k37 대공성포</b><img src="vfx-regen/k37.png" style="width:100%;image-rendering:pixelated" alt="k37 전후"></figure>
+    <figure class="card" style="margin:0"><b>e14 패왕 돌격(돌진 격돌)</b><img src="vfx-regen/e14.png" style="width:100%;image-rendering:pixelated" alt="e14 전후"></figure>
+    <figure class="card" style="margin:0"><b>k32 용신의 심판(용황 강림)</b><img src="vfx-regen/k32.png" style="width:100%;image-rendering:pixelated" alt="k32 전후"></figure>
+  </div>
+  <p class="dim">아래 "시트별" 카드의 원본·게임 줄은 이제 <b>새 시트</b>다 (옛 시트는 <code>dev/vfx5/old/</code>).</p>
 
   <h2>순서</h2>
   <div class="steps">
@@ -55,7 +83,7 @@
   </div>
   <p class="dim">공통 주문: 바탕 투명 · <b>외곽선 없음</b>(지난번 검은 테의 원인 <code>selective outline</code> 금지) · 몸은 중간~밝은 명암(밝기 0.3 미만 면적 10% 이하) · 작은 부스러기 대신 큰 덩어리 2~4개 · 프레임마다 같은 중심.</p>
 
-  <h2>시트별 — 지금 모습과 새 주문</h2>
+  <h2>시트별 — 새 시트와 주문서</h2>
   <div class="dim" id="loading">게임 로더를 숨은 창에서 돌리는 중… (10초쯤)</div>
   <div class="grid" id="grid"></div>
 
