@@ -49,9 +49,9 @@ MOVES = {
     #    지팡이 든 팔을 끝까지 앞으로 뻗어 수평 겨눔(타격) → 반동으로 몸이 뒤로 → 대기
     'atkA': [
         (P(NECK=(93, 136), RIGHT_SHOULDER=(102, 140), RIGHT_ELBOW=(97, 134), RIGHT_ARM=(92, 128), LEFT_SHOULDER=(85, 141), LEFT_ELBOW=(93, 141), LEFT_ARM=(102, 139),
-           RIGHT_HIP=(102, 160), RIGHT_KNEE=(108, 167), LEFT_HIP=(90, 160), LEFT_KNEE=(86, 167), LEFT_LEG=(82, 173)), -150, -0.5),
+           RIGHT_HIP=(102, 160), RIGHT_KNEE=(108, 167), LEFT_HIP=(90, 160), LEFT_KNEE=(86, 167), LEFT_LEG=(82, 173)), -125, -0.5),
         (P(NECK=(90, 137), RIGHT_SHOULDER=(98, 141), RIGHT_ELBOW=(90, 136), RIGHT_ARM=(83, 131), LEFT_SHOULDER=(83, 142), LEFT_ELBOW=(94, 141), LEFT_ARM=(106, 140),
-           RIGHT_HIP=(101, 161), RIGHT_KNEE=(110, 165), RIGHT_LEG=(115, 170), LEFT_HIP=(89, 161), LEFT_KNEE=(84, 168), LEFT_LEG=(79, 173)), -165, -0.6),
+           RIGHT_HIP=(101, 161), RIGHT_KNEE=(110, 165), RIGHT_LEG=(115, 170), LEFT_HIP=(89, 161), LEFT_KNEE=(84, 168), LEFT_LEG=(79, 173)), -135, -0.6),
         (P(NECK=(102, 136), RIGHT_SHOULDER=(111, 140), RIGHT_ELBOW=(118, 139), RIGHT_ARM=(126, 137), LEFT_SHOULDER=(92, 141), LEFT_ELBOW=(88, 148), LEFT_ARM=(84, 153),
            RIGHT_HIP=(106, 160), RIGHT_KNEE=(117, 165), RIGHT_LEG=(124, 173), LEFT_HIP=(93, 160), LEFT_KNEE=(86, 167), LEFT_LEG=(78, 173)), -20, 0.6),
         (P(NECK=(108, 138), RIGHT_SHOULDER=(117, 141), RIGHT_ELBOW=(128, 140), RIGHT_ARM=(139, 139), LEFT_SHOULDER=(97, 142), LEFT_ELBOW=(91, 148), LEFT_ARM=(85, 152),
@@ -102,11 +102,47 @@ MOVES = {
         (P(NECK=(101, 137), RIGHT_SHOULDER=(110, 141), RIGHT_ELBOW=(116, 147), RIGHT_ARM=(120, 151), RIGHT_KNEE=(110, 166), RIGHT_LEG=(113, 173)), -55, None),
     ],
 }
+# ── 그림체 B(3등신) · 게임 안 키 46px 로 다시 맞춤 (2026-10-16 사용자 확정) ──
+#  위 MOVES 는 2.5등신(키 35, 192칸에서 머리 17·몸통 25·다리 17) 기준으로 짠 동작이다. 동작 모양(각도·디딤)은 그대로 두고
+#  마디 길이만 3등신 키 46(192칸에서 약 92: 머리 30·몸통 29·다리 34)으로 늘린다: 다리 ×2, 몸통(골반→목) ×1.15, 어깨 폭 ×1.3, 팔 ×1.9, 머리 ×1.8.
+#  골반을 기준으로 다시 세우고, 가장 낮은 발이 예전 가장 낮은 발 높이에 오게 세로를 맞춘다(뛰어오른 프레임은 그만큼 뜬다).
+#  발 x 는 FOOT_X 로 옮긴다 — 지팡이가 앞으로 길어져(손에서 52칸) 칸 가운데(96)에 서면 겨눔 프레임이 192 칸 밖으로 나간다.
+SEG = {'leg': 2.0, 'torso': 1.15, 'shoulder': 1.3, 'arm': 1.9, 'head': 1.8}
+FOOT_X = 66
+STAFF_B = (52, 16)                               # 키 46 기준 지팡이 앞·뒤 (192칸): 지팡이 길이 ≈ 키의 0.75
+
+
+def to_b(p):
+    add = lambda a, b, k: (a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k)
+    sub = lambda a, b: (a[0] - b[0], a[1] - b[1])
+    pel = ((p['RIGHT HIP'][0] + p['LEFT HIP'][0]) / 2, (p['RIGHT HIP'][1] + p['LEFT HIP'][1]) / 2)
+    q = {}
+    O = (0.0, 0.0)
+    for side in ('RIGHT', 'LEFT'):
+        hip = (p[f'{side} HIP'][0] - pel[0], p[f'{side} HIP'][1] - pel[1])
+        q[f'{side} HIP'] = (hip[0] * SEG['shoulder'], hip[1])
+        k = sub(p[f'{side} KNEE'], p[f'{side} HIP']); q[f'{side} KNEE'] = (q[f'{side} HIP'][0] + k[0] * SEG['leg'], q[f'{side} HIP'][1] + k[1] * SEG['leg'])
+        f = sub(p[f'{side} LEG'], p[f'{side} KNEE']); q[f'{side} LEG'] = (q[f'{side} KNEE'][0] + f[0] * SEG['leg'], q[f'{side} KNEE'][1] + f[1] * SEG['leg'])
+    n = sub(p['NECK'], pel); q['NECK'] = (n[0] * SEG['torso'], n[1] * SEG['torso'])
+    for side in ('RIGHT', 'LEFT'):
+        sh = sub(p[f'{side} SHOULDER'], p['NECK']); q[f'{side} SHOULDER'] = (q['NECK'][0] + sh[0] * SEG['shoulder'], q['NECK'][1] + sh[1] * SEG['shoulder'])
+        e = sub(p[f'{side} ELBOW'], p[f'{side} SHOULDER']); q[f'{side} ELBOW'] = (q[f'{side} SHOULDER'][0] + e[0] * SEG['arm'], q[f'{side} SHOULDER'][1] + e[1] * SEG['arm'])
+        h = sub(p[f'{side} ARM'], p[f'{side} ELBOW']); q[f'{side} ARM'] = (q[f'{side} ELBOW'][0] + h[0] * SEG['arm'], q[f'{side} ELBOW'][1] + h[1] * SEG['arm'])
+    for k in ('NOSE', 'RIGHT EYE', 'LEFT EYE', 'RIGHT EAR', 'LEFT EAR'):
+        d = sub(p[k], p['NECK']); q[k] = (q['NECK'][0] + d[0] * SEG['head'], q['NECK'][1] + d[1] * SEG['head'])
+    # 세로: 가장 낮은 발 = 예전 가장 낮은 발, 가로: 골반을 예전 골반 + (FOOT_X - 96)
+    old_low = max(p['RIGHT LEG'][1], p['LEFT LEG'][1]); new_low = max(q['RIGHT LEG'][1], q['LEFT LEG'][1])
+    dy = old_low - new_low; dx = pel[0] + (FOOT_X - 96)
+    return {k: (round(v[0] + dx, 1), round(v[1] + dy, 1)) for k, v in q.items()}
+
+
+MOVES_B = {k: [(to_b(p), a, b) for p, a, b in fr] for k, fr in MOVES.items()}
+
 FPS = {'idle': 6, 'walk': 10, 'atkA': 12, 'atkB': 12, 'cast': 10}
 TITLE = {'idle': '대기 4f', 'walk': '걷기 8f', 'atkA': '평타A 지팡이 겨눠 쏘기 8f', 'atkB': '평타B 치켜들어 내리꽂기 8f', 'cast': '시전 8f (두 손 모아 집중 → 하늘로 → 겨눔 → 내리꽂기)'}
 
 
-def stick(p, ang, S=3, ghost=None):
+def stick(p, ang, S=3, ghost=None, staff=(STAFF_FRONT, STAFF_BACK), head_r=8, crop=(40, 60, 190, 180)):
     """막대 인형 한 칸 (지팡이는 손에서 앞 STAFF_FRONT·뒤 STAFF_BACK, 끝에 구슬). ghost = 기준 자세(흐리게)"""
     im = Image.new('RGBA', (N * S, N * S), (20, 22, 30, 255)); d = ImageDraw.Draw(im)
     col = lambda a, b: (255, 120, 90) if 'RIGHT' in a + b else (90, 170, 255) if 'LEFT' in a + b else (230, 230, 230)
@@ -116,27 +152,28 @@ def stick(p, ang, S=3, ghost=None):
     order = sorted(BONES, key=lambda ab: 0 if 'LEFT' in ab[0] + ab[1] else 1)
     for a, b in order:
         d.line([(p[a][0] * S, p[a][1] * S), (p[b][0] * S, p[b][1] * S)], fill=col(a, b), width=S + 1)
-    hx, hy = p['NECK'][0] + 2, p['NECK'][1] - 9
-    d.ellipse([(hx - 8) * S, (hy - 8) * S, (hx + 8) * S, (hy + 8) * S], outline=(230, 230, 230), width=S)
+    hx, hy = p['NECK'][0] + 2 * head_r / 8, p['NECK'][1] - 9 * head_r / 8
+    d.ellipse([(hx - head_r) * S, (hy - head_r) * S, (hx + head_r) * S, (hy + head_r) * S], outline=(230, 230, 230), width=S)
     d.ellipse([(p['NOSE'][0] - 1.5) * S, (p['NOSE'][1] - 1.5) * S, (p['NOSE'][0] + 1.5) * S, (p['NOSE'][1] + 1.5) * S], fill=(230, 230, 230))
     g = p['RIGHT ARM']; a = math.radians(ang); c, s = math.cos(a), math.sin(a)
-    tip = (g[0] + STAFF_FRONT * c, g[1] + STAFF_FRONT * s); butt = (g[0] - STAFF_BACK * c, g[1] - STAFF_BACK * s)
+    tip = (g[0] + staff[0] * c, g[1] + staff[0] * s); butt = (g[0] - staff[1] * c, g[1] - staff[1] * s)
     d.line([(butt[0] * S, butt[1] * S), (tip[0] * S, tip[1] * S)], fill=(200, 160, 90), width=S + 1)
     d.ellipse([(tip[0] - 3) * S, (tip[1] - 3) * S, (tip[0] + 3) * S, (tip[1] + 3) * S], fill=(120, 220, 255))
-    d.line([(40 * S, 176 * S), (160 * S, 176 * S)], fill=(80, 80, 100), width=1)
-    return im.crop((40 * S, 60 * S, 190 * S, 180 * S))
+    d.line([(0, 176 * S), (N * S, 176 * S)], fill=(80, 80, 100), width=1)
+    return im.crop(tuple(v * S for v in crop))
 
 
-def staff_reach(p, ang):
+def staff_reach(p, ang, staff=(STAFF_FRONT, STAFF_BACK)):
     g = p['RIGHT ARM']; a = math.radians(ang)
-    return [(g[0] + STAFF_FRONT * math.cos(a), g[1] + STAFF_FRONT * math.sin(a)), (g[0] - STAFF_BACK * math.cos(a), g[1] - STAFF_BACK * math.sin(a))]
+    return [(g[0] + staff[0] * math.cos(a), g[1] + staff[0] * math.sin(a)), (g[0] - staff[1] * math.cos(a), g[1] - staff[1] * math.sin(a))]
 
 
 if __name__ == '__main__':
+    # 그림체 B · 키 46 판(MOVES_B)을 낸다 — 막대 인형·keys-*.json 모두 이것. 머리 원 반지름 15, 지팡이 STAFF_B
     os.makedirs(SK, exist_ok=True)
-    rows = []
-    for name, fr in MOVES.items():
-        tiles = [stick(p, a, ghost=pose()) for p, a, b in fr]
+    rows = []; ghost = to_b(pose()); KW = dict(staff=STAFF_B, head_r=15, crop=(0, 4, 192, 184))
+    for name, fr in MOVES_B.items():
+        tiles = [stick(p, a, S=2, ghost=ghost, **KW) for p, a, b in fr]
         W, H = tiles[0].size
         row = Image.new('RGBA', ((W + 6) * len(tiles), H + 28), (40, 42, 52, 255)); d = ImageDraw.Draw(row)
         for i, (t, (p, a, b)) in enumerate(zip(tiles, fr)):
@@ -144,13 +181,16 @@ if __name__ == '__main__':
             d.text((i * (W + 6) + 6, 4), f'{i + 1}  staff {a}°' + (f'  bowA {b}' if b is not None else ''), fill=(220, 220, 230), font=FONT)
         row.save(os.path.join(SK, f'stick-{name}.png')); rows.append((name, row))
         # 요청 본문 재료: 프레임 keypoints 와 지팡이 각도·bowA (first_frame·first_frame_keypoints 는 새 기준 그림이 나온 뒤 채운다)
-        json.dump({'action': TITLE[name], 'fps': FPS[name], 'keypoints': [kp(p) for p, a, b in fr], 'staff_deg': [a for p, a, b in fr],
-                   'bowA': [b for p, a, b in fr]}, open(os.path.join(SK, f'keys-{name}.json'), 'w'), ensure_ascii=False)
-        # 칸 검사: 지팡이 끝·물미가 192칸 안 (발 96,176 기준)
-        out = [(i, round(x), round(y)) for i, (p, a, b) in enumerate(fr) for (x, y) in staff_reach(p, a) if not (4 <= x <= 188 and 4 <= y <= 177)]   # 땅(176) 아래로 안 들어가게
-        print(name, len(fr), 'f', '칸 밖' if out else '칸 안', out)
+        json.dump({'action': TITLE[name], 'fps': FPS[name], 'canvas': N, 'foot': [FOOT_X, 176], 'height_px_192': 92, 'staff_front_back': STAFF_B,
+                   'keypoints': [kp(p) for p, a, b in fr], 'staff_deg': [a for p, a, b in fr], 'bowA': [b for p, a, b in fr]},
+                  open(os.path.join(SK, f'keys-{name}.json'), 'w'), ensure_ascii=False)
+        # 칸 검사: 지팡이 끝·물미·관절이 192칸 안, 땅(176) 아래로 안 들어감
+        out = [(i, round(x), round(y)) for i, (p, a, b) in enumerate(fr) for (x, y) in staff_reach(p, a, STAFF_B) + list(p.values())
+               if not (2 <= x <= 190 and 2 <= y <= 177)]
+        top = min(min(v[1] for v in p.values()) for p, a, b in fr)
+        print(name, len(fr), 'f', 'out' if out else 'in', out[:4], 'top', round(top))
     W = max(r.width for _, r in rows); H = sum(r.height + 30 for _, r in rows)
     allm = Image.new('RGBA', (W, H), (30, 32, 40, 255)); d = ImageDraw.Draw(allm); y = 0
     for name, r in rows:
-        d.text((8, y + 4), TITLE[name], fill=(255, 220, 90), font=FONT); allm.paste(r, (0, y + 30)); y += r.height + 30
+        d.text((8, y + 4), TITLE[name] + '  (그림체 B · 키 46)', fill=(255, 220, 90), font=FONT); allm.paste(r, (0, y + 30)); y += r.height + 30
     allm.save(os.path.join(SK, 'stick-all.png')); print('stick-all', allm.size)

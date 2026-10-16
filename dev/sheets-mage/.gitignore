@@ -4,3 +4,4 @@ preview/
 __pycache__/
 mq/
 stub-fake/
+design/raw/
