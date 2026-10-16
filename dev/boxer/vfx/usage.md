@@ -110,3 +110,7 @@
 | xf02-s101 · xf02-s202 · xf04-s101 · xf04-s202 · xf06-s101 · xf06-s202 | create-image-pixen | 6 |
 | xk08 ×2 · xk09 ×2 · xk10 ×2 · xh3 | create-image-pixen | 7 |
 | xh5 · xh7 · xp2(16×16, 12 로 줄임) | create-image-pixen | 3 |
+| 프레임: xf02 · xf04 · xf06 (4f) · xk08 · xk09 · xk10 · xh3 · xh5 (6f) | animate_image | 8 (응답 cost) |
+| 프레임: xh7 (6f) · xp2 (4f) | animate_image | 2 |
+
+요약: 키 22 + 프레임 10 = **32회** (상한 42, 재시도 0). 계정 잔량 1163 → 1141(키 뒤) → 1131(프레임 뒤), charged 합과 같다.
