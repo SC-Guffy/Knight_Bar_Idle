@@ -1,65 +1,65 @@
 {
  "bow-walk": {
-  "RIGHT ARM": 13.4,
-  "LEFT ARM": 5.1,
-  "NECK": 3.6,
-  "RIGHT LEG": 6.0,
-  "LEFT LEG": 7.1
+  "RIGHT ARM": 17.1,
+  "LEFT ARM": 6.1,
+  "NECK": 4.2,
+  "RIGHT LEG": 9.0,
+  "LEFT LEG": 10.3
  },
  "bow-shoot": {
-  "RIGHT ARM": 36.3,
-  "LEFT ARM": 22.5,
-  "NECK": 5.6,
-  "RIGHT LEG": 4.1,
-  "LEFT LEG": 3.4
+  "RIGHT ARM": 46.9,
+  "LEFT ARM": 29.1,
+  "NECK": 6.8,
+  "RIGHT LEG": 5.9,
+  "LEFT LEG": 5.2
  },
  "bow-sky": {
-  "RIGHT ARM": 35.3,
-  "LEFT ARM": 29.7,
-  "NECK": 13.9,
-  "RIGHT LEG": 6.0,
-  "LEFT LEG": 2.9
+  "RIGHT ARM": 45.6,
+  "LEFT ARM": 38.4,
+  "NECK": 16.7,
+  "RIGHT LEG": 8.2,
+  "LEFT LEG": 4.5
  },
  "xbow-walk": {
-  "RIGHT ARM": 10.3,
-  "LEFT ARM": 6.6,
-  "NECK": 4.0,
-  "RIGHT LEG": 5.7,
-  "LEFT LEG": 6.6
+  "RIGHT ARM": 13.4,
+  "LEFT ARM": 8.5,
+  "NECK": 4.8,
+  "RIGHT LEG": 8.5,
+  "LEFT LEG": 9.6
  },
  "xbow-shoot": {
-  "RIGHT ARM": 22.1,
-  "LEFT ARM": 17.6,
-  "NECK": 12.0,
-  "RIGHT LEG": 4.4,
-  "LEFT LEG": 5.9
+  "RIGHT ARM": 28.5,
+  "LEFT ARM": 22.9,
+  "NECK": 15.0,
+  "RIGHT LEG": 5.1,
+  "LEFT LEG": 7.8
  },
  "xbow-sky": {
-  "RIGHT ARM": 32.6,
-  "LEFT ARM": 24.0,
-  "NECK": 15.8,
-  "RIGHT LEG": 5.7,
-  "LEFT LEG": 4.2
+  "RIGHT ARM": 41.4,
+  "LEFT ARM": 31.0,
+  "NECK": 18.2,
+  "RIGHT LEG": 7.5,
+  "LEFT LEG": 5.0
  },
  "siege-walk": {
-  "RIGHT ARM": 3.7,
-  "LEFT ARM": 5.2,
-  "NECK": 4.7,
-  "RIGHT LEG": 6.0,
-  "LEFT LEG": 7.0
+  "RIGHT ARM": 4.8,
+  "LEFT ARM": 6.6,
+  "NECK": 5.8,
+  "RIGHT LEG": 8.9,
+  "LEFT LEG": 10.3
  },
  "siege-shoot": {
-  "RIGHT ARM": 19.7,
-  "LEFT ARM": 16.6,
-  "NECK": 16.2,
-  "RIGHT LEG": 9.4,
-  "LEFT LEG": 5.9
+  "RIGHT ARM": 24.0,
+  "LEFT ARM": 20.1,
+  "NECK": 18.3,
+  "RIGHT LEG": 10.6,
+  "LEFT LEG": 5.4
  },
  "siege-sky": {
-  "RIGHT ARM": 20.8,
-  "LEFT ARM": 17.3,
-  "NECK": 16.0,
-  "RIGHT LEG": 4.0,
-  "LEFT LEG": 15.0
+  "RIGHT ARM": 26.5,
+  "LEFT ARM": 22.1,
+  "NECK": 20.0,
+  "RIGHT LEG": 6.1,
+  "LEFT LEG": 22.4
  }
 }

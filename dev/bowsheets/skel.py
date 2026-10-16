@@ -10,8 +10,12 @@ import os, json, math
 from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__)); SK = os.path.join(HERE, 'skel'); os.makedirs(SK, exist_ok=True)
 N, GROUND = 192, 173            # 칸 · 발목 관절이 닿는 땅 높이 (발바닥 176)
-UA, FA, TH, SH, TORSO = 8.5, 8.5, 8, 8, 24      # 위팔·아래팔·허벅지·정강이·목→골반 (검사 계열 BASE 비율, 지금 키 기준 — 키를 키우면 S 로 곱한다)
-HEAD = {'NOSE': (8.5, -5), 'RIGHT EYE': (6.5, -8), 'LEFT EYE': (-2.5, -8), 'RIGHT EAR': (0.5, -10), 'LEFT EAR': (-5.5, -10)}
+# 그림체 B(3등신) · 게임 안 키 46px (2026-10-16 사용자 확정) — 192칸에서 키 약 92 (지금 35px 의 1.3배).
+#  지금(2.5등신) 길이: 위팔·아래팔 8.5, 허벅지·정강이 8, 목→골반 24, 머리 반지름 8 → B: 팔 11, 다리 12(다리가 더 길다), 몸통 30, 머리 반지름 12(몸에 비해 작아짐)
+KB = 1.3                                          # 몸 너비(어깨·골반 간격)·무기 길이 배율
+UA, FA, TH, SH, TORSO = 11, 11, 12, 12, 30       # 위팔·아래팔·허벅지·정강이·목→골반
+HEAD_R = 12
+HEAD = {k: (v[0] * 1.45, v[1] * 1.45) for k, v in {'NOSE': (8.5, -5), 'RIGHT EYE': (6.5, -8), 'LEFT EYE': (-2.5, -8), 'RIGHT EAR': (0.5, -10), 'LEFT EAR': (-5.5, -10)}.items()}
 Z = {'LEFT ARM': 1, 'LEFT ELBOW': 1, 'LEFT SHOULDER': 2, 'LEFT HIP': 3, 'LEFT KNEE': 3, 'LEFT LEG': 3, 'NECK': 5, 'RIGHT HIP': 6, 'RIGHT KNEE': 6,
      'RIGHT LEG': 6, 'NOSE': 8, 'RIGHT EYE': 8, 'LEFT EYE': 8, 'RIGHT EAR': 7, 'LEFT EAR': 7, 'RIGHT SHOULDER': 9, 'RIGHT ELBOW': 10, 'RIGHT ARM': 11}
 BONES = [('NECK', 'RIGHT SHOULDER'), ('RIGHT SHOULDER', 'RIGHT ELBOW'), ('RIGHT ELBOW', 'RIGHT ARM'), ('NECK', 'LEFT SHOULDER'),
@@ -28,10 +32,10 @@ def pose(x=97, lean=0, head=0, ra=(95, 95), la=(85, 85), rl=(85, 92), ll=(95, 92
     t = math.radians(lean); up = (math.sin(t), -math.cos(t))                 # 골반 → 목 방향
     hip = (x, 150.0); neck = (hip[0] + up[0] * TORSO, hip[1] + up[1] * TORSO)
     side = (math.cos(t), math.sin(t))                                         # 몸통 가로 (앞쪽)
-    ro = (11 - sq) * (1 - turn) + (-8) * turn; lo = -(10 - sq) * (1 - turn) + 10 * turn
-    rs = (neck[0] + side[0] * ro - up[0] * 5, neck[1] + side[1] * ro - up[1] * 5)
-    ls = (neck[0] + side[0] * lo - up[0] * 5, neck[1] + side[1] * lo - up[1] * 5)
-    rh, lh = (hip[0] + side[0] * 6, hip[1] + side[1] * 6), (hip[0] - side[0] * 6, hip[1] - side[1] * 6)
+    ro = ((11 - sq) * (1 - turn) + (-8) * turn) * KB; lo = (-(10 - sq) * (1 - turn) + 10 * turn) * KB
+    rs = (neck[0] + side[0] * ro - up[0] * 6, neck[1] + side[1] * ro - up[1] * 6)
+    ls = (neck[0] + side[0] * lo - up[0] * 6, neck[1] + side[1] * lo - up[1] * 6)
+    rh, lh = (hip[0] + side[0] * 6 * KB, hip[1] + side[1] * 6 * KB), (hip[0] - side[0] * 6 * KB, hip[1] - side[1] * 6 * KB)
     p = {'NECK': (neck[0] + head, neck[1]), 'RIGHT SHOULDER': rs, 'LEFT SHOULDER': ls, 'RIGHT HIP': rh, 'LEFT HIP': lh}
     p['RIGHT ELBOW'] = P(rs, ra[0], UA); p['RIGHT ARM'] = P(p['RIGHT ELBOW'], ra[1], FA)
     p['LEFT ELBOW'] = P(ls, la[0], UA); p['LEFT ARM'] = P(p['LEFT ELBOW'], la[1], FA)
@@ -141,17 +145,17 @@ def weapon_of(kind, p, note):
         b, d = p['LEFT ARM'], p['RIGHT ARM']
         if note.get('draw'): ang = math.atan2(b[1] - d[1], b[0] - d[0])
         else: ang = math.atan2(p['LEFT ARM'][1] - p['LEFT ELBOW'][1], p['LEFT ARM'][0] - p['LEFT ELBOW'][0])
-        nx, ny = -math.sin(ang), math.cos(ang); R = 15
+        nx, ny = -math.sin(ang), math.cos(ang); R = 15 * KB
         t1, t2 = (b[0] + nx * R, b[1] + ny * R), (b[0] - nx * R, b[1] - ny * R)
-        mid = (b[0] + math.cos(ang) * 6, b[1] + math.sin(ang) * 6)
+        mid = (b[0] + math.cos(ang) * 6 * KB, b[1] + math.sin(ang) * 6 * KB)
         out += [('arc', t1, mid, t2)]
         out += [('line', t1, d), ('line', d, t2)] if note.get('draw') else [('line', t1, t2)]
     else:
         g = p['LEFT ARM'] if note.get('grip') == 'L' else p['RIGHT ARM']; f = p['LEFT ARM']      # 재장전은 앞손이 쥐고 코를 땅에
         deg = note.get('deg'); ang = math.radians(deg) if deg is not None else math.atan2(f[1] - g[1], f[0] - g[0])
-        L = 26 if kind == 'siege' else 20; back = 6
+        L = (26 if kind == 'siege' else 20) * KB; back = 6 * KB
         a = (g[0] - math.cos(ang) * back, g[1] - math.sin(ang) * back); e = (g[0] + math.cos(ang) * L, g[1] + math.sin(ang) * L)
-        nx, ny = -math.sin(ang), math.cos(ang); R = 12 if kind == 'siege' else 9
+        nx, ny = -math.sin(ang), math.cos(ang); R = (12 if kind == 'siege' else 9) * KB
         t1, t2 = (e[0] + nx * R, e[1] + ny * R), (e[0] - nx * R, e[1] - ny * R)
         out += [('line', a, e), ('line', t1, t2)]
         if note.get('pull'): out += [('line', t1, p['RIGHT ARM']), ('line', p['RIGHT ARM'], t2)]   # 재장전: 뒷손이 시위를 끌어올림
@@ -169,8 +173,8 @@ def stick(p, kind, note, S=3, ghost=None):
     col = lambda a, b: (255, 120, 90) if 'RIGHT' in a + b else (90, 170, 255) if 'LEFT' in a + b else (230, 230, 230)
     order = sorted(BONES, key=lambda ab: Z.get(ab[1], 5))
     for a, b in order: d.line([(p[a][0] * S, p[a][1] * S), (p[b][0] * S, p[b][1] * S)], fill=col(a, b), width=S + 1)
-    hx, hy = p['NECK'][0] + 2, p['NECK'][1] - 9
-    d.ellipse([(hx - 8) * S, (hy - 8) * S, (hx + 8) * S, (hy + 8) * S], outline=(230, 230, 230), width=S)
+    hx, hy = p['NECK'][0] + 3, p['NECK'][1] - HEAD_R - 1
+    d.ellipse([(hx - HEAD_R) * S, (hy - HEAD_R) * S, (hx + HEAD_R) * S, (hy + HEAD_R) * S], outline=(230, 230, 230), width=S)
     d.ellipse([(p['NOSE'][0] - 1) * S, (p['NOSE'][1] - 1) * S, (p['NOSE'][0] + 1) * S, (p['NOSE'][1] + 1) * S], fill=(230, 230, 230))
     for w in weapon_of(kind, p, note):
         if w[0] == 'line': d.line([(w[1][0] * S, w[1][1] * S), (w[2][0] * S, w[2][1] * S)], fill=(255, 215, 80), width=max(1, S - 1))
@@ -178,7 +182,7 @@ def stick(p, kind, note, S=3, ghost=None):
             pts = [((1 - u) ** 2 * w[1][0] + 2 * (1 - u) * u * w[2][0] + u * u * w[3][0], (1 - u) ** 2 * w[1][1] + 2 * (1 - u) * u * w[2][1] + u * u * w[3][1]) for u in [i / 12 for i in range(13)]]
             d.line([(x * S, y * S) for x, y in pts], fill=(200, 150, 70), width=S + 1)
     d.line([(40 * S, 176 * S), (152 * S, 176 * S)], fill=(80, 80, 100), width=1)
-    return im.crop((40 * S, 88 * S, 152 * S, 182 * S))
+    return im.crop((30 * S, 66 * S, 166 * S, 182 * S))
 
 
 if __name__ == '__main__':
