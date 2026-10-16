@@ -32,6 +32,23 @@ def bow_sprite(cls):
     return WeaponSprite(img, (ws.grip[0] * WSCALE, ws.grip[1] * WSCALE), ws.ang)
 
 
+def crumbs_off(im, maxn=4):
+    """검수 fix: 몸에서 떨어진 작은 덩어리(4칸 이하, 4방향 연결 기준 밝은 조각 — 지운 활 선 끝·화살 촉 찌꺼기) 지우기"""
+    P = im.load(); W, H = im.size; seen = set()
+    for y in range(H):
+        for x in range(W):
+            if not P[x, y][3] or (x, y) in seen: continue
+            st = [(x, y)]; comp = {(x, y)}; seen.add((x, y))
+            while st:
+                a, b = st.pop()
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    q = (a + dx, b + dy)
+                    if 0 <= q[0] < W and 0 <= q[1] < H and q not in seen and P[q][3]: seen.add(q); comp.add(q); st.append(q)
+            if len(comp) <= maxn:
+                for q in comp: P[q] = (0, 0, 0, 0)
+    return im
+
+
 def strip(frames):
     o = Image.new('RGBA', (W96 * len(frames), W96))
     for i, f in enumerate(frames): o.alpha_composite(f, (i * W96, 0))
@@ -39,7 +56,7 @@ def strip(frames):
 
 
 def run(cls, act):
-    ns, _, _ = fitted(cls); name = {'walk': 'bow-walk', 'shoot': 'bow-shoot', 'sky': 'bow-sky'}[act]
+    ns, _, _ = fitted(cls); name = {'walk': 'bow-walk', 'shoot': 'bow-shoot', 'shoot2': 'bow-shoot', 'sky': 'bow-sky'}[act]
     seq = ns['SEQ'][name]; ws = bow_sprite(cls)
     scol = (217, 210, 192, 255)
     W = os.path.join(HERE, 'work', cls); own, ovl, ovl2 = [], [], []
@@ -65,7 +82,7 @@ def run(cls, act):
             g2 = overlay(g, set(), gp, tp, ws, front=(), line=False, under=und)
         else:
             g2 = g1
-        ovl2.append(g2)
+        ovl2.append(crumbs_off(g2))
     for tag, fr in (('own', own), ('ovl', ovl), ('ovl2', ovl2)):
         for i, f in enumerate(fr): f.save(os.path.join(W, f'post-{act}-{tag}-{i}.png'))
         strip(fr).save(os.path.join(W, f'strip-{act}-{tag}.png'))

@@ -30,7 +30,7 @@
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 레인저 · 저격수 · 마궁수 · 석궁사수 · 신궁 · 차원궁사 · 공성포수 · 2026-10-15</p>
 
 <div class="box">
-  <b>지금 상태 (2026-10-17)</b>: <a href="#anim">D절</a> 관절 애니 1단계 — 쏘기 움직임 미달, 수정안 승인 대기 · <a href="#ref">C절</a> 기준 그림 정리 4종 검수 합격 + 관절 애니 계획서(로드맵 승인 대기) · <a href="#design5">B5절</a> 시안 · B절은 이전 시안 · 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 — <a href="#redesign">A절</a>(브리프·관절 설계, 0회). 이전 시트(마네킹 방식)는 보류: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
+  <b>지금 상태 (2026-10-17)</b>: <a href="#anim">D절</a> 관절 애니 — 쏘기 v1·v2 움직임 미달(첫 프레임이 조준 자세라 팔이 안 따라옴), 중립 첫 프레임 수정안 승인 대기 · <a href="#ref">C절</a> 기준 그림 정리 4종 검수 합격 + 관절 애니 계획서(로드맵 승인 대기) · <a href="#design5">B5절</a> 시안 · B절은 이전 시안 · 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 — <a href="#redesign">A절</a>(브리프·관절 설계, 0회). 이전 시트(마네킹 방식)는 보류: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
   <ul>
     <li>2차 포함 7종 기준 그림: 지금 게임의 대기 자세를 8배로 찍어 1배 도트로 줄였다. 칸 96(공성포수 128), 발 기준점 고정, 화살·석궁 살은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
@@ -65,6 +65,14 @@
   <li>몸 젖힘을 −9° 에서 −14° 로 키운다.</li>
   <li>하늘 쏘기도 같은 식으로 고쳤다. 저격수 쏘기만 다시 뽑는 데 usage 3 이 든다(로드맵 승인 필요).</li>
   </ul></li>
+</ul></div>
+<div class="box"><b>v2 다시 뽑기 결과 (usage 3, 계열 누적 25) — 여전히 미달 (움직임 2)</b>
+<div style="display:flex;gap:10px;margin:6px 0"><figure style="margin:0"><img src="sheets-bow/anim/marksman-shoot2-own-x4.gif" style="width:288px;image-rendering:pixelated"><figcaption class="sub">v2 own (4배)</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/marksman-shoot2-ovl2-x4.gif" style="width:288px;image-rendering:pixelated"><figcaption class="sub">v2 ovl2</figcaption></figure></div>
+<ul>
+<li><b>비평</b>: 3~5프레임에서 당기는 손이 여전히 턱·가슴 앞이고, 팔꿈치는 어깨 높이다. 놓을 때 튕기지 않는다. 1프레임부터 이미 조준 자세다. 다리 내딛기만 조금 나아졌다.</li>
+<li><b>원인 다시 보기</b>: v1·v2 는 당기는 손 관절 좌표가 크게 달랐다(목 높이 → 귀 높이). 그런데 결과의 팔은 두 번 다 같은 자리였다 → 모델이 팔 관절을 따르지 않았다. 다리(걷기)는 따랐다. <b>첫 프레임 그림이 이미 활을 겨눈 자세</b>라서, 모델이 그 팔 모양을 지킨 것으로 본다. 검사 계열 성기사가 성공했을 때 첫 프레임은 중립 대기 자세였다.</li>
+<li><b>수정안</b>: 첫 프레임을 <b>중립 대기</b>(팔을 내린 채 빈손, 활 없음)로 바꾼다. 정리본에 PixelLab <code>edit-image-pixen</code> "팔을 내린 편한 대기, 빈손"을 1회(usage 1) 쓰고 → 같은 그림체인지 검수한다 → 그 그림을 첫 프레임으로 쏘기를 다시 뽑는다(usage 3). 합계 4.
+  관절은 이제 <b>손 목표 역산</b>으로 4종 모두 당기는 손이 귀 옆에 온다(<code>skelgen.py</code> <code>solve_hands</code> — 로드맵 지시).</li>
 </ul></div>
 <p><b>1단계 결과</b> (위: 쏘기, 아래: 걷기 — 3배)</p>
 <div class="scroll box"><div style="display:flex;gap:10px"><figure style="margin:0"><img src="sheets-bow/anim/marksman-shoot-own.gif" style="width:192px;image-rendering:pixelated"><figcaption class="sub">own</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/marksman-shoot-ovl.gif" style="width:192px;image-rendering:pixelated"><figcaption class="sub">ovl</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/marksman-shoot-ovl2.gif" style="width:192px;image-rendering:pixelated"><figcaption class="sub">ovl2</figcaption></figure></div><div style="display:flex;gap:10px;margin-top:8px"><figure style="margin:0"><img src="sheets-bow/anim/marksman-walk-own.gif" style="width:192px;image-rendering:pixelated"><figcaption class="sub">own</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/marksman-walk-ovl.gif" style="width:192px;image-rendering:pixelated"><figcaption class="sub">ovl</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/marksman-walk-ovl2.gif" style="width:192px;image-rendering:pixelated"><figcaption class="sub">ovl2</figcaption></figure></div></div>

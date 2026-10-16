@@ -18,3 +18,4 @@
 | 12 | arbalest | `/image-to-pixelart` | ref64: image-to-pixelart 256->64 | 1.0 | 16.0 | 1116.0 |
 | 13 | marksman | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 19.0 | 1110.0 |
 | 14 | marksman | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 22.0 | 1106.0 |
+| 15 | marksman | `/animate-with-skeleton-v3` | skel-shoot2: animate-with-skeleton-v3 192 8f | 3.0 | 25.0 | 1098.0 |

@@ -1,2 +1,3 @@
 marksman/skel-shoot
 marksman/skel-walk
+marksman/skel-shoot2

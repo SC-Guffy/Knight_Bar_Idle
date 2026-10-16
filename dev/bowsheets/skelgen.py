@@ -58,11 +58,68 @@ BODY_KP = {
                  'RIGHT HIP': (103.75, 135), 'RIGHT KNEE': (106.25, 153.75), 'RIGHT LEG': (108.75, 173.75),
                  'LEFT HIP': (91.25, 135), 'LEFT KNEE': (88.75, 153.75), 'LEFT LEG': (83.75, 173.75)},
 }
+BODY_KP.update({
+    # 레인저: 활 든 팔이 몸 뒤(왼쪽)로 뻗은 그림 — 첫 프레임은 그림 그대로 읽고, 동작 프레임은 손 목표로 앞으로 가져온다
+    'ranger': {'NECK': (98, 131), 'NOSE': (112.5, 121.25), 'RIGHT EYE': (106.25, 116.25), 'LEFT EYE': (101.25, 116.25), 'RIGHT EAR': (96.25, 118.75), 'LEFT EAR': (93.75, 119.5),
+               'LEFT SHOULDER': (91.25, 133.75), 'LEFT ELBOW': (77.5, 127.5), 'LEFT ARM': (62.5, 127),
+               'RIGHT SHOULDER': (103.75, 133.75), 'RIGHT ELBOW': (108.75, 140), 'RIGHT ARM': (112.5, 132.5),
+               'RIGHT HIP': (103.75, 145), 'RIGHT KNEE': (107.5, 160), 'RIGHT LEG': (111.25, 175),
+               'LEFT HIP': (93.75, 145), 'LEFT KNEE': (88.75, 160), 'LEFT LEG': (82.5, 175)},
+    'arcaneArcher': {'NECK': (100, 123.75), 'NOSE': (113.75, 113.75), 'RIGHT EYE': (107.5, 108.75), 'LEFT EYE': (100, 108.75), 'RIGHT EAR': (93.75, 111.25), 'LEFT EAR': (91.25, 112.5),
+                     'LEFT SHOULDER': (108.75, 128.75), 'LEFT ELBOW': (120, 131.25), 'LEFT ARM': (130, 130.5),
+                     'RIGHT SHOULDER': (93.75, 130), 'RIGHT ELBOW': (86.25, 138.75), 'RIGHT ARM': (80, 145),
+                     'RIGHT HIP': (106.25, 151.25), 'RIGHT KNEE': (107.5, 163.75), 'RIGHT LEG': (111.25, 175.5),
+                     'LEFT HIP': (93.75, 151.25), 'LEFT KNEE': (91.25, 163.75), 'LEFT LEG': (88.75, 175.5)},
+    # 석궁사수: RIGHT = 뒷손(개머리·방아쇠), LEFT = 앞손(받침). 석궁은 두꺼워 첫 프레임에 남는다 (덧그릴 무기가 덮는다)
+    'arbalest': {'NECK': (96.25, 127), 'NOSE': (107.5, 118.75), 'RIGHT EYE': (103.75, 115), 'LEFT EYE': (97.5, 115), 'RIGHT EAR': (91.25, 117.5), 'LEFT EAR': (90, 118),
+                 'RIGHT SHOULDER': (100, 130), 'RIGHT ELBOW': (107.5, 132.5), 'RIGHT ARM': (115, 131.25),
+                 'LEFT SHOULDER': (91.25, 130.5), 'LEFT ELBOW': (105, 135), 'LEFT ARM': (121.25, 133.75),
+                 'RIGHT HIP': (103.75, 150), 'RIGHT KNEE': (106.25, 162.5), 'RIGHT LEG': (108.75, 175),
+                 'LEFT HIP': (91.25, 150), 'LEFT KNEE': (88.75, 162.5), 'LEFT LEG': (83.75, 175)},
+})
+
+
+def ik(sh, target, L1, L2, elbow_up=True):
+    """2관절 역산: 어깨 sh 에서 손을 target 에 두는 (위팔 각, 아래팔 각) (도). 닿지 않으면 쭉 뻗어 그 방향. elbow_up: 팔꿈치가 위쪽으로 꺾이는 해"""
+    dx, dy = target[0] - sh[0], target[1] - sh[1]; D = max(1e-6, min(math.hypot(dx, dy), L1 + L2 - 1e-3))
+    base = math.atan2(dy, dx); c = (L1 * L1 + D * D - L2 * L2) / (2 * L1 * D); a = math.acos(max(-1, min(1, c)))
+    a1 = base - a if elbow_up else base + a
+    e = (sh[0] + L1 * math.cos(a1), sh[1] + L1 * math.sin(a1))
+    a2 = math.atan2(sh[1] + D * math.sin(base) - e[1], sh[0] + D * math.cos(base) - e[0])
+    return math.degrees(a1), math.degrees(a2)
+
+
+def solve_hands(ns, kind):
+    """손 목표 보정 (2026-10-17 로드맵 지시: 첫 프레임 뼈 길이에 맞추면 팔이 짧아져 손이 목표에 못 미친다 → 목표 손 위치로 관절 각을 역산).
+    활: 당기는 프레임(draw) 은 당기는 손(RIGHT ARM)을 귀 옆(귀 + (1, 3))에 — 팔꿈치 위로 꺾임 / 활 손(LEFT ARM)은 지금 방향으로 팔 길이 97% 까지 뻗음.
+    석궁: 겨눔 프레임(deg 가 0 근처, 반동 전) 은 뒷손을 볼 옆(귀 + (7, 6))에"""
+    P = ns['P']; UA, FA = ns['UA'], ns['FA']
+    for name, seq in ns['SEQ'].items():
+        if not name.startswith(kind + '-'): continue
+        for k, (p, note) in enumerate(seq):
+            if kind == 'bow' and note.get('draw'):
+                ear = p['RIGHT EAR']; tgt = (ear[0] + 1, ear[1] + 3)
+                a1, a2 = ik(p['RIGHT SHOULDER'], tgt, UA, FA, elbow_up=True)
+                p['RIGHT ELBOW'] = P(p['RIGHT SHOULDER'], a1, UA); p['RIGHT ARM'] = P(p['RIGHT ELBOW'], a2, FA)
+                sh = p['LEFT SHOULDER']; h = p['LEFT ARM']; ang = math.atan2(h[1] - sh[1], h[0] - sh[0])
+                p['LEFT ELBOW'] = (sh[0] + math.cos(ang) * UA, sh[1] + math.sin(ang) * UA); p['LEFT ARM'] = (sh[0] + math.cos(ang) * (UA + FA) * 0.97, sh[1] + math.sin(ang) * (UA + FA) * 0.97)
+            if kind == 'xbow' and name == 'xbow-shoot' and k in (0, 1):
+                ear = p['RIGHT EAR']; tgt = (ear[0] + 7, ear[1] + 6)
+                a1, a2 = ik(p['RIGHT SHOULDER'], tgt, UA, FA, elbow_up=False)
+                p['RIGHT ELBOW'] = P(p['RIGHT SHOULDER'], a1, UA); p['RIGHT ARM'] = P(p['RIGHT ELBOW'], a2, FA)
+
+
 ACT = {'walk': 'bow-walk', 'shoot': 'bow-shoot', 'sky': 'bow-sky'}
 ACT_X = {'walk': 'xbow-walk', 'shoot': 'xbow-shoot', 'sky': 'xbow-sky'}
 DESC = {
     'marksman': 'young chibi sniper archer, black hair tied back, yellow goggles on the forehead, short teal high-collared jacket with a belt, long red scarf fluttering behind, dark trousers and tall boots, hands empty (the bow is drawn later)',
 }
+DESC.update({
+    'ranger': 'young chibi forest ranger, wide-brimmed green hat with a big white feather, auburn hair, cream shirt, brown leather vest and belt, brown trousers and boots, hands empty (the bow is drawn later)',
+    'arcaneArcher': 'young chibi arcane archer, navy hood with a pointed tip, glowing cyan eyes, short navy tunic with cyan runes and a belt, navy trousers and boots, glowing cyan bracers, short shoulder cape, hands empty (the bow is drawn later)',
+    'arbalest': 'young chibi crossbowman, steel helmet with raised visor and a young face, red tabard over a breastplate, belt with bolts, short red cape, steel greaves and boots, holding a heavy crossbow',
+})
+
 ACTION = {'walk': 'walk cycle', 'shoot': 'draw a bowstring back to the ear and release', 'sky': 'aim upward and shoot an arrow into the sky'}
 
 
@@ -85,6 +142,7 @@ def fitted(cls):
     # 머리 관절을 바꿨으니 SEQ 를 다시 계산 (pose 가 HEAD 를 쓴다) — 모듈 본문을 한 번 더 돌리되 HEAD 고정
     src2 = src.replace("HEAD = {k: (v[0] * 1.45, v[1] * 1.45) for k, v in", "HEAD = HEAD_FIX or {k: (v[0] * 1.45, v[1] * 1.45) for k, v in")
     ns = {'__file__': os.path.join(HERE, 'skel.py'), '__name__': 'skel_fit', 'HEAD_FIX': head}; exec(src2, ns)
+    solve_hands(ns, 'xbow' if cls == 'arbalest' else 'bow')
     return ns, L, KB
 
 
