@@ -28,7 +28,7 @@
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 창기사 · 용기병 · 할버디어 · 랜서 · 용황 · 전쟁군주 · 천마장군 · 2026-10-15</p>
 
 <div class="box">
-  <b>지금 상태</b>: 7종 시트 완성 (PixelLab usage 11, 6절). <code>SHEET_ON</code> 은 false — 켤지 사용자 확인. 아래 1~5절은 준비 단계 기록이다.
+  <b>지금 상태 (2026-10-16 방향 전환)</b>: 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 → <b>0절</b>(디자인 브리프·관절 설계, 0회). 1~6절은 폐기된 마네킹 방식 기록이다 (PixelLab usage 11, SHEET_ON false).
   <ul>
     <li>7종 기준 그림: 지금 게임의 대기 자세를 1도트 = 1px 로 찍어 칸(7종 모두 128 — 2026-10-16 창도 96 → 128)과 발 기준점에 맞췄다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
@@ -36,6 +36,38 @@
     <li>시트 조립 <code>dev/spear/build.py</code>: 프레임 소스(지금은 기존 그림 자리표시, 나중엔 생성 결과)와 상관없이 같은 규격으로 시트·메타·몽타주·GIF 를 만든다. 칸 가장자리 닿음(잘림) 검사, hand(무기 끝)·head 점 자동.</li>
   </ul>
 </div>
+
+<h2>0. 새 디자인 브리프 + 관절 설계 (2026-10-16 방향 전환 — 0회 준비)</h2>
+<div class="box">사용자: "저퀄리티인 모델링 자체를 이쁘게 다시 그려보자. 모습이 바뀌어도 되니까". 기준 그림은 새로 디자인하고(그림체 기준은 검사 계열 시안 승인 뒤), 동작은 <b>관절 지정 애니</b>(animate-with-skeleton-v3)로 만든다.
+마네킹 방식(1~6절)은 폐기했다. 이 절은 GPU·PixelLab 없이 준비한 것이다.</div>
+<h3>0-1. 디자인 브리프 — 창 계열 7종</h3>
+<p class="sub">같은 계열 2차 셋은 틀부터 다르게(날개 망토 / 넓은 어깨 / 방패+랜스), 3차는 2차 특징을 이어 더 화려하게. 직업 색은 지금 게임의 <code>look.fx</code>·팔레트를 잇는다. 이미 정한 장식(깃발·날개꼴 망토·왕관/꼬리)은 그대로 넣는다.</p>
+<table>
+  <tr><th>직업</th><th>정체·직업 색</th><th>머리</th><th>몸·옷</th><th>무기·소품</th><th>실루엣 구분 포인트</th></tr>
+  <tr><td><b>창기사</b> (1차)</td><td>성실한 견습 창병 · 녹색 <code>#9fd49a</code> + 황동</td><td>넓은 챙 철모(케틀햇), 턱끈</td><td>녹색 누빔 조끼 위 사슬, 가죽 허리띠, 장화</td><td>긴 나무 창 + <b>창날 뒤 제비꼬리 녹색 깃발</b>(금 줄)</td><td>넓은 챙 모자 + 창끝 깃발</td></tr>
+  <tr><td><b>용기병</b> (2차)</td><td>용의 힘을 두른 기사 · 보라 <code>#b388ff</code> + 금 눈빛</td><td>용 머리형 투구(앞으로 뻗은 주둥이 바이저, 뒤로 휜 두 뿔)</td><td>보라 판금, 앞 어깨 <b>용비늘 견갑</b>(솟음), 등 뒤 <b>날개꼴 망토</b>(박쥐 날개 막, 톱니 끝)</td><td>용창: 날개 달린 창날, 자루에 비늘 감김, 보랏빛</td><td>등 뒤 큰 날개 삼각형 + 투구 주둥이</td></tr>
+  <tr><td><b>할버디어</b> (2차)</td><td>성벽 지키는 중장 미늘창병 · 주황 <code>#ff9f40</code> + 강철</td><td>버킷 투구(가로 눈 틈 하나), 장식 없음</td><td><b>아주 넓은 사각 어깨 판금</b>, 주황 서코트(사선 줄), 땅딸막한 체형</td><td>할버드: 큰 도끼날 + 뒤 갈고리 + 위 창끝</td><td>넓은 사각 어깨 + 큰 도끼날</td></tr>
+  <tr><td><b>랜서</b> (2차)</td><td>돌격 기병 · 파랑 <code>#9fd8ff</code> + 빨강 깃털</td><td>볏 투구 + <b>빨간 깃털 다발</b></td><td>파랑 서코트, 왼팔 <b>카이트 방패</b>(긴 연 모양, 빨강 문장)</td><td>원뿔 돌격창(굵은 랜스, 손잡이 원반)</td><td>큰 세로 방패 + 굵은 원뿔 랜스</td></tr>
+  <tr><td><b>용황</b> (3차 ← 용기병)</td><td>용들의 왕 · 자홍 <code>#ff4dd2</code> + 흑보라 + 금</td><td>용 투구 → <b>왕관 뿔 투구</b>(금 뾰족 5개)</td><td>날개 망토 → <b>두 겹 큰 날개</b> + 투구 뒤 <b>큰 꼬리 장식</b>(분홍 갈기, 허리 아래까지)</td><td>용황창: 두 갈래 창날, 분홍 빛 무늬</td><td>머리 위 톱니 왕관 + 등 뒤 긴 꼬리 (용기병보다 위로 솟고 아래로 늘어짐)</td></tr>
+  <tr><td><b>전쟁군주</b> (3차 ← 할버디어)</td><td>전쟁 그 자체 · 주황불 <code>#ff7a2a</code> + 흑철 + 붉은 망토</td><td>버킷 투구 → <b>소뿔 철가면 투구</b>(눈 틈에 불빛)</td><td>어깨 판금 → <b>가시 박힌 거대 견갑</b>, 찢어진 붉은 망토, 더 큰 체형</td><td>도끼창: 초승달 도끼날 둘, 날에 불빛</td><td>뿔 + 가시 견갑 + 망토 자락 (할버디어의 넓은 어깨를 잇되 더 거칠게)</td></tr>
+  <tr><td><b>천마장군</b> (3차 ← 랜서)</td><td>빛의 천마 군단장 · 흰·하늘 <code>#cfe8ff</code> + 금</td><td>깃털 → <b>양옆 흰 날개 투구</b> + 후광</td><td>흰 망토 + 금 견갑, 카이트 방패 → <b>금테 흰 대방패</b>(별 문장)</td><td>성창: 빛나는 금 원뿔 랜스</td><td>투구 날개 + 후광 + 큰 방패 (랜서의 방패·랜스를 잇고 위로 날개)</td></tr>
+</table>
+<h3>0-2. 동작 관절 설계 (막대 인형) — <code>dev/spear/skel.py</code></h3>
+<div class="box">검사 세션 <code>dev/sheets-sword/skel.py</code> 와 같은 형식: 192칸, 발 (96, 176), 오른쪽을 봄, 관절 18개 이름·z_index 동일. 창은 두 손으로 쥔다(주황 = 앞팔·앞다리 = 창 앞손, 파랑 = 뒤). 노란 선 = 창(덧그리기 각도: 두 손 방향, 세워 들거나 등 뒤로 넘길 때는 직접 적음). 회색 = 기준 자세.
+지금 리그를 베끼지 않고 <b>크게 과장</b>했다 — 웅크림 → 젖힘 → 크게 디딤 → 상체 숙여 끝까지 뻗기 → 회수. 출력 <code>dev/spear/skel/&lt;동작&gt;.json</code> (프레임별 keypoints·창 각도·첫 프레임 keypoints).
+디자인이 정해지면 기준 그림에서 BASE 관절을 다시 읽어 맞춘다.</div>
+<table>
+  <tr><th>동작</th><th>프레임</th><th>몸 움직임 (기준 자세에서 가장 멀리 간 칸, 192칸 기준)</th><th>창 각도</th><th>쓰는 직업</th></tr>
+  <tr><td>대기</td><td>4</td><td>목 2 · 앞손 1 (숨쉬기)</td><td>−85 (세움)</td><td>7종</td></tr>
+  <tr><td>걷기</td><td>8</td><td>목 2 · 앞발 18 (보폭 ±13, 무릎 들기, 뒷손 흔들기)</td><td>−91 ~ −80</td><td>7종</td></tr>
+  <tr><td>찌르기</td><td>8</td><td>목 18 · 앞손 32 · 앞발 19</td><td>−17 ~ −3</td><td>창기사·용기병·용황·랜서·천마장군 (평타A)</td></tr>
+  <tr><td>내리찍기</td><td>8</td><td>목 22 · 앞손 40 · 앞발 14</td><td>−120 ~ +35</td><td>찌르기형 평타B</td></tr>
+  <tr><td>휩쓸기</td><td>8</td><td>목 16 · 앞손 34 · 앞발 18</td><td>172 → −110 → +40 (등 뒤에서 머리 위를 돌아 앞으로)</td><td>할버디어·전쟁군주 (평타A)</td></tr>
+  <tr><td>내려찍기</td><td>8</td><td>목 23 · 앞손 43 · 앞발 16</td><td>−165 ~ +55</td><td>휩쓸기형 평타B</td></tr>
+</table>
+<div class="tabs" id="sktabs"></div>
+<div class="grid" style="grid-template-columns:minmax(200px,320px) 1fr"><div class="card"><img id="skgif" alt="막대 인형 움직임"></div><div class="scroll box"><img class="px" id="skimg" alt="막대 인형 프레임"></div></div>
+<p class="sub">예상 PixelLab (계획서는 그림체 승인 뒤 다시 냄, 값 8f = 3): 2차 원형마다 동작 6 → 찌르기형·휩쓸기형 기준 그림 각 1장 × (대기·걷기·평타 2) — 직업마다 다시 뽑을지, 기준 몸 1~2개로 뽑고 입힐지는 검사 계열 시안 결과에 맞춘다.</p>
 
 <h2>1. 칸 크기와 발 기준점</h2>
 <table>
@@ -208,6 +240,7 @@ tabs('lutabs', [['guard-color', '전투 대기 컬러'], ['guard-gray', '흑백'
 tabs('gftabs', ORD7.map((c) => [c, NAME[c]]), (c) => { document.getElementById('gframes').src = 'sheets-spear/gen/' + c + '-frames.png'; });
 tabs('mqtabs', [['idle', '대기 4f'], ['walk', '걷기 8f'], ['spearA', '찌르기 8f'], ['spearB', '내리찍기 8f'], ['halbA', '휩쓸기 8f'], ['halbB', '내려찍기 8f']], (k) => { document.getElementById('mqimg').src = 'sheets-spear/gen/mq-' + k + '.png'; });
 tabs('mvtabs', [['spearA', '찌르기'], ['spearB', '내리찍기'], ['halbA', '휩쓸기'], ['halbB', '내려찍기'], ['walk', '걷기']], (k) => { document.getElementById('mvimg').src = 'sheets-spear/gen/motion-' + k + '.png'; });
+tabs('sktabs', [['thrust', '찌르기'], ['slam', '내리찍기'], ['sweep', '휩쓸기'], ['chop', '내려찍기'], ['walk', '걷기'], ['idle', '대기']], (k) => { document.getElementById('skgif').src = 'sheets-spear/skel/stick-' + k + '.gif'; document.getElementById('skimg').src = 'sheets-spear/skel/stick-' + k + '.png'; });
 </script>
 </body>
 </html>
