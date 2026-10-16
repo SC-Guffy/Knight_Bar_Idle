@@ -13,9 +13,22 @@ RAW = os.path.join(HERE, 'design', 'raw'); PL = os.path.join(HERE, 'work', 'pl')
 _sp = importlib.util.spec_from_file_location('sw_polish', os.path.join(HERE, '..', 'sheets-sword', 'polish.py'))
 POL = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(POL)
 BODY, OUTN = 46, 64
-# 검수 1차(정리본) fix 판정에 따른 수리 단계 (fix.py). 합격(랜서·할버디어)은 그대로
-FIX = {'lancer': ('tidy', 'green'), 'dragoon': ('tidy', 'belly')}      # eye: 머리 자리를 창과 구분 못 해 뺌
-FIST = {'lancer'}
+import re
+
+
+def parse(name):
+    """'lancer5-51' → ('lancer', 'lancer'), 'lancer6-51' → ('lancer', 'lancer6') : (직업 = 작업 폴더·수리 키, design5.SPEC 키)"""
+    m = re.match(r'([A-Za-z]+)(\d)-', name); return m.group(1), (m.group(1) if m.group(2) == '5' else m.group(1) + m.group(2))
+# 정리본 검수 fix 판정에 따른 수리 단계 (fix.py)
+#  창기사: v6 정리본은 갑옷이 이미 매끈해 tidy·green 이 오히려 하이라이트를 지운다 (v5 51 에만 썼다)
+#  할버디어: surcoat_up 은 허리에 주황 네모 조각처럼 붙어 뺐다
+FIX = {'lancer': (),
+       'dragoon': ('tidy', 'belly'),
+       'halberdier': ('surcoat_orange', 'shoulders'),
+       'cavalier': ('surcoat_blue', 'red_up')}
+# 무기를 얹은 뒤 하는 수리: 용기병 노란 눈 (무기 색을 빼야 머리 앞 끝을 찾는다)
+AFTER = {'dragoon': ('eye_after',)}
+FIST = set()             # v6 정리본은 쥔 손이 보임
 
 
 def frame(name):
@@ -41,7 +54,7 @@ def prep(name):
 def grip64(name):
     """가이드 손 점·각도(design5.SPEC) → 64 출력 좌표 (자르기 상자 기준)"""
     import design5 as D5
-    cls = name.split('5-')[0]; im, (x0, y0, S) = frame(name)
+    _, cls = parse(name); im, (x0, y0, S) = frame(name)
     top, foot = body_bounds(im); sc = (foot - top) / (D5.F0 - D5.T0)
     g = (D5.CX + (D5.GRIP[0] - D5.CX) * sc, top + (D5.GRIP[1] - D5.T0) * sc)
     return ((g[0] - x0) / S * OUTN, (g[1] - y0) / S * OUTN), D5.SPEC[cls]['ang'], D5.SPEC[cls]['wpn']
@@ -61,7 +74,7 @@ def wpnfix(im, name, off):
         if dd[0] * d[0] + dd[1] * d[1] < 0: dd = (-dd[0], -dd[1])
         t = (gx - c[0]) * dd[0] + (gy - c[1]) * dd[1]; gx, gy = c[0] + dd[0] * t, c[1] + dd[1] * t       # 손 점을 맞춘 직선 위로
         ang = math.degrees(math.atan2(dd[1], dd[0]))
-        erase = set(near_line(pts, (gx, gy), dd, 1.6, 3, 60))        # 모델 무기 (손 앞)
+        erase = set(near_line(pts, (gx, gy), dd, 2.5, 3, 60))        # 모델 무기 (손 앞) — 1.6 이면 원래 창대가 옆에 한 줄 남았다
         for p in erase: P[p] = (0, 0, 0, 0)
         fill_holes(im, erase)
     # 코드 무기: 큰 캔버스에 8배로 그려 칸 가운데 표본 → 바탕(투명) 위 무기 칸만 덮는다
@@ -78,8 +91,22 @@ def wpnfix(im, name, off):
     return o.crop(bb), (gx + M - bb[0], gy + M - bb[1])
 
 
+def POL_comps(im):
+    P = im.load(); W, H = im.size; left = {(x, y) for y in range(H) for x in range(W) if P[x, y][3]}; out = []
+    while left:
+        st = [left.pop()]; c = set(st)
+        while st:
+            x, y = st.pop()
+            for a in (-1, 0, 1):
+                for b in (-1, 0, 1):
+                    q = (x + a, y + b)
+                    if q in left: left.discard(q); c.add(q); st.append(q)
+        out.append(c)
+    return out
+
+
 def post(name):
-    cls = name.split('5-')[0].rstrip('0123456789')
+    cls, _ = parse(name)
     raw = Image.open(os.path.join(HERE, 'work', cls, f'{name}-pl-0.png')).convert('RGBA')
     clean = POL.unbg(raw); bb = clean.getbbox(); clean = clean.crop(bb)
     pol = POL.polish(clean.copy())                       # 손질 먼저 (무기 색이 14색 줄이기에 섞여 몸 색이 탁해지지 않게)
@@ -88,6 +115,17 @@ def post(name):
         pol = getattr(FX, step)(pol)
     pol, g = wpnfix(pol, name, (bb[0] - 1, bb[1] - 1))  # polish 의 외곽선 1칸 여백만큼 원점이 옮겨짐
     if cls in FIST: pol = FX.fist(pol, g)
+    import design5 as D5
+    wcols = {c for c in __import__('itertools').chain.from_iterable(D5.WCOL.values())}
+    for step in AFTER.get(cls, ()):
+        pol = getattr(FX, step)(pol, wcols)
+    from wpn import fill_holes  # noqa (무기 지운 자리 메우기는 wpnfix 안에서)
+    P_ = pol.load(); comps = POL_comps(pol)                 # 떨어진 6칸 미만 조각 지우기 (검수: 자루 옆 '!' 부스러기)
+    if comps:
+        big = max(len(c) for c in comps)
+        for c in comps:
+            if len(c) < 6 and len(c) < big:
+                for p_ in c: P_[p_] = (0, 0, 0, 0)
     pol = POL.quant(pol, 20)                             # 위 테 밝히기·무기 색으로 25~30색이 돼 색 경보(>24) → 마지막에 20색
     clean.save(os.path.join(PL, f'{name}-clean.png')); pol.save(os.path.join(PL, f'{name}-polish.png'))
     print(name, 'clean', clean.size, 'polish', pol.size)

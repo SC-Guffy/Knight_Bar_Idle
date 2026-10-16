@@ -111,3 +111,76 @@ def fist(im, g, col=((120, 126, 140), (196, 202, 214))):
         x, y = gx + a, gy + b - 1
         if 0 <= x < W and 0 <= y < H: P[x, y] = col[k] + (255,)
     return im
+
+
+def recolor_band(im, pick, ramp, y_from, y_to, x_frac=1.0):
+    """몸 높이 비율 y_from~y_to, 가운데 폭 x_frac 안에서 pick(c) 인 칸을 ramp(어두움→밝음) 로 밝기 순위대로 다시 칠한다"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    pts = [(x, y) for y in range(H) for x in range(W) if P[x, y][3] and P[x, y] != OUT]
+    y0 = min(y for _, y in pts); y1 = max(y for _, y in pts); hh = y1 - y0
+    sel = []
+    for (x, y) in pts:
+        if not (y0 + hh * y_from <= y <= y0 + hh * y_to): continue
+        row = [xx for xx, yy in pts if yy == y]; xm = (min(row) + max(row)) / 2; half = (max(row) - min(row)) / 2 * x_frac
+        if abs(x - xm) <= half and pick(P[x, y]): sel.append((x, y))
+    if not sel: return im
+    Ls = sorted({lum(P[p]) for p in sel})
+    for p in sel:
+        r = Ls.index(lum(P[p])) / max(1, len(Ls) - 1); P[p] = ramp[min(len(ramp) - 1, int(r * len(ramp)))] + (255,)
+    return im
+
+
+def _hls(c): return colorsys.rgb_to_hls(c[0] / 255, c[1] / 255, c[2] / 255)
+
+
+def surcoat_orange(im):
+    """할버디어: 허리 아래 살색(주황·살구 계열 밝은 칸)을 주황 천 3단으로 — 검수 "서코트가 맨허벅지 살색처럼" """
+    skin = lambda c: 0.02 < _hls(c)[0] < 0.12 and _hls(c)[2] > 0.25
+    return recolor_band(im, skin, ((150, 70, 24), (214, 112, 36), (246, 156, 62)), 0.5, 0.85)
+
+
+def surcoat_blue(im):
+    """랜서: 가슴~허리 가운데 무채색 칸을 파랑 서코트 3단으로 — 검수 "파랑 서코트가 거의 없음" """
+    gray = lambda c: _hls(c)[2] < 0.22 and 60 < lum(c) < 200
+    return recolor_band(im, gray, ((30, 52, 120), (48, 84, 178), (90, 130, 220)), 0.42, 0.68, 0.45)
+
+
+def eye_after(im, wcols, col=(255, 214, 64, 255)):
+    """용기병: 무기 칸(wcols 색)을 빼고 몸 위 22% 띠의 앞 끝(주둥이)에서 3칸 뒤에 노란 눈 1도트"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    pts = [(x, y) for y in range(H) for x in range(W) if P[x, y][3] and P[x, y][:3] not in wcols]
+    y0 = min(y for _, y in pts); y1 = max(y for _, y in pts)
+    band = [(x, y) for x, y in pts if y < y0 + (y1 - y0) * 0.22 and P[x, y] != OUT]
+    if not band: return im
+    fx = max(x for x, _ in band); ys = sorted(y for x, y in band if x >= fx - 1); ey = ys[len(ys) // 2] - 1
+    for ex in (fx - 3, fx - 4):
+        if P[ex, ey][3] and P[ex, ey] != OUT: P[ex, ey] = col; break
+    return im
+
+
+def red_up(im):
+    """랜서: 어두운 자주·빨강 계열 칸(볏·방패)을 밝은 빨강 3단으로 — 검수 "볏·방패 문장이 빨강으로 안 보임" """
+    red = lambda c: (_hls(c)[0] > 0.88 or _hls(c)[0] < 0.03) and _hls(c)[2] > 0.25 and lum(c) > 30
+    return recolor_band(im, red, ((150, 28, 36), (210, 44, 48), (246, 96, 88)), 0.0, 1.0, 1.0)
+
+
+def shoulders(im, rows=(0.22, 0.34)):
+    """할버디어: 어깨 높이 줄의 양 끝 칸을 바깥으로 1칸 늘린다 (같은 색, 외곽선은 그 바깥) — 검수 "역삼각이 약함, 넓은 사각 어깨 덜 보임" """
+    im = im.copy(); P = im.load(); W, H = im.size
+    pts = [(x, y) for y in range(H) for x in range(W) if P[x, y][3]]
+    y0 = min(y for _, y in pts); y1 = max(y for _, y in pts); hh = y1 - y0
+    o = Image.new('RGBA', (W + 2, H)); o.alpha_composite(im, (1, 0)); O = o.load()
+    for y in range(int(y0 + hh * rows[0]), int(y0 + hh * rows[1]) + 1):
+        xs = [x + 1 for x in range(W) if P[x, y][3]]
+        if not xs: continue
+        for edge, step in ((min(xs), -1), (max(xs), 1)):
+            inner = edge - step                                # 외곽선 안쪽 칸 색
+            c = O[inner, y] if O[inner, y] != OUT else O[edge, y]
+            O[edge + step, y] = OUT; O[edge, y] = c if c[3] else O[edge, y]
+    return o
+
+
+def surcoat_up(im):
+    """할버디어: 가슴 아래~벨트 가운데 띠의 무채색 칸을 주황 천으로 — 검수 "서코트가 앞치마 조각처럼" """
+    gray = lambda c: _hls(c)[2] < 0.2 and 50 < lum(c) < 210
+    return recolor_band(im, gray, ((150, 70, 24), (214, 112, 36), (246, 156, 62)), 0.40, 0.52, 0.32)

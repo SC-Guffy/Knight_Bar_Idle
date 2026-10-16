@@ -86,6 +86,12 @@ def mannequin(spec):
     return im
 
 
+WCOL = {'spear': ((58, 38, 22), (168, 116, 62), (226, 232, 240), (120, 128, 140)),
+        'dragon': ((40, 24, 64), (122, 90, 176), (238, 230, 255), (150, 120, 210)),
+        'halberd': ((48, 36, 24), (140, 100, 56), (226, 230, 238), (118, 124, 136)),
+        'lance': ((40, 44, 56), (230, 234, 242), (250, 252, 255), (200, 50, 50))}
+
+
 def _poly_line(d, p0, p1, w, col):
     a = math.atan2(p1[1] - p0[1], p1[0] - p0[0]); nx, ny = -math.sin(a) * w / 2, math.cos(a) * w / 2
     d.polygon([(p0[0] + nx, p0[1] + ny), (p1[0] + nx, p1[1] + ny), (p1[0] - nx, p1[1] - ny), (p0[0] - nx, p0[1] - ny)], fill=col)
@@ -95,11 +101,7 @@ def draw_weapon(im, kind, grip, ang, u, guide=False):
     """u = 도트 한 칸 (1024 기준). 자루 3칸(외곽선 1 + 속 1 + 외곽선 1), 날·깃발·도끼날·원뿔 랜스를 u 격자 크기로"""
     d = ImageDraw.Draw(im); a = math.radians(ang); ca, sa = math.cos(a), math.sin(a)
     P = lambda t, n=0: (grip[0] + ca * t * u - sa * n * u, grip[1] + sa * t * u + ca * n * u)
-    COL = {'spear': ((58, 38, 22), (168, 116, 62), (226, 232, 240), (120, 128, 140)),
-           'dragon': ((40, 24, 64), (122, 90, 176), (238, 230, 255), (150, 120, 210)),
-           'halberd': ((48, 36, 24), (140, 100, 56), (226, 230, 238), (118, 124, 136)),
-           'lance': ((40, 44, 56), (230, 234, 242), (250, 252, 255), (200, 50, 50))}
-    out, core, steel, steel2 = COL[kind]
+    out, core, steel, steel2 = WCOL[kind]
     if kind in ('spear', 'dragon', 'halberd'):
         back, front = (-10, 30) if kind != 'halberd' else (-14, 26)
         _poly_line(d, P(back), P(front), 3 * u, out); _poly_line(d, P(back + 0.5), P(front - 0.5), 1 * u, core)
@@ -115,24 +117,42 @@ def draw_weapon(im, kind, grip, ang, u, guide=False):
             d.polygon(pts, fill=out)
             d.polygon([P(front + 8), P(front + 1, 1.3), P(front), P(front + 1, -1.3)], fill=steel)
         else:                   # 할버드: 위 창끝 · 앞 도끼날 · 뒤 갈고리
-            d.polygon([P(front + 6), P(front + 1, 1.5), P(front - 0.5), P(front + 1, -1.5)], fill=out)
-            d.polygon([P(front + 5), P(front + 1.2, 0.8), P(front), P(front + 1.2, -0.8)], fill=steel)
-            d.polygon([P(front - 1, -1.5), P(front + 1, -6.5), P(front - 3, -8), P(front - 7, -6.5), P(front - 6, -1.5)], fill=out)
-            d.polygon([P(front - 1.6, -2.2), P(front + 0.2, -6), P(front - 3, -7.2), P(front - 6.2, -6), P(front - 5.4, -2.2)], fill=steel)
-            d.polygon([P(front - 4.6, -6.6), P(front - 1, -6.6), P(front - 3, -7.2)], fill=steel2)
-            d.polygon([P(front - 1.5, 1.5), P(front - 2.5, 4.5), P(front - 4, 3.5), P(front - 4.5, 1.5)], fill=out)
+            d.polygon([P(front + 8), P(front + 1, 2.0), P(front - 0.5), P(front + 1, -2.0)], fill=out)        # 위 창끝 8칸 · 폭 3칸
+            d.polygon([P(front + 7), P(front + 1.2, 1.2), P(front), P(front + 1.2, -1.2)], fill=steel2)
+            d.line([P(front + 6.5, 0.3), P(front + 1.5, 0.6)], fill=steel, width=max(1, int(u * 0.9)))
+            arc = lambda r, k: [P(front - 3.5 + r * math.sin(math.pi * i / k) * 0 + (r * math.cos(math.pi * (i / k - 0.5))) * 0.0 - 3.5 + 3.5 * math.cos(math.pi * (i / k - 0.5)) * 0, -1.2) for i in range(1)]
+            # 반달 도끼날 3단 명암 (검수: "명암 없는 흰 반원이라 깃발·막대사탕처럼"): 어두운 테 → 중간 강철 → 날 쪽 밝은 띠 → 날 끝 흰 1줄
+            R = lambda r1, r2, off: [P(front - 3.5 + r1 * math.sin(math.pi * (i / 12 - 0.5)), off + r2 * math.cos(math.pi * (i / 12 - 0.5))) for i in range(13)]
+            d.polygon([P(front + 2.9, 1.2)] + R(6.2, 8.6, 1.2) + [P(front - 9.9, 1.2)], fill=out)
+            d.polygon([P(front + 1.9, 1.6)] + R(5.2, 7.4, 1.6) + [P(front - 8.9, 1.6)], fill=steel2)
+            d.polygon(R(5.2, 7.4, 1.6)[2:11] + list(reversed(R(4.0, 5.2, 1.6)[2:11])), fill=steel)
+            d.line(R(5.0, 7.2, 1.6)[3:10], fill=(255, 255, 255), width=max(1, int(u * 0.9)))
+            d.polygon([P(front - 1.2, -1.5), P(front - 1.6, -5.5), P(front - 2.8, -6.0), P(front - 5.2, -1.5)], fill=out)   # 뒤 갈고리 3×4칸
+            d.polygon([P(front - 1.8, -1.9), P(front - 2.0, -4.6), P(front - 2.6, -4.9), P(front - 4.4, -1.9)], fill=steel2)
     else:                       # 랜스: 손 뒤 짧은 자루, 손 앞 둥근 보호대, 밑동 7칸 → 끝 2칸 원뿔
         _poly_line(d, P(-6), P(1), 3 * u, out); _poly_line(d, P(-5.5), P(0.5), 1 * u, (110, 80, 50))
-        d.polygon([P(2, 3.6), P(32, 1.0), P(33.5, 0), P(32, -1.0), P(2, -3.6)], fill=out)
-        d.polygon([P(2.5, 2.7), P(31.5, 0.4), P(31.5, -0.4), P(2.5, -2.7)], fill=steel)
+        # 원뿔: 밑동 7칸 → 중간까지 5칸 유지 → 끝 몇 칸에서만 좁아짐 (검수 "앞쪽 절반이 빨리 가늘어져 점선처럼")
+        d.polygon([P(2, 3.6), P(18, 2.8), P(28, 2.0), P(33.5, 0), P(28, -2.0), P(18, -2.8), P(2, -3.6)], fill=out)
+        d.polygon([P(2.5, 2.7), P(18, 1.9), P(27.5, 1.2), P(32.6, 0.5), P(32.6, -0.5), P(27.5, -1.2), P(18, -1.9), P(2.5, -2.7)], fill=steel)   # 끝 2칸 뾰족
+        d.polygon([P(3, 2.7), P(18, 1.9), P(27.5, 1.1), P(27.5, 0.6), P(18, 1.2), P(3, 1.6)], fill=(255, 255, 255))
         if not guide:
-            for k in range(4):  # 빨강 띠
-                t0 = 6 + k * 6.5; r0 = 2.7 - (t0 - 2.5) * 2.3 / 29; r1 = 2.7 - (t0 + 2 - 2.5) * 2.3 / 29
-                d.polygon([P(t0, r0), P(t0 + 2, r1), P(t0 + 2, -r1), P(t0, -r0)], fill=steel2)
+            # 빨강 띠: 강철 안쪽 폭(외곽선 안)과 같은 폭으로 이어 칠한다 — 띠 사이에 어두운 틈이 끼면 점선 막대처럼 읽힌다(검수)
+            rad = lambda t: 2.7 - (t - 2.5) * 0.8 / 15.5 if t <= 18 else 1.9 - (t - 18) * 0.8 / 9.5
+            for k in range(3):
+                t0 = 6 + k * 7.5; t1 = t0 + 3
+                d.polygon([P(t0, rad(t0)), P(t1, rad(t1)), P(t1, -rad(t1)), P(t0, -rad(t0))], fill=steel2)
         g = P(1.2)
         d.ellipse([g[0] - 4.6 * u, g[1] - 4.6 * u, g[0] + 4.6 * u, g[1] + 4.6 * u], fill=out)
         d.ellipse([g[0] - 3.6 * u, g[1] - 3.6 * u, g[0] + 3.6 * u, g[1] + 3.6 * u], fill=(190, 196, 210))
         d.ellipse([g[0] - 1.6 * u, g[1] - 2.8 * u, g[0] + 0.4 * u, g[1] - 1.2 * u], fill=(250, 252, 255))
+
+
+# 창기사 v6 (검수 regen: "갑옷 면이 돌 얼룩, 투구·둥근 어깨·녹색이 안 섬") — 프롬프트만 바꿔 같은 가이드로 다시
+SPEC['lancer6'] = dict(SPEC['lancer'], who=(
+    'A young lancer knight warrior, proud upright stance with chest out, clean flat polished steel plate armor with large smooth shading '
+    'planes and a few crisp highlights, big rounded steel shoulder pauldrons, a closed knight great helm with a dark horizontal visor slit '
+    'and a small green plume, a forest green tabard over the breastplate down to the knees, a short green cape, gripping a thick wooden '
+    'spear in the front hand. Smooth metal, not stone, not rock texture, not mottled, no hood.' + LIGHT))
 
 
 def gen(classes, seeds=None):
@@ -141,7 +161,7 @@ def gen(classes, seeds=None):
     for cls in classes:
         gd = mannequin(SPEC[cls]); gd.save(os.path.join(RAW, f'_guide5-{cls}.png'))
         for s in seeds or D.SEEDS:
-            out = os.path.join(RAW, f'{cls}5-{s}.png')
+            out = os.path.join(RAW, f'{cls}5-{s}.png' if not cls[-1].isdigit() else f'{cls}-{s}.png')
             if os.path.exists(out): continue
             ims, dt = G('zimg', D.SW.STYLE.format(who=SPEC[cls]['who'], body=D.BODY), seed=s, denoise=0.85, init=gd)
             ims[0].save(out); print(cls, 'v5', s, f'{dt:.1f}s', flush=True)
