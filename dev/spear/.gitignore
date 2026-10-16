@@ -9,3 +9,8 @@ frames-rig/
 __pycache__/
 design/raw/
 qa/
+!work/pl/
+!work/lancer/
+!work/dragoon/
+!work/halberdier/
+!work/cavalier/

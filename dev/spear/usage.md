@@ -10,3 +10,7 @@
 | 4 | mq | `/animate-with-text-v3` | spearB: side view facing right, small chibi knight game sprite with  | 2.0 | 7.0 | 1184.0 |
 | 5 | mq | `/animate-with-text-v3` | halbA: side view facing right, small chibi knight game sprite with  | 2.0 | 9.0 | 1178.0 |
 | 6 | mq | `/animate-with-text-v3` | halbB: side view facing right, small chibi knight game sprite with  | 2.0 | 11.0 | 1175.0 |
+| 7 | cavalier | `/image-to-pixelart` | cavalier5-11-pl: 기준 그림 정리 256→64 | 1.0 | 12.0 | 1122.0 |
+| 8 | dragoon | `/image-to-pixelart` | dragoon5-51-pl: 기준 그림 정리 256→64 | 1.0 | 13.0 | 1121.0 |
+| 9 | lancer | `/image-to-pixelart` | lancer5-51-pl: 기준 그림 정리 256→64 | 1.0 | 14.0 | 1120.0 |
+| 10 | halberdier | `/image-to-pixelart` | halberdier5-51-pl: 기준 그림 정리 256→64 | 1.0 | 15.0 | 1117.0 |

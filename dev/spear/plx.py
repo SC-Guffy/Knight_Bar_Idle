@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
 from pl import call
 
-CAP = 11          # 로드맵 승인 2026-10-16: 원형 마네킹 6호출 usage 11, 재시도 0
+CAP = 18          # 로드맵 승인: 2026-10-16 원형 마네킹 6호출 usage 11 + 2026-10-17 기준 그림 정리 image-to-pixelart 직업당 1회 최대 7 (재시도 0)
 FLOOR = 300
 LOG = os.path.join(HERE, 'usage.md')
 STATE = os.path.join(HERE, 'usage.json')
@@ -108,5 +108,10 @@ if __name__ == '__main__':
         seed = int(a[6]) if len(a) > 6 else 0
         body = {'image': b64file(src), 'description': desc, 'seed': seed, 'no_background': True}
         run('/edit-image-pixen', body, cls, f'{name}: {desc[:60]}', os.path.join(HERE, 'work', cls, name))
+    elif a[1] == 'pixelart':   # plx.py pixelart <cls> <name> <src256.png> [seed]  (검사 세션과 같은 설정: 256 → 64, fixer, init_image_strength 200)
+        cls, name, src = a[2], a[3], a[4]; seed = int(a[5]) if len(a) > 5 else 7
+        body = {'image': b64file(src), 'image_size': {'width': 256, 'height': 256}, 'output_size': {'width': 64, 'height': 64},
+                'fixer': True, 'init_image_strength': 200, 'seed': seed}
+        run('/image-to-pixelart', body, cls, f'{name}: 기준 그림 정리 256→64', os.path.join(HERE, 'work', cls, name))
     elif a[1] == 'bal':
         print('balance', bal(), 'self', state()['used'])
