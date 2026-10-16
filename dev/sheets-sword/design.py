@@ -27,6 +27,15 @@ WHO.update({
     'greatswordsman': 'A rugged greatsword warrior with spiky black hair and a scarred face, dark iron armor with orange-brown leather, '
                       'bare muscular arms, a huge heavy dark iron greatsword resting on the shoulder, gripped with both hands.',
 })
+# 재시안 (로드맵: 검성은 덩어리·얼굴 안 보임, 대검전사는 실사 비율) — 검사·성기사와 같은 밝기·대비
+WHO_R = {
+    'blademaster': 'A dual-wielding blade master in charcoal gray lacquered armor with bright crimson trim, a horned helmet with a glowing red eye slit, '
+                   'a long bright red scarf flowing behind, holding two slim crimson katanas, one in each hand, both blades clearly visible. '
+                   'Bright rim light on the armor edges, high contrast, readable on a dark background.',
+    'greatswordsman': 'A stylized game hero greatsword warrior with spiky black hair and a confident face, steel shoulder plates and brown leather armor '
+                      'with bright orange accents, a huge greatsword with a wide steel blade resting on his right shoulder, gripped with both hands. '
+                      'Bright rim light on the armor edges, high contrast, readable on a dark background.',
+}
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -46,8 +55,8 @@ def init_img(cls):
 
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
-STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C']})
+STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -69,8 +78,11 @@ def gen(dirs):
         for dk in dirs:
             todo = [s for s in SEEDS if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
-                prompt = STYLE.format(who=WHO[cls], body=DIRS[dk])
-                if dk in STRETCH:
+                prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
+                if dk == 'S':          # 같은 비율·밝기: 형태가 좋은 검사 B2-11 원본을 밑그림으로, 직업만 바꿔 그린다
+                    init = Image.open(os.path.join(RAW, 'swordsman-B2-11.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE.format(who=WHO_R[cls], body=DIRS['B']), seed=s, denoise=0.88, init=init)
+                elif dk in STRETCH:
                     f, dn = STRETCH[dk]
                     ims, dt = G('zimg', prompt, seed=s, denoise=dn, init=init_stretch(cls, f))
                 elif dk == 'A':

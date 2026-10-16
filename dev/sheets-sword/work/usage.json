@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 31.0,
+ "used": 33.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -78,7 +78,21 @@
    "purpose": "textB: a holy paladin knight lifts his golden sword high behind his",
    "used": 5.0,
    "bal": 1163.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 1128.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 1127.0
   }
  ],
- "nom": 18.0
+ "nom": 20.0
 }

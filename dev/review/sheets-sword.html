@@ -61,6 +61,19 @@
   </ul>
 </div>
 
+<h2>▣ 뭉개짐 잡기 — 검사·성기사 3단 비교 + 검성·대검전사 재시안 (2026-10-17, PixelLab 2)</h2>
+<div class="card">
+  <b>뭉개짐 원인</b>: ComfyUI(Z-Image 픽셀 LoRA)가 그리는 도트 한 칸이 1024px 그림에서 6~7px, 즉 <b>키 약 120칸짜리 고해상 도트</b>다. 이걸 키 46px 로 줄이면 2.6배 압축이라 갑옷 이음새·명암이 한 칸에 섞여 덩어리가 된다 (줄이는 방식 — 칸마다 최빈색 — 의 문제가 아니라 디테일 밀도가 안 맞음).
+  해결: 46칸에 맞춰 다시 그리는 단계가 필요하다 → PixelLab <code>image-to-pixelart</code> (256 입력 → 64 출력, 원본 충실 모드) 가 이 일을 한다. 그 뒤 손질(14색 · 외톨이 점 정리 · 바깥 1px 외곽선 · 위 가장자리 하이라이트, <code>dev/sheets-sword/polish.py</code>).
+</div>
+<div class="row"><figure><img src="sheets-sword/design/st-compare-x4.png" style="width:auto;height:auto;max-width:100%;image-rendering:pixelated" alt=""><figcaption>왼쪽부터 ① ComfyUI 축소본 · ② PixelLab 정리본 · ③ 정리본 + 손질 (4배)</figcaption></figure></div>
+<div><img src="sheets-sword/design/st-compare-scene.png" style="max-width:100%;image-rendering:pixelated" alt=""><div class="dim">게임 화면 (화면 2배): 검사 ①②③ · 성기사 ①②③</div></div>
+<div class="card"><b>관찰</b>: ② 에서 검사 얼굴·투구, 성기사 방패·칼의 도트 덩어리가 정돈되어 흐림이 풀렸다. ③ 은 외곽선이 생겨 어두운 바탕에서 떠 보인다. PixelLab 응답 usage 각 1 (합 2, 계열 합계 20).</div>
+<h3 style="font-size:13px;color:var(--gold)">검성 · 대검전사 재시안 (ComfyUI, 검사 B2-11 원본을 밑그림으로 — 같은 비율·밝기)</h3>
+<div class="dim">지금 스프라이트를 밑그림으로 하면 프롬프트를 바꿔도 예전처럼 검은 덩어리·실사 비율로 돌아가서, 형태가 좋은 검사 원본을 밑그림(denoise 0.88)으로 직업만 바꿔 그렸다.</div>
+<div class="row"><figure><img src="sheets-sword/design/t-blademaster-S-11.jpg" style="width:150px;height:150px;image-rendering:auto" alt=""><figcaption>검성 · 11</figcaption></figure><figure><img src="sheets-sword/design/t-blademaster-S-23.jpg" style="width:150px;height:150px;image-rendering:auto" alt=""><figcaption>검성 · 23 ★</figcaption></figure><figure><img src="sheets-sword/design/t-blademaster-S-37.jpg" style="width:150px;height:150px;image-rendering:auto" alt=""><figcaption>검성 · 37</figcaption></figure><figure><img src="sheets-sword/design/t-blademaster-S-51.jpg" style="width:150px;height:150px;image-rendering:auto" alt=""><figcaption>검성 · 51</figcaption></figure><figure><img src="sheets-sword/design/t-greatswordsman-S-11.jpg" style="width:150px;height:150px;image-rendering:auto" alt=""><figcaption>대검전사 · 11</figcaption></figure><figure><img src="sheets-sword/design/t-greatswordsman-S-23.jpg" style="width:150px;height:150px;image-rendering:auto" alt=""><figcaption>대검전사 · 23</figcaption></figure><figure><img src="sheets-sword/design/t-greatswordsman-S-37.jpg" style="width:150px;height:150px;image-rendering:auto" alt=""><figcaption>대검전사 · 37</figcaption></figure><figure><img src="sheets-sword/design/t-greatswordsman-S-51.jpg" style="width:150px;height:150px;image-rendering:auto" alt=""><figcaption>대검전사 · 51 ★</figcaption></figure></div>
+<div class="row"><figure><img src="sheets-sword/design/v2-four.png" style="width:auto;height:auto;max-width:100%;image-rendering:pixelated" alt=""><figcaption>검사(③) · 성기사(③) · 검성 재시안 · 대검전사 재시안 (키 46, 4배 — 검성·대검전사는 아직 ComfyUI 축소본)</figcaption></figure></div>
+<div><img src="sheets-sword/design/v2-scene.png" style="max-width:100%;image-rendering:pixelated" alt=""><div class="dim">게임 화면 (화면 2배)</div></div>
 <h2>▣ 확정 방향 B(3등신)·키 1.3배 — 2차 4종 기준 그림 후보 (ComfyUI, PixelLab 0회)</h2>
 <div class="card dim">사용자 확정 (2026-10-16): 그림체 B, 게임 안 키 1.3배(약 46px). 검사 계열이 그림체 기준이다. 아래는 ComfyUI 시안을 키 46px 로 줄인 것 — 이것을 PixelLab <code>image-to-pixelart</code> 로 정리해 기준 그림으로 쓴다 (계획서 승인 대기).</div>
 <div class="row"><figure><img src="sheets-sword/design/b46-four.png" style="width:auto;height:auto;max-width:100%;image-rendering:pixelated" alt=""><figcaption>검사 · 성기사 · 검성 · 대검전사 (키 46, 4배)</figcaption></figure></div>
