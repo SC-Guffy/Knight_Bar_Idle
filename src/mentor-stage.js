@@ -1,31 +1,36 @@
 'use strict';
 // 🎓 교관 수련 무대 (마을 → 훈련장 아래 <canvas class="mstage">). 규칙은 mentor.js, 스펙은 docs/specs/training-mentors.md.
 // 왼쪽에 내 기사, 오른쪽에 큼직한 교관, 뒤에 교관 장소 배경. 수련(★1~4)과 승부(★5)의 연출을 그린다.
-// 결과는 연출 전에 이미 정해져 있다 (mentor.js mentorTry — 📕 로 확정 · 서버 승부). 무대를 누르면 연출을 건너뛴다.
+// 결과는 연출 전에 이미 정해져 있다 (mentor.js mentorTry — 📕 + 확률 · 서버 승부). 무대를 누르면 연출을 건너뛴다.
 
 const mentorUi = { view: null, anim: null, preview: null, busy: false, gain: null };   // gain: 방금 단 별의 전후 스냅샷 (ui.js mentorGainLine)
 const MS_CELL = 4;                 // 교관 도트 1칸 = 4px (기사는 PX=3 — 교관이 한눈에 크게 보이게)
 const MS_W = 28, MS_H = 32;        // 교관 스프라이트 칸 수 (발끝 가운데 = 14열)
 
-// 교관 대사 — ok: 수련(★1~4) 완료 · win: 승부에서 졌을 때(기사 승리) · lose: 기사가 졌을 때 · done: 수료 후
+// 교관 대사 — fail: 수련(★1~4) 실패 (0.24.0 확률 수련) · ok: 수련(★1~4) 완료 · win: 승부에서 졌을 때(기사 승리) · lose: 기사가 졌을 때 · done: 수료 후
 const MENTOR_SAY = {
   sword: {
+    fail: ['아직이다. 검끝이 흔들렸다.', '서두르지 마라. 다시.', '마음이 앞섰구나.'],
     ok: ['음. 다음 단계로 넘어가도 되겠군.', '호오… 제법이구나.', '좋다. 그 감각을 잊지 마라.'],
     win: '훌륭하다… 더 가르칠 것이 없구나.', lose: ['아직 멀었다. 더 단련하고 오너라.', '검은 마음으로 휘두르는 것이다.'], done: '네 검은 이미 내 손을 떠났다.',
   },
   shield: {
+    fail: ['어깨가 아직 가볍다. 다시.', '그걸로는 못 버틴다.', '한 번 더. 발을 붙여라.'],
     ok: ['버티는 법을 알았군. 통과다.', '좋아, 어깨가 단단해졌어.', '음. 쓸 만한 방패잡이로군.'],
     win: '내 방패를 넘다니… 수료다.', lose: ['방패는 아직 뚫리지 않았다.', '더 무거워져서 와라.'], done: '성문은 이제 네가 지켜라.',
   },
   hunter: {
+    fail: ['…숨소리가 들렸다.', '사냥감이 도망갔다. 다시.', '아직 눈이 바쁘구나.'],
     ok: ['…좋아. 숨소리가 사라졌어.', '그 눈빛이면 됐다.', '숲이 너를 받아들였다.'],
     win: '내 화살보다 빨랐다. 인정하지.', lose: ['넌 아직 사냥감이다.', '다시 숲에 숨어 보아라.'], done: '숲길은 이제 네 것이다.',
   },
   brute: {
+    fail: ['미지근하다! 다시!', '흥, 그 정도로는 안 데워진다!', '더 세게! 뼈를 울려 봐라!'],
     ok: ['흥, 뼈는 좀 있구나!', '좋다! 피가 끓는군!', '크하하, 마음에 든다!'],
     win: '크윽… 네 불길이 더 뜨거웠다!', lose: ['흐하하! 다시 달궈 와라!', '아직 쇠가 덜 달궈졌다!'], done: '화산의 불은 이미 네 안에 있다.',
   },
   sage: {
+    fail: ['허허… 아직 흐름이 끊기는구나.', '별이 구름에 가렸구나. 다시.', '조급함이 보인다.'],
     ok: ['허허… 별이 너를 비추는구나.', '흐름을 탔구나. 다음으로.', '좋다. 고요함이 보인다.'],
     win: '허허… 이제 별이 너를 따르겠구나.', lose: ['아직 하늘이 멀구나.', '별은 서두르지 않는다.'], done: '하늘 끝에서 다시 보자꾸나.',
   },
@@ -362,6 +367,13 @@ function drawStarBar(g, W, n, t, pulse, pop) {
   }
   g.restore();
 }
+// 실패 점: 다음 별 칸(k) 아래 작은 점 MENTOR_PITY 개 — 찬 점은 주황, 다 차면 금색(다음은 확정)
+function drawFailDots(g, W, k, n) {
+  const c = starSlot(W, k), full = n >= MENTOR_PITY, s = 5, gap = 4, w = MENTOR_PITY * s + (MENTOR_PITY - 1) * gap;
+  const x0 = Math.round(c.x - w / 2), y = Math.round(c.y + c.sw / 2 + 9);
+  msR(g, x0 - 2, y - 2, w + 4, s + 4, 'rgba(10,8,20,.6)');
+  for (let q = 0; q < MENTOR_PITY; q++) msR(g, x0 + q * (s + gap), y, s, s, q < n ? (full ? '#ffd257' : '#ff8a5a') : '#3a3550');
+}
 function msFont(px, bold) { return `${bold ? 800 : 400} ${px}px Galmuri11, -apple-system, sans-serif`; }
 // 말풍선 (n 글자까지 — 타자 치듯)
 function drawBubble(g, text, x, y, W, n = text.length) {
@@ -487,14 +499,17 @@ const msSay = (a, text) => { a.bubble = { text, at: a.lt }; };
 // 기사가 날아간다 (승부 패배)
 const msLaunch = (a) => Object.assign(a.k, { fly: true, vx: -300, vy: 260, spin: -10, bounced: false, sit: false });
 
-// ★1~4 수련 연출 (결과 r = mentorTry 의 반환 — 실패가 없어서 성공 연출만, 약 3초)
-//  📕 이 기사 머리 위에서 펼쳐져 교관 쪽으로 날아감 (T0) → 달려 들어가 공격 1회 · 교관이 막음 → 끄덕 + 대사 → 큰 별이 칸에 쾅
+// ★1~4 수련 연출 (결과 r = mentorTry 의 반환 — 성공 약 3.5초 · 실패 약 2.8초)
+//  📕 이 기사 머리 위에서 펼쳐져 교관 쪽으로 날아감 (T0) → 달려 들어가 공격 1회 · 교관이 막음 → 숨 고르기(조명·다음 별 칸 깜빡임, R0~R)
+//  → 성공: 끄덕 + 대사 → 큰 별이 칸에 쾅 / 실패: 기사가 밀려나고 교관이 고개를 저음 + 대사 → 별 칸 아래 실패 점이 하나 찬다
 function mentorPlayTry(i, r, gain) {
   const m = MENTORS[i], say = MENTOR_SAY[m.id];
   const T0 = 0.45, swings = 1;
-  const R0 = T0 + 0.24 + swings * 0.36 + 0.1, R = R0;
-  const a = msNewAnim('try', i, { ok: true, star: r.star, stars: r.star - 1, swings, T0, R0, R, end: R + 1.85, book: { at: 0 } });
+  const R0 = T0 + 0.24 + swings * 0.36 + 0.1, R = R0 + 0.55;
+  const a = msNewAnim('try', i, { ok: r.ok, star: r.star, stars: r.star - 1, swings, T0, R0, R, end: r.ok ? R + 1.85 : R + 1.5, book: { at: 0 },
+    fail: r.fail, failShown: r.ok ? 0 : Math.max(0, r.fail - 1), sure: r.sure });
   msCue(a, 0.12, (a, W, H, P) => msBurst(a, P.kx0, P.gy - 84, 10, ['#fff1b0', '#ffd257', '#ffffff'], 90, { g: 0, life: 0.4 }));   // 책이 펼쳐지며 빛
+  if (r.sure) msCue(a, 0.15, (a, W, H, P) => msFx(a, { kind: 'sfx', text: '확정!', x: P.kx0, y: P.gy - 112, col: '#ffd257', size: 16 }));
   msCue(a, T0, (a, W, H, P) => { a.book = null; msBurst(a, P.mx - 12, P.gy - 80, 12, ['#ff8a7a', '#ffd257', '#ffffff'], 140, { g: 60, life: 0.4 }); msRing(a, P.mx - 12, P.gy - 80, '#ffd257', 40, 0.3); });
   msCue(a, T0 + 0.01, (a, W, H, P) => msDust(a, P.kx0, P.gy, 6));     // 박차고 달려 나간다
   // 공격 → 교관이 막는다 (챙!)
@@ -506,17 +521,31 @@ function mentorPlayTry(i, r, gain) {
       a.m.recoilAt = a.lt;
     });
   }
+  // 숨 고르기: 조명이 좁혀지고 다음 별 칸이 깜빡인다
+  msCue(a, R0, (a) => { a.spotT = 0.35; a.pulse = 1; });
+  msCue(a, R, (a) => { a.spotT = 0; a.pulse = 0; });
   msCue(a, R + 0.05, (a) => msSay(a, a.say));
-  msCue(a, R + 0.3, (a, W, H, P) => {
-    a.bigStar = { at: a.lt, x: Math.round(P.W * 0.47), y: 96 };
-    a.flash = { col: '#ffe9a0', a: 0.5 };
-    msBurst(a, Math.round(P.W * 0.47), 96, 16, ['#fff1b0', '#ffd257', '#ffffff'], 150, { g: 60, life: 0.6 });
-  });
-  msCue(a, R + 1.2, (a, W) => msSlam(a, W, a.star - 1, false));
-  msCue(a, R + 1.33, (a, W, H) => { msFx(a, { kind: 'banner', text: `★${a.star} 수련 완료!`, y: H * 0.46, col: '#ffe066', size: 28 }); msConfetti(a, W, 30); a.k.hop = a.lt; });
-  msGainCue(a, gain, R + 1.4);
-  a.end = Math.max(a.end, gain ? R + 2.9 : 0);
-  a.say = pickSay(say.ok);
+  if (r.ok) {
+    msCue(a, R + 0.3, (a, W, H, P) => {
+      a.bigStar = { at: a.lt, x: Math.round(P.W * 0.47), y: 96 };
+      a.flash = { col: '#ffe9a0', a: 0.5 };
+      msBurst(a, Math.round(P.W * 0.47), 96, 16, ['#fff1b0', '#ffd257', '#ffffff'], 150, { g: 60, life: 0.6 });
+    });
+    msCue(a, R + 1.2, (a, W) => msSlam(a, W, a.star - 1, false));
+    msCue(a, R + 1.33, (a, W, H) => { msFx(a, { kind: 'banner', text: `★${a.star} 수련 완료!`, y: H * 0.46, col: '#ffe066', size: 28 }); msConfetti(a, W, 30); a.k.hop = a.lt; });
+    msGainCue(a, gain, R + 1.4);
+    a.end = Math.max(a.end, gain ? R + 2.9 : 0);
+    a.say = pickSay(say.ok);
+  } else {
+    // 교관이 흘려 내고 기사가 밀려난다 (큰 도장 없이 작게)
+    msCue(a, R, (a, W, H, P) => { a.k.ox -= 18; msDust(a, P.kx, P.gy, 5); a.shake = Math.max(a.shake, 2); });
+    msCue(a, R + 0.55, (a, W, H) => {
+      a.failShown = a.fail;
+      const left = MENTOR_PITY - a.fail;
+      msFx(a, { kind: 'banner', text: left > 0 ? `아쉽다! 실패 ${a.fail}/${MENTOR_PITY}` : '아쉽다! 다음은 확정', y: H * 0.46, col: '#ff9a8a', size: 20 });
+    });
+    a.say = pickSay(say.fail);
+  }
   mentorUi.anim = a;
 }
 // 📕 수련의 서 (빨간 표지 + 금박 띠) — 2px 도트. open 0~1: 덮인 책 → 펼친 책
@@ -592,6 +621,7 @@ function mentorSkip() {
   a.skipped = true;
   if (a.kind === 'duel' && !a.finished) { const f = a.res.fight; a.shown = f.events.length; a.finished = true; a.hpShow = { a: f.events.length ? f.events[f.events.length - 1].hpA / f.maxA : 1, b: f.events.length ? f.events[f.events.length - 1].hpB / f.maxB : 1 }; if (a.ok) a.m.kneelAt = a.lt - 1; else Object.assign(a.k, { sit: true, ox: -60 }); }
   a.stars = a.ok ? a.star : a.stars;
+  if (a.kind === 'try' && !a.ok) a.failShown = a.fail;
   a.cues = []; a.parts = []; a.fx = a.fx.filter((x) => x.kind === 'stamp' && x.text !== 'VS');
   a.bigStar = null; a.stop = 0; a.slow = 1; a.spotT = 0; a.zoomT = 1; a.pulse = 0;
   a.book = null;
@@ -683,6 +713,7 @@ function drawMentorStage() {
       if (a.m.recoilAt != null && lt - a.m.recoilAt < 0.14) { mPose.lean = 0.07; mPose.dx = 6; }
       const r = lt - a.R;
       if (a.ok && r >= 0 && r < 0.75) mPose.nod = Math.sin(r / 0.375 * Math.PI) > 0 ? 1 : 0;
+      if (!a.ok && r >= 0 && r < 0.7) { mPose.lean = 0.05 * Math.sin(r * 26); mPose.dx = Math.round(Math.sin(r * 26) * 2); }
     } else {
       const La = a.last_a, Lb = a.last_b;
       if (La && a.lt - La.at < 0.3) { kPose.swing = (a.lt - La.at) / 0.3; kPose.combo = La.n; }
@@ -747,6 +778,9 @@ function drawMentorStage() {
   // 화면 위에 붙는 것: 말풍선 · 별 칸 · 글자 효과 · 번쩍
   if (bubble) drawBubble(g, bubble.text, mx - 30, gy - MS_H * MS_CELL - 14, W, bubble.n);
   drawStarBar(g, W, stars, t, pulse, slotPop);
+  // 실패 점 (★1~4 차례 — 다음 별 칸 아래, MENTOR_PITY 칸)
+  const fShow = a && a.kind === 'try' ? (a.ok ? null : a.failShown) : i === mentorCur() && !mentorDuelTurn(i) && !mentorDone(i) ? mentorFails() : null;
+  if (fShow != null && stars < MENTOR_STARS - 1) drawFailDots(g, W, stars, fShow);
   if (a) msDrawParts(g, a, true);
   if (a) for (const x of a.fx) drawFxText(g, x, W, H);
   if (a && a.flash) { g.globalAlpha = Math.max(0, Math.min(1, a.flash.a)) * 0.85; msR(g, 0, 0, W, H, a.flash.col); g.globalAlpha = 1; }

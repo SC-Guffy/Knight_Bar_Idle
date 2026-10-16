@@ -527,7 +527,11 @@ function viewMentor() {
   } else {
     const need = mentorNeed(i), have = mentorBooks(), lack = need - have;
     const blk = mentorTryBlocker(i);
-    info = `<b>★${n + 1} 수련 · 📕 ${need} 필요 (보유 ${have})</b><small>지금 ${now} → 다음 별 ${mentorSpText(mentorSpAt(i, n + 1))}<br>다음 별: ${mentorNextText(i, n + 1)}</small>`;
+    // 확률 수련 (0.24.0): 성공 확률·한 번 비용·실패 점 (●●○ — MENTOR_PITY 번 실패하면 다음은 확정)
+    const sure = mentorSure(), f = mentorFails();
+    const odds = sure ? '<span style="color:#ffd257">확정</span>' : `${Math.round(mentorOdds(i) * 100)}%`;
+    const dots = `실패 <span style="color:#ffd257;letter-spacing:1px">${'●'.repeat(Math.min(f, MENTOR_PITY))}${'○'.repeat(Math.max(0, MENTOR_PITY - f))}</span>${sure ? ' — 이번은 확정!' : f === MENTOR_PITY - 1 ? ' — 한 번 더 실패하면 다음은 확정' : ` — ${MENTOR_PITY}번 실패하면 다음은 확정`}`;
+    info = `<b>★${n + 1} 수련 · 성공 ${odds} · 📕 ${need} (보유 ${have})</b><small>${dots}<br>지금 ${now} → 다음 별 ${mentorSpText(mentorSpAt(i, n + 1))} · 다음 별: ${mentorNextText(i, n + 1)}</small>`;
     btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">📕 수련하기</button>`;
     if (lack > 0) btn = `<span class="warn">📕 ${lack}권 모자라요</span>${btn}<button class="btn" data-action="goto-castle">🏰 성벽 지키기로</button>`;
   }
@@ -2960,7 +2964,11 @@ const ACTIONS = {
   'mentor-try': () => {
     if (mentorUi.anim) return;
     const i = mentorCur(), a = mentorSnap(), r = mentorTry(i);
-    if (r) { mentorUi.view = i; mentorUi.gain = { i, star: r.star, a, b: mentorSnap(), text: mentorStarGainText(i, r.star) }; mentorPlayTry(i, r, mentorUi.gain); }
+    if (!r) return;
+    save();     // 결과를 보기 전에 저장 — 새로 고침으로 실패를 되돌리지 못하게
+    mentorUi.view = i;
+    mentorUi.gain = r.ok ? { i, star: r.star, a, b: mentorSnap(), text: mentorStarGainText(i, r.star) } : null;
+    mentorPlayTry(i, r, mentorUi.gain);
   },
   'mentor-duel': () => {
     if (mentorUi.anim || mentorUi.busy) return;

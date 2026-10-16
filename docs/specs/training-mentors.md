@@ -5,7 +5,7 @@
 - 브랜치: `season6` (③ 성벽 지키기와 같은 패치로 낸다 — [roadmap.md](roadmap.md) 진행 순서)
 - 관련 스펙: [castle-defense.md](castle-defense.md) (📕 수련의 서 수급 — 작성 중), [roadmap.md](roadmap.md) "결정 사항"
 - 관련 코드: src/data.js (`MENTOR_ON`, `TRAIN_MAX`, `trainCapAt`, `TRAINING`, `BUILDINGS.training`, `MENTORS`·`MENTOR_*`), src/mentor.js (규칙: `mentorLock`·`mentorNeed`·`mentorTry`·`mentorDuelLeft`·`mentorSettle`·`mentorTodo`·`migrateMentor`·보너스), src/mentor-stage.js (무대: 교관 스프라이트·배경·연출·대사), src/core.js (`freshState` `books`, migrate → `migrateMentor`, `claimMail` 의 `books`), src/gear.js (`gearBonus`·`gearBonusParts` — 교관 보너스 합산), src/ui.js (`viewTraining` 탭·`viewMentor`·`mentorSpText`·`mentorPreview`, 액션 `train-tab`·`goto-castle`·`mentor-*`, 우편 `books`·함수 문단), src/town.js (`townTodo`), src/net.js (`fetchMentor`·`requestMentorDuel`), server/index.js (`GET /api/mentor`·`POST /api/mentor/duel` — `MENTOR_DUEL_DAY`·`mentorDay` 하루 횟수, `MENTOR_OPEN_STAGE`), server/mentor.js (교관 프로필·배수), server/mentor-k.json (계열×교관×레벨 배수 표), server/bots.js (`curveAtLevel`), server/bot-curve.json, dev/mentor-sim.js (배수 보정), dev/progress-bot.js·dev/bot-curve.js (`playMentors`)
-- 최종 갱신: 2026-10-16 (**★1~4 확률 수련 개정안 — 사용자 확인 대기**, 아래 "★1~4 — 확률 수련 (10-16 개정안)". 지금 코드는 아직 확정 상승)
+- 최종 갱신: 2026-10-16 (**0.24.0 ★1~4 확률 수련 구현** — 사용자가 제안대로 승인(천장 3번 · 실패 시 📕 전부 소모 · 시작안 표). 사용자 화면 확인 대기)
 - 개정안 검토 페이지: `dev/review/mentor-odds.html` (확률·비용 표를 바꿔 보며 기대 📕·며칠 걸리는지 시뮬)
 
 ## 이번 개정 요약 (0.20.0 판 → 시즌6 판)
@@ -14,7 +14,7 @@
 |---|---|---|
 | 1차 훈련 한도 | Lv 50 (훈련장 Lv5) — 넘는 몫 환급 | **Lv 200 그대로** (훈련장 Lv 20) — 환급 없음 |
 | 교관이 열리는 조건 | 1차 수료 + 훈련장 Lv 6·7·8·9·10 | **최고 스테이지 40** (성벽 지키기와 같이) + 앞 교관 ★5 |
-| ★1~4 | 골드 + 확률 (눈도장) | ~~📕 n권 → 확정~~ → **10-16 개정안: 📕 + 보이는 확률 + 천장(3번 실패 뒤 확정)** |
+| ★1~4 | 골드 + 확률 (눈도장) | ~~📕 n권 → 확정~~ → **0.24.0: 📕 + 보이는 확률 + 천장(3번 실패 뒤 확정)** |
 | ★5 | 교관과 승부 · 도전비 골드 · 횟수 무제한 | 교관과 승부 (그대로) · **도전비 없음 · 하루 3회** |
 | 별 보너스 | 전투 능력치 + 경험치 +4%/별 | **전투 능력치만** (경험치 뺌) |
 | 화면 | 훈련장 카드 아래에 1차 훈련 → 수료 칩 → 무대 | 훈련장 카드 아래 **탭 두 개: 🎯 훈련 · 🎓 교관** |
@@ -62,7 +62,7 @@
 - **경험치 보너스(`MENTOR_EXP = 0.04`, 별 25개 = +120%)는 뺀다.** 1차 훈련을 Lv 50 에서 끊어 수완이 +150% 에서 멈춘 만큼을 메우려고 넣은 것이었다. Lv 200 을 유지하면 그 이유가 없다. 남기면 교관이 "안 하면 레벨업이 느려지는" 숙제가 된다. (Lv 50 으로 되돌리면 남긴다.)
 - 효과는 장비 옵션 줄과 같은 키(`atkPct`·`hpPct`·`guard`·`aspdPct`·`crit`·`critMult`·`bossDmg`·`skillDmg`)로 `gearBonus()` 에 더한다 (그대로). 받는 피해 감소는 장비 guard 와 합쳐 기존 상한(60%) 안.
 
-### ★1~4 — 확률 수련 (10-16 개정안 · 사용자 확인 대기)
+### ★1~4 — 확률 수련 (0.24.0 — 10-16 사용자 승인 "제안대로 진행해")
 
 사용자 요청 (10-16): "교관 ★1~4 수련에 다시 성공 확률을 넣고 싶어". 0.22.x 의 확정 상승은 성공률 100% 라 누르는 맛이 없다.
 0.20.0 판 확률 수련이 "직관적이지 않다"는 평을 받은 이유(숨은 눈도장 +5%p, 끝이 안 보이는 실패, 재화 골드)를 피해서 다시 넣는다.
@@ -95,13 +95,10 @@
 
 **이행**: `S.mentor.fail` 이 없으면 0. 이미 받은 별·📕 은 그대로. 확정 표 → 확률 표로 바뀌며 아무도 별을 잃지 않는다.
 
-**고를 것 (사용자 결정)**
+**정한 것 (10-16 사용자 "제안대로 진행해")**: 천장 3번 · 실패 시 📕 전부 소모 · 위 시작안 표 그대로.
+코드: data.js `MENTOR_ODDS`·`MENTOR_TRY_BOOKS`·`MENTOR_PITY` (`MENTOR_BOOKS` 삭제), mentor.js `mentorTry(i, rnd)`·`mentorOdds`·`mentorSure`·`mentorFails`·`S.mentor.fail`, ui.js 확률 줄·실패 점 + 시도 직후 `save()`, mentor-stage.js 숨 고르기·실패 갈래·`drawFailDots`·`MENTOR_SAY[].fail`. 봇(`playMentors`)은 `mentorTry` 를 그대로 불러 확률이 저절로 들어간다.
 
-1. 천장 3번 (권장) / 천장 없음 (실패마다 +확률로 올라가는 방식 — 0.20.0 판과 비슷해져 덜 직관적) / 천장 2번 (더 순함).
-2. 실패 시 📕 전부 소모 (권장) / 절반 돌려줌 (덜 아프지만 표가 복잡해짐).
-3. 위 확률·비용 표 (검토 페이지에서 바꿔 보며 정함).
-
-### (이전) ★1~4 — 📕 수련의 서로 확정 상승 (0.22.0~ 지금 코드 — 개정안이 확정되면 바뀜)
+### (이전, 0.22.0~0.23.x) ★1~4 — 📕 수련의 서로 확정 상승 — 0.24.0 확률 수련으로 바뀜
 
 - 📕 수련의 서 n권을 내면 **바로 별 하나**. 확률·실패·눈도장 없음. 골드는 받지 않는다 (아래 "골드를 같이 받을까").
 - 필요한 📕 (`MENTOR_BOOKS[교관][별−1]`, 시작안):
@@ -205,11 +202,12 @@
 
 - 타임라인(cue) + 손맛 장치(멈칫·슬로 모션·흔들림·카메라 확대·번쩍·조명·입자·의성어·도장·띠·타자 말풍선). 무대를 누르면 끝 장면으로 건너뛴다.
 
-### 수련 연출 (★1~4) — 10-16 개정안: 성공·실패 두 갈래
+### 수련 연출 (★1~4) — 0.24.0: 성공·실패 두 갈래
 
-- 확률이 돌아오면 0.20.0 판의 **숨 고르기(긴장 0.6초)** 와 **실패 갈래**를 다시 넣는다. 성공 갈래는 아래 지금 연출 그대로.
-- 실패: 기사 공격을 교관이 흘림 → 기사 휘청 + 교관 고개 저음 + 실패 대사 (`MENTOR_SAY[].fail` — 교관마다 3개, 새로 씀. 0.22 에서 지웠다) → 별 칸 옆 실패 점이 하나 찬다 (`●●○`). 큰 `탈락!` 도장은 쓰지 않는다 (작고 덜 아프게, 약 2.5초).
-- 천장 차례(3번 실패 뒤)는 시도 버튼에 `확정` 칩, 연출은 성공 갈래.
+- **숨 고르기 0.55초**: 공격이 막힌 뒤 조명이 좁혀지고 다음 별 칸이 깜빡인다. 성공 갈래는 아래 연출 그대로 (약 3.5초). 실패 갈래는 약 2.8초.
+- 실패: 기사가 18px 밀려나고(먼지) 교관이 고개를 젓는다 + 실패 대사 (`MENTOR_SAY[].fail` — 교관마다 3개, 새로 씀) → 띠 `아쉽다! 실패 n/3` (3번째면 `아쉽다! 다음은 확정`) + 다음 별 칸 아래 실패 점이 하나 찬다. 큰 `탈락!` 도장은 쓰지 않는다.
+- 실패 점: 무대 별 칸 줄 아래 작은 네모 3개 (`drawFailDots` — 찬 점 주황, 다 차면 금색). 무대 아래 한 줄에도 `실패 ●●○ — 한 번 더 실패하면 다음은 확정`.
+- 천장 차례(3번 실패 뒤)는 한 줄에 `성공 확정 · 실패 ●●● — 이번은 확정!`, 연출은 성공 갈래 + 책이 펼쳐질 때 `확정!`.
 
 #### (지금 코드) 성공만, 짧게
 
@@ -294,18 +292,19 @@
 - 승부 난이도 (×0.6 곡선·새 k): `--lines --levels 72,97,123,148` 240칸 중 239칸 목표 ±10%p 안, 1칸만 아콘 Lv72 방패 교관 39% (목표 50%, −11%p). `--weak 0.5 --levels 80` → 교관 다섯 모두 0%.
 - 진행 봇 `node dev/progress-bot.js --days 4 --seeds 6` (성벽 봇과 합친 뒤): 교관 열림 6.0h, 📕 하루 13.9권 (성벽 봇 실수급). 이 봇은 전직·스킬을 하지 않아 교관 승부를 4일 내내 진다 (예상대로 — 덜 갖춘 기사). 승부 난이도는 bot-curve 로 본다.
 
-## 수용 기준 — 10-16 확률 수련 개정안 (구현 때 확인)
+## 수용 기준 — 0.24.0 확률 수련 (2026-10-16 확인)
 
-- [ ] 버튼 옆에 성공 확률·한 번 비용·실패 점(●●○)이 보인다. 천장 차례면 `확정`.
-- [ ] vm 10만 번: 교관·별마다 성공 비율이 표의 p ±0.5%p, 실패 3번 뒤 4번째는 항상 성공, 다섯 명 ★1~4 기대 📕 107 ± 1.
-- [ ] 실패하면 📕 c권만 줄고 별·골드 그대로, 성공하면 `fail` 0. 시도 직후 세이브되어 새로 고침해도 결과가 그대로.
-- [ ] 이행: `fail` 없는 세이브 → 0, 별·📕 그대로.
-- [ ] 레드닷: 📕 ≥ 한 번 비용 c 일 때.
-- [ ] 연출: 성공·실패 두 갈래, 실패 대사가 교관마다 다르다. 좁은 창에서 실패 점 줄이 한 줄.
-- [ ] 진행 봇 `node dev/progress-bot.js --days 4 --seeds 6 --rev origin/main --rev .` — 첫 ★5·별 10·15 도달 시각이 확정 표와 ±10% 안.
+- [x] 한 줄에 `★3 수련 · 성공 40% · 📕 2 (보유 14)` / `실패 ●●○ — 한 번 더 실패하면 다음은 확정`. 천장 차례면 `성공 확정` · `이번은 확정!` — 내장 브라우저.
+- [x] 게임 콘솔에서 `mentorTry` 직접: 칸마다 첫 시도 10만 번 → 표의 p 와 최대 0.28%p 차. 칸마다 2만 번 별 따기 → 4번째 시도는 항상 `sure` 성공, 5번째 시도 없음. 다섯 명 ★1~4 평균 📕 **107.2**.
+- [x] 실패: 📕 10 → 9, 별·골드 그대로, `fail` 1. 실패 3번 뒤 `mentorSure()` true · `mentorOdds` 1 → 성공 `{ ok, sure }`, 별 +1, `fail` 0. 버튼으로 시도하면 바로 localStorage 세이브에 `fail` 이 들어간다.
+- [x] 이행: `migrateMentor({ stars: [5,2,0,0,0], … })` → `fail` 0, 별 그대로.
+- [x] 레드닷: `mentorNeed` 가 한 번 비용이 되어 📕 ≥ c 일 때 (📕 14 · 비용 2 → 수련 버튼·교관 탭에 점).
+- [x] 연출: 시각 고정 캡처 — 실패(0.95s 막힘 `캉!` → 1.5s 숨 고르기 조명 → 1.85s 밀려남 + 대사 → 2.5s `아쉽다! 실패 2/3`, 별 칸 아래 점 2개) / 성공(숨 고르기 → 큰 별 → `★3 수련 완료!` + 능력치). 375px 에뮬에서 한 줄 넘침 없음.
+- [x] 진행 봇 `node dev/progress-bot.js --days 5 --seeds 12 --rev origin/main --rev .` (확정 → 확률): 별 5 · 10 · 15 도달 9.9/9.9 · 48.1/48.0 · 96.1/96.1시간 — 같다 (승부가 하루 단위라 별 10·15 는 승부 날이 정한다). 별 합계 중앙 15 → 17, 최고 스테이지 220 → 217 (시드 흔들림 안). 4일·6시드는 별 5 9.5 → 9.8h.
 
 ## 진행 기록
 
+- 2026-10-16 **0.24.0 구현**: 사용자 "ㅇㅇ 제안대로 진행해" → 천장 3 · 실패 소모 · 시작안 표. 위 수용 기준.
 - 2026-10-16 **확률 수련 개정안 (스펙만, 구현 전)**: 사용자 "지금 교관 성공률이 100%인거같은데?" → 확정 상승(시즌6 판 규칙)이라 설명 → "★1~4 수련에 다시 성공 확률을 넣고 싶어. 스펙부터". 위 "★1~4 — 확률 수련 (10-16 개정안)" — 보이는 확률 + 천장 3번 + 📕 한 번 1~4권, 기대 107권(확정 110권). 시뮬 중앙 9.6일. 확인 대기.
 
 - 2026-10-13: 사용자 결정 — 1차 훈련 만렙 50, 다 찍으면 2차로. 재화는 골드(1차가 끝나면 골드 하수구가 사라지므로 기본 비용 높게). 훈련장 Lv1~5 = 1차, Lv6~20 = 2차.
@@ -345,7 +344,7 @@
 
 ## 남은 일 / 미정
 
-- [ ] **10-16 확률 수련 개정안 확인** (천장 수·실패 환급·표) → 구현: data.js `MENTOR_ODDS`·`MENTOR_TRY_BOOKS`·`MENTOR_PITY` (`MENTOR_BOOKS` 대체), mentor.js `mentorTry`(난수·fail)·`mentorNeed`→한 번 비용·`migrateMentor`, mentor-stage.js 실패 갈래·`MENTOR_SAY[].fail`, ui.js 확률 줄·실패 점, 봇 `playMentors`.
+- [ ] 0.24.0 확률 수련 — 사용자 화면 확인 (확인 방법의 `fail` 스니펫).
 
 - [ ] **castle-defense.md 와 맞출 값 (미정)**: 성벽 보상 계수가 바뀌면 📕 표 비례 조정(기준 110권 ≈ 무료 10일) · 교관 다 끝낸 뒤 📕 처리(🧱 성벽돌로 바꿔 주기?) · 해금 스테이지(40, ±5 면 `MENTOR_OPEN_STAGE`·server `MENTOR_OPEN_STAGE` 도 따라감). `🏰 성벽 지키기로` 는 도전 탭 성벽 화면(`subView = 'castle'`)으로 정했다.
 - [x] 구현 순서 (③ 패치, 10-14 끝): data.js 연결 끊기(`TRAIN_MAX`·훈련장 max) → `MENTORS` 에서 `bld`·`expPct` 빼고 `MENTOR_BOOKS`·`MENTOR_OPEN_STAGE`·`MENTOR_DUEL_DAY` 추가, `MENTOR_RATE`·`MENTOR_EYE`·`MENTOR_HARD`·`MENTOR_GOLD`·`MENTOR_GROW`·`MENTOR_EXP` 삭제 → mentor.js(`mentorLock`·`mentorTry`·`mentorTodo`·이행) → server/index.js 하루 3회 → ui.js 탭 → mentor-stage.js 수련 연출 → 봇(`playMentors` 📕 가정 수입) → 봇 곡선·k 표 다시 굽기 → 우편 → `MENTOR_ON = true`.
@@ -363,8 +362,9 @@
 - 처음 한 번: `localStorage.setItem('knight-bar-accounts', JSON.stringify({active:'테스트', list:{'테스트':'local-test-token'}})); location.reload();`
 - 약 8초 뒤 콘솔 (스테이지 60 · 📕 60권 · 이행 예시 별 [5,2,0,0,0] · 훈련장 🎓 교관 탭):
   ```js
-  S.phase='camp'; S.best=S.stage=60; S.level=60; S.books=60; S.mentor={stars:[5,2,0,0,0],wins:[],duel:{day:'',n:0}}; openCamp(); campTab='town'; townUi.sel='training'; townUi.trainTab='mentor'; mentorUi.view=null; renderCamp(); save();
+  S.phase='camp'; S.best=S.stage=60; S.level=60; S.books=60; S.mentor={stars:[5,2,0,0,0],fail:2,wins:[],duel:{day:'',n:0}}; openCamp(); campTab='town'; townUi.sel='training'; townUi.trainTab='mentor'; mentorUi.view=null; renderCamp(); save();
   ```
   - 잠김 보기: `S.best=S.stage=39; renderCamp();` · 📕 모자람: `S.books=1; renderCamp();` · 승부 차례: `S.mentor.stars=[4,0,0,0,0]; renderCamp();`
   - 수련 연출 다시: `S.books=60; mentorUi.anim=null; mentorPlayTry(mentorCur(), mentorTry());`
+  - 실패 연출 고정: `S.mentor.fail=1; mentorUi.anim=null; mentorPlayTry(1, mentorTry(1, () => 0.99));` · 성공 고정: `mentorTry(1, () => 0)` · 천장 차례: `S.mentor.fail=3; renderCamp();`
 - 서버 하루 3회: `server/` 를 `PORT=3123 DATA_DIR=<스크래치> node index.js` 로 띄우고 계정 → `PUT /api/me` (best 40, stars [4,0,0,0,0]) → `POST /api/mentor/duel {i:0}` 를 3초 간격으로 4번 (4번째 429). 자정 넘김은 `Date.now` 를 옮기는 `-r` preload 로 본다.
