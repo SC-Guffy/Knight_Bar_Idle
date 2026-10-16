@@ -49,13 +49,15 @@ const T7_UI = {
 };
 const T7_LANE = { a: { name: '⚡ 연타 갈래', sub: '🛡️ 보호막에 강함', y: [-0.5, 1.4] }, b: { name: '🗡️ 발도 갈래', sub: '🔥 광폭화에 강함', y: [2.05, 3.95] }, k: { name: '🌙 검기 갈래', sub: '👥 졸개에 강함', y: [4.6, 6.5] } };
 const T7_KIND = { stat: '스탯', active: '액티브', mod: '변형', key: '키스톤', ult: '궁극기', uvar: '궁극기 변형', fusion: '융합 스킬' };
-const T7_SCALE = { active: 3, fusion: 3, ult: 3, uvar: 2, mod: 2, key: 2, stat: 2 };
-const T7_G = { sx: 84, sy: 76, ox: 44, oy: 50, w: 1010, h: 600 };
+// 캠프 창(데스크톱 앱 기준 본문 약 330px)에 판이 거의 다 들어오게: 모든 노드 2배, 칸 간격 62×42 → 판 약 760×340.
+//  변형·스탯은 위아래로 붙어 있어 이름표를 숨기고(누르면 아래 상세), 액티브·융합·궁극기·키스톤·궁극기 변형만 이름표를 단다
+const T7_SCALE = { active: 2, fusion: 2, ult: 2, uvar: 2, mod: 2, key: 2, stat: 2 };
+const T7_G = { sx: 62, sy: 42, ox: 34, oy: 28, w: 758, h: 342 };
 const t7Px = (id) => [T7_G.ox + T7_UI[id].x * T7_G.sx, T7_G.oy + T7_UI[id].y * T7_G.sy];
 const t7Icon = (id) => T7_UI[id].ic || id;
 const t7ArtLane = (n) => (n.t === 'fusion' ? 'f' : n.lane);
 const t7State = (n) => (t7Rank(n.id) > 0 ? 'got' : t7CanAdd(n.id) ? 'can' : 'lock');
-const t7Look = (n) => { const u = T7_UI[n.id], r = t7Rank(n.id); return u.looks && r ? u.looks[r - 1].split(' (')[0] : u.n; };
+const t7Look = (n) => { const u = T7_UI[n.id], r = t7Rank(n.id); return u.looks && r ? u.looks[r - 1].split(' (')[0] : n.t === 'uvar' ? u.n.replace('천검: ', '') : u.n; };   // 궁극기 변형 이름표는 짧게 (만검·일도양단·검우)
 const t7Ui = { sel: null, scroll: null };
 // 레드닷: 찍을 수 있는 노드가 있거나 장착 칸을 열 수 있을 때
 const t7Dot = () => t7On() && (T7_NODES.some((n) => t7CanAdd(n.id)) || !t7SlotNeed());
@@ -98,11 +100,11 @@ function viewTree7() {
   const LN = { a: '연타', b: '발도', k: '검기' };
   const nodes = T7_NODES.map((n) => {
     const [x, y] = t7Px(n.id), r = t7Rank(n.id), mx = T7_SPEC[n.t].max, st = t7State(n);
-    const gate = !r && n.t === 'fusion' ? ' · ' + n.lanes.map((l) => `${LN[l]} ${Math.min(6, t7LanePts(l))}/6`).join(' ') : !r && n.min ? ` · ${LN[n.lane]} ${Math.min(n.min, t7LanePts(n.lane))}/${n.min}` : '';
+    const gate = !r && n.t === 'fusion' ? ' · ' + n.lanes.map((l) => `${LN[l]} ${Math.min(6, t7LanePts(l))}/6`).join(' ') : !r && n.min ? ` ${Math.min(n.min, t7LanePts(n.lane))}/${n.min}` : '';   // 3차 키스톤: 그 갈래 포인트 (갈래 이름은 띠에 있다)
     const col = n.t === 'fusion' ? '#ff9ff3' : n.t === 'ult' ? '#ffd257' : T7_COL[n.lane || 'c'];
     return `<button class="t7n ${n.t} ${st}${t7Ui.sel === n.id ? ' sel' : ''}${n.t === 'fusion' && T7_UI[n.id].x < 4 ? ' lbl-l' : ''}" style="left:${x}px;top:${y}px;--c:${col}" data-action="t7-sel" data-id="${n.id}" aria-label="${T7_UI[n.id].n}">${t7Canvas('t7node', n.id)}<i class="rk">${t7Look(n)}${mx > 1 ? ` ${r}/${mx}` : ''}${gate}</i></button>`;
   }).join('');
-  const pairs = ['pa', 'pb', 'pk'].map((p) => { const [u, v] = T7_NODES.filter((n) => n.pair === p), [x1, y1] = t7Px(u.id), [x2, y2] = t7Px(v.id); return `<span class="t7pair" style="left:${(x1 + x2) / 2 + 52}px;top:${(y1 + y2) / 2}px">택1</span>`; }).join('');
+  const pairs = ['pa', 'pb', 'pk'].map((p) => { const [u, v] = T7_NODES.filter((n) => n.pair === p), [x1, y1] = t7Px(u.id), [x2, y2] = t7Px(v.id); return `<span class="t7pair" style="left:${(x1 + x2) / 2 + 34}px;top:${(y1 + y2) / 2}px">택1</span>`; }).join('');
   const board = `<div class="t7wrap" id="t7wrap"><div class="t7board" style="width:${T7_G.w}px;height:${T7_G.h}px">${lanes}<svg class="t7edges" width="${T7_G.w}" height="${T7_G.h}">${edges}</svg>${nodes}${pairs}</div></div>`;
   const hint = !spent && left ? `<div class="gtip big">🌟 스킬 포인트가 ${left}개 있어요 — 빛나는 노드를 누르고 <b>찍기</b>를 눌러 보세요. 이번 캠프에서 찍은 칸은 무료로 되돌릴 수 있어요.</div>` : '';
   return `${head}${hint}<div class="t7slots">${slots.join('')}</div>${poolHtml}${bar}${board}${viewTree7Detail()}`;

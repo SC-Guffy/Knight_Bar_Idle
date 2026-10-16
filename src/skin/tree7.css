@@ -22,7 +22,7 @@
 .t7wrap { overflow-x: auto; overflow-y: hidden; border: 6px solid transparent; border-image: url(frame-panel.svg) 6 / 6px; image-rendering: pixelated; background: #15121c; background-clip: padding-box; overscroll-behavior-x: contain; }
 .t7board { position: relative; background-image: linear-gradient(#ffffff07 1px, transparent 1px), linear-gradient(90deg, #ffffff07 1px, transparent 1px); background-size: 8px 8px; }
 .t7edges { position: absolute; inset: 0; pointer-events: none; }
-.t7lane { position: absolute; font: 700 11px Galmuri11, sans-serif; padding: 3px 10px; text-align: right; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background: #ffffff05; background-clip: padding-box; }
+.t7lane { position: absolute; font: 700 10px Galmuri11, sans-serif; padding: 1px 8px; text-align: right; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background: #ffffff05; background-clip: padding-box; }
 .t7lane small { font-weight: 400; color: #a59cb8; }
 .t7lane .l-a { color: #ffe08a; } .t7lane .l-b { color: #9fe8ff; } .t7lane .l-k { color: #ff9a6a; }
 
@@ -36,6 +36,8 @@
 @media (prefers-reduced-motion: reduce) { .t7n.can .t7c { animation: none; } }
 .t7n .rk { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); font: 10px/1.3 Galmuri11, sans-serif; font-style: normal; color: #a59cb8; white-space: nowrap; text-shadow: 0 1px 0 #000, 0 0 3px #000; pointer-events: none; }
 .t7n.got .rk, .t7n.can .rk { color: #ece6f6; }
+.t7n.mod .rk, .t7n.stat .rk { display: none; }   /* 위아래로 붙은 변형·스탯은 이름표 없이 (누르면 상세) */
+.t7n.mod.sel .rk, .t7n.stat.sel .rk { display: block; z-index: 2; background: #0b0a14cc; padding: 0 3px; }
 .t7n.active .rk, .t7n.ult .rk { font-weight: 700; }
 .t7n.fusion .rk { top: 50%; left: calc(100% + 8px); transform: translateY(-50%); }
 .t7n.fusion.lbl-l .rk { left: auto; right: calc(100% + 8px); }
