@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3차 궁극기 키 그림 고르기</title>
+<!-- 계획: dev/review/fighter-ult-tex.html · 스펙 boxer-class.md "3차 궁극기 텍스처 생성 계획" (2026-10-16 PixelLab 전용 변경).
+     키 그림: dev/boxer/vfx/raw/t3/<id>-s<seed>.png (create_image_pixen, 장마다 2벌 · 평타 4장은 1벌). 사용 기록 dev/boxer/vfx/usage.md -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --green: #7dffb0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 22px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .grid.wide { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+  @media (max-width: 480px) { .grid.wide { grid-template-columns: 1fr; } }
+  .c { background: #0b0d14; border: 2px solid var(--line); border-radius: 4px; padding: 6px; cursor: pointer; }
+  .c.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+  .c .row { display: flex; gap: 6px; align-items: center; justify-content: center; }
+  .c canvas, .c img { image-rendering: pixelated; max-width: 100%; }
+  .c .cap { font-size: 11px; color: var(--dim); text-align: center; margin-top: 4px; }
+  .rec { color: var(--gold); }
+  .note { font-size: 12px; color: var(--dim); margin: 2px 0 6px; }
+  .bar { position: sticky; top: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 8px 0; z-index: 2; }
+  textarea { width: 100%; height: 44px; background: #0f0d14; color: var(--green); border: 1px solid var(--line); font: 12px monospace; }
+  .use { font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>3차 궁극기 키 그림 고르기</h1>
+  <div class="sub">PixelLab 키 그림 22장 (22회 사용, 잔량 1,163 → 1,141). 장마다 하나를 누르면 아래 줄이 바뀐다 — 그대로 채팅에 붙여 주세요. 고른 키만 다음 단계에서 프레임(`animate_image`)을 만든다.</div>
+  <div class="bar">
+    <div class="use">각 칸: 왼쪽 = 원본 · 오른쪽 = 게임처럼 직업색으로 칠한 1프레임 (밝기 → 직업색 램프). ★ = 추천</div>
+    <textarea id="out" readonly></textarea>
+  </div>
+  <div id="list"></div>
+</main>
+<script>
+const COL = { champion: '#ffd257', tempest: '#9ff0ff', grandmaster: '#e8e0ff' };
+// [id, 이름, 직업, 시드 목록, 추천 시드, 메모]
+const T = [
+  ['xf01', 'XF01 패왕권 투기장 조명 배경', 'champion', [101, 202], 101, 's101 은 가운데 한 줄기 조명이라 캐릭터 뒤에서 덜 시끄럽다. s202 는 링 로프가 화면을 가로질러 하단바에서 바빠 보일 수 있다.'],
+  ['xf03', 'XF03 천풍각 폭풍 하늘 배경', 'tempest', [101, 202], 101, 's101 바람 띠가 가로로 흘러 하단바와 결이 맞다. s202 는 회오리 기둥이 가운데에 커서 타일로 이으면 반복이 보인다.'],
+  ['xf05', 'XF05 기신 강림 기의 구름 하늘', 'grandmaster', [101, 202], 101, 's101 동심원이 장풍·기 파문 그림과 이어진다.'],
+  ['xf02', 'XF02 거대 황금 사자 주먹', 'champion', [101, 202], 101, 's101 주먹 실루엣이 크고 갈기 불꽃이 분명하다. s202 는 팔 전체라 작아 보인다.'],
+  ['xf04', 'XF04 하늘에서 내려오는 바람의 발', 'tempest', [101, 202], 202, 's202 가 똑바로 내리찍는 방향이다. s101 은 비스듬하다.'],
+  ['xf06', 'XF06 기의 거인 상반신', 'grandmaster', [101, 202], 101, 's101 두 손바닥을 앞으로 미는 자세 (장풍과 맞음). s202 는 한 손을 세운 합장 자세.'],
+  ['xk08', 'XK08 패왕권 막타 (사자 머리 충격)', 'champion', [101, 202], 202, 's101 은 어두운 바탕이 남아 있다 (투명 아님) — s202 추천.'],
+  ['xk09', 'XK09 천풍각 막타 (내리꽂는 바람)', 'tempest', [101, 202], 202, 's101 은 어두운 바탕이 남아 있다 — s202 추천.'],
+  ['xk10', 'XK10 기신 강림 막타 (거대 손바닥 폭발)', 'grandmaster', [101, 202], 101, 's101 원형 기 고리 + 손바닥 (xk06 장풍 폭발과 결이 같다). s202 는 빛살이 사방으로.'],
+  ['xh3', 'XH3 챔피언 평타 명중', 'champion', [101], 101, '1벌만 뽑음 (추가안).'],
+  ['xh5', 'XH5 템페스트 평타 명중', 'tempest', [101], 101, '1벌만 뽑음.'],
+  ['xh7', 'XH7 그랜드마스터 평타 명중', 'grandmaster', [101], 101, '1벌만. 점이 듬성해 작게 보이면 흐리다 — 프레임 단계에서 고리를 굵게 요청할 예정.'],
+  ['xp2', 'XP2 금빛 기탄', 'grandmaster', [101], 101, '16×16 으로 뽑아 12×12 로 줄인다. 아주 작다.'],
+];
+const BG = new Set(['xf01', 'xf03', 'xf05']);
+let pick = {};
+try { pick = JSON.parse(localStorage.getItem('fu-pick2') || '{}'); } catch (e) {}
+const save = () => { try { localStorage.setItem('fu-pick2', JSON.stringify(pick)); } catch (e) {} };
+const out = () => (document.getElementById('out').value = T.map(([id, , , , rec]) => `${id}=s${pick[id] || rec}`).join(' '));
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+// 게임의 vfxSheet 와 같은 램프: 밝기 5단 → 직업색 (어두움 → 직업색 → 흰빛)
+function tint(img, hex, sc) {
+  const w = img.naturalWidth, h = img.naturalHeight, c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, w, h), p = d.data, col = rgb(hex), dark = [col[0] * 0.38, col[1] * 0.38, col[2] * 0.45];
+  const ramp = [];
+  for (let k = 0; k <= 4; k++) { const t = k / 4; ramp.push(t <= 0.5 ? dark.map((v, j) => v + (col[j] - v) * t * 2) : col.map((v, j) => v + (255 - v) * (t - 0.5) * 2)); }
+  for (let i = 0; i < p.length; i += 4) {
+    if (p[i + 3] < 128) { p[i + 3] = 0; continue; }
+    const l = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) / 255, k = Math.min(4, Math.floor(l * 5));
+    if (l < 0.08) { p[i] = 11; p[i + 1] = 13; p[i + 2] = 20; continue; }
+    [p[i], p[i + 1], p[i + 2]] = ramp[k].map(Math.round); p[i + 3] = 255;
+  }
+  g.putImageData(d, 0, 0);
+  c.style.width = w * sc + 'px';
+  return c;
+}
+const L = document.getElementById('list');
+for (const [id, name, cls, seeds, rec, note] of T) {
+  const h = document.createElement('h2'); h.textContent = name; L.appendChild(h);
+  const n = document.createElement('div'); n.className = 'note'; n.textContent = note; L.appendChild(n);
+  const g = document.createElement('div'); g.className = 'grid' + (BG.has(id) ? ' wide' : ''); L.appendChild(g);
+  for (const s of seeds) {
+    const c = document.createElement('div'); c.className = 'c' + ((pick[id] || rec) === s ? ' on' : '');
+    const img = new Image(); img.src = `../boxer/vfx/raw/t3/${id}-s${s}.png`;
+    const sc = BG.has(id) ? 1 : img.width > 64 ? 2 : id === 'xp2' ? 6 : 3;
+    img.onload = () => {
+      const k = BG.has(id) ? 0.85 : img.naturalWidth >= 96 ? 1.5 : img.naturalWidth <= 16 ? 6 : img.naturalWidth <= 32 ? 3 : 2;
+      img.style.width = img.naturalWidth * k + 'px';
+      const row = document.createElement('div'); row.className = 'row';
+      row.append(img, tint(img, COL[cls], k));
+      c.prepend(row);
+    };
+    c.insertAdjacentHTML('beforeend', `<div class="cap">s${s}${s === rec ? ' <span class="rec">★ 추천</span>' : ''}</div>`);
+    c.onclick = () => { pick[id] = s; save(); g.querySelectorAll('.c').forEach((x) => x.classList.toggle('on', x === c)); out(); };
+    g.appendChild(c);
+  }
+}
+out();
+</script>
+</body>
+</html>

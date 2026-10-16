@@ -1,11 +1,13 @@
-# ComfyUI 로컬 API 호출 (http://127.0.0.1:8188). 모델은 C:\AI\ComfyUI\models (저장소 밖).
+# ComfyUI 로컬 API 호출 (http://127.0.0.1:8188). 모델은 저장소 밖: Windows C:\AI\ComfyUI\models · 맥 ~/AI/ComfyUI/models.
+#  맥(MPS)은 fp8 가중치를 못 쓰므로 Qwen 텍스트 인코더를 bf16 판(qwen_3_4b)으로 쓴다
 # 사용: from comfy import gen; gen('sdxl', prompt, seed=1) -> PIL.Image 목록 (+ 걸린 초)
 #  모델 'sdxl' = sd_xl_base_1.0 + pixel-art-xl LoRA, 'zimg' = Z-Image Turbo + 픽셀아트 LoRA
 #  init=PIL.Image 를 주면 img2img (denoise < 1)
-import io, json, time, uuid, urllib.request, urllib.parse
+import io, json, os, sys, time, uuid, urllib.request, urllib.parse
 from PIL import Image
 
-HOST = 'http://127.0.0.1:8188'
+HOST = os.environ.get('COMFY_HOST', 'http://127.0.0.1:8188')
+QWEN = 'qwen_3_4b.safetensors' if sys.platform == 'darwin' else 'qwen_3_4b_fp8_mixed.safetensors'
 
 
 def _req(path, data=None, ctype='application/json'):
@@ -36,7 +38,7 @@ def _graph(model, pos, neg, seed, w, h, steps, cfg, denoise, init_name, lora_w, 
         steps = steps or 25; cfg = cfg or 6.0; sampler, sched = 'dpmpp_2m', 'karras'
     else:
         g['un'] = {'class_type': 'UNETLoader', 'inputs': {'unet_name': 'z_image_turbo_bf16.safetensors', 'weight_dtype': 'default'}}
-        g['te'] = {'class_type': 'CLIPLoader', 'inputs': {'clip_name': 'qwen_3_4b_fp8_mixed.safetensors', 'type': 'lumina2', 'device': 'default'}}
+        g['te'] = {'class_type': 'CLIPLoader', 'inputs': {'clip_name': QWEN, 'type': 'lumina2', 'device': 'default'}}
         g['vae'] = {'class_type': 'VAELoader', 'inputs': {'vae_name': 'ae.safetensors'}}
         g['lo'] = {'class_type': 'LoraLoader', 'inputs': {'model': ['un', 0], 'clip': ['te', 0], 'lora_name': 'pixel_art_style_z_image_turbo.safetensors',
                                                            'strength_model': lora_w, 'strength_clip': lora_w}}
