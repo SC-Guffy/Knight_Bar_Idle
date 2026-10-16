@@ -9,3 +9,13 @@ mage/ref64
 pyromancer/ref64
 cryomancer/ref64
 electromancer/ref64
+# 로드맵 승인 2026-10-17: 관절 애니 4직업 x 2회(15f), usage 최대 32, 재시도 0 — 1단계 화염술사 A 먼저
+pyromancer/skelA
+# 1단계 화염술사 A 비평 합격(평균 3.57) → 로드맵 지시대로 나머지 7회 진행 2026-10-17
+pyromancer/skelB
+mage/skelA
+mage/skelB
+cryomancer/skelA
+cryomancer/skelB
+electromancer/skelA
+electromancer/skelB

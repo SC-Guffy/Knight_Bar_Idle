@@ -107,7 +107,7 @@ MOVES = {
 #  마디 길이만 3등신 키 46(192칸에서 약 92: 머리 30·몸통 29·다리 34)으로 늘린다: 다리 ×2, 몸통(골반→목) ×1.15, 어깨 폭 ×1.3, 팔 ×1.9, 머리 ×1.8.
 #  골반을 기준으로 다시 세우고, 가장 낮은 발이 예전 가장 낮은 발 높이에 오게 세로를 맞춘다(뛰어오른 프레임은 그만큼 뜬다).
 #  발 x 는 FOOT_X 로 옮긴다 — 지팡이가 앞으로 길어져(손에서 52칸) 칸 가운데(96)에 서면 겨눔 프레임이 192 칸 밖으로 나간다.
-SEG = {'leg': 2.0, 'torso': 1.15, 'shoulder': 1.3, 'arm': 1.9, 'head': 1.8}
+SEG = {'leg': 2.0, 'leg_x': 1.3, 'torso': 1.15, 'shoulder': 1.3, 'arm': 1.9, 'head': 1.8}   # leg_x: 다리는 세로만 2배 — 가로까지 2배면 보폭·서 있는 발 간격이 그림보다 두 배로 벌어진다 (2026-10-17 첫 프레임 맞춤)
 FOOT_X = 66
 STAFF_B = (52, 16)                               # 키 46 기준 지팡이 앞·뒤 (192칸): 지팡이 길이 ≈ 키의 0.75
 
@@ -121,8 +121,8 @@ def to_b(p):
     for side in ('RIGHT', 'LEFT'):
         hip = (p[f'{side} HIP'][0] - pel[0], p[f'{side} HIP'][1] - pel[1])
         q[f'{side} HIP'] = (hip[0] * SEG['shoulder'], hip[1])
-        k = sub(p[f'{side} KNEE'], p[f'{side} HIP']); q[f'{side} KNEE'] = (q[f'{side} HIP'][0] + k[0] * SEG['leg'], q[f'{side} HIP'][1] + k[1] * SEG['leg'])
-        f = sub(p[f'{side} LEG'], p[f'{side} KNEE']); q[f'{side} LEG'] = (q[f'{side} KNEE'][0] + f[0] * SEG['leg'], q[f'{side} KNEE'][1] + f[1] * SEG['leg'])
+        k = sub(p[f'{side} KNEE'], p[f'{side} HIP']); q[f'{side} KNEE'] = (q[f'{side} HIP'][0] + k[0] * SEG['leg_x'], q[f'{side} HIP'][1] + k[1] * SEG['leg'])
+        f = sub(p[f'{side} LEG'], p[f'{side} KNEE']); q[f'{side} LEG'] = (q[f'{side} KNEE'][0] + f[0] * SEG['leg_x'], q[f'{side} KNEE'][1] + f[1] * SEG['leg'])
     n = sub(p['NECK'], pel); q['NECK'] = (n[0] * SEG['torso'], n[1] * SEG['torso'])
     for side in ('RIGHT', 'LEFT'):
         sh = sub(p[f'{side} SHOULDER'], p['NECK']); q[f'{side} SHOULDER'] = (q['NECK'][0] + sh[0] * SEG['shoulder'], q['NECK'][1] + sh[1] * SEG['shoulder'])

@@ -13,3 +13,11 @@
 | 7 | pyromancer | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 | 9.0 | 1113.0 |
 | 8 | cryomancer | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 | 10.0 | 1112.0 |
 | 9 | electromancer | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 | 11.0 | 1111.0 |
+| 10 | pyromancer | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 15.0 | 1106.0 |
+| 11 | pyromancer | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 19.0 | 1091.0 |
+| 12 | mage | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 23.0 | 1083.0 |
+| 13 | mage | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 27.0 | 1079.0 |
+| 14 | cryomancer | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 31.0 | 1072.0 |
+| 15 | cryomancer | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 35.0 | 1064.0 |
+| 16 | electromancer | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 39.0 | 1064.0 |
+| 17 | electromancer | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 43.0 | 1055.0 |
