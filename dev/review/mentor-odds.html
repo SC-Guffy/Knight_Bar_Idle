@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>교관 확률 수련 — 개정안 검토</title>
+<!-- 스펙: docs/specs/training-mentors.md "★1~4 — 확률 수련 (10-16 개정안)". 게임 코드는 건드리지 않는다. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --book: #e0605a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  input[type=number], select { width: 52px; background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; text-align: right; }
+  select { width: auto; text-align: left; }
+  .cell { display: inline-flex; gap: 3px; align-items: center; }
+  .cell input { width: 40px; }
+  .ok { color: var(--green); } .bad { color: var(--red); } .gold { color: var(--gold); } .bk { color: var(--book); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: #2b2538; border: 1px solid var(--line); border-radius: 12px; padding: 2px 10px; }
+  .mock { background: #120f18; border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+  .btn { background: #3a2f52; border: 1px solid #5a4c78; border-radius: 4px; padding: 3px 10px; color: var(--ink); cursor: pointer; font: inherit; }
+  .dots { letter-spacing: 2px; color: var(--gold); }
+  .hist { display: flex; align-items: flex-end; gap: 1px; height: 90px; margin-top: 6px; }
+  .hist div { flex: 1; background: var(--blue); min-width: 2px; opacity: .8; }
+  .hist div.mark { background: var(--gold); }
+  ul { margin: 4px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎓 교관 ★1~4 확률 수련 — 개정안</h1>
+  <div class="sub">스펙 <code>docs/specs/training-mentors.md</code> "★1~4 — 확률 수련 (10-16 개정안)" · 사용자 확인 대기 · 게임 코드는 아직 확정 상승</div>
+
+  <h2>요지</h2>
+  <div class="card">
+    <ul>
+      <li>한 번 시도 = 📕 c권. 성공하면 별 하나, 실패하면 📕 만 쓰고 별은 그대로.</li>
+      <li>성공 확률은 버튼 옆에 <b>숫자로</b> 보인다. 숨은 보정(0.20.0 판 눈도장)은 없다.</li>
+      <li><b>천장</b>: 같은 별에서 N번 실패하면 다음은 확정 → 최악이 정해져 있다.</li>
+      <li>기대 📕 합은 지금 확정 표(110권)와 비슷하게, 페이스(★1~4 약 10일) 유지.</li>
+    </ul>
+  </div>
+
+  <h2>화면 미리보기 (무대 아래 한 줄)</h2>
+  <div class="mock" id="mock"></div>
+  <div class="sub" style="margin-top:4px">버튼을 눌러 시도해 볼 수 있어요 (교관 2 ★3 기준, 이 페이지 안에서만).</div>
+
+  <h2>확률 · 한 번 비용 (바꿔 보기)</h2>
+  <div class="ctl">
+    <label>천장 <select id="pity"><option value="0">없음</option><option value="2">2번 실패 뒤 확정</option><option value="3" selected>3번 실패 뒤 확정</option><option value="4">4번 실패 뒤 확정</option></select></label>
+    <label>실패 시 📕 돌려줌 <select id="refund"><option value="0" selected>없음</option><option value="0.5">절반 (내림)</option></select></label>
+    <label>📕 하루 수급 <input type="number" id="perDay" value="11.1" step="0.1"></label>
+    <button class="btn" id="reset">시작안으로</button>
+  </div>
+  <div class="scroll"><table id="tbl"></table></div>
+  <div class="sub">칸마다 왼쪽 = 성공 확률 %, 오른쪽 = 한 번 비용 📕. 괄호 안은 지금 확정 표 권수.</div>
+
+  <h2>시뮬레이션 (10만 번)</h2>
+  <div class="chips" id="sum"></div>
+  <div class="card">
+    <div class="sub">다섯 명 ★1~4 전부에 드는 📕 분포 (노란 막대 = 지금 확정 표 110권)</div>
+    <div class="hist" id="hist"></div>
+  </div>
+  <div class="scroll"><table id="per"></table></div>
+
+  <h2>결정할 것</h2>
+  <div class="card">
+    <ol style="margin:0;padding-left:20px">
+      <li>천장 — <b>3번 (권장)</b> / 없음 / 2번</li>
+      <li>실패 시 📕 — <b>전부 소모 (권장)</b> / 절반 돌려줌</li>
+      <li>확률·비용 표 — 위 시작안 그대로 할지</li>
+    </ol>
+  </div>
+</main>
+<script>
+const NAMES = ['🗡️ 검술 사범', '🛡️ 방패 교관', '🏹 숲의 사냥꾼', '🔥 화산 투사', '🌌 성좌의 은자'];
+const OLD = [[2, 2, 2, 3], [3, 4, 5, 6], [3, 4, 7, 8], [4, 6, 8, 10], [5, 7, 9, 12]];
+const P0 = [[70, 60, 50, 40], [60, 50, 40, 35], [55, 45, 35, 30], [50, 40, 30, 25], [45, 35, 25, 20]];
+const C0 = [[1, 1, 1, 1], [2, 2, 2, 2], [2, 2, 3, 3], [2, 3, 3, 4], [3, 3, 3, 4]];
+let P = P0.map(r => r.slice()), C = C0.map(r => r.slice());
+const $ = id => document.getElementById(id);
+const pity = () => +$('pity').value, refund = () => +$('refund').value;
+
+function buildTable() {
+  let h = '<tr><th>교관</th><th>★1</th><th>★2</th><th>★3</th><th>★4</th></tr>';
+  for (let i = 0; i < 5; i++) {
+    h += `<tr><td>${NAMES[i]}</td>`;
+    for (let s = 0; s < 4; s++) h += `<td><span class="cell"><input type="number" min="1" max="100" data-k="p" data-i="${i}" data-s="${s}" value="${P[i][s]}">% <input type="number" min="1" max="20" data-k="c" data-i="${i}" data-s="${s}" value="${C[i][s]}"><span class="bk">📕</span> <span class="sub">(${OLD[i][s]})</span></span></td>`;
+    h += '</tr>';
+  }
+  $('tbl').innerHTML = h;
+  $('tbl').querySelectorAll('input').forEach(el => el.oninput = () => {
+    const v = Math.max(1, +el.value || 1), i = +el.dataset.i, s = +el.dataset.s;
+    (el.dataset.k === 'p' ? P : C)[i][s] = Math.min(el.dataset.k === 'p' ? 100 : 99, v);
+    run();
+  });
+}
+
+// 한 별을 따는 데 드는 📕 (실패 환급 반영)
+function oneStar(i, s, rnd) {
+  const p = P[i][s] / 100, c = C[i][s], back = Math.floor(c * refund()), N = pity();
+  let t = 0;
+  for (let k = 1; ; k++) {
+    if ((N && k > N) || rnd() < p) return t + c;
+    t += c - back;
+  }
+}
+// 기댓값·최악 (해석)
+function expect(i, s) {
+  const p = P[i][s] / 100, c = C[i][s], back = Math.floor(c * refund()), N = pity();
+  let e = 0, surv = 1;
+  for (let k = 1; k <= (N ? N + 1 : 500); k++) {
+    const pp = N && k > N ? 1 : p;
+    e += surv * pp * ((k - 1) * (c - back) + c); surv *= 1 - pp;
+  }
+  return { e, worst: N ? N * (c - back) + c : Infinity, max: N ? N + 1 : '∞' };
+}
+
+function run() {
+  const n = 100000, xs = new Float64Array(n), rnd = Math.random;
+  for (let r = 0; r < n; r++) { let t = 0; for (let i = 0; i < 5; i++) for (let s = 0; s < 4; s++) t += oneStar(i, s, rnd); xs[r] = t; }
+  xs.sort();
+  const q = f => xs[Math.min(n - 1, Math.floor(f * n))], day = +$('perDay').value || 11.1;
+  let E = 0, W = 0, per = '<tr><th>교관</th><th>★1~4 기대 📕</th><th>확정 표</th><th>최악 📕</th><th>별마다 최대 시도</th></tr>';
+  for (let i = 0; i < 5; i++) {
+    let e = 0, w = 0, mx = [];
+    for (let s = 0; s < 4; s++) { const r = expect(i, s); e += r.e; w += r.worst; mx.push(r.max); }
+    E += e; W += w;
+    const o = OLD[i].reduce((a, b) => a + b), cls = Math.abs(e - o) / o <= 0.15 ? 'ok' : 'bad';
+    per += `<tr><td>${NAMES[i]}</td><td class="${cls}">${e.toFixed(1)}</td><td>${o}</td><td>${isFinite(w) ? w : '∞'}</td><td>${mx.join(' · ')}</td></tr>`;
+  }
+  $('per').innerHTML = per;
+  const d = v => (v / day).toFixed(1) + '일';
+  const ok = Math.abs(E - 110) <= 11;
+  $('sum').innerHTML = [
+    `기대 📕 <b class="${ok ? 'ok' : 'bad'}">${E.toFixed(1)}</b> (확정 110)`,
+    `하위 10% ${q(.1)} · 중앙 <b>${q(.5)}</b> · 상위 10% ${q(.9)} · 실제 최악 ${q(1)}`,
+    `걸리는 날 ${d(q(.1))} · <b>${d(q(.5))}</b> · ${d(q(.9))} (확정 ${d(110)})`,
+    `이론 최악 ${isFinite(W) ? W + '권' : '없음 (천장 없음)'}`,
+  ].map(t => `<span class="chip">${t}</span>`).join('');
+  // 분포
+  const lo = Math.min(q(0), 110), hi = Math.max(q(.999), 110), B = 60, bins = new Array(B).fill(0);
+  for (const x of xs) bins[Math.min(B - 1, Math.floor((x - lo) / (hi - lo + 1e-9) * B))]++;
+  const m = Math.max(...bins), mk = Math.min(B - 1, Math.floor((110 - lo) / (hi - lo + 1e-9) * B));
+  $('hist').innerHTML = bins.map((b, k) => `<div class="${k === mk ? 'mark' : ''}" style="height:${k === mk ? 100 : b / m * 100}%" title="${Math.round(lo + k * (hi - lo) / B)}권~"></div>`).join('');
+  mockState.fail = Math.min(mockState.fail, pity() || 99); drawMock();
+}
+
+// 화면 미리보기
+const mockState = { fail: 0, star: 3, books: 14, msg: '' };
+function drawMock() {
+  const i = 1, s = mockState.star - 1, N = pity(), c = C[i][Math.min(3, s)], sure = N && mockState.fail >= N;
+  if (mockState.star > 4) { $('mock').innerHTML = `<span>⚔️ 마지막 별 — 교관과의 승부 차례</span><button class="btn" onclick="mockState.star=3;mockState.fail=0;mockState.books=14;mockState.msg='';drawMock()">처음으로</button>`; return; }
+  const dots = N ? '●'.repeat(mockState.fail) + '○'.repeat(N - mockState.fail) : '';
+  const p = sure ? 100 : P[i][s];
+  $('mock').innerHTML = `<span>★${mockState.star} 수련 · 성공 <b class="${sure ? 'gold' : ''}">${sure ? '확정' : p + '%'}</b> · <span class="bk">📕</span> ${c} (보유 ${mockState.books})</span>`
+    + (N ? `<span class="sub">실패 <span class="dots">${dots}</span>${sure ? ' — 이번은 확정!' : mockState.fail === N - 1 ? ' — 한 번 더 실패하면 다음은 확정' : ''}</span>` : '')
+    + `<button class="btn" id="tryBtn" ${mockState.books < c ? 'disabled' : ''}>📕 수련하기</button>`
+    + (mockState.msg ? `<span>${mockState.msg}</span>` : '');
+  $('tryBtn').onclick = () => {
+    mockState.books -= c;
+    if (sure || Math.random() < p / 100) { mockState.msg = `<span class="ok">★${mockState.star} 수련 완료!</span>`; mockState.star++; mockState.fail = 0; }
+    else { mockState.fail++; mockState.books += Math.floor(c * refund()); mockState.msg = '<span class="bad">아직이다. 다시.</span>'; }
+    drawMock();
+  };
+}
+
+$('pity').onchange = run; $('refund').onchange = run; $('perDay').oninput = run;
+$('reset').onclick = () => { P = P0.map(r => r.slice()); C = C0.map(r => r.slice()); $('pity').value = 3; $('refund').value = 0; buildTable(); run(); };
+buildTable(); run();
+</script>
+</body>
+</html>
