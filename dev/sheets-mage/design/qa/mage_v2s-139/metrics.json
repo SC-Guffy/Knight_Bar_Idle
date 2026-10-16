@@ -1,8 +1,9 @@
 {
  "id": "mage_v2s-139",
+ "kind": "char",
  "file": "dev\\sheets-mage\\design\\qa\\mage_v2s-139\\px.png",
  "frames": 1,
- "color": "none",
+ "color": "raw",
  "size": [
   37,
   50
