@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 39.0,
+ "used": 41.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -134,7 +134,21 @@
    "purpose": "n6ref: /image-to-pixelart",
    "used": 1.0,
    "bal": 1098.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/image-to-pixelart",
+   "purpose": "n8ref: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 1089.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/image-to-pixelart",
+   "purpose": "n7ref: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 1088.0
   }
  ],
- "nom": 26.0
+ "nom": 28.0
 }

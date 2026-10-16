@@ -1,0 +1,4 @@
+g1=polish-greatswordsman-n8 (PixelLab)
+g2=greatswordsman-N8-97-h46 (ComfyUI shrink)
+b1=polish-blademaster-n7 (PixelLab)
+b2=blademaster-N7-77-h46 (ComfyUI shrink)
