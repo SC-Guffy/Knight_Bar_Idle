@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기사단 — 스펙 검토</title>
+<!-- 스펙: docs/specs/guild.md (초안, 2026-10-16). 기사단 효과 수치는 시작안 — 진행 봇으로 확정 전. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --warn: #ffb35c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: var(--gold); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  .scroll { overflow-x: auto; }
+  .ok { color: var(--green); } .bad { color: var(--red); font-weight: 700; } .warn { color: var(--warn); font-weight: 700; }
+  .rec { color: var(--green); font-weight: 700; }
+  .pick { outline: 2px solid #8f7cc0; }
+  /* HUD 목업 */
+  .stage { position: relative; height: 150px; border-radius: 6px; overflow: hidden; background: linear-gradient(#2d5f6e, #3f8a8f 70%, #c8d6dc 70%, #e8eef0); }
+  .slots { position: absolute; left: 10px; top: 14px; display: flex; gap: 4px; }
+  .slot { position: relative; min-width: 54px; padding: 2px 6px; background: #221e2dcc; border: 1px solid #5a5070; border-radius: 4px; color: var(--ink); font: inherit; font-size: 11px; cursor: pointer; text-align: left; line-height: 1.3; }
+  .slot.on { background: #4b3f66; border-color: #c9b8ff; }
+  .slot.lock { color: #6d6580; cursor: default; }
+  .slot .dot { position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+  .slot small { display: block; color: var(--dim); font-size: 10px; }
+  .hud { position: absolute; left: 10px; top: 52px; display: flex; gap: 10px; align-items: center; padding: 4px 10px; background: #221e2de6; border: 1px solid #5a5070; border-radius: 4px; font-size: 12px; }
+  .hud b { color: var(--gold); }
+  .scene { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 12px; color: #17141f; font-weight: 700; }
+  /* 계산기 */
+  .calc { display: grid; grid-template-columns: max-content 1fr max-content max-content; gap: 4px 10px; align-items: center; }
+  .calc input[type=range] { width: 100%; }
+  .total { font-size: 15px; color: var(--gold); font-weight: 700; }
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .flow span { background: #2b2538; border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; }
+  .flow i { color: var(--dim); font-style: normal; }
+  ul.check { list-style: none; padding-left: 0; } ul.check li::before { content: '⬜ '; }
+  label.inl { color: var(--dim); }
+  select, input[type=number] { background: #2b2538; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; font: inherit; padding: 1px 4px; }
+</style>
+</head>
+<body>
+<main>
+<h1>🛡️ 기사단 <span class="sub">— 시즌7 스펙 검토 (초안)</span></h1>
+<p class="sub">스펙: <code>docs/specs/guild.md</code> · 2026-10-16 · 기사단 효과 숫자는 시작안이에요 (진행 봇으로 확정 전)</p>
+
+<div class="card">
+  <b>한 줄 요약</b> — 기사단 하나에 기사 최대 10명, 슬롯 2~5칸의 기사가 <b>전부 동시에</b> 돌아요. 슬롯을 누르면 새로 고침 없이 그 기사 화면으로. 입장권은 기사마다 따로, 계열을 다양하게 키우면 기사단 전원이 세져요. 로그인은 Google, Electron 앱은 연결 코드.
+</div>
+
+<h2>1. 슬롯 HUD 목업 <span class="sub">(눌러 보세요)</span></h2>
+<div class="stage">
+  <div class="slots" id="slots"></div>
+  <div class="hud" id="hud"></div>
+  <div class="scene" id="scene"></div>
+</div>
+<p class="sub">칩 = 직업 + Lv + 지금 하는 일. 빨간 점 = 확인할 것(레이드 결과·원정 보고). 안 보는 기사도 계속 진행돼요. 잠긴 칸은 🛡️ 기사단 회관 Lv 으로 열려요 (Lv1 2칸 · Lv3 3칸 · Lv6 4칸 · Lv10 5칸).</p>
+
+<h2>2. 사용자 결정 (10-16)</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>질문</th><th>결정</th></tr>
+<tr><td>1</td><td>공용 범위</td><td>골드·재료·창고 공용 OK, <b>입장권은 기사별</b>. 핵심 재화 1종만 공유하는 대안도 검토 → <span class="warn">아래 3번에서 고르기</span></td></tr>
+<tr><td>2</td><td>안 보는 기사</td><td><b>전부 동시 진행</b> (원정·레이드·결투·탑·미궁·성벽)</td></tr>
+<tr><td>3</td><td>이전</td><td>시즌7 전체 초기화 전제 — 이전 기능 안 만듦</td></tr>
+<tr><td>4</td><td>이름</td><td>기사단</td></tr>
+<tr><td>5</td><td>슬롯</td><td>2 → 5칸, 마을 건물 🛡️ 기사단 회관</td></tr>
+<tr><td>6</td><td>내 기사끼리 레이드</td><td>허용 (결투는 같은 기사단끼리 막음 — 점수 짜고 치기 방지)</td></tr>
+<tr><td>7</td><td>로그인</td><td>Google + Electron 연결 코드 (재설치 없음)</td></tr>
+</table></div>
+
+<h2>3. 공용 범위 — 골라 주세요</h2>
+<div class="scroll"><table id="ab">
+<tr><th></th><th>안 A — 마을 공용 <span class="rec">추천</span></th><th>안 B — 핵심 재화 1종만 공용</th></tr>
+<tr><td>공용</td><td>🪙 골드 · 🪵 목재 · 🪨 철광석 · 마을 건물(+회관) · 창고 비축·교역 · 대장간 시설 · 건설 대기열 1개</td><td>📖 비전서 하나 (또는 💠 강화석)</td></tr>
+<tr><td>기사별</td><td>💎 💠 📖 📕 🧱 🎲 📜 · 보급품 · <b>입장권 전부</b> · 장비 · 훈련 · 스킬</td><td>나머지 전부 — 마을도 기사마다 따로</td></tr>
+<tr><td>느낌</td><td>부캐가 마을을 같이 키워서, 새 기사도 좋은 마을에서 시작 = 윤활유. 강화·스킬은 기사별이라 각자 할거리가 남음</td><td>기사마다 경제가 완전히 독립. 부캐는 계열 효과로만 도움</td></tr>
+<tr><td>위험</td><td class="warn">골드가 기사 수만큼 → <b>건설 즉시 완료</b>로 건설 시간 벽이 무너질 수 있음 → 진행 봇으로 재고 즉시 완료 값 조절</td><td class="warn">새 기사가 마을 Lv1부터 → 부캐 육성이 지루함. 공유 1종 수급이 기사 수 배</td></tr>
+</table></div>
+<p class="sub">안 A 근거: 창고가 마을 건물이라 "창고 공용 = 마을 하나"가 자연스럽고, 지금 병목인 🪵🪨 은 건설 시간에 막혀 있어서 수입이 늘어도 바로 터지지 않아요. 💎·💠·📖 를 기사별로 두면 강화·스킬 성장 속도는 기사마다 그대로예요.</p>
+
+<h2>4. 동시 진행 방법 — 1단계 기술 검증</h2>
+<div class="scroll"><table>
+<tr><th>콘텐츠</th><th>지금 누가 계산?</th><th>안 보는 기사 처리</th></tr>
+<tr><td>레이드 · 결투 · 월드 보스 · 교관 승부</td><td>서버</td><td class="ok">재생 건너뛰고 바로 정산 + 칩에 결과 점. 레이드 대기방도 기사마다 따로 유지</td></tr>
+<tr><td>원정 · 탑 · 미궁 · 성벽</td><td>클라이언트 실시간 (<code>world.js</code> 전역 한 벌 + <code>S</code> 하나)</td><td>아래 후보 중 검증</td></tr>
+</table></div>
+<div class="card">
+  <b>후보 ① 기사마다 숨은 iframe</b> <span class="rec">추천 시작안</span><br>
+  같은 게임을 기사 수만큼 iframe 으로 띄워 전역 상태가 저절로 나뉨 → world.js 그대로. 바깥 페이지가 매 프레임 각 기사의 <code>update(dt)</code> 를 부르고, 그림은 보는 기사만. 전환 = iframe 보이기(새로 고침 없음). 공용 재화는 바깥 객체 하나를 각 <code>S</code> 에 getter/setter 로 연결.<br>
+  <span class="sub">확인할 것: 5명 동시 프레임 30↑ · 기사당 메모리 증가량 · iframe 안에서 <code>window.parent.bar</code>(Electron) 사용</span>
+</div>
+<div class="card"><b>후보 ②</b> world.js 를 "기사마다 월드 객체"로 리팩터링 — 정확하지만 3,000줄+ 수술. ①이 안 될 때.</div>
+<div class="card"><b>후보 ③</b> 안 보는 기사의 탑·미궁·성벽은 근사 계산 — 직접 볼 때와 결과가 달라져서 <span class="bad">쓰지 않음</span>.</div>
+<p class="sub">앱을 완전히 끄면 지금처럼 오프라인 규칙(원정만 시뮬, 탑·미궁·성벽은 그 자리 정산). 한 기사단은 한 기기에서만 — 다른 기기 로그인 시 먼저 기기가 멈춰요.</p>
+
+<h2>5. 기사단 효과 계산기 <span class="sub">(시작안 — 값을 바꿔 보세요)</span></h2>
+<div class="card">
+  <div style="margin-bottom:8px">
+    <label class="inl">단 간격 Lv <input type="number" id="stepLv" value="20" min="5" max="50" style="width:48px"></label>
+    &nbsp;<label class="inl">단당 % <input type="number" id="stepPct" value="1" min="0.25" max="5" step="0.25" style="width:52px"></label>
+    &nbsp;<label class="inl">회관 Lv <input type="number" id="hallLv" value="10" min="1" max="20" style="width:44px"></label>
+    &nbsp;<label class="inl">다양성 기준 Lv <input type="number" id="divLv" value="50" min="10" max="150" style="width:52px"></label>
+  </div>
+  <div class="calc" id="calc"></div>
+  <p>다양성: Lv <span id="divLv2"></span>↑ 계열 <b id="divN"></b>개 → 모든 피해 <b id="divPct"></b>% · <span class="sub">최대 단 = 회관 Lv ÷ 2 (시작안)</span></p>
+  <div class="total" id="total"></div>
+  <p class="sub">목표: 6계열을 다 키운 기사단 본캐가 본캐 하나만 키운 경우보다 약 +15~20%. 같은 계열 두 명은 최고 레벨 한 명만 세요 (이것저것 키우게). 콘텐츠 전용 보정은 넣지 않아요.</p>
+  <p class="sub">따라잡기: 새 기사는 기사단 최고 레벨의 80% 까지 경험치 ×2.</p>
+</div>
+
+<h2>6. 로그인 흐름</h2>
+<h3>웹</h3>
+<div class="flow"><span>Google 버튼</span><i>→</i><span>ID 토큰</span><i>→</i><span>서버 <code>POST /api/auth/google</code> 검증</span><i>→</i><span>기사단 토큰</span><i>→</i><span>없으면 기사단 이름 → 첫 기사 닉네임</span></div>
+<h3>Electron 앱 (재설치 없음)</h3>
+<div class="flow"><span>앱: 6자리 코드 (10분)</span><i>→</i><span>아무 브라우저: 게임 웹 "기기 연결"</span><i>→</i><span>Google 로그인 + 코드 입력</span><i>→</i><span>앱이 토큰 받음</span></div>
+<p class="sub">Google 은 앱 안 로그인 창을 막고, 지금 preload.js 에 외부 브라우저 열기가 없어서 이 방식. 게임 모음 사이트 iframe 에서 Google 버튼이 막히면 같은 연결 코드로. 준비물: Google Cloud OAuth 클라이언트 ID (사용자 계정으로 만들어야 함 — 순서는 구현 때 안내). 클라이언트 ID 는 공개값, 비밀키 안 씀.</p>
+
+<h2>7. 수용 기준</h2>
+<ul class="check">
+<li>Google 로그인 → 기사단 이름 → 첫 기사 → 시작</li>
+<li>다른 브라우저 같은 Google 계정 → 같은 기사단</li>
+<li>연결 코드로 앱(웹 두 탭으로 흉내)이 기사단 진입</li>
+<li>슬롯 클릭 → 0.2초 안에 전환, 새로 고침 없음</li>
+<li>A 탑 진행 중 B 로 갔다 오면 A 탑이 실제로 진행돼 있음</li>
+<li>A 레이드 대기방 준비 유지, 끝나면 A 칩에 결과 점</li>
+<li>5칸 동시 프레임 30↑, 메모리 측정 기록</li>
+<li>같은 계열 두 명은 최고 레벨 한 명만</li>
+<li>공용 재화: A 가 번 것을 B 화면에서 바로 사용</li>
+<li>진행 봇: 기사 1명 vs 5명 7일 비교</li>
+<li>두 기기 동시 접속 시 먼저 기기 멈춤</li>
+</ul>
+
+<h2>8. 정해 주셔야 할 것</h2>
+<div class="card">
+① 공용 범위 <b>안 A(마을 공용, 추천)</b> / 안 B(핵심 재화 1종) — 안 B 라면 어떤 재화(📖 비전서 추천)<br>
+② 진행 순서: <b>기술 검증(iframe 3명 동시) 먼저</b> → 서버 기사단·Google → 슬롯 UI → 기사단 효과 수치(봇) 순서로 가도 될지
+</div>
+</main>
+
+<script>
+const CLS = [
+  { id: 'sword', icon: '⚔️', name: '검사', eff: '공격력', lv: 80 },
+  { id: 'spear', icon: '🔱', name: '창기사', eff: '최대 체력', lv: 64 },
+  { id: 'bow', icon: '🏹', name: '레인저', eff: '치명타 확률', lv: 41 },
+  { id: 'mage', icon: '🪄', name: '마법사', eff: '스킬 피해', lv: 0 },
+  { id: 'fist', icon: '🥊', name: '파이터', eff: '공격 속도', lv: 0 },
+  { id: 'sin', icon: '🗡️', name: '암살자', eff: '치명타 피해', lv: 0 },
+];
+const SLOT_DATA = [
+  { icon: '⚔️', name: '검사', lv: 80, doing: '🗼 탑 23층', scene: '도전의 탑 23층 — 정예 무리', dot: false, gold: '664M', stage: '86-3' },
+  { icon: '🔱', name: '창기사', lv: 64, doing: '🐉 레이드', scene: '레이드 대기방 — 준비 완료 (3/4)', dot: true, gold: '664M', stage: '61-1' },
+  { icon: '🏹', name: '레인저', lv: 41, doing: '⚔️ 원정', scene: '원정 — 41-5 사냥 중', dot: false, gold: '664M', stage: '41-5' },
+  null, null,
+];
+let active = 0, hallLvSlots = 3;
+function renderSlots() {
+  const el = document.getElementById('slots'); el.innerHTML = '';
+  SLOT_DATA.forEach((d, i) => {
+    const b = document.createElement('button');
+    if (i >= hallLvSlots) { b.className = 'slot lock'; b.innerHTML = `${i + 1} 🔒<small>회관 Lv${[1,1,3,6,10][i]}</small>`; }
+    else if (!d) { b.className = 'slot'; b.innerHTML = `${i + 1} ＋<small>새 기사</small>`; }
+    else {
+      b.className = 'slot' + (i === active ? ' on' : '');
+      b.innerHTML = `${i + 1} ${d.icon} Lv${d.lv}<small>${d.doing}</small>` + (d.dot && i !== active ? '<span class="dot"></span>' : '');
+      b.onclick = () => { active = i; d.dot = false; renderSlots(); };
+    }
+    el.appendChild(b);
+  });
+  const d = SLOT_DATA[active];
+  document.getElementById('hud').innerHTML = `${d.icon} Lv <b>${d.lv}</b> &nbsp; ${d.name} &nbsp; ❄️ ${d.stage} &nbsp; 🪙 <b>${d.gold}</b> <span class="sub">(공용)</span>`;
+  document.getElementById('scene').textContent = d.scene;
+}
+renderSlots();
+
+const $ = (id) => document.getElementById(id);
+function renderCalc() {
+  const stepLv = +$('stepLv').value || 20, stepPct = +$('stepPct').value || 1, hall = +$('hallLv').value || 1, divLv = +$('divLv').value || 50;
+  const maxTier = Math.max(1, Math.floor(hall / 2));
+  const el = $('calc'); el.innerHTML = '';
+  let sum = 0;
+  CLS.forEach((c) => {
+    const tier = Math.min(maxTier, Math.floor(c.lv / stepLv));
+    const pct = tier * stepPct; sum += pct;
+    el.insertAdjacentHTML('beforeend', `<span>${c.icon} ${c.name}</span><input type="range" min="0" max="200" value="${c.lv}" data-id="${c.id}"><span>Lv ${c.lv}</span><span>${c.eff} <b>+${pct}%</b> <span class="sub">(${tier}단)</span></span>`);
+  });
+  el.querySelectorAll('input').forEach((r) => r.oninput = () => { CLS.find((c) => c.id === r.dataset.id).lv = +r.value; renderCalc(); });
+  const divN = CLS.filter((c) => c.lv >= divLv).length;
+  $('divLv2').textContent = divLv; $('divN').textContent = divN; $('divPct').textContent = divN;
+  $('total').textContent = `기본 능력치 보정 합 +${sum}% · 모든 피해 +${divN}%`;
+}
+['stepLv', 'stepPct', 'hallLv', 'divLv'].forEach((id) => $(id).oninput = renderCalc);
+renderCalc();
+</script>
+</body>
+</html>

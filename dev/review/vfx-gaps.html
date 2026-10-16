@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>VFX 빈 곳 점검</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#16151c;--fg:#e8e6f0;--mut:#9a98aa;--line:#2e2c3a;--a:#ff8a7a;--b:#ffd27a;--c:#8fd0a0}
+body{background:var(--bg);color:var(--fg);font:14px/1.55 system-ui,sans-serif;margin:0;padding:16px;max-width:1200px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+p.m{color:var(--mut);margin:0 0 12px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:500}
+.t{display:inline-block;padding:0 6px;border-radius:3px;font-size:12px;color:#111}
+.A{background:var(--a)}.B{background:var(--b)}.C{background:var(--c)}
+a{color:#9fc4ff}img{width:100%;image-rendering:pixelated;border:1px solid var(--line);margin:4px 0 10px}
+code{background:#24222e;padding:0 4px;border-radius:3px}
+figure{margin:0}figcaption{color:var(--mut);font-size:12px}
+</style></head><body>
+<h1>VFX 빈 곳·덜 된 곳 점검</h1>
+<p class="m">2026-10-16 · 시뮬레이터에서 스킬 50종 × 숙련 4단계를 실제로 쳐서, 프레임마다 텍스처(<code>vfxDraw</code>) 호출과 canvas 벡터 그리기(arc·stroke·gradient)를 셌다. 평소 화면(시전 안 함)을 빼고 남은 만큼이 그 스킬 몫이다. ▶ 는 그 스킬만 반복 재생하는 시뮬레이터 링크다.</p>
+<p class="m"><span class="t A">A</span> 아예 빠졌거나 다른 그림으로 대신함 · <span class="t B">B</span> 주된 그림이 아직 벡터·코드 · <span class="t C">C</span> 약함 (정하기 나름)</p>
+
+<h2>A. 비었거나 대체 그림</h2>
+<table>
+<tr><th></th><th>스킬 (단계)</th><th>지금 상태</th><th>근거</th></tr>
+<tr><td><span class="t A">A</span></td><td>절대영도 ★·★★★ <a href="../skills.html?cls=frostlord&skill=absoluteZero&stage=3">▶</a></td><td><b>버그</b>: <code>f19b</code> 시트가 파일은 있는데 등록이 안 돼서 그 부품이 안 그려진다</td><td><code>src/vfx/f19b.png</code> 있음, <code>vfx-mage.js</code> 목록에 없음 → <code>vfxDraw</code> 가 false (absoluteZero.js:61). 등록 한 줄로 고칠 수 있다</td></tr>
+<tr><td><span class="t A">A</span></td><td>붕권 ★★★ 철산붕괴 <a href="../skills.html?cls=striker&skill=crushFist&stage=3">▶</a></td><td>거대 강철 주먹(XE06)이 없어 2차 충격 원뿔(XE05)을 그대로 씀</td><td><code>QI_TEX_FALLBACK</code> xe06→xe05</td></tr>
+<tr><td><span class="t A">A</span></td><td>회전 발차기 ★★★ 폭풍선풍각 <a href="../skills.html?cls=kickboxer&skill=spinKick&stage=3">▶</a></td><td>남는 회오리 기둥(XE09) 없음 → 수평 회오리 띠(XE08) 대체</td><td>xe09→xe08</td></tr>
+<tr><td><span class="t A">A</span></td><td>장풍 ★★★ 기공탄 <a href="../skills.html?cls=qigong&skill=palmBlast&stage=3">▶</a></td><td>흩어지는 기 파편(XE11) 없음 → 기공사 평타 명중(XH6) 대체</td><td>xe11→xh6</td></tr>
+<tr><td><span class="t A">A</span></td><td>기막 ★★·★★★ 금강기막 <a href="../skills.html?cls=qigong&skill=qiBarrier&stage=2">▶</a></td><td>막 둘레를 도는 고리(XE13) 없음 → 기 오라(XE16) 대체</td><td>xe13→xe16</td></tr>
+<tr><td><span class="t A">A</span></td><td>챔피언·템페스트·그랜드마스터 평타 <a href="../skills.html?mode=basic&cls=champion">▶</a></td><td>3차 평타 궤적(XW2a·3a·4a) 없음 → 2차 궤적을 그대로 (색깔놀이 금지 위반 상태)</td><td>xw2a→xw2, xw3a→xw3, xw4a→xw4</td></tr>
+<tr><td><span class="t A">A</span></td><td>대공성포 Lv1 <a href="../skills.html?cls=siegeMaster&skill=siegeBarrage&stage=0">▶</a></td><td>궁극기인데 Lv1 에 쓰는 텍스처가 석궁사수 2차 명중(K21) 하나뿐. 나머지는 벡터 연기·드릴 자국</td><td>Lv1 텍스처 [k21]</td></tr>
+<tr><td><span class="t A">A</span></td><td>태양 관통 Lv1 <a href="../skills.html?cls=deadeye&skill=sunArrow&stage=0">▶</a></td><td><b>텍스처 0장</b>. 조준선·광선·불꽃이 전부 코드 그림</td><td>Lv1 텍스처 []</td></tr>
+</table>
+<figure><img src="vfx-gaps/cf3.png"><figcaption>붕권 ★★★ — 이름은 철산붕괴인데 2차 원뿔뿐, 거대 주먹이 없다</figcaption></figure>
+<figure><img src="vfx-gaps/sa0.png"><figcaption>태양 관통 Lv1 — 텍스처 없이 선·직사각형 광선</figcaption></figure>
+<figure><img src="vfx-gaps/sb0.png"><figcaption>대공성포 Lv1 — 노포 쏘기 + 2차 명중만</figcaption></figure>
+<figure><img src="vfx-gaps/az3.png"><figcaption>절대영도 ★★★ (f19b 가 빠진 채)</figcaption></figure>
+
+<h2>B. 주된 그림이 아직 벡터·코드</h2>
+<table>
+<tr><th></th><th>스킬 (단계)</th><th>벡터로 남은 부분</th><th>프레임당 (함수)</th></tr>
+<tr><td><span class="t B">B</span></td><td>차원 붕괴 Lv1~★★ <a href="../skills.html?cls=voidArcher&skill=dimensionCollapse&stage=0">▶</a></td><td>화면을 덮는 자홍 균열이 AA 선. K36 은 ★★★ 에만</td><td>stroke 69 (<code>dcDrawCracks</code>) + 스파크 <code>hitFx</code></td></tr>
+<tr><td><span class="t B">B</span></td><td>천검 ★★★ <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=3">▶</a></td><td>꽃잎 폭풍 검선이 1px 선 수백 개</td><td>stroke 112 (<code>tcPetalStormFx</code>)</td></tr>
+<tr><td><span class="t B">B</span></td><td>대공성포 ★~★★★ · 폭열탄 ★★ <a href="../skills.html?cls=siegeMaster&skill=siegeBarrage&stage=3">▶</a></td><td>포탄 연기가 용의 숨결용 벡터 불꽃 혀를 재사용</td><td>곡선 126·21 (<code>scorchFx</code>)</td></tr>
+<tr><td><span class="t B">B</span></td><td>강철 베기 ★★★ <a href="../skills.html?cls=swordsman&skill=steelCleave&stage=3">▶</a></td><td>하늘 검(E01)·분화구(C7) 미생성 — fillRect 검 + 선 방사</td><td><code>skySwordFx</code>·<code>craterFx</code> (⑤-4 에서 넘긴 것)</td></tr>
+<tr><td><span class="t B">B</span></td><td>태양 관통 ★~★★★</td><td>홍염 곡선·스파크 선, 태양 그라데이션</td><td><code>saFlareFx</code>·<code>hitFx</code> stroke 13</td></tr>
+<tr><td><span class="t B">B</span></td><td>천붕 Lv1·전 단계</td><td>균열 선·떨어지는 하늘 조각 다각형 (땅판 도트는 유지 결정)</td><td><code>wbFissure</code>·<code>wbSlab</code></td></tr>
+<tr><td><span class="t B">B</span></td><td>용황 강림 ★★★</td><td>용암 땅이 원 그리기</td><td>arc 7 (<code>deMolten</code>)</td></tr>
+<tr><td><span class="t B">B</span></td><td>대지 가르기 ★★★</td><td>용암 균열 줄</td><td><code>lavaFissureFx</code></td></tr>
+</table>
+<figure><img src="vfx-gaps/dc0.png"><figcaption>차원 붕괴 Lv1 — 균열이 매끈한 벡터 선</figcaption></figure>
+<figure><img src="vfx-gaps/tc3.png"><figcaption>천검 ★★★ — 선 다발</figcaption></figure>
+<figure><img src="vfx-gaps/sc3.png"><figcaption>강철 베기 ★★★ — 하늘 검이 코드 사각형</figcaption></figure>
+<figure><img src="vfx-gaps/sb3.png"><figcaption>대공성포 ★★★</figcaption></figure>
+
+<h2>C. 약하지만 정하기 나름</h2>
+<table>
+<tr><td><span class="t C">C</span></td><td><b>Lv1 이 명중 그림 하나뿐</b>: 질풍난무·일섬·용추락·대검 횡참·돌진 격돌·기병 돌격·폭열탄·다연장 사격·천붕 (Lv1 텍스처 = K 명중 1장 + 잔상). 숙련 단계 설계상 의도일 수 있지만 조사 때 "Lv1~9 가 너무 약하다"가 지적됐던 자리</td></tr>
+<tr><td><span class="t C">C</span></td><td>궁극기 공용 스파크 <code>hitFx</code>(벡터 선 + 원)가 성좌 강림·천검·태양 관통·차원 붕괴·대공성포에 남아 있다</td></tr>
+<tr><td><span class="t C">C</span></td><td>작은 코드 부품: 마력 폭발 ★★★ 파편 다각형(<code>mbShards</code>), 방패 벽 ★★ 미니 방패(<code>cvMiniShield</code>), 헤드샷 ★★★ 느린 탄 고리, 연사 정령 매 빛무리</td></tr>
+<tr><td><span class="t C">C</span></td><td>스펙 목록에 있지만 안 뽑은 공용 부품: C6·C7·C8·C16, E01</td></tr>
+</table>
+<p class="m">문제 없음: 마법사 계열 10종, 창기사·레인저 대부분, 파이터 1·2차 스킬과 3차 궁극기 — 전 단계에서 벡터 그리기가 거의 없다.</p>
+</body></html>

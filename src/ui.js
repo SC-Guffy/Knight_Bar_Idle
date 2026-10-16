@@ -28,8 +28,8 @@ const departOpts = { charm: false, elixir: false };
 // ───────────────────────── 클릭 통과 제어 ─────────────────────────
 // 평소엔 HUD/말풍선 위에서만 클릭을 받고, 캠프 창이 열리면 창 전체가 클릭을 받는다.
 let interactive = false;
-function setInteractive(on) {
-  if (on === interactive) return;
+function setInteractive(on, force) {
+  if (on === interactive && !force) return;
   interactive = on;
   if (window.bar) window.bar.setInteractive(on);
 }
@@ -203,7 +203,7 @@ function openCamp(tab) {
   campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : castleResultPending() ? 'castle' : raidUi.room ? 'raid' : guideTab() || 'town');
   markSubSeen();
   if (window.bar) window.bar.setCampMode(true);
-  interactive = true;
+  setInteractive(true, true);
   $('camp').hidden = false;
   renderCamp();
   renderHud();
@@ -222,7 +222,7 @@ function closeCamp() {
   if (castleResultViewed && S.castle.last) S.castle.last.seen = true;
   castleResultViewed = false;
   $('camp').hidden = true;
-  interactive = false;
+  setInteractive(false, true);   // main 에도 알린다 — 안 알리면 탑(전체 높이 창)에서 화면 전체가 클릭을 먹는다
   if (window.bar) window.bar.setCampMode(false);
   save();
   renderHud();
@@ -527,7 +527,11 @@ function viewMentor() {
   } else {
     const need = mentorNeed(i), have = mentorBooks(), lack = need - have;
     const blk = mentorTryBlocker(i);
-    info = `<b>★${n + 1} 수련 · 📕 ${need} 필요 (보유 ${have})</b><small>지금 ${now} → 다음 별 ${mentorSpText(mentorSpAt(i, n + 1))}<br>다음 별: ${mentorNextText(i, n + 1)}</small>`;
+    // 확률 수련 (0.24.0): 성공 확률·한 번 비용·실패 점 (●●○ — MENTOR_PITY 번 실패하면 다음은 확정)
+    const sure = mentorSure(), f = mentorFails();
+    const odds = sure ? '<span style="color:#ffd257">확정</span>' : `${Math.round(mentorOdds(i) * 100)}%`;
+    const dots = `실패 <span style="color:#ffd257;letter-spacing:1px">${'●'.repeat(Math.min(f, MENTOR_PITY))}${'○'.repeat(Math.max(0, MENTOR_PITY - f))}</span>${sure ? ' — 이번은 확정!' : f === MENTOR_PITY - 1 ? ' — 한 번 더 실패하면 다음은 확정' : ` — ${MENTOR_PITY}번 실패하면 다음은 확정`}`;
+    info = `<b>★${n + 1} 수련 · 성공 ${odds} · 📕 ${need} (보유 ${have})</b><small>${dots}<br>지금 ${now} → 다음 별 ${mentorSpText(mentorSpAt(i, n + 1))} · 다음 별: ${mentorNextText(i, n + 1)}</small>`;
     btn = `<button class="btn${rd(!blk && !busy && mentorTodo())}" data-action="mentor-try" ${blk || busy ? 'disabled' : ''} title="${blk}">📕 수련하기</button>`;
     if (lack > 0) btn = `<span class="warn">📕 ${lack}권 모자라요</span>${btn}<button class="btn" data-action="goto-castle">🏰 성벽 지키기로</button>`;
   }
@@ -2171,7 +2175,7 @@ function viewRaidRoom() {
   let buy = '';
   if (!ticket && room.state === 'open') {
     const p = ticketPrice(), tb = ticketBlocker();
-    buy = `<span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip(ico('mana'), p.mana, S.mats.mana)}</span>
+    buy = `<span class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}</span>
       <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">${ico('ticket')} 입장권 구매</button>`;
   }
   let acts;
@@ -2233,7 +2237,7 @@ function viewRaidLobby() {
       <div class="info"><b>레이드 입장권 <small>보유 ${S.raid.tickets} / ${RAID_TICKET_MAX}</small></b>
         <div class="eff">매일 자정에 ${RAID_TICKET_FREE}장까지 무료로 채워져요(우편으로 받은 건 넘어도 그대로). 클리어했을 때만 1장 쓰여요(실패하면 그대로, 보상도 없음). 하루 첫 구매는 헐값, 그다음부터 점점 비싸져요 — 오늘 ${bought}장 샀어요 (자정에 초기화).</div></div>
       <div class="act">
-        <div class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}${costChip(ico('mana'), p.mana, S.mats.mana)}</div>
+        <div class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}</div>
         <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button>
       </div>
     </div>`;
@@ -2789,12 +2793,12 @@ function renderCamp() {
 // 캠프 머리 재화 칸: 누르면 그 재화를 어디서 얻고 어디에 쓰는지 한 줄 (resOpen = 펼친 재화 k, 다시 누르면 닫힘)
 let resOpen = null;
 const RES_GUIDE = [
-  { k: 'gold', name: '골드', icon: () => '<i class="gc"></i>', get: '원정 처치 · 장비 판매 · 레이드', use: '훈련 · 건물 · 대장간 시설 · 보급품 · 창고 교역', trade: true },
-  { k: 'wood', name: '목재', icon: () => ico('wood'), get: '재료의 미궁 · 창고 비축·교역 · 원정 골동품', use: '건물 · 가방', trade: true },
-  { k: 'ore', name: '철광석', icon: () => ico('ore'), get: '재료의 미궁 · 창고 비축·교역 · 원정 골동품', use: '건물 · 대장간 시설', trade: true },
-  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '재료의 미궁 · 레이드 · 원정 골동품', use: '전직 · 건물(Lv5부터) · 강화 · 입장권' },
-  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '원정 보스 · 장비 판매', use: '장비 강화' },
-  { k: 'tomes', name: '비전서', icon: () => ico('tome'), get: '도전의 탑 · 원정 보스 · 레이드 상자 · 결투 시즌', use: '스킬 숙련도' },
+  { k: 'gold', name: '골드', icon: () => '<i class="gc"></i>', get: '원정 처치 · 장비 판매 · 재료의 미궁 · 레이드 · 탑 · 월드 보스', use: '창고 교역 · 훈련 · 건물 · 보급품 · 입장권 · 즉시 완료', trade: true },
+  { k: 'wood', name: '목재', icon: () => ico('wood'), get: '재료의 미궁 · 원정 골동품 · 창고 비축·교역 · 레이드 · 월드 보스', use: '건물 · 가방', trade: true },
+  { k: 'ore', name: '철광석', icon: () => ico('ore'), get: '원정 골동품 · 재료의 미궁 · 창고 비축·교역 · 레이드 · 월드 보스', use: '건물 · 대장간 시설', trade: true },
+  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '원정 골동품 · 레이드 · 재료의 미궁 · 월드 보스', use: '강화(+10부터) · 전직' },
+  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '장비 판매(분해대) · 원정 보스 · 재료의 미궁 · 월드 보스', use: '장비 강화' },
+  { k: 'tomes', name: '비전서', icon: () => ico('tome'), get: '재료의 미궁 · 원정 보스 · 레이드 상자 · 도전의 탑 · 월드 보스 · 결투 시즌', use: '스킬 숙련도' },
 ];
 function viewResGuide() {
   const r = RES_GUIDE.find((x) => x.k === resOpen);
@@ -2960,7 +2964,11 @@ const ACTIONS = {
   'mentor-try': () => {
     if (mentorUi.anim) return;
     const i = mentorCur(), a = mentorSnap(), r = mentorTry(i);
-    if (r) { mentorUi.view = i; mentorUi.gain = { i, star: r.star, a, b: mentorSnap(), text: mentorStarGainText(i, r.star) }; mentorPlayTry(i, r, mentorUi.gain); }
+    if (!r) return;
+    save();     // 결과를 보기 전에 저장 — 새로 고침으로 실패를 되돌리지 못하게
+    mentorUi.view = i;
+    mentorUi.gain = r.ok ? { i, star: r.star, a, b: mentorSnap(), text: mentorStarGainText(i, r.star) } : null;
+    mentorPlayTry(i, r, mentorUi.gain);
   },
   'mentor-duel': () => {
     if (mentorUi.anim || mentorUi.busy) return;
@@ -3101,7 +3109,7 @@ function openAccount() {
   acctOpen = true;
   showCode = false;
   if (window.bar) window.bar.setCampMode(true);
-  interactive = true;
+  setInteractive(true, true);
   $('acct').hidden = false;
   renderAccount();
   renderHud();
@@ -3110,7 +3118,7 @@ function closeAccount() {
   if (!acctOpen || !activeNick() || acctBusy) return;
   acctOpen = false;
   $('acct').hidden = true;
-  interactive = false;
+  setInteractive(false, true);   // main 에도 알린다 — 안 알리면 탑(전체 높이 창)에서 화면 전체가 클릭을 먹는다
   if (window.bar) window.bar.setCampMode(false);
   renderHud();
   scheduleFade();
@@ -3547,7 +3555,7 @@ function boot() {
   window.addEventListener('resize', resizeCanvas);
 
   // 브라우저에서 열렸으면 배경을 깔고 데스크탑 앱 받기 안내를 보여 준다
-  if (!window.bar) {
+  if (!window.bar && !GUILD_HOST) {
     document.body.classList.add('web');
     $('webPromo').hidden = false;
     const os = /Windows/i.test(navigator.userAgent) ? 'win' : /Mac/i.test(navigator.userAgent) ? 'mac' : null;
@@ -3590,9 +3598,12 @@ function boot() {
   setInterval(save, 10000);
   window.addEventListener('beforeunload', save);
 
-  let last = performance.now(), acc = 0, slow = 0;
-  function frame(now) {
-    requestAnimationFrame(frame);
+  let last = performance.now(), acc = 0, slow = 0, wasShown = true;
+  // 기사단 시제품(dev/guild-spike.html): 바깥 페이지가 기사마다 iframe 을 띄우고 매 프레임 guildStep 을 부른다.
+  // 안 보이는 기사는 게임 시간만 흐르고 그리기·DOM 갱신을 건너뛴다 (docs/specs/guild.md 3. 동시 진행)
+  function frame(now, shown = true) {
+    if (!GUILD_HOST) requestAnimationFrame(frame);
+    else now = performance.now();   // 바깥 페이지의 performance.now 는 시작점이 달라서 내 것을 쓴다
     acc += (now - last) / 1000;
     last = now;
     if (acc < 1 / FPS) return;
@@ -3608,6 +3619,8 @@ function boot() {
     // 계정을 불러오는 중에는 게임 시간을 멈춘다
     if (saveKey) update(Math.min(dt, 0.1));
     else clock += dt;
+    if (!shown) { wasShown = false; return; }
+    if (!wasShown) { wasShown = true; renderHud(); }
     render();
     if (S.phase === 'dungeon') renderDungeonPick();
     if (S.phase === 'castle') renderCastleInfo();
@@ -3623,7 +3636,13 @@ function boot() {
       updateTray();
     }
   }
-  requestAnimationFrame(frame);
+  if (GUILD_HOST) {
+    window.guildStep = frame;
+    Object.defineProperty(window, 'guildS', { get: () => (saveKey ? S : null) });
+    Object.defineProperty(window, 'guildDbg', { get: () => ({ clock, x: knight.x, mobs: monsters.length, hitstop }) });   // let 전역은 window 에 안 보여서 바깥 페이지용으로 연다 (CSP 라 eval 불가)
+    GUILD_HOST.ready(window);
+  }
+  else requestAnimationFrame(frame);
 }
 
 // 게임 모음 사이트(sheet.sanai-club) 게시글은 이 웹 버전을 iframe 으로 띄운다. 예전에는 그 사이트에 게임 파일을 직접 올려서

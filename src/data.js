@@ -10,7 +10,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.23.1';
+const GAME_VERSION = '0.24.5';
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용
@@ -150,8 +150,8 @@ function buildCost(id, lv) {
     gold: Math.floor(40 * Math.pow(1.9, lv - 1) * m.gold),
     wood: Math.floor(20 * buildMatGrow(lv) * m.wood),
     ore: Math.floor(12 * buildMatGrow(lv) * m.ore),
-    // 마력석은 Lv5 → 6 부터 (초반 마력석은 전직·강화 몫으로 남도록), 오르는 폭도 목재·철광석보다 완만하게
-    mana: lv >= 5 ? Math.floor(4 * Math.pow(1.7, lv - 5) * m.mana) : 0,
+    // 💎 마력석은 0.23.2 에 뺐다 — 마력석은 고강화(+10~)·전직 재료 (docs/specs/currency-roles.md). 비용 칩·canAfford 가 0 을 그대로 넘기게 키는 남긴다
+    mana: 0,
   };
 }
 
@@ -228,13 +228,14 @@ const GEAR_OPTS = {
 const optRank = (q) => OPT_RANKS.find(([t]) => q >= t)[1];
 const optValueAt = (k, q, g) => { const o = GEAR_OPTS[k]; return Math.round((o.lo + (o.hi - o.lo) * q) * OPT_MULT[g] * 10000) / 10000; };
 // 건물·시설은 능력치를 직접 주지 않는다 (0.13.1 의 공명로는 0.13.2 에서 빠짐, core.js migrate 가 환급)
-// 시설 lv → lv+1 비용
+// 시설 lv → lv+1 비용. 0.23.2: 🪨 철광석 절반(20 → 10 · 1.7^Lv) — 시설 3종이 대장간 건물 한 레벨의 약 1.7배를 먹어 건물을 막았다,
+//  💎 마력석은 뺐다 (마력석은 고강화·전직 재료, docs/specs/currency-roles.md)
 function forgeFacCost(id, lv) {
   return {
     gold: Math.floor(150 * Math.pow(1.75, lv)),
     wood: 0,
-    ore: Math.floor(20 * Math.pow(1.7, lv)),
-    mana: lv >= 3 ? Math.floor(5 * Math.pow(1.6, lv - 3)) : 0,
+    ore: Math.floor(10 * Math.pow(1.7, lv)),
+    mana: 0,
   };
 }
 
@@ -826,14 +827,15 @@ function enhanceOddsAt(L, temperLv) {
 const ENH_HI_FROM = 25, ENH_HI_STEP = 1.054;
 const enhanceMultBase = (L) => Math.pow(1 + 0.12 * L + 0.004 * L * L, GEAR_K);
 const enhanceMultAt = (L) => (L <= ENH_HI_FROM ? enhanceMultBase(L) : enhanceMultBase(ENH_HI_FROM) * Math.pow(ENH_HI_STEP, L - ENH_HI_FROM));
-// L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)·건물과 겹치지 않는다. 마력석은 +10부터
-// 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 14개 · +10 약 75개 · +15 약 320개 (부위마다). +25→+30 을 주문서로 가면 약 5,600개
+// L → L+1 비용. 💠 강화석은 강화에만 쓰는 재화라 훈련(골드)·건물과 겹치지 않는다. 💎 마력석은 +10부터 — 마력석의 주 소모처 (전직 말고는 강화 전용)
+// 0.23.2 (docs/specs/currency-roles.md): 강화석 ×1.5 (2 → 3·1.17^L, 수입의 44% 만 쓰여서), 마력석 ×3 (2 → 6·1.22^(L−10), 건물·시설·레이드 입장권에서 마력석을 빼고 여기로 모음)
+// 강화석 기대 소모 (0에서, 보호 주문서 없이): +5 약 21개 · +10 약 110개 · +15 약 480개 (부위마다). +25→+30 을 주문서로 가면 약 8,500개
 // 철광석은 0.22.3 에서 뺐다 — 건물과 나눠 쓰는데 강화 쪽이 ×1.2 로 불어 +25→+30 한 부위에 약 1.1만(건물 한 레벨어치)이 들어,
 //  강화석보다 철광석이 먼저 떨어졌다. 강화를 묶는 건 💠 강화석 하나 (docs/specs/enhance-30.md "철광석 제외")
 function enhanceCost(L) {
   return {
-    stone: Math.floor(2 * Math.pow(1.17, L)),
-    mana: L >= 10 ? Math.floor(2 * Math.pow(1.22, L - 10)) : 0,
+    stone: Math.floor(3 * Math.pow(1.17, L)),
+    mana: L >= 10 ? Math.floor(6 * Math.pow(1.22, L - 10)) : 0,
   };
 }
 // 💠 강화석 획득: 원정 보스 처치마다 BOSS_STONES 개, 장비를 팔면 등급별로 GEAR_STONES 개 (원정 1회 약 15~20개)
@@ -875,7 +877,7 @@ const defRedAt = (t) => DEF_MAX * t / (t + DEF_HALF);
 const FORTUNE_PER_LV = 0.03;
 // ───────────────────────── 🎓 교관 수련 (src/mentor.js, docs/specs/training-mentors.md) ─────────────────────────
 // 최고 스테이지 MENTOR_OPEN_STAGE 에서 열리고, 교관 다섯 명을 차례로 찾아가 별 5개씩 받는다 (고르는 게 아니라 결국 전부 올리는 구조).
-//  ★1~4: 📕 수련의 서(S.books — 🏰 성벽 지키기에서 얻는다) MENTOR_BOOKS[교관][별−1] 권을 내면 확정으로 별 하나. 골드는 받지 않는다
+//  ★1~4: 📕 수련의 서(S.books — 🏰 성벽 지키기에서 얻는다) MENTOR_TRY_BOOKS[교관][별−1] 권을 내고 MENTOR_ODDS% 로 별 하나 (실패 MENTOR_PITY 번 뒤 확정). 골드는 받지 않는다
 //  ★5: 교관과의 승부 — 도전비 없음, 하루 MENTOR_DUEL_DAY 번 (서버가 센다, server/index.js)
 //  sp: 별 하나 몫 (gearBonus 에 더하는 키) · ★5 는 별 하나 몫의 2배 · 경험치 보너스는 없다 (1차 훈련이 Lv 200 이라 수완이 그대로라서)
 //  별 하나 몫은 0.20.0 판의 ×0.6 (10-14 사용자 결정 — 별 25개를 다 받은 14일 봇이 교관 끔보다 +8% 앞서서)
@@ -891,9 +893,12 @@ const MENTORS = [
 const MENTOR_STARS = 5;
 const MENTOR_LAST_X = 2;                       // ★5 는 별 하나 몫 × 2
 const MENTOR_OPEN_STAGE = 40;                  // 첫 교관이 열리는 최고 스테이지 (🏰 성벽 지키기 해금과 같은 값)
-// ★1~4 에 드는 📕 (교관별 합 9/18/22/28/33 = 110권 ≈ 성벽 무료 입장 약 10일분)
-//  0.22.1: 교관1 11 → 9 (성벽 첫날 무료 3판은 판당 3~4권이라 최소 9권 — 첫날 ★4 가 확실히 되게), 줄인 2권은 교관2 로 옮겨 교관2 이후 누적·기간은 그대로
-const MENTOR_BOOKS = [[2, 2, 2, 3], [3, 4, 5, 6], [3, 4, 7, 8], [4, 6, 8, 10], [5, 7, 9, 12]];
+// ★1~4 확률 수련 (0.24.0, 10-16 사용자 결정 — 확정 상승은 성공률 100% 라 누르는 맛이 없었다)
+//  한 번 시도 = 📕 MENTOR_TRY_BOOKS 권, 성공 확률 MENTOR_ODDS % (화면에 그대로 보인다 — 숨은 보정 없음), 같은 별에서 MENTOR_PITY 번 실패하면 다음은 확정.
+//  기대 📕 합 107권 (교관별 7.1/16.1/22.1/28.8/33.1) ≈ 0.22 확정 표 110권 — 페이스(★1~4 무료 입장 약 10일) 유지. 10만 번 시뮬 중앙 107 · 상위 10% 124권
+const MENTOR_ODDS = [[70, 60, 50, 40], [60, 50, 40, 35], [55, 45, 35, 30], [50, 40, 30, 25], [45, 35, 25, 20]];
+const MENTOR_TRY_BOOKS = [[1, 1, 1, 1], [2, 2, 2, 2], [2, 2, 3, 3], [2, 3, 3, 4], [3, 3, 3, 4]];
+const MENTOR_PITY = 3;
 const MENTOR_DUEL_DAY = 3;                     // ★5 승부 하루 횟수 (한국 시간 자정 초기화)
 // 0.22.1: 첫 교관(검술 사범) ★5 승부는 최고 스테이지 이만큼부터 (server/index.js 와 같게). 진행 봇 기준 스테이지 70 ≈ 7시간 → 첫 ★5 약 8시간
 const MENTOR_FIRST_DUEL_STAGE = 70;
@@ -2340,13 +2345,12 @@ const RAID_BOSSES = {
       pal: { B: '#2a2060', b: '#0d0a2a', W: '#c9b8ff', H: '#ffd257', G: '#ffd257', J: '#ffffff' } } },
 };
 
-// 입장권: 매일 RAID_TICKET_FREE 장까지 무료로 채워 주고, 그 이상은 재화로 산다.
+// 입장권: 매일 RAID_TICKET_FREE 장까지 무료로 채워 주고, 그 이상은 골드로 산다 (0.23.2 에 💎 마력석을 뺐다 — 탑·미궁·성벽 입장권과 같이 골드만).
 // 입장권은 레이드를 클리어했을 때만 1장 쓰인다 (실패하면 그대로 남음).
 // 하루 첫 구매는 헐값, 두 번째부터 점점 비싸진다(자정에 초기화). 사서 모으는 건 최대 RAID_TICKET_MAX 장까지
 const RAID_TICKET_FREE = 5;           // = RAID_TICKET_MAX: 매일 보유 상한까지 채워 준다 (표기 /5 와 맞춤)
 const RAID_TICKET_MAX = 5;
 const RAID_TICKET_GOLD = 20;           // 기준 가격: 최고 스테이지 몬스터 골드 × 이 값 (레이드 승리 골드의 약 1/4)
-const RAID_TICKET_MANA = 2;            // 기준 마력석: 이 값 + 최고 스테이지 / 20
 const RAID_TICKET_STEPS = [0.05, 1, 2, 3.5, 6];  // 오늘 n번째 구매의 기준 가격 배율 (첫 구매는 헐값)
 const RAID_TICKET_GROW = 1.6;          // 표를 넘어가면 한 장마다 × 1.6
 const RAID_MVP_MULT = 1.5;             // MVP 는 재화 1.5배

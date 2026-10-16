@@ -4,16 +4,17 @@
 //  S.mentor = {
 //    stars: 교관별 받은 별 [0~5, …] (MENTORS 순서),
 //    wins: 서버 승부 결과 id (같은 결과로 두 번 별을 받지 않도록, 최근 20개),
+//    fail: 지금 별(★1~4)에서 실패한 수 — MENTOR_PITY 번이면 다음은 확정, 별을 받으면 0
 //    duel: { day, n } 오늘(todayKey) 건 승부 수 — 서버가 진짜로 세고(server/index.js) 응답의 left 로 맞춘다. 화면·레드닷용
 //  }
 //  S.books = 📕 수련의 서 (🏰 성벽 지키기에서 얻는다)
 // 규칙
 //  - 최고 스테이지 MENTOR_OPEN_STAGE 에서 열린다. 교관은 순서대로 — 앞 교관 별 5개.
-//  - ★1~4: 📕 MENTOR_BOOKS[i][별−1] 권을 내면 확정으로 별 하나. ★5: 교관과의 승부 — 서버가 계산한다 (server/index.js /api/mentor/duel), 하루 MENTOR_DUEL_DAY 번.
+//  - ★1~4: 📕 MENTOR_TRY_BOOKS[i][별−1] 권을 내고 MENTOR_ODDS% 로 별 하나 (실패 MENTOR_PITY 번 뒤 확정). ★5: 교관과의 승부 — 서버가 계산한다 (server/index.js /api/mentor/duel), 하루 MENTOR_DUEL_DAY 번.
 //  - 별 보너스는 gearBonus() 에 더해져 stats()·profile() 로 그대로 흘러간다. ★5 는 별 하나 몫 × MENTOR_LAST_X.
 //  - MENTOR_ON(data.js) 이 꺼져 있으면 교관을 만날 수 없고 별 보너스도 없다. S.mentor 는 그대로 남겨 다시 켜면 돌아온다.
 
-const freshMentor = () => ({ stars: MENTORS.map(() => 0), wins: [], duel: { day: '', n: 0 } });
+const freshMentor = () => ({ stars: MENTORS.map(() => 0), fail: 0, wins: [], duel: { day: '', n: 0 } });
 // 옛 세이브 (0.20.0 판: eye 눈도장 · duelDay) → 시즌6 판. 받은 별은 그대로 둔다
 function migrateMentor(m) {
   if (!Array.isArray(m.stars)) m.stars = [];
@@ -22,6 +23,7 @@ function migrateMentor(m) {
   // migrate 의 병합으로 새 duel 이 먼저 들어와 있을 수 있다 — 옛 duelDay 가 있으면 그 날로
   if (!m.duel || typeof m.duel !== 'object' || (m.duelDay && !m.duel.day)) m.duel = { day: m.duelDay || '', n: 0 };
   m.duel.n = Math.max(0, Math.min(MENTOR_DUEL_DAY, Math.floor(m.duel.n) || 0));
+  m.fail = Math.max(0, Math.min(MENTOR_PITY, Math.floor(m.fail) || 0));   // 0.24.0 확률 수련 — 없으면 0
   delete m.eye; delete m.duelDay;
   return m;
 }
@@ -43,8 +45,12 @@ function mentorLock(i) {
 const mentorOpen = (i) => i < MENTORS.length && mentorLock(i) === '';
 // 다음이 승부(★5) 차례인가
 const mentorDuelTurn = (i = mentorCur()) => mentorStarsOf(i) === MENTOR_STARS - 1;
-// 다음 별(★1~4)에 드는 📕 (승부 차례·수료면 0)
-const mentorNeed = (i = mentorCur()) => (i < MENTORS.length ? (MENTOR_BOOKS[i][mentorStarsOf(i)] || 0) : 0);
+// 다음 별(★1~4) 수련 한 번에 드는 📕 (승부 차례·수료면 0)
+const mentorNeed = (i = mentorCur()) => (i < MENTORS.length ? (MENTOR_TRY_BOOKS[i][mentorStarsOf(i)] || 0) : 0);
+// 지금 별에서 실패한 수 · 이번이 확정인가 (천장) · 이번 성공 확률 0~1
+const mentorFails = () => Math.max(0, Math.floor(S.mentor.fail) || 0);
+const mentorSure = () => mentorFails() >= MENTOR_PITY;
+const mentorOdds = (i = mentorCur()) => (i >= MENTORS.length ? 0 : mentorSure() ? 1 : (MENTOR_ODDS[i][mentorStarsOf(i)] || 0) / 100);
 const mentorBooks = () => S.books || 0;
 
 // 수련 한 번을 할 수 없는 이유 ('' = 가능)
@@ -57,13 +63,14 @@ function mentorTryBlocker(i = mentorCur()) {
   if (mentorBooks() < mentorNeed(i)) return '📕 부족';
   return '';
 }
-// ★1~4 수련 한 번 — 📕 을 내고 별 하나 (확률 없음). 연출은 mentor-stage.js 가 튼다. { ok: true, star, books } | null
-function mentorTry(i = mentorCur()) {
+// ★1~4 수련 한 번 — 📕 을 내고 mentorOdds 확률로 별 하나 (실패하면 📕 만 쓰고 fail +1). 연출은 mentor-stage.js 가 튼다.
+//  { ok, star: 노린 별, books: 쓴 📕, sure: 천장(확정)이었나, fail: 시도 뒤 실패 수 } | null. 부르는 쪽이 바로 save() 한다 (새로 고침으로 되돌리지 못하게)
+function mentorTry(i = mentorCur(), rnd = Math.random) {
   if (mentorTryBlocker(i)) return null;
-  const need = mentorNeed(i), star = mentorStarsOf(i) + 1;
+  const need = mentorNeed(i), star = mentorStarsOf(i) + 1, sure = mentorSure(), ok = sure || rnd() < mentorOdds(i);
   S.books = mentorBooks() - need;
-  S.mentor.stars[i] = star;
-  return { ok: true, star, books: need };
+  if (ok) { S.mentor.stars[i] = star; S.mentor.fail = 0; } else S.mentor.fail = mentorFails() + 1;
+  return { ok, star, books: need, sure, fail: S.mentor.fail };
 }
 
 // 오늘 남은 승부 수 (서버가 진짜로 센다 — 이 값은 화면·레드닷용)
@@ -97,7 +104,7 @@ function mentorSettle(i, res) {
   return true;
 }
 
-// 레드닷: ★1~4 는 📕 이 다음 별 요구량 이상, ★5 는 오늘 남은 승부가 있고 오늘 아직 한 번도 안 걸었을 때 (서버 연결이 있을 때만)
+// 레드닷: ★1~4 는 📕 이 한 번 시도 비용 이상, ★5 는 오늘 남은 승부가 있고 오늘 아직 한 번도 안 걸었을 때 (서버 연결이 있을 때만)
 function mentorTodo() {
   const i = mentorCur();
   if (!mentorOpen(i)) return false;

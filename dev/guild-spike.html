@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기사단 시제품</title>
+<!-- 기사단(docs/specs/guild.md) 1단계 기술 검증: 기사마다 같은 게임을 iframe 으로 띄우고, 이 페이지가 매 프레임 모두의 게임 시간을 돌린다.
+     화면에는 고른 기사 하나만 그린다. 🪙 골드 · 🪵 목재 · 🪨 철광석은 이 페이지의 shared 객체 하나를 모든 기사가 같이 쓴다 (안 A 시제품 범위).
+     주소: dev/guild-spike.html?n=3  (n = 기사 수 1~5) · 오프라인(닿지 않는 서버)으로만 돈다 · &reset=1 이면 시제품 기사 세이브를 지우고 새로. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../src/skin/Galmuri11.woff2) format('woff2'); }
+  html, body { margin: 0; height: 100%; background: #17141f; color: #ece6f6; font: 12px/1.4 Galmuri11, -apple-system, sans-serif; overflow: hidden; }
+  #bar { position: fixed; left: 8px; top: 8px; z-index: 10; display: flex; gap: 4px; align-items: flex-start; flex-wrap: wrap; }
+  .slot { position: relative; min-width: 64px; padding: 2px 7px; background: #221e2dcc; border: 1px solid #5a5070; border-radius: 4px; color: inherit; font: inherit; font-size: 11px; cursor: pointer; text-align: left; line-height: 1.3; }
+  .slot.on { background: #4b3f66; border-color: #c9b8ff; }
+  .slot small { display: block; color: #a59cb8; font-size: 10px; }
+  #stats { position: fixed; right: 8px; top: 8px; z-index: 10; background: #221e2de6; border: 1px solid #5a5070; border-radius: 4px; padding: 6px 9px; min-width: 230px; }
+  #stats b { color: #ffd257; }
+  #stats button { background: #2b2538; color: inherit; border: 1px solid #5a5070; border-radius: 3px; font: inherit; font-size: 11px; padding: 1px 6px; cursor: pointer; margin: 2px 2px 0 0; }
+  #frames { position: fixed; inset: 0; }
+  #frames iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; pointer-events: none; }
+  #frames iframe.on { visibility: visible; pointer-events: auto; }
+</style>
+</head>
+<body>
+<div id="frames"></div>
+<div id="bar"></div>
+<div id="stats"></div>
+<script>
+const qs = new URLSearchParams(location.search);
+const N = Math.max(1, Math.min(5, +qs.get('n') || 3));
+const CHARS = Array.from({ length: N }, (_, i) => `기사${i + 1}`);
+const SHARED_KEY = 'knight-bar-guild-spike-shared';
+const ICON = { camp: '⛺ 캠프', expedition: '⚔️ 원정', returning: '↩️ 귀환', tower: '🗼 탑', dungeon: '🎰 미궁', castle: '🏰 성벽' };
+
+// 시제품용 기사 목록: 오프라인 토큰을 미리 넣어 닉네임 창을 건너뛴다 (진짜 서버에 쓰지 않는다 — server=127.0.0.1:9)
+if (qs.get('reset')) {
+  for (const n of CHARS) localStorage.removeItem(`knight-bar-save-v1:${n.toLowerCase()}`);
+  localStorage.removeItem(SHARED_KEY);
+}
+const acc = (() => { try { return JSON.parse(localStorage.getItem('knight-bar-accounts')) || { active: null, list: {} }; } catch { return { active: null, list: {} }; } })();
+for (const n of CHARS) acc.list[n] = acc.list[n] || 'local-test-token';
+acc.active = acc.active || CHARS[0];
+localStorage.setItem('knight-bar-accounts', JSON.stringify(acc));
+
+// ── 기사단 공용 상태 (안 A 중 재화 3종만 시제품) ──
+const shared = Object.assign({ gold: 0, wood: 0, ore: 0 }, (() => { try { return JSON.parse(localStorage.getItem(SHARED_KEY)); } catch { return null; } })());
+const frames = [];   // { nick, el, win, ms, steps }
+let active = 0;
+
+window.guildHost = {
+  // 게임의 loadState/resetState 가 S 를 새로 만들 때마다 부른다: 공용 재화를 이 페이지 객체로 잇는다 (기사 세이브에 남은 값은 무시)
+  bindShared(S) {
+    Object.defineProperty(S, 'gold', { get: () => shared.gold, set: (v) => { shared.gold = v; }, enumerable: true, configurable: true });
+    for (const k of ['wood', 'ore']) Object.defineProperty(S.mats, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: true, configurable: true });
+  },
+  ready(win) {
+    const f = frames.find((x) => x.el.contentWindow === win);
+    if (f) f.win = win;
+  },
+};
+
+CHARS.forEach((nick, i) => {
+  const el = document.createElement('iframe');
+  el.src = `../index.html?server=http://127.0.0.1:9&char=${encodeURIComponent(nick)}`;
+  document.getElementById('frames').appendChild(el);
+  frames.push({ nick, el, win: null, ms: 0, steps: 0 });
+});
+
+function pick(i) {
+  active = i;
+  const t0 = performance.now();
+  frames.forEach((f, j) => f.el.classList.toggle('on', j === i));
+  lastSwitchMs = performance.now() - t0;
+  renderBar();
+}
+let lastSwitchMs = 0;
+
+// 각 기사 iframe 의 S 는 guildS 로, 게임 함수(function 선언)는 window 속성으로 바로 부른다 (게임 페이지 CSP 가 eval 을 막는다)
+const gS = (f) => (f.win ? f.win.guildS : null);
+
+function renderBar() {
+  const bar = document.getElementById('bar');
+  bar.innerHTML = '';
+  frames.forEach((f, i) => {
+    const S = gS(f);
+    const st = S && { lv: S.level, phase: S.phase, stage: S.stage, floor: S.tower && S.tower.run ? S.tower.run.floor : 0 };
+    const b = document.createElement('button');
+    b.className = 'slot' + (i === active ? ' on' : '');
+    const doing = st ? (ICON[st.phase] || st.phase) + (st.phase === 'tower' && st.floor ? ` ${st.floor}층` : st.phase === 'expedition' ? ` ${st.stage}` : '') : '불러오는 중';
+    b.innerHTML = `${i + 1} ${f.nick} ${st ? 'Lv' + st.lv : ''}<small>${doing}</small>`;
+    b.onclick = () => pick(i);
+    bar.appendChild(b);
+  });
+}
+
+// ── 프레임 구동: 모든 기사 게임 시간을 한 rAF 에서 돌리고, 고른 기사만 그린다 ──
+let fpsN = 0, fpsT = performance.now(), fps = 0, worst = 0, worstShown = 0;
+// &drive=mc: 창이 가려져 rAF 가 멈출 때(자동 측정) MessageChannel 로 약 60/s 돌린다 — 측정용
+const DRIVE_MC = qs.get('drive') === 'mc';
+const mc = new MessageChannel(); let mcLast = 0;
+mc.port1.onmessage = () => { const t = performance.now(); if (t - mcLast >= 16) { mcLast = t; tick(t); } else mc.port2.postMessage(0); };
+function tick(now) {
+  if (DRIVE_MC) mc.port2.postMessage(0); else requestAnimationFrame(tick);
+  let sum = 0;
+  frames.forEach((f, i) => {
+    if (!f.win || !f.win.guildStep) return;
+    const t0 = performance.now();
+    try { f.win.guildStep(now, i === active); } catch (e) { console.error(f.nick, e); }
+    const dt = performance.now() - t0;
+    f.ms = f.ms * 0.95 + dt * 0.05; sum += dt;
+  });
+  worst = Math.max(worst, sum);
+  fpsN++;
+  if (now - fpsT >= 1000) { fps = fpsN * 1000 / (now - fpsT); fpsN = 0; fpsT = now; worstShown = worst; worst = 0; renderStats(); renderBar(); }
+}
+if (DRIVE_MC) tick(performance.now()); else requestAnimationFrame(tick);
+
+function renderStats() {
+  const mem = performance.memory ? (performance.memory.usedJSHeapSize / 1048576).toFixed(0) + ' MB' : '측정 불가';
+  const rows = frames.map((f, i) => `${i === active ? '▶' : '&nbsp;&nbsp;'} ${f.nick}: ${f.ms.toFixed(2)} ms/프레임`).join('<br>');
+  document.getElementById('stats').innerHTML =
+    `기사 <b>${N}</b>명 · 화면 rAF <b>${fps.toFixed(0)}</b>/s · 한 프레임 최대 <b>${worstShown.toFixed(1)}</b> ms<br>` +
+    `JS 힙 <b>${mem}</b> · 마지막 전환 <b>${lastSwitchMs.toFixed(1)}</b> ms<br>${rows}<br>` +
+    `<b>공용</b> 🪙 ${Math.floor(shared.gold).toLocaleString()} · 🪵 ${Math.floor(shared.wood).toLocaleString()} · 🪨 ${Math.floor(shared.ore).toLocaleString()}<br>` +
+    `<button onclick="preset()">시험 상태 넣기</button><button onclick="localStorage.setItem(SHARED_KEY, JSON.stringify(shared))">공용 저장</button>`;
+}
+setInterval(() => { try { localStorage.setItem(SHARED_KEY, JSON.stringify(shared)); } catch {} }, 10000);
+
+// 시험 상태: 기사1 = 도전의 탑, 기사2 = 원정, 기사3 = 재료의 미궁, 기사4 = 성벽, 기사5 = 원정 (모두 Lv 60·스테이지 50)
+const START = [
+  (w, S) => { S.tower.tixUsed = 0; w.startTower(); w.beginTowerView(); },
+  (w, S) => { S.stage = 5; w.startExpedition(); },   // 장비 없는 새 기사라 낮은 스테이지에서 사냥
+  (w, S) => { S.dg.tixUsed = 0; w.startDungeon(); w.beginDungeonView(); },
+  (w, S) => { if (S.castle) S.castle.tixUsed = 0; w.startCastle(); w.beginCastleView(); },
+  (w, S) => { S.stage = 5; w.startExpedition(); },
+];
+window.preset = () => {
+  frames.forEach((f, i) => {
+    const w = f.win, S = gS(f);
+    if (!S) return console.log(f.nick, '아직 안 불러옴');
+    try {
+      Object.assign(S, { phase: 'camp', level: 60, best: 50, stage: 50 });
+      Object.assign(S.train, { atk: 60, hp: 60, def: 30 });   // 장비 없는 새 기사라 훈련으로 버티게
+      if (w.setServerTime) w.setServerTime(Date.now());   // 오프라인은 서버 시각을 몰라서 탑·미궁 입장이 막힌다
+      S.hp = w.stats().maxHp; S.stamina = 100; w.closeCamp();
+      START[i](w, S); w.save(); w.renderHud();
+      console.log(f.nick, '→', S.phase);
+    } catch (e) { console.log(f.nick, 'ERR', e.message); }
+  });
+  shared.gold += 1e6;
+  renderBar();
+};
+pick(0);
+</script>
+</body>
+</html>

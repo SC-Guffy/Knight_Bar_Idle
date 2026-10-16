@@ -20,7 +20,7 @@ const VFX_SPEAR_SHEETS = {
   e02: { frames: 5 },   // 관통 찌르기 ★★★ 드릴 창 (오른쪽이 창끝, 루프)
   e15: { frames: 5 },   // 용추락 ★ 보라 와이번 급강하 (머리가 아래)
   e15h: { frames: 1 },  // 용 머리 (오른쪽을 본다) — 용추락 ★★★ 유성룡, 용황 강림 Lv1 흑룡
-  e15s: { frames: 1 },  // 용 몸통 마디 (가로, 등이 위) — 같이 쓴다
+  e15s: { frames: 1, keepInk: true },  // 용 몸통 마디 (타일 — 비늘 사이 어두운 선을 벗기면 구멍이 난다) (가로, 등이 위) — 같이 쓴다
   e16: { frames: 5 },   // 용추락 착지: 용 발톱 자국 세 줄 (빛났다 사그라든다)
   e17: { frames: 5 },   // 용의 숨결 불꽃 원뿔 (왼쪽이 입, 오른쪽으로 넓어진다, 루프) — 용황 강림 숨결도
   e18: { frames: 5 },   // 용왕의 광선 타일 (가로로 이어 붙인다)
@@ -35,12 +35,12 @@ const VFX_SPEAR_SHEETS = {
   k32: { frames: 5 }, k33: { frames: 5 }, k34: { frames: 5 },
   // F 궁극기
   f08h: { frames: 1 },  // 용황 머리 (뿔 왕관·갈기)
-  f08s: { frames: 1 },  // 용황 몸통 마디
+  f08s: { frames: 1, keepInk: true },  // 용황 몸통 마디 (타일 — 벗기지 않는다)
   f10: { frames: 5 },   // 천붕 ★★★ 거인의 도끼 (날이 아래)
   f10l: { frames: 5 },  // 천붕 ★★ 용암 기둥
   e23r: { frames: 5 },  // 천마군단: 빛의 기병 (말 + 창 든 기수)
   f09: { frames: 1 },   // 용황 강림 ★★★ 용신의 눈 + 용암 땅 배경 (240×100 도트, 다시 칠하지 않고 원래 색으로 — deGodEye)
-  f11: { frames: 1 },   // 천마군단 ★★★ 기병대 행렬 (금빛으로 다시 칠해 하늘을 지나가는 그림자로)
+  f11: { frames: 1, keepInk: true },   // 천마군단 ★★★ 기병대 행렬 (금빛으로 다시 칠해 하늘을 지나가는 그림자로)
 };
 const VFX_SPEAR_WEAPON = { spear: 'w5', dragonSpear: 'w5a', wyrmSpear: 'w5b', halberd: 'w6', doomAxe: 'w6a', lance: 'w7', holyLance: 'w7a' };
 for (const wid of Object.keys(VFX_SPEAR_WEAPON)) if (WEAPONS[wid]) WEAPONS[wid].texHit = true;    // 평타 끝의 벡터 원 섬광 대신 H 시트

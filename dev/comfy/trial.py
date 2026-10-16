@@ -3,7 +3,7 @@
 #   C:\AI\ComfyUI\.venv\Scripts\python.exe dev/comfy/trial.py cands w1b sdxl 8
 #   ... trial.py anim h1 zimg <seed>      (기준 그림 고정 img2img 로 프레임 만들기)
 #   ... trial.py sheet h1 zimg 4          (한 장에 프레임 여러 개 — 비교용)
-# 원본(1024px)은 저장소 밖 C:\AI\comfy-raw 에 둔다. 결과는 dev/comfy/out/.
+# 원본(1024px)은 저장소 밖 C:\AI\comfy-raw (맥 ~/AI/comfy-raw) 에 둔다. 맥 실행: ~/AI/ComfyUI/.venv/bin/python dev/comfy/trial.py ... 결과는 dev/comfy/out/.
 import sys, os, json, math, time
 import numpy as np
 from PIL import Image, ImageFilter, ImageEnhance
@@ -13,7 +13,7 @@ from post import post, sheet, fg_mask, bbox, union, clean_bg, split_sheet
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
-RAW = r'C:\AI\comfy-raw'
+RAW = r'C:\AI\comfy-raw' if os.name == 'nt' else os.path.expanduser('~/AI/comfy-raw')
 os.makedirs(OUT, exist_ok=True); os.makedirs(RAW, exist_ok=True)
 
 STYLE = {
@@ -33,7 +33,33 @@ TEX = {
            'tapering to thin pointed tips at top and bottom, several straight horizontal speed lines trailing behind it on the left', (64, 32), (1344, 768)),
     'w1': ('a swing smear trail effect, a wide curved arc sweeping from top to bottom on the right side like a quarter moon, '
            'thick white leading edge on the outside, body fading into pale steel blue, tail breaking into small fragments', (32, 32), (1024, 1024)),
+
+    # ── 파이터 계열 3차 (boxer-class.md "3차 궁극기 텍스처 생성 계획", 2026-10-16). 밝기만 쓰고 색은 게임이 직업색으로 칠한다 ──
+    # 배경(xf01·03·05)은 화면 전체 그림이라 자르지 않는다 (FULL)
+    'xf01': ('wide side-view panorama of a grand fighting arena at night, tall pillars and banners as dark silhouettes, '
+             'several strong spotlight beams shining down from above onto an empty ring floor, light haze, bright beams on black', (240, 100), (1536, 640)),
+    'xf03': ('wide side-view panorama of a violent storm sky, huge swirling wind bands and torn spiraling clouds sweeping across, '
+             'thin bright wind streaks, dark ground line at the bottom, white streaks on black', (240, 100), (1536, 640)),
+    'xf05': ('wide side-view panorama of a heavenly sea of glowing clouds, soft concentric ripple rings of spiritual energy in the sky, '
+             'gentle light rays falling from above, dark ground line at the bottom, white glow on black', (240, 100), (1536, 640)),
+    'xf02': ('one giant fist made of glowing golden energy punching forward to the right, a flaming lion mane of energy streaming '
+             'behind the wrist, side view, bold bright outline, centered', (64, 64), (1024, 1024)),
+    'xf04': ('one giant foot made of swirling wind and air currents stomping straight down from the sky, sole facing down, '
+             'spiral wind streaks wrapping around the leg, centered', (64, 64), (1024, 1024)),
+    'xf06': ('the upper body of a giant translucent spirit monk made of glowing energy, calm face, both arms pushing open palms forward to the right, '
+             'flowing robe sleeves, soft glowing outline, side view, centered', (96, 96), (1024, 1024)),
+    'xk08': ('a big impact explosion shaped like a roaring lion head made of energy, mane of sharp radial shards bursting outward, '
+             'bright white core, centered', (48, 48), (1024, 1024)),
+    'xk09': ('a big downward wind blast impact, a vertical column of wind slamming into the ground, a flat spiral ring of wind and dust '
+             'spreading sideways at the bottom, centered', (48, 48), (1024, 1024)),
+    'xk10': ('a giant open palm print shockwave explosion, a huge glowing hand shape at the center with concentric energy rings bursting outward, '
+             'centered', (64, 48), (1152, 864)),
+    'xh3': ('a melee punch hit impact flash shaped like a small lion mane, short sharp radial flame shards around a bright white star, centered', (32, 32), (1024, 1024)),
+    'xh5': ('a small whirlwind hit impact, a tight spiral of wind streaks around a bright center with a few leaf-like wind feathers, centered', (32, 32), (1024, 1024)),
+    'xh7': ('a small energy ripple hit impact, concentric glowing rings with a few lotus petals scattering outward, centered', (32, 32), (1024, 1024)),
+    'xp2': ('one small round glowing energy orb flying to the right with a short tail of tiny lotus petals behind it, centered', (12, 12), (1024, 1024)),
 }
+FULL = {'xf01', 'xf03', 'xf05'}
 LOG = os.path.join(OUT, 'log.jsonl')
 
 
@@ -58,7 +84,7 @@ def cands(tex, model, n, seed0=1):
             name = f'{tex}-{model}-s{s + i}'
             im.save(os.path.join(RAW, name + '.png'))
             im.resize((W // 4, H // 4), Image.LANCZOS).save(os.path.join(OUT, 'thumb', name + '.jpg'), quality=85)
-            px, _, _ = post(im, size)
+            px, _, _ = post(im, size, box=(0, 0, W, H) if tex in FULL else None)
             px.save(os.path.join(OUT, 'cand', name + '.png'))
             res.append(name)
         log(kind='cand', tex=tex, model=model, seed=s, n=len(ims), sec=round(dt, 2), per=round(dt / len(ims), 2), w=W, h=H)

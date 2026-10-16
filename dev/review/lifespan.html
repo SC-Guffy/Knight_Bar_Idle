@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>게임 수명 점검</title>
+<!-- 스펙: docs/specs/balance-lifespan.md. 데이터: lifespan-data.js (dev/lifespan-bot.js, 0.24.4, 15계열 중앙값, 2026-10-16) -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  /* 레이아웃: 결론 → 곡선 → 하루 상승폭 → 완료 타임라인 → 늘어지는 구간 → 제안. 픽셀 스킨 남보라 톤 (dev/review 공통) */
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --warn: #ffb35c; --pink: #ff9ff3; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.6 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding-block: 16px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); text-wrap: balance; }
+  h3 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  p { margin: 6px 0; max-width: 72ch; }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+  .grid > * { min-width: 0; }
+  .kpi b { display: block; font-size: 22px; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .kpi span { color: var(--dim); font-size: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chips button { background: #2b2538; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 2px 10px; font: inherit; cursor: pointer; }
+  .chips button.on { background: #4b3f66; border-color: #8f7cc0; }
+  .chips button:focus-visible { outline: 2px solid var(--gold); }
+  svg text { fill: var(--dim); font: 11px Galmuri11, sans-serif; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--dim); }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 5px; }
+  .phase { border-left: 3px solid var(--warn); padding-left: 10px; }
+  .phase.red { border-color: var(--red); }
+  .phase.dim { border-color: var(--dim); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  li { margin: 2px 0; }
+  .ok { color: var(--green); } .bad { color: var(--red); } .warn { color: var(--warn); }
+  .tl td.bar { padding: 0; min-width: 300px; position: relative; }
+  .tl .mk { position: absolute; top: 4px; height: 12px; width: 12px; border-radius: 2px; transform: translateX(-6px); }
+  .tl .mk.h { background: var(--gold); } .tl .mk.c { background: var(--blue); }
+  .tl .ax { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100%/6 - 1px), var(--line) calc(100%/6 - 1px) calc(100%/6)); opacity: .6; }
+</style>
+</head>
+<body>
+<main>
+<h1>기사 키우기 · 게임 수명 점검</h1>
+<div class="sub">0.24.4 · 2026-10-16 · 진행 봇 15계열(3차 직업 전부) 중앙값 · 접속 패턴 3종</div>
+
+<h2>결론</h2>
+<div class="grid">
+  <div class="card kpi"><b>약 2주</b><span>열심 유저가 콘텐츠 끝(스테이지 300 · 마지막 레이드 종언의 성좌신)에 닿는 날 — 가벼운 유저는 약 25일</span></div>
+  <div class="card kpi"><b>10일</b><span>3차 전직·교관 별 25·성벽 30단계·성벽 업그레이드·전 부위 태초 장비가 <u>모두</u> 끝나는 날 (접속량과 거의 무관)</span></div>
+  <div class="card kpi"><b>하루 +1</b><span>40~45일 뒤 스테이지 상승폭. 스테이지 380~430 근처에서 사실상 멈춘다</span></div>
+  <div class="card kpi"><b>246일</b><span>건물 4개 만렙까지 건설 대기 합계. 60~90일 시뮬에서 아무도 못 끝냄 (Lv 합 41~59 / 80)</span></div>
+</div>
+<p>수명은 <b>체감 약 2~4주</b>다. 새 것이 열리는 구간은 열심 유저 기준 첫 10~14일에 몰려 있고, 그 뒤 30일가량은 강화 +30과 스킬 Lv30만 남은 꼬리, 그 뒤는 레벨이 천천히 오르는 정체 구간이다.
+24시간 봇(60일)과 가벼운 유저(90일)의 최종 스테이지가 432 · 390 으로 거의 같다. 후반은 노력이 아니라 시간에 묶여 있고, 그 시간 동안 새로 보는 것이 없다.</p>
+
+<h2>최고 스테이지 곡선</h2>
+<div class="chips" id="modeChips"></div>
+<div class="legend" id="legend"></div>
+<div class="scroll"><svg id="curve" viewBox="0 0 900 340" width="100%" style="min-width:560px"></svg></div>
+<p class="sub">띠 = 15계열 중 10~90% 범위. 점선: 281 마지막 지역 '별의 끝' 시작(이후 무한) · 300 마지막 레이드 보스.</p>
+
+<h2>하루 상승폭 (스테이지/일, 5일 평균)</h2>
+<div class="scroll"><svg id="gain" viewBox="0 0 900 220" width="100%" style="min-width:560px"></svg></div>
+<p class="sub">초반 하루 20~40칸 → 15일 무렵 10칸 → 30일 무렵 3칸 → 45일 뒤 1칸 안팎.</p>
+
+<h2>성장 축이 끝나는 날</h2>
+<p class="sub">■ 열심 유저 · ■ 가벼운 유저 (축: 0~90일, 칸 = 15일). '-' 는 시뮬 기간 안에 절반 넘는 계열이 못 닿음.</p>
+<div class="scroll"><table class="tl" id="tl"></table></div>
+
+<h2>늘어지는 구간</h2>
+<div class="grid">
+  <div class="card phase"><h3>① 10~14일 · 할 일이 한꺼번에 사라진다</h3>
+    <p>전직(3차 3~5일), 교관 별 25(10일), 성벽 30단계·업그레이드(7~13일), 장비 등급(태초 10~11일), 마지막 레이드(14~26일)가 짧은 기간에 같이 끝난다. 교관·성벽은 하루 입장권·📕 공급에 묶여 있어서 누구나 같은 날 끝난다.</p></div>
+  <div class="card phase red"><h3>② 15~45일 · 숫자만 오르는 꼬리</h3>
+    <p>남은 목표는 강화 +30(열심 25일 · 가벼운 88일)과 스킬 Lv30(42~48일)뿐이다. 스테이지 300 뒤에는 새 지역·새 레이드·새 장비 등급이 없다. 하루 상승폭은 10 → 3 칸으로 떨어진다.</p></div>
+  <div class="card phase dim"><h3>③ 45일~ · 정체</h3>
+    <p>스킬까지 끝나면 성장원은 레벨(하루 약 +1)과 훈련장 Lv(8~27일에 한 칸)만 남는다. 스테이지는 하루 0~1칸. 건물 Lv17→20은 칸마다 8·14·27일이라, 사실상 아무도 닿지 못하는 벽이다.</p></div>
+</div>
+
+<h2>원인 정리</h2>
+<ul>
+  <li><b>전직이 너무 이르다.</b> 3차 전직 조건(Lv100·마력석 150·골드 5e10)이 열심 3일·가벼운 5일에 풀린다. 가장 큰 성장 이벤트가 첫 주 안에 소진된다.</li>
+  <li><b>시즌6 콘텐츠의 끝이 짧다.</b> 교관(별 25)·성벽(30단계, 10-16 축소)이 10일 안에 완료. 끝난 뒤 남는 보상 루프가 없다.</li>
+  <li><b>300 이후 엔드게임이 없다.</b> 지역은 281부터 무한 반복, 레이드는 300이 마지막, 장비는 태초가 마지막. 300을 넘긴 뒤 보이는 변화가 숫자뿐이다.</li>
+  <li><b>건물 시간 곡선(×1.8/Lv)이 후반에 폭발한다.</b> Lv15 이후 칸당 2.6일 → 27일. 즉시 완료(남는 골드)를 써도 60일 Lv 합 51 → 59로 조금 나아질 뿐, 스테이지는 그대로다.</li>
+</ul>
+
+<h2>결정할 것 (제안)</h2>
+<div class="grid">
+  <div class="card"><h3>A. 300 이후 엔드게임 루프</h3><p>스테이지 300 이후용 목표를 만든다. 예: 레이드 보스 '각성' 단계(같은 보스 +20스테이지마다 보상 단계↑), 탑 고층 보상, 장비 태초 위 옵션 각인 등. 꼬리(②·③)를 콘텐츠로 바꾸는 가장 큰 수단.</p></div>
+  <div class="card"><h3>B. 중반 이벤트 펼치기</h3><p>3차 전직 조건을 스테이지/레벨 기준으로 늦춰 7~10일에 두고, 교관 별·성벽 단계 공급을 줄여 완료일을 20~30일로 민다. 첫 주가 조금 느려지는 대신 ①의 절벽이 완만해진다.</p></div>
+  <div class="card"><h3>C. 건물 Lv15~20 시간 다듬기</h3><p>×1.8 를 Lv15 이후 ×1.3 정도로 꺾으면 만렙 합계가 246일 → 약 30~40일. 지금은 화면에 '27일'이 뜨는 보이는 벽이다. 반대로 장기 목표로 남길 거면 그대로 둔다.</p></div>
+</div>
+
+<h2>시뮬 가정과 한계</h2>
+<ul class="sub">
+  <li>봇의 하루는 <code>dev/progress-bot.js</code> 그대로: 원정 → 정리·판매 → 창고·교역 → 레이드 3회(4인 파티, 이긴다고 가정) → 전직·비전서(탑 몫 하루 4권 가정) → 강화 → 건설 → 훈련 → 성벽·교관.</li>
+  <li>접속 패턴 — 24시간 봇: 매 분 관리 · 열심: 8~24시 매시간 + 저녁 2시간 켜 둠, 첫날 4시간 · 가벼운: 하루 4번 + 1시간 켜 둠, 첫날 2시간. 원정 출발은 손으로 해야 해서 접속 사이엔 캠프에서 쉰다.</li>
+  <li>탑·월드 보스·결투 시즌·재료의 미궁·입장권 구매는 돌리지 않았다. 실제 유저는 비전서·재화가 조금 더 많아 스킬 Lv30 이 앞당겨질 수 있다.</li>
+  <li>레이드를 늘 이긴다고 가정해서 장비 등급 완료일(10일)은 낙관적이다.</li>
+</ul>
+
+<h2>참고: 건설 시간 (×1.8/Lv)</h2>
+<div class="scroll"><table id="bt"></table></div>
+</main>
+<script src="lifespan-data.js"></script>
+<script>
+const L = window.LIFE;
+const MODES = [
+  { k: 'heavy', name: '열심 유저 (60일)', color: '#ffd257' },
+  { k: 'casual', name: '가벼운 유저 (90일)', color: '#8fd8ff' },
+  { k: 'bot', name: '24시간 봇 (60일)', color: '#ff9ff3' },
+  { k: 'heavy-rush', name: '열심 + 즉시 완료', color: '#7dffb0' },
+];
+let on = new Set(['heavy', 'casual', 'bot']);
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; };
+
+function drawCurve() {
+  const svg = document.getElementById('curve'); svg.innerHTML = '';
+  const W = 900, H = 340, l = 44, r = 16, t = 12, b = 30, X = (d) => l + (d / 90) * (W - l - r), Y = (s) => H - b - (s / 450) * (H - t - b);
+  for (let s = 0; s <= 450; s += 50) { el('line', { x1: l, x2: W - r, y1: Y(s), y2: Y(s), stroke: 'var(--line)', 'stroke-width': 1 }, svg); el('text', { x: l - 6, y: Y(s) + 4, 'text-anchor': 'end' }, svg).textContent = s; }
+  for (let d = 0; d <= 90; d += 15) el('text', { x: X(d), y: H - 10, 'text-anchor': 'middle' }, svg).textContent = d + '일';
+  for (const [s, c, txt] of [[281, '#a59cb8', '281 별의 끝'], [300, '#ff6b6b', '300 마지막 레이드']]) {
+    el('line', { x1: l, x2: W - r, y1: Y(s), y2: Y(s), stroke: c, 'stroke-dasharray': '4 4', 'stroke-width': 1 }, svg);
+    el('text', { x: W - r - 4, y: Y(s) + (s === 281 ? 13 : -4), 'text-anchor': 'end', style: `fill:${c}` }, svg).textContent = txt;
+  }
+  for (const m of MODES) {
+    if (!on.has(m.k) || !L[m.k]) continue;
+    const S = L[m.k].series, n = S.best.length;
+    const band = S.bestHi.map((v, i) => `${X(i + 1)},${Y(v)}`).concat(S.bestLo.map((v, i) => `${X(i + 1)},${Y(v)}`).reverse());
+    el('polygon', { points: `${X(0)},${Y(0)} ` + band.join(' '), fill: m.color, 'fill-opacity': 0.12 }, svg);
+    el('polyline', { points: `${X(0)},${Y(0)} ` + S.best.map((v, i) => `${X(i + 1)},${Y(v)}`).join(' '), fill: 'none', stroke: m.color, 'stroke-width': 2 }, svg);
+    el('circle', { cx: X(n), cy: Y(S.best[n - 1]), r: 3.5, fill: m.color }, svg);
+    el('text', { x: X(n) - 4, y: Y(S.best[n - 1]) - 8, 'text-anchor': 'end', style: `fill:${m.color}` }, svg).textContent = S.best[n - 1];
+  }
+}
+function drawGain() {
+  const svg = document.getElementById('gain'); svg.innerHTML = '';
+  const W = 900, H = 220, l = 44, r = 16, t = 10, b = 26, X = (d) => l + (d / 90) * (W - l - r), Y = (g) => H - b - (Math.min(g, 40) / 40) * (H - t - b);
+  for (let g = 0; g <= 40; g += 10) { el('line', { x1: l, x2: W - r, y1: Y(g), y2: Y(g), stroke: 'var(--line)' }, svg); el('text', { x: l - 6, y: Y(g) + 4, 'text-anchor': 'end' }, svg).textContent = g; }
+  for (let d = 0; d <= 90; d += 15) el('text', { x: X(d), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = d + '일';
+  for (const m of MODES) {
+    if (!on.has(m.k) || !L[m.k]) continue;
+    const B = L[m.k].series.best, pts = [];
+    for (let d = 1; d <= B.length; d++) { const a = Math.max(0, d - 5), g = (B[d - 1] - (a ? B[a - 1] : 0)) / (d - a); pts.push(`${X(d)},${Y(g)}`); }
+    el('polyline', { points: pts.join(' '), fill: 'none', stroke: m.color, 'stroke-width': 2 }, svg);
+  }
+}
+function chips() {
+  const box = document.getElementById('modeChips'), lg = document.getElementById('legend');
+  box.innerHTML = ''; lg.innerHTML = '';
+  for (const m of MODES) {
+    const b = document.createElement('button'); b.id = 'chip-' + m.k; b.textContent = m.name; b.className = on.has(m.k) ? 'on' : '';
+    b.onclick = () => { on.has(m.k) ? on.delete(m.k) : on.add(m.k); chips(); drawCurve(); drawGain(); };
+    box.appendChild(b);
+    if (on.has(m.k)) lg.insertAdjacentHTML('beforeend', `<span><i style="background:${m.color}"></i>${m.name}</span>`);
+  }
+}
+function timeline() {
+  const rows = [
+    ['st40', '스테이지 40 (성벽·교관 열림)'], ['cls2', '2차 전직'], ['cls3', '3차 전직 (마지막)'], ['st100', '스테이지 100'],
+    ['eqMyth', '전 부위 신화 장비'], ['castleUpMax', '성벽 업그레이드 완료'], ['mentor25', '교관 별 25 (완료)'], ['castle30', '성벽 30단계 (완료)'],
+    ['eqTop', '전 부위 태초 장비 (마지막 등급)'], ['st200', '스테이지 200'], ['st300', '스테이지 300'], ['raid300', '마지막 레이드 보스 300'],
+    ['enh90', '강화 +30 × 3부위'], ['skill30', '3차 스킬 전부 Lv30'], ['st400', '스테이지 400'], ['bldMax', '건물 4개 Lv20'],
+  ];
+  const fmt = (v, of) => (v.day == null || v.n * 2 < of ? '-' : Math.round(v.day) + '일');
+  let h = '<tr><th>성장 축</th><th>열심</th><th>가벼운</th><th>24시간 봇</th><th>0 ─ 90일</th></tr>';
+  for (const [k, nm] of rows) {
+    const H = L.heavy.miles[k], C = L.casual.miles[k], B = L.bot.miles[k];
+    const mk = (v, cls) => (v.day == null || v.n * 2 < v.of ? '' : `<span class="mk ${cls}" style="left:${(v.day / 90) * 100}%"></span>`);
+    h += `<tr><td>${nm}</td><td>${fmt(H, H.of)}</td><td>${fmt(C, C.of)}</td><td>${fmt(B, B.of)}</td><td class="bar"><span class="ax"></span>${mk(H, 'h')}${mk(C, 'c')}</td></tr>`;
+  }
+  document.getElementById('tl').innerHTML = h;
+}
+function buildTable() {
+  let c = 0, h = '<tr><th>Lv</th>';
+  const cells = [];
+  for (let lv = 10; lv < 20; lv++) { const s = 60 * Math.pow(1.8, lv - 1); c = 0; for (let k = 1; k <= lv; k++) c += 60 * Math.pow(1.8, k - 1); cells.push([lv, s, c]); }
+  h += cells.map(([lv]) => `<th>${lv}→${lv + 1}</th>`).join('') + '</tr><tr><td>한 칸</td>' + cells.map(([, s]) => `<td>${s < 86400 ? (s / 3600).toFixed(1) + '시간' : (s / 86400).toFixed(1) + '일'}</td>`).join('') + '</tr><tr><td>건물 4개 누적</td>' + cells.map(([, , c]) => `<td>${(4 * c / 86400).toFixed(1)}일</td>`).join('') + '</tr>';
+  document.getElementById('bt').innerHTML = h;
+}
+chips(); drawCurve(); drawGain(); timeline(); buildTable();
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>성벽 단계 축소 — 검토</title>
+<!-- 스펙: docs/specs/castle-defense.md "단계 축소 (10-16)" -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .old { color: var(--dim); } .new { color: var(--gold); font-weight: 700; }
+  canvas { display: block; width: 100%; max-width: 960px; background: #0f0d14; border: 1px solid var(--line); border-radius: 4px; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0; color: var(--dim); }
+  input[type=number] { width: 64px; background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; }
+  img { max-width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+  li { margin: 2px 0; }
+</style>
+</head>
+<body><main>
+<h1>🏰 성벽 지키기 — 단계 축소 1~100 → 1~30</h1>
+<div class="sub">2026-10-16 · 스펙 docs/specs/castle-defense.md "단계 축소" · 상태: 구현, 사용자 확인 대기</div>
+
+<h2>요지</h2>
+<div class="card">
+  <ul>
+    <li>요청: "단계가 너무 잘게 쪼개져 깨는 게 너무 쉽다" → <b>30단계로 축소</b> 선택.</li>
+    <li>단계 L 의 적 스테이지: <span class="old">−8 + 2L (1~100)</span> → <span class="new">7L − 6 (1~30)</span>. 적 범위는 똑같이 1~204.</li>
+    <li>한 단계 오를 때 적 체력·공격력 합쳐 <span class="old">약 ×1.12</span> → <span class="new">약 ×2</span>.</li>
+    <li>보상: 🧱 = 점수 × (1 + L/30), 📕 = 웨이브 × (0.34 + 0.0033L) — 끝 단계 보상은 옛 100단계와 같음.</li>
+    <li>옛 세이브 최고 단계는 같은 적 스테이지 이하인 새 단계로 (33 → 9, 42 → 11).</li>
+  </ul>
+</div>
+
+<h2>단계 ↔ 적 스테이지</h2>
+<div class="ctl">새 단계당 스테이지 <input id="per" type="number" value="7" min="2" max="15"> · 시작 <input id="s0" type="number" value="-6"> · 최대 단계 <input id="max" type="number" value="30"></div>
+<canvas id="cv" width="960" height="300"></canvas>
+<div class="sub">회색 = 옛 (−8 + 2L), 금색 = 새. 가로축 = 적 스테이지, 점 하나가 한 단계.</div>
+<div class="scroll"><table id="tbl"></table></div>
+
+<h2>간이 시뮬 한계 단계 (중앙값, <code>node dev/castle-sim.js</code>)</h2>
+<div class="scroll"><table>
+  <tr><th>내 최고 스테이지</th><th>40</th><th>60</th><th>80</th><th>100</th><th>120</th><th>140</th><th>160</th><th>180</th><th>200</th></tr>
+  <tr><td class="old">옛 · 업그레이드 0</td><td>13</td><td>19</td><td>22</td><td>29</td><td>39</td><td>46</td><td>54</td><td>65</td><td>74</td></tr>
+  <tr><td class="new">새 · 업그레이드 0</td><td>3</td><td>5</td><td>6</td><td>8</td><td>11</td><td>13</td><td>15</td><td>18</td><td>20</td></tr>
+  <tr><td class="old">옛 · 전부 Lv10</td><td>20</td><td>25</td><td>31</td><td>42</td><td>51</td><td>60</td><td>69</td><td>80</td><td>89</td></tr>
+  <tr><td class="new">새 · 전부 Lv10</td><td>5</td><td>7</td><td>8</td><td>11</td><td>14</td><td>16</td><td>19</td><td>22</td><td>25</td></tr>
+</table></div>
+
+<h2>실측 (봇 세이브 최고 스테이지 100, 업그레이드 0, 기름 안 씀)</h2>
+<div class="scroll"><table>
+  <tr><th>계열</th><th>성공</th><th>실패</th><th>시뮬 한계</th><th>옛 규칙 한계 (적 스테이지)</th></tr>
+  <tr><td>전쟁군주 (근접 광역)</td><td>9단계 (적 57) · 쓰러짐 1</td><td>10단계 붕괴</td><td>10</td><td>34 (적 60)</td></tr>
+  <tr><td>신궁 (원거리 단일)</td><td>5단계 (적 29) · 쓰러짐 1</td><td>6단계 붕괴</td><td>7</td><td>22 (적 36)</td></tr>
+</table></div>
+
+<h2>진행 봇 (14일 · 2시드, 옛 HEAD → 새)</h2>
+<div class="scroll"><table>
+  <tr><th>항목</th><th>2일</th><th>4일</th><th>7일</th><th>10일</th><th>14일</th></tr>
+  <tr><td>성벽 최고 단계</td><td>9 → 6</td><td>12 → 12</td><td>21 → 21</td><td>? → 30 (끝)</td><td>42 → 30</td></tr>
+  <tr><td>📕 하루</td><td colspan="5">12.2 → 13.2</td></tr>
+  <tr><td>업그레이드 완료 (열린 뒤)</td><td colspan="5">6.9일 → 5.9일</td></tr>
+</table></div>
+<div class="card sub">봇은 사냥이 아주 빨라(4일 스테이지 200+, 14일 367) 옛·새 모두 입장권 3장/일이 상한이라 매판 성공한다. 실제 유저 기준으로는 최고 100이 옛 규칙에서 29단계까지 열흘 내내 성공만 했다면, 지금은 8단계(3일) 뒤부터 사냥 약 7스테이지마다 1단계씩 열린다.</div>
+
+<h2>화면</h2>
+<img src="castle-stages/view.jpg" alt="성벽 화면: 최고 8/30단계, 다음 9단계 적 스테이지 57, 비슷함">
+
+<h2>결정할 것</h2>
+<div class="card"><ul>
+  <li>업그레이드 완료가 봇 기준 6.9 → 5.9일로 하루 빨라짐 (10-14 결정 약 6.8일). 맞추려면 🧱 배율 1 + L/45 정도.</li>
+  <li>빠른 유저는 30단계(적 204)에 열흘 만에 닿음 — 끝을 더 늘릴지 (예: 40단계 = 적 274).</li>
+</ul></div>
+
+<script>
+const cv = document.getElementById('cv'), g = cv.getContext('2d');
+function draw() {
+  const per = +document.getElementById('per').value, s0 = +document.getElementById('s0').value, max = +document.getElementById('max').value;
+  const oldSt = (L) => Math.max(1, -8 + 2 * L), newSt = (L) => Math.max(1, Math.round(s0 + per * L));
+  const W = cv.width, H = cv.height, xmax = Math.max(210, newSt(max) + 10), X = (s) => 40 + (s / xmax) * (W - 60);
+  g.clearRect(0, 0, W, H); g.font = '11px sans-serif'; g.fillStyle = '#a59cb8';
+  for (let s = 0; s <= xmax; s += 20) { g.fillRect(X(s), 40, 1, H - 70); g.fillText(s, X(s) - 8, H - 14); }
+  g.fillStyle = '#6a6278'; for (let L = 1; L <= 100; L++) g.fillRect(X(oldSt(L)) - 1, 90, 3, 30);
+  g.fillText('옛 100단계', 4, 84);
+  g.fillStyle = '#ffd257'; for (let L = 1; L <= max; L++) { g.fillRect(X(newSt(L)) - 2, 170, 5, 40); if (L % 5 === 0 || L === 1) g.fillText(L, X(newSt(L)) - 5, 225); }
+  g.fillText(`새 ${max}단계`, 4, 164);
+  const rows = [1, 5, 10, 15, 20, 25, 30, 40].filter((L) => L <= max);
+  document.getElementById('tbl').innerHTML = '<tr><th>새 단계</th>' + rows.map((L) => `<th>${L}</th>`).join('') + '</tr>' +
+    '<tr><td>적 스테이지</td>' + rows.map((L) => `<td>${newSt(L)}</td>`).join('') + '</tr>' +
+    '<tr><td class="old">같은 적의 옛 단계</td>' + rows.map((L) => `<td>${Math.round((newSt(L) + 8) / 2)}</td>`).join('') + '</tr>' +
+    '<tr><td>체력×공격 (앞 단계 대비)</td>' + rows.map((L) => `<td>×${(Math.pow(1.06 * 1.04, per)).toFixed(2)}</td>`).join('') + '</tr>';
+}
+['per', 's0', 'max'].forEach((id) => document.getElementById(id).addEventListener('input', draw));
+draw();
+</script>
+</main></body>
+</html>

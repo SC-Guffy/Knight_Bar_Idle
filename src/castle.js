@@ -10,21 +10,22 @@
 //    last: 마지막 결과 { lv, reason, waves, kills, pts, downs, bricks, books, first, best, dur, at, seen } | null,
 //  }
 // 규칙
-//  - 최고 스테이지 CASTLE_UNLOCK_STAGE 에 열린다. 도전 단계 = 깬 최고 + 1 (최대 100). 단계 L 의 적 = 스테이지 −8 + 2L 급 (castleStage, 최소 1).
+//  - 최고 스테이지 CASTLE_UNLOCK_STAGE 에 열린다. 도전 단계 = 깬 최고 + 1 (최대 30). 단계 L 의 적 = 스테이지 7L − 6 급 (castleStage, 1단계 1 · 30단계 204).
 //  - 10웨이브 (5·10웨이브는 보스), 잡몹 130. 1.5초마다 5마리가 흩어져 몰려온다. 다음 웨이브는 앞 웨이브 시작 10초(+망루) 뒤, 앞 웨이브를 다 잡으면 1초 뒤.
 //  - 1:n 포위 (2차 개편 10-15): 줄을 서지 않고 기사 앞에 겹겹이 붙어 붙은 몬스터가 모두 친다. 잡몹 체력 ×1 · 공격력 ×2.4 (보스는 체력 ×2·×2.31, 공격력 ×2·×2.16).
 //    쓰러지면 5초 뒤 일어나고, 그동안 성벽에 닿은 몬스터가 성벽을 친다. 🔥 끓는 기름 (20초 쿨): 성문 앞 무리에 지원군 위력 ×3 + 화상.
 //  - 10웨이브가 나온 뒤 120초 안에 다 잡아야 한다. 성벽 내구도 0 이면 즉시 실패.
-//  - 보상: 🧱 = 처치 점수 × (1 + L/100), 첫 돌파는 ×2. 📕 = 막은 웨이브 × (0.34 + 0.001L) (확률 올림). 소탕 = 최고 단계 다 막은 몫.
+//  - 보상: 🧱 = 처치 점수 × (1 + L/30), 첫 돌파는 ×2. 📕 = 막은 웨이브 × (0.34 + 0.0033L) (확률 올림). 소탕 = 최고 단계 다 막은 몫.
 
 const CASTLE_UNLOCK_STAGE = 40;
-const CASTLE_MAX_LV = 100;
+const CASTLE_MAX_LV = 30;               // 10-16 단계 축소: 1~100 (단계당 스테이지 +2) → 1~30 (+7). 적 범위는 같은 1~204
 const CASTLE_TICKETS = 3;                 // 하루 무료 입장권
 const CASTLE_TICKET_GOLD = 300;           // 구매 기준값 = 최고 스테이지 몹 골드 × 300 (탑과 같음, 사냥 30분치)
 const CASTLE_TICKET_HOLD = SUB_TICKET_HOLD;   // 산 입장권 보유 한도 (탑·미궁과 같음, data.js)
 // 단계 L 의 적 = 스테이지 CASTLE_STAGE0 + CASTLE_STAGE_PER × L. 0.22.0 압축 재조정 20 + 2L → 10 + 2L, 2차 개편(1:n, 10-15) 10 + 2L → −8 + 2L (템포 조정 뒤 실측에 맞춤, 1단계는 스테이지 1 로 바닥)
 //  (1:n 이 같은 적 스테이지에서 약 4단계 어려워서 당겼다 — 업그레이드 0 이면 최고 스테이지 100 에서 약 33단계 = 스테이지 70, 1차와 같은 진행감)
-const CASTLE_STAGE0 = -8, CASTLE_STAGE_PER = 2;
+//  10-16 사용자: "단계가 너무 잘게 쪼개져 깨는 게 너무 쉽다" → −8 + 2L (1~100) 을 7L − 6 (1~30) 으로. 한 단계 = 체력·공격력 합쳐 약 2배
+const CASTLE_STAGE0 = -6, CASTLE_STAGE_PER = 7;
 const castleStage = (L) => Math.max(1, Math.round(CASTLE_STAGE0 + CASTLE_STAGE_PER * L));
 // 웨이브 구성: n 일반 몬스터, b 보스 (1 = 보스 체력 ×2, 2 = 거대 보스 체력 ×2.31)
 //  2차 개편(1:n): 마릿수는 1차와 같은 130 (×2·×1.5 는 단일 대상 기사가 공격 횟수에 막혀 뺐다), 대신 5마리씩 흩어져 몰려온다
@@ -38,10 +39,10 @@ const CASTLE_BOSS_ATK = [0, 2, 2.16];     // 보스 공격력 = 같은 스테이
 const CASTLE_BOSS_CD = 2;                 // 보스 공격 간격
 const CASTLE_BOSS_PTS = 10, CASTLE_MOB_PTS = 1;   // 처치 점수: 일반 1, 보스 10 → 다 잡으면 150 (1차와 같은 보상)
 const CASTLE_FULL_PTS = CASTLE_WAVES.reduce((a, w) => a + w.n * CASTLE_MOB_PTS + (w.b ? CASTLE_BOSS_PTS : 0), 0);
-// 단계에 따라 마릿수가 는다: 표 × min(1, 0.4 + 0.02L) (1단계 40% → 30단계부터 100%). 무리 압박(초당 몰려오는 수)은 단계와 상관없어서,
+// 적 스테이지에 따라 마릿수가 는다: 표 × min(1, 0.48 + 0.01 × 적 스테이지) (스테이지 1 은 49% → 52 부터 100%. 옛 1~100 단계의 0.4 + 0.02L 와 같은 곡선). 무리 압박(초당 몰려오는 수)은 단계와 상관없어서,
 //  막 열린 기사(최고 40, 공속 1·체력 100 언저리)는 1단계 무리에도 맞아 죽었다 (10-15 템포 조정 중 발견). 잡몹 한 마리 점수는 130 / 그 단계 마릿수 → 다 잡으면 늘 150점
-const CASTLE_COUNT_K0 = 0.4, CASTLE_COUNT_PER = 0.02;
-const castleWaveN = (L, wi) => Math.max(3, Math.round(CASTLE_WAVES[wi].n * Math.min(1, CASTLE_COUNT_K0 + CASTLE_COUNT_PER * L)));
+const CASTLE_COUNT_K0 = 0.48, CASTLE_COUNT_PER = 0.01;
+const castleWaveN = (L, wi) => Math.max(3, Math.round(CASTLE_WAVES[wi].n * Math.min(1, CASTLE_COUNT_K0 + CASTLE_COUNT_PER * castleStage(L))));
 const castleMobTotal = (L) => CASTLE_WAVES.reduce((a, w, wi) => a + castleWaveN(L, wi), 0);
 const castleMobPts = (L) => (CASTLE_MOB_PTS * CASTLE_WAVES.reduce((a, w) => a + w.n, 0)) / castleMobTotal(L);
 // 템포 (10-15 사용자: "웨이브 사이 템포가 늘어진다, 한 판이 너무 길지 않게"): 간격 12 → 10초, 다 잡으면 3초 → 1초 뒤 다음 웨이브.
@@ -60,8 +61,8 @@ const CASTLE_SPD_JIT = [0.75, 1.3];      // 잡몹 빠르기 편차 (×) — 무
 const CASTLE_SPAWN_PACK = 5, CASTLE_SPAWN_GAP = 1.5;     // 한 웨이브는 1.5초마다 5마리씩 그 칸 안에서 제각각 튀어나온다 (일정한 간격으로 한 마리씩 흘러오면 '처치 > 등장' 여부로 낭떠러지가 생긴다)
 // 🔥 끓는 기름: 쿨타임 · 성문 앞 범위 px · 즉시 피해(지원군 위력 ×) · 화상(초당 지원군 위력 ×, 초) · 살아남은 적 기절(초, 데어서 멈칫 — 보스는 절반)
 const CASTLE_OIL_CD = 15, CASTLE_OIL_R = 90, CASTLE_OIL_K = 6, CASTLE_OIL_BURN = 1, CASTLE_OIL_BURN_SEC = 3, CASTLE_OIL_STUN = 1.5;
-const CASTLE_BRICK_PER = 100;             // 🧱 = 점수 × (1 + L/100)
-const CASTLE_BOOK_K0 = 0.34, CASTLE_BOOK_K1 = 0.001;     // 📕 = 막은 웨이브 × (0.34 + 0.001L)
+const CASTLE_BRICK_PER = 30;              // 🧱 = 점수 × (1 + L/30) (10-16 단계 축소 전 1 + L/100 — 끝 단계에서 ×2 그대로)
+const CASTLE_BOOK_K0 = 0.34, CASTLE_BOOK_K1 = 0.0033;    // 📕 = 막은 웨이브 × (0.34 + 0.0033L) (축소 전 0.001L)
 // 업그레이드 6종 (각 Lv10, 비용 18 × 1.4^n 을 5 단위로)
 const CASTLE_UP_MAX = 10;
 // 업그레이드 Lv 당 효과 (성벽 보강 내구도 · 망루 초 · 해자 이동 시간 · 군기 공격력 · 투석기 배율)
@@ -85,10 +86,18 @@ const castlePow = (st = stats()) => dpsOf(st);
 const CASTLE_CAT_SEC = 6, CASTLE_CAT_R = 48;
 const CASTLE_MENTOR_SEC = 10, CASTLE_MENTOR_PER = 0.1;   // 교관: 10초마다 지원군 위력 × 0.1 × 별 (압축 전 0.4 — 궁수대처럼 4분의 1)
 
-const freshCastle = () => ({ best: 0, bricks: 0, up: Object.fromEntries(CASTLE_UP_IDS.map((id) => [id, 0])), tixDay: '', tixUsed: 0, tixExtra: 0, buyDay: '', bought: 0, run: null, last: null });
+const freshCastle = () => ({ v: 2, best: 0, bricks: 0, up: Object.fromEntries(CASTLE_UP_IDS.map((id) => [id, 0])), tixDay: '', tixUsed: 0, tixExtra: 0, buyDay: '', bought: 0, run: null, last: null });
 // 옛 세이브: up 에 없는 항목을 0 으로
+// v2 (10-16 단계 축소): 옛 최고 단계(1~100, 적 −8 + 2L)를 그 적 스테이지 이하인 새 단계(1~30, 7L − 6)로 내린다
+const castleLvFromOld = (L) => (L > 0 ? Math.min(CASTLE_MAX_LV, Math.max(1, Math.floor((Math.max(1, -8 + 2 * L) + 6) / 7))) : 0);
 function migrateCastle(c) {
   c.up = Object.assign(Object.fromEntries(CASTLE_UP_IDS.map((id) => [id, 0])), c.up || {});
+  if ((c.v || 1) < 2) {
+    c.best = castleLvFromOld(c.best || 0);
+    if (c.run) c.run.lv = Math.max(1, castleLvFromOld(c.run.lv));
+    if (c.last) c.last.lv = castleLvFromOld(c.last.lv), c.last.best = castleLvFromOld(c.last.best || 0);
+    c.v = 2;
+  }
 }
 
 const castleUnlocked = () => S.best >= CASTLE_UNLOCK_STAGE;

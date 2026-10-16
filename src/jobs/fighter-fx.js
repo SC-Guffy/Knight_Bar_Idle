@@ -13,6 +13,13 @@ if (typeof Image !== 'undefined') {
     s.img.src = vfxBase + id + '.png';
   }
 }
+// 아직 안 뽑은 3차·★★★ 텍스처는 같은 계열 2차 그림을 빌려 쓴다 (없으면 그 자리 연출이 통째로 빈다 — 궁극기가 동작만 반복하던 원인).
+//  진짜 시트가 xmeta.js 에 오면 위 등록이 먼저라 이 별칭은 저절로 빠진다
+const QI_TEX_FALLBACK = {
+  xh3: 'xh2', xh5: 'xh4', xh7: 'xh6', xp2: 'xp1', xw2a: 'xw2', xw3a: 'xw3', xw4a: 'xw4',
+  xe06: 'xe05', xe09: 'xe08', xe11: 'xh6', xe13: 'xe16', xk08: 'xk03', xk09: 'xk05', xk10: 'xk06',
+};
+for (const [id, from] of Object.entries(QI_TEX_FALLBACK)) if (!VFX_SHEETS[id] && VFX_SHEETS[from]) VFX_SHEETS[id] = VFX_SHEETS[from];
 const qiTex = (id) => !!(VFX_SHEETS[id] && VFX_SHEETS[id].lv);
 // 직업 → 평타 궤적(XW)·명중(XH). 킥복서 계열 XW 는 2프레임(0 앞차기 · 1 돌려차기)
 Object.assign(VFX_BASIC_HIT, { fighter: 'xh1', striker: 'xh2', champion: 'xh3', kickboxer: 'xh4', tempest: 'xh5' });
@@ -73,10 +80,11 @@ function qiHitTex(id, a, t, big = false, o = {}) {
   const sc = big ? 1 : a.mast >= 2 ? 1 : 2 / 3;
   texFx(id, t.x, o.y != null ? o.y : t.y, a.color, { life: o.life || 0.3, scale: o.scale || sc, flip: a.dir < 0, fade: 0.3, anchor: o.anchor });
 }
+const QI_FIRE_RAMP = ['#c0420f', '#e8601c', '#ff8c2c', '#ffc850', '#fff4c8'];   // 불붙은 주먹 잔상 (어두움 → 밝음). 가장 어두운 단도 밝은 주황이라 테두리가 검게 보이지 않는다
 // 손 앞에서 앞으로 뻗는 텍스처 (충격파 원뿔·쐐기). len: 앞으로 나아가는 거리
 function qiFrontTex(id, a, life, o = {}) {
   const h = qiHand(a), d = a.dir;
-  texFx(id, h.x + d * (o.off != null ? o.off : 18), o.y != null ? o.y : h.y, a.color, { life, scale: o.scale || 1, flip: d < 0, fade: 0.35,
+  texFx(id, h.x + d * (o.off != null ? o.off : 18), o.y != null ? o.y : h.y, o.color || a.color, { life, scale: o.scale || 1, flip: d < 0, fade: 0.35,
     sx: o.sx, sy: o.sy, move: o.len ? (u) => [d * o.len * easeOut(u), 0] : null, delay: o.delay });
 }
 // 바닥 흙먼지 (공용 C 시트가 오면 그것으로 — 지금은 작은 흙 알갱이만)
@@ -85,16 +93,78 @@ function qiDust(a, n = 4) {
 }
 
 // 궁극기 공통 틀: 각성(awaken) → 직업 기술 동작 반복 → 내지르기(release) 막타
-function qiUltFx(loopAnim, lastTex) {
+//  o.bg  궁극기 하늘 배경 XF(1프레임, 하단바 전체로 이어 깐다 — swBackdrop). 각성부터 끝까지 깔리고 흐려지며 빠진다
+//  o.fig 거대 형상: 'fist' 패왕 주먹(XF02, ★★ 주먹 비) · 'foot' 바람의 발(XF04) · 'giant' 기의 거인(XF06, 등 뒤에 서서 타격마다 민다)
+//  o.shot 원거리(그랜드마스터)는 연타마다 손바닥에서 기탄(XE10)이 날아가 그 타격 순간에 닿고, 막타는 거대 기탄
+const qiUltT = (a) => { const D = a.k.dur; return { D, ht: a.k.hits.map((h) => h[0] * D) }; };
+const qiUltEnv = (t, life, fin = 0.3, fout = 0.35) => Math.min(clamp01(t / fin), clamp01((life - t) / fout));
+// 하늘 배경: 직업색을 어둡게 누른 램프로 칠하고 반투명 — 밝은 직업색(연보라·하늘·금) 그대로면 하늘이 하얗게 떠서 캐릭터·거대 형상이 묻힌다
+const qiShade = (hex, k) => '#' + vfxRgb(hex).map((v) => Math.round(v * k).toString(16).padStart(2, '0')).join('');
+function qiUltSky(a, id) {
+  const life = a.k.dur + 0.35, col = qiShade(a.color, id === 'xf05' ? 0.3 : 0.42);   // 기의 구름(xf05)은 원본이 거의 흰 구름이라 더 누른다
+  backFx(a, 0, life, (u) => swBackdrop(id, col, 0.5 * qiUltEnv(u * life, life)));
+}
+// 패왕 주먹: 시전자 뒤 하늘에서 떠올라(0.3초) 막타 순간 대상 쪽으로 내지른다. ★★★ 은 두 배 크기로 하단바를 덮는다
+function qiUltFist(a, m) {
+  const { ht } = qiUltT(a), tf = ht[ht.length - 1], t0 = Math.max(0.5, tf - 0.55), life = tf - t0 + 0.3, sc = m >= 3 ? 2 : 4 / 3;
+  backFx(a, t0, life, (u) => {
+    const t = u * life, d = a.dir, hx = a.x() - d * 30, hy = groundY() - 70, rise = easeOut(clamp01(t / 0.3));
+    const go = easeIn(clamp01((t - (tf - t0 - 0.12)) / 0.12));
+    vfxDraw(ctx, 'xf02', a.color, Math.floor(clock * 12) % 4, mix(hx, a.tx() - d * 20, go), mix(hy - 20 * (1 - rise), groundY() - 40, go),
+      { scale: sc, flip: d < 0, alpha: 0.9 * rise * Math.min(1, (life - t) / 0.2) });
+  });
+  if (m === 2) ht.slice(1, -1).forEach((t, j) => { if (j % 2) return; const x = a.tx() + rand(-90, 90); skLater(a, t - 0.16, () => texFx('xf02', x, groundY() - 30, a.color, { life: 0.2, scale: 2 / 3, rot: Math.PI / 2 * (a.dir), flip: a.dir < 0, move: (u) => [0, -60 * (1 - u)], fade: 0.3 })); });
+}
+// 바람의 발: 막타 직전 하늘(화면 위)에서 대상 자리로 내리찍고 잠깐 머문다. ★★★ 두 배
+function qiUltFoot(a, m) {
+  const { ht } = qiUltT(a), tf = ht[ht.length - 1], fall = 0.22, life = fall + 0.4, sc = m >= 3 ? 2 : 4 / 3;
+  aFx(a, Math.max(0, tf - fall), life, (u) => {
+    const t = u * life, y = mix(-20, groundY() + 4, easeIn(clamp01(t / fall)));
+    vfxDraw(ctx, 'xf04', a.color, Math.floor(clock * 12) % 4, a.tx(), y, { anchor: 'b', scale: sc, alpha: Math.min(1, (life - t) / 0.2) });
+  });
+}
+// 기의 거인: 각성이 끝날 즈음 시전자 등 뒤에 서서 끝까지 남는다. 타격 순간마다 앞으로 살짝 민다. ★★★ 은 막타 때 앞으로 크게 밀고 나간다
+function qiUltGiant(a, m) {
+  const { D, ht } = qiUltT(a), life = D, sc = 1, tf = ht[ht.length - 1];   // 96도트 × 1.5px = 144px — 하단바(150) 높이라 더 키우면 머리가 잘린다
+  backFx(a, 0.35, life, (u) => {
+    const t = u * life + 0.35, d = a.dir;
+    let push = 0;
+    for (const h of ht) if (t >= h - 0.08 && t < h + 0.12) push = Math.max(push, 1 - Math.abs(t - h) / 0.12);
+    const lunge = m >= 3 ? 60 * easeOut(clamp01((t - tf + 0.15) / 0.15)) : 0;
+    vfxDraw(ctx, 'xf06', a.color, Math.floor(clock * 8) % 4, a.x() - d * 18 + d * (6 * push + lunge), groundY() + 2,
+      { anchor: 'b', scale: sc, flip: d < 0, alpha: 0.7 * qiUltEnv(u * life, life, 0.35, 0.35) });
+  });
+}
+function qiUltFx(loopAnim, lastTex, o = {}) {
   return {
     kb: 10,
+    cues: (a) => {
+      const d = a.k.dur, hits = a.k.hits, n = hits.length, m = Math.min(3, a.mast || 0);
+      const list = [[0, (a) => {
+        if (o.bg) qiUltSky(a, o.bg);
+        if (o.fig === 'fist') qiUltFist(a, m);
+        if (o.fig === 'foot') qiUltFoot(a, m);
+        if (o.fig === 'giant') qiUltGiant(a, m);
+      }]];
+      if (o.shot) for (let i = 0; i < n; i++) {
+        const last = i === n - 1, fly = last ? 0.28 : 0.13, at = Math.max(0, hits[i][0] - fly / d);
+        list.push([at, (a) => {
+          const p = qiHand(a), ty = a.ty() + (last ? 0 : rand(-8, 6)), sc = last ? 2 : 2 / 3 + 0.2 * Math.min(2, a.mast);
+          skFx(a.owner, 0, fly, (u) => vfxDraw(ctx, 'xe10', a.color, Math.floor(clock * 14) % 4, mix(p.x, a.tx(), u), mix(p.y, ty, u), { scale: sc, flip: a.dir < 0 }));
+        }]);
+      }
+      return list.sort((x, y) => x[0] - y[0]);
+    },
     pose(u, a) {
       const d = a.k ? a.k.dur : 2.6, t = u * d, last = a.k.hits[a.k.hits.length - 1][0] * d;
       if (t < 0.5) return { sheet: { anim: 'awaken', u: qiSeg(t, 0, 0.5) } };
       if (t < last - 0.12) return { sheet: { anim: loopAnim, frame: Math.floor(t * 14) % 4 }, dx: 10 * Math.sin(t * 3) };
       return { sheet: { anim: 'release', u: qiSeg(t, last - 0.12, last + 0.25) }, dx: 6 };
     },
-    hitTex(a, t, share, i, n) { if (i === n - 1) qiHitTex(lastTex, a, t, true, { scale: 4 / 3 }); else qiHitTex(QI_RANGED_HIT[a.cls] || VFX_BASIC_HIT[a.cls] || 'xh1', a, { x: t.x + rand(-10, 10), y: t.y + rand(-10, 6) }, false, { life: 0.18 }); },
+    hitTex(a, t, share, i, n) {
+      if (i === n - 1) { qiHitTex(lastTex, a, t, true, { scale: a.mast >= 3 ? 2 : 4 / 3, life: 0.4 }); impact({ stop: 0.12, shake: 0.5 }); }
+      else qiHitTex(QI_RANGED_HIT[a.cls] || VFX_BASIC_HIT[a.cls] || 'xh1', a, { x: t.x + rand(-10, 10), y: t.y + rand(-10, 6) }, false, { life: 0.18 });
+    },
   };
 }
 
@@ -137,7 +207,8 @@ Object.assign(SKILL_FX, {
       const d = a.k.dur, t = u * d, last = a.k.hits[a.k.hits.length - 1][0] * d;
       if (t < 0.12 * d || t > last - 0.08 || (a.rushT && clock - a.rushT < 0.09)) return;
       a.rushT = clock;
-      qiFrontTex(a.mast >= 2 ? 'xe04' : 'xe03', a, 0.14, { off: 10, scale: a.mast >= 1 ? 1 : 2 / 3 });
+      // ★★ 백열권: 같은 잔상(XE03)을 크게 + 불 램프로 (XE04 불 잔상 시트는 지저분해서 10-16 전수조사 때 뺐다)
+      qiFrontTex('xe03', a, 0.14, { off: 10, scale: a.mast >= 2 ? 4 / 3 : a.mast >= 1 ? 1 : 2 / 3, color: a.mast >= 2 ? QI_FIRE_RAMP : null });
     },
   },
 
@@ -211,10 +282,10 @@ Object.assign(SKILL_FX, {
     },
   },
 
-  // ── 3차 궁극기 (각성): 자리 연출 — 3차 단계(③)에서 XF 배경·XK 막타로 채운다 ──
-  kingFist: qiUltFx('skillA', 'xk08'),
-  heavenWind: qiUltFx('skillB', 'xk09'),
-  qiGodDescent: qiUltFx('skillA', 'xk10'),
+  // ── 3차 궁극기 (각성): XF 배경 + 거대 형상(XF02·04·06) + XK08~10 막타 (위 qiUltFx) ──
+  kingFist: qiUltFx('skillA', 'xk08', { bg: 'xf01', fig: 'fist' }),
+  heavenWind: qiUltFx('skillB', 'xk09', { bg: 'xf03', fig: 'foot' }),
+  qiGodDescent: qiUltFx('skillA', 'xk10', { bg: 'xf05', fig: 'giant', shot: true }),
 
   // ── 기막: 기막 자세(skillB) → 반구 막 XE12 가 보호막 동안. ★★ 고리 XE13 · ★★★ 끝에 막이 터진다 XK07 ──
   qiBarrier: {

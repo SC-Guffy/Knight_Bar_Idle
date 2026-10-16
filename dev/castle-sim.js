@@ -47,7 +47,7 @@ function table(upLv, starN) {
   }
   const sum = BESTS.map((B, i) => { const v = Object.values(out).map((c) => c[i]).filter((x) => x != null); return v.length ? { min: Math.min(...v), max: Math.max(...v), med: v.sort((a, b) => a - b)[v.length >> 1] } : null; });
   console.log(['최저/중앙/최고'.padEnd(16), ...sum.map((s) => (s ? `${s.min}/${s.med}/${s.max}` : '-').padStart(12))].join(''));
-  console.log(`기대 (B−31.5)/2: ${BESTS.map((B) => ((B - 31.5) / 2).toFixed(0)).join(' ')}`);
+  console.log(`참고 — 단계 L 의 적 스테이지 = 7L − 6 (1~30단계, 10-16 축소)`);
   return { out, sum };
 }
 

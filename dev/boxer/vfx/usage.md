@@ -99,3 +99,18 @@
 | xe09 | animate-with-text-v3 | 1 | 1223.0 → 1222.0 | 1.0 |
 | xe11 | animate-with-text-v3 | 1 | 1222.0 → 1222.0 | 1.0 |
 | xe13 | animate-with-text-v3 | 1 | 1222.0 → 1211.0 | 1.0 |
+
+## 3차 궁극기·평타 (2026-10-16, PixelLab 전용, 이 작업 상한 42 · 계정 바닥 300)
+
+시작 잔량 1163. 셈 = 응답 `charged_generations` 합. 동시 작업 8개 제한이라 나눠서 보낸다 (거절된 호출은 차감 없음). 작업 id 는 `raw/t3/jobs.tsv`.
+
+| 이름 | 엔드포인트 | usage |
+|---|---|---|
+| xf01-s101 · xf01-s202 · xf03-s101 · xf03-s202 · xf05-s101 · xf05-s202 | create-image-pixen | 6 |
+| xf02-s101 · xf02-s202 · xf04-s101 · xf04-s202 · xf06-s101 · xf06-s202 | create-image-pixen | 6 |
+| xk08 ×2 · xk09 ×2 · xk10 ×2 · xh3 | create-image-pixen | 7 |
+| xh5 · xh7 · xp2(16×16, 12 로 줄임) | create-image-pixen | 3 |
+| 프레임: xf02 · xf04 · xf06 (4f) · xk08 · xk09 · xk10 · xh3 · xh5 (6f) | animate_image | 8 (응답 cost) |
+| 프레임: xh7 (6f) · xp2 (4f) | animate_image | 2 |
+
+요약: 키 22 + 프레임 10 = **32회** (상한 42, 재시도 0). 계정 잔량 1163 → 1141(키 뒤) → 1131(프레임 뒤), charged 합과 같다.

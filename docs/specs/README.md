@@ -43,6 +43,8 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
+| [guild.md](guild.md) | 초안 | **기사단 (시즌7)** — 기사 여러 명 동시 육성(슬롯 2→5, 🛡️ 기사단 회관), 모든 콘텐츠 동시 진행(기사마다 iframe 검증안), 입장권 기사별, 계열 효과·따라잡기, Google 로그인 + Electron 연결 코드. 공용 범위 안 A/B 미정 (검토 `dev/review/guild.html`) |
+| [currency-roles.md](currency-roles.md) | 구현 (0.23.2) | 재화 역할 지도 — 재화마다 얻는 곳·쓰는 곳. 💎 마력석 = 고강화(+10~)·전직 전용(건물·시설·레이드 입장권에서 뺌, 강화 마력석 ×3) · 🪨 대장간 시설 철광석 ×0.5 · 💠 강화 강화석 ×1.5 (`dev/currency-bot.js`, 검토 `dev/review/currency-roles.html`) |
 | [dungeon-reward-buff.md](dungeon-reward-buff.md) | 완료 (0.22.3) | 재료의 미궁 보상 ×2(강화석 ×3) · 강화 비용에서 🪨 철광석 제외 (검토 `dev/review/dungeon-buff.html`) |
 | [build-rush.md](build-rush.md) | 완료 (0.21.1) | 건설 즉시 완료 — 남은 1분당 최고 스테이지 잡몹 골드 ×2.2 (남은 1시간 ≈ 원정 30분 골드) |
 | [building-materials-and-training.md](building-materials-and-training.md) | 완료 (0.20.15) | 건물 목재·철광석 비용 Lv8 위로 ×1.5 · 교역 1회 = 다음 건물 비용 10% · 공격력·체력 훈련 배율(훈련 : 장비 ≈ 3:7) |
@@ -58,6 +60,7 @@
 | [legacy-class-sheets.md](legacy-class-sheets.md) | 확정 (구현 전) | 기존 직업 29종 통짜 스프라이트 시트 전환 — 칸 64/96/128, 계열 4개 동시, 포즈=PixelLab 애니(기준 그림 = 지금 스프라이트), 3차는 2차 편집, ComfyUI 는 보조, 계열 170회, SHEET_ON 되돌리기 |
 | [skill-vfx.md](skill-vfx.md) | 확정 (명중 분리판, 퀄업 구현 전) | 스킬 VFX 퀄업 — 스킬 40종 + 평타 29종 전수조사 · 이펙트 그림은 전부 PixelLab 텍스처 167장(무기 궤적 15·평타 명중 직업마다 29·투사체 12·공용 배경 7·스킬 본체 43·궁극기 21·스킬 명중 스킬마다 40, 약 740회) · ⑤-0 검흔 시험 · 정지·흔들림 기준 · 계열별 패치 순서 (검토 `dev/review/skill-vfx.html`) |
 | [vfx-rule-fixes.md](vfx-rule-fixes.md) | 확정 (0.21, 구현 전) | 2차 스킬 ★★★ 하단바 전체 섬광 11곳 → 타격 지점 둘레로 · 공허궁 꼬리 색 · 3차 타격 섬광 색 · 결투·레이드 원거리 평타 모양 |
+| [pixel-qa.md](pixel-qa.md) | 진행 중 (블라인드 6/6, 합격선 조정 대기) | 도트 품질 검수 에이전트 — 게임 로더 그대로 거친 모습 → 규격 검사 → 자동 지표(경보·근거) → Claude 비평 서브에이전트(채점표 7항목, pass/fix/regen) + 사용자 판정 취향 기록. 보정: 지표만으로 탈락 6장 중 4장, 오경보 16% (검토 `dev/review/pixel-qa.html`) |
 | [art-upgrade.md](art-upgrade.md) | 진행 중 | AI 이미지 생성 → 도트 복원으로 배경·UI·아이콘 퀄업 |
 | [ui-icons.md](ui-icons.md) | 완료 | UI·캔버스 이모지 → 14px 직접 도트 아이콘 184종 (`dev/make-icons.js`, 자동 변환) |
 | [forge-temper.md](forge-temper.md) | 완료 | 대장간 🔥 담금질대: +20 까지 강화 성공↑·하락↓, +20 이상은 그대로 |

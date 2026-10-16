@@ -292,14 +292,19 @@ function readLocalSave(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
 }
 // o: 세이브 객체 (없으면 새 기사)
+// 기사단 시제품: 바깥 페이지(dev/guild-spike.html)의 기사단 공용 상태. 없으면 null (보통 게임)
+const GUILD_HOST = (() => { try { return window.parent !== window && window.parent.guildHost || null; } catch { return null; } })();
+
 function loadState(o) {
   S = freshState();
   try { if (o) S = migrate(o); } catch {}
+  if (GUILD_HOST) GUILD_HOST.bindShared(S);
   seenBase.at = S.lastSeen || 0; seenBase.mono = performance.now();
   if (S.hp == null) S.hp = stats().maxHp;
 }
 function resetState() {
   S = freshState();
+  if (GUILD_HOST) GUILD_HOST.bindShared(S);
   S.hp = stats().maxHp;
   save();
 }

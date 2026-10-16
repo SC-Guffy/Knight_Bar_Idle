@@ -18,7 +18,7 @@
 //  - 체력은 저절로 차지 않지만(물약도 못 쓴다) 보스를 잡으면 DG_HEAL 만큼 찬다. 쓰러져도 모은 자원은 모두 가져간다. 언제든 나갈 수 있다.
 //  - 난이도는 내 전투력 기준이다: dgLimitStage = 지금 능력치로 보스를 겨우 잡는 스테이지. 첫 보스는 거기서 DG_OFF0 만큼 아래, 한 마리마다 +DG_STEP.
 //    보스 하나마다 기대 피해가 ×1.46 (스테이지당 ×1.10 이 4칸, 0.21.0 성장 압축 전엔 스테이지당 ×1.44 · 1칸) 이라 누구나 8~9 마리쯤에서 쓰러진다 (시뮬: 중앙 9, 10%~90% 가 8~9). 성장하면 같은 '보스 9' 가 더 센 놈이고 보상도 커진다.
-//  - 재화 1칸 값(dgUnitValue): 한 판 기대 칸(DG_RUN_UNITS)이 목재·철광석·마력석은 내 건물 다음 레벨 비용 평균의 DG_RUN_SHARE 배가 되게 —
+//  - 재화 1칸 값(dgUnitValue): 한 판 기대 칸(DG_RUN_UNITS)이 목재·철광석은 내 건물 다음 레벨 비용 평균의 DG_RUN_SHARE 배가 되게 (마력석은 스테이지 기준, 0.23.2) —
 //    재화 여섯에 나뉘어 한 판에 목재·철광석이 다음 레벨의 약 60%, 하루 입장권 3장이면 약 1.8 레벨어치. 골드는 나누기 전 사냥 60분치(한 판 실제 몫은 사냥 약 10분치).
 //    0.22.3 에 전부 ×2, 강화석은 ×3 (사용자 "수급량이 너무 작아" — 그 전엔 재화당 다음 레벨의 25%, 강화석 한 판 9~23개).
 //  - 입장권: 하루 DG_TICKETS 장 무료. 더 필요하면 골드로 산다 (dgTicketPrice, 탑과 같은 곡선 · 기준값 DG_TICKET_GOLD)
@@ -131,8 +131,8 @@ function dgUnitValue(r, best = S.best) {
     case 'gold': return monsterStats(best, false).gold * 600 / DG_RUN_UNITS;   // 나누기 전 사냥 60분치 → 한 판 몫은 약 10분치
     case 'wood': return Math.max(1, dgNextBuildCost('wood') * DG_RUN_SHARE / DG_RUN_UNITS);
     case 'ore': return Math.max(1, dgNextBuildCost('ore') * DG_RUN_SHARE / DG_RUN_UNITS);
-    // 마력석은 건물 Lv5 부터 들어서 그 전엔 전직 몫으로 조금
-    case 'mana': return Math.max(0.8, dgNextBuildCost('mana') * DG_RUN_SHARE / DG_RUN_UNITS);
+    // 마력석은 0.23.2 부터 건물에 안 들어서(고강화·전직 재료) 건물 비용 대신 스테이지로 — 나누기 전 100 + 1.5·최고 스테이지 (스테이지 200 에서 그 전과 비슷한 400)
+    case 'mana': return (100 + 1.5 * best) / DG_RUN_UNITS;
     case 'stones': return (120 + 1.2 * best) / DG_RUN_UNITS;
     case 'tomes': return (16 + best / 4) / DG_RUN_UNITS;
   }

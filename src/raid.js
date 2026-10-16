@@ -28,27 +28,24 @@ function refillTickets() {
   S.raid.tickets = RAID_TICKET_FREE;
   return true;
 }
-// 하루 첫 구매는 헐값(마력석 없음), 두 번째부터 RAID_TICKET_STEPS 대로 비싸지고 그 뒤로는 × RAID_TICKET_GROW
+// 하루 첫 구매는 헐값, 두 번째부터 RAID_TICKET_STEPS 대로 비싸지고 그 뒤로는 × RAID_TICKET_GROW
 function ticketPrice() {
   const n = ticketsBoughtToday(), last = RAID_TICKET_STEPS.length - 1;
   const k = n <= last ? RAID_TICKET_STEPS[n] : RAID_TICKET_STEPS[last] * Math.pow(RAID_TICKET_GROW, n - last);
   return {
     gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * RAID_TICKET_GOLD * k)),
-    mana: n === 0 ? 0 : Math.floor((RAID_TICKET_MANA + S.best / 20) * k),
   };
 }
 function ticketBlocker() {
   if (S.raid.tickets >= RAID_TICKET_MAX) return `입장권은 최대 ${RAID_TICKET_MAX}장까지 가질 수 있어요`;
   const p = ticketPrice();
   if (S.gold < p.gold) return '골드 부족';
-  if (S.mats.mana < p.mana) return '마력석 부족';
   return '';
 }
 function buyTicket() {
   if (ticketBlocker()) return false;
   const p = ticketPrice();
   S.gold -= p.gold;
-  S.mats.mana -= p.mana;
   if (newDay(S.raid.buyDay)) { S.raid.buyDay = todayKey(); S.raid.bought = 0; }
   S.raid.bought++;
   S.raid.tickets++;
