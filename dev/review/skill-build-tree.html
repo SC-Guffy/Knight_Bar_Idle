@@ -27,6 +27,7 @@
   td:first-child, th:first-child { text-align: left; }
   td.l { text-align: left; white-space: normal; min-width: 160px; }
   a { color: var(--blue); }
+  code { font: 12px ui-monospace, monospace; color: var(--lp); }
   .scroll { overflow-x: auto; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 8px 0; }
   .bar label { color: var(--dim); }
@@ -72,10 +73,29 @@
 <h2>요지</h2>
 <div class="grid">
   <div class="card"><h3>레벨업마다 🌟 +1</h3><p>원정 1~2번마다 포인트가 생긴다. 트리 전체는 10일차 열심 유저 포인트의 약 1.5배라 다 못 찍는다.</p></div>
-  <div class="card"><h3>직업 안의 갈래 3개</h3><p>전직은 직업을 정하고, 트리는 그 직업 안에서 어떻게 싸울지 정한다. 검성 = 연타·발도·검기. 액티브를 찍어야 변형이 열리고, 융합 스킬은 두 갈래를 다 타야 열린다.</p></div>
-  <div class="card"><h3>장착 칸 1 → 4</h3><p>많이 찍어도 쓰는 건 칸 수만큼. Lv25 골드 · Lv60 💎300 · Lv120 💎1,500 으로 늘린다. 궁극기 칸은 따로.</p></div>
+  <div class="card"><h3>직업 안의 갈래 3개</h3><p>전직은 직업을 정하고, 트리는 그 직업 안에서 어떻게 싸울지 정한다. 검성 = 연타·발도·검기. 액티브를 찍어야 변형이 열리고, 융합 스킬은 두 갈래를 다 타야 열린다. 열리는 조건은 노드 밑에 숫자로(예: 연타 4/6).</p></div>
+  <div class="card"><h3>장착 칸 1 → 4</h3><p>많이 찍어도 쓰는 건 칸 수만큼. 2차 전직(Lv50) 골드 · Lv80 💎300 · Lv120 💎1,500 으로 늘린다. 궁극기 칸은 따로. 초기화는 싼 골드, 포인트는 전부 돌려받는다.</p></div>
   <div class="card"><h3>보스 벽 · 비전서 없앰</h3><p>10·20칸 보스에 기믹(보호막·졸개·광폭화·장판)을 붙여 빌드로 뚫는 벽으로. 📖 수급처는 경험치로 바꾼다.</p></div>
 </div>
+
+<h2>시제품 구현 스펙 요지 (검사 → 검성 → 검신)</h2>
+<p class="sub">전문: docs/specs/skill-tree-swordsaint.md · 2026-10-16 초안, 사용자 확인 대기</p>
+<div class="grid">
+  <div class="card"><h3>범위</h3><p>이 줄기 캐릭터에게만 새 트리·장착 칸·보스 벽(1~120)이 켜진다. 다른 14줄기·비전서 제거·AI 기사 곡선은 확장 때. <code>impl-skill-tree</code> 브랜치에서만, main 에 안 올림. 시즌7 전체 초기화라 세이브 이전 없음.</p></div>
+  <div class="card"><h3>지금 시스템에서 옮기는 것</h3><p>스킬 숙련도(📖)·스킬별 ⚔️/오른쪽 노드는 이 줄기에서 안 쓴다. ★ 진화 모습은 <b>액티브 1·4·7·10칸</b>에서 열린다 — 찍는 것 자체가 3칸마다 보이는 변화. 처형·거합·출혈 같은 지금 고유 특수 효과는 변형 노드로 재사용.</p></div>
+  <div class="card"><h3>바뀐 수치</h3><p>장착 2칸 = 2차 전직(Lv50) · 3칸 Lv80 · 4칸 Lv120. 초기화 = 잡몹 골드 × 100(원정 약 20분), 포인트 전부 환급. 발도술은 "치명 피해 +50%"로(일섬은 이미 확정 치명). 결투·레이드 스킬 수 3 → 5 (서버).</p></div>
+  <div class="card"><h3>작업 순서</h3><p>① 규칙·수치 + 봇 <code>--build a|b|k|auto</code> 측정 → ② 스킬 탭 → ③ 변형 연출(재사용 그림) → ④ 보스 벽 → ⑤ 결투·레이드 → ⑥ 사용자 시험.</p></div>
+</div>
+<div class="scroll" style="margin-top:8px"><table>
+<tr><th>보스 벽 (1~120)</th><th>10칸 중간 보스 (체력 ×2.5)</th><th>20칸 지역 보스 (체력 ×4)</th><th>답이 되는 갈래</th></tr>
+<tr><td>🌿 초원</td><td class="l">10 🔥 광폭화</td><td class="l">20 🔥 광폭화 + 🛡️ 보호막</td><td class="l">🗡️ 발도</td></tr>
+<tr><td>🪦 묘지</td><td class="l">30 👥 졸개</td><td class="l">40 👥 졸개 + 🩸 장판</td><td class="l">🌙 검기</td></tr>
+<tr><td>🐸 늪</td><td class="l">50 🩸 장판</td><td class="l">60 🩸 장판 + 🛡️ 보호막</td><td class="l">줄기 생존 + ⚡ 연타</td></tr>
+<tr><td>🌋 화산</td><td class="l">70 🛡️ 보호막</td><td class="l">80 🛡️ 보호막 + 🔥 광폭화</td><td class="l">⚡ 연타</td></tr>
+<tr><td>❄️ 설원</td><td class="l">90 👥 졸개</td><td class="l">100 👥 졸개 + 🔥 광폭화</td><td class="l">🌙 검기 / 🗡️ 발도</td></tr>
+<tr><td>🏰 마왕성</td><td class="l">110 🛡️ 보호막</td><td class="l">120 광폭화 + 졸개 + 보호막</td><td class="l">융합·궁극기 변형</td></tr>
+</table></div>
+<p class="sub">일반 스테이지 보스는 체력 ×0.8. 기믹 수치·배율은 시작값이고 봇으로 "벽 하나에 원정 3~6번"에 맞춘다.</p>
 
 <h2>레퍼런스 게임</h2>
 <p class="sub">2026-10-16 조사. 각 게임의 방식이 우리 시안의 어느 부분과 같은지, 무엇을 가져오고 무엇을 피할지. 출처는 표 아래.</p>
@@ -155,7 +175,7 @@ const N = [
   { id: 'c_cdr', n: '집중', t: 'stat', x: 1, y: 1.5, lane: 'c', tier: 0, req: ['c_spd'], d: '스킬 쿨 −1% / 칸' },
   { id: 'slash', n: '강철 베기', t: 'active', x: 2, y: 3, lane: 'c', tier: 1, req: ['c_atk', 'c_hp'], d: '1차 스킬 (검사 계열 공용 줄기). 앞을 크게 벤다. 칸마다 피해 +5% · 쿨 −2%', a: 'E43 초승달 참격 · K01 충격선 (지금 그림)' },
   { id: 's_twin', n: '2연참', t: 'mod', x: 3, y: 2.5, lane: 'c', tier: 1, req: ['slash'], d: '강철 베기가 한 번 더 반대로 벤다 (두 번째 타 60%)', a: 'W1 궤적 좌우 반전' },
-  { id: 'k_blade', n: '검의 길', t: 'key', x: 3, y: 3.5, lane: 'c', tier: 1, req: ['slash'], d: '평타 3타마다 모든 스킬 쿨 −0.5초. 대신 스킬 피해 −10%' },
+  { id: 'k_blade', n: '검의 길', t: 'key', x: 3, y: 3.5, lane: 'c', tier: 1, req: ['slash'], d: '평타 3타마다 모든 스킬 쿨 −0.5초. 대가: 스킬 피해 −10%' },
 
   { id: 'gale', n: '질풍난무', t: 'active', x: 4, y: 0.5, lane: 'a', tier: 2, req: ['slash'], d: '빠르게 여러 번 벤다 (지금 검성 스킬)', a: '지금 그림' },
   { id: 'a_more', n: '난무 +3타', t: 'mod', x: 5, y: 0, lane: 'a', tier: 2, req: ['gale'], d: '타수 +3 (타당 피해 −15%)', a: '같은 궤적 반복' },
@@ -163,8 +183,8 @@ const N = [
   { id: 'whirl', n: '검무 회오리', t: 'active', new: true, x: 6, y: 0.5, lane: 'a', tier: 2, req: ['a_more', 'a_bleed'], d: '새 스킬. 칼날 회오리가 4초간 기사 주위를 돈다', a: '화염 회오리 시트를 은색 램프로' },
   { id: 'a_follow', n: '쫓는 칼날', t: 'mod', x: 7, y: 0, lane: 'a', tier: 2, req: ['whirl'], d: '회오리가 가장 가까운 적에게 날아가 붙는다', a: '같은 시트, 이동 궤적만' },
   { id: 'a_stat', n: '손놀림', t: 'stat', x: 7, y: 1, lane: 'a', tier: 2, req: ['whirl'], d: '연타 스킬 타당 피해 +3% / 칸' },
-  { id: 'a_key', n: '광란', t: 'key', x: 8, y: 0.5, lane: 'a', tier: 2, req: ['a_follow', 'a_stat'], d: '스킬이 연속으로 맞을수록 공속 +4% (최대 +40%), 멈추면 초기화' },
-  { id: 'a_k3', n: '무한검', t: 'key', x: 9, y: 0.5, lane: 'a', tier: 3, min: 12, req: ['a_key'], d: '3차. 질풍난무가 끝나면 30% 확률로 한 번 더' },
+  { id: 'a_key', n: '광란', t: 'key', x: 8, y: 0.5, lane: 'a', tier: 2, req: ['a_follow', 'a_stat'], d: '스킬이 연속으로 맞을수록 공속 +4% (최대 +40%), 3초 안 맞히면 초기화. 대가: 평타 피해 −15%' },
+  { id: 'a_k3', n: '무한검', t: 'key', x: 9, y: 0.5, lane: 'a', tier: 3, min: 12, req: ['a_key'], d: '3차. 질풍난무가 끝나면 30% 확률로 한 번 더. 대가: 질풍난무 쿨 +25%' },
   { id: 'uv_a', n: '천검: 만검', t: 'uvar', x: 10, y: 0.5, lane: 'a', tier: 3, req: ['ult'], d: '궁극기 변형 (셋 중 하나). 천검이 작은 칼날 수십 개로 쏟아진다', a: '천검 그림 작게 × 반복' },
 
   { id: 'iaido', n: '일섬', t: 'active', x: 4, y: 3, lane: 'b', tier: 2, req: ['slash'], d: '순간 이동하며 한 줄로 벤다 (지금 검성 스킬)', a: '지금 그림' },
@@ -173,8 +193,8 @@ const N = [
   { id: 'flash', n: '섬광 베기', t: 'active', new: true, x: 6, y: 3, lane: 'b', tier: 2, req: ['b_reset', 'b_exec'], d: '새 스킬. 잠깐 멈췄다가 화면 끝까지 한 줄로 베어 지나간다', a: '일섬 궤적을 길게 + 화면 정지' },
   { id: 'b_after', n: '잔상 베기', t: 'mod', x: 7, y: 2.5, lane: 'b', tier: 2, req: ['flash'], d: '0.5초 뒤 잔상이 같은 줄을 한 번 더 벤다 (50%)', a: '같은 궤적 반투명' },
   { id: 'b_stat', n: '집중력', t: 'stat', x: 7, y: 3.5, lane: 'b', tier: 2, req: ['flash'], d: '치명 피해 +6% / 칸' },
-  { id: 'b_key', n: '발도술', t: 'key', x: 8, y: 3, lane: 'b', tier: 2, req: ['b_after', 'b_stat'], d: '일섬·섬광 베기 첫 타 치명 확정, 쿨 +30%' },
-  { id: 'b_k3', n: '무념', t: 'key', x: 9, y: 3, lane: 'b', tier: 3, min: 12, req: ['b_key'], d: '3차. 치명 확률 0, 대신 모든 피해 +35%' },
+  { id: 'b_key', n: '발도술', t: 'key', x: 8, y: 3, lane: 'b', tier: 2, req: ['b_after', 'b_stat'], d: '일섬·섬광 베기 치명 피해 +50%. 대가: 두 스킬 쿨 +30%' },
+  { id: 'b_k3', n: '무념', t: 'key', x: 9, y: 3, lane: 'b', tier: 3, min: 12, req: ['b_key'], d: '3차. 모든 피해 +35%. 대가: 치명 확률 0 (확정 치명 스킬도 일반타)' },
   { id: 'uv_b', n: '천검: 일도양단', t: 'uvar', x: 10, y: 3, lane: 'b', tier: 3, req: ['ult'], d: '궁극기 변형 (셋 중 하나). 하나의 거대한 칼이 화면을 가른다 — 보스에 강함', a: '천검 그림 ×2 크기, 한 번만' },
 
   { id: 'wave', n: '비검', t: 'active', new: true, x: 4, y: 5.5, lane: 'k', tier: 2, req: ['slash'], d: '새 스킬. 검기 3발을 부채꼴로 날린다', a: 'E43 참격을 투사체로 3발' },
@@ -183,8 +203,8 @@ const N = [
   { id: 'storm', n: '검기 폭풍', t: 'active', new: true, x: 6, y: 5.5, lane: 'k', tier: 2, req: ['k_wave', 'k_pierce'], d: '새 스킬. 사방 8방향으로 검기를 뿜는다', a: 'E43 방사형 8발' },
   { id: 'k_split', n: '분열', t: 'mod', x: 7, y: 5, lane: 'k', tier: 2, req: ['storm'], d: '검기가 처음 맞힌 적에서 두 갈래로 갈라진다', a: '같은 시트 작게 ×2' },
   { id: 'k_stat', n: '검압', t: 'stat', x: 7, y: 6, lane: 'k', tier: 2, req: ['storm'], d: '검기 사거리 +8% · 피해 +2% / 칸' },
-  { id: 'k_key', n: '심검', t: 'key', x: 8, y: 5.5, lane: 'k', tier: 2, req: ['k_split', 'k_stat'], d: '평타가 검기로 바뀐다 (사거리 3배), 근접 피해 −20%' },
-  { id: 'k_k3', n: '만검귀종', t: 'key', x: 9, y: 5.5, lane: 'k', tier: 3, min: 12, req: ['k_key'], d: '3차. 검기 스킬이 맞힐 때마다 다른 검기 스킬 쿨 −0.3초' },
+  { id: 'k_key', n: '심검', t: 'key', x: 8, y: 5.5, lane: 'k', tier: 2, req: ['k_split', 'k_stat'], d: '평타가 검기로 바뀐다 (사거리 3배). 대가: 평타 피해 −20%' },
+  { id: 'k_k3', n: '만검귀종', t: 'key', x: 9, y: 5.5, lane: 'k', tier: 3, min: 12, req: ['k_key'], d: '3차. 검기 스킬이 맞힐 때마다 다른 검기 스킬 쿨 −0.3초. 대가: 검기가 아닌 스킬 피해 −20%' },
   { id: 'uv_k', n: '천검: 검우', t: 'uvar', x: 10, y: 5.5, lane: 'k', tier: 3, req: ['ult'], d: '궁극기 변형 (셋 중 하나). 하늘에서 검기가 비처럼 넓게 내린다 — 졸개에 강함', a: '천검 그림 + E43 낙하' },
 
   { id: 'ult', n: '천검', t: 'ult', x: 11, y: 3, lane: 'c', tier: 3, req: ['slash'], d: '검신 궁극기 (궁극기 칸). 갈래 변형 셋 중 하나를 붙일 수 있다', a: '지금 궁극기 그림' },
@@ -202,7 +222,7 @@ const px = (n) => [OX + n.x * SX, OY + n.y * SY];
 
 const st = { lv: 112, rk: {}, eq: [], sel: null };
 const tierAt = (lv) => (lv >= 100 ? 3 : lv >= 50 ? 2 : lv >= 20 ? 1 : 0);
-const slotsAt = (lv) => (lv >= 120 ? 4 : lv >= 60 ? 3 : lv >= 25 ? 2 : 1);
+const slotsAt = (lv) => (lv >= 120 ? 4 : lv >= 80 ? 3 : lv >= 50 ? 2 : 1);   // 2칸 = 2차 전직(Lv50) 때 — 그 전엔 액티브가 강철 베기 하나뿐
 const costOf = (n) => SPEC[n.t].cost;
 const spent = () => N.reduce((a, n) => a + (st.rk[n.id] || 0) * costOf(n), 0);
 const pts = () => Math.max(0, st.lv - 1);
@@ -257,7 +277,11 @@ function render() {
     const b = document.getElementById('n-' + n.id), r = st.rk[n.id] || 0, col = n.t === 'fusion' ? 'var(--pink)' : LANE_COLOR[n.lane];
     b.className = 'n ' + n.t + (r ? ' got' : canAdd(n) ? ' can' : open(n) ? '' : ' lock') + (st.sel === n.id ? ' sel' : '');
     b.style.background = r ? col : ''; b.style.borderColor = r || canAdd(n) ? col : '';
-    b.querySelector('.rk').textContent = `${n.n}${SPEC[n.t].max > 1 ? ` ${r}/${SPEC[n.t].max}` : ''}`;
+    // 열리는 조건을 숫자로 (레퍼런스 ③ — 디아블로4 묶음 게이트·하데스 듀오): 융합은 두 갈래 포인트, 3차 키스톤은 그 갈래 포인트
+    const LN = { a: '연타', b: '발도', k: '검기' };
+    const gate = !r && n.t === 'fusion' ? ' · ' + n.lanes.map((l) => `${LN[l]} ${Math.min(6, lanePts(l))}/6`).join(' ')
+      : !r && n.min ? ` · ${LN[n.lane]} ${Math.min(n.min, lanePts(n.lane))}/${n.min}` : '';
+    b.querySelector('.rk').textContent = `${n.n}${SPEC[n.t].max > 1 ? ` ${r}/${SPEC[n.t].max}` : ''}${gate}`;
   }
   // 선
   const svg = document.getElementById('edges'); svg.innerHTML = '';
@@ -273,7 +297,7 @@ function render() {
   let h = '';
   for (let i = 0; i < 4; i++) {
     const id = st.eq[i];
-    if (i >= S) h += `<div class="slot locked">🔒 ${['', 'Lv25 · 골드', 'Lv60 · 💎300', 'Lv120 · 💎1,500'][i]}</div>`;
+    if (i >= S) h += `<div class="slot locked">🔒 ${['', '2차 전직 · 골드', 'Lv80 · 💎300', 'Lv120 · 💎1,500'][i]}</div>`;
     else h += id ? `<div class="slot full">${SPEC[BY[id].t].glyph} ${BY[id].n} <span class="sub">${st.rk[id]}칸</span></div>` : '<div class="slot">빈 칸</div>';
   }
   const ult = st.rk.ult > 0, uv = N.find((n) => n.t === 'uvar' && st.rk[n.id] > 0);
