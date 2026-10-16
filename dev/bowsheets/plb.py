@@ -2,6 +2,7 @@
 # 키는 dev/pixellab/pl.py 가 읽는다 (절대 출력하지 않는다).
 #   python -I plb.py anim <cls> <name> <first.png> "<action>" [frames=4] [seed=0]   → work/<cls>/<name>-<i>.png
 #   python -I plb.py edit <cls> <name> <src.png> "<description>" [seed=0]
+#   python -I plb.py topix <cls> <board256.png> [seed=1]   → work/<cls>/ref64-<i>.png  (image-to-pixelart 256→64, 원본 충실, 기준 그림 정리)
 #   python -I plb.py bal
 import sys, os, json, time, base64
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -104,5 +105,9 @@ if __name__ == '__main__':
         cls, name, src, desc = a[2:6]; seed = int(a[6]) if len(a) > 6 else 0
         body = {'image': b64(src), 'description': desc, 'seed': seed, 'no_background': True}
         run('/edit-image-pixen', body, cls, f'{name}: {desc[:70]}', os.path.join(HERE, 'work', cls, name))
+    elif a[1] == 'topix':
+        cls, board = a[2], a[3]; seed = int(a[4]) if len(a) > 4 else 1
+        body = {'image': b64(board), 'image_size': {'width': 256, 'height': 256}, 'output_size': {'width': 64, 'height': 64}, 'seed': seed}
+        run('/image-to-pixelart', body, cls, 'ref64: image-to-pixelart 256->64', os.path.join(HERE, 'work', cls, 'ref64'))
     elif a[1] == 'bal':
         print('balance', bal(), 'self', state()['used'])

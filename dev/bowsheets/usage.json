@@ -1,5 +1,5 @@
 {
- "used": 12.0,
+ "used": 16.0,
  "calls": [
   {
    "cls": "mq-bow",
@@ -64,6 +64,38 @@
    "usage": 2.0,
    "n": 9,
    "bal_before": 1174.0
+  },
+  {
+   "cls": "ranger",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: image-to-pixelart 256->64",
+   "usage": 1.0,
+   "n": 1,
+   "bal_before": 1121.0
+  },
+  {
+   "cls": "marksman",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: image-to-pixelart 256->64",
+   "usage": 1.0,
+   "n": 1,
+   "bal_before": 1119.0
+  },
+  {
+   "cls": "arcaneArcher",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: image-to-pixelart 256->64",
+   "usage": 1.0,
+   "n": 1,
+   "bal_before": 1118.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: image-to-pixelart 256->64",
+   "usage": 1.0,
+   "n": 1,
+   "bal_before": 1116.0
   }
  ]
 }

@@ -12,3 +12,7 @@
 | 6 | mq-xbow | `/animate-with-text-v3` | shootUp: side view, body keeps facing right the whole time, small chibi crossbo | 1.0 | 9.0 | 1175.0 |
 | 7 | mq-siege | `/animate-with-text-v3` | walk: side view, body keeps facing right the whole time, small chibi siege g | 1.0 | 10.0 | 1174.0 |
 | 8 | mq-siege | `/animate-with-text-v3` | shoot: side view, body keeps facing right the whole time, small chibi siege g | 2.0 | 12.0 | 1174.0 |
+| 9 | ranger | `/image-to-pixelart` | ref64: image-to-pixelart 256->64 | 1.0 | 13.0 | 1121.0 |
+| 10 | marksman | `/image-to-pixelart` | ref64: image-to-pixelart 256->64 | 1.0 | 14.0 | 1119.0 |
+| 11 | arcaneArcher | `/image-to-pixelart` | ref64: image-to-pixelart 256->64 | 1.0 | 15.0 | 1118.0 |
+| 12 | arbalest | `/image-to-pixelart` | ref64: image-to-pixelart 256->64 | 1.0 | 16.0 | 1116.0 |

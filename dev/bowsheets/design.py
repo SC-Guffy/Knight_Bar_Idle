@@ -30,6 +30,7 @@ WHO = {
                 'a red cape, steel boots, holding a big medieval crossbow level at the waist with both hands: a wooden stock with wide curved steel bow arms crossing at the front end and a visible bowstring, not a gun.',
 }
 SEEDS = [11, 23, 37, 51]
+SEEDS_F = [37, 61, 73, 89]   # B5f: 37 은 고른 구도 그대로 얼굴만, 나머지는 새 시드
 STRETCH, DENOISE = 1.5, 0.82
 # 재시안 B3 (2026-10-16 로드맵 검수: 레인저 노인·실사 비율, 저격수·마궁수 얼굴 작고 몸 김, 어두움, 뭉개짐) —
 #  검사 계열 b46-four 처럼 머리 크게(3등신)·젊은 얼굴·밝게: 목 아래 늘림 1.3, denoise 0.72 (밑그림 비율을 더 따름), 프롬프트에 큰 머리·젊은 얼굴·밝은 색
@@ -76,6 +77,11 @@ WHO5 = {
 }
 VER['B5'] = (None, 1.0, BODY_B5 + SPLIT)
 
+# B5f (2026-10-17 사용자 승인 뒤 수정): 석궁사수 B5-37 은 얼굴이 회색·붉은 눈이라 해골처럼 보인다 → 얼굴만 다시: 면갑 올린 투구 아래 밝은 피부의 젊은 사람 얼굴
+WHO5F = dict(WHO5, arbalest=WHO5['arbalest'].replace('squared steel helmet with the visor raised,',
+             'squared steel helmet with the visor fully raised so a young human face with light peach skin, rosy cheeks and friendly dark eyes is clearly visible (no red glowing eyes, not a skull, not a mask),'))
+VER['B5f'] = VER['B5']
+
 
 def init_stretch(cls, STRETCH=STRETCH):
     """지금 대기 그림(1배, 96칸, 땅 = 아래 끝)에서 목(땅-19) 아래만 STRETCH 배로 늘린 밑그림 (연회색 바탕 1024)"""
@@ -105,11 +111,11 @@ def gen(classes, ver='B'):
     for cls in classes:
         init = None if st is None else init_stretch(INIT_FROM.get(cls, cls) if ver == 'B4' else cls, st)
         if init is not None: init.save(os.path.join(D, f'init-{cls}-{ver}.png'))
-        who = {'B4': WHO4, 'B5': WHO5}.get(ver, WHO)[cls]
-        for s in SEEDS:
+        who = {'B4': WHO4, 'B5': WHO5, 'B5f': WHO5F}.get(ver, WHO)[cls]
+        for s in (SEEDS_F if ver == 'B5f' else SEEDS):
             out = os.path.join(RAW, f'{cls}-{ver}-{s}.png')
             if os.path.exists(out): continue
-            body = extra if ver == 'B5' else BODY_B + extra
+            body = extra if ver in ('B5', 'B5f') else BODY_B + extra
             ims, dt = (G('zimg', STYLE.format(who=who, body=body), seed=s) if init is None else
                        G('zimg', STYLE.format(who=who, body=body), seed=s, denoise=dn, init=init))
             ims[0].save(out); print(cls, s, f'{dt:.1f}s', 'queue', queue_len(), flush=True)
@@ -170,7 +176,7 @@ def shrink_all(H=46, ver=None):
     for f in sorted(os.listdir(RAW)):
         if not f.endswith('.png') or (ver and f'-{ver}-' not in f): continue
         im = Image.open(os.path.join(RAW, f))
-        o = shrink2(im, H, top='auto') if '-B5-' in f else shrink2(im, H) if ('-B3-' in f or '-B4-' in f) else shrink(im, H)
+        o = shrink2(im, H, top='auto') if ('-B5-' in f or '-B5f-' in f) else shrink2(im, H) if ('-B3-' in f or '-B4-' in f) else shrink(im, H)
         if o is not None: o.save(os.path.join(PXD, f[:-4] + f'-h{H}.png'))
     print('shrunk', len(os.listdir(PXD)))
 
