@@ -1,0 +1,37 @@
+{
+ "id": "f05",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  140,
+  30
+ ],
+ "scale": 1.0,
+ "intent": "H28 빙결의 군주: 땅에서 솟는 빙하 가시 (바닥 기준) — 쓰는 곳: vfx-mage.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.59,
+  "colors": 4,
+  "low": 0.248,
+  "edge": 0.409,
+  "lone": 0.077,
+  "flick": 0.218,
+  "churn": 0.277,
+  "fill": 0.267,
+  "area": [
+   272,
+   263,
+   231,
+   196,
+   160
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

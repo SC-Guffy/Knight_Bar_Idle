@@ -38,7 +38,7 @@ def sheet_opts():
 
 def usage_raw():
     p = os.path.join(ROOT, 'dev/review/vfx-audit-usage.json')
-    return {k: v.get('raw', False) for k, v in json.load(open(p)).items()} if os.path.exists(p) else {}
+    return {k: v.get('raw', False) for k, v in json.load(open(p, encoding='utf8')).items()} if os.path.exists(p) else {}
 
 
 def render(items, tmp=None):
@@ -49,7 +49,7 @@ def render(items, tmp=None):
         h, w = im.shape[:2]; a, b = os.path.join(tmp, f'{i}.in.rgba'), os.path.join(tmp, f'{i}.out.rgba')
         open(a, 'wb').write(np.ascontiguousarray(im, np.uint8).tobytes())
         jobs.append({'id': key, 'in': a, 'out': b, 'w': w, 'h': h, 'opts': o, 'color': color})
-    jf = os.path.join(tmp, 'job.json'); json.dump(jobs, open(jf, 'w'))
+    jf = os.path.join(tmp, 'job.json'); json.dump(jobs, open(jf, 'w', encoding='utf8'))
     subprocess.run(['node', os.path.join(ROOT, 'dev/pixel-qa/render.js'), jf], check=True)
     return {j['id']: np.frombuffer(open(j['out'], 'rb').read(), np.uint8).reshape(j['h'], j['w'], 4).copy() for j in jobs}
 
@@ -194,7 +194,7 @@ def run(png, sid=None, color=None, frames=None, tile=False, intent='', out=None,
         os.makedirs(out, exist_ok=True)
         Image.fromarray(game).save(os.path.join(out, 'game.png'))
         qa_sheet(game, fr, scale=scale).save(os.path.join(out, 'sheet.png'))
-        json.dump(res, open(os.path.join(out, 'metrics.json'), 'w'), ensure_ascii=False, indent=1)
+        json.dump(res, open(os.path.join(out, 'metrics.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     return res, game
 
 

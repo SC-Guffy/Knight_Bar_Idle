@@ -1,0 +1,37 @@
+{
+ "id": "f02",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  160,
+  32
+ ],
+ "scale": 1.0,
+ "intent": "쓰임 주석 없음 — 쓰는 곳: skills.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.187,
+  "edge": 0.582,
+  "lone": 0.232,
+  "flick": 0.246,
+  "churn": 0.666,
+  "fill": 0.404,
+  "area": [
+   469,
+   443,
+   452,
+   368,
+   334
+  ],
+  "strip": 0.262
+ },
+ "flags": []
+}

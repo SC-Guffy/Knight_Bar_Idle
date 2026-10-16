@@ -1,0 +1,37 @@
+{
+ "id": "f15",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  255,
+  62
+ ],
+ "scale": 1.0,
+ "intent": "F21 뇌제 강림: 번개 왕좌 + 그물 — 쓰는 곳: thunderJudgment.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 2.2,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.42,
+  "edge": 0.355,
+  "lone": 0.111,
+  "flick": 0.188,
+  "churn": 0.515,
+  "fill": 0.388,
+  "area": [
+   1202,
+   1246,
+   1298,
+   1153,
+   1232
+  ],
+  "strip": 0.271
+ },
+ "flags": []
+}

@@ -1,0 +1,35 @@
+{
+ "id": "f20",
+ "file": "(blind)",
+ "frames": 1,
+ "color": "#4da6ff",
+ "size": [
+  32,
+  32
+ ],
+ "scale": 1.0,
+ "intent": "W3 쌍검: 나란한 가는 호 두 줄 (검성, 칼마다 하나씩) — 쓰는 곳: vfx-sword.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 위 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.078,
+  "edge": 0.239,
+  "lone": 0.177,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.188,
+  "area": [
+   192
+  ],
+  "strip": 0.379
+ },
+ "flags": []
+}

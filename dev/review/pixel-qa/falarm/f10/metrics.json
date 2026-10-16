@@ -1,0 +1,38 @@
+{
+ "id": "f10",
+ "file": "(blind)",
+ "frames": 1,
+ "color": "#4da6ff",
+ "size": [
+  224,
+  90
+ ],
+ "scale": 1.0,
+ "intent": "천마군단 ★★★ 기병대 행렬 (금빛으로 다시 칠해 하늘을 지나가는 그림자로) — 쓰는 곳: cavalryLegion.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 2.0,
+  "lrange": 0.179,
+  "colors": 5,
+  "low": 0.861,
+  "edge": 0.176,
+  "lone": 0.038,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.369,
+  "area": [
+   7446
+  ],
+  "strip": 0.0
+ },
+ "flags": [
+  {
+   "k": "lrange",
+   "why": "밝기 폭이 좁아 한 덩어리로 뭉개진다 (< 0.25)"
+  }
+ ]
+}

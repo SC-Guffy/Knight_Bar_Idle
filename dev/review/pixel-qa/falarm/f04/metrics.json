@@ -1,0 +1,41 @@
+{
+ "id": "f04",
+ "file": "(blind)",
+ "frames": 7,
+ "color": "#4da6ff",
+ "size": [
+  399,
+  58
+ ],
+ "scale": 1.0,
+ "intent": "F17 종언의 겁화: 붉은 태양 붕괴 — 쓰는 곳: apocalypse.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "4번 프레임이 칸 오른쪽·위 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 1.71,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.472,
+  "edge": 0.226,
+  "lone": 0.033,
+  "flick": 0.16,
+  "churn": 0.477,
+  "fill": 0.565,
+  "area": [
+   1703,
+   1842,
+   2036,
+   2208,
+   1939,
+   1701,
+   1644
+  ],
+  "strip": 0.034
+ },
+ "flags": []
+}

@@ -1,0 +1,37 @@
+{
+ "id": "f16",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  160,
+  32
+ ],
+ "scale": 1.0,
+ "intent": "검성: 붉은 두 줄 X + 핏방울 — 쓰는 곳: vfx-sword.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.2,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.138,
+  "edge": 0.57,
+  "lone": 0.511,
+  "flick": 0.667,
+  "churn": 0.671,
+  "fill": 0.131,
+  "area": [
+   232,
+   217,
+   137,
+   59,
+   24
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

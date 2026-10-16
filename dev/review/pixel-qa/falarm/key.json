@@ -1,0 +1,182 @@
+{
+ "f01": {
+  "id": "h14",
+  "file": "src/vfx/h14.png",
+  "scale": 1.0,
+  "use": "H14 석궁사수: 나무 쪼개짐 + 쇳조각 — 쓰는 곳: vfx-ranger.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f02": {
+  "id": "k13",
+  "file": "src/vfx/k13.png",
+  "scale": 1.0,
+  "use": "쓰임 주석 없음 — 쓰는 곳: skills.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f03": {
+  "id": "k16",
+  "file": "src/vfx/k16.png",
+  "scale": 1.0,
+  "use": "쓰임 주석 없음 — 쓰는 곳: cavalier.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f04": {
+  "id": "f17",
+  "file": "src/vfx/f17.png",
+  "scale": 1.0,
+  "use": "F17 종언의 겁화: 붉은 태양 붕괴 — 쓰는 곳: apocalypse.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f05": {
+  "id": "h28",
+  "file": "src/vfx/h28.png",
+  "scale": 1.0,
+  "use": "H28 빙결의 군주: 땅에서 솟는 빙하 가시 (바닥 기준) — 쓰는 곳: vfx-mage.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f06": {
+  "id": "f05",
+  "file": "src/vfx/f05.png",
+  "scale": 1.0,
+  "use": "붉은 하늘 배경 — 쓰는 곳: skyBreak.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f07": {
+  "id": "k07",
+  "file": "src/vfx/k07.png",
+  "scale": 0.6666666666666666,
+  "use": "질풍난무 명중: 붉은 X + 핏빛 잔영 — 쓰는 곳: skills.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f08": {
+  "id": "c17",
+  "file": "src/vfx/c17.png",
+  "scale": 1.0,
+  "use": "C17 시전 오라: 속이 빈 불꽃 테두리 루프 (40종 공용, 기사 뒤에 바닥 기준) — 쓰는 곳: vfx-tex.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f09": {
+  "id": "h26",
+  "file": "src/vfx/h26.png",
+  "scale": 1.0,
+  "use": "H26 공성포수: 작은 포격 폭발 + 벽돌 조각 — 쓰는 곳: vfx-ranger.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f10": {
+  "id": "f11",
+  "file": "src/vfx/f11.png",
+  "scale": 1.0,
+  "use": "천마군단 ★★★ 기병대 행렬 (금빛으로 다시 칠해 하늘을 지나가는 그림자로) — 쓰는 곳: cavalryLegion.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f11": {
+  "id": "f07",
+  "file": "src/vfx/f07.png",
+  "scale": 1.0,
+  "use": "세계참 빛 틈 — 쓰는 곳: skyBreak.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f12": {
+  "id": "f03",
+  "file": "src/vfx/f03.png",
+  "scale": 1.0,
+  "use": "창세의 빛 — 쓰는 곳: starJudgment.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f13": {
+  "id": "c18",
+  "file": "src/vfx/c18.png",
+  "scale": 1.0,
+  "use": "C18 발밑 빛 고리 루프 48×16 (64×32 로 뽑아 nearest 로 납작하게). ★★ 이상, ★★★ 는 금빛 고리를 한 겹 더 — 쓰는 곳: vfx-tex.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f14": {
+  "id": "f19b",
+  "file": "src/vfx/f19b.png",
+  "scale": 1.0,
+  "use": "F19b 절대영도: 유리 금 도장 (azCracks) — 쓰는 곳: absoluteZero.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f15": {
+  "id": "f21",
+  "file": "src/vfx/f21.png",
+  "scale": 1.0,
+  "use": "F21 뇌제 강림: 번개 왕좌 + 그물 — 쓰는 곳: thunderJudgment.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f16": {
+  "id": "h07",
+  "file": "src/vfx/h07.png",
+  "scale": 1.0,
+  "use": "검성: 붉은 두 줄 X + 핏방울 — 쓰는 곳: vfx-sword.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f17": {
+  "id": "e30",
+  "file": "src/vfx/e30.png",
+  "scale": 1.0,
+  "use": "E30 별빛 화살비 ★★★: 밤하늘 조각 + 오로라 루프 — 쓰는 곳: skills.js. 원래 색 시트"
+ },
+ "f18": {
+  "id": "h01",
+  "file": "src/vfx/h01.png",
+  "scale": 1.0,
+  "use": "H01 견습 기사 평타 명중: 짧은 사선 + 양끝 불티 (스펙 24도트 → 32도트 시트를 2/3 로) — 쓰는 곳: vfx-tex.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f19": {
+  "id": "e02",
+  "file": "src/vfx/e02.png",
+  "scale": 1.0,
+  "use": "관통 찌르기 ★★★ 드릴 창 (오른쪽이 창끝, 루프) — 쓰는 곳: skills.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f20": {
+  "id": "w3",
+  "file": "src/vfx/w3.png",
+  "scale": 1.0,
+  "use": "W3 쌍검: 나란한 가는 호 두 줄 (검성, 칼마다 하나씩) — 쓰는 곳: vfx-sword.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f21": {
+  "id": "f10",
+  "file": "src/vfx/f10.png",
+  "scale": 1.0,
+  "use": "천붕 ★★★ 거인의 도끼 (날이 아래) — 쓰는 곳: worldBreaker.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f22": {
+  "id": "p6",
+  "file": "src/vfx/p6.png",
+  "scale": 1.0,
+  "use": "P6 공성 거대 살, 포탄형 촉 (공성포수) — 쓰는 곳: vfx-ranger.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f23": {
+  "id": "e33",
+  "file": "src/vfx/e33.png",
+  "scale": 1.0,
+  "use": "E33 운석 (불꼬리가 왼쪽 위) — 쓰는 곳: meteor.js, apocalypse.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f24": {
+  "id": "e04",
+  "file": "src/vfx/e04.png",
+  "scale": 1.0,
+  "use": "E04 마력 폭발: 마름모 노바 — 쓰는 곳: manaBurst.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f25": {
+  "id": "k11",
+  "file": "src/vfx/k11.png",
+  "scale": 0.6666666666666666,
+  "use": "쓰임 주석 없음 — 쓰는 곳: skills.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f26": {
+  "id": "k09",
+  "file": "src/vfx/k09.png",
+  "scale": 1.0,
+  "use": "횡참 명중: 수평 참격 충격 + 쇳조각 — 쓰는 곳: greatswordsman.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f27": {
+  "id": "w1a",
+  "file": "src/vfx/w1a.png",
+  "scale": 1.0,
+  "use": "W1a 성좌검: 초승달 궤적 + 뒤에 흩어진 별 (성좌기사) — 쓰는 곳: vfx-sword.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f28": {
+  "id": "f04",
+  "file": "src/vfx/f04.png",
+  "scale": 1.0,
+  "use": "분홍 검선 + 꽃잎 (늘여서 쓴다) — 쓰는 곳: thousandCuts.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f29": {
+  "id": "p7",
+  "file": "src/vfx/p7.png",
+  "scale": 1.0,
+  "use": "P7 화염탄 (둥근 불덩이) — 쓰는 곳: vfx-mage.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ },
+ "f30": {
+  "id": "w8",
+  "file": "src/vfx/w8.png",
+  "scale": 1.0,
+  "use": "W8 지팡이 구슬 궤적 (키 그림 한 장, 머리가 오른쪽) — 마법사 계열 7종이 속성 램프로 다시 칠함 — 쓰는 곳: vfx-mage.js. 직업색 시트(대표색 #4da6ff 로 칠함)"
+ }
+}

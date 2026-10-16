@@ -1,0 +1,37 @@
+{
+ "id": "f09",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  160,
+  32
+ ],
+ "scale": 1.0,
+ "intent": "H26 공성포수: 작은 포격 폭발 + 벽돌 조각 — 쓰는 곳: vfx-ranger.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 5.2,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.059,
+  "edge": 0.499,
+  "lone": 0.261,
+  "flick": 0.531,
+  "churn": 0.73,
+  "fill": 0.21,
+  "area": [
+   257,
+   296,
+   254,
+   192,
+   78
+  ],
+  "strip": 0.471
+ },
+ "flags": []
+}
