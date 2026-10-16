@@ -1,0 +1,34 @@
+{
+ "id": "b",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\p5\\b-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  54,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 15,
+  "low": 0.359,
+  "edge": 0.319,
+  "lone": 0.081,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.324,
+  "area": [
+   979
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,4 @@
+g=fix-greatswordsman-n8 (N8-97 shrink + fix_gs_hand.py: hand, guard, scowl, blade edge)
+b=fix-blademaster-n7 (N7-77 shrink + fix_bm_eye.py: red eye slit)
+b2=fix2-blademaster-n7 (eye slit + left sword cleanup + back lift + plate edges + leg stripes)
+p=fix-paladin (visor-paladin + fix_paladin_gold.py: gold shield cross, cream shield face, chest emblem, gold shoulder band)

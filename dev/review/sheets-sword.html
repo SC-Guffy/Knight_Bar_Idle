@@ -66,14 +66,18 @@
   흐름: 컨셉만 보고 ComfyUI 로 새로 그림(3등신 마네킹 비율판) → 비평으로 후보 순위 → PixelLab <code>image-to-pixelart</code> 256→64 (직업당 1회) → 손질(<code>dev/sheets-common/polish.py</code>) → 검수 시트(<code>qa.py --kind char</code>) + 블라인드 비평(<code>dev/pixel-qa/critic.md</code>). 합격선: 모든 항목 3 이상 · 평균 3.5.
   목표 문장에 사용자 지적 "뭉개짐 현상이 심하다"를 넣었다.
 </div>
-<div class="row">
-  <figure><img class="px3" src="sheets-sword/design/pass-swordsman.png" alt=""><figcaption>검사 — 4·4·4·4·3 · 평균 4.0 합격</figcaption></figure>
-  <figure><img class="px3" src="sheets-sword/design/pass-paladin.png" alt=""><figcaption>성기사 — 3·3·4·3·3 · 평균 3.57 합격</figcaption></figure>
-  <figure><img class="px3" src="sheets-sword/design/wip-blademaster.png" alt="" style="opacity:.55"><figcaption>검성 — 평균 3.43 수리 (칼 겹침·하반신 어두움)</figcaption></figure>
-  <figure><img class="px3" src="sheets-sword/design/wip-greatswordsman.png" alt="" style="opacity:.55"><figcaption>대검전사 — 평균 3.14 다시 (대검이 좁아짐)</figcaption></figure>
-</div>
-<div class="dim">점수 순서: 의도 · 읽힘 · 깔끔 · 명암 · 도트 (움직임 5 · 규칙 4 고정). 흐린 두 장은 아직 미달이라 다시 그리는 중.</div>
-<details><summary class="dim">검수 시트 (검사·성기사)</summary><div class="row"><img src="sheets-sword/design/qa-swordsman.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-paladin.png" style="max-width:48%" alt=""></div></details>
+<h3>2차 4종 나란히 — 컬러 · 흑백 · 실루엣 (4배, 게임 안 키 46px)</h3>
+<div class="row"><img src="sheets-sword/design/lineup-all-x4.png" alt="검사·성기사·검성·대검전사 컬러·흑백·실루엣" style="max-width:100%"></div>
+<div class="row"><figure><img src="sheets-sword/design/lineup-x1.png" alt="" style="image-rendering:pixelated"><figcaption>1배 (실제 도트 크기)</figcaption></figure></div>
+<table>
+  <tr><th>직업</th><th>그림</th><th>만든 길</th><th>검수 (의도·읽힘·깔끔·명암·도트·움직임·규칙 → 평균)</th></tr>
+  <tr><td>검사</td><td><img class="px3" src="sheets-sword/design/final-swordsman.png" alt=""></td><td>ComfyUI N2-23 → PixelLab 변환 → 정리</td><td>A 4·4·3·4·3·5·4 → 3.86 · B 4·4·3·4·3·5·4 → 3.86</td></tr>
+  <tr><td>성기사</td><td><img class="px3" src="sheets-sword/design/final-paladin.png" alt=""></td><td>ComfyUI N2-51 → PixelLab 변환 → 면갑 스크립트 → <code>fix_paladin_gold.py</code> (방패 금 십자가·방패 면 크림·가슴 금 문장·어깨 금띠)</td><td>A 4·3·4·3·3·5·4 → 3.71 · B 3·3·4·3·3·5·4 → 3.57</td></tr>
+  <tr><td>검성</td><td><img class="px3" src="sheets-sword/design/final-blademaster.png" alt=""></td><td>ComfyUI N7-77 (흰 가면) 46칸 축소 → <code>fix_bm_eye.py</code> (빨간 눈 틈·왼손 칼 정리·등 뒤 밝힘·판 테두리·다리 줄무늬) — PixelLab 변환본은 3.17 이라 버림</td><td>A 3·4·4·3·4·5·4 → 3.86 · B 4·3·4·3·4·5·4 → 3.86</td></tr>
+  <tr><td>대검전사</td><td><img class="px3" src="sheets-sword/design/final-greatswordsman.png" alt=""></td><td>밑그림 <code>mannequin_gs2.py</code>(두 주먹이 자루) → ComfyUI N8-97 46칸 축소 → <code>fix_gs_hand.py</code> (주먹·코등이·찡그린 눈썹·입·칼날 가장자리)</td><td>A 4·3·3·3·3·5·4 → 3.57 · B 4·4·4·3·4·5·4 → 4.0</td></tr>
+</table>
+<div class="dim">평균은 critic.md 대로 7항목(한 장 그림은 움직임 5). 검성·대검전사는 같은 그림의 판정이 흔들려서 독립 비평 2개가 모두 합격일 때만 합격으로 쳤다. 4종 모두 독립 비평 2개 합격. 남은 흠(비평 공통): 성기사 흰 몸통·방패 밝기가 붙음·어깨 금 약함, 검사 하체 판금이 잘게 쪼개짐·43색, 검성 칼이 곧아 곡도 휨이 약함·손이 작음, 대검전사 칼날과 가슴판 밝기가 붙음 — 관절 애니 단계에서 무기 덧그리기로 다룰 수 있다.</div>
+<details><summary class="dim">검수 시트 (4종)</summary><div class="row"><img src="sheets-sword/design/qa-swordsman.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-paladin.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-blademaster.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-greatswordsman.png" style="max-width:48%" alt=""></div></details>
 <h2>▣ 뭉개짐 잡기 — 검사·성기사 3단 비교 + 검성·대검전사 재시안 (2026-10-17, PixelLab 2)</h2>
 <div class="card">
   <b>뭉개짐 원인</b>: ComfyUI(Z-Image 픽셀 LoRA)가 그리는 도트 한 칸이 1024px 그림에서 6~7px, 즉 <b>키 약 120칸짜리 고해상 도트</b>다. 이걸 키 46px 로 줄이면 2.6배 압축이라 갑옷 이음새·명암이 한 칸에 섞여 덩어리가 된다 (줄이는 방식 — 칸마다 최빈색 — 의 문제가 아니라 디테일 밀도가 안 맞음).

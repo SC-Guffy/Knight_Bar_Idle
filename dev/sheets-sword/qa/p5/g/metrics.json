@@ -1,0 +1,34 @@
+{
+ "id": "g",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\p5\\g-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  44,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.818,
+  "colors": 22,
+  "low": 0.26,
+  "edge": 0.333,
+  "lone": 0.062,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.379,
+  "area": [
+   934
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
