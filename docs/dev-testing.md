@@ -91,3 +91,4 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - 오른쪽 위 **시험 상태 넣기** (= 콘솔 `preset()`): 기사1 탑 · 기사2 원정 · 기사3 미궁 · 기사4 성벽 · 기사5 원정, 공용 🪙 +100만. 왼쪽 위 슬롯 칩으로 전환.
 - 상태 보기: 콘솔 `gS(frames[0])` (그 기사의 S), `frames[0].win.guildDbg` (clock·knight.x·몬스터 수).
 - 숨은 브라우저 창은 rAF 가 멈춘다 → 자동 측정은 `&drive=mc` (MessageChannel 로 약 60/s 구동). 프레임 수치는 실제로 보이는 창에서 rAF 로 잰 것만 믿는다.
+- 실제 화면 rAF 측정: `dev/guild-measure.mjs` (머리 주석대로 보이는 Chrome 을 디버그 포트로 띄우고 `node dev/guild-measure.mjs 5 shot.png 30`). 앱 Browser 패널이 숨어 있으면 rAF 가 0 이라 못 잰다. 기사 수별 rAF 간격·`guildStep` 합계·GC 뒤 JS 힙을 출력.
