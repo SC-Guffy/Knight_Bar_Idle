@@ -84,3 +84,10 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - Node가 PATH에 없으면 VS Code에 내장된 Node(v20)를 쓴다: `ELECTRON_RUN_AS_NODE=1 "/c/Users/qudal/AppData/Local/Programs/Microsoft VS Code/Code.exe" script.js` (PC마다 경로가 다를 수 있다).
 - `server/` 에서 `PORT=3123 DATA_DIR=<스크래치>/data BOT_TICK_MS=3000 <node> index.js` (파일 저장소, pg 불필요) → `index.html?server=http://localhost:3123`.
 - 테스트 계정: curl `POST /api/accounts` 에 **ASCII 닉네임**을 쓴다 (Windows curl 인자에서 한글이 깨진다). 받은 토큰을 로드 전에 localStorage `knight-bar-accounts` 에 넣는다.
+
+## 기사단 시제품 (`dev/guild-spike.html`, [specs/guild.md](specs/guild.md))
+
+- 주소: `http://localhost:<포트>/dev/guild-spike.html?n=3` (n = 기사 수 1~5). 기사마다 `index.html?server=http://127.0.0.1:9&char=기사N` iframe 을 띄운다(오프라인 전용). `&reset=1` 이면 시제품 기사 세이브·공용 재화를 지우고 새로 시작.
+- 오른쪽 위 **시험 상태 넣기** (= 콘솔 `preset()`): 기사1 탑 · 기사2 원정 · 기사3 미궁 · 기사4 성벽 · 기사5 원정, 공용 🪙 +100만. 왼쪽 위 슬롯 칩으로 전환.
+- 상태 보기: 콘솔 `gS(frames[0])` (그 기사의 S), `frames[0].win.guildDbg` (clock·knight.x·몬스터 수).
+- 숨은 브라우저 창은 rAF 가 멈춘다 → 자동 측정은 `&drive=mc` (MessageChannel 로 약 60/s 구동). 프레임 수치는 실제로 보이는 창에서 rAF 로 잰 것만 믿는다.

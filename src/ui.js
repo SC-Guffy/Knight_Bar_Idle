@@ -3555,7 +3555,7 @@ function boot() {
   window.addEventListener('resize', resizeCanvas);
 
   // 브라우저에서 열렸으면 배경을 깔고 데스크탑 앱 받기 안내를 보여 준다
-  if (!window.bar) {
+  if (!window.bar && !GUILD_HOST) {
     document.body.classList.add('web');
     $('webPromo').hidden = false;
     const os = /Windows/i.test(navigator.userAgent) ? 'win' : /Mac/i.test(navigator.userAgent) ? 'mac' : null;
@@ -3598,9 +3598,12 @@ function boot() {
   setInterval(save, 10000);
   window.addEventListener('beforeunload', save);
 
-  let last = performance.now(), acc = 0, slow = 0;
-  function frame(now) {
-    requestAnimationFrame(frame);
+  let last = performance.now(), acc = 0, slow = 0, wasShown = true;
+  // 기사단 시제품(dev/guild-spike.html): 바깥 페이지가 기사마다 iframe 을 띄우고 매 프레임 guildStep 을 부른다.
+  // 안 보이는 기사는 게임 시간만 흐르고 그리기·DOM 갱신을 건너뛴다 (docs/specs/guild.md 3. 동시 진행)
+  function frame(now, shown = true) {
+    if (!GUILD_HOST) requestAnimationFrame(frame);
+    else now = performance.now();   // 바깥 페이지의 performance.now 는 시작점이 달라서 내 것을 쓴다
     acc += (now - last) / 1000;
     last = now;
     if (acc < 1 / FPS) return;
@@ -3616,6 +3619,8 @@ function boot() {
     // 계정을 불러오는 중에는 게임 시간을 멈춘다
     if (saveKey) update(Math.min(dt, 0.1));
     else clock += dt;
+    if (!shown) { wasShown = false; return; }
+    if (!wasShown) { wasShown = true; renderHud(); }
     render();
     if (S.phase === 'dungeon') renderDungeonPick();
     if (S.phase === 'castle') renderCastleInfo();
@@ -3631,7 +3636,13 @@ function boot() {
       updateTray();
     }
   }
-  requestAnimationFrame(frame);
+  if (GUILD_HOST) {
+    window.guildStep = frame;
+    Object.defineProperty(window, 'guildS', { get: () => (saveKey ? S : null) });
+    Object.defineProperty(window, 'guildDbg', { get: () => ({ clock, x: knight.x, mobs: monsters.length, hitstop }) });   // let 전역은 window 에 안 보여서 바깥 페이지용으로 연다 (CSP 라 eval 불가)
+    GUILD_HOST.ready(window);
+  }
+  else requestAnimationFrame(frame);
 }
 
 // 게임 모음 사이트(sheet.sanai-club) 게시글은 이 웹 버전을 iframe 으로 띄운다. 예전에는 그 사이트에 게임 파일을 직접 올려서
