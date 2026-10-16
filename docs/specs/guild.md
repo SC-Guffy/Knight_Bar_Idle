@@ -108,6 +108,7 @@
   - 발견: ① 바깥 페이지와 iframe 의 `performance.now` 시작점이 달라서 시각을 넘기면 첫 프레임이 큰 dt 로 `simulate` 를 탄다 → iframe 이 자기 시계를 쓰게 고침. ② iframe 안에는 Electron `window.bar` 가 없다 → 본 구현에서 바깥 페이지가 `bar` 를 대신 전달해야 함. ③ 숨은 기사의 토스트·레드닷은 지금 그 iframe 안에만 뜬다 → 슬롯 칩으로 모아야 함.
 
 ## 남은 일 / 미정
+- **인계 (2026-10-16 퇴근)**: 스펙 초안·검토 페이지(`dev/review/guild.html`)·시제품(`dev/guild-spike.html` + `src/core.js` `GUILD_HOST`·`src/net.js` `GUILD_CHAR`·`src/ui.js` `frame(now, shown)`/`guildStep`)은 main 에 커밋·푸시됨(452489e, 9dd7ea8). 사용법은 [dev-testing.md](../dev-testing.md) "기사단 시제품". 사용자에게 시제품 결과를 아직 보고·확인받지 않았다 → 다음 세션은 시제품을 띄워 보여 주고(실제 화면 rAF 로 5명 프레임 측정), 본 구현 순서안(아래) 승인을 받는다. 기사단 효과 수치는 시작안이라 확정 아님.
 - 기사단 효과 수치·회관 슬롯 Lv — 진행 봇(`dev/progress-bot.js`, `dev/currency-bot.js`)을 기사 여러 명 모드로 늘려서 확정.
 - 1단계 남은 확인: 실제 화면 rAF 로 5명 프레임·튐 다시 재기(사용자가 시제품을 열어 둔 상태), Electron 에서 iframe → 바깥 `bar` 전달.
 - 다음 단계 (본 구현 순서안): ② 서버 기사단(`guilds` 테이블·토큰·`X-Char`)·Google 로그인·연결 코드 → ③ 슬롯 UI(칩·레드닷·토스트 모으기)·기사단 회관 → ④ 공용 상태 전체(마을 건물·창고·대장간 시설·건설 대기열) 서버 저장 → ⑤ 기사단 효과 수치(진행 봇).

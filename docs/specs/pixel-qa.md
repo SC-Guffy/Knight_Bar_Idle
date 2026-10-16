@@ -120,6 +120,13 @@ python3 dev/pixel-qa/qa.py <시트.png> --kind vfx --id k22 --intent "흰·노�
 ## 남은 일 / 미정
 
 - **사용자 결정 대기**: 합격선을 B 로 바꿔 오경보 시험으로 검증할지(추천) / A 유지 + 비평 지침 보정. k37 새 그림 지적("아래 파편 잡부스러기")에 동의하는지.
+- **인계 (2026-10-16 퇴근, 다른 PC 에서 이어 하기)**: 구현·블라인드 시험 결과는 main 에 푸시됨(6038b67 에 섞여 들어감 + 기록 커밋). 이어서 할 순서:
+  1. 사용자에게 합격선 결정 받기 — 검토 페이지 `dev/review/pixel-qa.html` "블라인드 시험" 절(A/B 라디오로 비교). 추천 B.
+  2. B 면 `critic.md`·`.claude/agents/pixel-critic.md`(둘 다 같은 내용으로) "판정" 절과 스펙 "합격선" 줄을 B 로 고친다.
+  3. 오경보 시험: 확정 시트(취향 기록 `verdict: pass`, 다시 뽑기 6장 제외)에서 무작위 30장 → `qa.py --id <id> --scale <게임 배율>` → 비평 30회(일반 에이전트에 `critic.md` 를 읽게 하고 검수 시트·metrics.json 만 넘김, 블라인드 프롬프트는 `blind.py` 머리 주석과 이번 기록 참고) → regen 3장 이하인지.
+  4. 남은 수용 기준: 게임 모습 픽셀 비교(`dev/skills.html` 캡처 3장) · ComfyUI 후보 48장 순위(`dev/comfy/out/cand`, "쓸 만함" 라벨은 `dev/review/comfy-vs-pixellab.html` SECTIONS.ok).
+  - 새 PC 준비: `pip install numpy pillow` + node 필요 (Windows 시스템 파이썬엔 numpy 없음). 검수 시트·결과는 `dev/pixel-qa/out/`(git 제외), 블라인드 원자료는 `dev/review/pixel-qa/blind/`.
+  - 미확인: k37 새 그림(합격작)에 비평이 regen("아래 파편 잡부스러기, 바닥에 안 붙음")을 줬는데 사용자 동의 여부 모름.
 - 수용 기준 남은 것: ⓪ 게임 모습 픽셀 비교(dev/skills.html 캡처 3장) · 오경보 30장 · ComfyUI 후보 48장 순위 · 사용자 확인.
 
 - **결정됨 (2026-10-16 사용자)**: 비평은 Claude 서브에이전트 1명(교차 비평은 블라인드 시험 미달일 때만 검토) · VFX 먼저 · 합격선 전 항목 3 이상 + 평균 3.5.

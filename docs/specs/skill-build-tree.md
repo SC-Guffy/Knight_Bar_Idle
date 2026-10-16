@@ -1,6 +1,6 @@
 # 스킬 빌드 트리 (시즌7)
 
-- 상태: 초안 — 사용자 확인 대기 (수치는 시안, 구현 전에 진행 봇으로 다듬는다)
+- 상태: 초안 — 사용자 확인 대기 (검성→검신 시안 페이지를 사용자가 아직 안 봄. 수치는 시안, 구현 전에 진행 봇으로 다듬는다)
 - 관련 코드(예정): src/classes.js (`SKILLS`·`CLASSES`, 새 `TREES`), src/core.js (`S.tree`·포인트·장착 칸·초기화), src/skills.js (변형 노드 연출), src/vfx-tex.js (시트 재사용), src/ui.js (스킬 탭), server/duel.js·raid.js·bots.js (프로필), dev/progress-bot.js
 - 검토 페이지: dev/review/skill-build-tree.html (검성→검신 시안, 직접 찍어 보기)
 - 최종 갱신: 2026-10-16
@@ -132,6 +132,15 @@
 - 2026-10-16: 사용자 정정 "전직이랑 개념이 섞인다, 한 직업 안에 다양한 트리" → 트리 단위를 2차→3차 줄기로, 갈래 = 같은 직업 안의 싸움 방식. 스킬 수 늘어나는 것 사용자 인지 ("그만큼 스킬을 많이 만들어야 하긴 해"). 시안을 검성→검신으로 다시 만듦.
 
 ## 남은 일 / 미정
+### 다음 세션 인계 (2026-10-16 퇴근)
+- 어디까지: 스펙 초안 + 검성→검신 트리 시안 페이지(`dev/review/skill-build-tree.html`, 노드 데이터는 페이지 안 `const N`, 규칙은 `open()`·`pathCost()`). 구현 코드는 없음.
+- 보는 법: 저장소 루트에서 `python3 -m http.server <포트>` → `/dev/review/skill-build-tree.html` (이 맥은 launch.json `lifespan-web` 9013, 다른 PC 는 포트 겹침 확인).
+- 사용자 답 대기:
+  1. 갈래 3개(연타·발도·검기)·노드 구성·궁극기 변형 셋 중 하나·융합 6포인트 규칙이 맞는지
+  2. 다음 단계: 검성 한 줄기 실제 구현 스펙(추천) vs 나머지 14줄기 시안 먼저
+  3. 원정 길이 상한 (여관 후반 원정 30분~10시간 → 후반엔 "원정 2~3번"이 길어짐) — 두 번 물었지만 답 없음
+- 근거 수치 출처: 레벨 속도·원정당 레벨업은 `dev/lifespan-bot.js` (heavy/casual 10일). 원정 단위 측정(원정당 스테이지·보스 막힘 %)은 lifespan-bot 에 `S.report` 를 trips 로 쌓는 임시 변형으로 쟀다 — 저장소엔 없음, 필요하면 chores() 의 `S.report = null` 앞에서 stageFrom/stageTo/bossFail/dur 를 모으면 된다.
+- 구현에 들어가면: classes.js 스킬 정의·core.js 포인트/장착 칸/세이브 이전·skills.js 변형 연출·서버 profile(duel/raid/bots)·progress-bot 포인트 소비 규칙. 비전서 제거는 수급처 7곳(core.js 필드 보스 843, raid.js 151, tower.js, dungeon.js, season.js, worldboss.js, 우편).
 - 원정 길이 상한 (여관 후반 원정이 30분~10시간이라 후반엔 "원정 2~3번"이 길어진다) — 사용자 답 대기.
 - 나머지 14줄기 트리 시안(검성→검신 확인 뒤), 노드별 수치, 보스 기믹 배치표.
 - 장착 칸 비용·초기화 비용은 봇으로 확정.

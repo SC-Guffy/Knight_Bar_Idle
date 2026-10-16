@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>스킬 성장 UI 시안</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root { --bg:#141827; --panel:#1b2033; --line:rgba(255,255,255,.1); --text:#e8e6f0; --muted:#8e94ab; --blue:#5fc8ff; --green:#5de0a5; --gold:#ffd257; --gold2:#fff0b8; }
+* { box-sizing:border-box }
+body { margin:0; padding:24px; background:var(--bg); color:var(--text); font: 13px/1.5 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+h1 { font-size:18px; margin:0 0 4px } .sub { color:var(--muted); margin:0 0 20px; font-size:12px }
+section { margin:0 0 28px; }
+section h2 { font-size:14px; margin:0 0 6px; color:var(--gold2) } section h2 small { color:var(--muted); font-weight:400; margin-left:8px }
+.frame { width:800px; max-width:100%; background:radial-gradient(ellipse at 50% 30%, rgba(60,80,140,.22), rgba(0,0,0,.18) 70%), var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+.pt { display:flex; align-items:center; gap:10px; font-size:12px; margin-bottom:8px } .pt b { color:var(--gold); font-size:14px } .pt small { color:var(--muted) } .pt .rs { margin-left:auto; color:var(--muted); font-size:11px; padding:2px 8px; border:1px solid var(--line); border-radius:6px }
+.note { color:var(--muted); font-size:11.5px; margin:6px 0 0 }
+@keyframes pulse { 0%,100% { box-shadow:0 0 0 2px rgba(255,210,90,.35) } 50% { box-shadow:0 0 0 2px var(--gold), 0 0 12px rgba(255,210,90,.6) } }
+@keyframes bpulse { 0%,100% { box-shadow:0 0 0 2px rgba(95,200,255,.35) } 50% { box-shadow:0 0 0 2px var(--blue), 0 0 10px rgba(95,200,255,.6) } }
+
+/* ── 공용: 링 노드 ── */
+.ring { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:17px; position:relative; background:#0f1424; cursor:pointer }
+.ring::before { content:""; position:absolute; inset:-3px; border-radius:50%; background:conic-gradient(var(--c) calc(var(--p)*1%), rgba(255,255,255,.1) 0); z-index:-1 }
+.ring.can { animation:bpulse 1.4s infinite }
+.ring b { position:absolute; right:-6px; bottom:-4px; font-size:9.5px; background:#0f1424; color:#fff; padding:0 4px; border-radius:999px; box-shadow:0 0 0 1px rgba(255,255,255,.2) }
+.nd { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px; color:var(--muted); width:84px }
+.nd .fx { color:var(--gold) } .lock .nd .fx { color:var(--muted) }
+
+/* ── A. 노드 레일 ── */
+.rail { display:flex; align-items:center; justify-content:center; padding:22px 0 30px }
+.rail .seg { display:flex; flex-direction:column; align-items:center; gap:6px; padding:0 8px; position:relative }
+.rail .seg.lock { opacity:.45 }
+.rail .node { display:flex; align-items:center; gap:7px }
+.rail .node .ring { width:42px; height:42px; font-size:16px }
+.rail .node .lab { font-size:11px; line-height:1.25 } .rail .node .lab b { display:block; font-weight:600 } .rail .node .lab small { color:var(--muted) }
+.rail .link { width:34px; height:2px; background:rgba(255,255,255,.14); flex:none } .rail .link.on { background:var(--gold) }
+.rail .star { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none; font-size:13px; letter-spacing:-1px; color:rgba(255,255,255,.35); box-shadow:inset 0 0 0 2px rgba(255,255,255,.14); background:#0f1424; position:relative }
+.rail .star.max { color:#1b1300; background:radial-gradient(circle at 50% 38%, #ffe59a, #d9a640); box-shadow:0 0 0 2px var(--gold), 0 0 14px rgba(255,210,90,.55); font-size:18px; letter-spacing:0 }
+.rail .star.open { color:var(--gold); animation:pulse 1.4s infinite }
+.rail .star .cap { position:absolute; top:52px; width:90px; text-align:center; font-size:10.5px; color:var(--muted); white-space:nowrap } .rail .star.max .cap, .rail .star.open .cap { color:var(--gold2) }
+.rail .seghead { font-size:10.5px; color:var(--muted); position:absolute; top:-18px }
+
+/* ── B. 구슬 트랙 ── */
+.track { position:relative; padding:14px 4px 6px }
+.track .line { position:absolute; left:40px; right:40px; top:46px; height:3px; background:rgba(255,255,255,.1); border-radius:2px }
+.track .line i { position:absolute; left:0; top:0; height:100%; width:38%; background:linear-gradient(90deg, var(--gold), rgba(255,210,90,.3)); border-radius:2px }
+.track .items { display:flex; align-items:center; justify-content:center; gap:2px; position:relative }
+.track .gw { display:flex; flex-direction:column; align-items:center; width:62px; flex:none }
+.track .gw .cap { margin-top:12px; font-size:10px; color:var(--muted); text-align:center; line-height:1.2 } .track .gw .cap.on { color:var(--gold2) }
+.track .stage { display:flex; flex-direction:column; gap:4px; padding:6px 8px; background:rgba(15,20,36,.9); border:1px solid var(--line); border-radius:10px }
+.track .stage.lock { opacity:.45 }
+.track .shead { font-size:10.5px; color:var(--muted); display:flex; justify-content:space-between }
+.track .beads { display:flex; align-items:center; gap:4px; font-size:11px } .track .beads .ic { width:14px; text-align:center }
+.track .beads .b { display:flex; gap:2px } .track .beads .b i { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.1); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08) }
+.track .beads.d .b i.on { background:var(--blue); box-shadow:0 0 5px rgba(95,200,255,.6) } .track .beads.s .b i.on { background:var(--green); box-shadow:0 0 5px rgba(93,224,165,.6) }
+.track .beads .n { color:var(--muted); width:28px; text-align:right; font-size:10px } .track .beads .plus { width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,.1); text-align:center; line-height:18px; font-weight:700; cursor:pointer } .track .beads .plus.can { animation:bpulse 1.4s infinite }
+.track .gem { width:36px; height:36px; transform:rotate(45deg); border-radius:7px; display:flex; align-items:center; justify-content:center; background:#0f1424; box-shadow:inset 0 0 0 2px rgba(255,255,255,.14); flex:none }
+.track .gem span { transform:rotate(-45deg); font-size:12px; letter-spacing:-1px; color:rgba(255,255,255,.35) }
+.track .gem.max { background:linear-gradient(135deg, #ffe59a, #d9a640); box-shadow:0 0 0 2px var(--gold), 0 0 14px rgba(255,210,90,.55) } .track .gem.max span { color:#1b1300; font-size:16px; letter-spacing:0 }
+.track .gem.open { animation:pulse 1.4s infinite } .track .gem.open span { color:var(--gold) }
+
+/* ── C. 로드맵 (E 도 같은 축을 쓴다) ── */
+.road { padding:6px 8px 4px }
+.road .axis { position:relative; height:52px; margin:0 70px 0 40px }
+.road .axis .bar { position:absolute; left:0; right:0; top:22px; height:4px; background:rgba(255,255,255,.1); border-radius:2px }
+.road .axis .bar i { position:absolute; left:0; top:0; height:100%; width:52%; background:var(--gold); border-radius:2px }
+.road .ms { position:absolute; top:6px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; font-size:10.5px; color:var(--muted); white-space:nowrap }
+.road .ms .dot { width:36px; height:36px; border-radius:50%; background:#0f1424; box-shadow:inset 0 0 0 2px rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; font-size:11px; letter-spacing:-1px; color:rgba(255,255,255,.35) }
+.road .ms.max .dot { background:radial-gradient(circle at 50% 38%, #ffe59a, #d9a640); box-shadow:0 0 0 2px var(--gold); color:#1b1300; font-size:16px; letter-spacing:0 }
+.road .ms.open .dot { color:var(--gold); animation:pulse 1.4s infinite } .road .ms.max span, .road .ms.open span { color:var(--gold2) }
+.road .ms.here .dot { background:#1f2a44; box-shadow:0 0 0 2px var(--blue); color:#fff; font-size:10px; letter-spacing:0 }
+.road .lanes { display:grid; grid-template-columns:repeat(3, 1fr); gap:0 12px; margin:16px 40px 0 }
+.road .lane { display:flex; flex-direction:column; gap:4px } .road .lane.lock { opacity:.45 }
+.road .g { display:flex; align-items:center; gap:6px; font-size:11px } .road .g .ic { width:16px; text-align:center }
+.road .g .bar { flex:1; height:10px; border-radius:3px; background:rgba(255,255,255,.1); overflow:hidden; position:relative }
+.road .g .bar i { position:absolute; left:0; top:0; bottom:0; width:var(--w) } .road .g.d .bar i { background:var(--blue) } .road .g.s .bar i { background:var(--green) }
+.road .g .bar b { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; text-shadow:0 0 3px #000 }
+.road .g .plus { width:18px; height:18px; border-radius:5px; background:rgba(255,255,255,.1); text-align:center; line-height:18px; font-weight:700; cursor:pointer } .road .g .plus.can { animation:bpulse 1.4s infinite }
+.road .lane .fx { font-size:10.5px; color:var(--gold); min-height:14px } .road .lane.lock .fx { color:var(--muted) }
+.road .nodes { display:grid; grid-template-columns:repeat(3, 1fr); gap:0 12px; margin:10px 70px 0 40px }
+.road .nodes .lane { flex-direction:row; justify-content:center; gap:18px; padding-top:6px }
+
+/* ── D. 보석 소켓 ── */
+.sock { display:flex; align-items:center; justify-content:center; gap:10px; padding:8px 4px }
+.sock .slot { display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 10px 6px; background:rgba(15,20,36,.9); border:1px solid var(--line); border-radius:12px; min-width:150px }
+.sock .slot.lock { opacity:.45 }
+.sock .pair { display:flex; gap:12px }
+.sock .gemw { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px; color:var(--muted) }
+.sock .gem { width:46px; height:46px; clip-path:polygon(50% 0, 100% 30%, 82% 100%, 18% 100%, 0 30%); background:rgba(255,255,255,.08); position:relative; cursor:pointer }
+.sock .gem i { position:absolute; left:0; right:0; bottom:0; height:var(--h) } .sock .gem.d i { background:linear-gradient(180deg, #9fe3ff, var(--blue)) } .sock .gem.s i { background:linear-gradient(180deg, #b6f5d9, var(--green)) }
+.sock .gem b { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; text-shadow:0 0 4px #000 }
+.sock .gem.can { filter:drop-shadow(0 0 5px rgba(95,200,255,.8)) }
+.sock .slot .fx { font-size:10.5px; color:var(--gold) } .sock .slot.lock .fx { color:var(--muted) }
+.sock .door { display:flex; flex-direction:column; align-items:center; gap:3px; width:72px; text-align:center; font-size:10.5px; color:var(--muted) }
+.sock .door .o { width:42px; height:42px; border-radius:10px; background:#0f1424; box-shadow:inset 0 0 0 2px rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; font-size:12px; letter-spacing:-1px; color:rgba(255,255,255,.35) }
+.sock .door.max .o { background:radial-gradient(circle at 50% 38%, #ffe59a, #d9a640); box-shadow:0 0 0 2px var(--gold), 0 0 14px rgba(255,210,90,.55); color:#1b1300; font-size:18px; letter-spacing:0 }
+.sock .door.open .o { color:var(--gold); animation:pulse 1.4s infinite } .sock .door.max, .sock .door.open { color:var(--gold2) }
+.sock .shead { font-size:10.5px; color:var(--muted); align-self:stretch; display:flex; justify-content:space-between }
+
+/* ── F. 구간 분리 노드 로드맵 ── */
+.sg { display:grid; grid-template-columns:repeat(3, 1fr); padding:6px 36px 6px 8px; position:relative }
+.sg .col { position:relative; padding:10px 10px 8px; border:1px solid rgba(255,255,255,.1); border-right:0; background:rgba(255,255,255,.03) }
+.sg .col:first-child { border-radius:12px 0 0 12px } .sg .col:last-child { border-right:1px solid rgba(255,255,255,.1); border-radius:0 12px 12px 0 }
+.sg .col.cur { background:rgba(95,200,255,.07); box-shadow:inset 0 0 0 1px rgba(95,200,255,.35) }
+.sg .col.done { background:rgba(255,210,90,.05) }
+.sg .col.lock { background:rgba(0,0,0,.18) } .sg .col.lock .nodes, .sg .col.lock .seghd b { opacity:.45 }
+.sg .seghd { display:flex; justify-content:space-between; align-items:baseline; font-size:11px; margin-bottom:6px }
+.sg .seghd b { font-weight:600; color:var(--text) } .sg .col.done .seghd b { color:var(--gold2) } .sg .col.cur .seghd b { color:#bfe9ff }
+.sg .seghd small { color:var(--muted) }
+.sg .lvbar { height:4px; border-radius:2px; background:rgba(255,255,255,.1); position:relative; margin:4px 0 12px }
+.sg .lvbar i { position:absolute; left:0; top:0; height:100%; background:var(--gold); border-radius:2px }
+.sg .col.cur .lvbar i { background:var(--blue) }
+.sg .nodes { display:flex; justify-content:center; gap:22px }
+.sg .ms { position:absolute; right:-24px; top:22px; z-index:2; display:flex; flex-direction:column; align-items:center; font-size:10.5px; color:var(--muted); white-space:nowrap; width:48px }
+.sg .ms .dot { width:40px; height:40px; border-radius:50%; background:#0f1424; box-shadow:inset 0 0 0 2px rgba(255,255,255,.18), 0 0 0 4px var(--panel); display:flex; align-items:center; justify-content:center; font-size:11px; letter-spacing:-1px; color:rgba(255,255,255,.35); cursor:pointer }
+.sg .ms.max .dot { background:radial-gradient(circle at 50% 38%, #ffe59a, #d9a640); box-shadow:0 0 0 2px var(--gold), 0 0 0 5px var(--panel), 0 0 14px rgba(255,210,90,.55); color:#1b1300; font-size:17px; letter-spacing:0 }
+.sg .ms.open .dot { color:var(--gold); animation:pulse 1.4s infinite }
+.sg .ms span { position:absolute; top:44px; font-size:10px; text-align:center; line-height:1.2 } .sg .ms.max span, .sg .ms.open span { color:var(--gold2) }
+</style></head><body>
+<h1>스킬 성장 UI 시안 — 강철 베기 Lv21</h1>
+<p class="sub">공통 상태: ⭐ 포인트 3/21 남음 · 1단계 피해 6/10 · 쿨타임 5/10 · ★ 강철 검풍 진화 완료 · 2단계 피해 4/10 · 치명 3/10 · ★★ 강철 대검 열림(Lv20·20점) · 3단계 잠김(⭐ 18/20) · ★★★ 천강검 Lv30·30점</p>
+
+<section>
+<h2>F. 구간 분리 노드 로드맵 <small>0→10 · 10→20 · 20→30 을 칸으로 나누고, 진화 이정표를 칸 경계에 세운다. 지금 구간은 파랑, 끝낸 구간은 금, 잠긴 구간은 어둡게</small></h2>
+<div class="frame">
+  <div class="pt">⭐ 스킬 포인트 <b>3</b><small>/21</small> <small>다음 포인트 Lv 22 · 📖 11권 남음</small><span class="rs">↩ 되돌리기</span></div>
+  <div class="sg" style="margin-top:10px">
+    <div class="col done">
+      <div class="seghd"><b>1구간 · Lv 1 → 10</b><small>11/20</small></div>
+      <div class="lvbar"><i style="width:100%"></i></div>
+      <div class="nodes">
+        <div class="nd"><div class="ring can" style="--p:60;--c:var(--blue)">⚔️<b>6/10</b></div><span>피해</span><span class="fx">+15.6%</span></div>
+        <div class="nd"><div class="ring can" style="--p:50;--c:var(--green)">⏱️<b>5/10</b></div><span>쿨타임</span><span class="fx">−15%</span></div>
+      </div>
+      <div class="ms max"><div class="dot">⚔️</div><span>강철 검풍<br>Lv10 · 진화</span></div>
+    </div>
+    <div class="col cur">
+      <div class="seghd"><b>2구간 · Lv 10 → 20</b><small>7/20</small></div>
+      <div class="lvbar"><i style="width:100%"></i></div>
+      <div class="nodes">
+        <div class="nd"><div class="ring can" style="--p:40;--c:var(--blue)">⚔️<b>4/10</b></div><span>피해</span><span class="fx">+10.4%</span></div>
+        <div class="nd"><div class="ring can" style="--p:30;--c:var(--green)">💥<b>3/10</b></div><span>치명</span><span class="fx">+6%</span></div>
+      </div>
+      <div class="ms open"><div class="dot">★★</div><span>강철 대검<br>Lv20 · 20점</span></div>
+    </div>
+    <div class="col lock">
+      <div class="seghd"><b>3구간 · Lv 20 → 30</b><small>🔒 ⭐ 18/20</small></div>
+      <div class="lvbar"><i style="width:10%"></i></div>
+      <div class="nodes">
+        <div class="nd"><div class="ring" style="--p:0;--c:var(--blue)">⚔️<b>0/10</b></div><span>피해</span><span class="fx">최대 +26%</span></div>
+        <div class="nd"><div class="ring" style="--p:0;--c:var(--green)">🩸<b>0/10</b></div><span>흡혈</span><span class="fx">최대 9%</span></div>
+      </div>
+      <div class="ms"><div class="dot">★★★</div><span>천강검<br>Lv30 · 30점</span></div>
+    </div>
+  </div>
+</div>
+<p class="note">칸 머리의 가는 바는 그 구간의 레벨 진행(Lv21 → 2구간은 끝, 3구간 10%). 지금 구간(파랑)은 테두리가 살아 있고, 끝낸 구간은 금빛 이정표, 잠긴 구간은 어둡고 조건(⭐ 18/20)이 머리에 적힌다.</p>
+</section>
+
+<section>
+<h2>E. 노드 + 로드맵 <small>C 의 레벨 축과 이정표 아래에, A 의 링 노드 두 개를 나란히 매단다 (구간 칸 없음)</small></h2>
+<div class="frame">
+  <div class="pt">⭐ 스킬 포인트 <b>3</b><small>/21</small> <small>다음 포인트 Lv 22 · 📖 11권 남음</small><span class="rs">↩ 되돌리기</span></div>
+  <div class="road">
+    <div class="axis">
+      <div class="bar"><i></i></div>
+      <div class="ms here" style="left:0"><div class="dot">Lv1</div><span>습득</span></div>
+      <div class="ms max" style="left:33.3%"><div class="dot">⚔️</div><span>강철 검풍 · Lv10</span></div>
+      <div class="ms open" style="left:66.6%"><div class="dot">★★</div><span>강철 대검 · Lv20·20점</span></div>
+      <div class="ms" style="left:100%"><div class="dot">★★★</div><span>천강검 · Lv30·30점</span></div>
+    </div>
+    <div class="nodes">
+      <div class="lane">
+        <div class="nd"><div class="ring can" style="--p:60;--c:var(--blue)">⚔️<b>6/10</b></div><span>피해</span><span class="fx">+15.6%</span></div>
+        <div class="nd"><div class="ring can" style="--p:50;--c:var(--green)">⏱️<b>5/10</b></div><span>쿨타임</span><span class="fx">−15%</span></div>
+      </div>
+      <div class="lane">
+        <div class="nd"><div class="ring can" style="--p:40;--c:var(--blue)">⚔️<b>4/10</b></div><span>피해</span><span class="fx">+10.4%</span></div>
+        <div class="nd"><div class="ring can" style="--p:30;--c:var(--green)">💥<b>3/10</b></div><span>치명</span><span class="fx">+6%</span></div>
+      </div>
+      <div class="lane lock">
+        <div class="nd"><div class="ring" style="--p:0;--c:var(--blue)">⚔️<b>0/10</b></div><span>피해</span><span class="fx">최대 +26%</span></div>
+        <div class="nd"><div class="ring" style="--p:0;--c:var(--green)">🩸<b>0/10</b></div><span>흡혈</span><span class="fx">최대 9%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section>
+<h2>A. 노드 레일 <small>옛 트리의 노드를 눕힌 형태. 노드 테두리가 게이지(링)가 되고, 두 노드가 위아래로 쌓인다</small></h2>
+<div class="frame">
+  <div class="pt">⭐ 스킬 포인트 <b>3</b><small>/21</small> <small>다음 포인트 Lv 22 · 📖 11권 남음</small><span class="rs">↩ 되돌리기</span></div>
+  <div class="rail">
+    <div class="seg"><span class="seghead">1단계 · 11/20</span>
+      <div class="node"><div class="ring can" style="--p:60;--c:var(--blue)">⚔️</div><div class="lab"><b>피해 6/10</b><small>+15.6%</small></div></div>
+      <div class="node"><div class="ring can" style="--p:50;--c:var(--green)">⏱️</div><div class="lab"><b>쿨타임 5/10</b><small>−15%</small></div></div>
+    </div>
+    <div class="link on"></div><div class="star max">⚔️<span class="cap">강철 검풍 · 진화 완료</span></div><div class="link on"></div>
+    <div class="seg"><span class="seghead">2단계 · 7/20</span>
+      <div class="node"><div class="ring can" style="--p:40;--c:var(--blue)">⚔️</div><div class="lab"><b>피해 4/10</b><small>+10.4%</small></div></div>
+      <div class="node"><div class="ring can" style="--p:30;--c:var(--green)">💥</div><div class="lab"><b>치명 3/10</b><small>+6%</small></div></div>
+    </div>
+    <div class="link on"></div><div class="star open">★★<span class="cap">강철 대검 · Lv 20 · 20점</span></div><div class="link"></div>
+    <div class="seg lock"><span class="seghead">3단계 · ⭐ 18/20</span>
+      <div class="node"><div class="ring" style="--p:0;--c:var(--blue)">⚔️</div><div class="lab"><b>피해 0/10</b><small>최대 +26%</small></div></div>
+      <div class="node"><div class="ring" style="--p:0;--c:var(--green)">🩸</div><div class="lab"><b>흡혈 0/10</b><small>최대 9%</small></div></div>
+    </div>
+    <div class="link"></div><div class="star">★★★<span class="cap">천강검 · Lv 30 · 30점</span></div>
+  </div>
+</div>
+</section>
+
+<section>
+<h2>B. 구슬 트랙 <small>한 줄의 길 위에 10개 구슬이 차오르고, 길 위의 보석이 진화 관문</small></h2>
+<div class="frame">
+  <div class="pt">⭐ 스킬 포인트 <b>3</b><small>/21</small> <small>다음 포인트 Lv 22 · 📖 11권 남음</small><span class="rs">↩ 되돌리기</span></div>
+  <div class="track">
+    <div class="line"><i></i></div>
+    <div class="items">
+      <div class="stage"><div class="shead"><span>1단계</span><span>11/20</span></div>
+        <div class="beads d"><span class="ic">⚔️</span><span class="b"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="n">6/10</span><span class="plus can">+</span></div>
+        <div class="beads s"><span class="ic">⏱️</span><span class="b"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">5/10</span><span class="plus can">+</span></div>
+      </div>
+      <div class="gw"><div class="gem max"><span>⚔️</span></div><div class="cap on">강철 검풍<br>진화 완료</div></div>
+      <div class="stage"><div class="shead"><span>2단계</span><span>7/20</span></div>
+        <div class="beads d"><span class="ic">⚔️</span><span class="b"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">4/10</span><span class="plus can">+</span></div>
+        <div class="beads s"><span class="ic">💥</span><span class="b"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">3/10</span><span class="plus can">+</span></div>
+      </div>
+      <div class="gw"><div class="gem open"><span>★★</span></div><div class="cap on">강철 대검<br>Lv 20 · 20점</div></div>
+      <div class="stage lock"><div class="shead"><span>3단계</span><span>⭐ 18/20</span></div>
+        <div class="beads d"><span class="ic">⚔️</span><span class="b"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">0/10</span><span class="plus" style="visibility:hidden">+</span></div>
+        <div class="beads s"><span class="ic">🩸</span><span class="b"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">0/10</span><span class="plus" style="visibility:hidden">+</span></div>
+      </div>
+      <div class="gw"><div class="gem"><span>★★★</span></div><div class="cap">천강검<br>Lv 30 · 30점</div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section>
+<h2>C. 로드맵 <small>Lv 1 → 10 → 20 → 30 축 위에 이정표(진화)를 꽂고, 구간마다 게이지 두 줄</small></h2>
+<div class="frame">
+  <div class="pt">⭐ 스킬 포인트 <b>3</b><small>/21</small> <small>다음 포인트 Lv 22 · 📖 11권 남음</small><span class="rs">↩ 되돌리기</span></div>
+  <div class="road">
+    <div class="axis">
+      <div class="bar"><i></i></div>
+      <div class="ms here" style="left:0"><div class="dot">Lv1</div><span>습득</span></div>
+      <div class="ms max" style="left:33.3%"><div class="dot">⚔️</div><span>강철 검풍 · Lv10</span></div>
+      <div class="ms open" style="left:66.6%"><div class="dot">★★</div><span>강철 대검 · Lv20·20점</span></div>
+      <div class="ms" style="left:100%"><div class="dot">★★★</div><span>천강검 · Lv30·30점</span></div>
+    </div>
+    <div class="lanes">
+      <div class="lane">
+        <div class="g d"><span class="ic">⚔️</span><div class="bar" style="--w:60%"><i></i><b>피해 6/10</b></div><span class="plus can">+</span></div>
+        <div class="g s"><span class="ic">⏱️</span><div class="bar" style="--w:50%"><i></i><b>쿨타임 5/10</b></div><span class="plus can">+</span></div>
+        <div class="fx">⚔️ +15.6% · ⏱️ −15%</div>
+      </div>
+      <div class="lane">
+        <div class="g d"><span class="ic">⚔️</span><div class="bar" style="--w:40%"><i></i><b>피해 4/10</b></div><span class="plus can">+</span></div>
+        <div class="g s"><span class="ic">💥</span><div class="bar" style="--w:30%"><i></i><b>치명 3/10</b></div><span class="plus can">+</span></div>
+        <div class="fx">⚔️ +10.4% · 💥 +6%</div>
+      </div>
+      <div class="lane lock">
+        <div class="g d"><span class="ic">⚔️</span><div class="bar" style="--w:0%"><i></i><b>피해 0/10</b></div><span class="plus" style="visibility:hidden">+</span></div>
+        <div class="g s"><span class="ic">🩸</span><div class="bar" style="--w:0%"><i></i><b>흡혈 0/10</b></div><span class="plus" style="visibility:hidden">+</span></div>
+        <div class="fx">🔒 ⭐ 18/20 · 최대 ⚔️ +26% · 🩸 9%</div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section>
+<h2>D. 보석 소켓 <small>단계마다 보석 두 개가 포인트로 차오르고, 사이의 문으로 진화</small></h2>
+<div class="frame">
+  <div class="pt">⭐ 스킬 포인트 <b>3</b><small>/21</small> <small>다음 포인트 Lv 22 · 📖 11권 남음</small><span class="rs">↩ 되돌리기</span></div>
+  <div class="sock">
+    <div class="slot"><div class="shead"><span>1단계</span><span>11/20</span></div>
+      <div class="pair">
+        <div class="gemw"><div class="gem d can" style="--h:60%"><i></i><b>6/10</b></div><span>⚔️ 피해</span></div>
+        <div class="gemw"><div class="gem s can" style="--h:50%"><i></i><b>5/10</b></div><span>⏱️ 쿨타임</span></div>
+      </div><div class="fx">+15.6% · −15%</div></div>
+    <div class="door max"><div class="o">⚔️</div><span>강철 검풍<br>진화 완료</span></div>
+    <div class="slot"><div class="shead"><span>2단계</span><span>7/20</span></div>
+      <div class="pair">
+        <div class="gemw"><div class="gem d can" style="--h:40%"><i></i><b>4/10</b></div><span>⚔️ 피해</span></div>
+        <div class="gemw"><div class="gem s can" style="--h:30%"><i></i><b>3/10</b></div><span>💥 치명</span></div>
+      </div><div class="fx">+10.4% · +6%</div></div>
+    <div class="door open"><div class="o">★★</div><span>강철 대검<br>Lv 20 · 20점</span></div>
+    <div class="slot lock"><div class="shead"><span>3단계</span><span>⭐ 18/20</span></div>
+      <div class="pair">
+        <div class="gemw"><div class="gem d" style="--h:0%"><i></i><b>0/10</b></div><span>⚔️ 피해</span></div>
+        <div class="gemw"><div class="gem s" style="--h:0%"><i></i><b>0/10</b></div><span>🩸 흡혈</span></div>
+      </div><div class="fx">최대 +26% · 9%</div></div>
+    <div class="door"><div class="o">★★★</div><span>천강검<br>Lv 30 · 30점</span></div>
+  </div>
+</div>
+</section>
+</body></html>

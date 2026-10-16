@@ -1,0 +1,287 @@
+{
+ "frames": [
+  {
+   "filename": "knightbar-c6-smoke 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 1.png",
+   "frame": {
+    "x": 23,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 2.png",
+   "frame": {
+    "x": 46,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 3.png",
+   "frame": {
+    "x": 69,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 4.png",
+   "frame": {
+    "x": 0,
+    "y": 24,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 5.png",
+   "frame": {
+    "x": 23,
+    "y": 24,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 6.png",
+   "frame": {
+    "x": 46,
+    "y": 24,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 7.png",
+   "frame": {
+    "x": 69,
+    "y": 24,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 8.png",
+   "frame": {
+    "x": 0,
+    "y": 48,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c6-smoke 9.png",
+   "frame": {
+    "x": 23,
+    "y": 48,
+    "w": 23,
+    "h": 24
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 23,
+    "h": 24
+   },
+   "sourceSize": {
+    "w": 23,
+    "h": 24
+   },
+   "pivot": {
+    "x": 0.4782608695652174,
+    "y": 0.5
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "knightbar-c6-smoke.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 92,
+   "h": 72
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 11,
+   "y": 12
+  },
+  "frameTags": [
+   {
+    "name": "knightbar-c6-smoke",
+    "from": 0,
+    "to": 9,
+    "direction": "forward"
+   }
+  ]
+ }
+}

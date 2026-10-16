@@ -1,0 +1,131 @@
+{
+ "frames": [
+  {
+   "filename": "knightbar-c7-rock 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c7-rock 1.png",
+   "frame": {
+    "x": 16,
+    "y": 0,
+    "w": 16,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c7-rock 2.png",
+   "frame": {
+    "x": 0,
+    "y": 16,
+    "w": 16,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "knightbar-c7-rock 3.png",
+   "frame": {
+    "x": 16,
+    "y": 16,
+    "w": 16,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "knightbar-c7-rock.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 32,
+   "h": 32
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 8,
+   "y": 8
+  },
+  "frameTags": [
+   {
+    "name": "knightbar-c7-rock",
+    "from": 0,
+    "to": 3,
+    "direction": "forward"
+   }
+  ]
+ }
+}
