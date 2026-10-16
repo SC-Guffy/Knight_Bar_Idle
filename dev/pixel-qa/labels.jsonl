@@ -184,3 +184,4 @@
 {"file": null, "id": "frame-stone-ai", "kind": "ui", "verdict": "fail", "reason": "큰 창 테두리 시안 A — 변의 사슬 무늬가 잔점 노이즈 (\"노이즈 같다\")", "date": "2026-10-13", "source": "art-upgrade.md"}
 {"file": null, "id": "ui-wood-tone", "kind": "ui", "verdict": "fail", "reason": "UI 나무 톤 통일 — \"기존이 더 깔끔하다\", 갈색은 강조색을 탁하게 함", "date": "2026-10-13", "source": "art-upgrade.md"}
 {"file": null, "id": "black-outline-particles", "kind": "vfx", "verdict": "fail", "reason": "검은 아웃라인 들어간 지저분한 파티클은 싫다", "date": "2026-10-15", "source": "skill-vfx.md"}
+{"file": "src/vfx/k37.png", "id": "k37", "kind": "vfx", "verdict": "fail", "reason": "아래 파편이 잡부스러기이고 바닥에 안 붙는다 (블라인드 비평 지적에 사용자 동의 — 다시 뽑기 결과도 손볼 후보)", "date": "2026-10-16", "source": "pixel-qa 블라인드 시험"}

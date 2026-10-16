@@ -1,0 +1,42 @@
+{
+ "id": "f08",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  240,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "C17 시전 오라: 속이 빈 불꽃 테두리 루프 (40종 공용, 기사 뒤에 바닥 기준) — 쓰는 곳: vfx-tex.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.2,
+  "lrange": 0.208,
+  "colors": 5,
+  "low": 0.011,
+  "edge": 0.297,
+  "lone": 0.036,
+  "flick": 0.352,
+  "churn": 0.378,
+  "fill": 0.187,
+  "area": [
+   470,
+   439,
+   424,
+   421,
+   405
+  ],
+  "strip": 0.079
+ },
+ "flags": [
+  {
+   "k": "lrange",
+   "why": "밝기 폭이 좁아 한 덩어리로 뭉개진다 (< 0.25)"
+  }
+ ]
+}

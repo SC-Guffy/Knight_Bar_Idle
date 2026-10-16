@@ -1,0 +1,12 @@
+{"scores": {"intent": 3, "read": 2, "clean": 2, "value": 3, "pixel": 3, "motion": 3, "rules": 2},
+ "defects": [
+  {"frame": 2, "where": "프레임 전체", "what": "위·아래 두 무리로 갈라진 주황·노랑 조각들이 흩뿌려져 있어 한 점에서 터지는 명중 모양(중심·방사)이 없다. 기사 옆 게임 배율에서 색종이 부스러기처럼 보인다"},
+  {"frame": 3, "where": "가장자리 조각들", "what": "절정 프레임도 흰 덩어리 둘레에 크기가 제각각인 외톨이 조각·잡색(분홍·갈색)이 많아 지저분하다"},
+  {"frame": 1, "where": "전체", "what": "시작 프레임이 어두운 갈색·적색 조각이라 '나타남'이 어둡고 탁하다. 밝은 섬광으로 시작하지 않는다"},
+  {"frame": 4, "where": "조각 위치", "what": "프레임마다 조각 배치가 크게 바뀌어(churn 0.78) 이어지는 확산이 아니라 지글거린다"},
+  {"frame": 5, "where": "회색 잔해", "what": "끝 회색 연기 조각도 두 무리로 떨어져 있어 사라짐이 흩어져 보인다"}
+ ],
+ "flags_review": "colors 경보 동의 — 원래 색 시트인데 78색으로, 주황·노랑·분홍·갈색·회색 잡색이 섞여 파편이 색종이처럼 보인다. 자동 지표 lone 0.45·churn 0.78도 그림에서 확인되는 흩뿌림·지글거림과 일치한다.",
+ "verdict": "regen",
+ "fix": {"how": "한 점 중심의 작은 충격 섬광으로 다시 뽑는다: 프롬프트에 'single compact impact spark, radial burst from one center point, 3-4 clean shards, bright white core, limited palette (white-yellow-orange), no scattered debris, no smoke'를 넣고, 여러 번 겹쳐 나오므로 크기를 작게(16~20도트 안) 한다. 프레임 흐름은 밝은 점 → 십자/방사 섬광 절정 → 조각 2~3개 바깥으로 → 사라짐. 생성 뒤 팔레트를 6~8색으로 양자화.", "tool": "ComfyUI 시안"},
+ "summary": "흩어진 두 무리 색종이 조각이라 한 점 명중 섬광으로 안 읽히고 잡색·지글거림이 커서 다시 뽑아야 한다."}

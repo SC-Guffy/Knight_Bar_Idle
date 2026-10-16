@@ -1,0 +1,42 @@
+{
+ "id": "f17",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  480,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "E30 별빛 화살비 ★★★: 밤하늘 조각 + 오로라 루프 — 쓰는 곳: skills.js. 원래 색 시트",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 5.0,
+  "lrange": 0.595,
+  "colors": 888,
+  "low": 0.079,
+  "edge": 0.382,
+  "lone": 0.191,
+  "flick": 0.199,
+  "churn": 0.298,
+  "fill": 0.371,
+  "area": [
+   1720,
+   1791,
+   1851,
+   1763,
+   1420
+  ],
+  "strip": 0.224
+ },
+ "flags": [
+  {
+   "k": "colors",
+   "why": "색이 너무 많다 — AI 흐림 계조·잡색 (> 24)"
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "id": "b02",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  320,
+  64
+ ],
+ "scale": 2,
+ "intent": "대공성포(궁극기) 포격 마지막 타격 — 바닥 기준 대폭발. 원래 색 시트",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.8,
+  "lrange": 0.611,
+  "colors": 11,
+  "low": 0.052,
+  "edge": 0.229,
+  "lone": 0.102,
+  "flick": 0.593,
+  "churn": 0.73,
+  "fill": 0.121,
+  "area": [
+   440,
+   407,
+   794,
+   709,
+   121
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

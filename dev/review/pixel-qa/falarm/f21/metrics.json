@@ -1,0 +1,37 @@
+{
+ "id": "f21",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  260,
+  91
+ ],
+ "scale": 1.0,
+ "intent": "천붕 ★★★ 거인의 도끼 (날이 아래) — 쓰는 곳: worldBreaker.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.313,
+  "edge": 0.325,
+  "lone": 0.055,
+  "flick": 0.133,
+  "churn": 0.332,
+  "fill": 0.282,
+  "area": [
+   1317,
+   1367,
+   1410,
+   1298,
+   1269
+  ],
+  "strip": 0.227
+ },
+ "flags": []
+}

@@ -1,0 +1,6 @@
+{"scores": {"intent": 5, "read": 4, "clean": 4, "value": 4, "pixel": 4, "motion": 5, "rules": 5},
+ "defects": [{"frame": 1, "where": "꼬리 끝 왼쪽 아래", "what": "꼬리 끝이 1도트 계단으로 가늘어지며 외톨이 점 몇 개가 있음 — 확대해야 보이는 수준"}],
+ "flags_review": "",
+ "verdict": "pass",
+ "fix": {"how": "손댈 필요 없음. 원하면 꼬리 끝 외톨이 점 1~2개 정리", "tool": "후처리 스크립트"},
+ "summary": "머리가 오른쪽인 밝은 구슬과 계조 꼬리가 깔끔하게 읽히는 지팡이 구슬 궤적, 게임 배율에서도 잘 보여 통과"}

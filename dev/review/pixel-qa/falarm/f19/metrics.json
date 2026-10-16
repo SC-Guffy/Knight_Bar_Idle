@@ -1,0 +1,37 @@
+{
+ "id": "f19",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  305,
+  22
+ ],
+ "scale": 1.0,
+ "intent": "관통 찌르기 ★★★ 드릴 창 (오른쪽이 창끝, 루프) — 쓰는 곳: skills.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 1.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.104,
+  "edge": 0.561,
+  "lone": 0.19,
+  "flick": 0.411,
+  "churn": 0.669,
+  "fill": 0.263,
+  "area": [
+   447,
+   381,
+   337,
+   297,
+   302
+  ],
+  "strip": 0.276
+ },
+ "flags": []
+}

@@ -1,0 +1,311 @@
+{
+ "use": "W1b 초승달 검흔 (32×32 한 장) — 흰 바깥 날 + 몸, 끝이 가늘어지는 호. 직업색 시트",
+ "cands": {
+  "1": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.194,
+    "edge": 0.637,
+    "lone": 0.26,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.191,
+    "area": [
+     196
+    ],
+    "strip": 0.351
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "2": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.205,
+    "edge": 0.438,
+    "lone": 0.212,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.143,
+    "area": [
+     146
+    ],
+    "strip": 0.491
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "3": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.145,
+    "edge": 0.394,
+    "lone": 0.104,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.337,
+    "area": [
+     345
+    ],
+    "strip": 0.219
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "4": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.153,
+    "edge": 0.561,
+    "lone": 0.191,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.307,
+    "area": [
+     314
+    ],
+    "strip": 0.29
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "5": {
+   "metrics": {
+    "crumbs": 1.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.134,
+    "edge": 0.645,
+    "lone": 0.278,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.292,
+    "area": [
+     299
+    ],
+    "strip": 0.276
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "6": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 4,
+    "low": 0.178,
+    "edge": 0.371,
+    "lone": 0.094,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.29,
+    "area": [
+     297
+    ],
+    "strip": 0.288
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "7": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.173,
+    "edge": 0.558,
+    "lone": 0.3,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.237,
+    "area": [
+     243
+    ],
+    "strip": 0.469
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "8": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.155,
+    "edge": 0.426,
+    "lone": 0.137,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.321,
+    "area": [
+     329
+    ],
+    "strip": 0.259
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "9": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.14,
+    "edge": 0.511,
+    "lone": 0.133,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.286,
+    "area": [
+     293
+    ],
+    "strip": 0.262
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "10": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.171,
+    "edge": 0.626,
+    "lone": 0.348,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.205,
+    "area": [
+     210
+    ],
+    "strip": 0.483
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "11": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.126,
+    "edge": 0.587,
+    "lone": 0.249,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.255,
+    "area": [
+     261
+    ],
+    "strip": 0.3
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "12": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.162,
+    "edge": 0.437,
+    "lone": 0.102,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.325,
+    "area": [
+     333
+    ],
+    "strip": 0.238
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "13": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.188,
+    "edge": 0.488,
+    "lone": 0.17,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.281,
+    "area": [
+     288
+    ],
+    "strip": 0.292
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "14": {
+   "metrics": {
+    "crumbs": 10.0,
+    "lrange": 0.59,
+    "colors": 5,
+    "low": 0.004,
+    "edge": 0.524,
+    "lone": 0.175,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.262,
+    "area": [
+     268
+    ],
+    "strip": 0.453
+   },
+   "flags": [
+    "crumbs"
+   ],
+   "gate_fail": []
+  },
+  "15": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.158,
+    "edge": 0.47,
+    "lone": 0.085,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.277,
+    "area": [
+     284
+    ],
+    "strip": 0.264
+   },
+   "flags": [],
+   "gate_fail": []
+  },
+  "16": {
+   "metrics": {
+    "crumbs": 0.0,
+    "lrange": 0.77,
+    "colors": 5,
+    "low": 0.177,
+    "edge": 0.503,
+    "lone": 0.209,
+    "flick": 0,
+    "churn": 0,
+    "fill": 0.309,
+    "area": [
+     316
+    ],
+    "strip": 0.301
+   },
+   "flags": [],
+   "gate_fail": []
+  }
+ }
+}

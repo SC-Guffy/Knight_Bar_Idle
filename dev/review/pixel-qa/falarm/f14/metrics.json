@@ -1,0 +1,35 @@
+{
+ "id": "f14",
+ "file": "(blind)",
+ "frames": 1,
+ "color": "#4da6ff",
+ "size": [
+  48,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "F19b 절대영도: 유리 금 도장 (azCracks) — 쓰는 곳: absoluteZero.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 왼쪽·오른쪽·위 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 3.0,
+  "lrange": 0.414,
+  "colors": 4,
+  "low": 0.019,
+  "edge": 0.41,
+  "lone": 0.305,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.211,
+  "area": [
+   485
+  ],
+  "strip": 0.002
+ },
+ "flags": []
+}

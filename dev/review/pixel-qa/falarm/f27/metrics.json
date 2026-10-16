@@ -1,0 +1,33 @@
+{
+ "id": "f27",
+ "file": "(blind)",
+ "frames": 1,
+ "color": "#4da6ff",
+ "size": [
+  32,
+  32
+ ],
+ "scale": 1.0,
+ "intent": "W1a 성좌검: 초승달 궤적 + 뒤에 흩어진 별 (성좌기사) — 쓰는 곳: vfx-sword.js. 직업색 시트(대표색 #4da6ff 로 칠함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.59,
+  "colors": 4,
+  "low": 0.101,
+  "edge": 0.387,
+  "lone": 0.128,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.222,
+  "area": [
+   227
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
