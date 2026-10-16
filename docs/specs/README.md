@@ -43,6 +43,7 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
+| [guild.md](guild.md) | 초안 | **기사단 (시즌7)** — 기사 여러 명 동시 육성(슬롯 2→5, 🛡️ 기사단 회관), 모든 콘텐츠 동시 진행(기사마다 iframe 검증안), 입장권 기사별, 계열 효과·따라잡기, Google 로그인 + Electron 연결 코드. 공용 범위 안 A/B 미정 (검토 `dev/review/guild.html`) |
 | [currency-roles.md](currency-roles.md) | 구현 (0.23.2) | 재화 역할 지도 — 재화마다 얻는 곳·쓰는 곳. 💎 마력석 = 고강화(+10~)·전직 전용(건물·시설·레이드 입장권에서 뺌, 강화 마력석 ×3) · 🪨 대장간 시설 철광석 ×0.5 · 💠 강화 강화석 ×1.5 (`dev/currency-bot.js`, 검토 `dev/review/currency-roles.html`) |
 | [dungeon-reward-buff.md](dungeon-reward-buff.md) | 완료 (0.22.3) | 재료의 미궁 보상 ×2(강화석 ×3) · 강화 비용에서 🪨 철광석 제외 (검토 `dev/review/dungeon-buff.html`) |
 | [build-rush.md](build-rush.md) | 완료 (0.21.1) | 건설 즉시 완료 — 남은 1분당 최고 스테이지 잡몹 골드 ×2.2 (남은 1시간 ≈ 원정 30분 골드) |
