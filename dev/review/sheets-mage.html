@@ -39,7 +39,39 @@
   </ul>
 </div>
 
-<h2>▣2 새 디자인 — 여성 마법사, 컨셉만 보고 새로 그림 · 도트 검수 합격작 (2026-10-17, ComfyUI 56장 · PixelLab 0) <span class="wait">· 사용자 검사 대기</span></h2>
+<h2>▣3 최종 기준 그림 — PixelLab 정리본 · 도트 검수 합격 (2026-10-17, PixelLab usage 4 · 계열 합계 11) <span class="wait">· 사용자 검사 대기</span></h2>
+<div class="box">
+  ▣2 의 합격 대표 4장(ComfyUI 시안)을 로드맵 승인 방식으로 정리했다.
+  <ul>
+    <li><b>정리</b>: PixelLab <code>image-to-pixelart</code> 256 → 64(fixer, 원본 충실 200)를 직업당 1회 호출했다. 재시도는 0, usage 4(승인 최대 7)다.
+      <ul>
+        <li>판에는 몸 키(공용 <code>body_bounds</code>)를 184px = 46칸에 맞춰 앉혔다(<code>dev/sheets-mage/topix.py</code>).</li>
+        <li>공용 <code>to_pixel.py prep</code> 은 지팡이까지 포함해 크기를 맞춰서, 지팡이를 든 마법사는 작아진다. 그래서 이 단계만 바꿨다.</li>
+      </ul></li>
+    <li><b>바탕·그림자</b>: 공용 <code>to_pixel clean</code> 뒤에 남는 발밑 받침(회색·파란 판)을 지웠다. 맨 아래 줄이 3줄 위보다 1.3배 넘게 넓으면 판으로 본다. 판을 먼저 지우고 손질(<code>polish.py</code>)한다.</li>
+    <li><b>검수</b>: 공용 <code>qa_char.py</code> + 비평(<code>critic.md</code>)으로 정리본·손질본 8장을 검수했다. 직업마다 높은 쪽을 최종으로 골랐다.
+      <ul>
+        <li>공용 손질이 점수를 늘 올리지는 않는다. 손질본이 이긴 것은 빙결술사뿐이다.</li>
+      </ul></li>
+  </ul>
+</div>
+<h3>최종 4종 (같은 배율 5배, 땅 맞춤)</h3>
+<div class="tabs" id="d3tabs"></div>
+<div class="scroll box"><img class="px" id="d3img" alt="최종" style="max-width:none;width:920px"></div>
+<h3>전 → 후: ComfyUI 축소(▣2) → PixelLab 정리</h3>
+<div class="scroll box"><img class="px" src="sheets-mage/design3/before-after.png" alt="전후" style="max-width:none;width:1840px"></div>
+<div class="scroll"><table>
+  <tr><th>직업</th><th>정리본</th><th>손질본</th><th>최종</th><th>비평 요약</th><th>남은 흠 (선택 다듬기)</th></tr>
+  <tr><td>마법사</td><td>4.0 (pass)</td><td>3.71 (pass)</td><td class='ok'><b>정리본 4.0</b></td><td>모자·머리·드레스·팔다리가 게임 배율에서 잘 읽히는 깔끔한 견습 마법사</td><td>모자·로브가 흑백에서 붙음 · 등 뒤 머리 덩어리 단색 · 색 37개(32 초과)</td></tr><tr><td>화염술사</td><td>3.86 (pass)</td><td>3.71 (pass)</td><td class='ok'><b>정리본 3.86</b></td><td>의도에 맞고 실루엣·명암이 잘 서는 화염술사, 외곽 흰 헤일로 점·색 42</td><td>외곽 흰 1도트 헤일로 점 · 색 42개</td></tr><tr><td>빙결술사</td><td>3.71 (pass)</td><td>4.0 (pass)</td><td class='ok'><b>손질본 4.0</b></td><td>후드·흰 머리·털 칼라·흰 장갑·부츠가 잘 읽히고 명암도 섬</td><td>망토 아래·부츠 둘레 밝은 외톨이 점 · 땋은 마디 안 읽힘 · 두 다리 분리 약함</td></tr><tr><td>뇌전술사</td><td>4.0 (pass)</td><td>3.57 (fix)</td><td class='ok'><b>정리본 4.0</b></td><td>실루엣·얼굴·뿔·다리가 잘 읽히는 뇌전술사 기준 그림. 드레스 아래쪽 남색이 어두워 뭉치는 점만 손보면 더 좋다</td><td>드레스 아래~스타킹 흑백에서 검은 덩어리 · 금 단추 1도트·꼬리 안 보임 · 부츠 둘레 외톨이 점</td></tr>
+</table></div>
+<div class="grid"><div class="card"><b>마법사</b><div style="display:flex;gap:4px"><img src="sheets-mage/design3/clean-mage.png" style="width:48%" alt=""><img src="sheets-mage/design3/polish-mage.png" style="width:48%" alt=""></div><div class="sub" style="margin:0">정리본 · 손질본</div>
+<details><summary class="sub">검수 시트 (정리본 / 손질본)</summary><img src="sheets-mage/design3/clean-mage-sheet.png" style="width:100%" alt=""><img src="sheets-mage/design3/polish-mage-sheet.png" style="width:100%" alt=""></details></div><div class="card"><b>화염술사</b><div style="display:flex;gap:4px"><img src="sheets-mage/design3/clean-pyromancer.png" style="width:48%" alt=""><img src="sheets-mage/design3/polish-pyromancer.png" style="width:48%" alt=""></div><div class="sub" style="margin:0">정리본 · 손질본</div>
+<details><summary class="sub">검수 시트 (정리본 / 손질본)</summary><img src="sheets-mage/design3/clean-pyromancer-sheet.png" style="width:100%" alt=""><img src="sheets-mage/design3/polish-pyromancer-sheet.png" style="width:100%" alt=""></details></div><div class="card"><b>빙결술사</b><div style="display:flex;gap:4px"><img src="sheets-mage/design3/clean-cryomancer.png" style="width:48%" alt=""><img src="sheets-mage/design3/polish-cryomancer.png" style="width:48%" alt=""></div><div class="sub" style="margin:0">정리본 · 손질본</div>
+<details><summary class="sub">검수 시트 (정리본 / 손질본)</summary><img src="sheets-mage/design3/clean-cryomancer-sheet.png" style="width:100%" alt=""><img src="sheets-mage/design3/polish-cryomancer-sheet.png" style="width:100%" alt=""></details></div><div class="card"><b>뇌전술사</b><div style="display:flex;gap:4px"><img src="sheets-mage/design3/clean-electromancer.png" style="width:48%" alt=""><img src="sheets-mage/design3/polish-electromancer.png" style="width:48%" alt=""></div><div class="sub" style="margin:0">정리본 · 손질본</div>
+<details><summary class="sub">검수 시트 (정리본 / 손질본)</summary><img src="sheets-mage/design3/clean-electromancer-sheet.png" style="width:100%" alt=""><img src="sheets-mage/design3/polish-electromancer-sheet.png" style="width:100%" alt=""></details></div></div>
+<p class="sub">최종 기준 그림 파일: <code>dev/sheets-mage/design/final/&lt;직업&gt;.png</code> (관절 지정 애니의 첫 프레임이 된다 — 다음 계획서). 판정 모음: <code>dev/sheets-mage/design/qa/pl-results.json</code>.</p>
+
+<h2>▣2 새 디자인 — 여성 마법사, 컨셉만 보고 새로 그림 · 도트 검수 합격작 (2026-10-17, ComfyUI 56장 · PixelLab 0) <span class="dim">— ▣3 에서 정리</span></h2>
 <div class="box">
   사용자 지시: "조금만 더 여성스럽게" · "기존 비주얼을 따라갈 필요없이 컨셉에만 알맞게" · "사용자에게 보이기 전에 모든 후보를 검수에 통과시킨다"(로드맵 전달).
   <ul>
@@ -353,6 +385,7 @@
     sh(list.some((t) => t[0] === c) ? c : list[0][0]);
   };
   tabSet(document.getElementById('smtabs'), document.getElementById('smimg'), [['sheet-montage', '시트 · 컬러'], ['sheet-montage-gray', '시트 · 흑백']], 'sheets-mage-sm');
+  tabSet(document.getElementById('d3tabs'), document.getElementById('d3img'), [['design3/final-color', '컬러'], ['design3/final-gray', '흑백'], ['design3/final-sil', '실루엣']], 'sheets-mage-d3');
   tabSet(document.getElementById('d2tabs'), document.getElementById('d2img'), [['design2/pick-color', '컬러'], ['design2/pick-gray', '흑백'], ['design2/pick-sil', '실루엣']], 'sheets-mage-d2');
   tabSet(document.getElementById('dztabs'), document.getElementById('dzimg'), [['design/pick-color', '컬러'], ['design/pick-gray', '흑백'], ['design/pick-sil', '실루엣']], 'sheets-mage-dz');
   tabSet(document.getElementById('mqtabs'), document.getElementById('mqimg'), [['mq_dress', '입힌 결과 · 컬러'], ['mq_orig', '원래 그림 · 컬러'], ['mq_dress-gray', '입힌 결과 · 흑백'], ['mq_orig-gray', '원래 그림 · 흑백']], 'sheets-mage-mq');

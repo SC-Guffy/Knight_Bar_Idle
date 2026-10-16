@@ -120,5 +120,8 @@ if __name__ == '__main__':
         seed = int(a[6]) if len(a) > 6 else 0
         body = {'image': b64file(src), 'description': desc, 'seed': seed, 'no_background': True}
         run('/edit-image-pixen', body, cls, f'{name}: {desc[:70]}', os.path.join(HERE, 'work', cls, name))
+    elif a[1] == 'raw':   # plx.py raw <cls> <name> <endpoint> <body.json> — 본문 파일을 그대로 (image-to-pixelart 정리 등)
+        cls, name, ep, bf = a[2], a[3], a[4], a[5]
+        run(ep, json.load(open(bf, encoding='utf-8')), cls, f'{name}: {ep}', os.path.join(HERE, 'work', cls, name))
     elif a[1] == 'bal':
         print('balance', bal(), 'self', state()['used'])

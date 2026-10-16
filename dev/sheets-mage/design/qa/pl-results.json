@@ -1,0 +1,158 @@
+{
+ "clean-electromancer": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "avg": 4.0,
+  "summary": "실루엣·얼굴·뿔·다리가 잘 읽히는 뇌전술사 기준 그림. 드레스 아래쪽 남색이 어두워 뭉치는 점만 손보면 더 좋다",
+  "defects": [
+   "드레스 아래~스타킹 흑백에서 검은 덩어리",
+   "금 단추 1도트·꼬리 안 보임",
+   "부츠 둘레 외톨이 점"
+  ]
+ },
+ "clean-mage": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 4,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "avg": 4.0,
+  "summary": "모자·머리·드레스·팔다리가 게임 배율에서 잘 읽히는 깔끔한 견습 마법사",
+  "defects": [
+   "모자·로브가 흑백에서 붙음",
+   "등 뒤 머리 덩어리 단색",
+   "색 37개(32 초과)"
+  ]
+ },
+ "polish-mage": {
+  "scores": {
+   "intent": 3,
+   "read": 4,
+   "clean": 3,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "avg": 3.71,
+  "summary": "모자·로브·다리 실루엣이 잘 읽혀 통과, 등 뒤 머리가 가방처럼 보임",
+  "defects": [
+   "등 뒤 머리 가방처럼",
+   "눈 작음",
+   "손 주변 밝은 외톨이 점"
+  ]
+ },
+ "polish-pyromancer": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 3,
+   "value": 3,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 3
+  },
+  "verdict": "pass",
+  "avg": 3.71,
+  "summary": "포니테일·치마·눈이 게임 배율에서 잘 읽히는 화염술사, 발치 검은 파편",
+  "defects": [
+   "발치 검은 파편",
+   "뒤쪽 팔·토시 어두움"
+  ]
+ },
+ "polish-electromancer": {
+  "scores": {
+   "intent": 3,
+   "read": 3,
+   "clean": 4,
+   "value": 2,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "fix",
+  "avg": 3.57,
+  "summary": "코트와 다리가 검정 한 덩어리, 어두운 바탕에서 다리가 사라짐",
+  "defects": [
+   "코트 남색 거의 검정",
+   "다리·부츠 바탕에 묻힘",
+   "금 단추 안 보임"
+  ]
+ },
+ "clean-pyromancer": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 3,
+   "value": 4,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "avg": 3.86,
+  "summary": "의도에 맞고 실루엣·명암이 잘 서는 화염술사, 외곽 흰 헤일로 점·색 42",
+  "defects": [
+   "외곽 흰 1도트 헤일로 점",
+   "색 42개"
+  ]
+ },
+ "polish-cryomancer": {
+  "scores": {
+   "intent": 4,
+   "read": 4,
+   "clean": 3,
+   "value": 4,
+   "pixel": 4,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "avg": 4.0,
+  "summary": "후드·흰 머리·털 칼라·흰 장갑·부츠가 잘 읽히고 명암도 섬",
+  "defects": [
+   "망토 아래·부츠 둘레 밝은 외톨이 점",
+   "땋은 마디 안 읽힘",
+   "두 다리 분리 약함"
+  ]
+ },
+ "clean-cryomancer": {
+  "scores": {
+   "intent": 3,
+   "read": 4,
+   "clean": 3,
+   "value": 4,
+   "pixel": 3,
+   "motion": 5,
+   "rules": 4
+  },
+  "verdict": "pass",
+  "avg": 3.71,
+  "summary": "후드·흰 머리·얼굴로 잘 읽힘, 발밑·지팡이 둘레 잡음",
+  "defects": [
+   "발밑 회색 외톨이 점",
+   "망토가 다리 덮음",
+   "땋은 머리 안 읽힘"
+  ]
+ },
+ "_final": {
+  "mage": "clean",
+  "pyromancer": "clean",
+  "cryomancer": "polish",
+  "electromancer": "clean"
+ }
+}

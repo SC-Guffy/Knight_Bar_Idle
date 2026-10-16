@@ -4,3 +4,8 @@ mq/walk
 mq/atkA
 mq/atkB
 mq/cast
+# 로드맵 승인 2026-10-17: 디자인 정리 image-to-pixelart 직업당 1회, 재시도 0, 계열 최대 7
+mage/ref64
+pyromancer/ref64
+cryomancer/ref64
+electromancer/ref64
