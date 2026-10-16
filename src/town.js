@@ -12,6 +12,7 @@ const TOWN_LAYOUT = {
   inn: { x: -36, y: -20 },
   forge: { x: 36, y: -20 },
   storage: { x: 104, y: 2 },
+  hall: { x: 0, y: -40 },    // 🛡️ 기사단 회관 (기사단 모드에서만, core.js BUILDINGS.hall) — 광장 뒤 가운데
 };
 const townTier = (lv) => (lv < 5 ? 0 : lv < 10 ? 1 : lv < 15 ? 2 : 3);
 // 이 건물에 지금 할 수 있는 일이 있는가 — 건설, 훈련장의 훈련, 대장간의 시설 올리기. 마을 탭 레드닷·건물 이름표의 점·기본 선택이 모두 이걸 본다
@@ -534,7 +535,41 @@ function drawForge(K, tier, t) {
   if (tier >= 3) { const q = K.P(a + 1, ae, h - 5); K.b.fillStyle = '#ffd257'; K.b.fillRect(Math.round(q[0]) - 1, Math.round(q[1]), 5, 4); K.b.fillStyle = '#3a3840'; K.b.fillRect(Math.round(q[0]), Math.round(q[1]) + 1, 3, 1); K.b.fillRect(Math.round(q[0]) + 1, Math.round(q[1]) + 1, 1, 3); }
 }
 
-const TOWN_DRAW = { training: drawTraining, inn: drawInn, storage: drawStorage, forge: drawForge };
+// ── 기사단 회관: 톱니 성가퀴를 두른 돌 회관 + 양옆 망루, 문 위 방패 문장, 기사단 깃발 (Lv5 망루 · Lv10 망루 둘 · Lv15 금빛 깃발) ──
+function drawHall(K, tier, t) {
+  const a = 7 + tier, d = 6, h = 11 + tier * 2;
+  const stone = '#9b9aa6', dark = '#6f6e7c', blue = '#2f4f9a', gold = '#ffd257';
+  // 망루 (뒤 양 모서리)
+  const tower = (u, v, hh) => {
+    K.box(u - 2.5, u + 2.5, v - 2.5, v + 2.5, 0, hh, '#8d8c98');
+    for (let z = 3; z < hh; z += 3) K.line([u - 2.5, v + 2.5, z], [u + 2.5, v + 2.5, z], dark);
+    K.hip(u - 3, u + 3, v - 3, v + 3, hh, 6, blue, 1);
+    K.line([u, v, hh + 6], [u, v, hh + 10], '#3a2a1a');
+    const w = Math.round(Math.sin(t * 4 + u));
+    K.quad([[u, v, hh + 10], [u, v + 3, hh + 9 + w], [u, v, hh + 8]], tier >= 3 ? gold : '#c8392e');
+  };
+  if (tier >= 1) tower(-a - 1, -d - 1, h + 7);
+  if (tier >= 2) tower(a + 1, -d - 1, h + 7);
+  // 몸체 + 돌 줄눈
+  K.box(-a, a, -d, d, 0, h, stone);
+  for (let z = 3; z < h; z += 3) { K.line([-a, d, z], [a, d, z], dark); K.line([a, -d, z], [a, d, z], shade(dark, 0.8)); }
+  // 성가퀴 (톱니)
+  for (let u = -a; u < a; u += 3) K.box(u, u + 1.6, d - 1.4, d, h, h + 2, stone);
+  for (let v = -d; v < d; v += 3) K.box(a - 1.4, a, v, v + 1.6, h, h + 2, stone);
+  // 문 (오른쪽 앞면) + 위 방패 문장
+  K.R(a, -2.6, 2.6, 0, 7.6, '#3a2a1a'); K.R(a, -2, 2, 0, 7, '#6b4526');
+  K.line([a, 0, 0], [a, 0, 7], '#3a2a1a');
+  K.R(a, -1.6, 1.6, 8.6, 11.6, gold); K.R(a, -1, 1, 9, 11.2, blue); K.dot(a, 0, 10, gold);
+  // 창 (왼쪽 앞면, 아치 대신 가는 틈) · 깃발 두 장
+  for (let u = -a + 3; u < a - 2; u += 5) K.L(d, u, u + 1.2, h - 7, h - 3, '#2a2236');
+  for (const u of [-a + 1.5, a - 4]) { K.L(d + 0.1, u, u + 2.6, h - 9, h - 1, blue); K.L(d + 0.1, u + 1, u + 1.6, h - 7, h - 3, gold); }
+  // 꼭대기 큰 깃발
+  K.line([0, 0, h], [0, 0, h + 12 + tier], '#3a2a1a');
+  const w = Math.round(Math.sin(t * 3) * 1.2);
+  K.quad([[0, 0, h + 12 + tier], [0, 6, h + 11 + tier + w], [0, 6, h + 7 + tier + w], [0, 0, h + 8 + tier]], blue);
+  K.dot(0, 3, h + 9 + tier + Math.round(w / 2), gold, 2, 2);
+}
+const TOWN_DRAW = { training: drawTraining, inn: drawInn, storage: drawStorage, forge: drawForge, hall: drawHall };
 
 function drawTownBuilding(b, id, p, t) {
   const tier = townTier(S.bld[id]), cx = p.x, cy = p.y;

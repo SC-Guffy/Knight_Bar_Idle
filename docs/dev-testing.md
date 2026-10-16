@@ -85,6 +85,14 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - `server/` 에서 `PORT=3123 DATA_DIR=<스크래치>/data BOT_TICK_MS=3000 <node> index.js` (파일 저장소, pg 불필요) → `index.html?server=http://localhost:3123`.
 - 테스트 계정: curl `POST /api/accounts` 에 **ASCII 닉네임**을 쓴다 (Windows curl 인자에서 한글이 깨진다). 받은 토큰을 로드 전에 localStorage `knight-bar-accounts` 에 넣는다.
 
+## 기사단 (1단계, `guild.html`, [specs/guild.md](specs/guild.md))
+
+- 켜기: `index.html?guild=1` (끄기 `?guild=0`). 웹만 — Electron(`window.bar`)에선 무시된다. 켜져 있으면 `guild.html` 로 넘어가 기사단 이름 → 지금 계정이 기사1.
+- 새 기사를 만들려면 진짜 로컬 서버가 필요하다(위 "진짜 로컬 서버"): `index.html?server=http://localhost:<서버 포트>&guild=1`. 오프라인 주소(`127.0.0.1:9`)면 기사 만들기만 안 되고 나머지는 된다.
+- 바깥 페이지 콘솔: `guild`(저장 내용) · `shared`(공용 상태) · `frames[i].win`(기사 i 의 게임 창, `frames[i].win.guildS` = S) · `guildHost.slot('닉', true)` · `renderSlots()`. 회관 Lv 바로 바꾸기: `shared.bld.hall = 10; renderSlots()`.
+- 처음부터: 바깥 페이지 콘솔 `localStorage.removeItem('knight-bar-guild')` 후 새로 고침.
+- 숨은 창은 rAF 가 멈춘다 → 프레임·진행 확인은 보이는 Chrome(`dev/guild-measure.mjs` 머리 주석의 실행 인자)에서.
+
 ## 기사단 시제품 (`dev/guild-spike.html`, [specs/guild.md](specs/guild.md))
 
 - 주소: `http://localhost:<포트>/dev/guild-spike.html?n=3` (n = 기사 수 1~5). 기사마다 `index.html?server=http://127.0.0.1:9&char=기사N` iframe 을 띄운다(오프라인 전용). `&reset=1` 이면 시제품 기사 세이브·공용 재화를 지우고 새로 시작.

@@ -70,7 +70,10 @@ document.addEventListener('mousemove', showBar);
 document.addEventListener('mouseleave', scheduleFade);
 
 // ───────────────────────── 공통 ─────────────────────────
+// 기사단: 안 보이는 기사의 토스트는 바깥 페이지가 "닉네임: …" 으로 모아 띄운다 (src/guild.js)
+let guildShown = true;
 function toast(msg, ms = 4000) {
+  if (GUILD_HOST && GUILD_HOST.full && !guildShown) { GUILD_HOST.toast(window, msg); return; }
   const el = $('toast');
   el.textContent = msg;
   el.classList.add('show');
@@ -397,7 +400,59 @@ function viewTown() {
         ${lv < bldMax(id) ? `<div class="eff next">다음 → ${b.effect(lv + 1)}</div>` : ''}
       </div>
       <div class="act">${act}</div>
-    </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : id === 'storage' ? viewStorage() : id === 'inn' ? viewInn() : ''}`;
+    </div>${id === 'forge' ? viewForge() : id === 'training' ? viewTraining() : id === 'storage' ? viewStorage() : id === 'inn' ? viewInn() : id === 'hall' ? viewGuildHall() : ''}`;
+}
+
+// ───────────────────────── 기사단 (docs/specs/guild.md 1단계) ─────────────────────────
+const GUILD_FULL = !!(GUILD_HOST && GUILD_HOST.full);
+// 슬롯 버튼 위 아이콘·말풍선에 쓰는 "지금 하는 일" (바깥 페이지가 1초마다 읽는다)
+function guildDoing() {
+  if (S.phase === 'expedition') return { icon: '⚔️', text: `원정 ${S.stage}` };
+  if (S.phase === 'returning') return { icon: '🏃', text: '귀환 중' };
+  if (S.phase === 'tower') return { icon: '🗼', text: `도전의 탑${S.tower.run ? ` ${S.tower.run.floor}층` : ''}` };
+  if (S.phase === 'dungeon') return { icon: '🎰', text: '재료의 미궁' };
+  if (S.phase === 'castle') return { icon: '🧱', text: '성벽 지키기' };
+  const c = campStatus();
+  return c.icon === '🚩' ? { icon: '🏕', text: '캠프' } : c;
+}
+const guildApi = {
+  info() {
+    if (!saveKey) return null;
+    const { town, ...rest } = campDots();   // 마을은 공용이라 보는 기사 쪽에서만 재촉한다
+    return { nick: activeNick(), cls: CLASSES[S.cls].name, lv: S.level, phase: S.phase, ...guildDoing(),
+      busy: S.phase !== 'camp' || !!raidUi.room || raidActive() || duelActive(), dot: Object.values(rest).some(Boolean) };
+  },
+  // 건설 시계: 바깥 페이지가 보고 있는 기사 하나에게만 실제 경과 초를 넘긴다 (core.js advanceBuild)
+  tickBuild(sec) { if (!saveKey) return false; if (sec > 0) advanceBuildNow(sec * TIME_SCALE); return true; },
+  openHall() {
+    if (!saveKey) return;
+    townUi.sel = 'hall';
+    if (campOpen) { campTab = 'town'; renderCamp(); } else if (S.phase === 'camp') openCamp('town');
+    else toast('🛡️ 기사단 회관은 캠프에서 열 수 있어요');
+  },
+  refresh() { if (campOpen && campTab === 'town') renderCamp(); },
+  save() { save(); },
+};
+// 🛡️ 기사단 회관을 골랐을 때 건물 카드 아래: 보유 기사·슬롯 배정·새 기사 (viewHall 은 명예의 전당)
+function viewGuildHall() {
+  const g = GUILD_HOST.list(), me = activeNick();
+  const free = g.slots.slice(0, g.open).some((n) => !n);
+  const rows = g.chars.map((c) => {
+    const i = c.info, inSlot = c.slot >= 0;
+    const doing = i ? `${i.icon} ${esc(i.text)}` : inSlot ? '불러오는 중' : '쉬는 중';
+    const btns = c.nick === me ? '<small>보는 중</small>'
+      : inSlot ? `<button class="btn" data-action="guild-view" data-nick="${esc(c.nick)}">보기</button>
+        <button class="btn" data-action="guild-unslot" data-nick="${esc(c.nick)}" ${!i || i.busy ? 'disabled title="캠프에 있을 때만 뺄 수 있어요"' : ''}>슬롯에서 빼기</button>`
+      : `<button class="btn" data-action="guild-slot" data-nick="${esc(c.nick)}" ${free ? '' : 'disabled title="빈 슬롯이 없어요"'}>슬롯에 넣기</button>
+        <button class="btn" data-action="guild-drop" data-nick="${esc(c.nick)}">기사단에서 빼기</button>`;
+    return `<div class="fac">
+      <span class="fname">${inSlot ? `<b>${c.slot + 1}</b>` : '–'} ${esc(c.nick)} <small>${i ? `${esc(i.cls)} Lv ${i.lv}` : ''}</small></span>
+      <span class="feff">${doing}</span>${btns}</div>`;
+  }).join('');
+  return `<div class="shead sub"><h3>${ico('shield')} ${esc(g.name)} <small>기사 ${g.chars.length}/${g.max} · 슬롯 ${g.open}/5</small></h3>
+      <button class="btn" data-action="guild-new" ${free && g.chars.length < g.max ? '' : `disabled title="${free ? '기사가 가득 찼어요' : '빈 슬롯이 없어요 — 회관을 올리거나 슬롯을 비우세요'}"`}>${ico('plus')} 새 기사</button></div>
+    <div class="hint">슬롯에 있는 기사는 안 보고 있어도 계속 진행해요. 골드·목재·철광석·마을은 기사단이 같이 써요. 슬롯 배정은 그 기사가 캠프에 있을 때만 바꿀 수 있어요.</div>
+    ${rows}`;
 }
 
 // 여관을 골랐을 때 건물 카드 아래: 가방 업그레이드 한 줄 (core.js upgradeBag)
@@ -2942,6 +2997,11 @@ const ACTIONS = {
     }, 110);
   },
   'build': (el) => startBuild(el.dataset.id),
+  'guild-view': (el) => GUILD_HOST.view(el.dataset.nick),
+  'guild-slot': (el) => GUILD_HOST.slot(el.dataset.nick, true),
+  'guild-unslot': (el) => GUILD_HOST.slot(el.dataset.nick, false),
+  'guild-drop': (el) => GUILD_HOST.drop(el.dataset.nick),
+  'guild-new': () => GUILD_HOST.newKnight(),
   'build-rush': () => { rushBuild(); },
   'bag-up': () => { if (upgradeBag()) toast(`🎒 가방 Lv ${S.bagLv} — 무게 ${bagCap()}`); },
   'goto-inn': () => { townUi.sel = 'inn'; campTab = 'town'; $('campBody').scrollTop = 0; },
@@ -3155,6 +3215,7 @@ function renderAccount() {
         <button class="go compact" data-action="acct-create">${ico('flag')} 시작</button>
       </div>
       <div id="nickMsg" class="fmsg"></div>
+      ${GUILD_FULL ? `<div class="hint">${ico('shield')} 기사단 모드 — 기사 고르기·슬롯은 마을의 🛡️ 기사단 회관에서 해요</div>` : `
       ${mine.length ? `<h3>${ico('shield')} 이 기기의 기사</h3>${knights}` : ''}
       <h3>${ico('inbox')} 다른 기기의 기사 가져오기</h3>
       <div class="hint">원래 기기에서 이 창을 열면 복구 코드를 볼 수 있어요.</div>
@@ -3163,15 +3224,16 @@ function renderAccount() {
         <input id="impCode" placeholder="복구 코드" autocomplete="off" spellcheck="false">
         <button class="btn" data-action="acct-import">가져오기</button>
       </div>
-      <div id="impMsg" class="fmsg"></div>
-      ${cur ? `
+      <div id="impMsg" class="fmsg"></div>`}
+      ${cur && !GUILD_FULL ? `
         <h3>${ico('pencil')} ${esc(cur)}의 닉네임 바꾸기</h3>
         <div class="hint">무료 · 하루에 한 번. 랭킹·결투 기록과 복구 코드는 그대로 이어져요.</div>
         <div class="frow">
           <input id="renameIn" maxlength="12" placeholder="새 닉네임" autocomplete="off" spellcheck="false">
           <button class="btn" data-action="acct-rename">바꾸기</button>
         </div>
-        <div id="renameMsg" class="fmsg"></div>
+        <div id="renameMsg" class="fmsg"></div>` : ''}
+      ${cur ? `
         <h3>${ico('key')} ${esc(cur)}의 복구 코드</h3>
         <div class="hint">다른 기기에서 이 기사를 이어 하려면 필요해요. 다른 사람에게 알려 주지 마세요.</div>
         <div class="frow">
@@ -3218,7 +3280,8 @@ async function acctCreate() {
     loadState(null);
     const state = S, prof = profile();
     S = prev; saveKey = prevKey;
-    await createAccount(nick, state, prof);
+    const r = await createAccount(nick, state, prof);
+    if (GUILD_HOST && GUILD_HOST.full) GUILD_HOST.addKnight(window, r.nickname);
     await enterAccount(nick, state);
     acctBusy = false;
     closeAccount();
@@ -3586,7 +3649,7 @@ function boot() {
     watchForUpdates();
   }
 
-  if (activeToken()) {
+  if (activeToken() && !GUILD_NEW) {
     enterAccount(activeNick());
   } else {
     loadState(null);
@@ -3619,6 +3682,7 @@ function boot() {
     // 계정을 불러오는 중에는 게임 시간을 멈춘다
     if (saveKey) update(Math.min(dt, 0.1));
     else clock += dt;
+    guildShown = shown;
     if (!shown) { wasShown = false; return; }
     if (!wasShown) { wasShown = true; renderHud(); }
     render();
@@ -3638,6 +3702,7 @@ function boot() {
   }
   if (GUILD_HOST) {
     window.guildStep = frame;
+    window.guildApi = guildApi;
     Object.defineProperty(window, 'guildS', { get: () => (saveKey ? S : null) });
     Object.defineProperty(window, 'guildDbg', { get: () => ({ clock, x: knight.x, mobs: monsters.length, hitstop }) });   // let 전역은 window 에 안 보여서 바깥 페이지용으로 연다 (CSP 라 eval 불가)
     GUILD_HOST.ready(window);
@@ -3650,7 +3715,16 @@ function boot() {
 // 보내 준 값 중 여기 없는 것만 넣고 시작한다.
 const IMPORT_FROM = ['https://sheet-play.sanai-club.workers.dev'];
 function start() {
-  if (window.parent === window) return boot();
+  if (window.parent === window) {
+    // 기사단 모드 (docs/specs/guild.md 1단계, 웹만): ?guild=1 로 켜고 ?guild=0 으로 끈다. 켜져 있으면 기사단 호스트 페이지로
+    const g = new URLSearchParams(location.search).get('guild');
+    try {
+      if (g === '1') localStorage.setItem('knight-bar-guild-on', '1');
+      if (g === '0') localStorage.removeItem('knight-bar-guild-on');
+      if (!window.bar && localStorage.getItem('knight-bar-guild-on')) { location.replace('guild.html' + location.search); return; }
+    } catch {}
+    return boot();
+  }
   let started = false;
   const go = () => {
     if (started) return;

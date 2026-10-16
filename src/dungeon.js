@@ -122,7 +122,7 @@ const DG_RUN_BOSSES = 9;
 const DG_RUN_UNITS = DG_SLOT_AVG * Array.from({ length: DG_RUN_BOSSES }, (_, k) => 1 + DG_BOSS_BONUS * k).reduce((a, b) => a + b, 0);
 const DG_RUN_SHARE = 3;
 function dgNextBuildCost(k) {
-  const ids = Object.keys(BUILDINGS);
+  const ids = Object.keys(BUILDINGS).filter((id) => id !== 'hall');   // 기사단 회관은 보상 기준에 넣지 않는다
   const sum = ids.reduce((a, id) => a + buildCost(id, Math.min(S.bld[id], bldMax(id) - 1))[k], 0);
   return sum / ids.length;
 }

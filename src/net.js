@@ -45,12 +45,22 @@ let accounts = (() => {
   try { return Object.assign({ active: null, list: {} }, JSON.parse(localStorage.getItem(ACCOUNTS_KEY))); } catch { return { active: null, list: {} }; }
 })();
 function saveAccounts() {
-  if (GUILD_CHAR) return;
-  try { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts)); } catch {}
+  try {
+    // 기사단 iframe: 같은 localStorage 를 여러 기사가 같이 쓰므로 active 는 건드리지 않고 토큰 목록만 더한다
+    if (GUILD_CHAR) {
+      const cur = Object.assign({ active: null, list: {} }, JSON.parse(localStorage.getItem(ACCOUNTS_KEY)));
+      Object.assign(cur.list, accounts.list);
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(cur));
+      return;
+    }
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+  } catch {}
 }
-// 기사단 시제품: iframe 마다 ?char=닉네임 으로 자기 기사를 고른다 (같은 localStorage 를 같이 쓰므로 active 를 덮어쓰지 않는다)
+// 기사단: iframe 마다 ?char=닉네임 으로 자기 기사를 고른다 (같은 localStorage 를 같이 쓰므로 active 를 덮어쓰지 않는다)
 const GUILD_CHAR = new URLSearchParams(location.search).get('char');
-if (GUILD_CHAR) accounts.active = GUILD_CHAR;
+// '+new' = 기사단 회관의 "새 기사" — 닉네임 창부터 연다 (src/guild.js newKnight)
+const GUILD_NEW = GUILD_CHAR === '+new';
+if (GUILD_CHAR) accounts.active = GUILD_NEW ? null : GUILD_CHAR;
 const activeNick = () => accounts.active;
 const activeToken = () => (accounts.active ? accounts.list[accounts.active] : null);
 const accountSaveKey = (nick) => `${SAVE_KEY}:${nick.toLowerCase()}`;

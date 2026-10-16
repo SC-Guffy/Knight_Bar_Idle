@@ -292,8 +292,18 @@ function readLocalSave(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
 }
 // o: 세이브 객체 (없으면 새 기사)
-// 기사단 시제품: 바깥 페이지(dev/guild-spike.html)의 기사단 공용 상태. 없으면 null (보통 게임)
+// 기사단 (docs/specs/guild.md): 바깥 페이지(guild.html 의 src/guild.js, 또는 시제품 dev/guild-spike.html)가 기사마다 이 게임을 iframe 으로 띄운다.
+// 공용 상태(골드·목재·철광석·마을 건물·창고·대장간 시설·건설)는 바깥 페이지 객체 하나를 같이 쓴다. 없으면 null (보통 게임)
 const GUILD_HOST = (() => { try { return window.parent !== window && window.parent.guildHost || null; } catch { return null; } })();
+// 🛡️ 기사단 회관: 기사단 모드에서만 있는 공용 마을 건물. 회관 Lv → 슬롯 수 (src/guild.js GUILD_SLOT_LV 와 같게)
+const GUILD_SLOT_LV = [1, 3, 6, 10];   // 슬롯 2·3·4·5칸이 열리는 회관 Lv
+const guildSlotsAt = (lv) => 1 + GUILD_SLOT_LV.filter((x) => lv >= x).length;
+if (GUILD_HOST && GUILD_HOST.full) {
+  BUILDINGS.hall = {
+    name: '기사단 회관', icon: '🛡️', mul: { gold: 1.5, wood: 1.5, ore: 1.5, mana: 0 },   // 비용 = 다른 건물 곡선 ×1.5 (시작안)
+    effect: (lv) => `기사 슬롯 ${guildSlotsAt(lv)}칸${GUILD_SLOT_LV.find((x) => x > lv) ? ` · 다음 칸은 Lv ${GUILD_SLOT_LV.find((x) => x > lv)}` : ''}`,
+  };
+}
 
 function loadState(o) {
   S = freshState();
@@ -623,7 +633,12 @@ function startBuild(id) {
   S.build = { id, remain: total, total };
   return true;
 }
+// 기사단 모드에선 건설 시계를 바깥 페이지가 한 번만 돌린다 (iframe 마다 돌리면 기사 수만큼 빨라진다) → guildApi.tickBuild
 function advanceBuild(sec) {
+  if (GUILD_HOST && GUILD_HOST.full) return;
+  advanceBuildNow(sec);
+}
+function advanceBuildNow(sec) {
   if (!S.build) return;
   S.build.remain -= sec;
   if (S.build.remain <= 0) {
@@ -642,7 +657,7 @@ function rushBuild() {
   const p = rushPrice();
   if (S.gold < p) return false;
   S.gold -= p;
-  advanceBuild(S.build.remain);
+  advanceBuildNow(S.build.remain);
   return true;
 }
 
