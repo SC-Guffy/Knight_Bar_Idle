@@ -92,6 +92,22 @@ WHO_N7 = {'blademaster': 'A sword saint samurai whose face is a bright white por
           'simple medium slate blue-gray chest plates with light gray edges, light gray hakama trousers, '
           'two long curved silver katanas clearly visible: one in each hand, one pointing forward and down, one raised up behind the back. '
           'The face is white, not black. No cape, no dark mass.'}
+# 9차 (로드맵 검수 탈락: 검성 얼굴 없음·납작한 덩어리·성의 없음 / 대검전사 큰 얼굴 정면이라 그림체 다름)
+#  → 검사 N2-23 과 같은 옆모습·같은 머리 비율·같은 판금 디테일 밀도 (N2 밑그림·문체 그대로, 직업 설명만)
+WHO_N9 = {
+    'blademaster': 'A sword saint samurai knight in detailed lacquered plate armor: a big horned kabuto helmet in slate blue-gray with gold crescent horns, '
+                   'a dark face guard with one glowing red horizontal eye slit, layered rectangular shoulder plates and a segmented chest plate in slate blue-gray '
+                   'with light gray highlights and crimson lacing, a crimson scarf tied at the neck, gray armored legs, '
+                   'two curved silver katanas with gold guards, one in each hand, clearly apart: the front katana pointing forward and down, the back katana raised up behind.',
+    'greatswordsman': 'A heavy greatsword knight in thick polished steel plate armor: a rounded steel helmet with a horizontal visor slit and a short orange plume, '
+                      'huge rounded layered pauldrons, a thick breastplate, brown leather under-armor, one wide orange belt, steel armored legs, '
+                      'holding an enormous wide greatsword with both hands at the chest, the wide blade resting on the right shoulder pointing up and back.',
+}
+# 10차 대검전사 (9차는 은색 판금·면갑·깃털이라 검사와 실루엣이 같음 = 색깔놀이) → 투구 없이 머리띠, 거대한 견갑, 어깨에 멘 대검
+WHO_N10 = {'greatswordsman': 'A battle-hardened greatsword warrior with no helmet: short spiky dark brown hair tied with a long orange headband whose tails fly back, '
+           'a stern face with a scar seen in profile, huge layered dark iron pauldrons much wider than the head, a thick dark iron breastplate over a brown leather tunic, '
+           'one wide orange belt, dark iron gauntlets and greaves, both fists gripping the long hilt at the chest, an enormous wide greatsword resting on the right shoulder pointing up and back, '
+           'the blade wider than the head with a dark edge line. Not silver, not a knight helmet, no plume.'}
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -113,7 +129,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -133,12 +149,18 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
                 if dk == 'N5':         # 대검전사: 넓은 대검을 그려 넣은 밑그림 (글로는 46칸에서 칼이 가늘어짐)
                     init = Image.open(os.path.join(D, 'mannequin-gs.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'N10':
+                    init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N10[cls]), seed=s, denoise=0.92, init=init)
+                elif dk == 'N9':        # 검사 N2 와 같은 밑그림·문체
+                    init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N9[cls]), seed=s, denoise=0.92, init=init)
                 elif dk == 'N8':        # 대검전사: 두 주먹이 자루를 쥔 밑그림 (mannequin_gs2.py)
                     init = Image.open(os.path.join(D, 'mannequin-gs2.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N6[cls]), seed=s, denoise=0.8, init=init)

@@ -1,0 +1,52 @@
+{
+ "id": "paladin-atk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\paladin-atk-strip.png",
+ "frames": 15,
+ "color": "raw",
+ "size": [
+  960,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "9번 프레임이 칸 오른쪽 가장자리에 닿는다 (잘림?)",
+   "10번 프레임이 칸 오른쪽 가장자리에 닿는다 (잘림?)",
+   "11번 프레임이 칸 오른쪽 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.948,
+  "colors": 19,
+  "low": 0.305,
+  "edge": 0.383,
+  "lone": 0.069,
+  "flick": 0.25,
+  "churn": 0.526,
+  "fill": 0.233,
+  "area": [
+   909,
+   899,
+   860,
+   842,
+   849,
+   885,
+   859,
+   877,
+   1010,
+   1234,
+   1409,
+   926,
+   914,
+   891,
+   928
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

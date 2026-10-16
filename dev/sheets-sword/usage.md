@@ -25,3 +25,5 @@
 | 19 | greatswordsman | `/image-to-pixelart` | n6ref: /image-to-pixelart | 1.0 / 1.0 | 39.0 / 26.0 | 1098.0 |
 | 20 | greatswordsman | `/image-to-pixelart` | n8ref: /image-to-pixelart | 1.0 / 1.0 | 40.0 / 27.0 | 1089.0 |
 | 21 | blademaster | `/image-to-pixelart` | n7ref: /image-to-pixelart | 1.0 / 1.0 | 41.0 / 28.0 | 1088.0 |
+| 22 | paladin | `/edit-image-pixen` | pixen-idle: Same paladin knight, same helmet, halo, armor colors and shi | 1.0 / 1.0 | 42.0 / 29.0 | 1059.0 |
+| 23 | paladin | `/animate-with-skeleton-v3` | skel-atk: /animate-with-skeleton-v3 | 13.0 / 4.0 | 55.0 / 33.0 | 1046.0 |
