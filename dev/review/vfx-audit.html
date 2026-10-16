@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VFX 텍스처 전수조사</title>
+<style>
+  :root { --bg:#14161f; --card:#1d2030; --line:#2c3047; --fg:#e4e6ef; --dim:#8a90a8; --bad:#ff6b6b; --warn:#ffb648; --ok:#5fd38d; --blue:#7fb2ff; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.55 system-ui, sans-serif; }
+  header { padding:14px 16px 10px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .bar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px; }
+  .bar button { background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:12px; padding:3px 10px; cursor:pointer; font-size:12px; }
+  .bar button.on { border-color:var(--fg); }
+  .intro { padding:0 16px; max-width:1100px; color:var(--dim); }
+  .intro b { color:var(--fg); }
+  .intro ul { margin:4px 0 0; padding-left:18px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(440px, 1fr)); gap:10px; padding:12px 16px 40px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:8px; overflow:hidden; }
+  .card.fix { border-color:var(--warn); } .card.cut { border-color:var(--bad); } .card.regen { border-color:var(--blue); }
+  .top { display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; }
+  .id { font-weight:700; font-size:14px; }
+  .chip { font-size:11px; padding:0 6px; border-radius:8px; background:#2a2e44; color:var(--dim); }
+  .chip.bad { background:#4a1f25; color:#ffb3b3; } .chip.warn { background:#4a3a1a; color:#ffd89a; } .chip.blue { background:#1d2c4a; color:#b8d4ff; }
+  .row { display:flex; gap:6px; align-items:center; margin-top:4px; overflow-x:auto; }
+  .row .lbl { width:44px; flex:none; color:var(--dim); font-size:11px; }
+  canvas { image-rendering:pixelated; flex:none; border-radius:3px; }
+  .note { color:var(--dim); font-size:12px; margin-top:4px; }
+  .note b { color:var(--fg); }
+  @media (max-width:520px) { .grid { grid-template-columns:1fr; padding:12px 8px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>VFX 텍스처 전수조사 (src/vfx, 2026-10-16)</h1>
+  <div class="intro" id="sum" style="padding:0">불러오는 중… (게임 로더를 숨은 창에서 돌리느라 10초쯤 걸린다)</div>
+  <div class="bar" id="filters"></div>
+</header>
+<div class="intro">
+  <p>줄: <b>원본</b> = PNG 그대로 · <b>전</b> = 지난 로더(0.24.2) · <b>후·밝음</b>/<b>후·어둠</b> = 이번 로더. 모두 시트가 게임에서 쓰는 색 모드로 칠했다 (원래 색 시트는 그대로, 직업색 시트는 예시 주황 램프). 밝은 배경에서 검은 테가 잘 보인다.</p>
+  <ul>
+    <li><b>로더 보강</b>(노랑): ① 그림이 시트의 60%를 넘으면 외곽선 제거를 건너뛰던 것을 97%(꽉 찬 배경)로 · ② 짙은 빨강·갈색·보라처럼 색이 있는 어두운 테도 가장자리 두 겹까지 벗김(가까이 밝은 속이 있을 때만 — 연기·사라지는 프레임은 둔다) · ③ soft 시트(연기·불)의 검은 테도 같은 규칙 · ④ 그림 안에 갇힌 큰 검은 면(조준경 렌즈·불 고리 속)은 빈칸으로.</li>
+    <li><b>정리</b>(빨강): 벗기면 망가지는 것은 따로 — 실루엣·타일(f06·f11·f08s·e15s)은 검정을 램프 색으로 칠해 덩어리로, 장궁 화살(p2)은 검은 화살대를 나무색으로, 지저분한 연타 불 잔상(xe04)은 빼고 xe03 을 크게 + 불 램프로.</li>
+    <li><b>다시 뽑기 후보</b>(파랑): 로더로 못 고치는 그림 자체의 품질 문제. 유료 생성이라 계획서 승인 뒤에만 다시 뽑는다.</li>
+  </ul>
+</div>
+<div class="grid" id="grid"></div>
+<iframe id="game" src="../skills.html" style="width:1px;height:1px;position:absolute;left:-9999px" title="게임 로더"></iframe>
+<script src="vfx-audit-old.js"></script>
+<script>
+// 사람 판정 (스펙 docs/specs/skill-vfx.md "텍스처 전수조사 (10-16)" 과 같다). 없으면 로더가 바꾼 양으로 '로더 보강'/'그대로'
+const VERDICT = {
+  f06: ['cut', '그림자 대검: 검은 칼날을 벗기면 철사 틀만 남았다 → keepInk (검정을 램프의 가장 어두운 색으로, 덩어리 실루엣)'],
+  f11: ['cut', '천마군단 기병대 행렬: 검은 갑옷이 벗겨져 부스러기 100조각 → keepInk 로 금빛 그림자 행렬'],
+  f08s: ['cut', '용황 몸통 마디(타일): 새 로더가 비늘 사이를 벗겨 구멍 → keepInk (벗기지 않는다)'],
+  e15s: ['cut', '용 몸통 마디(타일): f08s 와 같다 → keepInk'],
+  p2: ['cut', '장궁 화살: 검은 화살대를 벗겨 지난 버전부터 화살이 거의 안 보였다 → inkColor 나무색(#8a7258)'],
+  e41: ['fix', '구전: 시트를 95% 채운 검은 네모 배경이 그대로 그려졌다 → 이제 벗겨진다'],
+  e25: ['fix', '헤드샷 조준경: 검은 렌즈 면 → 빈칸'],
+  k35: ['fix', '불 고리 속 검은 면(전에는 둘레 색으로 뭉개 칠함) → 빈칸'],
+  k22: ['regen', '다연장 사격 명중: 색종이 같은 부스러기. 원래 색이라 로더로 손볼 게 없다'],
+  k37: ['regen', '대공성포 막타: 요새 몸체가 조각조각 흩어져 보인다'],
+  k32: ['regen', '용황 강림 명중: 어두운 자홍 몸이 직업색 램프의 가장 어두운 단으로 뭉개진다'],
+  k36: ['regen', '차원 붕괴 막타 블랙홀: 검은 몸이라 벗기면 테두리만 남는다'],
+  e14: ['regen', '대검 땅 파임: 갈색 흙덩이가 뭉개진 띠'],
+  e18: ['regen', '용왕의 광선 타일: 지글거리는 노이즈 띠'],
+};
+const TINT = '255,160,80', BG = { light:'#b9c4d4', dark:'#232838' };
+const grid = document.getElementById('grid');
+function chip(t, c) { const s = document.createElement('span'); s.className = 'chip ' + (c || ''); s.textContent = t; return s; }
+function tintLv(lv, src, w, h, mode) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'), d = g.createImageData(w, h), p = d.data;
+  let ramp = [[11, 13, 20]];
+  if (mode !== 'raw') { const rgb = mode.split(',').map(Number), dk = [rgb[0] * 0.38, rgb[1] * 0.38, rgb[2] * 0.45];
+    for (let k = 0; k <= 4; k++) { const t = k / 4; ramp.push(t <= 0.5 ? dk.map((v, j) => v + (rgb[j] - v) * t * 2) : rgb.map((v, j) => v + (255 - v) * (t - 0.5) * 2)); } }
+  for (let i = 0; i < lv.length; i++) { const v = lv[i]; if (!v) continue;
+    const cc = mode === 'raw' && v > 1 ? [src[i * 4], src[i * 4 + 1], src[i * 4 + 2]] : ramp[v - 1];
+    p[i * 4] = cc[0]; p[i * 4 + 1] = cc[1]; p[i * 4 + 2] = cc[2]; p[i * 4 + 3] = 255; }
+  g.putImageData(d, 0, 0); return c;
+}
+const ZOOM = 2;
+function row(card, label, img, s, bg) {
+  const r = document.createElement('div'); r.className = 'row';
+  const l = document.createElement('span'); l.className = 'lbl'; l.textContent = label; r.appendChild(l);
+  const c = document.createElement('canvas'); c.width = s.w * ZOOM; c.height = s.h * ZOOM;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  if (bg) { g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height); }
+  else for (let y = 0; y < c.height; y += 8) for (let x = 0; x < c.width; x += 8) { g.fillStyle = ((x + y) / 8) % 2 ? '#3a3f55' : '#2e3246'; g.fillRect(x, y, 8, 8); }
+  g.drawImage(img, 0, 0, s.w, s.h, 0, 0, c.width, c.height);
+  r.appendChild(c); card.appendChild(r);
+}
+async function main() {
+  const usage = await fetch('vfx-audit-usage.json').then(r => r.json()).catch(() => ({}));
+  const win = document.getElementById('game').contentWindow, SHEETS = () => { try { return win.eval('VFX_SHEETS'); } catch (e) { return null; } };   // const 라 window 속성이 아니다
+  // 계열 파일들이 시트를 늦게 더 등록한다 → 수가 2초 동안 그대로이고 전부 불러왔을 때 시작
+  await new Promise(r => { let last = -1, still = 0; const t = setInterval(() => { try { const S = SHEETS(), n = S ? Object.keys(S).length : 0;
+    if (S && n === last && Object.values(S).every(s => s.lv)) { if (++still >= 10) { clearInterval(t); r(); } } else still = 0; last = n; } catch (e) {} }, 200); });
+  const S = SHEETS(), seen = new Set(), list = [];
+  for (const [k, s] of Object.entries(S)) { const f = s.img.src.split('/').pop().replace('.png', ''); if (seen.has(f)) continue; seen.add(f); list.push([f, k, s]); }
+  list.sort((a, b) => a[0].localeCompare(b[0], 'en', { numeric: true }));
+  const count = { fix: 0, cut: 0, regen: 0, keep: 0 };
+  for (const [f, k, s] of list) {
+    const old = { img: s.img, frames: s.frames, soft: s.soft }; oldQuantize(old);
+    let diff = 0, opq = 0; for (let i = 0; i < s.lv.length; i++) { if (old.lv[i]) opq++; if (s.lv[i] !== old.lv[i]) diff++; }
+    const ratio = diff / Math.max(1, opq), raw = s.color === 'raw' || (usage[f] || {}).raw, mode = raw ? 'raw' : TINT;
+    const v = VERDICT[f] || (ratio >= 0.05 ? ['fix', ''] : null), kind = v ? v[0] : 'keep';
+    count[kind]++;
+    const card = document.createElement('div'); card.className = 'card ' + kind; card.dataset.v = kind;
+    const top = document.createElement('div'); top.className = 'top';
+    const t = document.createElement('span'); t.className = 'id'; t.textContent = f; top.appendChild(t);
+    top.appendChild(chip(s.w + '×' + s.h + ' · ' + s.frames + '장'));
+    top.appendChild(chip(raw ? '원래 색' : '직업색'));
+    if (usage[f] && usage[f].where) top.appendChild(chip(usage[f].where.join(', ')));
+    if (diff) top.appendChild(chip('바뀐 픽셀 ' + Math.round(ratio * 100) + '%', ratio >= 0.05 ? 'warn' : ''));
+    if (s.keepInk) top.appendChild(chip('keepInk', 'bad'));
+    if (s.inkColor) top.appendChild(chip('inkColor', 'bad'));
+    if (kind !== 'keep') top.appendChild(chip({ fix: '로더 보강', cut: '정리', regen: '다시 뽑기 후보' }[kind], { fix: 'warn', cut: 'bad', regen: 'blue' }[kind]));
+    card.appendChild(top);
+    row(card, '원본', s.img, s, null);
+    row(card, '전', tintLv(old.lv, old.src, s.w, s.h, mode), s, BG.light);
+    const after = win.vfxSheet(k, mode);
+    row(card, '후·밝음', after, s, BG.light);
+    row(card, '후·어둠', after, s, BG.dark);
+    if (v && v[1]) { const n = document.createElement('div'); n.className = 'note'; n.innerHTML = '<b>판정</b> ' + v[1]; card.appendChild(n); }
+    grid.appendChild(card);
+  }
+  document.getElementById('sum').textContent = `시트 ${list.length}장 · 로더 보강으로 바뀐 것 ${count.fix} · 정리 ${count.cut} (+ xe04 삭제) · 다시 뽑기 후보 ${count.regen} · 그대로 ${count.keep}`;
+  const fl = document.getElementById('filters');
+  for (const [key, name] of [['all', '전체'], ['fix', '로더 보강'], ['cut', '정리'], ['regen', '다시 뽑기 후보'], ['keep', '그대로']]) {
+    const b = document.createElement('button'); b.textContent = name; if (key === 'all') b.className = 'on';
+    b.onclick = () => { fl.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on');
+      grid.querySelectorAll('.card').forEach(c => c.style.display = key === 'all' || c.dataset.v === key ? '' : 'none'); };
+    fl.appendChild(b);
+  }
+}
+main();
+</script>
+</body>
+</html>

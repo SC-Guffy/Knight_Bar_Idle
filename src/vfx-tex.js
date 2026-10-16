@@ -46,18 +46,26 @@ function vfxQuantize(s) {
   const img = s.img, w = img.naturalWidth, h = img.naturalHeight;
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
   const g = cv.getContext('2d'); g.drawImage(img, 0, 0);
-  const p = g.getImageData(0, 0, w, h).data, lv = new Uint8Array(w * h);
+  const p = g.getImageData(0, 0, w, h).data, lv = new Uint8Array(w * h), lum = new Float32Array(w * h);
   for (let i = 0; i < w * h; i++) {
     if (p[i * 4 + 3] < 24) continue;
-    const l = (0.3 * p[i * 4] + 0.59 * p[i * 4 + 1] + 0.11 * p[i * 4 + 2]) / 255;
+    const l = (lum[i] = (0.3 * p[i * 4] + 0.59 * p[i * 4 + 1] + 0.11 * p[i * 4 + 2]) / 255);
     // 외곽선(1)은 거의 무채색인 아주 어두운 픽셀만. 짙은 빨강·갈색처럼 색이 있는 어두운 픽셀(불꽃 꼬리·흙)은 램프의 가장 어두운 단(2)
     const r = p[i * 4], gg = p[i * 4 + 1], b = p[i * 4 + 2], ink = Math.max(r, gg, b) < 48 && Math.max(r, gg, b) - Math.min(r, gg, b) < 28;
-    lv[i] = l < 0.2 ? (s.soft || !ink ? 2 : 1) : 2 + Math.round(((l - 0.2) / 0.8) * 4);   // soft: 연기처럼 어두운 덩어리가 큰 시트는 외곽선색 대신 램프의 가장 어두운 단
+    if (ink && s.inkColor) {   // inkColor: 검정이 물체 자체인 시트(장궁 화살대)는 검정을 그 색으로 바꿔 칠한다 — 벗기면 화살이 통째로 사라진다
+      const c = vfxRgb(s.inkColor);
+      p[i * 4] = c[0]; p[i * 4 + 1] = c[1]; p[i * 4 + 2] = c[2];
+      const l2 = (lum[i] = (0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]) / 255);
+      lv[i] = l2 < 0.2 ? 2 : 2 + Math.round(((l2 - 0.2) / 0.8) * 4);
+      continue;
+    }
+    lv[i] = l < 0.2 ? (s.soft || s.keepInk || !ink ? 2 : 1) : 2 + Math.round(((l - 0.2) / 0.8) * 4);   // soft: 연기처럼 어두운 덩어리가 큰 시트는 외곽선색 대신 램프의 가장 어두운 단
   }
-  // 화면을 거의 채우는 그림(밤하늘 배경 등)은 외곽선이 없으니 건드리지 않는다
+  // 시트를 꽉 채운 배경 그림(밤하늘·붉은 하늘)은 외곽선이 없으니 건드리지 않는다.
+  //  keepInk: 검은 덩어리가 곧 그림인 실루엣(그림자 기병대·그림자 대검) — 검정을 램프의 가장 어두운 단으로 칠하고 벗기지 않는다
   let filled = 0;
   for (let i = 0; i < w * h; i++) if (lv[i]) filled++;
-  if (filled < w * h * 0.6) vfxStripOutline(lv, w, h, s.frames, p);
+  if (filled < w * h * 0.97 && !s.keepInk) vfxStripOutline(lv, w, h, s.frames, p, lum);
   Object.assign(s, { w, h, fw: w / s.frames, lv, tint: new Map(), src: p });
   // 볼록한 쪽 방향 (0번 프레임의 불투명 픽셀 무게중심 − 테두리 상자 중심). 궤적을 돌릴 때 볼록한 쪽이 칼끝을 보게 한다
   let n = 0, sx = 0, sy = 0, x0 = s.fw, y0 = h, x1 = 0, y1 = 0;
@@ -65,39 +73,56 @@ function vfxQuantize(s) {
   s.bulge = n ? Math.atan2(sy / n - (y0 + y1) / 2, sx / n - (x0 + x1) / 2) : 0;
 }
 
-// 검은 외곽선·지저분한 파티클 걷어 내기 (2026-10-15 사용자: "검은색 아웃라인 들어간 지저분한 파티클은 싫다").
+// 검은 외곽선·지저분한 파티클 걷어 내기 (2026-10-15 사용자: "검은색 아웃라인 들어간 지저분한 파티클은 싫다", 10-16 전수조사로 보강).
 //  ① 바깥 외곽선: 어두운 픽셀(lv 1) 중 빈칸·그림 가장자리에서 어두운 픽셀만 밟아 닿는 것은 지운다 (두꺼운 외곽선도 한 번에).
-//  ② 그림 안쪽에 남은 어두운 픽셀은 검정이 아니라 램프의 가장 어두운 단(2)으로 올린다.
-//  ③ 외곽선을 벗긴 뒤 홀로 떨어진 1픽셀 점은 지운다. 프레임 경계를 넘어 이어 보지 않는다.
-function vfxStripOutline(lv, w, h, frames, p) {
+//  ② 색 있는 어두운 테(짙은 빨강·갈색·보라 외곽선, soft 시트의 검은 테): 가장자리에서 두 겹까지, 가까이(3칸) 밝은 픽셀이 있는 것만 지운다.
+//     밝은 속이 없는 어두운 덩어리(연기·사라지는 프레임)는 그대로 둔다.
+//  ③ 그림 안쪽에 갇힌 검은 덩어리: 크면(25픽셀 이상, 조준경 렌즈·검은 칼날 같은 검은 면) 빈칸으로, 작으면 둘레 색으로 메운다.
+//  ④ 외곽선을 벗긴 뒤 홀로 떨어진 1픽셀 점은 지운다. 프레임 경계를 넘어 이어 보지 않는다.
+function vfxStripOutline(lv, w, h, frames, p, lum) {
   const fw = w / (frames || 1), q = [];
   const fx = (i) => Math.floor((i % w) / fw);
-  for (let i = 0; i < w * h; i++) {
-    if (lv[i] !== 1) continue;
-    const x = i % w, y = (i / w) | 0, f = fx(i);
-    const edge = x === f * fw || x === (f + 1) * fw - 1 || y === 0 || y === h - 1
-      || (x > 0 && fx(i - 1) === f && !lv[i - 1]) || (x < w - 1 && fx(i + 1) === f && !lv[i + 1])
-      || (y > 0 && !lv[i - w]) || (y < h - 1 && !lv[i + w]);
-    if (edge) { lv[i] = 0; q.push(i); }
-  }
+  const n4 = (i) => { const x = i % w, f = fx(i); return [x > 0 && fx(i - 1) === f ? i - 1 : -1, x < w - 1 && fx(i + 1) === f ? i + 1 : -1, i >= w ? i - w : -1, i + w < w * h ? i + w : -1]; };
+  const atEdge = (i) => { const x = i % w, y = (i / w) | 0, f = fx(i); return x === f * fw || x === (f + 1) * fw - 1 || y === 0 || y === h - 1 || n4(i).some((j) => j >= 0 && !lv[j]); };
+  // ①
+  for (let i = 0; i < w * h; i++) if (lv[i] === 1 && atEdge(i)) q.push(i);
+  for (const i of q) lv[i] = 0;
   while (q.length) {
-    const i = q.pop(), x = i % w, f = fx(i);
-    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i - w, i + w]) {
-      if (j < 0 || j >= w * h || lv[j] !== 1 || fx(j) !== f) continue;
-      lv[j] = 0; q.push(j);
+    const i = q.pop();
+    for (const j of n4(i)) if (j >= 0 && lv[j] === 1) { lv[j] = 0; q.push(j); }
+  }
+  // ②
+  if (lum) {
+    const nearBright = (i) => {
+      const x = i % w, y = (i / w) | 0, f = fx(i);
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+        const xx = x + dx, yy = y + dy, j = yy * w + xx;
+        if (xx < 0 || xx >= w || yy < 0 || yy >= h || fx(j) !== f) continue;
+        if (lv[j] && lum[j] >= 0.3) return true;
+      }
+      return false;
+    };
+    for (let pass = 0; pass < 2; pass++) {
+      const cut = [];
+      for (let i = 0; i < w * h; i++) if (lv[i] === 2 && lum[i] < 0.2 && atEdge(i) && nearBright(i)) cut.push(i);
+      for (const i of cut) lv[i] = 0;
     }
   }
-  // 안쪽에 남은 검은 픽셀: 둘레 색(검정 아닌 이웃들의 평균)으로 메워 얼룩 없이 덩어리에 녹인다
+  // ③
+  const seen = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) {
-    if (lv[i] !== 1) continue;
-    const x = i % w; let n = 0, r = 0, g = 0, b = 0;
-    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i - w, i + w]) {
-      if (j < 0 || j >= w * h || lv[j] < 2) continue;
-      n++; r += p[j * 4]; g += p[j * 4 + 1]; b += p[j * 4 + 2];
+    if (lv[i] !== 1 || seen[i]) continue;
+    const comp = [i], st = [i]; seen[i] = 1;
+    while (st.length) { const k = st.pop(); for (const j of n4(k)) if (j >= 0 && lv[j] === 1 && !seen[j]) { seen[j] = 1; comp.push(j); st.push(j); } }
+    if (comp.length >= 25) { for (const k of comp) lv[k] = 0; continue; }
+    for (const k of comp) {
+      let n = 0, r = 0, g = 0, b = 0;
+      for (const j of n4(k)) { if (j < 0 || lv[j] < 2) continue; n++; r += p[j * 4]; g += p[j * 4 + 1]; b += p[j * 4 + 2]; }
+      lv[k] = 2;
+      if (n) { p[k * 4] = r / n; p[k * 4 + 1] = g / n; p[k * 4 + 2] = b / n; }
     }
-    lv[i] = 2;
-    if (n) { p[i * 4] = r / n; p[i * 4 + 1] = g / n; p[i * 4 + 2] = b / n; }
   }
+  // ④
   for (let i = 0; i < w * h; i++) {
     if (!lv[i]) continue;
     const x = i % w, f = fx(i);

@@ -8,7 +8,7 @@
 vfxRegister({
   // P 투사체 (원정·결투·레이드 공용 drawProjectile)
   p1: { frames: 1, color: 'raw' },                 // P1 단궁 화살 (레인저 + 연사)
-  p2: { frames: 1, color: 'raw', scale: 2 / 3 },   // P2 장궁 화살 + 꼬리 (저격수 + 헤드샷)
+  p2: { frames: 1, color: 'raw', scale: 2 / 3, inkColor: '#8a7258' },   // P2 장궁 화살 + 꼬리 (저격수 + 헤드샷)
   p3: { frames: 5, color: 'raw', scale: 2 / 3 },   // P3 태양 화살, 불꽃 꼬리 루프 (신궁)
   p5: { frames: 5, color: 'raw' },                 // P5 공허탄, 빨려 드는 꼬리 루프 (차원궁사)
   p6: { frames: 1, color: 'raw', scale: 2 / 3 },   // P6 공성 거대 살, 포탄형 촉 (공성포수)

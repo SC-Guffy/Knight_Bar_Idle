@@ -80,10 +80,11 @@ function qiHitTex(id, a, t, big = false, o = {}) {
   const sc = big ? 1 : a.mast >= 2 ? 1 : 2 / 3;
   texFx(id, t.x, o.y != null ? o.y : t.y, a.color, { life: o.life || 0.3, scale: o.scale || sc, flip: a.dir < 0, fade: 0.3, anchor: o.anchor });
 }
+const QI_FIRE_RAMP = ['#c0420f', '#e8601c', '#ff8c2c', '#ffc850', '#fff4c8'];   // 불붙은 주먹 잔상 (어두움 → 밝음). 가장 어두운 단도 밝은 주황이라 테두리가 검게 보이지 않는다
 // 손 앞에서 앞으로 뻗는 텍스처 (충격파 원뿔·쐐기). len: 앞으로 나아가는 거리
 function qiFrontTex(id, a, life, o = {}) {
   const h = qiHand(a), d = a.dir;
-  texFx(id, h.x + d * (o.off != null ? o.off : 18), o.y != null ? o.y : h.y, a.color, { life, scale: o.scale || 1, flip: d < 0, fade: 0.35,
+  texFx(id, h.x + d * (o.off != null ? o.off : 18), o.y != null ? o.y : h.y, o.color || a.color, { life, scale: o.scale || 1, flip: d < 0, fade: 0.35,
     sx: o.sx, sy: o.sy, move: o.len ? (u) => [d * o.len * easeOut(u), 0] : null, delay: o.delay });
 }
 // 바닥 흙먼지 (공용 C 시트가 오면 그것으로 — 지금은 작은 흙 알갱이만)
@@ -155,7 +156,8 @@ Object.assign(SKILL_FX, {
       const d = a.k.dur, t = u * d, last = a.k.hits[a.k.hits.length - 1][0] * d;
       if (t < 0.12 * d || t > last - 0.08 || (a.rushT && clock - a.rushT < 0.09)) return;
       a.rushT = clock;
-      qiFrontTex(a.mast >= 2 ? 'xe04' : 'xe03', a, 0.14, { off: 10, scale: a.mast >= 1 ? 1 : 2 / 3 });
+      // ★★ 백열권: 같은 잔상(XE03)을 크게 + 불 램프로 (XE04 불 잔상 시트는 지저분해서 10-16 전수조사 때 뺐다)
+      qiFrontTex('xe03', a, 0.14, { off: 10, scale: a.mast >= 2 ? 4 / 3 : a.mast >= 1 ? 1 : 2 / 3, color: a.mast >= 2 ? QI_FIRE_RAMP : null });
     },
   },
 
