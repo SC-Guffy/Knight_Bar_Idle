@@ -1,0 +1,34 @@
+{
+ "id": "r4",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\design\\px\\greatswordsman-N4-97-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  38,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.935,
+  "colors": 12,
+  "low": 0.486,
+  "edge": 0.376,
+  "lone": 0.077,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.514,
+  "area": [
+   937
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

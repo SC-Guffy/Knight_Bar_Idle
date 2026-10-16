@@ -1,0 +1,2 @@
+g1=polish-greatswordsman(n6ref)
+g2=clean-greatswordsman(n6ref)

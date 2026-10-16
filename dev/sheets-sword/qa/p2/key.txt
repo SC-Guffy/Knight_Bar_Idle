@@ -6,3 +6,6 @@ p5=blademaster-clean
 p6=blademaster-polish
 p7=greatswordsman-clean
 p8=greatswordsman-polish
+p11=blademaster-n4-clean
+p12=blademaster-n4-polish
+p13=blademaster-n4-fix

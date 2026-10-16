@@ -65,6 +65,33 @@ WHO_N3 = {'greatswordsman': 'A greatsword berserker: big head with spiky dark na
           'one large light gray steel pauldron, mid-brown leather armor with one wide bright orange belt, an enormous flat greatsword whose blade is as wide '
           'as the torso and longer than the body, light gray steel with a bright edge, carried diagonally on the right shoulder with the blade pointing up and back, '
           'both fists gripping the long hilt in front of the chest. Not a spear, not a thin pole.'}
+# 4차 (비평: 검성 칼 수평 겹침·하반신 어두움 / 대검전사 대검 좁아짐·빈손·적갈색 덩어리)
+WHO_N4 = {
+    'blademaster': 'A sword saint dual wielder in medium slate blue-gray samurai armor with bright crimson lacing, light gray highlights on every plate, '
+                   'a big horned kabuto helmet with a dark face mask and a glowing red eye slit, a long bright red scarf flowing behind. '
+                   'Two curved silver katanas clearly separated: the front hand holds one katana pointing forward and down, '
+                   'the back hand holds the other katana raised high behind the back pointing up, the two blades form a wide V and never overlap.',
+    'greatswordsman': 'A greatsword berserker with spiky dark navy hair and a clearly visible face, one big light steel pauldron, '
+                      'medium brown leather armor (not maroon) with one very wide bright orange belt, both fists together in front of the chest gripping a long hilt, '
+                      'the enormous greatsword blade rests on the right shoulder pointing up and back, the blade is wider than the torso, flat light gray steel with a dark edge line.',
+}
+# 6차 검성 (비평 p13: 스카프가 검은 망토 덩어리·떠 있는 빨간 끝·판갑 조각남·얼굴 빨간 덩어리·4등신) — 머리 1/3, 목에서 이어진 진홍 스카프 한 줄, 큰 판 몇 장, 눈 틈만 빨강, 몸 안 검정 금지
+WHO_N6 = {'blademaster': 'A sword saint dual wielder with a very big round head (one third of the total height), a horned kabuto helmet in medium slate blue-gray '
+          'with a light gray face guard and one thin glowing red eye slit (no other red on the face), a short crimson scarf tied at the neck whose one continuous tail '
+          'flows straight back from the neck, simple chest armor of three large smooth slate blue-gray plates with light gray tops and crimson lacing, '
+          'light gray hakama trousers, short legs, two curved silver katanas: one held forward pointing down, one raised behind the back pointing up, blades never overlap. '
+          'No black areas inside the body, no cape.',
+          # 대검전사 6차 (비평 N5w: 칼이 붙여 놓은 물체·손/자루 없음·갑옷 없음·얼굴 밋밋)
+          'greatswordsman': 'A chibi warrior with a big head, short messy dark navy hair, a scowling face with thick eyebrows and a frowning mouth, '
+          'resting a huge broad greatsword on his right shoulder: both gloved fists grip the long hilt at the chest, a visible cross-guard next to the shoulder, '
+          'the wide flat blade goes behind the head diagonally up and back, pointed tip, center fuller, the blade never covers the face. '
+          'Light gray steel pauldrons and breastplate, clearly lighter than the dark brown leather tunic underneath, one wide orange sash belt, brown boots. No motion lines.'}
+# 7차 검성 (비평 N6: 면갑이 어둡게 나옴·스카프가 떠 있음·칼 한 자루) — 흰 가면 면갑을 맨 앞에, 스카프는 목에 감김, 칼 둘
+WHO_N7 = {'blademaster': 'A sword saint samurai whose face is a bright white porcelain mask with one thin horizontal red eye slit, '
+          'wearing a big horned kabuto helmet in medium slate blue-gray above the white mask, a crimson scarf wrapped around the neck with one tail streaming back from the neck, '
+          'simple medium slate blue-gray chest plates with light gray edges, light gray hakama trousers, '
+          'two long curved silver katanas clearly visible: one in each hand, one pointing forward and down, one raised up behind the back. '
+          'The face is white, not black. No cape, no dark mass.'}
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -86,7 +113,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -106,10 +133,25 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in (SEEDS_N3 if dk == 'N3' else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
-                if dk == 'N3':
+                if dk == 'N5':         # 대검전사: 넓은 대검을 그려 넣은 밑그림 (글로는 46칸에서 칼이 가늘어짐)
+                    init = Image.open(os.path.join(D, 'mannequin-gs.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'N8':        # 대검전사: 두 주먹이 자루를 쥔 밑그림 (mannequin_gs2.py)
+                    init = Image.open(os.path.join(D, 'mannequin-gs2.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N6[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'N7':
+                    init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N7[cls]), seed=s, denoise=0.92, init=init)
+                elif dk == 'N6':
+                    init = Image.open(os.path.join(D, 'mannequin-gs.png' if cls == 'greatswordsman' else 'mannequin-3h-b.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N6[cls]), seed=s, denoise=0.85 if cls == 'greatswordsman' else 0.92, init=init)
+                elif dk == 'N4':
+                    init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.92, init=init)
+                elif dk == 'N3':
                     init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N3[cls]), seed=s, denoise=0.92, init=init)
                 elif dk == 'N2':

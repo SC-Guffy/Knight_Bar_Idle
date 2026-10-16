@@ -21,3 +21,5 @@
 | 15 | paladin | `/image-to-pixelart` | n2ref: /image-to-pixelart | 1.0 / 1.0 | 35.0 / 22.0 | 1125.0 |
 | 16 | blademaster | `/image-to-pixelart` | n2ref: /image-to-pixelart | 1.0 / 1.0 | 36.0 / 23.0 | 1124.0 |
 | 17 | greatswordsman | `/image-to-pixelart` | n3ref: /image-to-pixelart | 1.0 / 1.0 | 37.0 / 24.0 | 1123.0 |
+| 18 | blademaster | `/image-to-pixelart` | n4ref: /image-to-pixelart | 1.0 / 1.0 | 38.0 / 25.0 | 1110.0 |
+| 19 | greatswordsman | `/image-to-pixelart` | n6ref: /image-to-pixelart | 1.0 / 1.0 | 39.0 / 26.0 | 1098.0 |

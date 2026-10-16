@@ -1,0 +1,34 @@
+{
+ "id": "s2",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\n8\\s2-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  44,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 2.0,
+  "lrange": 0.719,
+  "colors": 13,
+  "low": 0.359,
+  "edge": 0.246,
+  "lone": 0.057,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.359,
+  "area": [
+   884
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

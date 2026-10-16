@@ -1,0 +1,4 @@
+r1=blademaster-N4-23
+r2=blademaster-N4-37
+r3=greatswordsman-N4-11
+r4=greatswordsman-N4-97

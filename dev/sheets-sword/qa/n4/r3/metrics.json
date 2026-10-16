@@ -1,0 +1,36 @@
+{
+ "id": "r3",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\design\\px\\greatswordsman-N4-11-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  46,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 왼쪽 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.867,
+  "colors": 11,
+  "low": 0.51,
+  "edge": 0.315,
+  "lone": 0.037,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.503,
+  "area": [
+   1110
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,36 @@
+{
+ "id": "r2",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\design\\px\\blademaster-N4-37-h46.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  45,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 왼쪽·오른쪽 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.941,
+  "colors": 10,
+  "low": 0.566,
+  "edge": 0.376,
+  "lone": 0.06,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.513,
+  "area": [
+   1108
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

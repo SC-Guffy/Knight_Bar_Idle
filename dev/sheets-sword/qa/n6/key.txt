@@ -1,0 +1,6 @@
+s1=blademaster-N6-63
+s2=blademaster-N6-77
+s3=blademaster-N6-89
+s4=greatswordsman-N6-23
+s5=greatswordsman-N6-37
+s6=greatswordsman-N6-97

@@ -1,0 +1,41 @@
+{
+ "id": "p11",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\design\\pl2\\clean-blademaster-n4.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  46,
+  46
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 왼쪽·오른쪽·위 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.527,
+  "colors": 39,
+  "low": 0.409,
+  "edge": 0.418,
+  "lone": 0.145,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.44,
+  "area": [
+   930
+  ],
+  "strip": 0.0
+ },
+ "flags": [
+  {
+   "k": "colors",
+   "why": "색이 너무 많다 — AI 흐림 계조·잡색 (> 24)"
+  }
+ ]
+}

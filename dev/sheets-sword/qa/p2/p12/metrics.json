@@ -1,0 +1,36 @@
+{
+ "id": "p12",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\design\\pl2\\polish-blademaster-n4.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  48,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 왼쪽·오른쪽·위 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.604,
+  "colors": 15,
+  "low": 0.497,
+  "edge": 0.403,
+  "lone": 0.076,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.456,
+  "area": [
+   1050
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
