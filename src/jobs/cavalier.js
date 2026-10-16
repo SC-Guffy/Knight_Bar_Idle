@@ -53,14 +53,9 @@ function cvShieldWallFx(a, life, sc = 1, al = 1) {
   });
 }
 // 작은 방패 하나 (떠 있는 호위 방패·성벽 장식)
+// 호위 방패 하나: E24 방패 벽 시트의 맨 앞 방패(오른쪽 절반)만 잘라 2/3 배로 (s 는 예전 크기 인자, 지금은 밝기만)
 function cvMiniShield(x, y, s, f) {
-  ctx.save();
-  ctx.globalAlpha = f;
-  ctx.fillStyle = CV_COL.deep; ctx.fillRect(x - 4 * s, y - 5 * s, 8 * s, 8 * s);
-  ctx.beginPath(); ctx.moveTo(x - 4 * s, y + 3 * s); ctx.lineTo(x, y + 7 * s); ctx.lineTo(x + 4 * s, y + 3 * s); ctx.fill();
-  ctx.fillStyle = CV_COL.steel; ctx.fillRect(x - 3 * s, y - 4 * s, 6 * s, 6 * s);
-  ctx.fillStyle = '#e0443c'; ctx.fillRect(x - 0.5 * s, y - 3 * s, 1 * s, 5 * s); ctx.fillRect(x - 2 * s, y - 1.5 * s, 4 * s, 1 * s);
-  ctx.restore();
+  vfxDraw(ctx, 'e24', CV_COL.main, 4, x, y, { crop: [0.5, 1], scale: 2 / 3, alpha: f });
 }
 // ★★ 철옹성: 방패 벽 + 둘레를 도는 호위 방패 넷
 function cvRampartFx(a, life) {

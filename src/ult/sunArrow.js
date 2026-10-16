@@ -49,8 +49,14 @@ function saBeam(x0, y0, x1, y1, w, al, t) {
   ctx.restore();
 }
 // 화살 한 자루 (도트): x, y 는 화살촉 끝
-function saArrow(x, y, ang, len, body, head, al = 1) {
+// 빛 화살: P3 태양 화살 시트(화살촉이 (x, y)). tex=false 거나 시트가 아직 없으면 예전 도트 화살 (그림자처럼 어두운 사본)
+function saArrow(x, y, ang, len, body, head, al = 1, tex = true) {
   if (al <= 0) return;
+  if (tex && VFX_SHEETS.p3 && VFX_SHEETS.p3.lv) {
+    const sc = len >= 20 ? 1 : 2 / 3, back = 10 * VFX_DOT * sc;   // 시트 촉은 가운데서 10도트 앞
+    vfxDraw(ctx, 'p3', 'raw', vfxLoopF('p3', 14), x - Math.cos(ang) * back, y - Math.sin(ang) * back, { rot: ang, scale: sc, alpha: al });
+    return;
+  }
   ctx.save();
   ctx.globalAlpha = al;
   ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(ang);
@@ -161,16 +167,9 @@ function saAimStage(a) {
     for (let k = 0; k < 4; k++) { const ang = k * Math.PI / 2 - t * 2; ctx.fillRect(Math.round(x + Math.cos(ang) * (r + 2)) - 1, Math.round(y + Math.sin(ang) * (r + 2)) - 1, 3, 3); }
     if (lock) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5); }
     ctx.restore();
-    // 시위 끝에 빛이 모여 별처럼 반짝인다
-    const h = hand(a), s = 4 + 10 * p + (lock ? 3 * Math.sin(clock * 40) : 0);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = al;
-    ctx.fillStyle = '#ffe066';
-    ctx.fillRect(Math.round(h.x + a.dir * 8 - s), Math.round(h.y) - 1, Math.round(s * 2), 2);
-    ctx.fillRect(Math.round(h.x + a.dir * 8) - 1, Math.round(h.y - s * 0.6), 2, Math.round(s * 1.2));
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(h.x + a.dir * 8) - 2, Math.round(h.y) - 2, 4, 4);
-    ctx.restore();
+    // 시위 끝에 작은 태양(F12)이 모여 커진다
+    const h = hand(a);
+    vfxDraw(ctx, 'f12', 'raw', vfxLoopF('f12', 10), h.x + a.dir * 8, h.y, { scale: 2 / 3, alpha: al * (lock ? 0.75 + 0.25 * Math.sin(clock * 40) : 0.85) });
   }, null, () => {
     if (Math.random() < 0.5) {
       const h = hand(a), ang = rand(0, Math.PI * 2), r = rand(24, 40);
@@ -191,11 +190,9 @@ function saLightArrowFx(a) {
     ctx.globalAlpha = 0.8 * (1 - segU(t, 0, 0.3));
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(-20, Math.round(y0) - 1, W + 40, 2);
-    // 시위에서 터지는 세로 충격파
-    ctx.globalAlpha = 1 - u;
-    ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2;
-    for (const k of [0.5, 1]) { ctx.beginPath(); ctx.ellipse(x0 + a.dir * 34 * easeOut(u) * k, y0, 3 + 6 * u, 10 + 34 * easeOut(u) * k, 0, 0, Math.PI * 2); ctx.stroke(); }
     ctx.restore();
+    // 시위 앞에서 작은 태양(F12)이 터져 퍼진다
+    vfxDraw(ctx, 'f12', 'raw', vfxLoopF('f12', 14), x0 + a.dir * 20 * easeOut(u), y0, { scale: u < 0.3 ? 2 / 3 : 1, alpha: 1 - u });
     if (t < 0.1) saArrow(hx, y0, a.dir > 0 ? 0 : Math.PI, 26, '#ffffff', '#ffffff');
   });
   for (let i = 0; i < 10; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * rand(60, 160), vy: rand(-70, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
@@ -298,7 +295,7 @@ function saRainStage(a) {
         // 떠 있는 그림자 화살: 짙은 몸에 금빛 테두리가 가물거린다 (광선이 닿기 직전엔 금빛으로 달아오른다)
         const lit = ar.ok && t > ar.fall - 0.25, fade = ar.ok ? 1 : 1 - segU(t, hit, life);
         saArrow(ar.x + 1, ar.y + 14 + bob, Math.PI / 2 + a.dir * 0.12, 14, lit ? '#ffe066' : 'rgba(255,224,102,0.35)', lit ? '#ffffff' : 'rgba(255,224,102,0.5)', k * fade);
-        saArrow(ar.x, ar.y + 13 + bob, Math.PI / 2 + a.dir * 0.12, 13, '#2a1608', '#3a2210', k * 0.85 * fade);
+        saArrow(ar.x, ar.y + 13 + bob, Math.PI / 2 + a.dir * 0.12, 13, '#2a1608', '#3a2210', k * 0.85 * fade, false);
         continue;
       }
       // 광선이 지나간 그림자는 빛 화살로 바뀌어 땅에 꽂힌다
@@ -331,12 +328,11 @@ function saRainArrowFx(a, tx, ty, big) {
   const life = 0.13, len = big ? 30 : 22, x0 = tx - a.dir * 18;
   aFx(a, 0, life, (u) => {
     const x = mix(x0, tx, u), y = mix(10, ty, easeIn(u));
-    ctx.save(); ctx.globalAlpha = 0.7; ctx.strokeStyle = '#ffe066'; ctx.lineWidth = big ? 3 : 2;
-    ctx.beginPath(); ctx.moveTo(mix(x0, tx, u * 0.3), 10); ctx.lineTo(x, y); ctx.stroke(); ctx.restore();
+    // 꼬리는 P3 시트의 불꽃 꼬리가 맡는다
     saArrow(x, y, Math.atan2(ty - 10, tx - x0), len, '#fffbe8', '#ffffff');
   }, () => {
     burst(tx, ty, big ? 26 : 10, ['#ffffff', '#ffe066', '#ff9a2e'], big ? 190 : 120, 2, 260);
-    hitFx(tx, ty, '#ffe066', big ? 2.6 : 1.4);
+    hitFx(tx, ty, '#ffe066', big ? 2.6 : 1.4, 'k35');
   });
 }
 
@@ -415,26 +411,22 @@ function saFlareFx(a, tx, ty, big) {
   const s = F.sunAt(Math.min(F.land, castOf(a.owner) ? castOf(a.owner).t : F.land)), sy0 = Math.max(24, s.y);
   const ang = Math.atan2(ty - sy0, tx - F.X), sx = F.X + Math.cos(ang) * s.r * 0.9, sy = Math.max(20, sy0 + Math.sin(ang) * s.r * 0.6);
   const cx = mix(sx, tx, 0.5), cy = Math.max(20, Math.min(sy, ty) - 30 - rand(0, 20)), life = 0.3;
+  // 홍염 줄기: 불꽃 꼬리 화살(P3)이 휘어 날아가며 지나온 자리에 잔상 둘을 남긴다
+  const at = (v) => [(1 - v) ** 2 * sx + 2 * (1 - v) * v * cx + v * v * tx, (1 - v) ** 2 * sy + 2 * (1 - v) * v * cy + v * v * ty];
   aFx(a, 0, life, (u) => {
-    const head = easeOut(clamp01(u * 2)), tail = clamp01(u * 2 - 0.6);
-    ctx.save();
-    ctx.lineCap = 'round';
-    for (const [w, c] of [[big ? 9 : 6, 'rgba(255,90,30,0.6)'], [big ? 4 : 3, '#ffc43a'], [1.5, '#ffffff']]) {
-      ctx.strokeStyle = c; ctx.lineWidth = w * (1 - u * 0.6);
-      ctx.beginPath();
-      for (let v = tail, first = true; v <= head + 0.001; v += 0.05, first = false) {
-        const x = (1 - v) ** 2 * sx + 2 * (1 - v) * v * cx + v * v * tx, y = (1 - v) ** 2 * sy + 2 * (1 - v) * v * cy + v * v * ty;
-        if (first) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
+    const head = easeOut(clamp01(u * 2));
+    if (u > 0.55) return;
+    for (const [dv, al] of [[0.16, 0.35], [0.08, 0.6], [0, 1]]) {
+      const v = Math.max(0, head - dv), [x, y] = at(v), [x2, y2] = at(Math.min(1, v + 0.02));
+      saArrow(x, y, Math.atan2(y2 - y, x2 - x), big ? 24 : 16, '#ffc43a', '#ffffff', al);
     }
-    ctx.restore();
   });
-  skLater(a, life * 0.45, () => { burst(tx, ty, big ? 18 : 8, ['#ffffff', '#ffc43a', '#ff5a1f'], big ? 170 : 110, 2, 120); hitFx(tx, ty, '#ff9a2e', big ? 2 : 1.2); });
+  skLater(a, life * 0.45, () => { burst(tx, ty, big ? 18 : 8, ['#ffffff', '#ffc43a', '#ff5a1f'], big ? 170 : 110, 2, 120); hitFx(tx, ty, '#ff9a2e', big ? 2 : 1.2, 'k35'); });
 }
 
 Object.assign(SKILL_FX, {
   sunArrow: {
+    hitK: 'k35',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
     pose(u, a) {
       const m = (a && a.mast) || 0, d = a && a.k ? a.k.dur : 2.6, t = u * d;
       if (m === 0) {
@@ -469,7 +461,8 @@ Object.assign(SKILL_FX, {
       if (m === 0) {
         saLightArrowFx(a);
         for (const t of tg) {
-          hitFx(t.x, t.y, '#ffe066', 2.6);
+          hitFx(t.x, t.y, '#ffe066', 2.6, 'k35');
+          texFx('h24', t.x, t.y, 'raw', { life: 0.3, flip: a.dir < 0 });
           burst(t.x, t.y, 26, ['#ffffff', '#ffe066', '#ff9a2e'], 200, 2, 0);
           starFx(t.x, t.y, 18, '#ffffff', 0.35);
         }
@@ -479,7 +472,7 @@ Object.assign(SKILL_FX, {
       if (m === 1) {
         a.saPulse = 1;
         for (const t of tg) {
-          hitFx(t.x, t.y - 4, '#ffe066', i === 0 || last ? 2.4 : 1.4);
+          hitFx(t.x, t.y - 4, '#ffe066', i === 0 || last ? 2.4 : 1.4, 'k35');
           burst(t.x, t.y, i === 0 ? 24 : last ? 20 : 8, ['#ffffff', '#ffe066', '#ff9a2e'], i === 0 ? 190 : 130, 2, 120);
         }
         if (i === 0) {
@@ -490,7 +483,7 @@ Object.assign(SKILL_FX, {
       }
       if (m === 2) {
         if (i === 0) {
-          for (const t of tg) { hitFx(t.x, t.y, '#ffe066', 2.2); burst(t.x, t.y, 18, ['#ffffff', '#ffe066'], 160, 2, 120); }
+          for (const t of tg) { hitFx(t.x, t.y, '#ffe066', 2.2, 'k35'); burst(t.x, t.y, 18, ['#ffffff', '#ffe066'], 160, 2, 120); }
           aFx(a, 0, 0.12, (u) => dimBand(0.35 * (1 - u), '255,240,200'));
           impact({ stop: 0.12, shake: 0.4 });
           return;
@@ -510,7 +503,7 @@ Object.assign(SKILL_FX, {
         const F = a.saFall, gy = groundY();
         aFx(a, 0, 0.18, (u) => dimBand(0.55 * (1 - u), '255,236,190'));
         for (let k = 0; k < 40; k++) parts.push({ x: F.X + rand(-80, 80), y: gy - 2, vx: rand(-260, 260), vy: rand(-220, -60), g: 380, size: 3, color: ['#ff9a2e', '#ffe066', '#ffffff', '#7a3a10'][k % 4], life: rand(0.4, 0.8), t: 0 });
-        for (const t of tg) hitFx(t.x, t.y, '#ffe066', 2.4);
+        for (const t of tg) hitFx(t.x, t.y, '#ffe066', 2.4, 'k35');
         impact({ stop: 0.16, shake: 0.6 });
         return;
       }

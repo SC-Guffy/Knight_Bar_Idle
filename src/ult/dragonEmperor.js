@@ -336,19 +336,13 @@ function deMolten(x0, x1, lvl, alpha, seed) {
   const g = ctx.createLinearGradient(0, base - lvl - 4, 0, groundY() + 10);
   g.addColorStop(0, '#fff0c0'); g.addColorStop(0.2, '#ff9fe8'); g.addColorStop(0.55, '#ff2a8a'); g.addColorStop(1, '#5a0a3a');
   ctx.fillStyle = g; ctx.fill();
-  // 식어 가는 검은 껍질 조각이 떠다닌다
-  ctx.fillStyle = 'rgba(40,6,30,0.75)';
-  for (let x = x0 + 10; x < x1; x += 37) {
-    const xx = x + ((clock * 12 + x) % 18) - 9;
-    ctx.fillRect(Math.round(xx), Math.round(top(xx) + 4), 8, 2);
-  }
-  // 끓는 거품
+  // 식어 가는 껍질이 C8 균열로 갈라지며 틈에서 빛이 샌다 (땅선을 따라 이어 붙임)
+  vfxTileRun(ctx, 'c8', '#ff4dd2', 3 + (Math.floor(clock * 8 + seed) % 2), x0, base - lvl * 0.5 + 3, x1 - x0, 1, { alpha: alpha * 0.85 });
+  // 끓는 거품이 터지는 반짝임 (C16)
   ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = '#fff0c0'; ctx.lineWidth = 1;
   for (let x = x0 + 5; x < x1; x += 23) {
-    const ph = (clock * 1.7 + x * 0.13 + seed) % 1, r = 1 + 3 * ph;
-    ctx.globalAlpha = alpha * (1 - ph);
-    ctx.beginPath(); ctx.arc(x, top(x) + 1 - ph * 3, r, Math.PI, 0); ctx.stroke();
+    const ph = (clock * 1.7 + x * 0.13 + seed) % 1;
+    vfxDraw(ctx, 'c16', '#fff0c0', Math.floor(ph * 4), x, top(x) - ph * 3, { alpha: alpha * (1 - ph) });
   }
   // 위로 일렁이는 열기
   ctx.globalAlpha = alpha * 0.35;

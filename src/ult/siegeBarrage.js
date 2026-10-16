@@ -103,6 +103,7 @@ function sgStage3(a) {
 
 Object.assign(SKILL_FX, {
   siegeBarrage: {
+    hitK: 'k37',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
     // 석궁을 내리고 포를 세운다(0.3) → 포 옆에 서서 쏠 때마다 몸이 들썩인다 → 마지막 일격에 크게 밀린다
     pose(u, a) {
       const D = sgDur(a), t = u * D, ht = sgHitT(a), tf = ht[ht.length - 1];
@@ -127,7 +128,12 @@ Object.assign(SKILL_FX, {
     },
     hit(a, i, n) {
       const m = Math.min(3, a.mast || 0), last = i === n - 1, first = i === 0, tx = a.tx(), gy = groundY();
-      if (m === 0) { for (const t of a.targets(i)) burst(t.x, t.y, 12, ['#c9c2b4', '#ffffff', SG_COL.fire], 160); if (last) { abBlastFx(tx, gy - 12, 1.3); impact({ stop: 0.12, shake: 0.5 }); } return; }
+      if (m === 0) {
+        for (const t of a.targets(i)) burst(t.x, t.y, 12, ['#c9c2b4', '#ffffff', SG_COL.fire], 160);
+        // 둘째 살: 불붙은 포탄(F15)이 꽂혀 작은 버섯구름(E31)과 요새 붕괴 폭발(K37)을 작게 터뜨린다
+        if (last) { sgShellFx(tx - a.dir * 60, gy - 40, tx, gy - 12, 0.1, 1); skLater(a, 0.1, () => { abMushroomFx(tx, 0.9, 2 / 3); texFx('k37', tx, gy - 12, 'raw', { scale: 2 / 3, life: 0.45, fade: 0.35 }); scorchFx(tx, groundY() - 2, SG_COL.smoke, 0.7); }); impact({ stop: 0.12, shake: 0.5 }); }
+        return;
+      }
       if (first) { abBlastFx(tx, gy - 12, 1.6); impact({ stop: 0.1, shake: 0.5 }); return; }
       if (!last) { const tg = a.targets(i), t = tg[i % Math.max(1, tg.length)] || { x: tx, y: gy - 12 }; abBlastFx(t.x + rand(-12, 12), gy - 10, 1.0); impact({ stop: 0.03, shake: 0.25 }); return; }
       // 막타 K37 (요새 붕괴 대폭발): ★★★ 는 무너지는 요새 자리에, 그 아래는 대상 자리에 2배. 버섯구름 E31·폭발 K21 은 석궁사수와 같은 시트

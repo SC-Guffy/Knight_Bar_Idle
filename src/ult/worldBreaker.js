@@ -37,17 +37,9 @@ function wbSky(a, life, color, dim, heat, from = 0.15) {
   });
 }
 
-// ── 균열: x0 에서 하단바 양끝까지 지그재그로 달리고 가지를 친다. 틈에서 빛(lava 면 용암빛)이 새어 오른다 ──
+// ── 균열: x0 에서 하단바 양끝까지 C8 지면 균열이 달린다. 틈에서 빛(lava 면 용암빛)이 새어 오른다 ──
 function wbFissure(a, x0, life, lava, grow = 0.3) {
-  const by = wbBase(), sides = [];
-  for (const s of [-1, 1]) {
-    const pts = [[x0, by]], br = [];
-    for (let x = x0 + s * 12, i = 1; s > 0 ? x < W + 20 : x > -20; x += s * rand(9, 15), i++) {
-      pts.push([x, by + rand(-2.5, 1.5)]);
-      if (i % 5 === 0) br.push({ i, pts: [[x, by], [x + s * rand(6, 12), by - rand(5, 11)], [x + s * rand(12, 22), by - rand(8, 16)]] });
-    }
-    sides.push({ pts, br });
-  }
+  const by = wbBase();
   const far = Math.max(x0, W - x0) + 20, glow = lava ? WB_LAVA : ['#3a1a08', '#ff7a2a', '#ffc070', '#fff0d0'];
   aFx(a, 0, life, (u) => {
     const t = u * life, reach = far * easeOut(Math.min(1, t / (grow * (far / 700 + 0.4)))), fade = u > 0.75 ? (1 - u) / 0.25 : 1;
@@ -63,15 +55,9 @@ function wbFissure(a, x0, life, lava, grow = 0.3) {
     ctx.fillStyle = g; ctx.fillRect(L, by - gh, R - L, gh + 4);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = fade;
-    for (const S of sides) {
-      const vis = S.pts.filter(([x]) => Math.abs(x - x0) <= reach);
-      if (vis.length < 2) continue;
-      const line = (P, w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); P.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
-      line(vis, lava ? 7 : 6, '#140a06');
-      line(vis, lava ? 4 : 3, glow[1]);
-      line(vis, 1.5, glow[3]);
-      for (const B of S.br) if (Math.abs(B.pts[0][0] - x0) <= reach) { line(B.pts, 3, '#140a06'); line(B.pts, 1, glow[2]); }
-    }
+    // 균열 그림은 C8 지면 균열 시트를 x0 에서 양쪽으로 이어 붙인다 (틈은 glow[1] 램프로 빛난다)
+    const f = 3 + (Math.floor(clock * 10) % 2);
+    for (const s of [-1, 1]) vfxTileRun(ctx, 'c8', glow[1], f, x0, by, Math.min(reach, s > 0 ? W - x0 + 20 : x0 + 20), s, { scale: lava ? 4 / 3 : 1 });
     ctx.restore();
   }, null, (u) => {
     const t = u * life, reach = far * easeOut(Math.min(1, t / (grow * (far / 700 + 0.4))));

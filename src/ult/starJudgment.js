@@ -305,12 +305,12 @@ function sjStarDropFx(a, span) {
     for (const s of list) {
       const k = (t - s.at) / s.life;
       if (k < 0 || k > 1.25) continue;
-      if (k > 1) { ctx.globalAlpha = 1 - (k - 1) / 0.25; ctx.fillStyle = SJ_PALE; ctx.fillRect(Math.round(s.x + a.dir * 18 - 3), gy - 2, 7, 1); continue; }
-      const e = k * k, x = s.x + a.dir * 18 * e, y = mix(s.y, gy - 2, e);
-      ctx.globalAlpha = 0.9;
-      ctx.strokeStyle = s.sz > 1 ? SJ_GOLD : SJ_BLUE; ctx.lineWidth = s.sz;
-      ctx.beginPath(); ctx.moveTo(x - a.dir * 5, y - 22 * Math.min(1, k * 3)); ctx.lineTo(x, y); ctx.stroke();
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x - s.sz / 2), Math.round(y - s.sz / 2), s.sz + 1, s.sz + 1);
+      if (k > 1) { vfxDraw(ctx, 'c16', SJ_PALE, 2, s.x + a.dir * 18, gy - 2, { scale: 4 / 3, sy: 0.5, alpha: 1 - (k - 1) / 0.25 }); continue; }
+      // 떨어지는 별(C16): 머리 + 지나온 자리에 흐린 잔상 둘
+      const at = (q) => { const e = q * q; return [s.x + a.dir * 18 * e, mix(s.y, gy - 2, e)]; }, col = s.sz > 1 ? SJ_GOLD : SJ_BLUE, sc = s.sz > 1 ? 4 / 3 : 1;
+      for (const [dq, al, f] of [[0.24, 0.35, 0], [0.12, 0.6, 1]]) { const [px, py] = at(Math.max(0, k - dq)); vfxDraw(ctx, 'c16', col, f, px, py, { scale: 2 / 3, alpha: al }); }
+      const [x, y] = at(k);
+      vfxDraw(ctx, 'c16', col, 2 + (Math.floor(t * 20 + s.x) % 2), x, y, { scale: sc, alpha: 0.95 });
     }
     ctx.restore();
   });
@@ -346,6 +346,7 @@ function sjGenesisBurst(a) {
 
 Object.assign(SKILL_FX, {
   starJudgment: {
+    hitK: 'k29',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
     // 검을 하늘로 치켜들고 살짝 떠올라 성좌를 부르다가, 마지막 타격에 내리긋는다
     pose(u, a) {
       const D = a.k ? a.k.dur : 2.6, t = u * D, tf = a.k ? sjLastT(a) : 0.86 * D;

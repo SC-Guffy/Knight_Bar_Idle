@@ -902,15 +902,27 @@
   - **다음에 할 일** (순서): C8 지면 균열(`ground_cracks` 부품 또는 bolt 레이어 plane ground) → C16 별 반짝임(8×8, star/rays) → E45 공허 균열 마디 타일(32×8, bolt 레이어 좌우 이음) → XE11 기 파편 · XE13 기 고리(ring/orbit) · XE09 회오리 기둥(spiral/noise column) → XW2a·3a·4a 궤적(arc slash, points) → XE06 강철 주먹·E01 하늘 강철검은 워크벤치로 어려우면 유료(키 `create_image_pixen` 1~2 + 필요 시 `animate_image`). 그다음 `src/vfx/` 로 옮기고 등록(`vfx-tex.js`·`vfx-sword.js`·`vfx-mage.js`·`fighter-fx.js` 의 xmeta) → 위 "코드만 바꿈" 표와 새 시트 연결 → 빈 곳 점검 측정 다시 (`dev/review/vfx-gaps-probe.js` — 머리 주석대로 `dev/skills.html` 콘솔에서 `gapProbe.run([...])`·`gapProbe.table()`) → 전후 캡처 → 사용자 확인.
   - 아직 게임 코드는 하나도 안 바꿨다. `src/vfx/` 에도 아직 안 넣었다. 커밋 안 함(인계 세션이 wip 로 묶음). `.claude/launch.json` 에 `vfxgap-web`(8997) 추가.
   - 집 PC(Windows)면 ComfyUI 시안도 쓸 수 있다 — E01·XE06 은 "ComfyUI 시안 → `image_to_pixelart` 1회"(⑤-3 방식)로 유료를 줄일 수 있다.
+- 2026-10-17 (집 PC, 브랜치 `impl-vfx6` = 인계 `wip/home-2026-10-16` 위): **새 시트 12장 완료, 유료 0회** (상한 49 그대로).
+  - 워크벤치 연결: 이 PC 에는 PixelLab MCP 가 없어서 `dev/pixellab/mcpw.py`(Windows 사용자 환경변수 `PIXELLAB_API_KEY` 로 `https://api.pixellab.ai/mcp` 에 직접 붙는 최소 클라이언트)를 만들었다. `python dev/pixellab/mcpw.py wb <저장 접두어> <argv...>` = `vfx_workbench` 한 번 (이미지 결과는 png 로 저장). 레시피 렌더 도우미: `dev/vfx6/wb/render.sh`·`patch.sh`.
+  - 워크벤치 9장: C8 균열(밝은 심지 + 중간 톤 테두리 두 겹 bolt), C16 별(16 캔버스에 image 레이어로 도트를 찍고 8×8 로 자름 — 8 도트에서는 rays 가 뭉개진다), E45(32×16 bolt 두 겹, 좌우 끝을 y 고정 → 4.5줄에서 같은 모양, 8줄로 자름), XE11(마름모 shape 회전·축소), XE13(납작 ring + orbit 빛 덩이 3), XE09(원뿔 smoke shape + 곡선 공식 나선 2가닥 depth auto), XW2a·XW3a·XW4a(shape 선·호). 맥에서 받은 C6 은 검은 외곽선(outline dark)이 있어 `start --effect` 로 다시 열어 outline none·밝은 회색 램프·7프레임으로 다시 내보냈다(같은 effect 덮어씀).
+  - ComfyUI 2장(무료): XE06 거대 주먹·E01 하늘 강철검은 워크벤치 도형으로 너클·명암이 안 나와 ComfyUI(z-image + 픽셀 LoRA) 시안 → `dev/comfy/post.py` 격자 줄이기(회색 램프, 외곽선 없음) → 코드로 프레임(`dev/vfx6/key_frames.py`: 커짐→뻗음→가장자리부터 흩어짐, `dev/vfx6/e01_frames.py`: 낙하 + 한 단씩 어두운 잔상). 그래서 `image_to_pixelart` 유료도 쓰지 않았다. 시안 원본 `dev/vfx6/comfy/`.
+  - 측정 `dev/vfx6/measure.py`(전수조사 기준 파이썬 근사): 12장 모두 둘레 어두운 비율 0.00 · 벗겨짐 0% · 부스러기 프레임당 0~0.2 → 통과. 시트 모음: `dev/review/vfx-gaps-sheets.png`. 워크벤치 My effects 이름은 `knightbar-<id>-…`.
+  - 게임 연결:
+    - 등록: `vfx-tex.js` VFX_SHEETS 에 e01·e45·c6·c7·c8·c16, 파이터 7장은 `dev/boxer/vfx/manifest.json` 에 더하고 `node dev/boxer/vfx-meta.js` → `xmeta.js` (진짜 시트가 먼저 등록되므로 `QI_TEX_FALLBACK` 별칭은 이제 하나도 안 쓰인다).
+    - 공용 도우미: `vfxTileRun`(띠 시트를 한 방향으로 이어 붙이고 끝 토막은 crop, 토막마다 상하 뒤집음) · 파티클 `tex` 필드(`drawParts` 가 시트 프레임으로 그림, `debris` 가 C7) · `hitFx(…, tex)` + 스킬 `fx.hitK`(공용 스파크·고리 대신 K 시트 2/3 배).
+    - 교체: `skySwordFx` → E01(칼끝 줄 `E01_TIP`, 꽂힌 뒤 같은 그림을 lighter 로 숨 쉬듯) · `craterFx` 방사선 → C7 조각 6개 + 먼지 띠 → C6 · `scorchFx` 불꽃 혀 → C6 연기 4덩이 · `wbFissure`·`lavaFissureFx` → C8 이어 붙임 · `deMolten` 껍질 → C8, 거품 원 → C16 · 성좌 강림 별비 선 → C16 머리 + 잔상 둘 · `dcDrawCracks` 선 3겹 → E45 마디마다 회전·늘임 · `mbShards` → C7 다시 칠함.
+    - 코드만 바꿈 6건: 태양 관통(`saArrow` → P3, 조준 중 시위 끝·Lv1 발사 충격파 → F12 2/3 배, ★★★ `saFlareFx` 곡선 → 휘어 나는 P3 + 잔상 둘, ★★ 화살비 꼬리 선 삭제, Lv1 명중에 H24) · 대공성포 Lv1 막타(F15 포탄 → E31 2/3 버섯구름 + K37 2/3 + C6 포연) · 천검 꽃잎 폭풍 칼조각 선 → F04 `swLine` · 궁극기 5종 `hitK`(성좌 k29·천검 k30·태양 k35·차원 k36·대공성포 k37) · 방패 벽 `cvMiniShield` → E24 맨 앞 방패(crop 오른쪽 절반) 2/3 배 · 헤드샷 느린 탄 고리 → C3 세워 2/3 배.
+  - 확인 못 한 것: 이 폴더의 미리보기 서버 5자리를 다른 대화(시트 세션 4개 + 병렬 세션)가 쓰고 있어서 게임 화면 확인(빈 곳 점검 재측정·전후 캡처·50종 시전 예외)을 아직 못 했다. 바꾼 js 는 `node --check` 만 통과. 다음 할 일: 서버(`.claude/launch.json` 의 `impl-vfx6`, 8997)를 띄워 `dev/skills.html` 콘솔에서 `gapProbe.run([...])`·`gapProbe.table()` → 아래 수용 기준 확인 → 전후 캡처를 검토 페이지에 → 사용자 확인.
+  - 눈여겨볼 점: 호위 방패(E24 잘라 2/3 배)가 예전 도형보다 2.5배쯤 크다(허용 배율 최소가 2/3). 태양 관통 조준 중 시위 끝 태양(F12 2/3 배, 지름 약 60px)도 예전 별빛보다 크다 — 화면에서 보고 줄일지 정한다.
 
 ### 수용 기준
 
 - [ ] 점검 측정(`dev/review/vfx-gaps.html` 방식)에서 위 스킬들의 벡터 그리기(arc·stroke·곡선)가 프레임당 3 이하
-- [ ] `QI_TEX_FALLBACK` 별칭이 하나도 쓰이지 않는다 (진짜 시트로)
-- [ ] 태양 관통·대공성포 Lv1 에 그 직업 전용 텍스처가 2장 이상
-- [ ] 새 시트 모두 둘레 어두운 비율 0.15 미만·깎인 비율 10% 미만·부스러기 프레임당 1 이하 (전수조사 측정)
+- [x] `QI_TEX_FALLBACK` 별칭이 하나도 쓰이지 않는다 (진짜 시트로) — xmeta.js 에 별칭 대상 전부 있음 (2026-10-17, 게임 화면 확인 전)
+- [x] 태양 관통·대공성포 Lv1 에 그 직업 전용 텍스처가 2장 이상 — 태양 P3·F12·H24·K35, 대공성포 F15·E31·K37·C6 (코드 기준, 화면 확인 전)
+- [x] 새 시트 모두 둘레 어두운 비율 0.15 미만·깎인 비율 10% 미만·부스러기 프레임당 1 이하 — `dev/vfx6/measure.py` 12장 통과 (로더 거친 브라우저 측정은 아직)
 - [ ] 전후 캡처 — 사용자 확인
-- [ ] 쓴 유료 호출이 상한 49 안
+- [x] 쓴 유료 호출이 상한 49 안 — 0회
 - [ ] 50종 × 4단계 시전 예외 0, 하단바 양 끝 밝기 ±0.05 (궁극기 제외)
 
 ## 남은 일 / 미정
