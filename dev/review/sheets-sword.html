@@ -78,6 +78,16 @@
 </table>
 <div class="dim">평균은 critic.md 대로 7항목(한 장 그림은 움직임 5). 검성·대검전사는 같은 그림의 판정이 흔들려서 독립 비평 2개가 모두 합격일 때만 합격으로 쳤다. 4종 모두 독립 비평 2개 합격. 남은 흠(비평 공통): 성기사 흰 몸통·방패 밝기가 붙음·어깨 금 약함, 검사 하체 판금이 잘게 쪼개짐·43색, 검성 칼이 곧아 곡도 휨이 약함·손이 작음, 대검전사 칼날과 가슴판 밝기가 붙음 — 관절 애니 단계에서 무기 덧그리기로 다룰 수 있다.</div>
 <details><summary class="dim">검수 시트 (4종)</summary><div class="row"><img src="sheets-sword/design/qa-swordsman.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-paladin.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-blademaster.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-greatswordsman.png" style="max-width:48%" alt=""></div></details>
+<h2>✔ 성기사 평타 합격 — pixen 키 자세 + 스크립트 (2026-10-17)</h2>
+<div class="card">
+  <ul>
+    <li><b>흐름</b>: 확정 그림(칼 든 성기사)을 <code>edit-image-pixen</code> 으로 키 자세 편집(B 4 + C 3, 각 usage 1) → 발 줄 맞춤·확정 그림 팔레트 고정 → 6프레임 [준비, 수직으로 들기, 앞위로 넘기며 웅크림, 내딛어 내려벰, 유지, 준비] (120·110·70·70·160·140ms). 타격 프레임의 사라진 방패는 3번 프레임 방패를 옮겨 붙임(<code>anim_keys.py</code>, 있는 그림 옮기기).</li>
+    <li><b>검수</b>: 4·4·4·4·4·움직임3·4 → 3.86 / 3·4·4·4·4·3·4 → 3.71, 둘 다 합격. 남은 흠: 칼 길이·색이 프레임마다 조금 다름, 3번 후광이 칼자루와 겹침, 백스윙이 약함, 타격→준비 복귀가 한 번에 튐.</li>
+    <li>skeleton-v3 는 성기사에서 두 번 미달(몸이 안 움직이거나 칼 궤적·방패가 무너짐). 방패에 관절이 없어서로 보인다.</li>
+  </ul>
+</div>
+<div class="row"><figure><img src="sheets-sword/design/paladin-atk-vs-old-x4.gif" alt="" style="width:704px;height:400px"><figcaption>왼쪽 = 이전 마네킹판 평타(96칸 4f), 오른쪽 = 새 평타(64칸 6f), 같은 도트 배율 4배</figcaption></figure></div>
+<div class="row"><img src="sheets-sword/design/paladin-atk-new-strip.png" alt="" style="max-width:100%"></div>
 <h2>✖ 관절 애니 A·B 결과 — 성기사 평타 (2026-10-17, PixelLab A 4 + B 4)</h2>
 <div class="card">
   <ul>
@@ -95,6 +105,10 @@
 <div class="row"><img src="sheets-sword/design/raw-N10-greatswordsman.png" style="max-width:100%" alt=""></div>
 <div class="row"><img src="sheets-sword/design/raw-N11-greatswordsman.png" style="max-width:100%" alt=""></div>
 <div class="row"><img src="sheets-sword/design/raw-N12-greatswordsman.png" style="max-width:100%" alt=""></div>
+<div class="card">13차: 검사 N2-23 그림을 init 으로 denoise 0.68 → 검사가 그대로 나옴. 14차: init 의 파랑을 직업 색으로 바꾸고 denoise 0.80(앞 4)/0.86(뒤 4) → 검성 0.86 쪽에서 금 뿔 투구·카타나·검사와 같은 밀도가 나옴(흑백 실루엣 IoU 검사 대비 63번 0.547 · 77번 0.661 · 97번 0.692, 성기사 0.644). 대검전사는 여전히 색만 바뀐 검사.</div>
+<div class="row"><img src="sheets-sword/design/raw-N13-blademaster.png" style="max-width:100%" alt=""></div>
+<div class="row"><img src="sheets-sword/design/raw-N14-blademaster.png" style="max-width:100%" alt=""></div>
+<div class="row"><img src="sheets-sword/design/raw-N14-greatswordsman.png" style="max-width:100%" alt=""></div>
 <h2>✖ 관절 애니 1단계 결과 — 성기사 평타 미달 (2026-10-17, PixelLab 5 = pixen 1 + skeleton 15f 4)</h2>
 <div class="card">
   <ul>

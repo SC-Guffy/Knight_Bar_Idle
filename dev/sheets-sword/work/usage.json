@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 70.0,
+ "used": 79.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -197,7 +197,28 @@
    "purpose": "key4: Same paladin knight, same big visored helmet, golden halo, w",
    "used": 1.0,
    "bal": 1021.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "keyC3: test",
+   "used": 4.0,
+   "bal": 1010.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "keyC3: Change only the pose: impact of a downward chop, deep lunge,",
+   "used": 4.0,
+   "bal": 1006.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "keyC1: Change only the pose: wind-up, knees bent, body leaning back",
+   "used": 1.0,
+   "bal": 1005.0
   }
  ],
- "nom": 41.0
+ "nom": 44.0
 }

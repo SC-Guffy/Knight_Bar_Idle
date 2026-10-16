@@ -119,6 +119,27 @@ WHO_N12 = {'greatswordsman': 'A heavy greatsword knight: an open steel barbute h
            'huge layered steel pauldrons with brass rims much wider than the helmet, a thick steel breastplate with brass trim, one wide orange sash belt, '
            'a short brown leather skirt, steel greaves, no cape, both gauntlets gripping one long hilt at the chest, '
            'one enormous greatsword with a very wide bright steel blade resting on the right shoulder pointing up and back.'}
+# 13차 (로드맵 승인: 검사 N2-23 합격 그림을 init 으로, denoise 0.68 — 같은 옆모습·머리 비율·디테일 밀도 보장, 실루엣 차이는 투구·견갑·무기)
+WHO_N13 = {
+    'blademaster': 'A samurai sword saint: a slate blue-gray lacquered kabuto helmet with big gold crescent horns and a dark face guard with one glowing red eye slit, '
+                   'layered rectangular slate blue-gray shoulder plates with crimson lacing, a crimson scarf at the neck, '
+                   'two curved silver katanas, one in each hand, one held forward low and one raised behind. No cape, no plume.',
+    'greatswordsman': 'A heavy greatsword knight: a dark steel helmet with a T-shaped face opening and a bristly orange crest, '
+                      'huge round layered pauldrons with brass rims, orange sash belt, brown leather skirt, '
+                      'both hands gripping one enormous wide-bladed greatsword resting on the right shoulder. No cape, no plume.',
+}
+# 14차: 13차(0.68)는 검사 그대로 나옴 → init 의 파랑을 직업 색(검성 진홍·대검전사 주황)으로 바꾸고 denoise 0.80 / 0.86 (씨앗 앞 4개 / 뒤 4개)
+def init_recolor(hue):
+    import colorsys
+    im = Image.open(os.path.join(RAW, 'swordsman-N2-23.png')).convert('RGB'); P = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b = P[x, y]; h, l, sat = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            if sat > 0.35 and 0.55 < h < 0.75:                 # 파랑 계열만
+                r2, g2, b2 = colorsys.hls_to_rgb(hue, l, sat); P[x, y] = (int(r2 * 255), int(g2 * 255), int(b2 * 255))
+    return im
+
+
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -140,7 +161,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -160,12 +181,18 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
                 if dk == 'N5':         # 대검전사: 넓은 대검을 그려 넣은 밑그림 (글로는 46칸에서 칼이 가늘어짐)
                     init = Image.open(os.path.join(D, 'mannequin-gs.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'N14':
+                    init = init_recolor(0.99 if cls == 'blademaster' else 0.07)
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N13[cls]), seed=s, denoise=0.80 if s in SEEDS_N3[:4] else 0.86, init=init)
+                elif dk == 'N13':
+                    init = Image.open(os.path.join(RAW, 'swordsman-N2-23.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N13[cls]), seed=s, denoise=0.68, init=init)
                 elif dk == 'N12':
                     init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N12[cls]), seed=s, denoise=0.92, init=init)

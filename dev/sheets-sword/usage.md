@@ -32,3 +32,6 @@
 | 26 | paladin | `/edit-image-pixen` | key2: Same paladin knight, same big visored helmet, golden halo, w | 5.0 / 1.0 | 68.0 / 39.0 | 1023.0 |
 | 27 | paladin | `/edit-image-pixen` | key3: Same paladin knight, same big visored helmet, golden halo, w | 1.0 / 1.0 | 69.0 / 40.0 | 1022.0 |
 | 28 | paladin | `/edit-image-pixen` | key4: Same paladin knight, same big visored helmet, golden halo, w | 1.0 / 1.0 | 70.0 / 41.0 | 1021.0 |
+| 29 | paladin | `/edit-image-pixen` | keyC3: test | 4.0 / 1.0 | 74.0 / 42.0 | 1010.0 |
+| 30 | paladin | `/edit-image-pixen` | keyC3: Change only the pose: impact of a downward chop, deep lunge, | 4.0 / 1.0 | 78.0 / 43.0 | 1006.0 |
+| 31 | paladin | `/edit-image-pixen` | keyC1: Change only the pose: wind-up, knees bent, body leaning back | 1.0 / 1.0 | 79.0 / 44.0 | 1005.0 |

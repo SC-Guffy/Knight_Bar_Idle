@@ -1,0 +1,39 @@
+{
+ "id": "paladin-atkD",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\paladin-atkD-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.941,
+  "colors": 23,
+  "low": 0.344,
+  "edge": 0.432,
+  "lone": 0.072,
+  "flick": 0.267,
+  "churn": 0.388,
+  "fill": 0.226,
+  "area": [
+   973,
+   909,
+   969,
+   862,
+   862,
+   973
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
