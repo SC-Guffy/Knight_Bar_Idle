@@ -3,7 +3,8 @@ server/data/
 .DS_Store
 *.log
 dist/
-.claude/
+.claude/*
+!.claude/agents/
 dev/shots/
 dev/__pycache__/
 dev/bggen/raw/
@@ -13,3 +14,4 @@ dev/bggen/low/
 dev/bggen/low2/
 dev/bggen/mini/
 dev/bggen/__pycache__/
+dev/pixel-qa/out/

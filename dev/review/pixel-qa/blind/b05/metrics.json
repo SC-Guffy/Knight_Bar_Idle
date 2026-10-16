@@ -1,0 +1,37 @@
+{
+ "id": "b05",
+ "file": "(blind)",
+ "frames": 5,
+ "color": "#c9b38a",
+ "size": [
+  320,
+  32
+ ],
+ "scale": 1,
+ "intent": "대검 돌진 격돌 시 땅이 파이는 이펙트 — 바닥 기준. 직업색(흙빛)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.291,
+  "colors": 3,
+  "low": 0.102,
+  "edge": 0.144,
+  "lone": 0.01,
+  "flick": 0.38,
+  "churn": 0.287,
+  "fill": 0.161,
+  "area": [
+   350,
+   431,
+   443,
+   356,
+   69
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

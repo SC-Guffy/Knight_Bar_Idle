@@ -24,6 +24,6 @@ for (const j of jobs) {
   cur = new Uint8ClampedArray(buf.buffer, buf.byteOffset, buf.length);
   const s = { ...j.opts, img: { naturalWidth: j.w, naturalHeight: j.h } };
   ctx.__s = s; ctx.__c = j.color;
-  vm.runInContext('vfxQuantize(__s); __out = vfxSheet ? null : null; VFX_SHEETS.__qa = __s; __cv = vfxSheet("__qa", __c);', ctx);
+  vm.runInContext('vfxQuantize(__s); VFX_SHEETS.__qa = __s; __cv = vfxSheet("__qa", __c);', ctx);
   fs.writeFileSync(j.out, Buffer.from(ctx.__cv.data.buffer));
 }

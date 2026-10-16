@@ -52,7 +52,7 @@
 <body>
 <main>
 <h1>도트 품질 검수 에이전트 — 설계 검토</h1>
-<div class="sub">스펙 <code>docs/specs/pixel-qa.md</code> · 상태 초안 · 2026-10-16 · 유료 호출 0회</div>
+<div class="sub">스펙 <code>docs/specs/pixel-qa.md</code> · 상태 확정(구현·블라인드 시험 끝, 합격선 결정 대기) · 2026-10-16 · 유료 호출 0회</div>
 
 <div class="card hl">
   <h3>요지</h3>
@@ -87,6 +87,24 @@
 <div class="sub">직업색 시트는 대표색 #4da6ff 로 칠했다. 빨간 칩 = 지금 기준에서 뜬 경보. 탈락 이유는 사용자 판정(10-16) 그대로다.</div>
 <div class="card" id="pairs"></div>
 
+<h2>블라인드 시험 — 비평 에이전트 12회 (이름 지우고 섞음)</h2>
+<div class="card hl">
+  <h3>결과</h3>
+  <div class="score" id="bscore"></div>
+  <div class="ctl" style="margin-top:8px">
+    <label><input type="radio" name="rule" value="A" checked> A 지금 합격선: 전 항목 3+ · 평균 3.5+ (확정안)</label>
+    <label><input type="radio" name="rule" value="B"> B 제안: 의도·깔끔함·명암 3+ · 평균 3.0+</label>
+  </div>
+  <ul class="sub">
+    <li>탈락작 6장은 6장 모두 regen 으로 판정했고, 이유도 사용자 이유와 대부분 맞다 (k37 "벽돌 탑처럼 보인다" = 사용자 "요새가 조각조각", k36 "외곽선 벗김 뒤 남은 부스러기·점선 호" = "벗기면 테두리만").</li>
+    <li>반대로 합격작에 박하다: 확정안 A 로는 합격작 6장 중 4장을 떨어뜨린다. 비평이 "3 = 게임에 넣어도 됨"보다 낮게 주는 경향이 있다.</li>
+    <li>평균 점수로 쌍을 비교하면 6쌍 중 5쌍에서 합격작이 높다. 예외인 k37 은 비평이 새 그림도 "아래 파편이 잡부스러기"라며 regen 을 줬다.</li>
+    <li>B 는 이 12장에 맞춰 고른 기준이라 과적합일 수 있다 → 확정 시트 30장 오경보 시험으로 따로 확인해야 한다.</li>
+    <li>한 장 검수 시간: qa.py 0.1초 + 비평 24~37초.</li>
+  </ul>
+</div>
+<div class="card scroll"><table id="btab"></table></div>
+
 <h2>비평 채점표 (1~5)</h2>
 <div class="card scroll"><table>
   <tr><th>항목</th><th class="l" style="text-align:left">보는 것</th></tr>
@@ -108,18 +126,17 @@
 <h2>수용 기준</h2>
 <div class="card"><ul>
   <li>❌ ⓪ 게임 모습이 실제 게임과 같다 — dev/skills.html 1배 캡처와 픽셀 비교 3장 (구현 뒤)</li>
-  <li>❌ 블라인드 시험: 다시 뽑기 6쌍 중 탈락작 5/6 이상을 맞히고 결함 설명이 사용자 이유와 맞음</li>
+  <li>✅ 블라인드 시험: 다시 뽑기 6쌍 중 탈락작 5/6 이상을 맞히고 결함 설명이 사용자 이유와 맞음 — <b>6/6</b>, 이유 일치 (단 합격작 4/6 을 떨어뜨림 — 위 결과)</li>
   <li>❌ 오경보: 확정 시트 무작위 30장 중 regen 3장 이하</li>
   <li>❌ 순위: ComfyUI 후보 48장에서 기존 "쓸 만함"의 70% 이상이 상위 절반</li>
-  <li>❌ 한 장 검수 2분 안, 유료 호출 0</li>
+  <li>✅ 한 장 검수 2분 안, 유료 호출 0 — 약 25~37초, 0회</li>
   <li>❌ 검수 보고 페이지로 판정 근거를 볼 수 있음 — 사용자 확인</li>
-</ul><p class="sub">지금은 설계 단계라 전부 미시험이다. 확정 뒤 구현하면서 하나씩 채운다.</p></div>
+</ul><p class="sub">남은 ❌ 는 합격선을 정한 뒤 시험한다.</p></div>
 
 <h2>결정할 것</h2>
 <div class="card"><ol>
-  <li><b>비평 모델</b>: Claude 서브에이전트 1명으로 시작(추가 비용 0, 추천) / 처음부터 OpenRouter 비전 모델로 교차 비평(유료). 추천은 블라인드 시험이 미달일 때만 교차를 붙이는 것.</li>
-  <li><b>첫 적용 범위</b>: VFX 먼저(추천) / 캐릭터 시트 먼저</li>
-  <li><b>합격선</b>: 전 항목 3+ · 평균 3.5+ (추천) / 더 엄격하게</li>
+  <li><b>합격선 조정</b>: 확정안 A 는 합격작 4/6 을 떨어뜨린다. B(의도·깔끔함·명암 3+ · 평균 3.0+)로 바꾸고 확정 시트 30장 오경보 시험으로 검증할지 (추천). 아니면 A 를 유지하고 비평 지침에서 "3 = 게임에 넣어도 됨"을 더 강조해 점수를 올릴지.</li>
+  <li>k37 새 그림(합격작)에 비평이 "아래 파편이 잡부스러기, 바닥에 안 붙음"이라고 했다. 이 지적에 동의하시는지 (동의하면 취향 기록에 반영)</li>
 </ol></div>
 </main>
 <script>
@@ -162,6 +179,23 @@ fetch('pixel-qa/calib.json').then((r) => r.json()).then((d) => {
     const r = RULES[+el.dataset.i]; r.v = +el.value; document.getElementById('v' + el.dataset.i).textContent = r.v; draw();
   });
   draw();
+});
+fetch('pixel-qa/blind/score.json').then((r) => r.json()).then((S) => {
+  const NM = { intent: '의도', read: '읽힘', clean: '깔끔', value: '명암', pixel: '도트', motion: '움직임', rules: '규칙' };
+  const rule = { A: (s) => Object.values(s).every((v) => v >= 3) && avg(s) >= 3.5, B: (s) => s.intent >= 3 && s.clean >= 3 && s.value >= 3 && avg(s) >= 3.0 };
+  const avg = (s) => Object.values(s).reduce((a, b) => a + b, 0) / 7;
+  const rows = [...S.rows].sort((a, b) => a.id.localeCompare(b.id) || (a.which === 'old' ? -1 : 1));
+  const drawB = () => {
+    const R = rule[document.querySelector('input[name=rule]:checked').value];
+    const caught = rows.filter((r) => r.truth === 'fail' && !R(r.scores)).length, ff = rows.filter((r) => r.truth === 'pass' && !R(r.scores)).length;
+    document.getElementById('bscore').innerHTML = `<span>탈락작 잡음 <b class="${caught >= 5 ? 'ok' : 'bad'}">${caught} / 6</b></span><span>합격작을 떨어뜨림 <b class="${ff <= 1 ? 'ok' : 'bad'}">${ff} / 6</b></span>`;
+    document.getElementById('btab').innerHTML = '<tr><th>시트</th><th>정답</th><th>비평 판정</th>' + Object.values(NM).map((n) => `<th>${n}</th>`).join('') + '<th>평균</th><th>이 합격선</th><th class="l" style="text-align:left">비평 요약 · 검수 시트</th></tr>' +
+      rows.map((r) => { const ok = R(r.scores); return `<tr><td>${r.id} <span class="sub">${r.bid}</span></td><td class="${r.truth === 'pass' ? 'ok' : 'bad'}">${r.truth === 'pass' ? '합격' : '탈락'}</td><td>${r.verdict}</td>` +
+        Object.keys(NM).map((k) => `<td class="${r.scores[k] <= 2 ? 'bad' : ''}">${r.scores[k]}</td>`).join('') + `<td>${r.avg}</td><td class="${ok === (r.truth === 'pass') ? 'ok' : 'bad'}">${ok ? '합격' : '불합격'}</td>` +
+        `<td class="l">${r.summary} <a href="pixel-qa/blind/${r.bid}/sheet.png" target="_blank" style="color:var(--blue)">시트</a></td></tr>`; }).join('');
+  };
+  document.querySelectorAll('input[name=rule]').forEach((el) => el.onchange = drawB);
+  drawB();
 });
 </script>
 </body>

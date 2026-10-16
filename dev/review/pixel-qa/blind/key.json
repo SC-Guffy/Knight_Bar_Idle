@@ -1,0 +1,62 @@
+{
+ "b01": {
+  "id": "e18",
+  "which": "new",
+  "truth": "pass"
+ },
+ "b02": {
+  "id": "k37",
+  "which": "new",
+  "truth": "pass"
+ },
+ "b03": {
+  "id": "k36",
+  "which": "old",
+  "truth": "fail"
+ },
+ "b04": {
+  "id": "k32",
+  "which": "new",
+  "truth": "pass"
+ },
+ "b05": {
+  "id": "e14",
+  "which": "new",
+  "truth": "pass"
+ },
+ "b06": {
+  "id": "k32",
+  "which": "old",
+  "truth": "fail"
+ },
+ "b07": {
+  "id": "k36",
+  "which": "new",
+  "truth": "pass"
+ },
+ "b08": {
+  "id": "e18",
+  "which": "old",
+  "truth": "fail"
+ },
+ "b09": {
+  "id": "k22",
+  "which": "old",
+  "truth": "fail"
+ },
+ "b10": {
+  "id": "k22",
+  "which": "new",
+  "truth": "pass"
+ },
+ "b11": {
+  "id": "e14",
+  "which": "old",
+  "truth": "fail"
+ },
+ "b12": {
+  "id": "k37",
+  "which": "old",
+  "truth": "fail"
+ }
+}
