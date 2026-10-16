@@ -1,0 +1,33 @@
+{
+ "id": "t-check",
+ "file": "dev\\sheets-sword\\design\\pl\\clean-paladin.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  46,
+  54
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.71,
+  "colors": 23,
+  "low": 0.192,
+  "edge": 0.363,
+  "lone": 0.125,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.35,
+  "area": [
+   870
+  ]
+ },
+ "flags": []
+}

@@ -1,0 +1,38 @@
+{
+ "id": "p5",
+ "file": "dev\\sheets-sword\\design\\pl2\\clean-blademaster.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  50,
+  54
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.869,
+  "colors": 27,
+  "low": 0.24,
+  "edge": 0.431,
+  "lone": 0.205,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.349,
+  "area": [
+   942
+  ]
+ },
+ "flags": [
+  {
+   "k": "lone",
+   "why": "외톨이 픽셀이 많다 — 뭉개짐·지글거림 (> 18%)"
+  }
+ ]
+}

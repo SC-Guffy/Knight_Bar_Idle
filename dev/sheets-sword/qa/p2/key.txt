@@ -1,0 +1,8 @@
+p1=swordsman-clean
+p2=swordsman-polish
+p3=paladin-clean
+p4=paladin-polish
+p5=blademaster-clean
+p6=blademaster-polish
+p7=greatswordsman-clean
+p8=greatswordsman-polish

@@ -1,0 +1,38 @@
+{
+ "id": "p3",
+ "file": "dev\\sheets-sword\\design\\pl2\\clean-paladin.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  46,
+  54
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.927,
+  "colors": 43,
+  "low": 0.245,
+  "edge": 0.401,
+  "lone": 0.133,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.363,
+  "area": [
+   901
+  ]
+ },
+ "flags": [
+  {
+   "k": "colors",
+   "why": "색이 너무 많다 — AI 흐림 계조 (> 32)"
+  }
+ ]
+}

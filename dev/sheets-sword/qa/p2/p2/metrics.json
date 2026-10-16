@@ -1,0 +1,33 @@
+{
+ "id": "p2",
+ "file": "dev\\sheets-sword\\design\\pl2\\polish-swordsman.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  53,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.874,
+  "colors": 22,
+  "low": 0.295,
+  "edge": 0.418,
+  "lone": 0.077,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.401,
+  "area": [
+   1189
+  ]
+ },
+ "flags": []
+}

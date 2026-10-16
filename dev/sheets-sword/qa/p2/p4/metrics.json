@@ -1,0 +1,33 @@
+{
+ "id": "p4",
+ "file": "dev\\sheets-sword\\design\\pl2\\polish-paladin.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  46,
+  55
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.941,
+  "colors": 18,
+  "low": 0.346,
+  "edge": 0.372,
+  "lone": 0.062,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.385,
+  "area": [
+   973
+  ]
+ },
+ "flags": []
+}

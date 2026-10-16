@@ -17,3 +17,7 @@
 | 11 | paladin | `/animate-with-text-v3` | textB: a holy paladin knight lifts his golden sword high behind his | 5.0 / 5.0 | 31.0 / 18.0 | 1163.0 |
 | 12 | swordsman | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 / 1.0 | 32.0 / 19.0 | 1128.0 |
 | 13 | paladin | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 / 1.0 | 33.0 / 20.0 | 1127.0 |
+| 14 | swordsman | `/image-to-pixelart` | n2ref: /image-to-pixelart | 1.0 / 1.0 | 34.0 / 21.0 | 1126.0 |
+| 15 | paladin | `/image-to-pixelart` | n2ref: /image-to-pixelart | 1.0 / 1.0 | 35.0 / 22.0 | 1125.0 |
+| 16 | blademaster | `/image-to-pixelart` | n2ref: /image-to-pixelart | 1.0 / 1.0 | 36.0 / 23.0 | 1124.0 |
+| 17 | greatswordsman | `/image-to-pixelart` | n3ref: /image-to-pixelart | 1.0 / 1.0 | 37.0 / 24.0 | 1123.0 |

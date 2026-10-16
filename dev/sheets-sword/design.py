@@ -60,12 +60,18 @@ WHO_N2 = {
     'blademaster': 'A sword saint dual wielder: dark slate blue-gray samurai armor plates (not pure black) laced with bright crimson cords, a big horned kabuto helmet with a red visor slit, a long red scarf flowing behind, two curved katanas with gold guards, one held forward low and one held up behind.',
     'greatswordsman': 'A greatsword berserker: big head with spiky black hair, steel pauldrons, mid-brown leather armor with a few wide orange bands, a huge greatsword with a very wide steel blade resting on the right shoulder, both fists on the hilt in front of the chest.',
 }
+# 대검전사 3차 (비평: 대검이 가는 막대·머리 검정 덩어리) — 날 폭을 몸통만큼, 밝은 회백 강철, 머리는 짙은 남색 램프
+WHO_N3 = {'greatswordsman': 'A greatsword berserker: big head with spiky dark navy hair with lighter blue highlights, a clearly visible face, '
+          'one large light gray steel pauldron, mid-brown leather armor with one wide bright orange belt, an enormous flat greatsword whose blade is as wide '
+          'as the torso and longer than the body, light gray steel with a bright edge, carried diagonally on the right shoulder with the blade pointing up and back, '
+          'both fists gripping the long hilt in front of the chest. Not a spear, not a thin pole.'}
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
     'C': 'Heroic slender proportions about 4 heads tall, long legs, broad shoulders, narrow waist, elegant pose.',
 }
 SEEDS = [11, 23, 37, 51]
+SEEDS_N3 = [11, 23, 37, 51, 63, 77, 89, 97]
 HEIGHTS = [35, 46, 52]
 
 
@@ -80,7 +86,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -100,10 +106,13 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in SEEDS if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk == 'N3' else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
-                if dk == 'N2':
+                if dk == 'N3':
+                    init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N3[cls]), seed=s, denoise=0.92, init=init)
+                elif dk == 'N2':
                     init = Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N2[cls]), seed=s, denoise=0.92, init=init)
                 elif dk == 'N':          # 컨셉만 보고 새로: 직업 무관 3등신 마네킹 밑그림

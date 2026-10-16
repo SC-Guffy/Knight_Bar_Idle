@@ -1,0 +1,8 @@
+{"m1 swordsman-N2-23": {"scores":[4,4,3,3,2,5,4],"avg":3.57,"verdict":"regen","why":"하반신 판금 1도트 얼룩·겉옷 공처럼"},
+ "m2 swordsman-N2-37": {"scores":[3,3,2,2,2,5,4],"avg":3.0,"verdict":"regen"},
+ "m3 paladin-N2-23": {"scores":[3,3,3,2,3,5,4],"avg":3.29,"verdict":"regen","why":"흰 달걀 투구·한 톤"},
+ "m4 paladin-N2-51": {"scores":[3,4,3,3,4,5,4],"avg":3.71,"verdict":"pass","why":"투구가 밋밋(눈 두 점)"},
+ "m5 blademaster-N2-11": {"scores":[3,3,3,2,3,5,4],"avg":3.29,"verdict":"regen"},
+ "m6 blademaster-N2-23": {"scores":[3,3,3,2,4,5,4],"avg":3.43,"verdict":"fix","why":"하체 어두운 덩어리·둘째 칼 안 보임"},
+ "m7 greatswordsman-N2-23": {"scores":[2,3,3,2,3,5,4],"avg":3.14,"verdict":"regen","why":"대검이 가는 막대"},
+ "m8 greatswordsman-N2-51": {"scores":[2,2,3,2,3,5,4],"avg":2.71,"verdict":"regen"}}

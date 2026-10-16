@@ -1,0 +1,38 @@
+{
+ "id": "p1",
+ "file": "dev\\sheets-sword\\design\\pl2\\clean-swordsman.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  51,
+  54
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "kind": "character",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.909,
+  "colors": 43,
+  "low": 0.13,
+  "edge": 0.427,
+  "lone": 0.139,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.363,
+  "area": [
+   1000
+  ]
+ },
+ "flags": [
+  {
+   "k": "colors",
+   "why": "색이 너무 많다 — AI 흐림 계조 (> 32)"
+  }
+ ]
+}
