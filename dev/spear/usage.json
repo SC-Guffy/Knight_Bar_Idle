@@ -1,5 +1,5 @@
 {
- "used": 16.0,
+ "used": 21.0,
  "calls": [
   {
    "cls": "mq",
@@ -87,6 +87,46 @@
    "purpose": "lancer6-51-pl: 기준 그림 정리 256→64",
    "used": 1.0,
    "bal": 1109.0,
+   "n": 1
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/image-to-pixelart",
+   "purpose": "dragoon8-11-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 1087.0,
+   "n": 1
+  },
+  {
+   "cls": "lancer",
+   "ep": "/image-to-pixelart",
+   "purpose": "lancer11-11-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 1071.0,
+   "n": 1
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/image-to-pixelart",
+   "purpose": "dragoon11-51-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 1070.0,
+   "n": 1
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/image-to-pixelart",
+   "purpose": "halberdier11-51-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 1069.0,
+   "n": 1
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/image-to-pixelart",
+   "purpose": "cavalier11-11-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 1068.0,
    "n": 1
   }
  ]

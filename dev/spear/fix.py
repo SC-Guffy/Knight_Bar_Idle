@@ -136,13 +136,73 @@ def _hls(c): return colorsys.rgb_to_hls(c[0] / 255, c[1] / 255, c[2] / 255)
 def surcoat_orange(im):
     """할버디어: 허리 아래 살색(주황·살구 계열 밝은 칸)을 주황 천 3단으로 — 검수 "서코트가 맨허벅지 살색처럼" """
     skin = lambda c: 0.02 < _hls(c)[0] < 0.12 and _hls(c)[2] > 0.25
-    return recolor_band(im, skin, ((150, 70, 24), (214, 112, 36), (246, 156, 62)), 0.5, 0.85)
+    # 짙은 천 주황(적갈) — 밝은 주황은 맨허벅지 살색처럼 읽혔다 (사용자·로드맵 2026-10-17)
+    return recolor_band(im, skin, ((96, 34, 18), (150, 58, 24), (196, 88, 34)), 0.5, 0.85)
+
+
+def tabard(im, ramp=((84, 30, 18), (132, 50, 22), (176, 76, 30))):
+    """할버디어: surcoat_orange 뒤에 — 다리 둘에 따로 붙은 주황(반바지·맨허벅지처럼 읽힘, 로드맵 2026-10-17)을
+    허리~무릎 한 장짜리 천 서코트 판으로: 주황 칸들의 행·열 범위 안 몸 칸(외곽선 제외)을 다 칠하고, 뒤 2열·가운데 주름·밑단은 그늘, 앞 1열은 밝게"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    org = [(x, y) for y in range(H) for x in range(W) if P[x, y][3] and P[x, y] != OUT and 0.0 < _hls(P[x, y])[0] < 0.075 and _hls(P[x, y])[2] > 0.55]   # 갈색 장갑·벨트(채도 낮음) 제외
+    if len(org) < 10: return im
+    x0 = min(x for x, _ in org); x1 = max(x for x, _ in org); y0 = min(y for _, y in org); y1 = max(y for _, y in org)
+    xm = (x0 + x1) // 2
+    for y in range(y0, y1 + 2):
+        for x in range(x0, x1 + 1):
+            c = P[x, y]
+            if not c[3]: continue
+            if c == OUT and not (0 < x < W - 1 and P[x - 1, y][3] and P[x + 1, y][3]): continue     # 판 안쪽 외곽선 칸(다리 사이 틈)은 천으로
+            k = 1
+            if x <= x0 + 1 or x == xm or y == y1 + 1: k = 0
+            elif x == x1 and y < y1: k = 2
+            P[x, y] = ramp[k] + (255,)
+    return im
+
+
+def purple_plate(im, ramp=((30, 24, 48), (64, 52, 98), (104, 90, 146), (150, 138, 190), (214, 208, 240))):
+    """용기병 v8: 은색 판금(무채색 칸)을 은보라 판금으로 — 원래 밝기를 램프 위치로 그대로 써서 명암·하이라이트 유지 (로드맵: 보라 비늘 판금)
+    순위로 칠하면 단이 평평해지고 하이라이트가 사라졌다"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    lo, hi = 40.0, 230.0
+    for y in range(H):
+        for x in range(W):
+            c = P[x, y]
+            if not c[3] or c == OUT or _hls(c)[2] >= 0.25: continue
+            t = min(1.0, max(0.0, (lum(c) - lo) / (hi - lo))) * (len(ramp) - 1); i = min(len(ramp) - 2, int(t)); f = t - i
+            P[x, y] = tuple(round(ramp[i][k] + (ramp[i + 1][k] - ramp[i][k]) * f) for k in range(3)) + (255,)
+    return im
+
+
+def purple_light(im):
+    """용기병 v11: purple_plate 를 한 단 밝게 (어두운 보라 덩어리로 뭉침)"""
+    return purple_plate(im, ((40, 30, 66), (84, 66, 132), (130, 110, 184), (176, 160, 222), (230, 224, 250)))
+
+
+def green_up(im, ramp=((22, 58, 32), (40, 96, 50), (62, 138, 70), (104, 182, 100), (164, 222, 150))):
+    """창기사 v11: 정리본의 회녹색 칸(색상 녹색대·약한 채도)만 밝기 유지 녹색 램프로 — 띠 칠하기(surcoat_green)는 얼룩처럼 덧칠됐다"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    for y in range(H):
+        for x in range(W):
+            c = P[x, y]
+            if not c[3] or c == OUT: continue
+            h, l, s_ = _hls(c)
+            if 0.2 < h < 0.5 and s_ > 0.04 and c[1] > c[0] and c[1] >= c[2]:
+                t = min(1.0, max(0.0, (lum(c) - 40) / 180)) * (len(ramp) - 1); i = min(len(ramp) - 2, int(t)); f = t - i
+                P[x, y] = tuple(round(ramp[i][k] + (ramp[i + 1][k] - ramp[i][k]) * f) for k in range(3)) + (255,)
+    return im
+
+
+def surcoat_green(im):
+    """창기사: 가슴~무릎 가운데 무채색 칸을 녹색 서코트 3단으로 — 검수 r2 "녹색 계열이 없음, 회색 판금뿐" """
+    gray = lambda c: _hls(c)[2] < 0.22 and 60 < lum(c) < 210
+    return recolor_band(im, gray, ((34, 84, 46), (56, 128, 64), (96, 176, 96)), 0.40, 0.78, 0.5)
 
 
 def surcoat_blue(im):
     """랜서: 가슴~허리 가운데 무채색 칸을 파랑 서코트 3단으로 — 검수 "파랑 서코트가 거의 없음" """
     gray = lambda c: _hls(c)[2] < 0.22 and 60 < lum(c) < 200
-    return recolor_band(im, gray, ((30, 52, 120), (48, 84, 178), (90, 130, 220)), 0.42, 0.68, 0.45)
+    return recolor_band(im, gray, ((44, 72, 150), (64, 108, 206), (112, 156, 236)), 0.42, 0.68, 0.45)   # 검수 r2: 몸통이 어둡게 뭉침 → 한 단 밝게
 
 
 def eye_after(im, wcols, col=(255, 214, 64, 255)):

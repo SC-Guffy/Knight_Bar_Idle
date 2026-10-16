@@ -15,3 +15,8 @@
 | 9 | lancer | `/image-to-pixelart` | lancer5-51-pl: 기준 그림 정리 256→64 | 1.0 | 14.0 | 1120.0 |
 | 10 | halberdier | `/image-to-pixelart` | halberdier5-51-pl: 기준 그림 정리 256→64 | 1.0 | 15.0 | 1117.0 |
 | 11 | lancer | `/image-to-pixelart` | lancer6-51-pl: 기준 그림 정리 256→64 | 1.0 | 16.0 | 1109.0 |
+| 12 | dragoon | `/image-to-pixelart` | dragoon8-11-pl: 기준 그림 정리 256→64 | 1.0 | 17.0 | 1087.0 |
+| 13 | lancer | `/image-to-pixelart` | lancer11-11-pl: 기준 그림 정리 256→64 | 1.0 | 18.0 | 1071.0 |
+| 14 | dragoon | `/image-to-pixelart` | dragoon11-51-pl: 기준 그림 정리 256→64 | 1.0 | 19.0 | 1070.0 |
+| 15 | halberdier | `/image-to-pixelart` | halberdier11-51-pl: 기준 그림 정리 256→64 | 1.0 | 20.0 | 1069.0 |
+| 16 | cavalier | `/image-to-pixelart` | cavalier11-11-pl: 기준 그림 정리 256→64 | 1.0 | 21.0 | 1068.0 |

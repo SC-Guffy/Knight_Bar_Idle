@@ -18,14 +18,16 @@ import re
 
 def parse(name):
     """'lancer5-51' → ('lancer', 'lancer'), 'lancer6-51' → ('lancer', 'lancer6') : (직업 = 작업 폴더·수리 키, design5.SPEC 키)"""
-    m = re.match(r'([A-Za-z]+)(\d)-', name); return m.group(1), (m.group(1) if m.group(2) == '5' else m.group(1) + m.group(2))
+    m = re.match(r'([A-Za-z]+)(\d+)-', name); return m.group(1), (m.group(1) if m.group(2) == '5' else m.group(1) + m.group(2))
 # 정리본 검수 fix 판정에 따른 수리 단계 (fix.py)
 #  창기사: v6 정리본은 갑옷이 이미 매끈해 tidy·green 이 오히려 하이라이트를 지운다 (v5 51 에만 썼다)
 #  할버디어: surcoat_up 은 허리에 주황 네모 조각처럼 붙어 뺐다
-FIX = {'lancer': (),
-       'dragoon': ('tidy', 'belly'),
-       'halberdier': ('surcoat_orange', 'shoulders'),
+FIX = {'lancer': ('surcoat_green',),          # 검수 r2: 녹색 없음
+       'dragoon': ('purple_plate',),          # v8 사람 기사(dragoon8-11): 은 → 보라 판금. tidy·belly 는 v6 용인간용
+       'halberdier': ('surcoat_orange', 'tabard', 'shoulders'),   # tabard: 반바지처럼 갈린 주황 → 한 장 서코트 (로드맵 2026-10-17)
        'cavalier': ('surcoat_blue', 'red_up')}
+# v11 3등신 재정리본 (SPEC 키별): 이미 색이 맞아 수리가 적다. 용기병만 은→보라 판금
+FIX.update({'lancer11': ('green_up',), 'dragoon11': ('purple_light',), 'halberdier11': (), 'cavalier11': ('surcoat_blue',)})   # 정리본 녹색·파랑이 탁하고 작다
 # 무기를 얹은 뒤 하는 수리: 용기병 노란 눈 (무기 색을 빼야 머리 앞 끝을 찾는다)
 AFTER = {'dragoon': ('eye_after',)}
 FIST = set()             # v6 정리본은 쥔 손이 보임
@@ -91,6 +93,26 @@ def wpnfix(im, name, off):
     return o.crop(bb), (gx + M - bb[0], gy + M - bb[1])
 
 
+def reduce(im, n):
+    """색 줄이기 (v11): 가장 적게 쓰인 색을 가장 가까운 색에 합치기를 n 색까지 — median-cut 은 작은 색 영역(빨간 볏·파랑 서코트·녹색 깃발)을
+    회색 덩어리에 섞어 지웠다. 비슷한 색끼리 먼저 합쳐지므로 작아도 뚜렷한 색 영역은 남는다"""
+    from collections import Counter
+    im = im.copy(); P = im.load(); W, H = im.size
+    cnt = Counter(P[x, y][:3] for y in range(H) for x in range(W) if P[x, y][3])
+    rep = {c: c for c in cnt}
+    ch = lambda c: max(c) - min(c)
+    d2 = lambda a, b: 3 * (a[0] - b[0]) ** 2 + 4 * (a[1] - b[1]) ** 2 + 2 * (a[2] - b[2]) ** 2 + 12 * (ch(a) - ch(b)) ** 2   # 채도 차 벌점: 유채색이 회색에 먹히지 않게
+    while len(cnt) > n:
+        c = min(cnt, key=cnt.get); k = cnt.pop(c)
+        t = min(cnt, key=lambda o: d2(c, o)); cnt[t] += k
+        for a in rep:
+            if rep[a] == c: rep[a] = t
+    for y in range(H):
+        for x in range(W):
+            if P[x, y][3]: P[x, y] = rep[P[x, y][:3]] + (255,)
+    return im
+
+
 def POL_comps(im):
     P = im.load(); W, H = im.size; left = {(x, y) for y in range(H) for x in range(W) if P[x, y][3]}; out = []
     while left:
@@ -106,18 +128,19 @@ def POL_comps(im):
 
 
 def post(name):
-    cls, _ = parse(name)
+    cls, sk = parse(name)
     raw = Image.open(os.path.join(HERE, 'work', cls, f'{name}-pl-0.png')).convert('RGBA')
     clean = POL.unbg(raw); bb = clean.getbbox(); clean = clean.crop(bb)
-    pol = POL.polish(clean.copy())                       # 손질 먼저 (무기 색이 14색 줄이기에 섞여 몸 색이 탁해지지 않게)
+    # v11: 공용 polish 의 14색 줄이기가 작은 색 영역(녹색 서코트·빨간 볏·주황 천)을 회색에 섞어 지운다 → 20색으로 (공용 파일은 그대로)
+    pol = POL.rim(POL.outline(POL.despeckle((reduce(clean.copy(), 22) if sk != cls else POL.quant(clean.copy(), 14)))))   # 손질 먼저 (무기 색이 14색 줄이기에 섞여 몸 색이 탁해지지 않게)
     import fix as FX                                     # 검수 fix 판정 수리 (스크립트) — 직업별
-    for step in FIX.get(cls, ()):
+    for step in FIX.get(sk, FIX.get(cls, ())):
         pol = getattr(FX, step)(pol)
     pol, g = wpnfix(pol, name, (bb[0] - 1, bb[1] - 1))  # polish 의 외곽선 1칸 여백만큼 원점이 옮겨짐
     if cls in FIST: pol = FX.fist(pol, g)
     import design5 as D5
     wcols = {c for c in __import__('itertools').chain.from_iterable(D5.WCOL.values())}
-    for step in AFTER.get(cls, ()):
+    for step in (AFTER.get(cls, ()) if sk not in FIX or sk == cls else ()):     # v11 은 눈이 이미 있음
         pol = getattr(FX, step)(pol, wcols)
     from wpn import fill_holes  # noqa (무기 지운 자리 메우기는 wpnfix 안에서)
     P_ = pol.load(); comps = POL_comps(pol)                 # 떨어진 6칸 미만 조각 지우기 (검수: 자루 옆 '!' 부스러기)
@@ -126,7 +149,7 @@ def post(name):
         for c in comps:
             if len(c) < 6 and len(c) < big:
                 for p_ in c: P_[p_] = (0, 0, 0, 0)
-    pol = POL.quant(pol, 20)                             # 위 테 밝히기·무기 색으로 25~30색이 돼 색 경보(>24) → 마지막에 20색
+    pol = reduce(pol, 18) if sk != cls else POL.quant(pol, 20)   # 위 테 밝히기·무기 색으로 25~30색이 돼 색 경보(>24) → 마지막에 20색
     clean.save(os.path.join(PL, f'{name}-clean.png')); pol.save(os.path.join(PL, f'{name}-polish.png'))
     print(name, 'clean', clean.size, 'polish', pol.size)
 
