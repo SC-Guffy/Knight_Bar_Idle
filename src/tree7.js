@@ -30,7 +30,8 @@ const T7_STAGE_AT = [0, 0, 1, 1, 2, 3];
 
 // 노드: id, t 종류, lane (c 줄기 / a 연타 / b 발도 / k 검기), tier 필요 전직 차수, req 앞 노드(하나라도), min 그 갈래 포인트 하한,
 //  sk 액티브·융합·궁극기가 가리키는 SKILLS id, lanes 융합이 요구하는 두 갈래, pair 같은 값끼리 택1,
-//  fx 효과 (아래 t7Mods 가 읽는다): { stat:{키:칸당}, pow:{스킬:배}, cd:{스킬:배}, ev:{스킬:배}, spec:{스킬:{type,v,…}}, shape:이름 }, approx 1단계 근사 표시
+//  fx 효과 (아래 t7Mods 가 읽는다): { stat:{키:칸당}, pow:{스킬:배}, cd:{스킬:배}, ev:{스킬:배} 결투·전투력 평균 배율, spec:{스킬:{type,v,…}}, shape:이름,
+//     rule:이름 (전투 규칙 — src/tree7-fx.js t7OnHit·t7OnEnd·t7OnBasic), basic: 평타 피해 배율, basicDps: 평타 DPS 평균 배율(dpsOf), evAll: 모든 스킬 평균 배율 }
 const T7_NODES = [
   { id: 'c_atk', t: 'stat', lane: 'c', tier: 0, req: [], fx: { stat: { atk: 0.02 } } },
   { id: 'c_hp', t: 'stat', lane: 'c', tier: 0, req: [], fx: { stat: { hp: 0.03 } } },
@@ -39,20 +40,20 @@ const T7_NODES = [
   { id: 'c_def', t: 'stat', lane: 'c', tier: 0, req: ['c_hp'], fx: { stat: { guard: 0.02 } } },
   { id: 'slash', t: 'active', lane: 'c', tier: 1, req: ['c_atk', 'c_hp'], sk: 'steelCleave' },
   { id: 's_twin', t: 'mod', lane: 'c', tier: 1, req: ['slash'], fx: { shape: 'twin' } },
-  { id: 'k_blade', t: 'key', lane: 'c', tier: 1, req: ['slash'], approx: true, fx: { cdAll: 0.85, powAll: 0.9 } },
+  { id: 'k_blade', t: 'key', lane: 'c', tier: 1, req: ['slash'], fx: { rule: 'blade', powAll: 0.9, evAll: 1.18 } },   // 평타 3타마다 모든 스킬 쿨 −0.5초 (t7OnBasic)
 
   { id: 'gale', t: 'active', lane: 'a', tier: 2, req: ['slash'], sk: 'gale' },
   { id: 'a_more', t: 'mod', lane: 'a', tier: 2, req: ['gale'], fx: { shape: 'more' } },
   { id: 'a_bleed', t: 'mod', lane: 'a', tier: 2, req: ['gale'], fx: { spec: { gale: { type: 'dot', name: '출혈', icon: '🩸', v: 0.4, dur: 3 } } } },
   { id: 'whirl', t: 'active', lane: 'a', tier: 2, req: ['a_more', 'a_bleed'], sk: 'whirl' },
-  { id: 'a_follow', t: 'mod', lane: 'a', tier: 2, req: ['whirl'], pair: 'pa', approx: true, fx: { ev: { whirl: 1.15 } } },
+  { id: 'a_follow', t: 'mod', lane: 'a', tier: 2, req: ['whirl'], pair: 'pa', fx: { shape: 'follow' } },   // 회오리가 적에게 날아가 붙는다 (범위 +60px, 연출은 tree7-fx)
   { id: 'a_grow', t: 'mod', lane: 'a', tier: 2, req: ['whirl'], pair: 'pa', fx: { shape: 'grow', ev: { whirl: 1.1 } } },
-  { id: 'a_key', t: 'key', lane: 'a', tier: 2, req: ['a_follow', 'a_grow'], approx: true, fx: { stat: { aspd: 0.2, atk: -0.08 } } },
-  { id: 'a_k3', t: 'key', lane: 'a', tier: 3, min: 12, req: ['a_key'], approx: true, fx: { ev: { gale: 1.3 }, cd: { gale: 1.25 } } },
+  { id: 'a_key', t: 'key', lane: 'a', tier: 2, req: ['a_follow', 'a_grow'], fx: { rule: 'frenzy', basic: 0.85, basicDps: 1.02 } },   // 스킬 명중마다 공속 +4% 겹침(최대 10, 3초) · 평타 피해 −15%
+  { id: 'a_k3', t: 'key', lane: 'a', tier: 3, min: 12, req: ['a_key'], fx: { rule: 'endless', ev: { gale: 1.3 }, cd: { gale: 1.25 } } },   // 질풍난무가 끝나면 30% 로 바로 한 번 더
   { id: 'uv_a', t: 'uvar', lane: 'a', tier: 3, req: ['ult'], fx: { shape: 'uvA', ev: { thousandCuts: 1.05 } } },
 
   { id: 'iaido', t: 'active', lane: 'b', tier: 2, req: ['slash'], sk: 'iaido' },
-  { id: 'b_reset', t: 'mod', lane: 'b', tier: 2, req: ['iaido'], approx: true, fx: { ev: { iaido: 1.2 } } },
+  { id: 'b_reset', t: 'mod', lane: 'b', tier: 2, req: ['iaido'], fx: { rule: 'echo', ev: { iaido: 1.2 } } },   // 일섬으로 처치하면 잔상이 가장 가까운 적을 50% 로
   { id: 'b_exec', t: 'mod', lane: 'b', tier: 2, req: ['iaido'], fx: { spec: { iaido: { type: 'exec', name: '처형', icon: '🗡️', v: 1.0, thr: 0.25 } } } },
   { id: 'flash', t: 'active', lane: 'b', tier: 2, req: ['b_reset', 'b_exec'], sk: 'flash' },
   { id: 'b_after', t: 'mod', lane: 'b', tier: 2, req: ['flash'], pair: 'pb', fx: { shape: 'after' } },
@@ -63,12 +64,12 @@ const T7_NODES = [
 
   { id: 'wave', t: 'active', lane: 'k', tier: 2, req: ['slash'], sk: 'wave' },
   { id: 'k_wave', t: 'mod', lane: 'k', tier: 2, req: ['wave'], fx: { shape: 'slashWave' } },
-  { id: 'k_pierce', t: 'mod', lane: 'k', tier: 2, req: ['wave'], approx: true, fx: { ev: { wave: 1.2, storm: 1.1 } } },
+  { id: 'k_pierce', t: 'mod', lane: 'k', tier: 2, req: ['wave'], fx: { shape: 'pierce' } },   // 비검이 첫 적에서 멈추지 않고 줄로 뚫는다 · 검기 폭풍 범위 +20%
   { id: 'storm', t: 'active', lane: 'k', tier: 2, req: ['k_wave', 'k_pierce'], sk: 'storm' },
   { id: 'k_split', t: 'mod', lane: 'k', tier: 2, req: ['storm'], pair: 'pk', fx: { shape: 'split' } },
   { id: 'k_homing', t: 'mod', lane: 'k', tier: 2, req: ['storm'], pair: 'pk', fx: { spec: { storm: { type: 'boss', name: '유도', icon: '🎯', v: 0.5 } } } },
-  { id: 'k_key', t: 'key', lane: 'k', tier: 2, req: ['k_split', 'k_homing'], approx: true, fx: { pow: { wave: 1.15, storm: 1.15 }, stat: { atk: -0.1 } } },
-  { id: 'k_k3', t: 'key', lane: 'k', tier: 3, min: 12, req: ['k_key'], approx: true, fx: { cd: { wave: 0.8, storm: 0.8 }, powNot: { lane: 'k', v: 0.8 } } },
+  { id: 'k_key', t: 'key', lane: 'k', tier: 2, req: ['k_split', 'k_homing'], fx: { stat: { rangeMul: 3 }, basic: 0.8, basicDps: 0.9 } },   // 평타가 검기로 (사거리 ×3, 검기 그림) · 평타 피해 −20%
+  { id: 'k_k3', t: 'key', lane: 'k', tier: 3, min: 12, req: ['k_key'], fx: { rule: 'myriad', ev: { wave: 1.25, storm: 1.25 }, powNot: { lane: 'k', v: 0.8 } } },   // 검기 스킬 명중마다 다른 검기 스킬 쿨 −0.3초
   { id: 'uv_k', t: 'uvar', lane: 'k', tier: 3, req: ['ult'], fx: { shape: 'uvK', ev: { thousandCuts: 1.1 } } },
 
   { id: 'ult', t: 'ult', lane: 'c', tier: 3, req: ['slash'], sk: 'thousandCuts' },
@@ -189,7 +190,7 @@ let t7ModsKey = '', t7ModsVal = null;
 function t7Mods() {
   const key = JSON.stringify(t7S().rk) + S.cls;
   if (key === t7ModsKey) return t7ModsVal;
-  const m = { stat: {}, pow: {}, cd: {}, ev: {}, spec: {}, shape: new Set(), cdAll: 1, powAll: 1, powNot: [] };
+  const m = { stat: {}, pow: {}, cd: {}, ev: {}, spec: {}, shape: new Set(), rules: new Set(), cdAll: 1, powAll: 1, evAll: 1, basic: 1, basicDps: 1, powNot: [] };
   for (const n of T7_NODES) {
     const r = t7Rank(n.id), f = n.fx;
     if (!r || !f) continue;
@@ -197,6 +198,8 @@ function t7Mods() {
     for (const g of ['pow', 'cd', 'ev']) if (f[g]) for (const sk in f[g]) m[g][sk] = (m[g][sk] || 1) * f[g][sk];
     if (f.spec) Object.assign(m.spec, f.spec);
     if (f.shape) m.shape.add(f.shape);
+    if (f.rule) m.rules.add(f.rule);
+    for (const g of ['evAll', 'basic', 'basicDps']) if (f[g]) m[g] *= f[g];
     if (f.cdAll) m.cdAll *= f.cdAll;
     if (f.powAll) m.powAll *= f.powAll;
     if (f.powNot) m.powNot.push(f.powNot);
@@ -212,6 +215,7 @@ function t7Stats(st) {
   st.aspd *= 1 + (s.aspd || 0);
   st.crit = s.noCrit ? 0 : Math.min(0.8, st.crit + (s.crit || 0));
   if (s.guard) st.guard = Math.min(0.85, 1 - (1 - st.guard) * (1 - s.guard));
+  if (s.rangeMul) st.range *= s.rangeMul;   // 심검: 평타 사거리
   return st;
 }
 const t7NodeOf = (sk) => T7_BY_SKILL[sk];
@@ -239,8 +243,12 @@ const t7Spec = (sk) => t7Mods().spec[sk] || null;
 // 결투·레이드·전투력용 평균 피해 배율 (연출이 필요한 근사 효과 + 고유 특수 ev)
 function t7Ev(sk) {
   const sp = t7Spec(sk);
-  return (t7Mods().ev[sk] || 1) * (sp ? 1 + sp.v * SPEC_TYPES[sp.type].ev : 1);
+  return (t7Mods().ev[sk] || 1) * t7Mods().evAll * (sp ? 1 + sp.v * SPEC_TYPES[sp.type].ev : 1);
 }
+// 전투 규칙이 켜졌는가 (src/tree7-fx.js) · 평타 피해 배율 (world.js releaseAttack) · 평타 DPS 평균 배율 (core.js dpsOf)
+const t7Rule = (name) => t7On() && t7Mods().rules.has(name);
+const t7BasicMul = () => (t7On() ? t7Mods().basic : 1);
+const t7BasicDps = () => (t7On() ? t7Mods().basic * t7Mods().basicDps : 1);
 // 변형이 바꾼 기술 모양 (타격 추가·범위). k = skillAt 결과 (숙련 모습이 반영된 것)
 const t7ShapeCache = {};
 function t7Shape(sk, k) {
@@ -257,11 +265,16 @@ function t7Shape(sk, k) {
     s = { ...s, hits: [...s.hits.map((h) => (small.includes(h) ? [h[0], h[1] * 0.85, ...h.slice(2)] : h)), ...extra.map((h) => [h[0], h[1] * 0.85])] };
   }
   if (sk === 'whirl' && sh.has('grow')) s = { ...s, radius: (s.radius || 40) * 2 };
+  if (sk === 'whirl' && sh.has('follow')) s = { ...s, radius: (s.radius || 40) + 60 };
+  // 비검: 관통 전엔 앞의 한 적만(투사체가 첫 적에서 멈춘다), 관통이면 앞 줄 전부 · 검기 폭풍은 관통이면 범위 +20%
+  if (sk === 'wave') s = { ...s, area: sh.has('pierce') ? 'line' : 'single', reach: 4, hits: s.hits.map((h) => [h[0], h[1]]) };
+  if (sk === 'storm' && sh.has('pierce')) s = { ...s, radius: (s.radius || 120) * 1.2 };
   if (sk === 'flash' && sh.has('after')) s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.5), h[1] * 0.5, ...h.slice(2)])] };
   if (sk === 'flash' && sh.has('triple')) s = { ...s, hits: s.hits.flatMap((h) => [0, 0.04, 0.08].map((d) => [Math.min(0.98, h[0] + d), h[1] * 0.5, ...h.slice(2)])) };
   if (sk === 'storm' && sh.has('split')) s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.15), h[1] * 0.5, { area: 'all', radius: 60 }])] };
   if (sk === 'thousandCuts' && sh.has('uvA')) s = { ...s, hits: s.hits.flatMap((h) => [[h[0], h[1] * 0.5], [Math.min(0.98, h[0] + 0.02), h[1] * 0.5]]) };
-  if (sk === 'thousandCuts' && sh.has('uvB')) { const tot = s.hits.reduce((a, h) => a + h[1], 0); s = { ...s, hits: [[0.85, tot, { area: 'all', radius: 230 }]] }; }
+  // 일도양단: 타격 수·시점은 그대로(천검 연출이 타격 순서를 쓴다), 피해의 80% 를 마지막 한 칼에 몰아준다
+  if (sk === 'thousandCuts' && sh.has('uvB')) { const tot = s.hits.reduce((a, h) => a + h[1], 0), n = s.hits.length; s = { ...s, hits: s.hits.map((h, i) => [h[0], i === n - 1 ? tot * 0.8 : (tot * 0.2) / (n - 1), ...h.slice(2)]) }; }
   if (sk === 'thousandCuts' && sh.has('uvK')) s = { ...s, radius: (s.radius || 230) * 1.3 };
   return (t7ShapeCache[key] = s);
 }

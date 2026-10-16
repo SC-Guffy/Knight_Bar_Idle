@@ -99,8 +99,13 @@ function run() {
     stage: 0, stageCycle: false,                              // 숙련 단계(0 = Lv1, 1 = ★Lv10, 2 = ★★Lv20, 3 = ★★★Lv30), 스킬을 쓸 때마다 단계를 돌린다
     motion: null, atkT: 0.3, swings: 0, lastBasic: null,     // 평타만: motion 고정할 동작 번호(null 이면 번갈아), swings 친 횟수
   };
+  // 시즌7 트리 시제품 줄기(src/tree7.js)는 트리에서 찍는 스킬 전부 (새 스킬·융합·궁극기) — 아니면 지금 스킬
+  const T7SIM = typeof t7On === 'function';
+  const simSkills = (cls) => (T7SIM && TREE7_CLS.includes(cls) ? T7_NODES.filter((n) => n.sk && n.tier <= CLASSES[cls].tier).map((n) => SKILLS[n.sk]) : skillsOf(cls));
+  // ?mods=a_grow,b_triple 처럼 변형·키스톤 노드를 켜서 연출을 본다 (트리 줄기만)
+  const T7_SIM_MODS = (new URLSearchParams(location.search).get('mods') || '').split(',').filter(Boolean);
   // 스킬 모드는 스킬이 있는 직업만, 평타 모드는 견습 기사까지 전부
-  const testClasses = () => Object.keys(CLASSES).filter((id) => T.mode === 'basic' || skillsOf(id).length);
+  const testClasses = () => Object.keys(CLASSES).filter((id) => T.mode === 'basic' || simSkills(id).length);
   const motionsOf = (id) => HERO_ATK[CLASSES[id].weapon] || HERO_ATK.sword;
 
   // 이 직업 스킬의 숙련도를 단계의 첫 레벨(1·10·20·30)에 맞춘다
@@ -108,6 +113,12 @@ function run() {
   function setStage(st) {
     T.stage = st;
     const lv = STAGE_LV[st];
+    // 시즌7 트리: 숙련 단계 → 그 모습이 열리는 칸 (0 → 1칸 · ★ → 2칸 · ★★ → 4칸 · ★★★ → 5칸), 변형은 ?mods=
+    if (T7SIM && TREE7_CLS.includes(T.cls)) {
+      S.t7 = freshT7(); S.t7.pick = true; S.t7.slots = 4;
+      for (const n of T7_NODES) if (n.sk) S.t7.rk[n.id] = Math.min(T7_SPEC[n.t].max, [1, 2, 4, 5][st]);
+      for (const id of T7_SIM_MODS) if (T7_BY[id]) S.t7.rk[id] = 1;
+    }
     for (const k of skillsOf(T.cls)) {
       S.mast[k.id] = skillTomesAt(lv, skillTierOf(k.id));
       // 트리 V2: 기술의 모양·이름은 트리의 진화 별(★)로 정해진다 (core.js skillStage) — 단계만큼 별을 달고 그 모습을 쓴다
@@ -125,18 +136,19 @@ function run() {
     casts = []; skfx = []; cutin = null; hitstop = 0; floaters = []; parts = []; effects = []; shots = [];
     Object.assign(knight, { x: toWorld(HERO_X), fighting: true, facing: 1, swing: -1, pending: false, cds: {}, ward: null, down: 0, combo: 0 });
     placeDummy();
-    T.skill = skillsOf(id).length ? skillsOf(id)[0].id : null;
+    T.skill = simSkills(id).length ? simSkills(id)[0].id : null;
     T.wait = 0.4; T.basicDone = false;
     T.motion = null; T.atkT = 0.3; T.swings = 0; T.lastBasic = null;
     renderUi(); renderInfo();
   }
   function setMode(m) {
     T.mode = m;
-    if (m === 'skill' && !skillsOf(T.cls).length) setClass('swordsman'); else setClass(T.cls);
+    if (m === 'skill' && !simSkills(T.cls).length) setClass('swordsman'); else setClass(T.cls);
   }
 
   // 정해진 스킬 하나만 준비 상태로 만들고 실제 원정 경로로 쓴다
   function cast(id) {
+    if (T7SIM && t7On()) S.t7.eq = SKILLS[id].ult ? [] : [id];   // 트리 줄기: 그 스킬만 장착 (궁극기는 따로 늘 나온다)
     const st = stats();
     for (const k of st.skills) knight.cds[k] = k === id ? 0 : 999;
     knight.swing = -1;
@@ -155,7 +167,7 @@ function run() {
 
   function nextSkill() {
     if (T.lock) return;                     // 주소 ?skill= 로 연 경우: 그 스킬만 반복
-    const list = skillsOf(T.cls).map((k) => k.id);
+    const list = simSkills(T.cls).map((k) => k.id);
     const i = list.indexOf(T.skill);
     if (i < list.length - 1) { T.skill = list[i + 1]; return; }
     if (T.allCls) {
@@ -261,7 +273,7 @@ function run() {
         }),
       );
     } else {
-      $('skills').replaceChildren(...skillsOf(T.cls).map((k) => btn(`${k.icon} ${k.name}`, k.id === T.skill, () => {
+      $('skills').replaceChildren(...simSkills(T.cls).map((k) => btn(`${k.icon} ${k.name}`, k.id === T.skill, () => {
         T.skill = k.id;
         if (!castOf('hero')) { cast(k.id); T.wait = GAP_SEC; T.basicDone = false; if (T.auto) nextSkill(); }
         renderUi();
@@ -316,7 +328,7 @@ function run() {
   if (qs.has('stage')) T.stage = Math.max(0, Math.min(3, +qs.get('stage') || 0));
   if (qs.get('q3')) T.q3 = true;          // 파이터 계열 장풍을 가득 찬 기(3단)로
   setClass(CLASSES[qs.get('cls')] ? qs.get('cls') : T.cls);
-  if (T.mode === 'skill' && skillsOf(T.cls).some((k) => k.id === qs.get('skill'))) { T.skill = qs.get('skill'); T.lock = true; renderUi(); }
+  if (T.mode === 'skill' && simSkills(T.cls).some((k) => k.id === qs.get('skill'))) { T.skill = qs.get('skill'); T.lock = true; renderUi(); }
   renderInfo();
   requestAnimationFrame(frame);
   // 콘솔·자동 캡처용: skillTest.state 상태, setClass(id), cast(skillId), step(초) 한 번에 진행 후 그리기

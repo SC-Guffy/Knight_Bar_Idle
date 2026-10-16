@@ -95,4 +95,5 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 ## 시즌7 스킬 빌드 트리 시제품 (검사 계열, `src/tree7.js`)
 
 - 봇 측정: `node dev/lifespan-bot.js --days 10 --seeds 15 --mode heavy|casual --line swordsaint --build a|b|k --out x.json` (a 연타 · b 발도 · k 검기). 지금 시스템과 비교는 `--old 1`, 트리 위력 눈금 바꿔 보기는 `--tune 0.4`. 결과 `snaps[].t7` = 찍은 트리 비율. 스펙 [specs/skill-tree-swordsaint.md](specs/skill-tree-swordsaint.md).
-- 게임에서 (오프라인, 2단계 UI 전): 콘솔 `S.cls='swordsaint'; S.level=160; S.best=S.stage=150; S.gold=1e30; S.mats.mana=5000; S.t7.pick=true; t7AutoSpend('a'); stats().skills` → 장착 스킬 확인. 숨은 창이면 `for (let i=0;i<2400;i++) update(1/30)` 으로 원정을 직접 돌린다.
+- 연출: `dev/skills.html?cls=blademaster&skill=whirl&stage=0~3&mods=a_grow,b_triple` — 트리 스킬(새 스킬·융합·궁극기)과 변형을 켜서 반복 재생. 단계 0·1·2·3 = 트리 1·2·4·5칸. 갤러리 `dev/review/skill-tree-fx.html`.
+- 게임에서 (오프라인): 콘솔 `S.cls='swordsaint'; S.level=160; S.best=S.stage=150; S.gold=1e30; S.mats.mana=5000; S.t7.pick=true; t7AutoSpend('a'); stats().skills` → 장착 스킬 확인. 숨은 창이면 `for (let i=0;i<2400;i++) update(1/30)` 으로 원정을 직접 돌린다.

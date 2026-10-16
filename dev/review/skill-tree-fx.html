@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>트리 스킬 연출 갤러리</title>
+<!-- 시즌7 스킬 빌드 트리 3단계 (docs/specs/skill-tree-swordsaint.md): 새 스킬·융합·궁극기 변형 연출을 스킬 시뮬레이터(dev/skills.html)로 찍은 장면.
+     그림은 새로 뽑지 않고 지금 시트를 재사용 (src/tree7-fx.js). 각 카드의 ▶ 는 그 장면을 시뮬레이터로 반복 재생한다 -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.6 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0; } h2 { font-size: 15px; margin: 24px 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  .sub { color: var(--dim); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+  .card img { width: 100%; image-rendering: pixelated; display: block; border-radius: 4px; }
+  .card b { color: var(--gold); }
+  .card p { margin: 6px 0 0; font-size: 12px; }
+  a { color: #8fd8ff; }
+</style>
+</head>
+<body>
+<main>
+<h1>트리 스킬 연출 갤러리 · 검성 → 검신</h1>
+<p class="sub">3단계 (2026-10-17). 새 스킬 4개·융합 3개·궁극기 변형 3개의 연출 — 지금 시트(E20·K13·E11·K08·E43·F04)를 배치·개수·궤적·크기·색 램프만 바꿔 재사용, 새 그림 생성 0회. 칸(1~5)마다 모습이 바뀐다. ▶ 는 스킬 시뮬레이터로 반복 재생 (불러오는 데 10초 안팎).</p>
+
+<h2>새 액티브</h2>
+<div class="grid">
+  <div class="card"><img src="t7-fx/whirl-1.png" alt=""><p><b>검무 회오리 · 1칸 「검무」</b> 은빛 칼날 회오리(E20 대회전 시트를 은색 램프로) 하나가 기사를 감싸고, 맞은 적엔 붉은 원형 칼날 자국(K13). <a href="../skills.html?cls=blademaster&skill=whirl&stage=0">▶</a></p></div>
+  <div class="card"><img src="t7-fx/whirl-5.png" alt=""><p><b>검무 회오리 · 5칸 「천검무」 ★★★</b> 2칸부터 회오리 둘, 4칸부터 크게, 5칸 금빛. 제자리 폭풍(택1)은 한 단계 크게 하나, 쫓는 칼날은 대상에게 날아가 붙는다. <a href="../skills.html?cls=blademaster&skill=whirl&stage=3">▶</a> · <a href="../skills.html?cls=blademaster&skill=whirl&stage=2&mods=a_grow">▶ 제자리 폭풍</a> · <a href="../skills.html?cls=blademaster&skill=whirl&stage=2&mods=a_follow">▶ 쫓는 칼날</a></p></div>
+  <div class="card"><img src="t7-fx/flash-5-triple.png" alt=""><p><b>섬광 베기 · 5칸 + 삼중 섬광(택1)</b> 일섬 동작에 화면 끝에서 끝까지 그어지는 줄(E11). 삼중 섬광은 위·가운데·아래 세 줄, 잔상 베기는 0.5초 뒤 반투명 줄 한 번 더. <a href="../skills.html?cls=blademaster&skill=flash&stage=3&mods=b_triple">▶</a> · <a href="../skills.html?cls=blademaster&skill=flash&stage=3&mods=b_after">▶ 잔상 베기</a></p></div>
+  <div class="card"><img src="t7-fx/wave-4.png" alt=""><p><b>비검 · 4칸 「오연 비검」 ★★</b> 칼끝에서 초승달 검기(E43)가 부채꼴로 날아간다: 1발 → 3발 → 5발 → 7발 금빛. 관통이면 더 멀리 뚫고 간다. <a href="../skills.html?cls=blademaster&skill=wave&stage=2">▶</a> · <a href="../skills.html?cls=blademaster&skill=wave&stage=3&mods=k_pierce">▶ 관통</a></p></div>
+  <div class="card"><img src="t7-fx/storm-2.png" alt=""><p><b>검기 폭풍 · 2칸 「팔방 검기」 ★</b> 사방으로 검기: 4 → 8 → 8(크게) → 12방향 금빛. 분열(택1)은 맞은 자리에서 두 갈래로 갈라진다. <a href="../skills.html?cls=blademaster&skill=storm&stage=1">▶</a> · <a href="../skills.html?cls=blademaster&skill=storm&stage=3&mods=k_split">▶ 분열</a></p></div>
+</div>
+
+<h2>융합 (두 부모 연출 이어 붙이기)</h2>
+<div class="grid">
+  <div class="card"><img src="t7-fx/f_ab.png" alt=""><p><b>질풍 일섬</b> 질풍난무로 몰아친 뒤 마지막 타에 화면을 가르는 일섬 줄. <a href="../skills.html?cls=blademaster&skill=f_ab&stage=2">▶</a></p></div>
+  <div class="card"><img src="t7-fx/f_bk.png" alt=""><p><b>섬광 검기</b> 일섬이 지나간 줄을 따라 초승달 검기가 남아 차례로 터진다. <a href="../skills.html?cls=blademaster&skill=f_bk&stage=2">▶</a></p></div>
+  <div class="card"><img src="t7-fx/f_ak.png" alt=""><p><b>칼날 폭풍</b> 검무 회오리가 도는 동안 타격마다 검기를 사방으로 흩뿌린다. <a href="../skills.html?cls=blademaster&skill=f_ak&stage=2">▶</a></p></div>
+</div>
+
+<h2>궁극기 변형 (천검 위에 덧그림, 셋 중 하나)</h2>
+<div class="grid">
+  <div class="card"><img src="t7-fx/uv_a.png" alt=""><p><b>천검: 만검</b> 작은 검선(F04)이 타격마다 더 쏟아진다 — 보호막에 강함 (타격 수 2배). <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=2&mods=uv_a">▶</a></p></div>
+  <div class="card"><img src="t7-fx/uv_b.png" alt=""><p><b>천검: 일도양단</b> 마지막에 화면을 세로로 가르는 거대한 한 줄(E11 ×2) — 피해의 80% 를 그 한 칼에. <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=3&mods=uv_b">▶</a></p></div>
+  <div class="card"><img src="t7-fx/uv_k.png" alt=""><p><b>천검: 검우</b> 하늘에서 초승달 검기가 비처럼 내린다 — 범위 +30%, 졸개에 강함. <a href="../skills.html?cls=swordsaint&skill=thousandCuts&stage=2&mods=uv_k">▶</a></p></div>
+</div>
+
+<h2>키스톤·변형의 전투 규칙 (3단계에서 근사 → 실제)</h2>
+<div class="card"><p>검의 길(평타 3타마다 모든 스킬 쿨 −0.5초, 칼끝 번쩍) · 광란(스킬 명중마다 공속 +4% 겹침, 3초) · 무한검(질풍난무 끝 30% 로 바로 한 번 더, ♾️ 표시) · 잔영(일섬 처치 → 잔상이 다음 적을 50%) · 관통(비검이 줄로 뚫음) · 쫓는 칼날(회오리 범위 +60) · 심검(평타 사거리 ×3, 평타가 푸른 검기로) · 만검귀종(검기 명중마다 다른 검기 쿨 −0.3초). 결투·레이드·봇 계산(dpsOf)은 같은 효과를 평균 배율로 본다.</p></div>
+</main>
+</body>
+</html>

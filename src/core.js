@@ -467,7 +467,7 @@ function dpsOf(st) {
     extra += hitV * skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st) / cd;
   }
   // 고유 발동 효과(투척·불기둥 등)는 평균 피해 배율로 (gear.js procAtkEv)
-  return (perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra) * procAtkEv();
+  return (perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) * t7BasicDps() + extra) * procAtkEv();   // t7BasicDps: 시즌7 트리 키스톤의 평타 보정 (src/tree7.js)
 }
 const bossOpts = () => { const gb = gearBonus(); return { ...(gb.bossDmg ? { bossDmg: gb.bossDmg } : {}), ...(gb.execute ? { exec: gb.execute } : {}) }; };
 const powerOf = (st) => Math.round(Math.sqrt(dpsOf(st) * st.maxHp * procHpEv()) * 10);

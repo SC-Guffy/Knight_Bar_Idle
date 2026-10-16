@@ -303,7 +303,8 @@ function releaseAttack(st) {
     }
   } else {
     vfxBasicRelease();                  // 근접 잔상 텍스처가 명중 순간 늘어나며 사라진다 (src/vfx-tex.js)
-    inRange.slice(0, st.targets).forEach(m => { hitMonster(m); vfxBasicHit(m, m.lastCrit); });
+    inRange.slice(0, st.targets).forEach(m => { hitMonster(m, t7BasicMul()); vfxBasicHit(m, m.lastCrit); });   // t7BasicMul: 시즌7 트리 키스톤 평타 피해 (src/tree7.js)
+    if (t7On()) t7OnBasic(st, inRange[0]);        // 검의 길·심검 (src/tree7-fx.js)
     if (qiOn()) { qiOnBasic(Math.min(inRange.length, st.targets), inRange[0].lastCrit); qiBasicFx(inRange[0], knight.combo || 0); }   // 파이터 계열 기 충전 · 주먹/발 궤적 (src/jobs/fighter*.js)
   }
   procOnBasic(st);

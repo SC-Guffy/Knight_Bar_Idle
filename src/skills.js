@@ -326,6 +326,7 @@ function tryCastSkill(st, target, only = null) {
           const next = monsters.filter((m) => !m.dying && m.hp > 0).sort((p, q) => aheadDist(knight.x, p.x) - aheadDist(knight.x, q.x))[0];
           if (next) hitMonster(next, over * sp.v / stats().atk, { nocrit: true, kb: 6, color: a.color });
         }
+        if (t7Has(id)) t7OnHit(id, k, i, list, dealt, kills, a, st);   // 시즌7 트리 전투 규칙: 광란·잔영·만검귀종 (src/tree7-fx.js)
         // 🩸 흡혈: 이 타격으로 입힌 피해의 일부를 체력으로
         if (lc && dealt > 0) {
           const max = stats().maxHp, h = Math.min(max - S.hp, dealt * lc);
@@ -333,6 +334,7 @@ function tryCastSkill(st, target, only = null) {
         }
       },
       onEnd: () => {
+        if (t7Has(id)) t7OnEnd(id);   // 무한검 (src/tree7-fx.js)
         if (!k.ward) {
           // 🛡️ 철벽: 시전 뒤 잠깐 받는 피해가 준다 (성역의 보호막 틀을 빌린다, 지속 피해 없음)
           if (wd) knight.ward = { left: TREE_RIGHT.ward.dur, guard: wd, tick: 0, acc: 0, finish: 0, a };
