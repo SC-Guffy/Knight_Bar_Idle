@@ -90,6 +90,7 @@
 
 ### 켜는 법 · 구조
 - `index.html` 이 맨 위 창이고 기사단 모드가 켜져 있으면(`?guild=1` 또는 localStorage `knight-bar-guild` 가 있으면) 게임 대신 **기사단 호스트**(새 파일 `src/guild.js`)를 띄운다. 호스트가 슬롯마다 `index.html?char=닉네임` iframe 을 만든다 — 시제품 `dev/guild-spike.html` 을 게임 안으로 옮긴 것. main.js·preload.js 는 안 바꾼다.
+- 시제품 오른쪽 위 측정판(fps·ms·JS 힙·시험 상태 넣기)은 `dev/guild-spike.html` 전용 테스트 도구다. 본 구현 게임 화면에는 넣지 않는다.
 - 시즌7 을 열기 전까지는 **꺼져 있음**(플래그로만 켬) → 1단계를 main 에 올려도 지금 플레이어에겐 안 보인다. 시즌7 오픈 때 기본값을 켠다.
 - 기사 = 지금 계정 그대로(세이브 키 `knight-bar-save-v1:<닉네임>` 그대로). 새 기사 = 지금 닉네임 만들기(`POST /api/accounts`) 그대로 → 서버는 1단계에서 안 바꾼다. 같은 기사단끼리 결투 금지는 서버가 기사단을 알게 되는 2단계에서.
 - Electron: iframe 안에는 `window.bar` 가 없다 → 게임 쪽에서 `window.bar || parent.bar` 로 받는다(같은 origin).
