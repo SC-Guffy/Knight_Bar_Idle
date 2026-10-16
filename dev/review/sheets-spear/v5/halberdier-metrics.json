@@ -1,0 +1,34 @@
+{
+ "id": "halberdier5-51-final",
+ "kind": "char",
+ "file": "dev\\spear\\qa\\halberdier5-51-final\\in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  40,
+  63
+ ],
+ "scale": 1.0,
+ "intent": "할버디어(2차 창, 중장 미늘창병). 역삼각 체형: 아주 넓은 어깨와 큰 사각 어깨 갑옷, 넓은 가슴, 두꺼운 벨트로 잘록한 허리, 두꺼운 팔. 버킷 투구(가로 눈 틈), 주황 서코트, 큰 도끼날·뒤 갈고리·위 창끝이 있는 할버드. 육중함은 어깨·갑옷으로. 실패 조건: 사용자 지적 '할버디어는 왜 배불뚝이?' — 배가 나온 둥근 몸통이면 실패. 3등신·몸 키 46px, 자루 굵기 3px 이상. 같은 계열 실루엣 겹침(IoU, 발 맞춤): lancer 0.65, dragoon 0.57, cavalier 0.4 — 0.8 이상이면 색깔놀이 의심.",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.849,
+  "colors": 18,
+  "low": 0.194,
+  "edge": 0.428,
+  "lone": 0.073,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.39,
+  "area": [
+   983
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

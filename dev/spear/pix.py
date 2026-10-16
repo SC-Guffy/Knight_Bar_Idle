@@ -13,6 +13,9 @@ RAW = os.path.join(HERE, 'design', 'raw'); PL = os.path.join(HERE, 'work', 'pl')
 _sp = importlib.util.spec_from_file_location('sw_polish', os.path.join(HERE, '..', 'sheets-sword', 'polish.py'))
 POL = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(POL)
 BODY, OUTN = 46, 64
+# 검수 1차(정리본) fix 판정에 따른 수리 단계 (fix.py). 합격(랜서·할버디어)은 그대로
+FIX = {'lancer': ('tidy', 'green'), 'dragoon': ('tidy', 'belly')}      # eye: 머리 자리를 창과 구분 못 해 뺌
+FIST = {'lancer'}
 
 
 def frame(name):
@@ -71,7 +74,8 @@ def wpnfix(im, name, off):
         for x in range(W + 2 * M):
             c_ = BP[x * Z + Z // 2, y * Z + Z // 2]
             if c_ != (255, 0, 255): O[x, y] = c_ + (255,)
-    return o.crop(o.getbbox())
+    bb = o.getbbox()
+    return o.crop(bb), (gx + M - bb[0], gy + M - bb[1])
 
 
 def post(name):
@@ -79,7 +83,12 @@ def post(name):
     raw = Image.open(os.path.join(HERE, 'work', cls, f'{name}-pl-0.png')).convert('RGBA')
     clean = POL.unbg(raw); bb = clean.getbbox(); clean = clean.crop(bb)
     pol = POL.polish(clean.copy())                       # 손질 먼저 (무기 색이 14색 줄이기에 섞여 몸 색이 탁해지지 않게)
-    pol = wpnfix(pol, name, (bb[0] - 1, bb[1] - 1))     # polish 의 외곽선 1칸 여백만큼 원점이 옮겨짐
+    import fix as FX                                     # 검수 fix 판정 수리 (스크립트) — 직업별
+    for step in FIX.get(cls, ()):
+        pol = getattr(FX, step)(pol)
+    pol, g = wpnfix(pol, name, (bb[0] - 1, bb[1] - 1))  # polish 의 외곽선 1칸 여백만큼 원점이 옮겨짐
+    if cls in FIST: pol = FX.fist(pol, g)
+    pol = POL.quant(pol, 20)                             # 위 테 밝히기·무기 색으로 25~30색이 돼 색 경보(>24) → 마지막에 20색
     clean.save(os.path.join(PL, f'{name}-clean.png')); pol.save(os.path.join(PL, f'{name}-polish.png'))
     print(name, 'clean', clean.size, 'polish', pol.size)
 
