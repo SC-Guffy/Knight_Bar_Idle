@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VFX 다시 뽑기 계획</title>
+<style>
+  :root { --bg:#14161f; --card:#1d2030; --line:#2c3047; --fg:#e4e6ef; --dim:#8a90a8; --warn:#ffb648; --ok:#5fd38d; --blue:#7fb2ff; --bad:#ff6b6b; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.6 system-ui, sans-serif; }
+  main { max-width:1180px; margin:0 auto; padding:16px; }
+  h1 { font-size:19px; margin:0 0 4px; } h2 { font-size:15px; margin:22px 0 8px; }
+  .dim { color:var(--dim); }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+  .chip { font-size:12px; padding:1px 8px; border-radius:10px; background:#2a2e44; color:var(--dim); }
+  .chip b { color:var(--fg); }
+  .chip.ok { background:#1d3a2a; color:#a8f0c4; } .chip.warn { background:#4a3a1a; color:#ffd89a; } .chip.blue { background:#1d2c4a; color:#b8d4ff; }
+  .steps { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px; }
+  .step { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .step b { display:block; margin-bottom:2px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(540px, 1fr)); gap:10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .card h3 { margin:0; font-size:15px; display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .row { display:flex; gap:6px; align-items:center; margin-top:5px; overflow-x:auto; }
+  .row .lbl { width:40px; flex:none; color:var(--dim); font-size:11px; }
+  canvas { image-rendering:pixelated; flex:none; border-radius:3px; }
+  dl { display:grid; grid-template-columns:72px 1fr; gap:2px 8px; margin:8px 0 0; }
+  dt { color:var(--dim); } dd { margin:0; }
+  table { border-collapse:collapse; width:100%; font-size:12.5px; }
+  th, td { border-bottom:1px solid var(--line); padding:5px 6px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:600; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .wrap { overflow-x:auto; }
+  .calc { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .calc input { width:44px; background:#11131b; color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:1px 4px; }
+  @media (max-width:600px) { .grid { grid-template-columns:1fr; } main { padding:12px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>VFX 다시 뽑기 계획 — 품질 낮은 6장</h1>
+  <div class="dim">2026-10-16 · 스펙 <code>docs/specs/skill-vfx.md</code> "다시 뽑기 계획" · 승인 전에는 유료 호출 0회</div>
+  <div class="chips">
+    <span class="chip warn"><b>유료 상한 26회</b> (예상 8~14)</span>
+    <span class="chip">계정 잔량 <b>1,163</b> / 2,000 (10-16) · 안전 바닥 300</span>
+    <span class="chip ok">1단계 무료 <b>vfx_workbench</b> — k22·e18·k36</span>
+    <span class="chip blue">ComfyUI 는 Windows PC 에만 — 이 맥에서는 못 씀</span>
+  </div>
+
+  <h2>순서</h2>
+  <div class="steps">
+    <div class="step"><b>1. 무료 — vfx_workbench</b>PixelLab MCP 구독자 무료 도구. 부품(섬광·고리·파편·빛띠)을 내가 얹어 그린다. 단순한 모양 셋(k22·e18·k36)을 먼저.</div>
+    <div class="step"><b>2. 유료 — PixelLab</b>1단계로 기준을 못 넘은 것만. 키 그림 <code>create_image_pixen</code> 1회 → 애니 <code>animate-with-text-v3</code> 1회(4프레임). k37·k32 는 애니 2회.</div>
+    <div class="step"><b>3. 후처리 — 무료</b>로더가 검은 테·작은 검은 면을 벗긴다. 찌꺼기는 <code>clean.py</code>·<code>dedark.py</code>, 손질은 <code>pixelart_workbench</code>.</div>
+    <div class="step"><b>4. 확인</b>전수조사 측정 + <code>dev/skills.html</code> ★★★ 전후 캡처를 이 페이지에 붙여 사용자 확인.</div>
+  </div>
+  <p class="dim">공통 주문: 바탕 투명 · <b>외곽선 없음</b>(지난번 검은 테의 원인 <code>selective outline</code> 금지) · 몸은 중간~밝은 명암(밝기 0.3 미만 면적 10% 이하) · 작은 부스러기 대신 큰 덩어리 2~4개 · 프레임마다 같은 중심.</p>
+
+  <h2>시트별 — 지금 모습과 새 주문</h2>
+  <div class="dim" id="loading">게임 로더를 숨은 창에서 돌리는 중… (10초쯤)</div>
+  <div class="grid" id="grid"></div>
+
+  <h2>호출 수 상한</h2>
+  <div class="wrap"><table>
+    <thead><tr><th>시트</th><th>1단계</th><th class="num">키 ≤</th><th class="num">애니 ≤</th><th class="num">상한</th><th class="num">예상</th><th>상한에 닿으면</th></tr></thead>
+    <tbody id="budget"></tbody>
+  </table></div>
+  <div class="calc" style="margin-top:8px">
+    1단계(무료)로 해결되는 시트 수 <input id="freeN" type="number" min="0" max="3" value="3"> / 3 · 유료 다시 뽑기 횟수 <input id="retryN" type="number" min="0" max="12" value="3">
+    → 예상 유료 호출 <b id="est">-</b>회 (상한 26) · 끝난 뒤 잔량 약 <b id="left">-</b>회
+  </div>
+
+  <h2>실패 시 수리법</h2>
+  <div class="wrap"><table>
+    <thead><tr><th>실패</th><th>수리 (무료 먼저)</th><th>그래도 안 되면 (유료 1회)</th></tr></thead>
+    <tbody>
+      <tr><td>검은 테·검은 면이 남음</td><td>로더(전수조사 보강판)가 벗김, 남으면 <code>dedark.py</code></td><td>"no outline, light values" 강조해 키 다시</td></tr>
+      <tr><td>부스러기·조각</td><td><code>clean.py</code> 로 4픽셀 이하 덩어리 지우기, <code>pixelart_workbench</code> 로 메우기</td><td>키 다시</td></tr>
+      <tr><td>프레임마다 모양이 튐</td><td>키 그림 한 장만 쓰고 코드로 크기·알파·회전 재생 (W1 방식, 호출 0)</td><td>애니 다시</td></tr>
+      <tr><td>크기·비율 안 맞음</td><td>정수배 nearest 로 줄이고 남는 칸 자르기</td><td>—</td></tr>
+      <tr><td>e18 타일 이음매</td><td>좌우 4px 를 서로 섞기, 또는 가운데만 잘라 반복</td><td>workbench 로 다시 (무료)</td></tr>
+      <tr><td>직업색으로 칠하면 뭉개짐</td><td>흑백으로 명암 확인, 가장 어두운 단 면적이 크면 밝기 끌어올리기</td><td>키 다시</td></tr>
+      <tr><td>생성 오류·429</td><td>기다렸다 같은 요청 (거절된 요청은 세지 않는다)</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <p class="dim">상한에 닿은 시트는 지금 그림을 그대로 두고 보고한다. 호출 수는 응답 usage 합계로 센다 (계정 하나를 여러 세션이 같이 써서 잔량 차이로 세면 섞인다).</p>
+
+  <h2>수용 기준 (시트마다)</h2>
+  <ul>
+    <li>둘레 어두운 비율 0.15 미만 (직업색 시트 lowEdge · 원래 색 시트 rawEdgeDark — <a href="vfx-audit.html" style="color:var(--blue)">전수조사 페이지</a>와 같은 측정)</li>
+    <li>프레임당 4픽셀 이하 부스러기 1개 이하 · 로더가 벗겨 낸 비율 10% 미만</li>
+    <li><code>dev/skills.html</code> 에서 그 스킬 ★★★ 전후 캡처 — 사용자 확인</li>
+    <li>쓴 유료 호출이 시트 상한·합계 26 안</li>
+  </ul>
+</main>
+<iframe id="game" src="../skills.html" style="width:1px;height:1px;position:absolute;left:-9999px" title="게임 로더"></iframe>
+<script>
+const LEFT = 1163, CAP = 26;
+const PLAN = [
+  { id: 'k22', name: '다연장 사격 명중', where: 'src/jobs/arbalest.js texHit · 2/3배 · 0.24초', spec: '24×24 × 5', color: 'raw', stage: 'workbench', key: 2, anim: 2, cap: 4, est: 0,
+    bad: '색종이 같은 부스러기 — 무엇이 맞았는지 안 읽힌다', want: '흰·노랑 짧은 별 섬광(가운데) + 은회색 쇳조각 2~3개가 바깥으로 튐. 3프레임째 섬광이 줄고 4~5프레임에 쇳조각만 남아 사라짐' },
+  { id: 'e18', name: '용의 숨결 광선 타일', where: 'src/skills.js:1546 · 4/3배 · 가로로 이어 붙임', spec: '34×14 × 5 (루프)', color: '120,200,255', stage: 'workbench', key: 2, anim: 2, cap: 4, est: 0,
+    bad: '지글거리는 노이즈 띠', want: '흰 심 4px + 두 단 빛띠 + 굴러가는 물결 무늬. 좌우 끝이 정확히 이어지는 타일, 5프레임 루프' },
+  { id: 'k36', name: '차원 붕괴 막타', where: 'src/ult/dimensionCollapse.js:532 · 2배', spec: '64×64 × 5', color: '255,77,255', stage: 'workbench', key: 2, anim: 2, cap: 4, est: 0,
+    bad: '블랙홀이 검은 몸이라 벗기면 테두리만 남는다', want: '밝은 테 고리가 점으로 오그라듦 → 흰 섬광 → 고리 폭발. 블랙홀은 검정 대신 비운 가운데 + 밝은 테' },
+  { id: 'e14', name: '대검 돌진 격돌 땅 파임', where: 'src/jobs/greatswordsman.js:70·76 · 바닥 기준', spec: '64×32 × 5', color: '201,179,138', stage: '—', key: 2, anim: 2, cap: 4, est: 2,
+    bad: '뭉개진 흙 띠', want: '길게 갈라진 고랑(밝은 단면 윗선) + 큰 흙덩이 3개가 튀었다 떨어짐. 흙 질감이라 생성이 낫다' },
+  { id: 'k32', name: '용황 강림 막타', where: 'src/ult/dragonEmperor.js:107 · 바닥 기준', spec: '56×53 × 5', color: '255,110,200', stage: '—', key: 2, anim: 3, cap: 5, est: 3,
+    bad: '어두운 자홍 몸이 직업색 램프의 가장 어두운 단으로 뭉개진다', want: '불길로 이뤄진 용머리가 솟구쳐 터짐. 흑백으로 봐도 밝은 불이 되게 명암을 밝은 쪽에 몬다' },
+  { id: 'k37', name: '대공성포 막타', where: 'src/ult/siegeBarrage.js:134 · 2배 · 바닥 기준', spec: '64×64 × 5', color: 'raw', stage: '—', key: 2, anim: 3, cap: 5, est: 3,
+    bad: '요새 몸체가 조각조각 흩어져 보인다', want: '주황·흰 대폭발 + 큰 밝은 회색 돌덩이 3~4개가 무너져 내림 + 베이지 먼지구름. 검은 돌 금지' },
+];
+const BG = { light: '#b9c4d4', dark: '#232838' };
+function row(card, label, img, w, h, bg, z) {
+  const r = document.createElement('div'); r.className = 'row';
+  const l = document.createElement('span'); l.className = 'lbl'; l.textContent = label; r.appendChild(l);
+  const c = document.createElement('canvas'); c.width = w * z; c.height = h * z;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  if (bg) { g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height); }
+  else for (let y = 0; y < c.height; y += 8) for (let x = 0; x < c.width; x += 8) { g.fillStyle = ((x + y) / 8) % 2 ? '#3a3f55' : '#2e3246'; g.fillRect(x, y, 8, 8); }
+  g.drawImage(img, 0, 0, w, h, 0, 0, c.width, c.height);
+  r.appendChild(c); card.appendChild(r);
+}
+function budget() {
+  const tb = document.getElementById('budget'); tb.innerHTML = '';
+  let cap = 0, est = 0;
+  for (const p of PLAN) {
+    cap += p.cap; est += p.est;
+    tb.insertAdjacentHTML('beforeend', `<tr><td><b>${p.id}</b> ${p.name}</td><td>${p.stage === 'workbench' ? '무료 workbench' : '—'}</td><td class="num">${p.key}</td><td class="num">${p.anim}</td><td class="num">${p.cap}</td><td class="num">${p.est}${p.stage === 'workbench' ? ' (실패 시 2)' : ''}</td><td>지금 그림 유지 + 보고</td></tr>`);
+  }
+  tb.insertAdjacentHTML('beforeend', `<tr><td><b>합계</b></td><td></td><td></td><td></td><td class="num"><b>${cap}</b></td><td class="num"><b>8~14</b></td><td></td></tr>`);
+  const upd = () => {
+    const free = Math.max(0, Math.min(3, +document.getElementById('freeN').value || 0)), retry = Math.max(0, +document.getElementById('retryN').value || 0);
+    const base = 2 + 3 + 3;   // e14·k32·k37 키 + 애니
+    const e = Math.min(CAP, base + (3 - free) * 2 + retry);
+    document.getElementById('est').textContent = e;
+    document.getElementById('left').textContent = (LEFT - e).toLocaleString();
+  };
+  document.getElementById('freeN').oninput = upd; document.getElementById('retryN').oninput = upd; upd();
+}
+async function main() {
+  budget();
+  const win = document.getElementById('game').contentWindow, SHEETS = () => { try { return win.eval('VFX_SHEETS'); } catch (e) { return null; } };
+  await new Promise(r => { let last = -1, still = 0; const t = setInterval(() => { try { const S = SHEETS(), n = S ? Object.keys(S).length : 0;
+    if (S && n === last && Object.values(S).every(s => s.lv)) { if (++still >= 10) { clearInterval(t); r(); } } else still = 0; last = n; } catch (e) {} }, 200); });
+  document.getElementById('loading').remove();
+  const S = SHEETS(), grid = document.getElementById('grid');
+  for (const p of PLAN) {
+    const s = S[p.id], card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = `<h3>${p.id} <span class="dim" style="font-size:13px;font-weight:400">${p.name}</span> <span class="chip">${p.spec}</span> <span class="chip">${p.color === 'raw' ? '원래 색' : '직업색'}</span> <span class="chip warn">유료 ≤ ${p.cap}</span></h3>`;
+    const z = s.w * 3 <= 520 ? 3 : 2;
+    row(card, '원본', s.img, s.w, s.h, null, z);
+    const cv = win.vfxSheet(p.id, p.color === 'raw' ? 'raw' : p.color);
+    row(card, '게임', cv, s.w, s.h, BG.light, z);
+    row(card, '게임', cv, s.w, s.h, BG.dark, z);
+    card.insertAdjacentHTML('beforeend', `<dl><dt>쓰는 곳</dt><dd><code>${p.where}</code></dd><dt>문제</dt><dd>${p.bad}</dd><dt>새 그림</dt><dd>${p.want}</dd><dt>1단계</dt><dd>${p.stage === 'workbench' ? '무료 vfx_workbench 로 먼저 — 기준을 넘으면 유료 0회' : '바로 2단계 (키 1 + 애니 ' + (p.anim - 1) + ')'}</dd></dl>`);
+    grid.appendChild(card);
+  }
+}
+main();
+</script>
+</body>
+</html>
