@@ -12,7 +12,7 @@ const vm = require('vm'), fs = require('fs'), path = require('path'), cp = requi
 const { simulateDuel } = require('../server/duel');
 const { mentorProfile } = require('../server/mentor');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['data', 'classes', 'fighter-data', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'castle', 'core'];
+const FILES = ['data', 'classes', 'tree7', 'fighter-data', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'castle', 'core'];
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140, 160, 180];
 const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'];
 const TOWER_TOMES_PER_DAY = 4;

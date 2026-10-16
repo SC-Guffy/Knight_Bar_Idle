@@ -252,7 +252,7 @@ function tryCastSkill(st, target, only = null) {
   const qi = qiOn();       // 파이터 계열: 기 게이지가 소모량(투지 칸이 문턱) 이상이면 쓴다 — 투지 기술 먼저 (src/jobs/fighter.js)
   for (const id of qi ? qiOrder(st) : st.skills) {
     if ((qi ? !qiCan(id, !!only) : (knight.cds[id] || 0) > 0) || (only && id !== only)) continue;
-    const k0 = qi ? qiShape(id, skillAt(id, skillLv(id), skillStage(id))) : skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
+    const k0 = qi ? qiShape(id, skillAt(id, skillLv(id), skillStage(id))) : heroSkill(id), fx = SKILL_FX[id];   // heroSkill: 시즌7 트리 변형까지 (core.js)
     // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 · 고유 특수 (core.js skillRight · skillSpec, 종류는 classes.js SPEC_TYPES)
     const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward'), sp = skillSpec(id);
     const spT = (t) => (sp && sp.type === t ? sp.v : 0);     // 이 스킬의 특수가 t 종류면 지금 값, 아니면 0
@@ -277,7 +277,7 @@ function tryCastSkill(st, target, only = null) {
     knight.swing = -1;
     let focus = target;
     const a = {
-      cls: S.cls, dir: 1, star: skillStage(id), ...(k0.q3 ? { kOver: k0, q3: true } : {}),
+      cls: S.cls, dir: 1, star: skillStage(id), ...(k0.q3 ? { kOver: k0, q3: true } : t7Has(id) ? { kOver: k0 } : {}),
       x: () => toScreen(knight.x),
       tx: () => toScreen(focus.x) + focus.kb,
       ty: () => monsterMidY(focus),
@@ -2856,6 +2856,8 @@ const SKILL_FX = {
     kb: 4,
   },
 };
+// 시즌7 트리의 새 스킬은 3단계 연출 전까지 같은 계열 스킬의 연출을 빌린다 (src/tree7.js T7_FX_BASE)
+if (typeof T7_FX_BASE !== 'undefined') for (const [id, b] of Object.entries(T7_FX_BASE)) if (!SKILL_FX[id]) SKILL_FX[id] = SKILL_FX[b];
 
 // ───────────────────────── 그리기 ─────────────────────────
 function drawSkillFx() {

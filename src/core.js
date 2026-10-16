@@ -40,6 +40,7 @@ function freshState() {
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed, 차수별 곡선)
     mastV: 12,                              // 12: 궁극기 별도 숙련도 · 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    t7: freshT7(),                          // 시즌7 스킬 빌드 트리 (src/tree7.js) — 검사 계열 시제품: 찍은 칸·장착·장착 칸 수·고른 모습
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
@@ -331,16 +332,20 @@ function stats(base = false) {
   if (dg) atk *= 1 + dg.atk;
   // 🏰 성벽 지키기 안 배율 (castle.js castleFx — 🚩 군기). 랭킹·결투용(base)에는 넣지 않는다
   if (!base && castleActive()) atk *= 1 + castleFx().atk;
-  return {
+  const out = {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
     // 받는 피해 감소: 직업·장비(최대 60%)와 방어 훈련을 곱으로 합친다 (최대 85%)
     guard: Math.min(dg ? 0.95 : 0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed) * (dg ? Math.max(0.2, 1 + dg.taken) : 1)), defRed,
     heal: Math.min(0.1, (m.heal || 0) + gb.heal), skills: unlockedSkills(),
   };
+  return t7On() ? t7Stats(out) : out;   // 시즌7 트리의 스탯·키스톤 (src/tree7.js)
 }
 // 지금 레벨에서 쓸 수 있는 스킬 id (먼저 쓸 순서 = 해금 레벨 높은 순)
-const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id);
+// 시즌7 트리 캐릭터는 장착 칸의 스킬 + 궁극기만 (src/tree7.js t7Skills)
+const unlockedSkills = () => (t7On() ? t7Skills() : skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id));
+// 시즌7 트리가 이 스킬을 맡는가 (그 줄기 캐릭터의 트리 스킬)
+const t7Has = (id) => t7On() && !!T7_BY_SKILL[id];
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[id] || 0, skillTierOf(id)).lv;
@@ -366,14 +371,18 @@ function skillBonus(id) {
   return b;
 }
 // V2 오른쪽 효과의 지금 값 (쿨타임 비율·치명 확률·흡혈 비율·철벽 감소율). V1 스킬은 0
-const skillRight = (id, key) => rightVal(SKILLS[id], key, skillBonus(id));
+const skillRight = (id, key) => (t7Has(id) ? 0 : rightVal(SKILLS[id], key, skillBonus(id)));
 // 고유 특수(classes.js SPEC_TYPES)의 지금 상태 { type, v 지금 값, ...k.spec 인자 } — 한 칸도 안 찍었으면 null
-const skillSpec = (id) => { const k = SKILLS[id], v = k.spec ? skillRight(id, 'spec') : 0; return v ? { ...k.spec, v } : null; };
+const skillSpec = (id) => { if (t7Has(id)) return t7Spec(id); const k = SKILLS[id], v = k.spec ? skillRight(id, 'spec') : 0; return v ? { ...k.spec, v } : null; };
 const skillStar = (id) => skillBonus(id).star;
-const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
+const skillStage = (id) => (t7Has(id) ? t7Stage(id) : Math.min(skillStar(id), treeOf(id).use));
+// 내 기사가 지금 쓰는 기술 모양 (숙련 모습 + 시즌7 트리 변형). 전투·DPS·프로필이 모두 이것을 쓴다
+const heroSkill = (id) => (t7Has(id) ? t7Shape(id, skillAt(id, 1, t7Stage(id))) : skillAt(id, skillLv(id), skillStage(id)));
+// 평균 피해 환산 배율 (결투·레이드 프로필 · 전투력 dpsOf): 고유 특수 ev (트리는 근사 효과 포함)
+const skillEv = (id) => (t7Has(id) ? t7Ev(id) : specEv(SKILLS[id], skillBonus(id)));
 // 🎲 스킬 피해 옵션은 한 방 위력에 곱한다 (필드·결투·레이드가 모두 이 값을 쓴다)
-const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id)) * (1 + gearBonus().skillDmg);
-const skillCd = (id) => (SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
+const skillPow = (id) => (t7Has(id) ? skillPowAt(SKILLS[id], 1, S.cls, {}) * t7Pow(id) : skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id))) * (1 + gearBonus().skillDmg);
+const skillCd = (id) => (t7Has(id) ? Math.round(skillCdOf(SKILLS[id], 1, S.cls, {}) * t7Cd(id) * 10) / 10 : SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
 // 파이터 계열 등가 쿨타임에 쓰는 공속·치명 (장비 포함, stats() 와 같은 식 — dpsOf 안에서 stats 를 다시 부르지 않게)
 const qiStats = () => { const m = heroClass().mods, gb = gearBonus(); return { aspd: 0.9 * (m.aspd || 1) * (1 + gb.aspdPct), crit: Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit) }; };
 // 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
@@ -438,7 +447,7 @@ const canLevelSkill = () => skillsOf(S.cls).some((k) => {
 // 진화한 모습(별 단계)이 0단계보다 오래 시전하면 그동안 못 친 평타 피해만큼 스킬 피해를 얹는다 — 진화는 모습만 바뀌고 손해가 없게.
 //  돌려주는 값은 스킬 한 번의 피해 배율 (dpsOf·profile·skills.js 시전이 같이 쓴다)
 function stageComp(id, st) {
-  const k = skillAt(id, skillLv(id), skillStage(id)), lost = k.dur - skillAt(id, skillLv(id), 0).dur;
+  const k = heroSkill(id), lost = k.dur - skillAt(id, t7Has(id) ? 1 : skillLv(id), 0).dur;
   if (lost <= 0) return 1;
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
   const cast = (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id);
@@ -449,12 +458,12 @@ function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
   let busy = 0, extra = 0;
   for (const id of st.skills || []) {
-    const k = skillAt(id, skillLv(id), skillStage(id));
+    const k = heroSkill(id);
     const cd = skillCd(id), cp = skillRight(id, 'crit');
     busy += k.dur / cd;
     const hitV = k.crit ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
     // 고유 특수는 평균 피해로 환산해 넣는다 (classes.js specEv — 처형·보스 등 상황형은 일부만, 기절·골드 같은 운영형은 0)
-    extra += hitV * skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) * stageComp(id, st) / cd;
+    extra += hitV * skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st) / cd;
   }
   // 고유 발동 효과(투척·불기둥 등)는 평균 피해 배율로 (gear.js procAtkEv)
   return (perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra) * procAtkEv();
@@ -479,12 +488,12 @@ function profile() {
     // 서버는 스킬을 앞에서 3개만 받는다(server/index.js sanitizeProfile). 파이터 계열 3차는 [궁극기·투지·원투·주 기술] 순이라 주 기술이 잘리면
     // 기를 쓰지 않아 투지도 멈춘다 → 물려받은 원투(1차)를 맨 뒤로 보내 그것이 빠지게 한다 (다른 3차도 1차 스킬이 빠진다)
     skills: (isQiCls(S.cls) ? [...st.skills.filter((id) => SKILLS[id].cls !== 'fighter' || S.cls === 'fighter'), ...st.skills.filter((id) => SKILLS[id].cls === 'fighter' && S.cls !== 'fighter')] : st.skills).map((id) => {
-      const k = skillAt(id, skillLv(id), skillStage(id));
+      const k = heroSkill(id);
       // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
       // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다.
       // 고유 특수(spec)는 서버가 모르는 상황형 효과라 평균 피해 배율(classes.js specEv)로 환산해 mult 에 녹인다 — 결투·레이드에선 그만큼 세진 한 방
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
-      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) * stageComp(id, st), crit: !!k.crit,
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st), crit: !!k.crit,
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
         ...(k.qi && isQiCls(S.cls) ? { [qiIsMain(id, S.cls) ? 'cost' : 'need']: qiCostOf(SKILLS[id], S.cls, skillBonus(id)), ...(id === 'palmBlast' ? { m3: QI_PALM3 } : {}), ...(k.ult ? { awaken: 1 } : {}),
           ...(k.ward && k.ward.qiHurt ? { qiHurt: k.ward.qiHurt } : {}) } : {}),
@@ -776,6 +785,7 @@ function startExpedition({ charm = false, elixir = false } = {}) {
   S.run.kills = 0; S.run.farm = false; S.run.cleared = false;
   S.hp = stats().maxHp;
   S.phase = 'expedition';
+  t7EndCamp();   // 시즌7 트리: 이번 캠프에서 찍은 칸의 무료 되돌리기가 끝난다
   return true;
 }
 

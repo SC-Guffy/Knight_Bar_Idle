@@ -91,6 +91,22 @@
   <div class="card"><h3>보스 벽 · 비전서 없앰</h3><p>10·20칸 보스에 기믹(보호막·졸개·광폭화·장판)을 붙여 빌드로 뚫는 벽으로. 📖 수급처는 경험치로 바꾼다.</p></div>
 </div>
 
+<h2>1단계 측정 (impl-skill-tree, 2026-10-17)</h2>
+<p class="sub">게임 코드(src/tree7.js)를 넣고 봇으로 잰 값. 검사→검성→검신 줄기 15시드 × 10일 중앙값, <code>node dev/lifespan-bot.js --line swordsaint --build a|b|k</code> · 지금 시스템은 <code>--old 1</code>. 보스 벽(4단계)은 아직 없음.</p>
+<div class="scroll"><table>
+<tr><th>열심</th><th>1일 스테이지 · 트리%</th><th>3일 스테이지 · 트리%</th><th>5일 스테이지 · 트리%</th><th>7일 스테이지 · 트리%</th><th>10일 스테이지 · 트리%</th></tr>
+<tr><td>지금 시스템</td><td>60</td><td>122</td><td>169</td><td>217</td><td>260</td></tr>
+<tr><td>⚡ 연타 빌드</td><td>77 · 33%</td><td>138 · 55%</td><td>194 · 74%</td><td>240 · 91%</td><td>260 · 97%</td></tr>
+<tr><td>🗡️ 발도 빌드</td><td>78 · 33%</td><td>138 · 55%</td><td>191 · 73%</td><td>233 · 88%</td><td>260 · 94%</td></tr>
+<tr><td>🌙 검기 빌드</td><td>79 · 34%</td><td>136 · 55%</td><td>189 · 73%</td><td>220 · 85%</td><td>272 · 100%</td></tr>
+<tr><th>가벼운</th><th>1일 스테이지 · 트리%</th><th>3일 스테이지 · 트리%</th><th>5일 스테이지 · 트리%</th><th>7일 스테이지 · 트리%</th><th>10일 스테이지 · 트리%</th></tr>
+<tr><td>지금 시스템</td><td>40</td><td>100</td><td>148</td><td>174</td><td>218</td></tr>
+<tr><td>⚡ 연타 빌드</td><td>49 · 16%</td><td>100 · 41%</td><td>152 · 57%</td><td>188 · 70%</td><td>234 · 85%</td></tr>
+<tr><td>🗡️ 발도 빌드</td><td>48 · 16%</td><td>100 · 41%</td><td>158 · 59%</td><td>180 · 69%</td><td>220 · 81%</td></tr>
+<tr><td>🌙 검기 빌드</td><td>49 · 16%</td><td>100 · 41%</td><td>150 · 57%</td><td>180 · 70%</td><td>219 · 81%</td></tr>
+</table></div>
+<p>새 트리가 지금 시스템보다 열심 3~7일차 약 +13%, 10일차는 같음(260). 세 빌드의 10일차 스테이지 차이 ±5~7%. 트리 위력 눈금 0.4 · 줄기 스탯은 시안의 절반으로 맞췄다(처음 값은 1일차 스테이지 60 → 90 으로 너무 셌다).</p>
+
 <h2>시제품 구현 스펙 요지 (검사 → 검성 → 검신)</h2>
 <p class="sub">전문: docs/specs/skill-tree-swordsaint.md · 2026-10-16 초안, 사용자 확인 대기</p>
 <div class="grid">
@@ -187,11 +203,11 @@
 // 2026-10-17 개편 (사용자 동의: A 보이는 변화 밀도 · B 갈래별 택1 · C 미리 보기):
 //  액티브 10칸 → 5칸(칸마다 모습이 바뀜) · 스탯은 줄기 5개 × 3칸만 · 갈래 스탯 노드(손놀림·집중력·검압)는 보이는 변형 택1 쌍으로 · 숫자형 변형(잔영)도 보이게
 const N = [
-  { id: 'c_atk', n: '단련', t: 'stat', x: 0, y: 2.5, lane: 'c', tier: 0, req: [], d: '공격력 +4% / 칸', ic: 'muscle' },
-  { id: 'c_hp', n: '강인함', t: 'stat', x: 0, y: 3.5, lane: 'c', tier: 0, req: [], d: '체력 +5% / 칸', ic: 'heart' },
-  { id: 'c_spd', n: '날렵함', t: 'stat', x: 1, y: 2, lane: 'c', tier: 0, req: ['c_atk'], d: '공격 속도 +4% / 칸', ic: 'boot' },
-  { id: 'c_crit', n: '급소', t: 'stat', x: 1, y: 3.5, lane: 'c', tier: 0, req: ['c_hp'], d: '치명 확률 +3% / 칸', ic: 'target' },
-  { id: 'c_def', n: '철벽', t: 'stat', x: 1, y: 4.5, lane: 'c', tier: 0, req: ['c_hp'], d: '받는 피해 −3% / 칸', ic: 'shield' },
+  { id: 'c_atk', n: '단련', t: 'stat', x: 0, y: 2.5, lane: 'c', tier: 0, req: [], d: '공격력 +2% / 칸', ic: 'muscle' },
+  { id: 'c_hp', n: '강인함', t: 'stat', x: 0, y: 3.5, lane: 'c', tier: 0, req: [], d: '체력 +3% / 칸', ic: 'heart' },
+  { id: 'c_spd', n: '날렵함', t: 'stat', x: 1, y: 2, lane: 'c', tier: 0, req: ['c_atk'], d: '공격 속도 +2% / 칸', ic: 'boot' },
+  { id: 'c_crit', n: '급소', t: 'stat', x: 1, y: 3.5, lane: 'c', tier: 0, req: ['c_hp'], d: '치명 확률 +1.5% / 칸', ic: 'target' },
+  { id: 'c_def', n: '철벽', t: 'stat', x: 1, y: 4.5, lane: 'c', tier: 0, req: ['c_hp'], d: '받는 피해 −2% / 칸', ic: 'shield' },
   { id: 'slash', n: '강철 베기', t: 'active', x: 2, y: 3, lane: 'c', tier: 1, req: ['c_atk', 'c_hp'], ic: 'sk-steelCleave', sk: 'steelCleave', cls: 'swordsman',
     looks: ['강철 베기', '강철 검풍', '강철 검풍 (범위 +20%)', '강철 대검', '천강검'], d: '1차 스킬 (검사 계열 공용 줄기). 앞을 크게 내려벤다.', a: '지금 그림 (★ 진화 모습 그대로)' },
   { id: 's_twin', n: '2연참', t: 'mod', x: 3, y: 2.5, lane: 'c', tier: 1, req: ['slash'], d: '강철 베기가 한 번 더 반대로 벤다 (두 번째 타 60%)', a: '같은 궤적 좌우 반전' },

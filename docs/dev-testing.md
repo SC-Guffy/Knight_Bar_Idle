@@ -91,3 +91,8 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - 오른쪽 위 **시험 상태 넣기** (= 콘솔 `preset()`): 기사1 탑 · 기사2 원정 · 기사3 미궁 · 기사4 성벽 · 기사5 원정, 공용 🪙 +100만. 왼쪽 위 슬롯 칩으로 전환.
 - 상태 보기: 콘솔 `gS(frames[0])` (그 기사의 S), `frames[0].win.guildDbg` (clock·knight.x·몬스터 수).
 - 숨은 브라우저 창은 rAF 가 멈춘다 → 자동 측정은 `&drive=mc` (MessageChannel 로 약 60/s 구동). 프레임 수치는 실제로 보이는 창에서 rAF 로 잰 것만 믿는다.
+
+## 시즌7 스킬 빌드 트리 시제품 (검사 계열, `src/tree7.js`)
+
+- 봇 측정: `node dev/lifespan-bot.js --days 10 --seeds 15 --mode heavy|casual --line swordsaint --build a|b|k --out x.json` (a 연타 · b 발도 · k 검기). 지금 시스템과 비교는 `--old 1`, 트리 위력 눈금 바꿔 보기는 `--tune 0.4`. 결과 `snaps[].t7` = 찍은 트리 비율. 스펙 [specs/skill-tree-swordsaint.md](specs/skill-tree-swordsaint.md).
+- 게임에서 (오프라인, 2단계 UI 전): 콘솔 `S.cls='swordsaint'; S.level=160; S.best=S.stage=150; S.gold=1e30; S.mats.mana=5000; S.t7.pick=true; t7AutoSpend('a'); stats().skills` → 장착 스킬 확인. 숨은 창이면 `for (let i=0;i<2400;i++) update(1/30)` 으로 원정을 직접 돌린다.
