@@ -2095,6 +2095,17 @@ function onRaidResult(result) {
   save();
   pushSave();
   raidUi.queued = result;
+  // 기사단: 안 보고 있는 기사는 재생을 건너뛰고 바로 정산한다 (docs/specs/guild.md 3. 동시 진행) — 토스트는 바깥 페이지가 "닉네임 …" 으로 띄우고 슬롯에 레드닷
+  if (GUILD_FULL && !guildShown) {
+    raidUi.queued = null;
+    const L = applyRaid();
+    if (L) {
+      save(); pushSave();
+      raidUi.revealed = []; raidUi.showResult = true;   // 이 기사로 바꿔 캠프를 열면 레이드 탭에 정산이 보인다
+      toast(`🐉 ${RAID_BOSSES[result.boss].name} 레이드 ${L.won ? '승리' : '패배'} — 이 기사로 가서 캠프 레이드 탭에서 보상 상자를 열어요`, 6000);
+    }
+    return;
+  }
   if (S.phase !== 'camp' || acctOpen) {
     toast(`🐉 ${RAID_BOSSES[result.boss].name} 레이드 전투가 끝났어요 — 캠프로 돌아가면 전투를 보고 보상을 받아요`, 6000);
     return;
