@@ -1,0 +1,292 @@
+{
+ "used": 69.0,
+ "calls": [
+  {
+   "cls": "striker",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 724.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 723.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 722.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 721.0
+  },
+  {
+   "cls": "champion",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 720.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 719.0
+  },
+  {
+   "cls": "grandmaster",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 718.0
+  },
+  {
+   "cls": "champion",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64b: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 711.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/image-to-pixelart",
+   "purpose": "ref64b: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 710.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelA: /animate-with-skeleton-v3",
+   "used": 4.0,
+   "bal": 700.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelA: /animate-with-skeleton-v3",
+   "used": 4.0,
+   "bal": 693.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelA: /animate-with-skeleton-v3",
+   "used": 4.0,
+   "bal": 689.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelA: /animate-with-skeleton-v3",
+   "used": 4.0,
+   "bal": 685.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelA: /animate-with-skeleton-v3",
+   "used": 4.0,
+   "bal": 675.0
+  },
+  {
+   "cls": "grandmaster",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelA: /animate-with-skeleton-v3",
+   "used": 4.0,
+   "bal": 671.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelW: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 668.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelW: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 665.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelW: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 662.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelW: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 659.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelW (중단 — 결과 못 받음, 잔량 659→656 으로 차감 추정)",
+   "used": 3.0,
+   "bal": 656.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK1: the same character walking to the right mid-stride, left leg stepping ",
+   "used": 1.0,
+   "bal": 656.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/edit-image-pixen",
+   "purpose": "sit: the same character sitting on the ground resting with legs crossed, ha",
+   "used": 1.0,
+   "bal": 655.0
+  },
+  {
+   "cls": "striker",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK2: the same character walking to the right mid-stride, right leg stepping",
+   "used": 1.0,
+   "bal": 653.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK1: the same character walking to the right mid-stride, left leg stepping ",
+   "used": 1.0,
+   "bal": 652.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK2: the same character walking to the right mid-stride, right leg stepping",
+   "used": 1.0,
+   "bal": 652.0
+  },
+  {
+   "cls": "kickboxer",
+   "ep": "/edit-image-pixen",
+   "purpose": "sit: the same character sitting on the ground resting with legs crossed, ha",
+   "used": 1.0,
+   "bal": 651.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK1: the same character walking to the right mid-stride, left leg stepping ",
+   "used": 1.0,
+   "bal": 650.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK2: the same character walking to the right mid-stride, right leg stepping",
+   "used": 1.0,
+   "bal": 648.0
+  },
+  {
+   "cls": "qigong",
+   "ep": "/edit-image-pixen",
+   "purpose": "sit: the same character sitting on the ground resting with legs crossed, ha",
+   "used": 1.0,
+   "bal": 647.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK1: the same character walking to the right mid-stride, left leg stepping ",
+   "used": 1.0,
+   "bal": 646.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK2: the same character walking to the right mid-stride, right leg stepping",
+   "used": 1.0,
+   "bal": 645.0
+  },
+  {
+   "cls": "fighter",
+   "ep": "/edit-image-pixen",
+   "purpose": "sit: the same character sitting on the ground resting with legs crossed, ha",
+   "used": 1.0,
+   "bal": 644.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK1: the same character walking to the right mid-stride, left leg stepping ",
+   "used": 1.0,
+   "bal": 643.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK2: the same character walking to the right mid-stride, right leg stepping",
+   "used": 1.0,
+   "bal": 642.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-image-pixen",
+   "purpose": "sit: the same character sitting on the ground resting with legs crossed, ha",
+   "used": 1.0,
+   "bal": 641.0
+  },
+  {
+   "cls": "grandmaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK1: the same character walking to the right mid-stride, left leg stepping ",
+   "used": 1.0,
+   "bal": 640.0
+  },
+  {
+   "cls": "grandmaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkK2: the same character walking to the right mid-stride, right leg stepping",
+   "used": 1.0,
+   "bal": 639.0
+  },
+  {
+   "cls": "grandmaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "sit: the same character sitting on the ground resting with legs crossed, ha",
+   "used": 1.0,
+   "bal": 638.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-image-pixen",
+   "purpose": "kickC: the same character in a fighting stance raising one knee high in front",
+   "used": 1.0,
+   "bal": 637.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-image-pixen",
+   "purpose": "kickF: the same character doing a strong straight front push kick, the front ",
+   "used": 1.0,
+   "bal": 636.0
+  },
+  {
+   "cls": "tempest",
+   "ep": "/edit-image-pixen",
+   "purpose": "kickR: the same character doing a high roundhouse kick, the leg fully extende",
+   "used": 1.0,
+   "bal": 635.0
+  }
+ ]
+}

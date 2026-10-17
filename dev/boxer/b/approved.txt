@@ -1,0 +1,47 @@
+# 로드맵 승인 2026-10-17: 파이터 7종 새 그림체, 상한 80, 재시도 0. 디자인 정리 image-to-pixelart 직업당 최대 1
+striker/ref64
+kickboxer/ref64
+qigong/ref64
+fighter/ref64
+champion/ref64
+tempest/ref64
+grandmaster/ref64
+# 2라운드 (비평 r1 fix: 챔피언·템페스트 새 시안 정리, 계획서 여유분)
+champion/ref64b
+tempest/ref64b
+# 관절 애니 (계획서: 직업당 15f 묶음 1 + 걷기 8f 1, 챔피언은 디자인 미달로 멈춤)
+striker/skelA
+striker/skelW
+kickboxer/skelA
+kickboxer/skelW
+qigong/skelA
+qigong/skelW
+fighter/skelA
+fighter/skelW
+tempest/skelA
+tempest/skelW
+grandmaster/skelA
+grandmaster/skelW
+striker/sit
+kickboxer/sit
+qigong/sit
+fighter/sit
+tempest/sit
+grandmaster/sit
+# 걷기 대안 (skeleton 걷기 4종이 등 돌림 → pixen 키 자세 2장, 계획서 대안)
+striker/walkK1
+striker/walkK2
+kickboxer/walkK1
+kickboxer/walkK2
+qigong/walkK1
+qigong/walkK2
+fighter/walkK1
+fighter/walkK2
+tempest/walkK1
+tempest/walkK2
+grandmaster/walkK1
+grandmaster/walkK2
+# 템페스트 평타 대안 (anim 비평 3회 미달 → pixen 키 자세, 계획서 대안)
+tempest/kickC
+tempest/kickF
+tempest/kickR

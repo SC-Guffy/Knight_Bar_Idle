@@ -65,6 +65,29 @@
     <li>스킬 시험장: <a href="../skills.html?cls=fighter&skill=oneTwo&stage=1">원투 스트레이트 ★</a> · <a href="../skills.html?mode=basic&cls=fighter">파이터 평타</a></li>
     <li>실제 게임(오프라인): <a href="../../index.html?server=http://127.0.0.1:9">index.html?server=http://127.0.0.1:9</a> → 8초 뒤 콘솔에서 <code>dev/boxer/preset.js</code> 를 불러 <code>boxerPreset('fighter')</code> · <code>boxerWatch()</code></li>
   </ul>
+  <h3>◆ 새 그림체 (그림체 B · 키 46, 2026-10-17) — 6종, 꺼진 채 푸시</h3>
+  <p>지금 시트(위)와 새 시트(아래). 켜서 보기: <a href="../skills.html?mode=basic&cls=striker&sheetsOn=fighterB,strikerB,kickboxerB,qigongB,tempestB,grandmasterB">시험장 평타</a> · <a href="../skills.html?cls=kickboxer&skill=spinKick&stage=1&sheetsOn=fighterB,strikerB,kickboxerB,qigongB,tempestB,grandmasterB">회전 발차기</a> · 게임은 주소에 <code>&amp;sheetsOn=fighterB,strikerB,kickboxerB,qigongB,tempestB,grandmasterB</code>. 켜기 스위치 <code>src/sprites.js SHEET_ON.&lt;직업&gt;B</code>. 챔피언은 디자인 2라운드 미달(갈기가 얼굴을 가림)로 지금 시트 유지.</p>
+  <div class="gallery">
+    <figure><img class="pix" src="../boxer/b/preview/lineup.png"><figcaption>위: 지금(키 35) · 가운데: 새 가드 · 아래: 새 대기</figcaption></figure>
+    <figure><img class="pix" src="../boxer/b/preview/lineup-sil.png"><figcaption>같은 것 흑백 실루엣</figcaption></figure>
+    <figure><img class="pix" src="../boxer/b/preview/fighter-atkA.gif"><img class="pix" src="../boxer/b/preview/fighter-atkB.gif"><img class="pix" src="../boxer/b/preview/fighter-walk.gif"><figcaption>파이터 — 평타A · 평타B · 걷기</figcaption></figure>
+    <figure><img class="pix" src="../boxer/b/preview/striker-atkA.gif"><img class="pix" src="../boxer/b/preview/striker-atkB.gif"><img class="pix" src="../boxer/b/preview/striker-walk.gif"><figcaption>스트라이커 — 평타A · 평타B · 걷기</figcaption></figure>
+    <figure><img class="pix" src="../boxer/b/preview/kickboxer-atkA.gif"><img class="pix" src="../boxer/b/preview/kickboxer-atkB.gif"><img class="pix" src="../boxer/b/preview/kickboxer-walk.gif"><figcaption>킥복서 — 평타A · 평타B · 걷기</figcaption></figure>
+    <figure><img class="pix" src="../boxer/b/preview/qigong-atkA.gif"><img class="pix" src="../boxer/b/preview/qigong-atkB.gif"><img class="pix" src="../boxer/b/preview/qigong-walk.gif"><figcaption>기공사 — 평타A · 평타B · 걷기</figcaption></figure>
+    <figure><img class="pix" src="../boxer/b/preview/tempest-atkA.gif"><img class="pix" src="../boxer/b/preview/tempest-atkB.gif"><img class="pix" src="../boxer/b/preview/tempest-walk.gif"><figcaption>템페스트 — 평타A · 평타B · 걷기</figcaption></figure>
+    <figure><img class="pix" src="../boxer/b/preview/grandmaster-atkA.gif"><img class="pix" src="../boxer/b/preview/grandmaster-atkB.gif"><img class="pix" src="../boxer/b/preview/grandmaster-walk.gif"><figcaption>그랜드마스터 — 평타A · 평타B · 걷기</figcaption></figure>
+  </div>
+  <table>
+    <tr><th>직업</th><th>디자인</th><th>평타</th><th>걷기+앉기</th><th>비고</th></tr>
+    <tr><td>파이터</td><td>4.14</td><td>3.86</td><td>3.86</td><td>잽 = 스크립트(먼 팔)</td></tr>
+    <tr><td>스트라이커</td><td>3.71</td><td>4.0</td><td>3.86</td><td>잽 = 스크립트(먼 팔)</td></tr>
+    <tr><td>킥복서</td><td>3.57</td><td>3.86</td><td>3.86</td><td></td></tr>
+    <tr><td>기공사</td><td>4.14</td><td>3.86</td><td>3.71</td><td></td></tr>
+    <tr><td>템페스트</td><td>3.86 (2라운드)</td><td>3.71 (4회차)</td><td>4.14</td><td>skeleton 차기 3회 미달 → 키 자세 3장</td></tr>
+    <tr><td>그랜드마스터</td><td>3.57</td><td>3.57</td><td>4.0</td><td>후광 스크립트</td></tr>
+    <tr><td>챔피언</td><td>3.29 ×2 미달</td><td>—</td><td>—</td><td>멈춤 (지금 시트)</td></tr>
+  </table>
+  <p>PixelLab 사용 69 / 상한 80 (기록 <code>dev/boxer/b/usage.md</code>). 걷기 skeleton 은 4종이 뒷모습으로 돌아 버리고(15) pixen 키 자세 2장으로 바꿨다.</p>
   <h3>2026-10-15 결정 반영 — 원투 과장 · 템페스트 앉기 · 결투 B안</h3>
   <div class="gallery">
     <figure><img class="pix" src="../boxer/review/onetwo-ba-fighter.gif"><figcaption>파이터 원투 — 왼쪽 before(3ec0d18) · 오른쪽 after</figcaption></figure>

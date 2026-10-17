@@ -48,13 +48,13 @@ Object.assign(CLASSES, {
   },
   champion: {
     tier: 3, from: 'striker', name: '챔피언', icon: '🦁', weapon: 'kingGauntlet',
-    mods: { atk: 3.13, hp: 2.3, aspd: 0.83, crit: 0.25, critMult: 0.5 },   // 결투 B안: 공속 ×0.45·공격력 ×1.96 → 계승 약화 삭제분 ×0.94
+    mods: { atk: 3.69, hp: 2.3, aspd: 0.664, crit: 0.25, critMult: 0.5 },   // 결투 B안: 공속 ×0.45·공격력 ×1.96 → 계승 약화 삭제분 ×0.94 → 10-17 재조정 공속 ×0.8·공격력 ×1.18 (진행 −4%)
     desc: '황금 사자의 주먹. 각성하면 기가 두 배로 찬다.',
     look: { sheet: 'champion', fx: '#ffd257', lean: 0.14 },
   },
   tempest: {
     tier: 3, from: 'kickboxer', name: '템페스트', icon: '🍃', weapon: 'galeShin',
-    mods: { atk: 3.89, hp: 2.05, aspd: 0.7, crit: 0.14 },   // 결투 B안: 공속 ×0.5·공격력 ×1.85 → 계승 약화 삭제분 ×0.936
+    mods: { atk: 3.18, hp: 2.05, aspd: 0.81, crit: 0.14 },   // 결투 B안: 공속 ×0.5·공격력 ×1.85 → 계승 약화 삭제분 ×0.936 → 10-17 재조정(곡선 압축 뒤 너무 셈) 공속 ×1.16·공격력 ×0.82 (진행 −4%)
     desc: '폭풍을 두른 발. 적 사이를 누비며 하단바를 휩쓴다.',
     look: { sheet: 'tempest', fx: '#9ff0ff' },
   },
@@ -78,10 +78,10 @@ const QI = {
   fighter:     { shape: 'bar', max: 100, hit: 4.5, main: { oneTwo: 100 }, need: {} },
   striker:     { shape: 'bar', max: 100, hit: 3, critX: 2, main: { ironRush: 100 }, need: { oneTwo: 100, crushFist: 150 } },
   kickboxer:   { ...QI_KICK, hit: 6.5, main: { flyingKick: 100, spinKick: 100 }, need: { oneTwo: 150 } },
-  qigong:      { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300 }, duelStart: 200 },   // 결투·레이드 시작 기 200 (그랜드마스터와 같이)
+  qigong:      { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300 }, duelStart: 260 },   // 결투·레이드 시작 기 260, 투지도 같은 비율 (10-15 B안 200 → 10-17 재조정)
   champion:    { shape: 'bar', max: 100, hit: 2.5, critX: 2, main: { ironRush: 100 }, need: { oneTwo: 100, crushFist: 150, kingFist: 220 } },
   tempest:     { ...QI_KICK, hit: 5.8, main: { flyingKick: 100, spinKick: 100 }, need: { oneTwo: 150, heavenWind: 330 } },
-  grandmaster: { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300, qiGodDescent: 480 }, duelStart: 185 },   // 결투·레이드는 기 185(투지도 같은 비율)에서 시작 — 첫 3단 장풍·궁극기 쏠림 방지 (2026-10-15 B안, 200 이면 3차 후반 60~66% 라 185)
+  grandmaster: { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300, qiGodDescent: 480 }, duelStart: 240 },   // 결투·레이드는 기 185(투지도 같은 비율)에서 시작 — 첫 3단 장풍·궁극기 쏠림 방지 (10-15 B안 200·185 → 10-17 곡선 압축 뒤 240)
 };
 const QI_AWAKEN = { dur: 6, mult: 2 };       // 3차 궁극기: 6초 동안 기 충전 두 배
 const QI_PALM3 = 3.6 / 2.2;                  // 장풍 3단 위력 배수 (2단 대비, 기 1당 위력이 크다)

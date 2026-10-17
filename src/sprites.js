@@ -22,9 +22,13 @@ const SHEET_ON = {
   mage: true, pyromancer: true, cryomancer: true, electromancer: true, archmage: true, frostlord: true, thunderEmperor: true,
   // 검사 계열 + 견습 (칸 장검·쌍검 96 · 대검 128, 원형 마네킹 → 입히기·덧그리기 dev/sheets-sword/build.py) — 2026-10-16 검수 미달(몸·팔이 거의 안 움직이고 칼만 돎)로 다시 끔. 시트 파일은 남김
   squire: true, swordsman: true, paladin: true, blademaster: true, greatswordsman: true, archon: true, swordsaint: false, tyrant: true,
+  // 파이터 계열 새 그림체 (그림체 B·키 46, 칸 96, dev/boxer/b) — <직업>B 시트. true 면 지금 시트(<직업>) 대신 그린다. 사용자 확인 전 false
+  fighterB: false, strikerB: false, kickboxerB: false, qigongB: false, tempestB: false, grandmasterB: false,
 };
 if (typeof location !== 'undefined' && /[?&]sheets=0/.test(location.search || '')) for (const k in SHEET_ON) SHEET_ON[k] = false;
 if (typeof location !== 'undefined') { const m = /[?&]sheetsOn=([\w,]+)/.exec(location.search || ''); if (m) for (const k of m[1].split(',')) SHEET_ON[k] = true; }
+// 그릴 시트 이름: 파이터 계열은 새 그림체 <직업>B 가 켜져 있으면 그것 (SHEET_ON.fighterB 또는 ?sheetsOn=fighterB)
+const sheetKey = (id) => (SHEET_ON[id + 'B'] && typeof SHEET_META !== 'undefined' && SHEET_META[id + 'B'] ? id + 'B' : id);
 // 이 직업을 시트로 그리나 (파이터 계열 look.sheet 는 항상)
 function heroSheetOn(id) {
   const c = CLASSES[id];
@@ -35,7 +39,7 @@ function heroSheetOn(id) {
 const HERO_TOP = 58;
 function heroTop(cls) {
   if (!heroSheetOn(cls)) return HERO_TOP;
-  const m = SHEET_META[cls], hs = m.pts && m.pts.idle;
+  const m = SHEET_META[sheetKey(cls)], hs = m.pts && m.pts.idle;
   if (!hs || !hs.length) return HERO_TOP;
   const ft = m.foot || [32, 58], top = Math.min(...hs.map((p) => p[3]));
   return Math.max(HERO_TOP, Math.round((ft[1] - top) * SHEET_DOT + 6));
@@ -114,12 +118,12 @@ function sheetTinted(s, color) {
 
 function drawHeroSheet(g, id, x, gy, pose) {
   if (pose.onlyWeapon) return;
-  const s = sheetOf(id), meta = s.meta, fx = CLASSES[id].look.fx;
+  const s = sheetOf(sheetKey(id)), meta = s.meta, fx = CLASSES[id].look.fx;
   const facing = pose.facing < 0 ? -1 : 1, D = SHEET_DOT;
   if (!s.ok && s.img && s.img.complete && s.img.naturalWidth) s.ok = true;
   const sf = s.ok && meta ? sheetFrame(meta, pose) : null, lean = CLASSES[id].look.lean;
   // look.lean: 평타 뒷손 스트레이트(atkB) 타격 두 장에서 몸을 앞으로 더 숙인다 (허리·어깨 회전 — 잽과 구분)
-  const leanOn = lean && !pose.sheet && sf && sf.anim === 'atkB' && Math.abs(sf.f - (meta.anims.atkB.hit || 1) - 0.5) <= 0.5;
+  const leanOn = lean && sf && !meta.noLean && !pose.sheet && sf.anim === 'atkB' && Math.abs(sf.f - (meta.anims.atkB.hit || 1) - 0.5) <= 0.5;
   const dx = Math.round(pose.dx || 0) + (leanOn ? 3 : 0), lift = pose.lift || 0, sx = pose.sx || 1, sy = pose.sy || 1, skew = (pose.skew || 0) + (leanOn ? lean : 0);
   g.save();
   g.globalAlpha *= pose.alpha == null ? 1 : pose.alpha;
@@ -163,7 +167,7 @@ function sheetStaffGlow(g, id, meta, anim, f, pull) {
 
 // 지금 그리는 프레임의 기준점(hand·head)을 화면 좌표로. pose 가 없으면 내 기사의 지금 모습
 function sheetPoint(cls, which, x, gy, facing = 1, pose = null) {
-  const s = sheetOf(cls), meta = s.meta;
+  const s = sheetOf(sheetKey(cls)), meta = s.meta;
   if (!meta) return [x + facing * 6 * PX, gy - 6 * PX];
   pose = pose || { mode: knight.fighting ? 'fight' : 'walk', swing: knight.swing, combo: knight.combo, t: clock, walkT: knight.walkT, ranged: heroWeapon().kind === 'ranged', ...(castPose('hero') || {}) };
   const { anim, f } = sheetFrame(meta, pose), P = (meta.pts[anim] || [])[f], ft = meta.foot || [32, 58], D = SHEET_DOT;
