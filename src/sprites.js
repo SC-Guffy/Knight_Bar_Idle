@@ -17,7 +17,7 @@ const SHEET_ON = {
   // 레인저 계열 (칸 96 · 공성포수 128, dev/bowsheets) — 시트를 사용자가 승인하면 true
   ranger: true, marksman: true, arcaneArcher: true, arbalest: true, deadeye: true, voidArcher: true, siegeMaster: true,
   // 창기사 계열 (칸 128, 원형 마네킹 → 입히기·덧그리기 dev/spear/gen.py·build.py) — 시트 있음, 켤지 사용자 확인 (false)
-  lancer: true, dragoon: true, halberdier: false, cavalier: true, dragonlord: true, warlord: true, skyGeneral: true,
+  lancer: true, dragoon: true, halberdier: true, cavalier: true, dragonlord: true, warlord: true, skyGeneral: true,
   // 마법사 계열 (칸 96, dev/sheets-mage — 시험: dev/skills.html?patch=sheets-mage) — 시트를 사용자가 승인하면 true
   mage: true, pyromancer: true, cryomancer: true, electromancer: true, archmage: true, frostlord: true, thunderEmperor: true,
   // 검사 계열 + 견습 (칸 장검·쌍검 96 · 대검 128, 원형 마네킹 → 입히기·덧그리기 dev/sheets-sword/build.py) — 2026-10-16 검수 미달(몸·팔이 거의 안 움직이고 칼만 돎)로 다시 끔. 시트 파일은 남김
