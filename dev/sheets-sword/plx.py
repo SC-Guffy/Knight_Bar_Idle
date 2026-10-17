@@ -6,7 +6,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
 from pl import call
 
-CAP = 180                      # 계열 상한 (로드맵 2026-10-18: … → 165 → 180, skeleton 걷기)
+CAP = 440                      # 계열 상한 (로드맵 2026-10-18: … → 180 → 260 → 440, 12단계 새로 그리기)
 FLOOR = 300        # 계정 잔량 안전 바닥
 LOG = os.path.join(HERE, 'usage.md')
 STATE = os.path.join(HERE, 'work', 'usage.json')

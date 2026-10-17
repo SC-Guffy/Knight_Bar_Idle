@@ -158,3 +158,11 @@
 | 151 | swordsaint | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 7.0 / 3.0 | 297.0 / 174.0 | 697.0 |
 | 152 | tyrant | `/animate-with-skeleton-v3` | skelwalkL: /animate-with-skeleton-v3 | 7.0 / 3.0 | 304.0 / 177.0 | 682.0 |
 | 153 | swordsaint | `/animate-with-skeleton-v3` | skelwalkL: /animate-with-skeleton-v3 | 3.0 / 3.0 | 307.0 / 180.0 | 679.0 |
+| 154 | squire | `/generate-with-style-v2` | new: /generate-with-style-v2 | 0.0 / 15.0 | 307.0 / 195.0 | 635.0 |
+| 155 | swordsman | `/generate-with-style-v2` | new: /generate-with-style-v2 | 30.0 / 15.0 | 337.0 / 210.0 | 605.0 |
+| 156 | paladin | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 352.0 / 225.0 | 590.0 |
+| 157 | blademaster | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 367.0 / 240.0 | 575.0 |
+| 158 | greatswordsman | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 382.0 / 255.0 | 560.0 |
+| 159 | archon | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 397.0 / 270.0 | 545.0 |
+| 160 | tyrant | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 412.0 / 285.0 | 530.0 |
+| 161 | swordsaint | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 427.0 / 300.0 | 515.0 |

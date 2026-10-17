@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 307.0,
+ "used": 427.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -1072,7 +1072,63 @@
    "purpose": "skelwalkL: /animate-with-skeleton-v3",
    "used": 3.0,
    "bal": 679.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 0.0,
+   "bal": 635.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 30.0,
+   "bal": 605.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 15.0,
+   "bal": 590.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 15.0,
+   "bal": 575.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 15.0,
+   "bal": 560.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 15.0,
+   "bal": 545.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 15.0,
+   "bal": 530.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 15.0,
+   "bal": 515.0
   }
  ],
- "nom": 180.0
+ "nom": 300.0
 }
