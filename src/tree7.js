@@ -14,7 +14,7 @@
 const TREE7_CLS = ['swordsman', 'blademaster', 'swordsaint'];
 const t7On = (cls = S.cls) => !T7_OFF && TREE7_CLS.includes(cls) && (cls !== 'swordsman' || !!(S.t7 && S.t7.pick));
 let T7_OFF = false;   // 측정용: 켜면 이 줄기도 지금 시스템 (dev/lifespan-bot.js --old 1)
-const T7_PICK_URL = typeof location !== 'undefined' && /[?&]t7=1/.test(location.search || '');   // 게임 주소 ?t7=1 → 이 캐릭터를 시제품 줄기로 (core.js loadState)
+const T7_PICK_URL = typeof location !== 'undefined' && /[?&]t7=1(&|$)/.test(location.search || '');   // 게임 주소 ?t7=1 → 이 캐릭터를 시제품 줄기로 (core.js loadState)
 
 // 종류별 비용·최대 칸 (스펙 "노드 종류·비용")
 const T7_SPEC = {
@@ -59,7 +59,7 @@ const T7_NODES = [
   { id: 'b_after', t: 'mod', lane: 'b', tier: 2, req: ['flash'], pair: 'pb', fx: { shape: 'after' } },
   { id: 'b_triple', t: 'mod', lane: 'b', tier: 2, req: ['flash'], pair: 'pb', fx: { shape: 'triple' } },
   { id: 'b_key', t: 'key', lane: 'b', tier: 2, req: ['b_after', 'b_triple'], fx: { pow: { iaido: 1.17, flash: 1.17 }, cd: { iaido: 1.3, flash: 1.3 } } },
-  { id: 'b_k3', t: 'key', lane: 'b', tier: 3, min: 12, req: ['b_key'], fx: { stat: { atkMul: 1.35, noCrit: 1 } } },
+  { id: 'b_k3', t: 'key', lane: 'b', tier: 3, min: 12, req: ['b_key'], fx: { stat: { atkMul: 2.6, noCrit: 1 } } },   // 모든 피해 ×2.6 (봇: 2.3 이면 발도 빌드가 10일차 240 에 멈춤), 치명 0 (확정 치명 스킬도 일반타 — t7NoCrit). 1.35 는 확정 치명 3.3배를 잃는 값을 못 메워 0.6배 손해였다
   { id: 'uv_b', t: 'uvar', lane: 'b', tier: 3, req: ['ult'], fx: { shape: 'uvB', pow: { thousandCuts: 1.2 } } },
 
   { id: 'wave', t: 'active', lane: 'k', tier: 2, req: ['slash'], sk: 'wave' },
@@ -86,7 +86,7 @@ const t7LaneOf = (sk) => (T7_BY_SKILL[sk] ? T7_BY_SKILL[sk].lane || null : null)
 const T7_SLOTS = [null, null, { tier: 2, lv: 50, gold: 300 }, { lv: 80, mana: 300 }, { lv: 120, mana: 1500 }];
 const T7_RESET_GOLD = 100;   // 전체 초기화 = 최고 스테이지 잡몹 골드 × 100 (원정 약 20분)
 
-function freshT7() { return { pick: false, rk: {}, eq: [], slots: 1, use: {}, camp: {} }; }   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
+function freshT7() { return { pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {} }; }   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
 const t7S = () => S.t7 || (S.t7 = freshT7());
 const t7Rank = (id) => t7S().rk[id] || 0;
 const t7Pts = () => Math.max(0, S.level - 1);
@@ -247,6 +247,8 @@ function t7Ev(sk) {
 }
 // 전투 규칙이 켜졌는가 (src/tree7-fx.js) · 평타 피해 배율 (world.js releaseAttack) · 평타 DPS 평균 배율 (core.js dpsOf)
 const t7Rule = (name) => t7On() && t7Mods().rules.has(name);
+// 무념(b_k3): 치명이 전혀 안 터진다 — 확정 치명 스킬(일섬·섬광 베기·천검)도 일반타 (core.js dpsOf·profile, skills.js, world.js hitMonster)
+const t7NoCrit = () => t7On() && !!t7Mods().stat.noCrit;
 const t7BasicMul = () => (t7On() ? t7Mods().basic : 1);
 const t7BasicDps = () => (t7On() ? t7Mods().basic * t7Mods().basicDps : 1);
 // 변형이 바꾼 기술 모양 (타격 추가·범위). k = skillAt 결과 (숙련 모습이 반영된 것)
@@ -334,13 +336,15 @@ const T7_GIM = {
 const T7_WALLS = { 10: ['enrage'], 20: ['enrage', 'shield'], 30: ['adds'], 40: ['adds', 'pool'], 50: ['pool'], 60: ['pool', 'shield'],
   70: ['shield'], 80: ['shield', 'enrage'], 90: ['adds'], 100: ['adds', 'enrage'], 110: ['shield'], 120: ['enrage', 'adds', 'shield'] };
 // 배율은 봇으로 맞춘 값 (스펙 시작값 중간 2.5·1.5 / 지역 4·2 는 4일차 120 에 머물러 너무 셌다 — 지역 보스는 지금 필드 보스(체력 ×2·공격 ×1.4)보다 체력은 낮추고 기믹을 얹는다)
+let T7_WALL_EARLY = 1;   // 10~60 벽 체력 추가 배율 — 측정용. 1.6·2.2 로 올려도 10~30 벽은 그대로 0번이고 40 벽(2차 전직 전)만 50번 넘게 막혀서 1 로 둔다
 const T7_WALL_MUL = { boss: { hp: 0.8, atk: 1 }, mid: { hp: 1.3, atk: 1.1 }, region: { hp: 1.6, atk: 1.3 } };
 // 기믹 수치 (게임 규칙·봇 근사가 같이 쓴다)
 const T7_GIM_RULE = { shieldEvery: 8, shieldHits: 4, addsEvery: 10, addsN: 3, addsHp: 3, enrageAt: 20, enrageAtk: 3, poolEvery: 6, poolDur: 3, poolPct: 0.03 };
 function t7Wall(stage) {
   if (!t7On() || stage > T7_WALL_MAX) return null;
   const kind = stage % 10 ? 'boss' : stage % 20 ? 'mid' : 'region';
-  return { stage, kind, ...T7_WALL_MUL[kind], gims: T7_WALLS[stage] || [] };
+  const e = kind !== 'boss' && stage <= 60 ? T7_WALL_EARLY : 1;   // 초반 벽(10~60)은 트리가 초반에 세서 그냥 지나가 체력을 더 준다
+  return { stage, kind, ...T7_WALL_MUL[kind], hp: T7_WALL_MUL[kind].hp * e, gims: T7_WALLS[stage] || [] };
 }
 // 보스 몬스터 수치에 벽을 입힌다 (필드 보스 배율은 벽 배율로 바꾼다). 기믹이 있으면 m.wall
 function t7BossStats(stage, m) {
@@ -389,6 +393,7 @@ function t7WallBreak(m) {
 }
 // auto 봇: 막힌 벽에서 가장 덜 막고 있는 기믹(줄기 스탯으로 막는 장판 빼고)의 갈래 — 이미 반 넘게 막고 있으면 바꾸지 않는다 (초기화 골드 아끼기)
 function t7WallBuild(stage) {
+  if (t7Tier() < 2) return null;   // 2차 전직 전엔 갈래가 없어 초기화해도 같다
   const g = (T7_WALLS[stage] || []).filter((x) => T7_GIM[x].lane !== 'c').sort((p, q) => t7Counter(p) - t7Counter(q))[0];
   return g && t7Counter(g) < 0.4 ? T7_GIM[g].lane : null;
 }

@@ -304,7 +304,7 @@ function tryCastSkill(st, target, only = null) {
           // 여러 번 나눠 때리는 스킬은 (2타부터) 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다.
           // 한 마리마다 다른 보정(🗡️ 처형 · 🪨 보스 · 🎯 안 맞은 적)은 hitMonster 가 그 적의 상태를 보고 곱한다
           const d = hitMonster(m, k.hits[i][1] * skillPow(id) * mul, {
-            crit: k.crit, critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1,
+            crit: k.crit && !t7NoCrit(), critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1,
             exec: spT('exec') ? { thr: sp.thr, v: sp.v } : null, bossBonus: spT('boss'), first: spT('first'),
           }) || 0;
           dealt += d;

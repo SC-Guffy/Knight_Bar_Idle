@@ -451,7 +451,7 @@ function stageComp(id, st) {
   const k = heroSkill(id), lost = k.dur - skillAt(id, t7Has(id) ? 1 : skillLv(id), 0).dur;
   if (lost <= 0) return 1;
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
-  const cast = (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id);
+  const cast = (k.crit && !t7NoCrit() ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id);   // t7NoCrit: 시즌7 트리 무념
   return cast > 0 ? 1 + perHit * st.shots * st.shotMult * st.aspd * lost / cast : 1;
 }
 // 한 마리를 상대로 한 초당 피해 (연발·스킬 포함). 스킬을 쓰는 동안은 평타를 멈춘다
@@ -462,7 +462,7 @@ function dpsOf(st) {
     const k = heroSkill(id);
     const cd = skillCd(id), cp = skillRight(id, 'crit');
     busy += k.dur / cd;
-    const hitV = k.crit ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
+    const hitV = k.crit && !t7NoCrit() ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
     // 고유 특수는 평균 피해로 환산해 넣는다 (classes.js specEv — 처형·보스 등 상황형은 일부만, 기절·골드 같은 운영형은 0)
     extra += hitV * skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st) / cd;
   }
@@ -495,7 +495,7 @@ function profile() {
       // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다.
       // 고유 특수(spec)는 서버가 모르는 상황형 효과라 평균 피해 배율(classes.js specEv)로 환산해 mult 에 녹인다 — 결투·레이드에선 그만큼 세진 한 방
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
-      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st), crit: !!k.crit,
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st), crit: !!k.crit && !t7NoCrit(),
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
         ...(k.qi && isQiCls(S.cls) ? { [qiIsMain(id, S.cls) ? 'cost' : 'need']: qiCostOf(SKILLS[id], S.cls, skillBonus(id)), ...(id === 'palmBlast' ? { m3: QI_PALM3 } : {}), ...(k.ult ? { awaken: 1 } : {}),
           ...(k.ward && k.ward.qiHurt ? { qiHurt: k.ward.qiHurt } : {}) } : {}),

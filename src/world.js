@@ -227,7 +227,7 @@ function hitMonster(m, mult = 1, o = {}) {
   // 고유 발동 효과 (procs.js): 응시·수확 배율, 근원의 일격 확정 치명, 일식 치명 확률
   const pre = procPreHit(m, o);
   mult *= pre.mul;
-  const crit = o.nocrit ? false : pre.crit || o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0) + procCritPlus());   // nocrit: 지속 피해·관통처럼 이미 굴린 피해
+  const crit = o.nocrit || t7NoCrit() ? false : pre.crit || o.crit || Math.random() < Math.min(0.8, st.crit + (o.critPlus || 0) + procCritPlus());   // nocrit: 지속 피해·관통처럼 이미 굴린 피해
   const dmg = st.atk * mult * (crit ? st.critMult + pre.critAdd : 1) * rand(0.9, 1.1);
   m.hp -= dmg;
   m.flash = o.color ? 0.07 : 0.04;      // 피격 번쩍임: 짧게·반투명(drawMonster) — 검흔·명중 그림이 묻히지 않게 (skill-vfx.md ⑤-0)
