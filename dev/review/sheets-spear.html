@@ -37,6 +37,16 @@
   </ul>
 </div>
 
+<h2>◎ 무기·모션 일치 재작업 (2026-10-18, 사용자 "모션이 무기랑 안맞는애가 있었어") — 평타를 모델이 무기까지 같이 그린 키 자세로</h2>
+<div class="box">코드 덧그리기 없이, 합격 정지 그림(무기 든 채)을 pixen 으로 평타마다 키 자세 4개(준비·젖힘/들기·타격·마무리) 편집 → [마무리, 1, 2, 3, 3, 마무리] 6프레임 (<code>dev/spear/spear_keys.py</code>, <code>key_assemble.py</code>), 시전 줄은 새 평타 프레임의 무기 각도순, 0.78 축소(<code>dev/sheets-common/rescale.py</code>). 교훈: 정지 그림 원본을 시퀀스에 넣으면 pixen 키와 인상(머리색·투구)이 달라 튄다 → 키만 쓴다(용황은 잘 나온 키를 새 기준으로 재편집).
+<table><tr><th>직업</th><th>평타 (검수)</th></tr>
+<tr><td>용황</td><td class="ok">3.57 pass (1차 3.00 → 기준 바꿔 재편집 3장)</td></tr>
+<tr><td>창기사</td><td class="ok">4.00 pass</td></tr><tr><td>용기병</td><td class="ok">3.71 pass (걷기 튀는 1장 뺌)</td></tr>
+<tr><td>할버디어</td><td class="ok">3.71 pass</td></tr><tr><td>랜서</td><td class="ok">3.71 pass (랜스가 검처럼 읽힌다는 의견)</td></tr>
+<tr><td>전쟁군주</td><td class="ok">3.57 pass (걷기 튀는 2장 뺌)</td></tr>
+<tr><td>천마장군</td><td>미적용 — 계정 잔량이 멈춤 기준(380)에 닿아 지금 판 유지</td></tr></table>
+GIF 는 아래 ◈ 표의 같은 파일(<code>sheets-spear/anim/&lt;cls&gt;-anim.gif</code>)이 새 평타로 바뀌었다.</div>
+
 <h2>◈ 4종 통짜 시트 (관절 애니, 2026-10-17) — 시험 주소로 켜 보기</h2>
 <div class="box"><b>켜 보기</b> (SHEET_ON 은 false — 주소로만 켬):
 <ul><li>평타: <a href="skills.html?mode=basic&cls=lancer&sheetsOn=lancer,dragoon,halberdier,cavalier">skills.html?mode=basic&amp;cls=lancer&amp;sheetsOn=lancer,dragoon,halberdier,cavalier</a> (직업 버튼으로 바꿔 보기)</li>

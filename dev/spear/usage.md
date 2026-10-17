@@ -51,3 +51,54 @@
 | 45 | skyGeneral | `/animate-with-skeleton-v3` | skel-thrust7+slam8: animate-with-skeleton-v3 192 15f | 4.0 | 87.0 | 784.0 |
 | 46 | skyGeneral | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 90.0 | 779.0 |
 | 47 | halberdier | `/animate-with-skeleton-v3` | skel-sweepE7+chopupE8: animate-with-skeleton-v3 192 15f | 4.0 | 94.0 | 758.0 |
+| 48 | dragonlord | `/edit-image-pixen` | key-thrust-1: same young chibi dragon lord knight king with a golden drago | 1.0 | 95.0 | 499.0 |
+| 49 | dragonlord | `/edit-image-pixen` | key-thrust-2: same young chibi dragon lord knight king with a golden drago | 1.0 | 96.0 | 497.0 |
+| 50 | dragonlord | `/edit-image-pixen` | key-thrust-3: same young chibi dragon lord knight king with a golden drago | 1.0 | 97.0 | 493.0 |
+| 51 | dragonlord | `/edit-image-pixen` | key-thrust-4: same young chibi dragon lord knight king with a golden drago | 1.0 | 98.0 | 492.0 |
+| 52 | dragonlord | `/edit-image-pixen` | key-slam-1: same young chibi dragon lord knight king with a golden drago | 1.0 | 99.0 | 491.0 |
+| 53 | dragonlord | `/edit-image-pixen` | key-slam-2: same young chibi dragon lord knight king with a golden drago | 1.0 | 100.0 | 490.0 |
+| 54 | dragonlord | `/edit-image-pixen` | key-slam-3: same young chibi dragon lord knight king with a golden drago | 1.0 | 101.0 | 487.0 |
+| 55 | dragonlord | `/edit-image-pixen` | key-slam-4: same young chibi dragon lord knight king with a golden drago | 1.0 | 102.0 | 470.0 |
+| 56 | dragonlord | `/edit-image-pixen` | key-ready: same young chibi dragon lord knight king with blonde hair, a | 1.0 | 103.0 | 464.0 |
+| 57 | dragonlord | `/edit-image-pixen` | key-windup: same young chibi dragon lord knight king with blonde hair, a | 1.0 | 104.0 | 462.0 |
+| 58 | dragonlord | `/edit-image-pixen` | key-raise: same young chibi dragon lord knight king with blonde hair, a | 1.0 | 105.0 | 460.0 |
+| 59 | lancer | `/edit-image-pixen` | key-thrust-1: same young chibi lancer knight with an open-faced steel helm | 1.0 | 106.0 | 457.0 |
+| 60 | lancer | `/edit-image-pixen` | key-thrust-2: same young chibi lancer knight with an open-faced steel helm | 1.0 | 107.0 | 455.0 |
+| 61 | lancer | `/edit-image-pixen` | key-thrust-3: same young chibi lancer knight with an open-faced steel helm | 1.0 | 108.0 | 452.0 |
+| 62 | lancer | `/edit-image-pixen` | key-thrust-4: same young chibi lancer knight with an open-faced steel helm | 1.0 | 109.0 | 450.0 |
+| 63 | lancer | `/edit-image-pixen` | key-slam-1: same young chibi lancer knight with an open-faced steel helm | 1.0 | 110.0 | 448.0 |
+| 64 | lancer | `/edit-image-pixen` | key-slam-2: same young chibi lancer knight with an open-faced steel helm | 1.0 | 111.0 | 447.0 |
+| 65 | lancer | `/edit-image-pixen` | key-slam-3: same young chibi lancer knight with an open-faced steel helm | 1.0 | 112.0 | 444.0 |
+| 66 | lancer | `/edit-image-pixen` | key-slam-4: same young chibi lancer knight with an open-faced steel helm | 1.0 | 113.0 | 441.0 |
+| 67 | dragoon | `/edit-image-pixen` | key-thrust-1: same young chibi human dragoon knight with a dragon-shaped p | 1.0 | 114.0 | 440.0 |
+| 68 | dragoon | `/edit-image-pixen` | key-thrust-2: same young chibi human dragoon knight with a dragon-shaped p | 1.0 | 115.0 | 437.0 |
+| 69 | dragoon | `/edit-image-pixen` | key-thrust-3: same young chibi human dragoon knight with a dragon-shaped p | 1.0 | 116.0 | 435.0 |
+| 70 | dragoon | `/edit-image-pixen` | key-thrust-4: same young chibi human dragoon knight with a dragon-shaped p | 1.0 | 117.0 | 434.0 |
+| 71 | dragoon | `/edit-image-pixen` | key-slam-1: same young chibi human dragoon knight with a dragon-shaped p | 1.0 | 118.0 | 432.0 |
+| 72 | dragoon | `/edit-image-pixen` | key-slam-2: same young chibi human dragoon knight with a dragon-shaped p | 1.0 | 119.0 | 429.0 |
+| 73 | dragoon | `/edit-image-pixen` | key-slam-3: same young chibi human dragoon knight with a dragon-shaped p | 1.0 | 120.0 | 427.0 |
+| 74 | dragoon | `/edit-image-pixen` | key-slam-4: same young chibi human dragoon knight with a dragon-shaped p | 1.0 | 121.0 | 426.0 |
+| 75 | halberdier | `/edit-image-pixen` | key-sweep-1: same young chibi heavy halberdier knight with a steel bucket | 1.0 | 122.0 | 424.0 |
+| 76 | halberdier | `/edit-image-pixen` | key-sweep-2: same young chibi heavy halberdier knight with a steel bucket | 1.0 | 123.0 | 422.0 |
+| 77 | halberdier | `/edit-image-pixen` | key-sweep-3: same young chibi heavy halberdier knight with a steel bucket | 1.0 | 124.0 | 418.0 |
+| 78 | halberdier | `/edit-image-pixen` | key-sweep-4: same young chibi heavy halberdier knight with a steel bucket | 1.0 | 125.0 | 417.0 |
+| 79 | halberdier | `/edit-image-pixen` | key-chop-1: same young chibi heavy halberdier knight with a steel bucket | 1.0 | 126.0 | 416.0 |
+| 80 | halberdier | `/edit-image-pixen` | key-chop-2: same young chibi heavy halberdier knight with a steel bucket | 1.0 | 127.0 | 415.0 |
+| 81 | halberdier | `/edit-image-pixen` | key-chop-3: same young chibi heavy halberdier knight with a steel bucket | 1.0 | 128.0 | 411.0 |
+| 82 | halberdier | `/edit-image-pixen` | key-chop-4: same young chibi heavy halberdier knight with a steel bucket | 1.0 | 129.0 | 410.0 |
+| 83 | cavalier | `/edit-image-pixen` | key-thrust-1: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 130.0 | 408.0 |
+| 84 | cavalier | `/edit-image-pixen` | key-thrust-2: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 131.0 | 407.0 |
+| 85 | cavalier | `/edit-image-pixen` | key-thrust-3: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 132.0 | 406.0 |
+| 86 | cavalier | `/edit-image-pixen` | key-thrust-4: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 133.0 | 405.0 |
+| 87 | cavalier | `/edit-image-pixen` | key-slam-1: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 134.0 | 401.0 |
+| 88 | cavalier | `/edit-image-pixen` | key-slam-2: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 135.0 | 401.0 |
+| 89 | cavalier | `/edit-image-pixen` | key-slam-3: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 136.0 | 400.0 |
+| 90 | cavalier | `/edit-image-pixen` | key-slam-4: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 137.0 | 399.0 |
+| 91 | warlord | `/edit-image-pixen` | key-sweep-1: same young chibi heavy warlord knight with a bull-horned iro | 1.0 | 138.0 | 397.0 |
+| 92 | warlord | `/edit-image-pixen` | key-sweep-2: same young chibi heavy warlord knight with a bull-horned iro | 1.0 | 139.0 | 393.0 |
+| 93 | warlord | `/edit-image-pixen` | key-sweep-3: same young chibi heavy warlord knight with a bull-horned iro | 1.0 | 140.0 | 393.0 |
+| 94 | warlord | `/edit-image-pixen` | key-sweep-4: same young chibi heavy warlord knight with a bull-horned iro | 1.0 | 141.0 | 392.0 |
+| 95 | warlord | `/edit-image-pixen` | key-chop-1: same young chibi heavy warlord knight with a bull-horned iro | 1.0 | 142.0 | 390.0 |
+| 96 | warlord | `/edit-image-pixen` | key-chop-2: same young chibi heavy warlord knight with a bull-horned iro | 1.0 | 143.0 | 390.0 |
+| 97 | warlord | `/edit-image-pixen` | key-chop-3: same young chibi heavy warlord knight with a bull-horned iro | 1.0 | 144.0 | 386.0 |
+| 98 | warlord | `/edit-image-pixen` | key-chop-4: same young chibi heavy warlord knight with a bull-horned iro | 1.0 | 145.0 | 385.0 |

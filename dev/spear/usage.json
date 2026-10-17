@@ -1,5 +1,5 @@
 {
- "used": 94.0,
+ "used": 145.0,
  "calls": [
   {
    "cls": "mq",
@@ -376,6 +376,414 @@
    "used": 4.0,
    "bal": 758.0,
    "n": 15
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-1: same young chibi dragon lord knight king with a golden drago",
+   "used": 1.0,
+   "bal": 499.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-2: same young chibi dragon lord knight king with a golden drago",
+   "used": 1.0,
+   "bal": 497.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-3: same young chibi dragon lord knight king with a golden drago",
+   "used": 1.0,
+   "bal": 493.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-4: same young chibi dragon lord knight king with a golden drago",
+   "used": 1.0,
+   "bal": 492.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-1: same young chibi dragon lord knight king with a golden drago",
+   "used": 1.0,
+   "bal": 491.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-2: same young chibi dragon lord knight king with a golden drago",
+   "used": 1.0,
+   "bal": 490.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-3: same young chibi dragon lord knight king with a golden drago",
+   "used": 1.0,
+   "bal": 487.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-4: same young chibi dragon lord knight king with a golden drago",
+   "used": 1.0,
+   "bal": 470.0,
+   "n": 0
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-ready: same young chibi dragon lord knight king with blonde hair, a",
+   "used": 1.0,
+   "bal": 464.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-windup: same young chibi dragon lord knight king with blonde hair, a",
+   "used": 1.0,
+   "bal": 462.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-raise: same young chibi dragon lord knight king with blonde hair, a",
+   "used": 1.0,
+   "bal": 460.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-1: same young chibi lancer knight with an open-faced steel helm",
+   "used": 1.0,
+   "bal": 457.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-2: same young chibi lancer knight with an open-faced steel helm",
+   "used": 1.0,
+   "bal": 455.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-3: same young chibi lancer knight with an open-faced steel helm",
+   "used": 1.0,
+   "bal": 452.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-4: same young chibi lancer knight with an open-faced steel helm",
+   "used": 1.0,
+   "bal": 450.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-1: same young chibi lancer knight with an open-faced steel helm",
+   "used": 1.0,
+   "bal": 448.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-2: same young chibi lancer knight with an open-faced steel helm",
+   "used": 1.0,
+   "bal": 447.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-3: same young chibi lancer knight with an open-faced steel helm",
+   "used": 1.0,
+   "bal": 444.0,
+   "n": 2
+  },
+  {
+   "cls": "lancer",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-4: same young chibi lancer knight with an open-faced steel helm",
+   "used": 1.0,
+   "bal": 441.0,
+   "n": 2
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-1: same young chibi human dragoon knight with a dragon-shaped p",
+   "used": 1.0,
+   "bal": 440.0,
+   "n": 2
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-2: same young chibi human dragoon knight with a dragon-shaped p",
+   "used": 1.0,
+   "bal": 437.0,
+   "n": 2
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-3: same young chibi human dragoon knight with a dragon-shaped p",
+   "used": 1.0,
+   "bal": 435.0,
+   "n": 2
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-4: same young chibi human dragoon knight with a dragon-shaped p",
+   "used": 1.0,
+   "bal": 434.0,
+   "n": 2
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-1: same young chibi human dragoon knight with a dragon-shaped p",
+   "used": 1.0,
+   "bal": 432.0,
+   "n": 2
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-2: same young chibi human dragoon knight with a dragon-shaped p",
+   "used": 1.0,
+   "bal": 429.0,
+   "n": 0
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-3: same young chibi human dragoon knight with a dragon-shaped p",
+   "used": 1.0,
+   "bal": 427.0,
+   "n": 2
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-4: same young chibi human dragoon knight with a dragon-shaped p",
+   "used": 1.0,
+   "bal": 426.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-sweep-1: same young chibi heavy halberdier knight with a steel bucket",
+   "used": 1.0,
+   "bal": 424.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-sweep-2: same young chibi heavy halberdier knight with a steel bucket",
+   "used": 1.0,
+   "bal": 422.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-sweep-3: same young chibi heavy halberdier knight with a steel bucket",
+   "used": 1.0,
+   "bal": 418.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-sweep-4: same young chibi heavy halberdier knight with a steel bucket",
+   "used": 1.0,
+   "bal": 417.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-chop-1: same young chibi heavy halberdier knight with a steel bucket",
+   "used": 1.0,
+   "bal": 416.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-chop-2: same young chibi heavy halberdier knight with a steel bucket",
+   "used": 1.0,
+   "bal": 415.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-chop-3: same young chibi heavy halberdier knight with a steel bucket",
+   "used": 1.0,
+   "bal": 411.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-chop-4: same young chibi heavy halberdier knight with a steel bucket",
+   "used": 1.0,
+   "bal": 410.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-1: same young chibi cavalry lancer knight with a red plume helm",
+   "used": 1.0,
+   "bal": 408.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-2: same young chibi cavalry lancer knight with a red plume helm",
+   "used": 1.0,
+   "bal": 407.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-3: same young chibi cavalry lancer knight with a red plume helm",
+   "used": 1.0,
+   "bal": 406.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-4: same young chibi cavalry lancer knight with a red plume helm",
+   "used": 1.0,
+   "bal": 405.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-1: same young chibi cavalry lancer knight with a red plume helm",
+   "used": 1.0,
+   "bal": 401.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-2: same young chibi cavalry lancer knight with a red plume helm",
+   "used": 1.0,
+   "bal": 401.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-3: same young chibi cavalry lancer knight with a red plume helm",
+   "used": 1.0,
+   "bal": 400.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-4: same young chibi cavalry lancer knight with a red plume helm",
+   "used": 1.0,
+   "bal": 399.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-sweep-1: same young chibi heavy warlord knight with a bull-horned iro",
+   "used": 1.0,
+   "bal": 397.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-sweep-2: same young chibi heavy warlord knight with a bull-horned iro",
+   "used": 1.0,
+   "bal": 393.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-sweep-3: same young chibi heavy warlord knight with a bull-horned iro",
+   "used": 1.0,
+   "bal": 393.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-sweep-4: same young chibi heavy warlord knight with a bull-horned iro",
+   "used": 1.0,
+   "bal": 392.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-chop-1: same young chibi heavy warlord knight with a bull-horned iro",
+   "used": 1.0,
+   "bal": 390.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-chop-2: same young chibi heavy warlord knight with a bull-horned iro",
+   "used": 1.0,
+   "bal": 390.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-chop-3: same young chibi heavy warlord knight with a bull-horned iro",
+   "used": 1.0,
+   "bal": 386.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-chop-4: same young chibi heavy warlord knight with a bull-horned iro",
+   "used": 1.0,
+   "bal": 385.0,
+   "n": 2
   }
  ]
 }
