@@ -24,6 +24,7 @@ DESC = {
     'thunderEmperor': 'small chibi young woman thunder empress, 3 heads tall, golden crown with two large golden horns, long white hair, navy cape with gold trim, navy coat with gold buttons, navy boots, right hand empty, side view facing right the whole time, face always visible, never turns around',
 }
 ACTION = {'A': 'magic staff attacks: thrust forward, then raise overhead and slam down', 'B': 'casting a spell with both hands then walking',
+          'W2': 'walking forward with very long clear strides, the front knee lifting high, the back leg pushing far behind, the long robe or cape and long hair staying behind her so both legs in front are clearly separated',
           'W': 'walking forward with long clear strides, knees lifting, the long robe parting so both legs are clearly visible'}
 
 
@@ -111,7 +112,7 @@ def b64(im):
     return {'type': 'base64', 'base64': base64.b64encode(buf.getvalue()).decode(), 'format': 'png'}
 
 
-def walk_big():
+def walk_big(kx=1.5, lift=3, back=0):
     """걷기 과장 8f (3차 재생성, 로드맵 승인 2026-10-17): 긴 장포·망토가 다리를 가려 모델이 다리를 거의 안 움직였다 →
     보폭(골반 기준 무릎·발 x) 1.5배, 앞으로 나가는 무릎 3칸 들기, 몸(다리 밖) 위아래 ±2 (보폭 클 때 내림), 윗몸 앞기울기 +2"""
     out = []
@@ -121,8 +122,8 @@ def walk_big():
         q = dict(p); hx = (p['RIGHT HIP'][0] + p['LEFT HIP'][0]) / 2
         for side in ('RIGHT', 'LEFT'):
             for j in ('KNEE', 'LEG'):
-                x, y = p[f'{side} {j}']; q[f'{side} {j}'] = (hx + (x - hx) * 1.5, y)
-            if p[f'{side} KNEE'][0] > hx + 1: q[f'{side} KNEE'] = (q[f'{side} KNEE'][0], q[f'{side} KNEE'][1] - 3)
+                x, y = p[f'{side} {j}']; q[f'{side} {j}'] = (hx + (x - hx) * kx - (back if x < hx else 0), y)
+            if p[f'{side} KNEE'][0] > hx + 1: q[f'{side} KNEE'] = (q[f'{side} KNEE'][0], q[f'{side} KNEE'][1] - lift)
         dy = 2 - 4 * (sp - lo) / max(1, hi - lo)          # 보폭 가장 클 때(디딤) +2... 아래, 가장 작을 때(지나감) -2 위
         dy = -dy
         for k in q:
@@ -135,12 +136,14 @@ def walk_big():
 def seq(part):
     M = SK.MOVES_B
     if part == 'W': return walk_big()
+    if part == 'W2': return walk_big(1.8, 5, 3)        # 걷기 다듬기 (로드맵 승인 2026-10-17): 보폭 1.8배·무릎 5칸·뒷다리 3칸 더 뒤
     if part == 'A': return M['atkA'][:7] + M['atkB'][:7] + [(SK.to_b(SK.pose()), -80, None)]
     return M['cast'][:7] + M['walk'][:8]
 
 
 def prep(cls, part, seed=71):
     if cls == 'electromancer': seed = 97      # 2회차 시드
+    if part == 'W2': seed = 131               # 걷기 다듬기 시드
     d = os.path.join(HERE, 'skel', cls); os.makedirs(d, exist_ok=True)
     first, staff, off, sz = place(cls)
     first.save(os.path.join(d, 'first.png')); staff.save(os.path.join(d, 'staff.png'))
@@ -211,7 +214,7 @@ def post(cls, part):
         g = snap_hand(body, g, KP['RIGHT ELBOW'])                          # 모델 손이 설계보다 짧거나 어긋나면 실제 팔 끝 칸으로
         ms = model_staff(im, body, g, meta['staff_deg'][i])
         if ms and math.cos(math.radians(ms[1] - meta["staff_deg"][i])) < 0.8: ms = None     # 37° 넘게 어긋나면 이펙트를 잘못 잰 것 → 설계 각도
-        walk = (part == 'B' and i >= 7) or part == 'W'
+        walk = (part == 'B' and i >= 7) or part in ('W', 'W2')
         if ms and not walk: a = math.radians(ms[1])                         # 각도만 모델 지팡이 축 (팔 자세와 맞게). 걷기는 설계 각도 고정 (비평: 걷기 중 지팡이 튐)
         if part == 'A' and i == 0: a = math.radians(meta['staff_deg'][-1])  # 14→0 이음새 (비평 2026-10-17)
         if walk or (part == 'B' and i <= 1):

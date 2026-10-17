@@ -1,27 +1,27 @@
 {
  "scores": {
   "intent": 4,
-  "read": 3,
+  "read": 4,
   "clean": 3,
   "value": 3,
   "pixel": 3,
-  "motion": 3,
+  "motion": 4,
   "rules": 4
  },
- "avg": 3.29,
- "pass": false,
+ "avg": 3.57,
+ "pass": true,
  "defects": [
   {
-   "frame": "5-12",
+   "frame": "9-12",
    "where": "다리",
-   "what": "보폭 변화 작고 프레임 간 유사"
+   "what": "어두운 다리가 로브와 명암이 비슷해 흑백에서 뭉침"
   }
  ],
- "flags_review": "colors 경보는 지팡이/직업색 램프 영향, 단독 감점 안 함",
- "verdict": "fix",
+ "flags_review": "colors 경보는 VFX/지팡이/직업색 램프 영향, 단독 감점 안 함",
+ "verdict": "pass",
  "fix": {
-  "how": "걷기 보폭·무릎 차를 더 키우고 유사 프레임 교체",
-  "tool": "후처리 스크립트 / 걷기 재생성"
+  "how": "다리 밝기 살짝 올리기",
+  "tool": "후처리 스크립트"
  },
- "summary": "걷기 변화가 있어 최소선 평균 3.29로 기준 미달, 약간 밋밋함"
+ "summary": "걷기 보폭이 선명해 걷는 것으로 읽힘, 기준 통과"
 }

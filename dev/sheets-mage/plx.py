@@ -9,7 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
 from pl import call
 
-CAP = 90           # 이 계열 상한 (응답 usage 합계)
+CAP = 105           # 이 계열 상한 (응답 usage 합계)   # 2026-10-17 로드맵: 계열 상한 90 → 105
 FLOOR = 300        # 계정 잔량 안전 바닥
 LOG = os.path.join(HERE, 'usage.md')
 STATE = os.path.join(HERE, 'work', 'usage.json')

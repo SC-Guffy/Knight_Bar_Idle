@@ -37,3 +37,6 @@ thunderEmperor/skelB
 archmage/skelW
 frostlord/skelW
 thunderEmperor/skelW
+# 로드맵 승인 2026-10-17: 걷기 다듬기 빙결·뇌제 8f x 2 (usage 6, 누계 94/105, 재시도 0)
+frostlord/skelW2
+thunderEmperor/skelW2
