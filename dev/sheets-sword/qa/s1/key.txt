@@ -1,0 +1,4 @@
+swordsaint-S1a-11=design/px/swordsaint-S1a-11-h46.png IoU_parent=0.598
+swordsaint-S1a-77=design/px/swordsaint-S1a-77-h46.png IoU_parent=0.591
+swordsaint-S1b-89=design/px/swordsaint-S1b-89-h46.png IoU_parent=0.581
+swordsaint-S1b-11=design/px/swordsaint-S1b-11-h46.png IoU_parent=0.575

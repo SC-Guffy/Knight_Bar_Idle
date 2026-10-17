@@ -1,0 +1,38 @@
+{
+ "id": "swordsaint-atk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\swordsaint-atk-strip.png",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  320,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 9,
+  "low": 0.522,
+  "edge": 0.387,
+  "lone": 0.068,
+  "flick": 0.276,
+  "churn": 0.427,
+  "fill": 0.218,
+  "area": [
+   856,
+   880,
+   937,
+   937,
+   856
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

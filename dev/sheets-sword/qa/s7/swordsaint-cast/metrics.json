@@ -1,0 +1,39 @@
+{
+ "id": "swordsaint-cast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\swordsaint-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 9,
+  "low": 0.542,
+  "edge": 0.371,
+  "lone": 0.065,
+  "flick": 0.405,
+  "churn": 0.479,
+  "fill": 0.217,
+  "area": [
+   821,
+   917,
+   942,
+   942,
+   890,
+   821
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

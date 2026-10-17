@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 236.0,
+ "used": 247.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -806,7 +806,91 @@
    "purpose": "key2r: Change only the pose: stepping forward, the same huge greats",
    "used": 1.0,
    "bal": 762.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/image-to-pixelart",
+   "purpose": "s2ref: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 757.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "key1: Change only the pose: wind-up, knees bent, weapon pulled bac",
+   "used": 1.0,
+   "bal": 756.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2: Change only the pose: front foot stepping forward, weapon ra",
+   "used": 1.0,
+   "bal": 755.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3: Change only the pose: impact of a downward slash, deep lunge",
+   "used": 1.0,
+   "bal": 754.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "key4: Change only the pose: follow-through, rising from the lunge,",
+   "used": 1.0,
+   "bal": 753.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1: Change only the pose: weapon held vertically in front of the",
+   "used": 1.0,
+   "bal": 752.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2: Change only the arms: weapon raised straight up above the he",
+   "used": 1.0,
+   "bal": 751.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast3: Change only the pose: stepping forward, weapon thrust straig",
+   "used": 1.0,
+   "bal": 750.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkA: Walking: right foot stepping forward, left foot behind, long",
+   "used": 1.0,
+   "bal": 749.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkB: Walking: passing pose, left knee raised forward, right foot ",
+   "used": 1.0,
+   "bal": 748.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
+   "used": 0.0,
+   "bal": 748.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
+   "used": 1.0,
+   "bal": 747.0
   }
  ],
- "nom": 128.0
+ "nom": 140.0
 }

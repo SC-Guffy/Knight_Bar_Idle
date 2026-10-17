@@ -38,6 +38,7 @@ JOBS = {
     'squire': ('squire-atk-strip.png', 'squire-atk-strip.png', 'squire-cast-strip.png'),   # 준비·대기 = 평타 첫 프레임(key4) — 확정 그림은 pixen 화풍과 달라 튐
     'tyrant': ('tyrant64-src.png', 'tyrant-atk-strip.png', 'tyrant-cast-strip.png'),
     'archon': ('archon64-src.png', 'archon-atk-strip.png', 'archon-cast-strip.png'),
+    'swordsaint': ('swordsaint-atk-strip.png', 'swordsaint-atk-strip.png', 'swordsaint-cast-strip.png'),   # 준비·대기 = key4 (확정 그림 축소본은 키 자세와 비례가 다름)
 }
 
 if __name__ == '__main__':

@@ -1,0 +1,37 @@
+{
+ "id": "swordsaint-walk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\swordsaint-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 9,
+  "low": 0.54,
+  "edge": 0.376,
+  "lone": 0.056,
+  "flick": 0.252,
+  "churn": 0.441,
+  "fill": 0.214,
+  "area": [
+   917,
+   882,
+   821,
+   882
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

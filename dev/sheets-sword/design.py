@@ -218,6 +218,19 @@ def init_t3e():
     bg = Image.new('RGBA', (1024, 1024), (200, 200, 204, 255)); bg.alpha_composite(im, ((1024 - im.width) // 2, 1024 - 60 - im.height)); return bg.convert('RGB')
 
 
+# S1 검신 재디자인 (사용자 "개선해라"): 어두운 남색·흑철 갑옷 + 흰 스카프·흰 머리로 명암 대비, 큰 금 뿔, 길고 밝은 곡도, 넓은 어깨판·넓은 하카마로 검성과 틀이 다르게
+WHO_S1 = ('A sword saint samurai in dark navy and black iron armor: very wide layered shoulder plates (o-sode) much wider than the head, a kabuto with huge bold gold crescent horns, '
+          'long white hair tied in a high ponytail flowing back, a visible pale face with red eyes, a long bright white scarf streaming behind, wide dark navy hakama trousers flaring at the bottom, '
+          'two long bright silver katanas with a cyan glow, one raised high and one held low forward.')
+
+
+# S2 검신 2라운드 (S1 비평: 어두운 몸이 46칸에서 검은 덩어리·뿔 작고 어두움·스카프가 얼굴 가림·비율)
+WHO_S2 = ('A chibi sword saint samurai with a very big head (one third of the height): a kabuto with huge bright gold crescent horns as wide as the head, '
+          'a large clearly visible pale face with two red eyes, long white hair in a ponytail behind, a white scarf tied at the neck trailing only behind, '
+          'medium steel-blue lacquered armor plates with bright light-blue highlights on every plate (not black), very wide square shoulder plates, '
+          'wide navy hakama with light folds, two long bright silver katanas with cyan edges, one raised high behind and one held low forward.')
+
+
 def init_t3(cls):
     if cls == 'squire': return init_recolor(0.08)          # 파랑 → 갈색
     return Image.open(os.path.join(RAW, T3_INIT[cls])).convert('RGB')
@@ -244,7 +257,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B'], 'N15': DIRS['B'], 'T3': DIRS['B'], 'T3b': DIRS['B'], 'T3c': DIRS['B'], 'T3d': DIRS['B'], 'T3e': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B'], 'N15': DIRS['B'], 'T3': DIRS['B'], 'T3b': DIRS['B'], 'T3c': DIRS['B'], 'T3d': DIRS['B'], 'T3e': DIRS['B'], 'S1a': DIRS['B'], 'S1b': DIRS['B'], 'S2': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -264,12 +277,18 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14', 'N15', 'T3', 'T3b', 'T3c', 'T3d', 'T3e') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14', 'N15', 'T3', 'T3b', 'T3c', 'T3d', 'T3e', 'S1a', 'S1b', 'S2') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO).get(cls, ''), body=DIRS[dk])
                 if dk == 'N5':         # 대검전사: 넓은 대검을 그려 넣은 밑그림 (글로는 46칸에서 칼이 가늘어짐)
                     init = Image.open(os.path.join(D, 'mannequin-gs.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'S2':
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_S2 + T3B), seed=s, denoise=0.92, init=Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB'))
+                elif dk == 'S1a':      # 검사 N2 와 같은 3등신 마네킹 밑그림
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_S1 + T3B), seed=s, denoise=0.92, init=Image.open(os.path.join(D, 'mannequin-3h-b.png')).convert('RGB'))
+                elif dk == 'S1b':      # 검성 원본 밑그림
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_S1 + T3B), seed=s, denoise=0.86, init=Image.open(os.path.join(RAW, 'blademaster-N14-97.png')).convert('RGB'))
                 elif dk == 'T3e':
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_T3D[cls] + T3B), seed=s, denoise=0.8, init=init_t3e())
                 elif dk == 'T3d':

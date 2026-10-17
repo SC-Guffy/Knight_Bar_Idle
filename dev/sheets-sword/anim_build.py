@@ -37,6 +37,10 @@ JOBS = {
     ('paladin', 'walk2'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
     ('blademaster', 'walk2'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
     ('greatswordsman', 'walk2'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
+    # 검신 짧은 판 (비평 s7: 준비 그림 비례가 키 자세와 다름·key2/cast1/cast2 칼이 떠 있음·이중 칼날): 준비 = key4, 떠 있는 자세 뺌
+    ('swordsaint', 'atk'): (['key4', 'key1', 'key3', 'key3', 'key4'], [130, 120, 80, 180, 140]),
+    ('swordsaint', 'cast'): (['key4', 'key1', 'cast3', 'cast3', 'key4'], [130, 160, 90, 200, 140]),
+    ('swordsaint', 'walk'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
 }
 ONLY = [a for a in __import__('sys').argv[1:]]
 

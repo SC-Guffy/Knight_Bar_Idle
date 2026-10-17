@@ -3,7 +3,7 @@
 cd "$(dirname "$0")/.."
 declare -A K
 K[archon]="Keep the same celestial archon: white and gold plate armor, big helmet with a dark visor slit and a ring of small gold stars above, star-emblem kite shield on the left arm, golden longsword in the right hand. Side view facing right, no effects."
-K[swordsaint]="Keep the same sword saint: white haori, kabuto with big gold crescent horns, visible face with red eyes, red sash, one glowing cyan katana in each hand. Side view facing right, no effects."
+K[swordsaint]="Keep the same sword saint: kabuto with huge gold crescent horns, visible face, long white hair and white scarf, dark navy armor with blue highlights, wide navy hakama, bright silver-blue curved katanas. Side view facing right, no effects."
 K[squire]="Keep the same young squire: round steel cap with open face, brown leather jerkin, cream tunic, short plain sword in the right hand, small round wooden buckler on the left arm. Side view facing right, no effects."
 K[tyrant]="Keep the same tyrant king: steel helmet with a spiked gold crown, crimson cape, spiked steel pauldrons, the same huge greatsword with a red rune held with both hands. Side view facing right, no effects."
 K[paladin]="Legs only. The same single golden sword stays in the right hand at the same angle, the same kite shield stays on the left arm, same helmet, halo and armor. Side view facing right, no effects."

@@ -120,3 +120,15 @@
 | 113 | squire | `/edit-image-pixen` | cast1r: Change only the arms: the short sword held vertically in fro | 1.0 / 1.0 | 234.0 / 126.0 | 764.0 |
 | 114 | tyrant | `/edit-image-pixen` | cast2r: Change only the arms: the same huge greatsword with the red  | 1.0 / 1.0 | 235.0 / 127.0 | 763.0 |
 | 115 | tyrant | `/edit-image-pixen` | key2r: Change only the pose: stepping forward, the same huge greats | 1.0 / 1.0 | 236.0 / 128.0 | 762.0 |
+| 116 | swordsaint | `/image-to-pixelart` | s2ref: /image-to-pixelart | 1.0 / 1.0 | 237.0 / 129.0 | 757.0 |
+| 117 | swordsaint | `/edit-image-pixen` | key1: Change only the pose: wind-up, knees bent, weapon pulled bac | 1.0 / 1.0 | 238.0 / 130.0 | 756.0 |
+| 118 | swordsaint | `/edit-image-pixen` | key2: Change only the pose: front foot stepping forward, weapon ra | 1.0 / 1.0 | 239.0 / 131.0 | 755.0 |
+| 119 | swordsaint | `/edit-image-pixen` | key3: Change only the pose: impact of a downward slash, deep lunge | 1.0 / 1.0 | 240.0 / 132.0 | 754.0 |
+| 120 | swordsaint | `/edit-image-pixen` | key4: Change only the pose: follow-through, rising from the lunge, | 1.0 / 1.0 | 241.0 / 133.0 | 753.0 |
+| 121 | swordsaint | `/edit-image-pixen` | cast1: Change only the pose: weapon held vertically in front of the | 1.0 / 1.0 | 242.0 / 134.0 | 752.0 |
+| 122 | swordsaint | `/edit-image-pixen` | cast2: Change only the arms: weapon raised straight up above the he | 1.0 / 1.0 | 243.0 / 135.0 | 751.0 |
+| 123 | swordsaint | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, weapon thrust straig | 1.0 / 1.0 | 244.0 / 136.0 | 750.0 |
+| 124 | swordsaint | `/edit-image-pixen` | walkA: Walking: right foot stepping forward, left foot behind, long | 1.0 / 1.0 | 245.0 / 137.0 | 749.0 |
+| 125 | swordsaint | `/edit-image-pixen` | walkB: Walking: passing pose, left knee raised forward, right foot  | 1.0 / 1.0 | 246.0 / 138.0 | 748.0 |
+| 126 | swordsaint | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 0.0 / 1 | 246.0 / 139.0 | 748.0 |
+| 127 | swordsaint | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 1.0 / 1.0 | 247.0 / 140.0 | 747.0 |
