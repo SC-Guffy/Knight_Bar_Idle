@@ -11,7 +11,7 @@ HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.pat
 NEW = os.path.join(HERE, 'new'); os.makedirs(NEW, exist_ok=True)
 S = 42
 REFS = ['fighter', 'kickboxer', 'qigong', 'grandmaster']      # src/sprites/<cls>.png idle 첫 칸 (사용자가 좋다고 한 현재 파이터 시트)
-PARENT = {'archon': 'paladin', 'tyrant': 'greatswordsman', 'swordsaint': 'blademaster'}
+PARENT = {'archon': 'paladin', 'tyrant': 'greatswordsman', 'tyrant_g': 'greatswordsman', 'swordsaint': 'blademaster'}
 STYLE = ('tiny chibi side-scroller fantasy sprites: big head about one third of the body, short stubby limbs, 1 pixel dark navy outline around the whole figure, '
          'flat colors with 2 to 3 shades per material, simple dot eyes, facing right in side view, feet on the bottom, the weapon is part of the drawing and held firmly in the hand')
 DESC = {
@@ -33,6 +33,10 @@ DESC = {
               'small glowing wings of light on the back, a long deep blue cape with constellation dots, a radiant golden longsword held upright, star kite shield, more ornate',
     'tyrant': 'the same greatsword warrior as the reference but now a tyrant king: black iron armor with spiked pauldrons, a jagged dark crown on spiky red hair, '
               'a torn crimson cape, a giant black greatsword with glowing red runes held on the shoulder, more ornate and menacing',
+    # 사용자 2026-10-18 "가츠 3차도 맞춰서 바꿔줘야지": 부모 = 가츠 판 대검전사 (pick-greatswordsman = greatswordsman_g-18)
+    'tyrant_g': 'the same black swordsman as the reference but now a berserker tyrant: full black spiked berserker armor, a snarling wolf-skull shaped helmet with glowing red eyes, '
+                'a jagged dark iron crown ridge on the helmet, a long tattered black cape, the same enormous slab iron greatsword now bigger with dark red cracks, '
+                'held on the shoulder, more ornate and menacing',
     'swordsaint': 'the same ronin swordmaster as the reference but now a sword saint: long white hair in a high ponytail, a white and gold haori over the dark kimono, '
                   'a golden crescent hair ornament, three small spectral blue swords floating behind the back, a glowing blue katana held low, more ornate',
 }

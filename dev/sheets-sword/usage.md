@@ -167,3 +167,63 @@
 | 160 | tyrant | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 412.0 / 285.0 | 530.0 |
 | 161 | swordsaint | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 427.0 / 300.0 | 515.0 |
 | 162 | greatswordsman_g | `/generate-with-style-v2` | new: /generate-with-style-v2 | 0.0 / 15.0 | 427.0 / 315.0 | 515.0 |
+| 163 | swordsman | `/edit-image-pixen` | nk1: Change only the pose: wind-up, the sword raised high above a | 1.0 / 1.0 | 428.0 / 316.0 | 499.0 |
+| 164 | swordsman | `/edit-image-pixen` | nk2: Change only the pose: mid slash, the sword swinging forward  | 0.0 / 1.0 | 428.0 / 317.0 | 499.0 |
+| 165 | swordsman | `/edit-image-pixen` | nk3: Change only the pose: follow-through after the slash, the sw | 4.0 / 1.0 | 432.0 / 318.0 | 495.0 |
+| 166 | swordsman | `/edit-image-pixen` | nc1: Change only the pose: focusing power, the sword held upright | 1.0 / 1.0 | 433.0 / 319.0 | 494.0 |
+| 167 | swordsman | `/edit-image-pixen` | nc2: Change only the pose: the sword thrust straight up toward th | 2.0 / 1.0 | 435.0 / 320.0 | 492.0 |
+| 168 | squire | `/edit-image-pixen` | nk1: Change only the pose: wind-up, the sword raised high above a | 3.0 / 1.0 | 438.0 / 321.0 | 488.0 |
+| 169 | squire | `/edit-image-pixen` | nk2: Change only the pose: mid slash, the sword swinging forward  | 1.0 / 1.0 | 439.0 / 322.0 | 487.0 |
+| 168 | tyrant_g | `/generate-with-style-v2` | new: /generate-with-style-v2 | 21.0 / 15.0 | 456.0 / 335.0 | 471.0 |
+| 170 | squire | `/edit-image-pixen` | nk3: Change only the pose: follow-through after the slash, the sw | 17.0 / 1.0 | 456.0 / 323.0 | 470.0 |
+| 171 | squire | `/edit-image-pixen` | nc1: Change only the pose: focusing power, the sword held upright | 0.0 / 1.0 | 456.0 / 324.0 | 470.0 |
+| 172 | squire | `/edit-image-pixen` | nc2: Change only the pose: the sword thrust straight up toward th | 2.0 / 1.0 | 458.0 / 325.0 | 468.0 |
+| 173 | paladin | `/edit-image-pixen` | nk1: Change only the pose: wind-up, the sword raised high above a | 1.0 / 1.0 | 459.0 / 326.0 | 467.0 |
+| 174 | paladin | `/edit-image-pixen` | nk2: Change only the pose: mid slash, the sword swinging forward  | 1.0 / 1.0 | 460.0 / 327.0 | 466.0 |
+| 175 | paladin | `/edit-image-pixen` | nk3: Change only the pose: follow-through after the slash, the sw | 0.0 / 1.0 | 460.0 / 328.0 | 466.0 |
+| 176 | paladin | `/edit-image-pixen` | nc1: Change only the pose: focusing power, the sword held upright | 1.0 / 1.0 | 461.0 / 329.0 | 464.0 |
+| 177 | paladin | `/edit-image-pixen` | nc2: Change only the pose: the sword thrust straight up toward th | 3.0 / 1.0 | 464.0 / 330.0 | 461.0 |
+| 178 | blademaster | `/edit-image-pixen` | nk1: Change only the pose: wind-up, the sword raised high above a | 1.0 / 1.0 | 465.0 / 331.0 | 460.0 |
+| 179 | blademaster | `/edit-image-pixen` | nk2: Change only the pose: mid slash, the sword swinging forward  | 2.0 / 1.0 | 467.0 / 332.0 | 458.0 |
+| 180 | blademaster | `/edit-image-pixen` | nk3: Change only the pose: follow-through after the slash, the sw | 2.0 / 1.0 | 469.0 / 333.0 | 456.0 |
+| 181 | blademaster | `/edit-image-pixen` | nc1: Change only the pose: focusing power, the sword held upright | 2.0 / 1.0 | 471.0 / 334.0 | 454.0 |
+| 182 | blademaster | `/edit-image-pixen` | nc2: Change only the pose: the sword thrust straight up toward th | 1.0 / 1.0 | 472.0 / 335.0 | 453.0 |
+| 183 | greatswordsman | `/edit-image-pixen` | nk1: Change only the pose: wind-up, the sword raised high above a | 2.0 / 1.0 | 474.0 / 336.0 | 451.0 |
+| 184 | greatswordsman | `/edit-image-pixen` | nk2: Change only the pose: mid slash, the sword swinging forward  | 1.0 / 1.0 | 475.0 / 337.0 | 450.0 |
+| 185 | greatswordsman | `/edit-image-pixen` | nk3: Change only the pose: follow-through after the slash, the sw | 2.0 / 1.0 | 477.0 / 338.0 | 448.0 |
+| 186 | greatswordsman | `/edit-image-pixen` | nc1: Change only the pose: focusing power, the sword held upright | 1.0 / 1.0 | 478.0 / 339.0 | 447.0 |
+| 187 | greatswordsman | `/edit-image-pixen` | nc2: Change only the pose: the sword thrust straight up toward th | 4.0 / 1.0 | 482.0 / 340.0 | 443.0 |
+| 188 | archon | `/edit-image-pixen` | nk1: Change only the pose: wind-up, the sword raised high above a | 1.0 / 1.0 | 483.0 / 341.0 | 442.0 |
+| 189 | archon | `/edit-image-pixen` | nk2: Change only the pose: mid slash, the sword swinging forward  | 1.0 / 1.0 | 484.0 / 342.0 | 441.0 |
+| 190 | archon | `/edit-image-pixen` | nk3: Change only the pose: follow-through after the slash, the sw | 3.0 / 1.0 | 487.0 / 343.0 | 438.0 |
+| 191 | archon | `/edit-image-pixen` | nc1: Change only the pose: focusing power, the sword held upright | 2.0 / 1.0 | 489.0 / 344.0 | 436.0 |
+| 192 | archon | `/edit-image-pixen` | nc2: Change only the pose: the sword thrust straight up toward th | 2.0 / 1.0 | 491.0 / 345.0 | 434.0 |
+| 193 | swordsaint | `/edit-image-pixen` | nk1: Change only the pose: wind-up, the sword raised high above a | 1.0 / 1.0 | 492.0 / 346.0 | 433.0 |
+| 194 | swordsaint | `/edit-image-pixen` | nk2: Change only the pose: mid slash, the sword swinging forward  | 3.0 / 1.0 | 495.0 / 347.0 | 430.0 |
+| 195 | swordsaint | `/edit-image-pixen` | nk3: Change only the pose: follow-through after the slash, the sw | 1.0 / 1.0 | 496.0 / 348.0 | 429.0 |
+| 196 | swordsaint | `/edit-image-pixen` | nc1: Change only the pose: focusing power, the sword held upright | 0.0 / 1.0 | 496.0 / 349.0 | 429.0 |
+| 197 | swordsaint | `/edit-image-pixen` | nc2: Change only the pose: the sword thrust straight up toward th | 2.0 / 1.0 | 498.0 / 350.0 | 426.0 |
+| 198 | tyrant | `/edit-image-pixen` | nk1: Change only the pose: wind-up, the sword raised high above a | 1.0 / 1.0 | 499.0 / 351.0 | 425.0 |
+| 199 | tyrant | `/edit-image-pixen` | nk2: Change only the pose: mid slash, the sword swinging forward  | 2.0 / 1.0 | 501.0 / 352.0 | 423.0 |
+| 200 | tyrant | `/edit-image-pixen` | nk3: Change only the pose: follow-through after the slash, the sw | 2.0 / 1.0 | 503.0 / 353.0 | 421.0 |
+| 201 | tyrant | `/edit-image-pixen` | nc1: Change only the pose: focusing power, the sword held upright | 2.0 / 1.0 | 505.0 / 354.0 | 419.0 |
+| 202 | tyrant | `/edit-image-pixen` | nc2: Change only the pose: the sword thrust straight up toward th | 2.0 / 1.0 | 507.0 / 355.0 | 417.0 |
+| 203 | squire | `/animate-with-skeleton-v3` | skelwalkN: /animate-with-skeleton-v3 | 3.0 / 3.0 | 510.0 / 358.0 | 414.0 |
+| 204 | swordsman | `/animate-with-skeleton-v3` | skelwalkN: /animate-with-skeleton-v3 | 12.0 / 3.0 | 522.0 / 361.0 | 402.0 |
+| 205 | paladin | `/animate-with-skeleton-v3` | skelwalkN: /animate-with-skeleton-v3 | 8.0 / 3.0 | 530.0 / 364.0 | 394.0 |
+| 206 | blademaster | `/animate-with-skeleton-v3` | skelwalkN: /animate-with-skeleton-v3 | 8.0 / 3.0 | 538.0 / 367.0 | 386.0 |
+| 207 | greatswordsman | `/animate-with-skeleton-v3` | skelwalkN: /animate-with-skeleton-v3 | 5.0 / 3.0 | 543.0 / 370.0 | 381.0 |
+| 208 | archon | `/animate-with-skeleton-v3` | skelwalkN: /animate-with-skeleton-v3 | 3.0 / 3.0 | 546.0 / 373.0 | 378.0 |
+| 209 | tyrant | `/animate-with-skeleton-v3` | skelwalkN: /animate-with-skeleton-v3 | 3.0 / 3.0 | 549.0 / 376.0 | 375.0 |
+| 210 | swordsaint | `/animate-with-skeleton-v3` | skelwalkN: /animate-with-skeleton-v3 | 0.0 / 3.0 | 549.0 / 379.0 | 375.0 |
+| 211 | paladin | `/edit-image-pixen` | nk2r: Change only the pose: mid slash, the sword arm reaches forwa | 1.0 / 1.0 | 550.0 / 380.0 | 371.0 |
+| 212 | paladin | `/edit-image-pixen` | nk3r: Change only the pose: follow-through, the golden sword exten | 1.0 / 1.0 | 551.0 / 381.0 | 370.0 |
+| 213 | paladin | `/edit-image-pixen` | nc1r: Change only the pose: the golden sword held upright in the f | 0.0 / 1.0 | 551.0 / 382.0 | 370.0 |
+| 214 | paladin | `/edit-image-pixen` | nc2r: Change only the pose: the golden sword thrust straight up to | 1.0 / 1.0 | 552.0 / 383.0 | 369.0 |
+| 215 | archon | `/edit-image-pixen` | nk1r: Change only the pose: wind-up, the golden longsword gripped  | 2.0 / 1.0 | 554.0 / 384.0 | 367.0 |
+| 216 | archon | `/edit-image-pixen` | nc1r: Change only the pose: focusing power, facing right, the gold | 0.0 / 1.0 | 554.0 / 385.0 | 367.0 |
+| 217 | archon | `/edit-image-pixen` | nc2r: Change only the pose: facing right, the golden longsword rai | 1.0 / 1.0 | 555.0 / 386.0 | 366.0 |
+| 218 | blademaster | `/edit-image-pixen` | nk1r: Change only the pose: wind-up, the katana gripped in both ha | 2.0 / 1.0 | 557.0 / 387.0 | 364.0 |
+| 219 | blademaster | `/edit-image-pixen` | nc1r: Change only the pose: focusing, the katana held upright in f | 1.0 / 1.0 | 558.0 / 388.0 | 363.0 |
+| 220 | blademaster | `/edit-image-pixen` | nc2r: Change only the pose: the katana held in the front hand rais | 0.0 / 1.0 | 558.0 / 389.0 | 363.0 |
+| 221 | tyrant | `/edit-image-pixen` | nk1r: Change only the pose: wind-up, the enormous greatsword gripp | 1.0 / 1.0 | 559.0 / 390.0 | 362.0 |

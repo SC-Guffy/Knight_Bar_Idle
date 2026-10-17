@@ -1,0 +1,43 @@
+{
+ "id": "blademaster-natkA",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\blademaster-atkA-strip.png",
+ "frames": 7,
+ "color": "raw",
+ "size": [
+  448,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 칼 공격·시전",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "4번 프레임이 칸 오른쪽 가장자리에 닿는다 (잘림?)",
+   "5번 프레임이 칸 오른쪽 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.624,
+  "colors": 21,
+  "low": 0.559,
+  "edge": 0.225,
+  "lone": 0.045,
+  "flick": 0.291,
+  "churn": 0.294,
+  "fill": 0.211,
+  "area": [
+   760,
+   904,
+   1117,
+   884,
+   884,
+   747,
+   760
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

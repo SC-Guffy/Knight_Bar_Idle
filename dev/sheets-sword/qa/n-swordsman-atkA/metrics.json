@@ -1,0 +1,40 @@
+{
+ "id": "swordsman-natkA",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\swordsman-atkA-strip.png",
+ "frames": 7,
+ "color": "raw",
+ "size": [
+  448,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 칼 공격·시전, 칼과 몸이 같이 움직임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.769,
+  "colors": 18,
+  "low": 0.369,
+  "edge": 0.462,
+  "lone": 0.088,
+  "flick": 0.33,
+  "churn": 0.536,
+  "fill": 0.205,
+  "area": [
+   735,
+   848,
+   858,
+   987,
+   987,
+   715,
+   735
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

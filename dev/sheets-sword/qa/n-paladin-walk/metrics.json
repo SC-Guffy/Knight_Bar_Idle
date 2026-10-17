@@ -1,0 +1,37 @@
+{
+ "id": "paladin-nwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\paladin-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임, 상체·칼 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.869,
+  "colors": 21,
+  "low": 0.3,
+  "edge": 0.49,
+  "lone": 0.097,
+  "flick": 0.114,
+  "churn": 0.062,
+  "fill": 0.206,
+  "area": [
+   871,
+   810,
+   861,
+   840
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

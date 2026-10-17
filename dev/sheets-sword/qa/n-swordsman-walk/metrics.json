@@ -1,0 +1,37 @@
+{
+ "id": "swordsman-nwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\swordsman-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임, 상체·칼 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.769,
+  "colors": 18,
+  "low": 0.361,
+  "edge": 0.503,
+  "lone": 0.135,
+  "flick": 0.132,
+  "churn": 0.061,
+  "fill": 0.173,
+  "area": [
+   728,
+   683,
+   733,
+   688
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

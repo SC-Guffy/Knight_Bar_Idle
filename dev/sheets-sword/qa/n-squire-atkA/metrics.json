@@ -1,0 +1,40 @@
+{
+ "id": "squire-natkA",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\squire-atkA-strip.png",
+ "frames": 7,
+ "color": "raw",
+ "size": [
+  448,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 칼 공격·시전, 칼과 몸이 같이 움직임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.856,
+  "colors": 21,
+  "low": 0.317,
+  "edge": 0.414,
+  "lone": 0.075,
+  "flick": 0.317,
+  "churn": 0.454,
+  "fill": 0.194,
+  "area": [
+   754,
+   835,
+   806,
+   845,
+   845,
+   725,
+   754
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

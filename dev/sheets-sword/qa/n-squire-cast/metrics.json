@@ -1,0 +1,39 @@
+{
+ "id": "squire-ncast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\squire-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 칼 공격·시전, 칼과 몸이 같이 움직임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.856,
+  "colors": 21,
+  "low": 0.328,
+  "edge": 0.405,
+  "lone": 0.062,
+  "flick": 0.222,
+  "churn": 0.379,
+  "fill": 0.2,
+  "area": [
+   754,
+   821,
+   821,
+   846,
+   846,
+   821
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

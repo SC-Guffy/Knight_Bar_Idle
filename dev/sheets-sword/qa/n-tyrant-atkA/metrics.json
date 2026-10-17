@@ -1,0 +1,40 @@
+{
+ "id": "tyrant-natkA",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\tyrant-atkA-strip.png",
+ "frames": 7,
+ "color": "raw",
+ "size": [
+  448,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 칼 공격·시전",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.411,
+  "colors": 21,
+  "low": 0.484,
+  "edge": 0.321,
+  "lone": 0.057,
+  "flick": 0.325,
+  "churn": 0.323,
+  "fill": 0.243,
+  "area": [
+   956,
+   1047,
+   1061,
+   1015,
+   1015,
+   928,
+   956
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

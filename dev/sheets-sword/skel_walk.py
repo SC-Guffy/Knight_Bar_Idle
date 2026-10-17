@@ -25,9 +25,25 @@ LIT = {   # 10단계 (로드맵 승인 6): 다리 구역만 앞다리 밝은 3�
 }
 LITDESC = {'tyrant': ', light steel greaves, front leg brighter than back leg', 'swordsaint': ', light lavender hakama legs, front leg brighter than back leg'}
 LV = os.environ.get('LIT') == '1'
+NV = os.environ.get('NEW') == '1'      # 12단계 B: 새 디자인(newanim/<cls>-src.png, 칼 든 채) 첫 프레임 — 상체·칼은 그대로 붙임
+WR = {'greatswordsman': 6, 'tyrant': 6}   # 다리 구역 오른쪽 끝 (발 가운데 + 칸) — 대검이 그 너머에 서 있음
+NDESC = {
+    'squire': 'small chibi young squire, messy brown hair, cream padded gambeson, round wooden buckler, short iron sword in hand',
+    'swordsman': 'small chibi knight, open-face steel helmet with a tall blue plume, short blue cape, steel breastplate, blue tabard, steel longsword in hand',
+    'paladin': 'small chibi paladin, white and gold full plate, great helm with gold cross visor, kite shield with golden sun, short golden sword in hand',
+    'blademaster': 'small chibi ronin, long black high ponytail, red headband, indigo kimono, red sash, wide black hakama, curved katana in hand',
+    'greatswordsman': 'small chibi black swordsman, spiky black hair, dark iron armor, tattered black cape, enormous slab iron greatsword held upright',
+    'archon': 'small chibi archon knight, white and gold plate, great helm with gold stars above, small glowing gold wings, blue cape, golden longsword',
+    'tyrant': 'small chibi berserker tyrant, black spiked armor, wolf-skull helmet with red eyes, tattered black cape, giant slab greatsword',
+    'swordsaint': 'small chibi sword saint, long white high ponytail, gold crescent ornament, white and gold haori, dark hakama, glowing blue katana',
+}
+TAG = 'N' if NV else ('L' if LV else '')
 
 
 def neutral(cls):
+    if NV:
+        import build_new as B
+        im = Image.open(os.path.join(HERE, 'newanim', f'{cls}-src.png')).convert('RGBA'); return B.lock(im, B.pal_of(im))
     import walk_script as W
     n = W.neutral(cls)
     return lit(cls, n) if LV and cls in LIT else n
@@ -108,15 +124,15 @@ def plan(classes):
         nim = neutral(cls); cx, top, bot, H = frame_geo(nim)
         first = Image.new('RGBA', (N, N)); first.alpha_composite(nim.resize((128, 128), Image.NEAREST), OFF)
         base, _ = pose(cx, bot, H); fr = [pose(cx, bot, H, t)[0] for t in range(8)]
-        body = {'description': DESC[cls] + (LITDESC[cls] if LV and cls in LIT else '') + ', legs clearly separated', 'action': 'walking forward with long strides, knees lifting, arms swinging slightly',
+        body = {'description': (NDESC[cls] if NV else DESC[cls] + (LITDESC[cls] if LV and cls in LIT else '')) + ', legs clearly separated', 'action': 'walking forward with long strides, knees lifting, arms swinging slightly',
                 'direction': 'east', 'view': 'side', 'first_frame': b64(first), 'first_frame_keypoints': kp(base), 'keypoints': [kp(p) for p in fr],
-                'template_id': 'mannequin', 'seed': 43 if LV else 41, 'no_background': True}
-        json.dump(body, open(os.path.join(A, f'{cls}-skelwalk{"L" if LV else ""}-req.json'), 'w'))
+                'template_id': 'mannequin', 'seed': 47 if NV else 43 if LV else 41, 'no_background': True}
+        json.dump(body, open(os.path.join(A, f'{cls}-skelwalk{TAG}-req.json'), 'w'))
         rows.append([stick(base, first)] + [stick(p) for p in fr])
     W, H2 = rows[0][0].size; m = Image.new('RGBA', ((W + 4) * 9, (H2 + 4) * len(rows)), (40, 42, 52, 255))
     for r, row in enumerate(rows):
         for i, t in enumerate(row): m.paste(t, (i * (W + 4), r * (H2 + 4)))
-    m.save(os.path.join(A, f'_skelwalk{"L" if LV else ""}-stick.png')); print('plan', classes)
+    m.save(os.path.join(A, f'_skelwalk{TAG}-stick.png')); print('plan', classes)
 
 
 FIX = ('tyrant', 'swordsaint')     # 비평 2개 미달 → 무료 수리 1회: 다리 구역 색을 중립 그림 하체 색으로만 고정 (프레임마다 보라·검정 깜빡임), 파천검왕은 생성 망토(붉은 칸)를 다리에서 뺌
@@ -142,25 +158,25 @@ def post(classes):
         pal = sorted({c for c in nim.getdata() if c[3]})
         fr = []
         for t in range(8):
-            raw = Image.open(os.path.join(HERE, 'work', cls, f'skelwalk{"L" if LV else ""}-{t}.png')).convert('RGBA')
+            raw = Image.open(os.path.join(HERE, 'work', cls, f'skelwalk{TAG}-{t}.png')).convert('RGBA')
             AP.K, AP.OFF, AP.V2 = K, OFF, True
             d = AP.main_blob(AP.down(raw, pal)); _, bob = pose(cx, bot, H, t)
-            if cls in FIX or LV: d = fix_legs(cls, d, nim, hip)
-            x0, x1 = int(cx) - 10, int(cx) + 11; b = round(bob)
+            if cls in FIX or LV or NV: d = fix_legs(cls, d, nim, hip)
+            x0, x1 = int(cx) - 10, int(cx) + (WR.get(cls, 10) if NV else 10) + 1; b = round(bob)   # WR: 다리 옆에 세운 대검은 원본 그대로
             o = Image.new('RGBA', (64, 64)); o.alpha_composite(d.crop((x0, hip, x1, 64)), (x0, hip))   # 다리: 생성 결과 (발 중심 ±10칸만 — 생성 칼 가로획 빼기)
             low = nim.crop((0, hip, 64, 64)); low.paste((0, 0, 0, 0), (x0, 0, x1, low.height))
             o.alpha_composite(low, (0, hip + b)) if hip + b >= 0 else None                               # 다리 구역 밖(방패 끝·칼끝): 중립 그림
             o.alpha_composite(nim.crop((0, 0, 64, hip)), (0, b))                                         # 상체·무기: 중립 그림 고정
             fr.append(o)
         st = Image.new('RGBA', (64 * 8, 64)); [st.alpha_composite(f, (64 * i, 0)) for i, f in enumerate(fr)]
-        st.save(os.path.join(A, f'{cls}-walk{"L" if LV else "K"}-strip.png'))
+        st.save(os.path.join(A, f'{cls}-walk{TAG or "K"}-strip.png'))
         g = []
         for f in fr:
             b = Image.new('RGBA', (64, 64), (38, 40, 50, 255)); b.alpha_composite(f); g.append(b.convert('RGB').resize((256, 256), Image.NEAREST))
-        g[0].save(os.path.join(A, f'{cls}-walk{"L" if LV else "K"}-x4.gif'), save_all=True, append_images=g[1:], duration=100, loop=0)
+        g[0].save(os.path.join(A, f'{cls}-walk{TAG or "K"}-x4.gif'), save_all=True, append_images=g[1:], duration=100, loop=0)
         print(cls, 'post ok')
 
 
 if __name__ == '__main__':
-    cls = sys.argv[2:] or list(DESC)
+    cls = sys.argv[2:] or list(NDESC if NV else DESC)
     plan(cls) if sys.argv[1] == 'plan' else post(cls)

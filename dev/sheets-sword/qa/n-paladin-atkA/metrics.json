@@ -1,0 +1,40 @@
+{
+ "id": "paladin-natkA",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\paladin-atkA-strip.png",
+ "frames": 7,
+ "color": "raw",
+ "size": [
+  448,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 칼 공격·시전",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.869,
+  "colors": 21,
+  "low": 0.327,
+  "edge": 0.466,
+  "lone": 0.08,
+  "flick": 0.306,
+  "churn": 0.507,
+  "fill": 0.2,
+  "area": [
+   860,
+   707,
+   784,
+   844,
+   844,
+   832,
+   860
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,39 @@
+{
+ "id": "swordsaint-ncast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\swordsaint-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 칼 공격·시전, 칼과 몸이 같이 움직임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.946,
+  "colors": 21,
+  "low": 0.338,
+  "edge": 0.403,
+  "lone": 0.072,
+  "flick": 0.251,
+  "churn": 0.374,
+  "fill": 0.202,
+  "area": [
+   735,
+   816,
+   816,
+   888,
+   888,
+   816
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,37 @@
+{
+ "id": "greatswordsman-nwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\greatswordsman-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임, 상체·칼 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.597,
+  "colors": 21,
+  "low": 0.442,
+  "edge": 0.331,
+  "lone": 0.058,
+  "flick": 0.094,
+  "churn": 0.025,
+  "fill": 0.217,
+  "area": [
+   899,
+   852,
+   893,
+   907
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

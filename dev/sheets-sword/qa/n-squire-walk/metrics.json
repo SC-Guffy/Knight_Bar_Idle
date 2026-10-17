@@ -1,0 +1,37 @@
+{
+ "id": "squire-nwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\squire-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임, 상체·칼 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.856,
+  "colors": 21,
+  "low": 0.295,
+  "edge": 0.439,
+  "lone": 0.097,
+  "flick": 0.139,
+  "churn": 0.045,
+  "fill": 0.182,
+  "area": [
+   765,
+   712,
+   777,
+   721
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

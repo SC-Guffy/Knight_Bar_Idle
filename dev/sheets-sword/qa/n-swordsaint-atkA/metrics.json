@@ -1,0 +1,42 @@
+{
+ "id": "swordsaint-natkA",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\swordsaint-atkA-strip.png",
+ "frames": 7,
+ "color": "raw",
+ "size": [
+  448,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 칼 공격·시전, 칼과 몸이 같이 움직임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "3번 프레임이 칸 오른쪽 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.879,
+  "colors": 21,
+  "low": 0.377,
+  "edge": 0.423,
+  "lone": 0.084,
+  "flick": 0.334,
+  "churn": 0.477,
+  "fill": 0.192,
+  "area": [
+   735,
+   823,
+   874,
+   810,
+   810,
+   718,
+   735
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,40 @@
+{
+ "id": "archon-natkA",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\archon-atkA-strip.png",
+ "frames": 7,
+ "color": "raw",
+ "size": [
+  448,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 칼 공격·시전",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.57,
+  "lrange": 0.989,
+  "colors": 21,
+  "low": 0.277,
+  "edge": 0.458,
+  "lone": 0.104,
+  "flick": 0.362,
+  "churn": 0.54,
+  "fill": 0.212,
+  "area": [
+   822,
+   902,
+   939,
+   892,
+   892,
+   800,
+   822
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

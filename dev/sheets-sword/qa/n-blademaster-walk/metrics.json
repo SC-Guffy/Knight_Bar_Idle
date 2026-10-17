@@ -1,0 +1,37 @@
+{
+ "id": "blademaster-nwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\blademaster-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임, 상체·칼 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.624,
+  "colors": 21,
+  "low": 0.556,
+  "edge": 0.249,
+  "lone": 0.06,
+  "flick": 0.149,
+  "churn": 0.012,
+  "fill": 0.184,
+  "area": [
+   800,
+   708,
+   797,
+   710
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

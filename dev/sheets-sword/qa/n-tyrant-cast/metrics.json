@@ -1,0 +1,39 @@
+{
+ "id": "tyrant-ncast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\tyrant-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 칼 공격·시전",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.419,
+  "colors": 21,
+  "low": 0.443,
+  "edge": 0.296,
+  "lone": 0.055,
+  "flick": 0.232,
+  "churn": 0.278,
+  "fill": 0.227,
+  "area": [
+   956,
+   916,
+   916,
+   936,
+   936,
+   916
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

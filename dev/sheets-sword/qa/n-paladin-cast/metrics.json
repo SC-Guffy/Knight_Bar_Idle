@@ -1,0 +1,39 @@
+{
+ "id": "paladin-ncast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\paladin-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 칼 공격·시전",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.869,
+  "colors": 21,
+  "low": 0.311,
+  "edge": 0.45,
+  "lone": 0.078,
+  "flick": 0.173,
+  "churn": 0.416,
+  "fill": 0.218,
+  "area": [
+   860,
+   861,
+   861,
+   956,
+   956,
+   861
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

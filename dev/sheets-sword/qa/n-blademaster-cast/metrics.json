@@ -1,0 +1,39 @@
+{
+ "id": "blademaster-ncast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\blademaster-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 칼 공격·시전",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.637,
+  "colors": 21,
+  "low": 0.52,
+  "edge": 0.247,
+  "lone": 0.054,
+  "flick": 0.288,
+  "churn": 0.272,
+  "fill": 0.205,
+  "area": [
+   760,
+   833,
+   833,
+   893,
+   893,
+   833
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

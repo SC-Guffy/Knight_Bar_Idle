@@ -1,0 +1,39 @@
+{
+ "id": "greatswordsman-ncast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\greatswordsman-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 칼 공격·시전, 칼과 몸이 같이 움직임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.597,
+  "colors": 21,
+  "low": 0.53,
+  "edge": 0.331,
+  "lone": 0.04,
+  "flick": 0.222,
+  "churn": 0.288,
+  "fill": 0.213,
+  "area": [
+   900,
+   823,
+   823,
+   931,
+   931,
+   823
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,39 @@
+{
+ "id": "archon-ncast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\archon-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 칼 공격·시전",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.17,
+  "lrange": 0.985,
+  "colors": 21,
+  "low": 0.21,
+  "edge": 0.443,
+  "lone": 0.088,
+  "flick": 0.247,
+  "churn": 0.452,
+  "fill": 0.216,
+  "area": [
+   822,
+   900,
+   900,
+   898,
+   898,
+   900
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,37 @@
+{
+ "id": "swordsaint-nwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\swordsaint-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임, 상체·칼 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.75,
+  "lrange": 0.879,
+  "colors": 21,
+  "low": 0.324,
+  "edge": 0.436,
+  "lone": 0.107,
+  "flick": 0.094,
+  "churn": 0.039,
+  "fill": 0.174,
+  "area": [
+   752,
+   681,
+   718,
+   692
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

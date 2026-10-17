@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 427.0,
+ "used": 559.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -1135,7 +1135,420 @@
    "purpose": "new: /generate-with-style-v2",
    "used": 0.0,
    "bal": 515.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1: Change only the pose: wind-up, the sword raised high above a",
+   "used": 1.0,
+   "bal": 499.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2: Change only the pose: mid slash, the sword swinging forward ",
+   "used": 0.0,
+   "bal": 499.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3: Change only the pose: follow-through after the slash, the sw",
+   "used": 4.0,
+   "bal": 495.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1: Change only the pose: focusing power, the sword held upright",
+   "used": 1.0,
+   "bal": 494.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2: Change only the pose: the sword thrust straight up toward th",
+   "used": 2.0,
+   "bal": 492.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1: Change only the pose: wind-up, the sword raised high above a",
+   "used": 3.0,
+   "bal": 488.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2: Change only the pose: mid slash, the sword swinging forward ",
+   "used": 1.0,
+   "bal": 487.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3: Change only the pose: follow-through after the slash, the sw",
+   "used": 17.0,
+   "bal": 470.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1: Change only the pose: focusing power, the sword held upright",
+   "used": 0.0,
+   "bal": 470.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2: Change only the pose: the sword thrust straight up toward th",
+   "used": 2.0,
+   "bal": 468.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1: Change only the pose: wind-up, the sword raised high above a",
+   "used": 1.0,
+   "bal": 467.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2: Change only the pose: mid slash, the sword swinging forward ",
+   "used": 1.0,
+   "bal": 466.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3: Change only the pose: follow-through after the slash, the sw",
+   "used": 0.0,
+   "bal": 466.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1: Change only the pose: focusing power, the sword held upright",
+   "used": 1.0,
+   "bal": 464.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2: Change only the pose: the sword thrust straight up toward th",
+   "used": 3.0,
+   "bal": 461.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1: Change only the pose: wind-up, the sword raised high above a",
+   "used": 1.0,
+   "bal": 460.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2: Change only the pose: mid slash, the sword swinging forward ",
+   "used": 2.0,
+   "bal": 458.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3: Change only the pose: follow-through after the slash, the sw",
+   "used": 2.0,
+   "bal": 456.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1: Change only the pose: focusing power, the sword held upright",
+   "used": 2.0,
+   "bal": 454.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2: Change only the pose: the sword thrust straight up toward th",
+   "used": 1.0,
+   "bal": 453.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1: Change only the pose: wind-up, the sword raised high above a",
+   "used": 2.0,
+   "bal": 451.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2: Change only the pose: mid slash, the sword swinging forward ",
+   "used": 1.0,
+   "bal": 450.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3: Change only the pose: follow-through after the slash, the sw",
+   "used": 2.0,
+   "bal": 448.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1: Change only the pose: focusing power, the sword held upright",
+   "used": 1.0,
+   "bal": 447.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2: Change only the pose: the sword thrust straight up toward th",
+   "used": 4.0,
+   "bal": 443.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1: Change only the pose: wind-up, the sword raised high above a",
+   "used": 1.0,
+   "bal": 442.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2: Change only the pose: mid slash, the sword swinging forward ",
+   "used": 1.0,
+   "bal": 441.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3: Change only the pose: follow-through after the slash, the sw",
+   "used": 3.0,
+   "bal": 438.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1: Change only the pose: focusing power, the sword held upright",
+   "used": 2.0,
+   "bal": 436.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2: Change only the pose: the sword thrust straight up toward th",
+   "used": 2.0,
+   "bal": 434.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1: Change only the pose: wind-up, the sword raised high above a",
+   "used": 1.0,
+   "bal": 433.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2: Change only the pose: mid slash, the sword swinging forward ",
+   "used": 3.0,
+   "bal": 430.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3: Change only the pose: follow-through after the slash, the sw",
+   "used": 1.0,
+   "bal": 429.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1: Change only the pose: focusing power, the sword held upright",
+   "used": 0.0,
+   "bal": 429.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2: Change only the pose: the sword thrust straight up toward th",
+   "used": 2.0,
+   "bal": 426.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1: Change only the pose: wind-up, the sword raised high above a",
+   "used": 1.0,
+   "bal": 425.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2: Change only the pose: mid slash, the sword swinging forward ",
+   "used": 2.0,
+   "bal": 423.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3: Change only the pose: follow-through after the slash, the sw",
+   "used": 2.0,
+   "bal": 421.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1: Change only the pose: focusing power, the sword held upright",
+   "used": 2.0,
+   "bal": 419.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2: Change only the pose: the sword thrust straight up toward th",
+   "used": 2.0,
+   "bal": 417.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkN: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 414.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkN: /animate-with-skeleton-v3",
+   "used": 12.0,
+   "bal": 402.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkN: /animate-with-skeleton-v3",
+   "used": 8.0,
+   "bal": 394.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkN: /animate-with-skeleton-v3",
+   "used": 8.0,
+   "bal": 386.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkN: /animate-with-skeleton-v3",
+   "used": 5.0,
+   "bal": 381.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkN: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 378.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkN: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 375.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkN: /animate-with-skeleton-v3",
+   "used": 0.0,
+   "bal": 375.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2r: Change only the pose: mid slash, the sword arm reaches forwa",
+   "used": 1.0,
+   "bal": 371.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3r: Change only the pose: follow-through, the golden sword exten",
+   "used": 1.0,
+   "bal": 370.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1r: Change only the pose: the golden sword held upright in the f",
+   "used": 0.0,
+   "bal": 370.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2r: Change only the pose: the golden sword thrust straight up to",
+   "used": 1.0,
+   "bal": 369.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1r: Change only the pose: wind-up, the golden longsword gripped ",
+   "used": 2.0,
+   "bal": 367.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1r: Change only the pose: focusing power, facing right, the gold",
+   "used": 0.0,
+   "bal": 367.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2r: Change only the pose: facing right, the golden longsword rai",
+   "used": 1.0,
+   "bal": 366.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1r: Change only the pose: wind-up, the katana gripped in both ha",
+   "used": 2.0,
+   "bal": 364.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc1r: Change only the pose: focusing, the katana held upright in f",
+   "used": 1.0,
+   "bal": 363.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc2r: Change only the pose: the katana held in the front hand rais",
+   "used": 0.0,
+   "bal": 363.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk1r: Change only the pose: wind-up, the enormous greatsword gripp",
+   "used": 1.0,
+   "bal": 362.0
   }
  ],
- "nom": 315.0
+ "nom": 390.0
 }
