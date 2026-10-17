@@ -72,9 +72,10 @@ SKILL_FX.wave = {
   hit(a, i) {
     if (i) return;
     const m = a.mast || 0, n = [1, 3, 5, 7][m], g = gripOf(a), dist = t7Sh(a, 'pierce') ? 300 : 170;
+    const y0 = Math.min(g.y, groundY() - 34);   // 가슴 높이에서 쏜다 (칼끝 높이는 내려 베는 자세라 땅에 가깝다)
     for (let j = 0; j < n; j++) {
-      const ang = (a.dir > 0 ? 0 : Math.PI) + (n > 1 ? (j / (n - 1) - 0.65) * 0.6 : -0.05) * a.dir;   // 부채꼴은 조금 위로 (땅에 박히지 않게)
-      t7Crescent(a, g.x + a.dir * 10, g.y, ang, dist, { delay: j * 0.03, scale: m >= 3 ? 1 : 2 / 3 });
+      const ang = (a.dir > 0 ? 0 : Math.PI) + (n > 1 ? (j / (n - 1) - 0.6) * 0.5 : -0.04) * a.dir;   // 부채꼴은 조금 위로 (땅에 박히지 않게)
+      t7Crescent(a, g.x + a.dir * 10, y0, ang, dist, { delay: j * 0.03, scale: m >= 3 ? 1 : 2 / 3 });
     }
     impact({ shake: 0.1 });
   },
@@ -149,9 +150,12 @@ SKILL_FX.f_ak = {
       skFx(null, j * 0.02, 0.22, (u) => swLine(ctx, 'f04', a.color, Math.min(3, Math.floor(u * 4)), x - Math.cos(ang) * 22, y - Math.sin(ang) * 22, x + Math.cos(ang) * 22, y + Math.sin(ang) * 22, { alpha: 1 - u }));
     }
     if (sh.has('uvB') && i === n - 1) {
-      const x = t.x;
-      skFx(null, 0, 0.6, (u) => swLine(ctx, 'e11', '#ff3040', Math.min(3, Math.floor(u * 4)), x, -10, x, mix(-10, groundY() + 6, easeOut(Math.min(1, u / 0.12))), { scale: 2, alpha: u < 0.6 ? 1 : (1 - u) / 0.4 }));
-      impact({ stop: 0.2, shake: 0.6 });
+      // 천검이 다 끝난 뒤 한 박자 쉬고: 화면이 어두워지고(천검 ★★★ 꽃잎·검선 위로) 붉은 바깥 줄 + 흰 속 줄이 위에서 땅까지 내려긋는다
+      const x = t.x, d = 0.18, yEnd = (u) => mix(-10, groundY() + 6, easeOut(Math.min(1, u / 0.12)));
+      skFx(null, d - 0.08, 0.78, (u) => { ctx.globalAlpha = 0.5 * (u < 0.15 ? u / 0.15 : u < 0.6 ? 1 : (1 - u) / 0.4); ctx.fillStyle = '#05030a'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; });
+      skFx(null, d, 0.7, (u) => swLine(ctx, 'e11', '#ff3040', Math.min(3, Math.floor(u * 4)), x, -10, x, yEnd(u), { scale: 3, alpha: u < 0.6 ? 1 : (1 - u) / 0.4 }));
+      skFx(null, d, 0.7, (u) => swLine(ctx, 'e11', '#fff4f0', Math.min(3, Math.floor(u * 4)), x, -10, x, yEnd(u), { scale: 4 / 3, alpha: u < 0.5 ? 1 : (1 - u) / 0.5 }));
+      skLater(a, d, () => { impact({ stop: 0.22, shake: 0.7 }); starFx(x, groundY() - 4, 14, '#ffd0c8', 0.3); });
     }
     if (sh.has('uvK')) for (let j = 0; j < 3; j++) {
       const x = t.x + rand(-140, 140);
