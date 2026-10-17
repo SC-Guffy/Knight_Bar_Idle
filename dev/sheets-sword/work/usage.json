@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 264.0,
+ "used": 269.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -988,7 +988,42 @@
    "purpose": "walkH: Walking, passing pose: both feet close together under the bo",
    "used": 1.0,
    "bal": 730.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: Change only the pose to a calm neutral standing pose: feet s",
+   "used": 1.0,
+   "bal": 729.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: Change only the pose to a calm neutral standing pose: feet s",
+   "used": 1.0,
+   "bal": 728.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: Change only the pose to a calm neutral standing pose: feet s",
+   "used": 1.0,
+   "bal": 727.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: Change only the pose to a calm neutral standing pose: feet s",
+   "used": 1.0,
+   "bal": 726.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: Change only the pose to a calm neutral standing pose: feet s",
+   "used": 1.0,
+   "bal": 725.0
   }
  ],
- "nom": 154.0
+ "nom": 159.0
 }

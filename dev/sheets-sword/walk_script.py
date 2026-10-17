@@ -27,8 +27,25 @@ def legs_frame(im, front, back, body_dy, lift_f=0, lift_b=0):
     return o
 
 
+def neutral(cls):
+    """8단계 (로드맵 승인 pixen 1/직업): 다리가 드러난 중립 서기 자세 work/<cls>/neutral-0.png → 발 줄 59 맞춤 + 시트 준비 그림 팔레트 고정"""
+    im = Image.open(os.path.join(HERE, 'work', cls, 'neutral-0.png')).convert('RGBA'); P = im.load()
+    yb = max(y for y in range(64) if any(P[x, y][3] for x in range(64)))
+    o = Image.new('RGBA', (64, 64)); o.alpha_composite(im, (0, FOOT_Y - yb))
+    ref = first(SRC[cls]); pal = sorted({c for c in ref.getdata() if c[3]})
+    if len(pal) > 24:
+        q = ref.convert('RGB').quantize(colors=22, method=Image.Quantize.MEDIANCUT).convert('RGB')
+        pal = sorted({q.getpixel((x, y)) + (255,) for y in range(64) for x in range(64) if ref.getpixel((x, y))[3]})
+    O = o.load()
+    for y in range(64):
+        for x in range(64):
+            c = O[x, y]
+            if c[3]: O[x, y] = min(pal, key=lambda q: sum((c[i] - q[i]) ** 2 for i in range(3)))[:3] + (255,)
+    return o
+
+
 def walk(cls):
-    im = first(SRC[cls])
+    im = neutral(cls) if os.environ.get('WALK_SRC') == 'neutral' else first(SRC[cls])
     return [legs_frame(im, 3, -3, 1), legs_frame(im, 0, 0, -1, lift_b=2), legs_frame(im, -2, 2, 1), legs_frame(im, 0, 0, -1, lift_f=2)]   # 2차: 보폭 ±3, 통과 때 무릎 2칸 들기
 
 
@@ -36,9 +53,10 @@ if __name__ == '__main__':
     for cls in (sys.argv[1:] or SRC):
         fr = walk(cls)
         st = Image.new('RGBA', (256, 64)); [st.alpha_composite(f, (64 * i, 0)) for i, f in enumerate(fr)]
-        st.save(os.path.join(A, f'{cls}-walkS-strip.png'))
+        tag = 'N' if os.environ.get('WALK_SRC') == 'neutral' else 'S'
+        st.save(os.path.join(A, f'{cls}-walk{tag}-strip.png'))
         g = []
         for f in fr:
             b = Image.new('RGBA', (64, 64), (38, 40, 50, 255)); b.alpha_composite(f); g.append(b.convert('RGB').resize((256, 256), Image.NEAREST))
-        g[0].save(os.path.join(A, f'{cls}-walkS-x4.gif'), save_all=True, append_images=g[1:], duration=125, loop=0)
+        g[0].save(os.path.join(A, f'{cls}-walk{tag}-x4.gif'), save_all=True, append_images=g[1:], duration=125, loop=0)
         print(cls, 'ok')

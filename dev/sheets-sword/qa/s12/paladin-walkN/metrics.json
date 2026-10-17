@@ -1,0 +1,37 @@
+{
+ "id": "paladin-walkN",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\paladin-walkN-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.941,
+  "colors": 12,
+  "low": 0.333,
+  "edge": 0.418,
+  "lone": 0.05,
+  "flick": 0.214,
+  "churn": 0.615,
+  "fill": 0.202,
+  "area": [
+   831,
+   838,
+   803,
+   832
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

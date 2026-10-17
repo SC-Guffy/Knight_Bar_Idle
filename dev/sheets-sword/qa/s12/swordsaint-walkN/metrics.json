@@ -1,0 +1,37 @@
+{
+ "id": "swordsaint-walkN",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\swordsaint-walkN-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.5,
+  "lrange": 0.936,
+  "colors": 9,
+  "low": 0.583,
+  "edge": 0.374,
+  "lone": 0.054,
+  "flick": 0.352,
+  "churn": 0.519,
+  "fill": 0.165,
+  "area": [
+   689,
+   689,
+   642,
+   691
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

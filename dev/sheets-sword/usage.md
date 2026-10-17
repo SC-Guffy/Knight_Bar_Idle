@@ -146,3 +146,8 @@
 | 139 | tyrant | `/edit-image-pixen` | walkF: Walking with a long stride: left foot far forward, right foo | 1.0 / 1.0 | 262.0 / 152.0 | 732.0 |
 | 140 | paladin | `/edit-image-pixen` | walkH: Walking with a long stride: left foot far forward, right foo | 1.0 / 1.0 | 263.0 / 153.0 | 731.0 |
 | 141 | squire | `/edit-image-pixen` | walkH: Walking, passing pose: both feet close together under the bo | 1.0 / 1.0 | 264.0 / 154.0 | 730.0 |
+| 142 | paladin | `/edit-image-pixen` | neutral: Change only the pose to a calm neutral standing pose: feet s | 1.0 / 1.0 | 265.0 / 155.0 | 729.0 |
+| 143 | squire | `/edit-image-pixen` | neutral: Change only the pose to a calm neutral standing pose: feet s | 1.0 / 1.0 | 266.0 / 156.0 | 728.0 |
+| 144 | archon | `/edit-image-pixen` | neutral: Change only the pose to a calm neutral standing pose: feet s | 1.0 / 1.0 | 267.0 / 157.0 | 727.0 |
+| 145 | tyrant | `/edit-image-pixen` | neutral: Change only the pose to a calm neutral standing pose: feet s | 1.0 / 1.0 | 268.0 / 158.0 | 726.0 |
+| 146 | swordsaint | `/edit-image-pixen` | neutral: Change only the pose to a calm neutral standing pose: feet s | 1.0 / 1.0 | 269.0 / 159.0 | 725.0 |
