@@ -279,6 +279,7 @@ def build(cls, src, out, cast_vals=None):
 #  hit: 평타A 3 (끝까지 뻗은 수평 겨눔) · 평타B 4 (앞 땅에 내리꽂음) — skel.py MOVES atkA/atkB 설계
 SKEL_HIT = {'atkA': 3, 'atkB': 4}
 SKEL_CAST = [-0.2, -0.2, -0.7, -1.4, -1.4, 0.7, 1.2]          # skel.py MOVES cast 의 bowA (cast 줄 key)
+SKEL_CAST_DROP = {'frostlord': [1], 'thunderEmperor': [1, 2]}   # 3차 시전 시작 정지 프레임 (fix3 교체로 같은 그림, 비평 2026-10-17)
 
 
 def build_skel(cls, out):
@@ -292,19 +293,26 @@ def build_skel(cls, out):
          'walk': FB[7:15], 'atkA': FA[0:7], 'atkB': FA[7:14], 'cast': FB[0:7]}
     T = {'idle': [tbase, tbase, [tbase[0], tbase[1] + 1], [tbase[0], tbase[1] + 1]],
          'walk': TB[7:15], 'atkA': TA[0:7], 'atkB': TA[7:14], 'cast': TB[0:7]}
+    if os.path.exists(os.path.join(d, 'W-wpn', '7.png')):      # 걷기만 다시 뽑은 줄 (3차, 과장 걷기 8f)
+        A['walk'] = [Image.open(os.path.join(d, 'W-wpn', f'{i}.png')).convert('RGBA') for i in range(8)]; T['walk'] = json.load(open(os.path.join(d, 'W-tips.json')))
+    cast_val = list(SKEL_CAST); cast_fps = 10
+    drop = SKEL_CAST_DROP.get(cls, [])
+    if drop:      # 시전 시작의 같은 그림 프레임을 빼고, 줄 전체 시간은 그대로 (fps 를 줄인다)
+        keep = [i for i in range(len(A['cast'])) if i not in drop]
+        cast_fps = round(10 * len(keep) / len(A['cast'])); A['cast'] = [A['cast'][i] for i in keep]; T['cast'] = [T['cast'][i] for i in keep]; cast_val = [cast_val[i] for i in keep]
     A['guard'] = [bob(f, waist, 1) for f in A['idle']]; T['guard'] = [[t[0], t[1] + 1] for t in T['idle']]
     A['hurt'] = [shift(base, -2, 0), shift(base, -1, 0)]; T['hurt'] = [[tbase[0] - 2, tbase[1]], [tbase[0] - 1, tbase[1]]]
     A['death'] = [A['hurt'][0]] + [fall(A['hurt'][0], a, foot) for a in (25, 50, 75, 90)]; T['death'] = [T['hurt'][0]] * 5
     plan = dict(PLAN); plan['idle'] = dict(fps=4, loop=True); plan['guard'] = dict(fps=4, loop=True)
     plan['walk'] = dict(fps=10, loop=True); plan['atkA'] = dict(fps=16, loop=False, hit=SKEL_HIT['atkA'])
-    plan['atkB'] = dict(fps=16, loop=False, hit=SKEL_HIT['atkB']); plan['cast'] = dict(fps=10, loop=False)
+    plan['atkB'] = dict(fps=16, loop=False, hit=SKEL_HIT['atkB']); plan['cast'] = dict(fps=cast_fps, loop=False)
     n = max(len(A[k]) for k in ORDER)
     sheet = Image.new('RGBA', (N * n, N * len(ORDER)))
     meta = {'anims': {}, 'pts': {}}
     for r, k in enumerate(ORDER):
         for i, f in enumerate(A[k]): sheet.alpha_composite(f, (N * i, N * r))
         m = {'row': r, 'frames': len(A[k]), **plan[k]}
-        if k == 'cast': m['key'] = 'bowA'; m['val'] = SKEL_CAST
+        if k == 'cast': m['key'] = 'bowA'; m['val'] = cast_val
         meta['anims'][k] = m
         # hand = 지팡이 끝(칸 안으로 자름) · head = 정수리
         meta['pts'][k] = [[max(0, min(N - 1, t[0])), max(0, min(N - 1, t[1]))] + head_pt(f) for f, t in zip(A[k], T[k])]

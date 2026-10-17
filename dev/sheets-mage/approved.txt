@@ -33,3 +33,7 @@ frostlord/skelA
 frostlord/skelB
 thunderEmperor/skelA
 thunderEmperor/skelB
+# 로드맵 승인 2026-10-17: 3차 걷기만 재생성 8f x 3 (usage 9, 누계 88/90, 재시도 0)
+archmage/skelW
+frostlord/skelW
+thunderEmperor/skelW

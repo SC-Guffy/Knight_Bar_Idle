@@ -1,0 +1,27 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 3,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 4,
+  "rules": 3
+ },
+ "avg": 3.29,
+ "pass": false,
+ "defects": [
+  {
+   "frame": "6-13",
+   "where": "다리",
+   "what": "기울기·보폭 변화 보임, 일부 프레임 다리가 뭉개짐"
+  }
+ ],
+ "flags_review": "colors 경보는 지팡이/직업색 램프 영향, 단독 감점 안 함",
+ "verdict": "fix",
+ "fix": {
+  "how": "걷기 프레임 간 보폭 차이를 더 키우고 다리 뭉개진 프레임 교체, clean/value/pixel 흠 정리",
+  "tool": "후처리 스크립트 / 걷기 재생성"
+ },
+ "summary": "걷기 보폭·기울기가 보여 걷는 것으로 읽힘. 평균 3.29로 기준 미달"
+}

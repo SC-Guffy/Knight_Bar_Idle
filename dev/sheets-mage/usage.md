@@ -33,3 +33,6 @@
 | 27 | frostlord | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 71.0 | 888.0 |
 | 28 | thunderEmperor | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 75.0 | 881.0 |
 | 29 | thunderEmperor | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 79.0 | 877.0 |
+| 30 | archmage | `/animate-with-skeleton-v3` | skelW: /animate-with-skeleton-v3 | 3.0 | 82.0 | 861.0 |
+| 31 | frostlord | `/animate-with-skeleton-v3` | skelW: /animate-with-skeleton-v3 | 3.0 | 85.0 | 857.0 |
+| 32 | thunderEmperor | `/animate-with-skeleton-v3` | skelW: /animate-with-skeleton-v3 | 3.0 | 88.0 | 854.0 |

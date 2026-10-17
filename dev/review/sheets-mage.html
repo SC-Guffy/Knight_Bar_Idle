@@ -39,17 +39,17 @@
   </ul>
 </div>
 
-<h2>▣5 3차 3종 — 새 디자인 + 관절 애니 (2026-10-17, PixelLab usage 28 · 계열 합계 79) <span class="wait">· 평타 합격 · 걷기 미달 (SHEET_ON 꺼 둠)</span></h2>
+<h2>▣5 3차 3종 — 새 디자인 + 관절 애니 (2026-10-17, PixelLab usage 37 · 계열 합계 88/90) <span class="wait">· 평타 3종 합격 · 시전+걷기 대마도사 합격, 빙결·뇌제 3.29 (SHEET_ON 꺼 둠, 켤지 사용자 확인)</span></h2>
 <div class="box">
   <ul>
     <li>안 B(2차 시트에 소품 붙이기)는 빙결의 군주 시험 3.43 — 실루엣 차이가 왕관뿐(색깔놀이) → 안 A. 2차 그림 img2img 시안 12장도 모두 2차 복제(rules 1) → 텍스트 생성.</li>
     <li>기준 그림: 대마도사 v5t-379 · 빙결의 군주 v5t-353 · 뇌제 v5n-353(같은 시드로 번개 바퀴만 뺌 — 바퀴·불꽃 고리는 VFX) → PixelLab 정리본(clean). 비교 <a href="sheets-mage/design5/lineup.png">lineup.png</a></li>
-    <li>관절 애니: 2차와 같은 MOVES_B · 빈손 첫 프레임 · 게임 지팡이 1.5배 덧그림. 수리(무료): 빙결의 군주 회색 철퇴 잔재 지우기(<code>skelpost.drop_grey_far</code>), 뒤돈 프레임 이웃 교체·걷기 출렁임(<code>fix3.py</code>).</li>
+    <li>관절 애니: 2차와 같은 MOVES_B · 빈손 첫 프레임 · 게임 지팡이 1.5배 덧그림. 수리(무료): 빙결의 군주 회색 철퇴 잔재 지우기(<code>skelpost.drop_grey_far</code>), 뒤돈 프레임 이웃 교체(<code>fix3.py</code>). 걷기만 과장 관절(보폭 1.5배·무릎 들기·출렁임 ±2·앞기울기)로 다시 뽑음(8f × 3, usage 9, <code>skelgen.py prep &lt;cls&gt; W</code>). 시전 시작 정지 프레임은 빼고 fps 를 낮춰 시간 유지.</li>
   </ul>
   <table><tr><th>직업</th><th>평타 A+B</th><th>시전+걷기</th></tr>
-    <tr><td>대마도사</td><td class="ok">3.57</td><td class="no">3.43 — 걷기 7~14 제자리</td></tr>
-    <tr><td>빙결의 군주</td><td class="ok">3.57 (수리 후)</td><td class="no">2.86 — 걷기 제자리 · 시전 0~1 정지</td></tr>
-    <tr><td>뇌제</td><td class="ok">3.57 (수리 후)</td><td class="no">3.14 — 걷기 제자리 · 시전 0~2 정지</td></tr></table>
+    <tr><td>대마도사</td><td class="ok">3.57</td><td class="ok">3.57 (걷기 재생성 후)</td></tr>
+    <tr><td>빙결의 군주</td><td class="ok">3.57 (수리 후)</td><td class="no">3.29 — 걷기는 읽힘, 일부 프레임 다리 뭉개짐 (2.86→3.29)</td></tr>
+    <tr><td>뇌제</td><td class="ok">3.57 (수리 후)</td><td class="no">3.29 — 걷기는 읽힘, 보폭 차이 작음 (3.14→3.29)</td></tr></table>
   <p>시험: <a href="../skills.html?sheetsOn=archmage,frostlord,thunderEmperor">dev/skills.html?sheetsOn=archmage,frostlord,thunderEmperor</a> (스킬 48시전 예외 0)</p>
   <div class="grid">
     <div class="card"><img src="sheets-mage/archmage.gif">대마도사</div>
