@@ -18,6 +18,7 @@ CAST_S = ['c1', 'c1', 'c2', 'c2', 'c1', 'c1']
 # 3차 비평 미달 → 대안 "짧은 판": 모습이 바뀌는 프레임을 뺀다 (성기사 평타: 방패 없는 젖힘 k1, 시전: 디자인이 바뀌는 c2)
 ATK_SHORT = {'paladin': ['c1', 'k2', 'k3', 'k3', 'c1']}
 CAST_SHORT = {'paladin', 'archon', 'tyrant'}           # c1 · 1칸 웅크림 · c1 · 2칸 웅크림 (숨 고르기)
+WALK_T_FAIL = {'blademaster', 'greatswordsman', 'tyrant', 'paladin'}     # 12단계 C 걷기 비평 미달 (대기와 모습이 다르거나 다리가 어둡게 뭉침) → 임시 들썩임
 WALK_FAIL = {'blademaster', 'greatswordsman', 'archon', 'tyrant', 'swordsaint'}   # 걷기 비평 미달 → 임시 들썩임
 
 
@@ -88,7 +89,10 @@ def build(cls):
         keys[k] = o
     if cls in SIDE: src = keys['c1']; keys['src'] = src; keys['squat'] = squat(src)     # 대기·피격·임시 걷기도 옆모습 c1 (모습이 끊기지 않게)
     wp = os.path.join(NA, f'{cls}-walk-strip.png')
-    if os.path.exists(wp) and cls not in WALK_FAIL and cls not in SIDE:
+    wt = os.path.join(NA, f'{cls}-walkT4-strip.png')                       # 12단계 C: 옆모습 서기 원본 skeleton 걷기
+    if os.path.exists(wt) and cls not in WALK_T_FAIL:
+        w = Image.open(wt).convert('RGBA'); walk = [fin(w.crop((64 * i, 0, 64 * i + 64, 64))) for i in range(w.width // 64)]
+    elif os.path.exists(wp) and cls not in WALK_FAIL and cls not in SIDE:
         w = Image.open(wp).convert('RGBA'); walk = [fin(w.crop((64 * i, 0, 64 * i + 64, 64))) for i in range(w.width // 64)]
     else: walk = [src, squat(src), src, squat(src, 2)]
     hurt = [src.transform((64, 64), Image.AFFINE, (1, 0, 2, 0, 1, 0)), src.transform((64, 64), Image.AFFINE, (1, 0, 1, 0, 1, 0))]

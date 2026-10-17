@@ -1,0 +1,37 @@
+{
+ "id": "archon-cwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\archon-walkC-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.985,
+  "colors": 16,
+  "low": 0.171,
+  "edge": 0.46,
+  "lone": 0.102,
+  "flick": 0.143,
+  "churn": 0.068,
+  "fill": 0.219,
+  "area": [
+   929,
+   848,
+   927,
+   880
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

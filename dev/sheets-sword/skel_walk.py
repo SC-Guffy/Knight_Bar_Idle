@@ -37,16 +37,32 @@ NDESC = {
     'tyrant': 'small chibi berserker tyrant, black spiked armor, wolf-skull helmet with red eyes, tattered black cape, giant slab greatsword',
     'swordsaint': 'small chibi sword saint, long white high ponytail, gold crescent ornament, white and gold haori, dark hakama, glowing blue katana',
 }
-TAG = 'N' if NV else ('L' if LV else '')
+TV = os.environ.get('STAND') == '1'   # 12단계 C: 첫 프레임 = 다리 드러난 옆모습 서기 (work/<cls>/nstand-0.png), 다리 앞 밝게·뒤 어둡게
+TAG = 'T' if TV else ('N' if NV else ('L' if LV else ''))
 
 
 def neutral(cls):
     if NV:
         import build_new as B
-        im = Image.open(os.path.join(HERE, 'newanim', f'{cls}-src.png')).convert('RGBA'); return B.lock(im, B.pal_of(im))
+        src = Image.open(os.path.join(HERE, 'newanim', f'{cls}-src.png')).convert('RGBA'); pal = B.pal_of(src)
+        if not TV: return B.lock(src, pal)
+        im, _ = B.foot_align(B.lock(Image.open(os.path.join(HERE, 'work', cls, 'nstand-0.png')).convert('RGBA'), pal))
+        return lit_auto(im)
     import walk_script as W
     n = W.neutral(cls)
     return lit(cls, n) if LV and cls in LIT else n
+
+
+def lit_auto(n):
+    """다리 구역(엉덩이 3줄 아래, 발 가운데 ±10)만 앞다리 +28% 밝게 · 뒷다리 -18% 어둡게 (외곽선은 그대로) — 두 다리가 갈려 보이게"""
+    cx, top, bot, H = frame_geo(n); hip = int(round(bot - 0.30 * H)) + 3; P = n.load()
+    for y in range(hip, 64):
+        for x in range(max(0, int(cx) - 10), min(64, int(cx) + 11)):
+            c = P[x, y]
+            if not c[3] or sum(c[:3]) < 60: continue
+            f = 1.28 if x >= cx else 0.82
+            P[x, y] = tuple(min(255, round(v * f + (12 if f > 1 else 0))) for v in c[:3]) + (255,)
+    return n
 
 
 def lit(cls, n):

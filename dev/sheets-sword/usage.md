@@ -227,3 +227,17 @@
 | 219 | blademaster | `/edit-image-pixen` | nc1r: Change only the pose: focusing, the katana held upright in f | 1.0 / 1.0 | 558.0 / 388.0 | 363.0 |
 | 220 | blademaster | `/edit-image-pixen` | nc2r: Change only the pose: the katana held in the front hand rais | 0.0 / 1.0 | 558.0 / 389.0 | 363.0 |
 | 221 | tyrant | `/edit-image-pixen` | nk1r: Change only the pose: wind-up, the enormous greatsword gripp | 1.0 / 1.0 | 559.0 / 390.0 | 362.0 |
+| 222 | paladin | `/edit-image-pixen` | nstand: Change only the pose: calm standing pose in side view facing | 1.0 / 1.0 | 560.0 / 391.0 | 360.0 |
+| 223 | blademaster | `/edit-image-pixen` | nstand: Change only the pose: calm standing pose in side view facing | 1.0 / 1.0 | 561.0 / 392.0 | 359.0 |
+| 224 | greatswordsman | `/edit-image-pixen` | nstand: Change only the pose: calm standing pose in side view facing | 0.0 / 1.0 | 561.0 / 393.0 | 358.0 |
+| 225 | archon | `/edit-image-pixen` | nstand: Change only the pose: calm standing pose in side view facing | 2.0 / 1.0 | 563.0 / 394.0 | 356.0 |
+| 226 | tyrant | `/edit-image-pixen` | nstand: Change only the pose: calm standing pose in side view facing | 1.0 / 1.0 | 564.0 / 395.0 | 354.0 |
+| 227 | swordsaint | `/edit-image-pixen` | nstand: Change only the pose: calm standing pose in side view facing | 2.0 / 1 | 566.0 / 396.0 | 352.0 |
+| 228 | swordsaint | `/edit-image-pixen` | nstand: Change only the pose: calm standing pose in side view facing | 0.0 / 1.0 | 566.0 / 397.0 | 352.0 |
+| 229 | paladin | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 1.0 / 1 | 567.0 / 398.0 | 350.0 |
+| 230 | blademaster | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 1.0 / 3.0 | 568.0 / 401.0 | 349.0 |
+| 231 | greatswordsman | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 5.0 / 3.0 | 573.0 / 404.0 | 344.0 |
+| 232 | archon | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 0.0 / 3.0 | 573.0 / 407.0 | 341.0 |
+| 233 | tyrant | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 3.0 / 3.0 | 576.0 / 410.0 | 338.0 |
+| 234 | swordsaint | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 3.0 / 3.0 | 579.0 / 413.0 | 335.0 |
+| 235 | paladin | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 0.0 / 3.0 | 579.0 / 416.0 | 332.0 |

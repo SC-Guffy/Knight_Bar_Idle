@@ -1,0 +1,37 @@
+{
+ "id": "swordsaint-cwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\swordsaint-walkC-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.879,
+  "colors": 15,
+  "low": 0.324,
+  "edge": 0.382,
+  "lone": 0.048,
+  "flick": 0.152,
+  "churn": 0.045,
+  "fill": 0.204,
+  "area": [
+   867,
+   795,
+   865,
+   811
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

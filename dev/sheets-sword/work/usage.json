@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 559.0,
+ "used": 579.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -1548,7 +1548,105 @@
    "purpose": "nk1r: Change only the pose: wind-up, the enormous greatsword gripp",
    "used": 1.0,
    "bal": 362.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nstand: Change only the pose: calm standing pose in side view facing",
+   "used": 1.0,
+   "bal": 360.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "nstand: Change only the pose: calm standing pose in side view facing",
+   "used": 1.0,
+   "bal": 359.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nstand: Change only the pose: calm standing pose in side view facing",
+   "used": 0.0,
+   "bal": 358.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nstand: Change only the pose: calm standing pose in side view facing",
+   "used": 2.0,
+   "bal": 356.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "nstand: Change only the pose: calm standing pose in side view facing",
+   "used": 1.0,
+   "bal": 354.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "nstand: Change only the pose: calm standing pose in side view facing",
+   "used": 2.0,
+   "bal": 352.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/edit-image-pixen",
+   "purpose": "nstand: Change only the pose: calm standing pose in side view facing",
+   "used": 0.0,
+   "bal": 352.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkT: /animate-with-skeleton-v3",
+   "used": 1.0,
+   "bal": 350.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkT: /animate-with-skeleton-v3",
+   "used": 1.0,
+   "bal": 349.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkT: /animate-with-skeleton-v3",
+   "used": 5.0,
+   "bal": 344.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkT: /animate-with-skeleton-v3",
+   "used": 0.0,
+   "bal": 341.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkT: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 338.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkT: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 335.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkT: /animate-with-skeleton-v3",
+   "used": 0.0,
+   "bal": 332.0
   }
  ],
- "nom": 390.0
+ "nom": 416.0
 }

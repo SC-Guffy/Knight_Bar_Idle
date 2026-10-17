@@ -1,0 +1,37 @@
+{
+ "id": "blademaster-cwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\blademaster-walkC-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.652,
+  "colors": 19,
+  "low": 0.545,
+  "edge": 0.324,
+  "lone": 0.052,
+  "flick": 0.168,
+  "churn": 0.057,
+  "fill": 0.175,
+  "area": [
+   753,
+   681,
+   741,
+   692
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

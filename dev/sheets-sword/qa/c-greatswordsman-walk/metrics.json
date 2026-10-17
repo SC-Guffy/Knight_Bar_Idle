@@ -1,0 +1,37 @@
+{
+ "id": "greatswordsman-cwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\greatswordsman-walkC-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.597,
+  "colors": 19,
+  "low": 0.516,
+  "edge": 0.315,
+  "lone": 0.049,
+  "flick": 0.095,
+  "churn": 0.056,
+  "fill": 0.213,
+  "area": [
+   888,
+   854,
+   879,
+   875
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

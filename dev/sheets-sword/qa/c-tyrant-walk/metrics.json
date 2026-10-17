@@ -1,0 +1,37 @@
+{
+ "id": "tyrant-cwalk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\newanim\\tyrant-walkC-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 걷기 4프레임",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.446,
+  "colors": 16,
+  "low": 0.453,
+  "edge": 0.277,
+  "lone": 0.048,
+  "flick": 0.088,
+  "churn": 0.054,
+  "fill": 0.224,
+  "area": [
+   925,
+   904,
+   926,
+   909
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
