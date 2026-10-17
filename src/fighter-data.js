@@ -81,7 +81,7 @@ const QI = {
   qigong:      { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300 }, duelStart: 200 },   // 결투·레이드 시작 기 200 (그랜드마스터와 같이)
   champion:    { shape: 'bar', max: 100, hit: 2.5, critX: 2, main: { ironRush: 100 }, need: { oneTwo: 100, crushFist: 150, kingFist: 220 } },
   tempest:     { ...QI_KICK, hit: 5.8, main: { flyingKick: 100, spinKick: 100 }, need: { oneTwo: 150, heavenWind: 330 } },
-  grandmaster: { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300, qiGodDescent: 480 }, duelStart: 200 },   // 결투·레이드는 기 200(2단)에서 시작 — 첫 3단 장풍 쏠림 방지 (2026-10-15 사용자 B안)
+  grandmaster: { ...QI_QIGONG, main: { palmBlast: 200 }, need: { oneTwo: 200, qiBarrier: 300, qiGodDescent: 480 }, duelStart: 185 },   // 결투·레이드는 기 185(투지도 같은 비율)에서 시작 — 첫 3단 장풍·궁극기 쏠림 방지 (2026-10-15 B안, 200 이면 3차 후반 60~66% 라 185)
 };
 const QI_AWAKEN = { dur: 6, mult: 2 };       // 3차 궁극기: 6초 동안 기 충전 두 배
 const QI_PALM3 = 3.6 / 2.2;                  // 장풍 3단 위력 배수 (2단 대비, 기 1당 위력이 크다)
