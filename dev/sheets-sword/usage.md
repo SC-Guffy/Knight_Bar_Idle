@@ -47,3 +47,17 @@
 | 41 | swordsman | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, right arm thrust str | 1.0 / 1.0 | 98.0 / 54.0 | 928.0 |
 | 42 | paladin | `/edit-image-pixen` | cast2b: Change only the arm: right arm raised straight up, sword poi | 4.0 / 1.0 | 102.0 / 55.0 | 924.0 |
 | 43 | swordsman | `/edit-image-pixen` | cast2b: Change only the arm: right arm raised straight up, sword poi | 1.0 / 1.0 | 103.0 / 56.0 | 923.0 |
+| 44 | blademaster | `/edit-image-pixen` | key1: Change only the pose: wind-up, deep crouch, both katanas pul | 1.0 / 1.0 | 104.0 / 57.0 | 916.0 |
+| 45 | blademaster | `/edit-image-pixen` | key2: Change only the pose: stepping forward, front katana raised  | 5.0 / 1.0 | 109.0 / 58.0 | 911.0 |
+| 46 | blademaster | `/edit-image-pixen` | key3: Change only the pose: impact, deep lunge, front knee bent, b | 4.0 / 1.0 | 113.0 / 59.0 | 907.0 |
+| 47 | blademaster | `/edit-image-pixen` | key4: Change only the pose: follow-through, rising from the lunge, | 1.0 / 1.0 | 114.0 / 60.0 | 906.0 |
+| 48 | blademaster | `/edit-image-pixen` | cast1: Change only the pose: both katanas crossed in an X in front  | 1.0 / 1.0 | 115.0 / 61.0 | 905.0 |
+| 49 | blademaster | `/edit-image-pixen` | cast2: Change only the arms: both katanas raised straight up above  | 4.0 / 1.0 | 119.0 / 62.0 | 901.0 |
+| 50 | blademaster | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, both katanas thrust  | 1.0 / 1.0 | 120.0 / 63.0 | 900.0 |
+| 51 | greatswordsman | `/edit-image-pixen` | key1: Change only the pose: wind-up, knees bent, the greatsword ra | 1.0 / 1.0 | 121.0 / 64.0 | 899.0 |
+| 52 | greatswordsman | `/edit-image-pixen` | key2: Change only the pose: front foot stepping forward, the great | 5.0 / 1.0 | 126.0 / 65.0 | 894.0 |
+| 53 | greatswordsman | `/edit-image-pixen` | key3: Change only the pose: impact of a heavy chop, deep lunge, bo | 1.0 / 1.0 | 127.0 / 66.0 | 893.0 |
+| 54 | greatswordsman | `/edit-image-pixen` | key4: Change only the pose: follow-through, rising from the lunge, | 1.0 / 1.0 | 128.0 / 67.0 | 892.0 |
+| 55 | greatswordsman | `/edit-image-pixen` | cast1: Change only the pose: the greatsword planted point-down in f | 5.0 / 1.0 | 133.0 / 68.0 | 887.0 |
+| 56 | greatswordsman | `/edit-image-pixen` | cast2: Change only the arms: the greatsword raised straight up abov | 1.0 / 1.0 | 134.0 / 69.0 | 886.0 |
+| 57 | greatswordsman | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, a wide horizontal sw | 1.0 / 1.0 | 135.0 / 70.0 | 885.0 |

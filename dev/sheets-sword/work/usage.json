@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 103.0,
+ "used": 135.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -302,7 +302,105 @@
    "purpose": "cast2b: Change only the arm: right arm raised straight up, sword poi",
    "used": 1.0,
    "bal": 923.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "key1: Change only the pose: wind-up, deep crouch, both katanas pul",
+   "used": 1.0,
+   "bal": 916.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2: Change only the pose: stepping forward, front katana raised ",
+   "used": 5.0,
+   "bal": 911.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3: Change only the pose: impact, deep lunge, front knee bent, b",
+   "used": 4.0,
+   "bal": 907.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "key4: Change only the pose: follow-through, rising from the lunge,",
+   "used": 1.0,
+   "bal": 906.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1: Change only the pose: both katanas crossed in an X in front ",
+   "used": 1.0,
+   "bal": 905.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2: Change only the arms: both katanas raised straight up above ",
+   "used": 4.0,
+   "bal": 901.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast3: Change only the pose: stepping forward, both katanas thrust ",
+   "used": 1.0,
+   "bal": 900.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key1: Change only the pose: wind-up, knees bent, the greatsword ra",
+   "used": 1.0,
+   "bal": 899.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2: Change only the pose: front foot stepping forward, the great",
+   "used": 5.0,
+   "bal": 894.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3: Change only the pose: impact of a heavy chop, deep lunge, bo",
+   "used": 1.0,
+   "bal": 893.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key4: Change only the pose: follow-through, rising from the lunge,",
+   "used": 1.0,
+   "bal": 892.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1: Change only the pose: the greatsword planted point-down in f",
+   "used": 5.0,
+   "bal": 887.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2: Change only the arms: the greatsword raised straight up abov",
+   "used": 1.0,
+   "bal": 886.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast3: Change only the pose: stepping forward, a wide horizontal sw",
+   "used": 1.0,
+   "bal": 885.0
   }
  ],
- "nom": 56.0
+ "nom": 70.0
 }

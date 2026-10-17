@@ -1,0 +1,39 @@
+{
+ "id": "blademaster-atk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\blademaster-atk-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.921,
+  "colors": 19,
+  "low": 0.335,
+  "edge": 0.48,
+  "lone": 0.098,
+  "flick": 0.358,
+  "churn": 0.566,
+  "fill": 0.239,
+  "area": [
+   1041,
+   956,
+   927,
+   951,
+   951,
+   1041
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

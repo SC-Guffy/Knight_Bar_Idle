@@ -78,6 +78,17 @@
 </table>
 <div class="dim">평균은 critic.md 대로 7항목(한 장 그림은 움직임 5). 검성·대검전사는 같은 그림의 판정이 흔들려서 독립 비평 2개가 모두 합격일 때만 합격으로 쳤다. 4종 모두 독립 비평 2개 합격. 남은 흠(비평 공통): 성기사 흰 몸통·방패 밝기가 붙음·어깨 금 약함, 검사 하체 판금이 잘게 쪼개짐·43색, 검성 칼이 곧아 곡도 휨이 약함·손이 작음, 대검전사 칼날과 가슴판 밝기가 붙음 — 관절 애니 단계에서 무기 덧그리기로 다룰 수 있다.</div>
 <details><summary class="dim">검수 시트 (4종)</summary><div class="row"><img src="sheets-sword/design/qa-swordsman.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-paladin.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-blademaster.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-greatswordsman.png" style="max-width:48%" alt=""></div></details>
+<h2>◆ 3단계 — 검성·대검전사 애니 + 4종 시트 조립 (2026-10-18, pixen 키 자세 14)</h2>
+<div class="card">
+  <ul>
+    <li><b>게임에서 보기</b>: <code>dev/skills.html?mode=basic&amp;cls=paladin&amp;sheetsOn=paladin,swordsman,blademaster,greatswordsman</code> (직업 버튼으로 바꿈, 평타·스킬 재생). 오프라인 게임은 <code>index.html?server=http://127.0.0.1:9&amp;sheetsOn=paladin,swordsman,blademaster,greatswordsman</code>. <code>SHEET_ON</code> 은 그대로 false.</li>
+    <li><b>시트</b>(<code>build_sheets.py</code> → <code>src/sprites/&lt;직업&gt;.png/.json</code>, 64칸, 발 (28,59)): idle 2f(1칸 웅크림 들썩임) · walk 4f(<b>임시 — 들썩임만, 걷기 애니 없음</b>) · atkA 7f(평타 + 복귀 보간 1f: 준비 그림의 엉덩이 줄을 빼 1칸 웅크림) · cast 6f · hurt 2f(뒤로 밀림). 대검전사 칼날은 <code>fix_gs15.py</code> 로 강철색으로 밝힘.</li>
+    <li><b>검수</b>(sonnet 비평 2개): 검성 평타 4.0 / 3.86, 검성 시전 4.0 / 3.57, 대검전사 시전 3.57 / 3.57 합격. <b>대검전사 평타 미달</b>: 내려찍기(key3)는 칼끝이 떨어져 보여 3.43 / 3.29 → 스크립트로 조각 지우기 실패(칼날 판이 지워짐) → 대안 "좋은 프레임만": 타격 자리에 시전 3번(앞으로 뻗음) → 3.71 / 3.29 (타격 칼이 가늘고 짧아짐, 견갑·팔이 안 보임, 머리 위→앞 사이 호 없음). 시트에는 이 짧은 판이 들어가 있다.</li>
+    <li>못 한 것: 성기사 평타 칼 길이 통일·후광-칼자루 겹침(스크립트로 깔끔히 안 됨), 걷기 애니.</li>
+  </ul>
+</div>
+<div class="row"><figure><img src="sheets-sword/design/blademaster-atk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검성 평타</figcaption></figure><figure><img src="sheets-sword/design/blademaster-cast-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검성 시전</figcaption></figure><figure><img src="sheets-sword/design/greatswordsman-atk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>대검전사 평타 (짧은 판, 미달)</figcaption></figure><figure><img src="sheets-sword/design/greatswordsman-cast-x4.gif" alt="" style="width:256px;height:256px"><figcaption>대검전사 시전</figcaption></figure></div>
+<details><summary class="dim">조립한 시트 4종 (2배)</summary><div class="row"><img src="sheets-sword/design/sheet-paladin-x2.png" style="max-width:48%" alt=""><img src="sheets-sword/design/sheet-swordsman-x2.png" style="max-width:48%" alt=""><img src="sheets-sword/design/sheet-blademaster-x2.png" style="max-width:48%" alt=""><img src="sheets-sword/design/sheet-greatswordsman-x2.png" style="max-width:48%" alt=""></div></details>
 <h2>✔ 검성·대검전사 재디자인 합격 (2026-10-18) — 4종 나란히는 맨 위 ✔ 절 그림이 갱신됨</h2>
 <div class="card">
   <ul>

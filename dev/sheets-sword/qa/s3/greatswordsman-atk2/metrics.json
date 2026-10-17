@@ -1,0 +1,39 @@
+{
+ "id": "gs-atk2",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\greatswordsman-atk-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.935,
+  "colors": 12,
+  "low": 0.42,
+  "edge": 0.401,
+  "lone": 0.054,
+  "flick": 0.394,
+  "churn": 0.511,
+  "fill": 0.258,
+  "area": [
+   1093,
+   1116,
+   1120,
+   958,
+   958,
+   1093
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

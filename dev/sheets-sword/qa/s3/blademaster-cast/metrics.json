@@ -1,0 +1,39 @@
+{
+ "id": "blademaster-cast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\blademaster-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.942,
+  "colors": 19,
+  "low": 0.335,
+  "edge": 0.477,
+  "lone": 0.09,
+  "flick": 0.324,
+  "churn": 0.544,
+  "fill": 0.222,
+  "area": [
+   1041,
+   881,
+   851,
+   851,
+   782,
+   1041
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,39 @@
+{
+ "id": "greatswordsman-cast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\greatswordsman-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.929,
+  "colors": 12,
+  "low": 0.411,
+  "edge": 0.412,
+  "lone": 0.059,
+  "flick": 0.399,
+  "churn": 0.554,
+  "fill": 0.248,
+  "area": [
+   1093,
+   974,
+   990,
+   990,
+   958,
+   1093
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

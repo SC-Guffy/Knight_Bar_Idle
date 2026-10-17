@@ -7,7 +7,13 @@ JOBS = {
     ('paladin', 'cast'): (['src', 'cast1F', 'cast2b', 'cast2b', 'cast3', 'src'], [120, 140, 120, 200, 140, 140]),
     ('swordsman', 'atk'): (['src', 'key1', 'key2', 'key3', 'key3', 'src'], [120, 110, 70, 70, 160, 140]),
     ('swordsman', 'cast'): (['src', 'cast1', 'cast2b', 'cast2b', 'cast3', 'src'], [120, 140, 120, 200, 140, 140]),
+    ('blademaster', 'atk'): (['src', 'key1', 'key2', 'key3', 'key3', 'src'], [120, 110, 70, 70, 160, 140]),
+    ('blademaster', 'cast'): (['src', 'cast1', 'cast2', 'cast2', 'cast3', 'src'], [120, 140, 120, 200, 140, 140]),
+    # 대검전사 평타: key3(내려찍기)는 칼끝이 떨어져 보여(비평 s3 A·B 수리) 스크립트로 못 이음 → 로드맵 대안 '좋은 프레임만': 타격 자리에 cast3(앞으로 휘둘러 뻗음)
+    ('greatswordsman', 'atk'): (['src', 'key1', 'key2', 'cast3', 'cast3', 'src'], [140, 120, 80, 70, 180, 150]),
+    ('greatswordsman', 'cast'): (['src', 'cast1', 'cast2', 'cast2', 'cast3', 'src'], [120, 140, 120, 200, 140, 140]),
 }
+ONLY = [a for a in __import__('sys').argv[1:]]
 
 
 def load(cls, k):
@@ -16,6 +22,25 @@ def load(cls, k):
     p = os.path.join(A, f'{cls}64-src.png') if k == 'src' else os.path.join(HERE, 'work', cls, f'{k}-0.png')
     im = Image.open(p).convert('RGBA'); P = im.load(); yb = max(y for y in range(64) if any(P[x, y][3] for x in range(64)))
     o = Image.new('RGBA', (64, 64)); o.alpha_composite(im, (0, 59 - yb)); return o
+
+
+def solo(im, minc=40):
+    """몸에서 떨어진 작은 덩어리(대검전사 key3 의 떠 있는 칼끝 조각 — 비평 s3 A) 지우기"""
+    P = im.load(); pts = {(x, y) for y in range(64) for x in range(64) if P[x, y][3]}; comps = []
+    while pts:
+        st = [pts.pop()]; c = set(st)
+        while st:
+            x, y = st.pop()
+            for a in (-1, 0, 1):
+                for b in (-1, 0, 1):
+                    q = (x + a, y + b)
+                    if q in pts: pts.discard(q); c.add(q); st.append(q)
+        comps.append(c)
+    big = max(comps, key=len)
+    for c in comps:
+        if c is not big and len(c) < minc:
+            for p in c: P[p] = (0, 0, 0, 0)
+    return im
 
 
 def lock(im, pal):
@@ -30,11 +55,12 @@ def lock(im, pal):
 if __name__ == '__main__':
     rows = []
     for (cls, act), (seq, dur) in JOBS.items():
+        if ONLY and cls not in ONLY: continue
         src = load(cls, 'src'); pal = sorted({c for c in src.getdata() if c[3]})
         if len(pal) > 24:                   # 검사 확정 그림은 43색 → 22색으로 줄인 팔레트로 고정 (qa colors 경보)
             q = src.convert('RGB').quantize(colors=22, method=Image.Quantize.MEDIANCUT).convert('RGB')
             pal = sorted({q.getpixel((x, y)) + (255,) for y in range(64) for x in range(64) if src.getpixel((x, y))[3]})
-        fr = [lock(load(cls, k), pal) for k in seq]
+        fr = [lock(load(cls, k), pal) for k in seq]      # solo() 는 대검전사 key3 에서 칼날 판을 지워 버려 안 씀
         strip = Image.new('RGBA', (64 * len(fr), 64)); [strip.alpha_composite(f, (64 * i, 0)) for i, f in enumerate(fr)]
         strip.save(os.path.join(A, f'{cls}-{act}-strip.png')); rows.append(strip)
         g = []
