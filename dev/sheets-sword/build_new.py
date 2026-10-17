@@ -18,7 +18,8 @@ CAST_S = ['c1', 'c1', 'c2', 'c2', 'c1', 'c1']
 # 3차 비평 미달 → 대안 "짧은 판": 모습이 바뀌는 프레임을 뺀다 (성기사 평타: 방패 없는 젖힘 k1, 시전: 디자인이 바뀌는 c2)
 ATK_SHORT = {'paladin': ['c1', 'k2', 'k3', 'k3', 'c1']}
 CAST_SHORT = {'paladin', 'archon', 'tyrant'}           # c1 · 1칸 웅크림 · c1 · 2칸 웅크림 (숨 고르기)
-WALK_T_FAIL = {'blademaster', 'greatswordsman', 'tyrant', 'paladin'}     # 12단계 C 걷기 비평 미달 (대기와 모습이 다르거나 다리가 어둡게 뭉침) → 임시 들썩임
+FLIP = {'paladin': {'c1'}}     # 비평: 성기사 c1(대기·시전) 만 왼쪽을 봄 → 뒤집어 오른쪽 (방패 뒤·칼 앞, 서기·걷기와 같은 방향)
+WALK_T_FAIL = {'blademaster', 'greatswordsman', 'tyrant'}     # 12단계 C 걷기 비평 미달 (대기와 모습이 다르거나 다리가 어둡게 뭉침) → 임시 들썩임
 WALK_FAIL = {'blademaster', 'greatswordsman', 'archon', 'tyrant', 'swordsaint'}   # 걷기 비평 미달 → 임시 들썩임
 
 
@@ -86,6 +87,8 @@ def build(cls):
         if not os.path.exists(p): print('skip', cls, k); return
         im, fx = foot_align(fin(Image.open(p).convert('RGBA')))
         o = Image.new('RGBA', (64, 64)); o.alpha_composite(im, (0, 0)) if fx == sfx else o.paste(im, (sfx - fx, 0), im)   # 발 가운데를 준비 그림에 맞춤
+        if k in FLIP.get(cls, ()):                                           # 왼쪽을 보고 나온 키 → 발 가운데 기준 좌우 뒤집기
+            f = o.transpose(Image.FLIP_LEFT_RIGHT); o = Image.new('RGBA', (64, 64)); o.paste(f, (2 * sfx - 63, 0), f)
         keys[k] = o
     if cls in SIDE: src = keys['c1']; keys['src'] = src; keys['squat'] = squat(src)     # 대기·피격·임시 걷기도 옆모습 c1 (모습이 끊기지 않게)
     wp = os.path.join(NA, f'{cls}-walk-strip.png')
