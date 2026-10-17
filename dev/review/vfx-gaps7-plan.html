@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>남은 벡터 채우기 계획</title>
+<style>
+:root{--bg:#14161c;--fg:#e6e8ee;--mut:#9aa0ad;--line:#2c3040;--acc:#ffd257;--bad:#ff7a6a;--ok:#7dffb0}
+body{background:var(--bg);color:var(--fg);font:14px/1.6 system-ui,'Malgun Gothic',sans-serif;margin:0;padding:16px;max-width:1100px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 8px;color:var(--acc)}
+.sub{color:var(--mut)}table{border-collapse:collapse;width:100%;margin:6px 0}
+td,th{border:1px solid var(--line);padding:4px 8px;vertical-align:top;text-align:left}th{background:#1c1f28}
+.big{color:var(--bad);font-weight:bold}code{color:#9fd8ff}.box{border:1px solid var(--line);padding:8px 12px;border-radius:6px;background:#1a1d25}
+img{max-width:100%;image-rendering:pixelated}
+</style></head><body>
+<h1>VFX 남은 벡터 채우기 — 계획 (승인 대기)</h1>
+<div class="sub">스펙: <code>docs/specs/skill-vfx.md</code> "남은 벡터 채우기 계획" · 브랜치 <code>spec-vfx7</code> (= main 0.24.6 위) · 2026-10-17</div>
+
+<h2>요지</h2>
+<div class="box">
+<ul>
+<li><b>다시 잰 결과</b>: 태양 관통·차원 붕괴에 남은 벡터의 대부분(<span class="big">40~85/프레임</span>)은 광선·찢김이 아니었다. 명중마다 따라 그려지는 <b>기본 검흔 <code>weaponMarks</code></b>였다. 두 스킬만 <code>fx.marks</code> 가 없어서 생긴 일이다.</li>
+<li>연사·철갑·다연장·돌진 격돌·천마군단의 숫자는 대부분 <b>기사 몸·무기 그림</b>(활 시위·망토·후광)이었다. VFX 대상이 아니므로 측정 도구에서 뺀다.</li>
+<li><b>코드만 바꿈 14건</b> (유료 0). 새 시트 <b>8장</b> F23~F30, 유료 상한 <b>23회</b>(예상 0~6).</li>
+<li>사용자 결정: 성좌 강림 ★★★ 하늘 금은 "직업 상징이라 일부러 코드 선"으로 둔 것이다. 텍스처(F25)로 바꿀지 정해야 한다.</li>
+</ul></div>
+
+<h2>몸 그림을 뺀 VFX 벡터 (프레임당, impl-vfx6)</h2>
+<table><tr><th>스킬 · 단계</th><th>VFX 벡터</th><th>어디서</th></tr>
+<tr><td>태양 관통 Lv1/★/★★/★★★</td><td>13 / 48 / 55 / 77</td><td><span class="big">기본 검흔 9·44·53·75</span>. 과녁 원 3, 광선 ~1, 해 금 1.6, 고리 ~1</td></tr>
+<tr><td>차원 붕괴 Lv1/★/★★/★★★</td><td>43 / 88 / 130 / 208</td><td><span class="big">기본 검흔 41·62·83·86</span>. ★ 찢김 ~22, ★★ 빛줄기 ~37, ★★★ 격자 ~121</td></tr>
+<tr><td>성좌 강림 ★★/★★★</td><td>21 / 29</td><td>별자리 선 ~8 · 모이는 줄 ~8 · 별비 ~5 / 하늘 금 ~29</td></tr>
+<tr><td>천붕 Lv1/★/★★★</td><td>14 / 48 / 38</td><td>바위판 13.5 / 하늘 금 ~25 · 땅 물결 ~17 / 땅 판 ~32 · 고리 4.5</td></tr>
+<tr><td>대공성포</td><td>13~17</td><td>드릴 ~10, 고리 ~5.5, 공성포 바퀴·포구 4, Lv1 노포 ~3</td></tr>
+<tr><td>철갑 관통탄 ★/★★★</td><td>~1 / ~3</td><td>반동 고리 / 노포</td></tr>
+<tr><td>연사 ★★★</td><td>~3</td><td>매 돌진 줄</td></tr>
+<tr><td>천마군단·다연장·돌진 격돌·폭열탄·헤드샷</td><td>1~5</td><td>대부분 <code>ringFx</code> 고리</td></tr></table>
+
+<h2>코드만 바꿈 (있는 시트, 유료 0)</h2>
+<table><tr><th>#</th><th>무엇</th><th>바꿈</th><th>줄어듦</th></tr>
+<tr><td>1</td><td>태양 관통·차원 붕괴 명중 기본 검흔</td><td><code>fx.marks</code> 비움. 명중 그림은 k35·k36 이 맡는다</td><td>40~85</td></tr>
+<tr><td>2</td><td>스킬 공용 고리 <code>ringFx</code> (33곳)</td><td>C3 충격파 고리 (스킬 쪽만)</td><td>~4~5</td></tr>
+<tr><td>3</td><td>차원 붕괴 ★★★ 격자</td><td>벡터 격자를 지우고 F14 를 한 겹 더</td><td>~120</td></tr>
+<tr><td>4</td><td>차원 붕괴 ★★ 빛줄기</td><td>C16 보라 + 잔상</td><td>~37</td></tr>
+<tr><td>5</td><td>차원 붕괴 구슬·블랙홀 고리·끝 타원</td><td>P5 · E28 · C3</td><td>~3</td></tr>
+<tr><td>6</td><td>태양 관통 과녁 원</td><td>E25 조준경 (저격수→신궁)</td><td>3</td></tr>
+<tr><td>7</td><td>태양 관통 조준 대각선·관통 고리·해 금·끝 타원</td><td>점선 fillRect · C3 · H24 · C3</td><td>~3</td></tr>
+<tr><td>8</td><td>성좌 ★★ 별비 줄</td><td>C16 머리 + 잔상</td><td>~5</td></tr>
+<tr><td>9</td><td>천붕 Lv1 바위판</td><td>E21 바위판 융기 (할버디어→전쟁군주)</td><td>13.5</td></tr>
+<tr><td>10</td><td>천붕 ★ 하늘 금·파편·땅 물결</td><td>C8 다시 칠해 회전 이음 · C7 · E21 + C6</td><td>~44</td></tr>
+<tr><td>11</td><td>천붕 흙기둥</td><td>C6</td><td>~1</td></tr>
+<tr><td>12</td><td>대공성포 포구 섬광</td><td>H26 2/3</td><td>~1</td></tr>
+<tr><td>13</td><td>철갑 ★ 반동 고리</td><td>C3 세워 2/3</td><td>~1</td></tr>
+<tr><td>14</td><td>연사 ★★★ 매 돌진 줄</td><td>매 스프라이트 잔상</td><td>~3</td></tr></table>
+
+<h2>새 시트 8장 (유료 상한 23)</h2>
+<table><tr><th>시트</th><th>쓰는 곳</th><th>규격</th><th>그리는 길</th><th>상한</th></tr>
+<tr><td>F23</td><td>차원 붕괴 ★ 공허 찢김 띠 타일</td><td>32×24 × 4</td><td>워크벤치 bolt</td><td>3</td></tr>
+<tr><td>F24</td><td>성좌 ★★ 별자리 점선 타일</td><td>16×4 × 3</td><td>워크벤치 shape</td><td>2</td></tr>
+<tr><td>F25</td><td>성좌 ★★★ 하늘 금 띠 타일 <b>(사용자 결정)</b></td><td>32×16 × 4</td><td>워크벤치 bolt</td><td>3</td></tr>
+<tr><td>F26</td><td>천붕 ★★★ 뒤집히는 땅 판 + 조각 3</td><td>48×20 × 4</td><td>ComfyUI → post</td><td>3</td></tr>
+<tr><td>F27</td><td>대공성포 드릴 나선 자국 타일</td><td>32×12 × 4</td><td>워크벤치 나선</td><td>3</td></tr>
+<tr><td>F28</td><td>대공성포 공성포 (차대·포신)</td><td>48×24 × 2</td><td>ComfyUI → post</td><td>3</td></tr>
+<tr><td>F29</td><td>노포 (철갑 ★★★·대공성포 Lv1 공용)</td><td>40×40 × 2</td><td>ComfyUI → post</td><td>3</td></tr>
+<tr><td>F30</td><td>태양 관통 굵은 광선 타일 (기준엔 불필요, 주된 그림이라 맨 끝)</td><td>32×12 × 4</td><td>워크벤치 beam</td><td>3</td></tr></table>
+
+<h2>수용 기준</h2>
+<ul>
+<li>❌ 고친 점검 도구로 12개 스킬 × 4단계의 VFX 벡터가 프레임당 3 이하</li>
+<li>❌ 태양 관통·차원 붕괴 명중에 <code>slashMarkFx</code> 가 없음</li>
+<li>❌ 새 시트 8장이 <code>measure.py</code> 를 통과</li>
+<li>❌ 다른 계열 E 시트를 빌려 쓰지 않음</li>
+<li>❌ 50종 × 4 시전 예외 0 · MISS 0</li>
+<li>❌ 유료 ≤ 23</li>
+<li>❌ 전후 캡처 사용자 확인</li>
+</ul>
+<p class="sub">지금 모습은 <a href="vfx-gaps-result.html">vfx-gaps-result.html</a> (빈 곳 채우기 전후)과 <a href="../skills.html">스킬 시뮬레이터</a>에서 볼 수 있다.</p>
+</body></html>

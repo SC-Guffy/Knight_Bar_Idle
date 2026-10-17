@@ -1,0 +1,13 @@
+{"recipe": {"canvas": {"w": 32, "h": 24}, "frames": 4, "fps": 10, "loop": true,
+ "ramps": {"main": ["#464654", "#62626f", "#8a8a96", "#c8c8d2", "#ffffff"]},
+ "outline": {"mode": "none"}, "detail": 0.15, "seed": 7,
+ "layers": [
+  {"id": "void", "type": "shape", "fill": "flat", "level": 0.02, "outline": false,
+   "points": [[-16, -5], [-12, -7], [-8, -4], [-4, -8], [0, -5], [4, -7], [8, -4], [12, -6], [15, -5],
+              [15, 5], [12, 7], [8, 4], [4, 6], [0, 4], [-4, 7], [-8, 5], [-12, 6], [-16, 5]]},
+  {"id": "rim_t", "type": "bolt", "start": [0, 7], "end": [31, 7], "segments": 8, "jag": 0.1, "branches": 0, "width": 2, "soft": 0, "flicker": 1, "intensity": 0.55, "outline": false, "seed": 3},
+  {"id": "rim_b", "type": "bolt", "start": [0, 17], "end": [31, 17], "segments": 8, "jag": 0.1, "branches": 0, "width": 2, "soft": 0, "flicker": 1, "intensity": 0.55, "outline": false, "seed": 9},
+  {"id": "core_t", "type": "bolt", "z": "front", "start": [0, 7], "end": [31, 7], "segments": 8, "jag": 0.1, "branches": 0, "width": 1, "soft": 0, "flicker": 1, "intensity": 1, "outline": false, "seed": 3},
+  {"id": "core_b", "type": "bolt", "z": "front", "start": [0, 17], "end": [31, 17], "segments": 8, "jag": 0.1, "branches": 0, "width": 1, "soft": 0, "flicker": 1, "intensity": 1, "outline": false, "seed": 9},
+  {"id": "mote", "type": "glow", "x": {"from": 4, "to": 28}, "y": 12, "radius": 1, "shape": "hard", "intensity": 0.7, "outline": false}
+ ]}}

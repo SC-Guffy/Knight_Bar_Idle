@@ -6,7 +6,7 @@
 //  ★★★ 「창세의 빛」 성운 낀 하늘에 금이 가 빛이 새고, 하늘의 별이 한꺼번에 떨어진 뒤 — 하늘이 활짝 열려 새하얀 빛이 하단바 전체를 덮는다
 // 이 파일의 도구는 모두 sj 로 시작한다 (다른 궁극기 파일과 이름이 겹치지 않게)
 // 그림은 PixelLab 시트 (src/vfx-sword.js): f01 밤하늘 · f02 기사 성좌 · f02s 별 반짝임 · f03 창세의 빛 · k29 별 폭발 낙인.
-//  하늘의 금(sjRiftFx 의 틈 모양)은 성좌기사의 고유 모티프라 코드 선으로 남기고, 틈에서 내려오는 빛살만 f03 으로 그린다
+//  하늘의 금(sjRiftFx)은 성좌기사의 고유 모티프 — 2026-10-17 사용자 결정으로 코드 다각형 대신 하늘 금 띠 F25 를 이어 붙여 그린다. 틈에서 내려오는 빛살은 f03
 
 const SJ_BLUE = '#9fd8ff', SJ_PALE = '#dff2ff', SJ_GOLD = '#fff0b8';
 const sjHitT = (a, i) => a.k.hits[i][0] * a.k.dur;               // i 번째 타격 시각(초)
@@ -206,16 +206,15 @@ function sjZodiacFx(a) {
       // 선 (모이기 시작하면 사라진다)
       const lk = clamp01(lt / 0.2) * (1 - gk);
       if (lk > 0) {
-        ctx.globalAlpha = 0.7 * lk; ctx.strokeStyle = SJ_BLUE; ctx.lineWidth = 1;
-        ctx.beginPath();
-        c.pts.forEach(([x, y], j) => { if (lt < j * 0.05) return; j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-        ctx.stroke();
+        // 별자리 선: 별자리 점선 F24 를 변마다 그 방향으로 돌려 이어 붙인다 (예전 1px 선 대신)
+        ctx.globalAlpha = 0.85 * lk;
+        for (let j = 1; j < c.pts.length && lt >= j * 0.05; j++) sjDotLine(c.pts[j - 1], c.pts[j], j);
       }
       for (let j = 0; j < c.pts.length; j++) {
         const k = lt - j * 0.05;
         if (k < 0) continue;
         const [x0, y0] = c.pts[j], x = mix(x0, P.x, gk), y = mix(y0, P.y, gk);
-        if (gk > 0.05) { ctx.globalAlpha = 0.5; ctx.strokeStyle = SJ_PALE; ctx.beginPath(); ctx.moveTo(mix(x0, P.x, gk * 0.7), mix(y0, P.y, gk * 0.7)); ctx.lineTo(x, y); ctx.stroke(); }
+        if (gk > 0.05) { ctx.globalAlpha = 0.5; sjDotLine([mix(x0, P.x, gk * 0.7), mix(y0, P.y, gk * 0.7)], [x, y], j, SJ_PALE); }
         sjSpark(x, y, (j ? 2.5 : 4) * (k < 0.1 ? 1 + 2 * (1 - k / 0.1) : 1), SJ_BLUE, 1);
       }
     }
@@ -224,6 +223,14 @@ function sjZodiacFx(a) {
     ctx.restore();
   });
 }
+// 별자리 점선 F24 한 변: p0 → p1 방향으로 돌려 이어 붙인다. 흐르는 빛은 변마다 한 칸씩 어긋나게
+function sjDotLine(p0, p1, seed = 0, color = SJ_BLUE) {
+  const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
+  if (len < 1) return;
+  ctx.save(); ctx.translate(p0[0], p0[1]); ctx.rotate(Math.atan2(p1[1] - p0[1], p1[0] - p0[0]));
+  vfxTileRun(ctx, 'f24', color, vfxLoopF('f24', 8, seed), 0, 0, len, 1, { scale: 2 / 3, overlap: 0, vary: false });
+  ctx.restore();
+}
 // 별비: 하단바 전체에 가는 별똥이 비스듬히 쏟아진다 (조각 목록을 이 연출 하나가 관리한다)
 function sjRainFx(a, span, rate) {
   const drops = [], life = span + 0.4;
@@ -231,11 +238,10 @@ function sjRainFx(a, span, rate) {
   aFx(a, 0, life, () => {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.lineCap = 'round';
     for (const d of drops) {
       const x = d.x + d.vx * d.t, y = d.y + d.vy * d.t;
-      ctx.globalAlpha = 0.8; ctx.strokeStyle = d.c; ctx.lineWidth = d.w;
-      ctx.beginPath(); ctx.moveTo(x - d.vx * 0.05, y - d.vy * 0.05); ctx.lineTo(x, y); ctx.stroke();
+      // 꼬리: 지나온 자리에 C16 별 잔상 둘 (★★★ 별비와 같은 방식, 예전 선 대신)
+      for (const [dq, al, f] of [[0.034, 0.35, 0], [0.017, 0.6, 1]]) vfxDraw(ctx, 'c16', d.c, f, x - d.vx * dq, y - d.vy * dq, { scale: 2 / 3, alpha: al });
       sjSpark(x, y, 3, d.c, 1);
     }
     ctx.restore();
@@ -282,15 +288,15 @@ function sjRiftFx(a, from, openAt, genAt) {
       const al = (0.2 + 0.3 * glow) * out * (0.8 + 0.2 * Math.sin(clock * 1.3 + ph));
       vfxDraw(ctx, 'f03', SJ_GOLD, Math.floor(clock * 8 + ph) % 5, rx, gy, { anchor: 'b', scale: 2 / 3, sx: 0.6, alpha: al });
     }
-    // 금: 위아래로 벌어진 틈을 하얗게 채운다 (바깥은 금빛 번짐)
-    const edge = (g2) => {
-      ctx.beginPath();
-      vis.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - g2 / 2) : ctx.moveTo(x, y - g2 / 2)));
-      for (let i = vis.length - 1; i >= 0; i--) ctx.lineTo(vis[i][0], vis[i][1] + g2 / 2 + (i % 2 ? 1 : 0));
-      ctx.closePath(); ctx.fill();
-    };
-    ctx.globalAlpha = 0.35 * out * glow; ctx.fillStyle = SJ_GOLD; edge(gap * 3 + 4);
-    ctx.globalAlpha = 0.95 * out; ctx.fillStyle = '#ffffff'; edge(gap);
+    // 금: 하늘 금 띠 F25 를 꼭짓점 사이 마디마다 잘라 붙이고, 벌어진 만큼 세로로 늘인다 — 바깥 금빛 번짐 한 겹 + 하얀 틈 (예전 다각형 두 장 대신)
+    const sc = 2 / 3, tw = 32 * VFX_DOT * sc, band = 4 * VFX_DOT * sc, f = vfxLoopF('f25', 10);
+    for (const [col, g2, al] of [[SJ_GOLD, gap * 3 + 4, 0.35 * out * glow], ['#ffffff', gap, 0.95 * out]]) {
+      ctx.globalAlpha = al;
+      for (let i = 0; i + 1 < vis.length; i++) {
+        const [xa, ya] = vis[i], [xb, yb] = vis[i + 1], k0 = (((xa + 36) % tw) + tw) % tw / tw, w = xb - xa;
+        vfxDraw(ctx, 'f25', col, f, (xa + xb) / 2, (ya + yb) / 2, { scale: sc, sy: Math.max(0.3, g2 / band), crop: [k0, Math.min(1, k0 + w / tw)], sx: k0 + w / tw > 1 ? w / ((1 - k0) * tw) : 1 });
+      }
+    }
     ctx.restore();
   });
 }
@@ -305,12 +311,12 @@ function sjStarDropFx(a, span) {
     for (const s of list) {
       const k = (t - s.at) / s.life;
       if (k < 0 || k > 1.25) continue;
-      if (k > 1) { ctx.globalAlpha = 1 - (k - 1) / 0.25; ctx.fillStyle = SJ_PALE; ctx.fillRect(Math.round(s.x + a.dir * 18 - 3), gy - 2, 7, 1); continue; }
-      const e = k * k, x = s.x + a.dir * 18 * e, y = mix(s.y, gy - 2, e);
-      ctx.globalAlpha = 0.9;
-      ctx.strokeStyle = s.sz > 1 ? SJ_GOLD : SJ_BLUE; ctx.lineWidth = s.sz;
-      ctx.beginPath(); ctx.moveTo(x - a.dir * 5, y - 22 * Math.min(1, k * 3)); ctx.lineTo(x, y); ctx.stroke();
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x - s.sz / 2), Math.round(y - s.sz / 2), s.sz + 1, s.sz + 1);
+      if (k > 1) { vfxDraw(ctx, 'c16', SJ_PALE, 2, s.x + a.dir * 18, gy - 2, { scale: 4 / 3, sy: 0.5, alpha: 1 - (k - 1) / 0.25 }); continue; }
+      // 떨어지는 별(C16): 머리 + 지나온 자리에 흐린 잔상 둘
+      const at = (q) => { const e = q * q; return [s.x + a.dir * 18 * e, mix(s.y, gy - 2, e)]; }, col = s.sz > 1 ? SJ_GOLD : SJ_BLUE, sc = s.sz > 1 ? 4 / 3 : 1;
+      for (const [dq, al, f] of [[0.24, 0.35, 0], [0.12, 0.6, 1]]) { const [px, py] = at(Math.max(0, k - dq)); vfxDraw(ctx, 'c16', col, f, px, py, { scale: 2 / 3, alpha: al }); }
+      const [x, y] = at(k);
+      vfxDraw(ctx, 'c16', col, 2 + (Math.floor(t * 20 + s.x) % 2), x, y, { scale: sc, alpha: 0.95 });
     }
     ctx.restore();
   });
@@ -346,6 +352,7 @@ function sjGenesisBurst(a) {
 
 Object.assign(SKILL_FX, {
   starJudgment: {
+    hitK: 'k29',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
     // 검을 하늘로 치켜들고 살짝 떠올라 성좌를 부르다가, 마지막 타격에 내리긋는다
     pose(u, a) {
       const D = a.k ? a.k.dur : 2.6, t = u * D, tf = a.k ? sjLastT(a) : 0.86 * D;

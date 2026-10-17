@@ -1,0 +1,7 @@
+{"recipe": {"canvas": {"w": 32, "h": 16}, "frames": 4, "fps": 12, "loop": true,
+ "ramps": {"main": ["#6e6e7a", "#9a9aa6", "#c6c6d0", "#ececf2", "#ffffff"], "rim": ["#6e6e7a", "#9a9aa6", "#c6c6d0", "#ececf2", "#ffffff"]},
+ "outline": {"mode": "none"}, "detail": 0.2, "seed": 5,
+ "layers": [
+  {"id": "rim", "type": "bolt", "ramp": "rim", "start": [0, 8], "end": [31, 8], "segments": 6, "jag": 0.12, "branches": 1, "branch_length": 0.25, "width": 3, "soft": 0, "flicker": 1, "intensity": 0.4, "outline": false, "seed": 2},
+  {"id": "core", "type": "bolt", "z": "front", "start": [0, 8], "end": [31, 8], "segments": 6, "jag": 0.12, "branches": 1, "branch_length": 0.25, "width": 1, "soft": 0, "flicker": 1, "intensity": 1, "outline": false, "seed": 2}
+ ]}}

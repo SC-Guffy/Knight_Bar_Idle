@@ -37,17 +37,9 @@ function wbSky(a, life, color, dim, heat, from = 0.15) {
   });
 }
 
-// ── 균열: x0 에서 하단바 양끝까지 지그재그로 달리고 가지를 친다. 틈에서 빛(lava 면 용암빛)이 새어 오른다 ──
+// ── 균열: x0 에서 하단바 양끝까지 C8 지면 균열이 달린다. 틈에서 빛(lava 면 용암빛)이 새어 오른다 ──
 function wbFissure(a, x0, life, lava, grow = 0.3) {
-  const by = wbBase(), sides = [];
-  for (const s of [-1, 1]) {
-    const pts = [[x0, by]], br = [];
-    for (let x = x0 + s * 12, i = 1; s > 0 ? x < W + 20 : x > -20; x += s * rand(9, 15), i++) {
-      pts.push([x, by + rand(-2.5, 1.5)]);
-      if (i % 5 === 0) br.push({ i, pts: [[x, by], [x + s * rand(6, 12), by - rand(5, 11)], [x + s * rand(12, 22), by - rand(8, 16)]] });
-    }
-    sides.push({ pts, br });
-  }
+  const by = wbBase();
   const far = Math.max(x0, W - x0) + 20, glow = lava ? WB_LAVA : ['#3a1a08', '#ff7a2a', '#ffc070', '#fff0d0'];
   aFx(a, 0, life, (u) => {
     const t = u * life, reach = far * easeOut(Math.min(1, t / (grow * (far / 700 + 0.4)))), fade = u > 0.75 ? (1 - u) / 0.25 : 1;
@@ -63,15 +55,9 @@ function wbFissure(a, x0, life, lava, grow = 0.3) {
     ctx.fillStyle = g; ctx.fillRect(L, by - gh, R - L, gh + 4);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = fade;
-    for (const S of sides) {
-      const vis = S.pts.filter(([x]) => Math.abs(x - x0) <= reach);
-      if (vis.length < 2) continue;
-      const line = (P, w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); P.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
-      line(vis, lava ? 7 : 6, '#140a06');
-      line(vis, lava ? 4 : 3, glow[1]);
-      line(vis, 1.5, glow[3]);
-      for (const B of S.br) if (Math.abs(B.pts[0][0] - x0) <= reach) { line(B.pts, 3, '#140a06'); line(B.pts, 1, glow[2]); }
-    }
+    // 균열 그림은 C8 지면 균열 시트를 x0 에서 양쪽으로 이어 붙인다 (틈은 glow[1] 램프로 빛난다)
+    const f = 3 + (Math.floor(clock * 10) % 2);
+    for (const s of [-1, 1]) vfxTileRun(ctx, 'c8', glow[1], f, x0, by, Math.min(reach, s > 0 ? W - x0 + 20 : x0 + 20), s, { scale: lava ? 4 / 3 : 1 });
     ctx.restore();
   }, null, (u) => {
     const t = u * life, reach = far * easeOut(Math.min(1, t / (grow * (far / 700 + 0.4))));
@@ -92,17 +78,12 @@ function wbJut(a, x0, life, hmax = 22) {
   for (let x = 6; x < W; x += rand(14, 22)) slabs.push({ x, w: rand(10, 18), h: rand(0.5, 1) * hmax, tilt: rand(-0.35, 0.35), d: Math.abs(x - x0) / 1500 });
   aFx(a, 0, life, (u) => {
     const t = u * life;
-    ctx.save();
+    // 바위판 융기 E21 (할버디어 대지 가르기 → 전쟁군주로 이어 씀): 솟는 동안 앞 프레임, 다 솟으면 마지막 프레임을 눌러 가라앉힌다
     for (const S of slabs) {
-      const k = segU(t, S.d, S.d + 0.08), out = t > life - 0.35 ? (life - t) / 0.35 : 1, h = S.h * easeOut(k) * out;
-      if (h < 1) continue;
-      const lean = S.tilt * h, x = S.x;
-      ctx.fillStyle = WB_ROCK[0]; wbPoly([[x - S.w / 2 - 1, by + 2], [x - S.w / 2 + lean - 1, by - h - 1], [x + S.w / 2 + lean + 1, by - h + S.tilt * 6 - 1], [x + S.w / 2 + 1, by + 2]]); ctx.fill();
-      ctx.fillStyle = WB_ROCK[1]; wbPoly([[x - S.w / 2, by], [x - S.w / 2 + lean, by - h], [x + S.w / 2 + lean, by - h + S.tilt * 6], [x + S.w / 2, by]]); ctx.fill();
-      ctx.fillStyle = WB_ROCK[3]; wbPoly([[x - S.w / 2 + lean, by - h], [x + S.w / 2 + lean, by - h + S.tilt * 6], [x + S.w / 2 + lean, by - h + S.tilt * 6 + 3], [x - S.w / 2 + lean, by - h + 3]]); ctx.fill();
-      ctx.fillStyle = '#8fbf5a'; ctx.fillRect(Math.round(x - S.w / 2 + lean), Math.round(by - h - 1), Math.round(S.w * 0.6), 2);
+      const k = segU(t, S.d, S.d + 0.12), out = t > life - 0.35 ? (life - t) / 0.35 : 1;
+      if (k <= 0 || out <= 0) continue;
+      vfxDraw(ctx, 'e21', WB_ROCK[2], Math.min(4, Math.floor(easeOut(k) * 5)), S.x, by, { anchor: 'b', scale: 2 / 3, sy: (S.h / hmax) * out, flip: S.tilt < 0 });
     }
-    ctx.restore();
   });
   for (const S of slabs) skLater(a, S.d, () => { if (Math.random() < 0.5) debris(S.x, 2, WB_ROCK.slice(1)); });
 }
@@ -120,23 +101,23 @@ function wbSkyCrack(a, cx, from, life) {
     const t = u * life, grow = easeOut(Math.min(1, t / 0.25)), fade = u > 0.8 ? (1 - u) / 0.2 : 1, y0 = 18;
     ctx.save();
     ctx.globalAlpha = fade;
-    ctx.lineJoin = 'round';
+    // 금: C8 지면 균열을 주황 램프로 다시 칠해 마디마다 그 방향으로 돌려 이어 붙인다 (예전 선 두 겹 대신)
+    const f = 4 + (Math.floor(clock * 10) % 2);
     for (const P of rays) {
       const m = Math.max(2, Math.round(P.length * grow));
-      for (const [w, c] of [[4, '#0a0402'], [1.5, '#ff7a2a']]) {
-        ctx.strokeStyle = c; ctx.lineWidth = w;
-        ctx.beginPath(); P.slice(0, m).forEach(([x, y], i) => (i ? ctx.lineTo(cx + x, y0 + y) : ctx.moveTo(cx + x, y0 + y))); ctx.stroke();
+      for (let i = 1; i < m; i++) {
+        const [xa, ya] = P[i - 1], [xb, yb] = P[i];
+        ctx.save(); ctx.translate(cx + xa, y0 + ya); ctx.rotate(Math.atan2(yb - ya, xb - xa));
+        vfxTileRun(ctx, 'c8', '#ff7a2a', f, 0, 0, Math.hypot(xb - xa, yb - ya) + 2, 1, { scale: 2 / 3, sy: 0.7 });
+        ctx.restore();
       }
     }
-    // 떨어지는 하늘 조각
+    // 떨어지는 하늘 조각: C7 바위 조각을 검붉게
     for (const S of shards) {
       if (t < S.at) continue;
       const tt = t - S.at, x = cx + S.x + S.vx * tt, y = y0 + S.y + 160 * tt * tt * 2.2;
       if (y > groundY()) continue;
-      ctx.save(); ctx.translate(x, y); ctx.rotate(S.rot + S.vr * tt);
-      ctx.fillStyle = '#120806'; wbPoly([[-S.r, -S.r * 0.4], [S.r * 0.2, -S.r], [S.r, S.r * 0.3], [-S.r * 0.3, S.r * 0.8]]); ctx.fill();
-      ctx.strokeStyle = '#ff7a2a'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.restore();
+      vfxDraw(ctx, 'c7', '#5a2410', Math.floor((S.rot + S.vr * tt) * 2) & 3, x, y, { scale: S.r > 8 ? 1 : 2 / 3 });
     }
     ctx.restore();
   });
@@ -162,18 +143,12 @@ function wbHeave(a, x0, life, pulses, startAt) {
     const t = u * life;
     if (t < startAt) return;
     const show = wbEnv(t, startAt, life, 0.1, 0.3);
-    ctx.save();
-    ctx.globalAlpha = show;
-    ctx.beginPath(); ctx.moveTo(-4, groundY() + 10);
-    const top = [];
-    for (let x = -4; x <= W + 6; x += 6) { const y = by - hAt(x, t); top.push([x, y]); ctx.lineTo(x, y); }
-    ctx.lineTo(W + 6, groundY() + 10); ctx.closePath();
-    ctx.fillStyle = '#4a3828'; ctx.fill();
-    ctx.strokeStyle = '#c9a878'; ctx.lineWidth = 2;
-    ctx.beginPath(); top.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
-    ctx.fillStyle = '#8fbf5a';
-    for (let i = 1; i < top.length; i += 2) ctx.fillRect(Math.round(top[i][0]), Math.round(top[i][1]) - 2, 2, 2);
-    ctx.restore();
+    // 들린 땅: 바위판 융기 E21 마지막 프레임을 16px 마다 세우고, 그 자리의 높이만큼 늘인다 (예전 흙 띠 다각형 대신)
+    for (let x = -4, i = 0; x <= W + 6; x += 16, i++) {
+      const h = hAt(x, t);
+      if (h < 1.5) continue;
+      vfxDraw(ctx, 'e21', '#8a6a4a', 4, x, by + 2, { anchor: 'b', scale: 2 / 3, sy: Math.min(1.4, h / 26), flip: i % 2 === 1, alpha: show });
+    }
   }, null, (u) => {
     const t = u * life;
     for (const [pt] of pulses) {
@@ -227,21 +202,14 @@ function wbUnderground(alpha) {
   ctx.restore();
 }
 // 뒤집히는 땅판 하나 (x, y 중심, w 폭, th 두께, rot 회전): 윗면 흙·풀 → 바위 몸통 → 아랫면 뿌리·검은 바위와 열기
-function wbSlab(x, y, w, th, rot, glow) {
+// 뒤집히는 땅 판: 땅 판 F26 (흙·지층·풀, 아랫면 용암빛). frame 0 = 통판, 1~3 = 깨진 조각 (조각은 시트 안 원래 자리에 있어 pdx 만큼 당겨 그린다)
+//  w·th 는 예전 도형 크기(px) — 그만큼 늘이고 줄인다. glow 는 아랫면이 달아오르는 정도 (lighter 로 한 번 더)
+function wbSlab(x, y, w, th, rot, glow, frame = 0, pdx = 0) {
+  const sc = 1, sx = w / (47 * VFX_DOT * sc) * (frame ? 3 : 1), sy = (th + 4) / (9 * VFX_DOT * sc);   // 판 그림은 47×9 도트 (아랫면 뿌리까지 th + 4)
   ctx.save();
   ctx.translate(x, y); ctx.rotate(rot);
-  const hw = w / 2, hh = th / 2;
-  ctx.fillStyle = '#140a06'; wbPoly([[-hw - 1, -hh - 1], [hw + 1, -hh - 1], [hw + 1, hh - 2], [hw * 0.5, hh + 5], [0, hh + 2], [-hw * 0.4, hh + 6], [-hw - 1, hh - 1]]); ctx.fill();
-  ctx.fillStyle = WB_ROCK[1]; ctx.fillRect(-hw, -hh, w, th);
-  ctx.fillStyle = WB_ROCK[0]; ctx.fillRect(-hw, -hh + th * 0.55, w, 2); ctx.fillRect(-hw + w * 0.2, -hh + th * 0.3, w * 0.4, 1);
-  ctx.fillStyle = WB_ROCK[3]; ctx.fillRect(-hw, -hh, w, 4);
-  ctx.fillStyle = '#8fbf5a'; ctx.fillRect(-hw, -hh - 1, w, 2);
-  for (let i = -hw + 2; i < hw - 2; i += 5) ctx.fillRect(i, -hh - 3, 1, 2);
-  // 아랫면: 뜯겨 나온 뿌리와 달아오른 바위
-  ctx.fillStyle = mixHex('#2a1a12', '#ff5a1f', glow);
-  wbPoly([[-hw, hh], [hw, hh], [hw * 0.5, hh + 4], [0, hh + 1.5], [-hw * 0.4, hh + 5]]); ctx.fill();
-  ctx.strokeStyle = '#6a4a2a'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(-hw * 0.3, hh); ctx.lineTo(-hw * 0.4, hh + 7); ctx.moveTo(hw * 0.2, hh); ctx.lineTo(hw * 0.3, hh + 6); ctx.stroke();
+  vfxDraw(ctx, 'f26', 'raw', frame, -pdx, 0, { scale: sc, sx, sy });
+  if (glow > 0.3) { ctx.globalCompositeOperation = 'lighter'; vfxDraw(ctx, 'f26', 'raw', frame, -pdx, 0, { scale: sc, sx, sy, alpha: 0.25 * glow }); }
   ctx.restore();
 }
 
@@ -335,7 +303,7 @@ function wbStage3(a) {
     slabs.push({ x: x + w / 2, w, th: rand(12, 16), lt: ts + 0.06 + Math.min(0.75, Math.abs(x + w / 2 - tx0) / Math.max(500, W * 0.9)), hy: rand(40, 74), spin: (Math.random() < 0.5 ? -1 : 1) * Math.PI * rand(0.85, 1.15), frags: [] });
     x += w;
   }
-  for (const S of slabs) for (let j = 0; j < 3; j++) S.frags.push({ dx: (j - 1) * S.w / 3, w: S.w / 3 + rand(-2, 3), th: S.th * rand(0.8, 1.1), vr: rand(-9, 9), lx: rand(-14, 14) });
+  for (const S of slabs) for (let j = 0; j < 3; j++) S.frags.push({ k: j + 1, dx: (j - 1) * S.w / 3, w: S.w / 3, th: S.th, vr: rand(-9, 9), lx: rand(-14, 14) });
   const slabAt = (S, t) => {
     const k = easeOut(segU(t, S.lt, S.lt + 0.5));
     return { y: by - 4 - (S.hy * k) + Math.sin(clock * 3 + S.x) * 2 * k, rot: S.spin * easeOut(segU(t, S.lt, S.lt + 0.7)) };
@@ -353,7 +321,7 @@ function wbStage3(a) {
       if (t > tf + 0.02) continue;
       for (const F of S.frags) {
         const cx = S.x + Math.cos(p.rot) * F.dx + F.lx * fallK, cy = mix(p.y + Math.sin(p.rot) * F.dx - 6 * segU(t, tb, tb + 0.08), by - 3, fallK);
-        wbSlab(cx, cy, F.w, F.th, p.rot + F.vr * (t - tb), 1);
+        wbSlab(cx, cy, F.w, F.th, p.rot + F.vr * (t - tb), 1, F.k, F.dx);
         // 떨어지는 동안 위로 남는 흙먼지 꼬리
         if (fallK > 0.05) { ctx.save(); ctx.globalAlpha = 0.35 * fallK; ctx.fillStyle = '#a8946a'; ctx.fillRect(cx - 2, cy - 30 * fallK, 4, 30 * fallK); ctx.restore(); }
       }
@@ -382,11 +350,9 @@ function wbGroundFlash(a, x0, life) {
     ctx.globalAlpha = 0.8 * k; ctx.fillStyle = g; ctx.fillRect(x0 - half, by - 26, half * 2, 30);
     ctx.globalAlpha = k; ctx.fillStyle = '#ffffff'; ctx.fillRect(x0 - half, by - 1, half * 2, 2);
     ctx.restore();
-    // 흙기둥
-    ctx.save(); ctx.globalAlpha = 0.8 * k; ctx.fillStyle = '#8a7a68';
-    const h = 70 * easeOut(Math.min(1, u * 3)), w = 16 + 20 * u;
-    wbPoly([[x0 - w, by + 2], [x0 - w * 0.4, by - h], [x0 + w * 0.4, by - h * 0.9], [x0 + w, by + 2]]); ctx.fill();
-    ctx.restore();
+    // 흙기둥: C6 흙먼지 세 덩이를 위로 쌓아 올린다 (예전 다각형 대신)
+    const h = 70 * easeOut(Math.min(1, u * 3)), f = Math.min(6, Math.floor(u * 7));
+    for (let j = 0; j < 3; j++) vfxDraw(ctx, 'c6', '#8a7a68', f, x0 + (j - 1) * 4, by + 2 - (h * j) / 3, { anchor: 'b', scale: j ? 1 : 4 / 3, alpha: 0.8 * k });
   });
 }
 

@@ -441,7 +441,12 @@ function starFx(x, y, size, color, life) {
     ctx.restore();
   });
 }
-const ringFx = (x, color, size = 1, life = 0.5, y = groundY() - 2) => effects.push({ type: 'ring', x, y, t: 0, life, size: size * fxVis, color });
+// 스킬 땅 고리: C3 충격파 바닥 고리 (src/vfx-mage.js). 시트가 아직 안 불러졌으면 예전 타원 선 (world.js drawEffects 'ring')
+const ringFx = (x, color, size = 1, life = 0.5, y = groundY() - 2) => {
+  const sz = size * fxVis;
+  if (typeof texFx === 'function' && vfxSheet('c3', color)) return texFx('c3', x, y + 3, color, { life, scale: vfxFit(sz * 120, 56), anchor: 'b', fade: 0.4 });
+  effects.push({ type: 'ring', x, y, t: 0, life, size: sz, color });
+};
 // 하늘에서 내리꽂히는 빛기둥
 function pillarFx(x, color, width, life) {
   width *= fxVis;
@@ -464,7 +469,7 @@ function debris(x, n, colors, spread = 1) {
   n = Math.max(1, Math.round(n * fxVis)); spread *= 0.8 + 0.2 * fxVis;
   const gy = groundY();
   for (let i = 0; i < n; i++) {
-    parts.push({ x: x + rand(-10, 10) * spread, y: gy - 3, vx: rand(-90, 90) * spread, vy: rand(-220, -80), g: 520, size: Math.random() < 0.3 ? 4 : 3, color: colors[i % colors.length], life: rand(0.5, 0.9), t: 0 });
+    parts.push({ x: x + rand(-10, 10) * spread, y: gy - 3, vx: rand(-90, 90) * spread, vy: rand(-220, -80), g: 520, size: Math.random() < 0.3 ? 4 : 3, color: colors[i % colors.length], life: rand(0.5, 0.9), t: 0, tex: 'c7', ph: i % 4 });
   }
 }
 // 빨려 들어오는 기 (charge)
@@ -571,7 +576,7 @@ function autoHitFx(c, i) {
   // 숙련: 타격마다 직업색 파편 (극의는 금빛이 섞인다)
   if (mast) for (const t of tg) burst(t.x, t.y, Math.round((3 + 3 * mast) * Math.min(1.5, pow / 1.4)), [c.a.color, '#ffffff', mast >= 3 ? MASTERY_GOLD : c.a.color], 70 + 25 * mast, 2, 160);
   // 스킬마다 고유한 타격 이미지(fx.marks). 없으면 무기별 기본 검흔
-  for (const t of tg) { hitFx(t.x, t.y, c.a.color, pow); (c.fx.marks || weaponMarks)(c.a, t, pow, i, n); }
+  for (const t of tg) { hitFx(t.x, t.y, c.a.color, pow, c.fx.hitK); (c.fx.marks || weaponMarks)(c.a, t, pow, i, n); }
   const big = share >= 0.2 || last;
   impact({ stop: big ? 0.035 * pow : 0.012, shake: 0.06 * pow });
 }
@@ -747,25 +752,16 @@ function clawMarksFx(x, y, dir, color, size = 1, delay = 0) {
 }
 
 // 용의 불꽃 자국 (용의 숨결): 보라 불꽃 혀가 대상에 들러붙어 날름거리다 연기로 사그라든다
+// 포연: 터진 자리에서 연기 덩이(C6) 몇 개가 피어올라 흩어진다
 function scorchFx(x, y, color, life = 0.5) {
-  const tongues = Array.from({ length: 5 }, () => ({ dx: rand(-11, 11), dy: rand(-4, 10), h: rand(14, 22), ph: rand(0, 6) }));
+  const puffs = Array.from({ length: 4 }, (_, i) => ({ dx: rand(-12, 12), dy: rand(-2, 8), rise: rand(10, 22), d: i * 0.08, sc: i % 2 ? 1 : 4 / 3, flip: Math.random() < 0.5 }));
   skFx(null, 0, life, (u) => {
-    const fade = fadeOf(u, 0.4);
-    ctx.save();
-    for (const t of tongues) {
-      const h = t.h * (1 - u * 0.6) * (0.8 + 0.2 * Math.sin(clock * 30 + t.ph)), bx = x + t.dx, by = y + t.dy;
-      for (const [c, k] of [[OUTLINE, 1.25], [color, 1], ['#e0c8ff', 0.6], ['#ffffff', 0.25]]) {
-        ctx.globalAlpha = (c === OUTLINE ? 0.5 : 1) * fade; ctx.fillStyle = c;
-        ctx.beginPath();
-        ctx.moveTo(bx - 5 * k, by);
-        ctx.quadraticCurveTo(bx - 3 * k, by - h * 0.6 * k, bx + Math.sin(clock * 20 + t.ph) * 3, by - h * k);
-        ctx.quadraticCurveTo(bx + 3 * k, by - h * 0.6 * k, bx + 5 * k, by);
-        ctx.closePath(); ctx.fill();
-      }
+    const n = VFX_SHEETS.c6.frames;
+    for (const p of puffs) {
+      const v = clamp01((u - p.d) / (1 - p.d));
+      if (v <= 0) continue;
+      vfxDraw(ctx, 'c6', color, Math.min(n - 1, Math.floor(v * n)), x + p.dx, y + p.dy - p.rise * easeOut(v), { scale: p.sc, flip: p.flip, alpha: 0.9 });
     }
-    ctx.restore();
-  }, null, (u) => {
-    if (u > 0.4 && Math.random() < 0.3) parts.push({ x: x + rand(-8, 8), y: y - 6, vx: rand(-6, 6), vy: rand(-40, -20), g: -10, size: 3, color: 'rgba(60,40,80,0.8)', life: 0.5, t: 0 });
   });
 }
 
@@ -798,30 +794,24 @@ function crackFx(x, y, color, life = 0.6, delay = 0) {
 
 // 나선 철갑 (철갑 관통탄): 두 가닥 나선이 대상을 꿰뚫고 지나가며, 갑옷 조각이 튄다
 function drillFx(x, y, dir, color, life = 0.5, delay = 0) {
+  // 드릴 나선 자국 F27 (두 가닥 나선이 흐르는 루프)을 길이 L 까지 이어 붙인다 — 예전 나선 선 네 줄 대신 (대공성포)
   skFx(null, delay, life, (u) => {
-    const fade = fadeOf(u, 0.35), L = 70 * easeOut(Math.min(1, u / 0.15)), amp = 6 * (1 - u * 0.5);
-    ctx.save();
-    for (const ph of [0, Math.PI]) {
-      for (const [c, w] of [[OUTLINE, 3], [ph ? color : '#ffffff', 1.5]]) {
-        ctx.globalAlpha = (c === OUTLINE ? 0.5 : 1) * fade; ctx.strokeStyle = c; ctx.lineWidth = w;
-        ctx.beginPath();
-        for (let s = 0; s <= 24; s++) {
-          const v = s / 24, px = x - dir * 20 + dir * L * v, py = y + Math.sin(v * Math.PI * 5 + ph - clock * 30) * amp * Math.sin(Math.PI * v);
-          s ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-        }
-        ctx.stroke();
-      }
-    }
+    const fade = fadeOf(u, 0.35), L = 70 * easeOut(Math.min(1, u / 0.15));
+    ctx.save(); ctx.globalAlpha = fade;
+    vfxTileRun(ctx, 'f27', color, vfxLoopF('f27', 16), x - dir * 20, y, L, dir, { scale: 2 / 3, sy: 1 - u * 0.4, overlap: 0, vary: false });
     ctx.restore();
   });
   for (let j = 0; j < 6; j++) parts.push({ x, y, vx: dir * rand(60, 160), vy: rand(-120, -30), g: 480, size: 3, color: j % 2 ? '#8c95a6' : '#cfd6e0', life: rand(0.4, 0.7), t: 0 });
 }
 
 // 타격점: 하얀 섬광 원 + 사방으로 뻗는 불꽃 줄 + 퍼지는 충격파 + 빛나는 파편 (+ 세면 흙먼지·땅 고리)
-function hitFx(x, y, color, pow = 1) {
+// tex: 그 스킬의 명중 K 시트 — 있으면 벡터 스파크·고리 대신 그것을 2/3 배로 그린다 (궁극기 공용 스파크, fx.hitK)
+function hitFx(x, y, color, pow = 1, tex = null) {
   pow *= fxVis;
   const n = Math.round(4 + 2 * pow), len = 8 + 6 * pow, rot = rand(0, Math.PI);
-  skFx(null, 0, 0.2, (u) => {
+  const useTex = !!(tex && VFX_SHEETS[tex] && VFX_SHEETS[tex].lv);
+  if (useTex) texFx(tex, x, y, color, { scale: 2 / 3, life: 0.28, fade: 0.35, flip: Math.random() < 0.5 });
+  else skFx(null, 0, 0.2, (u) => {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.lineCap = 'round';
@@ -834,7 +824,7 @@ function hitFx(x, y, color, pow = 1) {
     }
     ctx.restore();
   });
-  skFx(null, 0, 0.28, (u) => {
+  if (!useTex) skFx(null, 0, 0.28, (u) => {
     ctx.save();
     ctx.globalAlpha = (1 - u) * 0.55;
     ctx.strokeStyle = color; ctx.lineWidth = 2 * (1 - u) + 0.5;
@@ -1031,8 +1021,10 @@ function rockSpikesFx(a, x0, n, gap, life) {
 }
 
 // ★★★ 천강검: 땅에 그림자가 번지고, 하늘에서 거대한 강철 검이 떨어져 꽂혔다가 빛가루로 흩어진다
-function skySwordFx(x, dropAt, life) {
-  const gy = groundY(), BL = 104;          // 칼날 길이
+// ★★★ 천강검: 하늘에서 거대한 강철검(E01 시트)이 떨어져 꽂힌다. 0 꽂힌 칼 · 1·2 떨어지는 칼 + 위로 남는 잔상
+const E01_TIP = [76, 85, 92];   // 프레임마다 칼끝이 있는 줄 (시트 높이 96)
+function skySwordFx(x, dropAt, life, color = '#c8d4e6') {
+  const gy = groundY(), sc = 4 / 3, BL = 74 * VFX_DOT * sc;   // 칼 전체 길이(그림자·불티 높이)
   skFx(null, 0, life, (u) => {
     const t = u * life;
     // 그림자: 떨어지기 전부터 짙어진다
@@ -1046,28 +1038,15 @@ function skySwordFx(x, dropAt, life) {
     if (fall <= 0) return;
     const tipY = mix(-40, gy + 6, easeIn(fall));          // 칼끝 높이
     const out = t > dropAt + 0.55 ? Math.min(1, (t - dropAt - 0.55) / 0.3) : 0;
-    ctx.save();
-    ctx.globalAlpha = 1 - out;
-    // 떨어지는 동안 위로 긴 속도선
-    if (fall < 1) { ctx.fillStyle = 'rgba(200,220,255,0.5)'; for (const dx of [-9, 0, 9]) ctx.fillRect(x + dx, tipY - BL - 60, 1, 60); }
-    const top = tipY - BL;
-    ctx.fillStyle = '#8f9bb0'; ctx.fillRect(x - 6, top, 12, BL - 10);                     // 칼날
-    ctx.fillStyle = '#dfe7f3'; ctx.fillRect(x - 6, top, 3, BL - 10);                      // 빛 받는 면
-    ctx.fillStyle = '#5f6a7e'; ctx.fillRect(x - 1, top + 4, 2, BL - 22);                   // 홈
-    ctx.beginPath(); ctx.moveTo(x - 6, tipY - 10); ctx.lineTo(x, tipY); ctx.lineTo(x + 6, tipY - 10); ctx.closePath();
-    ctx.fillStyle = '#c9d2e0'; ctx.fill();                                                 // 칼끝
-    ctx.fillStyle = '#c9a24a'; ctx.fillRect(x - 20, top - 6, 40, 6);                       // 가드
-    ctx.fillStyle = '#ffe08a'; ctx.fillRect(x - 20, top - 6, 40, 2);
-    ctx.fillStyle = '#4a3220'; ctx.fillRect(x - 3, top - 26, 6, 20);                       // 자루
-    ctx.fillStyle = '#c9a24a'; ctx.fillRect(x - 5, top - 32, 10, 6);                       // 자루 끝
-    ctx.fillStyle = '#7fd0ff'; ctx.fillRect(x - 2, top - 30, 4, 3);                        // 보석
+    const f = fall < 1 ? (fall < 0.5 ? 1 : 2) : 0, y = tipY + (96 - E01_TIP[f]) * VFX_DOT * sc;
+    vfxDraw(ctx, 'e01', color, f, x, y, { anchor: 'b', scale: sc, alpha: 1 - out });
     if (fall >= 1) {
-      // 꽂힌 뒤: 칼날 가장자리가 숨 쉬듯 빛난다
+      // 꽂힌 뒤: 칼이 숨 쉬듯 빛난다 (같은 그림을 더해 그린다)
+      ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = (1 - out) * (0.35 + 0.25 * Math.sin(clock * 14));
-      ctx.fillStyle = '#9fc4ff'; ctx.fillRect(x - 8, top, 16, BL - 10);
+      vfxDraw(ctx, 'e01', color, 0, x, y, { anchor: 'b', scale: sc, alpha: (1 - out) * (0.25 + 0.2 * Math.sin(clock * 14)) });
+      ctx.restore();
     }
-    ctx.restore();
   }, null, (u) => {
     const t = u * life;
     if (t > dropAt + 0.55 && Math.random() < 0.9) parts.push({ x: x + rand(-6, 6), y: gy - rand(0, BL), vx: rand(-10, 10), vy: rand(-70, -30), g: -20, size: 2, color: Math.random() < 0.5 ? '#cfe0ff' : '#ffffff', life: 0.6, t: 0, add: true });
@@ -1075,23 +1054,25 @@ function skySwordFx(x, dropAt, life) {
 }
 // 천강검이 꽂힌 자리: 패인 구덩이와 사방으로 튀는 흙줄기, 바닥을 따라 퍼지는 먼지 물결
 function craterFx(x, life = 0.9) {
-  const gy = groundY();
+  const gy = groundY(), ROCK = '#a8946a', DUST = '#c9b38a';
   skFx(null, 0, life, (u) => {
     const k = easeOut(Math.min(1, u / 0.15)), fade = u > 0.6 ? 1 - (u - 0.6) / 0.4 : 1;
     ctx.save();
     ctx.globalAlpha = fade;
     ctx.fillStyle = '#2b2620';
     ctx.beginPath(); ctx.ellipse(x, gy + 1, 26 * k, 3, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#a8946a'; ctx.lineWidth = 2;
-    for (let i = 0; i < 9; i++) {
-      const ang = -Math.PI * (0.08 + 0.84 * i / 8), r0 = 10, r1 = 18 + 26 * k;
-      ctx.beginPath(); ctx.moveTo(x + Math.cos(ang) * r0, gy + Math.sin(ang) * r0 * 0.6); ctx.lineTo(x + Math.cos(ang) * r1, gy + Math.sin(ang) * r1 * 0.6); ctx.stroke();
-    }
-    const w = 30 + 120 * easeOut(u);
-    ctx.globalAlpha = 0.5 * (1 - u);
-    ctx.fillStyle = '#c9b38a';
-    ctx.fillRect(x - w, gy - 3, w * 2, 3);
     ctx.restore();
+    // 흙·바위 조각(C7)이 사방 위로 튀었다 떨어진다
+    for (let i = 0; i < 6; i++) {
+      const ang = -Math.PI * (0.1 + 0.8 * i / 5), r = 12 + 46 * easeOut(Math.min(1, u * 1.6)), lift = 40 * Math.sin(Math.PI * Math.min(1, u * 1.4)) * (0.6 + 0.4 * (i % 2));
+      vfxDraw(ctx, 'c7', ROCK, Math.floor(u * 14 + i) % 4, x + Math.cos(ang) * r, gy + Math.sin(ang) * r * 0.3 - lift, { scale: i % 3 ? 2 / 3 : 1, alpha: fade });
+    }
+    // 바닥을 따라 퍼지는 흙먼지(C6) 덩이
+    const n = VFX_SHEETS.c6.frames, f = Math.min(n - 1, Math.floor(u * n));
+    for (const s of [-1, 1]) for (const j of [0, 1]) {
+      const w = (20 + 70 * easeOut(u)) * (j ? 0.55 : 1);
+      vfxDraw(ctx, 'c6', DUST, Math.max(0, f - j), x + s * w, gy - 6, { anchor: 'b', scale: j ? 1 : 4 / 3, flip: s < 0, alpha: 0.75 * fade });
+    }
   });
 }
 
@@ -1652,19 +1633,12 @@ function quakeWaveFx(a, x0, dist, life, delay = 0, hgt = 10) {
   });
 }
 // ★★★ 대지 분쇄: 하단바를 가로지르는 용암 균열이 빛나며 벌어지고, 군데군데 용암이 솟구쳐 불덩이가 흩어진다
+// 용암 균열: x0 에서 진행 방향으로 하단바 끝까지 C8 지면 균열이 용암빛으로 갈라진다
 function lavaFissureFx(a, x0, life) {
-  const d = a.dir, gy = groundY(), end = d > 0 ? W + 20 : -20, pts = [];
-  for (let x = x0; d > 0 ? x < end : x > end; x += d * 10) pts.push([x, gy + 1 + rand(-2, 2)]);
+  const d = a.dir, gy = groundY(), far = d > 0 ? W + 20 - x0 : x0 + 20;
   skFx(null, 0, life, (u) => {
-    const grow = Math.min(1, u / 0.15), m = Math.max(2, Math.round(pts.length * grow)), fade = u > 0.75 ? 1 - (u - 0.75) / 0.25 : 1;
-    const glow = 0.7 + 0.3 * Math.sin(clock * 9);
-    ctx.save();
-    ctx.globalAlpha = fade;
-    for (const [w, c] of [[7, `rgba(255,80,20,${0.35 * glow})`], [4, '#2a1408'], [2, '#ff6a1a'], [1, '#ffe08a']]) {
-      ctx.strokeStyle = c; ctx.lineWidth = w;
-      ctx.beginPath(); pts.slice(0, m).forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
-    }
-    ctx.restore();
+    const grow = Math.min(1, u / 0.15), fade = u > 0.75 ? 1 - (u - 0.75) / 0.25 : 1;
+    vfxTileRun(ctx, 'c8', '#ff6a1a', 3 + (Math.floor(clock * 10) % 2), x0, gy + 1, far * grow, d, { alpha: fade });
   });
 }
 // 용암 간헐천(E22): 갈라진 틈에서 용암 기둥이 솟았다 무너진다 (바닥 기준) + 튀는 용암 방울(보조)
@@ -1731,6 +1705,7 @@ const HAWK = [
 const HAWK_PAL = { b: '#2f5a2a', B: '#7fd06a', e: '#ffffff', y: '#ffe066' };
 function spiritHawkFx(a, life, diveAt) {
   let px = 0, py = 0;
+  const trail = [];   // 내리꽂는 동안 지나온 자리 (잔상)
   aFx(a, 0, life, (u) => {
     const t = u * life, gy = groundY();
     if (t < diveAt) {
@@ -1747,11 +1722,15 @@ function spiritHawkFx(a, life, diveAt) {
     ctx.fillStyle = '#7fd06a'; ctx.beginPath(); ctx.arc(px, py - 5, 15, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
     const flipFace = t < diveAt ? Math.sin(t * 7) < 0 : a.dir < 0;
+    // 내리꽂기: 지나온 자리에 매 잔상 둘 (도트 그대로, 예전 속도선 대신)
+    if (t >= diveAt && t < diveAt + 0.35) {
+      trail.push([px, py]);
+      for (const [back, al] of [[8, 0.2], [4, 0.4]]) { const p = trail[trail.length - 1 - back]; if (p) drawSprite(HAWK[0], HAWK_PAL, p[0], p[1], 3, { flip: flipFace, alpha: out * al }); }
+    }
     drawSprite(HAWK[Math.floor(t * 12) % 2], HAWK_PAL, px, py, 3, { flip: flipFace, alpha: out });
   }, null, (u) => {
     const t = u * life;
     if (Math.random() < (t >= diveAt ? 1 : 0.3)) parts.push({ x: px, y: py - 4, vx: rand(-20, 20), vy: rand(-10, 20), g: 30, size: 2, color: Math.random() < 0.5 ? '#bfffd0' : '#ffffff', life: 0.4, t: 0 });
-    if (t >= diveAt && t < diveAt + 0.25) streakFx(px - a.dir * 18, py - 4, px, py - 4, '#bfffd0', 2, 0.15);
   });
 }
 
@@ -1796,10 +1775,8 @@ function scopeFx(a, life, fireAt) {
 function slowBulletFx(a, x0, y0, life) {
   skFx(null, 0, life, (u) => {
     const x1 = a.tx(), y1 = a.ty() - 8, x = mix(x0, x1, u), y = mix(y0, y1, u);
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,240,180,0.7)'; ctx.lineWidth = 1;
-    for (let i = 1; i <= 4; i++) { const k = Math.max(0, u - i * 0.12), rx = mix(x0, x1, k); ctx.globalAlpha = 0.8 - i * 0.18; ctx.beginPath(); ctx.ellipse(rx, mix(y0, y1, k), 2 + i, 5 + i * 3, 0, 0, Math.PI * 2); ctx.stroke(); }
-    ctx.restore();
+    // 탄이 지나온 자리에 공기 고리(C3 충격파 고리를 세워 작게)가 퍼지며 남는다
+    for (let i = 1; i <= 3; i++) { const k = Math.max(0, u - i * 0.14); vfxDraw(ctx, 'c3', '#fff0b4', Math.min(4, i), mix(x0, x1, k), mix(y0, y1, k), { scale: 2 / 3, rot: Math.PI / 2, alpha: 0.85 - i * 0.2 }); }
     vfxDraw(ctx, 'p2', 'raw', 0, x, y, { rot: Math.atan2(y1 - y0, x1 - x0), scale: 1 });
   });
 }
@@ -1822,22 +1799,12 @@ function ballistaFx(a, life, shotTimes) {
     const build = easeOut(Math.min(1, t / 0.3)), out = t > life - 0.25 ? (life - t) / 0.25 : 1;
     let flex = 0;
     for (const s of shotTimes) { if (t > s - 0.25 && t < s) flex = (t - (s - 0.25)) / 0.25; else if (t >= s && t < s + 0.08) flex = -1 + (t - s) / 0.08; }
+    // 노포 F29 (삼각 받침 + 큰 활, 오른쪽을 본다 — 철갑 관통탄 ★★★·대공성포 Lv1 공용). 당길 때 가로로 살짝 눌렸다가 쏘는 순간 튕긴다
     ctx.save();
-    ctx.globalAlpha = out;
-    ctx.translate(x, gy - 4 * build); ctx.scale(d * 1.6, 1.6);          // 기사보다 큰 공성 병기
-    const h = 26 * build;
-    ctx.fillStyle = '#5a3a1e'; ctx.fillRect(-14, -4, 4, 4); ctx.fillRect(10, -4, 4, 4);            // 다리
-    ctx.fillStyle = '#7a5530'; ctx.fillRect(-16, -h * 0.55, 32, 5);                                 // 몸통 틀
-    ctx.fillStyle = '#4a3220'; ctx.fillRect(-16, -h * 0.55 + 4, 32, 2);
-    ctx.fillStyle = '#9a9aa6'; ctx.fillRect(4, -h * 0.55 - 2, 4, 9);                               // 쇠 장식
-    // 활대: 앞쪽에서 위아래로 휘어진다 (당길수록 뒤로 굽는다)
-    const bend = 6 * flex;
-    ctx.strokeStyle = '#3a3a44'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(12, -h * 0.55 - 16); ctx.quadraticCurveTo(14 - bend, -h * 0.55, 12, -h * 0.55 + 18); ctx.stroke();
-    ctx.strokeStyle = '#e8d9b0'; ctx.lineWidth = 1;
-    const sx = 12 - 22 * Math.max(0, flex);
-    ctx.beginPath(); ctx.moveTo(12, -h * 0.55 - 16); ctx.lineTo(sx, -h * 0.55 + 1); ctx.lineTo(12, -h * 0.55 + 18); ctx.stroke();   // 시위
-    if (flex > 0) { ctx.fillStyle = '#8a5a2b'; ctx.fillRect(sx, -h * 0.55, 30, 3); ctx.fillStyle = '#c9c2b4'; ctx.fillRect(sx + 30, -h * 0.55 - 2, 6, 7); }   // 장전된 살
+    ctx.globalAlpha = out * build;
+    ctx.translate(x, gy + 2 - 4 * build); ctx.scale(d, 1);
+    vfxDraw(ctx, 'f29', 'raw', 0, 0, 0, { anchor: 'b', scale: 1, sx: 1 - 0.06 * flex, sy: 1 + 0.03 * Math.max(0, -flex) });
+    if (flex > 0) vfxDraw(ctx, 'p6', 'raw', 0, 4 - 10 * flex, -39, { scale: 2 / 3 });   // 장전된 살 (P6 공성 거대 살)
     ctx.restore();
   });
 }
@@ -1852,9 +1819,7 @@ function ballistaBoltFx(a, y, life = 1.0) {
     ctx.globalAlpha = out;
     if (fly < 1) { ctx.fillStyle = 'rgba(232,217,176,0.4)'; ctx.fillRect(Math.min(x0, x), y - 1, Math.abs(x - x0), 2); }
     ctx.translate(x, y + wob); ctx.scale(d, 1);
-    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(-36, -1.5, 34, 3);
-    ctx.fillStyle = '#c9c2b4'; ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(6, 0); ctx.lineTo(-2, 4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#e8d9b0'; ctx.fillRect(-36, -4, 5, 2); ctx.fillRect(-36, 2, 5, 2);           // 깃
+    vfxDraw(ctx, 'p6', 'raw', 0, -14, 0, { scale: 2 / 3 });   // 살 P6 (촉이 오른쪽, 촉 끝이 x 에 오게)
     ctx.restore();
   });
 }
@@ -2012,7 +1977,7 @@ const SKILL_FX = {
           // 치켜든 칼끝에서 하늘로 가는 빛줄기, 그리고 대상 위로 천강검
           aFx(a, 0, 0.4, (u) => { const g = gripOf(a), tx = g.x + Math.cos(g.ang) * 11 * PX, ty = g.y + Math.sin(g.ang) * 11 * PX; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.sin(Math.PI * u); ctx.fillStyle = '#cfe0ff'; ctx.fillRect(tx - 1, -20, 2, ty + 20); ctx.fillStyle = '#ffffff'; ctx.fillRect(tx, -20, 1, ty + 20); ctx.restore(); });
           a.skyX = a.tx();
-          skySwordFx(a.skyX, 0.4, 1.5);
+          skySwordFx(a.skyX, 0.4, 1.5, a.color);
         }]);
       }
       return list;
@@ -2753,9 +2718,8 @@ const SKILL_FX = {
         const h = hand(a), end = a.dir > 0 ? W + 20 : -20;
         pierceBeamFx(h.x + a.dir * 8, h.y, end, a.mast >= 2 ? 1 : 2 / 3);
         aFx(a, 0, 0.3, (u) => {
-          ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2;
-          for (const k of [0.6, 1]) { ctx.beginPath(); ctx.ellipse(h.x + a.dir * (10 + u * 30 * k), h.y, 3 + u * 4, 8 + u * 18 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
-          ctx.restore();
+          // 반동 공기 고리: C3 를 세워 2/3 배 두 겹 (헤드샷 느린 탄 고리와 같은 방식, 예전 타원 선 대신)
+          for (const k of [0.6, 1]) vfxDraw(ctx, 'c3', '#ffe066', Math.min(4, Math.floor(u * 5)), h.x + a.dir * (10 + u * 30 * k), h.y, { scale: 2 / 3, rot: Math.PI / 2, sx: 0.4 + 0.6 * k, alpha: 1 - u });
         });
         for (let i = 0; i < 8; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * rand(60, 140), vy: rand(-60, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
         impact({ stop: 0.08, shake: 0.3 });

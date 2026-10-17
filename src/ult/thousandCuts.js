@@ -148,13 +148,10 @@ function tcPetalStormFx(a, from, life, bladeAt, vortexAt, n) {
         ctx.globalAlpha = f * 0.9; ctx.fillStyle = p.c;
         ctx.fillRect(Math.round(p.x - w / 2), Math.round(p.y - p.s / 2), w, p.s - (p.s > 2 ? 1 : 0));
       } else {
-        // 칼날: 움직이는 방향으로 길게 뻗은 분홍 칼조각, 가운데 하얀 날
+        // 칼날: 움직이는 방향으로 검선 타일(F04)을 늘여 그린 분홍 칼조각
         const len = 3 + 8 * b, ux = dx / m, uy = dy / m;
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = f * 0.85; ctx.strokeStyle = p.c; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(p.x - ux * len, p.y - uy * len); ctx.lineTo(p.x, p.y); ctx.stroke();
-        ctx.globalAlpha = f; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.8;
-        ctx.beginPath(); ctx.moveTo(p.x - ux * len * 0.5, p.y - uy * len * 0.5); ctx.lineTo(p.x, p.y); ctx.stroke();
+        swLine(ctx, 'f04', p.c, Math.floor(clock * 12 + p.ph) % 5, p.x - ux * len, p.y - uy * len, p.x, p.y, { scale: 2 / 3, alpha: f * 0.9 });
         ctx.globalCompositeOperation = 'source-over';
       }
     }
@@ -271,6 +268,7 @@ function tcSeamBurstFx(a, y) {
 
 Object.assign(SKILL_FX, {
   thousandCuts: {
+    hitK: 'k30',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
     pose(u, a) {
       const D = a.k ? a.k.dur : 2.4, t = u * D, tf = a.k ? tcLastT(a) : 0.9 * D;
       const p = tcPoseCore(t, tf, D);

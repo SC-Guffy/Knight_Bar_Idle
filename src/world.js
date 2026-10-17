@@ -3041,6 +3041,8 @@ function drawParts() {
     if ((p.hue || 0) !== hue) { hue = p.hue || 0; ctx.filter = hue ? `hue-rotate(${hue}deg)` : 'none'; }
     ctx.globalAlpha = Math.min(1, (p.life - p.t) / 0.25);
     ctx.globalCompositeOperation = p.add ? 'lighter' : 'source-over';     // add: 빛나는 불꽃 (겹치면 더 밝아진다)
+    // tex: 텍스처 조각 파티클 (debris 의 흙·바위 = C7) — 시트 프레임을 돌리며 그린다
+    if (p.tex && typeof VFX_SHEETS !== 'undefined' && VFX_SHEETS[p.tex] && VFX_SHEETS[p.tex].lv) { vfxDraw(ctx, p.tex, p.color, (Math.floor(p.t * 14) + (p.ph || 0)) % VFX_SHEETS[p.tex].frames, p.x, p.y, { scale: 2 / 3 }); continue; }
     ctx.fillStyle = p.color;
     ctx.fillRect(Math.round(p.x - p.size / 2), Math.round(p.y - p.size / 2), p.size, p.size);
   }

@@ -28,23 +28,18 @@ function sgCannonFx(a, life, shots, angOf) {
     let rec = 0;
     for (const s of shots) if (t >= s && t < s + 0.14) rec = 1 - (t - s) / 0.14;
     const ang = angOf(t);
-    a.sgCannon = { x: x + d * Math.cos(ang) * 44, y: gy - 30 - 10 * build + Math.sin(ang) * 44, ang };
+    a.sgCannon = { x: x + d * (Math.cos(ang) * 48 - 6), y: gy - 34 - 10 * (1 - build) + Math.sin(ang) * 48, ang };
+    // 공성포 F28: 0 차대+바퀴 (바닥 맞춤) · 1 포신. 포신은 시트 안에서 14° 들려 있어 그만큼 빼고, 포미(시트 14,14 도트)를 축으로 돌린다
     ctx.save();
-    ctx.globalAlpha = out;
+    ctx.globalAlpha = out * build;
     ctx.translate(x, gy - 2);
     ctx.scale(d, 1);
-    const h = 30 * build;
-    ctx.fillStyle = '#2a2a30'; ctx.beginPath(); ctx.arc(-14, -6, 7, 0, Math.PI * 2); ctx.arc(14, -6, 7, 0, Math.PI * 2); ctx.fill();   // 바퀴
-    ctx.fillStyle = '#5a5a66'; ctx.beginPath(); ctx.arc(-14, -6, 3, 0, Math.PI * 2); ctx.arc(14, -6, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = SG_COL.wood; ctx.fillRect(-22, -h * 0.5 - 4, 44, 8);                                       // 틀
-    ctx.fillStyle = '#3a2a18'; ctx.fillRect(-22, -h * 0.5 + 2, 44, 2);
-    ctx.fillStyle = '#9a9aa6'; ctx.fillRect(-4, -h - 2, 8, h * 0.5 + 2);                                      // 받침 기둥
-    ctx.translate(0, -h - 8 + 10 * (1 - build)); ctx.rotate(ang);                                             // 포신 (회전축)
+    vfxDraw(ctx, 'f28', 'raw', 0, 0, 0, { anchor: 'b', scale: 1 });
+    ctx.translate(-6, -32 + 10 * (1 - build)); ctx.rotate(ang + 0.245);                                       // 포신 (회전축 = 포미)
     ctx.translate(-rec * 10, 0);
-    ctx.fillStyle = '#2e3038'; ctx.fillRect(-18, -9, 62, 18);
-    ctx.fillStyle = '#4a4e5a'; ctx.fillRect(-18, -9, 62, 4); ctx.fillRect(36, -11, 8, 22);                   // 포구 테
-    ctx.fillStyle = '#c9a227'; ctx.fillRect(-10, -10, 3, 20); ctx.fillRect(14, -10, 3, 20);                   // 금테
-    if (rec > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,200,100,${0.8 * rec})`; ctx.beginPath(); ctx.arc(46, 0, 5 + 7 * (1 - rec), 0, Math.PI * 2); ctx.fill(); }
+    vfxDraw(ctx, 'f28', 'raw', 1, 10 * VFX_DOT, -2 * VFX_DOT, { scale: 1 });
+    ctx.rotate(-0.245);
+    if (rec > 0) vfxDraw(ctx, 'h26', 'raw', Math.min(4, Math.floor((1 - rec) * 5)), 52, 0, { scale: 2 / 3 });   // 포구 섬광: 작은 포격 폭발 H26
     ctx.restore();
   });
 }
@@ -103,6 +98,7 @@ function sgStage3(a) {
 
 Object.assign(SKILL_FX, {
   siegeBarrage: {
+    hitK: 'k37',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
     // 석궁을 내리고 포를 세운다(0.3) → 포 옆에 서서 쏠 때마다 몸이 들썩인다 → 마지막 일격에 크게 밀린다
     pose(u, a) {
       const D = sgDur(a), t = u * D, ht = sgHitT(a), tf = ht[ht.length - 1];
@@ -127,7 +123,12 @@ Object.assign(SKILL_FX, {
     },
     hit(a, i, n) {
       const m = Math.min(3, a.mast || 0), last = i === n - 1, first = i === 0, tx = a.tx(), gy = groundY();
-      if (m === 0) { for (const t of a.targets(i)) burst(t.x, t.y, 12, ['#c9c2b4', '#ffffff', SG_COL.fire], 160); if (last) { abBlastFx(tx, gy - 12, 1.3); impact({ stop: 0.12, shake: 0.5 }); } return; }
+      if (m === 0) {
+        for (const t of a.targets(i)) burst(t.x, t.y, 12, ['#c9c2b4', '#ffffff', SG_COL.fire], 160);
+        // 둘째 살: 불붙은 포탄(F15)이 꽂혀 작은 버섯구름(E31)과 요새 붕괴 폭발(K37)을 작게 터뜨린다
+        if (last) { sgShellFx(tx - a.dir * 60, gy - 40, tx, gy - 12, 0.1, 1); skLater(a, 0.1, () => { abMushroomFx(tx, 0.9, 2 / 3); texFx('k37', tx, gy - 12, 'raw', { scale: 2 / 3, life: 0.45, fade: 0.35 }); scorchFx(tx, groundY() - 2, SG_COL.smoke, 0.7); }); impact({ stop: 0.12, shake: 0.5 }); }
+        return;
+      }
       if (first) { abBlastFx(tx, gy - 12, 1.6); impact({ stop: 0.1, shake: 0.5 }); return; }
       if (!last) { const tg = a.targets(i), t = tg[i % Math.max(1, tg.length)] || { x: tx, y: gy - 12 }; abBlastFx(t.x + rand(-12, 12), gy - 10, 1.0); impact({ stop: 0.03, shake: 0.25 }); return; }
       // 막타 K37 (요새 붕괴 대폭발): ★★★ 는 무너지는 요새 자리에, 그 아래는 대상 자리에 2배. 버섯구름 E31·폭발 K21 은 석궁사수와 같은 시트

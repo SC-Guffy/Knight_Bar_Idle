@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>VFX 빈 곳 채우기 결과</title>
+<!--
+  docs/specs/skill-vfx.md "빈 곳 채우기 계획" 결과 검토 페이지.
+  왼쪽 = 작업 전(인계 브랜치), 오른쪽 = 작업 후. 작업 전 화면은 저장소 안 임시 작업트리 .before/ 가 있어야 보인다:
+    git worktree add --detach .before wip-home-2026-10-16     (지울 때: git worktree remove .before)
+  로컬 서버: .claude/launch.json 의 impl-vfx6 (8997) → http://localhost:8997/dev/review/vfx-gaps-result.html
+-->
+<style>
+  :root { --bg: #14161d; --panel: #1d2029; --line: rgba(255,255,255,.09); --text: #f3efe6; --muted: rgba(243,239,230,.62); --accent: #ffb13b; --ok: #7fd18b; --bad: #ff7a6b; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  main { max-width: 1280px; margin: 0 auto; padding: 18px 16px 48px; }
+  h1 { font-size: 20px; margin: 0 0 4px; } h2 { font-size: 16px; margin: 28px 0 8px; }
+  .sub, .muted { color: var(--muted); }
+  .cases { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+  button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+  button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pair > div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .pair b { display: block; padding: 6px 10px; font-size: 13px; }
+  iframe { width: 100%; height: 560px; border: 0; background: #0b0d14; }
+  .note { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+  td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  img.sheets { max-width: 100%; image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); }
+  @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } iframe { height: 460px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>VFX 빈 곳 채우기 결과</h1>
+  <div class="sub">새 시트 12장 (무료 워크벤치 10 + ComfyUI 시안 2, 유료 0회) + 게임 연결 + 코드만 바꿈 6건. 스펙: docs/specs/skill-vfx.md "빈 곳 채우기 계획".</div>
+
+  <h2>1. 전후 나란히 보기</h2>
+  <div class="muted">스킬을 고르면 왼쪽(작업 전)과 오른쪽(작업 후) 시험장이 같은 스킬·단계로 열린다. 각 화면 아래 버튼으로 다시 쓰기·일시정지·한 프레임씩 넘기기.</div>
+  <div class="cases" id="cases"></div>
+  <div class="note" id="what"></div>
+  <div class="pair">
+    <div><b>작업 전 (인계 브랜치)</b><iframe id="before" loading="lazy"></iframe></div>
+    <div><b>작업 후 (impl-vfx6)</b><iframe id="after" loading="lazy"></iframe></div>
+  </div>
+
+  <h2>2. 새 시트 12장 (+ 다시 뽑은 C6)</h2>
+  <img class="sheets" src="vfx-gaps-sheets.png" alt="새 시트 모음">
+  <div class="muted">측정(dev/vfx6/measure.py): 12장 모두 둘레 어두운 비율 0.00 · 벗겨짐 0% · 부스러기 프레임당 0~0.2.</div>
+
+  <h2>3. 빈 곳 점검 재측정 (dev/review/vfx-gaps-probe.js)</h2>
+  <div class="muted">스킬 × 단계(Lv1·★·★★·★★★)마다 프레임당 벡터 그리기 수(arc·ellipse·stroke·곡선, lineTo 는 ¼). 기준은 3 이하. 50종 × 4단계 시전 예외 0, 안 그려진 시트 0, 2차 대체 그림(QI_TEX_FALLBACK) 0.</div>
+  <table id="probe"><thead><tr><th>스킬</th><th>작업 전</th><th>작업 후</th><th>남은 벡터의 정체</th></tr></thead><tbody></tbody></table>
+</main>
+<script>
+const CASES = [
+  { k: '강철 베기 ★★★ 천강검', cls: 'swordsman', skill: 'steelCleave', st: 3, what: 'E01 하늘 강철검(직사각형 칼 → 시트, 낙하 잔상) · C7 바위 조각 · C6 흙먼지 (craterFx)' },
+  { k: '대지 가르기 ★★★', cls: 'halberdier', skill: 'earthSplitter', st: 3, what: 'lavaFissureFx 용암 균열 선 4겹 → C8 지면 균열 이어 붙임' },
+  { k: '천붕 ★', cls: 'warlord', skill: 'worldBreaker', st: 1, what: 'wbFissure 지그재그 선 3겹·가지 → C8 이어 붙임 · debris 흙 → C7' },
+  { k: '용황 ★★★', cls: 'dragonlord', skill: 'dragonEmperor', st: 3, what: 'deMolten 검은 껍질 → C8 균열, 끓는 거품 원 → C16 반짝임' },
+  { k: '성좌 강림 ★★★', cls: 'archon', skill: 'starJudgment', st: 3, what: '별비 선 + 흰 점 → C16 별 머리 + 잔상 둘 · 공용 스파크 → K29' },
+  { k: '차원 붕괴 Lv1', cls: 'voidArcher', skill: 'dimensionCollapse', st: 0, what: 'dcDrawCracks 선 3겹 → E45 공허 균열 마디 타일 · 공용 스파크 → K36' },
+  { k: '태양 관통 Lv1', cls: 'deadeye', skill: 'sunArrow', st: 0, what: '텍스처 0장 → P3 태양 화살 · H24 작은 태양 섬광(시위 끝·발사, F12 는 2/3 배로도 기사를 가려 바꿈) · K35' },
+  { k: '태양 관통 ★★★', cls: 'deadeye', skill: 'sunArrow', st: 3, what: 'saFlareFx 홍염 곡선 → 휘어 나는 P3 + 잔상 · 공용 스파크 → K35' },
+  { k: '대공성포 Lv1', cls: 'siegeMaster', skill: 'siegeBarrage', st: 0, what: 'K21 하나 → F15 포탄 · E31 버섯구름 2/3 · K37 2/3 · C6 포연' },
+  { k: '대공성포 ★★★', cls: 'siegeMaster', skill: 'siegeBarrage', st: 3, what: 'scorchFx 불꽃 혀 곡선 → C6 연기 · 공용 스파크 → K37' },
+  { k: '폭열탄 ★★', cls: 'arbalest', skill: 'blastBolt', st: 2, what: 'scorchFx → C6 연기 (곡선 46 → 4)' },
+  { k: '천검 ★★', cls: 'swordsaint', skill: 'thousandCuts', st: 2, what: '꽃잎 폭풍 칼조각 선 수백 개 → F04 검선 타일' },
+  { k: '마력 폭발 ★★★', cls: 'mage', skill: 'manaBurst', st: 3, what: 'mbShards 마름모 경로 → C7 조각 다시 칠함' },
+  { k: '방패 벽 ★★', cls: 'cavalier', skill: 'shieldWall', st: 2, what: '호위 방패 다각형 → E24 맨 앞 방패 2/3 (예전보다 큼 — 확인)' },
+  { k: '헤드샷 ★★★', cls: 'marksman', skill: 'headshot', st: 3, what: '느린 탄 공기 고리 ellipse → C3 세워 2/3' },
+  { k: '붕권 ★★★ 철산붕괴', cls: 'striker', skill: 'crushFist', st: 3, what: 'XE06 거대 강철 주먹 (2차 xe05 대체 → 진짜 시트)' },
+  { k: '회전 발차기 ★★★', cls: 'kickboxer', skill: 'spinKick', st: 3, what: 'XE09 남는 회오리 기둥 (xe08 대체 → 진짜)' },
+  { k: '장풍 ★★★', cls: 'qigong', skill: 'palmBlast', st: 3, what: 'XE11 흩어지는 기 파편 6개 (xh6 대체 → 진짜)' },
+  { k: '기막 ★★', cls: 'qigong', skill: 'qiBarrier', st: 2, what: 'XE13 막 둘레를 도는 기 고리 (xe16 대체 → 진짜)' },
+  { k: '챔피언 평타', cls: 'champion', mode: 'basic', what: 'XW2a 사자 건틀릿 궤적 (xw2 대체 → 진짜)' },
+  { k: '템페스트 평타', cls: 'tempest', mode: 'basic', what: 'XW3a 바람 띠 발차기 호 (xw3 대체 → 진짜)' },
+  { k: '그랜드마스터 평타', cls: 'grandmaster', mode: 'basic', what: 'XW4a 연꽃 장타 파동 (xw4 대체 → 진짜)' },
+];
+// 빈 곳 점검 프레임당 벡터 수 (Lv1/★/★★/★★★), 2026-10-17 같은 PC·같은 도구로 전후 측정
+const PROBE = [
+  ['대공성포', '31.8 / 264.4 / 314.1 / 296.4', '17.1 / 31.5 / 33.9 / 31.8', '노포·드릴 자국(drillFx)·요새 실루엣 — 이번 범위 밖'],
+  ['천검', '3.2 / 5.8 / 171.3 / 153', '-1.4 / -1.3 / 4.4 / -1.8', '★★ 남은 4.4 는 칼 회오리 선'],
+  ['폭열탄', '1.8 / 21.5 / 46.2 / 29.3', '1.8 / 3.5 / 4 / 6.1', '★★★ 버섯구름 주변 고리(ringFx)'],
+  ['대지 가르기', '0.2 / 5 / 1.3 / 18.6', '0.2 / 5.1 / 1.3 / 2', '★ 의 5.1 은 땅 물결'],
+  ['용황', '0.1 / 34.2 / 0 / 20.7', '0.1 / 27.2 / 0.1 / 5.4', '★ 용 꼬리 궤적(이번 범위 밖)'],
+  ['천붕', '42.1 / 54.8 / 36.9 / 48.9', '13.7 / 48.3 / 1.7 / 38.4', '바위판 솟음·도끼 그림자 등 다른 연출'],
+  ['성좌 강림', '3.3 / 5.2 / 33.4 / 53.9', '-0.3 / -0.2 / 21.2 / 29.3', '★★·★★★ 성좌 별자리 선'],
+  ['태양 관통', '17.8 / 60.8 / 70.4 / 104.4', '14.3 / 49.3 / 55.7 / 76.6', '굵은 광선 saBeam · 조준선·과녁 원'],
+  ['차원 붕괴', '235.4 / 110.4 / 143.9 / 263.2', '43.1 / 88.4 / 129.9 / 208.5', '★ 이상 지그재그 찢김·격자 왜곡 선'],
+  ['마력 폭발', '0.2 / 1.2 / 2.9 / 5.9', '-0.3 / 0 / 0.3 / 0.9', ''],
+  ['헤드샷', '1.6 / 2.8 / 2.9 / 5.8', '1.6 / 2.8 / 2.9 / 3.6', '유리 금(crackFx)'],
+];
+const $ = (id) => document.getElementById(id);
+function url(base, c) { return `${base}?cls=${c.cls}` + (c.mode ? `&mode=${c.mode}` : `&skill=${c.skill}&stage=${c.st}`); }
+function pick(i) {
+  const c = CASES[i];
+  [...$('cases').children].forEach((b, j) => b.classList.toggle('on', i === j));
+  $('what').textContent = c.what;
+  $('before').src = url('../../.before/dev/skills.html', c);
+  $('after').src = url('../skills.html', c);
+  try { localStorage.setItem('vfxGapsCase', i); } catch (e) {}
+}
+CASES.forEach((c, i) => { const b = document.createElement('button'); b.textContent = c.k; b.onclick = () => pick(i); $('cases').appendChild(b); });
+const tb = $('probe').tBodies[0], over = (s) => s.split('/').some((v) => +v > 3);
+for (const [k, a, b, n] of PROBE) tb.insertAdjacentHTML('beforeend', `<tr><td>${k}</td><td class="n">${a}</td><td class="n ${over(b) ? 'bad' : 'ok'}">${b}</td><td class="muted">${n}</td></tr>`);
+let start = 0; try { start = +localStorage.getItem('vfxGapsCase') || 0; } catch (e) {}
+pick(Math.min(start, CASES.length - 1));
+</script>
+</body>
+</html>

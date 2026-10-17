@@ -28,19 +28,23 @@ function saSun(x, y, r, t, al = 1, rays = 1) {
 // 거대한 태양의 겉면: 시트 한 장을 반대로 돌려 반투명하게 겹쳐 겉면이 끓어오르는 것처럼
 function saSunSurface(x, y, r, t, al = 1) {
   vfxDraw(ctx, 'f12', 'raw', (vfxLoopF('f12', 6) + 3) % 4, x, y, { scale: vfxNearScale(r / 45), rot: Math.PI, alpha: al * 0.35 });
-}// 굵은 태양 광선: 주황 번짐 → 금빛 몸통 → 하얀 심, 그 위로 빛 마디가 흐른다
+}
+// 굵은 태양 광선: 주황 번짐 → 금빛 몸통 → 하얀 심, 그 위로 빛 마디가 흐른다
 function saBeam(x0, y0, x1, y1, w, al, t) {
   if (w < 0.5 || al <= 0) return;
   const L = Math.hypot(x1 - x0, y1 - y0) || 1, ux = (x1 - x0) / L, uy = (y1 - y0) / L;
-  const line = () => { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); };
+  // 광선 타일 F30 (몸 + 흰 심)을 광선 방향으로 돌려 늘인다: 주황 번짐 한 겹(lighter) + 금빛 몸 (예전 선 세 겹 대신). 몸 굵기 8도트 → w 에 맞춰 세로로 늘임
+  const sc = 2 / 3, sy = w / (8 * VFX_DOT * sc);
   ctx.save();
   ctx.globalAlpha = al;
-  ctx.lineCap = 'butt';
+  ctx.save(); ctx.translate(x0, y0); ctx.rotate(Math.atan2(uy, ux));
+  // 타일이 가로로 한결같아 이어 붙이지 않고 한 장을 길이만큼 늘인다 (돌린 타일 사이 틈이 안 생기게)
+  const sx = L / (32 * VFX_DOT * sc);
   ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = 'rgba(255,120,30,0.3)'; ctx.lineWidth = w * 2.4; line();
-  ctx.strokeStyle = 'rgba(255,200,70,0.75)'; ctx.lineWidth = w; line();
+  vfxDraw(ctx, 'f30', '#ff7a1e', 0, L / 2, 0, { scale: sc, sx, sy: sy * 2.4, alpha: 0.3 });
   ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = '#fffbe8'; ctx.lineWidth = Math.max(1, w * 0.4); line();
+  vfxDraw(ctx, 'f30', '#ffc846', 0, L / 2, 0, { scale: sc, sx, sy });
+  ctx.restore();
   ctx.fillStyle = '#ffffff';
   for (let k = 0; k < 10; k++) {
     const s = (t * 700 + k * L / 10) % L, off = Math.sin(k * 7.3 + t * 30) * w * 0.45;
@@ -49,8 +53,14 @@ function saBeam(x0, y0, x1, y1, w, al, t) {
   ctx.restore();
 }
 // 화살 한 자루 (도트): x, y 는 화살촉 끝
-function saArrow(x, y, ang, len, body, head, al = 1) {
+// 빛 화살: P3 태양 화살 시트(화살촉이 (x, y)). tex=false 거나 시트가 아직 없으면 예전 도트 화살 (그림자처럼 어두운 사본)
+function saArrow(x, y, ang, len, body, head, al = 1, tex = true) {
   if (al <= 0) return;
+  if (tex && VFX_SHEETS.p3 && VFX_SHEETS.p3.lv) {
+    const sc = len >= 20 ? 1 : 2 / 3, back = 10 * VFX_DOT * sc;   // 시트 촉은 가운데서 10도트 앞
+    vfxDraw(ctx, 'p3', 'raw', vfxLoopF('p3', 14), x - Math.cos(ang) * back, y - Math.sin(ang) * back, { rot: ang, scale: sc, alpha: al });
+    return;
+  }
   ctx.save();
   ctx.globalAlpha = al;
   ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(ang);
@@ -95,15 +105,9 @@ function saDusk(dark, glow, rgb = '24,8,0') {
 }
 // 하늘로 쏘아 올린 화살이 태양에 꽂히는 순간: 하얀 고리 + 햇살이 터진다
 function saPierceFx(a, sx, sy, size) {
-  aFx(a, 0, 0.5, (u) => {
-    ctx.save();
-    ctx.globalAlpha = 1 - u;
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3 * (1 - u) + 1;
-    ctx.beginPath(); ctx.arc(sx, sy, size * (1 + 2.5 * easeOut(u)), 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(sx, sy, size * (1.6 + 4 * easeOut(u)), 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-  });
+  // 홍염 고리 H24 를 크게 한 번 (예전 하얀·금빛 원 두 겹 대신)
+  const hs = size >= 20 ? 2 : 4 / 3;
+  aFx(a, 0, 0.5, (u) => vfxDraw(ctx, 'h24', 'raw', Math.min(4, Math.floor(u * 5)), sx, sy, { scale: hs, alpha: 1 - u * u }));
   burst(sx, sy, 24, ['#ffffff', '#ffe066', '#ff9a2e'], 170, 2, 0);
   impact({ shake: 0.2 });
 }
@@ -112,15 +116,10 @@ function saShootUp(a, sx, sy, life = SA_PIERCE) {
   const h = hand(a), x0 = h.x + a.dir * 4, y0 = h.y - 6;
   aFx(a, 0, life + 0.25, (u) => {
     const t = u * (life + 0.25), p = clamp01(t / life), x = mix(x0, sx, p), y = mix(y0, sy, p);
-    const tail = clamp01(p - 0.35);
-    ctx.save();
-    ctx.globalAlpha = p >= 1 ? 1 - (t - life) / 0.25 : 1;
-    ctx.strokeStyle = 'rgba(255,224,102,0.6)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(mix(x0, sx, tail), mix(y0, sy, tail)); ctx.lineTo(x, y); ctx.stroke();
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(mix(x0, sx, tail), mix(y0, sy, tail)); ctx.lineTo(x, y); ctx.stroke();
-    ctx.restore();
-    if (p < 1) saArrow(x, y, Math.atan2(sy - y0, sx - x0), 14, '#fff3b0', '#ffffff');
+    // 꼬리: 지나온 자리에 태양 화살 P3 잔상 둘 (예전 선 두 겹 대신)
+    const ang = Math.atan2(sy - y0, sx - x0), fade = p >= 1 ? 1 - (t - life) / 0.25 : 1;
+    for (let g = 2; g >= 1; g--) { const q = clamp01(p - g * 0.12); if (q > 0 && q < 1) saArrow(mix(x0, sx, q), mix(y0, sy, q), ang, 14, '#fff3b0', '#ffffff', fade * (g === 1 ? 0.5 : 0.25)); }
+    if (p < 1) saArrow(x, y, ang, 14, '#fff3b0', '#ffffff');
   });
   burst(x0, y0, 10, ['#ffffff', '#ffe066'], 80, 2, 0);
   impact({ shake: 0.12 });
@@ -144,33 +143,26 @@ function saAimStage(a) {
     const oy = (1 - p) * 46, ox = (1 - p) * 190;
     ctx.fillRect(-20, Math.round(y - oy), W + 40, 1); ctx.fillRect(-20, Math.round(y + oy * 0.8), W + 40, 1);
     ctx.fillRect(Math.round(x - ox), 0, 1, H); ctx.fillRect(Math.round(x + ox), 0, 1, H);
-    // 대각선 두 줄 (하단바 모서리에서 과녁으로)
-    ctx.globalAlpha = 0.25 * al * p;
-    ctx.strokeStyle = col; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(a.dir > 0 ? W : 0, 16); ctx.lineTo(x, y); ctx.lineTo(a.dir > 0 ? W : 0, H - 16); ctx.stroke();
+    // 대각선 두 줄 (하단바 모서리에서 과녁으로): 조준선처럼 1px 점선 (조준 표시라 텍스처 대상 아님)
+    ctx.globalAlpha = 0.3 * al * p;
+    const ex = a.dir > 0 ? W : 0;
+    for (const ey of [16, H - 16]) {
+      const n = Math.ceil(Math.hypot(ex - x, ey - y) / 5);
+      for (let k = 1; k < n; k++) ctx.fillRect(Math.round(mix(x, ex, k / n)), Math.round(mix(y, ey, k / n)), 1, 1);
+    }
     // 눈금: 조준선을 따라 거리 눈금이 흐른다
     ctx.globalAlpha = 0.45 * al;
     for (let k = -12; k <= 12; k++) { const tx = x + k * 14 + ((t * 40) % 14); ctx.fillRect(Math.round(tx), Math.round(y - oy) - (k % 4 ? 1 : 3), 1, k % 4 ? 2 : 6); }
-    // 과녁 원: 좁혀지며 돈다
+    // 과녁 원: 조준경 E25 (저격수 헤드샷 → 신궁으로 이어 씀)가 좁혀지며 돈다
     const r = mix(44, 9, p);
     ctx.globalAlpha = 0.9 * al;
-    ctx.strokeStyle = col; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x, y, r + 6, t * 3, t * 3 + 1.2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x, y, r + 6, t * 3 + Math.PI, t * 3 + Math.PI + 1.2); ctx.stroke();
+    vfxDraw(ctx, 'e25', col, 0, x, y, { scale: vfxNearScale((2 * (r + 6)) / (64 * VFX_DOT)), rot: t * 1.5 });
     for (let k = 0; k < 4; k++) { const ang = k * Math.PI / 2 - t * 2; ctx.fillRect(Math.round(x + Math.cos(ang) * (r + 2)) - 1, Math.round(y + Math.sin(ang) * (r + 2)) - 1, 3, 3); }
     if (lock) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5); }
     ctx.restore();
-    // 시위 끝에 빛이 모여 별처럼 반짝인다
-    const h = hand(a), s = 4 + 10 * p + (lock ? 3 * Math.sin(clock * 40) : 0);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = al;
-    ctx.fillStyle = '#ffe066';
-    ctx.fillRect(Math.round(h.x + a.dir * 8 - s), Math.round(h.y) - 1, Math.round(s * 2), 2);
-    ctx.fillRect(Math.round(h.x + a.dir * 8) - 1, Math.round(h.y - s * 0.6), 2, Math.round(s * 1.2));
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(h.x + a.dir * 8) - 2, Math.round(h.y) - 2, 4, 4);
-    ctx.restore();
+    // 시위 끝에 작은 태양 빛(H24 앞 두 장)이 모여 일렁인다 — 과녁을 잡으면 1배로
+    const h = hand(a);
+    vfxDraw(ctx, 'h24', 'raw', Math.floor(clock * 10) % 2, h.x + a.dir * 8, h.y, { scale: p > 0.7 ? 1 : 2 / 3, alpha: al * (lock ? 0.75 + 0.25 * Math.sin(clock * 40) : 0.85) });
   }, null, () => {
     if (Math.random() < 0.5) {
       const h = hand(a), ang = rand(0, Math.PI * 2), r = rand(24, 40);
@@ -191,11 +183,9 @@ function saLightArrowFx(a) {
     ctx.globalAlpha = 0.8 * (1 - segU(t, 0, 0.3));
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(-20, Math.round(y0) - 1, W + 40, 2);
-    // 시위에서 터지는 세로 충격파
-    ctx.globalAlpha = 1 - u;
-    ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2;
-    for (const k of [0.5, 1]) { ctx.beginPath(); ctx.ellipse(x0 + a.dir * 34 * easeOut(u) * k, y0, 3 + 6 * u, 10 + 34 * easeOut(u) * k, 0, 0, Math.PI * 2); ctx.stroke(); }
     ctx.restore();
+    // 시위 앞에서 작은 태양 섬광(H24)이 터진다 — F12 는 2/3 배로도 기사를 가려서 신궁 평타 섬광을 크게 쓴다
+    if (u < 0.5) vfxDraw(ctx, 'h24', 'raw', Math.min(4, Math.floor(u * 10)), x0 + a.dir * 10, y0, { scale: 4 / 3, flip: a.dir < 0, alpha: 1 - u });
     if (t < 0.1) saArrow(hx, y0, a.dir > 0 ? 0 : Math.PI, 26, '#ffffff', '#ffffff');
   });
   for (let i = 0; i < 10; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * rand(60, 160), vy: rand(-70, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
@@ -226,15 +216,8 @@ function saSunStage(a) {
     if (t > hit) r = mix(22, 12, segU(t, hit, last + 0.4)) + a.saPulse * 4;
     saSun(S.x, S.y, r, t, Math.min(1, t / 0.4) * out, t > pierced ? 1 + charge * 0.8 : 0.7);
     if (t > pierced && t < hit) {
-      // 꿰뚫린 자리에서 갈라지는 하얀 금
-      ctx.save();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
-      for (let k = 0; k < 5; k++) {
-        const ang = k * 1.26 + 0.4, l = r * (0.4 + 0.6 * charge);
-        ctx.beginPath(); ctx.moveTo(S.x, S.y);
-        ctx.lineTo(S.x + Math.cos(ang) * l * 0.5 + Math.sin(k) * 2, S.y + Math.sin(ang) * l * 0.5); ctx.lineTo(S.x + Math.cos(ang + 0.2) * l, S.y + Math.sin(ang + 0.2) * l); ctx.stroke();
-      }
-      ctx.restore();
+      // 꿰뚫린 자리에서 터지는 작은 태양 섬광 H24 (예전 하얀 금 선 다섯 대신), 힘이 모일수록 커진다
+      vfxDraw(ctx, 'h24', 'raw', vfxLoopF('h24', 14), S.x, S.y, { scale: charge > 0.5 ? 4 / 3 : 1, alpha: 0.9 });
     }
   });
   // 대상을 지나 땅까지 내리꽂히는 광선 + 땅을 따라 하단바 끝까지 달리는 불 고랑
@@ -298,7 +281,7 @@ function saRainStage(a) {
         // 떠 있는 그림자 화살: 짙은 몸에 금빛 테두리가 가물거린다 (광선이 닿기 직전엔 금빛으로 달아오른다)
         const lit = ar.ok && t > ar.fall - 0.25, fade = ar.ok ? 1 : 1 - segU(t, hit, life);
         saArrow(ar.x + 1, ar.y + 14 + bob, Math.PI / 2 + a.dir * 0.12, 14, lit ? '#ffe066' : 'rgba(255,224,102,0.35)', lit ? '#ffffff' : 'rgba(255,224,102,0.5)', k * fade);
-        saArrow(ar.x, ar.y + 13 + bob, Math.PI / 2 + a.dir * 0.12, 13, '#2a1608', '#3a2210', k * 0.85 * fade);
+        saArrow(ar.x, ar.y + 13 + bob, Math.PI / 2 + a.dir * 0.12, 13, '#2a1608', '#3a2210', k * 0.85 * fade, false);
         continue;
       }
       // 광선이 지나간 그림자는 빛 화살로 바뀌어 땅에 꽂힌다
@@ -331,12 +314,11 @@ function saRainArrowFx(a, tx, ty, big) {
   const life = 0.13, len = big ? 30 : 22, x0 = tx - a.dir * 18;
   aFx(a, 0, life, (u) => {
     const x = mix(x0, tx, u), y = mix(10, ty, easeIn(u));
-    ctx.save(); ctx.globalAlpha = 0.7; ctx.strokeStyle = '#ffe066'; ctx.lineWidth = big ? 3 : 2;
-    ctx.beginPath(); ctx.moveTo(mix(x0, tx, u * 0.3), 10); ctx.lineTo(x, y); ctx.stroke(); ctx.restore();
+    // 꼬리는 P3 시트의 불꽃 꼬리가 맡는다
     saArrow(x, y, Math.atan2(ty - 10, tx - x0), len, '#fffbe8', '#ffffff');
   }, () => {
     burst(tx, ty, big ? 26 : 10, ['#ffffff', '#ffe066', '#ff9a2e'], big ? 190 : 120, 2, 260);
-    hitFx(tx, ty, '#ffe066', big ? 2.6 : 1.4);
+    hitFx(tx, ty, '#ffe066', big ? 2.6 : 1.4, 'k35');
   });
 }
 
@@ -391,11 +373,9 @@ function saFallStage(a) {
       // 하얀 섬광은 궁극기 막타 규칙대로 α 0.6 이하·0.15초 안에 (마지막 그림 = 태양 폭발 K35 가 보이게)
       const k = t - fin, al = 0.35 * (k < 0.04 ? k / 0.04 : 1 - segU(k, 0.04, 0.15));
       if (al > 0) dimBand(al, '255,252,236');
-      ctx.save();
-      ctx.globalAlpha = clamp01(1 - k / 0.7);
-      ctx.strokeStyle = '#ffb02e'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.ellipse(X, gy - 30, 30 + W * easeOut(clamp01(k / 0.7)), 18 + 70 * easeOut(clamp01(k / 0.7)), 0, 0, Math.PI * 2); ctx.stroke();
-      ctx.restore();
+      // 퍼져 나가는 충격파: C3 고리를 하단바 끝까지 늘인다
+      const kk = easeOut(clamp01(k / 0.7));
+      if (kk < 1) vfxDraw(ctx, 'c3', '#ffb02e', Math.min(4, Math.floor(kk * 5)), X, gy - 30, { scale: 2, sx: 0.3 + (W / 160) * kk, sy: 0.6 + 1.4 * kk, alpha: 1 - kk });
     }
     // 열기 아지랑이: 태양이 내려오며 시작해 하얗게 탄 뒤까지 일렁인다
     const haze = t < 1.6 ? 0 : t < fin ? 1.4 * segU(t, 1.6, land) + 0.8 * segU(t, land, fin) : 2.2 * (1 - segU(t, fin + 0.3, life));
@@ -415,26 +395,23 @@ function saFlareFx(a, tx, ty, big) {
   const s = F.sunAt(Math.min(F.land, castOf(a.owner) ? castOf(a.owner).t : F.land)), sy0 = Math.max(24, s.y);
   const ang = Math.atan2(ty - sy0, tx - F.X), sx = F.X + Math.cos(ang) * s.r * 0.9, sy = Math.max(20, sy0 + Math.sin(ang) * s.r * 0.6);
   const cx = mix(sx, tx, 0.5), cy = Math.max(20, Math.min(sy, ty) - 30 - rand(0, 20)), life = 0.3;
+  // 홍염 줄기: 불꽃 꼬리 화살(P3)이 휘어 날아가며 지나온 자리에 잔상 둘을 남긴다
+  const at = (v) => [(1 - v) ** 2 * sx + 2 * (1 - v) * v * cx + v * v * tx, (1 - v) ** 2 * sy + 2 * (1 - v) * v * cy + v * v * ty];
   aFx(a, 0, life, (u) => {
-    const head = easeOut(clamp01(u * 2)), tail = clamp01(u * 2 - 0.6);
-    ctx.save();
-    ctx.lineCap = 'round';
-    for (const [w, c] of [[big ? 9 : 6, 'rgba(255,90,30,0.6)'], [big ? 4 : 3, '#ffc43a'], [1.5, '#ffffff']]) {
-      ctx.strokeStyle = c; ctx.lineWidth = w * (1 - u * 0.6);
-      ctx.beginPath();
-      for (let v = tail, first = true; v <= head + 0.001; v += 0.05, first = false) {
-        const x = (1 - v) ** 2 * sx + 2 * (1 - v) * v * cx + v * v * tx, y = (1 - v) ** 2 * sy + 2 * (1 - v) * v * cy + v * v * ty;
-        if (first) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
+    const head = easeOut(clamp01(u * 2));
+    if (u > 0.55) return;
+    for (const [dv, al] of [[0.16, 0.35], [0.08, 0.6], [0, 1]]) {
+      const v = Math.max(0, head - dv), [x, y] = at(v), [x2, y2] = at(Math.min(1, v + 0.02));
+      saArrow(x, y, Math.atan2(y2 - y, x2 - x), big ? 24 : 16, '#ffc43a', '#ffffff', al);
     }
-    ctx.restore();
   });
-  skLater(a, life * 0.45, () => { burst(tx, ty, big ? 18 : 8, ['#ffffff', '#ffc43a', '#ff5a1f'], big ? 170 : 110, 2, 120); hitFx(tx, ty, '#ff9a2e', big ? 2 : 1.2); });
+  skLater(a, life * 0.45, () => { burst(tx, ty, big ? 18 : 8, ['#ffffff', '#ffc43a', '#ff5a1f'], big ? 170 : 110, 2, 120); hitFx(tx, ty, '#ff9a2e', big ? 2 : 1.2, 'k35'); });
 }
 
 Object.assign(SKILL_FX, {
   sunArrow: {
+    hitK: 'k35',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
+    marks() {},    // 명중 그림은 hitK 시트가 맡는다 — 없으면 기본 검흔(weaponMarks, 다각형)이 또 그려진다
     pose(u, a) {
       const m = (a && a.mast) || 0, d = a && a.k ? a.k.dur : 2.6, t = u * d;
       if (m === 0) {
@@ -469,7 +446,8 @@ Object.assign(SKILL_FX, {
       if (m === 0) {
         saLightArrowFx(a);
         for (const t of tg) {
-          hitFx(t.x, t.y, '#ffe066', 2.6);
+          hitFx(t.x, t.y, '#ffe066', 2.6, 'k35');
+          texFx('h24', t.x, t.y, 'raw', { life: 0.3, flip: a.dir < 0 });
           burst(t.x, t.y, 26, ['#ffffff', '#ffe066', '#ff9a2e'], 200, 2, 0);
           starFx(t.x, t.y, 18, '#ffffff', 0.35);
         }
@@ -479,7 +457,7 @@ Object.assign(SKILL_FX, {
       if (m === 1) {
         a.saPulse = 1;
         for (const t of tg) {
-          hitFx(t.x, t.y - 4, '#ffe066', i === 0 || last ? 2.4 : 1.4);
+          hitFx(t.x, t.y - 4, '#ffe066', i === 0 || last ? 2.4 : 1.4, 'k35');
           burst(t.x, t.y, i === 0 ? 24 : last ? 20 : 8, ['#ffffff', '#ffe066', '#ff9a2e'], i === 0 ? 190 : 130, 2, 120);
         }
         if (i === 0) {
@@ -490,7 +468,7 @@ Object.assign(SKILL_FX, {
       }
       if (m === 2) {
         if (i === 0) {
-          for (const t of tg) { hitFx(t.x, t.y, '#ffe066', 2.2); burst(t.x, t.y, 18, ['#ffffff', '#ffe066'], 160, 2, 120); }
+          for (const t of tg) { hitFx(t.x, t.y, '#ffe066', 2.2, 'k35'); burst(t.x, t.y, 18, ['#ffffff', '#ffe066'], 160, 2, 120); }
           aFx(a, 0, 0.12, (u) => dimBand(0.35 * (1 - u), '255,240,200'));
           impact({ stop: 0.12, shake: 0.4 });
           return;
@@ -510,7 +488,7 @@ Object.assign(SKILL_FX, {
         const F = a.saFall, gy = groundY();
         aFx(a, 0, 0.18, (u) => dimBand(0.55 * (1 - u), '255,236,190'));
         for (let k = 0; k < 40; k++) parts.push({ x: F.X + rand(-80, 80), y: gy - 2, vx: rand(-260, 260), vy: rand(-220, -60), g: 380, size: 3, color: ['#ff9a2e', '#ffe066', '#ffffff', '#7a3a10'][k % 4], life: rand(0.4, 0.8), t: 0 });
-        for (const t of tg) hitFx(t.x, t.y, '#ffe066', 2.4);
+        for (const t of tg) hitFx(t.x, t.y, '#ffe066', 2.4, 'k35');
         impact({ stop: 0.16, shake: 0.6 });
         return;
       }

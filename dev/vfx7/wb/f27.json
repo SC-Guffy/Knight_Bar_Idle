@@ -1,0 +1,10 @@
+{"recipe": {"canvas": {"w": 32, "h": 16}, "frames": 4, "fps": 12, "loop": true,
+ "ramps": {"main": ["#6e6e7a", "#9a9aa6", "#c6c6d0", "#ececf2", "#ffffff"], "a": ["#6e6e7a", "#9a9aa6", "#c6c6d0", "#ececf2", "#ffffff"], "b": ["#6e6e7a", "#9a9aa6", "#c6c6d0", "#ececf2", "#ffffff"]},
+ "outline": {"mode": "none"}, "detail": 0,
+ "layers": [
+  {"id": "groove", "type": "shape", "points": [[-16, -2], [16, -2], [16, 2], [-16, 2]], "fill": "linear", "fill_angle": 90, "intensity": 0.3, "outline": false},
+  {"id": "sb", "type": "shape", "ramp": "b", "closed": false, "width": 1.5, "fill": "edge", "intensity": 0.6, "outline": false,
+   "points": {"curves": [{"x": "-16 + 32*s", "y": "4*sin(tau*(2*s - u) + pi)", "n": 64}]}},
+  {"id": "sa", "type": "shape", "ramp": "a", "z": "front", "closed": false, "width": 2, "fill": "edge", "intensity": 1, "outline": false,
+   "points": {"curves": [{"x": "-16 + 32*s", "y": "4*sin(tau*(2*s - u))", "n": 64}]}}
+ ]}}
