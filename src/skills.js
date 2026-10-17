@@ -794,20 +794,11 @@ function crackFx(x, y, color, life = 0.6, delay = 0) {
 
 // 나선 철갑 (철갑 관통탄): 두 가닥 나선이 대상을 꿰뚫고 지나가며, 갑옷 조각이 튄다
 function drillFx(x, y, dir, color, life = 0.5, delay = 0) {
+  // 드릴 나선 자국 F27 (두 가닥 나선이 흐르는 루프)을 길이 L 까지 이어 붙인다 — 예전 나선 선 네 줄 대신 (대공성포)
   skFx(null, delay, life, (u) => {
-    const fade = fadeOf(u, 0.35), L = 70 * easeOut(Math.min(1, u / 0.15)), amp = 6 * (1 - u * 0.5);
-    ctx.save();
-    for (const ph of [0, Math.PI]) {
-      for (const [c, w] of [[OUTLINE, 3], [ph ? color : '#ffffff', 1.5]]) {
-        ctx.globalAlpha = (c === OUTLINE ? 0.5 : 1) * fade; ctx.strokeStyle = c; ctx.lineWidth = w;
-        ctx.beginPath();
-        for (let s = 0; s <= 24; s++) {
-          const v = s / 24, px = x - dir * 20 + dir * L * v, py = y + Math.sin(v * Math.PI * 5 + ph - clock * 30) * amp * Math.sin(Math.PI * v);
-          s ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-        }
-        ctx.stroke();
-      }
-    }
+    const fade = fadeOf(u, 0.35), L = 70 * easeOut(Math.min(1, u / 0.15));
+    ctx.save(); ctx.globalAlpha = fade;
+    vfxTileRun(ctx, 'f27', color, vfxLoopF('f27', 16), x - dir * 20, y, L, dir, { scale: 2 / 3, sy: 1 - u * 0.4, overlap: 0, vary: false });
     ctx.restore();
   });
   for (let j = 0; j < 6; j++) parts.push({ x, y, vx: dir * rand(60, 160), vy: rand(-120, -30), g: 480, size: 3, color: j % 2 ? '#8c95a6' : '#cfd6e0', life: rand(0.4, 0.7), t: 0 });
@@ -1808,22 +1799,12 @@ function ballistaFx(a, life, shotTimes) {
     const build = easeOut(Math.min(1, t / 0.3)), out = t > life - 0.25 ? (life - t) / 0.25 : 1;
     let flex = 0;
     for (const s of shotTimes) { if (t > s - 0.25 && t < s) flex = (t - (s - 0.25)) / 0.25; else if (t >= s && t < s + 0.08) flex = -1 + (t - s) / 0.08; }
+    // 노포 F29 (삼각 받침 + 큰 활, 오른쪽을 본다 — 철갑 관통탄 ★★★·대공성포 Lv1 공용). 당길 때 가로로 살짝 눌렸다가 쏘는 순간 튕긴다
     ctx.save();
-    ctx.globalAlpha = out;
-    ctx.translate(x, gy - 4 * build); ctx.scale(d * 1.6, 1.6);          // 기사보다 큰 공성 병기
-    const h = 26 * build;
-    ctx.fillStyle = '#5a3a1e'; ctx.fillRect(-14, -4, 4, 4); ctx.fillRect(10, -4, 4, 4);            // 다리
-    ctx.fillStyle = '#7a5530'; ctx.fillRect(-16, -h * 0.55, 32, 5);                                 // 몸통 틀
-    ctx.fillStyle = '#4a3220'; ctx.fillRect(-16, -h * 0.55 + 4, 32, 2);
-    ctx.fillStyle = '#9a9aa6'; ctx.fillRect(4, -h * 0.55 - 2, 4, 9);                               // 쇠 장식
-    // 활대: 앞쪽에서 위아래로 휘어진다 (당길수록 뒤로 굽는다)
-    const bend = 6 * flex;
-    ctx.strokeStyle = '#3a3a44'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(12, -h * 0.55 - 16); ctx.quadraticCurveTo(14 - bend, -h * 0.55, 12, -h * 0.55 + 18); ctx.stroke();
-    ctx.strokeStyle = '#e8d9b0'; ctx.lineWidth = 1;
-    const sx = 12 - 22 * Math.max(0, flex);
-    ctx.beginPath(); ctx.moveTo(12, -h * 0.55 - 16); ctx.lineTo(sx, -h * 0.55 + 1); ctx.lineTo(12, -h * 0.55 + 18); ctx.stroke();   // 시위
-    if (flex > 0) { ctx.fillStyle = '#8a5a2b'; ctx.fillRect(sx, -h * 0.55, 30, 3); ctx.fillStyle = '#c9c2b4'; ctx.fillRect(sx + 30, -h * 0.55 - 2, 6, 7); }   // 장전된 살
+    ctx.globalAlpha = out * build;
+    ctx.translate(x, gy + 2 - 4 * build); ctx.scale(d, 1);
+    vfxDraw(ctx, 'f29', 'raw', 0, 0, 0, { anchor: 'b', scale: 1, sx: 1 - 0.06 * flex, sy: 1 + 0.03 * Math.max(0, -flex) });
+    if (flex > 0) vfxDraw(ctx, 'p6', 'raw', 0, 4 - 10 * flex, -39, { scale: 2 / 3 });   // 장전된 살 (P6 공성 거대 살)
     ctx.restore();
   });
 }
@@ -1838,9 +1819,7 @@ function ballistaBoltFx(a, y, life = 1.0) {
     ctx.globalAlpha = out;
     if (fly < 1) { ctx.fillStyle = 'rgba(232,217,176,0.4)'; ctx.fillRect(Math.min(x0, x), y - 1, Math.abs(x - x0), 2); }
     ctx.translate(x, y + wob); ctx.scale(d, 1);
-    ctx.fillStyle = '#8a5a2b'; ctx.fillRect(-36, -1.5, 34, 3);
-    ctx.fillStyle = '#c9c2b4'; ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(6, 0); ctx.lineTo(-2, 4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#e8d9b0'; ctx.fillRect(-36, -4, 5, 2); ctx.fillRect(-36, 2, 5, 2);           // 깃
+    vfxDraw(ctx, 'p6', 'raw', 0, -14, 0, { scale: 2 / 3 });   // 살 P6 (촉이 오른쪽, 촉 끝이 x 에 오게)
     ctx.restore();
   });
 }

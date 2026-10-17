@@ -202,21 +202,14 @@ function wbUnderground(alpha) {
   ctx.restore();
 }
 // 뒤집히는 땅판 하나 (x, y 중심, w 폭, th 두께, rot 회전): 윗면 흙·풀 → 바위 몸통 → 아랫면 뿌리·검은 바위와 열기
-function wbSlab(x, y, w, th, rot, glow) {
+// 뒤집히는 땅 판: 땅 판 F26 (흙·지층·풀, 아랫면 용암빛). frame 0 = 통판, 1~3 = 깨진 조각 (조각은 시트 안 원래 자리에 있어 pdx 만큼 당겨 그린다)
+//  w·th 는 예전 도형 크기(px) — 그만큼 늘이고 줄인다. glow 는 아랫면이 달아오르는 정도 (lighter 로 한 번 더)
+function wbSlab(x, y, w, th, rot, glow, frame = 0, pdx = 0) {
+  const sc = 1, sx = w / (47 * VFX_DOT * sc) * (frame ? 3 : 1), sy = (th + 4) / (9 * VFX_DOT * sc);   // 판 그림은 47×9 도트 (아랫면 뿌리까지 th + 4)
   ctx.save();
   ctx.translate(x, y); ctx.rotate(rot);
-  const hw = w / 2, hh = th / 2;
-  ctx.fillStyle = '#140a06'; wbPoly([[-hw - 1, -hh - 1], [hw + 1, -hh - 1], [hw + 1, hh - 2], [hw * 0.5, hh + 5], [0, hh + 2], [-hw * 0.4, hh + 6], [-hw - 1, hh - 1]]); ctx.fill();
-  ctx.fillStyle = WB_ROCK[1]; ctx.fillRect(-hw, -hh, w, th);
-  ctx.fillStyle = WB_ROCK[0]; ctx.fillRect(-hw, -hh + th * 0.55, w, 2); ctx.fillRect(-hw + w * 0.2, -hh + th * 0.3, w * 0.4, 1);
-  ctx.fillStyle = WB_ROCK[3]; ctx.fillRect(-hw, -hh, w, 4);
-  ctx.fillStyle = '#8fbf5a'; ctx.fillRect(-hw, -hh - 1, w, 2);
-  for (let i = -hw + 2; i < hw - 2; i += 5) ctx.fillRect(i, -hh - 3, 1, 2);
-  // 아랫면: 뜯겨 나온 뿌리와 달아오른 바위
-  ctx.fillStyle = mixHex('#2a1a12', '#ff5a1f', glow);
-  wbPoly([[-hw, hh], [hw, hh], [hw * 0.5, hh + 4], [0, hh + 1.5], [-hw * 0.4, hh + 5]]); ctx.fill();
-  ctx.strokeStyle = '#6a4a2a'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(-hw * 0.3, hh); ctx.lineTo(-hw * 0.4, hh + 7); ctx.moveTo(hw * 0.2, hh); ctx.lineTo(hw * 0.3, hh + 6); ctx.stroke();
+  vfxDraw(ctx, 'f26', 'raw', frame, -pdx, 0, { scale: sc, sx, sy });
+  if (glow > 0.3) { ctx.globalCompositeOperation = 'lighter'; vfxDraw(ctx, 'f26', 'raw', frame, -pdx, 0, { scale: sc, sx, sy, alpha: 0.25 * glow }); }
   ctx.restore();
 }
 
@@ -310,7 +303,7 @@ function wbStage3(a) {
     slabs.push({ x: x + w / 2, w, th: rand(12, 16), lt: ts + 0.06 + Math.min(0.75, Math.abs(x + w / 2 - tx0) / Math.max(500, W * 0.9)), hy: rand(40, 74), spin: (Math.random() < 0.5 ? -1 : 1) * Math.PI * rand(0.85, 1.15), frags: [] });
     x += w;
   }
-  for (const S of slabs) for (let j = 0; j < 3; j++) S.frags.push({ dx: (j - 1) * S.w / 3, w: S.w / 3 + rand(-2, 3), th: S.th * rand(0.8, 1.1), vr: rand(-9, 9), lx: rand(-14, 14) });
+  for (const S of slabs) for (let j = 0; j < 3; j++) S.frags.push({ k: j + 1, dx: (j - 1) * S.w / 3, w: S.w / 3, th: S.th, vr: rand(-9, 9), lx: rand(-14, 14) });
   const slabAt = (S, t) => {
     const k = easeOut(segU(t, S.lt, S.lt + 0.5));
     return { y: by - 4 - (S.hy * k) + Math.sin(clock * 3 + S.x) * 2 * k, rot: S.spin * easeOut(segU(t, S.lt, S.lt + 0.7)) };
@@ -328,7 +321,7 @@ function wbStage3(a) {
       if (t > tf + 0.02) continue;
       for (const F of S.frags) {
         const cx = S.x + Math.cos(p.rot) * F.dx + F.lx * fallK, cy = mix(p.y + Math.sin(p.rot) * F.dx - 6 * segU(t, tb, tb + 0.08), by - 3, fallK);
-        wbSlab(cx, cy, F.w, F.th, p.rot + F.vr * (t - tb), 1);
+        wbSlab(cx, cy, F.w, F.th, p.rot + F.vr * (t - tb), 1, F.k, F.dx);
         // 떨어지는 동안 위로 남는 흙먼지 꼬리
         if (fallK > 0.05) { ctx.save(); ctx.globalAlpha = 0.35 * fallK; ctx.fillStyle = '#a8946a'; ctx.fillRect(cx - 2, cy - 30 * fallK, 4, 30 * fallK); ctx.restore(); }
       }

@@ -192,31 +192,29 @@ function dcRiftStage(a) {
     if (t < F) return;
     const top = pts.map((p) => [p.x, p.y - openAt(p, t) * p.up]), bot = pts.map((p) => [p.x, p.y + openAt(p, t) * p.dn]);
     if (!top.some((p, j) => bot[j][1] - p[1] > 0.5)) return;
-    const path = () => { ctx.beginPath(); top.forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); for (let j = bot.length - 1; j >= 0; j--) ctx.lineTo(bot[j][0], bot[j][1]); ctx.closePath(); };
-    ctx.save();
-    // 바깥 번짐
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.strokeStyle = 'rgba(255,77,255,0.35)'; ctx.lineWidth = 8; path(); ctx.stroke();
-    ctx.globalCompositeOperation = 'source-over';
-    // 균열 속: 끝없는 공허와 그 안을 흐르는 별
-    path(); ctx.fillStyle = '#030006'; ctx.fill();
-    ctx.save(); path(); ctx.clip();
-    const g = ctx.createLinearGradient(0, ry - 20, 0, ry + 20);
-    g.addColorStop(0, 'rgba(120,0,160,0.5)'); g.addColorStop(0.5, 'rgba(10,0,30,0)'); g.addColorStop(1, 'rgba(120,0,160,0.5)');
-    ctx.fillStyle = g; ctx.fillRect(Math.min(xs, xe), ry - 24, Math.abs(xe - xs), 48);
+    // 찢김 그림: 공허 찢김 띠 F23 (위아래 테 + 어두운 속)을 꼭짓점 사이 마디마다 잘라 붙이고, 그 자리의 벌어짐만큼 세로로 늘인다 (예전 다각형·테두리 선·gradient 대신)
+    const sc = 2 / 3, tw = 32 * VFX_DOT * sc, band = 10 * VFX_DOT * sc, f = vfxLoopF('f23', 10), dx = Math.sign(xe - xs);
+    for (let j = 0; j + 1 < pts.length; j++) {
+      const gap = (bot[j][1] - top[j][1] + bot[j + 1][1] - top[j + 1][1]) / 2;
+      if (gap < 1) continue;
+      // 테 두 줄 사이(10도트)가 벌어진 틈이 되게 늘이되, 테 바깥 들쭉날쭉까지 같이 커지므로 1.6배에서 멈춘다
+      const cy = (top[j][1] + bot[j][1] + top[j + 1][1] + bot[j + 1][1]) / 4, sy = Math.min(1.6, Math.max(0.2, gap / band));
+      let d0 = Math.abs(pts[j].x - xs), d1 = Math.abs(pts[j + 1].x - xs) + 1;
+      while (d0 < d1) {
+        const k0 = (d0 % tw) / tw, k1 = Math.min(1, k0 + (d1 - d0) / tw), w = (k1 - k0) * tw;
+        const crop = dx > 0 ? [k0, k1] : [1 - k1, 1 - k0];
+        vfxDraw(ctx, 'f23', DC_MAG, f, xs + dx * (d0 + w / 2), cy, { scale: sc, sy, crop, sx: (w + 1) / w, alpha: 0.9 });
+        d0 += w;
+      }
+    }
+    // 찢김 속을 흐르는 별 (1px 점, 벌어진 틈 안에만)
     for (const s of stars) {
-      const x = mix(xs, xe, (s.f + t * 0.08) % 1), y = ry + s.o * 12;
+      const x = mix(xs, xe, (s.f + t * 0.08) % 1), j = Math.min(pts.length - 1, Math.max(0, Math.round(((x - xs) / (xe - xs)) * (pts.length - 1))));
+      const half = (bot[j][1] - top[j][1]) / 2 - 3;
+      if (half < 2) continue;
       ctx.fillStyle = Math.sin(clock * 6 + s.tw) > 0 ? '#ffffff' : DC_PALE;
-      ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+      ctx.fillRect(Math.round(x), Math.round((top[j][1] + bot[j][1]) / 2 + s.o * half), 1, 1);
     }
-    ctx.restore();
-    // 찢긴 모서리: 자홍 테두리에 하얀 날
-    ctx.lineJoin = 'miter';
-    for (const [edge, c, w] of [[top, DC_MAG, 3], [bot, DC_MAG, 3], [top, '#ffffff', 1], [bot, '#ffffff', 1]]) {
-      ctx.strokeStyle = c; ctx.lineWidth = w;
-      ctx.beginPath(); edge.forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
-    }
-    ctx.restore();
     a.dcRift.pulse = Math.max(0, a.dcRift.pulse - 0.06);
   }, null, (u) => {
     const t = u * life;
@@ -229,16 +227,13 @@ function dcRiftStage(a) {
   });
   // 앞 레이어: 대상에서 균열로 끌려가는 기운
   aFx(a, F + run, fin - F - run, (u) => {
-    ctx.save();
-    ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = DC_PALE; ctx.lineWidth = 1;
+    // 대상에서 균열로 끌려가는 빛: C16 반짝임이 세 줄로 내려간다 (예전 선 대신)
     for (const tg of a.targets()) {
       for (let k = 0; k < 3; k++) {
         const ph = (clock * 3 + k / 3) % 1, x = tg.x + (k - 1) * 6, y0 = tg.y + 10 - ph * 4;
-        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, mix(y0, ry + 10, ph)); ctx.stroke();
+        vfxDraw(ctx, 'c16', DC_PALE, k % 4, x, mix(y0, ry + 10, ph), { scale: 2 / 3, alpha: 0.6 * (1 - ph * 0.5) });
       }
     }
-    ctx.restore();
   });
 }
 // 찢기는 자국: 대상 위에 공허 균열 F13 이 비스듬히 벌어졌다(가로로 열림) 닫힌다 (텍스처 ⑤-3). size 9~16 → 1/3~2/3배

@@ -28,19 +28,23 @@ function saSun(x, y, r, t, al = 1, rays = 1) {
 // 거대한 태양의 겉면: 시트 한 장을 반대로 돌려 반투명하게 겹쳐 겉면이 끓어오르는 것처럼
 function saSunSurface(x, y, r, t, al = 1) {
   vfxDraw(ctx, 'f12', 'raw', (vfxLoopF('f12', 6) + 3) % 4, x, y, { scale: vfxNearScale(r / 45), rot: Math.PI, alpha: al * 0.35 });
-}// 굵은 태양 광선: 주황 번짐 → 금빛 몸통 → 하얀 심, 그 위로 빛 마디가 흐른다
+}
+// 굵은 태양 광선: 주황 번짐 → 금빛 몸통 → 하얀 심, 그 위로 빛 마디가 흐른다
 function saBeam(x0, y0, x1, y1, w, al, t) {
   if (w < 0.5 || al <= 0) return;
   const L = Math.hypot(x1 - x0, y1 - y0) || 1, ux = (x1 - x0) / L, uy = (y1 - y0) / L;
-  const line = () => { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); };
+  // 광선 타일 F30 (몸 + 흰 심)을 광선 방향으로 돌려 늘인다: 주황 번짐 한 겹(lighter) + 금빛 몸 (예전 선 세 겹 대신). 몸 굵기 8도트 → w 에 맞춰 세로로 늘임
+  const sc = 2 / 3, sy = w / (8 * VFX_DOT * sc);
   ctx.save();
   ctx.globalAlpha = al;
-  ctx.lineCap = 'butt';
+  ctx.save(); ctx.translate(x0, y0); ctx.rotate(Math.atan2(uy, ux));
+  // 타일이 가로로 한결같아 이어 붙이지 않고 한 장을 길이만큼 늘인다 (돌린 타일 사이 틈이 안 생기게)
+  const sx = L / (32 * VFX_DOT * sc);
   ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = 'rgba(255,120,30,0.3)'; ctx.lineWidth = w * 2.4; line();
-  ctx.strokeStyle = 'rgba(255,200,70,0.75)'; ctx.lineWidth = w; line();
+  vfxDraw(ctx, 'f30', '#ff7a1e', 0, L / 2, 0, { scale: sc, sx, sy: sy * 2.4, alpha: 0.3 });
   ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = '#fffbe8'; ctx.lineWidth = Math.max(1, w * 0.4); line();
+  vfxDraw(ctx, 'f30', '#ffc846', 0, L / 2, 0, { scale: sc, sx, sy });
+  ctx.restore();
   ctx.fillStyle = '#ffffff';
   for (let k = 0; k < 10; k++) {
     const s = (t * 700 + k * L / 10) % L, off = Math.sin(k * 7.3 + t * 30) * w * 0.45;
