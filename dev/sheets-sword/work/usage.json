@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 247.0,
+ "used": 264.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -890,7 +890,105 @@
    "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
    "used": 1.0,
    "bal": 747.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkD: Walking with a long stride: right foot far forward, left foo",
+   "used": 1.0,
+   "bal": 746.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkE: Walking, passing pose: left knee lifted high in front, right",
+   "used": 1.0,
+   "bal": 745.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkF: Walking with a long stride: left foot far forward, right foo",
+   "used": 1.0,
+   "bal": 744.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkD: Walking with a long stride: right foot far forward, left foo",
+   "used": 4.0,
+   "bal": 740.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkE: Walking, passing pose: left knee lifted high in front, right",
+   "used": 1.0,
+   "bal": 739.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkF: Walking with a long stride: left foot far forward, right foo",
+   "used": 1.0,
+   "bal": 738.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkD: Walking with a long stride: right foot far forward, left foo",
+   "used": 1.0,
+   "bal": 737.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkE: Walking, passing pose: left knee lifted high in front, right",
+   "used": 1.0,
+   "bal": 736.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkF: Walking with a long stride: left foot far forward, right foo",
+   "used": 1.0,
+   "bal": 735.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkD: Walking with a long stride: right foot far forward, left foo",
+   "used": 1.0,
+   "bal": 734.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkE: Walking, passing pose: left knee lifted high in front, right",
+   "used": 1.0,
+   "bal": 733.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkF: Walking with a long stride: left foot far forward, right foo",
+   "used": 1.0,
+   "bal": 732.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkH: Walking with a long stride: left foot far forward, right foo",
+   "used": 1.0,
+   "bal": 731.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkH: Walking, passing pose: both feet close together under the bo",
+   "used": 1.0,
+   "bal": 730.0
   }
  ],
- "nom": 140.0
+ "nom": 154.0
 }

@@ -132,3 +132,17 @@
 | 125 | swordsaint | `/edit-image-pixen` | walkB: Walking: passing pose, left knee raised forward, right foot  | 1.0 / 1.0 | 246.0 / 138.0 | 748.0 |
 | 126 | swordsaint | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 0.0 / 1 | 246.0 / 139.0 | 748.0 |
 | 127 | swordsaint | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 1.0 / 1.0 | 247.0 / 140.0 | 747.0 |
+| 128 | paladin | `/edit-image-pixen` | walkD: Walking with a long stride: right foot far forward, left foo | 1.0 / 1.0 | 248.0 / 141.0 | 746.0 |
+| 129 | paladin | `/edit-image-pixen` | walkE: Walking, passing pose: left knee lifted high in front, right | 1.0 / 1.0 | 249.0 / 142.0 | 745.0 |
+| 130 | paladin | `/edit-image-pixen` | walkF: Walking with a long stride: left foot far forward, right foo | 1.0 / 1.0 | 250.0 / 143.0 | 744.0 |
+| 131 | squire | `/edit-image-pixen` | walkD: Walking with a long stride: right foot far forward, left foo | 4.0 / 1.0 | 254.0 / 144.0 | 740.0 |
+| 132 | squire | `/edit-image-pixen` | walkE: Walking, passing pose: left knee lifted high in front, right | 1.0 / 1.0 | 255.0 / 145.0 | 739.0 |
+| 133 | squire | `/edit-image-pixen` | walkF: Walking with a long stride: left foot far forward, right foo | 1.0 / 1.0 | 256.0 / 146.0 | 738.0 |
+| 134 | archon | `/edit-image-pixen` | walkD: Walking with a long stride: right foot far forward, left foo | 1.0 / 1.0 | 257.0 / 147.0 | 737.0 |
+| 135 | archon | `/edit-image-pixen` | walkE: Walking, passing pose: left knee lifted high in front, right | 1.0 / 1.0 | 258.0 / 148.0 | 736.0 |
+| 136 | archon | `/edit-image-pixen` | walkF: Walking with a long stride: left foot far forward, right foo | 1.0 / 1.0 | 259.0 / 149.0 | 735.0 |
+| 137 | tyrant | `/edit-image-pixen` | walkD: Walking with a long stride: right foot far forward, left foo | 1.0 / 1.0 | 260.0 / 150.0 | 734.0 |
+| 138 | tyrant | `/edit-image-pixen` | walkE: Walking, passing pose: left knee lifted high in front, right | 1.0 / 1.0 | 261.0 / 151.0 | 733.0 |
+| 139 | tyrant | `/edit-image-pixen` | walkF: Walking with a long stride: left foot far forward, right foo | 1.0 / 1.0 | 262.0 / 152.0 | 732.0 |
+| 140 | paladin | `/edit-image-pixen` | walkH: Walking with a long stride: left foot far forward, right foo | 1.0 / 1.0 | 263.0 / 153.0 | 731.0 |
+| 141 | squire | `/edit-image-pixen` | walkH: Walking, passing pose: both feet close together under the bo | 1.0 / 1.0 | 264.0 / 154.0 | 730.0 |

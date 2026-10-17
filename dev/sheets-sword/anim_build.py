@@ -41,6 +41,13 @@ JOBS = {
     ('swordsaint', 'atk'): (['key4', 'key1', 'key3', 'key3', 'key4'], [130, 120, 80, 180, 140]),
     ('swordsaint', 'cast'): (['key4', 'key1', 'cast3', 'cast3', 'key4'], [130, 160, 90, 200, 140]),
     ('swordsaint', 'walk'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
+    # 8단계 걷기 재도전 (다리만·무기 고정, 시드 23): <cls>-walk3-strip.png  (walkF → walkG 복사: 이름 끝 F 는 좌우 반전 표시라서)
+    ('paladin', 'walk3'): (['walkD', 'walkE', 'walkH', 'walkE'],   # 9단계: walkG(칼이 위로 튐) → walkH
+    [125, 125, 125, 125]),
+    ('squire', 'walk3'): (['walkD', 'walkH', 'walkG', 'walkE'],   # 9단계: 통과 자세 walkH 추가 (2포즈 반복 → 4포즈)
+    [125, 125, 125, 125]),
+    ('archon', 'walk3'): (['walkD', 'walkE', 'walkG', 'walkE'], [125, 125, 125, 125]),
+    ('tyrant', 'walk3'): (['walkD', 'walkE', 'walkG', 'walkE'], [125, 125, 125, 125]),
 }
 ONLY = [a for a in __import__('sys').argv[1:]]
 
