@@ -1,0 +1,4 @@
+archon-77=design/px/archon-T3c-77-h46.png IoU_parent=0.949
+archon-63=design/px/archon-T3c-63-h46.png IoU_parent=0.525
+swordsaint-89=design/px/swordsaint-T3c-89-h46.png IoU_parent=0.889
+swordsaint-23=design/px/swordsaint-T3c-23-h46.png IoU_parent=0.867

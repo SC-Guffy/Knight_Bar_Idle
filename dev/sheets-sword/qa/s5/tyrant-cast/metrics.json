@@ -1,0 +1,39 @@
+{
+ "id": "tyrant-cast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\tyrant-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.94,
+  "colors": 11,
+  "low": 0.477,
+  "edge": 0.433,
+  "lone": 0.075,
+  "flick": 0.376,
+  "churn": 0.345,
+  "fill": 0.259,
+  "area": [
+   1033,
+   981,
+   1215,
+   1215,
+   890,
+   1033
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

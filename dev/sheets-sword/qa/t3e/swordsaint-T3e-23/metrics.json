@@ -1,0 +1,34 @@
+{
+ "id": "swordsaint-T3e-23",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\t3e\\swordsaint-T3e-23-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  53,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.901,
+  "colors": 9,
+  "low": 0.537,
+  "edge": 0.491,
+  "lone": 0.124,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.32,
+  "area": [
+   949
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

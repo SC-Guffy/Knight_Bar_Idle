@@ -1,0 +1,39 @@
+{
+ "id": "tyrant-atk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\tyrant-atk-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.933,
+  "colors": 11,
+  "low": 0.482,
+  "edge": 0.432,
+  "lone": 0.083,
+  "flick": 0.46,
+  "churn": 0.507,
+  "fill": 0.241,
+  "area": [
+   1033,
+   1055,
+   1019,
+   893,
+   893,
+   1033
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

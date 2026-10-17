@@ -1,0 +1,39 @@
+{
+ "id": "squire-cast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\squire-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.84,
+  "colors": 11,
+  "low": 0.369,
+  "edge": 0.36,
+  "lone": 0.048,
+  "flick": 0.284,
+  "churn": 0.443,
+  "fill": 0.232,
+  "area": [
+   939,
+   1047,
+   943,
+   943,
+   889,
+   939
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

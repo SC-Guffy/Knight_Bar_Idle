@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 156.0,
+ "used": 236.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -498,7 +498,315 @@
    "purpose": "key3c: Change only the pose: impact of a heavy chop to the right, d",
    "used": 4.0,
    "bal": 860.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "key1: Change only the pose: wind-up, knees bent, weapon pulled bac",
+   "used": 1.0,
+   "bal": 845.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2: Change only the pose: front foot stepping forward, weapon ra",
+   "used": 4.0,
+   "bal": 841.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3: Change only the pose: impact of a downward slash, deep lunge",
+   "used": 2.0,
+   "bal": 839.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "key4: Change only the pose: follow-through, rising from the lunge,",
+   "used": 6.0,
+   "bal": 833.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1: Change only the pose: weapon held vertically in front of the",
+   "used": 1.0,
+   "bal": 832.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/image-to-pixelart",
+   "purpose": "t3eref: /image-to-pixelart",
+   "used": 1.0,
+   "bal": 830.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast3: Change only the pose: stepping forward, weapon thrust straig",
+   "used": 3.0,
+   "bal": 824.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "key1: Change only the pose: wind-up, knees bent, weapon pulled bac",
+   "used": 5.0,
+   "bal": 819.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2: Change only the pose: front foot stepping forward, weapon ra",
+   "used": 1.0,
+   "bal": 818.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3: Change only the pose: impact of a downward slash, deep lunge",
+   "used": 1.0,
+   "bal": 817.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "key4: Change only the pose: follow-through, rising from the lunge,",
+   "used": 1.0,
+   "bal": 816.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1: Change only the pose: weapon held vertically in front of the",
+   "used": 1.0,
+   "bal": 815.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2: Change only the arms: weapon raised straight up above the he",
+   "used": 1.0,
+   "bal": 814.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast3: Change only the pose: stepping forward, weapon thrust straig",
+   "used": 5.0,
+   "bal": 809.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkA: Walking: right foot stepping forward, left foot behind, long",
+   "used": 1.0,
+   "bal": 808.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkB: Walking: passing pose, left knee raised forward, right foot ",
+   "used": 4.0,
+   "bal": 804.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
+   "used": 1.0,
+   "bal": 803.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkA: Walking: right foot stepping forward, left foot behind, long",
+   "used": 1.0,
+   "bal": 802.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkB: Walking: passing pose, left knee raised forward, right foot ",
+   "used": 1.0,
+   "bal": 801.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
+   "used": 5.0,
+   "bal": 796.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkA: Walking: right foot stepping forward, left foot behind, long",
+   "used": 1.0,
+   "bal": 795.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkB: Walking: passing pose, left knee raised forward, right foot ",
+   "used": 4.0,
+   "bal": 791.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
+   "used": 1.0,
+   "bal": 790.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkA: Walking: right foot stepping forward, left foot behind, long",
+   "used": 1.0,
+   "bal": 789.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkB: Walking: passing pose, left knee raised forward, right foot ",
+   "used": 1.0,
+   "bal": 788.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
+   "used": 5.0,
+   "bal": 783.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkA: Walking: right foot stepping forward, left foot behind, long",
+   "used": 1.0,
+   "bal": 782.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkB: Walking: passing pose, left knee raised forward, right foot ",
+   "used": 4.0,
+   "bal": 778.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
+   "used": 1.0,
+   "bal": 777.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key1: Change only the pose: wind-up, knees bent, weapon pulled bac",
+   "used": 1.0,
+   "bal": 776.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2: Change only the pose: front foot stepping forward, weapon ra",
+   "used": 1.0,
+   "bal": 775.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3: Change only the pose: impact of a downward slash, deep lunge",
+   "used": 1.0,
+   "bal": 774.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key4: Change only the pose: follow-through, rising from the lunge,",
+   "used": 1.0,
+   "bal": 773.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1: Change only the pose: weapon held vertically in front of the",
+   "used": 1.0,
+   "bal": 772.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2: Change only the arms: weapon raised straight up above the he",
+   "used": 1.0,
+   "bal": 771.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast3: Change only the pose: stepping forward, weapon thrust straig",
+   "used": 1.0,
+   "bal": 770.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkA: Walking: right foot stepping forward, left foot behind, long",
+   "used": 1.0,
+   "bal": 769.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkB: Walking: passing pose, left knee raised forward, right foot ",
+   "used": 1.0,
+   "bal": 768.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "walkC: Walking: left foot stepping forward, right foot behind, long",
+   "used": 1.0,
+   "bal": 767.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2r: Change only the pose: stepping forward, the ONE golden longs",
+   "used": 1.0,
+   "bal": 766.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3r: Change only the pose: deep lunge, the ONE golden longsword s",
+   "used": 1.0,
+   "bal": 765.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1r: Change only the arms: the short sword held vertically in fro",
+   "used": 1.0,
+   "bal": 764.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2r: Change only the arms: the same huge greatsword with the red ",
+   "used": 1.0,
+   "bal": 763.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2r: Change only the pose: stepping forward, the same huge greats",
+   "used": 1.0,
+   "bal": 762.0
   }
  ],
- "nom": 84.0
+ "nom": 128.0
 }

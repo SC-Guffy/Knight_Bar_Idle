@@ -35,6 +35,9 @@ JOBS = {
     'swordsman': ('swordsman64-src.png', 'swordsman-atk-strip.png', 'swordsman-cast-strip.png'),
     'blademaster': ('blademaster64-src.png', 'blademaster-atk-strip.png', 'blademaster-cast-strip.png'),
     'greatswordsman': ('greatswordsman64-src.png', 'greatswordsman-atk-strip.png', 'greatswordsman-cast-strip.png'),
+    'squire': ('squire-atk-strip.png', 'squire-atk-strip.png', 'squire-cast-strip.png'),   # 준비·대기 = 평타 첫 프레임(key4) — 확정 그림은 pixen 화풍과 달라 튐
+    'tyrant': ('tyrant64-src.png', 'tyrant-atk-strip.png', 'tyrant-cast-strip.png'),
+    'archon': ('archon64-src.png', 'archon-atk-strip.png', 'archon-cast-strip.png'),
 }
 
 if __name__ == '__main__':

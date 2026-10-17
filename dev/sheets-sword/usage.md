@@ -75,3 +75,48 @@
 | 69 | greatswordsman | `/edit-image-pixen` | walk2: Change only the legs: walking, passing pose, left knee raise | 1.0 / 1.0 | 151.0 / 82.0 | 865.0 |
 | 70 | greatswordsman | `/edit-image-pixen` | walk3: Change only the legs: walking, left foot stepping forward, r | 1.0 / 1.0 | 152.0 / 83.0 | 864.0 |
 | 71 | greatswordsman | `/edit-image-pixen` | key3c: Change only the pose: impact of a heavy chop to the right, d | 4.0 / 1.0 | 156.0 / 84.0 | 860.0 |
+| 72 | squire | `/edit-image-pixen` | key1: Change only the pose: wind-up, knees bent, weapon pulled bac | 1.0 / 1.0 | 157.0 / 85.0 | 845.0 |
+| 73 | squire | `/edit-image-pixen` | key2: Change only the pose: front foot stepping forward, weapon ra | 4.0 / 1.0 | 161.0 / 86.0 | 841.0 |
+| 74 | squire | `/edit-image-pixen` | key3: Change only the pose: impact of a downward slash, deep lunge | 2.0 / 1.0 | 163.0 / 87.0 | 839.0 |
+| 75 | squire | `/edit-image-pixen` | key4: Change only the pose: follow-through, rising from the lunge, | 6.0 / 1.0 | 169.0 / 88.0 | 833.0 |
+| 76 | squire | `/edit-image-pixen` | cast1: Change only the pose: weapon held vertically in front of the | 1.0 / 1.0 | 170.0 / 89.0 | 832.0 |
+| 77 | squire | `/edit-image-pixen` | cast2: Change only the arms: weapon raised straight up above the he | 1.0 / 1.0 | 171.0 / 90.0 | 831.0 |
+| 77 | swordsaint | `/image-to-pixelart` | t3eref: /image-to-pixelart | 1.0 / 1.0 | 171.0 / 90.0 | 830.0 |
+| 78 | squire | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, weapon thrust straig | 3.0 / 1.0 | 174.0 / 91.0 | 824.0 |
+| 79 | tyrant | `/edit-image-pixen` | key1: Change only the pose: wind-up, knees bent, weapon pulled bac | 5.0 / 1.0 | 179.0 / 92.0 | 819.0 |
+| 80 | tyrant | `/edit-image-pixen` | key2: Change only the pose: front foot stepping forward, weapon ra | 1.0 / 1.0 | 180.0 / 93.0 | 818.0 |
+| 81 | tyrant | `/edit-image-pixen` | key3: Change only the pose: impact of a downward slash, deep lunge | 1.0 / 1.0 | 181.0 / 94.0 | 817.0 |
+| 82 | tyrant | `/edit-image-pixen` | key4: Change only the pose: follow-through, rising from the lunge, | 1.0 / 1.0 | 182.0 / 95.0 | 816.0 |
+| 83 | tyrant | `/edit-image-pixen` | cast1: Change only the pose: weapon held vertically in front of the | 1.0 / 1.0 | 183.0 / 96.0 | 815.0 |
+| 84 | tyrant | `/edit-image-pixen` | cast2: Change only the arms: weapon raised straight up above the he | 1.0 / 1.0 | 184.0 / 97.0 | 814.0 |
+| 85 | tyrant | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, weapon thrust straig | 5.0 / 1.0 | 189.0 / 98.0 | 809.0 |
+| 86 | squire | `/edit-image-pixen` | walkA: Walking: right foot stepping forward, left foot behind, long | 1.0 / 1.0 | 190.0 / 99.0 | 808.0 |
+| 87 | squire | `/edit-image-pixen` | walkB: Walking: passing pose, left knee raised forward, right foot  | 4.0 / 1.0 | 194.0 / 100.0 | 804.0 |
+| 88 | squire | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 1.0 / 1.0 | 195.0 / 101.0 | 803.0 |
+| 89 | tyrant | `/edit-image-pixen` | walkA: Walking: right foot stepping forward, left foot behind, long | 1.0 / 1.0 | 196.0 / 102.0 | 802.0 |
+| 90 | tyrant | `/edit-image-pixen` | walkB: Walking: passing pose, left knee raised forward, right foot  | 1.0 / 1.0 | 197.0 / 103.0 | 801.0 |
+| 91 | tyrant | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 5.0 / 1.0 | 202.0 / 104.0 | 796.0 |
+| 92 | paladin | `/edit-image-pixen` | walkA: Walking: right foot stepping forward, left foot behind, long | 1.0 / 1.0 | 203.0 / 105.0 | 795.0 |
+| 93 | paladin | `/edit-image-pixen` | walkB: Walking: passing pose, left knee raised forward, right foot  | 4.0 / 1.0 | 207.0 / 106.0 | 791.0 |
+| 94 | paladin | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 1.0 / 1.0 | 208.0 / 107.0 | 790.0 |
+| 95 | blademaster | `/edit-image-pixen` | walkA: Walking: right foot stepping forward, left foot behind, long | 1.0 / 1.0 | 209.0 / 108.0 | 789.0 |
+| 96 | blademaster | `/edit-image-pixen` | walkB: Walking: passing pose, left knee raised forward, right foot  | 1.0 / 1.0 | 210.0 / 109.0 | 788.0 |
+| 97 | blademaster | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 5.0 / 1.0 | 215.0 / 110.0 | 783.0 |
+| 98 | greatswordsman | `/edit-image-pixen` | walkA: Walking: right foot stepping forward, left foot behind, long | 1.0 / 1.0 | 216.0 / 111.0 | 782.0 |
+| 99 | greatswordsman | `/edit-image-pixen` | walkB: Walking: passing pose, left knee raised forward, right foot  | 4.0 / 1.0 | 220.0 / 112.0 | 778.0 |
+| 100 | greatswordsman | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 1.0 / 1.0 | 221.0 / 113.0 | 777.0 |
+| 101 | archon | `/edit-image-pixen` | key1: Change only the pose: wind-up, knees bent, weapon pulled bac | 1.0 / 1.0 | 222.0 / 114.0 | 776.0 |
+| 102 | archon | `/edit-image-pixen` | key2: Change only the pose: front foot stepping forward, weapon ra | 1.0 / 1.0 | 223.0 / 115.0 | 775.0 |
+| 103 | archon | `/edit-image-pixen` | key3: Change only the pose: impact of a downward slash, deep lunge | 1.0 / 1.0 | 224.0 / 116.0 | 774.0 |
+| 104 | archon | `/edit-image-pixen` | key4: Change only the pose: follow-through, rising from the lunge, | 1.0 / 1.0 | 225.0 / 117.0 | 773.0 |
+| 105 | archon | `/edit-image-pixen` | cast1: Change only the pose: weapon held vertically in front of the | 1.0 / 1.0 | 226.0 / 118.0 | 772.0 |
+| 106 | archon | `/edit-image-pixen` | cast2: Change only the arms: weapon raised straight up above the he | 1.0 / 1.0 | 227.0 / 119.0 | 771.0 |
+| 107 | archon | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, weapon thrust straig | 1.0 / 1.0 | 228.0 / 120.0 | 770.0 |
+| 108 | archon | `/edit-image-pixen` | walkA: Walking: right foot stepping forward, left foot behind, long | 1.0 / 1.0 | 229.0 / 121.0 | 769.0 |
+| 109 | archon | `/edit-image-pixen` | walkB: Walking: passing pose, left knee raised forward, right foot  | 1.0 / 1.0 | 230.0 / 122.0 | 768.0 |
+| 110 | archon | `/edit-image-pixen` | walkC: Walking: left foot stepping forward, right foot behind, long | 1.0 / 1.0 | 231.0 / 123.0 | 767.0 |
+| 111 | archon | `/edit-image-pixen` | key2r: Change only the pose: stepping forward, the ONE golden longs | 1.0 / 1.0 | 232.0 / 124.0 | 766.0 |
+| 112 | archon | `/edit-image-pixen` | key3r: Change only the pose: deep lunge, the ONE golden longsword s | 1.0 / 1.0 | 233.0 / 125.0 | 765.0 |
+| 113 | squire | `/edit-image-pixen` | cast1r: Change only the arms: the short sword held vertically in fro | 1.0 / 1.0 | 234.0 / 126.0 | 764.0 |
+| 114 | tyrant | `/edit-image-pixen` | cast2r: Change only the arms: the same huge greatsword with the red  | 1.0 / 1.0 | 235.0 / 127.0 | 763.0 |
+| 115 | tyrant | `/edit-image-pixen` | key2r: Change only the pose: stepping forward, the same huge greats | 1.0 / 1.0 | 236.0 / 128.0 | 762.0 |

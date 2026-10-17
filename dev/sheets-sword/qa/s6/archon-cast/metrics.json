@@ -1,0 +1,38 @@
+{
+ "id": "archon-cast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\archon-cast-strip.png",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  320,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.924,
+  "colors": 12,
+  "low": 0.484,
+  "edge": 0.334,
+  "lone": 0.045,
+  "flick": 0.354,
+  "churn": 0.329,
+  "fill": 0.215,
+  "area": [
+   909,
+   849,
+   849,
+   882,
+   909
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

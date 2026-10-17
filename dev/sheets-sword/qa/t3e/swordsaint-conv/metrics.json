@@ -1,0 +1,34 @@
+{
+ "id": "swordsaint-conv",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\t3e\\swordsaint-conv-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  42,
+  54
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.798,
+  "colors": 19,
+  "low": 0.359,
+  "edge": 0.469,
+  "lone": 0.133,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.465,
+  "area": [
+   1054
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

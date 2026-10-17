@@ -17,6 +17,26 @@ JOBS = {
     ('swordsman', 'walk'): (['walk1', 'walk2', 'walk3', 'walk2'], [125, 125, 125, 125]),
     ('blademaster', 'walk'): (['walk1', 'walk2', 'walk3', 'walk2'], [125, 125, 125, 125]),
     ('greatswordsman', 'walk'): (['walk1', 'walk3', 'walk1', 'walk3'], [125, 125, 125, 125]),
+    ('squire', 'atk'): (['key4', 'key1', 'key2', 'key3', 'key3', 'key4'],   # 7단계: 준비 = key4 (확정 그림은 pixen 화풍과 달라 튐)
+    [120, 110, 70, 70, 160, 140]),
+    ('squire', 'cast'): (['key4', 'cast1r', 'cast2', 'cast2', 'cast3', 'key4'],
+    [120, 140, 120, 200, 140, 140]),
+    ('squire', 'walk'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
+    ('tyrant', 'atk'): (['src', 'key1', 'key2r', 'key3', 'key3', 'src'],
+    [120, 110, 70, 70, 160, 140]),
+    ('tyrant', 'cast'): (['src', 'cast2r', 'cast3', 'src'], [140, 260, 160, 140]) if True else (None,   # 짧은 판: 2~4 가 같은 그림(비평 s6)
+   
+    [120, 140, 120, 200, 140, 140]),
+    ('tyrant', 'walk'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
+    ('archon', 'atk'): (['src', 'key1', 'key3r', 'key3r', 'src'], [120, 140, 70, 180, 140]) if True else (None,   # 짧은 판: key2r 좌우 뒤집힘(비평 s6) 뺌
+   
+    [120, 110, 70, 70, 160, 140]),
+    ('archon', 'cast'): (['src', 'cast2', 'cast2', 'cast3', 'src'], [120, 160, 200, 140, 140]),   # 7단계: cast1≈cast2 라 뺌
+    ('archon', 'walk'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
+    # 5단계 걷기 재도전 (무기·투구 고정 문구): 성기사·검성·대검전사 → <cls>-walk2-strip.png
+    ('paladin', 'walk2'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
+    ('blademaster', 'walk2'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
+    ('greatswordsman', 'walk2'): (['walkA', 'walkB', 'walkC', 'walkB'], [125, 125, 125, 125]),
 }
 ONLY = [a for a in __import__('sys').argv[1:]]
 
@@ -61,6 +81,8 @@ if __name__ == '__main__':
     rows = []
     for (cls, act), (seq, dur) in JOBS.items():
         if ONLY and cls not in ONLY and act not in ONLY: continue
+        if not all(k == 'src' or os.path.exists(os.path.join(HERE, 'work', cls, f'{k.rstrip("F")}-0.png')) or k in ('keyC3s', 'srcL') for k in seq):
+            print('skip', cls, act); continue
         src = load(cls, 'src'); pal = sorted({c for c in src.getdata() if c[3]})
         if len(pal) > 24:                   # 검사 확정 그림은 43색 → 22색으로 줄인 팔레트로 고정 (qa colors 경보)
             q = src.convert('RGB').quantize(colors=22, method=Image.Quantize.MEDIANCUT).convert('RGB')

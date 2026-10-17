@@ -1,0 +1,39 @@
+{
+ "id": "squire-atk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\squire-atk-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 11,
+  "low": 0.364,
+  "edge": 0.361,
+  "lone": 0.057,
+  "flick": 0.31,
+  "churn": 0.456,
+  "fill": 0.237,
+  "area": [
+   946,
+   1041,
+   925,
+   979,
+   979,
+   946
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

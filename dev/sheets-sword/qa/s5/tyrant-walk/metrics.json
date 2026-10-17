@@ -1,0 +1,37 @@
+{
+ "id": "tyrant-walk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\tyrant-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.94,
+  "colors": 11,
+  "low": 0.447,
+  "edge": 0.458,
+  "lone": 0.093,
+  "flick": 0.03,
+  "churn": 0.079,
+  "fill": 0.251,
+  "area": [
+   1013,
+   1032,
+   1042,
+   1032
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

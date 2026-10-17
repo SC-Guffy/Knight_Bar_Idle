@@ -1,0 +1,4 @@
+swordsaint-T3e-37=design/px/swordsaint-T3e-37-h46.png IoU_parent=0.814
+swordsaint-T3e-77=design/px/swordsaint-T3e-77-h46.png IoU_parent=0.786
+swordsaint-T3e-23=design/px/swordsaint-T3e-23-h46.png IoU_parent=0.697
+swordsaint-conv=design/pl2/fix-swordsaint-t3e.png (PixelLab image-to-pixelart of T3e-37, 20색) IoU_parent=0.825

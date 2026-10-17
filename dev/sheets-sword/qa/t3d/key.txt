@@ -1,0 +1,6 @@
+archon-T3d-37=design/px/archon-T3d-37-h46.png IoU_parent=0.467
+archon-T3d-63=design/px/archon-T3d-63-h46.png IoU_parent=0.618
+archon-T3c-63=design/px/archon-T3c-63-h46.png IoU_parent=0.525
+swordsaint-T3d-37=design/px/swordsaint-T3d-37-h46.png IoU_parent=0.627
+swordsaint-T3d-51=design/px/swordsaint-T3d-51-h46.png IoU_parent=0.704
+swordsaint-T3d-11=design/px/swordsaint-T3d-11-h46.png IoU_parent=0.696

@@ -198,6 +198,26 @@ def init_t3c(cls):
     bg = Image.new('RGBA', (1024, 1024), (200, 200, 204, 255)); bg.alpha_composite(im, ((1024 - im.width) // 2, 1024 - 60 - im.height)); return bg.convert('RGB')
 
 
+# T3d: T3c(0.8)는 부모를 거의 복사(IoU 0.87~0.95) → 같은 init 에 denoise 0.88, 검신은 흰 하오리·흰 스카프를 앞세움
+WHO_T3D = dict(WHO_T3B, swordsaint='A sword saint samurai wearing a long bright white haori coat that covers the body down to the knees, a long white scarf streaming far behind, '
+               'a kabuto with huge bold gold crescent horns, a visible pale face with red eyes, two thick glowing cyan katanas, one raised high and one held low forward.')
+
+
+# T3e 검신 (T3~T3d 4라운드 미달: 얼굴 없음·비율·하오리·곡도) → 검성 확정 46칸 그림의 청회색 갑옷을 흰색으로, 칼날 흰색을 청록으로 '색만' 바꿔 20배 init, denoise 0.8
+def init_t3e():
+    import colorsys
+    im = Image.open(os.path.join(HERE, 'design', 'pl2', 'fix-blademaster-n14.png')).convert('RGBA'); P = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = P[x, y]
+            if not a: continue
+            h, l, sat = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            if 0.55 < h < 0.72 and 0.15 < l < 0.75: v = int(150 + l * 120); P[x, y] = (v, v, min(255, v + 6), 255)     # 청회색 판금 → 흰 하오리
+            elif l > 0.9 and y > im.height // 2: P[x, y] = (110, 240, 230, 255)                                       # 아래쪽 흰 칼날 → 청록
+    im = im.crop(im.getbbox()); k = 840 // max(im.size); im = im.resize((im.width * k, im.height * k), Image.NEAREST)
+    bg = Image.new('RGBA', (1024, 1024), (200, 200, 204, 255)); bg.alpha_composite(im, ((1024 - im.width) // 2, 1024 - 60 - im.height)); return bg.convert('RGB')
+
+
 def init_t3(cls):
     if cls == 'squire': return init_recolor(0.08)          # 파랑 → 갈색
     return Image.open(os.path.join(RAW, T3_INIT[cls])).convert('RGB')
@@ -224,7 +244,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B'], 'N15': DIRS['B'], 'T3': DIRS['B'], 'T3b': DIRS['B'], 'T3c': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B'], 'N15': DIRS['B'], 'T3': DIRS['B'], 'T3b': DIRS['B'], 'T3c': DIRS['B'], 'T3d': DIRS['B'], 'T3e': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -244,12 +264,16 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14', 'N15', 'T3', 'T3b', 'T3c') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14', 'N15', 'T3', 'T3b', 'T3c', 'T3d', 'T3e') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO).get(cls, ''), body=DIRS[dk])
                 if dk == 'N5':         # 대검전사: 넓은 대검을 그려 넣은 밑그림 (글로는 46칸에서 칼이 가늘어짐)
                     init = Image.open(os.path.join(D, 'mannequin-gs.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'T3e':
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_T3D[cls] + T3B), seed=s, denoise=0.8, init=init_t3e())
+                elif dk == 'T3d':
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_T3D[cls] + T3B), seed=s, denoise=0.88, init=init_t3c(cls))
                 elif dk == 'T3c':
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_T3B[cls] + T3B), seed=s, denoise=0.8, init=init_t3c(cls))
                 elif dk == 'T3b':

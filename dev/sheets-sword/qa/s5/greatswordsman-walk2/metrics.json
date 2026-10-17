@@ -1,0 +1,37 @@
+{
+ "id": "greatswordsman-walk2",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\greatswordsman-walk2-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.929,
+  "colors": 12,
+  "low": 0.383,
+  "edge": 0.423,
+  "lone": 0.059,
+  "flick": 0.149,
+  "churn": 0.301,
+  "fill": 0.247,
+  "area": [
+   957,
+   1025,
+   1040,
+   1025
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

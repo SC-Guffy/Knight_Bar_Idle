@@ -1,0 +1,34 @@
+{
+ "id": "archon-T3d-63",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\t3d\\archon-T3d-63-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  57,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.934,
+  "colors": 12,
+  "low": 0.39,
+  "edge": 0.401,
+  "lone": 0.064,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.34,
+  "area": [
+   1085
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

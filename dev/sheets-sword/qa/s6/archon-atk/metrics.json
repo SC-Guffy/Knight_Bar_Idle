@@ -1,0 +1,39 @@
+{
+ "id": "archon-atk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\archon-atk-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.923,
+  "colors": 12,
+  "low": 0.464,
+  "edge": 0.366,
+  "lone": 0.057,
+  "flick": 0.417,
+  "churn": 0.435,
+  "fill": 0.228,
+  "area": [
+   909,
+   972,
+   1002,
+   904,
+   904,
+   909
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
