@@ -229,6 +229,7 @@ function pick(i) {
 window.guildHost = {
   full: true,
   barFor,
+  roster: () => roster,
   // 게임 쪽 서버 요청이 moved(다른 기기 접속) · guild-auth(토큰 끝남)를 받았다 (src/net.js api)
   serverLost(code) {
     if (stopped) return;
@@ -367,6 +368,17 @@ function placeSlots() {
 }
 function readInfo() {
   frames.forEach((f) => { if (f && f.win && f.win.guildApi) { try { f.info = f.win.guildApi.info(); } catch {} } });
+  updateRoster();
+}
+// 기사단 명단 (4단계 기사단 효과): 서버 기사 목록(슬롯 밖 기사 포함)에 살아 있는 기사의 지금 직업·Lv 를 덮는다. 바뀔 때만 rev+1
+const roster = { list: [], rev: 0, sig: '' };
+let serverChars = [];
+function updateRoster() {
+  const m = new Map(serverChars.map((c) => [c.nickname, { nick: c.nickname, cls: c.cls, lv: c.level }]));
+  frames.forEach((f) => { if (f && f.info && f.info.nick) m.set(f.info.nick, { nick: f.info.nick, cls: f.info.clsId, lv: f.info.lv }); });
+  for (const n of m.keys()) if (!guild.chars.includes(n)) m.delete(n);
+  const list = [...m.values()], sig = JSON.stringify(list);
+  if (sig !== roster.sig) { roster.list = list; roster.sig = sig; roster.rev++; }
 }
 setInterval(() => { readInfo(); renderSlots(); }, 1000);
 setInterval(placeSlots, 250);
@@ -461,6 +473,8 @@ function applyServer(v) {
   account.google = !!v.google;
   const names = v.chars.map((c) => c.nickname);
   guild.chars = names;
+  serverChars = v.chars;
+  updateRoster();
   if (v.slots.some(Boolean)) guild.slots = v.slots.map((n) => (n && names.includes(n) ? n : null));
   else {
     // 서버 슬롯이 비어 있으면: 이 기기의 슬롯 중 서버 기사만 남기고, 그래도 비면 첫 기사를 1번에

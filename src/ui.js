@@ -419,7 +419,7 @@ const guildApi = {
   info() {
     if (!saveKey) return null;
     const { town, ...rest } = campDots();   // 마을은 공용이라 보는 기사 쪽에서만 재촉한다
-    return { nick: activeNick(), cls: CLASSES[S.cls].name, lv: S.level, phase: S.phase, ...guildDoing(),
+    return { nick: activeNick(), cls: CLASSES[S.cls].name, clsId: S.cls, lv: S.level, phase: S.phase, ...guildDoing(),
       busy: S.phase !== 'camp' || !!raidUi.room || raidActive() || duelActive(), dot: Object.values(rest).some(Boolean) };
   },
   // 건설 시계: 바깥 페이지가 보고 있는 기사 하나에게만 실제 경과 초를 넘긴다 (core.js advanceBuild)
@@ -453,6 +453,7 @@ function viewGuildHall() {
       <button class="btn" data-action="guild-new" ${free && g.chars.length < g.max ? '' : `disabled title="${free ? '기사가 가득 찼어요' : '빈 슬롯이 없어요 — 회관을 올리거나 슬롯을 비우세요'}"`}>${ico('plus')} 새 기사</button></div>
     <div class="hint">슬롯에 있는 기사는 안 보고 있어도 계속 진행해요. 골드·목재·철광석·마을은 기사단이 같이 써요. 슬롯 배정은 그 기사가 캠프에 있을 때만 바꿀 수 있어요.</div>
     ${rows}
+    ${viewGuildFx()}
     ${g.online ? `<div class="shead sub"><h3>${ico('key')} 기사단 계정</h3></div>
     <div class="fac">
       <span class="fname">${g.google ? '✅ Google 연결됨' : '👤 손님'}</span>
@@ -465,6 +466,24 @@ function viewGuildHall() {
       <input id="guildLinkCode" maxlength="7" inputmode="numeric" placeholder="000000" autocomplete="off" style="width:72px">
       <button class="btn" data-action="guild-link">연결</button>
     </div>` : ''}`;
+}
+
+// 회관 아래 기사단 효과 표 (core.js guildFx): 계열마다 센 기사·단/최대 단·효과, 다양성·따라잡기
+function viewGuildFx() {
+  const gf = guildFx();
+  if (!gf) return '';
+  const pct = (v) => `${(v * 100).toFixed(v * 100 % 1 ? 1 : 0)}`;
+  const rows = Object.entries(GUILD_FX).map(([f, d]) => {
+    const x = gf.fam[f], c = CLASSES[f];
+    const eff = x && x.tier ? `${d.name} +${pct(x.tier * d.per)}${d.stat === 'crit' ? '%p' : '%'}` : '<small>—</small>';
+    return `<div class="fac"><span class="fname">${c.icon} ${c.name}</span>
+      <span class="feff">${x ? `${esc(x.nick)} Lv ${x.lv} · ${x.tier}/${gf.cap}단` : '<small>이 계열 기사가 없어요</small>'}</span><span class="feff">${eff}</span></div>`;
+  }).join('');
+  const T = GUILD_TUNE, behind = S.level < gf.maxLv * T.catchup;
+  return `<div class="shead sub"><h3>${ico('shield')} 기사단 효과 <small>기사단 전원 · 계열마다 가장 높은 기사 1명 · Lv ${T.fxLv}마다 1단 · 최대 단 ${gf.cap} (회관 Lv ÷ ${T.hallPerTier})</small></h3></div>
+    ${rows}
+    <div class="fac"><span class="fname">🌈 다양성</span><span class="feff">Lv ${T.divLv} 이상 기사가 있는 계열 ${gf.div}개</span><span class="feff">공격력 +${pct(gf.atkAll)}%</span></div>
+    <div class="fac"><span class="fname">📈 따라잡기</span><span class="feff">기사단 최고 Lv ${gf.maxLv} 의 ${T.catchup * 100}% (Lv ${Math.ceil(gf.maxLv * T.catchup)}) 아래면 경험치 ×${T.catchupExp}</span><span class="feff">${behind ? '이 기사 적용 중' : '<small>—</small>'}</span></div>`;
 }
 
 // 여관을 골랐을 때 건물 카드 아래: 가방 업그레이드 한 줄 (core.js upgradeBag)

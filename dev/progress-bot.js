@@ -18,13 +18,15 @@ const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon'
 const TOWER_TOMES_PER_DAY = 4;
 const ENH_MARKS = [20, 25, 30];   // 어느 부위든 처음 이 강화 단계에 닿은 시간 (docs/specs/enhance-30.md)
 
-function makeGame(rev) {
+// host: 기사단 봇(dev/guild-bot.js)이 넘기는 가짜 GUILD_HOST — 있으면 게임이 기사단 iframe 안인 것처럼 돈다 (src/core.js GUILD_HOST)
+function makeGame(rev, host = null) {
   const ctx = { console, Math: Object.create(Math), Date, JSON, Object, Array, Number, String, Infinity, NaN, isFinite, isNaN, parseInt, parseFloat, URLSearchParams,
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, performance: { now: () => Date.now() },
     location: { search: '', hostname: 'localhost' }, navigator: { userAgent: '' },
     document: { getElementById: () => null, querySelector: () => null, createElement: () => ({ getContext: () => null, style: {} }) },
     requestAnimationFrame() {}, setTimeout() {}, clearTimeout() {}, toast() {}, render() {} };
   ctx.window = ctx; ctx.globalThis = ctx;
+  if (host) ctx.parent = { guildHost: host };
   vm.createContext(ctx);
   for (const f of FILES) {
     let src;
@@ -222,4 +224,4 @@ function main() {
 }
 // 다른 개발 스크립트(dev/bot-curve.js)가 게임 vm 을 빌려 쓸 수 있게
 if (require.main === module) main();
-module.exports = { makeGame, mentorApi, playMentors };
+module.exports = { makeGame, mentorApi, playMentors, castleApi, playCastle, LINES, TOWER_TOMES_PER_DAY, DAY, TICK };
