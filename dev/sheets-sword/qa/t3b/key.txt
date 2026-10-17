@@ -1,0 +1,6 @@
+archon-37=design/px/archon-T3b-37-h46.png IoU_parent=0.538
+archon-89=design/px/archon-T3b-89-h46.png IoU_parent=0.664
+swordsaint-51=design/px/swordsaint-T3b-51-h46.png IoU_parent=0.644
+swordsaint-77=design/px/swordsaint-T3b-77-h46.png IoU_parent=0.559
+tyrant-89=design/px/tyrant-T3b-89-h46.png IoU_parent=0.637
+tyrant-77=design/px/tyrant-T3b-77-h46.png IoU_parent=0.625

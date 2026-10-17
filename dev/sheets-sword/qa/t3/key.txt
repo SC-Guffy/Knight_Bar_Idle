@@ -1,0 +1,8 @@
+squire-77=design/px/squire-T3-77-h46.png IoU_parent=0.676
+squire-11=design/px/squire-T3-11-h46.png IoU_parent=0.742
+archon-23=design/px/archon-T3-23-h46.png IoU_parent=0.839
+archon-89=design/px/archon-T3-89-h46.png IoU_parent=0.651
+swordsaint-63=design/px/swordsaint-T3-63-h46.png IoU_parent=0.619
+swordsaint-77=design/px/swordsaint-T3-77-h46.png IoU_parent=0.631
+tyrant-63=design/px/tyrant-T3-63-h46.png IoU_parent=0.550
+tyrant-23=design/px/tyrant-T3-23-h46.png IoU_parent=0.610

@@ -162,6 +162,47 @@ def init_gs():
     return im
 
 
+# T3 (로드맵 2026-10-18, PixelLab 0): 견습 기사·3차 3종 — 부모 확정 원본을 init 으로 (같은 그림체·옆모습·밀도), 특징은 부모에서 잇고 키움
+T3_INIT = {'squire': 'swordsman-N2-23.png', 'archon': 'paladin-N2-51.png', 'swordsaint': 'blademaster-N14-97.png', 'tyrant': 'greatswordsman-N15-37.png'}
+WHO_T3 = {
+    'squire': 'A young squire apprentice: a simple round steel cap with an open face showing a young boy face, padded brown leather jerkin over a cream tunic, '
+              'brown belt, a short plain sword in the right hand and a small round wooden buckler on the left arm. No plume, no cape, no full plate.',
+    'archon': 'A celestial archon knight: ornate white and gold plate armor, a big visored helmet with a glowing ring of small gold stars floating above it, '
+              'a flowing deep navy cape sprinkled with gold stars, a large gold-trimmed kite shield with a star emblem, a radiant golden longsword.',
+    'swordsaint': 'A sword saint master samurai: a kabuto with very large gold crescent horns, a white haori coat over slate blue-gray armor with crimson lacing, '
+                  'a long white scarf flowing back, two glowing pale cyan curved katanas, one raised high and one held low.',
+    'tyrant': 'A tyrant greatsword king: a dark steel helmet topped with a spiked gold crown, a long crimson royal cape, huge spiked dark steel pauldrons with gold rims, '
+              'an enormous wide dark greatsword with glowing red runes resting on the shoulder, both hands on the hilt.',
+}
+
+
+# T3b (비평 t3: 얼굴 없는 흰/어두운 덩어리·정면 시점·잔디테일로 46px 뭉개짐·성좌기사가 성기사 색만 바꿈) → 옆모습 고정·얼굴/면갑 틈·큰 단순 덩어리·밝은 중간톤
+T3B = ' Strict side profile facing right with a clearly visible face or visor slit. Big simple shapes, bright mid tones with one highlight per plate, no tiny details, no dark masses.'
+WHO_T3B = {
+    'archon': 'A celestial archon knight: white and gold plate armor, a big helmet with a dark horizontal visor slit, a large ring of eight bright gold stars floating above the head, '
+              'a wide deep navy cape with a few big gold stars flowing far behind, a kite shield with a big gold star, a glowing golden longsword held forward.',
+    'swordsaint': 'A sword saint samurai: a kabuto with huge bold gold crescent horns, a visible pale face with red eyes, a bright white haori coat over light gray armor, '
+                  'a long white scarf streaming behind, two thick glowing cyan katanas, one raised high above and one held low forward.',
+    'tyrant': 'A tyrant greatsword king: a steel helmet with a tall spiked gold crown and a visor slit with red eyes, a long bright crimson cape, two huge round steel pauldrons with three big spikes, '
+              'gold belt, both hands gripping one enormous wide steel greatsword with a glowing red rune line, resting on the right shoulder.',
+}
+
+
+# T3c (성좌기사·검신 2회 미달: 얼굴 없는 덩어리·정면 시점) → 2차 확정 46칸 그림을 20배로 키워 init (옆모습·비율·얼굴 자리 고정), denoise 0.8
+T3C_SRC = {'archon': 'fix-paladin.png', 'swordsaint': 'fix-blademaster-n14.png'}
+
+
+def init_t3c(cls):
+    im = Image.open(os.path.join(HERE, 'design', 'pl2', T3C_SRC[cls])).convert('RGBA'); im = im.crop(im.getbbox())
+    k = 840 // max(im.size); im = im.resize((im.width * k, im.height * k), Image.NEAREST)
+    bg = Image.new('RGBA', (1024, 1024), (200, 200, 204, 255)); bg.alpha_composite(im, ((1024 - im.width) // 2, 1024 - 60 - im.height)); return bg.convert('RGB')
+
+
+def init_t3(cls):
+    if cls == 'squire': return init_recolor(0.08)          # 파랑 → 갈색
+    return Image.open(os.path.join(RAW, T3_INIT[cls])).convert('RGB')
+
+
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -183,7 +224,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B'], 'N15': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B'], 'N15': DIRS['B'], 'T3': DIRS['B'], 'T3b': DIRS['B'], 'T3c': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -203,12 +244,18 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14', 'N15') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14', 'N15', 'T3', 'T3b', 'T3c') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
-                prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
+                prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO).get(cls, ''), body=DIRS[dk])
                 if dk == 'N5':         # 대검전사: 넓은 대검을 그려 넣은 밑그림 (글로는 46칸에서 칼이 가늘어짐)
                     init = Image.open(os.path.join(D, 'mannequin-gs.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'T3c':
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_T3B[cls] + T3B), seed=s, denoise=0.8, init=init_t3c(cls))
+                elif dk == 'T3b':
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_T3B[cls] + T3B), seed=s, denoise=0.86, init=init_t3(cls))
+                elif dk == 'T3':
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_T3[cls]), seed=s, denoise=0.86, init=init_t3(cls))
                 elif dk == 'N15':
                     init = init_gs(); init.save(os.path.join(D, 'init-gs15.png'))
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N13[cls]), seed=s, denoise=0.86, init=init)

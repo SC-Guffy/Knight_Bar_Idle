@@ -1,0 +1,34 @@
+{
+ "id": "swordsaint-77",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\t3\\swordsaint-77-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  47,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.934,
+  "colors": 12,
+  "low": 0.49,
+  "edge": 0.424,
+  "lone": 0.074,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.364,
+  "area": [
+   958
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
