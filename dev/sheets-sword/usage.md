@@ -35,3 +35,15 @@
 | 29 | paladin | `/edit-image-pixen` | keyC3: test | 4.0 / 1.0 | 74.0 / 42.0 | 1010.0 |
 | 30 | paladin | `/edit-image-pixen` | keyC3: Change only the pose: impact of a downward chop, deep lunge, | 4.0 / 1.0 | 78.0 / 43.0 | 1006.0 |
 | 31 | paladin | `/edit-image-pixen` | keyC1: Change only the pose: wind-up, knees bent, body leaning back | 1.0 / 1.0 | 79.0 / 44.0 | 1005.0 |
+| 32 | paladin | `/edit-image-pixen` | cast1: Change only the pose: holding the sword vertically in front  | 2.0 / 1.0 | 81.0 / 45.0 | 946.0 |
+| 33 | paladin | `/edit-image-pixen` | cast2: Change only the pose: right arm raised straight up, sword po | 2.0 / 1.0 | 83.0 / 46.0 | 944.0 |
+| 34 | paladin | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, right arm thrust str | 1.0 / 1.0 | 84.0 / 47.0 | 942.0 |
+| 35 | swordsman | `/edit-image-pixen` | key1: Change only the pose: wind-up, knees bent, body turned back, | 1.0 / 1.0 | 85.0 / 48.0 | 941.0 |
+| 36 | swordsman | `/edit-image-pixen` | key2: Change only the pose: front foot stepping forward, right arm | 1.0 / 1.0 | 86.0 / 49.0 | 940.0 |
+| 37 | swordsman | `/edit-image-pixen` | key3: Change only the pose: impact of a downward slash, deep lunge | 1.0 / 1.0 | 87.0 / 50.0 | 939.0 |
+| 38 | swordsman | `/edit-image-pixen` | key4: Change only the pose: follow-through, rising from the lunge, | 1.0 / 1.0 | 88.0 / 51.0 | 938.0 |
+| 39 | swordsman | `/edit-image-pixen` | cast1: Change only the pose: holding the sword vertically in front  | 4.0 / 1.0 | 92.0 / 52.0 | 934.0 |
+| 40 | swordsman | `/edit-image-pixen` | cast2: Change only the pose: right arm raised straight up, sword po | 5.0 / 1.0 | 97.0 / 53.0 | 929.0 |
+| 41 | swordsman | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, right arm thrust str | 1.0 / 1.0 | 98.0 / 54.0 | 928.0 |
+| 42 | paladin | `/edit-image-pixen` | cast2b: Change only the arm: right arm raised straight up, sword poi | 4.0 / 1.0 | 102.0 / 55.0 | 924.0 |
+| 43 | swordsman | `/edit-image-pixen` | cast2b: Change only the arm: right arm raised straight up, sword poi | 1.0 / 1.0 | 103.0 / 56.0 | 923.0 |

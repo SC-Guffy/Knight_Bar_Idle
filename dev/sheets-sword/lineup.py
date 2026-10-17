@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
 PL = os.path.join(HERE, 'design', 'pl2'); RV = os.path.join(ROOT, 'dev', 'review', 'sheets-sword', 'design')
 LINE = [('검사', 'swordsman', 'clean-swordsman.png'), ('성기사', 'paladin', 'fix-paladin.png'),
-        ('검성', 'blademaster', 'fix2-blademaster-n7.png'), ('대검전사', 'greatswordsman', 'fix-greatswordsman-n8.png')]
+        ('검성', 'blademaster', 'fix-blademaster-n14.png'), ('대검전사', 'greatswordsman', 'final-greatswordsman-n15.png')]
 BG = (38, 40, 50, 255)
 
 

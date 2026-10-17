@@ -1,0 +1,39 @@
+{
+ "id": "swordsman-atk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\swordsman-atk-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.89,
+  "colors": 22,
+  "low": 0.133,
+  "edge": 0.406,
+  "lone": 0.124,
+  "flick": 0.382,
+  "churn": 0.536,
+  "fill": 0.242,
+  "area": [
+   1000,
+   1052,
+   892,
+   1002,
+   1002,
+   1000
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

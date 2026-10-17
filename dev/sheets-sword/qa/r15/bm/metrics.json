@@ -1,0 +1,34 @@
+{
+ "id": "bm",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\r15\\bm-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  50,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 19,
+  "low": 0.339,
+  "edge": 0.475,
+  "lone": 0.095,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.372,
+  "area": [
+   1041
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

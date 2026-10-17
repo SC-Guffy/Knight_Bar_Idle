@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 79.0,
+ "used": 103.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -218,7 +218,91 @@
    "purpose": "keyC1: Change only the pose: wind-up, knees bent, body leaning back",
    "used": 1.0,
    "bal": 1005.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1: Change only the pose: holding the sword vertically in front ",
+   "used": 2.0,
+   "bal": 946.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2: Change only the pose: right arm raised straight up, sword po",
+   "used": 2.0,
+   "bal": 944.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast3: Change only the pose: stepping forward, right arm thrust str",
+   "used": 1.0,
+   "bal": 942.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key1: Change only the pose: wind-up, knees bent, body turned back,",
+   "used": 1.0,
+   "bal": 941.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key2: Change only the pose: front foot stepping forward, right arm",
+   "used": 1.0,
+   "bal": 940.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3: Change only the pose: impact of a downward slash, deep lunge",
+   "used": 1.0,
+   "bal": 939.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key4: Change only the pose: follow-through, rising from the lunge,",
+   "used": 1.0,
+   "bal": 938.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast1: Change only the pose: holding the sword vertically in front ",
+   "used": 4.0,
+   "bal": 934.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2: Change only the pose: right arm raised straight up, sword po",
+   "used": 5.0,
+   "bal": 929.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast3: Change only the pose: stepping forward, right arm thrust str",
+   "used": 1.0,
+   "bal": 928.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2b: Change only the arm: right arm raised straight up, sword poi",
+   "used": 4.0,
+   "bal": 924.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "cast2b: Change only the arm: right arm raised straight up, sword poi",
+   "used": 1.0,
+   "bal": 923.0
   }
  ],
- "nom": 44.0
+ "nom": 56.0
 }

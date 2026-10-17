@@ -1,3 +1,4 @@
 s1=blademaster-N14-63
 s2=blademaster-N14-77
 s3=blademaster-N14-97
+f=fix-blademaster-n14 (N14-97 + fix_bm14.py: gold horns, cape removed) IoU 0.672

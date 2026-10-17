@@ -140,6 +140,28 @@ def init_recolor(hue):
     return im
 
 
+# 15차 대검전사: 14차(색만 바꾼 검사) → init 을 스크립트로 바꿈: 깃털·장검 지우고, 손에서 머리 뒤로 넘어가는 넓은 대검을 바탕 칸에만 그림 + 파랑→주황
+def init_gs():
+    from PIL import ImageDraw
+    im = init_recolor(0.07); P = im.load(); bg = P[5, 5]; d = ImageDraw.Draw(im)
+    d.polygon([(235, 300), (300, 230), (360, 150), (430, 90), (520, 85), (525, 130), (470, 150), (400, 210), (330, 300)], fill=bg)   # 깃털
+    d.polygon([(690, 560), (975, 455), (995, 480), (720, 640)], fill=bg)                                                             # 장검 날
+    base = im.copy(); B = base.load(); m = Image.new('RGB', im.size, bg); dm = ImageDraw.Draw(m)
+    hx, hy = 650, 630; ex, ey = 170, 90; w = 52                                                                                       # 손 → 왼쪽 위(머리 뒤)
+    import math
+    L = math.hypot(ex - hx, ey - hy); ux, uy = (ex - hx) / L, (ey - hy) / L; nx, ny = -uy, ux
+    pt = lambda t, s_: (hx + ux * t + nx * s_, hy + uy * t + ny * s_)
+    dm.polygon([pt(60, -w - 10), pt(L - 60, -w - 10), pt(L + 10, 0), pt(L - 60, w + 10), pt(60, w + 10)], fill=(11, 13, 20))
+    dm.polygon([pt(60, -w), pt(L - 60, -w), pt(L - 5, 0), pt(L - 60, w), pt(60, w)], fill=(206, 212, 224))
+    dm.polygon([pt(60, 4), pt(L - 60, 4), pt(L - 5, 0), pt(L - 60, w), pt(60, w)], fill=(150, 158, 178))
+    dm.polygon([pt(30, -w - 40), pt(60, -w - 40), pt(60, w + 40), pt(30, w + 40)], fill=(150, 110, 40))                             # 코등이
+    M = m.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            if M[x, y] != bg and sum(abs(B[x, y][i] - bg[i]) for i in range(3)) < 30: P[x, y] = M[x, y]
+    return im
+
+
 DIRS = {
     'A': 'Cute chibi proportions, about 2.5 heads tall, big helmet, short legs, compact body.',
     'B': 'Stylized proportions about 3 heads tall, slightly bigger head than real, sturdy body, medium legs.',
@@ -161,7 +183,7 @@ def init_img(cls):
 
 # 2차 시도: 등신은 밑그림으로 강제 — 지금 스프라이트의 머리는 두고 목 아래(몸·다리)만 세로로 늘린 그림을 높은 denoise 로 다시 그린다
 STRETCH = {'A2': (1.0, 0.82), 'B2': (1.5, 0.82), 'C2': (2.1, 0.85), 'R': (1.5, 0.82)}      # (목 아래 늘림, denoise)
-DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B']})
+DIRS.update({'A2': DIRS['A'], 'B2': DIRS['B'], 'C2': DIRS['C'], 'R': DIRS['B'], 'S': DIRS['B'], 'N': DIRS['B'], 'N2': DIRS['B'], 'N3': DIRS['B'], 'N4': DIRS['B'], 'N5': DIRS['B'], 'N6': DIRS['B'], 'N7': DIRS['B'], 'N8': DIRS['B'], 'N9': DIRS['B'], 'N10': DIRS['B'], 'N11': DIRS['B'], 'N12': DIRS['B'], 'N13': DIRS['B'], 'N14': DIRS['B'], 'N15': DIRS['B']})
 
 
 def init_stretch(cls, f):
@@ -181,12 +203,15 @@ def gen(dirs):
     os.makedirs(RAW, exist_ok=True)
     for cls in (CLS_ONLY or (WHO_N if dirs in (['N'], ['N2']) else WHO)):
         for dk in dirs:
-            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
+            todo = [s for s in (SEEDS_N3 if dk in ('N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10', 'N11', 'N12', 'N13', 'N14', 'N15') else SEEDS) if not os.path.exists(os.path.join(RAW, f'{cls}-{dk}-{s}.png'))]
             for s in todo:
                 prompt = STYLE.format(who=(WHO_R if dk == 'R' else WHO)[cls], body=DIRS[dk])
                 if dk == 'N5':         # 대검전사: 넓은 대검을 그려 넣은 밑그림 (글로는 46칸에서 칼이 가늘어짐)
                     init = Image.open(os.path.join(D, 'mannequin-gs.png')).convert('RGB')
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N4[cls]), seed=s, denoise=0.8, init=init)
+                elif dk == 'N15':
+                    init = init_gs(); init.save(os.path.join(D, 'init-gs15.png'))
+                    ims, dt = G('zimg', STYLE_N2.format(who=WHO_N13[cls]), seed=s, denoise=0.86, init=init)
                 elif dk == 'N14':
                     init = init_recolor(0.99 if cls == 'blademaster' else 0.07)
                     ims, dt = G('zimg', STYLE_N2.format(who=WHO_N13[cls]), seed=s, denoise=0.80 if s in SEEDS_N3[:4] else 0.86, init=init)

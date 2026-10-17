@@ -73,11 +73,30 @@
   <tr><th>직업</th><th>그림</th><th>만든 길</th><th>검수 (의도·읽힘·깔끔·명암·도트·움직임·규칙 → 평균)</th></tr>
   <tr><td>검사</td><td><img class="px3" src="sheets-sword/design/final-swordsman.png" alt=""></td><td>ComfyUI N2-23 → PixelLab 변환 → 정리</td><td>A 4·4·3·4·3·5·4 → 3.86 · B 4·4·3·4·3·5·4 → 3.86</td></tr>
   <tr><td>성기사</td><td><img class="px3" src="sheets-sword/design/final-paladin.png" alt=""></td><td>ComfyUI N2-51 → PixelLab 변환 → 면갑 스크립트 → <code>fix_paladin_gold.py</code> (방패 금 십자가·방패 면 크림·가슴 금 문장·어깨 금띠)</td><td>A 4·3·4·3·3·5·4 → 3.71 · B 3·3·4·3·3·5·4 → 3.57</td></tr>
-  <tr><td>검성</td><td><img class="px3" src="sheets-sword/design/final-blademaster.png" alt=""></td><td>ComfyUI N7-77 (흰 가면) 46칸 축소 → <code>fix_bm_eye.py</code> (빨간 눈 틈·왼손 칼 정리·등 뒤 밝힘·판 테두리·다리 줄무늬) — PixelLab 변환본은 3.17 이라 버림</td><td>A 3·4·4·3·4·5·4 → 3.86 · B 4·3·4·3·4·5·4 → 3.86</td></tr>
-  <tr><td>대검전사</td><td><img class="px3" src="sheets-sword/design/final-greatswordsman.png" alt=""></td><td>밑그림 <code>mannequin_gs2.py</code>(두 주먹이 자루) → ComfyUI N8-97 46칸 축소 → <code>fix_gs_hand.py</code> (주먹·코등이·찡그린 눈썹·입·칼날 가장자리)</td><td>A 4·3·3·3·3·5·4 → 3.57 · B 4·4·4·3·4·5·4 → 4.0</td></tr>
+  <tr><td>검성 (재디자인 14차)</td><td><img class="px3" src="sheets-sword/design/final-blademaster.png" alt=""></td><td>ComfyUI N7-77 (흰 가면) 46칸 축소 → <code>fix_bm_eye.py</code> (빨간 눈 틈·왼손 칼 정리·등 뒤 밝힘·판 테두리·다리 줄무늬) — PixelLab 변환본은 3.17 이라 버림</td><td>A 3·4·4·3·4·5·4 → 3.86 · B 4·3·4·3·4·5·4 → 3.86</td></tr>
+  <tr><td>대검전사 (재디자인 15차)</td><td><img class="px3" src="sheets-sword/design/final-greatswordsman.png" alt=""></td><td>밑그림 <code>mannequin_gs2.py</code>(두 주먹이 자루) → ComfyUI N8-97 46칸 축소 → <code>fix_gs_hand.py</code> (주먹·코등이·찡그린 눈썹·입·칼날 가장자리)</td><td>A 4·3·3·3·3·5·4 → 3.57 · B 4·4·4·3·4·5·4 → 4.0</td></tr>
 </table>
 <div class="dim">평균은 critic.md 대로 7항목(한 장 그림은 움직임 5). 검성·대검전사는 같은 그림의 판정이 흔들려서 독립 비평 2개가 모두 합격일 때만 합격으로 쳤다. 4종 모두 독립 비평 2개 합격. 남은 흠(비평 공통): 성기사 흰 몸통·방패 밝기가 붙음·어깨 금 약함, 검사 하체 판금이 잘게 쪼개짐·43색, 검성 칼이 곧아 곡도 휨이 약함·손이 작음, 대검전사 칼날과 가슴판 밝기가 붙음 — 관절 애니 단계에서 무기 덧그리기로 다룰 수 있다.</div>
 <details><summary class="dim">검수 시트 (4종)</summary><div class="row"><img src="sheets-sword/design/qa-swordsman.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-paladin.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-blademaster.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-greatswordsman.png" style="max-width:48%" alt=""></div></details>
+<h2>✔ 검성·대검전사 재디자인 합격 (2026-10-18) — 4종 나란히는 맨 위 ✔ 절 그림이 갱신됨</h2>
+<div class="card">
+  <ul>
+    <li><b>검성</b> <code>fix-blademaster-n14.png</code>: 14차(검사 N2-23 init 의 파랑→진홍, denoise 0.86) 97번 → <code>fix_bm14.py</code> (뿔 금색 3단, 검사에서 넘어온 망토 지움, 앞손 카타나를 앞위로 치켜든 2칸 곡도로, 아래 칼 날등). 비평 3.71 / 4.0. 실루엣 IoU(검사 대비, 발 기준) 0.673 — 로드맵 목표 0.6 은 못 맞춤(성기사 0.644, 예전 검성 7차도 0.657: 46px 치비는 몸통이 대부분이라 0.6 아래가 어렵다). 비평 둘 다 "뿔·곡도·붉은 띠로 색깔놀이 아님".</li>
+    <li><b>대검전사</b> <code>final-greatswordsman-n15.png</code>: 15차 — init 을 스크립트로 바꿈(검사 그림에서 깃털·장검 지우고 손에서 머리 뒤로 넘어가는 넓은 대검을 바탕 칸에 그림 + 파랑→주황), denoise 0.86 → 37번 축소 그대로. 비평 3.57 / 3.86, IoU 0.558. 흠: 대검 날이 어두워 몸과 붙음, 쥔 손이 불분명, 면갑이 정면에 가까움.</li>
+    <li>ComfyUI 이번 단계: 13·14·15차 40장. PixelLab 재디자인 0.</li>
+  </ul>
+</div>
+<div class="row"><img src="sheets-sword/design/raw-N15-greatswordsman.png" style="max-width:100%" alt=""></div>
+<h2>✔ 2단계 합격 — 성기사 시전·검사 평타·검사 시전 (2026-10-18, pixen 키 자세 12)</h2>
+<div class="card">
+  <ul>
+    <li>각 6프레임. 확정 그림을 <code>edit-image-pixen</code> 으로 키 자세 편집(성기사 시전 3+재편집 1, 검사 평타 4, 검사 시전 3+재편집 1 = 12, 승인 13 안) → <code>anim_build.py</code>: 발 줄 맞춤, 확정 그림 팔레트 고정(검사는 43색 → 22색), 성기사 cast1 은 pixen 이 왼쪽을 보게 그려 좌우 반전.</li>
+    <li>검사 평타는 skeleton 대신 키 자세로 바로 갔다(성기사에서 skeleton 2번 미달·키 자세 합격, skeleton 은 중립 편집 1 + 실패 시 대체 4 가 더 들어 13 을 넘을 수 있음).</li>
+    <li>검수(sonnet 비평 2개, 7항목 평균): 성기사 시전 3.86 / 3.86 · 검사 평타 3.71 / 3.86 · 검사 시전 3.86 / 3.86 — 모두 합격. 공통 흠: 2~4번 변화가 작음(움직임 3), 마지막 프레임 복귀가 한 번에 튐, 검사 평타 2번 젖힘이 앞쪽.</li>
+  </ul>
+</div>
+<div class="row"><figure><img src="sheets-sword/design/paladin-cast-x4.gif" alt="" style="width:256px;height:256px"><figcaption>성기사 시전</figcaption></figure><figure><img src="sheets-sword/design/swordsman-atk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검사 평타</figcaption></figure><figure><img src="sheets-sword/design/swordsman-cast-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검사 시전</figcaption></figure></div>
+<div class="row"><img src="sheets-sword/design/stage2-strips.png" alt="" style="max-width:100%"></div>
 <h2>✔ 성기사 평타 합격 — pixen 키 자세 + 스크립트 (2026-10-17)</h2>
 <div class="card">
   <ul>

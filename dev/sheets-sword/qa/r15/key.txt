@@ -1,0 +1,4 @@
+g37=design/px/greatswordsman-N15-37-h46.png
+g63=design/px/greatswordsman-N15-63-h46.png
+g23=design/px/greatswordsman-N15-23-h46.png
+bm=design/pl2/fix-blademaster-n14.png

@@ -5,8 +5,10 @@ from PIL import Image
 
 
 def mask(p):
-    im = Image.open(p).convert('RGBA'); bb = im.getbbox(); im = im.crop(bb); P = im.load()
-    W, H = im.size; return {(x - W // 2, y - H) for y in range(H) for x in range(W) if P[x, y][3] > 0}
+    """발에 맞춘다: 바닥 줄 = 0, 가로는 맨 아래 6줄 칠한 칸의 가운데 (칼·망토가 박스를 넓혀도 몸 위치가 안 밀리게)"""
+    im = Image.open(p).convert('RGBA'); bb = im.getbbox(); im = im.crop(bb); P = im.load(); W, H = im.size
+    feet = [x for y in range(H - 6, H) for x in range(W) if P[x, y][3] > 0]; cx = round(sum(feet) / len(feet))
+    return {(x - cx, y - H) for y in range(H) for x in range(W) if P[x, y][3] > 0}
 
 
 def iou(a, b):

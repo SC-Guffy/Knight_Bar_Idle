@@ -1,0 +1,34 @@
+{
+ "id": "f",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\qa\\n14\\f-in.png",
+ "frames": 1,
+ "color": "raw",
+ "size": [
+  50,
+  56
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.936,
+  "colors": 17,
+  "low": 0.344,
+  "edge": 0.461,
+  "lone": 0.077,
+  "flick": 0,
+  "churn": 0,
+  "fill": 0.365,
+  "area": [
+   1022
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

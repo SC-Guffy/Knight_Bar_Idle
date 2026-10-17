@@ -1,0 +1,39 @@
+{
+ "id": "swordsman-cast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\swordsman-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.922,
+  "colors": 22,
+  "low": 0.112,
+  "edge": 0.408,
+  "lone": 0.094,
+  "flick": 0.353,
+  "churn": 0.502,
+  "fill": 0.238,
+  "area": [
+   1000,
+   931,
+   978,
+   978,
+   971,
+   1000
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

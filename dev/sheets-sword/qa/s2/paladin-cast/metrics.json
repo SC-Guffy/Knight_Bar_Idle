@@ -1,0 +1,39 @@
+{
+ "id": "paladin-cast",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\paladin-cast-strip.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  384,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.941,
+  "colors": 23,
+  "low": 0.344,
+  "edge": 0.413,
+  "lone": 0.062,
+  "flick": 0.33,
+  "churn": 0.518,
+  "fill": 0.235,
+  "area": [
+   973,
+   1012,
+   961,
+   961,
+   906,
+   973
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
