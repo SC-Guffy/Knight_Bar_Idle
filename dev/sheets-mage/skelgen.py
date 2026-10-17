@@ -24,6 +24,7 @@ DESC = {
     'thunderEmperor': 'small chibi young woman thunder empress, 3 heads tall, golden crown with two large golden horns, long white hair, navy cape with gold trim, navy coat with gold buttons, navy boots, right hand empty, side view facing right the whole time, face always visible, never turns around',
 }
 ACTION = {'A': 'magic staff attacks: thrust forward, then raise overhead and slam down', 'B': 'casting a spell with both hands then walking',
+          'W3': 'walking forward with very long clear strides, the front knee lifting high, the back leg pushing far behind, a short knee-length white cape and long hair behind her, both legs clearly visible',
           'W2': 'walking forward with very long clear strides, the front knee lifting high, the back leg pushing far behind, the long robe or cape and long hair staying behind her so both legs in front are clearly separated',
           'W': 'walking forward with long clear strides, knees lifting, the long robe parting so both legs are clearly visible'}
 
@@ -136,7 +137,7 @@ def walk_big(kx=1.5, lift=3, back=0):
 def seq(part):
     M = SK.MOVES_B
     if part == 'W': return walk_big()
-    if part == 'W2': return walk_big(1.8, 5, 3)        # 걷기 다듬기 (로드맵 승인 2026-10-17): 보폭 1.8배·무릎 5칸·뒷다리 3칸 더 뒤
+    if part in ('W2', 'W3'): return walk_big(1.8, 5, 3)   # W3: 빙결의 군주 망토를 무릎 위로 자른 기준 그림으로 (2026-10-17 재개)        # 걷기 다듬기 (로드맵 승인 2026-10-17): 보폭 1.8배·무릎 5칸·뒷다리 3칸 더 뒤
     if part == 'A': return M['atkA'][:7] + M['atkB'][:7] + [(SK.to_b(SK.pose()), -80, None)]
     return M['cast'][:7] + M['walk'][:8]
 
@@ -144,6 +145,7 @@ def seq(part):
 def prep(cls, part, seed=71):
     if cls == 'electromancer': seed = 97      # 2회차 시드
     if part == 'W2': seed = 131               # 걷기 다듬기 시드
+    if part == 'W3': seed = 151
     d = os.path.join(HERE, 'skel', cls); os.makedirs(d, exist_ok=True)
     first, staff, off, sz = place(cls)
     first.save(os.path.join(d, 'first.png')); staff.save(os.path.join(d, 'staff.png'))
@@ -169,6 +171,23 @@ def prep(cls, part, seed=71):
 
 
 DARK_FILL = {'cryomancer': (24, 52, 112)}     # 망토 안쪽 검은 덩어리 → 직업색 어두운 단계 (비평 2026-10-17)
+
+
+CAPE_TRIM = {'frostlord'}       # 기준 그림 망토를 무릎 위로 자름 (2026-10-17 재개) → 모델이 그린 긴 망토도 같은 길이로 (W3 는 이미 짧음)
+
+
+def cape_trim(body, env, KP):
+    """무릎 줄 아래에서 다리 뼈대 둘레 밖의 밝은 천(망토·머리끝) 칸을 지우고, 잘린 끝에 외곽선"""
+    B = body.load(); W, H = body.size
+    ky = (KP['RIGHT KNEE'][1] + KP['LEFT KNEE'][1]) / 2
+    for y in range(int(ky) + 1, H):
+        for x in range(W):
+            c = B[x, y]
+            if c[3] and (x, y) not in env and sum(c[:3]) / 3 > 90: B[x, y] = (0, 0, 0, 0)
+    y = int(ky) + 1
+    for x in range(W):
+        if 0 <= y < H and not B[x, y][3] and B[x, y - 1][3] and sum(B[x, y - 1][:3]) / 3 > 90 and (x, y) not in env: B[x, y] = (11, 13, 20, 255)
+    return body
 
 
 DROP_GREY = {'frostlord'}       # 모델이 회색 철퇴 지팡이를 굵게 그림 (열기로 안 떨어짐)
@@ -210,11 +229,12 @@ def post(cls, part):
         if cls in DARK_FILL: body = dark_fill(body, DARK_FILL[cls])
         body = drop_fire_blobs(body, env)
         if cls in DROP_GREY: body = drop_grey_far(body, env)
+        if cls in CAPE_TRIM and part != 'W3': body = cape_trim(body, env, KP)
         g = KP['RIGHT ARM']; a = math.radians(meta['staff_deg'][i])        # 손 = 설계 관절 손 점 (모델은 관절을 따른다)
         g = snap_hand(body, g, KP['RIGHT ELBOW'])                          # 모델 손이 설계보다 짧거나 어긋나면 실제 팔 끝 칸으로
         ms = model_staff(im, body, g, meta['staff_deg'][i])
         if ms and math.cos(math.radians(ms[1] - meta["staff_deg"][i])) < 0.8: ms = None     # 37° 넘게 어긋나면 이펙트를 잘못 잰 것 → 설계 각도
-        walk = (part == 'B' and i >= 7) or part in ('W', 'W2')
+        walk = (part == 'B' and i >= 7) or part in ('W', 'W2', 'W3')
         if ms and not walk: a = math.radians(ms[1])                         # 각도만 모델 지팡이 축 (팔 자세와 맞게). 걷기는 설계 각도 고정 (비평: 걷기 중 지팡이 튐)
         if part == 'A' and i == 0: a = math.radians(meta['staff_deg'][-1])  # 14→0 이음새 (비평 2026-10-17)
         if walk or (part == 'B' and i <= 1):

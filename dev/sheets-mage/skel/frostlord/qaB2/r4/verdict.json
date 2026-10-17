@@ -1,0 +1,27 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 3,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 4,
+  "rules": 3
+ },
+ "avg": 3.29,
+ "pass": false,
+ "defects": [
+  {
+   "frame": "8-13",
+   "where": "다리",
+   "what": "망토에 가려 보폭 차이가 작고 다리 구분이 약함"
+  }
+ ],
+ "flags_review": "colors 경보는 VFX/지팡이/직업색 램프 영향, 단독 감점 안 함",
+ "verdict": "fix",
+ "fix": {
+  "how": "걷기 후반 프레임(8-13) 망토를 다리 뒤로 빼거나 보폭 큰 프레임 교체, 망토 명암 단계 보강",
+  "tool": "걷기 재생성 / 후처리 스크립트"
+ },
+ "summary": "걷기 앞 프레임은 개선됐으나 후반은 망토에 다리가 묻힘"
+}

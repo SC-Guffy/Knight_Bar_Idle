@@ -1,0 +1,25 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 3,
+  "value": 4,
+  "pixel": 3,
+  "motion": 3,
+  "rules": 4
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "몸",
+   "what": "웅크린 자세가 어색(경미)"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "pass",
+ "fix": {
+  "how": "",
+  "tool": ""
+ },
+ "summary": "평타 2종 읽힘 양호, 흰 망토 실루엣 구분됨"
+}

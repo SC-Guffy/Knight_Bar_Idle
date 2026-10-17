@@ -40,3 +40,5 @@ thunderEmperor/skelW
 # 로드맵 승인 2026-10-17: 걷기 다듬기 빙결·뇌제 8f x 2 (usage 6, 누계 94/105, 재시도 0)
 frostlord/skelW2
 thunderEmperor/skelW2
+# 로드맵 승인 2026-10-17: 빙결의 군주 걷기 재개 (망토 자른 기준 그림) 8f x 1 (usage 3, 상한 115)
+frostlord/skelW3
