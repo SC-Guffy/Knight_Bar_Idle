@@ -486,6 +486,7 @@ function profile() {
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     // 파이터 계열: 기 규칙 (서버 duel.js·raid.js 가 실제로 충전·소모를 돌린다. 모르는 서버는 버리고 등가 cd 로 계산)
     ...(isQiCls(S.cls) ? { qi: qiProfileOf(S.cls) } : {}),
+    ...(t7On() ? { t7: 1 } : {}),   // 시즌7 스킬 트리 줄기: 서버가 스킬을 5개(장착 4 + 궁극기)까지 받는다 (server/index.js sanitizeProfile)
     // 서버는 스킬을 앞에서 3개만 받는다(server/index.js sanitizeProfile). 파이터 계열 3차는 [궁극기·투지·원투·주 기술] 순이라 주 기술이 잘리면
     // 기를 쓰지 않아 투지도 멈춘다 → 물려받은 원투(1차)를 맨 뒤로 보내 그것이 빠지게 한다 (다른 3차도 1차 스킬이 빠진다)
     skills: (isQiCls(S.cls) ? [...st.skills.filter((id) => SKILLS[id].cls !== 'fighter' || S.cls === 'fighter'), ...st.skills.filter((id) => SKILLS[id].cls === 'fighter' && S.cls !== 'fighter')] : st.skills).map((id) => {
@@ -783,7 +784,7 @@ function startExpedition({ charm = false, elixir = false } = {}) {
     stageFrom: S.stage, stageTo: S.stage, boxes: GRADES.map(() => 0),
     potions: 0, crises: 0, deaths: 0, tomes: 0, stones: 0, bossFail: false, reason: null, buffs: { charm, elixir },
   };
-  S.run.kills = 0; S.run.farm = false; S.run.cleared = false;
+  S.run.kills = 0; S.run.farm = false; S.run.cleared = false; S.run.prog = 0;
   S.hp = stats().maxHp;
   S.phase = 'expedition';
   t7EndCamp();   // 시즌7 트리: 이번 캠프에서 찍은 칸의 무료 되돌리기가 끝난다
@@ -822,6 +823,8 @@ function arriveCamp(silent = false) {
     for (const k of ['dur', 'kills', 'bosses', 'gold', 'xp', 'levels', 'potions', 'crises', 'deaths', 'tomes', 'stones']) r[k] = (r[k] || 0) + (t[k] || 0);
     t.boxes.forEach((n, i) => { r.boxes[i] = (r.boxes[i] || 0) + n; });
     r.stageTo = t.stageTo; r.reason = t.reason; r.bossFail = r.bossFail || t.bossFail;
+    if (t.wallBreak) r.wallBreak = (r.wallBreak || []).concat(t.wallBreak);   // 시즌7 보스 벽 (src/tree7.js)
+    r.wall = t.wall || (r.wall && !(t.wallBreak || []).includes(r.wall.stage) ? r.wall : null);
     r.trips = (r.trips || 1) + 1;
   } else {
     S.report = t;
@@ -914,27 +917,33 @@ function simulate(sec) {
     if (S.run.kills >= S.run.total) { finishLap(); S.run.total = SIM_LAP; S.run.boss = true; }
     const st = stats();
     const boss = isBossNext();
-    const m = monsterStats(S.stage, boss);
+    const m = t7BossStats(S.stage, monsterStats(S.stage, boss));   // 시즌7 트리 줄기의 보스 벽 (src/tree7.js, 아니면 그대로)
+    const wl = m.wall;
     const walk = 4.5;
-    // 여러 마리를 동시에 때리는 무기는 처치 속도가 조금 빨라진다고 근사
-    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1));
-    const cycle = walk + fight;
+    // 여러 마리를 동시에 때리는 무기는 처치 속도가 조금 빨라진다고 근사 · 벽 보스 기믹은 막는 갈래를 덜 찍었을수록 DPS 손실
+    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1) * (wl ? t7WallDps(wl) : 1));
+    // 벽 보스는 싸움이 simulate 한 번(t)보다 길 수 있다 → 싸운 시간을 S.run.prog 에 이어 쌓는다 (원정이 끝나면 처음부터)
+    const prog = wl ? S.run.prog || 0 : 0;
+    const cycle = walk + fight - prog;
     const staminaLeft = S.stamina / staDrain();
     if (cycle > t || cycle > staminaLeft) {
       const used = Math.min(t, staminaLeft);
       S.stamina -= used * staDrain();
       S.trip.dur += used;
       t -= used;
+      if (wl) { S.run.prog = prog + used; t7WallNote(m, 1 - Math.max(0, S.run.prog - walk) / fight); }
       if (S.stamina <= 0.01) { S.stamina = 0; endExpedition('stamina', true); }
       break;
     }
+    if (wl) S.run.prog = 0;
     t -= cycle;
     S.stamina -= cycle * staDrain();
     S.trip.dur += cycle;
     S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * walk);
     // 사거리가 길면 적이 다가오는 동안은 맞지 않는다. 방어(guard)·타격 회복(heal) 반영
     const exposed = Math.max(0, fight - (st.range - MELEE_REACH) / MONSTER_SPEED);
-    S.hp -= (exposed / 1.3) * m.atk * (1 - st.guard);
+    const hurt = (exposed / 1.3) * m.atk * (1 - st.guard) * (wl ? t7WallHurt(wl, fight) : 1) + (wl ? t7WallPool(wl, fight) * st.maxHp : 0);   // 광폭화·장판
+    S.hp -= hurt;
     S.hp += fight * st.aspd * st.heal * st.maxHp;
     // 체력이 30% 아래로 떨어질 때마다 물약이 최대 체력의 70%를 되돌려 준다고 근사
     while (S.hp < st.maxHp * POTION_AT && S.items.potion > 0) {
@@ -943,6 +952,7 @@ function simulate(sec) {
       S.hp += st.maxHp * (1 - POTION_AT);
     }
     if (S.hp <= 0) {
+      if (wl) t7WallNote(m, Math.min(1, -S.hp / Math.max(1, hurt)));   // 버틴 시간 비율만큼 깎았다고 근사 (남은 체력 비율)
       t -= DEFEAT_DOWN_SEC;
       knightDefeated(boss);
       if (S.stamina <= 0) { endExpedition('stamina', true); break; }
@@ -951,6 +961,7 @@ function simulate(sec) {
     S.hp = Math.min(st.maxHp, S.hp);
     if (S.hp < st.maxHp * 0.25) S.trip.crises++;
     rewardKill(m);
+    if (wl) t7WallBreak(m);
     if (bagFull()) endExpedition('bag', true);
   }
   if (t > 0) advanceCamp(t);

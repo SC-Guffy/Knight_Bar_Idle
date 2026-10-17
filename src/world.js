@@ -166,9 +166,11 @@ function spawnAhead() {
     const g = lapPlan[0].g;
     while (lapPlan.length && lapPlan[0].g === g) {
       const p = lapPlan.shift();
-      monsters.push(makeMonster(p.type, p.boss, p.x));
+      const nm = makeMonster(p.type, p.boss, p.x, t7BossStats(S.stage, monsterStats(S.stage, p.boss)));   // 시즌7 트리 줄기의 보스 벽 (src/tree7.js)
+      monsters.push(nm);
       alive++;
-      if (p.boss) {
+      if (nm.wall) t7WallSpawn(nm);                 // 기믹 보스 배너 (src/tree7-wall.js)
+      else if (p.boss) {
         const field = S.stage === zoneOf(S.stage).to;
         showBanner(`${field ? 'FIELD BOSS' : 'BOSS'}! ${MONSTERS[p.type].name}`, field ? '#ff5a5a' : '#ff9f1c');
       }
@@ -210,6 +212,7 @@ function monsterMidY(m) {
 // mult: 연발 화살·스킬 등 피해 배율. o: 스킬 타격 { crit 치명 확정, kb 밀려나는 거리, color 숫자 색 }
 // 입힌 피해를 돌려준다 (스킬 흡혈용). o.critPlus: 이 타격만의 치명 확률 보정 (트리 V2 💥 치명)
 function hitMonster(m, mult = 1, o = {}) {
+  if (m.shieldN > 0 && t7WallBlock(m)) return 0;    // 🛡️ 보스 벽 보호막 (src/tree7-wall.js)
   const st = stats();
   // 고유 특수 보정 (skills.js tryCastSkill): 🗡️ 처형(체력 비율 이하) · 🪨 보스 · 🎯 아직 안 맞은 적 · 🩻 취약(이 적이 받는 모든 피해, 평타 포함)
   if (o.exec && m.hp <= m.maxHp * o.exec.thr) mult *= 1 + o.exec.v;
@@ -251,6 +254,7 @@ function hitMonster(m, mult = 1, o = {}) {
   if (S.phase === 'tower') { towerKillReward(m); return dmg; }
   if (S.phase === 'dungeon') { dgKill(m); return dmg; }
   if (S.phase === 'castle') { castleViewKill(m); return dmg; }
+  if ((m.add || m.wall) && t7WallKill(m)) return dmg;   // 보스 벽 졸개는 보상 없음 · 벽 보스는 돌파 기록 (src/tree7-wall.js)
   const r = rewardKill(m);
   const sx = toScreen(m.x);
   for (let i = 0; i < (m.boss ? 10 : 3); i++) {
@@ -260,7 +264,7 @@ function hitMonster(m, mult = 1, o = {}) {
   if (r.loot) spawnDrop('box', r.loot.g, sx, monsterMidY(m), m.boss);
   if (r.tome) spawnDrop('tome', 0, sx, monsterMidY(m), false, { dist: r.loot ? rand(-14, -4) : rand(16, 28), delay: r.loot ? 0.12 : 0, pop: 1.15 });
   if (r.stones) addFloater(`💠 강화석 +${r.stones}`, sx, monsterTop(m) - 18, '#8fd8ff', 13, true);
-  if (m.boss) { showBanner('STAGE CLEAR!'); save(); }
+  if (m.boss) { showBanner(m.wall ? '⚔️ 벽 돌파!' : 'STAGE CLEAR!', m.wall ? '#ffe08a' : '#ffd257', m.wall ? 26 : 20, m.wall ? 3 : 2.2); save(); }
   if (bagFull()) endExpedition('bag');
   return dmg;
 }
@@ -329,6 +333,7 @@ function updateExpedition(dt, gdt) {
 
   if (!lapReady) layoutLap();
   spawnAhead();
+  if (t7On()) t7WallTick(dt);                       // 보스 벽 기믹 (src/tree7-wall.js)
 
   fightTick(dt, st, (px = WALK_SPEED * dt) => {
     knight.x += px;
@@ -3002,6 +3007,7 @@ function drawMonster(m) {
   const h = rows.length * scale * pose.sy;
   const top = bottom - h;
   if (m.boss) drawSprite(SPR.crown, PAL, x + Math.round(pose.skew * h), top - 2, PX, { alpha });
+  if (m.wall) t7WallDraw(m, x, top);                 // 보호막 남은 타 · 장판 (src/tree7-wall.js)
   if (m.anim && def.style === 'cast') drawOrb(m, x - w / 2 * pose.sx, top + h * 0.45);
   if (!m.dying) {
     const baseTop = groundY() - fly - rows.length * scale;

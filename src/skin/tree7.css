@@ -56,3 +56,6 @@
 .t7looks li { padding: 1px 6px; color: #a59cb8; }
 .t7looks li.on { color: #ece6f6; background: #2b2538; border-left: 3px solid #ffd257; }
 .t7act { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+
+/* 귀환 보고: 보스 벽 돌파 (4단계) */
+.reason.t7-break { font-size: 16px; color: #ffe08a; text-shadow: 0 0 6px rgba(255, 200, 80, .6); text-align: center; padding: 6px 0; }

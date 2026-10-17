@@ -174,3 +174,15 @@ const T7_ACTIONS = ({
   't7-eq': (el) => { if (!t7Equip(el.dataset.sk)) toast('장착 칸이 다 찼어요 — 장착한 스킬을 눌러 먼저 빼세요'); },
   't7-use': (el) => { const s = t7S(); s.use[el.dataset.sk] = Number(el.dataset.s); },
 });
+
+// 귀환 보고: 보스 벽 (4단계) — 뚫었으면 큰 배너, 막혔으면 기믹과 추천 갈래 한 줄
+function t7WallReport(r) {
+  const out = [];
+  for (const st of r.wallBreak || []) out.push(`<div class="reason t7-break">⚔️ 벽 돌파! ${st}스테이지 ${st % 20 ? '중간' : '지역'} 보스를 쓰러뜨렸습니다</div>`);
+  const w = r.wall;
+  if (w) {
+    const tip = t7WallTip(w), g = w.gims.map((x) => T7_GIM[x].icon + ' ' + T7_GIM[x].name).join(' · ');
+    out.push(`<div class="reason warn">👑 ${esc(MONSTERS[w.type] ? MONSTERS[w.type].name : '보스')} 체력 ${Math.round(w.left * 100)}% 까지 · ${g}${tip ? ` — 추천: ${tip.icon} ${esc(tip.tip)}` : ''}</div>`);
+  }
+  return out.join('');
+}

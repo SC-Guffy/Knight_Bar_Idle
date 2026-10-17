@@ -318,6 +318,7 @@ function viewReport() {
   const report = r ? `
     <div class="reason">${REASON_TEXT[r.reason]}${r.trips > 1 ? ` <em>(원정 ${r.trips}회 합산)</em>` : ''}${r.reason === 'bag' && S.bagLv < bagMaxLv() ? ` <button class="btn${rd(!bagUpBlocker())}" data-action="goto-inn">${ico('bag')} 여관에서 가방 키우기</button>` : ''}</div>
     ${r.bossFail ? `<div class="reason warn">👑 ${r.stageTo}스테이지 보스에게 패배해서 이후엔 파밍만 했습니다. 강해진 뒤 다시 출정하면 재도전합니다.</div>` : ''}
+    ${t7On() ? t7WallReport(r) : ''}
     <div class="stats">
       ${cell('⏱ 원정 시간', fmtTime(r.dur))}
       ${cell('⚔️ 처치', fmt(r.kills))}

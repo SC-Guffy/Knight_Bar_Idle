@@ -318,3 +318,77 @@ function t7PathCost() {
 }
 // 새 스킬의 연출: 3단계 전까지는 같은 계열 스킬의 연출을 빌려 쓴다 (skills.js 가 SKILL_FX 에 이어 붙인다)
 const T7_FX_BASE = { whirl: 'gale', flash: 'iaido', wave: 'steelCleave', storm: 'steelCleave', f_ab: 'gale', f_bk: 'iaido', f_ak: 'gale' };
+
+// ── 보스 벽 (4단계, 이 줄기 캐릭터의 원정 1~120 스테이지만) ──
+// 일반 보스 체력 ×0.8 · 10칸 중간 보스(10·30·50…) 체력 ×2.5 공격 ×1.5 + 기믹 1 · 20칸 지역 보스(필드 보스) 체력 ×4 공격 ×2 + 기믹 2 (필드 보스 배율 대신)
+// 기믹의 실제 규칙은 src/tree7-wall.js (게임), 봇·오프라인 계산(core.js simulate)은 아래 근사: 막는 갈래를 찍었는지(t7Counter 0~1)로 DPS·받는 피해를 깎는다
+let T7_WALL_MAX = 120;   // 측정용으로 바꿀 수 있게 let
+const T7_GIM = {
+  //  pen: 대응 0 일 때 DPS 손실 · cnt: 대응 노드 → 무게 (액티브·융합은 장착해야, 칸 비율만큼) · lane: auto 봇이 갈아탈 갈래
+  shield: { icon: '🛡️', name: '보호막', lane: 'a', pen: 0.45, cnt: { a_more: 0.35, whirl: 0.35, uv_a: 0.45, a_key: 0.15, f_ak: 0.15 }, tip: '연타 갈래 (난무 +3타·검무 회오리·만검)' },
+  adds: { icon: '👥', name: '졸개', lane: 'k', pen: 0.45, cnt: { k_pierce: 0.35, storm: 0.35, k_split: 0.2, uv_k: 0.45, f_bk: 0.15, f_ak: 0.15 }, tip: '검기 갈래 (관통·검기 폭풍·분열·검우)' },
+  enrage: { icon: '🔥', name: '광폭화', lane: 'b', pen: 0.35, cnt: { b_exec: 0.3, iaido: 0.2, flash: 0.3, uv_b: 0.45, b_key: 0.2 }, tip: '발도 갈래 (처형·일섬·섬광 베기·일도양단)' },
+  pool: { icon: '🩸', name: '장판', lane: 'c', pen: 0, cnt: { c_hp: 0.5, c_def: 0.5 }, tip: '줄기 스탯 (체력·방어)' },
+};
+// 배치: 지역 안에서 중간 보스와 지역 보스의 답이 겹치고, 지역마다 답이 바뀐다
+const T7_WALLS = { 10: ['enrage'], 20: ['enrage', 'shield'], 30: ['adds'], 40: ['adds', 'pool'], 50: ['pool'], 60: ['pool', 'shield'],
+  70: ['shield'], 80: ['shield', 'enrage'], 90: ['adds'], 100: ['adds', 'enrage'], 110: ['shield'], 120: ['enrage', 'adds', 'shield'] };
+// 배율은 봇으로 맞춘 값 (스펙 시작값 중간 2.5·1.5 / 지역 4·2 는 4일차 120 에 머물러 너무 셌다 — 지역 보스는 지금 필드 보스(체력 ×2·공격 ×1.4)보다 체력은 낮추고 기믹을 얹는다)
+const T7_WALL_MUL = { boss: { hp: 0.8, atk: 1 }, mid: { hp: 1.3, atk: 1.1 }, region: { hp: 1.6, atk: 1.3 } };
+// 기믹 수치 (게임 규칙·봇 근사가 같이 쓴다)
+const T7_GIM_RULE = { shieldEvery: 8, shieldHits: 4, addsEvery: 10, addsN: 3, addsHp: 3, enrageAt: 20, enrageAtk: 3, poolEvery: 6, poolDur: 3, poolPct: 0.03 };
+function t7Wall(stage) {
+  if (!t7On() || stage > T7_WALL_MAX) return null;
+  const kind = stage % 10 ? 'boss' : stage % 20 ? 'mid' : 'region';
+  return { stage, kind, ...T7_WALL_MUL[kind], gims: T7_WALLS[stage] || [] };
+}
+// 보스 몬스터 수치에 벽을 입힌다 (필드 보스 배율은 벽 배율로 바꾼다). 기믹이 있으면 m.wall
+function t7BossStats(stage, m) {
+  const w = m.boss && t7Wall(stage);
+  if (!w) return m;
+  const field = stage === zoneOf(stage).to;
+  const hp = (m.hp / (field ? FIELD_HP : 1)) * w.hp, atk = (m.atk / (field ? FIELD_ATK : 1)) * w.atk;
+  return { ...m, hp, atk, ...(w.gims.length ? { wall: { stage, kind: w.kind, gims: w.gims } } : {}) };
+}
+// 이 기믹을 막는 노드를 얼마나 찍었나 (0~1)
+function t7Counter(g) {
+  const s = t7S();
+  let c = 0;
+  for (const [id, w] of Object.entries(T7_GIM[g].cnt)) {
+    const n = T7_BY[id], r = t7Rank(id);
+    if (!r || (n.sk && n.t !== 'ult' && !s.eq.includes(n.sk))) continue;
+    c += w * r / T7_SPEC[n.t].max;
+  }
+  return Math.min(1, c);
+}
+// 봇 근사 (core.js simulate): 벽 보스와 싸울 때 DPS 배율 · 받는 피해 배율(광폭화) · 장판 피해(최대 체력 비율)
+//  기믹 3개(마왕성 120)는 하나하나를 0.6 배로 — 한 갈래로 셋을 다 막을 수 없어서
+const t7WallDps = (w) => w.gims.reduce((m, g) => m * (1 - T7_GIM[g].pen * (w.gims.length >= 3 ? 0.6 : 1) * (1 - t7Counter(g))), 1);
+function t7WallHurt(w, fight) {
+  if (!w.gims.includes('enrage') || fight <= T7_GIM_RULE.enrageAt) return 1;
+  const R = T7_GIM_RULE;
+  // 발도 갈래(처형·섬광 베기·일도양단)는 광폭화 뒤를 짧게 끊는다: 대응만큼 광폭화 구간이 줄어든다
+  return (R.enrageAt + (fight - R.enrageAt) * (1 - 0.6 * t7Counter('enrage')) * R.enrageAtk) / fight;
+}
+const t7WallPool = (w, fight) => (w.gims.includes('pool') ? fight * (T7_GIM_RULE.poolDur / T7_GIM_RULE.poolEvery) * T7_GIM_RULE.poolPct * (1 - 0.7 * t7Counter('pool')) : 0);
+// 귀환 보고 한 줄: 가장 덜 대응한 기믹을 추천
+function t7WallTip(w) {
+  const g = w.gims.slice().sort((p, q) => t7Counter(p) - t7Counter(q))[0];
+  return g ? { g, ...T7_GIM[g] } : null;
+}
+// 원정 기록: 벽 보스에게 진 체력 비율(가장 깊이 깎은 것) · 뚫은 벽
+function t7WallNote(m, left) {
+  if (!S.trip || !m.wall) return;
+  const o = S.trip.wall;
+  if (!o || o.stage !== m.wall.stage || left < o.left) S.trip.wall = { stage: m.wall.stage, kind: m.wall.kind, gims: m.wall.gims, left: Math.max(0, left), type: m.type || zoneOf(m.wall.stage).boss };   // 오프라인 계산(simulate)의 보스엔 type 이 없다
+}
+function t7WallBreak(m) {
+  if (!S.trip || !m.wall) return;
+  (S.trip.wallBreak = S.trip.wallBreak || []).push(m.wall.stage);
+  if (S.trip.wall && S.trip.wall.stage === m.wall.stage) S.trip.wall = null;
+}
+// auto 봇: 막힌 벽에서 가장 덜 막고 있는 기믹(줄기 스탯으로 막는 장판 빼고)의 갈래 — 이미 반 넘게 막고 있으면 바꾸지 않는다 (초기화 골드 아끼기)
+function t7WallBuild(stage) {
+  const g = (T7_WALLS[stage] || []).filter((x) => T7_GIM[x].lane !== 'c').sort((p, q) => t7Counter(p) - t7Counter(q))[0];
+  return g && t7Counter(g) < 0.4 ? T7_GIM[g].lane : null;
+}

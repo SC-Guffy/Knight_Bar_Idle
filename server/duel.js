@@ -21,7 +21,9 @@ const DT = 0.05;
 // 돌진기: 사거리 밖에서도 상대가 이 거리(px) 안이면 DASH 속도로 달려붙어 닿는 순간 그 스킬을 쓴다 (docs/specs/duel-gap-closer.md).
 // 저장된 옛 프로필·봇에도 바로 먹도록 서버가 스킬 id 로 정한다 — 원정 쪽 src/classes.js SKILLS 의 gap 과 값을 맞춘다
 const GAP = { steelCleave: 120, piercingThrust: 120, gale: 180, iaido: 180, dragonFall: 180, earthSplitter: 180, ramCharge: 180, cavalryCharge: 180,
-  oneTwo: 120, ironRush: 180, flyingKick: 180 };
+  oneTwo: 120, ironRush: 180, flyingKick: 180,
+  // 시즌7 스킬 트리 새 스킬·융합 (src/classes.js T7_NEW_SKILLS — 바탕 스킬의 gap 을 물려받는다)
+  whirl: 180, flash: 180, wave: 120, storm: 120, f_ab: 180, f_bk: 180, f_ak: 180 };
 const DASH = 500;           // px/s
 
 function mulberry32(seed) {
