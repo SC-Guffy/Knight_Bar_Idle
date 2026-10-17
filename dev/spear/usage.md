@@ -50,3 +50,4 @@
 | 44 | warlord | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 83.0 | 792.0 |
 | 45 | skyGeneral | `/animate-with-skeleton-v3` | skel-thrust7+slam8: animate-with-skeleton-v3 192 15f | 4.0 | 87.0 | 784.0 |
 | 46 | skyGeneral | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 90.0 | 779.0 |
+| 47 | halberdier | `/animate-with-skeleton-v3` | skel-sweepE7+chopupE8: animate-with-skeleton-v3 192 15f | 4.0 | 94.0 | 758.0 |

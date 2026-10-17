@@ -10,7 +10,8 @@ import build as B
 PLAN = {
     'lancer': {'atkA': ('thrust', range(8)), 'atkB': ('slam8+idle4', range(1, 8)), 'idle': ('slam8+idle4', range(8, 12)), 'walk': ('walk', range(8))},
     'dragoon': {'atkA': ('thrust7+slam8', range(0, 7)), 'atkB': ('thrust7+slam8', [8, 9, 11, 12, 13, 14]), 'walk': ('walk', range(8))},   # 10: 모델 창과 X자로 겹침 (검수)     # 7 = 찌르기→내리찍기 전환
-    'halberdier': {'atkA': ('sweep7+chop8', range(0, 7)), 'atkB': ('sweep7+chop8', [8, 9, 11, 12, 13, 14]), 'walk': ('walk', range(8))},   # 로드맵 대안: 재생성분(sweep7+chopup8) 내려찍기 2장이 투구를 덮어 2.86 미달 → 평타는 이전 판 유지
+    'halberdier': {'atkA': ('sweepE7+chopupE8', [0, 1, 5, 6]),   # 2~4: 수직 치켜들기·찌르기·웅크림이 휩쓸기 흐름을 끊음 (검수 b4)
+                   'atkB': ('sweepE7+chopupE8', range(8, 15)), 'walk': ('walk', range(8))},   # 빈손 생성 + 코드 할버드 (2026-10-17 처음부터 재생성)
     'cavalier': {'atkA': ('thrust7+slam8', range(0, 7)), 'atkB': ('thrust7+slam8', range(8, 15)), 'walk': ('walk', range(8))},
     'dragonlord': {'atkA': ('thrust7+slam8', range(0, 7)), 'atkB': ('thrust7+slam8', range(8, 15)), 'walk': ('walk', range(8))},
     'warlord': {'atkA': ('sweep7+chopup8', [0, 1, 3, 4, 5, 6]),   # 2: 할버드가 머리 위에 떠 손과 떨어짐 (검수)
