@@ -56,7 +56,7 @@ def strip(frames):
 
 
 def run(cls, act):
-    ns, _, _ = fitted(cls); name = {'walk': 'bow-walk', 'shoot': 'bow-shoot', 'shoot2': 'bow-shoot', 'sky': 'bow-sky'}[act]
+    ns, _, _ = fitted(cls); name = {'walk': 'bow-walk', 'shoot': 'bow-shoot', 'shoot2': 'bow-shoot', 'shoot3': 'bow-shoot', 'walk2': 'bow-walk', 'sky': 'bow-sky'}[act]
     seq = ns['SEQ'][name]; ws = bow_sprite(cls)
     scol = (217, 210, 192, 255)
     W = os.path.join(HERE, 'work', cls); own, ovl, ovl2 = [], [], []

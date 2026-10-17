@@ -34,8 +34,18 @@ def thin_off(im, win=2, need=11):
     return o
 
 
+NEUTRAL = {'marksman', 'ranger', 'arcaneArcher', 'arbalest'}     # 중립 대기 첫 프레임 (2026-10-17: 조준 자세 첫 프레임은 팔 관절을 안 따름 → edit-image-pixen 으로 팔 내린 빈손 대기) — design/ref/<cls>-neutral.png
+
+
+# 석궁사수 쏘기만: 중립 편집이 정면으로 돌아(2회) 옆모습 정리본(석궁 겨눈 자세, 석궁은 두꺼워 남김)을 첫 프레임으로 (2026-10-17 로드맵 승인)
+ALIAS = {'arbalestAim': 'arbalest'}
+base_of = lambda cls: ALIAS.get(cls, cls)
+
+
 def first(cls, nowpn=True):
-    im = Image.open(os.path.join(REF, f'{cls}-clean.png')).convert('RGBA')
+    if cls in ALIAS: nowpn = False
+    im = Image.open(os.path.join(REF, f'{cls}-neutral.png' if cls in NEUTRAL else f'{base_of(cls)}-clean.png')).convert('RGBA')
+    if cls in NEUTRAL: nowpn = False
     if nowpn: im = thin_off(im)
     im = im.crop(im.getbbox()); P = im.load()
     row = [x for x in range(im.width) if P[x, im.height - 1][3]]; fx = (min(row) + max(row)) // 2 if row else im.width // 2
@@ -52,30 +62,39 @@ def first(cls, nowpn=True):
 # 첫 프레임 그림에서 눈으로 읽은 관절 (192칸 좌표, first-<cls>-grid.png: 격자 8칸, 그림 원점 = (40, 60), 1칸 = 4px).
 #  팔 역할은 skel.py 와 같다 — 활: LEFT = 앞으로 뻗은 활 든 팔, RIGHT = 시위 당기는 손(가까운 쪽)
 BODY_KP = {
-    'marksman': {'NECK': (96, 111), 'NOSE': (106, 102.5), 'RIGHT EYE': (101, 99), 'LEFT EYE': (97, 99.5), 'RIGHT EAR': (93, 100), 'LEFT EAR': (90, 101),
-                 'LEFT SHOULDER': (107.5, 113.75), 'LEFT ELBOW': (116, 115.5), 'LEFT ARM': (125, 117),
-                 'RIGHT SHOULDER': (90, 113.75), 'RIGHT ELBOW': (91.25, 121.25), 'RIGHT ARM': (100, 120),
-                 'RIGHT HIP': (103.75, 135), 'RIGHT KNEE': (106.25, 153.75), 'RIGHT LEG': (108.75, 173.75),
-                 'LEFT HIP': (91.25, 135), 'LEFT KNEE': (88.75, 153.75), 'LEFT LEG': (83.75, 173.75)},
+    # 저격수: 중립 대기 첫 프레임(팔 내림·빈손, 2026-10-17)에서 다시 읽음. 뒷손만 엉덩이 옆에 보이고 앞팔은 몸통 앞에 겹친다
+    'marksman': {'NECK': (93.75, 108.75), 'NOSE': (103, 101.25), 'RIGHT EYE': (98.75, 100), 'LEFT EYE': (96.25, 100.5), 'RIGHT EAR': (91.25, 101.25), 'LEFT EAR': (88.75, 101.5),
+                 'LEFT SHOULDER': (100.5, 113.75), 'LEFT ELBOW': (100.5, 127), 'LEFT ARM': (99.5, 139.5),
+                 'RIGHT SHOULDER': (89, 113.75), 'RIGHT ELBOW': (88.5, 127), 'RIGHT ARM': (88, 140),
+                 'RIGHT HIP': (100, 140), 'RIGHT KNEE': (101.25, 160), 'RIGHT LEG': (101.25, 176),
+                 'LEFT HIP': (90, 140), 'LEFT KNEE': (90, 160), 'LEFT LEG': (90, 176)},
 }
 BODY_KP.update({
-    # 레인저: 활 든 팔이 몸 뒤(왼쪽)로 뻗은 그림 — 첫 프레임은 그림 그대로 읽고, 동작 프레임은 손 목표로 앞으로 가져온다
-    'ranger': {'NECK': (98, 131), 'NOSE': (112.5, 121.25), 'RIGHT EYE': (106.25, 116.25), 'LEFT EYE': (101.25, 116.25), 'RIGHT EAR': (96.25, 118.75), 'LEFT EAR': (93.75, 119.5),
-               'LEFT SHOULDER': (91.25, 133.75), 'LEFT ELBOW': (77.5, 127.5), 'LEFT ARM': (62.5, 127),
-               'RIGHT SHOULDER': (103.75, 133.75), 'RIGHT ELBOW': (108.75, 140), 'RIGHT ARM': (112.5, 132.5),
-               'RIGHT HIP': (103.75, 145), 'RIGHT KNEE': (107.5, 160), 'RIGHT LEG': (111.25, 175),
-               'LEFT HIP': (93.75, 145), 'LEFT KNEE': (88.75, 160), 'LEFT LEG': (82.5, 175)},
-    'arcaneArcher': {'NECK': (100, 123.75), 'NOSE': (113.75, 113.75), 'RIGHT EYE': (107.5, 108.75), 'LEFT EYE': (100, 108.75), 'RIGHT EAR': (93.75, 111.25), 'LEFT EAR': (91.25, 112.5),
-                     'LEFT SHOULDER': (108.75, 128.75), 'LEFT ELBOW': (120, 131.25), 'LEFT ARM': (130, 130.5),
-                     'RIGHT SHOULDER': (93.75, 130), 'RIGHT ELBOW': (86.25, 138.75), 'RIGHT ARM': (80, 145),
-                     'RIGHT HIP': (106.25, 151.25), 'RIGHT KNEE': (107.5, 163.75), 'RIGHT LEG': (111.25, 175.5),
-                     'LEFT HIP': (93.75, 151.25), 'LEFT KNEE': (91.25, 163.75), 'LEFT LEG': (88.75, 175.5)},
-    # 석궁사수: RIGHT = 뒷손(개머리·방아쇠), LEFT = 앞손(받침). 석궁은 두꺼워 첫 프레임에 남는다 (덧그릴 무기가 덮는다)
-    'arbalest': {'NECK': (96.25, 127), 'NOSE': (107.5, 118.75), 'RIGHT EYE': (103.75, 115), 'LEFT EYE': (97.5, 115), 'RIGHT EAR': (91.25, 117.5), 'LEFT EAR': (90, 118),
-                 'RIGHT SHOULDER': (100, 130), 'RIGHT ELBOW': (107.5, 132.5), 'RIGHT ARM': (115, 131.25),
-                 'LEFT SHOULDER': (91.25, 130.5), 'LEFT ELBOW': (105, 135), 'LEFT ARM': (121.25, 133.75),
-                 'RIGHT HIP': (103.75, 150), 'RIGHT KNEE': (106.25, 162.5), 'RIGHT LEG': (108.75, 175),
-                 'LEFT HIP': (91.25, 150), 'LEFT KNEE': (88.75, 162.5), 'LEFT LEG': (83.75, 175)},
+    # 석궁사수 겨눈 자세 정리본(옆모습) — 쏘기 재생성용 첫 프레임. RIGHT = 뒷손(개머리), LEFT = 앞손(받침)
+    'arbalestAim': {'NECK': (96.25, 127), 'NOSE': (107.5, 118.75), 'RIGHT EYE': (103.75, 115), 'LEFT EYE': (97.5, 115), 'RIGHT EAR': (91.25, 117.5), 'LEFT EAR': (90, 118),
+                    'LEFT SHOULDER': (100, 130), 'LEFT ELBOW': (105, 135), 'LEFT ARM': (121.25, 133.75),
+                    'RIGHT SHOULDER': (91.25, 130.5), 'RIGHT ELBOW': (107.5, 132.5), 'RIGHT ARM': (115, 131.25),
+                    'RIGHT HIP': (103.75, 150), 'RIGHT KNEE': (106.25, 162.5), 'RIGHT LEG': (108.75, 175),
+                    'LEFT HIP': (91.25, 150), 'LEFT KNEE': (88.75, 162.5), 'LEFT LEG': (83.75, 175)},
+})
+BODY_KP.update({
+    # 2026-10-17 중립 대기 첫 프레임(팔 내림·빈손)에서 다시 읽음 — 활: LEFT = 앞(활 든) 팔, RIGHT = 뒤(당기는) 팔
+    'ranger': {'NECK': (106.25, 120), 'NOSE': (119.5, 113.75), 'RIGHT EYE': (115, 108.75), 'LEFT EYE': (108.75, 109), 'RIGHT EAR': (101.25, 112.5), 'LEFT EAR': (98.75, 113),
+               'LEFT SHOULDER': (112.5, 123.75), 'LEFT ELBOW': (115, 133), 'LEFT ARM': (117, 143.75),
+               'RIGHT SHOULDER': (93.75, 123.75), 'RIGHT ELBOW': (93, 135), 'RIGHT ARM': (92.5, 146.25),
+               'RIGHT HIP': (107.5, 142.5), 'RIGHT KNEE': (108.75, 158.75), 'RIGHT LEG': (110, 175),
+               'LEFT HIP': (96.25, 142.5), 'LEFT KNEE': (96.25, 158.75), 'LEFT LEG': (96.25, 175)},
+    'arcaneArcher': {'NECK': (100, 121.25), 'NOSE': (108.75, 113.75), 'RIGHT EYE': (106.25, 109.5), 'LEFT EYE': (98, 109.5), 'RIGHT EAR': (92.5, 111.25), 'LEFT EAR': (90, 111.5),
+                     'LEFT SHOULDER': (107.5, 126.25), 'LEFT ELBOW': (110, 136), 'LEFT ARM': (111.25, 146.25),
+                     'RIGHT SHOULDER': (85, 126.25), 'RIGHT ELBOW': (84, 137.5), 'RIGHT ARM': (83.75, 148.75),
+                     'RIGHT HIP': (101.25, 146.25), 'RIGHT KNEE': (102.5, 160), 'RIGHT LEG': (103.75, 175),
+                     'LEFT HIP': (90, 146.25), 'LEFT KNEE': (88.75, 160), 'LEFT LEG': (88.75, 175)},
+    # 석궁사수: RIGHT = 뒷손(개머리·방아쇠), LEFT = 앞손(받침). 정면에 가까운 그림이라 앞손을 화면 앞쪽(오른쪽) 팔로 읽는다 (반대로 읽으면 KB 가 음수가 되어 석궁이 뒤를 향함)
+    'arbalest': {'NECK': (98.75, 122), 'NOSE': (103.75, 115.5), 'RIGHT EYE': (107.5, 111.25), 'LEFT EYE': (100, 111.25), 'RIGHT EAR': (93.75, 112.5), 'LEFT EAR': (91.25, 113),
+                 'LEFT SHOULDER': (108.75, 127.5), 'LEFT ELBOW': (111, 139), 'LEFT ARM': (112.5, 150),
+                 'RIGHT SHOULDER': (85, 127.5), 'RIGHT ELBOW': (84, 139), 'RIGHT ARM': (83, 150),
+                 'RIGHT HIP': (101.25, 151.25), 'RIGHT KNEE': (102.5, 162.5), 'RIGHT LEG': (103.75, 175),
+                 'LEFT HIP': (90, 151.25), 'LEFT KNEE': (88.75, 162.5), 'LEFT LEG': (87.5, 175)},
 })
 
 
@@ -142,18 +161,18 @@ def fitted(cls):
     # 머리 관절을 바꿨으니 SEQ 를 다시 계산 (pose 가 HEAD 를 쓴다) — 모듈 본문을 한 번 더 돌리되 HEAD 고정
     src2 = src.replace("HEAD = {k: (v[0] * 1.45, v[1] * 1.45) for k, v in", "HEAD = HEAD_FIX or {k: (v[0] * 1.45, v[1] * 1.45) for k, v in")
     ns = {'__file__': os.path.join(HERE, 'skel.py'), '__name__': 'skel_fit', 'HEAD_FIX': head}; exec(src2, ns)
-    solve_hands(ns, 'xbow' if cls == 'arbalest' else 'bow')
+    solve_hands(ns, 'xbow' if base_of(cls) == 'arbalest' else 'bow')
     return ns, L, KB
 
 
 def req(cls, act, seed=7):
     from PIL import Image as I
     import base64, io
-    ns, L, KB = fitted(cls); kind = 'xbow' if cls == 'arbalest' else 'bow'
+    ns, L, KB = fitted(cls); kind = 'xbow' if base_of(cls) == 'arbalest' else 'bow'
     name = (ACT_X if kind == 'xbow' else ACT)[act]; frames = ns['SEQ'][name]
     kp0 = BODY_KP[cls]
     f = I.open(os.path.join(SK, f'first-{cls}.png')).convert('RGBA'); buf = io.BytesIO(); f.save(buf, 'PNG')
-    body = {'description': DESC[cls], 'action': ACTION[act], 'direction': 'east', 'view': 'side',
+    body = {'description': DESC[base_of(cls)], 'action': ACTION[act], 'direction': 'east', 'view': 'side',
             'first_frame': {'type': 'base64', 'base64': base64.b64encode(buf.getvalue()).decode(), 'format': 'png'},
             'first_frame_keypoints': ns['kp'](kp0), 'keypoints': [ns['kp'](p) for p, _ in frames], 'template_id': 'mannequin', 'seed': seed, 'no_background': True}
     json.dump(body, open(os.path.join(SK, f'req-{cls}-{act}.json'), 'w', encoding='utf-8'), ensure_ascii=False)

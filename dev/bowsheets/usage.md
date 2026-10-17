@@ -19,3 +19,21 @@
 | 13 | marksman | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 19.0 | 1110.0 |
 | 14 | marksman | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 22.0 | 1106.0 |
 | 15 | marksman | `/animate-with-skeleton-v3` | skel-shoot2: animate-with-skeleton-v3 192 8f | 3.0 | 25.0 | 1098.0 |
+| 16 | marksman | `/edit-image-pixen` | neutral: same young chibi sniper archer, same face, same colors and outfit (yel | 1.0 | 26.0 | 1095.0 |
+| 17 | marksman | `/animate-with-skeleton-v3` | skel-shoot3: animate-with-skeleton-v3 192 8f | 3.0 | 29.0 | 1088.0 |
+| 18 | ranger | `/edit-image-pixen` | neutral: same young chibi forest ranger, same face, same colors and outfit (wid | 1.0 | 30.0 | 1059.0 |
+| 19 | arcaneArcher | `/edit-image-pixen` | neutral: same young chibi arcane archer, same face, same colors and outfit (nav | 1.0 | 31.0 | 1053.0 |
+| 20 | arbalest | `/edit-image-pixen` | neutral: same young chibi crossbowman, same face, same colors and outfit (steel | 1.0 | 32.0 | 1051.0 |
+| 21 | marksman | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 35.0 | 1046.0 |
+| 22 | ranger | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 38.0 | 1043.0 |
+| 23 | ranger | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 41.0 | 1039.0 |
+| 24 | ranger | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 44.0 | 1029.0 |
+| 25 | arcaneArcher | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 47.0 | 1014.0 |
+| 26 | arcaneArcher | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 50.0 | 1007.0 |
+| 27 | arcaneArcher | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 53.0 | 999.0 |
+| 28 | arbalest | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 56.0 | 996.0 |
+| 29 | arbalest | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 59.0 | 993.0 |
+| 30 | arbalest | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 62.0 | 989.0 |
+| 31 | marksman | `/animate-with-skeleton-v3` | skel-walk2: animate-with-skeleton-v3 192 8f | 3.0 | 65.0 | 986.0 |
+| 32 | arbalest | `/edit-image-pixen` | neutral2: same young chibi crossbowman, same face, same colors and outfit (steel | 1.0 | 66.0 | 975.0 |
+| 33 | arbalestAim | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 69.0 | 970.0 |

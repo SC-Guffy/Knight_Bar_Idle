@@ -1,5 +1,5 @@
 {
- "used": 25.0,
+ "used": 69.0,
  "calls": [
   {
    "cls": "mq-bow",
@@ -120,6 +120,150 @@
    "usage": 3.0,
    "n": 8,
    "bal_before": 1098.0
+  },
+  {
+   "cls": "marksman",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi sniper archer, same face, same colors and outfit (yel",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 1095.0
+  },
+  {
+   "cls": "marksman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot3: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1088.0
+  },
+  {
+   "cls": "ranger",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi forest ranger, same face, same colors and outfit (wid",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 1059.0
+  },
+  {
+   "cls": "arcaneArcher",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi arcane archer, same face, same colors and outfit (nav",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 1053.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi crossbowman, same face, same colors and outfit (steel",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 1051.0
+  },
+  {
+   "cls": "marksman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1046.0
+  },
+  {
+   "cls": "ranger",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1043.0
+  },
+  {
+   "cls": "ranger",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1039.0
+  },
+  {
+   "cls": "ranger",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1029.0
+  },
+  {
+   "cls": "arcaneArcher",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1014.0
+  },
+  {
+   "cls": "arcaneArcher",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 1007.0
+  },
+  {
+   "cls": "arcaneArcher",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 999.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 996.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 993.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 989.0
+  },
+  {
+   "cls": "marksman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk2: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 986.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral2: same young chibi crossbowman, same face, same colors and outfit (steel",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 975.0
+  },
+  {
+   "cls": "arbalestAim",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 970.0
   }
  ]
 }
