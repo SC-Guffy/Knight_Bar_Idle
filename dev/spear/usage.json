@@ -1,5 +1,5 @@
 {
- "used": 145.0,
+ "used": 155.0,
  "calls": [
   {
    "cls": "mq",
@@ -783,6 +783,86 @@
    "purpose": "key-chop-4: same young chibi heavy warlord knight with a bull-horned iro",
    "used": 1.0,
    "bal": 385.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-1: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 360.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-2: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 358.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-3: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 355.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-thrust-4: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 353.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-1: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 351.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-2: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 350.0,
+   "n": 0
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-3: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 350.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-4: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 349.0,
+   "n": 0
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-lunge1: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 346.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-lunge2: same young chibi sky general knight with a white and gold wi",
+   "used": 1.0,
+   "bal": 345.0,
    "n": 2
   }
  ]

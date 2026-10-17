@@ -37,7 +37,7 @@ POSE = {
              'recovering to a ready stance, holding the halberd upright beside the body'],
 }
 ATK = {c: ('sweep', 'chop') if c in ('halberdier', 'warlord') else ('thrust', 'slam') for c in PIC}
-FLOOR_STOP = 380
+FLOOR_STOP = 310          # 2026-10-18 로드맵: 380 → 310
 
 
 def src(cls):

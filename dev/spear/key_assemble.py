@@ -14,7 +14,9 @@ from wpn import line_fit
 SEQ = {'default': [4, 1, 2, 3, 3, 4]}   # 원본(정지 그림)은 키와 인상이 달라 뺀다 — 마무리 키(대기 자세)로 시작·끝 (용황 시험 교훈)
 # 용황: 합격 정지 그림(검은 머리)과 pixen 키(금발) 인상이 달라 원본을 빼고, 잘 나온 찌르기 키2 를 새 기준(dragonlord-key2-src64)으로 재편집한 대기·준비를 쓴다
 #  (검수 k1 3.00: 얼굴·머리색 튐, 준비 키 발치 꼬리 모양). 재편집 '들기'는 창이 두 자루라 안 씀
-SEQ_CLS = {'dragonlord': {'thrust': ['key-ready', 'key-windup', 'dragonlord-key2-src64', 3, 3, 'key-ready'],
+SEQ_CLS = {'skyGeneral': {'thrust': ['key-thrust-4', 'key-lunge1', 'key-lunge2', 'key-lunge2', 'key-lunge1', 'key-thrust-4'],   # 찌르기 키2·3 손이 보호대 뒤에 가려 떠 보임 → 키4 기준 재편집 2장
+                           'slam': ['key-thrust-4', 1, 1, 3, 3, 'key-thrust-4']},   # 내리찍기 키2·4 안 옴 → 들기 반복, 마무리는 찌르기 키4
+           'dragonlord': {'thrust': ['key-ready', 'key-windup', 'dragonlord-key2-src64', 3, 3, 'key-ready'],
                           'slam': ['key-ready', 2, 2, 3, 3, 'key-ready']}}
 WALK_DROP = {'warlord': [4, 6], 'dragoon': [2]}                      # 검사 세션 점검: 전쟁군주 walk5·7, 용기병 walk3 (1부터 센 번호)
 
