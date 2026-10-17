@@ -1,5 +1,5 @@
 {
- "used": 90.0,
+ "used": 102.0,
  "calls": [
   {
    "cls": "mq-bow",
@@ -336,6 +336,38 @@
    "usage": 3.0,
    "n": 8,
    "bal_before": 908.0
+  },
+  {
+   "cls": "arbalestSky",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 854.0
+  },
+  {
+   "cls": "deadeye",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 850.0
+  },
+  {
+   "cls": "voidArcher",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 834.0
+  },
+  {
+   "cls": "siegeMaster",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 827.0
   }
  ]
 }

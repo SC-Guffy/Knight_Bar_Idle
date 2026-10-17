@@ -10,7 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
 from pl import call
 
-CAP, FLOOR = 90, 300
+CAP, FLOOR = 120, 300   # 2026-10-17 로드맵 예산 A: 90 → 120
 APPROVED = os.path.join(HERE, "approved.txt")   # 로드맵 세션이 승인한 호출 이름 한 줄씩 — 없으면 호출 안 함 (2026-10-14 동결)
 LOG = os.path.join(HERE, 'usage.md'); STATE = os.path.join(HERE, 'usage.json')
 

@@ -46,3 +46,7 @@
 | 40 | voidArcher | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 84.0 | 920.0 |
 | 41 | siegeMaster | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 87.0 | 917.0 |
 | 42 | siegeMaster | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 90.0 | 908.0 |
+| 43 | arbalestSky | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 93.0 | 854.0 |
+| 44 | deadeye | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 96.0 | 850.0 |
+| 45 | voidArcher | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 99.0 | 834.0 |
+| 46 | siegeMaster | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 102.0 | 827.0 |

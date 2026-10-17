@@ -30,7 +30,7 @@
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 레인저 · 저격수 · 마궁수 · 석궁사수 · 신궁 · 차원궁사 · 공성포수 · 2026-10-15</p>
 
 <div class="box">
-  <b>지금 상태 (2026-10-17)</b>: <a href="#anim4">D-4절</a> 3차 3종 시트(SHEET_ON false) · <a href="#anim3">D-3절</a> 2차 4종 시트(켬) · <a href="#anim">D절</a> 관절 애니 — 쏘기 v1·v2 움직임 미달(첫 프레임이 조준 자세라 팔이 안 따라옴), 중립 첫 프레임 수정안 승인 대기 · <a href="#ref">C절</a> 기준 그림 정리 4종 검수 합격 + 관절 애니 계획서(로드맵 승인 대기) · <a href="#design5">B5절</a> 시안 · B절은 이전 시안 · 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 — <a href="#redesign">A절</a>(브리프·관절 설계, 0회). 이전 시트(마네킹 방식)는 보류: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
+  <b>지금 상태 (2026-10-17)</b>: 레인저 계열 7종 새 시트 모두 켬 · <a href="#anim5">D-5절</a> 하늘 쏘기 4종 · <a href="#anim4">D-4절</a> 3차 3종 · <a href="#anim3">D-3절</a> 2차 4종 시트(켬) · <a href="#anim">D절</a> 관절 애니 — 쏘기 v1·v2 움직임 미달(첫 프레임이 조준 자세라 팔이 안 따라옴), 중립 첫 프레임 수정안 승인 대기 · <a href="#ref">C절</a> 기준 그림 정리 4종 검수 합격 + 관절 애니 계획서(로드맵 승인 대기) · <a href="#design5">B5절</a> 시안 · B절은 이전 시안 · 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 — <a href="#redesign">A절</a>(브리프·관절 설계, 0회). 이전 시트(마네킹 방식)는 보류: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
   <ul>
     <li>2차 포함 7종 기준 그림: 지금 게임의 대기 자세를 8배로 찍어 1배 도트로 줄였다. 칸 96(공성포수 128), 발 기준점 고정, 화살·석궁 살은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
@@ -38,6 +38,18 @@
     <li>96/128 칸 시트 쓰기 <code>dev/bowsheets/sheet.py</code> (칸 가장자리 닿음 검사·hand/head 점 자동) — 임시 시트로 게임 연결을 시험할 때 쓴다 (<code>placeholder.py</code>, 커밋 안 함).</li>
   </ul>
 </div>
+
+<h2 id="anim5">D-5. 하늘 쏘기 4종 (2026-10-17, PixelLab 12 · 계열 누적 102 / 120 — 예산 A)</h2>
+<div class="box"><ul>
+<li>석궁사수는 첫 프레임 = 합격한 쏘기의 겨눔 그림(굵은 석궁)이다. 신궁·차원궁사·공성포수는 3차 중립 그림이다. 직업당 skeleton 1회, 재시도 0.</li>
+<li>수리(스크립트만):
+  <ul>
+  <li>석궁사수: 정면으로 돌던 끝 프레임을 빼고, 반동 밀기를 넣고, 12% 밝힘</li>
+  <li>차원궁사: 화살 잔여·튀는 끝 프레임을 이웃 프레임으로 바꾸고 15% 밝힘</li>
+  </ul></li>
+<li>시트 atkB·castUp 을 하늘 쏘기로 바꿨다. 이로써 레인저 계열 7종 모두 걷기·쏘기·하늘 쏘기가 갖춰졌다.</li>
+</ul></div>
+<div class="scroll box"><div style="display:flex;gap:10px"><figure style="margin:0"><img src="sheets-bow/anim/arbalest-sky-final.gif" style="width:240px;image-rendering:pixelated"><figcaption class="sub">석궁사수 하늘 쏘기 · 3.57 pass</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/deadeye-sky-final.gif" style="width:240px;image-rendering:pixelated"><figcaption class="sub">신궁 하늘 쏘기 · 3.86 pass</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/voidArcher-sky-final.gif" style="width:240px;image-rendering:pixelated"><figcaption class="sub">차원궁사 하늘 쏘기 · 3.57 pass</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/siegeMaster-sky-final.gif" style="width:240px;image-rendering:pixelated"><figcaption class="sub">공성포수 하늘 쏘기 · 3.86 pass</figcaption></figure></div></div>
 
 <h2 id="anim4">D-4. 3차 3종 관절 애니 + 시트 (2026-10-17, PixelLab 계열 누적 usage 90 / 90 — 로드맵 B안)</h2>
 <div class="box"><ul>
