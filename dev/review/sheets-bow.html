@@ -30,7 +30,7 @@
 <p class="sub">스펙 <code>docs/specs/legacy-class-sheets.md</code> · 레인저 · 저격수 · 마궁수 · 석궁사수 · 신궁 · 차원궁사 · 공성포수 · 2026-10-15</p>
 
 <div class="box">
-  <b>지금 상태 (2026-10-17)</b>: <a href="#anim3">D-3절</a> 2차 4종 관절 애니 + 시트 (SHEET_ON false, ?sheetsOn= 로 시험) · <a href="#anim">D절</a> 관절 애니 — 쏘기 v1·v2 움직임 미달(첫 프레임이 조준 자세라 팔이 안 따라옴), 중립 첫 프레임 수정안 승인 대기 · <a href="#ref">C절</a> 기준 그림 정리 4종 검수 합격 + 관절 애니 계획서(로드맵 승인 대기) · <a href="#design5">B5절</a> 시안 · B절은 이전 시안 · 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 — <a href="#redesign">A절</a>(브리프·관절 설계, 0회). 이전 시트(마네킹 방식)는 보류: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
+  <b>지금 상태 (2026-10-17)</b>: <a href="#anim4">D-4절</a> 3차 3종 시트(SHEET_ON false) · <a href="#anim3">D-3절</a> 2차 4종 시트(켬) · <a href="#anim">D절</a> 관절 애니 — 쏘기 v1·v2 움직임 미달(첫 프레임이 조준 자세라 팔이 안 따라옴), 중립 첫 프레임 수정안 승인 대기 · <a href="#ref">C절</a> 기준 그림 정리 4종 검수 합격 + 관절 애니 계획서(로드맵 승인 대기) · <a href="#design5">B5절</a> 시안 · B절은 이전 시안 · 디자인 새로 그리기 + 관절 지정 애니로 바뀌었다 — <a href="#redesign">A절</a>(브리프·관절 설계, 0회). 이전 시트(마네킹 방식)는 보류: 7종 시트를 만들었지만 공격 동작의 몸 움직임이 모자라 방식 재검토 중이다(<a href="#motion">0-1절</a>). PixelLab usage <b>12</b> (승인 8개, 재시도 0). <code>SHEET_ON</code> 은 꺼 둠 — 켤지 사용자 결정. 결과는 <a href="#result">0절</a>. 아래 목록은 준비 단계 기록이다.
   <ul>
     <li>2차 포함 7종 기준 그림: 지금 게임의 대기 자세를 8배로 찍어 1배 도트로 줄였다. 칸 96(공성포수 128), 발 기준점 고정, 화살·석궁 살은 빼고 찍었다.</li>
     <li><code>SHEET_ON</code> 에 7종 줄을 넣었다 (모두 <code>false</code> — 시트가 승인되면 켠다). 주소 <code>?sheets=0</code> 이면 전부 꺼진다.</li>
@@ -38,6 +38,25 @@
     <li>96/128 칸 시트 쓰기 <code>dev/bowsheets/sheet.py</code> (칸 가장자리 닿음 검사·hand/head 점 자동) — 임시 시트로 게임 연결을 시험할 때 쓴다 (<code>placeholder.py</code>, 커밋 안 함).</li>
   </ul>
 </div>
+
+<h2 id="anim4">D-4. 3차 3종 관절 애니 + 시트 (2026-10-17, PixelLab 계열 누적 usage 90 / 90 — 로드맵 B안)</h2>
+<div class="box"><ul>
+<li><b>디자인</b>: 2차 중립 그림을 edit-image-pixen 으로 3차 디자인 + 중립 대기로 한 번에 편집했다(직업당 usage 1). 검수 합격, 실루엣이 2차와 다르다.
+  <ul>
+  <li>신궁 = 태양 빛살 관·머리 뒤 원반·흰 금 코트, 붉은 스카프는 이어 감</li>
+  <li>차원궁사 = 뿔 후드·등 뒤 끊긴 고리·별무늬 망토</li>
+  <li>공성포수 = 볏 투구·큰 견갑·톱니 배낭</li>
+  </ul></li>
+<li><b>애니</b>: 걷기·쏘기만 뽑았다(각 usage 3). 하늘 쏘기는 다음 달 몫이라 atkB·castUp 자리에 쏘기를 넣었다. 관절은 2차 것을 그대로 썼다(같은 몸에서 편집).</li>
+<li><b>수리</b>(스크립트만):
+  <ul>
+  <li>신궁: 놓는 프레임의 이상한 활을 앞 프레임 활로 덮음</li>
+  <li>차원궁사: 어두운 칸 15% 밝힘</li>
+  <li>공성포수: 얼굴이 바뀌는 프레임을 빼고 반동 밀기</li>
+  </ul></li>
+<li><b>SHEET_ON false</b> — 시험: <a href="../skills.html?mode=basic&cls=deadeye&sheetsOn=deadeye,voidArcher,siegeMaster">skills.html 평타 (3차 시트 켬)</a></li>
+</ul></div>
+<h3>신궁</h3><div class="scroll box"><div style="display:flex;gap:10px"><figure style="margin:0"><img src="sheets-bow/anim/deadeye-walk-final.gif" style="width:288px;image-rendering:pixelated"><figcaption class="sub">걷기 · 3.86 pass</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/deadeye-shoot-final.gif" style="width:288px;image-rendering:pixelated"><figcaption class="sub">쏘기 · 3.71 pass</figcaption></figure></div><img class="px" src="sheets-bow/anim/sheet-deadeye.png" style="height:432px;max-width:none;margin-top:6px"></div><h3>차원궁사</h3><div class="scroll box"><div style="display:flex;gap:10px"><figure style="margin:0"><img src="sheets-bow/anim/voidArcher-walk-final.gif" style="width:288px;image-rendering:pixelated"><figcaption class="sub">걷기 · 3.57 pass</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/voidArcher-shoot-final.gif" style="width:288px;image-rendering:pixelated"><figcaption class="sub">쏘기 · 3.71 pass</figcaption></figure></div><img class="px" src="sheets-bow/anim/sheet-voidArcher.png" style="height:432px;max-width:none;margin-top:6px"></div><h3>공성포수</h3><div class="scroll box"><div style="display:flex;gap:10px"><figure style="margin:0"><img src="sheets-bow/anim/siegeMaster-walk-final.gif" style="width:288px;image-rendering:pixelated"><figcaption class="sub">걷기 · 3.57 pass</figcaption></figure><figure style="margin:0"><img src="sheets-bow/anim/siegeMaster-shoot-final.gif" style="width:288px;image-rendering:pixelated"><figcaption class="sub">쏘기 · 3.57 pass</figcaption></figure></div><img class="px" src="sheets-bow/anim/sheet-siegeMaster.png" style="height:432px;max-width:none;margin-top:6px"></div>
 
 <h2 id="anim3">D-3. 관절 애니 4종 + 시트 (2026-10-17, PixelLab 계열 누적 usage 69 / 90)</h2>
 <div class="box"><ul>

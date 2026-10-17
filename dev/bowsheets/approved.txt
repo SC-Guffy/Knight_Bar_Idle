@@ -19,3 +19,12 @@ arbalest/skel-sky
 marksman/skel-walk2
 arbalest/neutral2
 arbalestAim/skel-shoot
+deadeye/design3
+deadeye/skel-walk
+deadeye/skel-shoot
+voidArcher/design3
+voidArcher/skel-walk
+voidArcher/skel-shoot
+siegeMaster/design3
+siegeMaster/skel-walk
+siegeMaster/skel-shoot

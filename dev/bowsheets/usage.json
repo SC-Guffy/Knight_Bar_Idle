@@ -1,5 +1,5 @@
 {
- "used": 69.0,
+ "used": 90.0,
  "calls": [
   {
    "cls": "mq-bow",
@@ -264,6 +264,78 @@
    "usage": 3.0,
    "n": 8,
    "bal_before": 970.0
+  },
+  {
+   "cls": "deadeye",
+   "ep": "/edit-image-pixen",
+   "purpose": "design3: same young chibi archer with the same face and black hair, promoted to",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 949.0
+  },
+  {
+   "cls": "voidArcher",
+   "ep": "/edit-image-pixen",
+   "purpose": "design3: same young chibi arcane archer with the same face and glowing cyan eye",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 948.0
+  },
+  {
+   "cls": "siegeMaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "design3: same young chibi crossbowman with the same young face, promoted to a s",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 947.0
+  },
+  {
+   "cls": "deadeye",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 941.0
+  },
+  {
+   "cls": "deadeye",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 935.0
+  },
+  {
+   "cls": "voidArcher",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 925.0
+  },
+  {
+   "cls": "voidArcher",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 920.0
+  },
+  {
+   "cls": "siegeMaster",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 917.0
+  },
+  {
+   "cls": "siegeMaster",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 908.0
   }
  ]
 }

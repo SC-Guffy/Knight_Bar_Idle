@@ -17,17 +17,18 @@ ORDER = ['idle', 'guard', 'walk', 'atkA', 'atkB', 'cast', 'castUp', 'hurt', 'dea
 SRC_FOOT = (48, 88)
 
 
-def load(cls, spec, foot):
+def load(cls, spec, foot, W=96):
     act, tag = spec.split(':'); d = os.path.join(HERE, 'work', cls); out = []; i = 0
     while os.path.exists(os.path.join(d, f'post-{act}-{tag}-{i}.png')):
-        f = Image.open(os.path.join(d, f'post-{act}-{tag}-{i}.png')).convert('RGBA'); out.append(shift(f, foot[0] - SRC_FOOT[0], foot[1] - SRC_FOOT[1])); i += 1
+        f = Image.open(os.path.join(d, f'post-{act}-{tag}-{i}.png')).convert('RGBA')
+        o = Image.new('RGBA', (W, W)); o.paste(f, (foot[0] - SRC_FOOT[0], foot[1] - SRC_FOOT[1])); out.append(o); i += 1   # 칸 크기(공성 128)로 옮겨 앉힘
     if not out: raise SystemExit(f'no frames {cls} {spec}')
     return out
 
 
 def build(cls, spec, hit=5, uphit=5):
     W, foot = cell_of(cls); cut = foot[1] - 10
-    wk, sh, sk = load(cls, spec['walk'], foot), load(cls, spec['shoot'], foot), load(cls, spec['sky'], foot)
+    wk, sh, sk = load(cls, spec['walk'], foot, W), load(cls, spec['shoot'], foot, W), load(cls, spec['sky'], foot, W)
     s = sh[0]
     A = {'idle': dict(frames=[s, bob(s, cut, 1), bob(s, cut, 1), s], fps=6, loop=True),
          'guard': dict(frames=[bob(s, cut, 1), bob(s, cut, 2), bob(s, cut, 2), bob(s, cut, 1)], fps=8, loop=True),

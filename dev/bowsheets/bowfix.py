@@ -6,7 +6,7 @@
 #   → post-<act>-fix-<i>.png, strip, GIF (입력 = noarrow.py 의 na 판)
 import os, sys, math
 from PIL import Image
-HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(HERE)), 'dev', 'sheets-common'))
+HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE); sys.path.append(os.path.join(os.path.dirname(os.path.dirname(HERE)), 'dev', 'sheets-common'))   # 공용은 뒤에 (공용 skelpost.py 와 이름 겹침)
 from skelpost import strip, W96
 from dress import line_pts
 SHAFT = {(144, 88, 74), (115, 100, 97), (88, 89, 96), (128, 120, 118)}

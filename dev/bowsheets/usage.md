@@ -37,3 +37,12 @@
 | 31 | marksman | `/animate-with-skeleton-v3` | skel-walk2: animate-with-skeleton-v3 192 8f | 3.0 | 65.0 | 986.0 |
 | 32 | arbalest | `/edit-image-pixen` | neutral2: same young chibi crossbowman, same face, same colors and outfit (steel | 1.0 | 66.0 | 975.0 |
 | 33 | arbalestAim | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 69.0 | 970.0 |
+| 34 | deadeye | `/edit-image-pixen` | design3: same young chibi archer with the same face and black hair, promoted to | 1.0 | 70.0 | 949.0 |
+| 35 | voidArcher | `/edit-image-pixen` | design3: same young chibi arcane archer with the same face and glowing cyan eye | 1.0 | 71.0 | 948.0 |
+| 36 | siegeMaster | `/edit-image-pixen` | design3: same young chibi crossbowman with the same young face, promoted to a s | 1.0 | 72.0 | 947.0 |
+| 37 | deadeye | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 75.0 | 941.0 |
+| 38 | deadeye | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 78.0 | 935.0 |
+| 39 | voidArcher | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 81.0 | 925.0 |
+| 40 | voidArcher | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 84.0 | 920.0 |
+| 41 | siegeMaster | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 87.0 | 917.0 |
+| 42 | siegeMaster | `/animate-with-skeleton-v3` | skel-shoot: animate-with-skeleton-v3 192 8f | 3.0 | 90.0 | 908.0 |

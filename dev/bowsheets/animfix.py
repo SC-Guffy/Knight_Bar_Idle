@@ -11,6 +11,7 @@
 #                              — 'hand' 면 상자 안 피부색 중심을 맞춰 옮기고, 'clear' 면 대상 상자를 먼저 비운다 (예 hand+clear)
 #     despeck=<프레임들>[:밝기차]  외톨이 점·몸 안 튀는 점(4방향 이웃과 밝기 차 40 넘음) 정리
 #     shift=<프레임들>:<dx>,<dy> 프레임을 통째로 민다 (발사 반동)
+#     lift=0.15                 어두운 칸(밝기 14~90) 밝히기, 외곽선은 그대로 (명암 2 → 3)
 #     quant=24                  모든 프레임 공통 팔레트로 양자화 (빈도 높은 색 우선, 가까운 색으로)
 #   → post-<act>-<out판>-<i>.png, strip, GIF(4배)
 import os, sys, math
@@ -146,6 +147,14 @@ if __name__ == '__main__':
             parts = v.split(':'); dx, dy = (int(t) for t in parts[1].split(','))
             for j in frames_of(parts[0], len(fr)):
                 o = Image.new('RGBA', fr[j].size); o.paste(fr[j], (dx, dy)); fr[j] = o
+        elif k == 'lift':                          # 어두운 몸 밝히기: 외곽선(밝기 14 미만)은 두고, 밝기 90 미만 칸을 흰쪽으로 비율만큼
+            a = float(v)
+            for f in fr:
+                P = f.load()
+                for y in range(f.height):
+                    for x in range(f.width):
+                        c = P[x, y]
+                        if c[3] and 14 <= L(c) < 90: P[x, y] = tuple(round(ch + (255 - ch) * a) for ch in c[:3]) + (255,)
         elif k == 'quant': log.append(f'pal{len(quant(fr, int(v)))}')
     for j, f in enumerate(fr): f.save(os.path.join(Wd, f'post-{act}-{out}-{j}.png'))
     strip(fr).save(os.path.join(Wd, f'strip-{act}-{out}.png'))

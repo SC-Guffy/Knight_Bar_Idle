@@ -34,11 +34,13 @@ def thin_off(im, win=2, need=11):
     return o
 
 
-NEUTRAL = {'marksman', 'ranger', 'arcaneArcher', 'arbalest'}     # 중립 대기 첫 프레임 (2026-10-17: 조준 자세 첫 프레임은 팔 관절을 안 따름 → edit-image-pixen 으로 팔 내린 빈손 대기) — design/ref/<cls>-neutral.png
+NEUTRAL = {'marksman', 'ranger', 'arcaneArcher', 'arbalest', 'deadeye', 'voidArcher', 'siegeMaster'}     # 중립 대기 첫 프레임 (2026-10-17: 조준 자세 첫 프레임은 팔 관절을 안 따름 → edit-image-pixen 으로 팔 내린 빈손 대기) — design/ref/<cls>-neutral.png
 
 
 # 석궁사수 쏘기만: 중립 편집이 정면으로 돌아(2회) 옆모습 정리본(석궁 겨눈 자세, 석궁은 두꺼워 남김)을 첫 프레임으로 (2026-10-17 로드맵 승인)
-ALIAS = {'arbalestAim': 'arbalest'}
+ALIAS = {'arbalestAim': 'arbalest', 'arbalestSky': 'arbalest'}
+# arbalestSky: 첫 프레임 = 합격한 쏘기(fx4) 0번 겨눔 그림(굵은 석궁), 관절 = 그 프레임을 만든 설계 자세 (xbow-shoot 0번, 석궁사수 중립 뼈 길이)
+SKY_FIRST = ('arbalest', 'post-shoot-fx4-0.png')
 base_of = lambda cls: ALIAS.get(cls, cls)
 
 
@@ -130,10 +132,17 @@ def solve_hands(ns, kind):
 
 ACT = {'walk': 'bow-walk', 'shoot': 'bow-shoot', 'sky': 'bow-sky'}
 ACT_X = {'walk': 'xbow-walk', 'shoot': 'xbow-shoot', 'sky': 'xbow-sky'}
+ACT_S = {'walk': 'siege-walk', 'shoot': 'siege-shoot', 'sky': 'siege-sky'}
+# 3차: 2차 중립 그림을 3차 디자인으로 편집한 것이라 몸·자세가 같다 — 관절은 2차 것을 그대로 (발 가운데 기준으로 이미 맞춰 놓임)
+PARENT = {'deadeye': 'marksman', 'voidArcher': 'arcaneArcher', 'siegeMaster': 'arbalest'}
+kind_of = lambda cls: 'siege' if cls == 'siegeMaster' else ('xbow' if base_of(cls) == 'arbalest' else 'bow')
 DESC = {
     'marksman': 'young chibi sniper archer, black hair tied back, yellow goggles on the forehead, short teal high-collared jacket with a belt, long red scarf fluttering behind, dark trousers and tall boots, hands empty (the bow is drawn later)',
 }
 DESC.update({
+    'deadeye': 'young chibi legendary master archer, golden crown of sun rays, small golden sun disc halo behind the head, long white and gold coat with teal trim, long red scarf, golden bracers, white trousers and tall boots, hands empty (the bow is drawn later)',
+    'voidArcher': 'young chibi void archer, dark violet hood with two curved horns, broken glowing purple and cyan ring floating behind the back, long dark violet starry cloak, glowing cyan eyes, cyan runes, hands empty (the bow is drawn later)',
+    'siegeMaster': 'young chibi siege master, heavy steel helmet with a red crest, big round steel pauldrons, bulky gear backpack, red tabard over plate armor, thick gauntlets and greaves, holding a huge siege crossbow on the shoulder',
     'ranger': 'young chibi forest ranger, wide-brimmed green hat with a big white feather, auburn hair, cream shirt, brown leather vest and belt, brown trousers and boots, hands empty (the bow is drawn later)',
     'arcaneArcher': 'young chibi arcane archer, navy hood with a pointed tip, glowing cyan eyes, short navy tunic with cyan runes and a belt, navy trousers and boots, glowing cyan bracers, short shoulder cape, hands empty (the bow is drawn later)',
     'arbalest': 'young chibi crossbowman, steel helmet with raised visor and a young face, red tabard over a breastplate, belt with bolts, short red cape, steel greaves and boots, holding a heavy crossbow',
@@ -144,7 +153,7 @@ ACTION = {'walk': 'walk cycle', 'shoot': 'draw a bowstring back to the ear and r
 
 def fitted(cls):
     """skel.py 를 이 그림의 뼈 길이로 다시 계산한 모듈 (몸통·허벅지·정강이·위팔·아래팔·어깨 간격·머리 관절은 BODY_KP 에서)"""
-    kp = BODY_KP[cls]; d = lambda a, b: math.dist(kp[a], kp[b])
+    kp = BODY_KP['arbalest' if cls == 'arbalestSky' else PARENT.get(cls, cls)]; d = lambda a, b: math.dist(kp[a], kp[b])
     mid = lambda a, b: ((kp[a][0] + kp[b][0]) / 2, (kp[a][1] + kp[b][1]) / 2)
     hipm = mid('RIGHT HIP', 'LEFT HIP')
     L = {'TORSO': math.dist(kp['NECK'], hipm), 'TH': (d('RIGHT HIP', 'RIGHT KNEE') + d('LEFT HIP', 'LEFT KNEE')) / 2,
@@ -161,17 +170,22 @@ def fitted(cls):
     # 머리 관절을 바꿨으니 SEQ 를 다시 계산 (pose 가 HEAD 를 쓴다) — 모듈 본문을 한 번 더 돌리되 HEAD 고정
     src2 = src.replace("HEAD = {k: (v[0] * 1.45, v[1] * 1.45) for k, v in", "HEAD = HEAD_FIX or {k: (v[0] * 1.45, v[1] * 1.45) for k, v in")
     ns = {'__file__': os.path.join(HERE, 'skel.py'), '__name__': 'skel_fit', 'HEAD_FIX': head}; exec(src2, ns)
-    solve_hands(ns, 'xbow' if base_of(cls) == 'arbalest' else 'bow')
+    solve_hands(ns, kind_of(cls))
     return ns, L, KB
 
 
 def req(cls, act, seed=7):
     from PIL import Image as I
     import base64, io
-    ns, L, KB = fitted(cls); kind = 'xbow' if base_of(cls) == 'arbalest' else 'bow'
-    name = (ACT_X if kind == 'xbow' else ACT)[act]; frames = ns['SEQ'][name]
-    kp0 = BODY_KP[cls]
-    f = I.open(os.path.join(SK, f'first-{cls}.png')).convert('RGBA'); buf = io.BytesIO(); f.save(buf, 'PNG')
+    ns, L, KB = fitted(cls); kind = kind_of(cls)
+    name = {'xbow': ACT_X, 'siege': ACT_S, 'bow': ACT}[kind][act]; frames = ns['SEQ'][name]
+    if cls == 'arbalestSky':
+        f = I.open(os.path.join(HERE, 'work', SKY_FIRST[0], SKY_FIRST[1])).convert('RGBA').resize((N, N), I.NEAREST)
+        kp0 = fitted('arbalest')[0]['SEQ']['xbow-shoot'][0][0]
+    else:
+        kp0 = BODY_KP[PARENT.get(cls, cls)]
+        f = I.open(os.path.join(SK, f'first-{cls}.png')).convert('RGBA')
+    buf = io.BytesIO(); f.save(buf, 'PNG')
     body = {'description': DESC[base_of(cls)], 'action': ACTION[act], 'direction': 'east', 'view': 'side',
             'first_frame': {'type': 'base64', 'base64': base64.b64encode(buf.getvalue()).decode(), 'format': 'png'},
             'first_frame_keypoints': ns['kp'](kp0), 'keypoints': [ns['kp'](p) for p, _ in frames], 'template_id': 'mannequin', 'seed': seed, 'no_background': True}
