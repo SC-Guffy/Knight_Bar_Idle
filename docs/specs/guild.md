@@ -1,6 +1,6 @@
 # 기사단 (시즌7 — 여러 캐릭터 동시 육성 + Google 로그인)
 
-- 상태: 1단계(이 기기 안 기사단, 웹) **구현됨 — 사용자 확인 대기** (2026-10-17). 공용 범위 안 A 확정 · 구현 순서 "화면 먼저" 승인 · 효과 수치는 시작안, 마지막 단계에서 봇으로 확정
+- 상태: 1단계(이 기기 안 기사단, 웹) **사용자 확인 완료** (2026-10-17) · **2단계 스펙 확인 대기**. 공용 범위 안 A 확정 · 구현 순서 "화면 먼저" 승인 · 효과 수치는 시작안, 마지막 단계에서 봇으로 확정
 - 검토 페이지: [dev/review/guild.html](../../dev/review/guild.html)
 - 관련 코드(예정): src/net.js (계정 → 기사단 토큰·캐릭터 key), src/core.js (`S`·`freshState`·`simulate`), src/ui.js (메인 루프 `frame`·HUD), src/world.js (화면·실시간 전투 상태), server/index.js·server/store.js (계정 = 캐릭터 행 유지 + `guilds` 테이블), main.js·preload.js (안 바꾸는 게 목표)
 - 관련 스펙: [roadmap.md](roadmap.md) (시즌7), [currency-roles.md](currency-roles.md), [raid-difficulty.md](raid-difficulty.md)
@@ -86,7 +86,7 @@
 - 크고 투박한 박스 금지. 버튼 크기는 HUD 글자 높이 정도. 좁은 창에서 HUD·버튼을 가리거나 잘리지 않는지 확인.
 - 캠프 → 마을 탭에 🛡️ 기사단 회관: 보유 기사 목록·슬롯 배정·계열 효과 표·새 기사.
 
-## 1단계 본 구현 — 이 기기 안 기사단 (구현됨 · 사용자 확인 대기)
+## 1단계 본 구현 — 이 기기 안 기사단 (구현됨 · 사용자 확인 2026-10-17)
 사용자 결정(10-16): **화면 먼저**. 서버·Google 로그인 없이, 지금 계정(닉네임 토큰)들을 이 기기 안에서 기사단으로 묶어 슬롯 칩·회관·공용 마을을 먼저 만들고 직접 굴려 본다. 서버 기사단·Google 은 2단계(Google Cloud OAuth 클라이언트는 그동안 사용자가 만든다).
 
 ### 켜는 법 · 구조
@@ -136,6 +136,72 @@
 - 슬롯에서 뺀 기사의 입장권 충전: **계속 찬다**(사용자 10-16 확정). 입장권은 "새 날이면 하루치로 채움" 방식(`raid.js refillTickets` 등)이라, 쉬던 기사를 다시 슬롯에 넣으면 그날 몫이 그대로 차 있다 — 따로 만든 것 없음.
 - 기사 삭제·이름 바꾸기: 1단계는 기사단에서 "빼기"만(계정은 남음, 사용자 10-16 확정). 진짜 삭제·이름 바꾸기는 2단계 서버와 함께.
 
+## 2단계 — 서버 기사단 · Google 로그인 · 연결 코드 · Electron (스펙 확인 대기)
+1단계(이 기기 안 기사단)를 서버로 올려, 어느 기기에서든 Google 로그인 한 번으로 내 기사단·기사들을 이어 한다. 공용 상태(마을·재화)를 서버에 저장하는 건 3단계 — 2단계에서 공용 상태는 아직 기기에 있다.
+
+### 서버 저장
+- 새 표 `guilds` = `{ id, name, nameKey(소문자, 전 서버 중복 불가), googleSub(Google 계정 고유 번호, 중복 불가), tokenHash, deviceId, chars: [기사 key…], slots: [기사 key|null × 5], createdAt, updatedAt }`. 파일 저장소(`DATA_DIR/guilds.json`)·Postgres 둘 다.
+- 기사(지금 `accounts` 행)에 `guildId` 를 더한다. 기사단 소속 기사는 개인 토큰이 없다(아무도 모르는 무작위 해시 — AI 기사처럼).
+- 이메일·이름·사진 같은 Google 개인정보는 저장하지 않는다. `sub`(숫자 ID)만.
+
+### 인증
+- 기사단 토큰 하나로 소속 기사 누구든 움직인다: `Authorization: Bearer <기사단 토큰>` + `X-Char: <닉네임>`. 서버 `auth()` 가 기사단 토큰이면 `X-Char` 기사가 그 기사단 소속인지 확인하고 그 기사 행을 돌려준다 → 지금 있는 API(세이브·결투·레이드·탑·월드 보스…)는 **안 고친다**.
+- 개인 토큰(지금 방식)도 그대로 받는다 — 시즌7 전까지는 둘 다.
+
+### Google 로그인 (웹)
+- 화면: 기사단 모드 첫 화면에 **Google 로 시작** 버튼(Google Identity Services, `accounts.google.com/gsi/client`). 버튼 → Google 이 ID 토큰(JWT)을 준다 → `POST /api/auth/google { idToken }`.
+- 서버 검증: Google `tokeninfo` 로 서명·만료 확인, `aud` = 우리 클라이언트 ID(`GOOGLE_CLIENT_ID` 환경 변수), `iss` = accounts.google.com. 비밀키는 쓰지 않는다.
+- 응답: 그 `sub` 의 기사단이 있으면 `{ token, guild }`, 없으면 `{ token, guild: null }` → 기사단 이름 짓기 `POST /api/guilds { name }` → 첫 기사 닉네임 `POST /api/guilds/chars { nickname, state, profile }`.
+- 로그인할 때마다 토큰을 새로 발급한다(예전 토큰은 무효). 토큰은 localStorage `knight-bar-guild-token`.
+- CSP: `index.html`·`guild.html` 에 `script-src https://accounts.google.com/gsi/client` · `frame-src https://accounts.google.com` · `connect-src` 에 같은 주소를 더한다.
+- 개발용: 서버 `GOOGLE_FAKE=1` 이면 `fake:<sub>` 를 ID 토큰으로 받는다(로컬 테스트·자동 검증용, 배포 서버엔 안 켠다).
+
+### 기사단 API (새로)
+| | 하는 일 |
+|---|---|
+| `POST /api/auth/google` | ID 토큰 → 기사단 토큰 (+ 기사단 정보) |
+| `POST /api/guilds` | 기사단 만들기 (이름 2~12자, 중복 불가) |
+| `GET /api/guilds/me` | 내 기사단: 이름·기사 목록(닉네임·직업·Lv)·슬롯 |
+| `POST /api/guilds/chars` | 새 기사 (기사 최대 10명, 닉네임 규칙은 지금과 같음, IP 당 시간 제한도 같음) |
+| `PUT /api/guilds/slots` | 슬롯 배정 저장 (1단계의 `guild.slots` 를 서버로) |
+| `POST /api/link/start` · `GET /api/link/poll` · `POST /api/link/confirm` | 연결 코드 (아래) |
+
+### 연결 코드 (Electron 앱 · Google 버튼이 막힌 곳)
+- Google 은 앱 안 로그인 창을 막고, 게임 모음 사이트 iframe 안에서도 버튼이 막힐 수 있다.
+- 앱: "기기 연결" → `POST /api/link/start` → 6자리 숫자 코드(10분) → 화면에 코드와 "게임 웹 주소에서 이 코드를 넣어 주세요" 안내 → 3초마다 `GET /api/link/poll?id=…`.
+- 사용자: 아무 브라우저에서 게임 웹 주소 → Google 로그인 → "기기 연결" 에 코드 입력 → `POST /api/link/confirm { code }` (기사단 토큰으로).
+- 앱 폴링이 기사단 토큰을 받는다 → 바로 기사단으로. main.js·preload.js 를 안 바꾸므로 **앱 재설치 없음**.
+- 코드는 한 번만 쓰고, 틀린 코드 5번이면 그 코드를 버린다.
+
+### 한 기사단은 한 기기에서만
+- 로그인(또는 연결 코드)할 때 기기 번호(`deviceId`, 기기 localStorage 의 무작위 값)를 기사단에 적는다. 요청마다 `X-Device` 를 보내고, 서버의 `deviceId` 와 다르면 `409 { code: 'moved' }`.
+- 먼저 기기는 409 를 받으면 저장을 멈추고 "다른 기기에서 접속했어요 — 여기서 다시 하려면 [이 기기에서 계속]" 을 띄운다. 누르면 다시 로그인한 것처럼 이 기기로 가져온다.
+
+### Electron 에서 기사단 (1단계에서 미룬 것)
+- 앱 창 API(`window.bar`)를 바깥 페이지가 **중계**한다: iframe 의 게임은 `window.bar` 대신 바깥이 준 대리 객체를 쓴다.
+  - 보는 기사만 실제로 보낸다: `setWindow`·`setInteractive`·`setCampMode`·`setOverlay`·`setTrayTitle`·`setAccount`. 숨은 기사의 요청은 기억만 해 두고, 그 기사로 바꾸는 순간 앞 기사의 요청을 거두고 새 기사의 것을 보낸다.
+  - 앱 → 게임 신호는 바깥이 나눠 준다: `onFlush`(모든 기사 저장·서버 올리기 뒤 한 번만 `flushed`), `onSettings`·`onDisplay`(모두), `onReset`(보는 기사만), `onSwitchAccount`(보는 기사의 회관 열기).
+  - 슬롯 버튼 위에 마우스가 오면 바깥 페이지가 직접 `setInteractive(true)`.
+- 앱을 실제로 띄우지 않는 규칙대로, 가짜 `bar`(호출 기록만 하는 객체)를 웹에서 넣어 중계 규칙을 확인한다. 앱 실기 확인은 사용자에게 맡긴다.
+
+### 2단계 수용 기준
+- [ ] 로컬 서버(`GOOGLE_FAKE=1`): 처음 → Google(가짜) → 기사단 이름 → 첫 기사 → 게임. 다른 브라우저 프로필에서 같은 sub 로 로그인하면 같은 기사단·기사들
+- [ ] 진짜 Google: 사용자가 만든 클라이언트 ID 로 localhost 에서 로그인 버튼 → 기사단까지 (사용자 콘솔 작업 뒤)
+- [ ] 연결 코드: 웹 탭 둘로 흉내 — 탭 A(앱 역할) 코드 → 탭 B 로그인·입력 → A 가 기사단으로
+- [ ] 두 기기: 탭 B 로그인 → 탭 A 가 멈추고 안내, "이 기기에서 계속" → B 가 멈춤
+- [ ] 기사단 토큰 + `X-Char` 로 세이브·결투·레이드 대기방이 지금처럼 된다. 다른 기사단 기사 이름을 `X-Char` 로 넣으면 401
+- [ ] 같은 기사단 기사끼리 결투는 거부, 레이드 파티는 허용
+- [ ] 랭킹 이름 옆에 작게 기사단 이름
+- [ ] Electron 중계: 가짜 `bar` 로 숨은 기사의 `setWindow` 가 앱으로 안 나가고, 전환 때 앞 기사 요청 거둠·새 기사 요청 보냄, `onFlush` 뒤 `flushed` 한 번
+- [ ] 기사단 플래그를 안 켜면 지금 게임과 똑같다 (서버도 개인 토큰 그대로)
+
+### 사용자가 할 일 (Google Cloud)
+- Google Cloud 콘솔에서 OAuth 클라이언트 ID(웹 애플리케이션) 만들기. 승인된 JavaScript 원본: `https://sc-guffy.github.io`, `http://localhost:8791`(테스트). 클라이언트 ID(공개값)를 알려 주면 코드에 넣고, Render 서버 환경 변수 `GOOGLE_CLIENT_ID` 에도 넣는다. OAuth 동의 화면은 "외부 · 테스트 사용자" 로 시작해도 된다(시즌7 오픈 전에 "프로덕션" 으로).
+- 그 전까지는 `GOOGLE_FAKE` 로 만들고 확인한다.
+
+### 2단계 결정할 것 (추천안)
+- **손님 모드**: Google 없이도 시작할 수 있게 할까? 추천 = **손님으로 시작 가능, 다른 기기에서 이어 하려면 나중에 Google 연결**. 방치형이라 첫 진입 장벽을 낮추고, 게임 모음 사이트 iframe 처럼 Google 버튼이 막힌 곳에서도 시작된다. 손님 기사단은 기사단 토큰만 있고 `googleSub` 가 비어 있다 → 나중에 "Google 연결" 로 채운다. (대안: Google 필수 — 만들 게 적지만 이탈이 늘 수 있다)
+
 ## 수용 기준
 - [ ] 처음 접속: Google 로그인 → 기사단 이름 → 첫 기사 닉네임 → 게임 시작 (로컬 서버 + 테스트용 Google 클라이언트)
 - [ ] 다른 브라우저에서 같은 Google 계정으로 로그인하면 같은 기사단·기사들이 보인다
@@ -173,11 +239,13 @@
 - 2026-10-16 (집 PC): 사용자에게 시제품 결과 보고. 결정 — 슬롯은 HUD 위 작은 숫자 버튼 1~5(왼쪽 위 칩 대신), 하는 일은 버튼 위 작은 아이콘으로만, 측정판은 시제품 전용. 구현 순서 **화면 먼저**(이 기기 안 기사단 → 서버·Google → 공용 상태 서버 저장 → 효과 수치), 효과 수치는 **시작안 두고 봇으로 확정**. "1단계 본 구현" 절 작성 (발견: 건설은 `S.build.remain` 을 빼는 방식이라 공용으로 걸면 iframe 수만큼 빨라짐 → 호스트가 한 번만 돌리게).
 - 2026-10-16~17 (집 PC): 사용자가 1단계 스펙 확정("해봐") → **1단계 구현** (`spec-guild` 브랜치). 수용 기준 8개 모두 확인(위 체크). 구현 중 바뀐 것: 1단계는 웹만(Electron 은 2단계), 기존 `viewHall`(명예의 전당)과 이름이 겹쳐 회관 화면은 `viewGuildHall`. 확인 방법은 [dev-testing.md](../dev-testing.md) "기사단 (1단계)".
 
+- 2026-10-17: 사용자 1단계 확인. "2단계" 절(서버 기사단·Google·연결 코드·한 기기·Electron 중계) 작성 — 확인 대기.
+
 ## 남은 일 / 미정
 - ~~인계 (2026-10-16 퇴근)~~ → 10-16 집 PC 에서 처리함(프레임 측정·순서 승인). 원문: 스펙 초안·검토 페이지(`dev/review/guild.html`)·시제품(`dev/guild-spike.html` + `src/core.js` `GUILD_HOST`·`src/net.js` `GUILD_CHAR`·`src/ui.js` `frame(now, shown)`/`guildStep`)은 main 에 커밋·푸시됨(452489e, 9dd7ea8). 사용법은 [dev-testing.md](../dev-testing.md) "기사단 시제품". 사용자에게 시제품 결과를 아직 보고·확인받지 않았다 → 다음 세션은 시제품을 띄워 보여 주고(실제 화면 rAF 로 5명 프레임 측정), 본 구현 순서안(아래) 승인을 받는다. 기사단 효과 수치는 시작안이라 확정 아님.
 - 기사단 효과 수치·회관 슬롯 Lv (사용자 10-16: 시작안 그대로 만들고 마지막 단계에서 봇으로 확정해 다시 보여 준다) — 진행 봇(`dev/progress-bot.js`, `dev/currency-bot.js`)을 기사 여러 명 모드로 늘려서 확정.
 - 1단계 남은 확인: Electron 에서 iframe → 바깥 `bar` 전달 (실제 화면 프레임 측정은 10-16 집 PC 에서 끝남).
-- **다음 할 일**: 사용자가 1단계를 직접 굴려 보고 확인 → main 에 합칠 때 `GAME_VERSION` 올리기(플래그 꺼져 있어 플레이어 영향 없음). 그다음 2단계.
+- **다음 할 일**: 2단계 절 요지를 사용자에게 확인받고(손님 모드 결정 포함) 구현. 1단계는 사용자 확인 완료 — main 에 합칠 때 `GAME_VERSION` 올리기(플래그 꺼져 있어 플레이어 영향 없음, 합치는 건 로드맵/사용자 판단).
 - 본 구현 순서 (**사용자 승인 10-16: 화면 먼저**): 1단계 이 기기 안 기사단(슬롯 칩·알림 모으기·회관·공용 마을, 위 절) → 2단계 서버 기사단(`guilds` 테이블·토큰·`X-Char`)·Google 로그인·연결 코드 → 3단계 공용 상태 서버 저장(다른 기기에서도 같은 마을) → 4단계 기사단 효과 수치(진행 봇).
 - Google Cloud OAuth 클라이언트 만들기 — 사용자 계정으로 해야 함 (콘솔 작업은 사용자가 직접, 순서는 안내).
 - 기사 삭제·이름 바꾸기 규칙, 슬롯에서 뺀 기사의 입장권 충전 여부 — 추천안은 1단계 절 "미정".
