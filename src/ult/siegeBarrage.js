@@ -44,7 +44,7 @@ function sgCannonFx(a, life, shots, angOf) {
     ctx.fillStyle = '#2e3038'; ctx.fillRect(-18, -9, 62, 18);
     ctx.fillStyle = '#4a4e5a'; ctx.fillRect(-18, -9, 62, 4); ctx.fillRect(36, -11, 8, 22);                   // 포구 테
     ctx.fillStyle = '#c9a227'; ctx.fillRect(-10, -10, 3, 20); ctx.fillRect(14, -10, 3, 20);                   // 금테
-    if (rec > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,200,100,${0.8 * rec})`; ctx.beginPath(); ctx.arc(46, 0, 5 + 7 * (1 - rec), 0, Math.PI * 2); ctx.fill(); }
+    if (rec > 0) vfxDraw(ctx, 'h26', 'raw', Math.min(4, Math.floor((1 - rec) * 5)), 50, 0, { scale: 2 / 3 });   // 포구 섬광: 작은 포격 폭발 H26
     ctx.restore();
   });
 }

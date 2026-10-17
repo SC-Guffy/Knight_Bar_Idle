@@ -40,17 +40,9 @@ function dcVoidArrow(a, x1, y1, life, onLand) {
 // 시위 끝에 공허가 모인다: 검은 구슬이 자라며 둘레 빛을 빨아들인다
 function dcChargeFx(a, until) {
   aFx(a, 0, until, (u) => {
-    const h = hand(a), x = h.x + a.dir * 10, y = h.y - 2, r = 2 + 6 * easeOut(u) + Math.sin(clock * 30) * 0.6;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = `rgba(255,77,255,${0.35 * u})`;
-    ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, Math.PI * 2); ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = '#0a0012';
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = DC_MAG; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
+    // 공허탄 P5 (빨려 드는 꼬리 루프)가 2/3 → 1배로 자란다. 꼬리는 기사 쪽으로
+    const h = hand(a), x = h.x + a.dir * 10, y = h.y - 2;
+    vfxDraw(ctx, 'p5', 'raw', vfxLoopF('p5', 14), x, y, { scale: u < 0.5 ? 2 / 3 : 1, flip: a.dir < 0, alpha: Math.min(1, 0.4 + u) });
   }, null, (u) => {
     if (Math.random() < 0.7) {
       const h = hand(a), ang = rand(0, Math.PI * 2), r = rand(20, 44);
@@ -170,18 +162,8 @@ function dcCrackStage(a) {
     st.pulse = Math.max(0, st.pulse - 0.08);
     // 박힌 공허 구슬: 숨 쉬듯 커졌다 작아지고, 마지막엔 안으로 꺼졌다 터진다
     const r = after ? 0 : 7 + 3 * Math.sin(clock * 12) + 6 * st.pulse - 6 * segU(t, fin - 0.25, fin);
-    if (r > 0.5) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = 'rgba(255,77,255,0.35)';
-      ctx.beginPath(); ctx.arc(C.x, C.y, r * 2.2, 0, Math.PI * 2); ctx.fill();
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = '#05000a';
-      ctx.beginPath(); ctx.arc(C.x, C.y, r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = DC_PALE; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(C.x, C.y, r + 1, 0, Math.PI * 2); ctx.stroke();
-      ctx.restore();
-    }
+    // 공허 균열 F13 (소용돌이 루프)을 1/3배로, 숨 쉬는 만큼 가로세로를 늘였다 줄인다
+    if (r > 0.5) vfxDraw(ctx, 'f13', DC_MAG, vfxLoopF('f13', 12), C.x, C.y, { scale: 1 / 3, sx: r / 10, sy: r / 10, rot: clock * 1.5 });
   });
 }
 
@@ -297,40 +279,32 @@ function dcHoleStage(a) {
   };
   aFx(a, 0, life, (u) => {
     const t = u * life, r = radius(t);
-    // 빨려 드는 빛줄기: 짧은 호 꼬리를 그린다
-    ctx.save();
-    ctx.lineCap = 'round';
+    // 빨려 드는 빛줄기: C16 반짝임 머리 + 지나온 자리에 옅어지는 잔상 둘 (예전 1.5px 선 대신)
     for (const f of flow) {
-      const [x, y] = P(f.r, f.ang), [px, py] = P(f.r + 6 + f.sp * 0.03, f.ang - 0.12);
+      const [x, y] = P(f.r, f.ang);
       if (f.rock) { dot(x, y, 3, '#8a7a5a', 1); continue; }
-      ctx.strokeStyle = f.c; ctx.globalAlpha = Math.min(1, f.r / 30); ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke();
+      const al = Math.min(1, f.r / 30), fr = vfxLoopF('c16', 12, f.ang * 5);
+      for (let g = 2; g >= 0; g--) {
+        const [gx, gy] = g ? P(f.r + g * (3 + f.sp * 0.015), f.ang - g * 0.06) : [x, y];
+        vfxDraw(ctx, 'c16', f.c, fr, gx, gy, { scale: 2 / 3, alpha: al * [1, 0.5, 0.25][g] });
+      }
     }
-    ctx.restore();
     if (r > 0.3 && t < fin) {
       drawDisk(t, r, false);
-      ctx.save();
-      ctx.fillStyle = '#000000';
-      ctx.beginPath(); ctx.arc(B.x, B.y, r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#ffe8ff'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(B.x, B.y, r + 1.5, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha = 0.5; ctx.strokeStyle = DC_MAG; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(B.x, B.y, r * 2.3, 0, Math.PI * 2); ctx.stroke();
-      ctx.restore();
+      // 블랙홀 몸통: 특이점 E28 (마궁수 유도 마탄 ★★★ → 차원궁사로 이어 씀). 반지름 r 에 맞춰 1/3 단위 배율
+      vfxDraw(ctx, 'e28', DC_MAG, vfxLoopF('e28', 12), B.x, B.y, { scale: vfxNearScale((r * 4.6) / (64 * VFX_DOT)) });
       drawDisk(t, r, true);
     }
     // 마지막: 붕괴한 블랙홀이 터지며 하단바 전체로 빛 고리가 퍼진다
     if (t > fin) {
       const k = t - fin, e = easeOut(clamp01(k / 0.45));
       if (k < 0.15) dimBand(0.35 * (1 - k / 0.15), '255,225,255');   // 궁극기 막타 섬광 α 0.6 이하·0.15초 (게임 정지 동안 첫 값으로 멈춰 보여 0.35)
-      ctx.save();
       for (let j = 0; j < 3; j++) {
         const kk = easeOut(clamp01((k - j * 0.07) / 0.5));
-        if (kk <= 0) continue;
-        ctx.globalAlpha = 1 - kk;
-        ctx.strokeStyle = j === 1 ? '#ffffff' : DC_MAG; ctx.lineWidth = 5 - j;
-        ctx.beginPath(); ctx.ellipse(B.x, B.y, 10 + (W * 0.9) * kk, 6 + 80 * kk, 0, 0, Math.PI * 2); ctx.stroke();
+        if (kk <= 0 || kk >= 1) continue;
+        vfxDraw(ctx, 'c3', j === 1 ? '#ffffff' : DC_MAG, Math.min(4, Math.floor(kk * 5)), B.x, B.y, { scale: 2, sx: 0.15 + (W * 0.9 / 160) * kk, sy: 0.3 + 1.4 * kk, alpha: 1 - kk });
       }
+      ctx.save();
       ctx.globalAlpha = 1 - e;
       ctx.fillStyle = '#ffffff';
       for (let j = 0; j < 16; j++) {
@@ -367,19 +341,10 @@ function dcWarp(x, y, V, sw, pull) {
   const ang = Math.atan2(dy, dx) + sw * Math.exp(-r / 120), r2 = r * (1 - pull * Math.exp(-r / 200));
   return [V.x + Math.cos(ang) * r2, V.y + Math.sin(ang) * r2 / 1.8];
 }
+// 소용돌이치는 격자: 시공간 격자 F14 를 한 겹 더 (예전 1px 벡터 격자 대신). 비틀림 sw 만큼 흔들어 돌리고, 끌림 pull 만큼 가운데로 오그린다
 function dcGrid(V, sw, pull, color, al) {
-  ctx.save();
-  ctx.globalAlpha = al;
-  ctx.strokeStyle = color; ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let x = -40; x <= W + 40; x += 26) {
-    for (let y = 0, j = 0; y <= H; y += 10, j++) { const [px, py] = dcWarp(x, y, V, sw, pull); j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
-  }
-  for (let y = 4; y <= H; y += 20) {
-    for (let x = -40, j = 0; x <= W + 40; x += 14, j++) { const [px, py] = dcWarp(x, y, V, sw, pull); j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
-  }
-  ctx.stroke();
-  ctx.restore();
+  const s = 1.08 - 0.45 * pull;
+  vfxDraw(ctx, 'f14', color, 0, V.x, V.y, { scale: 1, sx: s * (1 + 0.04 * Math.sin(sw * 2)), sy: s * (1 - 0.06 * Math.sin(sw * 1.3)), rot: 0.06 * Math.sin(sw), alpha: Math.min(1, al * 1.6) });
 }
 function dcHorizonStage(a) {
   const d = a.k.dur, hits = a.k.hits.map((h) => h[0] * d), F = DC_FIRE[3], flip = F + 0.12, fold = hits[hits.length - 2], fin = hits[hits.length - 1], life = d + 1.1;
@@ -428,15 +393,12 @@ function dcHorizonStage(a) {
       // 하얀 빛: 궁극기 막타 규칙대로 α 0.6 이하·0.15초 안에 (마지막 그림 = 블랙홀 붕괴 K36 이 보이게)
       const al = 0.35 * (k < 0.03 ? k / 0.03 : 1 - segU(k, 0.03, 0.15));
       if (al > 0) dimBand(al, '255,240,255');
-      ctx.save();
+      // 퍼져 나가는 충격파 세 겹: C3 고리를 하단바 끝까지 늘인다
       for (let j = 0; j < 3; j++) {
         const kk = easeOut(clamp01((k - 0.05 - j * 0.08) / 0.6));
         if (kk <= 0 || kk >= 1) continue;
-        ctx.globalAlpha = 1 - kk;
-        ctx.strokeStyle = ['#ffffff', DC_MAG, '#00e0c0'][j]; ctx.lineWidth = 4 - j;
-        ctx.beginPath(); ctx.ellipse(V.x, V.y, 20 + W * kk, 10 + 90 * kk, 0, 0, Math.PI * 2); ctx.stroke();
+        vfxDraw(ctx, 'c3', ['#ffffff', DC_MAG, '#00e0c0'][j], Math.min(4, Math.floor(kk * 5)), V.x, V.y, { scale: 2, sx: 0.25 + (W / 160) * kk, sy: 0.4 + 1.6 * kk, alpha: 1 - kk });
       }
-      ctx.restore();
     }
   }, null, (u) => {
     const t = u * life;
@@ -451,6 +413,7 @@ function dcHorizonStage(a) {
 Object.assign(SKILL_FX, {
   dimensionCollapse: {
     hitK: 'k36',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
+    marks() {},    // 명중 그림은 hitK 시트가 맡는다 — 없으면 기본 검흔(weaponMarks, 다각형)이 또 그려진다
     pose(u, a) {
       const m = (a && a.mast) || 0, d = a && a.k ? a.k.dur : 2.8, t = u * d, F = DC_FIRE[m], A = DC_BOWA[m];
       const end = a && a.k ? a.k.hits[a.k.hits.length - 1][0] * d : d * 0.9;

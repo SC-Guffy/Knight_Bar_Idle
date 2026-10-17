@@ -441,7 +441,12 @@ function starFx(x, y, size, color, life) {
     ctx.restore();
   });
 }
-const ringFx = (x, color, size = 1, life = 0.5, y = groundY() - 2) => effects.push({ type: 'ring', x, y, t: 0, life, size: size * fxVis, color });
+// 스킬 땅 고리: C3 충격파 바닥 고리 (src/vfx-mage.js). 시트가 아직 안 불러졌으면 예전 타원 선 (world.js drawEffects 'ring')
+const ringFx = (x, color, size = 1, life = 0.5, y = groundY() - 2) => {
+  const sz = size * fxVis;
+  if (typeof texFx === 'function' && vfxSheet('c3', color)) return texFx('c3', x, y + 3, color, { life, scale: vfxFit(sz * 120, 56), anchor: 'b', fade: 0.4 });
+  effects.push({ type: 'ring', x, y, t: 0, life, size: sz, color });
+};
 // 하늘에서 내리꽂히는 빛기둥
 function pillarFx(x, color, width, life) {
   width *= fxVis;
@@ -1709,6 +1714,7 @@ const HAWK = [
 const HAWK_PAL = { b: '#2f5a2a', B: '#7fd06a', e: '#ffffff', y: '#ffe066' };
 function spiritHawkFx(a, life, diveAt) {
   let px = 0, py = 0;
+  const trail = [];   // 내리꽂는 동안 지나온 자리 (잔상)
   aFx(a, 0, life, (u) => {
     const t = u * life, gy = groundY();
     if (t < diveAt) {
@@ -1725,11 +1731,15 @@ function spiritHawkFx(a, life, diveAt) {
     ctx.fillStyle = '#7fd06a'; ctx.beginPath(); ctx.arc(px, py - 5, 15, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
     const flipFace = t < diveAt ? Math.sin(t * 7) < 0 : a.dir < 0;
+    // 내리꽂기: 지나온 자리에 매 잔상 둘 (도트 그대로, 예전 속도선 대신)
+    if (t >= diveAt && t < diveAt + 0.35) {
+      trail.push([px, py]);
+      for (const [back, al] of [[8, 0.2], [4, 0.4]]) { const p = trail[trail.length - 1 - back]; if (p) drawSprite(HAWK[0], HAWK_PAL, p[0], p[1], 3, { flip: flipFace, alpha: out * al }); }
+    }
     drawSprite(HAWK[Math.floor(t * 12) % 2], HAWK_PAL, px, py, 3, { flip: flipFace, alpha: out });
   }, null, (u) => {
     const t = u * life;
     if (Math.random() < (t >= diveAt ? 1 : 0.3)) parts.push({ x: px, y: py - 4, vx: rand(-20, 20), vy: rand(-10, 20), g: 30, size: 2, color: Math.random() < 0.5 ? '#bfffd0' : '#ffffff', life: 0.4, t: 0 });
-    if (t >= diveAt && t < diveAt + 0.25) streakFx(px - a.dir * 18, py - 4, px, py - 4, '#bfffd0', 2, 0.15);
   });
 }
 
@@ -2729,9 +2739,8 @@ const SKILL_FX = {
         const h = hand(a), end = a.dir > 0 ? W + 20 : -20;
         pierceBeamFx(h.x + a.dir * 8, h.y, end, a.mast >= 2 ? 1 : 2 / 3);
         aFx(a, 0, 0.3, (u) => {
-          ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2;
-          for (const k of [0.6, 1]) { ctx.beginPath(); ctx.ellipse(h.x + a.dir * (10 + u * 30 * k), h.y, 3 + u * 4, 8 + u * 18 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
-          ctx.restore();
+          // 반동 공기 고리: C3 를 세워 2/3 배 두 겹 (헤드샷 느린 탄 고리와 같은 방식, 예전 타원 선 대신)
+          for (const k of [0.6, 1]) vfxDraw(ctx, 'c3', '#ffe066', Math.min(4, Math.floor(u * 5)), h.x + a.dir * (10 + u * 30 * k), h.y, { scale: 2 / 3, rot: Math.PI / 2, sx: 0.4 + 0.6 * k, alpha: 1 - u });
         });
         for (let i = 0; i < 8; i++) parts.push({ x: a.x(), y: groundY() - 2, vx: -a.dir * rand(60, 140), vy: rand(-60, -10), g: 200, size: 3, color: '#c9b38a', life: 0.4, t: 0 });
         impact({ stop: 0.08, shake: 0.3 });

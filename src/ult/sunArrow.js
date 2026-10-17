@@ -101,15 +101,9 @@ function saDusk(dark, glow, rgb = '24,8,0') {
 }
 // 하늘로 쏘아 올린 화살이 태양에 꽂히는 순간: 하얀 고리 + 햇살이 터진다
 function saPierceFx(a, sx, sy, size) {
-  aFx(a, 0, 0.5, (u) => {
-    ctx.save();
-    ctx.globalAlpha = 1 - u;
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3 * (1 - u) + 1;
-    ctx.beginPath(); ctx.arc(sx, sy, size * (1 + 2.5 * easeOut(u)), 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(sx, sy, size * (1.6 + 4 * easeOut(u)), 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-  });
+  // 홍염 고리 H24 를 크게 한 번 (예전 하얀·금빛 원 두 겹 대신)
+  const hs = size >= 20 ? 2 : 4 / 3;
+  aFx(a, 0, 0.5, (u) => vfxDraw(ctx, 'h24', 'raw', Math.min(4, Math.floor(u * 5)), sx, sy, { scale: hs, alpha: 1 - u * u }));
   burst(sx, sy, 24, ['#ffffff', '#ffe066', '#ff9a2e'], 170, 2, 0);
   impact({ shake: 0.2 });
 }
@@ -118,15 +112,10 @@ function saShootUp(a, sx, sy, life = SA_PIERCE) {
   const h = hand(a), x0 = h.x + a.dir * 4, y0 = h.y - 6;
   aFx(a, 0, life + 0.25, (u) => {
     const t = u * (life + 0.25), p = clamp01(t / life), x = mix(x0, sx, p), y = mix(y0, sy, p);
-    const tail = clamp01(p - 0.35);
-    ctx.save();
-    ctx.globalAlpha = p >= 1 ? 1 - (t - life) / 0.25 : 1;
-    ctx.strokeStyle = 'rgba(255,224,102,0.6)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(mix(x0, sx, tail), mix(y0, sy, tail)); ctx.lineTo(x, y); ctx.stroke();
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(mix(x0, sx, tail), mix(y0, sy, tail)); ctx.lineTo(x, y); ctx.stroke();
-    ctx.restore();
-    if (p < 1) saArrow(x, y, Math.atan2(sy - y0, sx - x0), 14, '#fff3b0', '#ffffff');
+    // 꼬리: 지나온 자리에 태양 화살 P3 잔상 둘 (예전 선 두 겹 대신)
+    const ang = Math.atan2(sy - y0, sx - x0), fade = p >= 1 ? 1 - (t - life) / 0.25 : 1;
+    for (let g = 2; g >= 1; g--) { const q = clamp01(p - g * 0.12); if (q > 0 && q < 1) saArrow(mix(x0, sx, q), mix(y0, sy, q), ang, 14, '#fff3b0', '#ffffff', fade * (g === 1 ? 0.5 : 0.25)); }
+    if (p < 1) saArrow(x, y, ang, 14, '#fff3b0', '#ffffff');
   });
   burst(x0, y0, 10, ['#ffffff', '#ffe066'], 80, 2, 0);
   impact({ shake: 0.12 });
@@ -150,20 +139,20 @@ function saAimStage(a) {
     const oy = (1 - p) * 46, ox = (1 - p) * 190;
     ctx.fillRect(-20, Math.round(y - oy), W + 40, 1); ctx.fillRect(-20, Math.round(y + oy * 0.8), W + 40, 1);
     ctx.fillRect(Math.round(x - ox), 0, 1, H); ctx.fillRect(Math.round(x + ox), 0, 1, H);
-    // 대각선 두 줄 (하단바 모서리에서 과녁으로)
-    ctx.globalAlpha = 0.25 * al * p;
-    ctx.strokeStyle = col; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(a.dir > 0 ? W : 0, 16); ctx.lineTo(x, y); ctx.lineTo(a.dir > 0 ? W : 0, H - 16); ctx.stroke();
+    // 대각선 두 줄 (하단바 모서리에서 과녁으로): 조준선처럼 1px 점선 (조준 표시라 텍스처 대상 아님)
+    ctx.globalAlpha = 0.3 * al * p;
+    const ex = a.dir > 0 ? W : 0;
+    for (const ey of [16, H - 16]) {
+      const n = Math.ceil(Math.hypot(ex - x, ey - y) / 5);
+      for (let k = 1; k < n; k++) ctx.fillRect(Math.round(mix(x, ex, k / n)), Math.round(mix(y, ey, k / n)), 1, 1);
+    }
     // 눈금: 조준선을 따라 거리 눈금이 흐른다
     ctx.globalAlpha = 0.45 * al;
     for (let k = -12; k <= 12; k++) { const tx = x + k * 14 + ((t * 40) % 14); ctx.fillRect(Math.round(tx), Math.round(y - oy) - (k % 4 ? 1 : 3), 1, k % 4 ? 2 : 6); }
-    // 과녁 원: 좁혀지며 돈다
+    // 과녁 원: 조준경 E25 (저격수 헤드샷 → 신궁으로 이어 씀)가 좁혀지며 돈다
     const r = mix(44, 9, p);
     ctx.globalAlpha = 0.9 * al;
-    ctx.strokeStyle = col; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x, y, r + 6, t * 3, t * 3 + 1.2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x, y, r + 6, t * 3 + Math.PI, t * 3 + Math.PI + 1.2); ctx.stroke();
+    vfxDraw(ctx, 'e25', col, 0, x, y, { scale: vfxNearScale((2 * (r + 6)) / (64 * VFX_DOT)), rot: t * 1.5 });
     for (let k = 0; k < 4; k++) { const ang = k * Math.PI / 2 - t * 2; ctx.fillRect(Math.round(x + Math.cos(ang) * (r + 2)) - 1, Math.round(y + Math.sin(ang) * (r + 2)) - 1, 3, 3); }
     if (lock) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5); }
     ctx.restore();
@@ -223,15 +212,8 @@ function saSunStage(a) {
     if (t > hit) r = mix(22, 12, segU(t, hit, last + 0.4)) + a.saPulse * 4;
     saSun(S.x, S.y, r, t, Math.min(1, t / 0.4) * out, t > pierced ? 1 + charge * 0.8 : 0.7);
     if (t > pierced && t < hit) {
-      // 꿰뚫린 자리에서 갈라지는 하얀 금
-      ctx.save();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
-      for (let k = 0; k < 5; k++) {
-        const ang = k * 1.26 + 0.4, l = r * (0.4 + 0.6 * charge);
-        ctx.beginPath(); ctx.moveTo(S.x, S.y);
-        ctx.lineTo(S.x + Math.cos(ang) * l * 0.5 + Math.sin(k) * 2, S.y + Math.sin(ang) * l * 0.5); ctx.lineTo(S.x + Math.cos(ang + 0.2) * l, S.y + Math.sin(ang + 0.2) * l); ctx.stroke();
-      }
-      ctx.restore();
+      // 꿰뚫린 자리에서 터지는 작은 태양 섬광 H24 (예전 하얀 금 선 다섯 대신), 힘이 모일수록 커진다
+      vfxDraw(ctx, 'h24', 'raw', vfxLoopF('h24', 14), S.x, S.y, { scale: charge > 0.5 ? 4 / 3 : 1, alpha: 0.9 });
     }
   });
   // 대상을 지나 땅까지 내리꽂히는 광선 + 땅을 따라 하단바 끝까지 달리는 불 고랑
@@ -387,11 +369,9 @@ function saFallStage(a) {
       // 하얀 섬광은 궁극기 막타 규칙대로 α 0.6 이하·0.15초 안에 (마지막 그림 = 태양 폭발 K35 가 보이게)
       const k = t - fin, al = 0.35 * (k < 0.04 ? k / 0.04 : 1 - segU(k, 0.04, 0.15));
       if (al > 0) dimBand(al, '255,252,236');
-      ctx.save();
-      ctx.globalAlpha = clamp01(1 - k / 0.7);
-      ctx.strokeStyle = '#ffb02e'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.ellipse(X, gy - 30, 30 + W * easeOut(clamp01(k / 0.7)), 18 + 70 * easeOut(clamp01(k / 0.7)), 0, 0, Math.PI * 2); ctx.stroke();
-      ctx.restore();
+      // 퍼져 나가는 충격파: C3 고리를 하단바 끝까지 늘인다
+      const kk = easeOut(clamp01(k / 0.7));
+      if (kk < 1) vfxDraw(ctx, 'c3', '#ffb02e', Math.min(4, Math.floor(kk * 5)), X, gy - 30, { scale: 2, sx: 0.3 + (W / 160) * kk, sy: 0.6 + 1.4 * kk, alpha: 1 - kk });
     }
     // 열기 아지랑이: 태양이 내려오며 시작해 하얗게 탄 뒤까지 일렁인다
     const haze = t < 1.6 ? 0 : t < fin ? 1.4 * segU(t, 1.6, land) + 0.8 * segU(t, land, fin) : 2.2 * (1 - segU(t, fin + 0.3, life));
@@ -427,6 +407,7 @@ function saFlareFx(a, tx, ty, big) {
 Object.assign(SKILL_FX, {
   sunArrow: {
     hitK: 'k35',   // 공용 명중 스파크 대신 이 궁극기의 명중 시트를 2/3 배로 (skills.js hitFx)
+    marks() {},    // 명중 그림은 hitK 시트가 맡는다 — 없으면 기본 검흔(weaponMarks, 다각형)이 또 그려진다
     pose(u, a) {
       const m = (a && a.mast) || 0, d = a && a.k ? a.k.dur : 2.6, t = u * d;
       if (m === 0) {

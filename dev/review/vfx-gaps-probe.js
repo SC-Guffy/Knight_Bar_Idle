@@ -3,13 +3,31 @@
 //   await new Promise((ok) => { const s = document.createElement('script'); s.src = 'review/vfx-gaps-probe.js?t=' + Date.now(); s.onload = ok; document.body.appendChild(s); });
 //   gapProbe.run(['swordsman', 'paladin'])   // 직업 몇 개씩 (한 번에 20초 안쪽), 결과는 gapProbe.out 에 쌓인다
 //   gapProbe.table()                         // 스킬 × 단계: T[쓴 시트] fr=fillRect v=벡터 g=gradient MISS=안 그려진 시트
+//   gapProbe.attr('deadeye', 'sunArrow', 3)  // 그 스킬·단계의 벡터를 호출 함수별로 (기사 몸·무기 그림은 v 에서 뺀다)
 // 평소 화면(시전 안 함) 60프레임을 빼고 남은 프레임당 그리기 수다. 시트 이름 뒤 * 는 QI_TEX_FALLBACK 대체 그림.
 window.gapProbe = (() => {
   const T = skillTest.state; T.paused = true; T.auto = false; T.basic = false;
   const P = CanvasRenderingContext2D.prototype, C = { on: false };
   const keys = ['arc', 'ellipse', 'createRadialGradient', 'createLinearGradient', 'fillRect', 'stroke', 'fill', 'lineTo', 'drawImage', 'quadraticCurveTo', 'bezierCurveTo'];
   let cnt = {}, ids = {}, miss = {};
-  for (const k of keys) { const o = P[k]; P[k] = function (...a) { if (C.on) cnt[k] = (cnt[k] || 0) + 1; return o.apply(this, a); }; }
+  // 벡터는 호출한 곳을 본다: 기사·몬스터 몸·무기 그림(world.js·limbs.js 의 draw*)은 VFX 가 아니라 빼고 센다 (2026-10-17).
+  // attr 이 켜져 있으면 호출 함수별로도 쌓는다. fillRect·drawImage 는 너무 많아 스택을 보지 않는다.
+  const VEC = new Set(['arc', 'ellipse', 'stroke', 'lineTo', 'quadraticCurveTo', 'bezierCurveTo', 'createRadialGradient', 'createLinearGradient']);
+  const BODY = /^(drawBow|drawCrossbow|drawCape|drawHalo|drawShield|drawPole|drawBlade|drawSprite|drawLeg|drawArm|drawFist|drawShoulderCap|drawKnight|drawMonster|drawHpBar|drawGround|drawStaff|drawBook|drawHead|drawHair|drawBody|box|put)\b/;
+  let by = null;
+  const site = () => {
+    const l = new Error().stack.split('\n').slice(3).find((x) => /\/src\//.test(x)) || '';
+    const fn = (l.trim().match(/^at (?:Object\.)?(\S+)/) || [])[1] || '?';
+    const f = (l.match(/src\/([^?:)]+)[^:]*:(\d+)/) || []).slice(1).join(':');
+    return { body: /limbs\.js/.test(f) || (/world\.js/.test(f) && BODY.test(fn)), key: fn + ' ' + f };
+  };
+  for (const k of keys) { const o = P[k]; P[k] = function (...a) {
+    if (C.on) {
+      if (VEC.has(k)) { const s = site(); if (s.body) return o.apply(this, a); if (by) { const kk = k + ' ' + s.key; by[kk] = (by[kk] || 0) + 1; } }
+      cnt[k] = (cnt[k] || 0) + 1;
+    }
+    return o.apply(this, a);
+  }; }
   const ovd = window.vfxDraw;
   window.vfxDraw = function (g, id, ...r) { const res = ovd.call(this, g, id, ...r); if (C.on) { ids[id] = (ids[id] || 0) + 1; if (res === false) miss[id] = 1; } return res; };
   function rec(frames, castId) {
@@ -44,5 +62,13 @@ window.gapProbe = (() => {
     })].join(' | '));
     return rows.join('\n');
   }
-  return { run: (list) => list.forEach(doClass), table, out };
+  // 호출 함수별 프레임당 수: gapProbe.attr('deadeye', 'sunArrow', 3)  (lineTo 는 4개를 1로)
+  function attr(cls, id, st, min = 0.3) {
+    skillTest.setClass(cls); skillTest.setStage(st); T.auto = false; T.basic = false; skillTest.step(0.3);
+    const ka = skillAt(id, 30, st), fr = Math.round(((ka.dur || 1) + 1.2 + (ka.ward ? ka.ward.dur : 0)) * 60);
+    by = {}; rec(fr, id); const b = by; by = null;
+    const w = (k) => (/^lineTo/.test(k) ? 0.25 : 1);
+    return Object.entries(b).map(([k, v]) => [k, Math.round((v * w(k) / fr) * 10) / 10]).filter(([, v]) => v >= min).sort((x, y) => y[1] - x[1]).map(([k, v]) => v + ' ' + k).join('\n');
+  }
+  return { run: (list) => list.forEach(doClass), table, attr, out };
 })();

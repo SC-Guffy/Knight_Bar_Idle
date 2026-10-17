@@ -231,11 +231,10 @@ function sjRainFx(a, span, rate) {
   aFx(a, 0, life, () => {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.lineCap = 'round';
     for (const d of drops) {
       const x = d.x + d.vx * d.t, y = d.y + d.vy * d.t;
-      ctx.globalAlpha = 0.8; ctx.strokeStyle = d.c; ctx.lineWidth = d.w;
-      ctx.beginPath(); ctx.moveTo(x - d.vx * 0.05, y - d.vy * 0.05); ctx.lineTo(x, y); ctx.stroke();
+      // 꼬리: 지나온 자리에 C16 별 잔상 둘 (★★★ 별비와 같은 방식, 예전 선 대신)
+      for (const [dq, al, f] of [[0.034, 0.35, 0], [0.017, 0.6, 1]]) vfxDraw(ctx, 'c16', d.c, f, x - d.vx * dq, y - d.vy * dq, { scale: 2 / 3, alpha: al });
       sjSpark(x, y, 3, d.c, 1);
     }
     ctx.restore();
