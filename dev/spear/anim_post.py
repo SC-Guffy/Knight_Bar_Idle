@@ -135,7 +135,7 @@ CW, FX = 128, 36          # 게임 칸: 창 계열 128, 발 x = 36 (build.py CEL
 FXC = {'halberdier': 66, 'warlord': 66}
 RECOLOR = {'dragoon': 'purple_split'}
 REGION = {'halberdier', 'warlord'}
-FIXED = {('dragoon', 'walk'), ('skyGeneral', 'walk')}     # 모델 창 직선을 따르지 않고 설계 각도(세움) — 용기병 걷기는 모델이 중간에 창을 눕혀 루프에서 90도 튀었다
+FIXED = {('dragoon', 'walk'), ('skyGeneral', 'walk'), ('halberdier', 'sweepE7+chopupE8')}   # 빈손 생성: 모델 무기 직선이 없으니 설계 각도     # 모델 창 직선을 따르지 않고 설계 각도(세움) — 용기병 걷기는 모델이 중간에 창을 눕혀 루프에서 90도 튀었다
 # 방패: 중립 대기 편집에서 카이트 방패가 사라져(랜서) 합격 정지 그림에서 자른 방패를 뒷손 관절 자리에 몸 뒤로 깐다 (코드 무기와 같은 방식)
 SHIELD = {'cavalier': ('skel/cavalier-shield.png', (-9, -12))}     # (그림, 뒷손에서 그림 왼쪽 위까지 오프셋)        # 몸 영역 밖 모델 무기 모두 지우기 (body_region)     # 정지 그림과 같은 색 입히기 (생성 원본은 회색 판금) — 코드 무기를 얹기 전에
 

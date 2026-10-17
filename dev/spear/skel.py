@@ -155,8 +155,12 @@ ACTIONS['chopup'] = [
 ]
 
 
+# 빈손판 (2026-10-17 할버디어 처음부터 재생성): 같은 관절, 동작 설명만 무기 단어 없이 (모델이 할버드를 그리지 않게)
+ACTIONS['sweepE'] = ACTIONS['sweep']; ACTIONS['chopupE'] = ACTIONS['chopup']
+
+
 LABEL = {'idle': '대기 4f', 'walk': '걷기 8f', 'thrust': '찌르기 8f (찌르기형 평타A)', 'slam': '내리찍기 8f (찌르기형 평타B)',
-         'sweep': '휩쓸기 8f (휩쓸기형 평타A)', 'chop': '내려찍기 8f (휩쓸기형 평타B)', 'chopup': '내려찍기 v2 8f (머리 위 정점)'}
+         'sweep': '휩쓸기 8f (휩쓸기형 평타A)', 'chop': '내려찍기 8f (휩쓸기형 평타B)', 'chopup': '내려찍기 v2 8f (머리 위 정점)', 'sweepE': '휩쓸기 빈손판', 'chopupE': '내려찍기 v2 빈손판'}
 
 
 # ── 그림체 B(3등신)·키 46px 로 맞추기 (2026-10-16 사용자 확정) ──

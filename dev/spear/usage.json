@@ -1,5 +1,5 @@
 {
- "used": 90.0,
+ "used": 94.0,
  "calls": [
   {
    "cls": "mq",
@@ -368,6 +368,14 @@
    "used": 3.0,
    "bal": 779.0,
    "n": 8
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sweepE7+chopupE8: animate-with-skeleton-v3 192 15f",
+   "used": 4.0,
+   "bal": 758.0,
+   "n": 15
   }
  ]
 }

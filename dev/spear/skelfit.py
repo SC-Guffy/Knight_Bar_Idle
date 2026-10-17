@@ -53,7 +53,7 @@ DESC = {'lancer': 'young chibi lancer knight, open-faced steel helmet with a sma
         'dragoon': 'young chibi dragoon knight, dragon-shaped helmet with a snout brim over the forehead and two backward horns, human face visible, '
                    'plate armor, dark bat-wing shaped cloth cape, empty hands (the spear is drawn later)',
         'halberdier': 'young chibi heavy halberdier knight, steel bucket helmet with a horizontal eye slit, big square steel pauldrons, steel plate armor, '
-                      'orange cloth tabard over the thighs, thick belt, light tan leather gloves, empty hands (the halberd is drawn later)',
+                      'orange cloth tabard over the thighs, thick belt, light tan leather gloves, empty hands, no weapon, no polearm, no effects',
         'dragonlord': 'young chibi dragon lord knight king, golden dragon crown helmet with four backward horns, human face visible, lavender and gold plate armor, '
                       'large dark purple double bat-wing shaped cape, empty hands (the spear is drawn later)',
         'warlord': 'young chibi heavy warlord knight, iron helmet with two bull horns and a half mask, spiked pauldrons, grey iron plate armor, blood red cape, '
@@ -65,6 +65,8 @@ DESC = {'lancer': 'young chibi lancer knight, open-faced steel helmet with a sma
 ACTION = {'thrust': 'lunge forward and thrust a spear with both hands, then recover', 'walk': 'walk cycle holding a long polearm upright',
           'slam': 'raise a spear overhead with both hands and slam it down in front', 'idle': 'stand ready holding a spear upright, breathing',
           'sweep': 'swing a halberd in a wide horizontal sweep', 'chop': 'raise a halberd overhead and chop down',
+          'sweepE': 'swing both empty hands together in a wide horizontal sweeping motion with the whole body, empty hands, no weapon, no polearm, no effects',
+          'chopupE': 'raise both empty hands together straight up overhead, pause at the top, then bring them down hard toward the ground in front, empty hands, no weapon, no polearm, no effects',
           'chopup': 'raise a halberd straight up overhead, pause at the top, then chop it down hard into the ground in front'}
 
 d = math.dist
