@@ -15,7 +15,7 @@ const SHEETS = {};
 //  주소에 ?sheets=0 이면 전부 끈다 (전후 비교). ?sheetsOn=직업,직업 이면 그 직업만 켠다 (켜기 전 게임에서 시험 — 오프라인 게임·스킬 시험장 모두)
 const SHEET_ON = {
   // 레인저 계열 (칸 96 · 공성포수 128, dev/bowsheets) — 시트를 사용자가 승인하면 true
-  ranger: true, marksman: true, arcaneArcher: true, arbalest: true, deadeye: false, voidArcher: false, siegeMaster: false,
+  ranger: true, marksman: true, arcaneArcher: true, arbalest: true, deadeye: true, voidArcher: true, siegeMaster: true,
   // 창기사 계열 (칸 128, 원형 마네킹 → 입히기·덧그리기 dev/spear/gen.py·build.py) — 시트 있음, 켤지 사용자 확인 (false)
   lancer: false, dragoon: false, halberdier: false, cavalier: false, dragonlord: false, warlord: false, skyGeneral: false,
   // 마법사 계열 (칸 96, dev/sheets-mage — 시험: dev/skills.html?patch=sheets-mage) — 시트를 사용자가 승인하면 true
