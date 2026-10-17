@@ -18,6 +18,8 @@ async function api(method, path, body, { token, timeout = 20000, keepalive = fal
   try {
     const headers = { 'Content-Type': 'application/json', 'X-Game-Version': GAME_VERSION };   // 서버가 예전 버전 클라이언트를 막을 때 쓴다 (레이드 등)
     if (token) headers.Authorization = `Bearer ${token}`;
+    // 기사단 토큰(docs/specs/guild.md 2단계): 어느 기사인지 X-Char, 어느 기기인지 X-Device (한 기사단은 한 기기에서만)
+    if (token && token.startsWith('g.')) { headers['X-Char'] = encodeURIComponent(activeNick() || ''); headers['X-Device'] = guildDeviceId(); }
     const res = await fetch(SERVER + path, {
       method, headers, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal, keepalive,
     });
@@ -28,6 +30,8 @@ async function api(method, path, body, { token, timeout = 20000, keepalive = fal
       if (data.code === 'gone' && token && token === activeToken()) hooks.onAccountGone();
       // 서버가 이 버전을 더는 받지 않는다 (426, server/index.js requireClient) → ui.js 가 저장하고 새 버전으로 다시 불러온다
       if (res.status === 426) hooks.onOutdated();
+      // 기사단: 다른 기기에서 접속(moved) · 기사단 토큰이 끝남(guild-auth) → 바깥 페이지(src/guild.js)가 멈추고 안내한다
+      if (GUILD_HOST && GUILD_HOST.full && (data.code === 'moved' || data.code === 'guild-auth') && token && token.startsWith('g.')) GUILD_HOST.serverLost(data.code);
       throw new ApiError(data.error || `서버 오류 (${res.status})`, res.status, data.code);
     }
     return data;
@@ -62,7 +66,11 @@ const GUILD_CHAR = new URLSearchParams(location.search).get('char');
 const GUILD_NEW = GUILD_CHAR === '+new';
 if (GUILD_CHAR) accounts.active = GUILD_NEW ? null : GUILD_CHAR;
 const activeNick = () => accounts.active;
-const activeToken = () => (accounts.active ? accounts.list[accounts.active] : null);
+// 기사단 모드에서 서버 기사단에 들어가 있으면(바깥 페이지가 저장한 기사단 토큰) 모든 기사가 그 토큰을 쓴다
+const GUILD_TOKEN_KEY = 'knight-bar-guild-token';
+const guildToken = () => { try { return GUILD_CHAR !== null && localStorage.getItem(GUILD_TOKEN_KEY) || null; } catch { return null; } };
+const guildDeviceId = () => { try { return localStorage.getItem('knight-bar-device') || ''; } catch { return ''; } };
+const activeToken = () => (accounts.active ? guildToken() || accounts.list[accounts.active] : null);
 const accountSaveKey = (nick) => `${SAVE_KEY}:${nick.toLowerCase()}`;
 
 function rememberAccount(nick, token) {
@@ -87,6 +95,12 @@ function forgetAllAccounts() {
 const checkNickname = (name) => api('GET', `/api/nickname?name=${encodeURIComponent(name)}`, null, { timeout: 70000 });
 
 async function createAccount(nickname, state, profile) {
+  // 서버 기사단 안의 새 기사: 기사단 토큰으로 만들고, 개인 토큰은 없다 (이 기사도 기사단 토큰 + X-Char 로 움직인다)
+  if (guildToken()) {
+    const r = await api('POST', '/api/guilds/chars', { nickname, state, profile }, { token: guildToken(), timeout: 70000 });
+    accounts.active = r.nickname;
+    return r;
+  }
   const r = await api('POST', '/api/accounts', { nickname, state, profile }, { timeout: 70000 });
   rememberAccount(r.nickname, r.token);
   return r;

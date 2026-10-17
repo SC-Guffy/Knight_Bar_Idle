@@ -116,7 +116,7 @@ function send(res, status, body) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Key, X-Game-Version',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Key, X-Game-Version, X-Char, X-Device',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Cache-Control': 'no-store',
     'X-Server-Time': String(Date.now()),          // 클라이언트 게임 시계 기준 (src/data.js gameNow)
@@ -145,11 +145,86 @@ function readJson(req) {
 async function auth(req) {
   const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
   if (!m) throw new HttpError(401, '계정 인증에 실패했어요');
+  if (m[1].startsWith(GUILD_TOKEN_PREFIX)) return guildChar(req);
   const h = hashToken(m[1]);
   const acc = await store.byToken(h);
   if (!acc) throw await missingTokenError(h);
   return acc;
 }
+
+// ───────────────────────── 기사단 (docs/specs/guild.md 2단계) ─────────────────────────
+// 기사단 토큰 하나로 소속 기사 누구든 움직인다: Authorization: Bearer g.… + X-Char: 닉네임(encodeURIComponent).
+// 한 기사단은 한 기기에서만: 요청의 X-Device 가 기사단에 적힌 기기와 다르면 409 moved (먼저 기기가 멈춘다)
+const GUILD_TOKEN_PREFIX = 'g.';
+const GUILD_MAX_CHARS = 10;
+const GUILD_SLOTS = 5;
+const newGuildToken = () => GUILD_TOKEN_PREFIX + crypto.randomBytes(24).toString('base64url');
+function guildNameKey(raw) {
+  const name = String(raw || '').normalize('NFC').trim().replace(/\s+/g, ' ');
+  if (!/^[가-힣a-zA-Z0-9_ ]{2,12}$/.test(name)) throw new HttpError(400, '기사단 이름은 한글·영문·숫자 2~12자로 지어 주세요');
+  return { name, nameKey: name.toLowerCase().replace(/ /g, '') };
+}
+const bearer = (req) => { const m = /^Bearer (.+)$/.exec(req.headers.authorization || ''); return m ? m[1] : ''; };
+async function guildAuth(req, { device = true } = {}) {
+  const t = bearer(req);
+  if (!t.startsWith(GUILD_TOKEN_PREFIX)) throw new HttpError(401, '기사단 인증에 실패했어요', 'guild-auth');
+  const g = await store.guildByToken(hashToken(t));
+  if (!g) throw new HttpError(401, '기사단 인증이 끝났어요 — 다시 로그인해 주세요', 'guild-auth');
+  const d = String(req.headers['x-device'] || '');
+  if (device && g.deviceId && d && d !== g.deviceId) throw new HttpError(409, '다른 기기에서 기사단에 접속했어요', 'moved');
+  return g;
+}
+async function guildChar(req) {
+  const g = await guildAuth(req);
+  let nick = '';
+  try { nick = decodeURIComponent(String(req.headers['x-char'] || '')); } catch {}
+  const { key } = nicknameKey(nick);
+  const acc = await store.get(key);
+  if (!acc || acc.guildId !== g.id) throw new HttpError(401, '이 기사단의 기사가 아니에요', 'guild-auth');
+  return acc;
+}
+async function guildView(g) {
+  const members = await store.guildMembers(g.id);
+  const nickOf = Object.fromEntries(members.map((a) => [a.key, a.nickname]));
+  return {
+    name: g.name, google: !!g.googleSub,
+    chars: members.sort((a, b) => a.createdAt - b.createdAt).map((a) => ({ nickname: a.nickname, cls: a.cls, level: a.level, best: a.best })),
+    slots: Array.from({ length: GUILD_SLOTS }, (_, i) => (g.slots && g.slots[i] && nickOf[g.slots[i]]) || null),
+  };
+}
+// Google ID 토큰 검증 → sub. tokeninfo 가 서명·만료를 확인해 준다 (비밀키 없음). 개발: GOOGLE_FAKE=1 이면 'fake:<sub>'
+async function verifyGoogle(idToken) {
+  const t = String(idToken || '');
+  if (process.env.GOOGLE_FAKE === '1' && t.startsWith('fake:')) {
+    const sub = t.slice(5);
+    if (!/^[\w-]{1,64}$/.test(sub)) throw new HttpError(400, '가짜 Google 토큰 모양이 틀렸어요');
+    return 'fake-' + sub;
+  }
+  const cid = process.env.GOOGLE_CLIENT_ID;
+  if (!cid) throw new HttpError(503, '서버에 Google 로그인이 아직 설정되지 않았어요');
+  let info;
+  try {
+    const r = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(t)}`);
+    info = await r.json();
+    if (!r.ok) throw new Error(info.error_description || r.status);
+  } catch { throw new HttpError(401, 'Google 로그인을 확인하지 못했어요 — 다시 시도해 주세요'); }
+  if (info.aud !== cid || !['accounts.google.com', 'https://accounts.google.com'].includes(info.iss) || Number(info.exp) * 1000 < Date.now() || !info.sub) {
+    throw new HttpError(401, 'Google 로그인이 이 게임용이 아니에요');
+  }
+  return String(info.sub);
+}
+const signupTickets = new Map();   // ticket → { sub, at } — Google 로그인했는데 기사단이 아직 없을 때 이름 짓기까지 10분
+const guildMade = new Map();       // IP → 최근 한 시간 안에 기사단을 만든 시각들
+const links = new Map();           // 연결 코드 id → { code, deviceId, at, token }
+const linkMiss = new Map();        // 기사단 id → 틀린 코드 시각들
+const LINK_TTL_MS = 10 * 60 * 1000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of signupTickets) if (now - v.at > LINK_TTL_MS) signupTickets.delete(k);
+  for (const [k, v] of links) if (now - v.at > LINK_TTL_MS) links.delete(k);
+  for (const [ip, ts] of guildMade) if (!ts.some((t) => now - t < 3600000)) guildMade.delete(ip);
+  for (const [g, ts] of linkMiss) if (!ts.some((t) => now - t < LINK_TTL_MS)) linkMiss.delete(g);
+}, 60000).unref();
 
 // ───────────────────────── 결투 시즌 정산 ─────────────────────────
 // 끝난 시즌을 차례로 정산한다. 계정의 지난 시즌 기록은 다음 결투 때 덮어써지므로, 결투·랭킹 전에 반드시 먼저 부른다.
@@ -396,7 +471,9 @@ const routes = {
     const limit = Math.floor(num(url.searchParams.get('limit'), 1, 200, 100));
     await settleSeasons();
     const season = sort === 'duel' ? seasonAt() : 0;
-    const players = (await store.top(sort, limit, season)).map(publicInfo);
+    const top = await store.top(sort, limit, season);
+    const gnames = await store.guildNames([...new Set(top.map((a) => a.guildId).filter(Boolean))]);
+    const players = top.map((a) => ({ ...publicInfo(a), ...(a.guildId && gnames[a.guildId] ? { guild: gnames[a.guildId] } : {}) }));
     let me = null;
     if (req.headers.authorization) {
       try {
@@ -450,6 +527,7 @@ const routes = {
     if (key === me.key) throw new HttpError(400, '자기 자신과는 결투할 수 없어요');
     const op = await store.get(key);
     if (!op) throw new HttpError(404, '그런 기사는 없어요');
+    if (me.guildId && me.guildId === op.guildId) throw new HttpError(400, '같은 기사단 기사끼리는 결투할 수 없어요');
     const now = Date.now(), since = now - (lastDuel.get(me.key) || 0);
     if (since < DUEL_COOLDOWN_MS) throw new HttpError(429, `${Math.ceil((DUEL_COOLDOWN_MS - since) / 1000)}초 뒤에 다시 도전할 수 있어요`);
     lastDuel.set(me.key, now);
@@ -516,6 +594,7 @@ const authCache = new Map();       // tokenHash → { acc, at }
 async function authLite(req) {
   const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
   if (!m) throw new HttpError(401, '계정 인증에 실패했어요');
+  if (m[1].startsWith(GUILD_TOKEN_PREFIX)) return guildChar(req);
   const h = hashToken(m[1]);
   const c = authCache.get(h);
   if (c && Date.now() - c.at < 60000) return c.acc;
@@ -980,6 +1059,155 @@ function pushShout(e) {
   shouts.push({ id: shoutSeq, at: now, nickname: e.nickname, slot: e.slot, result: e.result, from: e.from, to: e.to, ...(e.bot ? { bot: true } : {}) });
   if (shouts.length > SHOUT_MAX) shouts.shift();
 }
+
+// ───────────────────────── 기사단 API (docs/specs/guild.md 2단계) ─────────────────────────
+// Google 로그인. 기사단 토큰을 들고 오면(손님 기사단) 그 기사단에 Google 을 연결한다
+routes['POST /api/auth/google'] = async (req) => {
+  const body = await readJson(req);
+  const sub = await verifyGoogle(body.idToken);
+  if (bearer(req).startsWith(GUILD_TOKEN_PREFIX)) {
+    const g = await guildAuth(req);
+    if (g.googleSub) throw new HttpError(400, '이미 Google 이 연결된 기사단이에요');
+    if (await store.guildBySub(sub)) throw new HttpError(409, '이 Google 계정에는 이미 다른 기사단이 있어요');
+    try { await store.updateGuild(g.id, { googleSub: sub, updatedAt: Date.now() }); } catch (e) {
+      if (e instanceof TakenError) throw new HttpError(409, '이 Google 계정에는 이미 다른 기사단이 있어요');
+      throw e;
+    }
+    return { linked: true, guild: await guildView({ ...g, googleSub: sub }) };
+  }
+  const g = await store.guildBySub(sub);
+  if (!g) {
+    const ticket = crypto.randomBytes(18).toString('base64url');
+    signupTickets.set(ticket, { sub, at: Date.now() });
+    return { ticket, guild: null };
+  }
+  const token = newGuildToken();
+  await store.updateGuild(g.id, { tokenHash: hashToken(token), deviceId: String(body.deviceId || '').slice(0, 64), updatedAt: Date.now() });
+  return { token, guild: await guildView(g) };
+};
+
+// 기사단 만들기. ticket 이 있으면 그 Google 계정의 기사단, 없으면 손님 기사단
+routes['POST /api/guilds'] = async (req) => {
+  const body = await readJson(req);
+  const { name, nameKey } = guildNameKey(body.name);
+  let sub = '';
+  if (body.ticket) {
+    const t = signupTickets.get(String(body.ticket));
+    if (!t) throw new HttpError(400, 'Google 로그인이 만료됐어요 — 다시 로그인해 주세요');
+    sub = t.sub;
+  }
+  const ip = clientIp(req), now = Date.now();
+  const made = (guildMade.get(ip) || []).filter((x) => now - x < 3600000);
+  if (made.length >= ACCOUNT_PER_HOUR) throw new HttpError(429, '기사단을 너무 많이 만들었어요 — 잠시 뒤에 다시 시도해 주세요');
+  const token = newGuildToken();
+  const g = { id: crypto.randomBytes(9).toString('hex'), name, nameKey, googleSub: sub, tokenHash: hashToken(token),
+    deviceId: String(body.deviceId || '').slice(0, 64), slots: [], createdAt: now, updatedAt: now };
+  try { await store.createGuild(g); } catch (e) {
+    if (e instanceof TakenError) throw new HttpError(409, sub && await store.guildBySub(sub) ? '이 Google 계정에는 이미 기사단이 있어요' : '이미 있는 기사단 이름이에요');
+    throw e;
+  }
+  if (body.ticket) signupTickets.delete(String(body.ticket));
+  guildMade.set(ip, [...made, now]);
+  return { status: 201, body: { token, guild: await guildView(g) } };
+};
+
+routes['GET /api/guilds/name'] = async (_req, url) => {
+  const { nameKey } = guildNameKey(url.searchParams.get('name'));
+  return { available: !(await store.guildNameTaken(nameKey)) };
+};
+
+routes['GET /api/guilds/me'] = async (req) => guildView(await guildAuth(req));
+
+// 기사단 안에서 새 기사. 개인 토큰은 아무도 모르는 무작위 값 (기사단 토큰 + X-Char 로만 움직인다)
+routes['POST /api/guilds/chars'] = async (req) => {
+  const g = await guildAuth(req);
+  const body = await readJson(req);
+  const { nick, key } = nicknameKey(body.nickname);
+  if ((await store.guildMembers(g.id)).length >= GUILD_MAX_CHARS) throw new HttpError(400, `기사는 ${GUILD_MAX_CHARS}명까지예요`);
+  const ip = clientIp(req), now = Date.now();
+  const made = (accountMade.get(ip) || []).filter((t) => now - t < 3600000);
+  if (made.length >= ACCOUNT_PER_HOUR) throw new HttpError(429, '기사를 너무 많이 만들었어요 — 잠시 뒤에 다시 시도해 주세요');
+  const profile = sanitizeProfile(body.profile);
+  await freeBotName(key);
+  try {
+    await store.create({
+      key, nickname: nick, tokenHash: hashToken(crypto.randomBytes(24).toString('base64url')),
+      state: body.state && typeof body.state === 'object' ? body.state : null, profile,
+      level: profile.level, best: profile.best, power: profile.power, cls: profile.cls, tower: profile.tower,
+      rating: START_RATING, wins: 0, losses: 0, season: seasonAt(now), attacks: 0, createdAt: now, updatedAt: now, guildId: g.id,
+    });
+  } catch (e) {
+    if (e instanceof TakenError) throw new HttpError(409, '이미 사용 중인 닉네임이에요');
+    throw e;
+  }
+  accountMade.set(ip, [...made, now]);
+  return { status: 201, body: { nickname: nick } };
+};
+
+// 이 기기에 있던 개인 토큰 기사(지금 방식 계정)를 기사단에 넣는다 — 1단계(기기 안 기사단)에서 넘어올 때. 시즌7 초기화 전까지 개인 토큰도 그대로 쓸 수 있다
+routes['POST /api/guilds/adopt'] = async (req) => {
+  const g = await guildAuth(req);
+  const body = await readJson(req);
+  const acc = await store.byToken(hashToken(String(body.token || '')));
+  if (!acc || acc.isBot || acc.nickname.toLowerCase() !== String(body.nickname || '').trim().toLowerCase()) throw new HttpError(401, '닉네임과 토큰이 맞지 않아요');
+  if (acc.guildId === g.id) return { nickname: acc.nickname };
+  if (acc.guildId) throw new HttpError(409, '이미 다른 기사단의 기사예요');
+  if ((await store.guildMembers(g.id)).length >= GUILD_MAX_CHARS) throw new HttpError(400, `기사는 ${GUILD_MAX_CHARS}명까지예요`);
+  await store.update(acc.key, { guildId: g.id });
+  return { nickname: acc.nickname };
+};
+
+routes['PUT /api/guilds/slots'] = async (req) => {
+  const g = await guildAuth(req);
+  const body = await readJson(req);
+  const keys = new Set((await store.guildMembers(g.id)).map((a) => a.key));
+  const slots = Array.from({ length: GUILD_SLOTS }, (_, i) => {
+    const n = Array.isArray(body.slots) ? body.slots[i] : null;
+    const k = n ? String(n).trim().toLowerCase() : null;
+    return k && keys.has(k) ? k : null;
+  });
+  await store.updateGuild(g.id, { slots, updatedAt: Date.now() });
+  return { ok: true };
+};
+
+// "이 기기에서 계속": 기사단을 이 기기로 가져온다 (다른 기기는 다음 요청에서 409 moved)
+routes['POST /api/guilds/device'] = async (req) => {
+  const g = await guildAuth(req, { device: false });
+  const body = await readJson(req);
+  await store.updateGuild(g.id, { deviceId: String(body.deviceId || '').slice(0, 64), updatedAt: Date.now() });
+  return { ok: true };
+};
+
+// 연결 코드: 앱(또는 Google 버튼이 막힌 곳)이 코드를 받고, 사용자가 로그인한 웹에서 그 코드를 넣으면 앱이 기사단 토큰을 받는다
+routes['POST /api/link/start'] = async (req) => {
+  const body = await readJson(req);
+  const id = crypto.randomBytes(12).toString('base64url');
+  let code;
+  do { code = String(crypto.randomInt(0, 1000000)).padStart(6, '0'); } while ([...links.values()].some((l) => l.code === code));
+  links.set(id, { code, deviceId: String(body.deviceId || '').slice(0, 64), at: Date.now(), token: null });
+  return { id, code, expiresIn: LINK_TTL_MS / 1000 };
+};
+routes['GET /api/link/poll'] = async (_req, url) => {
+  const id = String(url.searchParams.get('id') || ''), l = links.get(id);
+  if (!l) throw new HttpError(404, '연결 코드가 만료됐어요 — 새 코드를 받아 주세요', 'expired');
+  if (!l.token) return { waiting: true };
+  links.delete(id);
+  return { token: l.token, guild: l.guild };
+};
+routes['POST /api/link/confirm'] = async (req) => {
+  const g = await guildAuth(req);
+  const body = await readJson(req);
+  const now = Date.now(), miss = (linkMiss.get(g.id) || []).filter((t) => now - t < LINK_TTL_MS);
+  if (miss.length >= 5) throw new HttpError(429, '코드를 너무 많이 틀렸어요 — 10분 뒤에 다시 해 주세요');
+  const code = String(body.code || '').replace(/\D/g, '');
+  const l = [...links.values()].find((x) => x.code === code && !x.token);
+  if (!l) { linkMiss.set(g.id, [...miss, now]); throw new HttpError(400, '맞는 연결 코드가 없어요 — 앱에 보이는 6자리를 확인해 주세요'); }
+  // 앱은 이 웹과 같은 기사단 토큰을 받고, 기사단은 앱 기기로 옮긴다 (이 웹은 다음 요청에서 moved)
+  l.token = bearer(req);
+  l.guild = await guildView(g);
+  await store.updateGuild(g.id, { deviceId: l.deviceId, updatedAt: now });
+  return { ok: true };
+};
 
 routes['POST /api/shouts'] = async (req) => {
   const a = await authLite(req);

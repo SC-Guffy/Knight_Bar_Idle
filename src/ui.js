@@ -444,7 +444,7 @@ function viewGuildHall() {
       : inSlot ? `<button class="btn" data-action="guild-view" data-nick="${esc(c.nick)}">보기</button>
         <button class="btn" data-action="guild-unslot" data-nick="${esc(c.nick)}" ${!i || i.busy ? 'disabled title="캠프에 있을 때만 뺄 수 있어요"' : ''}>슬롯에서 빼기</button>`
       : `<button class="btn" data-action="guild-slot" data-nick="${esc(c.nick)}" ${free ? '' : 'disabled title="빈 슬롯이 없어요"'}>슬롯에 넣기</button>
-        <button class="btn" data-action="guild-drop" data-nick="${esc(c.nick)}">기사단에서 빼기</button>`;
+        ${g.online ? '' : `<button class="btn" data-action="guild-drop" data-nick="${esc(c.nick)}">기사단에서 빼기</button>`}`;
     return `<div class="fac">
       <span class="fname">${inSlot ? `<b>${c.slot + 1}</b>` : '–'} ${esc(c.nick)} <small>${i ? `${esc(i.cls)} Lv ${i.lv}` : ''}</small></span>
       <span class="feff">${doing}</span>${btns}</div>`;
@@ -452,7 +452,19 @@ function viewGuildHall() {
   return `<div class="shead sub"><h3>${ico('shield')} ${esc(g.name)} <small>기사 ${g.chars.length}/${g.max} · 슬롯 ${g.open}/5</small></h3>
       <button class="btn" data-action="guild-new" ${free && g.chars.length < g.max ? '' : `disabled title="${free ? '기사가 가득 찼어요' : '빈 슬롯이 없어요 — 회관을 올리거나 슬롯을 비우세요'}"`}>${ico('plus')} 새 기사</button></div>
     <div class="hint">슬롯에 있는 기사는 안 보고 있어도 계속 진행해요. 골드·목재·철광석·마을은 기사단이 같이 써요. 슬롯 배정은 그 기사가 캠프에 있을 때만 바꿀 수 있어요.</div>
-    ${rows}`;
+    ${rows}
+    ${g.online ? `<div class="shead sub"><h3>${ico('key')} 기사단 계정</h3></div>
+    <div class="fac">
+      <span class="fname">${g.google ? '✅ Google 연결됨' : '👤 손님'}</span>
+      <span class="feff">${g.google ? '다른 기기에서도 Google 로그인으로 이어 해요' : 'Google 을 연결하면 다른 기기에서도 이어 할 수 있어요'}</span>
+      ${g.google ? '' : '<button class="btn rd" data-action="guild-google">Google 연결</button>'}
+    </div>
+    <div class="fac">
+      <span class="fname">📱 기기 연결</span>
+      <span class="feff">앱(또는 다른 기기)에 보이는 6자리 코드를 넣으면 그 기기로 기사단을 옮겨요</span>
+      <input id="guildLinkCode" maxlength="7" inputmode="numeric" placeholder="000000" autocomplete="off" style="width:72px">
+      <button class="btn" data-action="guild-link">연결</button>
+    </div>` : ''}`;
 }
 
 // 여관을 골랐을 때 건물 카드 아래: 가방 업그레이드 한 줄 (core.js upgradeBag)
@@ -1778,7 +1790,7 @@ function viewRank() {
     return `
       <div class="rrow ${me ? 'me' : ''}">
         <span class="rk r${rk}">${rk}</span>
-        <span class="rnm"><b>${botTag(p)}${esc(p.nickname)}</b><small>${c.icon} ${c.name} · Lv ${p.level}</small></span>
+        <span class="rnm"><b>${botTag(p)}${esc(p.nickname)}${p.guild ? ` <small title="기사단">🛡️${esc(p.guild)}</small>` : ''}</b><small>${c.icon} ${c.name} · Lv ${p.level}</small></span>
         <span class="rv"><small>최고 스테이지</small><b>🏰 ${p.best}</b></span>
         ${rank.sort === 'tower' ? `<span class="rv"><small>도전의 탑</small><b>🗼 ${p.tower || 0}층</b></span>` : `<span class="rv"><small>전투력</small><b>${fmt(p.power)}</b></span>`}
         <span class="rv"><small>시즌 ${p.wins}승 ${p.losses}패</small><b>⚔️ ${p.rating}</b></span>
@@ -3002,6 +3014,8 @@ const ACTIONS = {
   'guild-unslot': (el) => GUILD_HOST.slot(el.dataset.nick, false),
   'guild-drop': (el) => GUILD_HOST.drop(el.dataset.nick),
   'guild-new': () => GUILD_HOST.newKnight(),
+  'guild-google': () => GUILD_HOST.linkGoogle(),
+  'guild-link': () => { const el = $('guildLinkCode'); GUILD_HOST.linkConfirm(el ? el.value : '').then((m) => toast(m)); },
   'build-rush': () => { rushBuild(); },
   'bag-up': () => { if (upgradeBag()) toast(`🎒 가방 Lv ${S.bagLv} — 무게 ${bagCap()}`); },
   'goto-inn': () => { townUi.sel = 'inn'; campTab = 'town'; $('campBody').scrollTop = 0; },
@@ -3716,12 +3730,12 @@ function boot() {
 const IMPORT_FROM = ['https://sheet-play.sanai-club.workers.dev'];
 function start() {
   if (window.parent === window) {
-    // 기사단 모드 (docs/specs/guild.md 1단계, 웹만): ?guild=1 로 켜고 ?guild=0 으로 끈다. 켜져 있으면 기사단 호스트 페이지로
+    // 기사단 모드 (docs/specs/guild.md): ?guild=1 로 켜고 ?guild=0 으로 끈다. 켜져 있으면 기사단 호스트 페이지로 (2단계부터 Electron 도 — 창 API 는 호스트가 중계)
     const g = new URLSearchParams(location.search).get('guild');
     try {
       if (g === '1') localStorage.setItem('knight-bar-guild-on', '1');
       if (g === '0') localStorage.removeItem('knight-bar-guild-on');
-      if (!window.bar && localStorage.getItem('knight-bar-guild-on')) { location.replace('guild.html' + location.search); return; }
+      if (localStorage.getItem('knight-bar-guild-on')) { location.replace('guild.html' + location.search); return; }
     } catch {}
     return boot();
   }

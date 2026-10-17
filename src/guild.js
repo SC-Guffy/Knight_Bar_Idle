@@ -1,5 +1,5 @@
 'use strict';
-// 기사단 호스트 (docs/specs/guild.md 1단계 — 이 기기 안 기사단, 웹만).
+// 기사단 호스트 (docs/specs/guild.md 1단계 이 기기 안 기사단 + 2단계 서버 기사단·로그인·연결 코드·Electron 중계).
 // 슬롯마다 같은 게임을 iframe(index.html?char=닉네임)으로 띄우고, 이 페이지가 매 프레임 모든 기사의 guildStep 을 부른다.
 // 화면은 고른 기사 하나만 그린다. 공용 상태(골드·목재·철광석·마을 건물·창고·대장간 시설·건설)는 아래 guild.shared 하나를
 // 각 기사의 S 에 getter/setter 로 걸어 같이 쓴다 (같은 origin 이라 동기 접근). 건설 시계는 여기서 한 번만 돌린다.
@@ -17,7 +17,101 @@ const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const readJSON = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
 
 // 게임 iframe 에 넘길 주소 인자 (server=·speed= 등). guild= 는 빼고
-const PASS = (() => { const q = new URLSearchParams(location.search); q.delete('guild'); q.delete('char'); const s = q.toString(); return s ? '&' + s : ''; })();
+const PASS = (() => { const q = new URLSearchParams(location.search); q.delete('guild'); q.delete('char'); q.delete('fakegoogle'); const s = q.toString(); return s ? '&' + s : ''; })();
+
+// ───────────────────────── 서버 기사단 (2단계) ─────────────────────────
+// 기사단 토큰(localStorage knight-bar-guild-token)이 있으면 서버 기사단: 이름·기사·슬롯은 서버가 기준, 기사들은 기사단 토큰 + X-Char 로 움직인다 (src/net.js)
+// Google 클라이언트 ID 는 공개값이다 (Google Cloud 콘솔 → OAuth 클라이언트 ID, 웹 애플리케이션). 비어 있으면 Google 버튼 대신 "준비 중"
+const GOOGLE_CLIENT_ID = '';
+const QS = new URLSearchParams(location.search);
+const SERVER = (QS.get('server') || 'https://knight-bar.onrender.com').replace(/\/+$/, '');
+const FAKE_GOOGLE = QS.get('fakegoogle') === '1';
+const TOKEN_KEY = 'knight-bar-guild-token';
+const DEVICE = (() => {
+  try {
+    let d = localStorage.getItem('knight-bar-device');
+    if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('knight-bar-device', d); }
+    return d;
+  } catch { return ''; }
+})();
+const account = { token: (() => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } })(), online: false, google: false };
+function setToken(t) {
+  account.token = t;
+  try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch {}
+}
+async function gapi(method, path, body, auth = true) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth && account.token) { headers.Authorization = `Bearer ${account.token}`; headers['X-Device'] = DEVICE; }
+  let res, data;
+  try {
+    res = await fetch(SERVER + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    data = await res.json().catch(() => ({}));
+  } catch { throw Object.assign(new Error('서버에 연결할 수 없어요'), { code: 'offline' }); }
+  if (!res.ok) throw Object.assign(new Error(data.error || `서버 오류 (${res.status})`), { code: data.code });
+  return data;
+}
+function pushSlots() {
+  if (!account.online) return;
+  gapi('PUT', '/api/guilds/slots', { slots: guild.slots }).catch((e) => { if (e.code === 'moved') showMoved(); });
+}
+
+// ───────────────────────── Electron 창 API 중계 (2단계) ─────────────────────────
+// iframe 의 게임은 window.bar 대신 barFor(win) 대리 객체를 쓴다 (src/data.js 맨 위). 창 크기·클릭 영역 같은 요청은 보이는 기사 것만 앱으로 보내고,
+// 숨은 기사의 요청은 기억해 뒀다가 그 기사로 바꿀 때 보낸다. 앱 → 게임 신호는 여기서 나눠 준다.
+const BAR = window.bar || null;
+const barRec = new Map();   // 게임 창 → { win: { key: spec }, interactive, camp, overlay, tray, account, cbs: { 신호: [콜백] } }
+const recOf = (win) => { if (!barRec.has(win)) barRec.set(win, { win: {}, cbs: {} }); return barRec.get(win); };
+const isShown = (win) => frames[active] && frames[active].el.contentWindow === win;
+function barApply(win, on) {
+  if (!BAR) return;
+  const r = recOf(win);
+  for (const [k, spec] of Object.entries(r.win)) BAR.setWindow && BAR.setWindow(k, on ? spec : null);
+  if (!on) return;
+  if (r.interactive !== undefined) BAR.setInteractive(r.interactive);
+  if (r.camp !== undefined) BAR.setCampMode(r.camp);
+  if (r.overlay !== undefined && BAR.setOverlay) BAR.setOverlay(r.overlay);
+  if (r.tray !== undefined && BAR.setTrayTitle) BAR.setTrayTitle(r.tray);
+  if (r.account !== undefined) BAR.setAccount(r.account);
+}
+const each = (sig, ...a) => { for (const [win, r] of barRec) for (const cb of r.cbs[sig] || []) { try { cb(...a); } catch (e) { console.error(e); } } };
+const activeCbs = (sig, ...a) => { const f = frames[active]; const r = f && barRec.get(f.el.contentWindow); for (const cb of (r && r.cbs[sig]) || []) cb(...a); };
+let flushWait = 0, flushTimer = null;
+if (BAR) {
+  BAR.onSettings((s) => each('settings', s));
+  if (BAR.onDisplay) BAR.onDisplay((d) => each('display', d));
+  BAR.onReset(() => activeCbs('reset'));
+  BAR.onSwitchAccount(() => { const f = frames[active]; if (f && f.win && f.win.guildApi) f.win.guildApi.openHall(); });
+  // 앱을 끄기 전: 모든 기사가 저장·서버 올리기를 마치면(또는 5초) 한 번만 flushed
+  BAR.onFlush(() => {
+    saveGuild();
+    const n = [...barRec.values()].filter((r) => (r.cbs.flush || []).length).length;
+    if (!n) { BAR.flushed(); return; }
+    flushWait = n;
+    const done = setTimeout(() => { if (flushWait > 0) { flushWait = 0; BAR.flushed(); } }, 5000);
+    each('flush');
+    flushTimer = done;
+  });
+}
+function barFor(win) {
+  if (!BAR) return null;
+  const r = recOf(win);
+  const rec = (k, v, send) => { r[k] = v; if (isShown(win)) send(); };
+  const on = (sig) => (cb) => { (r.cbs[sig] = r.cbs[sig] || []).push(cb); };
+  return {
+    api: BAR.api,
+    setWindow: (key, spec) => { r.win[key] = spec || null; if (isShown(win) && BAR.setWindow) BAR.setWindow(key, spec || null); },
+    setInteractive: (v) => rec('interactive', v, () => BAR.setInteractive(v)),
+    setCampMode: (v) => rec('camp', v, () => BAR.setCampMode(v)),
+    setOverlay: BAR.setOverlay ? (v) => rec('overlay', v, () => BAR.setOverlay(v)) : undefined,
+    setTrayTitle: BAR.setTrayTitle ? (v) => rec('tray', v, () => BAR.setTrayTitle(v)) : undefined,
+    setAccount: (v) => rec('account', v, () => BAR.setAccount(v)),
+    getDisplay: BAR.getDisplay, getCursor: BAR.getCursor,
+    onDisplay: on('display'), onSettings: on('settings'), onReset: on('reset'), onSwitchAccount: on('switch'), onFlush: on('flush'),
+    flushed: () => { if (flushWait > 0 && --flushWait === 0) { clearTimeout(flushTimer); BAR.flushed(); } },
+    quit: () => BAR.quit(),
+    reload: () => BAR.reload(),
+  };
+}
 
 // ───────────────────────── 기사단 저장 ─────────────────────────
 function freshShared() {
@@ -69,6 +163,8 @@ function kill(i) {
   const f = frames[i];
   if (!f) return;
   try { if (f.win && f.win.guildApi) f.win.guildApi.save(); } catch {}
+  const w = f.el.contentWindow;
+  if (w && barRec.has(w)) { if (i === active) barApply(w, false); barRec.delete(w); }
   f.el.remove();
   frames[i] = null;
 }
@@ -79,7 +175,9 @@ function pick(i) {
   if (i === active && frames[i]) return;
   // 고르다 만 새 기사 iframe 은 다른 슬롯으로 가면 닫는다
   if (frames[active] && frames[active].nick === NEW && i !== active) kill(active);
+  if (frames[active] && i !== active) barApply(frames[active].el.contentWindow, false);   // 앞 기사의 창 요청을 거두고
   active = i;
+  if (frames[i]) barApply(frames[i].el.contentWindow, true);                               // 새 기사의 것을 보낸다
   guild.view = i;
   frames.forEach((f, j) => f && f.el.classList.toggle('on', j === i));
   if (frames[i]) frames[i].alert = false;
@@ -90,7 +188,21 @@ function pick(i) {
 
 // ───────────────────────── 게임 쪽에서 부르는 것 (src/core.js GUILD_HOST) ─────────────────────────
 window.guildHost = {
-  full: true,   // 시제품(dev/guild-spike.html)과 구별 — 건설 시계·회관·알림 모으기를 켠다
+  full: true,
+  barFor,
+  // 게임 쪽 서버 요청이 moved(다른 기기 접속) · guild-auth(토큰 끝남)를 받았다 (src/net.js api)
+  serverLost(code) {
+    if (stopped) return;
+    showMoved(code);
+  },
+  linkGoogle() { showLogin('link'); },
+  async linkConfirm(code) {
+    try {
+      await gapi('POST', '/api/link/confirm', { code });
+      setTimeout(showMoved, 1500);
+      return '📱 기기를 연결했어요 — 이제 그 기기에서 이어 해요';
+    } catch (e) { return `⚠️ ${e.message}`; }
+  },   // 시제품(dev/guild-spike.html)과 구별 — 건설 시계·회관·알림 모으기를 켠다
   bindShared(S) {
     Object.defineProperty(S, 'gold', { get: () => shared.gold, set: (v) => { shared.gold = v; }, enumerable: true, configurable: true });
     for (const k of ['wood', 'ore']) Object.defineProperty(S.mats, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: true, configurable: true });
@@ -116,11 +228,12 @@ window.guildHost = {
     if (!guild.chars.includes(nick)) guild.chars.push(nick);
     guild.slots[i] = nick;
     saveGuild();
+    pushSlots();
     renderSlots();
   },
   list() {
     return {
-      name: guild.name || '기사단', max: GUILD_MAX, open: openSlots(), slots: guild.slots.slice(),
+      name: guild.name || '기사단', max: GUILD_MAX, open: openSlots(), slots: guild.slots.slice(), online: account.online, google: account.google,
       chars: guild.chars.map((nick) => { const s = slotOf(nick); return { nick, slot: s, info: s >= 0 && frames[s] ? frames[s].info : null }; }),
     };
   },
@@ -141,6 +254,7 @@ window.guildHost = {
       if (active === i) pick(guild.slots.findIndex(Boolean));
     }
     saveGuild();
+    pushSlots();
     renderSlots();
     refreshHall();
   },
@@ -167,6 +281,7 @@ function refreshHall() {
 // ───────────────────────── 프레임 구동 ─────────────────────────
 // 모든 기사의 게임 시간을 한 rAF 에서 돌리고, 고른 기사만 그린다
 function tick(now) {
+  if (stopped) return;
   requestAnimationFrame(tick);
   frames.forEach((f, i) => {
     if (!f || !f.win || !f.win.guildStep) return;
@@ -246,7 +361,12 @@ function showTip(b) {
 }
 function hideTip() { $('tip').hidden = true; }
 $('slots').addEventListener('mouseover', (e) => { const b = e.target.closest('.gs'); if (b) showTip(b); });
-$('slots').addEventListener('mouseleave', hideTip);
+$('slots').addEventListener('mouseleave', () => {
+  hideTip();
+  const f = frames[active], r = f && barRec.get(f.el.contentWindow);
+  if (BAR) BAR.setInteractive(!!(r && r.interactive));   // 버튼에서 벗어나면 보는 기사의 클릭 영역으로
+});
+$('slots').addEventListener('mouseenter', () => { if (BAR) BAR.setInteractive(true); });   // Electron: 버튼 위에선 창이 클릭을 받게
 let pressT = null;
 $('slots').addEventListener('touchstart', (e) => { const b = e.target.closest('.gs'); if (b) pressT = setTimeout(() => showTip(b), 450); }, { passive: true });
 $('slots').addEventListener('touchend', () => { clearTimeout(pressT); setTimeout(hideTip, 1500); });
@@ -268,8 +388,10 @@ function nextToast() {
   setTimeout(() => { el.classList.remove('show'); setTimeout(nextToast, 250); }, 2600);
 }
 
-// ───────────────────────── 시작 ─────────────────────────
+// ───────────────────────── 시작 · 로그인 (2단계) ─────────────────────────
 function start() {
+  if (started) return;
+  started = true;
   if (!guild.chars.length) { spawn(0, NEW); active = 0; }
   guild.slots.forEach((nick, i) => { if (nick && i < openSlots()) spawn(i, nick); });
   if (!frames[active]) active = frames.findIndex(Boolean);
@@ -278,17 +400,166 @@ function start() {
   saveGuild();
   requestAnimationFrame(tick);
 }
-if (guild.name) start();
-else {
-  $('naming').hidden = false;
-  const go = () => {
-    const v = $('gname').value.trim();
-    if (!NAME_RE.test(v)) { $('gnameMsg').textContent = '한글·영문·숫자 2~12자로 지어 주세요'; return; }
-    guild.name = v;
-    $('naming').hidden = true;
-    start();
-  };
-  $('gnameGo').addEventListener('click', go);
-  $('gname').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
-  setTimeout(() => $('gname').focus(), 50);
+let started = false;
+
+// 서버 기사단을 이 기기 기록에 덮는다: 이름·기사 목록·슬롯은 서버가 기준 (공용 상태는 3단계까지 이 기기)
+function applyServer(v) {
+  guild.name = v.name;
+  account.google = !!v.google;
+  const names = v.chars.map((c) => c.nickname);
+  guild.chars = names;
+  if (v.slots.some(Boolean)) guild.slots = v.slots.map((n) => (n && names.includes(n) ? n : null));
+  else {
+    // 서버 슬롯이 비어 있으면: 이 기기의 슬롯 중 서버 기사만 남기고, 그래도 비면 첫 기사를 1번에
+    guild.slots = guild.slots.map((n) => (n && names.includes(n) ? n : null));
+    if (!guild.slots.some(Boolean) && names.length) guild.slots[0] = names[0];
+    pushSlots();
+  }
+  saveGuild();
 }
+
+async function boot() {
+  if (!account.token) {
+    // 서버 기사단이 없다: 1단계(이 기기 안 기사단)를 쓰던 기기도 로그인 화면부터 — 로그인하면 그 기사들을 서버 기사단에 넣는다
+    return showLogin('choose');
+  }
+  try {
+    applyServer(await gapi('GET', '/api/guilds/me'));
+    account.online = true;
+  } catch (e) {
+    if (e.code === 'moved') return showMoved();
+    if (e.code === 'guild-auth') return showMoved('guild-auth');
+    // 서버가 안 닿는다 (잠들어 깨는 중·오프라인): 이 기기 기록으로 시작하고, 기사들은 지금처럼 나중에 동기화
+    account.online = true;
+    hostToast(`⚠️ ${esc(e.message)} — 이 기기의 기록으로 계속해요`);
+  }
+  start();
+}
+
+// 기사단 토큰을 받은 뒤: 이 기기에 있던 개인 토큰 기사(1단계 기사단·예전 계정)를 서버 기사단에 넣고 시작
+async function enterGuild(token) {
+  setToken(token);
+  const acc = Object.assign({ list: {} }, readJSON(ACCOUNTS_KEY));
+  const local = guild.chars.length ? guild.chars : acc.active ? [acc.active] : [];
+  for (const n of local) {
+    const t = acc.list[n];
+    if (!t || t.startsWith('g.')) continue;
+    try { await gapi('POST', '/api/guilds/adopt', { nickname: n, token: t }); } catch (e) { hostToast(`<b>${esc(n)}</b> 기사단에 넣지 못했어요 — ${esc(e.message)}`); }
+  }
+  $('naming').hidden = true;
+  return boot();
+}
+
+// 로그인 화면: Google · 손님 · 기기 연결 코드(앱). step: choose | name(이름 짓기) | code(연결 코드 표시) | link(손님에 Google 연결)
+let loginTicket = null, linkPoll = null;
+function showLogin(step, msg = '') {
+  const box = $('naming').querySelector('.box');
+  $('naming').hidden = false;
+  clearInterval(linkPoll);
+  if (step === 'choose') {
+    box.innerHTML = `<h2>🛡️ 기사단</h2>
+      <p>기사 여러 명을 한 기사단에서 함께 키워요. Google 로 시작하면 어느 기기에서든 이어 할 수 있어요.</p>
+      <div id="gsi" class="gsi"></div>
+      <div class="row"><button class="ghost" id="lgGuest">손님으로 시작</button><button class="ghost" id="lgCode">기기 연결 코드로 시작</button></div>
+      <p class="tiny">손님도 나중에 🛡️ 기사단 회관에서 Google 을 연결할 수 있어요. 앱에서는 "기기 연결 코드" 로 웹에서 로그인한 기사단을 가져와요.</p>
+      <div class="msg">${esc(msg)}</div>`;
+    renderGoogle($('gsi'), async (idToken) => {
+      try {
+        const r = await gapi('POST', '/api/auth/google', { idToken, deviceId: DEVICE }, false);
+        if (r.token) return enterGuild(r.token);
+        loginTicket = r.ticket;
+        showLogin('name');
+      } catch (e) { showLogin('choose', e.message); }
+    });
+    $('lgGuest').onclick = () => { loginTicket = null; showLogin('name'); };
+    $('lgCode').onclick = () => showLogin('code');
+  } else if (step === 'name') {
+    box.innerHTML = `<h2>🛡️ 기사단 이름을 지어 주세요</h2>
+      <p>${loginTicket ? 'Google 계정에 새 기사단을 만들어요.' : '손님 기사단을 만들어요 — 이 기기에서만 이어지고, 나중에 Google 을 연결할 수 있어요.'} 이름은 다른 기사단과 겹칠 수 없어요.</p>
+      <div class="row"><input id="gname" maxlength="12" placeholder="한글·영문·숫자 2~12자" autocomplete="off" spellcheck="false" value="${esc(guild.name || '')}"><button id="gnameGo">시작</button></div>
+      <div class="row"><button class="ghost" id="lgBack">← 처음으로</button></div>
+      <div class="msg" id="gnameMsg">${esc(msg)}</div>`;
+    const go = async () => {
+      const v = $('gname').value.trim();
+      if (!NAME_RE.test(v)) { $('gnameMsg').textContent = '한글·영문·숫자 2~12자로 지어 주세요'; return; }
+      $('gnameMsg').textContent = '⏳ 만드는 중… 서버가 잠들어 있었다면 1분쯤 걸려요';
+      try {
+        const r = await gapi('POST', '/api/guilds', { name: v, ticket: loginTicket, deviceId: DEVICE }, false);
+        await enterGuild(r.token);
+      } catch (e) { $('gnameMsg').textContent = e.message; }
+    };
+    $('gnameGo').onclick = go;
+    $('gname').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+    $('lgBack').onclick = () => showLogin('choose');
+    setTimeout(() => $('gname').focus(), 50);
+  } else if (step === 'code') {
+    box.innerHTML = `<h2>📱 기기 연결</h2><p>코드를 받는 중…</p><div class="row"><button class="ghost" id="lgBack">← 처음으로</button></div><div class="msg">${esc(msg)}</div>`;
+    $('lgBack').onclick = () => showLogin('choose');
+    gapi('POST', '/api/link/start', { deviceId: DEVICE }, false).then((r) => {
+      box.querySelector('p').innerHTML = `<b class="code">${r.code.slice(0, 3)} ${r.code.slice(3)}</b><br>
+        아무 브라우저에서 게임 웹 주소를 열고 Google 로 로그인한 뒤, 🛡️ 기사단 회관 → <b>기기 연결</b> 에 이 코드를 넣어 주세요. (10분 동안 유효)`;
+      linkPoll = setInterval(async () => {
+        try {
+          const p = await gapi('GET', `/api/link/poll?id=${encodeURIComponent(r.id)}`, null, false);
+          if (p.token) { clearInterval(linkPoll); enterGuild(p.token); }
+        } catch (e) { clearInterval(linkPoll); showLogin('choose', e.message); }
+      }, 3000);
+    }, (e) => showLogin('choose', e.message));
+  } else if (step === 'link') {
+    box.innerHTML = `<h2>🛡️ Google 연결</h2><p>이 손님 기사단에 Google 계정을 연결해요. 그다음부터는 어느 기기에서든 Google 로그인으로 이어 할 수 있어요.</p>
+      <div id="gsi" class="gsi"></div><div class="row"><button class="ghost" id="lgBack">닫기</button></div><div class="msg">${esc(msg)}</div>`;
+    $('lgBack').onclick = () => { $('naming').hidden = true; };
+    renderGoogle($('gsi'), async (idToken) => {
+      try {
+        await gapi('POST', '/api/auth/google', { idToken });
+        account.google = true;
+        $('naming').hidden = true;
+        hostToast('✅ Google 을 연결했어요');
+        refreshHall();
+      } catch (e) { showLogin('link', e.message); }
+    });
+  }
+}
+
+// Google 버튼: 클라이언트 ID 가 있으면 Google Identity Services, ?fakegoogle=1 이면 개발용 가짜 로그인(서버 GOOGLE_FAKE=1 일 때만 통과)
+let gsiLoad = null;
+function renderGoogle(el, onToken) {
+  if (FAKE_GOOGLE) {
+    el.innerHTML = '<div class="row"><input id="fakeSub" placeholder="가짜 Google 이름 (개발)" autocomplete="off"><button id="fakeGo">가짜 Google 로그인</button></div>';
+    $('fakeGo').onclick = () => { const v = $('fakeSub').value.trim(); if (v) onToken(`fake:${v}`); };
+    return;
+  }
+  if (!GOOGLE_CLIENT_ID) { el.innerHTML = '<p class="tiny">Google 로그인은 준비 중이에요 — 지금은 손님으로 시작할 수 있어요.</p>'; return; }
+  gsiLoad = gsiLoad || new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = res; s.onerror = () => rej(new Error('Google 로그인을 불러오지 못했어요'));
+    document.head.appendChild(s);
+  });
+  gsiLoad.then(() => {
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (r) => onToken(r.credential) });
+    google.accounts.id.renderButton(el, { theme: 'filled_black', size: 'large', text: 'continue_with', locale: 'ko', width: 280 });
+  }, (e) => { el.innerHTML = `<p class="tiny">${esc(e.message)} — 게임 모음 사이트처럼 Google 이 막힌 곳이면 손님으로 시작하거나 기기 연결 코드를 써 주세요.</p>`; });
+}
+
+// 다른 기기에서 접속했다: 모두 멈추고(이 기기 기록은 저장) 안내.
+// moved = 연결 코드·"이 기기에서 계속" 으로 기사단이 다른 기기로 갔다 (토큰은 그대로 → 이 기기에서 계속).
+// guild-auth = 다른 기기에서 Google 로 다시 로그인해 이 기기 토큰이 끝났다 (→ 다시 로그인)
+let stopped = false;
+function showMoved(code = 'moved') {
+  stopped = true;
+  for (let i = 0; i < frames.length; i++) kill(i);
+  saveGuild();
+  $('slots').hidden = true;
+  const box = $('naming').querySelector('.box');
+  $('naming').hidden = false;
+  box.innerHTML = `<h2>📱 다른 기기에서 기사단에 접속했어요</h2>
+    <p>한 기사단은 한 기기에서만 진행돼요. 여기서 하던 건 저장했어요.${code === 'moved' ? '' : ' 다른 기기에서 다시 로그인해서 이 기기의 로그인은 끝났어요.'}</p>
+    <div class="row"><button id="mvGo">${code === 'moved' ? '이 기기에서 계속' : '다시 로그인'}</button></div><div class="msg" id="mvMsg"></div>`;
+  $('mvGo').onclick = async () => {
+    if (code !== 'moved') { setToken(null); location.reload(); return; }
+    try { await gapi('POST', '/api/guilds/device', { deviceId: DEVICE }); location.reload(); } catch (e) { $('mvMsg').textContent = e.message; }
+  };
+}
+
+boot();

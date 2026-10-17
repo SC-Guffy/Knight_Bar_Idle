@@ -1,4 +1,7 @@
 'use strict';
+// 기사단 (docs/specs/guild.md 2단계): Electron 앱의 창 API(window.bar)는 바깥 페이지(src/guild.js)가 보이는 기사 것만 앱으로 보내게 중계한다.
+// iframe 에는 앱이 bar 를 넣어 주지 않으므로, 가장 먼저 불리는 이 파일에서 바깥이 준 대리 객체를 건다
+try { if (!window.bar && window.parent !== window && window.parent.guildHost && window.parent.guildHost.barFor) window.bar = window.parent.guildHost.barFor(window); } catch {}
 // 밸런스 수치, 테이블, 스프라이트. 로직은 core.js, 화면은 world.js / ui.js.
 
 // ───────────────────────── 기본 상수 ─────────────────────────

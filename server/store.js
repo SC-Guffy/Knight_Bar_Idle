@@ -1,6 +1,9 @@
 'use strict';
 // 계정 저장소. DATABASE_URL 이 있으면 Postgres, 없으면 DATA_DIR 의 JSON 파일(로컬 개발용).
-// 계정 = { key, nickname, tokenHash, state, profile, level, best, power, cls, rating, wins, losses, season, attacks, createdAt, updatedAt, isBot, tower, renamedAt }
+// 계정 = { key, nickname, tokenHash, state, profile, level, best, power, cls, rating, wins, losses, season, attacks, createdAt, updatedAt, isBot, tower, renamedAt, guildId }
+// guildId: 기사단 소속 기사 (docs/specs/guild.md 2단계). 기사단에서 만든 기사는 개인 토큰이 아무도 모르는 무작위 해시라 기사단 토큰 + X-Char 로만 움직인다
+// 기사단 = { id, name, nameKey, googleSub, tokenHash, deviceId, slots: [기사 key|null × 5], createdAt, updatedAt }
+//   googleSub: Google 계정 고유 번호(이메일·이름은 저장하지 않는다). 손님 기사단은 '' — 나중에 Google 을 연결하면 채운다
 // isBot: AI 기사(server/bots.js). 토큰은 아무도 모르는 무작위 해시라 로그인할 수 없고, state 에는 봇 설정({ bot })만 있다.
 //   시즌 보상 순위·명예의 전당·월드 보스 보상 지분·서버 통계는 사람만 센다 (opt.humans). tower: 도전의 탑 최고 층
 // key 는 닉네임을 소문자로 정규화한 값 (대소문자만 다른 닉네임은 같은 닉네임으로 본다)
@@ -58,13 +61,15 @@ class FileStore {
     this.sdb.penalties = this.sdb.penalties || [];
     this.hallFile = path.join(dir, 'hall.json');
     try { this.hdb = JSON.parse(fs.readFileSync(this.hallFile, 'utf8')); } catch { this.hdb = []; }
+    this.guildFile = path.join(dir, 'guilds.json');
+    try { this.gdb = JSON.parse(fs.readFileSync(this.guildFile, 'utf8')); } catch { this.gdb = {}; }
     this.timer = null;
   }
   async init() {}
   flush() {
     clearTimeout(this.timer);
     this.timer = null;
-    for (const [file, data] of [[this.file, this.db], [this.seasonFile, this.sdb]]) {
+    for (const [file, data] of [[this.file, this.db], [this.seasonFile, this.sdb], [this.guildFile, this.gdb]]) {
       fs.writeFileSync(file + '.tmp', JSON.stringify(data));
       fs.renameSync(file + '.tmp', file);
     }
@@ -240,8 +245,29 @@ class FileStore {
     this.persist();
   }
 
+  // ── 기사단 ──
+  async createGuild(g) {
+    const all = Object.values(this.gdb);
+    if (all.some((o) => o.nameKey === g.nameKey || (g.googleSub && o.googleSub === g.googleSub))) throw new TakenError();
+    this.gdb[g.id] = g;
+    this.persist();
+    return g;
+  }
+  async guild(id) { return this.gdb[id] || null; }
+  async guildByToken(h) { return Object.values(this.gdb).find((g) => g.tokenHash === h) || null; }
+  async guildBySub(sub) { return Object.values(this.gdb).find((g) => g.googleSub === sub) || null; }
+  async guildNameTaken(nameKey) { return Object.values(this.gdb).some((g) => g.nameKey === nameKey); }
+  async updateGuild(id, fields) {
+    if (fields.googleSub && Object.values(this.gdb).some((o) => o.id !== id && o.googleSub === fields.googleSub)) throw new TakenError();
+    Object.assign(this.gdb[id], fields);
+    this.persist();
+  }
+  async guildMembers(id) { return Object.values(this.db).filter((a) => a.guildId === id); }
+  async guildNames(ids) { const out = {}; for (const id of ids) if (this.gdb[id]) out[id] = this.gdb[id].name; return out; }
+
   // 전체 초기화: 계정·시즌 기록을 모두 지운다
   async wipe() {
+    this.gdb = {};
     this.db = {};
     this.sdb = { seasons: [], rewards: [], wb: [], wbHits: [], duelLog: [], audit: [], penalties: [] };
     this.flush();
@@ -249,7 +275,7 @@ class FileStore {
 }
 
 // ───────────────────────── Postgres ─────────────────────────
-const COLS = ['key', 'nickname', 'tokenHash', 'state', 'profile', 'level', 'best', 'power', 'cls', 'rating', 'wins', 'losses', 'season', 'attacks', 'createdAt', 'updatedAt', 'isBot', 'tower', 'renamedAt'];
+const COLS = ['key', 'nickname', 'tokenHash', 'state', 'profile', 'level', 'best', 'power', 'cls', 'rating', 'wins', 'losses', 'season', 'attacks', 'createdAt', 'updatedAt', 'isBot', 'tower', 'renamedAt', 'guildId'];
 const snake = (c) => c.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
 
 class PgStore {
@@ -283,6 +309,19 @@ class PgStore {
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS tower int NOT NULL DEFAULT 0;
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS renamed_at bigint NOT NULL DEFAULT 0;
       ALTER TABLE accounts ADD COLUMN IF NOT EXISTS old_token_hash text NOT NULL DEFAULT '';
+      ALTER TABLE accounts ADD COLUMN IF NOT EXISTS guild_id text NOT NULL DEFAULT '';
+      CREATE INDEX IF NOT EXISTS accounts_guild ON accounts (guild_id) WHERE guild_id <> '';
+      CREATE TABLE IF NOT EXISTS guilds (
+        id text PRIMARY KEY,
+        name text NOT NULL,
+        name_key text NOT NULL UNIQUE,
+        google_sub text UNIQUE,
+        token_hash text NOT NULL UNIQUE,
+        device_id text NOT NULL DEFAULT '',
+        slots jsonb NOT NULL DEFAULT '[]',
+        created_at bigint NOT NULL,
+        updated_at bigint NOT NULL
+      );
       CREATE INDEX IF NOT EXISTS accounts_tower ON accounts (tower DESC, best DESC, level DESC);
       -- 전투력은 스테이지 214쯤에서 bigint(9.2e18)를 넘는다 → 실수형으로 (정수형일 때 한 번만 바꾼다)
       DO $$ BEGIN
@@ -372,11 +411,11 @@ class PgStore {
     const o = {};
     for (const c of COLS) o[c] = r[snake(c)];
     o.power = Number(o.power); o.createdAt = Number(o.createdAt); o.updatedAt = Number(o.updatedAt);
-    o.isBot = !!o.isBot; o.tower = Number(o.tower) || 0; o.renamedAt = Number(o.renamedAt) || 0;
+    o.isBot = !!o.isBot; o.tower = Number(o.tower) || 0; o.renamedAt = Number(o.renamedAt) || 0; o.guildId = o.guildId || '';
     return o;
   }
   async create(acc) {
-    const vals = COLS.map(c => (c === 'isBot' ? !!acc[c] : c === 'tower' || c === 'renamedAt' ? acc[c] || 0 : acc[c]));
+    const vals = COLS.map(c => (c === 'isBot' ? !!acc[c] : c === 'tower' || c === 'renamedAt' ? acc[c] || 0 : c === 'guildId' ? acc[c] || '' : acc[c]));
     const r = await this.pool.query(
       `INSERT INTO accounts (${COLS.map(snake).join(',')}) VALUES (${COLS.map((_, i) => '$' + (i + 1)).join(',')})
        ON CONFLICT (key) DO NOTHING RETURNING key`, vals);
@@ -610,9 +649,46 @@ class PgStore {
   async ackPenalties(key, ids) {
     await this.pool.query('UPDATE penalties SET done = true WHERE key=$1 AND id = ANY($2::int[])', [key, ids]);
   }
+  // ── 기사단 ──
+  grow(r) {
+    if (!r) return null;
+    return { id: r.id, name: r.name, nameKey: r.name_key, googleSub: r.google_sub || '', tokenHash: r.token_hash, deviceId: r.device_id,
+      slots: r.slots || [], createdAt: Number(r.created_at), updatedAt: Number(r.updated_at) };
+  }
+  async createGuild(g) {
+    try {
+      await this.pool.query('INSERT INTO guilds (id, name, name_key, google_sub, token_hash, device_id, slots, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        [g.id, g.name, g.nameKey, g.googleSub || null, g.tokenHash, g.deviceId || '', JSON.stringify(g.slots || []), g.createdAt, g.updatedAt]);
+    } catch (e) {
+      if (e.code === '23505') throw new TakenError();
+      throw e;
+    }
+    return g;
+  }
+  async guild(id) { return this.grow((await this.pool.query('SELECT * FROM guilds WHERE id=$1', [id])).rows[0]); }
+  async guildByToken(h) { return this.grow((await this.pool.query('SELECT * FROM guilds WHERE token_hash=$1', [h])).rows[0]); }
+  async guildBySub(sub) { return this.grow((await this.pool.query('SELECT * FROM guilds WHERE google_sub=$1', [sub])).rows[0]); }
+  async guildNameTaken(nameKey) { return (await this.pool.query('SELECT 1 FROM guilds WHERE name_key=$1', [nameKey])).rowCount > 0; }
+  async updateGuild(id, fields) {
+    const map = { name: 'name', nameKey: 'name_key', googleSub: 'google_sub', tokenHash: 'token_hash', deviceId: 'device_id', slots: 'slots', updatedAt: 'updated_at' };
+    const ks = Object.keys(fields).filter((k) => map[k]);
+    try {
+      await this.pool.query(`UPDATE guilds SET ${ks.map((k, i) => `${map[k]}=$${i + 2}`).join(',')} WHERE id=$1`,
+        [id, ...ks.map((k) => (k === 'slots' ? JSON.stringify(fields[k]) : fields[k]))]);
+    } catch (e) {
+      if (e.code === '23505') throw new TakenError();
+      throw e;
+    }
+  }
+  async guildMembers(id) { return (await this.pool.query('SELECT * FROM accounts WHERE guild_id=$1', [id])).rows.map((r) => this.row(r)); }
+  async guildNames(ids) {
+    if (!ids.length) return {};
+    const r = await this.pool.query('SELECT id, name FROM guilds WHERE id = ANY($1::text[])', [ids]);
+    return Object.fromEntries(r.rows.map((x) => [x.id, x.name]));
+  }
   // 전체 초기화: 계정·시즌 기록을 모두 지운다 (명예의 전당은 남긴다)
   async wipe() {
-    await this.pool.query('TRUNCATE accounts, duel_seasons, season_rewards, world_boss, world_boss_hits, duel_log, audit_log, penalties');
+    await this.pool.query('TRUNCATE guilds, accounts, duel_seasons, season_rewards, world_boss, world_boss_hits, duel_log, audit_log, penalties');
   }
 }
 

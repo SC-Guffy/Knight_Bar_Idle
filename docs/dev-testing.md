@@ -91,6 +91,11 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - 새 기사를 만들려면 진짜 로컬 서버가 필요하다(위 "진짜 로컬 서버"): `index.html?server=http://localhost:<서버 포트>&guild=1`. 오프라인 주소(`127.0.0.1:9`)면 기사 만들기만 안 되고 나머지는 된다.
 - 바깥 페이지 콘솔: `guild`(저장 내용) · `shared`(공용 상태) · `frames[i].win`(기사 i 의 게임 창, `frames[i].win.guildS` = S) · `guildHost.slot('닉', true)` · `renderSlots()`. 회관 Lv 바로 바꾸기: `shared.bld.hall = 10; renderSlots()`.
 - 처음부터: 바깥 페이지 콘솔 `localStorage.removeItem('knight-bar-guild')` 후 새로 고침.
+- **2단계(서버 기사단)**: 서버를 `GOOGLE_FAKE=1` 로 띄우고(`cd server && PORT=3792 DATA_DIR=<스크래치>/srv GOOGLE_FAKE=1 node index.js`) `index.html?server=http://localhost:3792&guild=1&fakegoogle=1` → 로그인 화면의 "가짜 Google 로그인"에 아무 이름(같은 이름 = 같은 Google 계정). 손님·기기 연결 코드도 같은 화면.
+  - 서버 API 점검: `P=3792 node dev/guild-server-test.mjs` (서버를 새로 띄운 직후 — IP 당 한 시간 5개 제한).
+  - "다른 기기"는 저장소가 따로인 창이 필요하다: CDP `Target.createBrowserContext` 로 만든 창, 또는 다른 브라우저 프로필. 같은 창의 새 탭은 localStorage 를 같이 써서 같은 기기로 보인다.
+  - 기사단 토큰을 지우면 로그인 화면부터: 바깥 페이지 콘솔 `localStorage.removeItem('knight-bar-guild-token')`.
+  - Electron 중계는 가짜 `bar` 로 본다: 로드 전에 맨 위 창에만 `window.bar = { 호출을 기록하는 함수들 }` 를 넣는다(CDP `Page.addScriptToEvaluateOnNewDocument`, `window === window.top` 일 때만).
 - 숨은 창은 rAF 가 멈춘다 → 프레임·진행 확인은 보이는 Chrome(`dev/guild-measure.mjs` 머리 주석의 실행 인자)에서.
 
 ## 기사단 시제품 (`dev/guild-spike.html`, [specs/guild.md](specs/guild.md))

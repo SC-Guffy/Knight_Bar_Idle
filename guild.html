@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; frame-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; connect-src 'self' https: http://localhost:* http://127.0.0.1:*">
 <title>기사 키우기 — 기사단</title>
 <!-- 기사단 호스트 (docs/specs/guild.md 1단계). index.html 이 ?guild=1 로 켜진 맨 위 창이면 여기로 온다.
      슬롯마다 index.html?char=닉네임 iframe 을 띄우고, 매 프레임 모든 기사의 게임 시간을 돌리며, 고른 기사 하나만 그린다. -->
@@ -44,6 +44,13 @@
   #naming input { flex: 1; min-width: 0; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--text); font: inherit; }
   #naming button { padding: 7px 12px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #1a1206; font: inherit; font-weight: 700; cursor: pointer; }
   #naming .msg { min-height: 16px; margin-top: 6px; color: #ff6b6b; font-size: 11px; }
+  #naming .row + .row { margin-top: 8px; }
+  #naming button.ghost { flex: 1; background: rgba(255, 255, 255, .06); border-color: var(--line); color: var(--text); font-weight: 400; }
+  #naming button.ghost:hover { background: rgba(255, 255, 255, .12); }
+  #naming .gsi { min-height: 44px; display: flex; justify-content: center; align-items: center; margin: 4px 0 10px; }
+  #naming .gsi .row { width: 100%; }
+  #naming .tiny { margin: 10px 0 0; font-size: 11px; }
+  #naming .code { display: inline-block; margin: 6px 0 8px; font-size: 28px; letter-spacing: 4px; color: var(--accent); font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -52,12 +59,7 @@
 <div id="tip" hidden></div>
 <div id="gtoast"></div>
 <div id="naming" hidden>
-  <div class="box">
-    <h2>🛡️ 기사단 이름을 지어 주세요</h2>
-    <p>기사단 안에서 기사 여러 명을 함께 키워요. 골드·목재·철광석·마을은 기사단이 같이 쓰고, 슬롯에 있는 기사는 안 보고 있어도 계속 진행해요.</p>
-    <div class="row"><input id="gname" maxlength="12" placeholder="한글·영문·숫자 2~12자" autocomplete="off" spellcheck="false"><button id="gnameGo">시작</button></div>
-    <div class="msg" id="gnameMsg"></div>
-  </div>
+  <div class="box"></div>
 </div>
 <script src="src/iconmap.js"></script>
 <script src="src/guild.js"></script>
