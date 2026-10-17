@@ -119,6 +119,9 @@ const moveOf = (k, t) => ({ t: k.stopT ?? round1(t), x: round1(k.x), ...(k.dashe
 
 // p: 클라이언트가 저장할 때 올린 전투 프로필 (sanitizeProfile 을 거친 값)
 function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
+  // 시즌7 스킬 트리 줄기: 결투에서만 공격력 배율 (src/tree7.js 키스톤 fx.duel — 1:1 첫 폭딜 싸움에서 광역 갈래가 손해라). 레이드는 안 쓴다
+  if (pa.duel) pa = { ...pa, atk: pa.atk * pa.duel };
+  if (pb.duel) pb = { ...pb, atk: pb.atk * pb.duel };
   const rng = mulberry32(seed);
   const hpMult = DUEL_HP * Math.max(HP_MULT, DUEL_SEC * (rateOf(pa) * (1 - pb.guard) / pb.maxHp + rateOf(pb) * (1 - pa.guard) / pa.maxHp) / 2);
   const make = (p, x, dir) => ({

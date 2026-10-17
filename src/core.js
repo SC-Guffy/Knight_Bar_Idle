@@ -486,7 +486,7 @@ function profile() {
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     // 파이터 계열: 기 규칙 (서버 duel.js·raid.js 가 실제로 충전·소모를 돌린다. 모르는 서버는 버리고 등가 cd 로 계산)
     ...(isQiCls(S.cls) ? { qi: qiProfileOf(S.cls) } : {}),
-    ...(t7On() ? { t7: 1 } : {}),   // 시즌7 스킬 트리 줄기: 서버가 스킬을 5개(장착 4 + 궁극기)까지 받는다 (server/index.js sanitizeProfile)
+    ...(t7On() ? { t7: 1, ...(t7Duel() !== 1 ? { duel: t7Duel() } : {}) } : {}),   // 시즌7 스킬 트리 줄기: 서버가 스킬을 5개(장착 4 + 궁극기)까지 받는다 · duel 결투 전용 공격력 배율 (server/index.js sanitizeProfile, src/tree7.js fx.duel)
     // 서버는 스킬을 앞에서 3개만 받는다(server/index.js sanitizeProfile). 파이터 계열 3차는 [궁극기·투지·원투·주 기술] 순이라 주 기술이 잘리면
     // 기를 쓰지 않아 투지도 멈춘다 → 물려받은 원투(1차)를 맨 뒤로 보내 그것이 빠지게 한다 (다른 3차도 1차 스킬이 빠진다)
     skills: (isQiCls(S.cls) ? [...st.skills.filter((id) => SKILLS[id].cls !== 'fighter' || S.cls === 'fighter'), ...st.skills.filter((id) => SKILLS[id].cls === 'fighter' && S.cls !== 'fighter')] : st.skills).map((id) => {

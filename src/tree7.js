@@ -31,7 +31,8 @@ const T7_STAGE_AT = [0, 0, 1, 1, 2, 3];
 // 노드: id, t 종류, lane (c 줄기 / a 연타 / b 발도 / k 검기), tier 필요 전직 차수, req 앞 노드(하나라도), min 그 갈래 포인트 하한,
 //  sk 액티브·융합·궁극기가 가리키는 SKILLS id, lanes 융합이 요구하는 두 갈래, pair 같은 값끼리 택1,
 //  fx 효과 (아래 t7Mods 가 읽는다): { stat:{키:칸당}, pow:{스킬:배}, cd:{스킬:배}, ev:{스킬:배} 결투·전투력 평균 배율, spec:{스킬:{type,v,…}}, shape:이름,
-//     rule:이름 (전투 규칙 — src/tree7-fx.js t7OnHit·t7OnEnd·t7OnBasic), basic: 평타 피해 배율, basicDps: 평타 DPS 평균 배율(dpsOf), evAll: 모든 스킬 평균 배율 }
+//     rule:이름 (전투 규칙 — src/tree7-fx.js t7OnHit·t7OnEnd·t7OnBasic), basic: 평타 피해 배율, basicDps: 평타 DPS 평균 배율(dpsOf), evAll: 모든 스킬 평균 배율,
+//     duel: 결투에서만 공격력 배율 (1:1·6~7초 첫 폭딜 싸움이라 광역·쿨 줄이기 갈래가 손해 — server/duel.js 가 profile.duel 을 곱한다. 레이드·원정은 그대로) }
 const T7_NODES = [
   { id: 'c_atk', t: 'stat', lane: 'c', tier: 0, req: [], fx: { stat: { atk: 0.02 } } },
   { id: 'c_hp', t: 'stat', lane: 'c', tier: 0, req: [], fx: { stat: { hp: 0.03 } } },
@@ -50,7 +51,7 @@ const T7_NODES = [
   { id: 'a_grow', t: 'mod', lane: 'a', tier: 2, req: ['whirl'], pair: 'pa', fx: { shape: 'grow', ev: { whirl: 1.1 } } },
   { id: 'a_key', t: 'key', lane: 'a', tier: 2, req: ['a_follow', 'a_grow'], fx: { rule: 'frenzy', basic: 0.85, basicDps: 1.02 } },   // 스킬 명중마다 공속 +4% 겹침(최대 10, 3초) · 평타 피해 −15%
   { id: 'a_k3', t: 'key', lane: 'a', tier: 3, min: 12, req: ['a_key'], fx: { rule: 'endless', ev: { gale: 1.3 }, cd: { gale: 1.25 } } },   // 질풍난무가 끝나면 30% 로 바로 한 번 더
-  { id: 'uv_a', t: 'uvar', lane: 'a', tier: 3, req: ['ult'], fx: { shape: 'uvA', ev: { thousandCuts: 1.05 } } },
+  { id: 'uv_a', t: 'uvar', lane: 'a', tier: 3, req: ['ult'], fx: { shape: 'uvA', ev: { thousandCuts: 1.05 }, duel: 1.2 } },
 
   { id: 'iaido', t: 'active', lane: 'b', tier: 2, req: ['slash'], sk: 'iaido' },
   { id: 'b_reset', t: 'mod', lane: 'b', tier: 2, req: ['iaido'], fx: { rule: 'echo', ev: { iaido: 1.2 } } },   // 일섬으로 처치하면 잔상이 가장 가까운 적을 50% 로
@@ -60,7 +61,7 @@ const T7_NODES = [
   { id: 'b_triple', t: 'mod', lane: 'b', tier: 2, req: ['flash'], pair: 'pb', fx: { shape: 'triple' } },
   { id: 'b_key', t: 'key', lane: 'b', tier: 2, req: ['b_after', 'b_triple'], fx: { pow: { iaido: 1.17, flash: 1.17 }, cd: { iaido: 1.3, flash: 1.3 } } },
   { id: 'b_k3', t: 'key', lane: 'b', tier: 3, min: 12, req: ['b_key'], fx: { stat: { atkMul: 2.6, noCrit: 1 } } },   // 모든 피해 ×2.6 (봇: 2.3 이면 발도 빌드가 10일차 240 에 멈춤), 치명 0 (확정 치명 스킬도 일반타 — t7NoCrit). 1.35 는 확정 치명 3.3배를 잃는 값을 못 메워 0.6배 손해였다
-  { id: 'uv_b', t: 'uvar', lane: 'b', tier: 3, req: ['ult'], fx: { shape: 'uvB', pow: { thousandCuts: 1.2 } } },
+  { id: 'uv_b', t: 'uvar', lane: 'b', tier: 3, req: ['ult'], fx: { shape: 'uvB', pow: { thousandCuts: 1.2 }, duel: 0.95 } },
 
   { id: 'wave', t: 'active', lane: 'k', tier: 2, req: ['slash'], sk: 'wave' },
   { id: 'k_wave', t: 'mod', lane: 'k', tier: 2, req: ['wave'], fx: { shape: 'slashWave' } },
@@ -70,7 +71,7 @@ const T7_NODES = [
   { id: 'k_homing', t: 'mod', lane: 'k', tier: 2, req: ['storm'], pair: 'pk', fx: { spec: { storm: { type: 'boss', name: '유도', icon: '🎯', v: 0.5 } } } },
   { id: 'k_key', t: 'key', lane: 'k', tier: 2, req: ['k_split', 'k_homing'], fx: { stat: { rangeMul: 3 }, basic: 0.8, basicDps: 0.9 } },   // 평타가 검기로 (사거리 ×3, 검기 그림) · 평타 피해 −20%
   { id: 'k_k3', t: 'key', lane: 'k', tier: 3, min: 12, req: ['k_key'], fx: { rule: 'myriad', ev: { wave: 1.25, storm: 1.25 }, powNot: { lane: 'k', v: 0.8 } } },   // 검기 스킬 명중마다 다른 검기 스킬 쿨 −0.3초
-  { id: 'uv_k', t: 'uvar', lane: 'k', tier: 3, req: ['ult'], fx: { shape: 'uvK', ev: { thousandCuts: 1.1 } } },
+  { id: 'uv_k', t: 'uvar', lane: 'k', tier: 3, req: ['ult'], fx: { shape: 'uvK', ev: { thousandCuts: 1.1 }, duel: 1.4 } },   // duel: 결투 전용 공격력 (t7Duel — 검기는 광역·쿨 줄이기가 1:1 에서 안 먹어서 ×1.4, 연타 ×1.2, 발도 ×0.95. 맞대결 60판으로 맞춤)
 
   { id: 'ult', t: 'ult', lane: 'c', tier: 3, req: ['slash'], sk: 'thousandCuts' },
   { id: 'f_ab', t: 'fusion', lanes: ['a', 'b'], tier: 2, req: [], sk: 'f_ab' },
@@ -190,7 +191,7 @@ let t7ModsKey = '', t7ModsVal = null;
 function t7Mods() {
   const key = JSON.stringify(t7S().rk) + S.cls;
   if (key === t7ModsKey) return t7ModsVal;
-  const m = { stat: {}, pow: {}, cd: {}, ev: {}, spec: {}, shape: new Set(), rules: new Set(), cdAll: 1, powAll: 1, evAll: 1, basic: 1, basicDps: 1, powNot: [] };
+  const m = { stat: {}, pow: {}, cd: {}, ev: {}, spec: {}, shape: new Set(), rules: new Set(), cdAll: 1, powAll: 1, evAll: 1, basic: 1, basicDps: 1, duel: 1, powNot: [] };
   for (const n of T7_NODES) {
     const r = t7Rank(n.id), f = n.fx;
     if (!r || !f) continue;
@@ -199,7 +200,7 @@ function t7Mods() {
     if (f.spec) Object.assign(m.spec, f.spec);
     if (f.shape) m.shape.add(f.shape);
     if (f.rule) m.rules.add(f.rule);
-    for (const g of ['evAll', 'basic', 'basicDps']) if (f[g]) m[g] *= f[g];
+    for (const g of ['evAll', 'basic', 'basicDps', 'duel']) if (f[g]) m[g] *= f[g];
     if (f.cdAll) m.cdAll *= f.cdAll;
     if (f.powAll) m.powAll *= f.powAll;
     if (f.powNot) m.powNot.push(f.powNot);
@@ -248,6 +249,12 @@ function t7Ev(sk) {
 // 전투 규칙이 켜졌는가 (src/tree7-fx.js) · 평타 피해 배율 (world.js releaseAttack) · 평타 DPS 평균 배율 (core.js dpsOf)
 const t7Rule = (name) => t7On() && t7Mods().rules.has(name);
 // 무념(b_k3): 치명이 전혀 안 터진다 — 확정 치명 스킬(일섬·섬광 베기·천검)도 일반타 (core.js dpsOf·profile, skills.js, world.js hitMonster)
+// 결투 전용 공격력 배율 (궁극기 변형 셋 중 하나에 붙음, fx.duel). 다른 갈래 3차 키스톤까지 찍을수록 줄어든다 (트리를 거의 다 찍으면 갈래 약점이 없어져서) — 하나 1 · 둘 ½ · 셋 0
+function t7Duel() {
+  if (!t7On()) return 1;
+  const f = t7Mods().duel, n = ['a_k3', 'b_k3', 'k_k3'].filter((id) => t7Rank(id) > 0).length;
+  return 1 + (f - 1) * Math.max(0, Math.min(1, 1 - (n - 1) / 2));
+}
 const t7NoCrit = () => t7On() && !!t7Mods().stat.noCrit;
 const t7BasicMul = () => (t7On() ? t7Mods().basic : 1);
 const t7BasicDps = () => (t7On() ? t7Mods().basic * t7Mods().basicDps : 1);

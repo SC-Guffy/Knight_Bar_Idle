@@ -94,7 +94,7 @@ function sanitizeProfile(p = {}) {
     heal: num(p.heal, 0, 0.2, 0),
     // 장비 옵션 줄 (시즌6): 레이드·월드 보스 전투만 쓴다 (server/raid.js)
     ...(p.bossDmg ? { bossDmg: num(p.bossDmg, 0, 4, 0) } : {}), ...(p.exec ? { exec: num(p.exec, 0, 4, 0) } : {}),
-    leap, skills, ...(qi ? { qi } : {}), ...(t7 ? { t7: 1 } : {}),
+    leap, skills, ...(qi ? { qi } : {}), ...(t7 ? { t7: 1, ...(p.duel ? { duel: num(p.duel, 0.3, 3, 1) } : {}) } : {}),   // duel: 시즌7 트리 결투 전용 공격력 배율 (server/duel.js)
     power: Math.floor(num(p.power, 0, 1e150, 0)),
     tower: Math.floor(num(p.tower, 0, 1e5, 0)),   // 도전의 탑 최고 층 (탑 순위)
     gc: 1,
