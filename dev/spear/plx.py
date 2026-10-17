@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
 from pl import call
 
-CAP = 27          # 로드맵 승인: 원형 마네킹 usage 11 + 기준 그림 정리 직업당 1회 7 (2026-10-17) + v11 3등신 재정리 4 (2026-10-17, 재시도 0) + v12 얼굴 투구 2 (2026-10-17, 재시도 0) + 관절 애니 시험 4 (창기사 pixen 중립 1 + 찌르기 8f 3, 2026-10-17, 재시도 0)
+CAP = 58          # 로드맵 승인: 원형 마네킹 usage 11 + 기준 그림 정리 직업당 1회 7 (2026-10-17) + v11 3등신 재정리 4 (2026-10-17, 재시도 0) + v12 얼굴 투구 2 (2026-10-17, 재시도 0) + 관절 애니 시험 4 (창기사 pixen 중립 1 + 찌르기 8f 3, 2026-10-17, 재시도 0) + 나머지 애니 31 (2026-10-17, 재시도 0)
 FLOOR = 300
 LOG = os.path.join(HERE, 'usage.md')
 STATE = os.path.join(HERE, 'usage.json')

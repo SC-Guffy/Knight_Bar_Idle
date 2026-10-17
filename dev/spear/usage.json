@@ -1,5 +1,5 @@
 {
- "used": 27.0,
+ "used": 57.0,
  "calls": [
   {
    "cls": "mq",
@@ -159,6 +159,94 @@
    "purpose": "skel-thrust: animate-with-skeleton-v3 192 8f",
    "used": 3.0,
    "bal": 1032.0,
+   "n": 8
+  },
+  {
+   "cls": "lancer",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-slam8+idle4: animate-with-skeleton-v3 192 12f",
+   "used": 3.0,
+   "bal": 1010.0,
+   "n": 12
+  },
+  {
+   "cls": "lancer",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "used": 3.0,
+   "bal": 1002.0,
+   "n": 8
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi dragoon knight, same face, same colors and ",
+   "used": 1.0,
+   "bal": 993.0,
+   "n": 2
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-thrust7+slam8: animate-with-skeleton-v3 192 15f",
+   "used": 4.0,
+   "bal": 982.0,
+   "n": 15
+  },
+  {
+   "cls": "dragoon",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "used": 3.0,
+   "bal": 976.0,
+   "n": 8
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi heavy halberdier knight, same face, same co",
+   "used": 1.0,
+   "bal": 975.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sweep7+chop8: animate-with-skeleton-v3 192 15f",
+   "used": 4.0,
+   "bal": 970.0,
+   "n": 15
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "used": 3.0,
+   "bal": 967.0,
+   "n": 8
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi cavalry lancer knight, same face, same colo",
+   "used": 1.0,
+   "bal": 963.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-thrust7+slam8: animate-with-skeleton-v3 192 15f",
+   "used": 4.0,
+   "bal": 963.0,
+   "n": 15
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "used": 3.0,
+   "bal": 959.0,
    "n": 8
   }
  ]

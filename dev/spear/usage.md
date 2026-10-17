@@ -24,3 +24,14 @@
 | 18 | dragoon | `/image-to-pixelart` | dragoon12-51-pl: 기준 그림 정리 256→64 | 1.0 | 23.0 | 1052.0 |
 | 19 | lancer | `/edit-image-pixen` | neutral: same young chibi lancer knight, same face, same colors and o | 1.0 | 24.0 | 1043.0 |
 | 20 | lancer | `/animate-with-skeleton-v3` | skel-thrust: animate-with-skeleton-v3 192 8f | 3.0 | 27.0 | 1032.0 |
+| 21 | lancer | `/animate-with-skeleton-v3` | skel-slam8+idle4: animate-with-skeleton-v3 192 12f | 3.0 | 30.0 | 1010.0 |
+| 22 | lancer | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 33.0 | 1002.0 |
+| 23 | dragoon | `/edit-image-pixen` | neutral: same young chibi dragoon knight, same face, same colors and  | 1.0 | 34.0 | 993.0 |
+| 24 | dragoon | `/animate-with-skeleton-v3` | skel-thrust7+slam8: animate-with-skeleton-v3 192 15f | 4.0 | 38.0 | 982.0 |
+| 25 | dragoon | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 41.0 | 976.0 |
+| 26 | halberdier | `/edit-image-pixen` | neutral: same young chibi heavy halberdier knight, same face, same co | 1.0 | 42.0 | 975.0 |
+| 27 | halberdier | `/animate-with-skeleton-v3` | skel-sweep7+chop8: animate-with-skeleton-v3 192 15f | 4.0 | 46.0 | 970.0 |
+| 28 | halberdier | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 49.0 | 967.0 |
+| 29 | cavalier | `/edit-image-pixen` | neutral: same young chibi cavalry lancer knight, same face, same colo | 1.0 | 50.0 | 963.0 |
+| 30 | cavalier | `/animate-with-skeleton-v3` | skel-thrust7+slam8: animate-with-skeleton-v3 192 15f | 4.0 | 54.0 | 963.0 |
+| 31 | cavalier | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 57.0 | 959.0 |

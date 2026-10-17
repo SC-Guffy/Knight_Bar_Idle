@@ -16,10 +16,33 @@ BODY_KP = {
                'LEFT SHOULDER': (92, 128), 'LEFT ELBOW': (90, 140), 'LEFT ARM': (91, 152),
                'RIGHT HIP': (106, 148), 'RIGHT KNEE': (110, 162), 'RIGHT LEG': (112, 175),
                'LEFT HIP': (96, 148), 'LEFT KNEE': (98, 162), 'LEFT LEG': (97, 175)},
+    'dragoon': {'NECK': (96, 118), 'NOSE': (101, 110), 'RIGHT EYE': (98, 109), 'LEFT EYE': (95, 109), 'RIGHT EAR': (92, 109), 'LEFT EAR': (90, 110),
+                'RIGHT SHOULDER': (106, 122), 'RIGHT ELBOW': (108, 134), 'RIGHT ARM': (110, 146),
+                'LEFT SHOULDER': (86, 122), 'LEFT ELBOW': (84, 134), 'LEFT ARM': (82, 146),
+                'RIGHT HIP': (101, 142), 'RIGHT KNEE': (103, 159), 'RIGHT LEG': (104, 175),
+                'LEFT HIP': (91, 142), 'LEFT KNEE': (92, 159), 'LEFT LEG': (91, 175)},
+    'halberdier': {'NECK': (103, 119), 'NOSE': (114, 111), 'RIGHT EYE': (110, 110), 'LEFT EYE': (104, 110), 'RIGHT EAR': (98, 110), 'LEFT EAR': (96, 111),
+                   'RIGHT SHOULDER': (115, 124), 'RIGHT ELBOW': (119, 134), 'RIGHT ARM': (121, 145),
+                   'LEFT SHOULDER': (90, 124), 'LEFT ELBOW': (86, 136), 'LEFT ARM': (87, 148),
+                   'RIGHT HIP': (108, 146), 'RIGHT KNEE': (110, 161), 'RIGHT LEG': (111, 175),
+                   'LEFT HIP': (98, 146), 'LEFT KNEE': (98, 161), 'LEFT LEG': (97, 175)},
+    'cavalier': {'NECK': (100, 123), 'NOSE': (111, 116), 'RIGHT EYE': (106, 114), 'LEFT EYE': (102, 114), 'RIGHT EAR': (96, 114), 'LEFT EAR': (94, 115),
+                 'RIGHT SHOULDER': (106, 128), 'RIGHT ELBOW': (108, 138), 'RIGHT ARM': (110, 149),
+                 'LEFT SHOULDER': (90, 128), 'LEFT ELBOW': (88, 139), 'LEFT ARM': (88, 150),
+                 'RIGHT HIP': (104, 150), 'RIGHT KNEE': (103, 163), 'RIGHT LEG': (104, 175),
+                 'LEFT HIP': (95, 150), 'LEFT KNEE': (95, 163), 'LEFT LEG': (94, 175)},
 }
 DESC = {'lancer': 'young chibi lancer knight, open-faced steel helmet with a small green plume, green tabard over silver plate armor, round pauldrons, '
-                  'short green cape, empty hands (the spear is drawn later)'}
-ACTION = {'thrust': 'lunge forward and thrust a spear with both hands, then recover', 'walk': 'walk cycle', 'slam': 'raise a spear overhead and slam it down'}
+                  'short green cape, empty hands (the spear is drawn later)',
+        'dragoon': 'young chibi dragoon knight, dragon-shaped helmet with a snout brim over the forehead and two backward horns, human face visible, '
+                   'plate armor, dark bat-wing shaped cloth cape, empty hands (the spear is drawn later)',
+        'halberdier': 'young chibi heavy halberdier knight, steel bucket helmet with a horizontal eye slit, big square steel pauldrons, steel plate armor, '
+                      'orange cloth tabard over the thighs, thick belt, light tan leather gloves, empty hands (the halberd is drawn later)',
+        'cavalier': 'young chibi cavalry lancer knight, silver crested helmet with a tall red feather plume, royal blue surcoat and short blue cape over '
+                    'silver plate armor, light tan leather gloves, empty hands (the lance is drawn later)'}
+ACTION = {'thrust': 'lunge forward and thrust a spear with both hands, then recover', 'walk': 'walk cycle holding a long polearm upright',
+          'slam': 'raise a spear overhead with both hands and slam it down in front', 'idle': 'stand ready holding a spear upright, breathing',
+          'sweep': 'swing a halberd in a wide horizontal sweep', 'chop': 'raise a halberd overhead and chop down'}
 
 d = math.dist
 mid = lambda a, b: ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
@@ -64,17 +87,28 @@ def fit(cls, frames):
     return out, L, s
 
 
+def pick(act, n):
+    """동작 act 의 프레임 n 장 (8f → 7f 면 고르게 하나 뺀다)"""
+    fr = SK0.ACTIONS[act]; m = len(fr)
+    return [fr[round(i * (m - 1) / (n - 1))] for i in range(n)] if n < m else list(fr)
+
+
 def req(cls, act, seed=7):
-    frames = [p for p, _ in SK0.ACTIONS[act]]
+    """act = 'thrust' 처럼 동작 하나, 또는 'slam8+idle4' 처럼 묶음(동작이름+프레임수) — 한 호출에 이어 붙인다 (15f = usage 4)"""
+    parts = [(a.rstrip('0123456789'), int(a[len(a.rstrip('0123456789')):] or len(SK0.ACTIONS[a]))) for a in act.split('+')]
+    seq = [(fr, name) for name, n in parts for fr in pick(name, n)]
+    acts = [name for _, name in seq]; SEQ = [fr for fr, _ in seq]
+    frames = [p for p, _ in SEQ]
     fit_frames, L, s = fit(cls, frames)
     f = Image.open(os.path.join(SK, f'first-{cls}.png')).convert('RGBA'); buf = io.BytesIO(); f.save(buf, 'PNG')
-    body = {'description': DESC[cls], 'action': ACTION[act], 'direction': 'east', 'view': 'side',
+    body = {'description': DESC[cls], 'action': ', then '.join(ACTION[n] for n, _ in parts), 'direction': 'east', 'view': 'side',
             'first_frame': {'type': 'base64', 'base64': base64.b64encode(buf.getvalue()).decode(), 'format': 'png'},
             'first_frame_keypoints': SK0.kp(BODY_KP[cls]), 'keypoints': [SK0.kp(q) for q in fit_frames],
             'template_id': 'mannequin', 'seed': seed, 'no_background': True}
     json.dump(body, open(os.path.join(SK, f'req-{cls}-{act}.json'), 'w', encoding='utf-8'), ensure_ascii=False)
     wp = [{'ang': round(math.degrees(ang(q['LEFT ARM'], q['RIGHT ARM']))) if a is None else a, 'front': q['RIGHT ARM'], 'back': q['LEFT ARM']}
-          for q, (_, a) in zip(fit_frames, SK0.ACTIONS[act])]
+          for q, (_, a) in zip(fit_frames, SEQ)]
+    for w, n, q in zip(wp, acts, fit_frames): w['act'] = n; w['kp'] = q        # 관절 전체 (anim_post 몸 영역용)
     json.dump(wp, open(os.path.join(SK, f'wpn-{cls}-{act}.json'), 'w', encoding='utf-8'))
     # 확인 그림: 첫 프레임 + 읽은 관절, 그다음 맞춘 프레임 막대 인형 (흐린 회색 = 첫 프레임)
     S = 3; tiles = []
@@ -97,5 +131,20 @@ def req(cls, act, seed=7):
     return {k: round(v, 1) for k, v in L.items()}, round(s, 3)
 
 
+def first(cls, src=None):
+    """pixen 중립 대기 work/<cls>/neutral-0.png → 192칸 첫 프레임(발 96,176) + 관절 읽기 격자 skel/first-<cls>-grid.png (원점 (68, 96), 1칸 = 5px, 격자 4칸)"""
+    im = Image.open(src or os.path.join(HERE, 'work', cls, 'neutral-0.png')).convert('RGBA'); im = im.crop(im.getbbox()); P = im.load()
+    row = [x for x in range(im.width) if P[x, im.height - 1][3]]; fx = (min(row) + max(row)) // 2
+    c = Image.new('RGBA', (96, 96)); c.alpha_composite(im, (48 - fx, 88 - (im.height - 1)))
+    f = c.resize((N, N), Image.NEAREST); f.save(os.path.join(SK, f'first-{cls}.png'))
+    S = 5; g = Image.new('RGBA', (N * S, N * S), (30, 32, 40, 255)); g.alpha_composite(f.resize((N * S, N * S), Image.NEAREST)); d = ImageDraw.Draw(g)
+    for v in range(0, N, 4):
+        al = 90 if v % 16 == 0 else (50 if v % 8 == 0 else 22)
+        d.line([(v * S, 0), (v * S, N * S)], fill=(255, 255, 255, al)); d.line([(0, v * S), (N * S, v * S)], fill=(255, 255, 255, al))
+        if v % 8 == 0: d.text((v * S + 2, 100 * S), str(v), fill=(255, 220, 90)); d.text((70 * S, v * S + 1), str(v), fill=(255, 220, 90))
+    g.crop((68 * S, 96 * S, 128 * S, 180 * S)).save(os.path.join(SK, f'first-{cls}-grid.png'))
+
+
 if __name__ == '__main__':
-    print(req(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 7))
+    if sys.argv[1] == 'first': first(sys.argv[2]); print('ok')
+    else: print(req(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 7))
