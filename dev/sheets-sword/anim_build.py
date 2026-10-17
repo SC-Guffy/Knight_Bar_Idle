@@ -92,6 +92,7 @@ if __name__ == '__main__':
     rows = []
     for (cls, act), (seq, dur) in JOBS.items():
         if ONLY and cls not in ONLY and act not in ONLY: continue
+        if act == 'walk' and cls in ('paladin', 'squire', 'archon', 'tyrant', 'swordsaint'): continue   # 걷기 미달 → 임시 걷기: 띠를 다시 만들지 않는다 (시트가 <cls>-walk-strip.png 를 쓰므로)
         if not all(k == 'src' or os.path.exists(os.path.join(HERE, 'work', cls, f'{k.rstrip("F")}-0.png')) or k in ('keyC3s', 'srcL') for k in seq):
             print('skip', cls, act); continue
         src = load(cls, 'src'); pal = sorted({c for c in src.getdata() if c[3]})
