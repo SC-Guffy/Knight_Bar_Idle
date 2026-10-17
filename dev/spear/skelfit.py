@@ -42,7 +42,8 @@ DESC = {'lancer': 'young chibi lancer knight, open-faced steel helmet with a sma
                     'silver plate armor, light tan leather gloves, empty hands (the lance is drawn later)'}
 ACTION = {'thrust': 'lunge forward and thrust a spear with both hands, then recover', 'walk': 'walk cycle holding a long polearm upright',
           'slam': 'raise a spear overhead with both hands and slam it down in front', 'idle': 'stand ready holding a spear upright, breathing',
-          'sweep': 'swing a halberd in a wide horizontal sweep', 'chop': 'raise a halberd overhead and chop down'}
+          'sweep': 'swing a halberd in a wide horizontal sweep', 'chop': 'raise a halberd overhead and chop down',
+          'chopup': 'raise a halberd straight up overhead, pause at the top, then chop it down hard into the ground in front'}
 
 d = math.dist
 mid = lambda a, b: ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)

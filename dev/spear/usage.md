@@ -35,3 +35,4 @@
 | 29 | cavalier | `/edit-image-pixen` | neutral: same young chibi cavalry lancer knight, same face, same colo | 1.0 | 50.0 | 963.0 |
 | 30 | cavalier | `/animate-with-skeleton-v3` | skel-thrust7+slam8: animate-with-skeleton-v3 192 15f | 4.0 | 54.0 | 963.0 |
 | 31 | cavalier | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 57.0 | 959.0 |
+| 32 | halberdier | `/animate-with-skeleton-v3` | skel-sweep7+chopup8: animate-with-skeleton-v3 192 15f | 4.0 | 61.0 | 950.0 |

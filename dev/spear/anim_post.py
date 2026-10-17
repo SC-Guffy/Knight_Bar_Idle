@@ -46,6 +46,7 @@ def body_region(kp, dx, r=6.5, rh=11):
             t = max(0, min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / L2))
             if math.dist((x, y), (x1 + t * (x2 - x1), y1 + t * (y2 - y1))) <= r: return True
         return False
+    inside.neck_y = P['NECK'][1]
     return inside
 
 
@@ -110,6 +111,8 @@ def swap_weapon(im, kind, front, back, design_ang, region=None, fixed=False):
                 if p not in keep and abs(p[0] - face_x) > 14: er.add(p)
     if region is not None:      # 할버드: 몸 영역 밖은 전부 모델 무기 → 지움 (도끼날이 넓고 모양이 매번 달라 직선 지우기로는 남았다)
         er |= {p for p in pts if p not in keep and not region(*p)}
+        # 머리 쪽(목 위) 가는 구조 = 투구를 가로지른 모델 자루 잔해 (검수 b3: 내려찍기에서 회색 막대가 투구를 덮음). 팔·다리는 안 건드리게 목 위만
+        er |= {p for p in thin if p not in keep and p[1] < region.neck_y}
     for p in er: P[p] = (0, 0, 0, 0)
     fill_holes(im, er)
     M, Z = 40, 8

@@ -142,8 +142,21 @@ ACTIONS = {
         (pose(), None),
     ],
 }
+# 할버디어 내려찍기 v2 (검수 2026-10-17 "머리 위 정점이 없어 내려찍기로 안 읽힘"): 들기 → 머리 위 수직 정점 → 뒤로 젖힘 → 45° → 앞 땅 내려찍기 → 버팀 → 회수
+ACTIONS['chopup'] = [
+    (pose(), None),
+    (pose(dy=1, NECK=(94, 135), RIGHT_ELBOW=(104, 134), RIGHT_ARM=(106, 126), LEFT_ELBOW=(90, 138), LEFT_ARM=(98, 132)), -70),
+    (pose(NECK=(93, 133), RIGHT_SHOULDER=(100, 138), RIGHT_ELBOW=(102, 126), RIGHT_ARM=(100, 114), LEFT_SHOULDER=(86, 138), LEFT_ELBOW=(88, 127), LEFT_ARM=(94, 118)), -95),
+    (pose(dx=-1, NECK=(91, 134), RIGHT_SHOULDER=(98, 139), RIGHT_ELBOW=(99, 125), RIGHT_ARM=(96, 113), LEFT_SHOULDER=(84, 139), LEFT_ELBOW=(86, 128), LEFT_ARM=(90, 118)), -115),
+    (pose(NECK=(100, 136), RIGHT_SHOULDER=(107, 141), RIGHT_ELBOW=(114, 134), RIGHT_ARM=(120, 128), LEFT_SHOULDER=(91, 141), LEFT_ELBOW=(100, 136), LEFT_ARM=(108, 130), RIGHT_KNEE=(110, 166)), -40),
+    (pose(dy=3, NECK=(105, 140), RIGHT_SHOULDER=(112, 145), RIGHT_ELBOW=(120, 150), RIGHT_ARM=(126, 154), LEFT_SHOULDER=(97, 144), LEFT_ELBOW=(106, 150), LEFT_ARM=(114, 152), RIGHT_KNEE=(114, 166), RIGHT_LEG=(120, 173)), 35),
+    (pose(dy=2, NECK=(104, 139), RIGHT_SHOULDER=(111, 144), RIGHT_ELBOW=(119, 149), RIGHT_ARM=(125, 153), LEFT_SHOULDER=(96, 143), LEFT_ELBOW=(105, 149), LEFT_ARM=(113, 151), RIGHT_KNEE=(113, 166), RIGHT_LEG=(119, 173)), 40),
+    (pose(), None),
+]
+
+
 LABEL = {'idle': '대기 4f', 'walk': '걷기 8f', 'thrust': '찌르기 8f (찌르기형 평타A)', 'slam': '내리찍기 8f (찌르기형 평타B)',
-         'sweep': '휩쓸기 8f (휩쓸기형 평타A)', 'chop': '내려찍기 8f (휩쓸기형 평타B)'}
+         'sweep': '휩쓸기 8f (휩쓸기형 평타A)', 'chop': '내려찍기 8f (휩쓸기형 평타B)', 'chopup': '내려찍기 v2 8f (머리 위 정점)'}
 
 
 # ── 그림체 B(3등신)·키 46px 로 맞추기 (2026-10-16 사용자 확정) ──

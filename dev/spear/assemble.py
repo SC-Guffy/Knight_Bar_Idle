@@ -10,7 +10,7 @@ import build as B
 PLAN = {
     'lancer': {'atkA': ('thrust', range(8)), 'atkB': ('slam8+idle4', range(1, 8)), 'idle': ('slam8+idle4', range(8, 12)), 'walk': ('walk', range(8))},
     'dragoon': {'atkA': ('thrust7+slam8', range(0, 7)), 'atkB': ('thrust7+slam8', [8, 9, 11, 12, 13, 14]), 'walk': ('walk', range(8))},   # 10: 모델 창과 X자로 겹침 (검수)     # 7 = 찌르기→내리찍기 전환
-    'halberdier': {'atkA': ('sweep7+chop8', range(0, 7)), 'atkB': ('sweep7+chop8', [8, 9, 11, 12, 13, 14]), 'walk': ('walk', range(8))},   # 10: 몸이 뭉툭한 덩어리로 튐 (검수)
+    'halberdier': {'atkA': ('sweep7+chop8', range(0, 7)), 'atkB': ('sweep7+chop8', [8, 9, 11, 12, 13, 14]), 'walk': ('walk', range(8))},   # 로드맵 대안: 재생성분(sweep7+chopup8) 내려찍기 2장이 투구를 덮어 2.86 미달 → 평타는 이전 판 유지
     'cavalier': {'atkA': ('thrust7+slam8', range(0, 7)), 'atkB': ('thrust7+slam8', range(8, 15)), 'walk': ('walk', range(8))},
 }
 IDLE_FROM = ('walk', 0)        # 대기 줄이 PLAN 에 없으면: 걷기 첫 프레임(창 세워 든 자세)을 들썩여 4f (유료 0)
