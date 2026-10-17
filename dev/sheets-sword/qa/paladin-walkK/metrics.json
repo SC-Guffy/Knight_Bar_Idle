@@ -1,0 +1,37 @@
+{
+ "id": "paladin-walkK",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\paladin-walkK4-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 걷기 4프레임, 상체·무기 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.941,
+  "colors": 12,
+  "low": 0.33,
+  "edge": 0.433,
+  "lone": 0.072,
+  "flick": 0.175,
+  "churn": 0.067,
+  "fill": 0.204,
+  "area": [
+   857,
+   809,
+   871,
+   803
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

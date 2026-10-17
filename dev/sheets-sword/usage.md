@@ -151,3 +151,8 @@
 | 144 | archon | `/edit-image-pixen` | neutral: Change only the pose to a calm neutral standing pose: feet s | 1.0 / 1.0 | 267.0 / 157.0 | 727.0 |
 | 145 | tyrant | `/edit-image-pixen` | neutral: Change only the pose to a calm neutral standing pose: feet s | 1.0 / 1.0 | 268.0 / 158.0 | 726.0 |
 | 146 | swordsaint | `/edit-image-pixen` | neutral: Change only the pose to a calm neutral standing pose: feet s | 1.0 / 1.0 | 269.0 / 159.0 | 725.0 |
+| 147 | paladin | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 10.0 / 3.0 | 279.0 / 162.0 | 715.0 |
+| 148 | squire | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 3.0 / 3.0 | 282.0 / 165.0 | 712.0 |
+| 149 | archon | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 5.0 / 3.0 | 287.0 / 168.0 | 707.0 |
+| 150 | tyrant | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 3.0 / 3.0 | 290.0 / 171.0 | 704.0 |
+| 151 | swordsaint | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 7.0 / 3.0 | 297.0 / 174.0 | 697.0 |

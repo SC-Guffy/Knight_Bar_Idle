@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 269.0,
+ "used": 297.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -1023,7 +1023,42 @@
    "purpose": "neutral: Change only the pose to a calm neutral standing pose: feet s",
    "used": 1.0,
    "bal": 725.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalk: /animate-with-skeleton-v3",
+   "used": 10.0,
+   "bal": 715.0
+  },
+  {
+   "cls": "squire",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalk: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 712.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalk: /animate-with-skeleton-v3",
+   "used": 5.0,
+   "bal": 707.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalk: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 704.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalk: /animate-with-skeleton-v3",
+   "used": 7.0,
+   "bal": 697.0
   }
  ],
- "nom": 159.0
+ "nom": 174.0
 }

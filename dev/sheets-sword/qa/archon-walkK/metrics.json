@@ -1,0 +1,37 @@
+{
+ "id": "archon-walkK",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\archon-walkK4-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 걷기 4프레임, 상체·무기 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.924,
+  "colors": 6,
+  "low": 0.428,
+  "edge": 0.35,
+  "lone": 0.031,
+  "flick": 0.145,
+  "churn": 0.051,
+  "fill": 0.242,
+  "area": [
+   1020,
+   965,
+   1021,
+   965
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

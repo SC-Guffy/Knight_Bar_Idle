@@ -1,0 +1,37 @@
+{
+ "id": "squire-walkK",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\squire-walkK4-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 걷기 4프레임, 상체·무기 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.84,
+  "colors": 8,
+  "low": 0.4,
+  "edge": 0.373,
+  "lone": 0.066,
+  "flick": 0.178,
+  "churn": 0.043,
+  "fill": 0.176,
+  "area": [
+   748,
+   689,
+   751,
+   689
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
