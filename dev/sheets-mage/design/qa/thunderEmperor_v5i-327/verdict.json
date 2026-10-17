@@ -1,0 +1,36 @@
+{
+ "scores": {
+  "intent": 2,
+  "read": 2,
+  "clean": 3,
+  "value": 2,
+  "pixel": 3,
+  "motion": 3,
+  "rules": 1
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "얼굴",
+   "what": "얼굴이 어두운 덩어리로 칠해져 1배에서 얼굴이 없다"
+  },
+  {
+   "frame": 1,
+   "where": "전체",
+   "what": "짧은 망토만 추가됐고 금발·뿔 머리띠·남색 원피스는 뇌전술사 그대로. 관·바퀴·흰 머리 없음"
+  },
+  {
+   "frame": 1,
+   "where": "머리 왼쪽",
+   "what": "떠 있는 외톨이 금색 점"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "img2img 강도를 올리거나(denoise ↑) 텍스트 전용(v5t) 계열로 간다. 2차 그림을 기준으로 쓰면 관·바퀴·흰 머리가 안 나온다.",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "얼굴이 검게 뭉개지고 틀이 뇌전술사 그대로 — 탈락",
+ "avg": 2.29
+}

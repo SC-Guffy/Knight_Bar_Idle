@@ -1,0 +1,30 @@
+{
+ "scores": {
+  "intent": 2,
+  "read": 4,
+  "clean": 4,
+  "value": 3,
+  "pixel": 4,
+  "motion": 4,
+  "rules": 1
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "머리",
+   "what": "빙결술사의 둥근 후드 실루엣을 그대로 유지 — 왕관·긴 머리·결정 견갑·긴 망토가 없음. 색만 비슷하게 바뀐 2차 그대로(색깔놀이)"
+  },
+  {
+   "frame": 1,
+   "where": "몸통",
+   "what": "어두운 청색 로브가 한 덩어리로 묵직함"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "img2img 강도를 올리거나(denoise↑) 텍스트 전용(v5t)으로 간다. 후드 금지, 결정 왕관·긴 생머리를 프롬프트 앞쪽에 둔다.",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "후드 실루엣 그대로 — 색깔놀이로 탈락"
+}

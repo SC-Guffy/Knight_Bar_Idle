@@ -1,0 +1,35 @@
+{
+ "scores": {
+  "intent": 3,
+  "read": 3,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 2,
+  "rules": 3
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "망토",
+   "what": "뒤 망토가 하반신 뒤를 크게 덮어 뒷다리가 안 보임"
+  },
+  {
+   "frame": 1,
+   "where": "얼굴",
+   "what": "게임 배율에서 눈이 거의 안 읽힘"
+  },
+  {
+   "frame": 1,
+   "where": "머리",
+   "what": "뿔이 한 개처럼 작아 관으로 읽히지 않음, 불꽃 고리 없음"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "망토를 짧게/옆으로 걷고 두 다리를 벌린 서기 자세, 머리 뒤 불꽃 고리 추가",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "포니테일·견갑은 이었지만 다리가 가려 애니가 어렵다"
+}

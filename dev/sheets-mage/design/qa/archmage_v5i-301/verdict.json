@@ -1,0 +1,30 @@
+{
+ "scores": {
+  "intent": 2,
+  "read": 4,
+  "clean": 4,
+  "value": 4,
+  "pixel": 4,
+  "motion": 4,
+  "rules": 1
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "머리·어깨·옷",
+   "what": "관·쌍뿔·불꽃 고리·금 견갑·긴 장포가 전혀 없다. 짧은 치마 로브 그대로"
+  },
+  {
+   "frame": 1,
+   "where": "전체 실루엣",
+   "what": "화염술사(final/pyromancer)와 실루엣·색까지 거의 같다 — 색깔놀이 규칙 위반"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "img2img 강도를 올리거나(denoise↑) 2차 기준 그림 대신 텍스트+포즈 가이드로 뽑아 관·견갑·장포·불꽃 고리가 실제로 들어가게 한다",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "도트는 깔끔하지만 화염술사 복제본이라 3차로 쓸 수 없다"
+}

@@ -164,7 +164,8 @@ def post(cls, part):
     WI = ws.img.load()
     ltip = max(((x - ws.grip[0]) * math.cos(ws.ang) + (y - ws.grip[1]) * math.sin(ws.ang)) for y in range(ws.img.height) for x in range(ws.img.width) if WI[x, y][3])
     n = len(meta['staff_deg']); order = list(range(7, n)) + list(range(7)) if part == 'B' else list(range(n))
-    res = {}; tips = {}; tip_off = None     # 걷기 지팡이 끝 높이 (몸 정수리 기준) — 첫 걷기 프레임 값으로 고정 (비평: 걷는 동안 불꽃이 얼굴 높이로 출렁임)
+    res = {}; tips = {}; poses = {}; tip_off = None
+    body_d = os.path.join(d, f'{part}-body'); os.makedirs(body_d, exist_ok=True)     # 걷기 지팡이 끝 높이 (몸 정수리 기준) — 첫 걷기 프레임 값으로 고정 (비평: 걷는 동안 불꽃이 얼굴 높이로 출렁임)
     for i in order:
         im = down2(Image.open(os.path.join(HERE, 'work', cls, f'skel{part}-{i}.png')))
         im.save(os.path.join(raw_d, f'{i}.png'))
@@ -203,6 +204,7 @@ def post(cls, part):
             for x in range(o.width):
                 if O[x, y][3] and not B[x, y][3]: O[x, y] = (0, 0, 0, 0)
         o.save(os.path.join(out_d, f'{i}.png')); res[i] = (im, body, o)
+        poses[i] = {'g': list(g), 'a': a, 'front': front}; body.save(os.path.join(body_d, f'{i}.png'))     # 3차 편집(tier3.py)이 몸·손·각도를 다시 쓴다
         tips[i] = [round(g[0] + ltip * math.cos(a)), round(g[1] + ltip * math.sin(a))]     # 지팡이 끝 (시트 hand 점 = 평타가 나가는 자리)
     outs = [res[i] for i in range(n)]
     if part == 'A' and cls in BASE_FROM_FIRST:
@@ -212,11 +214,13 @@ def post(cls, part):
         a = math.radians(meta['staff_deg'][-1]); t = (g[0] + 20 * math.cos(a), g[1] + 20 * math.sin(a))
         front = [(x, y) for y in range(96) for x in range(96) if B[x, y][3] and (x - g[0]) ** 2 + (y - g[1]) ** 2 <= 4]
         o = overlay(bd, set(), g, t, ws, front=front); o.save(os.path.join(out_d, f'{n - 1}.png')); outs[n - 1] = (im14, bd, o)
+        poses[n - 1] = {'g': list(g), 'a': a, 'front': front}; bd.save(os.path.join(body_d, f'{n - 1}.png'))
         tips[n - 1] = [round(g[0] + ltip * math.cos(a)), round(g[1] + ltip * math.sin(a))]
     if part == 'A':        # 0번 = 14번 기준 자세 (반복 재생 이음새에서 지팡이가 튀지 않게, 비평 2026-10-17)
         outs[0] = (outs[0][0], outs[-1][1], outs[-1][2]); outs[-1][2].save(os.path.join(out_d, '0.png'))
-        tips[0] = tips[n - 1]
+        tips[0] = tips[n - 1]; poses[0] = poses[n - 1]; outs[-1][1].save(os.path.join(body_d, '0.png'))
     json.dump([tips[i] for i in range(n)], open(os.path.join(d, f'{part}-tips.json'), 'w'))
+    json.dump([poses[i] for i in range(n)], open(os.path.join(d, f'{part}-pose.json'), 'w'))
     S = 3; W = 96 * S
     mont = Image.new('RGBA', (W * len(outs), W * 3), (24, 26, 34, 255))
     for i, row in enumerate(outs):

@@ -18,6 +18,10 @@ INTENT = {
     'pyromancer': '화염술사: 뒤로 길게 휘날리는 불꽃 같은 주황 포니테일 + 붉은 머리띠, 민소매(팔 드러남)·토시, 뒤로 날리는 띠, 짧은 붉은 치마. ',
     'cryomancer': '빙결술사: 머리에 쓴 둥근 하늘색 후드 + 후드 아래로 어깨에 늘어진 흰 땋은 머리(로드맵 전달 컨셉 "후드 아래 흰 땋은 머리"), 흰 털 칼라, 어깨 망토, 긴 흰 장갑, 짧은 하늘색 치마·흰 털 부츠. ',
     'electromancer': '뇌전술사: 뒤로 뻗친 금발 + 남색 관에 V 자로 벌어진 하늘색 번개 뿔 둘, 금 단추 남색 코트 드레스와 갈라진 꼬리, 남색 스타킹·부츠. ',
+    # 3차 (2026-10-17 안 A): 2차 특징을 잇되 실루엣 틀이 2차와 달라야 한다 — 2차와 색만 다른 것처럼 보이면 감점(색깔놀이)
+    'archmage': '대마도사(화염술사 3차): 뒤로 길게 휘날리는 불꽃 포니테일 + 짧은 쌍뿔 금빛 불꽃 관, 머리 뒤 둥근 불꽃 고리, 앞이 트인 긴 검붉은 장포(다리·부츠 보임), 넓은 금 견갑, 금테 토시. 화염술사보다 장포·견갑·관으로 틀이 커져야 한다(색만 다르면 감점). ',
+    'frostlord': '빙결의 군주(빙결술사 3차): 뾰족한 얼음 결정 왕관, 등 뒤로 긴 흰 생머리, 날카로운 결정 견갑, 뒤로 흐르는 고드름 끝단 흰 긴 망토, 하늘색 튜닉·긴 흰 장갑·하늘색 바지·흰 털 부츠. 빙결술사의 둥근 후드 실루엣과 달라야 한다(색만 다르면 감점). ',
+    'thunderEmperor': '뇌제(뇌전술사 3차): 큰 금빛 번개 뿔 관, 뒤로 뻗친 흰 머리, 등 뒤 살 있는 번개 바퀴, 금테 남색 짧은 망토, 금 단추 긴 남색 코트와 긴 갈라진 꼬리, 걷은 소매, 남색 스타킹·부츠. 대마도사의 둥근 불꽃 고리와 바퀴(살)로 갈리고, 뇌전술사보다 관·망토·코트로 틀이 커져야 한다(색만 다르면 감점). ',
 }
 QA = os.path.join(D.D, 'qa')
 
@@ -40,5 +44,5 @@ def prep(names):
 
 if __name__ == '__main__':
     pre = sys.argv[1:] or ['']
-    names = sorted(f[:-4] for f in os.listdir(D.RAW) if f.endswith('.png') and not f.startswith('_') and ('_v2' in f or '_v3' in f or '_v4' in f) and '-113' not in f and any(f.startswith(p) for p in pre))
+    names = sorted(f[:-4] for f in os.listdir(D.RAW) if f.endswith('.png') and not f.startswith('_') and ('_v2' in f or '_v3' in f or '_v4' in f or '_v5' in f) and '-113' not in f and any(f.startswith(p) for p in pre))
     for row in prep(names): print(*row)

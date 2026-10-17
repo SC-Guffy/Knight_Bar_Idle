@@ -1,0 +1,36 @@
+{
+ "scores": {
+  "intent": 2,
+  "read": 3,
+  "clean": 2,
+  "value": 2,
+  "pixel": 3,
+  "motion": 3,
+  "rules": 1
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "코트 아래·지팡이",
+   "what": "코트 밑단과 지팡이가 끊긴 도트 조각으로 부서져 지저분하다"
+  },
+  {
+   "frame": 1,
+   "where": "몸통",
+   "what": "남색이 어두운 바탕에서 한 덩어리로 뭉친다"
+  },
+  {
+   "frame": 1,
+   "where": "전체",
+   "what": "회색 뿔과 금발 — 뇌전술사 틀 유지, 3차 요소 없음"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "img2img 강도를 올리거나(denoise ↑) 텍스트 전용(v5t) 계열로 간다. 2차 그림을 기준으로 쓰면 관·바퀴·흰 머리가 안 나온다.",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "부서진 도트·어두운 덩어리에 3차 요소 없음 — 탈락",
+ "avg": 2.29
+}

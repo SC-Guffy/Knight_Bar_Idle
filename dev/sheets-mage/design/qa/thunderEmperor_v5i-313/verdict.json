@@ -1,0 +1,31 @@
+{
+ "scores": {
+  "intent": 2,
+  "read": 3,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 4,
+  "rules": 1
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "전체 실루엣",
+   "what": "뇌전술사와 같은 금발·뿔 머리띠·남색 원피스. 3차 요소(관·바퀴·흰 머리·망토) 없음"
+  },
+  {
+   "frame": 1,
+   "where": "지팡이 주변",
+   "what": "지팡이 옆으로 부스러기 도트가 흩어져 있다"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "img2img 강도를 올리거나(denoise ↑) 텍스트 전용(v5t) 계열로 간다. 2차 그림을 기준으로 쓰면 관·바퀴·흰 머리가 안 나온다.",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "뇌전술사 복제판 + 지팡이 주변 부스러기 — 규칙 위반",
+ "avg": 2.71
+}

@@ -1,0 +1,35 @@
+{
+ "scores": {
+  "intent": 2,
+  "read": 4,
+  "clean": 3,
+  "value": 3,
+  "pixel": 4,
+  "motion": 4,
+  "rules": 1
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "머리·어깨",
+   "what": "관·불꽃 고리·견갑 없음, 장포 대신 짧은 치마"
+  },
+  {
+   "frame": 1,
+   "where": "발밑",
+   "what": "바닥 그림자 띠가 남아 있음(의도: 그림자 없음)"
+  },
+  {
+   "frame": 1,
+   "where": "전체",
+   "what": "화염술사와 같은 실루엣 — 색깔놀이"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "img2img 강도를 올리거나(denoise↑) 2차 기준 그림 대신 텍스트+포즈 가이드로 뽑아 관·견갑·장포·불꽃 고리가 실제로 들어가게 한다",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "화염술사와 구분되지 않는 실루엣, 그림자 띠까지 있음"
+}

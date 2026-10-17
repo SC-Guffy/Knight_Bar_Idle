@@ -1,0 +1,30 @@
+{
+ "scores": {
+  "intent": 3,
+  "read": 2,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 4,
+  "rules": 3
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "머리",
+   "what": "왕관이 투구/후드처럼 뭉개져 머리가 흰 덩어리, 얼굴·눈이 안 읽힘"
+  },
+  {
+   "frame": 1,
+   "where": "몸통",
+   "what": "하늘색·흰색 조각이 얼룩덜룩"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "얼굴을 옆으로 확실히 드러내고 왕관 결정을 분리해 다시 뽑기",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "머리 실루엣이 투구처럼 뭉개져 얼굴이 안 읽힘 — 탈락"
+}

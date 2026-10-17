@@ -1,0 +1,35 @@
+{
+ "scores": {
+  "intent": 2,
+  "read": 3,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 3,
+  "rules": 1
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "얼굴",
+   "what": "눈이 가로 한 줄로 감긴 것처럼 보여 얼굴이 약하다"
+  },
+  {
+   "frame": 1,
+   "where": "다리",
+   "what": "다리·부츠가 줄무늬 덩어리로 잘게 쪼개짐"
+  },
+  {
+   "frame": 1,
+   "where": "전체",
+   "what": "3차 표식 없음, 화염술사와 같은 실루엣 — 색깔놀이"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "img2img 강도를 올리거나(denoise↑) 2차 기준 그림 대신 텍스트+포즈 가이드로 뽑아 관·견갑·장포·불꽃 고리가 실제로 들어가게 한다",
+  "tool": "ComfyUI 시안"
+ },
+ "summary": "img2img 4장 중 가장 거칠고 역시 화염술사 복제"
+}

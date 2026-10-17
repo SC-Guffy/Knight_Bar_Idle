@@ -108,6 +108,39 @@ WHO4 = {
 SEEDS4 = [201, 213, 227, 239, 241, 257]
 
 
+# ── v5: 3차 3종 (로드맵 승인 2026-10-17 안 A — 안 B(2차 시트에 소품 붙이기)는 빙결의 군주 비평 3.43: 실루엣 차이가 왕관뿐이라 색깔놀이) ──
+#  2차 특징을 잇되 틀부터 커진다 (CLAUDE.md 아트 규칙: 2차→3차는 특징을 잇고, 다른 계열과는 틀부터 다르게).
+#  i = 2차 합격작(topix.PICK 원본 1024)을 밑그림으로 denoise 0.8 (얼굴·머리색을 잇는다) · t = 순수 txt2img
+WHO5 = {
+    'archmage': 'Archmage of fire, the grown-up form of a fire mage: very long fiery orange-red hair in a high ponytail streaming far behind her like flames, '
+                'a golden flame crown with two short curved horns, a round ring of fire floating behind her head, '
+                'a long dark crimson robe with gold trim split open at the front so both legs and dark boots are visible, broad golden shoulder pauldrons, '
+                'gold-trimmed bracers on bare forearms, holding a long ornate black and gold staff topped with a blazing fire orb.',
+    'frostlord': 'Frost queen, the grown-up form of an ice mage: a tall spiky ice-crystal crown, long straight white hair down her back, '
+                 'sharp crystal shoulder pauldrons, a long flowing white cape with an icicle hem trailing behind her, a fitted mid-tone ice-blue tunic with dark navy shading, '
+                 'long white gloves, ice-blue trousers tucked into white fur boots, holding a tall glacier staff topped with a large ice crystal.',
+    'thunderEmperor': 'Thunder empress, the grown-up form of a storm mage: a big golden crown with two large lightning-bolt horns, spiky swept-back white hair, '
+                      'a wheel of lightning with spokes floating behind her back, a short navy cape with gold trim, a long mid-tone navy coat with gold buttons and long split coat tails, '
+                      'sleeves rolled up showing the forearms, navy stockings and boots, holding a golden scepter staff with a crackling lightning orb.',
+}
+FROM5 = {'archmage': 'pyromancer', 'frostlord': 'cryomancer', 'thunderEmperor': 'electromancer'}
+SEEDS5_I, SEEDS5_T = [301, 313, 327, 339], [341, 353, 367, 379]
+
+
+def gen5(classes, n=None):
+    from comfy import gen as G
+    sys.path.insert(0, HERE); import topix
+    for cls in classes:
+        init = Image.open(os.path.join(RAW, topix.PICK[FROM5[cls]] + '.png')).convert('RGB')
+        pr = STYLE2.format(who=WHO5[cls]) + STYLE3_ADD + STYLE4_ADD
+        for mode, seeds in (('i', SEEDS5_I), ('t', SEEDS5_T)):
+            for sd in seeds[:n]:
+                out = os.path.join(RAW, f'{cls}_v5{mode}-{sd}.png')
+                if os.path.exists(out): continue
+                ims, dt = (G('zimg', pr, seed=sd, denoise=0.8, init=init) if mode == 'i' else G('zimg', pr, seed=sd))
+                ims[0].save(out); print(cls, 'v5', mode, sd, f'{dt:.1f}s', flush=True)
+
+
 def gen4(classes):
     from comfy import gen as G
     for cls in classes:
@@ -308,6 +341,7 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'gen2': gen2(sys.argv[2:] or list(WHO2))
     elif sys.argv[1] == 'gen3': gen3(sys.argv[2:] or list(WHO3))
     elif sys.argv[1] == 'gen4': gen4(sys.argv[2:] or list(WHO4))
+    elif sys.argv[1] == 'gen5': gen5(sys.argv[2:] or list(WHO5))
     elif sys.argv[1] == 'sil': silhouette_init().save(os.path.join(RAW, '_init-sil.png'))
     elif sys.argv[1] == 'shrink': shrink_all()
     elif sys.argv[1] == 'shrink2': shrink2_all(ncol=int(sys.argv[2]) if len(sys.argv) > 2 else 14)
