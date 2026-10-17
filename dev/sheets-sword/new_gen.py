@@ -25,6 +25,10 @@ DESC = {
                    'a slim curved katana held low and forward in a drawing stance, scabbard at the hip',
     'greatswordsman': 'a bulky greatsword warrior, short spiky red hair and a scarred face, heavy iron pauldrons with a brown fur mantle, leather armor, '
                       'a huge broad iron greatsword as long as his body resting on the shoulder with both hands, heavy boots',
+    # 사용자 2026-10-18 "대검전사만 이전느낌으로 가츠 느낌나게": 이전 판(판금·망토·판 모양 대검)의 무게감 + 흑기사 검사
+    'greatswordsman_g': 'a grim black swordsman, short spiky black hair, a scar across the nose, dark iron plate armor worn and battered, a long tattered black cape, '
+                        'a dark iron prosthetic left arm, an enormous blunt slab of iron as a greatsword, far too big to be a sword, taller than him, '
+                        'held on the shoulder with one hand, heavy iron boots',
     'archon': 'the same holy paladin as the reference but now a celestial archon: white and gold plate with star engravings, great helm with a ring of small gold stars above, '
               'small glowing wings of light on the back, a long deep blue cape with constellation dots, a radiant golden longsword held upright, star kite shield, more ornate',
     'tyrant': 'the same greatsword warrior as the reference but now a tyrant king: black iron armor with spiked pauldrons, a jagged dark crown on spiky red hair, '
@@ -54,6 +58,7 @@ def b64(im):
 
 def body(cls, seed=1):
     names = REFS[:3] + [PARENT[cls]] if cls in PARENT else REFS
+    cls0 = cls
     refs = [{'image': {'type': 'base64', 'base64': b64(ref(n))}, 'width': S, 'height': S} for n in names]
     b = {'style_images': refs, 'description': DESC[cls], 'style_description': STYLE, 'seed': seed, 'no_background': True}
     json.dump(b, open(os.path.join(NEW, f'{cls}-req.json'), 'w')); print(cls, 'refs', names, 'desc', len(DESC[cls]))

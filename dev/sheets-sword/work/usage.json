@@ -1128,7 +1128,14 @@
    "purpose": "new: /generate-with-style-v2",
    "used": 15.0,
    "bal": 515.0
+  },
+  {
+   "cls": "greatswordsman_g",
+   "ep": "/generate-with-style-v2",
+   "purpose": "new: /generate-with-style-v2",
+   "used": 0.0,
+   "bal": 515.0
   }
  ],
- "nom": 300.0
+ "nom": 315.0
 }

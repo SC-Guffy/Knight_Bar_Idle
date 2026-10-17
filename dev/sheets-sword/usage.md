@@ -166,3 +166,4 @@
 | 159 | archon | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 397.0 / 270.0 | 545.0 |
 | 160 | tyrant | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 412.0 / 285.0 | 530.0 |
 | 161 | swordsaint | `/generate-with-style-v2` | new: /generate-with-style-v2 | 15.0 / 15.0 | 427.0 / 300.0 | 515.0 |
+| 162 | greatswordsman_g | `/generate-with-style-v2` | new: /generate-with-style-v2 | 0.0 / 15.0 | 427.0 / 315.0 | 515.0 |
