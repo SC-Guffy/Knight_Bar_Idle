@@ -43,6 +43,23 @@ function overInteractive(x, y) {
   return !!(el && el.closest('.interactive'));
 }
 document.addEventListener('mouseleave', (e) => { if (!modalOpen() && !overInteractive(e.clientX, e.clientY)) setInteractive(false); });
+// 어떤 Windows PC 에서는 클릭 통과 중인 창에 마우스 이동(forward)이 아예 안 들어와서 버튼 위인 줄 몰라 캠프를 못 연다.
+// 앱이 커서 위치를 알려 주면(api 2) 직접 물어봐서 버튼 위인지 확인한다. 클릭을 받기 시작하면 그다음은 보통 마우스 이벤트가 맡는다.
+if (window.bar && window.bar.getCursor && window.bar.getDisplay) {
+  window.bar.getDisplay().then((d) => {
+    if (!d || d.platform !== 'win32') return;
+    let busy = false;
+    setInterval(async () => {
+      if (busy || modalOpen()) return;
+      busy = true;
+      try {
+        const c = await window.bar.getCursor();
+        if (!modalOpen()) setInteractive(overInteractive(c.x, c.y));
+      } catch {}
+      busy = false;
+    }, 100);
+  }, () => {});
+}
 
 // ───────────────────────── 자동 숨기기 (앱 전용 옵션) ─────────────────────────
 // 켜 두면 마우스가 하단바를 벗어나고 잠시 뒤 기사·HUD 가 사라지고, 하단바 위로 가져가면 다시 나타난다.
