@@ -1,0 +1,37 @@
+{
+ "id": "archon-walkS",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\archon-walkS-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.924,
+  "colors": 12,
+  "low": 0.501,
+  "edge": 0.336,
+  "lone": 0.053,
+  "flick": 0.29,
+  "churn": 0.454,
+  "fill": 0.216,
+  "area": [
+   889,
+   891,
+   855,
+   900
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

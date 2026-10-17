@@ -1,0 +1,37 @@
+{
+ "id": "squire-walkS",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\squire-walkS-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.84,
+  "colors": 10,
+  "low": 0.374,
+  "edge": 0.354,
+  "lone": 0.06,
+  "flick": 0.263,
+  "churn": 0.46,
+  "fill": 0.225,
+  "area": [
+   922,
+   933,
+   899,
+   925
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
