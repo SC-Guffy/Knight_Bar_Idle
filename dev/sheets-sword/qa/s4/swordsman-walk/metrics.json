@@ -1,0 +1,37 @@
+{
+ "id": "swordsman-walk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\swordsman-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.922,
+  "colors": 22,
+  "low": 0.159,
+  "edge": 0.431,
+  "lone": 0.113,
+  "flick": 0.17,
+  "churn": 0.437,
+  "fill": 0.21,
+  "area": [
+   866,
+   877,
+   817,
+   877
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

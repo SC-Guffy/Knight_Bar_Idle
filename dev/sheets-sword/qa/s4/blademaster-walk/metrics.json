@@ -1,0 +1,37 @@
+{
+ "id": "blademaster-walk",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\blademaster-walk-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.942,
+  "colors": 18,
+  "low": 0.309,
+  "edge": 0.476,
+  "lone": 0.091,
+  "flick": 0.208,
+  "churn": 0.406,
+  "fill": 0.209,
+  "area": [
+   837,
+   877,
+   833,
+   877
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

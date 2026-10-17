@@ -10,8 +10,13 @@ JOBS = {
     ('blademaster', 'atk'): (['src', 'key1', 'key2', 'key3', 'key3', 'src'], [120, 110, 70, 70, 160, 140]),
     ('blademaster', 'cast'): (['src', 'cast1', 'cast2', 'cast2', 'cast3', 'src'], [120, 140, 120, 200, 140, 140]),
     # 대검전사 평타: key3(내려찍기)는 칼끝이 떨어져 보여(비평 s3 A·B 수리) 스크립트로 못 이음 → 로드맵 대안 '좋은 프레임만': 타격 자리에 cast3(앞으로 휘둘러 뻗음)
-    ('greatswordsman', 'atk'): (['src', 'key1', 'key2', 'cast3', 'cast3', 'src'], [140, 120, 80, 70, 180, 150]),
+    ('greatswordsman', 'atk'): (['src', 'key1', 'key2', 'key3c', 'key3c', 'src'], [140, 120, 80, 70, 180, 150]),   # 4단계: key3b(칼이 뒤로 끌림, 비평 미달) → key3c(칼끝 앞 오른쪽 아래 명시)
     ('greatswordsman', 'cast'): (['src', 'cast1', 'cast2', 'cast2', 'cast3', 'src'], [120, 140, 120, 200, 140, 140]),
+    # 걷기: 성기사 walk1 은 작고 모양이 달라 빼고, 대검전사 walk2 는 대검이 앞뒤로 튀어 빼서 두 자세를 번갈아
+    ('paladin', 'walk'): (['walk2', 'walk3', 'walk2', 'walk3'], [125, 125, 125, 125]),
+    ('swordsman', 'walk'): (['walk1', 'walk2', 'walk3', 'walk2'], [125, 125, 125, 125]),
+    ('blademaster', 'walk'): (['walk1', 'walk2', 'walk3', 'walk2'], [125, 125, 125, 125]),
+    ('greatswordsman', 'walk'): (['walk1', 'walk3', 'walk1', 'walk3'], [125, 125, 125, 125]),
 }
 ONLY = [a for a in __import__('sys').argv[1:]]
 
@@ -55,7 +60,7 @@ def lock(im, pal):
 if __name__ == '__main__':
     rows = []
     for (cls, act), (seq, dur) in JOBS.items():
-        if ONLY and cls not in ONLY: continue
+        if ONLY and cls not in ONLY and act not in ONLY: continue
         src = load(cls, 'src'); pal = sorted({c for c in src.getdata() if c[3]})
         if len(pal) > 24:                   # 검사 확정 그림은 43색 → 22색으로 줄인 팔레트로 고정 (qa colors 경보)
             q = src.convert('RGB').quantize(colors=22, method=Image.Quantize.MEDIANCUT).convert('RGB')

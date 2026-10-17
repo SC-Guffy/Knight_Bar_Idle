@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 135.0,
+ "used": 156.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -400,7 +400,105 @@
    "purpose": "cast3: Change only the pose: stepping forward, a wide horizontal sw",
    "used": 1.0,
    "bal": 885.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3b: Change only the pose: impact of a heavy overhead chop, deep ",
+   "used": 5.0,
+   "bal": 876.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk1: Change only the legs: walking, right foot stepping forward, ",
+   "used": 1.0,
+   "bal": 875.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk2: Change only the legs: walking, passing pose, left knee raise",
+   "used": 1.0,
+   "bal": 874.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk3: Change only the legs: walking, left foot stepping forward, r",
+   "used": 1.0,
+   "bal": 873.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk1: Change only the legs: walking, right foot stepping forward, ",
+   "used": 1.0,
+   "bal": 872.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk2: Change only the legs: walking, passing pose, left knee raise",
+   "used": 1.0,
+   "bal": 871.0
+  },
+  {
+   "cls": "swordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk3: Change only the legs: walking, left foot stepping forward, r",
+   "used": 1.0,
+   "bal": 870.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk1: Change only the legs: walking, right foot stepping forward, ",
+   "used": 1.0,
+   "bal": 869.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk2: Change only the legs: walking, passing pose, left knee raise",
+   "used": 1.0,
+   "bal": 868.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk3: Change only the legs: walking, left foot stepping forward, r",
+   "used": 1.0,
+   "bal": 867.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk1: Change only the legs: walking, right foot stepping forward, ",
+   "used": 1.0,
+   "bal": 866.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk2: Change only the legs: walking, passing pose, left knee raise",
+   "used": 1.0,
+   "bal": 865.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "walk3: Change only the legs: walking, left foot stepping forward, r",
+   "used": 1.0,
+   "bal": 864.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "key3c: Change only the pose: impact of a heavy chop to the right, d",
+   "used": 4.0,
+   "bal": 860.0
   }
  ],
- "nom": 70.0
+ "nom": 84.0
 }

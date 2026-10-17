@@ -61,3 +61,17 @@
 | 55 | greatswordsman | `/edit-image-pixen` | cast1: Change only the pose: the greatsword planted point-down in f | 5.0 / 1.0 | 133.0 / 68.0 | 887.0 |
 | 56 | greatswordsman | `/edit-image-pixen` | cast2: Change only the arms: the greatsword raised straight up abov | 1.0 / 1.0 | 134.0 / 69.0 | 886.0 |
 | 57 | greatswordsman | `/edit-image-pixen` | cast3: Change only the pose: stepping forward, a wide horizontal sw | 1.0 / 1.0 | 135.0 / 70.0 | 885.0 |
+| 58 | greatswordsman | `/edit-image-pixen` | key3b: Change only the pose: impact of a heavy overhead chop, deep  | 5.0 / 1.0 | 140.0 / 71.0 | 876.0 |
+| 59 | paladin | `/edit-image-pixen` | walk1: Change only the legs: walking, right foot stepping forward,  | 1.0 / 1.0 | 141.0 / 72.0 | 875.0 |
+| 60 | paladin | `/edit-image-pixen` | walk2: Change only the legs: walking, passing pose, left knee raise | 1.0 / 1.0 | 142.0 / 73.0 | 874.0 |
+| 61 | paladin | `/edit-image-pixen` | walk3: Change only the legs: walking, left foot stepping forward, r | 1.0 / 1.0 | 143.0 / 74.0 | 873.0 |
+| 62 | swordsman | `/edit-image-pixen` | walk1: Change only the legs: walking, right foot stepping forward,  | 1.0 / 1.0 | 144.0 / 75.0 | 872.0 |
+| 63 | swordsman | `/edit-image-pixen` | walk2: Change only the legs: walking, passing pose, left knee raise | 1.0 / 1.0 | 145.0 / 76.0 | 871.0 |
+| 64 | swordsman | `/edit-image-pixen` | walk3: Change only the legs: walking, left foot stepping forward, r | 1.0 / 1.0 | 146.0 / 77.0 | 870.0 |
+| 65 | blademaster | `/edit-image-pixen` | walk1: Change only the legs: walking, right foot stepping forward,  | 1.0 / 1.0 | 147.0 / 78.0 | 869.0 |
+| 66 | blademaster | `/edit-image-pixen` | walk2: Change only the legs: walking, passing pose, left knee raise | 1.0 / 1.0 | 148.0 / 79.0 | 868.0 |
+| 67 | blademaster | `/edit-image-pixen` | walk3: Change only the legs: walking, left foot stepping forward, r | 1.0 / 1.0 | 149.0 / 80.0 | 867.0 |
+| 68 | greatswordsman | `/edit-image-pixen` | walk1: Change only the legs: walking, right foot stepping forward,  | 1.0 / 1.0 | 150.0 / 81.0 | 866.0 |
+| 69 | greatswordsman | `/edit-image-pixen` | walk2: Change only the legs: walking, passing pose, left knee raise | 1.0 / 1.0 | 151.0 / 82.0 | 865.0 |
+| 70 | greatswordsman | `/edit-image-pixen` | walk3: Change only the legs: walking, left foot stepping forward, r | 1.0 / 1.0 | 152.0 / 83.0 | 864.0 |
+| 71 | greatswordsman | `/edit-image-pixen` | key3c: Change only the pose: impact of a heavy chop to the right, d | 4.0 / 1.0 | 156.0 / 84.0 | 860.0 |

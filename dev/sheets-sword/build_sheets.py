@@ -1,5 +1,5 @@
 # 검사 계열 2차 4종 통짜 시트 조립 (PixelLab 0): 키 자세 애니(anim_keys.py·anim_build.py 결과) → src/sprites/<cls>.png + .json
-#  행: idle(2f, 1칸 들썩임) · walk(4f, 임시: 들썩임만 — 걷기 애니는 아직 없음) · atkA(평타 + 복귀 보간 1f) · cast(시전 6f) · hurt(2f, 뒤로 밀림)
+#  행: idle(2f, 1칸 들썩임) · walk(4f, pixen 걷기 키 — anim/<cls>-walk-strip.png) · atkA(평타 + 복귀 보간 1f) · cast(시전 6f) · hurt(2f, 뒤로 밀림)
 #  복귀 보간(로드맵 공통 흠 "타격→준비 한 번에 튐"): 준비 그림의 엉덩이 줄 하나를 빼서 1칸 웅크린 그림을 끼운다.
 #  64칸, 발 = (28, 59). pts = 프레임마다 [손 x, 손 y, 머리 x, 머리 y] (heroTop·발사 위치). 끝나면 node dev/boxer/sheet-meta.js
 #  python -I -B build_sheets.py [cls ...]
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         if atk[-1].tobytes() == atk[0].tobytes(): atk = atk[:-1] + [squat(atk[0]), atk[0]]      # 복귀 보간 (마지막 = 첫 준비 그림일 때)
         rows = {
             'idle': ([src, squat(src)], dict(fps=3, loop=True)),
-            'walk': ([src, shift(src, 0, -1) if False else squat(src), src, squat(src, 2)], dict(fps=8, loop=True)),
+            'walk': (strip(f'{cls}-walk-strip.png') if os.path.exists(os.path.join(A, f'{cls}-walk-strip.png')) else [src, squat(src), src, squat(src, 2)], dict(fps=8, loop=True)),   # 4단계: pixen 걷기 키 (없으면 임시 들썩임)
             'atkA': (atk, dict(fps=12, loop=False, hit=3)),
             'cast': (cast, dict(fps=8, loop=True)),
             'hurt': ([shift(src, 0, 0).transform((64, 64), Image.AFFINE, (1, 0, 2, 0, 1, 0)), shift(src, 0, 0).transform((64, 64), Image.AFFINE, (1, 0, 1, 0, 1, 0))], dict(fps=12, loop=False)),

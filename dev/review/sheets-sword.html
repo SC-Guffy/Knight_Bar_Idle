@@ -78,6 +78,18 @@
 </table>
 <div class="dim">평균은 critic.md 대로 7항목(한 장 그림은 움직임 5). 검성·대검전사는 같은 그림의 판정이 흔들려서 독립 비평 2개가 모두 합격일 때만 합격으로 쳤다. 4종 모두 독립 비평 2개 합격. 남은 흠(비평 공통): 성기사 흰 몸통·방패 밝기가 붙음·어깨 금 약함, 검사 하체 판금이 잘게 쪼개짐·43색, 검성 칼이 곧아 곡도 휨이 약함·손이 작음, 대검전사 칼날과 가슴판 밝기가 붙음 — 관절 애니 단계에서 무기 덧그리기로 다룰 수 있다.</div>
 <details><summary class="dim">검수 시트 (4종)</summary><div class="row"><img src="sheets-sword/design/qa-swordsman.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-paladin.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-blademaster.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-greatswordsman.png" style="max-width:48%" alt=""></div></details>
+<h2>◆ 4단계 — 걷기 + 대검전사 평타 재편집 (2026-10-18, pixen 14)</h2>
+<div class="card"><ul>
+<li><b>대검전사 평타 합격</b> 3.71 / 3.57: 내려찍기를 두 번 다시 편집(key3b: 칼이 뒤로 끌림 3.43/3.57 미달 → key3c: "칼끝 오른쪽 앞아래" 명시). 흠: 머리 위 프레임 칼이 가늘어짐, 3→4 사이 중간 자세 없음, 4번 몸이 정면 쪽.</li>
+<li><b>걷기</b>(직업당 키 3): <b>검사 합격</b> 3.86 / 3.86. 성기사 3.0/3.0, 검성 2.71/3.0, 대검전사 3.86/3.0 <b>미달</b> — 프레임마다 무기 구성·투구·방패가 바뀌고(칼이 두 자루로 보임 등) 두 자세 반복이라 걸음이 약함. 대안대로 이 셋은 시트에서 <b>임시 걷기(디자인 고정, 들썩임만)</b>로 되돌림(띠는 <code>anim/*-walk-rejected-strip.png</code>).</li>
+<li>사용 14(대검전사 2 + 걷기 12), 계열 누적 <b>84/90</b>. 시트 4종 다시 조립·meta 다시 묶음, <code>?sheetsOn=</code> 로 4종 확인(walk 4f·atkA 7f, heroTop 71~74).</li>
+</ul></div>
+<div class="row"><figure><img src="sheets-sword/design/greatswordsman-atk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>대검전사 평타 (key3c)</figcaption></figure><figure><img src="sheets-sword/design/swordsman-walk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검사 걷기</figcaption></figure></div>
+<h2>▣ 계획 — 견습 기사·성좌기사·검신·파천검왕 (PixelLab 0, 로드맵 요청)</h2>
+<div class="card"><ul>
+<li>디자인은 ComfyUI(무료): 견습 기사 = 검사 그림 init 색 바꿈(가죽·천, 투구 없는 소년 + 짧은 검·나무 방패). 3차 = 2차 확정 그림 init + 특징 잇기 — 성좌기사(후광 → 별자리 고리·별빛 망토), 검신(금 뿔 → 큰 뿔·흰 하오리·빛나는 곡도), 파천검왕(주황 볏 → 왕관 투구·붉은 망토·더 큰 대검). 검수 2개 + 같은 계열 나란히·실루엣 IoU.</li>
+<li>PixelLab 직업당 10~12 (기준 0~1 + 평타 4 + 시전 3 + 걷기 3 + 여유 1), 4종 40~48. 이번 달 남은 6 으로는 시작하지 않음 → <b>다음 달 초기화분</b> 또는 <b>상한 증액(+40~48, 사용자 결정)</b>.</li>
+</ul></div>
 <h2>◆ 3단계 — 검성·대검전사 애니 + 4종 시트 조립 (2026-10-18, pixen 키 자세 14)</h2>
 <div class="card">
   <ul>
@@ -87,7 +99,7 @@
     <li>못 한 것: 성기사 평타 칼 길이 통일·후광-칼자루 겹침(스크립트로 깔끔히 안 됨), 걷기 애니.</li>
   </ul>
 </div>
-<div class="row"><figure><img src="sheets-sword/design/blademaster-atk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검성 평타</figcaption></figure><figure><img src="sheets-sword/design/blademaster-cast-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검성 시전</figcaption></figure><figure><img src="sheets-sword/design/greatswordsman-atk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>대검전사 평타 (짧은 판, 미달)</figcaption></figure><figure><img src="sheets-sword/design/greatswordsman-cast-x4.gif" alt="" style="width:256px;height:256px"><figcaption>대검전사 시전</figcaption></figure></div>
+<div class="row"><figure><img src="sheets-sword/design/blademaster-atk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검성 평타</figcaption></figure><figure><img src="sheets-sword/design/blademaster-cast-x4.gif" alt="" style="width:256px;height:256px"><figcaption>검성 시전</figcaption></figure><figure><img src="sheets-sword/design/greatswordsman-atk-x4.gif" alt="" style="width:256px;height:256px"><figcaption>대검전사 평타 (4단계 key3c 로 갱신, 합격)</figcaption></figure><figure><img src="sheets-sword/design/greatswordsman-cast-x4.gif" alt="" style="width:256px;height:256px"><figcaption>대검전사 시전</figcaption></figure></div>
 <details><summary class="dim">조립한 시트 4종 (2배)</summary><div class="row"><img src="sheets-sword/design/sheet-paladin-x2.png" style="max-width:48%" alt=""><img src="sheets-sword/design/sheet-swordsman-x2.png" style="max-width:48%" alt=""><img src="sheets-sword/design/sheet-blademaster-x2.png" style="max-width:48%" alt=""><img src="sheets-sword/design/sheet-greatswordsman-x2.png" style="max-width:48%" alt=""></div></details>
 <h2>✔ 검성·대검전사 재디자인 합격 (2026-10-18) — 4종 나란히는 맨 위 ✔ 절 그림이 갱신됨</h2>
 <div class="card">
