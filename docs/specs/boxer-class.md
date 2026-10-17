@@ -1,9 +1,9 @@
 # 신규 직업 계열: 파이터 (7종)
 
-- 상태: 진행 중 — ① 1차·② 2차 구현 끝, 배포 전 (③ 3차 진행 중, 2차 스킬 명중 텍스처 XK02~07·XE16 생성 중. 서버 배포 필요)
+- 상태: 진행 중 — ①②③ 구현 끝, 배포 전 (서버 배포는 다음 main 배포 때 로드맵이 함께. 남은 것: 궁극기 텍스처 XF·XK08~10 등 PixelLab 계획서, 아이콘)
 - 관련 코드: src/classes.js (`WEAPONS`·`CLASSES`·`SKILLS`·`CLASS_REQ`·`SKILL_DMG`·`INHERIT_DMG`·`TREE_RIGHT`·`SPEC_TYPES`·`skillCdOf`), src/skills.js (`tickSkills`·`tryCastSkill`·`drawSkillIcons`·`SKILL_FX`), src/world.js (`fightTick`·`dashSkill`·`drawHero`·`drawHeroRaw`), src/core.js (`stats`·`dpsOf`·`profile`), src/procs.js (`procOnCast`), src/body2.js (`applyHiRes`), src/ui.js (`viewClass`·스킬 탭), server/duel.js (`readySkill`·`GAP`), server/raid.js, server/bots.js (`LINES`), server/bot-curve.json, server/mentor-k.json, dev/bot-curve.js, dev/duel-balance.js
 - 관련 스펙: [roadmap.md](roadmap.md) "결정 사항"·"D. 권투가", [character-sprites.md](character-sprites.md) (통짜 스프라이트), [skill-tree-nodes.md](skill-tree-nodes.md), [duel-gap-closer.md](duel-gap-closer.md), [unique-procs.md](unique-procs.md)
-- 최종 갱신: 2026-10-14 (① 1차 구현 — impl-boxer)
+- 최종 갱신: 2026-10-17 (결투 재조정 · 새 그림체 시트는 쓰지 않기로 — impl-boxer)
 
 ## 목표
 
@@ -741,7 +741,7 @@
 - [ ] **서버 배포 필요**: server/duel.js·raid.js·index.js (파이터 기 규칙). 배포 전 서버는 `qi` 를 버리고 등가 cd 로 계산한다.
 - [ ] ② 2차 3종 시트·텍스처·연출 마무리, ③ 3차 시트·궁극기 연출(XF), 봇 곡선(2차까지 / 15계열)·mentor-k.json 굽기, 결투 리그전·레이드 측정.
 - [x] 같은 진행도 결투 리그전(`dev/duel-balance.js`)에 파이터 계열 넣어 재기 (2026-10-15, 위 표).
-- [ ] 결정 필요: 시전 간격 늘어난 것 유지 여부 (그랜드마스터 시작 기는 10-17 재조정으로 240).
-- [ ] 새 그림체 시트 켜기(`SHEET_ON.<직업>B`) — 사용자 확인. 챔피언 새 디자인은 다른 방향으로 다시(갈기가 얼굴을 가림).
+- [x] 시전 간격 늘어난 것(스트라이커 약 13초·챔피언 약 18초·템페스트 약 11초)은 지금 그대로 둔다 (2026-10-17 로드맵 경유 사용자 결정). 결투 재조정 값 유지.
+- [x] 새 그림체 시트 → **쓰지 않음** (2026-10-17 사용자: "크기는 작은 게 좋았다" — 다른 계열 시트를 0.78 로 줄여 파이터 키에 맞춤, season6 a0b87ff8). 파이터는 지금 시트 그대로. `<직업>B` 6종 파일·`SHEET_ON.<직업>B`(false)·도구 `dev/boxer/b/` 는 지우지 않고 남긴다. 챔피언 새 디자인은 하지 않는다.
 - [ ] 시즌7 스킬 룬의 쿨타임 옵션이 파이터에 붙을 때 4절 변환표를 따른다 (룬 스펙에서 참조).
 - [x] 0.22.0 (season6 → main 병합): main 0.20.11 에서 `INHERIT_DMG`·`inheritBoost` 가 없어져 물려받은 원투가 2·3차에서도 원래 위력이 됐다. main 과 같은 방법으로 2·3차 `mods.atk` 를 직업 전체 DPS(`dpsOf`, 스킬 Lv1·트리 0)가 그대로가 되게 낮췄다 — 스트라이커 2.72→2.52 · 킥복서 2.04→1.88 · 기공사 2.5→2.27 · 챔피언 3.33→3.13 · 템페스트 4.16→3.89 · 그랜드마스터 3.0→2.77 (전후 DPS 0.998~1.002). 봇 곡선(14일, 15계열)·`mentor-k.json`(15계열) 다시 구움.
