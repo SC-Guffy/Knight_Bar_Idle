@@ -78,6 +78,12 @@
 </table>
 <div class="dim">평균은 critic.md 대로 7항목(한 장 그림은 움직임 5). 검성·대검전사는 같은 그림의 판정이 흔들려서 독립 비평 2개가 모두 합격일 때만 합격으로 쳤다. 4종 모두 독립 비평 2개 합격. 남은 흠(비평 공통): 성기사 흰 몸통·방패 밝기가 붙음·어깨 금 약함, 검사 하체 판금이 잘게 쪼개짐·43색, 검성 칼이 곧아 곡도 휨이 약함·손이 작음, 대검전사 칼날과 가슴판 밝기가 붙음 — 관절 애니 단계에서 무기 덧그리기로 다룰 수 있다.</div>
 <details><summary class="dim">검수 시트 (4종)</summary><div class="row"><img src="sheets-sword/design/qa-swordsman.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-paladin.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-blademaster.png" style="max-width:48%" alt=""><img src="sheets-sword/design/qa-greatswordsman.png" style="max-width:48%" alt=""></div></details>
+<h2>◆ 10단계 — 파천검왕·검신 걷기, 다리 밝힌 원본 (2026-10-18, PixelLab 6, 계열 누적 180/180)</h2>
+<div class="card"><ul>
+<li><b>방법</b>: 중립 서기의 다리 구역만 앞다리 밝은 3톤·뒷다리 어두운 3톤으로 다시 칠해 첫 프레임으로 → skeleton 1회씩 → 9단계와 같은 후처리.</li>
+<li><b>파천검왕 3.57 / 3.57 합격</b>(경계선 — 보폭 작음) → 시트 walk 교체. <b>검신 3.29 / 3.14 미달</b>(보라 하카마 두 다리가 붙어 보임) → 임시 걷기 유지.</li>
+<li><b>게임에서 보기</b>: <code>dev/skills.html?mode=basic&amp;cls=tyrant&amp;sheetsOn=tyrant</code>.</li>
+</ul><div class="row"><figure><img src="sheets-sword/design/tyrant-walkL-x4.gif" style="width:192px;height:192px" alt=""><figcaption>파천검왕 걷기 ✔</figcaption></figure><figure><img src="sheets-sword/design/swordsaint-walkL-x4.gif" style="width:192px;height:192px" alt=""><figcaption>검신 걷기(미달)</figcaption></figure></div></div>
 <h2>◆ 9단계 — 관절 애니(skeleton-v3) 걷기 5종 (2026-10-18, PixelLab 15, 계열 누적 174/180)</h2>
 <div class="card"><ul>
 <li><b>방법</b>: 첫 프레임 = 8단계 "다리 드러난 중립 서기"(192칸에 2배). 직업마다 중립 그림의 키·발에서 관절 8프레임(보폭 ±6.5칸·무릎 3.5칸 들기)을 잡아 <code>animate-with-skeleton-v3</code> 1회(usage 3). 후처리(<code>skel_walk.py post</code>): 2배 최빈색으로 64칸 → 엉덩이 3줄 아래·발 중심 ±10칸만 생성 다리, 나머지(상체·무기·방패)는 중립 그림 고정 → 접지·통과 4프레임 [2,4,6,0].</li>

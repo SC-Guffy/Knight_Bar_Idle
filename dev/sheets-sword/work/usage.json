@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 297.0,
+ "used": 307.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -1058,7 +1058,21 @@
    "purpose": "skelwalk: /animate-with-skeleton-v3",
    "used": 7.0,
    "bal": 697.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkL: /animate-with-skeleton-v3",
+   "used": 7.0,
+   "bal": 682.0
+  },
+  {
+   "cls": "swordsaint",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkL: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 679.0
   }
  ],
- "nom": 174.0
+ "nom": 180.0
 }

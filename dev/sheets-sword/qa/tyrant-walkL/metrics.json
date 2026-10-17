@@ -1,0 +1,37 @@
+{
+ "id": "tyrant-walkL",
+ "kind": "char",
+ "file": "dev\\sheets-sword\\anim\\tyrant-walkL4-strip.png",
+ "frames": 4,
+ "color": "raw",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "64칸 2D 횡스크롤 걷기 4프레임, 상체·무기 고정, 다리 교차",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.933,
+  "colors": 9,
+  "low": 0.492,
+  "edge": 0.423,
+  "lone": 0.062,
+  "flick": 0.146,
+  "churn": 0.049,
+  "fill": 0.21,
+  "area": [
+   874,
+   841,
+   880,
+   841
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

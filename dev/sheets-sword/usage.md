@@ -156,3 +156,5 @@
 | 149 | archon | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 5.0 / 3.0 | 287.0 / 168.0 | 707.0 |
 | 150 | tyrant | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 3.0 / 3.0 | 290.0 / 171.0 | 704.0 |
 | 151 | swordsaint | `/animate-with-skeleton-v3` | skelwalk: /animate-with-skeleton-v3 | 7.0 / 3.0 | 297.0 / 174.0 | 697.0 |
+| 152 | tyrant | `/animate-with-skeleton-v3` | skelwalkL: /animate-with-skeleton-v3 | 7.0 / 3.0 | 304.0 / 177.0 | 682.0 |
+| 153 | swordsaint | `/animate-with-skeleton-v3` | skelwalkL: /animate-with-skeleton-v3 | 3.0 / 3.0 | 307.0 / 180.0 | 679.0 |
