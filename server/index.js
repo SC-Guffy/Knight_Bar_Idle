@@ -187,7 +187,7 @@ async function guildView(g) {
   const members = await store.guildMembers(g.id);
   const nickOf = Object.fromEntries(members.map((a) => [a.key, a.nickname]));
   return {
-    name: g.name, google: !!g.googleSub,
+    name: g.name, google: !!g.googleSub, shared: g.shared || null, sharedRev: g.sharedRev || 0, sharedAt: g.sharedAt || 0,
     chars: members.sort((a, b) => a.createdAt - b.createdAt).map((a) => ({ nickname: a.nickname, cls: a.cls, level: a.level, best: a.best })),
     slots: Array.from({ length: GUILD_SLOTS }, (_, i) => (g.slots && g.slots[i] && nickOf[g.slots[i]]) || null),
   };
@@ -1031,9 +1031,16 @@ routes['POST /api/admin/token'] = async (req) => {
 
 // 운영 기록 보기: 기사 한 명의 레이드 결과·정산·재화 스냅숏·차감 (새 것부터). kind 로 거를 수 있다 (raid | raid-reward | snap | penalty)
 //   curl "https://knight-bar.onrender.com/api/admin/audit?nickname=닉네임&kind=raid&limit=100" -H "X-Admin-Key: <ADMIN_KEY>"
+//   기사단 공용 재화(3단계): curl "https://knight-bar.onrender.com/api/admin/audit?guild=기사단이름&kind=guild-snap" -H "X-Admin-Key: <ADMIN_KEY>"
 routes['GET /api/admin/audit'] = async (req, url) => {
   requireAdmin(req);
-  const { key } = nicknameKey(url.searchParams.get('nickname'));
+  // ?guild=기사단 이름 이면 그 기사단의 공용 재화 스냅숏(guild:<id>, kind guild-snap)
+  let key;
+  if (url.searchParams.get('guild')) {
+    const g = await store.guildByName(guildNameKey(url.searchParams.get('guild')).nameKey);
+    if (!g) throw new HttpError(404, '그런 기사단은 없어요');
+    key = `guild:${g.id}`;
+  } else key = nicknameKey(url.searchParams.get('nickname')).key;
   const kind = url.searchParams.get('kind') || '';
   const limit = Math.floor(num(url.searchParams.get('limit'), 1, 1000, 200));
   const log = await store.audit(key, limit, /^[a-z-]{1,20}$/.test(kind) ? kind : '');
@@ -1155,6 +1162,38 @@ routes['POST /api/guilds/adopt'] = async (req) => {
   if ((await store.guildMembers(g.id)).length >= GUILD_MAX_CHARS) throw new HttpError(400, `기사는 ${GUILD_MAX_CHARS}명까지예요`);
   await store.update(acc.key, { guildId: g.id });
   return { nickname: acc.nickname };
+};
+
+// 공용 상태(3단계): 아는 키만, 숫자는 유한·0 이상, 건물 Lv 은 1~100 정수. 값의 정당성은 기사 세이브처럼 운영 기록(audit)으로 본다
+const BLD_IDS = ['training', 'inn', 'storage', 'forge', 'hall'], FAC_IDS = ['salvage', 'enchant', 'temper'];
+const nn = (v) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Number(v) : 0);
+const lvOf = (v, min, max) => Math.max(min, Math.min(max, Math.floor(nn(v)) || min));
+function sanitizeShared(o) {
+  if (!o || typeof o !== 'object') throw new HttpError(400, 'shared 가 없습니다');
+  const bld = {}, forge = {}, st = o.stock || {};
+  for (const k of BLD_IDS) bld[k] = lvOf((o.bld || {})[k], 1, 100);
+  for (const k of FAC_IDS) if (o.forge && o.forge[k] != null) forge[k] = lvOf(o.forge[k], 0, 100);
+  const b = o.build;
+  const build = b && BLD_IDS.includes(b.id) && nn(b.total) > 0 ? { id: b.id, remain: nn(b.remain), total: nn(b.total) } : null;
+  return { gold: nn(o.gold), wood: nn(o.wood), ore: nn(o.ore), bld, forge, build,
+    stock: { wood: nn(st.wood), ore: nn(st.ore), at: nn(st.at), tradeDay: String(st.tradeDay || '').slice(0, 16), trades: Math.floor(nn(st.trades)) } };
+}
+routes['PUT /api/guilds/shared'] = async (req) => {
+  const g = await guildAuth(req);
+  const body = await readJson(req);
+  if (JSON.stringify(body.shared || {}).length > 16 * 1024) throw new HttpError(413, '공용 상태가 너무 큽니다');
+  const shared = sanitizeShared(body.shared), now = Date.now();
+  const rev = await store.putShared(g.id, shared, Math.floor(nn(body.rev)), now);
+  if (rev == null) {
+    const cur = await store.guild(g.id);
+    return { status: 409, body: { error: '다른 기기의 마을 기록이 더 새로워요', code: 'stale', shared: cur.shared || null, sharedRev: cur.sharedRev || 0, sharedAt: cur.sharedAt || 0 } };
+  }
+  const key = `guild:${g.id}`;
+  if (now - (lastSnap.get(key) || 0) >= SNAP_EVERY_MS) {
+    lastSnap.set(key, now);
+    audit(key, 'guild-snap', { gold: shared.gold, wood: shared.wood, ore: shared.ore, bld: shared.bld });
+  }
+  return { rev, at: now };
 };
 
 routes['PUT /api/guilds/slots'] = async (req) => {

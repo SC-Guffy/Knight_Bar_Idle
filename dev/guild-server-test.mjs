@@ -63,4 +63,25 @@ r = await api('GET', '/api/ranking?limit=200'); const mine = r.d.players.filter(
 ok('랭킹에 기사단 이름', mine.some((p) => p.guild === '푸른 방패' + sfx), mine.map((p) => [p.nickname, p.guild]));
 r = await api('POST', '/api/guilds', { name: '푸른  방패' + sfx }); ok('이름 중복(공백 무시)', r.s === 409, r.d);
 r = await api('GET', '/api/guilds/name?name=' + encodeURIComponent('푸른방패' + sfx)); ok('이름 확인 API', r.d.available === false);
+
+// 3단계: 공용 상태 서버 저장
+{
+  const Gs = (await api('POST', '/api/auth/google', { idToken: 'fake:s' + sfx, deviceId: 'devS' })).d;
+  const made = await api('POST', '/api/guilds', { name: '공용단' + sfx, ticket: Gs.ticket, deviceId: 'devS' });
+  const T = made.d.token;
+  ok('새 기사단 공용 rev 0', made.d.guild.sharedRev === 0 && made.d.guild.shared === null);
+  const sh = { gold: 1234, wood: 50, ore: 7, bld: { training: 3, inn: 2, storage: 1, forge: 4, hall: 3 }, forge: { temper: 2 }, build: { id: 'inn', remain: 100, total: 300 },
+    stock: { wood: 1.5, ore: 0, at: 5, tradeDay: '2026-10-17', trades: 1 }, junk: 'x' };
+  r = await api('PUT', '/api/guilds/shared', { shared: sh, rev: 0 }, gh(T, 'devS')); ok('공용 상태 올리기 → rev 1', r.d.rev === 1, r.d);
+  r = await api('GET', '/api/guilds/me', null, gh(T, 'devS'));
+  ok('받아 보면 같고 모르는 키는 빠짐', r.d.sharedRev === 1 && r.d.shared.gold === 1234 && r.d.shared.bld.forge === 4 && r.d.shared.build.id === 'inn' && !('junk' in r.d.shared) && r.d.sharedAt > 0, r.d.shared);
+  r = await api('PUT', '/api/guilds/shared', { shared: { ...sh, gold: 1 }, rev: 0 }, gh(T, 'devS')); ok('옛 rev → 409 stale + 서버 것', r.s === 409 && r.d.code === 'stale' && r.d.shared.gold === 1234 && r.d.sharedRev === 1, r.d.code);
+  r = await api('PUT', '/api/guilds/shared', { shared: { ...sh, gold: -5, bld: { training: 9999 } }, rev: 1 }, gh(T, 'devS')); ok('음수·지나친 Lv 정리', r.d.rev === 2);
+  r = await api('GET', '/api/guilds/me', null, gh(T, 'devS')); ok('gold 0 · Lv 100 · 빠진 건물 1', r.d.shared.gold === 0 && r.d.shared.bld.training === 100 && r.d.shared.bld.inn === 1, r.d.shared.bld);
+  r = await api('PUT', '/api/guilds/shared', { shared: sh, rev: 2 }, gh(T, 'devOther')); ok('다른 기기에서 올리기 → moved', r.s === 409 && r.d.code === 'moved');
+  if (process.env.ADMIN_KEY) {
+    r = await api('GET', '/api/admin/audit?guild=' + encodeURIComponent('공용단' + sfx) + '&kind=guild-snap', null, { 'X-Admin-Key': process.env.ADMIN_KEY });
+    ok('운영 기록 guild-snap', r.d.log && r.d.log.length === 1 && r.d.log[0].data.gold === 1234, r.d.log);
+  }
+}
 console.log(fails ? `실패 ${fails}` : '모두 통과');

@@ -39,17 +39,55 @@ function setToken(t) {
   account.token = t;
   try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch {}
 }
-async function gapi(method, path, body, auth = true) {
+// 서버 시각 (3단계): 응답의 X-Server-Time 을 기준으로 performance.now 만큼 흐른 값 — 기기 시계를 돌려도 건설이 빨라지지 않는다
+const srvClock = { base: 0, mono: 0 };
+const srvNow = () => (srvClock.base ? srvClock.base + (performance.now() - srvClock.mono) : Date.now());
+async function gapi(method, path, body, auth = true, { keepalive = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth && account.token) { headers.Authorization = `Bearer ${account.token}`; headers['X-Device'] = DEVICE; }
   let res, data;
   try {
-    res = await fetch(SERVER + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    res = await fetch(SERVER + path, { method, headers, body: body ? JSON.stringify(body) : undefined, keepalive });
+    const t = Number(res.headers.get('X-Server-Time'));
+    if (t) { srvClock.base = t; srvClock.mono = performance.now(); }
     data = await res.json().catch(() => ({}));
   } catch { throw Object.assign(new Error('서버에 연결할 수 없어요'), { code: 'offline' }); }
-  if (!res.ok) throw Object.assign(new Error(data.error || `서버 오류 (${res.status})`), { code: data.code });
+  if (!res.ok) throw Object.assign(new Error(data.error || `서버 오류 (${res.status})`), { code: data.code, data });
   return data;
 }
+// ── 공용 상태 서버 저장 (3단계): 바뀐 게 있으면 15초마다·닫을 때·앱 끄기 때 올린다. 옛 rev 면 서버 것으로 맞춘다 ──
+const SHARED_EVERY = 15000;
+let sharedSent = null, sharedBusy = false;
+function replaceShared(o) {   // getter 들이 이 객체를 가리키므로 객체는 그대로 두고 내용만 바꾼다
+  const f = freshShared();
+  for (const k of Object.keys(f)) shared[k] = o && o[k] !== undefined ? o[k] : f[k];
+  if (!shared.bld.hall) shared.bld.hall = 1;
+}
+async function pushShared({ force = false, keepalive = false } = {}) {
+  if (!account.online || !account.token || stopped || sharedBusy) return;
+  const json = JSON.stringify(shared);
+  if (!force && json === sharedSent) return;
+  sharedBusy = true;
+  try {
+    const r = await gapi('PUT', '/api/guilds/shared', { shared, rev: guild.sharedRev || 0 }, true, { keepalive });
+    guild.sharedRev = r.rev;
+    sharedSent = json;
+    saveGuild();
+  } catch (e) {
+    if (e.code === 'stale' && e.data) {
+      replaceShared(e.data.shared);
+      guild.sharedRev = e.data.sharedRev;
+      guild.at = e.data.sharedAt || srvNow();
+      sharedSent = JSON.stringify(shared);
+      saveGuild();
+      hostToast('🏘️ 다른 기기의 마을 기록으로 맞췄어요');
+      refreshHall();
+    } else if (e.code === 'moved' || e.code === 'guild-auth') showMoved(e.code);
+  } finally { sharedBusy = false; }
+}
+setInterval(() => pushShared(), SHARED_EVERY);
+window.addEventListener('pagehide', () => { pushShared({ keepalive: true }); });
+
 function pushSlots() {
   if (!account.online) return;
   gapi('PUT', '/api/guilds/slots', { slots: guild.slots }).catch((e) => { if (e.code === 'moved') showMoved(); });
@@ -84,6 +122,7 @@ if (BAR) {
   // 앱을 끄기 전: 모든 기사가 저장·서버 올리기를 마치면(또는 5초) 한 번만 flushed
   BAR.onFlush(() => {
     saveGuild();
+    pushShared({ keepalive: true });
     const n = [...barRec.values()].filter((r) => (r.cbs.flush || []).length).length;
     if (!n) { BAR.flushed(); return; }
     flushWait = n;
@@ -204,9 +243,10 @@ window.guildHost = {
     } catch (e) { return `⚠️ ${e.message}`; }
   },   // 시제품(dev/guild-spike.html)과 구별 — 건설 시계·회관·알림 모으기를 켠다
   bindShared(S) {
-    Object.defineProperty(S, 'gold', { get: () => shared.gold, set: (v) => { shared.gold = v; }, enumerable: true, configurable: true });
-    for (const k of ['wood', 'ore']) Object.defineProperty(S.mats, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: true, configurable: true });
-    for (const k of ['bld', 'stock', 'forge', 'build']) Object.defineProperty(S, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: true, configurable: true });
+    // 열거 안 함(3단계): 기사 세이브(JSON)에는 기사별 값만 남고 공용 값은 기사단(guild.shared → 서버)에만 있다
+    Object.defineProperty(S, 'gold', { get: () => shared.gold, set: (v) => { shared.gold = v; }, enumerable: false, configurable: true });
+    for (const k of ['wood', 'ore']) Object.defineProperty(S.mats, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: false, configurable: true });
+    for (const k of ['bld', 'stock', 'forge', 'build']) Object.defineProperty(S, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: false, configurable: true });
   },
   ready(win) {
     const i = frameOf(win);
@@ -293,8 +333,9 @@ function tick(now) {
     const f = frames[i];
     if (!f || !f.win || !f.win.guildApi) continue;
     let ok = false;
-    try { ok = f.win.guildApi.tickBuild((Date.now() - guild.at) / 1000); } catch {}
-    if (ok) { guild.at = Date.now(); break; }
+    const now = srvNow();
+    try { ok = f.win.guildApi.tickBuild((now - guild.at) / 1000); } catch {}
+    if (ok) { guild.at = now; break; }
   }
 }
 
@@ -404,6 +445,18 @@ let started = false;
 
 // 서버 기사단을 이 기기 기록에 덮는다: 이름·기사 목록·슬롯은 서버가 기준 (공용 상태는 3단계까지 이 기기)
 function applyServer(v) {
+  // 공용 상태: 서버 rev 가 더 크면 서버 것(다른 기기에서 이어 받기 — 건설은 서버가 저장한 시각부터 흐른다), 아니면 이 기기 것을 올린다
+  if ((v.sharedRev || 0) > (guild.sharedRev || 0) && v.shared) {
+    replaceShared(v.shared);
+    guild.sharedRev = v.sharedRev;
+    guild.at = v.sharedAt;
+    sharedSent = JSON.stringify(shared);
+  } else {
+    if (guild.clock !== 'srv') guild.at = srvNow();   // 2단계까지의 기기 시계 기준 → 서버 시각 기준으로 한 번 옮긴다
+    guild.sharedRev = v.sharedRev || 0;
+    setTimeout(() => pushShared({ force: true }), 0);
+  }
+  guild.clock = 'srv';
   guild.name = v.name;
   account.google = !!v.google;
   const names = v.chars.map((c) => c.nickname);

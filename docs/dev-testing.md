@@ -95,6 +95,7 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
   - 서버 API 점검: `P=3792 node dev/guild-server-test.mjs` (서버를 새로 띄운 직후 — IP 당 한 시간 5개 제한).
   - "다른 기기"는 저장소가 따로인 창이 필요하다: CDP `Target.createBrowserContext` 로 만든 창, 또는 다른 브라우저 프로필. 같은 창의 새 탭은 localStorage 를 같이 써서 같은 기기로 보인다.
   - 기사단 토큰을 지우면 로그인 화면부터: 바깥 페이지 콘솔 `localStorage.removeItem('knight-bar-guild-token')`.
+  - 3단계(공용 상태 서버 저장) 브라우저 점검: `node dev/guild-shared-test.mjs` (두 창으로 이어 받기·시계 조작·오프라인). 공용 상태 운영 기록: 서버를 `ADMIN_KEY=<아무 값>` 으로 띄우고 `/api/admin/audit?guild=기사단이름&kind=guild-snap` (헤더 `X-Admin-Key`).
   - Electron 중계는 가짜 `bar` 로 본다: 로드 전에 맨 위 창에만 `window.bar = { 호출을 기록하는 함수들 }` 를 넣는다(CDP `Page.addScriptToEvaluateOnNewDocument`, `window === window.top` 일 때만).
 - 숨은 창은 rAF 가 멈춘다 → 프레임·진행 확인은 보이는 Chrome(`dev/guild-measure.mjs` 머리 주석의 실행 인자)에서.
 
