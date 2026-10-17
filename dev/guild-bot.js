@@ -10,9 +10,10 @@ const vm = require('vm');
 const { makeGame, mentorApi, playMentors, castleApi, playCastle, LINES, TOWER_TOMES_PER_DAY, DAY, TICK } = require('./progress-bot');
 
 const FAMILY_LINES = { swordsman: 'swordsaint', lancer: 'dragonlord', ranger: 'deadeye', mage: 'archmage', fighter: 'champion' };
-const HALL_MARKS = [3, 6, 10];
+const HALL_MARKS = [8, 12, 14];   // 슬롯 3·4·5칸이 열리는 회관 Lv
 // 수치 맞추기용 (환경 변수): GUILD_SLOTS=1,3,6,10 (슬롯 2~5칸이 열리는 회관 Lv) · HALL_MUL=1.5 (회관 비용 배율) · HALL_FIRST=1 (회관을 먼저 짓기)
-//  FX_SCALE=1 (계열 효과 단당 크기 배율) · HALL_START=10 (처음부터 회관 Lv — 효과 최대치 보기) · HALL_MAX=10 (회관 최대 Lv)
+//  FX_SCALE=1 (계열 효과 단당 크기 배율) · HALL_START=15 (처음부터 회관 Lv — 효과 최대치 보기) · HALL_MAX=15 (회관 최대 Lv)
+//  확정 수치 재현(10-17): HALL_FIRST=1 node dev/guild-bot.js --days 7 --seeds 5
 //  SHARED_GOLD=0 (골드는 기사별 — 목재·철광석·마을만 공용인 안 비교)
 //  TUNE_JSON='{"hallPerTier":3,"divPer":0,"catchupExp":1}' (src/core.js GUILD_TUNE 덮어쓰기 — 효과·따라잡기를 하나씩 꺼 보기)
 const TUNE = { slots: process.env.GUILD_SLOTS ? process.env.GUILD_SLOTS.split(',').map(Number) : null, hallMul: process.env.HALL_MUL ? Number(process.env.HALL_MUL) : null,
@@ -129,7 +130,8 @@ function runGuildSeeded({ days, seed, knights }) {
     const list = ks.map((x) => ({ nick: x.nick, cls: x.kn.S.cls, lv: x.kn.S.level })), sig = JSON.stringify(list);
     if (sig !== roster.sig) { roster.list = list; roster.sig = sig; roster.rev++; }
   };
-  const slotsOpen = () => 1 + (TUNE.slots || [1, 3, 6, 10]).filter((x) => shared.bld.hall >= x).length;
+  const slotLv = TUNE.slots || vm.runInContext('GUILD_SLOT_LV.slice()', ks[0].kn.ctx);   // 게임 값 (src/core.js)
+  const slotsOpen = () => 1 + slotLv.filter((x) => shared.bld.hall >= x).length;
   const hallDay = [], slotDay = [];
   while (clock.t < days * DAY) {
     if (guild) {

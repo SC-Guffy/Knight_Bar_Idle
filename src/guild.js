@@ -8,7 +8,7 @@ const GUILD_KEY = 'knight-bar-guild';
 const ACCOUNTS_KEY = 'knight-bar-accounts';
 const SAVE_KEY = 'knight-bar-save-v1';
 const GUILD_MAX = 10;                       // 보유 기사 최대
-const GUILD_SLOT_LV = [1, 3, 6, 10];        // 슬롯 2·3·4·5칸이 열리는 회관 Lv (src/core.js 와 같게)
+const GUILD_SLOT_LV = [1, 8, 12, 14];       // 슬롯 2·3·4·5칸이 열리는 회관 Lv (src/core.js 와 같게)
 const slotsAt = (lv) => 1 + GUILD_SLOT_LV.filter((x) => lv >= x).length;
 const NAME_RE = /^[가-힣a-zA-Z0-9_ ]{2,12}$/;
 const NEW = '+new';                          // 새 기사 iframe (닉네임 창부터)

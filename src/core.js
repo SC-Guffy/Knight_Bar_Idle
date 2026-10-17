@@ -296,11 +296,11 @@ function readLocalSave(key) {
 // 공용 상태(골드·목재·철광석·마을 건물·창고·대장간 시설·건설)는 바깥 페이지 객체 하나를 같이 쓴다. 없으면 null (보통 게임)
 const GUILD_HOST = (() => { try { return window.parent !== window && window.parent.guildHost || null; } catch { return null; } })();
 // 🛡️ 기사단 회관: 기사단 모드에서만 있는 공용 마을 건물. 회관 Lv → 슬롯 수 (src/guild.js GUILD_SLOT_LV 와 같게)
-const GUILD_SLOT_LV = [1, 3, 6, 10];   // 슬롯 2·3·4·5칸이 열리는 회관 Lv
+const GUILD_SLOT_LV = [1, 8, 12, 14];  // 슬롯 2·3·4·5칸이 열리는 회관 Lv (4단계 봇으로 확정 10-17: 봇 2·4·6일째)
 const guildSlotsAt = (lv) => 1 + GUILD_SLOT_LV.filter((x) => lv >= x).length;
 if (GUILD_HOST && GUILD_HOST.full) {
   BUILDINGS.hall = {
-    name: '기사단 회관', icon: '🛡️', mul: { gold: 1.5, wood: 1.5, ore: 1.5, mana: 0 }, max: 10,   // 비용 = 다른 건물 곡선 ×1.5, 최대 Lv 10 (시작안 — dev/guild-bot.js 로 맞춤)
+    name: '기사단 회관', icon: '🛡️', mul: { gold: 1.5, wood: 1.5, ore: 1.5, mana: 0 }, max: 15,   // 비용 = 다른 건물 곡선 ×1.5, 최대 Lv 15 (dev/guild-bot.js 로 확정 10-17)
     effect: (lv) => `기사 슬롯 ${guildSlotsAt(lv)}칸${GUILD_SLOT_LV.find((x) => x > lv) ? ` · 다음 칸은 Lv ${GUILD_SLOT_LV.find((x) => x > lv)}` : ''}`,
   };
 }
@@ -322,17 +322,18 @@ function resetState() {
 // ───────────────────────── 기사단 효과 (docs/specs/guild.md 4단계) ─────────────────────────
 // 계열(1차 직업, 그 아래 2·3차 포함)마다 그 계열 최고 레벨 기사 1명만 센다. 단 = ⌊Lv ÷ fxLv⌋, 최대 단 = ⌈회관 Lv ÷ hallPerTier⌉ (GUILD_TUNE).
 // 모두 기본 능력치라 모든 콘텐츠·결투·레이드 전투력에 똑같이 걸린다 (콘텐츠 전용 보정 없음). 숫자는 진행 봇(dev/progress-bot.js --guild)으로 맞춘다
+// 단당 크기는 4단계 봇으로 확정 (10-17): 5계열 모두 5단이면 본캐 전투력 약 +13.6% (docs/specs/guild.md "4단계 봇 결과")
 const GUILD_FX = {
-  swordsman: { stat: 'atk', per: 0.01, name: '공격력' },
-  lancer: { stat: 'hp', per: 0.01, name: '최대 체력' },
-  ranger: { stat: 'crit', per: 0.005, name: '치명타 확률' },
-  mage: { stat: 'skill', per: 0.01, name: '스킬 피해' },
-  fighter: { stat: 'aspd', per: 0.005, name: '공격 속도' },
+  swordsman: { stat: 'atk', per: 0.013, name: '공격력' },
+  lancer: { stat: 'hp', per: 0.013, name: '최대 체력' },
+  ranger: { stat: 'crit', per: 0.0065, name: '치명타 확률' },
+  mage: { stat: 'skill', per: 0.013, name: '스킬 피해' },
+  fighter: { stat: 'aspd', per: 0.0065, name: '공격 속도' },
 };
 // 조절값 한 곳 (진행 봇 dev/guild-bot.js 가 실험할 때 바꿔 끼운다)
 const GUILD_TUNE = {
   fxLv: 20,                    // 이 레벨마다 1단
-  hallPerTier: 2,              // 최대 단 = ⌈회관 Lv ÷ 이 값⌉
+  hallPerTier: 3,              // 최대 단 = ⌈회관 Lv ÷ 이 값⌉ (회관 Lv13~15 에 5단)
   divLv: 50, divPer: 0.01,     // 다양성: 이 레벨 이상 기사가 있는 계열 하나마다 공격력 +1%
   catchup: 0.8, catchupExp: 2, // 따라잡기: 기사단 최고 레벨의 80% 아래면 경험치 ×2
 };
