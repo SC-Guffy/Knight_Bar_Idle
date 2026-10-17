@@ -37,6 +37,18 @@
   </ul>
 </div>
 
+<h2>◈ 4종 통짜 시트 (관절 애니, 2026-10-17) — 시험 주소로 켜 보기</h2>
+<div class="box"><b>켜 보기</b> (SHEET_ON 은 false — 주소로만 켬):
+<ul><li>평타: <a href="skills.html?mode=basic&cls=lancer&sheetsOn=lancer,dragoon,halberdier,cavalier">skills.html?mode=basic&amp;cls=lancer&amp;sheetsOn=lancer,dragoon,halberdier,cavalier</a> (직업 버튼으로 바꿔 보기)</li>
+<li>스킬(시전 줄): <a href="skills.html?cls=dragoon&sheetsOn=lancer,dragoon,halberdier,cavalier">skills.html?cls=dragoon&amp;sheetsOn=…</a></li>
+<li>원정: <code>index.html?server=http://127.0.0.1:9&amp;char=spearqa&amp;sheetsOn=lancer,dragoon,halberdier,cavalier</code> → 콘솔 <code>Object.assign(S,{phase:'camp',level:60,stage:5}); S.cls='dragoon'; S.hp=stats().maxHp; closeCamp(); startExpedition(); save(); renderHud()</code></li></ul>
+<b>만든 법</b>: 직업마다 pixen 중립 대기 → 첫 프레임 관절 읽기(<code>skelfit.py first</code>) → 설계 동작을 그 몸에 맞춰(<code>skelfit.py</code>) skeleton-v3 15f 묶음(평타A 7 + 평타B 8) + 걷기 8f → <code>anim_post.py</code>(모델 창 직선·손 찾기·코드 무기, 할버디어는 몸 영역 밖 지우기, 랜서는 정지 그림 방패 합성, 용기병 남색·라벤더) → <code>assemble.py</code>(대기 = 걷기 첫 장 들썩임, 시전 = 평타 프레임 창 각도순, 직업 공통 22색) → <code>build.py --install</code>.</div>
+<table><tr><th>직업</th><th>애니(평타A → 평타B → 걷기)</th><th>검수</th></tr>
+<tr><td>창기사</td><td><img class="px" src="sheets-spear/anim/lancer-anim.gif" width="192"></td><td class="ok">3.71 pass</td></tr>
+<tr><td>용기병</td><td><img class="px" src="sheets-spear/anim/dragoon-anim.gif" width="192"></td><td class="ok">3.57 pass (1차 2.57 → 보라 모델 창 지우기·걷기 창 세움 고정)</td></tr>
+<tr><td>할버디어</td><td><img class="px" src="sheets-spear/anim/halberdier-anim.gif" width="192"></td><td>2.57 regen — 평타에 모델 무기 잔해, 내려찍기 정점 없음 (재생성 승인 요청)</td></tr>
+<tr><td>랜서</td><td><img class="px" src="sheets-spear/anim/cavalier-anim.gif" width="192"></td><td class="ok">3.71 pass</td></tr></table>
+
 <h2>◇ 관절 애니 시험 — 창기사 찌르기 8f (2026-10-17, PixelLab usage 4)</h2>
 <div class="box"><ol><li>첫 프레임 = <b>pixen 중립 대기</b>(무기 없음·팔 내림, usage 1) — 레인저 교훈: 무기를 든 첫 프레임은 팔 관절을 안 따른다.</li>
 <li><code>dev/spear/skelfit.py</code>: 설계 찌르기(<code>skel.py</code>)의 뼈 <b>각도</b> + 첫 프레임 그림에서 읽은 뼈 <b>길이</b>, 다리는 발을 땅에 두고 무릎 역산 → animate-with-skeleton-v3 192칸 8f (usage 3).</li>

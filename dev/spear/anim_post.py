@@ -49,7 +49,7 @@ def body_region(kp, dx, r=6.5, rh=11):
     return inside
 
 
-def swap_weapon(im, kind, front, back, design_ang, region=None):
+def swap_weapon(im, kind, front, back, design_ang, region=None, fixed=False):
     """모델이 그린 창을 지우고 코드 무기를 손에 얹는다 (검수 a2: 관절·갈색 직선에 맞추면 창이 손보다 3칸 위 턱 높이에 떴다).
     손 둘이 보이면 뒷손 → 앞손 직선, 하나면 그 손을 지나는 설계 각도. 그 직선을 따라 모델 창(자루 2.5·창날 4.0)을 지우되 손 칸은 남긴다"""
     P = im.load(); W, H = im.size
@@ -70,7 +70,7 @@ def swap_weapon(im, kind, front, back, design_ang, region=None):
     opened = {(x + u, y + v) for (x, y) in ero for u in range(-2, 3) for v in range(-2, 3)}
     fy0 = max(y for _, y in pts)
     thin = [p_ for p_ in pts if p_ not in opened and p_[1] < fy0 - 6]
-    if len(thin) >= 10:
+    if len(thin) >= 10 and not fixed:
         c3, d3, inl3 = line_fit(thin, tol=1.2)
         span = max((abs((u[0] - c3[0]) * d3[0] + (u[1] - c3[1]) * d3[1]) for u in inl3), default=0) * 2 if inl3 else 0
         if len(inl3) >= 10 and span >= 16:
@@ -93,6 +93,7 @@ def swap_weapon(im, kind, front, back, design_ang, region=None):
     import colorsys
     def wpnish(c):           # 몸 쪽 구간(손 뒤~손 앞 6칸)은 자루 색(갈색·어두운 선)만 지운다 — 갑옷·얼굴은 남김
         h, l, s_ = colorsys.rgb_to_hls(c[0] / 255, c[1] / 255, c[2] / 255)
+        if kind == 'dragon' and 0.68 < h < 0.82 and s_ > 0.45: return True      # 용기병: 모델이 그린 채도 높은 보라 창 (몸은 purple_split 의 낮은 채도)
         return (0.03 < h < 0.13 and 0.1 < l < 0.55 and s_ > 0.25) or l < 0.12
     er = {p for p in er if p not in body or wpnish(P[p])}
     # 2차: 모델 창이 손 직선과 다른 각도면(0·1·6·7 프레임) 남는다 → 갈색 자루 칸으로 모델 창 직선을 맞춰 한 번 더 지운다
@@ -129,6 +130,7 @@ CW, FX = 128, 36          # 게임 칸: 창 계열 128, 발 x = 36 (build.py CEL
 FXC = {'halberdier': 66, 'warlord': 66}
 RECOLOR = {'dragoon': 'purple_split'}
 REGION = {'halberdier', 'warlord'}
+FIXED = {('dragoon', 'walk')}     # 모델 창 직선을 따르지 않고 설계 각도(세움) — 용기병 걷기는 모델이 중간에 창을 눕혀 루프에서 90도 튀었다
 # 방패: 중립 대기 편집에서 카이트 방패가 사라져(랜서) 합격 정지 그림에서 자른 방패를 뒷손 관절 자리에 몸 뒤로 깐다 (코드 무기와 같은 방식)
 SHIELD = {'cavalier': ('skel/cavalier-shield.png', (-9, -12))}     # (그림, 뒷손에서 그림 왼쪽 위까지 오프셋)        # 몸 영역 밖 모델 무기 모두 지우기 (body_region)     # 정지 그림과 같은 색 입히기 (생성 원본은 회색 판금) — 코드 무기를 얹기 전에
 
@@ -152,7 +154,7 @@ def run(cls, act):
             bx_, by_ = w['kp']['LEFT ARM'][0] / 2 + fx - 48, w['kp']['LEFT ARM'][1] / 2
             im.alpha_composite(sh, (round(bx_ + ox), round(by_ + oy)))      # 몸 위에 (몸 뒤에 깔면 망토·몸에 가려 안 보였다)
         reg = body_region(w['kp'], fx - 48) if cls in REGION and 'kp' in w else None
-        im = swap_weapon(im, WPN[cls], fr, bk, w['ang'], reg); w['used'] = round(swap_weapon.last, 1)
+        im = swap_weapon(im, WPN[cls], fr, bk, w['ang'], reg, fixed=(cls, act) in FIXED); w['used'] = round(swap_weapon.last, 1)
         from pix import POL_comps
         cs = POL_comps(im); Q = im.load()
         for c_ in cs:
