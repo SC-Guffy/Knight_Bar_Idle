@@ -31,6 +31,22 @@ BODY_KP = {
                  'LEFT SHOULDER': (90, 128), 'LEFT ELBOW': (88, 139), 'LEFT ARM': (88, 150),
                  'RIGHT HIP': (104, 150), 'RIGHT KNEE': (103, 163), 'RIGHT LEG': (104, 175),
                  'LEFT HIP': (95, 150), 'LEFT KNEE': (95, 163), 'LEFT LEG': (94, 175)},
+    'dragonlord': {'NECK': (104, 115), 'NOSE': (115, 108), 'RIGHT EYE': (110, 107), 'LEFT EYE': (106, 107), 'RIGHT EAR': (101, 107), 'LEFT EAR': (99, 108),
+                   'RIGHT SHOULDER': (115, 120), 'RIGHT ELBOW': (119, 133), 'RIGHT ARM': (121, 145),
+                   'LEFT SHOULDER': (94, 120), 'LEFT ELBOW': (93, 133), 'LEFT ARM': (95, 145),
+                   'RIGHT HIP': (110, 145), 'RIGHT KNEE': (112, 160), 'RIGHT LEG': (113, 175),
+                   'LEFT HIP': (100, 145), 'LEFT KNEE': (101, 160), 'LEFT LEG': (100, 175)},
+    'warlord': {'NECK': (104, 120), 'NOSE': (114, 110), 'RIGHT EYE': (109, 109), 'LEFT EYE': (104, 109), 'RIGHT EAR': (99, 109), 'LEFT EAR': (97, 110),
+                'RIGHT SHOULDER': (115, 124), 'RIGHT ELBOW': (117, 132), 'RIGHT ARM': (118, 142),
+                'LEFT SHOULDER': (91, 124), 'LEFT ELBOW': (88, 133), 'LEFT ARM': (89, 143),
+                'RIGHT HIP': (110, 147), 'RIGHT KNEE': (111, 162), 'RIGHT LEG': (112, 175),
+                'LEFT HIP': (98, 147), 'LEFT KNEE': (99, 162), 'LEFT LEG': (98, 175)},
+    # 천마장군: 몸을 틀어 방패 팔(뒤, LEFT)이 오른쪽 앞에 보이고 맨손(앞, RIGHT)은 왼쪽에 있다
+    'skyGeneral': {'NECK': (100, 118), 'NOSE': (111, 108), 'RIGHT EYE': (106, 107), 'LEFT EYE': (102, 107), 'RIGHT EAR': (97, 107), 'LEFT EAR': (95, 108),
+                   'RIGHT SHOULDER': (110, 124), 'RIGHT ELBOW': (82, 135), 'RIGHT ARM': (84, 147),
+                   'LEFT SHOULDER': (88, 124), 'LEFT ELBOW': (116, 134), 'LEFT ARM': (118, 145),
+                   'RIGHT HIP': (104, 148), 'RIGHT KNEE': (104, 162), 'RIGHT LEG': (105, 175),
+                   'LEFT HIP': (95, 148), 'LEFT KNEE': (94, 162), 'LEFT LEG': (93, 175)},
 }
 DESC = {'lancer': 'young chibi lancer knight, open-faced steel helmet with a small green plume, green tabard over silver plate armor, round pauldrons, '
                   'short green cape, empty hands (the spear is drawn later)',
@@ -38,6 +54,12 @@ DESC = {'lancer': 'young chibi lancer knight, open-faced steel helmet with a sma
                    'plate armor, dark bat-wing shaped cloth cape, empty hands (the spear is drawn later)',
         'halberdier': 'young chibi heavy halberdier knight, steel bucket helmet with a horizontal eye slit, big square steel pauldrons, steel plate armor, '
                       'orange cloth tabard over the thighs, thick belt, light tan leather gloves, empty hands (the halberd is drawn later)',
+        'dragonlord': 'young chibi dragon lord knight king, golden dragon crown helmet with four backward horns, human face visible, lavender and gold plate armor, '
+                      'large dark purple double bat-wing shaped cape, empty hands (the spear is drawn later)',
+        'warlord': 'young chibi heavy warlord knight, iron helmet with two bull horns and a half mask, spiked pauldrons, grey iron plate armor, blood red cape, '
+                   'light tan leather gloves, empty hands (the halberd is drawn later)',
+        'skyGeneral': 'young chibi sky general knight, white and gold winged helmet with a small golden halo, white and gold plate armor, gray cape, '
+                      'large round gold-rimmed shield on the far arm, light tan leather glove, empty hand (the lance is drawn later)',
         'cavalier': 'young chibi cavalry lancer knight, silver crested helmet with a tall red feather plume, royal blue surcoat and short blue cape over '
                     'silver plate armor, light tan leather gloves, empty hands (the lance is drawn later)'}
 ACTION = {'thrust': 'lunge forward and thrust a spear with both hands, then recover', 'walk': 'walk cycle holding a long polearm upright',

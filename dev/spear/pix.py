@@ -27,10 +27,11 @@ FIX = {'lancer': ('surcoat_green',),          # 검수 r2: 녹색 없음
        'halberdier': ('surcoat_orange', 'tabard', 'shoulders'),   # tabard: 반바지처럼 갈린 주황 → 한 장 서코트 (로드맵 2026-10-17)
        'cavalier': ('surcoat_blue', 'red_up')}
 # v11 3등신 재정리본 (SPEC 키별): 이미 색이 맞아 수리가 적다. 용기병만 은→보라 판금
-FIX.update({'lancer12': ('green_up', 'plate_flat', 'surcoat_green'), 'dragoon12': ('plate_flat', 'purple_split'),   # plate_flat: 검수 r4 점박이 잡음
+FIX.update({'dragonlord13': ('plate_flat', 'purple_split'), 'warlord13': ('red_cape',), 'skyGeneral13': ('plate_flat', 'gold_shield'),   # 3차
+            'lancer12': ('green_up', 'plate_flat', 'surcoat_green'), 'dragoon12': ('plate_flat', 'purple_split'),   # plate_flat: 검수 r4 점박이 잡음
              'lancer11': ('green_up',), 'dragoon11': ('purple_light',), 'halberdier11': (), 'cavalier11': ('surcoat_blue',)})   # 정리본 녹색·파랑이 탁하고 작다
 # 무기를 얹은 뒤 하는 수리: 용기병 노란 눈 (무기 색을 빼야 머리 앞 끝을 찾는다)
-AFTER = {'dragoon': ('eye_after',)}
+AFTER = {'dragoon': ('eye_after',), 'dragonlord': ('gold_debris',)}
 FIST = set()             # v6 정리본은 쥔 손이 보임
 
 
@@ -156,7 +157,7 @@ def post(name, src='pl'):
     if cls in FIST: pol = FX.fist(pol, g)
     import design5 as D5
     wcols = {c for c in __import__('itertools').chain.from_iterable(D5.WCOL.values())}
-    for step in (AFTER.get(cls, ()) if sk not in FIX or sk == cls else ()):     # v11 은 눈이 이미 있음
+    for step in (AFTER.get(cls, ()) if sk not in FIX or sk == cls or cls == 'dragonlord' else ()):     # v11 은 눈이 이미 있음
         pol = getattr(FX, step)(pol, wcols)
     from wpn import fill_holes  # noqa (무기 지운 자리 메우기는 wpnfix 안에서)
     P_ = pol.load(); comps = POL_comps(pol)                 # 떨어진 6칸 미만 조각 지우기 (검수: 자루 옆 '!' 부스러기)

@@ -36,3 +36,17 @@
 | 30 | cavalier | `/animate-with-skeleton-v3` | skel-thrust7+slam8: animate-with-skeleton-v3 192 15f | 4.0 | 54.0 | 963.0 |
 | 31 | cavalier | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 57.0 | 959.0 |
 | 32 | halberdier | `/animate-with-skeleton-v3` | skel-sweep7+chopup8: animate-with-skeleton-v3 192 15f | 4.0 | 61.0 | 950.0 |
+| 33 | halberdier | `/edit-image-pixen` | nowpn12: same chibi heavy halberdier knight in exactly the same pose  | 1.0 | 62.0 | 853.0 |
+| 34 | halberdier | `/edit-image-pixen` | nowpn13: same chibi heavy halberdier knight in exactly the same pose  | 1.0 | 63.0 | 849.0 |
+| 35 | dragonlord | `/image-to-pixelart` | dragonlord13-37-pl: 기준 그림 정리 256→64 | 1.0 | 64.0 | 839.0 |
+| 36 | warlord | `/image-to-pixelart` | warlord13-51-pl: 기준 그림 정리 256→64 | 1.0 | 65.0 | 838.0 |
+| 37 | skyGeneral | `/image-to-pixelart` | skyGeneral13-11-pl: 기준 그림 정리 256→64 | 1.0 | 66.0 | 834.0 |
+| 38 | dragonlord | `/edit-image-pixen` | neutral: same young chibi dragon lord knight king, same face, same co | 1.0 | 67.0 | 826.0 |
+| 39 | warlord | `/edit-image-pixen` | neutral: same young chibi heavy warlord knight, same face, same color | 1.0 | 68.0 | 825.0 |
+| 40 | skyGeneral | `/edit-image-pixen` | neutral: same young chibi sky general knight, same face, same colors  | 1.0 | 69.0 | 820.0 |
+| 41 | dragonlord | `/animate-with-skeleton-v3` | skel-thrust7+slam8: animate-with-skeleton-v3 192 15f | 4.0 | 73.0 | 810.0 |
+| 42 | dragonlord | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 76.0 | 805.0 |
+| 43 | warlord | `/animate-with-skeleton-v3` | skel-sweep7+chopup8: animate-with-skeleton-v3 192 15f | 4.0 | 80.0 | 797.0 |
+| 44 | warlord | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 83.0 | 792.0 |
+| 45 | skyGeneral | `/animate-with-skeleton-v3` | skel-thrust7+slam8: animate-with-skeleton-v3 192 15f | 4.0 | 87.0 | 784.0 |
+| 46 | skyGeneral | `/animate-with-skeleton-v3` | skel-walk: animate-with-skeleton-v3 192 8f | 3.0 | 90.0 | 779.0 |

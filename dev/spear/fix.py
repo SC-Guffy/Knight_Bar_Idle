@@ -234,6 +234,43 @@ def purple_split(im):
     return purple_plate(im, dark + light)
 
 
+def red_cape(im, ramp=((70, 16, 20), (120, 24, 28), (170, 40, 40))):
+    """전쟁군주: 몸 가운데보다 4칸 이상 뒤(왼쪽)·높이 25~92% 의 무채색 칸 = 망토 → 붉은 망토 3단 (로드맵 브리프: 붉은 망토)"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    pts = [(x, y) for y in range(H) for x in range(W) if P[x, y][3] and P[x, y] != OUT]
+    y0 = min(y for _, y in pts); y1 = max(y for _, y in pts); hh = y1 - y0
+    xs = sorted(x for x, _ in pts); xm = xs[len(xs) // 2]
+    sel = [(x, y) for x, y in pts if x < xm - 4 and y0 + hh * 0.25 <= y <= y0 + hh * 0.92 and _hls(P[x, y])[2] < 0.15]
+    if not sel: return im
+    vals = sorted(lum(P[p]) for p in sel)
+    for p in sel:
+        r = sum(1 for v in vals if v < lum(P[p])) / len(vals); P[p] = ramp[min(2, int(r * 3))] + (255,)
+    return im
+
+
+def gold_shield(im, ramp=((150, 110, 40), (210, 170, 70), (236, 236, 242))):
+    """천마장군: 갈색(나무) 칸 → 금테·흰 방패 (어두운 단 = 금, 밝은 단 = 흰색). 로드맵 브리프: 금테 대방패"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    sel = [(x, y) for y in range(H) for x in range(W) if P[x, y][3] and P[x, y] != OUT and 0.03 < _hls(P[x, y])[0] < 0.12 and _hls(P[x, y])[2] > 0.15 and lum(P[x, y]) < 170]   # 채도 0.15: 어두운 갈색 0.24 가 빠졌다
+    if not sel: return im
+    vals = sorted(lum(P[p]) for p in sel)
+    for p in sel:
+        r = sum(1 for v in vals if v < lum(P[p])) / len(vals); P[p] = ramp[min(2, int(r * 3))] + (255,)
+    return im
+
+
+def gold_debris(im, wcols=None):
+    """용황: 아래 25% 에서 몸 가운데보다 6칸 넘게 앞(오른쪽)의 칸 중 코드 무기 색이 아닌 것 = 모델 금창 끝 잔해 → 지우기"""
+    im = im.copy(); P = im.load(); W, H = im.size
+    pts = [(x, y) for y in range(H) for x in range(W) if P[x, y][3]]
+    y0 = min(y for _, y in pts); y1 = max(y for _, y in pts)
+    low = [(x, y) for x, y in pts if y > y0 + (y1 - y0) * 0.75]
+    xs = sorted(x for x, _ in low); xm = xs[len(xs) // 2]
+    for x, y in low:
+        if x > xm + 6 and (wcols is None or P[x, y][:3] not in wcols): P[x, y] = (0, 0, 0, 0)
+    return im
+
+
 def surcoat_green(im):
     """창기사: 가슴~무릎 가운데 무채색 칸을 녹색 서코트 3단으로 — 검수 r2 "녹색 계열이 없음, 회색 판금뿐" """
     gray = lambda c: _hls(c)[2] < 0.22 and 60 < lum(c) < 210

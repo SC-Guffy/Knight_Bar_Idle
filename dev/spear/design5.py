@@ -89,7 +89,8 @@ def mannequin(spec):
 WCOL = {'spear': ((58, 38, 22), (168, 116, 62), (226, 232, 240), (120, 128, 140)),
         'dragon': ((40, 24, 64), (122, 90, 176), (238, 230, 255), (150, 120, 210)),
         'halberd': ((48, 36, 24), (140, 100, 56), (226, 230, 238), (118, 124, 136)),
-        'lance': ((40, 44, 56), (160, 168, 186), (238, 242, 250), (48, 84, 178))}     # 은색 금속 + 파란 손잡이·보호대 (로드맵: 사탕 줄무늬 → 금속)
+        'lance': ((40, 44, 56), (160, 168, 186), (238, 242, 250), (48, 84, 178)),
+        'glance': ((52, 38, 14), (206, 160, 60), (250, 230, 150), (150, 104, 30))}     # 천마장군 금 랜스 (돌격창 강화형)     # 은색 금속 + 파란 손잡이·보호대 (로드맵: 사탕 줄무늬 → 금속)
 
 
 def _poly_line(d, p0, p1, w, col):
@@ -215,6 +216,21 @@ SPEC['dragoon12'] = dict(SPEC['dragoon7'], who=CHIBI + (
     'curve backward from the helmet, a yellow gem on the brow; purple plate armor with lavender scale pattern, a dark indigo cloth cape '
     'with a jagged bat wing hem hanging from the shoulders, steel boots, standing straight, holding a long purple dragon spear. Human '
     'knight, no tail.' + LIGHT))
+
+# 3차 (2026-10-17 로드맵 승인): 2차 합격 디자인을 잇고 3등신·얼굴 보이는 투구 (닫힌 투구는 46px 에서 덩어리)
+SPEC['dragonlord13'] = dict(SPEC['dragoon7'], who=CHIBI + (
+    'A human dragon lord knight king with a visible young human face: a golden dragon crown helmet whose upper jaw juts over the forehead, '
+    'four golden horns sweeping backward, a stern face under it; ornate deep purple and gold plate armor with lavender scale highlights, '
+    'a large double-layered bat wing shaped royal cloth cape in purple and crimson, gold trim, standing proudly, holding a long golden '
+    'dragon spear with a jagged fang blade. Human knight, no tail.' + LIGHT))
+SPEC['warlord13'] = dict(SPEC['halberdier'], who=CHIBI + (
+    'A heavy warlord knight with a visible stern human face under a black iron helmet with two big curved bull horns and a half face mask '
+    'covering only the mouth, huge spiked black iron pauldrons much wider than the hips, blackened copper plate armor, a narrow belted '
+    'waist, a tattered blood red cape, standing upright holding a huge thick axe halberd vertically with a big crescent axe blade. Not fat.' + LIGHT))
+SPEC['skyGeneral13'] = dict(SPEC['cavalier'], wpn='glance', who=CHIBI + (
+    'A heavenly sky general knight with a visible young human face: a white and gold winged helmet with two small white feather wings at '
+    'the sides, a thin golden halo ring floating behind the head, white and gold plate armor, a sky blue cape, a large round gold-rimmed '
+    'white tower shield on the far arm, holding a huge thick conical golden jousting lance pointing forward.' + LIGHT))
 
 
 def gen(classes, seeds=None):

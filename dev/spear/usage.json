@@ -1,5 +1,5 @@
 {
- "used": 61.0,
+ "used": 90.0,
  "calls": [
   {
    "cls": "mq",
@@ -256,6 +256,118 @@
    "used": 4.0,
    "bal": 950.0,
    "n": 15
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "nowpn12: same chibi heavy halberdier knight in exactly the same pose ",
+   "used": 1.0,
+   "bal": 853.0,
+   "n": 2
+  },
+  {
+   "cls": "halberdier",
+   "ep": "/edit-image-pixen",
+   "purpose": "nowpn13: same chibi heavy halberdier knight in exactly the same pose ",
+   "used": 1.0,
+   "bal": 849.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/image-to-pixelart",
+   "purpose": "dragonlord13-37-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 839.0,
+   "n": 1
+  },
+  {
+   "cls": "warlord",
+   "ep": "/image-to-pixelart",
+   "purpose": "warlord13-51-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 838.0,
+   "n": 1
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/image-to-pixelart",
+   "purpose": "skyGeneral13-11-pl: 기준 그림 정리 256→64",
+   "used": 1.0,
+   "bal": 834.0,
+   "n": 1
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi dragon lord knight king, same face, same co",
+   "used": 1.0,
+   "bal": 826.0,
+   "n": 2
+  },
+  {
+   "cls": "warlord",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi heavy warlord knight, same face, same color",
+   "used": 1.0,
+   "bal": 825.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "neutral: same young chibi sky general knight, same face, same colors ",
+   "used": 1.0,
+   "bal": 820.0,
+   "n": 2
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-thrust7+slam8: animate-with-skeleton-v3 192 15f",
+   "used": 4.0,
+   "bal": 810.0,
+   "n": 15
+  },
+  {
+   "cls": "dragonlord",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "used": 3.0,
+   "bal": 805.0,
+   "n": 8
+  },
+  {
+   "cls": "warlord",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sweep7+chopup8: animate-with-skeleton-v3 192 15f",
+   "used": 4.0,
+   "bal": 797.0,
+   "n": 15
+  },
+  {
+   "cls": "warlord",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "used": 3.0,
+   "bal": 792.0,
+   "n": 8
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-thrust7+slam8: animate-with-skeleton-v3 192 15f",
+   "used": 4.0,
+   "bal": 784.0,
+   "n": 15
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk: animate-with-skeleton-v3 192 8f",
+   "used": 3.0,
+   "bal": 779.0,
+   "n": 8
   }
  ]
 }

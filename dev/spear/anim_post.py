@@ -7,7 +7,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..', 'sheets-common'))
 import design5 as D5
 from wpn import line_fit, near_line, fill_holes
-WPN = {'lancer': 'spear', 'dragoon': 'dragon', 'halberdier': 'halberd', 'cavalier': 'lance'}
+WPN = {'lancer': 'spear', 'dragoon': 'dragon', 'halberdier': 'halberd', 'cavalier': 'lance', 'dragonlord': 'dragon', 'warlord': 'halberd', 'skyGeneral': 'glance'}
 
 
 def half(im):
@@ -55,6 +55,8 @@ def swap_weapon(im, kind, front, back, design_ang, region=None, fixed=False):
     손 둘이 보이면 뒷손 → 앞손 직선, 하나면 그 손을 지나는 설계 각도. 그 직선을 따라 모델 창(자루 2.5·창날 4.0)을 지우되 손 칸은 남긴다"""
     P = im.load(); W, H = im.size
     hs = hands(im)
+    # 설계 손 위치 14칸 안의 살색 덩어리만 손 (천마장군: 금 후광·방패테·랜스가 살색으로 걸려 머리 위를 앞손으로 잡았다)
+    hs = [h for h in hs if min(math.dist(h[:2], front), math.dist(h[:2], back)) < 14]
     if len(hs) >= 2:
         (fx, fy, fc), (bx, by, bc) = hs[0], hs[1]; a = math.atan2(fy - by, fx - bx); keep = fc | bc
         if abs(math.degrees(a) - design_ang) > 50: a = math.radians(design_ang)       # 두 손이 엇갈려 보이면 설계 각도
@@ -133,7 +135,7 @@ CW, FX = 128, 36          # 게임 칸: 창 계열 128, 발 x = 36 (build.py CEL
 FXC = {'halberdier': 66, 'warlord': 66}
 RECOLOR = {'dragoon': 'purple_split'}
 REGION = {'halberdier', 'warlord'}
-FIXED = {('dragoon', 'walk')}     # 모델 창 직선을 따르지 않고 설계 각도(세움) — 용기병 걷기는 모델이 중간에 창을 눕혀 루프에서 90도 튀었다
+FIXED = {('dragoon', 'walk'), ('skyGeneral', 'walk')}     # 모델 창 직선을 따르지 않고 설계 각도(세움) — 용기병 걷기는 모델이 중간에 창을 눕혀 루프에서 90도 튀었다
 # 방패: 중립 대기 편집에서 카이트 방패가 사라져(랜서) 합격 정지 그림에서 자른 방패를 뒷손 관절 자리에 몸 뒤로 깐다 (코드 무기와 같은 방식)
 SHIELD = {'cavalier': ('skel/cavalier-shield.png', (-9, -12))}     # (그림, 뒷손에서 그림 왼쪽 위까지 오프셋)        # 몸 영역 밖 모델 무기 모두 지우기 (body_region)     # 정지 그림과 같은 색 입히기 (생성 원본은 회색 판금) — 코드 무기를 얹기 전에
 
