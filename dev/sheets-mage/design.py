@@ -123,8 +123,19 @@ WHO5 = {
                       'a wheel of lightning with spokes floating behind her back, a short navy cape with gold trim, a long mid-tone navy coat with gold buttons and long split coat tails, '
                       'sleeves rolled up showing the forearms, navy stockings and boots, holding a golden scepter staff with a crackling lightning orb.',
 }
+# 뇌제 바퀴 빼기 (2026-10-17 사용자 "계속 진행해" = 추천안: 바퀴는 몸 그림에서 빼고 게임 VFX 로) — 같은 시드로 바퀴 문구만 빼 같은 구도를 노린다
+WHO5['thunderEmperor_nw'] = WHO5['thunderEmperor'].replace('a wheel of lightning with spokes floating behind her back, ', '') + ' Nothing floating behind her.'
 FROM5 = {'archmage': 'pyromancer', 'frostlord': 'cryomancer', 'thunderEmperor': 'electromancer'}
 SEEDS5_I, SEEDS5_T = [301, 313, 327, 339], [341, 353, 367, 379]
+
+
+def gen5nw(seeds=(353, 367, 341, 379)):
+    from comfy import gen as G
+    pr = STYLE2.format(who=WHO5['thunderEmperor_nw']) + STYLE3_ADD + STYLE4_ADD
+    for sd in seeds:
+        out = os.path.join(RAW, f'thunderEmperor_v5n-{sd}.png')
+        if os.path.exists(out): continue
+        ims, dt = G('zimg', pr, seed=sd); ims[0].save(out); print('thunderEmperor v5n', sd, f'{dt:.1f}s', flush=True)
 
 
 def gen5(classes, n=None):
@@ -341,7 +352,8 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'gen2': gen2(sys.argv[2:] or list(WHO2))
     elif sys.argv[1] == 'gen3': gen3(sys.argv[2:] or list(WHO3))
     elif sys.argv[1] == 'gen4': gen4(sys.argv[2:] or list(WHO4))
-    elif sys.argv[1] == 'gen5': gen5(sys.argv[2:] or list(WHO5))
+    elif sys.argv[1] == 'gen5': gen5(sys.argv[2:] or [k for k in WHO5 if '_' not in k])
+    elif sys.argv[1] == 'gen5nw': gen5nw()
     elif sys.argv[1] == 'sil': silhouette_init().save(os.path.join(RAW, '_init-sil.png'))
     elif sys.argv[1] == 'shrink': shrink_all()
     elif sys.argv[1] == 'shrink2': shrink2_all(ncol=int(sys.argv[2]) if len(sys.argv) > 2 else 14)

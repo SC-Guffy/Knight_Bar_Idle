@@ -1,0 +1,25 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 3,
+  "pixel": 3,
+  "motion": 2,
+  "rules": 4
+ },
+ "defects": [
+  {
+   "frame": "7-14",
+   "where": "전체",
+   "what": "걷기가 같은 포즈의 1px 보브뿐, 걷는 것으로 안 읽힘"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "걷기 다리 디딤·기울기는 후처리로 불가, 재생성 필요",
+  "tool": "PixelLab 다시 생성(걷기 7~14만)"
+ },
+ "summary": "7~14 걷기: 1px 상하 보브만 있고 다리 디딤·몸통 기울기 없음. 1배에서 미끄러지듯 떠다니는 모습"
+}

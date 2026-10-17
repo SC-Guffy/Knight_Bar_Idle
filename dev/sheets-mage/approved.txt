@@ -20,3 +20,16 @@ cryomancer/skelB
 electromancer/skelA
 electromancer/skelB
 # 로드맵 승인 2026-10-17: 뇌전술사 A·B 재생성 각 1회 (usage 최대 8, 재시도 0) — 같은 이름 재사용, 1회차는 work/electromancer/run1
+# 로드맵 승인 2026-10-17: 3차 정리 image-to-pixelart 직업당 1회 (최대 3, 재시도 0)
+archmage/ref64
+frostlord/ref64
+thunderEmperor/ref64
+# 로드맵 승인 2026-10-17: 뇌제 바퀴 뺀 판 정리 1회 (안 B 미사용분, 누계 55)
+thunderEmperor/ref64
+# 로드맵 승인 2026-10-17: 3차 관절 애니 3직업 x 2회(15f), usage 최대 24, 재시도 0
+archmage/skelA
+archmage/skelB
+frostlord/skelA
+frostlord/skelB
+thunderEmperor/skelA
+thunderEmperor/skelB

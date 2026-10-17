@@ -1,0 +1,30 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 3,
+  "rules": 4
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "지팡이 위",
+   "what": "작은 흰 깃발 잔재"
+  },
+  {
+   "frame": 9,
+   "where": "머리",
+   "what": "얼굴 돌아감"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "pass",
+ "fix": {
+  "how": "",
+  "tool": ""
+ },
+ "summary": "대체로 양호"
+}

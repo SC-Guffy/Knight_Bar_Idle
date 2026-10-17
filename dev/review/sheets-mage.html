@@ -39,6 +39,25 @@
   </ul>
 </div>
 
+<h2>▣5 3차 3종 — 새 디자인 + 관절 애니 (2026-10-17, PixelLab usage 28 · 계열 합계 79) <span class="wait">· 평타 합격 · 걷기 미달 (SHEET_ON 꺼 둠)</span></h2>
+<div class="box">
+  <ul>
+    <li>안 B(2차 시트에 소품 붙이기)는 빙결의 군주 시험 3.43 — 실루엣 차이가 왕관뿐(색깔놀이) → 안 A. 2차 그림 img2img 시안 12장도 모두 2차 복제(rules 1) → 텍스트 생성.</li>
+    <li>기준 그림: 대마도사 v5t-379 · 빙결의 군주 v5t-353 · 뇌제 v5n-353(같은 시드로 번개 바퀴만 뺌 — 바퀴·불꽃 고리는 VFX) → PixelLab 정리본(clean). 비교 <a href="sheets-mage/design5/lineup.png">lineup.png</a></li>
+    <li>관절 애니: 2차와 같은 MOVES_B · 빈손 첫 프레임 · 게임 지팡이 1.5배 덧그림. 수리(무료): 빙결의 군주 회색 철퇴 잔재 지우기(<code>skelpost.drop_grey_far</code>), 뒤돈 프레임 이웃 교체·걷기 출렁임(<code>fix3.py</code>).</li>
+  </ul>
+  <table><tr><th>직업</th><th>평타 A+B</th><th>시전+걷기</th></tr>
+    <tr><td>대마도사</td><td class="ok">3.57</td><td class="no">3.43 — 걷기 7~14 제자리</td></tr>
+    <tr><td>빙결의 군주</td><td class="ok">3.57 (수리 후)</td><td class="no">2.86 — 걷기 제자리 · 시전 0~1 정지</td></tr>
+    <tr><td>뇌제</td><td class="ok">3.57 (수리 후)</td><td class="no">3.14 — 걷기 제자리 · 시전 0~2 정지</td></tr></table>
+  <p>시험: <a href="../skills.html?sheetsOn=archmage,frostlord,thunderEmperor">dev/skills.html?sheetsOn=archmage,frostlord,thunderEmperor</a> (스킬 48시전 예외 0)</p>
+  <div class="grid">
+    <div class="card"><img src="sheets-mage/archmage.gif">대마도사</div>
+    <div class="card"><img src="sheets-mage/frostlord.gif">빙결의 군주</div>
+    <div class="card"><img src="sheets-mage/thunderEmperor.gif">뇌제</div>
+  </div>
+</div>
+
 <h2>▣4 관절 애니 시트 — 2차 4종 · 도트 검수 8줄 모두 합격 (2026-10-17, PixelLab usage 40 · 계열 합계 51) <span class="wait">· 사용자 확인 대기 (SHEET_ON 꺼 둠)</span></h2>
 <div class="box">
   <b>무엇</b>: ▣3 기준 그림(지팡이를 지운 빈손)을 첫 프레임으로, 관절 15프레임을 지정해 PixelLab <code>animate-with-skeleton-v3</code> 로 몸 전체를 움직였다 (직업당 2회: 평타A 7·평타B 7·기준 1 / 시전 7·걷기 8).

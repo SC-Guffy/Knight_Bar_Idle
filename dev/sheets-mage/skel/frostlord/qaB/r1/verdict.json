@@ -1,0 +1,30 @@
+{
+ "scores": {
+  "intent": 3,
+  "read": 3,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 2,
+  "rules": 3
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "머리",
+   "what": "뒤돌아 얼굴 안 보임"
+  },
+  {
+   "frame": 7,
+   "where": "전체",
+   "what": "걷기 거의 정지"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "걷기 재생성",
+  "tool": "PixelLab 다시 생성"
+ },
+ "summary": "걷기 정지, 뒷모습"
+}

@@ -1,0 +1,25 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 3,
+  "pixel": 3,
+  "motion": 3,
+  "rules": 4
+ },
+ "defects": [
+  {
+   "frame": 9,
+   "where": "머리",
+   "what": "내려치기 전 프레임에서 얼굴이 돌아가 보임"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "pass",
+ "fix": {
+  "how": "",
+  "tool": ""
+ },
+ "summary": "찌르기/내려치기 읽힘 양호"
+}

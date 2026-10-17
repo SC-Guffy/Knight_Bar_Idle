@@ -202,3 +202,23 @@ def model_staff(im, body, g0, deg0):
     else: gx, gy = g0
     if math.cos(th - math.radians(deg0)) < 0: ux, uy = -ux, -uy        # 축은 모델 것, 머리 쪽은 설계 각도에 가까운 쪽
     return (gx, gy), math.degrees(math.atan2(uy, ux))
+
+
+def drop_grey_far(body, env, far=5, n=8, frac=0.7):
+    """뼈대 둘레에서 far 칸 넘게 떨어진 무채색 중간 밝기 칸의 덩어리(n 칸 이상, frac 이상 회색) = 모델이 그린 굵은 무기(철퇴·자루) → 지운다.
+    흰 머리·망토(밝음)와 외곽선(어두움)은 건드리지 않는다 (빙결의 군주 2026-10-17)"""
+    W, H = body.size; B = body.load()
+    ex = set()
+    for (x, y) in env:
+        for i in range(-far, far + 1):
+            for j in range(-far, far + 1):
+                if i * i + j * j <= far * far: ex.add((x + i, y + j))
+    grey = lambda c: c[3] and max(c[:3]) - min(c[:3]) < 40 and 55 < sum(c[:3]) / 3 < 175
+    cut = Image.new('RGBA', body.size); C = cut.load()
+    for y in range(H):
+        for x in range(W):
+            if B[x, y][3] and (x, y) not in ex and grey(B[x, y]): C[x, y] = B[x, y]
+    for c in comps(cut):
+        if len(c) >= n:
+            for q in c: B[q] = (0, 0, 0, 0)
+    return body

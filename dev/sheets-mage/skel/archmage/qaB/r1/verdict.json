@@ -1,0 +1,25 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 3,
+  "pixel": 3,
+  "motion": 2,
+  "rules": 4
+ },
+ "defects": [
+  {
+   "frame": 7,
+   "where": "전체",
+   "what": "7~14 걷기가 거의 같은 포즈, 디딤·기울기 안 보임"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "걷기 재생성 필요",
+  "tool": "PixelLab 다시 생성"
+ },
+ "summary": "걷기 정지에 가까움"
+}

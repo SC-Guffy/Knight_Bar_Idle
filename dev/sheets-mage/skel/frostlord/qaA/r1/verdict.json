@@ -1,0 +1,35 @@
+{
+ "scores": {
+  "intent": 3,
+  "read": 3,
+  "clean": 2,
+  "value": 3,
+  "pixel": 3,
+  "motion": 3,
+  "rules": 3
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "지팡이 머리",
+   "what": "모델 철퇴 잔재 어두운 덩어리"
+  },
+  {
+   "frame": 8,
+   "where": "지팡이",
+   "what": "회색 덩어리 잔재"
+  },
+  {
+   "frame": 9,
+   "where": "머리",
+   "what": "뒤돌아 얼굴 안 보임"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "fix",
+ "fix": {
+  "how": "잔재 마스크 제거",
+  "tool": "후처리 스크립트"
+ },
+ "summary": "모델 지팡이 잔재"
+}

@@ -1,0 +1,30 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 3,
+  "clean": 3,
+  "value": 3,
+  "pixel": 3,
+  "motion": 2,
+  "rules": 4
+ },
+ "defects": [
+  {
+   "frame": "7-14",
+   "where": "전체",
+   "what": "걷기가 걷기로 안 읽힘"
+  },
+  {
+   "frame": "0-2",
+   "where": "전체",
+   "what": "세 프레임 거의 동일"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "regen",
+ "fix": {
+  "how": "걷기 다리 디딤·기울기는 후처리로 불가, 재생성 필요",
+  "tool": "PixelLab 다시 생성"
+ },
+ "summary": "걷기는 보브뿐으로 미끄러짐, 0~2 정지 포즈"
+}

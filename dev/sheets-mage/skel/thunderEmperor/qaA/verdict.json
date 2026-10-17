@@ -1,0 +1,25 @@
+{
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 3,
+  "pixel": 3,
+  "motion": 3,
+  "rules": 4
+ },
+ "defects": [
+  {
+   "frame": 1,
+   "where": "몸",
+   "what": "뒤로 젖힌 자세 어색(경미)"
+  }
+ ],
+ "flags_review": "",
+ "verdict": "pass",
+ "fix": {
+  "how": "",
+  "tool": ""
+ },
+ "summary": "평타 2종 양호, 외형 구분됨"
+}

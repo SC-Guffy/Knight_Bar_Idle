@@ -9,7 +9,9 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(ROOT, 'dev', 'sheets-common')); sys.path.insert(0, HERE)
 PL = os.path.join(HERE, 'design', 'pl')
-PICK = {'mage': 'mage_v2s-139', 'pyromancer': 'pyromancer_v3s-173', 'cryomancer': 'cryomancer_v4t-257', 'electromancer': 'electromancer_v4t-227'}
+PICK = {'mage': 'mage_v2s-139', 'pyromancer': 'pyromancer_v3s-173', 'cryomancer': 'cryomancer_v4t-257', 'electromancer': 'electromancer_v4t-227',
+        # 3차 (2026-10-17 안 A 디자인 합격 대표, 사용자 "계속 진행해")
+        'archmage': 'archmage_v5t-379', 'frostlord': 'frostlord_v5t-353', 'thunderEmperor': 'thunderEmperor_v5n-353'}   # 바퀴 뺀 같은 시드판 (바퀴는 VFX)
 
 
 def prep(cls, h=184, seed=7, strength=200):
@@ -26,11 +28,11 @@ from to_pixel import strip_ground          # 공용으로 옮김 (dev/sheets-com
 INTENT = None
 
 
-def post():
+def post(classes=None):
     """정리본·손질본에서 발밑 판을 지우고 검수 시트(qa_char) — 둘 다 비평에 넣어 높은 쪽을 쓴다 (공용 polish.py 주의 문구)"""
     import subprocess
     import qa_design as QD
-    for c in PICK:
+    for c in (classes or PICK):
         # 순서: 정리본에서 발밑 판을 먼저 지우고 → 그 정리본으로 손질 (손질 뒤에 지우면 판 둘레 외곽선 때문에 안 걸린다)
         f = os.path.join(PL, f'clean-{c}.png'); strip_ground(Image.open(f)).save(f)
         subprocess.run([sys.executable, '-I', '-B', os.path.join(ROOT, 'dev', 'sheets-common', 'polish.py'), f, os.path.join(PL, f'polish-{c}.png')],
@@ -45,6 +47,6 @@ def post():
 
 
 if __name__ == '__main__':
-    if sys.argv[1] == 'post': post(); sys.exit(0)
+    if sys.argv[1] == 'post': post(sys.argv[2:] or None); sys.exit(0)
     if sys.argv[1] == 'prep':
         for c in (sys.argv[2:] or PICK): prep(c)

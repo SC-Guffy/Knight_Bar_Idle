@@ -18,6 +18,10 @@ DESC = {
     'mage': 'small chibi young woman apprentice wizard, 3 heads tall, big blue pointed hat bent back, long brown hair, blue tunic dress with belt, boots, right hand empty',
     'cryomancer': 'small chibi young woman ice mage, 3 heads tall, round light blue hood, white hair, white fur collar, blue cape, long white gloves, short blue skirt, white boots, right hand empty',
     'electromancer': 'small chibi young woman storm mage, 3 heads tall, spiky blonde hair, navy circlet with two light blue lightning horns, navy coat dress with gold buttons, navy stockings, boots, right hand empty, side view facing right the whole time, face always visible, never turns around',   # 2회차: 1회차가 몸을 뒤로 돌림 (로드맵 승인 2026-10-17)
+    # 3차 (2026-10-17 안 A) — 뇌전술사 교훈: 끝까지 오른쪽 옆모습·얼굴 보임을 처음부터 넣는다
+    'archmage': 'small chibi young woman archmage of fire, 3 heads tall, very long fiery orange-red ponytail streaming behind, small golden crown, broad golden pauldrons, long dark crimson robe open at the front, boots, right hand empty, side view facing right the whole time, face always visible, never turns around',
+    'frostlord': 'small chibi young woman frost queen, 3 heads tall, spiky ice crystal crown, long straight white hair, long white cape behind her, ice-blue tunic, white gloves, ice-blue trousers, white fur boots, right hand empty, side view facing right the whole time, face always visible, never turns around',
+    'thunderEmperor': 'small chibi young woman thunder empress, 3 heads tall, golden crown with two large golden horns, long white hair, navy cape with gold trim, navy coat with gold buttons, navy boots, right hand empty, side view facing right the whole time, face always visible, never turns around',
 }
 ACTION = {'A': 'magic staff attacks: thrust forward, then raise overhead and slam down', 'B': 'casting a spell with both hands then walking'}
 
@@ -28,10 +32,14 @@ MANUAL = {
     'cryomancer': lambda x, y, c: x >= 26,                                   # 오른쪽 얼음 지팡이 (망토 오른쪽 외곽선 = x 25)
     'mage': lambda x, y, c: x >= 22 and 19 <= y <= 38 and not _skin(c),     # 구슬 지팡이 (모자 챙 y 9~12 는 남김, 손 살색은 남김)
     'electromancer': lambda x, y, c: (x >= 22 and not _skin(c)) or (x >= 19 and y >= 37),   # 구슬 + 가는 자루 (손 살색 남김, 발치 자루 끝)
+    # 3차 (2026-10-17): 지팡이가 모두 오른쪽 끝 세로줄 — 몸 오른쪽 끝(손) 바로 바깥부터
+    'archmage': lambda x, y, c: x >= 31 and not _skin(c),
+    'frostlord': lambda x, y, c: x >= 30,
+    'thunderEmperor': lambda x, y, c: x >= 30 and not _skin(c),
 }
 
 
-CAP_STAFF = {'mage': 1.5, 'electromancer': 1.5}      # 견습 지팡이 26칸 → 39칸 (기준 그림 쪽은 구슬 끝만 보임)
+CAP_STAFF = {'mage': 1.5, 'electromancer': 1.5, 'archmage': 1.5, 'frostlord': 1.5, 'thunderEmperor': 1.5}   # 3차도 게임 지팡이 (기준 그림 지팡이는 가늘고 몸에 붙음)      # 견습 지팡이 26칸 → 39칸 (기준 그림 쪽은 구슬 끝만 보임)
 
 
 def staff_split_cls(cls, im):
@@ -137,6 +145,7 @@ def prep(cls, part, seed=71):
 DARK_FILL = {'cryomancer': (24, 52, 112)}     # 망토 안쪽 검은 덩어리 → 직업색 어두운 단계 (비평 2026-10-17)
 
 
+DROP_GREY = {'frostlord'}       # 모델이 회색 철퇴 지팡이를 굵게 그림 (열기로 안 떨어짐)
 BASE_FROM_FIRST = {'electromancer'}     # 평타 14번(=0번) 기준 자세를 기준 그림으로 (2회차에서 모델이 14번을 뒤돌린 모양으로 그림)
 
 
@@ -174,6 +183,7 @@ def post(cls, part):
         body = snap(keep_big(body_of(pal_filter(im, pal, 40), env, KP), 0.05), pal)
         if cls in DARK_FILL: body = dark_fill(body, DARK_FILL[cls])
         body = drop_fire_blobs(body, env)
+        if cls in DROP_GREY: body = drop_grey_far(body, env)
         g = KP['RIGHT ARM']; a = math.radians(meta['staff_deg'][i])        # 손 = 설계 관절 손 점 (모델은 관절을 따른다)
         g = snap_hand(body, g, KP['RIGHT ELBOW'])                          # 모델 손이 설계보다 짧거나 어긋나면 실제 팔 끝 칸으로
         ms = model_staff(im, body, g, meta['staff_deg'][i])

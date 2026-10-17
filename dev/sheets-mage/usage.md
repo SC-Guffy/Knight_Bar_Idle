@@ -23,3 +23,13 @@
 | 17 | electromancer | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 43.0 | 1055.0 |
 | 18 | electromancer | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 47.0 | 1024.0 |
 | 19 | electromancer | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 51.0 | 1017.0 |
+| 20 | archmage | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 | 52.0 | 955.0 |
+| 21 | frostlord | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 | 53.0 | 954.0 |
+| 22 | thunderEmperor | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 | 54.0 | 949.0 |
+| 23 | thunderEmperor | `/image-to-pixelart` | ref64: /image-to-pixelart | 1.0 | 55.0 | 945.0 |
+| 24 | archmage | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 59.0 | 930.0 |
+| 25 | archmage | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 63.0 | 912.0 |
+| 26 | frostlord | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 67.0 | 895.0 |
+| 27 | frostlord | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 71.0 | 888.0 |
+| 28 | thunderEmperor | `/animate-with-skeleton-v3` | skelA: /animate-with-skeleton-v3 | 4.0 | 75.0 | 881.0 |
+| 29 | thunderEmperor | `/animate-with-skeleton-v3` | skelB: /animate-with-skeleton-v3 | 4.0 | 79.0 | 877.0 |
