@@ -1,6 +1,6 @@
 # 기사단 (시즌7 — 여러 캐릭터 동시 육성 + Google 로그인)
 
-- 상태: 1·3·4단계 사용자 확인 완료 · 2단계 구현됨(진짜 Google 은 사용자가 나중에) · **5단계(기사 삭제·이름 바꾸기) 구현됨 — 사용자 확인 대기** — 2026-10-18. Postgres·실제 앱은 미확인
+- 상태: 1·3·4단계 사용자 확인 완료 · 2단계 구현됨 + 진짜 Google 로그인 확인(10-18) · 5단계 구현됨(사용자 확인 대기) — 2026-10-18. Postgres·실제 앱은 미확인
 - 검토 페이지: [dev/review/guild.html](../../dev/review/guild.html)
 - 관련 코드(예정): src/net.js (계정 → 기사단 토큰·캐릭터 key), src/core.js (`S`·`freshState`·`simulate`), src/ui.js (메인 루프 `frame`·HUD), src/world.js (화면·실시간 전투 상태), server/index.js·server/store.js (계정 = 캐릭터 행 유지 + `guilds` 테이블), main.js·preload.js (안 바꾸는 게 목표)
 - 관련 스펙: [roadmap.md](roadmap.md) (시즌7), [currency-roles.md](currency-roles.md), [raid-difficulty.md](raid-difficulty.md)
@@ -187,7 +187,7 @@
 
 ### 2단계 수용 기준
 - [x] 로컬 서버(`GOOGLE_FAKE=1`): 처음 → Google(가짜) → 기사단 이름 → 첫 기사 → 게임 → 회관에서 둘째 기사. 저장소가 다른 브라우저 창에서 같은 sub 로 로그인하면 같은 기사단·기사 2명·슬롯
-- [ ] 진짜 Google: 사용자가 만든 클라이언트 ID 로 localhost 에서 로그인 버튼 → 기사단까지 (사용자 콘솔 작업 뒤)
+- [x] 진짜 Google: 사용자가 만든 클라이언트 ID 로 localhost:8791 패널에서 로그인 → 서버 tokeninfo 검증(aud 일치) → 기사단 이름 화면 (사용자 확인 10-18)
 - [x] 연결 코드: 창 B(앱 역할) "기기 연결 코드로 시작" → 6자리 → 창 A 회관 "기기 연결" 에 입력 → B 가 기사단·기사들로 들어가고 A 는 "이 기기에서 계속" 안내
 - [x] 두 기기: B 로그인 → A 멈추고 [다시 로그인] 안내 → A 다시 로그인 → B 멈춤. 연결 코드 뒤 A [이 기기에서 계속] → 앱(B) 멈춤
 - [x] 기사단 토큰 + `X-Char` 로 세이브·결투·레이드 대기방이 지금처럼 된다. 다른 기사단 기사 이름을 `X-Char` 로 넣으면 401 (`dev/guild-server-test.mjs`)
@@ -203,6 +203,12 @@
 - 서버 기사단에선 "기사단에서 빼기" 를 숨긴다(서버에 빼기 API 없음 — 기사 삭제와 함께 시즌7 전에). 1단계의 "로그인 없이 이 기기만" 모드는 없어지고, 기사단 모드는 로그인 화면(손님 포함)부터 시작한다.
 - 새 기사 만들기는 지금 계정과 같은 IP 제한(한 시간 5명)을 같이 쓴다.
 - **확인 못 한 것**: Postgres 저장소(로컬에 Postgres 가 없어 파일 저장소로만 확인 — 같은 쿼리 모양이지만 배포 전 Render 에서 한 번 확인 필요), 진짜 Google 로그인(클라이언트 ID 대기), 실제 Electron 앱.
+
+### Google 클라이언트 (10-18 사용자가 만듦)
+- 클라이언트 ID `155892908637-9qkfu1dksnvmc42jhpoakp1kepou28d0.apps.googleusercontent.com` (공개값) — `src/guild.js` `GOOGLE_CLIENT_ID` 에 넣음. Google Cloud 프로젝트는 사용자 계정의 기존 프로젝트, 승인된 JavaScript 원본 `https://sc-guffy.github.io` · `http://localhost:8791`.
+- OAuth 동의 화면은 **테스트 모드**(테스트 사용자로 넣은 계정만 로그인됨) → 시즌7 오픈 전에 사용자가 **프로덕션으로 게시**해야 모두가 로그인할 수 있다.
+- 배포 서버(Render) 환경 변수 `GOOGLE_CLIENT_ID` 에 같은 값을 넣어야 서버가 로그인을 받는다 — main 에 합칠 때 사용자에게 안내. 로컬 확인은 `cd server && GOOGLE_CLIENT_ID=<위 값> PORT=3792 node index.js` → `index.html?server=http://localhost:3792&guild=1`.
+- 다른 로컬 포트에서 시험하려면 그 주소를 승인된 원본에 더해야 한다.
 
 ### 사용자가 할 일 (Google Cloud)
 - Google Cloud 콘솔에서 OAuth 클라이언트 ID(웹 애플리케이션) 만들기. 승인된 JavaScript 원본: `https://sc-guffy.github.io`, `http://localhost:8791`(테스트). 클라이언트 ID(공개값)를 알려 주면 코드에 넣고, Render 서버 환경 변수 `GOOGLE_CLIENT_ID` 에도 넣는다. OAuth 동의 화면은 "외부 · 테스트 사용자" 로 시작해도 된다(시즌7 오픈 전에 "프로덕션" 으로).
@@ -344,7 +350,7 @@
 - **기사단 이름 바꾸기 — 일주일에 한 번.**
 
 ## 수용 기준
-- [ ] 처음 접속: Google 로그인 → 기사단 이름 → 첫 기사 닉네임 → 게임 시작 (로컬 서버 + 테스트용 Google 클라이언트) — 가짜 Google 로는 통과(2단계), 진짜 Google 은 클라이언트 ID 대기
+- [x] 처음 접속: Google 로그인 → 기사단 이름 → 첫 기사 닉네임 → 게임 시작 — 가짜 Google 로 끝까지(2단계), 진짜 Google 로 기사단 이름 화면까지 사용자 확인(10-18)
 - [x] 다른 브라우저에서 같은 Google 계정으로 로그인하면 같은 기사단·기사들(2단계)·마을과 재화(3단계)가 보인다 — 가짜 Google 로 확인
 - [x] Electron 연결 코드: 코드 입력 → 앱이 재설치 없이 기사단으로 들어간다 (웹 두 창으로 흉내, 2단계)
 - [x] 슬롯 클릭 → 0.2초 안에 화면이 그 기사로 바뀌고 새로 고침이 없다 (시제품: 0 ms)
@@ -398,11 +404,13 @@
 
 - 2026-10-18: 사용자 5단계 승인(바로 삭제·이름 바로 재사용·기사단 이름 주 1회) → **5단계 구현**. 서버 점검(5단계 15개 추가) · 브라우저 회관 화면 점검 13개 통과. 서버 `ACCOUNT_PER_HOUR` 환경 변수(로컬 점검용, 기본 5). 점검용 Chrome 은 headless 로(보이는 창은 연결이 자주 끊김).
 
+- 2026-10-18: 사용자가 Google OAuth 클라이언트를 만들어 ID 를 줌 → `GOOGLE_CLIENT_ID` 에 넣고 로컬 서버(진짜 Google 검증)로 패널에서 로그인 → 기사단 이름 화면까지 사용자 확인.
+
 ## 남은 일 / 미정
 - ~~인계 (2026-10-16 퇴근)~~ → 10-16 집 PC 에서 처리함(프레임 측정·순서 승인). 원문: 스펙 초안·검토 페이지(`dev/review/guild.html`)·시제품(`dev/guild-spike.html` + `src/core.js` `GUILD_HOST`·`src/net.js` `GUILD_CHAR`·`src/ui.js` `frame(now, shown)`/`guildStep`)은 main 에 커밋·푸시됨(452489e, 9dd7ea8). 사용법은 [dev-testing.md](../dev-testing.md) "기사단 시제품". 사용자에게 시제품 결과를 아직 보고·확인받지 않았다 → 다음 세션은 시제품을 띄워 보여 주고(실제 화면 rAF 로 5명 프레임 측정), 본 구현 순서안(아래) 승인을 받는다. 기사단 효과 수치는 시작안이라 확정 아님.
 - 기사단 효과 수치·회관 슬롯 Lv (사용자 10-16: 시작안 그대로 만들고 마지막 단계에서 봇으로 확정해 다시 보여 준다) — 진행 봇(`dev/progress-bot.js`, `dev/currency-bot.js`)을 기사 여러 명 모드로 늘려서 확정.
 - 1단계 남은 확인: Electron 에서 iframe → 바깥 `bar` 전달 (실제 화면 프레임 측정은 10-16 집 PC 에서 끝남).
-- **다음 할 일**: 1~5단계 끝(5단계는 사용자 확인 대기). 남은 것 — Google OAuth 클라이언트 ID(사용자, 원할 때) · Render Postgres 에서 기사단 표 확인 · 실제 앱 확인(사용자) · main 에 합치기(`GAME_VERSION` 올리기, 플래그는 꺼진 채) · 시즌7 오픈 때 플래그 기본값 켜기 · 암살자 계열 줄(직업이 생길 때). 그리고 사용자가 원할 때 Google OAuth 클라이언트 ID 를 받아 `src/guild.js` `GOOGLE_CLIENT_ID`·Render `GOOGLE_CLIENT_ID` 에 넣고 진짜 로그인 확인 → Render(Postgres)에서 기사단 표 확인 → 3단계(공용 상태 서버 저장). 1단계는 사용자 확인 완료 — main 에 합칠 때 `GAME_VERSION` 올리기(플래그 꺼져 있어 플레이어 영향 없음, 합치는 건 로드맵/사용자 판단).
+- **다음 할 일**: 1~5단계 끝(5단계는 사용자 확인 대기). 남은 것 — OAuth 동의 화면 프로덕션 게시(사용자, 시즌7 전) · Render `GOOGLE_CLIENT_ID` 환경 변수(사용자, main 합칠 때) · Render Postgres 에서 기사단 표 확인 · 실제 앱 확인(사용자) · main 에 합치기(`GAME_VERSION` 올리기, 플래그는 꺼진 채) · 시즌7 오픈 때 플래그 기본값 켜기 · 암살자 계열 줄(직업이 생길 때). 그리고 사용자가 원할 때 Google OAuth 클라이언트 ID 를 받아 `src/guild.js` `GOOGLE_CLIENT_ID`·Render `GOOGLE_CLIENT_ID` 에 넣고 진짜 로그인 확인 → Render(Postgres)에서 기사단 표 확인 → 3단계(공용 상태 서버 저장). 1단계는 사용자 확인 완료 — main 에 합칠 때 `GAME_VERSION` 올리기(플래그 꺼져 있어 플레이어 영향 없음, 합치는 건 로드맵/사용자 판단).
 - 본 구현 순서 (**사용자 승인 10-16: 화면 먼저**): 1단계 이 기기 안 기사단(슬롯 칩·알림 모으기·회관·공용 마을, 위 절) → 2단계 서버 기사단(`guilds` 테이블·토큰·`X-Char`)·Google 로그인·연결 코드 → 3단계 공용 상태 서버 저장(다른 기기에서도 같은 마을) → 4단계 기사단 효과 수치(진행 봇).
 - Google Cloud OAuth 클라이언트 만들기 — 사용자 계정으로 해야 함 (콘솔 작업은 사용자가 직접, 순서는 안내).
 - 기사 삭제·이름 바꾸기 → 5단계 절. 슬롯에서 뺀 기사의 입장권 충전 → 1단계에서 정함.

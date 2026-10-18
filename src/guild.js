@@ -22,7 +22,7 @@ const PASS = (() => { const q = new URLSearchParams(location.search); q.delete('
 // ───────────────────────── 서버 기사단 (2단계) ─────────────────────────
 // 기사단 토큰(localStorage knight-bar-guild-token)이 있으면 서버 기사단: 이름·기사·슬롯은 서버가 기준, 기사들은 기사단 토큰 + X-Char 로 움직인다 (src/net.js)
 // Google 클라이언트 ID 는 공개값이다 (Google Cloud 콘솔 → OAuth 클라이언트 ID, 웹 애플리케이션). 비어 있으면 Google 버튼 대신 "준비 중"
-const GOOGLE_CLIENT_ID = '';
+const GOOGLE_CLIENT_ID = '155892908637-9qkfu1dksnvmc42jhpoakp1kepou28d0.apps.googleusercontent.com';
 const QS = new URLSearchParams(location.search);
 const SERVER = (QS.get('server') || 'https://knight-bar.onrender.com').replace(/\/+$/, '');
 const FAKE_GOOGLE = QS.get('fakegoogle') === '1';
