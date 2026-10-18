@@ -145,6 +145,7 @@ function drawHeroSheet(g, id, x, gy, pose) {
   const { anim, f } = sf, a = meta.anims[anim];
   const src = pose.tint ? sheetTinted(s, pose.tint) : s.img;
   const W = meta.w || 64, H = meta.h || 64, ft = meta.foot || [32, 58];
+  if (!pose.tint && SHEET_BACK_AURA[id]) SHEET_BACK_AURA[id](g, meta, anim, f, ft, D);   // 몸 뒤 상시 장식 (대마도사 불꽃 고리 · 뇌제 번개 바퀴)
   g.drawImage(src, f * W, a.row * H, W, H, -ft[0] * D, -ft[1] * D, W * D, H * D);
   if (pose.flash) {
     // 피격 번쩍임: 흰 실루엣을 반투명으로 덮는다 (짧게 — 검흔·명중 그림이 묻히지 않게)
@@ -154,6 +155,33 @@ function drawHeroSheet(g, id, x, gy, pose) {
   if (!pose.tint) sheetStaffGlow(g, id, meta, anim, f, pose.pull || 0);
   g.restore();
 }
+// 몸 뒤 상시 장식 (docs/specs/legacy-class-sheets.md "남은 흠": 시트에서 뺀 소품을 VFX 로). 시트 좌표(발 기준, 오른쪽을 봄)에서 그린다 — 몸보다 먼저.
+//  그림은 지금 VFX 시트를 배치만 한다 (유료 생성 0): 대마도사 = P7 화염탄 10개를 머리 뒤 고리로 천천히 돌림 · 뇌제 = 등 뒤 바퀴 — P12 금빛 번개 마디 8개 테 + P11 가는 번개 살 4개, 가운데 H29 왕관 방전
+const SHEET_BACK_AURA = {
+  archmage(g, meta, anim, f, ft, D) {
+    const P = (meta.pts[anim] || [])[f];
+    if (!P || typeof vfxDraw !== 'function') return;
+    const cx = (P[2] - ft[0] - 3) * D, cy = (P[3] - ft[1] - 1) * D, R = 9 * D, n = 10, t = clock * 0.6;
+    for (let i = 0; i < n; i++) {
+      const a = t + (i / n) * Math.PI * 2;
+      vfxDraw(g, 'p7', '#ff8a3a', Math.floor(clock * 10 + i) % 3, cx + Math.cos(a) * R, cy + Math.sin(a) * R * 0.9, { scale: 2 / 3, alpha: 0.85, rot: a + Math.PI / 2 });
+    }
+  },
+  thunderEmperor(g, meta, anim, f, ft, D) {
+    const P = (meta.pts[anim] || [])[f];
+    if (!P || typeof vfxDraw !== 'function') return;
+    const cx = (P[2] - ft[0] - 6) * D, cy = (P[3] - ft[1] + 6) * D, R = 11 * D, t = clock * 0.8;
+    for (let i = 0; i < 8; i++) {   // 테: 원을 따라 금빛 번개 마디
+      const a = t + (i / 8) * Math.PI * 2;
+      vfxDraw(g, 'p12', '#ffe27a', Math.floor(clock * 12 + i) % 3, cx + Math.cos(a) * R, cy + Math.sin(a) * R, { scale: 2 / 3, rot: a + Math.PI / 2, alpha: 0.8 });
+    }
+    for (let i = 0; i < 4; i++) {   // 살: 가운데서 테까지
+      const a = t + (i / 4) * Math.PI * 2 + Math.PI / 8;
+      vfxDraw(g, 'p11', '#fff3b0', Math.floor(clock * 14 + i) % 3, cx + Math.cos(a) * R * 0.5, cy + Math.sin(a) * R * 0.5, { scale: 2 / 3, rot: a, alpha: 0.7 });
+    }
+    vfxDraw(g, 'h29', '#ffe27a', Math.floor(clock * 8) % 5, cx, cy, { scale: 2 / 3, alpha: 0.75 });
+  },
+};
 // 지팡이 구슬 빛 (마법사 계열): 시트에는 구슬만 그리고 빛은 여기서 hand 점(= 구슬 가운데)에 얹는다.
 //  pull(0~13, 스킬이 마력을 모은 정도)만큼 커지고 짙어진다 — 조립식 drawStaff 의 빛과 같은 크기·색
 function sheetStaffGlow(g, id, meta, anim, f, pull) {
