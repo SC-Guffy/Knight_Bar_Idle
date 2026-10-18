@@ -249,3 +249,8 @@
 | 241 | archon | `/edit-image-pixen` | nc3s: Change only the pose: casting a celestial spell, the golden  | 1.0 / 1.0 | 592.0 / 428.0 | 316.0 |
 | 242 | tyrant | `/edit-image-pixen` | nc3s: Change only the pose: unleashing rage, the greatsword raised | 2.0 / 1.0 | 594.0 / 429.0 | 314.0 |
 | 243 | greatswordsman | `/animate-with-skeleton-v3` | skelwalkI: /animate-with-skeleton-v3 | 4.0 / 3.0 | 598.0 / 432.0 | 307.0 |
+| 244 | greatswordsman | `/edit-image-pixen` | nback: Change only the pose: calm standing pose in side view facing | 3.0 / 1.0 | 601.0 / 433.0 | 296.0 |
+| 245 | greatswordsman | `/animate-with-skeleton-v3` | skelwalkB: /animate-with-skeleton-v3 | 8.0 / 3.0 | 609.0 / 436.0 | 288.0 |
+| 246 | greatswordsman | `/edit-image-pixen` | nc3b: Change only the pose: unleashing power, the same enormous sl | 1.0 / 1.0 | 610.0 / 437.0 | 286.0 |
+| 247 | greatswordsman | `/edit-image-pixen` | nk2b: Change only the pose: mid swing, the thick slab greatsword s | 1.0 / 1.0 | 611.0 / 438.0 | 283.0 |
+| 248 | greatswordsman | `/edit-image-pixen` | nk3b: Change only the pose: follow-through, the thick slab greatsw | 1.0 / 1.0 | 612.0 / 439.0 | 282.0 |

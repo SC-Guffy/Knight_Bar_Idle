@@ -39,13 +39,18 @@ NDESC = {
 }
 TV = os.environ.get('STAND') == '1'   # 12단계 C: 첫 프레임 = 다리 드러난 옆모습 서기 (work/<cls>/nstand-0.png), 다리 앞 밝게·뒤 어둡게
 IV = os.environ.get('IDLE') == '1'    # 13단계 (시즌7, 로드맵 승인 12): 첫 프레임 = 시트 대기 그림 그대로 (옆모습 통일 직업은 c1) + 다리 앞뒤 밝기 — 대기와 모습이 안 바뀌게
-TAG = 'I' if IV else 'T' if TV else ('N' if NV else ('L' if LV else ''))
+BV = os.environ.get('BACK') == '1'    # 14단계: 대검전사 — 대검을 어깨에 멘 서기(work/greatswordsman/nback-0.png) 첫 프레임, 다리 구역 원래 너비
+if BV: WR.pop('greatswordsman', None)
+TAG = 'B' if BV else 'I' if IV else 'T' if TV else ('N' if NV else ('L' if LV else ''))
 
 
 def neutral(cls):
     if NV:
         import build_new as B
         src = Image.open(os.path.join(HERE, 'newanim', f'{cls}-src.png')).convert('RGBA'); pal = B.pal_of(src)
+        if BV:
+            im, _ = B.foot_align(B.lock(Image.open(os.path.join(HERE, 'work', cls, 'nback-0.png')).convert('RGBA'), pal))
+            return lit_auto(im, cls)
         if IV:
             base = B.lock(src, pal)
             if cls in B.SIDE:                                                   # build_new 와 같은 c1 (수리판 우선, 발 가운데를 준비 그림에 맞춤)
@@ -152,7 +157,7 @@ def plan(classes):
         base, _ = pose(cx, bot, H); fr = [pose(cx, bot, H, t)[0] for t in range(8)]
         body = {'description': (NDESC[cls] if NV else DESC[cls] + (LITDESC[cls] if LV and cls in LIT else '')) + ', legs clearly separated', 'action': 'walking forward with long strides, knees lifting, arms swinging slightly',
                 'direction': 'east', 'view': 'side', 'first_frame': b64(first), 'first_frame_keypoints': kp(base), 'keypoints': [kp(p) for p in fr],
-                'template_id': 'mannequin', 'seed': (53 if cls == 'greatswordsman' and IV else 47) if NV else 43 if LV else 41, 'no_background': True}
+                'template_id': 'mannequin', 'seed': (int(os.environ.get('SEED', 59)) if BV else 53 if cls == 'greatswordsman' and IV else 47) if NV else 43 if LV else 41, 'no_background': True}
         json.dump(body, open(os.path.join(A, f'{cls}-skelwalk{TAG}-req.json'), 'w'))
         rows.append([stick(base, first)] + [stick(p) for p in fr])
     W, H2 = rows[0][0].size; m = Image.new('RGBA', ((W + 4) * 9, (H2 + 4) * len(rows)), (40, 42, 52, 255))
@@ -167,7 +172,7 @@ FIX = ('tyrant', 'swordsaint')     # 비평 2개 미달 → 무료 수리 1회: 
 def fix_legs(cls, d, nim, hip):
     lp = sorted({c for c in nim.crop((0, hip, 64, 64)).getdata() if c[3]})
     if cls == 'tyrant': lp = [c for c in lp if not (c[0] > 70 and c[0] > c[1] * 1.6)] or lp
-    if cls == 'greatswordsman' and IV: lp = [c for c in lp if 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2] < 95] or lp   # 마네킹 회색이 칼 색으로 칠해져 잡점 → 어두운 하체 색만
+    if cls == 'greatswordsman' and (IV or BV): lp = [c for c in lp if 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2] < 95] or lp   # 마네킹 회색이 칼 색으로 칠해져 잡점 → 어두운 하체 색만
     D = d.load()
     for y in range(hip, 64):
         for x in range(64):

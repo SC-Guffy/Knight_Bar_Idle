@@ -22,6 +22,10 @@ FLIP = {'paladin': {'c1'}}     # 비평: 성기사 c1(대기·시전) 만 왼쪽
 # 13단계 (시즌7 "개선해"): 대기 그림(c1) 자체를 pixen 원본으로 뽑은 키 n<k>s — 모습이 안 바뀜. 있으면 짧은 판 대신 씀
 ATK_13 = {'paladin': ['c1', 'k0s', 'k2', 'k3', 'k3', 'c1']}
 CAST_13 = ['c1', 'c1', 'c3s', 'c3s', 'c3s', 'c1']
+# 14단계: 대검전사 — 대검을 어깨에 멘 서기(nback)를 대기·걷기·평타/시전 시작 그림으로 (걷기와 모습이 안 바뀌게)
+BACK = {'greatswordsman'}
+ATK_B = ['bk', 'c3b', 'k2b', 'k3b', 'k3b', 'bk']         # 베기·마무리도 대기 그림 원본(nk2b·nk3b) — 칼 크기 같음           # 젖힘 = 어깨의 대검을 두 손으로 들어 올림 (nc3b, 대기 그림 원본 — 칼 크기 같음)
+CAST_B = ['bk', 'bk', 'c3b', 'c3b', 'c3b', 'bk']
 WALK_I_OK = {'tyrant', 'blademaster'}      # 13단계 대기 그림 첫 프레임 걷기 비평 합격 (대검전사는 다리 잡점으로 미달 → 임시)
 WALK_T_FAIL = {'blademaster', 'greatswordsman', 'tyrant'}     # 12단계 C 걷기 비평 미달 (대기와 모습이 다르거나 다리가 어둡게 뭉침) → 임시 들썩임
 WALK_FAIL = {'blademaster', 'greatswordsman', 'archon', 'tyrant', 'swordsaint'}   # 걷기 비평 미달 → 임시 들썩임
@@ -98,11 +102,21 @@ def build(cls):
         p = os.path.join(HERE, 'work', cls, f'n{k}-0.png')
         if os.path.exists(p):
             im, fx = foot_align(fin(Image.open(p).convert('RGBA'))); o = Image.new('RGBA', (64, 64)); o.paste(im, (sfx - fx, 0), im); keys[k] = o
+    if cls in BACK and os.path.exists(os.path.join(HERE, 'work', cls, 'nback-0.png')):
+        im, fx = foot_align(fin(Image.open(os.path.join(HERE, 'work', cls, 'nback-0.png')).convert('RGBA'))); o = Image.new('RGBA', (64, 64)); o.paste(im, (sfx - fx, 0), im)
+        keys['bk'] = o; src = o; keys['src'] = src; keys['squat'] = squat(src)
+        for kb in ('c3b', 'k2b', 'k3b'):
+            pc = os.path.join(HERE, 'work', cls, f'n{kb}-0.png')
+            if os.path.exists(pc):
+                im2, fx2 = foot_align(fin(Image.open(pc).convert('RGBA'))); o2 = Image.new('RGBA', (64, 64)); o2.paste(im2, (sfx - fx2, 0), im2); keys[kb] = o2
     if cls in SIDE: src = keys['c1']; keys['src'] = src; keys['squat'] = squat(src)     # 대기·피격·임시 걷기도 옆모습 c1 (모습이 끊기지 않게)
     wp = os.path.join(NA, f'{cls}-walk-strip.png')
+    wb = os.path.join(NA, f'{cls}-walkB4-strip.png')
     wi = os.path.join(NA, f'{cls}-walkI4-strip.png')
     wt = os.path.join(NA, f'{cls}-walkT4-strip.png')                       # 12단계 C: 옆모습 서기 원본 skeleton 걷기
-    if os.path.exists(wi) and (cls in WALK_I_OK or os.environ.get('TRY13')):
+    if 'bk' in keys and os.path.exists(wb):
+        w = Image.open(wb).convert('RGBA'); walk = [fin(w.crop((64 * i, 0, 64 * i + 64, 64))) for i in range(w.width // 64)]
+    elif os.path.exists(wi) and (cls in WALK_I_OK or os.environ.get('TRY13')):
         w = Image.open(wi).convert('RGBA'); walk = [fin(w.crop((64 * i, 0, 64 * i + 64, 64))) for i in range(w.width // 64)]
     elif os.path.exists(wt) and cls not in WALK_T_FAIL:
         w = Image.open(wt).convert('RGBA'); walk = [fin(w.crop((64 * i, 0, 64 * i + 64, 64))) for i in range(w.width // 64)]
@@ -111,9 +125,11 @@ def build(cls):
     else: walk = [src, squat(src), src, squat(src, 2)]
     hurt = [src.transform((64, 64), Image.AFFINE, (1, 0, 2, 0, 1, 0)), src.transform((64, 64), Image.AFFINE, (1, 0, 1, 0, 1, 0))]
     rows = {'idle': ([src, squat(src)], dict(fps=3, loop=True)), 'walk': (walk, dict(fps=8, loop=True)),
-            'atkA': ([keys[k] for k in ATK_13[cls]], dict(fps=12, loop=False, hit=HIT)) if cls in ATK_13 and 'k0s' in keys else
+            'atkA': ([keys[k] for k in ATK_B], dict(fps=12, loop=False, hit=HIT)) if 'bk' in keys else
+                    ([keys[k] for k in ATK_13[cls]], dict(fps=12, loop=False, hit=HIT)) if cls in ATK_13 and 'k0s' in keys else
                     ([keys[k] for k in ATK_SHORT.get(cls, ATK_S if cls in SIDE else ATK)], dict(fps=12, loop=False, hit=1 if cls in ATK_SHORT else HIT)),
-            'cast': ([keys[k] for k in CAST_13], dict(fps=8, loop=True)) if cls in CAST_SHORT and 'c3s' in keys else
+            'cast': ([keys[k] for k in CAST_B], dict(fps=8, loop=True)) if 'bk' in keys else
+                    ([keys[k] for k in CAST_13], dict(fps=8, loop=True)) if cls in CAST_SHORT and 'c3s' in keys else
                     ([src, squat(src), src, squat(src, 2)] if cls in CAST_SHORT else [keys[k] for k in (CAST_S if cls in SIDE else CAST)], dict(fps=6 if cls in CAST_SHORT else 8, loop=True)),
             'hurt': (hurt, dict(fps=12, loop=False))}
     W = 64 * max(len(f) for f, _ in rows.values()); sheet = Image.new('RGBA', (W, 64 * len(rows)))

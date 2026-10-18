@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 598.0,
+ "used": 612.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -1702,7 +1702,42 @@
    "purpose": "skelwalkI: /animate-with-skeleton-v3",
    "used": 4.0,
    "bal": 307.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nback: Change only the pose: calm standing pose in side view facing",
+   "used": 3.0,
+   "bal": 296.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkB: /animate-with-skeleton-v3",
+   "used": 8.0,
+   "bal": 288.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc3b: Change only the pose: unleashing power, the same enormous sl",
+   "used": 1.0,
+   "bal": 286.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk2b: Change only the pose: mid swing, the thick slab greatsword s",
+   "used": 1.0,
+   "bal": 283.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk3b: Change only the pose: follow-through, the thick slab greatsw",
+   "used": 1.0,
+   "bal": 282.0
   }
  ],
- "nom": 432.0
+ "nom": 439.0
 }
