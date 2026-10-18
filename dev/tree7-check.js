@@ -36,6 +36,7 @@ for (const id of todo) {
       if (!st) err.push('1차 줄기 글 없음 t7DefStem(' + L.cls[0] + ')');
       for (const n of T7_NODES) {
         if (n.t === 'stat') continue;
+        if (n.tier <= 1 && L.cls[0] === 'swordsman') continue;   // 검사 1차 줄기 글은 화면 기본값(src/tree7-ui.js T7_UI)
         const u = { ...(st && n.tier <= 1 ? st.ui[n.id] : {}), ...L.ui[n.id] };
         if (!u.n || !u.d) err.push('ui.' + n.id + ' n·d');
         if ((n.t === 'active' || n.t === 'ult') && (!Array.isArray(u.looks) || u.looks.length !== 5)) err.push('ui.' + n.id + '.looks 5개');

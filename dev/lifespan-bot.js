@@ -40,7 +40,7 @@ function runOne({ days, seed, mode }) {
   if (opt.eval) vm.runInContext(String(opt.eval), ctx);   // 측정용: 수치 바꿔 보기 (예: --eval "T7_WALL_MUL.region.hp = 3")
   const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, bagWeight, bagCap, upgradeBag, claimStock, trade, tradeBlocker, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt, bldMax,
-    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, CLASSES, profile, TRAIN_MAX, rushBuild, rushPrice, endExpedition, t7On: typeof t7On === 'function' ? t7On : () => false, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null, t7Spent: typeof t7Spent === 'function' ? t7Spent : () => 0, t7PathCost: typeof t7PathCost === 'function' ? t7PathCost : () => 1, t7Reset: typeof t7Reset === 'function' ? t7Reset : () => false, t7WallBuild: typeof t7WallBuild === 'function' ? t7WallBuild : () => null })`, ctx);
+    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, CLASSES, profile, TRAIN_MAX, rushBuild, rushPrice, endExpedition, t7On: typeof t7On === 'function' ? t7On : () => false, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null, t7Spent: typeof t7Spent === 'function' ? t7Spent : () => 0, t7PathCost: typeof t7PathCost === 'function' ? t7PathCost : () => 1, t7Reset: typeof t7Reset === 'function' ? t7Reset : () => false, t7AutoTick: typeof t7AutoTick === 'function' ? t7AutoTick : () => {}, t7BuySlot: typeof t7BuySlot === 'function' ? t7BuySlot : () => false, t7WallBuild: typeof t7WallBuild === 'function' ? t7WallBuild : () => null })`, ctx);
   const C = vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
   const cs = {}, M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
   const S = A.S(); S.gear.auto = true;
@@ -55,6 +55,8 @@ function runOne({ days, seed, mode }) {
       if (want && want !== autoB && A.t7Reset()) { autoB = want; resets++; tried[lastWall] = true; }
       A.t7AutoSpend(autoB); return;
     }
+    // player: 사람처럼 — 포인트는 게임의 자동 찍기(t7AutoTick, 캠프 도착 때)에 맡기고 장착 칸만 열 수 있으면 산다 (시즌 리셋 뒤 새 계정 흐름 확인)
+    if (A.t7On() && BUILD === 'player') { A.t7AutoTick(); while (A.t7BuySlot()) A.t7AutoTick(); return; }
     if (A.t7On()) { A.t7AutoSpend(BUILD); return; }   // 시즌7 트리 줄기: 비전서·스킬별 트리 대신 🌟 포인트
     const ids = A.skillsOf(S.cls).map((k) => k.id);
     for (let g = 0; S.tomes > 0 && g < 400; g++) { const id = ids.slice().sort((a, b) => A.skillLv(a) - A.skillLv(b))[0]; if (!id || !A.feedTomes(id, 1)) break; }
