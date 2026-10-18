@@ -114,6 +114,7 @@ function t7DefLine(L) {
   for (const [slot, o] of Object.entries(L.newSkills)) {
     const { id, base, ...rest } = o;
     SKILLS[id] = { ...SKILLS[base], ...rest, id, cls: L.cls[1], lv: 0, t7: true, t7base: base };
+    if (typeof SKILL_CP !== 'undefined' && SKILL_CP[id]) { SKILLS[id].emoji = rest.icon; SKILLS[id].icon = String.fromCharCode(SKILL_CP[id]); }   // 구운 도트 아이콘 (dev/icon-art/t7-*.js → make-icons) — classes.js 와 같은 방식
     T7_FX_BASE[id] = base;
     sk[slot] = id;
   }
