@@ -201,10 +201,11 @@
       const d = a.k.dur, m = a.mast || 0, p = plan(a), cs = flashFx.cues(a);
       cs.push([p.fire / d + 0.01, (a) => {
         const M = mz(a);
+        if (m >= 3) { tear(a, { scale: 2, delay: 0.1, alpha: 0.5, color: VA_MAG, thin: true }); const T = tg(a, 0); texFx('k19', T.x, T.y, VA_VIO, { scale: 2, life: 0.5, delay: 0.25 }); rift(T.x, T.y, 1, 0.2, { life: 0.7 }); }
         for (let j = 1; j <= 6; j++) {
           const x = M.x + a.dir * (36 + j * 58);
           if (x < 0 || x > W) break;
-          meteor(x, 0.14 + j * 0.07, m >= 3 ? 4 / 3 : 2 / 3, { star: m >= 3 });
+          meteor(x, 0.1 + j * 0.05, m >= 3 ? 2 : 2 / 3, { star: m >= 3 });
         }
       }]);
       return cs.sort((p, q) => p[0] - q[0]);

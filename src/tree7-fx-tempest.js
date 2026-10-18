@@ -18,7 +18,7 @@
         if (uu < 0) continue;
         const e = easeOut(uu), w = o.wob ? Math.sin(uu * 9 + (o.ph || 0)) * o.wob : 0;
         vfxDraw(ctx, id, o.color, o.f != null ? o.f : Math.min(nf - 1, Math.floor(u * nf)), x + c * dist * e - s * w, y + s * dist * e + c * w,
-          { scale: o.scale || 2 / 3, flip: left, rot: ang + (left ? Math.PI : 0), alpha: (u > 0.7 ? (1 - u) / 0.3 : 1) * [1, 0.45, 0.2][k] * (o.alpha == null ? 1 : o.alpha) });
+          { scale: o.scale || 2 / 3, sx: o.sx, flip: left, rot: ang + (left ? Math.PI : 0), alpha: (u > 0.7 ? (1 - u) / 0.3 : 1) * [1, 0.45, 0.2][k] * (o.alpha == null ? 1 : o.alpha) });
       }
     });
   }
@@ -98,7 +98,7 @@
       const m = a.mast || 0, n = pick([1, 3, 5, 7], m), d = a.dir, h = qiHand(a), dist = t7Sh(a, 'pierce') ? 300 : 170, y0 = Math.min(h.y, groundY() - 20);
       for (let j = 0; j < n; j++) {
         const c = j - (n - 1) / 2, t = c * 0.1 - 0.03;
-        ray('xw3a', h.x + d * 10, y0, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.03, scale: m >= 3 ? 4 / 3 : 1, life: 0.4, color: mixHex(a.color, '#e8fff4', 0.55), f: j % 2, wob: 12, ph: j * 1.3, trail: 3 });
+        ray('xw3a', h.x + d * 10, y0, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.03, scale: 4 / 3, sx: m >= 3 ? 1.5 : 1.25, life: 0.4, color: mixHex(a.color, '#ffffff', 0.75), f: j % 2, wob: 12, ph: j * 1.3, trail: 3 });
       }
       texFx('xe08', h.x + d * 14, y0, '#e8fff4', { scale: 2 / 3, life: 0.25, flip: d < 0, alpha: 0.7 });
       impact({ shake: 0.1 });
@@ -149,12 +149,13 @@
       flash.hit(a, i, n);
       if (i !== n - 1) return;
       const y = a.ty(), d = a.dir;
+      if ((a.mast || 0) >= 3) { texFx('xe13', a.tx(), groundY() - 6, '#fff6a0', { scale: 4 / 3, life: 0.4, delay: 0.3 }); for (let q = 0; q < 8; q++) texFx('xe02', a.x() + d * (40 + q * 44), y + (q % 2 ? 14 : -14), '#fff6a0', { scale: 2 / 3, life: 0.22, delay: q * 0.03, rot: (q % 2 ? 0.9 : -0.9) * d, flip: d < 0 }); }
       for (let j = 1; j <= 6; j++) {
         const x = a.x() + d * (40 + j * 58);
         if (x < 0 || x > W) break;
-        const sc = (a.mast || 0) >= 3 ? 1 : 2 / 3;
+        const sc = pick([2 / 3, 2 / 3, 1, 4 / 3], a.mast);
         texFx('xw3a', x, y, a.color, { scale: sc, life: 0.26, delay: 0.1 + j * 0.06, flip: d < 0, frames: 2, fade: 0.4, rot: rand(-0.5, 0.5) });
-        if ((a.mast || 0) >= 3 && j % 2) texFx('xe09', x, groundY() + 2, a.color, { anchor: 'b', scale: 2 / 3, life: 0.4, delay: 0.2 + j * 0.06, fade: 0.4, alpha: 0.8 });
+        if ((a.mast || 0) >= 3) texFx('xe09', x, groundY() + 2, a.color, { anchor: 'b', scale: 1, life: 0.4, delay: 0.2 + j * 0.06, fade: 0.4, alpha: 0.8 });
         texFx('xk04', x, y + 4, a.color, { scale: sc, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
       }
     },

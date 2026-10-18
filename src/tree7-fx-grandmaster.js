@@ -17,11 +17,11 @@
         const uu = u - k * 0.07;
         if (uu < 0) continue;
         const e = easeOut(uu);
-        vfxDraw(ctx, id, o.color, o.loop ? Math.floor(clock * 14) % nf : Math.min(nf - 1, Math.floor(u * nf)), x + c * dist * e, y + s * dist * e,
+        for (const off of o.off || [0]) vfxDraw(ctx, id, o.color, o.loop ? Math.floor(clock * 14) % nf : Math.min(nf - 1, Math.floor(u * nf)), x + c * (dist * e + off), y + s * (dist * e + off),
           { scale: o.scale || 2 / 3, flip: left, rot: ang + (left ? Math.PI : 0) + (o.rotAdd || 0), alpha: (u > 0.7 ? (1 - u) / 0.3 : 1) * [1, 0.45, 0.2][k] * (o.alpha == null ? 1 : o.alpha) });
       }
     });
-    if (o.pop) texFx('xe11', x + c * dist, y + s * dist, o.color, { scale: 2 / 3, life: 0.2, delay: (o.delay || 0) + (o.life || 0.32) * 0.85 });
+    if (o.pop) texFx('xe11', x + c * dist, y + s * dist, o.popColor || o.color, { scale: 2 / 3, life: 0.2, delay: (o.delay || 0) + (o.life || 0.32) * 0.85 });
   }
   // 손바닥에 기탄이 자란다 (장풍을 쏘기 전까지): 크기 2/3 → 1 → 4/3, 둘레의 XE11 알갱이가 빨려 든다
   function charge(a, T, atBody) {
@@ -99,8 +99,8 @@
       const m = a.mast || 0, n = pick([1, 3, 5, 7], m), d = a.dir, h = qiHand(a), dist = t7Sh(a, 'pierce') ? 300 : 170;
       for (let j = 0; j < n; j++) {
         const c = j - (n - 1) / 2, t = c * 0.11 - 0.03;
-        ray('xe13', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04, scale: pick([1, 1, 4 / 3, 4 / 3], m), life: 0.4, color: j % 2 ? WHITE_QI : a.color, loop: true, trail: 3, pop: true, rotAdd: Math.PI / 2 });
-        if (m >= 3) ray('xe13', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04 + 0.08, scale: 2, life: 0.4, color: '#ffe8a8', trail: 2, alpha: 0.7, rotAdd: Math.PI / 2 });
+        ray('xe13', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04, scale: pick([4 / 3, 4 / 3, 4 / 3, 2], m), life: 0.4, color: WHITE_QI, off: [0, 3, 6], loop: true, trail: 3, pop: true, popColor: WHITE_QI, rotAdd: Math.PI / 2 });
+        ray('xe13', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04 + 0.05, scale: pick([4 / 3, 4 / 3, 4 / 3, 2], m), life: 0.4, color: j % 2 ? '#8fd8ff' : '#ffffff', off: [-3], trail: 2, alpha: 0.8, rotAdd: Math.PI / 2 });
       }
       impact({ shake: 0.1 });
     },
@@ -162,7 +162,8 @@
       palm.hit(a, i, n);
       if (i !== n - 1) return;
       const y = a.ty(), d = a.dir;
-      beam(a, y, { scale: (a.mast || 0) >= 3 ? 4 / 3 : 2 / 3, color: '#ffd257' });
+      beam(a, y, { scale: (a.mast || 0) >= 3 ? 4 / 3 : 1, color: '#ffd257' });
+      if ((a.mast || 0) >= 3) for (const dy of [-16, 16]) beam(a, y + dy, { scale: 2 / 3, color: '#ffe8a8', delay: 0.06 });
       for (let j = 1; j <= 6; j++) {
         const x = a.x() + d * (40 + j * 52);
         if (x < 0 || x > W) break;

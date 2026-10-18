@@ -189,10 +189,13 @@
         return;
       }
       for (const t of a.targets(i)) {
-        pillar(t.x, { scale: pick(a.mast, [1, 4 / 3, 4 / 3, 2]), sx: (a.mast || 0) >= 3 ? 1.6 : 0.8, life: 0.5 });
-        if ((a.mast || 0) >= 3) for (const s of [-1, 1]) pillar(t.x + s * 30, { scale: 4 / 3, sx: 0.7, life: 0.45, delay: 0.06 });
+        const m3 = (a.mast || 0) >= 3, ps = pick(a.mast, [1, 4 / 3, 4 / 3, 2]), pw = m3 ? 2 : 1.1;
+        pillar(t.x, { scale: ps, sx: pw, life: 0.5 });
+        pillar(t.x, { scale: ps, sx: pw * 0.5, life: 0.5, color: '#ffffff' });   // 속 심: 밝게
+        if (m3) for (const s of [-1, 1]) for (const [dx, d] of [[34, 0.06], [68, 0.12]]) pillar(t.x + s * dx, { scale: 4 / 3, sx: 0.9, life: 0.45, delay: d });
+        if (m3) for (const s of [-1, 1]) texFx('k06', t.x + s * 40, groundY() - 16, col(a), { scale: 1, life: 0.4, flip: s < 0, fade: 0.4, delay: 0.05, move: (u) => [s * 50 * easeOut(u), 0] });
         if ((a.mast || 0) >= 3) for (const d of [0, 0.12]) texFx('c18', t.x, groundY() - 4, col(a), { scale: 2, life: 0.4, delay: d, fade: 0.5 });
-        if ((a.mast || 0) >= 3) texFx('k29', t.x, groundY() - 30, col(a), { scale: 4 / 3, life: 0.4, delay: 0.1, fade: 0.4 });
+        if ((a.mast || 0) >= 3) texFx('k29', t.x, groundY() - 30, col(a), { scale: 2, life: 0.45, delay: 0.1, fade: 0.4 });
       }
       impact({ stop: 0.14, shake: 0.45 });
     },
@@ -220,8 +223,12 @@
           crossDraw(x, groundY() - 30, c, Math.floor(clock * 10) % 5, m >= 3 ? 1 : 2 / 3, k * blink * out, clock * 0.5);
         });
         skLater(a, boom, () => {
-          texFx('k29', x, groundY() - 30, c, { scale: pick(m, [2 / 3, 2 / 3, 1, 2]), life: 0.34, fade: 0.4 });
-          if (m >= 3) texFx('c18', x, groundY() - 6, c, { scale: 2, life: 0.4, fade: 0.5 });
+          texFx('k29', x, groundY() - 30, c, { scale: pick(m, [2 / 3, 2 / 3, 1, 2]), life: m >= 3 ? 0.5 : 0.34, fade: 0.4 });
+          if (m >= 3) {
+            texFx('c18', x, groundY() - 6, c, { scale: 2, life: 0.45, fade: 0.5 });
+            texFx('c18', x, groundY() - 6, c, { scale: 2, life: 0.45, delay: 0.1, fade: 0.5 });
+            for (let q = 0; q < 4; q++) crossShot(x, groundY() - 30, (q / 4) * Math.PI * 2 + 0.4, 46, { scale: 2 / 3, lm: 0.6, life: 0.32 });
+          }
           if (j === N - 1 || j === 0) impact({ stop: 0.05, shake: 0.22 });
         });
       }

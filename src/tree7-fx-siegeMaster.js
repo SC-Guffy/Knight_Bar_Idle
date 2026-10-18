@@ -23,7 +23,7 @@
       smoke(x1, gy - 8);
       if (o.boom) texFx('k21', x1, gy - 10, 'raw', { scale: o.gold ? 4 / 3 : 1, life: 0.3, frames: 4 });
       if (o.gold) texFx('k20', x1, gy - 12, SM_GOLD, { scale: 2 / 3, life: 0.3 });
-      skFx(null, 0, 0.5, (u) => vfxDraw(ctx, 'e32', 'raw', 0, x1 + Math.sin(u * 60) * (1 - u) * 1.2, gy - 6, { rot, scale: sc, alpha: u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4 }));
+      skFx(null, 0, 0.9, (u) => vfxDraw(ctx, 'e32', 'raw', 0, x1 + Math.sin(u * 60) * (1 - u) * 1.2, gy - 6, { rot, scale: sc, alpha: u < 0.7 ? 1 : 1 - (u - 0.7) / 0.3 }));
     });
   }
   // 견착 자세 (아래 fire 초에 쏜다): 장전 → 반동 → 복귀
@@ -159,13 +159,13 @@
       }]];
     },
     hit(a, i, n) {
-      const m = a.mast || 0, N = [4, 8, 10, 16][m], split = own(a, 'sm_storm') && t7Sh(a, 'split'), orig = split ? n / 2 : n;
+      const m = a.mast || 0, N = [8, 12, 18, 28][m], split = own(a, 'sm_storm') && t7Sh(a, 'split'), orig = split ? n / 2 : n;
       if (i >= orig) return;
-      const per = Math.ceil(N / orig), rad = 100 * (own(a, 'sm_storm') && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.tx();
+      const per = Math.ceil(N / orig), rad = 100 * (own(a, 'sm_storm') && t7Sh(a, 'pierce') ? 1.2 : 1), cx = Math.max(110, Math.min(W - 110, a.tx()));
       for (let q = 0; q < per; q++) {
         const idx = i * per + q;
         if (idx >= N) break;
-        rain(cx + ((idx + 0.5) / N * 2 - 1) * rad + rand(-6, 6), q * 0.025, { boom: m >= 2 && idx % 2 === 0, gold: m >= 3, scale: m >= 2 ? 1 : 2 / 3 });
+        rain(cx + ((idx + 0.5) / N * 2 - 1) * rad + rand(-6, 6), q * 0.025, { boom: m >= 1 && (m >= 2 || idx % 2 === 0), gold: m >= 3, scale: m >= 2 ? 4 / 3 : 1 });
       }
     },
     hitTex(a, t, share, i, n) {
@@ -191,10 +191,10 @@
     hit(a, i, n) {
       base1.hit(a, i, n);
       if (i !== n - 1) return;
-      const m = a.mast || 0, x = a.tx();
+      const m = a.mast || 0, x = Math.max(80, Math.min(W - 80, a.tx()));
       if (m >= 3) for (const s of [-1, 1]) { abBlastFx(x + s * 48, groundY() - 10, 1.2); ringFx(x + s * 48, SM_IRON, 1, 0.4); }
       ringFx(x, SM_IRON, 1.4, 0.5);
-      abBlastFx(x, groundY() - 12, m >= 3 ? 2.2 : 1.8);
+      abBlastFx(x, groundY() - 12, m >= 3 ? 2.6 : 2);
       if (m >= 2) for (const s of [-1, 1]) skFx(null, 0.14, 0, null, () => { abBlastFx(x + s * 60, groundY() - 10, 1.4); texFx('k37', x + s * 60, groundY() - 22, 'raw', { scale: 2 / 3, life: 0.4 }); });
       abMushroomFx(x, 1.0, m >= 2 ? 1 : 2 / 3);
       texFx('k37', x, groundY() - 22, 'raw', { scale: m >= 3 ? 4 / 3 : 1, life: 0.45 });
@@ -209,12 +209,13 @@
       const d = a.k.dur, m = a.mast || 0, p = plan(a), cs = flashFx.cues(a);
       cs.push([p.fire / d + 0.01, (a) => {
         const M = mz(a), y = M.y + 4;
-        const nE = [4, 5, 6, 8][m], x0 = a.tx() - a.dir * 40 * (nE - 1) / 2;
+        const nE = [4, 5, 7, 9][m], tx0 = Math.max(120, Math.min(W - 120, a.tx())), x0 = tx0 - a.dir * 40 * (nE - 1) / 2;
         for (let j = 1; j <= nE; j++) {
           const x = x0 + a.dir * (j - 1) * 40;
           if (x < 0 || x > W) continue;
-          const dl = 0.14 + j * 0.07;
-          texFx('k21', x, y - 4, 'raw', { scale: [1, 1, 4 / 3, 2][m], life: 0.4, delay: dl, frames: 5 });
+          const dl = 0.06 + j * 0.05;
+          if (m >= 3) ringFx(x, SM_IRON, 1, 0.4);
+          texFx('k21', x, y - 4, 'raw', { scale: [1, 4 / 3, 4 / 3, 2][m], life: 0.5, delay: dl, frames: 5 });
           if (m >= 2) texFx('k37', x, y - 8, 'raw', { scale: m >= 3 ? 1 : 2 / 3, life: 0.4, delay: dl + 0.05 });
           smoke(x, y - 6, { delay: dl + 0.1, life: 0.6 });
           texFx('c16', x, y - 14, SM_GOLD, { scale: 1, life: 0.5, delay: dl + 0.15, move: (u) => [0, -10 * u] });

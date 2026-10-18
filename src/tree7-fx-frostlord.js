@@ -10,7 +10,7 @@
 // 이 파일은 tree7-fx.js 뒤에 불러온다. 새 스킬 id 에만 연출을 단다 (기존 SKILL_FX 는 건드리지 않는다).
 
 const FL_PALE = ['#2a4a78', '#74b4dc', '#c0ecff', '#f0fcff', '#ffffff'];     // 창백한 청백 램프
-const FL_GOLD = ['#3a6a98', '#92cdf0', '#d4f6ff', '#f2fdff', '#ffffff'];     // ★★★ 눈부신 청백 서리
+const FL_GOLD = ['#4a8ac8', '#a8e0ff', '#e0f8ff', '#ffffff', '#ffffff'];     // ★★★ 눈부신 청백 서리
 const FL_DIM = ['#0c1830', '#1c3458', '#2c5078', '#4a7098', '#6a90b0'];      // 메아리(반투명)용 어두운 램프
 const flRamp = (a) => ((a.mast || 0) >= 3 ? FL_GOLD : FL_PALE);
 const flKeys = (t, keys) => ilKeys(t, keys.slice().sort((p, q) => p[0] - q[0]));
@@ -44,13 +44,13 @@ function flShard(a, x0, y0, x1, y1, o = {}) {
     const k = o.ease === 'in' ? easeIn(u) : easeOut(u), x = mix(x0, x1, k), y = mix(y0, y1, k), al = u > 0.8 ? (1 - u) / 0.2 : 1;
     if (o.lance) {
       const fy = Math.cos(ang) < 0;
-      for (let g = 3; g >= 1; g--) { const kk = Math.max(0, k - g * 0.1); vfxDraw(ctx, 'e37', ramp, 0, mix(x0, x1, kk), mix(y0, y1, kk), { scale: sc, rot: ang, flipY: fy, alpha: 0.3 / g * al }); }
+      for (let g = o.big ? 5 : 3; g >= 1; g--) { const kk = Math.max(0, k - g * 0.07); vfxDraw(ctx, 'e37', ramp, 0, mix(x0, x1, kk), mix(y0, y1, kk), { scale: sc, rot: ang, flipY: fy, alpha: (o.big ? 0.5 : 0.3) / g * al }); }
       vfxDraw(ctx, 'e37', ramp, 0, x, y, { scale: sc, rot: ang, flipY: fy, alpha: al });
       return;
     }
     for (let g = 3; g >= 1; g--) { const kk = Math.max(0, k - g * 0.08); vfxDraw(ctx, 'p9', ramp, 0, mix(x0, x1, kk), mix(y0, y1, kk), { scale: 2 / 3, rot: o.spin ? flSnap(ph + clock * 10 - g) : ang, alpha: 0.35 / g * al }); }
     vfxDraw(ctx, 'p9', ramp, 0, x, y, { scale: sc, rot: o.spin ? flSnap(ph + clock * 10) : ang, alpha: al });
-  }, o.shatter === false ? null : () => (o.lance ? texFx('k25', x1, y1, ramp, { scale: o.big ? 1 : 2 / 3, life: 0.3, fade: 0.4, flip: Math.random() < 0.5 }) : texFx('h16', x1, y1, ramp, { scale: 2 / 3, life: 0.22, fade: 0.4, flip: Math.random() < 0.5 })));
+  }, o.shatter === false ? null : () => (o.lance ? (texFx('k25', x1, y1, ramp, { scale: o.big ? 4 / 3 : 2 / 3, life: 0.32, fade: 0.4, flip: Math.random() < 0.5 }), o.big && texFx('h16', x1, y1, ramp, { scale: 4 / 3, life: 0.26, fade: 0.4 })) : texFx('h16', x1, y1, ramp, { scale: 2 / 3, life: 0.22, fade: 0.4, flip: Math.random() < 0.5 })));
 }
 // 지팡이 끝에 결정이 맺힌다 (P9): 1 → 4/3 → 2 로 부푼다
 function flChargeFx(a, until) {
@@ -140,7 +140,7 @@ SKILL_FX.fl_wave = {
     const m = a.mast || 0, n = [1, 3, 5, 7][m], g = ilTip(a), dist = t7Sh(a, 'pierce') ? 320 : 180, y0 = Math.min(g.y, groundY() - 34);
     for (let j = 0; j < n; j++) {
       const ang = (a.dir > 0 ? 0 : Math.PI) + (n > 1 ? (j / (n - 1) - 0.6) * 0.55 : -0.04) * a.dir;
-      flShard(a, g.x + a.dir * 8, y0, g.x + a.dir * 8 + Math.cos(ang) * dist, y0 + Math.sin(ang) * dist, { delay: j * 0.03, scale: [2 / 3, 2 / 3, 1, 4 / 3][m], lance: true, big: m >= 2, life: 0.4 });
+      flShard(a, g.x + a.dir * 8, y0, g.x + a.dir * 8 + Math.cos(ang) * dist, y0 + Math.sin(ang) * dist, { delay: j * 0.03, scale: [2 / 3, 2 / 3, 1, 2][m], lance: true, big: m >= 3, life: 0.4 });
     }
     impact({ shake: 0.1 });
   },
@@ -188,8 +188,8 @@ SKILL_FX.fl_f_ab = {
   cues: (a) => {
     const d = a.k.dur, hL = a.k.hits[a.k.hits.length - 1][0] * d, at = Math.max(0.03, hL - 0.3);
     return [[0.01, (a) => flOrbitFx(a, flOrbOpts(a, a.k.dur - 0.02, true))], [at / d, (a) => {
-      const tx = a.tx(), ty = a.ty(), m = a.mast || 0, sc = m >= 2 ? 4 / 3 : 1, h = 92 * sc * VFX_DOT;
-      for (const ox of m >= 3 ? [-46, 0, 46] : [0]) texFx('e37b', tx + ox * a.dir, 0, flRamp(a), { scale: ox ? 1 : sc, life: 0.3, fade: 0.05, frames: 1, move: (u) => [0, (ty - h / 2 + 10) * easeIn(u) - 40 * (1 - u)] });
+      const tx = a.tx(), ty = a.ty(), m = a.mast || 0, sc = m >= 3 ? 2 : m >= 2 ? 4 / 3 : 1, h = 92 * sc * VFX_DOT;
+      for (const ox of m >= 3 ? [-46, 0, 46] : [0]) texFx('e37b', tx + ox * a.dir, 0, flRamp(a), { scale: ox ? 4 / 3 : sc, life: 0.3, fade: 0.05, frames: 1, move: (u) => [0, (ty - h / 2 + 10) * easeIn(u) - 40 * (1 - u)] });
     }]];
   },
   hit(a, i, n) {
@@ -197,7 +197,8 @@ SKILL_FX.fl_f_ab = {
     if (i !== n - 1) return;
     const m = a.mast || 0;
     texFx('e39', a.tx(), groundY() + 2, flRamp(a), { scale: m >= 3 ? 2 : 1, life: 0.5, anchor: 'b', fade: 0.3 });
-    flLance(a, a.ty(), { scale: m >= 3 ? 4 / 3 : 1 });      // 관통: 막타에 빙창이 줄로 꿰뚫는다
+    if (m >= 3) texFx('k25', a.tx(), a.ty(), flRamp(a), { scale: 2, life: 0.4, fade: 0.4 });
+    flLance(a, a.ty(), { scale: m >= 3 ? 2 : 1 });      // 관통: 막타에 빙창이 줄로 꿰뚫는다
     if (m >= 3) for (const dx of [-50, 50]) texFx('e39', a.tx() + dx, groundY() + 2, flRamp(a), { scale: 1, life: 0.5, delay: 0.08, anchor: 'b', fade: 0.3 });
     impact({ stop: 0.1, shake: 0.35 });
   },

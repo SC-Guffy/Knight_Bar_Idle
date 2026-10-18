@@ -133,24 +133,24 @@
   // ── 광휘 화살비 (storm) ── 하늘에 H24 작은 태양이 떠올라 커지고, 터지듯 P3 광선이 기사 둘레 고리로 사방에 뻗는다: 1칸 4줄기 · ★ 8줄기 · ★★ 8줄기 크게 · ★★★ 12줄기 + 금빛.
   //  분광(k_split): 처음 맞은 자리에서 빛 화살 둘이 좌우로 갈라진다
   function sun(a) {
-    const m = a.mast || 0, d = a.k.dur, T0 = a.k.hits[0][0] * d, x = a.x(), y = 30;
+    const m = a.mast || 0, d = a.k.dur, T0 = a.k.hits[0][0] * d, x = a.x() + a.dir * 30, y = 48;
     aFx(a, 0, d, (u) => {
       const t = u * d, k = easeOut(Math.min(1, t / T0)), al = Math.min(1, t / 0.25, (d - t) / 0.3);
-      const sc = k < 0.4 ? 2 / 3 : k < 0.85 ? 1 : m >= 3 ? 2 : 4 / 3;
+      const sc = k < 0.4 ? 1 : k < 0.85 ? 4 / 3 : m >= 3 ? 2 : 4 / 3;
       vfxDraw(ctx, 'h24', 'raw', Math.floor(clock * 9) % 2, x, y, { scale: sc, alpha: al });
-      if (m >= 2) vfxDraw(ctx, 'h24', 'raw', (Math.floor(clock * 9) + 1) % 2, x, y, { scale: sc, rot: clock * 1.5, alpha: al * 0.4 });
+      if (m >= 2) vfxDraw(ctx, 'h24', 'raw', (Math.floor(clock * 9) + 1) % 2, x, y, { scale: sc * (m >= 3 ? 1.5 : 1), rot: clock * 1.5, alpha: al * 0.4 });
     }, null, (u) => { if (Math.random() < 0.5) gatherFx(x, y, [DE_SUN, '#ffffff'], 1, 30); });
   }
   SKILL_FX.de_storm = {
     ...SKILL_FX.starfall,
     cues: (a) => {
       const d = a.k.dur;
-      return [[0.01, sun], [0.1 / d, (a) => { const M = mz(a); texShotFx('p3', M.x, M.y - 6, a.x(), 30, 0.22, 'raw', { scale: 2 / 3, tail: 2 }); burst(M.x, M.y, 6, [DE_WHITE, DE_SUN], 70, 2, 0); }]];
+      return [[0.01, sun], [0.1 / d, (a) => { const M = mz(a); texShotFx('p3', M.x, M.y - 6, a.x() + a.dir * 30, 48, 0.22, 'raw', { scale: 2 / 3, tail: 2 }); burst(M.x, M.y, 6, [DE_WHITE, DE_SUN], 70, 2, 0); }]];
     },
     hit(a, i, n) {
-      const m = a.mast || 0, N = [4, 8, 10, 16][m], st = own(a, 'de_storm'), split = st && t7Sh(a, 'split'), orig = split ? n / 2 : n;
+      const m = a.mast || 0, N = [8, 14, 20, 30][m], st = own(a, 'de_storm'), split = st && t7Sh(a, 'split'), orig = split ? n / 2 : n;
       if (i >= orig) return;
-      const per = Math.ceil(N / orig), rad = 90 * (st && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.tx(), sx = a.x(), sy = 32;
+      const per = Math.ceil(N / orig), rad = 90 * (st && t7Sh(a, 'pierce') ? 1.2 : 1), cx = Math.max(70, Math.min(W - 70, a.tx())), sx = a.x() + a.dir * 30, sy = 50;
       for (let q = 0; q < per; q++) {
         const idx = i * per + q;
         if (idx >= N) break;

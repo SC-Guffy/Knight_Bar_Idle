@@ -116,6 +116,7 @@
       for (let j = 0; j < n; j++) {
         const c = j - (n - 1) / 2, ang = d > 0 ? c * 0.07 - 0.02 : Math.PI - (c * 0.07 - 0.02);
         const y = h.y + c * 8, x = h.x + d * 16, opt = { delay: j * 0.03, color: col(a) };
+        ray('xe01', x, y, ang, dist, { ...opt, scale: pick([1, 1, 4 / 3, 4 / 3], m), color: '#fff4c8', trail: 3 });
         ray('xe07', x, y, ang, dist, { ...opt, scale: m >= 3 ? 4 / 3 : 1, trail: m >= 3 ? 3 : 1 });
         ray('xe03', x + d * 10, y, ang, dist, { ...opt, scale: m >= 3 ? 1 : 2 / 3, alpha: 0.8, trail: 2 });
       }
