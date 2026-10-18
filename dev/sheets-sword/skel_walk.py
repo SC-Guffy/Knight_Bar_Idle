@@ -38,13 +38,23 @@ NDESC = {
     'swordsaint': 'small chibi sword saint, long white high ponytail, gold crescent ornament, white and gold haori, dark hakama, glowing blue katana',
 }
 TV = os.environ.get('STAND') == '1'   # 12단계 C: 첫 프레임 = 다리 드러난 옆모습 서기 (work/<cls>/nstand-0.png), 다리 앞 밝게·뒤 어둡게
-TAG = 'T' if TV else ('N' if NV else ('L' if LV else ''))
+IV = os.environ.get('IDLE') == '1'    # 13단계 (시즌7, 로드맵 승인 12): 첫 프레임 = 시트 대기 그림 그대로 (옆모습 통일 직업은 c1) + 다리 앞뒤 밝기 — 대기와 모습이 안 바뀌게
+TAG = 'I' if IV else 'T' if TV else ('N' if NV else ('L' if LV else ''))
 
 
 def neutral(cls):
     if NV:
         import build_new as B
         src = Image.open(os.path.join(HERE, 'newanim', f'{cls}-src.png')).convert('RGBA'); pal = B.pal_of(src)
+        if IV:
+            base = B.lock(src, pal)
+            if cls in B.SIDE:                                                   # build_new 와 같은 c1 (수리판 우선, 발 가운데를 준비 그림에 맞춤)
+                _, sfx = B.foot_align(base)
+                p = os.path.join(HERE, 'work', cls, 'nc1r-0.png')
+                if not os.path.exists(p): p = os.path.join(HERE, 'work', cls, 'nc1-0.png')
+                im, fx = B.foot_align(B.lock(Image.open(p).convert('RGBA'), pal))
+                base = Image.new('RGBA', (64, 64)); base.paste(im, (sfx - fx, 0), im)
+            return lit_auto(base, cls)
         if not TV: return B.lock(src, pal)
         im, _ = B.foot_align(B.lock(Image.open(os.path.join(HERE, 'work', cls, 'nstand-0.png')).convert('RGBA'), pal))
         return lit_auto(im)
@@ -53,11 +63,11 @@ def neutral(cls):
     return lit(cls, n) if LV and cls in LIT else n
 
 
-def lit_auto(n):
+def lit_auto(n, cls=None):
     """다리 구역(엉덩이 3줄 아래, 발 가운데 ±10)만 앞다리 +28% 밝게 · 뒷다리 -18% 어둡게 (외곽선은 그대로) — 두 다리가 갈려 보이게"""
     cx, top, bot, H = frame_geo(n); hip = int(round(bot - 0.30 * H)) + 3; P = n.load()
     for y in range(hip, 64):
-        for x in range(max(0, int(cx) - 10), min(64, int(cx) + 11)):
+        for x in range(max(0, int(cx) - 10), min(64, int(cx) + WR.get(cls, 10) + 1)):     # 대검이 다리 옆에 서 있으면 그 앞까지만
             c = P[x, y]
             if not c[3] or sum(c[:3]) < 60: continue
             f = 1.28 if x >= cx else 0.82
@@ -142,7 +152,7 @@ def plan(classes):
         base, _ = pose(cx, bot, H); fr = [pose(cx, bot, H, t)[0] for t in range(8)]
         body = {'description': (NDESC[cls] if NV else DESC[cls] + (LITDESC[cls] if LV and cls in LIT else '')) + ', legs clearly separated', 'action': 'walking forward with long strides, knees lifting, arms swinging slightly',
                 'direction': 'east', 'view': 'side', 'first_frame': b64(first), 'first_frame_keypoints': kp(base), 'keypoints': [kp(p) for p in fr],
-                'template_id': 'mannequin', 'seed': 47 if NV else 43 if LV else 41, 'no_background': True}
+                'template_id': 'mannequin', 'seed': (53 if cls == 'greatswordsman' and IV else 47) if NV else 43 if LV else 41, 'no_background': True}
         json.dump(body, open(os.path.join(A, f'{cls}-skelwalk{TAG}-req.json'), 'w'))
         rows.append([stick(base, first)] + [stick(p) for p in fr])
     W, H2 = rows[0][0].size; m = Image.new('RGBA', ((W + 4) * 9, (H2 + 4) * len(rows)), (40, 42, 52, 255))
@@ -157,6 +167,7 @@ FIX = ('tyrant', 'swordsaint')     # 비평 2개 미달 → 무료 수리 1회: 
 def fix_legs(cls, d, nim, hip):
     lp = sorted({c for c in nim.crop((0, hip, 64, 64)).getdata() if c[3]})
     if cls == 'tyrant': lp = [c for c in lp if not (c[0] > 70 and c[0] > c[1] * 1.6)] or lp
+    if cls == 'greatswordsman' and IV: lp = [c for c in lp if 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2] < 95] or lp   # 마네킹 회색이 칼 색으로 칠해져 잡점 → 어두운 하체 색만
     D = d.load()
     for y in range(hip, 64):
         for x in range(64):

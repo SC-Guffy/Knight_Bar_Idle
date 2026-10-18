@@ -19,6 +19,10 @@ CAST_S = ['c1', 'c1', 'c2', 'c2', 'c1', 'c1']
 ATK_SHORT = {'paladin': ['c1', 'k2', 'k3', 'k3', 'c1']}
 CAST_SHORT = {'paladin', 'archon', 'tyrant'}           # c1 · 1칸 웅크림 · c1 · 2칸 웅크림 (숨 고르기)
 FLIP = {'paladin': {'c1'}}     # 비평: 성기사 c1(대기·시전) 만 왼쪽을 봄 → 뒤집어 오른쪽 (방패 뒤·칼 앞, 서기·걷기와 같은 방향)
+# 13단계 (시즌7 "개선해"): 대기 그림(c1) 자체를 pixen 원본으로 뽑은 키 n<k>s — 모습이 안 바뀜. 있으면 짧은 판 대신 씀
+ATK_13 = {'paladin': ['c1', 'k0s', 'k2', 'k3', 'k3', 'c1']}
+CAST_13 = ['c1', 'c1', 'c3s', 'c3s', 'c3s', 'c1']
+WALK_I_OK = {'tyrant', 'blademaster'}      # 13단계 대기 그림 첫 프레임 걷기 비평 합격 (대검전사는 다리 잡점으로 미달 → 임시)
 WALK_T_FAIL = {'blademaster', 'greatswordsman', 'tyrant'}     # 12단계 C 걷기 비평 미달 (대기와 모습이 다르거나 다리가 어둡게 뭉침) → 임시 들썩임
 WALK_FAIL = {'blademaster', 'greatswordsman', 'archon', 'tyrant', 'swordsaint'}   # 걷기 비평 미달 → 임시 들썩임
 
@@ -90,18 +94,27 @@ def build(cls):
         if k in FLIP.get(cls, ()):                                           # 왼쪽을 보고 나온 키 → 발 가운데 기준 좌우 뒤집기
             f = o.transpose(Image.FLIP_LEFT_RIGHT); o = Image.new('RGBA', (64, 64)); o.paste(f, (2 * sfx - 63, 0), f)
         keys[k] = o
+    for k in ('k0s', 'c3s'):                                                    # 13단계 키 (원본이 이미 c1 이라 뒤집기 없음)
+        p = os.path.join(HERE, 'work', cls, f'n{k}-0.png')
+        if os.path.exists(p):
+            im, fx = foot_align(fin(Image.open(p).convert('RGBA'))); o = Image.new('RGBA', (64, 64)); o.paste(im, (sfx - fx, 0), im); keys[k] = o
     if cls in SIDE: src = keys['c1']; keys['src'] = src; keys['squat'] = squat(src)     # 대기·피격·임시 걷기도 옆모습 c1 (모습이 끊기지 않게)
     wp = os.path.join(NA, f'{cls}-walk-strip.png')
+    wi = os.path.join(NA, f'{cls}-walkI4-strip.png')
     wt = os.path.join(NA, f'{cls}-walkT4-strip.png')                       # 12단계 C: 옆모습 서기 원본 skeleton 걷기
-    if os.path.exists(wt) and cls not in WALK_T_FAIL:
+    if os.path.exists(wi) and (cls in WALK_I_OK or os.environ.get('TRY13')):
+        w = Image.open(wi).convert('RGBA'); walk = [fin(w.crop((64 * i, 0, 64 * i + 64, 64))) for i in range(w.width // 64)]
+    elif os.path.exists(wt) and cls not in WALK_T_FAIL:
         w = Image.open(wt).convert('RGBA'); walk = [fin(w.crop((64 * i, 0, 64 * i + 64, 64))) for i in range(w.width // 64)]
     elif os.path.exists(wp) and cls not in WALK_FAIL and cls not in SIDE:
         w = Image.open(wp).convert('RGBA'); walk = [fin(w.crop((64 * i, 0, 64 * i + 64, 64))) for i in range(w.width // 64)]
     else: walk = [src, squat(src), src, squat(src, 2)]
     hurt = [src.transform((64, 64), Image.AFFINE, (1, 0, 2, 0, 1, 0)), src.transform((64, 64), Image.AFFINE, (1, 0, 1, 0, 1, 0))]
     rows = {'idle': ([src, squat(src)], dict(fps=3, loop=True)), 'walk': (walk, dict(fps=8, loop=True)),
-            'atkA': ([keys[k] for k in ATK_SHORT.get(cls, ATK_S if cls in SIDE else ATK)], dict(fps=12, loop=False, hit=1 if cls in ATK_SHORT else HIT)),
-            'cast': ([src, squat(src), src, squat(src, 2)] if cls in CAST_SHORT else [keys[k] for k in (CAST_S if cls in SIDE else CAST)], dict(fps=6 if cls in CAST_SHORT else 8, loop=True)),
+            'atkA': ([keys[k] for k in ATK_13[cls]], dict(fps=12, loop=False, hit=HIT)) if cls in ATK_13 and 'k0s' in keys else
+                    ([keys[k] for k in ATK_SHORT.get(cls, ATK_S if cls in SIDE else ATK)], dict(fps=12, loop=False, hit=1 if cls in ATK_SHORT else HIT)),
+            'cast': ([keys[k] for k in CAST_13], dict(fps=8, loop=True)) if cls in CAST_SHORT and 'c3s' in keys else
+                    ([src, squat(src), src, squat(src, 2)] if cls in CAST_SHORT else [keys[k] for k in (CAST_S if cls in SIDE else CAST)], dict(fps=6 if cls in CAST_SHORT else 8, loop=True)),
             'hurt': (hurt, dict(fps=12, loop=False))}
     W = 64 * max(len(f) for f, _ in rows.values()); sheet = Image.new('RGBA', (W, 64 * len(rows)))
     meta = {'w': 64, 'h': 64, 'foot': list(FOOT), 'anims': {}, 'pts': {}}

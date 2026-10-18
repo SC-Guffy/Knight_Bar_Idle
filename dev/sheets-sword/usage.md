@@ -241,3 +241,11 @@
 | 233 | tyrant | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 3.0 / 3.0 | 576.0 / 410.0 | 338.0 |
 | 234 | swordsaint | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 3.0 / 3.0 | 579.0 / 413.0 | 335.0 |
 | 235 | paladin | `/animate-with-skeleton-v3` | skelwalkT: /animate-with-skeleton-v3 | 0.0 / 3.0 | 579.0 / 416.0 | 332.0 |
+| 236 | blademaster | `/animate-with-skeleton-v3` | skelwalkI: /animate-with-skeleton-v3 | 3.0 / 3.0 | 582.0 / 419.0 | 326.0 |
+| 237 | greatswordsman | `/animate-with-skeleton-v3` | skelwalkI: /animate-with-skeleton-v3 | 3.0 / 3.0 | 585.0 / 422.0 | 323.0 |
+| 238 | tyrant | `/animate-with-skeleton-v3` | skelwalkI: /animate-with-skeleton-v3 | 3.0 / 3.0 | 588.0 / 425.0 | 320.0 |
+| 239 | paladin | `/edit-image-pixen` | nc3s: Change only the pose: casting a holy spell, the golden sword | 1.0 / 1.0 | 589.0 / 426.0 | 319.0 |
+| 240 | paladin | `/edit-image-pixen` | nk0s: Change only the pose: wind-up, the golden sword pulled back  | 2.0 / 1.0 | 591.0 / 427.0 | 317.0 |
+| 241 | archon | `/edit-image-pixen` | nc3s: Change only the pose: casting a celestial spell, the golden  | 1.0 / 1.0 | 592.0 / 428.0 | 316.0 |
+| 242 | tyrant | `/edit-image-pixen` | nc3s: Change only the pose: unleashing rage, the greatsword raised | 2.0 / 1.0 | 594.0 / 429.0 | 314.0 |
+| 243 | greatswordsman | `/animate-with-skeleton-v3` | skelwalkI: /animate-with-skeleton-v3 | 4.0 / 3.0 | 598.0 / 432.0 | 307.0 |

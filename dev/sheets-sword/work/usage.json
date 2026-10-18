@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 579.0,
+ "used": 598.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -1646,7 +1646,63 @@
    "purpose": "skelwalkT: /animate-with-skeleton-v3",
    "used": 0.0,
    "bal": 332.0
+  },
+  {
+   "cls": "blademaster",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkI: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 326.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkI: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 323.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkI: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 320.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc3s: Change only the pose: casting a holy spell, the golden sword",
+   "used": 1.0,
+   "bal": 319.0
+  },
+  {
+   "cls": "paladin",
+   "ep": "/edit-image-pixen",
+   "purpose": "nk0s: Change only the pose: wind-up, the golden sword pulled back ",
+   "used": 2.0,
+   "bal": 317.0
+  },
+  {
+   "cls": "archon",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc3s: Change only the pose: casting a celestial spell, the golden ",
+   "used": 1.0,
+   "bal": 316.0
+  },
+  {
+   "cls": "tyrant",
+   "ep": "/edit-image-pixen",
+   "purpose": "nc3s: Change only the pose: unleashing rage, the greatsword raised",
+   "used": 2.0,
+   "bal": 314.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkI: /animate-with-skeleton-v3",
+   "used": 4.0,
+   "bal": 307.0
   }
  ],
- "nom": 416.0
+ "nom": 432.0
 }
