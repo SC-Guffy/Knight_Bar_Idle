@@ -1,6 +1,6 @@
 # 스킬 빌드 트리 — 15줄기 전체 (시즌7 공개)
 
-- 상태: 구현 완료, 공개 대기 — 15줄기 · T7_OPEN=true · 0.27.0 (impl-skill-tree-all 브랜치, main 배포는 로드맵)
+- 상태: 0.27.0 공개됨 (main 3e9e6ec3). 14줄기 전용 연출·아이콘·결투 다시 맞춤은 impl-tree7-fx (main 배포는 로드맵)
 - 상위 스펙: [skill-build-tree.md](skill-build-tree.md) (방향) · 시제품 [skill-tree-swordsaint.md](skill-tree-swordsaint.md) (검성 한 줄기, 규칙·수치·UI·보스 벽·결투의 기준)
 - 관련 코드: src/tree7.js (노드 틀·규칙, `t7DefLine`·`t7DefStem`·`t7Sync`), src/tree7-l-<줄기>.js (줄기 데이터 15개), src/tree7-ui.js (`t7U`·`t7Lane`), src/tree7-fx.js (연출·전투 규칙), src/tree7-wall.js (보스 벽), dev/tree7-check.js (줄기 데이터 검사)
 - 최종 갱신: 2026-10-18
@@ -106,6 +106,16 @@ t7DefLine({
 
 ## 진행 기록
 
+- 2026-10-19: **14줄기 새 스킬 전용 연출·아이콘** (impl-tree7-fx, 로드맵 지시 "바탕 스킬과 달라 보이게, 무료로"). 유료 생성 0회 (PixelLab 허용분 150 은 쓰지 않음 — 무료 재조합으로 됐다).
+  - `src/tree7-fx-<줄기>.js` 14개: 새 스킬 7개씩 98종의 SKILL_FX — 지금 VFX 시트(src/vfx/*.png)를 위치·개수·궤적·크기·색 램프만 바꿔 재조합, 칸 단계(★)마다 커지고, 변형 노드(grow·follow·triple·after·pierce·split)에 반응. 서브에이전트 5개(1차 계열별)가 쓰고 검수 4번 돌며 고쳤다.
+  - 검수: `dev/tree7-shoot.js`(시뮬레이터에서 새 스킬마다 1칸·★★★·바탕 ★★★ 2.6초 띠 캡처) → `dev/tree7-qa-sheet.py`(세 줄 시트) → 도트 비평(sonnet, dev/pixel-qa/critic.md 채점표 + "바탕과 다른가 distinct"·"★★★ 가 커지는가 growth"). 1차 48/105 통과 → 2차 75 → 3차 84/98(14줄기) → 4·5차 **93/98**. 남은 5 (경계선 fix): 성좌기사 융합 둘(★★★ 절정에 블록 번짐) · 챔피언 권풍 · 그랜드마스터 관통 기탄 · 템페스트 풍인각(바탕과 비슷). 검토 페이지 dev/review/tree7-fx-all.html.
+  - 융합은 3칸이 끝이라 칸 → 모습 표(T7_STAGE_AT)로 ★ 에서 멈춰 ★★·★★★ 연출이 안 나왔다 → `T7_FUSE_STAGE_AT` (1칸 기본·2칸 ★★·3칸 ★★★).
+  - 아이콘: `dev/icon-art/t7-*.js` 105개(검성 7 + 14줄기 98) → `dev/make-icons.js` 로 src/skin/icons.png 에 구움. 노드 ic 와 전투 화면 스킬 아이콘(SKILL_CP — `t7DefLine` 이 새 스킬도 바꾼다)이 도트 아이콘.
+  - 줄기 글: 줄기마다 말투로 다시 (마법사 계열 템플릿 느낌 걷어 냄), 새 스킬 설명에 연출 한 줄.
+  - 버그: ① 궁극기를 바탕으로 한 새 스킬(신궁 태양 폭풍 ← 태양 관통)이 `ult` 를 물려받아 장착·시전이 안 됐다 (**0.27 배포본에도 있음**) → `t7DefLine` 에서 `ult: false`. ② 게이지 상태가 생긴 뒤 장착한 파이터 새 투지 기술이 문턱 칸이 없어 안 나갔다 → `qiCan` 에서 채움.
+  - 상시 장식: 대마도사 머리 뒤 불꽃 고리·뇌제 등 뒤 번개 바퀴 (시트에서 뺀 소품) → src/sprites.js `SHEET_BACK_AURA` 가 몸보다 먼저 P7·P12·P11·H29 를 배치 (유료 0).
+  - 결투: 시즌 리셋으로 모두 트리라 기준을 "15줄기 리그(빌드 a·b·k, Lv130·170) 50% + 줄기 안 맞대결 50%" 로 바꿔 `T7_DUEL_TUNE` 다시 (리그 38~59% · 근접 vs 원거리 48% · 줄기 안 14~50/60). 옛 시스템 상대 3곳(성좌기사 발도 6승 등)은 이제 상대가 없어 기준에서 뺐다. 서버 배포 불필요 (결투 배율은 클라이언트 프로필 값, 서버는 0.27 에서 이미 받는다).
+
 - 2026-10-18: **측정** (열심 봇 6시드·10일 중앙값, 3·5·10일차 최고 스테이지, `node dev/lifespan-bot.js --line <줄기> --build a|b|k` · 현행 `--old 1`):
 
   | 줄기 | 현행 | a | b | k | 빌드 차 | 현행 대비 |
@@ -134,7 +144,6 @@ t7DefLine({
 
 ## 남은 일
 
-- main 병합·배포 (로드맵, 서버 배포 필요: sanitizeProfile t7·gap·duel, duel.js GAP·qiReady·duel 배율, SAVE_MIN_VERSION).
-- 검성 말고는 새 스킬 연출이 바탕 스킬 연출 그대로(이름·아이콘·모습 단계만 다름) — 줄기별 전용 연출·아이콘 굽기는 아트 차례 (유료 생성 없이 지금 VFX 시트 재배치로).
-- 줄기 글(이름·설명)은 서브에이전트 초안 — 마법사 계열은 같은 문형에 이름만 바꾼 템플릿이라 다듬을 여지.
-- 결투 벗어난 3곳(위) · 기막(qiBarrier)처럼 1타 스킬에 붙은 "타수 +3" 변형은 효과가 작다.
+- 검수 경계선 5개(위) — 검토 페이지 dev/review/tree7-fx-all.html 의 "손볼 곳" 배지와 비평 메모.
+- 변형 노드(grow·follow·triple·after·pierce·split)를 켠 모습은 코드로만 넣고 캡처 검수는 안 했다 (`T7SHOOT([{ ..., mods: ['a_grow'] }])` 로 찍을 수 있다).
+- 기막(qiBarrier)처럼 1타 스킬에 붙은 "타수 +3" 변형은 효과가 작다.
