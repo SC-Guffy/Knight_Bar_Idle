@@ -254,3 +254,8 @@
 | 246 | greatswordsman | `/edit-image-pixen` | nc3b: Change only the pose: unleashing power, the same enormous sl | 1.0 / 1.0 | 610.0 / 437.0 | 286.0 |
 | 247 | greatswordsman | `/edit-image-pixen` | nk2b: Change only the pose: mid swing, the thick slab greatsword s | 1.0 / 1.0 | 611.0 / 438.0 | 283.0 |
 | 248 | greatswordsman | `/edit-image-pixen` | nk3b: Change only the pose: follow-through, the thick slab greatsw | 1.0 / 1.0 | 612.0 / 439.0 | 282.0 |
+| 249 | greatswordsman | `/edit-image-pixen` | nback: Change only the pose: calm standing pose in side view facing | 1.0 / 1.0 | 613.0 / 440.0 | 281.0 |
+| 250 | greatswordsman | `/edit-image-pixen` | nbk37: Change only the arms and the sword: he carries the enormous  | 0.0 / 1.0 | 613.0 / 441.0 | 281.0 |
+| 251 | greatswordsman | `/edit-image-pixen` | nbk41: Change only the arms and the sword: he carries the enormous  | 2.0 / 1.0 | 615.0 / 442.0 | 279.0 |
+| 252 | greatswordsman | `/animate-with-skeleton-v3` | skelwalkB: /animate-with-skeleton-v3 | 3.0 / 3.0 | 618.0 / 445.0 | 276.0 |
+| 253 | greatswordsman | `/edit-image-pixen` | nmidb: Change only the arms and sword: halfway through lifting the  | 1.0 / 1.0 | 619.0 / 446.0 | 275.0 |

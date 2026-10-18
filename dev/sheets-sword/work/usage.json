@@ -1,6 +1,6 @@
 {
  "start": 1211.0,
- "used": 612.0,
+ "used": 619.0,
  "calls": [
   {
    "cls": "mq-sword",
@@ -1737,7 +1737,42 @@
    "purpose": "nk3b: Change only the pose: follow-through, the thick slab greatsw",
    "used": 1.0,
    "bal": 282.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nback: Change only the pose: calm standing pose in side view facing",
+   "used": 1.0,
+   "bal": 281.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nbk37: Change only the arms and the sword: he carries the enormous ",
+   "used": 0.0,
+   "bal": 281.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nbk41: Change only the arms and the sword: he carries the enormous ",
+   "used": 2.0,
+   "bal": 279.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skelwalkB: /animate-with-skeleton-v3",
+   "used": 3.0,
+   "bal": 276.0
+  },
+  {
+   "cls": "greatswordsman",
+   "ep": "/edit-image-pixen",
+   "purpose": "nmidb: Change only the arms and sword: halfway through lifting the ",
+   "used": 1.0,
+   "bal": 275.0
   }
  ],
- "nom": 439.0
+ "nom": 446.0
 }

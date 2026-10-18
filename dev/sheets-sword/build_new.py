@@ -25,7 +25,7 @@ CAST_13 = ['c1', 'c1', 'c3s', 'c3s', 'c3s', 'c1']
 # 14단계: 대검전사 — 대검을 어깨에 멘 서기(nback)를 대기·걷기·평타/시전 시작 그림으로 (걷기와 모습이 안 바뀌게)
 BACK = {'greatswordsman'}
 ATK_B = ['bk', 'c3b', 'k2b', 'k3b', 'k3b', 'bk']         # 베기·마무리도 대기 그림 원본(nk2b·nk3b) — 칼 크기 같음           # 젖힘 = 어깨의 대검을 두 손으로 들어 올림 (nc3b, 대기 그림 원본 — 칼 크기 같음)
-CAST_B = ['bk', 'bk', 'c3b', 'c3b', 'c3b', 'bk']
+CAST_B = ['c3b', 'c3b', 'c3bq', 'c3b', 'c3b', 'c3bq2']   # 비평: 멘 자세↔든 자세가 루프마다 깜빡임 → 든 자세로만 돌고 1~2칸 숨 고르기 (nmidb 는 대기와 같게 나와 안 씀)
 WALK_I_OK = {'tyrant', 'blademaster'}      # 13단계 대기 그림 첫 프레임 걷기 비평 합격 (대검전사는 다리 잡점으로 미달 → 임시)
 WALK_T_FAIL = {'blademaster', 'greatswordsman', 'tyrant'}     # 12단계 C 걷기 비평 미달 (대기와 모습이 다르거나 다리가 어둡게 뭉침) → 임시 들썩임
 WALK_FAIL = {'blademaster', 'greatswordsman', 'archon', 'tyrant', 'swordsaint'}   # 걷기 비평 미달 → 임시 들썩임
@@ -105,10 +105,11 @@ def build(cls):
     if cls in BACK and os.path.exists(os.path.join(HERE, 'work', cls, 'nback-0.png')):
         im, fx = foot_align(fin(Image.open(os.path.join(HERE, 'work', cls, 'nback-0.png')).convert('RGBA'))); o = Image.new('RGBA', (64, 64)); o.paste(im, (sfx - fx, 0), im)
         keys['bk'] = o; src = o; keys['src'] = src; keys['squat'] = squat(src)
-        for kb in ('c3b', 'k2b', 'k3b'):
+        for kb in ('c3b', 'k2b', 'k3b', 'midb'):
             pc = os.path.join(HERE, 'work', cls, f'n{kb}-0.png')
             if os.path.exists(pc):
                 im2, fx2 = foot_align(fin(Image.open(pc).convert('RGBA'))); o2 = Image.new('RGBA', (64, 64)); o2.paste(im2, (sfx - fx2, 0), im2); keys[kb] = o2
+        if 'c3b' in keys: keys['c3bq'] = squat(keys['c3b']); keys['c3bq2'] = squat(keys['c3b'], 2)
     if cls in SIDE: src = keys['c1']; keys['src'] = src; keys['squat'] = squat(src)     # 대기·피격·임시 걷기도 옆모습 c1 (모습이 끊기지 않게)
     wp = os.path.join(NA, f'{cls}-walk-strip.png')
     wb = os.path.join(NA, f'{cls}-walkB4-strip.png')
