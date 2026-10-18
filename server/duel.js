@@ -91,8 +91,11 @@ function qiReady(me, dt, t) {
   me.busy -= dt;
   if (me.busy > 0) return null;
   qiAdd(me, (me.p.qi.perSec || 0) * dt, t);
-  const pick = me.skills.find((s) => s.need && qiCanUse(me, s)) || me.skills.find((s) => s.cost && qiCanUse(me, s));
+  // 주 기술(cost)이 여럿이면(시즌7 트리 장착 칸) 오래 안 쓴 것부터 — 한 게이지를 나눠 쓴다. 하나뿐인 지금 직업은 그대로
+  const mains = me.skills.filter((s) => s.cost && qiCanUse(me, s)).sort((a, b) => (a.usedT || 0) - (b.usedT || 0));
+  const pick = me.skills.find((s) => s.need && qiCanUse(me, s)) || mains[0];
   if (!pick) return null;
+  pick.usedT = t + 1e-6;
   me.busy = pick.dur;
   me.cd = Math.max(me.cd, pick.dur);
   return qiUse(me, pick, t);
@@ -129,7 +132,8 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     cd: 0.2 + rng() * 0.3,
     leapCd: p.leap ? p.leap.every / 2 : Infinity,
     // 돌진기는 개전 직후 준비되고, 걸어가는 동안에도 쿨타임이 돈다 (다른 스킬은 교전 시작 후부터)
-    skills: makeSkills(p).map((s) => (GAP[s.id] || s.gap ? { ...s, gap: GAP[s.id] || s.gap, left: 0.3 } : s)),   // s.gap: 시즌7 트리 새 스킬 (프로필이 바탕 스킬 값을 싣는다) busy: 0, ward: null,
+    // s.gap: 시즌7 트리 새 스킬의 돌진 거리 (프로필이 바탕 스킬 값을 싣는다)
+    skills: makeSkills(p).map((s) => (GAP[s.id] || s.gap ? { ...s, gap: GAP[s.id] || s.gap, left: 0.3 } : s)), busy: 0, ward: null,
     dash: null, dashed: null, stopT: null, dealt: 0,
   });
   const a = make(pa, 0, 1), b = make(pb, START_DIST, -1);

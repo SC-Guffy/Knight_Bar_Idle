@@ -346,7 +346,7 @@ function updateExpedition(dt, gdt) {
 // 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree(px) (원정은 px 만큼 걷기, 탑은 층 정리)
 const DASH_SPEED = 500;   // 돌진기로 달려붙는 속도 px/s (결투 server/duel.js DASH 와 같다)
 // 사거리 밖 d(px) 앞의 적에게 쓸 수 있는 돌진기 (classes.js SKILLS 의 gap, 쿨타임이 찬 것 중 목록 앞쪽)
-const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && (qiOn() ? qiCan(id, true) : !(knight.cds[id] > 0)) && d <= SKILLS[id].gap) || null;
+const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && (qiOn() ? qiCan(id, true) && qiDashOk(id, st) : !(knight.cds[id] > 0)) && d <= SKILLS[id].gap) || null;
 function fightTick(dt, st, onFree) {
   const phase = S.phase;
   const alive = monsters.filter(m => !m.dying)

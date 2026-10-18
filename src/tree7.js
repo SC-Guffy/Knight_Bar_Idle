@@ -89,13 +89,39 @@ const T7_SLOTS_SK = T7_NODES.filter((n) => n.slot).map((n) => n.id);   // 스킬
 //   ui: { 노드 id: { n, d, looks, cost, ic } }, duel: { a, b, k } 궁극기 변형별 결투 배율, tune: { pow } 줄기 위력 눈금(T7_TUNE 대신), fx: { 노드 id: 효과 덮어쓰기 } })  — 1차 줄기 공용 글은 t7DefStem(1차, { ui })
 const T7_LINES = {}, T7_STEMS = {}, T7_FX_BASE = {}, T7_LINE_OF = {};
 function t7DefStem(first, o) { T7_STEMS[first] = o; }
+// 줄기별 결투 배율 (궁극기 변형을 찍은 갈래 기준, t7Duel). 맞대결 3쌍 + 지금 시스템 상대 3쌍이 50% 가까이 되게 Lv130·170 결투로 찾은 값
+//  (2026-10-18, 스크래치 tune-duel.js: sanitizeProfile → server/duel.js 40판 좌표 하강). t7DefLine 의 duel 이 있으면 그것
+const T7_DUEL_TUNE = {
+  swordsaint: { a: 1.21, b: 0.93, k: 1.39 },
+  tyrant: { a: 0.99, b: 0.6, k: 1.1 },
+  archon: { a: 0.64, b: 0.42, k: 0.85 },
+  skyGeneral: { a: 0.59, b: 0.42, k: 0.7 },
+  dragonlord: { a: 0.85, b: 0.5, k: 0.93 },
+  warlord: { a: 0.77, b: 0.47, k: 0.83 },
+  siegeMaster: { a: 1.95, b: 1.15, k: 1.3 },
+  deadeye: { a: 1.4, b: 1.16, k: 1.54 },
+  voidArcher: { a: 0.85, b: 0.59, k: 0.91 },
+  thunderEmperor: { a: 1.07, b: 0.75, k: 1.21 },
+  archmage: { a: 1.27, b: 1, k: 1.18 },
+  frostlord: { a: 1.3, b: 0.91, k: 1.5 },
+  champion: { a: 0.91, b: 1, k: 1.1 },
+  tempest: { a: 1.5, b: 0.85, k: 1.4 },
+  grandmaster: { a: 1.12, b: 0.75, k: 1.21 },
+};
 function t7DefLine(L) {
+  if (!L.duel && T7_DUEL_TUNE[L.id]) L.duel = T7_DUEL_TUNE[L.id];
   const sk = { ...L.sk };
   for (const [slot, o] of Object.entries(L.newSkills)) {
     const { id, base, ...rest } = o;
     SKILLS[id] = { ...SKILLS[base], ...rest, id, cls: L.cls[1], lv: 0, t7: true, t7base: base };
     T7_FX_BASE[id] = base;
     sk[slot] = id;
+  }
+  // 무념(b_k3) 배율: ×2.6 은 확정 치명(3.3배)을 잃는 검성 일섬·섬광 베기 기준. 갈래 b 스킬이 확정 치명이 아니면 평범한 치명 기대값(~1.9배)만 잃어서 ×1.9
+  if (SKILLS[L.sk.iaido] && !SKILLS[L.sk.iaido].crit && !(L.fx && L.fx.b_k3)) {
+    L.fx = { ...L.fx, b_k3: { stat: { atkMul: 1.9, noCrit: 1 } } };
+    const u = L.ui && L.ui.b_k3;
+    if (u && u.d) u.d = u.d.replace('×2.6', '×1.9').replace('+160%', '+90%');
   }
   T7_LINES[L.id] = { ...L, sk, slotOf: Object.fromEntries(Object.entries(sk).map(([a, b]) => [b, a])) };
   for (const c of L.cls) if (!TREE7_CLS.includes(c)) TREE7_CLS.push(c);
@@ -119,7 +145,7 @@ const t7SkKey = (k) => { const L = t7L(); return (L && L.sk[k]) || k; };
 const t7LaneOf = (sk) => { t7L(); return T7_BY_SKILL[sk] ? T7_BY_SKILL[sk].lane || null : null; };
 
 // 장착 칸: [필요 레벨, 필요 차수, 비용 종류, 값 or 함수]
-const T7_SLOTS = [null, null, { tier: 2, lv: 50, gold: 300 }, { lv: 80, mana: 300 }, { lv: 120, mana: 1500 }];
+const T7_SLOTS = [null, null, { tier: 2, lv: 50, gold: 30 }, { lv: 80, mana: 300 }, { lv: 120, mana: 1500 }];
 const T7_RESET_GOLD = 100;   // 전체 초기화 = 최고 스테이지 잡몹 골드 × 100 (원정 약 20분)
 
 function freshT7() { return { pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {}, auto: true, free: 1 }; }   // auto: 직접 찍기 전까지 추천 순서로 자동 · free: 첫 초기화 무료   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
