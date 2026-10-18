@@ -112,3 +112,7 @@
 | 106 | skyGeneral | `/edit-image-pixen` | key-slam-4: same young chibi sky general knight with a white and gold wi | 1.0 | 153.0 | 349.0 |
 | 107 | skyGeneral | `/edit-image-pixen` | key-lunge1: same young chibi sky general knight with a white and gold wi | 1.0 | 154.0 | 346.0 |
 | 108 | skyGeneral | `/edit-image-pixen` | key-lunge2: same young chibi sky general knight with a white and gold wi | 1.0 | 155.0 | 345.0 |
+| 109 | cavalier | `/edit-image-pixen` | key-thrust-2: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 156.0 | 318.0 |
+| 110 | cavalier | `/edit-image-pixen` | key-slam-2: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 157.0 | 316.0 |
+| 111 | cavalier | `/edit-image-pixen` | key-thrust-3: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 158.0 | 314.0 |
+| 112 | cavalier | `/edit-image-pixen` | key-slam-3: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 159.0 | 311.0 |

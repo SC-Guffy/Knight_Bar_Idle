@@ -14,7 +14,8 @@ from wpn import line_fit
 SEQ = {'default': [4, 1, 2, 3, 3, 4]}   # 원본(정지 그림)은 키와 인상이 달라 뺀다 — 마무리 키(대기 자세)로 시작·끝 (용황 시험 교훈)
 # 용황: 합격 정지 그림(검은 머리)과 pixen 키(금발) 인상이 달라 원본을 빼고, 잘 나온 찌르기 키2 를 새 기준(dragonlord-key2-src64)으로 재편집한 대기·준비를 쓴다
 #  (검수 k1 3.00: 얼굴·머리색 튐, 준비 키 발치 꼬리 모양). 재편집 '들기'는 창이 두 자루라 안 씀
-SEQ_CLS = {'skyGeneral': {'thrust': ['key-thrust-4', 'key-lunge1', 'key-lunge2', 'key-lunge2', 'key-lunge1', 'key-thrust-4'],   # 찌르기 키2·3 손이 보호대 뒤에 가려 떠 보임 → 키4 기준 재편집 2장
+SEQ_CLS = {'cavalier': {'thrust': [2, 2, 3, 3, 3, 2], 'slam': [('thrust', 2), 1, 2, 3, 3, ('thrust', 2)]},   # 2026-10-18 랜스가 칼처럼 → 굵은 원뿔 랜스로 재편집한 키(찌르기 2·3, 내리찍기 2·3) 위주
+           'skyGeneral': {'thrust': ['key-thrust-4', 'key-lunge1', 'key-lunge2', 'key-lunge2', 'key-lunge1', 'key-thrust-4'],   # 찌르기 키2·3 손이 보호대 뒤에 가려 떠 보임 → 키4 기준 재편집 2장
                            'slam': ['key-thrust-4', 1, 1, 3, 3, 'key-thrust-4']},   # 내리찍기 키2·4 안 옴 → 들기 반복, 마무리는 찌르기 키4
            'dragonlord': {'thrust': ['key-ready', 'key-windup', 'dragonlord-key2-src64', 3, 3, 'key-ready'],
                           'slam': ['key-ready', 2, 2, 3, 3, 'key-ready']}}
@@ -27,6 +28,7 @@ def key_img(cls, atk, k):
         for p in (os.path.join(HERE, 'work', cls, f'{k}-0.png'), os.path.join(HERE, 'skel', f'{k}.png')):
             if os.path.exists(p): return Image.open(p).convert('RGBA')
         return None
+    if isinstance(k, tuple) and isinstance(k[0], str): atk, k = k          # ('thrust', 2) = 다른 평타의 키
     kk, v = (k if isinstance(k, tuple) else (k, 0))
     for vv in (v, 1 - v):
         p = os.path.join(HERE, 'work', cls, f'key-{atk}-{kk}-{vv}.png')
