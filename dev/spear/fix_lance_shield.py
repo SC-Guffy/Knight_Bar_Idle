@@ -11,6 +11,7 @@ from wpn import line_fit
 OUT, SH, MID, HI = (40, 44, 56), (96, 104, 124), (162, 170, 188), (236, 240, 248)
 hls = lambda c: colorsys.rgb_to_hls(c[0] / 255, c[1] / 255, c[2] / 255)
 ROWS = ('atkA', 'atkB', 'cast', 'walk', 'idle')
+SHIELD_ROWS = ('atkA', 'atkB', 'cast')   # 방패 통일은 평타·시전만 — 걷기는 방패가 작게 보여 덩어리를 잘못 잡고 얼굴 위에 큰 방패를 얹었다
 
 
 def comps(pts):
@@ -118,7 +119,7 @@ def fix_shield(im, ref):
 
 if __name__ == '__main__':
     what, cls = sys.argv[1], sys.argv[2]
-    fs = [f for r in ROWS for f in glob.glob(os.path.join(HERE, 'frames', cls, f'{r}-*.png'))]
+    fs = [f for r in (ROWS if what == 'lance' else SHIELD_ROWS) for f in glob.glob(os.path.join(HERE, 'frames', cls, f'{r}-*.png'))]
     ref = ref_shield(cls)[0] if what == 'shield' else None
     n = 0
     for f in fs:

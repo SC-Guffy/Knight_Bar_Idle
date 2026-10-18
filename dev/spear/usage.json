@@ -1,5 +1,5 @@
 {
- "used": 159.0,
+ "used": 169.0,
  "calls": [
   {
    "cls": "mq",
@@ -895,6 +895,86 @@
    "purpose": "key-slam-3: same chibi cavalry lancer knight, red plume helmet, blue sur",
    "used": 1.0,
    "bal": 311.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-1: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 307.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-walk-1: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 307.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-walk-2: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 303.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-walk-3: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 299.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-walk-4: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 296.0,
+   "n": 2
+  },
+  {
+   "cls": "skyGeneral",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-slam-1: same chibi sky general knight, white and gold winged helmet,",
+   "used": 1.0,
+   "bal": 296.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-walkL-1: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 291.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-walkL-2: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 287.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-walkL-3: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 286.0,
+   "n": 2
+  },
+  {
+   "cls": "cavalier",
+   "ep": "/edit-image-pixen",
+   "purpose": "key-walkL-4: same chibi cavalry lancer knight, red plume helmet, blue sur",
+   "used": 1.0,
+   "bal": 286.0,
    "n": 2
   }
  ]
