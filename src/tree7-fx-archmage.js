@@ -86,7 +86,7 @@ function amOrbShot(a, i, targets) {
 const amOrbOpts = (a, life, small) => {
   const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow');
   const sc = grow ? 1 : 2 / 3;      // E36 은 32도트라 고리 하나하나는 작게 (불바다 grow 만 1배). ★ 단계는 개수·반지름·금빛으로 키운다
-  return { life, follow, grow, n: small ? [3, 4, 5, 6][m] : [4, 6, 6, 8][m], sc, rx: grow ? 54 : m >= 3 ? 48 : 30 + 4 * m };
+  return { life, follow, grow, n: small ? [4, 5, 6, 8][m] : [4, 6, 6, 8][m], sc: small ? 1 : sc, rx: grow ? 54 : small ? 40 + 4 * m : m >= 3 ? 48 : 30 + 4 * m };
 };
 
 // ── 불꽃 고리 (whirl) ── 불꽃 꽃이 기사 둘레를 고리로 돈다: 1칸 4송이 · ★ 6송이 · ★★ 6송이 크게 · ★★★ 8송이 금빛
@@ -207,12 +207,12 @@ SKILL_FX.am_f_bk = {
   hit(a, i, n) {
     if (i !== n - 1) { for (const t of a.targets(i)) { const p = ilTip(a); skFx(null, 0, 0.14, (u) => vfxDraw(ctx, 'p7', amRamp(a), mgLoop('p7', 15), mix(p.x, t.x, u), mix(p.y, t.y, u), { scale: 1, alpha: 1 - u * 0.3 })); } return; }
     const y = a.ty(), cnt = 4 + (a.mast || 0), m = a.mast || 0;
-    amBeam(a, y, { scale: m >= 3 ? 4 / 3 : m >= 2 ? 1 : 2 / 3 });
+    if (m >= 3) [-14, 14].forEach((dy) => amBeam(a, y + dy, { scale: 4 / 3 })); else amBeam(a, y, { scale: m >= 2 ? 4 / 3 : 1 });
     for (let j = 1; j <= cnt; j++) {
       const x = a.x() + a.dir * j * 62;
       if (x < 10 || x > W - 10) break;
-      texFx('h27', x, groundY() + 2, amRamp(a), { scale: m >= 3 ? 2 : 4 / 3, life: 0.34, delay: 0.1 + j * 0.07, anchor: 'b', fade: 0.3, flip: j % 2 === 0 });
-      amFlower(a, x, y, 2 / 3, 0.14 + j * 0.07);
+      texFx('h27', x, groundY() + 2, amRamp(a), { scale: m >= 2 ? 2 : 4 / 3, life: 0.4, delay: 0.1 + j * 0.07, anchor: 'b', fade: 0.3, flip: j % 2 === 0 });
+      amFlower(a, x, y, m >= 3 ? 4 / 3 : 1, 0.14 + j * 0.07);
     }
     impact({ stop: 0.08, shake: 0.3 });
   },

@@ -11,7 +11,7 @@ for L in lines:
   for slot,(base,name,bname) in L['base'].items():
     key=f"{L['id']}-{slot}"
     if only and key not in only: continue
-    rows=[(f"{name} 1칸",f"t7-{key}-0.png"),(f"{name} ★★★",f"t7-{key}-3.png"),(f"바탕: {bname} (지금 스킬 ★★★)",f"base-{L['id']}-{base}.png")]
+    rows=[(f"[{key}] {name} 1칸",f"t7-{key}-0.png"),(f"{name} ★★★",f"t7-{key}-3.png"),(f"바탕: {bname} (지금 스킬 ★★★)",f"base-{L['id']}-{base}.png")]
     ims=[Image.open(os.path.join(SH,f)).convert('RGB') for _,f in rows]
     W=max(i.width for i in ims); H=sum(i.height+30 for i in ims)
     out=Image.new('RGB',(W,H),(8,8,14)); d=ImageDraw.Draw(out); y=0

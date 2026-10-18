@@ -57,6 +57,7 @@
             { scale: fs, flip: Math.sin(th) > 0, alpha: fade * [0.9, 0.4, 0.2][k] });
         }
         vfxDraw(ctx, 'xe13', c, Math.floor(clock * 12) % 6, cx, gy - 2, { scale: rs, alpha: 0.5 * fade });
+        for (let q = 0; q < n * 2; q++) { const an = clock * 12 + q * 2.1; vfxDraw(ctx, 'xe11', '#fff4c8', Math.floor(clock * 14 + q) % 4, cx + Math.cos(an) * (R + 6), gy - 30 + Math.sin(an) * R * 0.35, { scale: 2 / 3, alpha: 0.95 * fade }); }
       });
     }]],
     hit(a, i) {
@@ -94,9 +95,12 @@
       qiDust(a, 6);
       if (tri) for (const dy of [-14, 0, 14]) row(a, y + dy, { scale: 2 / 3, step: 30 });
       else row(a, y, { scale: m >= 3 ? 4 / 3 : 1 });
+      if (m >= 3 && !tri) for (const dy of [-16, 16]) row(a, y + dy, { scale: 2 / 3, step: 30, alpha: 0.7 });
+      if (m >= 3) for (let q = 1; q <= 5; q++) texFx('xe03', a.x() + d * q * 60, y, col(a), { scale: 1, life: 0.3, delay: q * 0.03, flip: d < 0, alpha: 0.8, fade: 0.5 });
       if (m >= 1) for (let k = 0; k < (m >= 3 ? 2 : 1); k++)
         texFx('xe06', a.x() + d * 40, y, col(a), { scale: 2 / 3, life: 0.3, delay: k * 0.08, alpha: k ? 0.6 : 1, flip: d < 0, fade: 0.3, move: (u) => [d * edge * easeOut(u), 0] });
-      qiFrontTex('xe01', a, 0.3, { len: 60, scale: m >= 2 ? 4 / 3 : 1, y });
+      qiFrontTex('xe01', a, 0.34, { len: m >= 3 ? 110 : 60, scale: m >= 3 ? 2 : m >= 2 ? 4 / 3 : 1, y });
+      if (m >= 3) ring(a.tx(), groundY() - 4, 4 / 3, 0.4, col(a), 0.05);
       if (t7Sh(a, 'after') && i === n - 1) row(a, y + 3, { delay: 0.5, alpha: 0.55, color: '#b99a7a', scale: m >= 3 ? 4 / 3 : 1 });
       impact({ stop: 0.08, shake: 0.25 });
     },
@@ -112,9 +116,10 @@
       for (let j = 0; j < n; j++) {
         const c = j - (n - 1) / 2, ang = d > 0 ? c * 0.07 - 0.02 : Math.PI - (c * 0.07 - 0.02);
         const y = h.y + c * 8, x = h.x + d * 16, opt = { delay: j * 0.03, color: col(a) };
-        ray('xe07', x, y, ang, dist, { ...opt, scale: m >= 3 ? 1 : 2 / 3 });
-        ray('xe03', x + d * 10, y, ang, dist, { ...opt, scale: 2 / 3, alpha: 0.8, trail: 2 });
+        ray('xe07', x, y, ang, dist, { ...opt, scale: m >= 3 ? 4 / 3 : 1, trail: m >= 3 ? 3 : 1 });
+        ray('xe03', x + d * 10, y, ang, dist, { ...opt, scale: m >= 3 ? 1 : 2 / 3, alpha: 0.8, trail: 2 });
       }
+      qiFrontTex('xe01', a, 0.32, { len: pick([40, 50, 70, 110], m), scale: pick([1, 1, 4 / 3, 2], m), y: h.y });
       impact({ shake: 0.1 });
     },
     hitTex(a, t) { qiHitTex('xh3', a, t, false, { life: 0.18 }); },
@@ -168,11 +173,14 @@
       SKILL_FX.crushFist.hit(a, i, n);
       if (i !== n - 1) return;
       const y = a.ty(), d = a.dir;
+      row(a, y, { scale: (a.mast || 0) >= 3 ? 4 / 3 : 1 });
+      qiFrontTex('xe05', a, 0.34, { off: 40, len: 80, scale: (a.mast || 0) >= 3 ? 2 : 4 / 3, y });
       for (let j = 1; j <= 6; j++) {
         const x = a.x() + d * (40 + j * 58);
         if (x < 0 || x > W) break;
-        texFx('xe07', x, y, col(a), { scale: 2 / 3, life: 0.22, delay: 0.1 + j * 0.06, flip: d < 0, fade: 0.4 });
-        texFx('xk01', x, y + 4, col(a), { scale: 2 / 3, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
+        const sc = (a.mast || 0) >= 3 ? 4 / 3 : 1;
+        texFx('xe07', x, y, col(a), { scale: sc, life: 0.26, delay: 0.1 + j * 0.06, flip: d < 0, fade: 0.4 });
+        texFx('xk01', x, y + 4, col(a), { scale: sc, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
       }
     },
   };

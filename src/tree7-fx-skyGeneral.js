@@ -146,18 +146,25 @@
       return [[t0 / d, (a) => {
         const m = a.mast || 0, sc = [2 / 3, 2 / 3, 1, 4 / 3][m], col = tone(a, GOLD), life = Math.max(0.3, TL(a) - t0 + 0.25), h = gripOf(a);
         swFollow(a, 'e24', life, () => [a.px() + a.dir * 26, groundY() + 2], { loop: true, fps: 10, anchor: 'b', scale: sc, color: col, flip: a.dir < 0, fadeIn: 0.1 });
-        swFollow(a, 'e23', life, () => [a.px() - a.dir * 14, groundY() + 2], { loop: true, fps: 14, anchor: 'b', scale: sc >= 1 ? 1 : 2 / 3, color: SKY, flip: a.dir < 0, alpha: 0.4, fadeIn: 0.1 });
         vfxThrustLine('w7a', h.x + a.dir * 20, h.y, a.dir, 90, col, { life: 0.3, move: (u) => 12 * easeOut(u) });
         let last = 0;
         aFx(a, 0, life, null, null, () => { if (clock - last > 0.06) { last = clock; puff(a.px() - a.dir * 18, 0, 2 / 3); } });
         if (m >= 3) {
           swFollow(a, 'e24', life, () => [a.px() + a.dir * 66, groundY() + 2], { loop: true, fps: 10, anchor: 'b', scale: sc, color: col, flip: a.dir < 0, fadeIn: 0.1 });
-          swFollow(a, 'e23', life, () => [a.px() - a.dir * 46, groundY() + 2], { loop: true, fps: 14, anchor: 'b', scale: 1, color: SKY, flip: a.dir < 0, alpha: 0.3, fadeIn: 0.1 });
         }
         impact({ shake: 0.1 });
       }]];
     },
-    hit(a, i, n) { const x = a.px() + a.dir * 30; ringFx(x, tone(a, GOLD), (a.mast || 0) >= 3 ? 1.7 : 0.9, 0.35); impact(i === n - 1 ? { stop: 0.1, shake: 0.35 } : { stop: 0.03, shake: 0.12 }); },
+    hit(a, i, n) {
+      const x = a.px() + a.dir * 30, m = a.mast || 0;
+      ringFx(x, tone(a, GOLD), m >= 3 ? 1.7 : 0.9, 0.35);
+      if (i === n - 1) {   // 마지막 타: 부딪친 자리에 방패 벽이 솟고 충격파가 땅을 쓴다
+        const wx = a.tx() + a.dir * 8;
+        for (let j = -1; j <= 1; j++) texFx('e24', wx + j * 34, groundY() + 2, tone(a, GOLD), { anchor: 'b', scale: m >= 2 ? 1 : 2 / 3, frames: 5, life: 0.9, delay: Math.abs(j) * 0.05, fade: 0.35 });
+        ringFx(wx, SKY, m >= 2 ? 2 : 1.4, 0.6);
+        ringFx(wx, tone(a, GOLD), m >= 2 ? 1.4 : 1, 0.5);
+      }
+ impact(i === n - 1 ? { stop: 0.1, shake: 0.35 } : { stop: 0.03, shake: 0.12 }); },
     hitTex(a, t, share, i, n) {
       const big = i === n - 1;
       texFx('k16', t.x, t.y, tone(a, GOLD), { scale: big && (a.mast || 0) >= 1 ? 1 : 2 / 3, frames: 5, life: 0.3, fade: 0.3 });

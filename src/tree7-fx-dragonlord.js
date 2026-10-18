@@ -211,13 +211,14 @@
       const d = a.k.dur, T0 = Math.max(0.2, T1(a) - 0.05);
       return [[T0 / d, (a) => {
         const m = a.mast || 0, n = [4, 5, 6, 8][m], g = gripOf(a), col = tone(a, FIRE), x0 = g.x + a.dir * 20, len = Math.min(farD(a), 330), step = Math.min(60, len / n), sc = m >= 2 ? 1 : 2 / 3;
-        comet(x0, g.y, a.dir > 0 ? 0 : Math.PI, len + 40, { life: 0.34, scale: sc, color: col });
+        comet(x0, g.y, a.dir > 0 ? 0 : Math.PI, len + 40, { life: 0.34, scale: m >= 3 ? 4 / 3 : sc, color: col });
         fireStrip(a, x0, len, { color: col, sc: m >= 3 ? 1 : 2 / 3, life: m >= 3 ? 0.9 : 0.6 });
         for (let j = 1; j <= n; j++) {
           const x = x0 + a.dir * (j * step), dl = 0.12 + j * 0.05;
           if (x < 0 || x > W) break;
           texFx('e12', x, groundY() - 14, col, { scale: m >= 3 ? 4 / 3 : sc, life: 0.7, delay: dl, rot: -Math.PI / 2, fade: 0.25, move: (u) => [0, mix(34, 0, easeOut(Math.min(1, u / 0.25)))] });
           texFx('e36', x, groundY() - 34, EMBER, { scale: m >= 3 ? 1 : 2 / 3, life: 0.3, delay: dl + 0.4, fade: 0.4 });
+          if (m >= 3) texFx('e35', x, groundY() + 2, col, { anchor: 'b', scale: 1, life: 0.7, delay: dl + 0.35, fade: 0.4 });
           if (m >= 3) texFx('k23', x, groundY() + 3, EMBER, { anchor: 'b', scale: 1, frames: 7, life: 0.35, delay: dl + 0.4, fade: 0.3 });
         }
         impact({ stop: 0.06, shake: 0.25 });

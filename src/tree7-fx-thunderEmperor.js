@@ -202,15 +202,15 @@ SKILL_FX.te_f_bk = {
   hit(a, i, n) {
     if (i !== n - 1) { for (const t of a.targets(i)) mgArcFx(ilTip(a).x, ilTip(a).y, t.x, t.y, teRamp(a), 0.14, { scale: 2 / 3 }); return; }
     const y = a.ty(), ramp = teRamp(a), m = a.mast || 0, cnt = 4 + m, big = m >= 3;
-    teLine(a, y, { scale: big ? 1 : 2 / 3 });
+    teLine(a, y, { scale: big ? 4 / 3 : 1 });
     for (let j = 1; j <= cnt; j++) {
       const x = a.x() + a.dir * j * 64;
       if (x < 10 || x > W - 10) break;
       const d = 0.1 + j * 0.07;
-      texFx('c15', x, y - 46, TE_DIM, { scale: big ? 1 : 2 / 3, life: d + 0.3, fade: 0.4, frames: 5, flip: j % 2 === 0 });
-      texFx('e42', x, groundY() + 2, ramp, { scale: big ? 1 : 2 / 3, life: 0.24, delay: d, anchor: 'b', fade: 0.4, flip: j % 2 === 0 });
-      if (big) texFx('e42', x + 22, groundY() + 2, ramp, { scale: 2 / 3, life: 0.24, delay: d + 0.05, anchor: 'b', fade: 0.4, flip: true });
-      texFx('k27', x, y, ramp, { scale: big ? 4 / 3 : 2 / 3, life: 0.24, delay: d + 0.04, fade: 0.4 });
+      texFx('c15', x, y - 52, TE_DIM, { scale: big ? 4 / 3 : 1, life: d + 0.3, fade: 0.4, frames: 5, flip: j % 2 === 0 });
+      texFx('e42', x, groundY() + 2, ramp, { scale: big ? 4 / 3 : 1, life: 0.28, delay: d, anchor: 'b', fade: 0.4, flip: j % 2 === 0 });
+      if (big) texFx('e42', x + 26, groundY() + 2, ramp, { scale: 1, life: 0.24, delay: d + 0.05, anchor: 'b', fade: 0.4, flip: true });
+      texFx('k27', x, y, ramp, { scale: big ? 2 : 1, life: 0.24, delay: d + 0.04, fade: 0.4 });
     }
     impact({ stop: 0.08, shake: 0.3 });
   },

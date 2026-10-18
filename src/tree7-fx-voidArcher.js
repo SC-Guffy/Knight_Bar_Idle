@@ -88,12 +88,12 @@
     ...SKILL_FX.homingBolts,
     pose: aimPose((a) => plan(a).fire),
     cues: (a) => {
-      const p = plan(a), d = a.k.dur, m = a.mast || 0, sc = [2 / 3, 2 / 3, 1, 4 / 3][m];
+      const p = plan(a), d = a.k.dur, m = a.mast || 0, sc = [2 / 3, 2 / 3, 1, 2][m];
       return [[p.fire / d, (a) => {
         if (p.tri) for (let j = 0; j < 3; j++) tear(a, { dy: (j - 1) * 16, scale: 2 / 3, delay: j * 0.04, thin: j !== 1 });
         else tear(a, { scale: sc });
         if (p.aft) tear(a, { scale: sc, delay: p.ghost, alpha: 0.55, color: '#7a5aa8', thin: true });
-        const M = mz(a); texFx('h25', M.x + a.dir * 6, M.y, VA_MAG, { scale: 2 / 3, life: 0.25 });
+        const M = mz(a); texFx('h25', M.x + a.dir * 6, M.y, VA_MAG, { scale: m >= 3 ? 2 : 2 / 3, life: 0.3 });
         if (m >= 3) texFx('k20', M.x + a.dir * 12, M.y, VA_STAR, { scale: 1, life: 0.3 });
         impact({ stop: 0.08, shake: 0.28 });
       }]];
@@ -175,19 +175,20 @@
     cues: (a) => {
       const d = a.k.dur, last = a.k.hits[a.k.hits.length - 1][0] * d, t0 = Math.max(0.1, last - 0.3);
       return [...base1.cues(a), [t0 / d, (a) => {
-        const m = a.mast || 0, n = [4, 6, 10, 14][m], x = a.tx(), y = a.ty() - 14;
+        const m = a.mast || 0, n = [4, 6, 10, 14][m], x = a.x() + a.dir * 70, y = groundY() - 40;
         for (let j = 0; j < n; j++) {
-          const ang = (j / n) * Math.PI * 2, x0 = x + Math.cos(ang) * 95, y0 = y + Math.sin(ang) * 55;
-          texShotFx('p5', x0, y0, x, y, Math.max(0.15, last - t0 - 0.02), 'raw', { scale: m >= 2 ? 1 : 2 / 3, tail: 3, ease: easeIn, delay: j * 0.01 });
+          const ang = (j / n) * Math.PI * 2, x0 = x + Math.cos(ang) * 80, y0 = y + Math.sin(ang) * 45;
+          texShotFx('p5', x0, y0, x, y, Math.max(0.15, last - t0 - 0.02), 'raw', { scale: [1, 1, 4 / 3, 2][m], tail: 3, ease: easeIn, delay: j * 0.01 });
         }
       }]].sort((p, q) => p[0] - q[0]);
     },
     hit(a, i, n) {
       base1.hit(a, i, n);
       if (i !== n - 1) return;
-      const m = a.mast || 0, x = a.tx(), y = a.ty() - 14;
-      aFx(a, 0, 0.45, (u) => vfxDraw(ctx, 'e28', VA_VIO, vfxLoopF('e28', 12), x, y, { scale: m >= 3 ? 4 / 3 : m >= 2 ? 1 : 2 / 3, alpha: u < 0.7 ? 1 : (1 - u) / 0.3 }));
-      texFx('k19', x, y, VA_VIO, { scale: m >= 3 ? 2 : 4 / 3, life: 0.5, fade: 0.4 });
+      const m = a.mast || 0, px = a.x() + a.dir * 70, py = groundY() - 40, x = a.tx(), y = a.ty() - 14;
+      aFx(a, 0, 0.5, (u) => vfxDraw(ctx, 'e28', VA_VIO, vfxLoopF('e28', 12), px, py, { scale: [1, 1, 4 / 3, 2][m], alpha: u < 0.7 ? 1 : (1 - u) / 0.3 }));
+      texShotFx('p5', px, py, x, y, 0.16, 'raw', { scale: [1, 4 / 3, 4 / 3, 2][m], tail: 4 });
+      texFx('k19', x, y, VA_VIO, { scale: m >= 3 ? 2 : 4 / 3, life: 0.5, fade: 0.4, delay: 0.16 });
       texFx('h25', x, y, VA_MAG, { scale: 4 / 3, life: 0.35 });
       if (m >= 3) texFx('k20', x, y - 6, VA_STAR, { scale: 4 / 3, life: 0.45 });
       impact({ stop: 0.14, shake: 0.45 });

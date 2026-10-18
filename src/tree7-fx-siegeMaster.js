@@ -18,10 +18,10 @@
   // 하늘에서 떨어져 박히는 쇠뇌 살 (E32, 촉이 아래): x1 에 박혀 K22 쇳조각 + 포연. boom 이면 K21 불덩이도
   function rain(x1, delay = 0, o = {}) {
     const gy = groundY() - 4, x0 = x1 - rand(10, 30), rot = Math.atan2(gy + 24, x1 - x0) - Math.PI * 0.75, sc = o.scale || 2 / 3;
-    skFx(null, delay, 0.14, (u) => vfxDraw(ctx, 'e32', 'raw', 0, mix(x0, x1, u), mix(-24, gy, easeIn(u)), { rot, scale: sc }), () => {
+    skFx(null, delay, 0.18, (u) => { for (let k = 3; k >= 0; k--) { const v = Math.max(0, u - k * 0.06); vfxDraw(ctx, 'e32', 'raw', 0, mix(x0, x1, v), mix(-24, gy, easeIn(v)), { rot, scale: sc, alpha: k ? 0.5 - k * 0.12 : 1 }); } }, () => {
       texFx('k22', x1, gy - 4, 'raw', { scale: 2 / 3, life: 0.25, frames: 4 });
       smoke(x1, gy - 8);
-      if (o.boom) texFx('k21', x1, gy - 8, 'raw', { scale: o.gold ? 1 : 2 / 3, life: 0.3, frames: 4 });
+      if (o.boom) texFx('k21', x1, gy - 10, 'raw', { scale: o.gold ? 4 / 3 : 1, life: 0.3, frames: 4 });
       if (o.gold) texFx('k20', x1, gy - 12, SM_GOLD, { scale: 2 / 3, life: 0.3 });
       skFx(null, 0, 0.5, (u) => vfxDraw(ctx, 'e32', 'raw', 0, x1 + Math.sin(u * 60) * (1 - u) * 1.2, gy - 6, { rot, scale: sc, alpha: u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4 }));
     });
@@ -77,7 +77,7 @@
     const M = mz(a), d = a.dir, y = M.y + (o.dy || 0), end = d > 0 ? W + 30 : -30, sc = o.scale || 1, dl = o.delay || 0, al = o.alpha == null ? 1 : o.alpha, col = o.color || SM_IRON;
     skFx(null, dl, 0.5, (u) => {
       const t = u * 0.5, fly = easeOut(Math.min(1, t / 0.14)), hx = mix(M.x, end, fly), out = t < 0.16 ? 1 : 1 - (t - 0.16) / 0.34;
-      swLine(ctx, 'f30', col, 0, M.x, y, hx, y, { scale: sc * 2 / 3, sy: 0.35 + 0.65 * out, alpha: al * Math.min(1, out * 1.5) * 0.9 });
+      swLine(ctx, 'f30', col, 0, M.x, y, hx, y, { scale: sc, sy: 0.35 + 0.65 * out, alpha: al * Math.min(1, out * 1.5) * 0.9 });
       vfxDraw(ctx, 'p6', 'raw', 0, hx, y, { scale: sc, flip: d < 0, alpha: al * (fly >= 1 ? Math.max(0, 1 - (t - 0.14) / 0.1) : 1) });
     });
     const L = Math.abs(end - M.x);
@@ -161,12 +161,11 @@
     hit(a, i, n) {
       const m = a.mast || 0, N = [4, 8, 10, 16][m], split = own(a, 'sm_storm') && t7Sh(a, 'split'), orig = split ? n / 2 : n;
       if (i >= orig) return;
-      const per = Math.ceil(N / orig), rad = 120 * (own(a, 'sm_storm') && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.x();
+      const per = Math.ceil(N / orig), rad = 100 * (own(a, 'sm_storm') && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.tx();
       for (let q = 0; q < per; q++) {
         const idx = i * per + q;
         if (idx >= N) break;
-        const ang = (idx / N) * Math.PI * 2 + (a.dir > 0 ? 0 : Math.PI);
-        rain(cx + Math.cos(ang) * rad * (0.55 + 0.45 * Math.abs(Math.sin(ang * 2))) , q * 0.025, { boom: m >= 2, gold: m >= 3 });
+        rain(cx + ((idx + 0.5) / N * 2 - 1) * rad + rand(-6, 6), q * 0.025, { boom: m >= 2 && idx % 2 === 0, gold: m >= 3, scale: m >= 2 ? 1 : 2 / 3 });
       }
     },
     hitTex(a, t, share, i, n) {
@@ -195,9 +194,10 @@
       const m = a.mast || 0, x = a.tx();
       if (m >= 3) for (const s of [-1, 1]) { abBlastFx(x + s * 48, groundY() - 10, 1.2); ringFx(x + s * 48, SM_IRON, 1, 0.4); }
       ringFx(x, SM_IRON, 1.4, 0.5);
-      abBlastFx(x, groundY() - 12, m >= 3 ? 2 : 1.6);
+      abBlastFx(x, groundY() - 12, m >= 3 ? 2.2 : 1.8);
+      if (m >= 2) for (const s of [-1, 1]) skFx(null, 0.14, 0, null, () => { abBlastFx(x + s * 60, groundY() - 10, 1.4); texFx('k37', x + s * 60, groundY() - 22, 'raw', { scale: 2 / 3, life: 0.4 }); });
       abMushroomFx(x, 1.0, m >= 2 ? 1 : 2 / 3);
-      texFx('k37', x, groundY() - 22, 'raw', { scale: m >= 3 ? 1 : 2 / 3, life: 0.45 });
+      texFx('k37', x, groundY() - 22, 'raw', { scale: m >= 3 ? 4 / 3 : 1, life: 0.45 });
       if (m >= 3) texFx('k20', x, groundY() - 30, SM_GOLD, { scale: 4 / 3, life: 0.4 });
       impact({ stop: 0.14, shake: 0.55 });
     },
@@ -209,14 +209,16 @@
       const d = a.k.dur, m = a.mast || 0, p = plan(a), cs = flashFx.cues(a);
       cs.push([p.fire / d + 0.01, (a) => {
         const M = mz(a), y = M.y + 4;
-        for (let j = 1; j <= 7; j++) {
-          const x = M.x + a.dir * (30 + j * 52);
-          if (x < 0 || x > W) break;
+        const nE = [4, 5, 6, 8][m], x0 = a.tx() - a.dir * 40 * (nE - 1) / 2;
+        for (let j = 1; j <= nE; j++) {
+          const x = x0 + a.dir * (j - 1) * 40;
+          if (x < 0 || x > W) continue;
           const dl = 0.14 + j * 0.07;
-          texFx('k21', x, y, 'raw', { scale: m >= 3 ? 4 / 3 : 2 / 3, life: 0.35, delay: dl, frames: 5 });
+          texFx('k21', x, y - 4, 'raw', { scale: [1, 1, 4 / 3, 2][m], life: 0.4, delay: dl, frames: 5 });
+          if (m >= 2) texFx('k37', x, y - 8, 'raw', { scale: m >= 3 ? 1 : 2 / 3, life: 0.4, delay: dl + 0.05 });
           smoke(x, y - 6, { delay: dl + 0.1, life: 0.6 });
           texFx('c16', x, y - 14, SM_GOLD, { scale: 1, life: 0.5, delay: dl + 0.15, move: (u) => [0, -10 * u] });
-          if (m >= 3 && j === 7) skFx(null, dl, 0, null, () => abMushroomFx(x, 1.0, 2 / 3));
+          if (m >= 3 && j === nE) skFx(null, dl, 0, null, () => abMushroomFx(x, 1.0, 2 / 3));
         }
       }]);
       return cs.sort((p, q) => p[0] - q[0]);

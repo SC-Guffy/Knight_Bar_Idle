@@ -18,7 +18,7 @@
   const flare = (x, y, sc = 2 / 3, delay = 0) => texFx('h24', x, y, 'raw', { scale: sc, life: 0.3, delay, fade: 0.3 });
   // 하늘에서 사방으로 뻗는 빛 화살 한 발: (sx, sy) → (x1, y1), 닿으면 K20 별 + H24 섬광
   function ray(sx, sy, x1, y1, delay, sc, gold) {
-    texShotFx('p3', sx, sy, x1, y1, 0.13, 'raw', { scale: sc, delay, tail: 2, ease: easeIn, onLand: () => { texFx('k20', x1, y1 - 4, gold ? DE_GOLD : DE_SUN, { scale: 2 / 3, life: 0.3 }); flare(x1, y1 - 4, 2 / 3); } });
+    texShotFx('p3', sx, sy, x1, y1, 0.2, 'raw', { scale: sc, delay, tail: 4, ease: easeIn, onLand: () => { texFx('k20', x1, y1 - 4, gold ? DE_GOLD : DE_SUN, { scale: 2 / 3, life: 0.3 }); flare(x1, y1 - 4, 2 / 3); } });
   }
   // 궁수 자세: 숨을 고르며 몸을 낮추고 시위를 당겼다가 (fire 초) 쏜 뒤 반동
   const aimPose = (fireAt) => (u, a) => {
@@ -109,14 +109,14 @@
   // ── 추격탄 (wave) ── P3 태양 화살이 휘어 쫓는 곡선으로 날아가 H24 섬광: 1칸 1발 · ★ 3발 · ★★ 5발 · ★★★ 7발 금빛.
   //  화살마다 위·아래로 번갈아 휘어(곡선 크기 달라서 부채꼴) 대상에게 모인다. 관통 강화(k_pierce)면 닿고도 멈추지 않고 줄 끝까지 뚫고 나간다
   function chase(a) {
-    const m = a.mast || 0, n = [1, 3, 5, 7][m], M = mz(a), d = a.dir, T = tg(a, 0), pierce = t7Sh(a, 'pierce'), sc = m >= 3 ? 4 / 3 : m >= 2 ? 1 : 2 / 3;
+    const m = a.mast || 0, n = [1, 3, 5, 7][m], M = mz(a), d = a.dir, T = tg(a, 0), pierce = t7Sh(a, 'pierce'), sc = [1, 1, 4 / 3, 2][m];
     for (let j = 0; j < n; j++) {
       const f = n > 1 ? j / (n - 1) - 0.5 : 0, side = j % 2 ? -1 : 1, bend = (n > 1 ? 14 + 10 * Math.abs(f) * 4 : 0) * side;
-      const ex = pierce ? M.x + d * Math.max(Math.abs(T.x - M.x) + 170, 300) : T.x, ey = T.y + f * 16, cx = (M.x + ex) / 2, cy = (M.y + ey) / 2 - bend, life = 0.16 + Math.abs(ex - M.x) / 1500;
+      const ex = pierce ? M.x + d * Math.max(Math.abs(T.x - M.x) + 170, 300) : T.x, ey = T.y + f * 16, cx = (M.x + ex) / 2, cy = (M.y + ey) / 2 - bend, life = 0.3 + Math.abs(ex - M.x) / 1000;
       const pos = (u) => [(1 - u) ** 2 * M.x + 2 * (1 - u) * u * cx + u * u * ex, (1 - u) ** 2 * M.y + 2 * (1 - u) * u * cy + u * u * ey];
       skFx(null, j * 0.035, life, (u) => {
-        for (let k = 3; k >= 0; k--) { const v = Math.max(0, u - k * 0.05), [x, y] = pos(v), [x2, y2] = pos(Math.min(1, v + 0.03)); arrow(x, y, Math.atan2(y2 - y, x2 - x), sc, k ? 0.5 - k * 0.12 : 1); }
-      }, () => { flare(ex, ey, 2 / 3); if (m >= 3) texFx('k20', ex, ey - 6, DE_GOLD, { scale: 2 / 3, life: 0.3 }); });
+        for (let k = 5; k >= 0; k--) { const v = Math.max(0, u - k * 0.045), [x, y] = pos(v), [x2, y2] = pos(Math.min(1, v + 0.03)); arrow(x, y, Math.atan2(y2 - y, x2 - x), sc, k ? 0.55 - k * 0.09 : 1); }
+      }, () => { flare(ex, ey, sc >= 1 ? 1 : 2 / 3); if (m >= 3) texFx('k20', ex, ey - 6, DE_GOLD, { scale: 2 / 3, life: 0.3 }); });
     }
     const h = mz(a); burst(h.x, h.y, 4 + m * 2, [DE_WHITE, DE_SUN], 70, 2, 0);
     impact({ shake: 0.1 });
@@ -150,12 +150,12 @@
     hit(a, i, n) {
       const m = a.mast || 0, N = [4, 8, 10, 16][m], st = own(a, 'de_storm'), split = st && t7Sh(a, 'split'), orig = split ? n / 2 : n;
       if (i >= orig) return;
-      const per = Math.ceil(N / orig), rad = 120 * (st && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.x(), sx = cx, sy = 32;
+      const per = Math.ceil(N / orig), rad = 90 * (st && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.tx(), sx = a.x(), sy = 32;
       for (let q = 0; q < per; q++) {
         const idx = i * per + q;
         if (idx >= N) break;
         const ang = (idx / N) * Math.PI * 2 + (a.dir > 0 ? 0 : Math.PI);
-        ray(sx, sy, cx + Math.cos(ang) * rad * (0.55 + 0.45 * Math.abs(Math.sin(ang * 2))), groundY() - 4 + Math.sin(ang) * 5, q * 0.02, m >= 2 ? 1 : 2 / 3, m >= 3);
+        ray(sx, sy, cx + ((idx + 0.5) / N * 2 - 1) * rad, groundY() - 6 + (idx % 2) * 5, q * 0.02, [1, 1, 4 / 3, 2][m], m >= 3);
       }
       impact({ shake: 0.06 });
     },

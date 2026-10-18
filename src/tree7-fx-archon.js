@@ -189,8 +189,10 @@
         return;
       }
       for (const t of a.targets(i)) {
-        pillar(t.x, { scale: pick(a.mast, [1, 4 / 3, 4 / 3, 2]), sx: (a.mast || 0) >= 3 ? 1.2 : 0.8, life: 0.5 });
+        pillar(t.x, { scale: pick(a.mast, [1, 4 / 3, 4 / 3, 2]), sx: (a.mast || 0) >= 3 ? 1.6 : 0.8, life: 0.5 });
+        if ((a.mast || 0) >= 3) for (const s of [-1, 1]) pillar(t.x + s * 30, { scale: 4 / 3, sx: 0.7, life: 0.45, delay: 0.06 });
         if ((a.mast || 0) >= 3) for (const d of [0, 0.12]) texFx('c18', t.x, groundY() - 4, col(a), { scale: 2, life: 0.4, delay: d, fade: 0.5 });
+        if ((a.mast || 0) >= 3) texFx('k29', t.x, groundY() - 30, col(a), { scale: 4 / 3, life: 0.4, delay: 0.1, fade: 0.4 });
       }
       impact({ stop: 0.14, shake: 0.45 });
     },
@@ -210,16 +212,16 @@
       for (let j = 0; j < N; j++) {
         const x = x0 + a.dir * j * step;
         if (x < 56 || x > W - 56) break;
-        pillar(x, { delay: j * 0.08, scale: pick(m, [2 / 3, 1, 1, 4 / 3]), life: 0.36 });
+        pillar(x, { delay: j * 0.08, scale: pick(m, [2 / 3, 1, 1, 2]), sx: m >= 3 ? 0.8 : 0.5, life: 0.36 });
         // 남은 십자 빛 — 잠깐 떠서 깜박이다 터진다
         const born = j * 0.08 + 0.1, boom = 0.5 + j * 0.06;
         skFx(null, born, boom - born + 0.1, (u) => {
           const t = u * (boom - born + 0.1), k = Math.min(1, t / 0.1), blink = t > boom - born - 0.12 && Math.floor(t * 40) % 2 ? 0.4 : 1, out = t > boom - born ? 0 : 1;
-          crossDraw(x, groundY() - 30, c, Math.floor(clock * 10) % 5, 2 / 3, k * blink * out, clock * 0.5);
+          crossDraw(x, groundY() - 30, c, Math.floor(clock * 10) % 5, m >= 3 ? 1 : 2 / 3, k * blink * out, clock * 0.5);
         });
         skLater(a, boom, () => {
-          texFx('k29', x, groundY() - 30, c, { scale: pick(m, [2 / 3, 2 / 3, 1, 4 / 3]), life: 0.34, fade: 0.4 });
-          if (m >= 3) texFx('c18', x, groundY() - 6, c, { scale: 1, life: 0.4, fade: 0.5 });
+          texFx('k29', x, groundY() - 30, c, { scale: pick(m, [2 / 3, 2 / 3, 1, 2]), life: 0.34, fade: 0.4 });
+          if (m >= 3) texFx('c18', x, groundY() - 6, c, { scale: 2, life: 0.4, fade: 0.5 });
           if (j === N - 1 || j === 0) impact({ stop: 0.05, shake: 0.22 });
         });
       }

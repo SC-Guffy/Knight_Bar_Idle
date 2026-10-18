@@ -99,7 +99,8 @@
       const m = a.mast || 0, n = pick([1, 3, 5, 7], m), d = a.dir, h = qiHand(a), dist = t7Sh(a, 'pierce') ? 300 : 170;
       for (let j = 0; j < n; j++) {
         const c = j - (n - 1) / 2, t = c * 0.11 - 0.03;
-        ray('xe13', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04, scale: m >= 2 ? 1 : 2 / 3, life: 0.4, color: j % 2 ? WHITE_QI : a.color, loop: true, trail: 3, pop: true, rotAdd: Math.PI / 2 });
+        ray('xe13', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04, scale: pick([1, 1, 4 / 3, 4 / 3], m), life: 0.4, color: j % 2 ? WHITE_QI : a.color, loop: true, trail: 3, pop: true, rotAdd: Math.PI / 2 });
+        if (m >= 3) ray('xe13', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04 + 0.08, scale: 2, life: 0.4, color: '#ffe8a8', trail: 2, alpha: 0.7, rotAdd: Math.PI / 2 });
       }
       impact({ shake: 0.1 });
     },
@@ -161,12 +162,12 @@
       palm.hit(a, i, n);
       if (i !== n - 1) return;
       const y = a.ty(), d = a.dir;
+      beam(a, y, { scale: (a.mast || 0) >= 3 ? 4 / 3 : 2 / 3, color: '#ffd257' });
       for (let j = 1; j <= 6; j++) {
         const x = a.x() + d * (40 + j * 52);
         if (x < 0 || x > W) break;
-        const sc = (a.mast || 0) >= 3 ? 1 : 2 / 3;
-        texFx('xe10', x, y, a.color, { scale: sc, life: 0.3, delay: 0.1 + j * 0.06, flip: d < 0, fade: 0.4 });
-        texFx('xe10', x - d * 14, y, a.color, { scale: 2 / 3, life: 0.3, delay: 0.1 + j * 0.06, flip: d < 0, alpha: 0.4 });
+        const sc = (a.mast || 0) >= 3 ? 4 / 3 : 2 / 3;
+        texFx('xe05', x, y, '#ffd257', { scale: sc, life: 0.3, delay: 0.1 + j * 0.06, flip: d < 0, fade: 0.4 });
         texFx('xk06', x, y + 2, a.color, { scale: sc, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
       }
     },

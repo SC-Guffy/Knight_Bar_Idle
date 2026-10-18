@@ -102,7 +102,7 @@
     },
     cues: (a) => [[0.22, (a) => {
       const m = a.mast || 0, y = groundY() - 7, sc = m >= 2 ? 1 : 2 / 3;
-      debris(a.px(), 5, [TY_DIRT, TY_RED], 1.2);
+      debris(a.px(), 2, [TY_DIRT], 0.8);
       impact({ shake: 0.1 });
       if (t7Sh(a, 'triple')) for (const dy of [-9, 0, 9]) scar(a, y + dy, { scale: 2 / 3, alpha: 0.9 });
       else scar(a, y, { scale: sc });
@@ -116,7 +116,8 @@
       texFx('e12', x0, groundY() - 30, col(a), { scale: pick(m, [2 / 3, 1, 1, 4 / 3]), life: 0.5, flip: a.dir < 0, fade: 0.3, move: (u) => [a.dir * dist * easeOut(u), 0] });
       impact({ stop: 0.08, shake: 0.35 });
       ring(a.px() + a.dir * 24, { scale: pick(m, [1, 1, 4 / 3, 2]) });
-      if (m >= 2) for (let j = 1; j <= 3; j++) ring(a.px() + a.dir * (24 + j * 40), { scale: 1, delay: j * 0.07 });
+      if (m >= 3) texFx('k31', a.px() + a.dir * 24, groundY() + 2, col(a), { anchor: 'b', scale: 1, life: 0.4, fade: 0.35 });
+      if (m >= 2) for (let j = 1; j <= 2; j++) ring(a.px() + a.dir * (24 + j * 48), { scale: 1, delay: j * 0.08 });
     },
     hitTex(a, t, share, i, n) {
       const last = i === n - 1;

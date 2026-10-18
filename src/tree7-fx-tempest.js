@@ -6,6 +6,7 @@
 // 모습(칸마다): a.mast 0~3 — 개수·크기·금빛이 오른다. 변형은 내 기사만 (t7Sh). 이 파일은 tree7-fx.js 뒤에 불러온다.
 
 (function () {
+  const TEAL = '#3fe0c0';
   const pick = (arr, m) => arr[Math.max(0, Math.min(3, m || 0))];
 
   // 한 줄기: (x,y) 에서 ang 방향으로 dist 만큼 날아가는 시트. 왼쪽으로 가도 그림이 뒤집혀 서 있게 (flip + 회전 π). wob: 옆으로 흔들리는 폭 (나선)
@@ -47,10 +48,10 @@
       const ps = grow ? 1 : 2 / 3, bs = grow ? 1 : 2 / 3, R = pick([26, 30, 34, 40], m) * (grow ? 1.6 : 1);
       aFx(a, 0, a.k.dur, (u) => {
         const gy = groundY(), cx = follow ? mix(a.x(), a.tx(), easeOut(Math.min(1, u / 0.35))) : a.x(), fade = Math.min(1, u / 0.1, (1 - u) / 0.15);
-        vfxDraw(ctx, 'xe08', a.color, Math.floor(clock * 14) % 5, cx, gy - 14, { scale: bs, flip: Math.floor(clock * 6) % 2 === 1, alpha: 0.45 * fade });
-        for (let j = 0; j < n; j++) {
-          const th = clock * 8 + (j * Math.PI * 2) / n, front = Math.sin(th) > 0;
-          vfxDraw(ctx, 'xe09', a.color, Math.floor(clock * 12 + j) % 6, cx + Math.cos(th) * R, gy + 2 + (front ? 2 : -2), { anchor: 'b', scale: ps, flip: j % 2 === 1, alpha: (front ? 0.8 : 0.45) * fade });
+        const arcs = pick([2, 3, 3, 4], m), as = grow ? 4 / 3 : pick([1, 1, 1, 4 / 3], m), bright = mixHex(a.color, '#ffffff', 0.6);
+        for (let j = 0; j < arcs; j++) for (let k = 0; k < 3; k++) {
+          const th = clock * 11 + (j * Math.PI * 2) / arcs - k * 0.4, front = Math.sin(th) > 0;
+          vfxDraw(ctx, 'xw3a', k ? a.color : bright, j % 2, cx + Math.cos(th) * R * 1.3, gy - 24 + Math.sin(th) * R * 0.35, { scale: as, flip: Math.cos(th + Math.PI / 2) < 0, alpha: (front ? 1 : 0.6) * fade * [1, 0.5, 0.25][k] });
         }
       });
     }]],
@@ -68,7 +69,7 @@
     ...SKILL_FX.flyingKick,
     cues: (a) => [[0.02, (a) => {
       const T = Math.max(0.2, a.k.hits[0][0] * a.k.dur - 0.05);
-      aFx(a, 0, T, (u) => vfxDraw(ctx, 'xe09', a.color, Math.floor(clock * 12) % 6, a.px(), groundY() + 2, { anchor: 'b', scale: 2 / 3, alpha: Math.min(1, u * 3) * 0.8 * Math.min(1, (1 - u) / 0.2) }));
+      aFx(a, 0, T, (u) => vfxDraw(ctx, 'xe13', TEAL, Math.floor(clock * 12) % 6, a.px(), groundY() - 20, { scale: u < 0.5 ? 1 : 2 / 3, rot: Math.PI / 2, flip: a.dir < 0, alpha: Math.min(1, u * 3) * 0.9 }));
     }]],
     hitTex(a, t) { texFx('xh5', t.x, t.y, a.color, { scale: (a.mast || 0) >= 2 ? 1 : 2 / 3, life: 0.22, rot: rand(-0.4, 0.4), fade: 0.3 }); },
     hit(a, i, n) {
@@ -76,8 +77,9 @@
       if (i !== n - 1 && !tri) return;
       if (tri && i % 3) return;
       const y = a.ty(), m = a.mast || 0;
-      if (tri) for (const dy of [-14, 0, 14]) row(a, y + dy, { scale: 2 / 3, step: 30 });
-      else row(a, y, { scale: m >= 3 ? 4 / 3 : 1 });
+      if (tri) for (const dy of [-14, 0, 14]) row(a, y + dy, { scale: 2 / 3, step: 30, color: TEAL });
+      else { row(a, y, { scale: m >= 3 ? 4 / 3 : 1, color: TEAL }); if (m >= 3) for (const dy of [-18, 18]) row(a, y + dy, { scale: 2 / 3, step: 30, color: TEAL, alpha: 0.7 }); }
+      for (let q = 0; q < 5; q++) texFx('xe02', a.x() + a.dir * (60 + q * 70), y, '#ffffff', { scale: m >= 3 ? 1 : 2 / 3, life: 0.24, delay: q * 0.025, flip: a.dir < 0, alpha: 0.9 });
       ghosts(a, tri ? 2 : 4, a.color, 0.4);
       if (m >= 1) texFx('xk04', a.tx(), y, a.color, { scale: m >= 3 ? 4 / 3 : 1, life: 0.3, fade: 0.3 });
       if (m >= 2) texFx('xe09', a.tx(), groundY() + 2, a.color, { anchor: 'b', life: 0.5, scale: m >= 3 ? 1 : 2 / 3, fade: 0.3 });
@@ -96,7 +98,7 @@
       const m = a.mast || 0, n = pick([1, 3, 5, 7], m), d = a.dir, h = qiHand(a), dist = t7Sh(a, 'pierce') ? 300 : 170, y0 = Math.min(h.y, groundY() - 20);
       for (let j = 0; j < n; j++) {
         const c = j - (n - 1) / 2, t = c * 0.1 - 0.03;
-        ray('xw3a', h.x + d * 10, y0, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.03, scale: m >= 2 ? 1 : 2 / 3, life: 0.4, color: mixHex(a.color, '#e8fff4', 0.55), f: j % 2, wob: 12, ph: j * 1.3, trail: 3 });
+        ray('xw3a', h.x + d * 10, y0, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.03, scale: m >= 3 ? 4 / 3 : 1, life: 0.4, color: mixHex(a.color, '#e8fff4', 0.55), f: j % 2, wob: 12, ph: j * 1.3, trail: 3 });
       }
       texFx('xe08', h.x + d * 14, y0, '#e8fff4', { scale: 2 / 3, life: 0.25, flip: d < 0, alpha: 0.7 });
       impact({ shake: 0.1 });
@@ -112,11 +114,10 @@
     hit(a, i) {
       const cx = a.x(), cy = groundY() - 26, m = a.mast || 0;
       if (i) { texFx('xe08', cx, groundY() - 12, a.color, { scale: 2 / 3, life: 0.22, flip: i % 2 === 1, alpha: 0.7 }); return; }
-      const n = pick([4, 6, 6, 8], m), dist = t7Sh(a, 'pierce') ? 150 : 120;
-      for (let j = 0; j < n; j++) ray('xe07', cx, cy, (j / n) * Math.PI * 2 + 0.2, dist, { scale: 2 / 3, life: 0.36, color: a.color });
-      [2 / 3, 2 / 3, 1].forEach((sc, k) => { for (const s of [-1, 1]) texFx('xe08', cx, groundY() - 12, a.color, { scale: sc, life: 0.32, delay: k * 0.07, flip: s < 0, alpha: 0.8, move: (u) => [s * 70 * easeOut(u), 0] }); });
-      if (m >= 2) texFx('xe09', cx, groundY() + 2, a.color, { anchor: 'b', life: 0.5, scale: 2 / 3, fade: 0.3, alpha: 0.7 });
-      qiDust(a, 8);
+      const rows = pick([3, 3, 5, 5], m), dist = t7Sh(a, 'pierce') ? 150 : 120, ws = pick([1, 1, 4 / 3, 4 / 3], m);
+      for (let r = 0; r < rows; r++) for (const s of [0, Math.PI]) ray('xe07', cx, cy + (r - (rows - 1) / 2) * 14, s, dist, { scale: ws, life: 0.36, color: a.color, delay: r * 0.02, trail: m >= 3 ? 3 : 1 });
+      (m >= 3 ? [1, 4 / 3, 2] : [2 / 3, 1, 4 / 3]).forEach((sc, k) => { for (const s of [-1, 1]) texFx('xe08', cx, groundY() - 12, a.color, { scale: sc, life: 0.32, delay: k * 0.07, flip: s < 0, alpha: 0.8, move: (u) => [s * 70 * easeOut(u), 0] }); });
+      qiDust(a, 4);
       impact({ stop: 0.05, shake: 0.2 });
     },
     hitTex(a, t) {
@@ -133,10 +134,11 @@
       SKILL_FX.spinKick.hit(a, i, n);
       if (i !== n - 1) return;
       const m = a.mast || 0;
-      qiFrontTex('xe07', a, 0.28, { off: 8, len: 70, scale: pick([2 / 3, 1, 1, 4 / 3], m) });
+      qiFrontTex('xe07', a, 0.3, { off: 8, len: pick([70, 90, 110, 150], m), scale: pick([1, 1, 4 / 3, 2], m) });
       row(a, a.ty(), { scale: m >= 3 ? 1 : 2 / 3, step: m >= 3 ? 44 : 32 });
       ghosts(a, 2 + m, a.color, 0.4);
-      if (m >= 3) texFx('xk04', a.tx(), a.ty(), a.color, { scale: 1, life: 0.3, fade: 0.3 });
+      if (m >= 3) texFx('xk04', a.tx(), a.ty(), a.color, { scale: 4 / 3, life: 0.3, fade: 0.3 });
+      if (m >= 2) for (let q = 0; q < 6; q++) texFx('xe02', a.x() + a.dir * (50 + q * 46), a.ty() + (q % 2 ? 8 : -8), '#fff6a0', { scale: 2 / 3, life: 0.22, delay: q * 0.03, rot: (q % 2 ? 0.7 : -0.7) * a.dir, flip: a.dir < 0 });
       impact({ stop: 0.1, shake: 0.3 });
     },
   };
@@ -152,6 +154,7 @@
         if (x < 0 || x > W) break;
         const sc = (a.mast || 0) >= 3 ? 1 : 2 / 3;
         texFx('xw3a', x, y, a.color, { scale: sc, life: 0.26, delay: 0.1 + j * 0.06, flip: d < 0, frames: 2, fade: 0.4, rot: rand(-0.5, 0.5) });
+        if ((a.mast || 0) >= 3 && j % 2) texFx('xe09', x, groundY() + 2, a.color, { anchor: 'b', scale: 2 / 3, life: 0.4, delay: 0.2 + j * 0.06, fade: 0.4, alpha: 0.8 });
         texFx('xk04', x, y + 4, a.color, { scale: sc, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
       }
     },
