@@ -98,6 +98,8 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
   - 3단계(공용 상태 서버 저장) 브라우저 점검: `node dev/guild-shared-test.mjs` (두 창으로 이어 받기·시계 조작·오프라인). 공용 상태 운영 기록: 서버를 `ADMIN_KEY=<아무 값>` 으로 띄우고 `/api/admin/audit?guild=기사단이름&kind=guild-snap` (헤더 `X-Admin-Key`).
   - 4단계(기사단 효과): `node dev/guild-fx-test.js` (규칙 점검) · `HALL_FIRST=1 node dev/guild-bot.js --days 7 --seeds 5` (기사 1명 vs 5명, 조절값은 파일 머리 주석). 회관 효과 표를 여러 계열로 보려면 바깥 페이지 콘솔에서 `guildHost.roster = () => ({ list: [{ nick, cls, lv }…], rev: 999 })` 후 회관 열기.
   - 숨은 기사의 레이드(대기방 유지·바로 정산·레드닷): `node dev/guild-raid-test.mjs`. 게임 함수는 iframe CSP·`const` 라 바깥에서 못 부르므로 `data-action` 버튼을 잠깐 만들어 눌러서 움직인다.
+  - 5단계(기사 이름 바꾸기·삭제·기사단 이름): `node dev/guild-manage-test.mjs`. 서버는 `ACCOUNT_PER_HOUR=50` 으로 띄운다(기사를 여럿 만듦).
+  - 점검용 Chrome 은 `--headless=new` 로 띄우는 게 낫다(보이는 창은 사용자 화면에 떠서 닫히거나 연결이 끊긴다). headless 에서도 rAF 가 돈다. 프레임 측정만 보이는 창으로.
   - Electron 중계는 가짜 `bar` 로 본다: 로드 전에 맨 위 창에만 `window.bar = { 호출을 기록하는 함수들 }` 를 넣는다(CDP `Page.addScriptToEvaluateOnNewDocument`, `window === window.top` 일 때만).
 - 숨은 창은 rAF 가 멈춘다 → 프레임·진행 확인은 보이는 Chrome(`dev/guild-measure.mjs` 머리 주석의 실행 인자)에서.
 

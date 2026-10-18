@@ -354,7 +354,7 @@ function auditSave(a, st) {
       level: n(st.level), exp: n(st.exp), best: n(st.best), stones: n(st.stones), tomes: n(st.tomes) });
   }
 }
-const ACCOUNT_PER_HOUR = 5;
+const ACCOUNT_PER_HOUR = Number(process.env.ACCOUNT_PER_HOUR) || 5;   // 로컬 점검 스크립트는 환경 변수로 늘려서 돌린다
 const accountMade = new Map();   // IP → 최근 한 시간 안에 기사를 만든 시각들
 // Render 는 프록시 뒤라 실제 주소는 X-Forwarded-For 의 첫 번째
 const clientIp = (req) => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
@@ -452,7 +452,7 @@ const routes = {
       throw new HttpError(429, `닉네임은 하루에 한 번 바꿀 수 있어요 (${[h ? `${h}시간` : '', m || !h ? `${m}분` : ''].filter(Boolean).join(' ')} 남음)`, 'cooldown');
     }
     await freeBotName(key);
-    const oldKey = a.key, oldNick = a.nickname;   // 파일 저장소는 계정 객체를 그 자리에서 바꾸므로 먼저 잡아 둔다
+    const oldKey = a.key, oldNick = a.nickname, gid = a.guildId;   // 파일 저장소는 계정 객체를 그 자리에서 바꾸므로 먼저 잡아 둔다
     try {
       await store.rename(oldKey, key, nick, now);
     } catch (e) {
@@ -460,6 +460,11 @@ const routes = {
       throw e;
     }
     renameInMemory(oldKey, key, nick);
+    // 기사단 슬롯은 기사 key 로 적혀 있어서 같이 옮긴다 (docs/specs/guild.md 5단계)
+    if (gid) {
+      const g = await store.guild(gid);
+      if (g && (g.slots || []).includes(oldKey)) await store.updateGuild(gid, { slots: g.slots.map((k) => (k === oldKey ? key : k)), updatedAt: now });
+    }
     console.log(`닉네임 변경: ${oldNick} → ${nick}`);
     return { nickname: nick, renamedAt: now };
   },
@@ -1194,6 +1199,43 @@ routes['PUT /api/guilds/shared'] = async (req) => {
     audit(key, 'guild-snap', { gold: shared.gold, wood: shared.wood, ore: shared.ore, bld: shared.bld });
   }
   return { rev, at: now };
+};
+
+// 기사 삭제 (5단계): 확인으로 이름을 그대로 다시 받는다. 마지막 1명·캠프 밖(세이브 기준)·레이드 방 안이면 거부
+routes['POST /api/guilds/chars/delete'] = async (req) => {
+  const g = await guildAuth(req);
+  const body = await readJson(req);
+  const { nick, key } = nicknameKey(body.nickname);
+  if (String(body.confirm || '').trim() !== nick) throw new HttpError(400, '확인용 이름이 맞지 않아요');
+  const members = await store.guildMembers(g.id);
+  const acc = members.find((a) => a.key === key);
+  if (!acc) throw new HttpError(404, '이 기사단의 기사가 아니에요');
+  if (members.length <= 1) throw new HttpError(400, '마지막 기사는 지울 수 없어요');
+  if (roomOf.has(key)) throw new HttpError(409, '레이드 방에서 나온 뒤에 지울 수 있어요');
+  if (acc.state && acc.state.phase && acc.state.phase !== 'camp') throw new HttpError(409, '캠프에 있을 때만 지울 수 있어요');
+  await store.deleteAccount(key);
+  if ((g.slots || []).includes(key)) await store.updateGuild(g.id, { slots: g.slots.map((k) => (k === key ? null : k)), updatedAt: Date.now() });
+  console.log(`기사 삭제: ${acc.nickname} (기사단 ${g.name})`);
+  return { ok: true, guild: await guildView(await store.guild(g.id)) };
+};
+
+// 기사단 이름 바꾸기 (5단계): 일주일에 한 번, 전 서버 중복 불가
+const GUILD_RENAME_MS = 7 * 24 * 3600 * 1000;
+routes['POST /api/guilds/name'] = async (req) => {
+  const g = await guildAuth(req);
+  const body = await readJson(req);
+  const { name, nameKey } = guildNameKey(body.name);
+  if (name === g.name) throw new HttpError(400, '지금 쓰고 있는 이름이에요');
+  const now = Date.now(), wait = (g.nameAt || 0) + GUILD_RENAME_MS - now;
+  if (wait > 0) {
+    const h = Math.ceil(wait / 3600000);
+    throw new HttpError(429, `기사단 이름은 일주일에 한 번 바꿀 수 있어요 (${h >= 24 ? `${Math.floor(h / 24)}일 ${h % 24}시간` : `${h}시간`} 남음)`, 'cooldown');
+  }
+  try { await store.updateGuild(g.id, { name, nameKey, nameAt: now, updatedAt: now }); } catch (e) {
+    if (e instanceof TakenError) throw new HttpError(409, '이미 있는 기사단 이름이에요');
+    throw e;
+  }
+  return { name };
 };
 
 routes['PUT /api/guilds/slots'] = async (req) => {

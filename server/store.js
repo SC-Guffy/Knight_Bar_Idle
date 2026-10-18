@@ -2,7 +2,8 @@
 // 계정 저장소. DATABASE_URL 이 있으면 Postgres, 없으면 DATA_DIR 의 JSON 파일(로컬 개발용).
 // 계정 = { key, nickname, tokenHash, state, profile, level, best, power, cls, rating, wins, losses, season, attacks, createdAt, updatedAt, isBot, tower, renamedAt, guildId }
 // guildId: 기사단 소속 기사 (docs/specs/guild.md 2단계). 기사단에서 만든 기사는 개인 토큰이 아무도 모르는 무작위 해시라 기사단 토큰 + X-Char 로만 움직인다
-// 기사단 = { id, name, nameKey, googleSub, tokenHash, deviceId, slots: [기사 key|null × 5], shared, sharedRev, sharedAt, createdAt, updatedAt }
+// 기사단 = { id, name, nameKey, nameAt, googleSub, tokenHash, deviceId, slots: [기사 key|null × 5], shared, sharedRev, sharedAt, createdAt, updatedAt }
+//   nameAt: 기사단 이름을 마지막으로 바꾼 시각 (5단계, 일주일에 한 번)
 //   shared: 공용 상태(골드·목재·철광석·마을 건물·창고·대장간 시설·건설, 3단계). sharedRev: 올릴 때마다 +1 (옛 기기가 덮어쓰지 못하게), sharedAt: 그 저장의 서버 시각
 //   googleSub: Google 계정 고유 번호(이메일·이름은 저장하지 않는다). 손님 기사단은 '' — 나중에 Google 을 연결하면 채운다
 // isBot: AI 기사(server/bots.js). 토큰은 아무도 모르는 무작위 해시라 로그인할 수 없고, state 에는 봇 설정({ bot })만 있다.
@@ -261,10 +262,18 @@ class FileStore {
   async guildByName(nameKey) { return Object.values(this.gdb).find((g) => g.nameKey === nameKey) || null; }
   async updateGuild(id, fields) {
     if (fields.googleSub && Object.values(this.gdb).some((o) => o.id !== id && o.googleSub === fields.googleSub)) throw new TakenError();
+    if (fields.nameKey && Object.values(this.gdb).some((o) => o.id !== id && o.nameKey === fields.nameKey)) throw new TakenError();
     Object.assign(this.gdb[id], fields);
     this.persist();
   }
   async guildMembers(id) { return Object.values(this.db).filter((a) => a.guildId === id); }
+  // 기사 삭제(5단계): 계정과 아직 안 받은 시즌 보상·월드 보스 피해 기록을 지운다 (받은 결투 기록·운영 기록은 남긴다)
+  async deleteAccount(key) {
+    delete this.db[key];
+    this.sdb.rewards = this.sdb.rewards.filter((r) => r.key !== key);
+    this.sdb.wbHits = this.sdb.wbHits.filter((h) => h.key !== key);
+    this.persist();
+  }
   // 공용 상태 저장: rev 가 지금 것과 같을 때만 (아니면 null)
   async putShared(id, shared, rev, at) {
     const g = this.gdb[id];
@@ -335,6 +344,7 @@ class PgStore {
       ALTER TABLE guilds ADD COLUMN IF NOT EXISTS shared jsonb;
       ALTER TABLE guilds ADD COLUMN IF NOT EXISTS shared_rev int NOT NULL DEFAULT 0;
       ALTER TABLE guilds ADD COLUMN IF NOT EXISTS shared_at bigint NOT NULL DEFAULT 0;
+      ALTER TABLE guilds ADD COLUMN IF NOT EXISTS name_at bigint NOT NULL DEFAULT 0;
       CREATE INDEX IF NOT EXISTS accounts_tower ON accounts (tower DESC, best DESC, level DESC);
       -- 전투력은 스테이지 214쯤에서 bigint(9.2e18)를 넘는다 → 실수형으로 (정수형일 때 한 번만 바꾼다)
       DO $$ BEGIN
@@ -666,7 +676,7 @@ class PgStore {
   grow(r) {
     if (!r) return null;
     return { id: r.id, name: r.name, nameKey: r.name_key, googleSub: r.google_sub || '', tokenHash: r.token_hash, deviceId: r.device_id,
-      slots: r.slots || [], shared: r.shared || null, sharedRev: Number(r.shared_rev) || 0, sharedAt: Number(r.shared_at) || 0,
+      slots: r.slots || [], shared: r.shared || null, sharedRev: Number(r.shared_rev) || 0, sharedAt: Number(r.shared_at) || 0, nameAt: Number(r.name_at) || 0,
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at) };
   }
   async createGuild(g) {
@@ -685,7 +695,7 @@ class PgStore {
   async guildNameTaken(nameKey) { return (await this.pool.query('SELECT 1 FROM guilds WHERE name_key=$1', [nameKey])).rowCount > 0; }
   async guildByName(nameKey) { return this.grow((await this.pool.query('SELECT * FROM guilds WHERE name_key=$1', [nameKey])).rows[0]); }
   async updateGuild(id, fields) {
-    const map = { name: 'name', nameKey: 'name_key', googleSub: 'google_sub', tokenHash: 'token_hash', deviceId: 'device_id', slots: 'slots', updatedAt: 'updated_at' };
+    const map = { name: 'name', nameKey: 'name_key', nameAt: 'name_at', googleSub: 'google_sub', tokenHash: 'token_hash', deviceId: 'device_id', slots: 'slots', updatedAt: 'updated_at' };
     const ks = Object.keys(fields).filter((k) => map[k]);
     try {
       await this.pool.query(`UPDATE guilds SET ${ks.map((k, i) => `${map[k]}=$${i + 2}`).join(',')} WHERE id=$1`,
@@ -696,6 +706,11 @@ class PgStore {
     }
   }
   async guildMembers(id) { return (await this.pool.query('SELECT * FROM accounts WHERE guild_id=$1', [id])).rows.map((r) => this.row(r)); }
+  async deleteAccount(key) {
+    await this.pool.query('DELETE FROM accounts WHERE key=$1', [key]);
+    await this.pool.query('DELETE FROM season_rewards WHERE key=$1', [key]);
+    await this.pool.query('DELETE FROM world_boss_hits WHERE key=$1', [key]);
+  }
   async putShared(id, shared, rev, at) {
     const r = await this.pool.query('UPDATE guilds SET shared=$3, shared_rev=shared_rev+1, shared_at=$4, updated_at=$4 WHERE id=$1 AND shared_rev=$2 RETURNING shared_rev',
       [id, rev, JSON.stringify(shared), at]);
