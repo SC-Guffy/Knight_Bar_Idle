@@ -173,7 +173,7 @@
 | ⑤ | 스킬 VFX 전수조사 | [skill-vfx.md](skill-vfx.md) | **배포** (계열 4개 0.22.0, 검은 외곽선 제거, 빈 곳·남은 벡터 채우기 0.24.6~0.24.7) |
 | ⑥ | 기존 직업 29종 통짜 시트 | [legacy-class-sheets.md](legacy-class-sheets.md) | **배포** (0.25.0~0.25.3) — 29종 모두 시트 켜짐. 마법사·레인저·창기사는 새 그림체 B(3등신)를 파이터 키에 맞춰 0.78 로 줄임(0.25.x, 원본 `dev/sheets-common/full`). 검사 계열 8종은 사용자 지시로 파이터 그림체로 새로 그림(12단계, 칼은 모델이 몸과 같이 그린 키 자세). 창기사 7종 평타도 같은 방식으로 교체. 남은 일: 검성·대검전사·파천검왕 임시 걷기(들썩임), 일부 시전 짧은 판 |
 | — | 도트 품질 검수 에이전트 | [pixel-qa.md](pixel-qa.md) | **완료** — 아트 후보는 검수 통과분만 사용자에게 |
-| 시즌7 | 스킬 빌드 트리 | [skill-build-tree.md](skill-build-tree.md) | **main 병합 (0.26.0)** — 검사 줄기 시제품(`impl-skill-tree`). 스위치 `T7_OPEN`(src/data.js) 꺼짐 → 배포 주소에선 지금 스킬 시스템, 로컬 개발 주소에서만 트리. 켜는 건 사용자 결정(켜면 검성·검신 전원이 바로 트리로, 그때 `SAVE_MIN_VERSION` 도 올림) |
+| 시즌7 | 스킬 빌드 트리 | [skill-build-tree.md](skill-build-tree.md) · [skill-tree-all.md](skill-tree-all.md) | **15줄기 완성 (impl-skill-tree-all, 0.27.0, T7_OPEN=true)** — 2026-10-18 사용자 "시즌7 지금 연다" → 나머지 14줄기를 같은 틀로, 봇 빌드 차 ≤6%·현행 대비 −7~+6%. main 배포·서버 배포는 로드맵. 이전: **main 병합 (0.26.0)** — 검사 줄기 시제품(`impl-skill-tree`). 스위치 `T7_OPEN`(src/data.js) 꺼짐 → 배포 주소에선 지금 스킬 시스템, 로컬 개발 주소에서만 트리. 켜는 건 사용자 결정(켜면 검성·검신 전원이 바로 트리로, 그때 `SAVE_MIN_VERSION` 도 올림) |
 | 시즌7 | 기사단(길드) | [guild.md](guild.md) | **main 병합 (0.26.0)** — 1~4단계 구현(`spec-guild`), 5단계 스펙 확인 대기. 스위치 `GUILD_OPEN`(src/data.js·src/guild.js) 꺼짐 → 배포 주소에선 `?guild=1` 무시. 서버 API·`guilds` 표·`accounts.guild_id` 열은 배포되면 생긴다(추가만, 기존 세이브 영향 없음) |
 
 - [ ] 시즌7 직업(사무라이·해머전사·암살자 3종)도 3차까지 만들지는 시즌7 착수 때 정한다.
