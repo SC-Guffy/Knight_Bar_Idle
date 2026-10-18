@@ -308,9 +308,9 @@ function releaseAttack(st) {
   } else {
     vfxBasicRelease();                  // 근접 잔상 텍스처가 명중 순간 늘어나며 사라진다 (src/vfx-tex.js)
     inRange.slice(0, st.targets).forEach(m => { hitMonster(m, t7BasicMul()); vfxBasicHit(m, m.lastCrit); });   // t7BasicMul: 시즌7 트리 키스톤 평타 피해 (src/tree7.js)
-    if (t7On()) t7OnBasic(st, inRange[0]);        // 검의 길·심검 (src/tree7-fx.js)
     if (qiOn()) { qiOnBasic(Math.min(inRange.length, st.targets), inRange[0].lastCrit); qiBasicFx(inRange[0], knight.combo || 0); }   // 파이터 계열 기 충전 · 주먹/발 궤적 (src/jobs/fighter*.js)
   }
+  if (t7On()) t7OnBasic(st, inRange[0]);          // 검의 길·심검 — 근접·원거리 모두 (src/tree7-fx.js)
   procOnBasic(st);
 }
 
@@ -346,7 +346,7 @@ function updateExpedition(dt, gdt) {
 // 교전 한 프레임: 몬스터 접근 → 기사 평타·스킬 → 몬스터 공격. 싸울 상대가 사거리에 없으면 onFree(px) (원정은 px 만큼 걷기, 탑은 층 정리)
 const DASH_SPEED = 500;   // 돌진기로 달려붙는 속도 px/s (결투 server/duel.js DASH 와 같다)
 // 사거리 밖 d(px) 앞의 적에게 쓸 수 있는 돌진기 (classes.js SKILLS 의 gap, 쿨타임이 찬 것 중 목록 앞쪽)
-const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && (qiOn() ? qiCan(id, true) : !(knight.cds[id] > 0)) && d <= SKILLS[id].gap) || null;
+const dashSkill = (st, d) => st.skills.find((id) => SKILLS[id].gap && (qiOn() ? qiCan(id, true) && qiDashOk(id, st) : !(knight.cds[id] > 0)) && d <= SKILLS[id].gap) || null;
 function fightTick(dt, st, onFree) {
   const phase = S.phase;
   const alive = monsters.filter(m => !m.dying)
@@ -1244,7 +1244,7 @@ function update(dt) {
     sh.trail.push([sh.x, sh.y]);
     if (sh.trail.length > 8) sh.trail.shift();
     if (dist <= step) {
-      hitMonster(sh.m, sh.mult);
+      hitMonster(sh.m, sh.mult * t7BasicMul());   // t7BasicMul: 시즌7 트리 키스톤 평타 피해
       vfxBasicHit(sh.m, sh.m.lastCrit, true);
       if (qiOn()) { qiOnBasic(1, sh.m.lastCrit); qiRangedHit(sh.m); }
       // 화염 계열: 맞은 자리 주변의 다른 적도 splash 배율로 (원정에서만 — 결투·레이드는 상대가 하나라 상관없다)

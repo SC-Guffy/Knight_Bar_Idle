@@ -13,6 +13,7 @@ function qiSt() {
   if (q && q.cls === S.cls && (q.key === key || S.phase === 'returning' || S.phase === 'camp')) return q;
   const Q = QI[S.cls], tj = {};
   for (const id in Q.need) tj[id] = qiNeed(id);
+  if (t7On()) for (const id of t7Skills()) if (SKILLS[id].qi && !qiMain(id) && !(id in tj)) tj[id] = qiNeed(id);   // 시즌7 트리 새 투지 기술 (바탕 스킬의 문턱)
   return (knight.qi = { cls: S.cls, key, v: Q.max, tj, aw: 0, hurtT: -1, hurtN: 0, flash: 0, red: 0, log: [] });
 }
 // 지금 소모량(주 기술) · 문턱(투지 기술) — 기 절약(☯️) 반영
@@ -60,7 +61,14 @@ function qiCan(id, dash = false) {
   return q.v >= qiNeed(id) + (dash ? 0 : QI[S.cls].keep || 0);
 }
 // 고를 순서: 투지 기술 먼저, 그다음 주 기술 (각각 해금 레벨 높은 것부터 — st.skills 순서)
-const qiOrder = (st) => [...st.skills.filter((id) => !qiMain(id)), ...st.skills.filter((id) => qiMain(id))];
+// 시즌7 트리: 주 기술이 여럿(장착 칸)이라 한 게이지를 나눠 쓴다 — 오래 안 쓴 주 기술부터 (아니면 앞의 것만 계속 나간다)
+const qiOrder = (st) => {
+  const mains = st.skills.filter((id) => qiMain(id));
+  if (t7On() && mains.length > 1) { const L = qiSt().last || {}; mains.sort((a, b) => (L[a] || 0) - (L[b] || 0)); }
+  return [...st.skills.filter((id) => !qiMain(id)), ...mains];
+};
+// 돌진기도 시즌7 트리에선 차례가 온 주 기술일 때만 (돌진기가 다가갈 때마다 게이지를 먼저 써서 다른 장착 기술이 못 나가던 것)
+const qiDashOk = (id, st) => !t7On() || !qiMain(id) || qiOrder(st).filter((o) => qiMain(o))[0] === id;
 // 장풍 3단: 기가 가득이면 시전 시간·폭발이 커진 모양으로 쏜다 (위력은 qiCast 의 배수)
 function qiShape(id, k) {
   if (id !== 'palmBlast' || !qiOn() || qiSt().v < QI[S.cls].max) return k;
@@ -78,6 +86,7 @@ function qiCast(id) {
     for (const o in q.tj) q.tj[o] += spend;
   }
   if (k.ult) { q.aw = QI_AWAKEN.dur + k.dur; q.flash = 0.4; }
+  (q.last || (q.last = {}))[id] = clock;
   q.log.push({ t: +clock.toFixed(2), id, v: Math.round(q.v), mul });
   if (q.log.length > 40) q.log.shift();
   return mul;

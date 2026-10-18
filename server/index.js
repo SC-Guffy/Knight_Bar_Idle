@@ -63,6 +63,7 @@ function sanitizeProfile(p = {}) {
       cd: num(s.cd, 2, 150, 10), dur: num(s.dur, 0, 4, 1), mult: num(s.mult, 0, 300, 1), crit: !!s.crit,
       // 트리 V2: cp 치명 확률 보정, lc 흡혈 비율 (src/classes.js TREE_RIGHT)
       ...(s.cp ? { cp: num(s.cp, 0, 0.5, 0) } : {}), ...(s.lc ? { lc: num(s.lc, 0, 0.3, 0) } : {}),
+      ...(t7 && s.gap ? { gap: num(s.gap, 0, 300, 0) } : {}),   // 시즌7 트리 새 스킬의 돌진 거리 (server/duel.js GAP 에 없는 id)
       ...(s.ward && typeof s.ward === 'object'
         ? { ward: { dur: num(s.ward.dur, 0, 8, 0), guard: num(s.ward.guard, 0, 0.8, 0), heal: num(s.ward.heal, 0, 0.5, 0) } } : {}),
       // 파이터 계열 (server/duel.js qiReady): cost 주 기술 소모량 · need 투지 기술 문턱 · m3 장풍 3단 배수 · awaken 궁극기 각성 · qiHurt 기막 피격 충전 배수
@@ -295,7 +296,8 @@ async function runDuel(me, op, practice = '') {
 const RAID_MIN_VERSION = '0.21.0';    // 0.21.0: 성장 압축 (보스·기사 눈금이 바뀜) · 0.19.15: 출정·준비 전에 세이브를 올려 서버가 입장권을 확인
 //   0.19.12: 운영 차감 반영(0.19.10) + 배포 주소 ?speed= 배속 차단
 //   0.19.13: 운영 지급(gift) 반영 — 예전 버전은 지급을 차감으로 알고 ack 해 버려 선물이 사라진다
-const SAVE_MIN_VERSION = '0.22.0';    // 0.22.0: 시즌6 — 강화 +30·옵션 줄 수(gearV 9)·성벽 지키기·교관 📕 세이브를 예전 버전이 덮어써 잃지 않게
+const SAVE_MIN_VERSION = '0.27.0';    // 0.27.0: 시즌7 스킬 빌드 트리(T7_OPEN) — 예전 버전이 세이브의 t7(찍은 트리·장착)을 버리고 덮어쓰지 않게
+//   0.22.0: 시즌6 — 강화 +30·옵션 줄 수(gearV 9)·성벽 지키기·교관 📕 세이브를 예전 버전이 덮어써 잃지 않게
 //   0.21.0: 성장 압축 — 예전 눈금(공격력 1e20 쯤)의 프로필이 올라오지 않게 (새로 고치면 같은 세이브가 새 눈금으로 올라온다)
 //   0.20.0: 훈련 Lv50·교관 수련·옵션 줄 세이브 이전 — 예전 버전이 이전 안 된 세이브로 덮어쓰지 못하게
 //   0.19.15: 날짜·오프라인 시간을 서버 시각으로 (기기 시계 조작 차단)

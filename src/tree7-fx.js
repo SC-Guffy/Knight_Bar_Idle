@@ -137,8 +137,9 @@ SKILL_FX.f_ak = {
 
 // ── 궁극기 변형 (천검) ── 천검 연출 위에 덧그린다 (내 기사만)
 //  만검: 작은 검선(F04) 수십 개가 사방에서 · 일도양단: 화면을 세로로 가르는 거대한 한 줄(E11 ×2) · 검우: 먹구름에서 초승달 검기가 비처럼
-(function () {
-  const base = SKILL_FX.thousandCuts;
+// 궁극기 변형 덧그림: 15줄기 궁극기 모두에 (t7Hero — 내 기사가 그 변형을 찍었을 때만)
+for (const ultId of new Set(Object.values(T7_LINES).map((L) => L.sk.ult))) (function () {
+  const base = SKILL_FX[ultId];
   if (!base) return;
   const hit0 = base.hit;
   base.hit = function (a, i, n) {
@@ -165,14 +166,19 @@ SKILL_FX.f_ak = {
 })();
 
 // ── 변형 노드 연출 (지금 스킬 위에) ──
-// 참격파(k_wave): 강철 베기 마지막 타에서 초승달 검기 한 발이 날아간다
-(function () {
-  const base = SKILL_FX.steelCleave, hit0 = base.hit;
+// 참격파(k_wave): 1차 스킬(검사는 강철 베기) 마지막 타에서 초승달 검기 한 발이 날아간다 — 1차 스킬 5종 모두에
+for (const s1 of new Set(Object.values(T7_LINES).map((L) => L.sk.slash))) (function () {
+  const base = SKILL_FX[s1];
+  if (!base) return;
+  const hit0 = base.hit || (() => {});
   base.hit = function (a, i, n) {
     hit0.call(this, a, i, n);
     if (t7Sh(a, 'slashWave') && i === n - 1) { const g = gripOf(a); t7Crescent(a, g.x + a.dir * 16, g.y, a.dir > 0 ? 0 : Math.PI, 200, { scale: 1, life: 0.4 }); }
   };
 })();
+
+// 새 스킬·융합 연출: 따로 짠 것(검성)이 없으면 바탕 스킬 연출을 빌린다 — 직업 파일(src/jobs)이 skills.js 뒤에 바탕 연출을 채우는 경우까지 여기서 다시
+for (const [id, b] of Object.entries(T7_FX_BASE)) if (!SKILL_FX[id] && SKILL_FX[b]) SKILL_FX[id] = SKILL_FX[b];
 
 // ── 전투 규칙 (core.js·skills.js·world.js 에서 부른다) ──
 // 스킬 타격 하나가 끝난 뒤 (skills.js tryCastSkill onHit): 광란 · 잔영 · 만검귀종
@@ -185,7 +191,7 @@ function t7OnHit(id, k, i, list, dealt, kills, a, st) {
     if (knight.frenzy === 10 && i === 0) addFloater('🔥 광란 10겹', toScreen(knight.x), groundY() - 84, '#ff6a6a', 12);
   }
   // 🗡️ 잔영: 일섬(마지막 타)으로 처치하면 잔상이 되돌아와 가장 가까운 다른 적을 50% 로 벤다
-  if (t7Rule('echo') && id === 'iaido' && kills && i === k.hits.length - 1) {
+  if (t7Rule('echo') && id === T7_BY.iaido.sk && kills && i === k.hits.length - 1) {
     const next = monsters.filter((m) => !m.dying && m.hp > 0 && !list.includes(m)).sort((p, q) => aheadDist(knight.x, p.x) - aheadDist(knight.x, q.x))[0];
     if (next) {
       const x = toScreen(next.x) + next.kb, y = monsterMidY(next);
@@ -199,8 +205,8 @@ function t7OnHit(id, k, i, list, dealt, kills, a, st) {
 }
 // 시전이 끝날 때 (skills.js onEnd): ⚡ 무한검 — 질풍난무가 끝나면 30% 로 쿨 없이 한 번 더
 function t7OnEnd(id) {
-  if (t7Rule('endless') && id === 'gale' && Math.random() < 0.3) {
-    knight.cds.gale = 0;
+  if (t7Rule('endless') && id === T7_BY.gale.sk && Math.random() < 0.3) {
+    knight.cds[id] = 0;
     addFloater('♾️ 무한검', toScreen(knight.x), groundY() - 84, '#ffe08a', 12);
   }
 }

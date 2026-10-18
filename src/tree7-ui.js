@@ -48,16 +48,21 @@ const T7_UI = {
   f_ak: {"n":"칼날 폭풍","x":2.6,"y":0.6,"d":"융합. 회오리가 돌며 검기를 흩뿌린다.","a":"회오리 + E43 방사"},
 };
 const T7_LANE = { a: { name: '⚡ 연타 갈래', sub: '🛡️ 보호막에 강함', y: [-0.5, 1.4] }, b: { name: '🗡️ 발도 갈래', sub: '🔥 광폭화에 강함', y: [2.05, 3.95] }, k: { name: '🌙 검기 갈래', sub: '👥 졸개에 강함', y: [4.6, 6.5] } };
+// 줄기별 글: 기본(T7_UI = 자리 + 검성 글) ← 1차 줄기 글(T7_STEMS) ← 줄기 글(T7_LINES[].ui) (src/tree7-l-*.js)
+const t7U = (id) => { const L = t7L(), st = L && T7_STEMS[L.cls[0]]; return { ...T7_UI[id], ...(st && st.ui[id]), ...(L && L.ui[id]) }; };
+const t7Lane = () => { const L = t7L(), o = {}; for (const l of ['a', 'b', 'k']) o[l] = { ...T7_LANE[l], ...(L && L.lanes && L.lanes[l]) }; return o; };
+// 2차 전직 전엔 줄기(1차) 노드만 보인다 — 갈래는 2차 직업마다 달라서
+const t7Vis = (n) => t7Tier() >= 2 || n.tier <= 1;
 const T7_KIND = { stat: '스탯', active: '액티브', mod: '변형', key: '키스톤', ult: '궁극기', uvar: '궁극기 변형', fusion: '융합 스킬' };
 // 캠프 창(데스크톱 앱 기준 본문 약 330px)에 판이 거의 다 들어오게: 모든 노드 2배, 칸 간격 62×42 → 판 약 760×340.
 //  변형·스탯은 위아래로 붙어 있어 이름표를 숨기고(누르면 아래 상세), 액티브·융합·궁극기·키스톤·궁극기 변형만 이름표를 단다
 const T7_SCALE = { active: 2, fusion: 2, ult: 2, uvar: 2, mod: 2, key: 2, stat: 2 };
 const T7_G = { sx: 62, sy: 42, ox: 34, oy: 28, w: 758, h: 342 };
-const t7Px = (id) => [T7_G.ox + T7_UI[id].x * T7_G.sx, T7_G.oy + T7_UI[id].y * T7_G.sy];
-const t7Icon = (id) => T7_UI[id].ic || id;
+const t7Px = (id) => [T7_G.ox + t7U(id).x * T7_G.sx, T7_G.oy + t7U(id).y * T7_G.sy];
+const t7Icon = (id) => t7U(id).ic || id;
 const t7ArtLane = (n) => (n.t === 'fusion' ? 'f' : n.lane);
 const t7State = (n) => (t7Rank(n.id) > 0 ? 'got' : t7CanAdd(n.id) ? 'can' : 'lock');
-const t7Look = (n) => { const u = T7_UI[n.id], r = t7Rank(n.id); return u.looks && r ? u.looks[r - 1].split(' (')[0] : n.t === 'uvar' ? u.n.replace('천검: ', '') : u.n; };   // 궁극기 변형 이름표는 짧게 (만검·일도양단·검우)
+const t7Look = (n) => { const u = t7U(n.id), r = t7Rank(n.id); return u.looks && r ? u.looks[r - 1].split(' (')[0] : n.t === 'uvar' ? u.n.replace(/^[^:]*: /, '') : u.n; };   // 궁극기 변형 이름표는 짧게 (만검·일도양단·검우)
 const t7Ui = { sel: null, scroll: null };
 // 레드닷: 찍을 수 있는 노드가 있거나 장착 칸을 열 수 있을 때
 const t7Dot = () => t7On() && (T7_NODES.some((n) => t7CanAdd(n.id)) || !t7SlotNeed());
@@ -84,43 +89,45 @@ function viewTree7() {
       : '<div class="t7slot">빈 칸</div>');
   }
   const ult = t7Rank('ult') > 0, uv = T7_NODES.find((x) => x.t === 'uvar' && t7Rank(x.id) > 0);
-  slots.push(T >= 3 ? `<div class="t7slot ult${ult ? ' full' : ''}">${ult ? t7Canvas('t7icon', uv ? t7Icon(uv.id) : 'sk-thousandCuts') : '★'}<span>${ult ? (uv ? T7_UI[uv.id].n : t7Look(T7_BY.ult)) : '궁극기 칸'}</span></div>` : '<div class="t7slot lock">★ 궁극기 칸 (3차)</div>');
+  slots.push(T >= 3 ? `<div class="t7slot ult${ult ? ' full' : ''}">${ult ? t7Canvas('t7icon', uv ? t7Icon(uv.id) : 'sk-' + T7_BY.ult.sk) : '★'}<span>${ult ? (uv ? t7U(uv.id).n : t7Look(T7_BY.ult)) : '궁극기 칸'}</span></div>` : '<div class="t7slot lock">★ 궁극기 칸 (3차)</div>');
   const pool = T7_NODES.filter((n) => (n.t === 'active' || n.t === 'fusion') && t7Rank(n.id) > 0 && !s.eq.includes(n.sk));
   const poolHtml = pool.length ? `<div class="t7pool"><small>배운 스킬 (누르면 장착)</small>${pool.map((n) => `<button class="t7chip" data-action="t7-eq" data-sk="${n.sk}">${t7Canvas('t7icon', t7Icon(n.id))}${t7Look(n)}</button>`).join('')}</div>` : '';
   const camp = S.phase === 'camp';
   const bar = `<div class="t7bar"><span>쓴 <b>${spent}</b> / ${path} (${Math.round((100 * spent) / path)}%)</span>
     <button class="btn" data-action="t7-reset" ${camp && spent && S.gold >= t7ResetCost() ? '' : 'disabled'} title="찍은 포인트를 모두 돌려받아요 (캠프에서만)">↩ 초기화 <small><i class="gc"></i> ${fmt(t7ResetCost())}</small></button></div>`;
   // 트리 판
-  const lanes = Object.entries(T7_LANE).map(([l, v]) => `<div class="t7lane" style="top:${T7_G.oy + v.y[0] * T7_G.sy}px;left:${T7_G.ox + 3.55 * T7_G.sx}px;width:${6.95 * T7_G.sx}px;height:${(v.y[1] - v.y[0]) * T7_G.sy}px"><b class="l-${l}">${v.name}</b> <small>${v.sub} · 쓴 ${t7LanePts(l)}</small></div>`).join('');
+  const lanes = t7Tier() < 2 ? '' : Object.entries(t7Lane()).map(([l, v]) => `<div class="t7lane" style="top:${T7_G.oy + v.y[0] * T7_G.sy}px;left:${T7_G.ox + 3.55 * T7_G.sx}px;width:${6.95 * T7_G.sx}px;height:${(v.y[1] - v.y[0]) * T7_G.sy}px"><b class="l-${l}">${v.name}</b> <small>${v.sub} · 쓴 ${t7LanePts(l)}</small></div>`).join('');
   let edges = '';
   const line = (a, b, on, dash, col) => { const [x1, y1] = t7Px(a), [x2, y2] = t7Px(b); edges += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0b0a14" stroke-width="6"/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${on ? col : '#3a3348'}" stroke-width="${on ? 3 : 2}"${dash ? ' stroke-dasharray="6 5"' : ''}/>`; };
-  for (const n of T7_NODES) for (const r of n.req) line(r, n.id, t7Rank(r) > 0 && t7Rank(n.id) > 0, false, T7_COL[n.lane || 'c']);
+  for (const n of T7_NODES.filter(t7Vis)) for (const r of n.req) line(r, n.id, t7Rank(r) > 0 && t7Rank(n.id) > 0, false, T7_COL[n.lane || 'c']);
   const anchor = { a: 'whirl', b: 'flash', k: 'storm' };
-  for (const n of T7_NODES.filter((x) => x.t === 'fusion')) for (const l of n.lanes) line(anchor[l], n.id, t7Rank(n.id) > 0, true, '#ff9ff3');
-  const LN = { a: '연타', b: '발도', k: '검기' };
-  const nodes = T7_NODES.map((n) => {
+  for (const n of T7_NODES.filter((x) => x.t === 'fusion' && t7Vis(x))) for (const l of n.lanes) line(anchor[l], n.id, t7Rank(n.id) > 0, true, '#ff9ff3');
+  const LN = Object.fromEntries(Object.entries(t7Lane()).map(([l, v]) => [l, v.short || v.name.replace(/^\S+\s/, '').replace(/ 갈래$/, '')]));
+  const nodes = T7_NODES.filter(t7Vis).map((n) => {
     const [x, y] = t7Px(n.id), r = t7Rank(n.id), mx = T7_SPEC[n.t].max, st = t7State(n);
     const gate = !r && n.t === 'fusion' ? ' · ' + n.lanes.map((l) => `${LN[l]} ${Math.min(6, t7LanePts(l))}/6`).join(' ') : !r && n.min ? ` ${Math.min(n.min, t7LanePts(n.lane))}/${n.min}` : '';   // 3차 키스톤: 그 갈래 포인트 (갈래 이름은 띠에 있다)
     const col = n.t === 'fusion' ? '#ff9ff3' : n.t === 'ult' ? '#ffd257' : T7_COL[n.lane || 'c'];
-    return `<button class="t7n ${n.t} ${st}${t7Ui.sel === n.id ? ' sel' : ''}${n.t === 'fusion' && T7_UI[n.id].x < 4 ? ' lbl-l' : ''}" style="left:${x}px;top:${y}px;--c:${col}" data-action="t7-sel" data-id="${n.id}" aria-label="${T7_UI[n.id].n}">${t7Canvas('t7node', n.id)}<i class="rk">${t7Look(n)}${mx > 1 ? ` ${r}/${mx}` : ''}${gate}</i></button>`;
+    return `<button class="t7n ${n.t} ${st}${t7Ui.sel === n.id ? ' sel' : ''}${n.t === 'fusion' && t7U(n.id).x < 4 ? ' lbl-l' : ''}" style="left:${x}px;top:${y}px;--c:${col}" data-action="t7-sel" data-id="${n.id}" aria-label="${t7U(n.id).n}">${t7Canvas('t7node', n.id)}<i class="rk">${t7Look(n)}${mx > 1 ? ` ${r}/${mx}` : ''}${gate}</i></button>`;
   }).join('');
-  const pairs = ['pa', 'pb', 'pk'].map((p) => { const [u, v] = T7_NODES.filter((n) => n.pair === p), [x1, y1] = t7Px(u.id), [x2, y2] = t7Px(v.id); return `<span class="t7pair" style="left:${(x1 + x2) / 2 + 34}px;top:${(y1 + y2) / 2}px">택1</span>`; }).join('');
+  const pairs = t7Tier() < 2 ? '' : ['pa', 'pb', 'pk'].map((p) => { const [u, v] = T7_NODES.filter((n) => n.pair === p), [x1, y1] = t7Px(u.id), [x2, y2] = t7Px(v.id); return `<span class="t7pair" style="left:${(x1 + x2) / 2 + 34}px;top:${(y1 + y2) / 2}px">택1</span>`; }).join('');
   const board = `<div class="t7wrap" id="t7wrap"><div class="t7board" style="width:${T7_G.w}px;height:${T7_G.h}px">${lanes}<svg class="t7edges" width="${T7_G.w}" height="${T7_G.h}">${edges}</svg>${nodes}${pairs}</div></div>`;
+  const auto = s.auto !== false ? `<div class="gtip">🤖 아직 직접 찍지 않아 남은 포인트를 추천 순서로 자동으로 찍고 있어요 — 한 칸이라도 직접 찍으면 자동이 꺼져요.${s.free ? ' 첫 초기화는 무료예요.' : ''}</div>` : '';
+  const tier1 = t7Tier() < 2 ? '<div class="gtip">2차 전직하면 그 직업의 갈래 3개(새 스킬 · 변형 · 키스톤 · 융합)가 열려요.</div>' : '';
   const hint = !spent && left ? `<div class="gtip big">🌟 스킬 포인트가 ${left}개 있어요 — 빛나는 노드를 누르고 <b>찍기</b>를 눌러 보세요. 이번 캠프에서 찍은 칸은 무료로 되돌릴 수 있어요.</div>` : '';
-  return `${head}${hint}<div class="t7slots">${slots.join('')}</div>${poolHtml}${bar}${board}${viewTree7Detail()}`;
+  return `${head}${auto}${tier1}${hint}<div class="t7slots">${slots.join('')}</div>${poolHtml}${bar}${board}${viewTree7Detail()}`;
 }
 function viewTree7Detail() {
   const id = t7Ui.sel;
   if (!id || !T7_BY[id]) return '<div class="t7detail"><small>노드를 누르면 여기에 하는 일·칸마다 모습·찍기 버튼이 나와요. 판은 옆으로 밀어서 볼 수 있어요.</small></div>';
-  const n = T7_BY[id], u = T7_UI[id], r = t7Rank(id), mx = T7_SPEC[n.t].max, cost = T7_SPEC[n.t].cost;
+  const n = T7_BY[id], u = t7U(id), r = t7Rank(id), mx = T7_SPEC[n.t].max, cost = T7_SPEC[n.t].cost;
   let why = '';
   if (!t7Open(n)) {
     if (t7Tier() < n.tier) why = `${['', '1차 (검사)', '2차 (검성)', '3차 (검신)'][n.tier]} 전직 필요`;
-    else if (n.t === 'fusion') why = n.lanes.map((l) => `${T7_LANE[l].name} ${t7LanePts(l)}/6`).join(' · ') + ' 포인트 필요';
+    else if (n.t === 'fusion') why = n.lanes.map((l) => `${t7Lane()[l].name} ${t7LanePts(l)}/6`).join(' · ') + ' 포인트 필요';
     else if (n.t === 'uvar' && T7_NODES.some((x) => x.t === 'uvar' && x.id !== id && t7Rank(x.id) > 0)) why = '궁극기 변형은 하나만 — 초기화해야 바꿀 수 있어요';
-    else if (t7PairTaken(n)) why = `택1 — ${T7_UI[T7_NODES.find((x) => x.pair === n.pair && x.id !== id).id].n} 를 골랐어요 (초기화해야 바꿀 수 있어요)`;
+    else if (t7PairTaken(n)) why = `택1 — ${t7U(T7_NODES.find((x) => x.pair === n.pair && x.id !== id).id).n} 를 골랐어요 (초기화해야 바꿀 수 있어요)`;
     else if (n.min && t7LanePts(n.lane) < n.min) why = `이 갈래에 ${n.min}포인트 필요 (지금 ${t7LanePts(n.lane)})`;
-    else why = `앞 노드 필요: ${n.req.map((x) => T7_UI[x].n).join(' 또는 ')}`;
+    else why = `앞 노드 필요: ${n.req.map((x) => t7U(x).n).join(' 또는 ')}`;
   } else if (r < mx && t7Left() < cost) why = `🌟 ${cost} 필요 (남은 ${t7Left()})`;
   const kind = T7_KIND[n.t] + (u.new ? ' · 새 스킬' : '') + (n.pair ? ' · 택1' : '');
   const looks = u.looks ? `<ol class="t7looks">${u.looks.map((l, i) => `<li class="${i === r - 1 ? 'on' : ''}">${i + 1}칸 · ${l}</li>`).join('')}</ol>` : '';
@@ -163,7 +170,8 @@ const T7_ACTIONS = ({
   't7-add': (el) => {
     const id = el.dataset.id, n = T7_BY[id], before = t7Rank(id);
     if (!t7Add(id)) return;
-    const u = T7_UI[id];
+    t7S().auto = false;   // 직접 찍었으니 자동 찍기 끝 (src/tree7.js t7AutoTick)
+    const u = t7U(id);
     if (u.looks && before >= 1 && u.looks[before] !== u.looks[before - 1]) toast(`✨ ${u.n} ${before + 1}칸 — 모습이 「${u.looks[before]}」로 바뀌었어요`, 4000);
     else if (!before && (n.t === 'active' || n.t === 'fusion')) toast(`✨ ${u.n} 배움${t7S().eq.includes(n.sk) ? ' — 장착 칸에 넣었어요' : ' — 장착 칸이 모자라요. 배운 스킬에서 눌러 바꿔 끼우세요'}`, 4000);
     else if (!before && n.t !== 'stat') toast(`✨ ${u.n} — 다음 원정부터 바로 적용돼요`, 3000);

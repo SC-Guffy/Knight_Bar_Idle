@@ -101,7 +101,8 @@ function run() {
   };
   // 시즌7 트리 시제품 줄기(src/tree7.js)는 트리에서 찍는 스킬 전부 (새 스킬·융합·궁극기) — 아니면 지금 스킬
   const T7SIM = typeof t7On === 'function';
-  const simSkills = (cls) => (T7SIM && TREE7_CLS.includes(cls) ? T7_NODES.filter((n) => n.sk && n.tier <= CLASSES[cls].tier).map((n) => SKILLS[n.sk]) : skillsOf(cls));
+  const t7LineSk = (cls) => { const L = T7_LINES[T7_LINE_OF[cls]]; return L ? T7_NODES.filter((n) => n.slot && n.tier <= CLASSES[cls].tier && L.sk[n.id]).map((n) => SKILLS[L.sk[n.id]]) : []; };
+  const simSkills = (cls) => (T7SIM && TREE7_CLS.includes(cls) ? t7LineSk(cls) : skillsOf(cls));
   // ?mods=a_grow,b_triple 처럼 변형·키스톤 노드를 켜서 연출을 본다 (트리 줄기만)
   const T7_SIM_MODS = (new URLSearchParams(location.search).get('mods') || '').split(',').filter(Boolean);
   // 스킬 모드는 스킬이 있는 직업만, 평타 모드는 견습 기사까지 전부
@@ -116,7 +117,7 @@ function run() {
     // 시즌7 트리: 숙련 단계 → 그 모습이 열리는 칸 (0 → 1칸 · ★ → 2칸 · ★★ → 4칸 · ★★★ → 5칸), 변형은 ?mods=
     if (T7SIM && TREE7_CLS.includes(T.cls)) {
       S.t7 = freshT7(); S.t7.pick = true; S.t7.slots = 4;
-      for (const n of T7_NODES) if (n.sk) S.t7.rk[n.id] = Math.min(T7_SPEC[n.t].max, [1, 2, 4, 5][st]);
+      for (const n of T7_NODES) if (n.slot) S.t7.rk[n.id] = Math.min(T7_SPEC[n.t].max, [1, 2, 4, 5][st]);
       for (const id of T7_SIM_MODS) if (T7_BY[id]) S.t7.rk[id] = 1;
     }
     for (const k of skillsOf(T.cls)) {

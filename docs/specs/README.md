@@ -75,6 +75,7 @@
 | [raid-difficulty.md](raid-difficulty.md) | 완료 | 레이드 보스 세기 = 입장 + 9 − 인원 보정 (4인 바로 · AI 파티 +8 · 혼자 +20), 전 보스는 스근하게 |
 | [raid-tickets.md](raid-tickets.md) | 완료 (0.20.16) | 레이드 입장권: 매일 자정 5장까지 무료로 채움(=보유 상한), 구매·우편 규칙 |
 | [skill-build-tree.md](skill-build-tree.md) | 초안 (시즌7) | 스킬 빌드 트리: 레벨업마다 🌟 포인트, 직업 안 갈래 3개·변형·키스톤·융합·궁극기 변형, 장착 칸 1→4, 10·20칸 보스 벽, 비전서 없앰. 레퍼런스 9게임. 검토 `dev/review/skill-build-tree.html` |
+| [skill-tree-all.md](skill-tree-all.md) | 구현 완료, 공개 대기 (0.27.0, impl-skill-tree-all) | 시즌7 스킬 빌드 트리 15줄기 전체 — 칸 틀·줄기 데이터·자동 찍기·결투 배율·측정 |
 | [skill-tree-swordsaint.md](skill-tree-swordsaint.md) | 진행 중 — 1~5단계 구현, 6단계 사용자 시험 차례 (impl-skill-tree) | 위 트리를 검사→검성→검신 한 줄기에 먼저 구현하는 스펙 — 노드 표·구현 방식·보스 벽 1~120 배치·봇 `--build`·작업 순서 |
 | [skill-tree-nodes.md](skill-tree-nodes.md) | 완료 | 스킬 트리 오른쪽 노드 저울질: ⏱️ 쿨타임 −40%·💥 치명 +15%·🩸 흡혈 15%·🔥 화상 45% (피해=결투, 쿨타임=사냥·레이드) |
 | [protect-scroll-drop.md](protect-scroll-drop.md) | 완료 | 📜 보호 주문서 상점 제거·상자 드롭 전용(원정당 약 0.9장) + 보급품 가격 절반 |

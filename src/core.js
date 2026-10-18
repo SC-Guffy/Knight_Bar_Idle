@@ -309,7 +309,7 @@ if (GUILD_HOST && GUILD_HOST.full) {
 function loadState(o) {
   S = freshState();
   try { if (o) S = migrate(o); } catch {}
-  if (T7_PICK_URL && S.t7) S.t7.pick = true;   // ?t7=1: 시즌7 트리 시제품을 1차 검사 단계부터 (src/tree7.js)
+  t7AutoTick();   // 시즌7 트리: 아직 직접 안 찍은 캐릭터는 남은 포인트를 추천 순서로 (src/tree7.js)
   if (GUILD_HOST) GUILD_HOST.bindShared(S);
   seenBase.at = S.lastSeen || 0; seenBase.mono = performance.now();
   if (S.hp == null) S.hp = stats().maxHp;
@@ -415,7 +415,7 @@ function stats(base = false) {
 // 시즌7 트리 캐릭터는 장착 칸의 스킬 + 궁극기만 (src/tree7.js t7Skills)
 const unlockedSkills = () => (t7On() ? t7Skills() : skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id));
 // 시즌7 트리가 이 스킬을 맡는가 (그 줄기 캐릭터의 트리 스킬)
-const t7Has = (id) => t7On() && !!T7_BY_SKILL[id];
+const t7Has = (id) => t7On() && !!t7NodeOf(id);
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[id] || 0, skillTierOf(id)).lv;
@@ -452,7 +452,8 @@ const heroSkill = (id) => (t7Has(id) ? t7Shape(id, skillAt(id, 1, t7Stage(id))) 
 const skillEv = (id) => (t7Has(id) ? t7Ev(id) : specEv(SKILLS[id], skillBonus(id)));
 // 🎲 스킬 피해 옵션은 한 방 위력에 곱한다 (필드·결투·레이드가 모두 이 값을 쓴다)
 const skillPow = (id) => { const gf = guildFx(); return (t7Has(id) ? skillPowAt(SKILLS[id], 1, S.cls, {}) * t7Pow(id) : skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id))) * (1 + gearBonus().skillDmg) * (1 + (gf ? gf.skill : 0)); };
-const skillCd = (id) => (t7Has(id) ? Math.round(skillCdOf(SKILLS[id], 1, S.cls, {}) * t7Cd(id) * 10) / 10 : SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
+// 시즌7 트리 스킬은 1칸 기준 쿨 × 트리 배수 (파이터 계열은 기 등가 쿨)
+const skillCd = (id) => (t7Has(id) ? Math.round((SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, {}, qiStats(), S.level) : skillCdOf(SKILLS[id], 1, S.cls, {})) * t7Cd(id) * 10) / 10 : SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
 // 파이터 계열 등가 쿨타임에 쓰는 공속·치명 (장비 포함, stats() 와 같은 식 — dpsOf 안에서 stats 를 다시 부르지 않게)
 const qiStats = () => { const m = heroClass().mods, gb = gearBonus(); return { aspd: 0.9 * (m.aspd || 1) * (1 + gb.aspdPct), crit: Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit) }; };
 // 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
@@ -564,7 +565,7 @@ function profile() {
       // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다.
       // 고유 특수(spec)는 서버가 모르는 상황형 효과라 평균 피해 배율(classes.js specEv)로 환산해 mult 에 녹인다 — 결투·레이드에선 그만큼 세진 한 방
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
-      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st), crit: !!k.crit && !t7NoCrit(),
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st), crit: !!k.crit && !t7NoCrit(), ...(t7Has(id) && SKILLS[id].gap ? { gap: SKILLS[id].gap } : {}),
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
         ...(k.qi && isQiCls(S.cls) ? { [qiIsMain(id, S.cls) ? 'cost' : 'need']: qiCostOf(SKILLS[id], S.cls, skillBonus(id)), ...(id === 'palmBlast' ? { m3: QI_PALM3 } : {}), ...(k.ult ? { awaken: 1 } : {}),
           ...(k.ward && k.ward.qiHurt ? { qiHurt: k.ward.qiHurt } : {}) } : {}),
@@ -906,6 +907,7 @@ function arriveCamp(silent = false) {
   } else {
     S.report = t;
   }
+  t7AutoTick();
   if (!silent) hooks.onArrive();
 }
 

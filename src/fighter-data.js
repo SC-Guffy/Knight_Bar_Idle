@@ -87,12 +87,13 @@ const QI_AWAKEN = { dur: 6, mult: 2 };       // 3차 궁극기: 6초 동안 기 
 const QI_PALM3 = 3.6 / 2.2;                  // 장풍 3단 위력 배수 (2단 대비, 기 1당 위력이 크다)
 const QI_CDRESET = 0.5;                      // 고유 발동 cdreset(우로보로스) → 기 게이지 최대치의 50% 즉시
 const isQiCls = (cls) => !!QI[cls];
-const qiIsMain = (id, cls) => !!(QI[cls] && QI[cls].main[id] != null);
+const qiBaseId = (id) => (SKILLS[id] && SKILLS[id].t7base) || id;   // 시즌7 트리 새 스킬은 바탕 스킬의 기 규칙 (src/tree7.js t7DefLine)
+const qiIsMain = (id, cls) => !!(QI[cls] && QI[cls].main[qiBaseId(id)] != null);
 // 기 절약(트리 ⏱️ 자리의 ☯️) 비율을 뺀 소모량(주 기술) 또는 문턱(투지 기술). 그 직업의 규칙에 없는 스킬이면 0
 function qiCostOf(k, cls = k.cls, b) {
   const q = QI[cls];
   if (!q) return 0;
-  const base = q.main[k.id] != null ? q.main[k.id] : q.need[k.id] || 0;
+  const kid = qiBaseId(k.id), base = q.main[kid] != null ? q.main[kid] : q.need[kid] || 0;
   return Math.round(base * (1 - rightVal(k, 'cd', b)) * 10) / 10;
 }
 // 평균 충전 속도(기/초) — 스펙 7절. 평타 충전 × aspd × (1 + crit, 치명 두 배 직업만) + 초당 충전 + 피격 어림(초당 1회).
@@ -119,7 +120,7 @@ const QI_DASH_ONLY = 3;
 const qiCdOf = (k, cls = k.cls, b, st, lvl) => {
   const owner = isQiCls(cls) ? cls : k.cls, r = qiRateOf(owner, st, lvl), Q = QI[owner];
   if (!(r > 0)) return 99;
-  const dashOnly = lvl != null && Q.main[k.id] != null && Object.keys(Q.main).some((o) => o !== k.id && SKILLS[o].lv > k.lv && lvl >= SKILLS[o].lv);
+  const dashOnly = !k.t7 && lvl != null && Q.main[k.id] != null && Object.keys(Q.main).some((o) => o !== k.id && SKILLS[o].lv > k.lv && lvl >= SKILLS[o].lv);
   return Math.round(qiCostOf(k, owner, b) / r * (dashOnly ? QI_DASH_ONLY : 1) * 10) / 10;
 };
 // 스킬 탭·직업 미리보기 문구: 쿨타임 대신 "기 100 소모 · 평균 약 18초" / "기 150 쓸 때마다 · 평균 약 21초" (cd = 등가 쿨타임)
