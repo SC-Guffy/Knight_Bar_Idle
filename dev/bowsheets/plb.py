@@ -10,7 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'pixellab'))
 from pl import call
 
-CAP, FLOOR = 120, 300   # 2026-10-17 로드맵 예산 A: 90 → 120
+CAP, FLOOR = 132, 50   # 2026-10-17 예산 A 90→120, 2026-10-18 석궁사수 옆모습 +12 · 바닥 50 (사용자 지시)
 APPROVED = os.path.join(HERE, "approved.txt")   # 로드맵 세션이 승인한 호출 이름 한 줄씩 — 없으면 호출 안 함 (2026-10-14 동결)
 LOG = os.path.join(HERE, 'usage.md'); STATE = os.path.join(HERE, 'usage.json')
 
@@ -102,6 +102,11 @@ if __name__ == '__main__':
         fc = int(a[6]) if len(a) > 6 else 4; seed = int(a[7]) if len(a) > 7 else 0
         body = {'first_frame': b64(first), 'action': action, 'frame_count': fc, 'seed': seed, 'no_background': True}
         run('/animate-with-text-v3', body, cls, f'{name}: {action[:70]}', os.path.join(HERE, 'work', cls, name))
+    elif a[1] == 'rotate':                 # 방향 돌리기: rotate <cls> <name> <64칸 png> <from_dir> <to_dir> [seed]
+        cls, name, src, fd, td = a[2:7]; seed = int(a[7]) if len(a) > 7 else 0
+        body = {'image_size': {'width': 64, 'height': 64}, 'from_image': b64(src), 'color_image': b64(src), 'from_view': 'side', 'to_view': 'side',
+                'from_direction': fd, 'to_direction': td, 'image_guidance_scale': 3.0, 'seed': seed}
+        run('/rotate', body, cls, f'{name}: rotate {fd}->{td}', os.path.join(HERE, 'work', cls, name))
     elif a[1] == 'edit':
         cls, name, src, desc = a[2:6]; seed = int(a[6]) if len(a) > 6 else 0
         body = {'image': b64(src), 'description': desc, 'seed': seed, 'no_background': True}

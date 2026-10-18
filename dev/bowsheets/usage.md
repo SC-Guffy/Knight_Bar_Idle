@@ -50,3 +50,7 @@
 | 44 | deadeye | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 96.0 | 850.0 |
 | 45 | voidArcher | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 99.0 | 834.0 |
 | 46 | siegeMaster | `/animate-with-skeleton-v3` | skel-sky: animate-with-skeleton-v3 192 8f | 3.0 | 102.0 | 827.0 |
+| 47 | arbalest | `/rotate` | rot: rotate south-east->east | 1.0 | 103.0 | 314.0 |
+| 48 | arbalest | `/animate-with-skeleton-v3` | skel-walk2: animate-with-skeleton-v3 192 8f | 3.0 | 106.0 | 311.0 |
+| 49 | arbalest | `/animate-with-skeleton-v3` | skel-shoot2: animate-with-skeleton-v3 192 8f | 3.0 | 109.0 | 308.0 |
+| 50 | arbalest | `/animate-with-skeleton-v3` | skel-sky2: animate-with-skeleton-v3 192 8f | 3.0 | 112.0 | 303.0 |

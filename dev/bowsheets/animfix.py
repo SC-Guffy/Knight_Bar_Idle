@@ -83,7 +83,7 @@ def despeck(im, th=40):
 
 
 def skin_c(im, box):
-    P = im.load(); x0, y0, x1, y1 = box
+    P = im.load(); x0, y0, x1, y1 = box; x0, y0, x1, y1 = max(0, x0), max(0, y0), min(im.width, x1), min(im.height, y1)
     s = [(x, y) for y in range(y0, y1) for x in range(x0, x1) if P[x, y][3] and P[x, y][0] > 200 and P[x, y][1] > 130 and P[x, y][2] > 110]
     return (sum(x for x, _ in s) / len(s), sum(y for _, y in s) / len(s)) if s else None
 
