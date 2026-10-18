@@ -108,7 +108,8 @@ t7DefLine({
 
 - 2026-10-19: **14줄기 새 스킬 전용 연출·아이콘** (impl-tree7-fx, 로드맵 지시 "바탕 스킬과 달라 보이게, 무료로"). 유료 생성 0회 (PixelLab 허용분 150 은 쓰지 않음 — 무료 재조합으로 됐다).
   - `src/tree7-fx-<줄기>.js` 14개: 새 스킬 7개씩 98종의 SKILL_FX — 지금 VFX 시트(src/vfx/*.png)를 위치·개수·궤적·크기·색 램프만 바꿔 재조합, 칸 단계(★)마다 커지고, 변형 노드(grow·follow·triple·after·pierce·split)에 반응. 서브에이전트 5개(1차 계열별)가 쓰고 검수 4번 돌며 고쳤다.
-  - 검수: `dev/tree7-shoot.js`(시뮬레이터에서 새 스킬마다 1칸·★★★·바탕 ★★★ 2.6초 띠 캡처) → `dev/tree7-qa-sheet.py`(세 줄 시트) → 도트 비평(sonnet, dev/pixel-qa/critic.md 채점표 + "바탕과 다른가 distinct"·"★★★ 가 커지는가 growth"). 1차 48/105 통과 → 2차 75 → 3차 84/98(14줄기) → 4차 (아래 결과).
+  - 검수: `dev/tree7-shoot.js`(시뮬레이터에서 새 스킬마다 1칸·★★★·바탕 ★★★ 2.6초 띠 캡처) → `dev/tree7-qa-sheet.py`(세 줄 시트) → 도트 비평(sonnet, dev/pixel-qa/critic.md 채점표 + "바탕과 다른가 distinct"·"★★★ 가 커지는가 growth"). 1차 48/105 통과 → 2차 75 → 3차 84/98(14줄기) → 4·5차 **93/98**. 남은 5 (경계선 fix): 성좌기사 융합 둘(★★★ 절정에 블록 번짐) · 챔피언 권풍 · 그랜드마스터 관통 기탄 · 템페스트 풍인각(바탕과 비슷). 검토 페이지 dev/review/tree7-fx-all.html.
+  - 융합은 3칸이 끝이라 칸 → 모습 표(T7_STAGE_AT)로 ★ 에서 멈춰 ★★·★★★ 연출이 안 나왔다 → `T7_FUSE_STAGE_AT` (1칸 기본·2칸 ★★·3칸 ★★★).
   - 아이콘: `dev/icon-art/t7-*.js` 105개(검성 7 + 14줄기 98) → `dev/make-icons.js` 로 src/skin/icons.png 에 구움. 노드 ic 와 전투 화면 스킬 아이콘(SKILL_CP — `t7DefLine` 이 새 스킬도 바꾼다)이 도트 아이콘.
   - 줄기 글: 줄기마다 말투로 다시 (마법사 계열 템플릿 느낌 걷어 냄), 새 스킬 설명에 연출 한 줄.
   - 버그: ① 궁극기를 바탕으로 한 새 스킬(신궁 태양 폭풍 ← 태양 관통)이 `ult` 를 물려받아 장착·시전이 안 됐다 (**0.27 배포본에도 있음**) → `t7DefLine` 에서 `ult: false`. ② 게이지 상태가 생긴 뒤 장착한 파이터 새 투지 기술이 문턱 칸이 없어 안 나갔다 → `qiCan` 에서 채움.
@@ -143,6 +144,6 @@ t7DefLine({
 
 ## 남은 일
 
-- 검수 경계선 항목(검토 페이지 dev/review/tree7-fx-all.html 의 "손볼 곳" 배지) — 마지막 검수 결과 참고.
+- 검수 경계선 5개(위) — 검토 페이지 dev/review/tree7-fx-all.html 의 "손볼 곳" 배지와 비평 메모.
 - 변형 노드(grow·follow·triple·after·pierce·split)를 켠 모습은 코드로만 넣고 캡처 검수는 안 했다 (`T7SHOOT([{ ..., mods: ['a_grow'] }])` 로 찍을 수 있다).
 - 기막(qiBarrier)처럼 1타 스킬에 붙은 "타수 +3" 변형은 효과가 작다.
