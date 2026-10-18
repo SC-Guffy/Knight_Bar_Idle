@@ -86,12 +86,29 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - `server/` 에서 `PORT=3123 DATA_DIR=<스크래치>/data BOT_TICK_MS=3000 <node> index.js` (파일 저장소, pg 불필요) → `index.html?server=http://localhost:3123`.
 - 테스트 계정: curl `POST /api/accounts` 에 **ASCII 닉네임**을 쓴다 (Windows curl 인자에서 한글이 깨진다). 받은 토큰을 로드 전에 localStorage `knight-bar-accounts` 에 넣는다.
 
+## 기사단 (1단계, `guild.html`, [specs/guild.md](specs/guild.md))
+
+- 켜기: `index.html?guild=1` (끄기 `?guild=0`). 웹만 — Electron(`window.bar`)에선 무시된다. 켜져 있으면 `guild.html` 로 넘어가 기사단 이름 → 지금 계정이 기사1.
+- 새 기사를 만들려면 진짜 로컬 서버가 필요하다(위 "진짜 로컬 서버"): `index.html?server=http://localhost:<서버 포트>&guild=1`. 오프라인 주소(`127.0.0.1:9`)면 기사 만들기만 안 되고 나머지는 된다.
+- 바깥 페이지 콘솔: `guild`(저장 내용) · `shared`(공용 상태) · `frames[i].win`(기사 i 의 게임 창, `frames[i].win.guildS` = S) · `guildHost.slot('닉', true)` · `renderSlots()`. 회관 Lv 바로 바꾸기: `shared.bld.hall = 10; renderSlots()`.
+- 처음부터: 바깥 페이지 콘솔 `localStorage.removeItem('knight-bar-guild')` 후 새로 고침.
+- **2단계(서버 기사단)**: 서버를 `GOOGLE_FAKE=1` 로 띄우고(`cd server && PORT=3792 DATA_DIR=<스크래치>/srv GOOGLE_FAKE=1 node index.js`) `index.html?server=http://localhost:3792&guild=1&fakegoogle=1` → 로그인 화면의 "가짜 Google 로그인"에 아무 이름(같은 이름 = 같은 Google 계정). 손님·기기 연결 코드도 같은 화면.
+  - 서버 API 점검: `P=3792 node dev/guild-server-test.mjs` (서버를 새로 띄운 직후 — IP 당 한 시간 5개 제한).
+  - "다른 기기"는 저장소가 따로인 창이 필요하다: CDP `Target.createBrowserContext` 로 만든 창, 또는 다른 브라우저 프로필. 같은 창의 새 탭은 localStorage 를 같이 써서 같은 기기로 보인다.
+  - 기사단 토큰을 지우면 로그인 화면부터: 바깥 페이지 콘솔 `localStorage.removeItem('knight-bar-guild-token')`.
+  - 3단계(공용 상태 서버 저장) 브라우저 점검: `node dev/guild-shared-test.mjs` (두 창으로 이어 받기·시계 조작·오프라인). 공용 상태 운영 기록: 서버를 `ADMIN_KEY=<아무 값>` 으로 띄우고 `/api/admin/audit?guild=기사단이름&kind=guild-snap` (헤더 `X-Admin-Key`).
+  - 4단계(기사단 효과): `node dev/guild-fx-test.js` (규칙 점검) · `HALL_FIRST=1 node dev/guild-bot.js --days 7 --seeds 5` (기사 1명 vs 5명, 조절값은 파일 머리 주석). 회관 효과 표를 여러 계열로 보려면 바깥 페이지 콘솔에서 `guildHost.roster = () => ({ list: [{ nick, cls, lv }…], rev: 999 })` 후 회관 열기.
+  - 숨은 기사의 레이드(대기방 유지·바로 정산·레드닷): `node dev/guild-raid-test.mjs`. 게임 함수는 iframe CSP·`const` 라 바깥에서 못 부르므로 `data-action` 버튼을 잠깐 만들어 눌러서 움직인다.
+  - Electron 중계는 가짜 `bar` 로 본다: 로드 전에 맨 위 창에만 `window.bar = { 호출을 기록하는 함수들 }` 를 넣는다(CDP `Page.addScriptToEvaluateOnNewDocument`, `window === window.top` 일 때만).
+- 숨은 창은 rAF 가 멈춘다 → 프레임·진행 확인은 보이는 Chrome(`dev/guild-measure.mjs` 머리 주석의 실행 인자)에서.
+
 ## 기사단 시제품 (`dev/guild-spike.html`, [specs/guild.md](specs/guild.md))
 
 - 주소: `http://localhost:<포트>/dev/guild-spike.html?n=3` (n = 기사 수 1~5). 기사마다 `index.html?server=http://127.0.0.1:9&char=기사N` iframe 을 띄운다(오프라인 전용). `&reset=1` 이면 시제품 기사 세이브·공용 재화를 지우고 새로 시작.
 - 오른쪽 위 **시험 상태 넣기** (= 콘솔 `preset()`): 기사1 탑 · 기사2 원정 · 기사3 미궁 · 기사4 성벽 · 기사5 원정, 공용 🪙 +100만. 왼쪽 위 슬롯 칩으로 전환.
 - 상태 보기: 콘솔 `gS(frames[0])` (그 기사의 S), `frames[0].win.guildDbg` (clock·knight.x·몬스터 수).
 - 숨은 브라우저 창은 rAF 가 멈춘다 → 자동 측정은 `&drive=mc` (MessageChannel 로 약 60/s 구동). 프레임 수치는 실제로 보이는 창에서 rAF 로 잰 것만 믿는다.
+- 실제 화면 rAF 측정: `dev/guild-measure.mjs` (머리 주석대로 보이는 Chrome 을 디버그 포트로 띄우고 `node dev/guild-measure.mjs 5 shot.png 30`). 앱 Browser 패널이 숨어 있으면 rAF 가 0 이라 못 잰다. 기사 수별 rAF 간격·`guildStep` 합계·GC 뒤 JS 힙을 출력.
 
 ## 시즌7 스킬 빌드 트리 시제품 (검사 계열, `src/tree7.js`)
 

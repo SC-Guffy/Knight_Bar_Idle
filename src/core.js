@@ -293,8 +293,18 @@ function readLocalSave(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
 }
 // o: 세이브 객체 (없으면 새 기사)
-// 기사단 시제품: 바깥 페이지(dev/guild-spike.html)의 기사단 공용 상태. 없으면 null (보통 게임)
+// 기사단 (docs/specs/guild.md): 바깥 페이지(guild.html 의 src/guild.js, 또는 시제품 dev/guild-spike.html)가 기사마다 이 게임을 iframe 으로 띄운다.
+// 공용 상태(골드·목재·철광석·마을 건물·창고·대장간 시설·건설)는 바깥 페이지 객체 하나를 같이 쓴다. 없으면 null (보통 게임)
 const GUILD_HOST = (() => { try { return window.parent !== window && window.parent.guildHost || null; } catch { return null; } })();
+// 🛡️ 기사단 회관: 기사단 모드에서만 있는 공용 마을 건물. 회관 Lv → 슬롯 수 (src/guild.js GUILD_SLOT_LV 와 같게)
+const GUILD_SLOT_LV = [1, 8, 12, 14];  // 슬롯 2·3·4·5칸이 열리는 회관 Lv (4단계 봇으로 확정 10-17: 봇 2·4·6일째)
+const guildSlotsAt = (lv) => 1 + GUILD_SLOT_LV.filter((x) => lv >= x).length;
+if (GUILD_HOST && GUILD_HOST.full) {
+  BUILDINGS.hall = {
+    name: '기사단 회관', icon: '🛡️', mul: { gold: 1.5, wood: 1.5, ore: 1.5, mana: 0 }, max: 15,   // 비용 = 다른 건물 곡선 ×1.5, 최대 Lv 15 (dev/guild-bot.js 로 확정 10-17)
+    effect: (lv) => `기사 슬롯 ${guildSlotsAt(lv)}칸${GUILD_SLOT_LV.find((x) => x > lv) ? ` · 다음 칸은 Lv ${GUILD_SLOT_LV.find((x) => x > lv)}` : ''}`,
+  };
+}
 
 function loadState(o) {
   S = freshState();
@@ -311,6 +321,62 @@ function resetState() {
   save();
 }
 
+// ───────────────────────── 기사단 효과 (docs/specs/guild.md 4단계) ─────────────────────────
+// 계열(1차 직업, 그 아래 2·3차 포함)마다 그 계열 최고 레벨 기사 1명만 센다. 단 = ⌊Lv ÷ fxLv⌋, 최대 단 = ⌈회관 Lv ÷ hallPerTier⌉ (GUILD_TUNE).
+// 모두 기본 능력치라 모든 콘텐츠·결투·레이드 전투력에 똑같이 걸린다 (콘텐츠 전용 보정 없음). 숫자는 진행 봇(dev/progress-bot.js --guild)으로 맞춘다
+// 단당 크기는 4단계 봇으로 확정 (10-17): 5계열 모두 5단이면 본캐 전투력 약 +13.6% (docs/specs/guild.md "4단계 봇 결과")
+const GUILD_FX = {
+  swordsman: { stat: 'atk', per: 0.013, name: '공격력' },
+  lancer: { stat: 'hp', per: 0.013, name: '최대 체력' },
+  ranger: { stat: 'crit', per: 0.0065, name: '치명타 확률' },
+  mage: { stat: 'skill', per: 0.013, name: '스킬 피해' },
+  fighter: { stat: 'aspd', per: 0.0065, name: '공격 속도' },
+};
+// 조절값 한 곳 (진행 봇 dev/guild-bot.js 가 실험할 때 바꿔 끼운다)
+const GUILD_TUNE = {
+  fxLv: 20,                    // 이 레벨마다 1단
+  hallPerTier: 3,              // 최대 단 = ⌈회관 Lv ÷ 이 값⌉ (회관 Lv13~15 에 5단)
+  divLv: 50, divPer: 0.01,     // 다양성: 이 레벨 이상 기사가 있는 계열 하나마다 공격력 +1%
+  catchup: 0.8, catchupExp: 2, // 따라잡기: 기사단 최고 레벨의 80% 아래면 경험치 ×2
+};
+const guildMaxTier = (hallLv) => Math.ceil(hallLv / GUILD_TUNE.hallPerTier);
+function classFamily(id) {
+  for (let c = id; c && CLASSES[c]; c = CLASSES[c].from) if (CLASSES[c].tier === 1) return c;
+  return null;
+}
+// roster: 기사단 전원 [{ nick, cls, lv }] → 효과 합계와 계열별 센 기사
+function guildFxOf(roster, hallLv) {
+  const fam = {};
+  let maxLv = 0;
+  for (const r of roster) {
+    maxLv = Math.max(maxLv, r.lv);
+    const f = classFamily(r.cls);
+    if (f && GUILD_FX[f] && (!fam[f] || r.lv > fam[f].lv)) fam[f] = { nick: r.nick, lv: r.lv };
+  }
+  const out = { atk: 0, hp: 0, crit: 0, skill: 0, aspd: 0, atkAll: 0, div: 0, fam, maxLv, cap: guildMaxTier(hallLv || 1) };
+  for (const [f, x] of Object.entries(fam)) {
+    x.tier = Math.min(out.cap, Math.floor(x.lv / GUILD_TUNE.fxLv));
+    out[GUILD_FX[f].stat] += x.tier * GUILD_FX[f].per;
+    if (x.lv >= GUILD_TUNE.divLv) out.div++;
+  }
+  out.atkAll = out.div * GUILD_TUNE.divPer;
+  return out;
+}
+// 지금 기사에게 걸리는 기사단 효과 (기사단 밖이면 null). 바깥 페이지 명단(rev 가 바뀔 때만 새로)에 내 지금 레벨·직업을 덮어 계산
+const guildFxCache = { key: '', fx: null };
+function guildFx() {
+  if (!GUILD_HOST || !GUILD_HOST.full || !GUILD_HOST.roster) return null;
+  const r = GUILD_HOST.roster(), me = typeof activeNick === 'function' ? activeNick() : null;
+  const key = `${r.rev}|${me}|${S.level}|${S.cls}|${S.bld.hall}`;
+  if (guildFxCache.key !== key) {
+    const list = r.list.filter((x) => x.nick !== me);
+    if (me) list.push({ nick: me, cls: S.cls, lv: S.level });
+    guildFxCache.key = key;
+    guildFxCache.fx = guildFxOf(list, S.bld.hall);
+  }
+  return guildFxCache.fx;
+}
+
 // ───────────────────────── 스탯 ─────────────────────────
 const heroClass = () => CLASSES[S.cls] || CLASSES.squire;
 const heroWeapon = () => WEAPONS[heroClass().weapon];
@@ -324,9 +390,12 @@ function stats(base = false) {
   // 절대값 = 맨몸 + 무기 공격력 / 갑옷 체력 (기본 위력 = 기사 레벨). 여기에 직업·특수 효과·훈련 배율이 곱해진다 (0.21.0 성장 압축)
   let atk = (BASE_ATK + gb.atk) * (m.atk || 1) * (1 + gb.atkPct) * trainAtkMultAt(t.atk);
   if (!base && S.trip && S.trip.buffs.elixir) atk *= 1.3;
-  const maxHp = (BASE_HP + gb.hp) * (m.hp || 1) * (1 + gb.hpPct) * trainHpMultAt(t.hp);
-  const aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
-  const crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
+  let maxHp = (BASE_HP + gb.hp) * (m.hp || 1) * (1 + gb.hpPct) * trainHpMultAt(t.hp);
+  let aspd = 0.9 * (m.aspd || 1) * (1 + gb.aspdPct);
+  let crit = Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit);
+  // 🛡️ 기사단 효과 (기본 능력치 — 랭킹·결투용 base 에도 넣는다)
+  const gf = guildFx();
+  if (gf) { atk *= (1 + gf.atk) * (1 + gf.atkAll); maxHp *= 1 + gf.hp; aspd *= 1 + gf.aspd; crit = Math.min(0.8, crit + gf.crit); }
   const defRed = defRedAt(t.def);
   // 재료의 미궁 안 배율 (dungeon.js dgFx — 지금은 0). 랭킹·결투용(base)에는 넣지 않는다
   const dg = !base && dgActive() ? dgFx() : null;
@@ -382,7 +451,7 @@ const heroSkill = (id) => (t7Has(id) ? t7Shape(id, skillAt(id, 1, t7Stage(id))) 
 // 평균 피해 환산 배율 (결투·레이드 프로필 · 전투력 dpsOf): 고유 특수 ev (트리는 근사 효과 포함)
 const skillEv = (id) => (t7Has(id) ? t7Ev(id) : specEv(SKILLS[id], skillBonus(id)));
 // 🎲 스킬 피해 옵션은 한 방 위력에 곱한다 (필드·결투·레이드가 모두 이 값을 쓴다)
-const skillPow = (id) => (t7Has(id) ? skillPowAt(SKILLS[id], 1, S.cls, {}) * t7Pow(id) : skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id))) * (1 + gearBonus().skillDmg);
+const skillPow = (id) => { const gf = guildFx(); return (t7Has(id) ? skillPowAt(SKILLS[id], 1, S.cls, {}) * t7Pow(id) : skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id))) * (1 + gearBonus().skillDmg) * (1 + (gf ? gf.skill : 0)); };
 const skillCd = (id) => (t7Has(id) ? Math.round(skillCdOf(SKILLS[id], 1, S.cls, {}) * t7Cd(id) * 10) / 10 : SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
 // 파이터 계열 등가 쿨타임에 쓰는 공속·치명 (장비 포함, stats() 와 같은 식 — dpsOf 안에서 stats 를 다시 부르지 않게)
 const qiStats = () => { const m = heroClass().mods, gb = gearBonus(); return { aspd: 0.9 * (m.aspd || 1) * (1 + gb.aspdPct), crit: Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit) }; };
@@ -528,6 +597,9 @@ const bagFull = () => bagWeight() >= bagCap();
 const expToNext = () => expToNextAt(S.level);
 
 function gainExp(e) {
+  // 🛡️ 기사단 따라잡기: 기사단 최고 레벨의 catchup 아래면 경험치 ×catchupExp (GUILD_TUNE)
+  const gf = e > 0 ? guildFx() : null;
+  if (gf && S.level < gf.maxLv * GUILD_TUNE.catchup) e *= GUILD_TUNE.catchupExp;
   S.exp += e;
   let ups = 0;
   while (S.exp >= expToNext()) {
@@ -634,7 +706,12 @@ function startBuild(id) {
   S.build = { id, remain: total, total };
   return true;
 }
+// 기사단 모드에선 건설 시계를 바깥 페이지가 한 번만 돌린다 (iframe 마다 돌리면 기사 수만큼 빨라진다) → guildApi.tickBuild
 function advanceBuild(sec) {
+  if (GUILD_HOST && GUILD_HOST.full) return;
+  advanceBuildNow(sec);
+}
+function advanceBuildNow(sec) {
   if (!S.build) return;
   S.build.remain -= sec;
   if (S.build.remain <= 0) {
@@ -653,7 +730,7 @@ function rushBuild() {
   const p = rushPrice();
   if (S.gold < p) return false;
   S.gold -= p;
-  advanceBuild(S.build.remain);
+  advanceBuildNow(S.build.remain);
   return true;
 }
 
