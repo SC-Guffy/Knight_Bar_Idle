@@ -57,7 +57,7 @@ function qiTick(dt) {
 // 지금 쓸 수 있는가. dash: 돌진기로 달려붙을 때 (킥복서가 남겨 두는 1칸 keep 을 쓴다)
 function qiCan(id, dash = false) {
   const q = qiSt();
-  if (!qiMain(id)) return (q.tj[id] || 0) >= qiNeed(id);
+  if (!qiMain(id)) { if (!(id in q.tj)) q.tj[id] = qiNeed(id); return q.tj[id] >= qiNeed(id); }   // 게이지 상태가 생긴 뒤 장착한 시즌7 새 투지 기술도 문턱을 채운 채 시작
   return q.v >= qiNeed(id) + (dash ? 0 : QI[S.cls].keep || 0);
 }
 // 고를 순서: 투지 기술 먼저, 그다음 주 기술 (각각 해금 레벨 높은 것부터 — st.skills 순서)
