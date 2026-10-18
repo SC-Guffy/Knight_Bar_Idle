@@ -1,6 +1,6 @@
 # 기사단 (시즌7 — 여러 캐릭터 동시 육성 + Google 로그인)
 
-- 상태: 1·3·4단계 사용자 확인 완료 · 2단계 구현됨(진짜 Google 은 사용자가 나중에) · **5단계(기사 삭제·이름 바꾸기) 스펙 확인 대기** — 2026-10-18. Postgres·실제 앱은 미확인
+- 상태: 1·3·4단계 사용자 확인 완료 · 2단계 구현됨(진짜 Google 은 사용자가 나중에) · **5단계(기사 삭제·이름 바꾸기) 스펙 확인 대기** — 2026-10-18. Postgres·실제 앱은 미확인. **main 병합 (0.26.0, 2026-10-18) — 스위치 `GUILD_OPEN` 꺼짐**
 - 검토 페이지: [dev/review/guild.html](../../dev/review/guild.html)
 - 관련 코드(예정): src/net.js (계정 → 기사단 토큰·캐릭터 key), src/core.js (`S`·`freshState`·`simulate`), src/ui.js (메인 루프 `frame`·HUD), src/world.js (화면·실시간 전투 상태), server/index.js·server/store.js (계정 = 캐릭터 행 유지 + `guilds` 테이블), main.js·preload.js (안 바꾸는 게 목표)
 - 관련 스펙: [roadmap.md](roadmap.md) (시즌7), [currency-roles.md](currency-roles.md), [raid-difficulty.md](raid-difficulty.md)
@@ -396,11 +396,15 @@
 
 - 2026-10-18: 사용자 "기사 삭제·이름 바꾸기 스펙" → "5단계" 절 작성(기사 이름 바꾸기·기사 삭제·기사단 이름 바꾸기) — 확인 대기.
 
+- 2026-10-18: main 에 병합(0.26.0, `merge-s7`). 스위치 `GUILD_OPEN`(src/data.js `guildAllowed`, src/guild.js 머리) 을 새로 두고 꺼 둠 — 배포 주소에선 `?guild=1`·남아 있는 `knight-bar-guild-on` 을 무시하고(지움) 보통 게임, `guild.html` 을 직접 열어도 index.html 로 돌려보냄. 로컬 개발 주소에선 이전과 같음.
+  서버 호환(코드로 확인): Postgres 는 `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS guild_id text NOT NULL DEFAULT ''` + `CREATE TABLE IF NOT EXISTS guilds` + `ADD COLUMN IF NOT EXISTS shared…` 뿐이라 마이그레이션 없이 안전. 파일 저장소는 `guilds.json` 이 없으면 빈 값. 기존 계정은 `guildId` 가 ''/없음 → 랭킹 기사단 이름·같은 기사단 결투 금지는 건너뜀. 개인 토큰(base64url)은 `.` 이 없어 `g.` 접두 기사단 토큰과 안 섞인다. 기사단 API(`/api/guilds*`·`/api/link/*`·`/api/auth/google`)는 서버 배포 시 열리지만 클라이언트가 꺼져 있어 쓰이지 않는다(Google 은 `GOOGLE_CLIENT_ID` 없으면 503).
+  로컬 파일 저장 서버로 확인: 계정 만들기·`GET/PUT /api/me`·랭킹·기사단 만들기·기사 만들기·`X-Char` 로 `GET /api/me`·`PUT /api/guilds/shared`·다른 기기 409 moved 모두 정상. `node dev/guild-fx-test.js` 통과.
+
 ## 남은 일 / 미정
 - ~~인계 (2026-10-16 퇴근)~~ → 10-16 집 PC 에서 처리함(프레임 측정·순서 승인). 원문: 스펙 초안·검토 페이지(`dev/review/guild.html`)·시제품(`dev/guild-spike.html` + `src/core.js` `GUILD_HOST`·`src/net.js` `GUILD_CHAR`·`src/ui.js` `frame(now, shown)`/`guildStep`)은 main 에 커밋·푸시됨(452489e, 9dd7ea8). 사용법은 [dev-testing.md](../dev-testing.md) "기사단 시제품". 사용자에게 시제품 결과를 아직 보고·확인받지 않았다 → 다음 세션은 시제품을 띄워 보여 주고(실제 화면 rAF 로 5명 프레임 측정), 본 구현 순서안(아래) 승인을 받는다. 기사단 효과 수치는 시작안이라 확정 아님.
 - 기사단 효과 수치·회관 슬롯 Lv (사용자 10-16: 시작안 그대로 만들고 마지막 단계에서 봇으로 확정해 다시 보여 준다) — 진행 봇(`dev/progress-bot.js`, `dev/currency-bot.js`)을 기사 여러 명 모드로 늘려서 확정.
 - 1단계 남은 확인: Electron 에서 iframe → 바깥 `bar` 전달 (실제 화면 프레임 측정은 10-16 집 PC 에서 끝남).
-- **다음 할 일**: 1~4단계 끝. 남은 것 — Google OAuth 클라이언트 ID(사용자, 원할 때) · Render Postgres 에서 기사단 표 확인 · 실제 앱 확인(사용자) · main 에 합치기(`GAME_VERSION` 올리기, 플래그는 꺼진 채) · 시즌7 오픈 때 플래그 기본값 켜기 · 기사 삭제/이름 바꾸기 · 암살자 계열 줄(직업이 생길 때). 그리고 사용자가 원할 때 Google OAuth 클라이언트 ID 를 받아 `src/guild.js` `GOOGLE_CLIENT_ID`·Render `GOOGLE_CLIENT_ID` 에 넣고 진짜 로그인 확인 → Render(Postgres)에서 기사단 표 확인 → 3단계(공용 상태 서버 저장). 1단계는 사용자 확인 완료 — main 에 합칠 때 `GAME_VERSION` 올리기(플래그 꺼져 있어 플레이어 영향 없음, 합치는 건 로드맵/사용자 판단).
+- **다음 할 일**: 1~4단계 끝. 남은 것 — Google OAuth 클라이언트 ID(사용자, 원할 때) · Render Postgres 에서 기사단 표 확인 · 실제 앱 확인(사용자) · ~~main 에 합치기~~(0.26.0 완료, 스위치 꺼짐) · 시즌7 오픈 때 `GUILD_OPEN` 켜기(src/data.js·src/guild.js 둘 다) · 기사 삭제/이름 바꾸기 · 암살자 계열 줄(직업이 생길 때). 그리고 사용자가 원할 때 Google OAuth 클라이언트 ID 를 받아 `src/guild.js` `GOOGLE_CLIENT_ID`·Render `GOOGLE_CLIENT_ID` 에 넣고 진짜 로그인 확인 → Render(Postgres)에서 기사단 표 확인 → 3단계(공용 상태 서버 저장). 1단계는 사용자 확인 완료 — main 에 합칠 때 `GAME_VERSION` 올리기(플래그 꺼져 있어 플레이어 영향 없음, 합치는 건 로드맵/사용자 판단).
 - 본 구현 순서 (**사용자 승인 10-16: 화면 먼저**): 1단계 이 기기 안 기사단(슬롯 칩·알림 모으기·회관·공용 마을, 위 절) → 2단계 서버 기사단(`guilds` 테이블·토큰·`X-Char`)·Google 로그인·연결 코드 → 3단계 공용 상태 서버 저장(다른 기기에서도 같은 마을) → 4단계 기사단 효과 수치(진행 봇).
 - Google Cloud OAuth 클라이언트 만들기 — 사용자 계정으로 해야 함 (콘솔 작업은 사용자가 직접, 순서는 안내).
 - 기사 삭제·이름 바꾸기 → 5단계 절. 슬롯에서 뺀 기사의 입장권 충전 → 1단계에서 정함.

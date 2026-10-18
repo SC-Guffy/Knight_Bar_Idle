@@ -4,6 +4,13 @@
 // 화면은 고른 기사 하나만 그린다. 공용 상태(골드·목재·철광석·마을 건물·창고·대장간 시설·건설)는 아래 guild.shared 하나를
 // 각 기사의 S 에 getter/setter 로 걸어 같이 쓴다 (같은 origin 이라 동기 접근). 건설 시계는 여기서 한 번만 돌린다.
 
+// 기사단 스위치 (src/data.js GUILD_OPEN 과 같게). 꺼져 있으면 배포 주소에서는 보통 게임으로 돌려보낸다 (로컬 개발 주소는 늘 열림)
+const GUILD_OPEN = false;
+if (!GUILD_OPEN && !/^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$|\.test$/.test(location.hostname)) {
+  try { localStorage.removeItem('knight-bar-guild-on'); } catch {}
+  location.replace('index.html');
+  throw new Error('guild off');
+}
 const GUILD_KEY = 'knight-bar-guild';
 const ACCOUNTS_KEY = 'knight-bar-accounts';
 const SAVE_KEY = 'knight-bar-save-v1';

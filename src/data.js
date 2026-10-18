@@ -13,7 +13,17 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.25.3';
+const GAME_VERSION = '0.26.0';
+// 시즌7 기능 스위치. false 면 배포 주소(GitHub Pages·Electron 등)에서는 꺼져 있고, 로컬 개발 주소(localhost·127.0.0.1·*.localhost·*.test, 봇의 가짜 location 포함)에서만 켜진다.
+//  아래 DEV_HOST(배속용)와 달리 file: 은 넣지 않는다 — Electron 앱이 파일로 열 때 플레이어에게 켜지지 않게.
+//  시즌7 정식 공개 때 true 로 바꾼다.
+const S7_DEV = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$|\.test$/.test(location.hostname || '');
+// 기사단 (docs/specs/guild.md): 꺼져 있으면 ?guild=1 을 무시하고 보통 게임으로 연다. src/guild.js 의 GUILD_OPEN 도 같이 바꾼다
+const GUILD_OPEN = false;
+const guildAllowed = () => GUILD_OPEN || S7_DEV;
+// 스킬 빌드 트리 (docs/specs/skill-tree-swordsaint.md, src/tree7.js): 켜면 검성·검신(그리고 ?t7=1 로 고른 검사)이 바로 새 트리로 바뀐다.
+//  켤 때는 server/index.js SAVE_MIN_VERSION 도 그 버전으로 올린다 (예전 버전은 세이브의 t7 을 버리고 올린다)
+const T7_OPEN = false;
 const CAMP_X = 64;              // 캠프에서 기사가 앉는 화면 x
 
 // 개발용 시간 배속 (KB_SPEED=20 npm start). 스태미나·휴식·건설·부상 시간에만 적용

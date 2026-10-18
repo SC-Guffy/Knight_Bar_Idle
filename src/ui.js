@@ -3782,6 +3782,7 @@ function start() {
   if (window.parent === window) {
     // 기사단 모드 (docs/specs/guild.md): ?guild=1 로 켜고 ?guild=0 으로 끈다. 켜져 있으면 기사단 호스트 페이지로 (2단계부터 Electron 도 — 창 API 는 호스트가 중계)
     const g = new URLSearchParams(location.search).get('guild');
+    if (!guildAllowed()) { try { localStorage.removeItem('knight-bar-guild-on'); } catch {} return boot(); }   // 기사단 스위치 꺼짐 (src/data.js GUILD_OPEN)
     try {
       if (g === '1') localStorage.setItem('knight-bar-guild-on', '1');
       if (g === '0') localStorage.removeItem('knight-bar-guild-on');

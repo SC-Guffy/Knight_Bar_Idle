@@ -12,8 +12,8 @@
 // 1차 검사는 성기사·대검전사 줄기도 거쳐 가서, 시제품에선 이 줄기를 고른 캐릭터(S.t7.pick)만 켠다 — 다른 줄기는 하나도 안 바뀌게.
 //  (시즌7 정식: 1차 계열 공용 줄기로 모두 켠다.) 고르는 법: 게임은 ?t7=1 (2단계 UI), 봇은 --line swordsaint
 const TREE7_CLS = ['swordsman', 'blademaster', 'swordsaint'];
-const t7On = (cls = S.cls) => !T7_OFF && TREE7_CLS.includes(cls) && (cls !== 'swordsman' || !!(S.t7 && S.t7.pick));
-let T7_OFF = false;   // 측정용: 켜면 이 줄기도 지금 시스템 (dev/lifespan-bot.js --old 1)
+const t7On = (cls = S.cls) => !T7_OFF && (T7_OPEN || S7_DEV) && TREE7_CLS.includes(cls) && (cls !== 'swordsman' || !!(S.t7 && S.t7.pick));
+let T7_OFF = false;   // 측정용: 켜면 이 줄기도 지금 시스템 (dev/lifespan-bot.js --old 1). 배포 스위치는 src/data.js T7_OPEN
 const T7_PICK_URL = typeof location !== 'undefined' && /[?&]t7=1(&|$)/.test(location.search || '');   // 게임 주소 ?t7=1 → 이 캐릭터를 시제품 줄기로 (core.js loadState)
 
 // 종류별 비용·최대 칸 (스펙 "노드 종류·비용")
