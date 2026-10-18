@@ -1,0 +1,36 @@
+{
+ "id": "xf03",
+ "kind": "vfx",
+ "file": "src\\vfx\\xf03.png",
+ "frames": 1,
+ "color": "#9ff0ff",
+ "size": [
+  240,
+  100
+ ],
+ "scale": 1.0,
+ "intent": "천풍각(템페스트 궁극기) 배경: 폭풍 하늘 — 화면 뒤 240×100 판",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 왼쪽·오른쪽·위 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.876,
+  "colors": 6,
+  "low": 0.219,
+  "edge": 0.299,
+  "lone": 0.032,
+  "flick": 0,
+  "churn": 0,
+  "fill": 1.0,
+  "area": [
+   24000
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

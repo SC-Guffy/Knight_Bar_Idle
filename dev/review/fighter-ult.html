@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>파이터 궁극기·아이콘</title>
+<!-- 스펙: docs/specs/boxer-class.md (10절 XF·XK, 남은 일 아이콘). PixelLab 0회 — 손 도트(dev/boxer/icons/gen.py)·후처리 스크립트. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --hl: #3b2a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: var(--gold); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  .hl { background: var(--hl); border: 2px solid var(--gold); }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td.n { text-align: right; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  canvas { display: block; max-width: 100%; background: #0f0d14; border: 1px solid var(--line); border-radius: 4px; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 6px 0; }
+  .ctl label { display: inline-flex; gap: 6px; align-items: center; color: var(--dim); }
+  select, input[type=number] { background: #120f18; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; font: inherit; }
+  input[type=number] { width: 64px; }
+  button { background: #2f2840; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 3px 10px; font: inherit; cursor: pointer; }
+  button.on { border-color: var(--gold); color: var(--gold); }
+  .ok { color: var(--green); } .bad { color: var(--red); } .mid { color: var(--gold); } .dim { color: var(--dim); }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .jobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+  .job h4 { margin: 0 0 4px; font-size: 14px; }
+  .job .tier { font-size: 11px; color: var(--dim); }
+  .job dl { margin: 4px 0 0; display: grid; grid-template-columns: 56px 1fr; gap: 2px 6px; font-size: 12px; }
+  .job dt { color: var(--dim); }
+  .job dd { margin: 0; }
+  .pix { image-rendering: pixelated; max-width: 100%; display: block; border: 1px solid var(--line); border-radius: 4px; background: #282830; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+  .gallery figure { margin: 0; }
+  .gallery figcaption { color: var(--dim); font-size: 12px; margin-top: 3px; }
+  .anim { display: flex; gap: 10px; flex-wrap: wrap; }
+  .anim figure { margin: 0; text-align: center; }
+  .anim canvas { background: #282830; }
+  .badge { display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 11px; border: 1px solid var(--line); }
+  .b-ok { color: var(--green); border-color: #2f6a4a; } .b-no { color: var(--red); border-color: #6a2f3a; } .b-mid { color: var(--gold); border-color: #6a5a2f; }
+  .legend span { margin-right: 14px; white-space: nowrap; }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+  @media (max-width: 600px) { main { padding: 10px; } th, td { padding: 2px 4px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>🥊 파이터 궁극기 텍스처 · 아이콘</h1>
+  <div class="sub">브랜치 <code>impl-fighter-ult</code> (main 0.27.0 3e9e6ec3 위) · PixelLab 0회 · 검수 dev/pixel-qa (sonnet 비평, 합격선 전 항목 3+·평균 3.5)</div>
+
+  <h2>1. 확인 방법 (포트 8861)</h2>
+  <ul>
+    <li>궁극기: <a href="../skills.html?cls=champion&skill=kingFist&stage=3">패왕권 ★★★</a> · <a href="../skills.html?cls=tempest&skill=heavenWind&stage=3">천풍각 ★★★</a> · <a href="../skills.html?cls=grandmaster&skill=qiGodDescent&stage=3">기신 강림 ★★★</a> — 궁극기 띠·스킬 칸에 새 아이콘, 배경·거대 형상·막타 텍스처</li>
+    <li>2차 스킬: <a href="../skills.html?cls=striker&skill=ironRush&stage=1">연타 러시</a> · <a href="../skills.html?cls=kickboxer&skill=spinKick&stage=1">회전 발차기</a> · <a href="../skills.html?cls=qigong&skill=qiBarrier&stage=1">기막</a></li>
+    <li>직업 아이콘: 게임 <a href="../../index.html?server=http://127.0.0.1:9">오프라인</a> → 직업 트리(견습 기사 Lv20 전직 화면)에서 파이터 계열 칸</li>
+  </ul>
+
+  <h2>2. 아이콘 16개 (직업 6 + 스킬 10) — 검수 3.86 pass</h2>
+  <p class="sub">이모지(OS 그림) 대신 다른 직업처럼 12×12 도트 + 잉크 외곽선. 스킬은 색 바탕 네모, 3차 궁극기는 금테 배지. 🍃 템페스트는 이미 있던 잎 아이콘.</p>
+  <img class="pix" src="../boxer/icons/preview.png" style="max-width:100%">
+  <p class="sub">순서: 🥊 파이터 · 👊 스트라이커 · 🦶 킥복서 · 🧘 기공사 · 🦁 챔피언 · ☯️ 그랜드마스터(기 절약 노드 겸) · 원투 · 연타 러시 · 붕권 · 돌진 발차기 · 회전 발차기 · 장풍 · 기막 · 패왕권 · 천풍각 · 기신 강림. 1차 검수 3.71 pass 뒤 지적(가부좌가 물약병처럼 보임, 발차기 둘·장풍/기막 바탕색 겹침)을 고친 판.</p>
+
+  <h2>3. 궁극기 텍스처 (0.24.4 에 이미 있던 9장 다시 검수)</h2>
+  <table>
+    <tr><th>텍스처</th><th>쓰임</th><th>점수</th><th>판정</th></tr>
+    <tr><td>XF01</td><td>패왕권 투기장 배경</td><td>4.14</td><td class="ok">pass</td></tr>
+    <tr><td>XF02</td><td>패왕권 거대 황금 주먹</td><td>3.71</td><td class="ok">pass</td></tr>
+    <tr><td>XF03</td><td>천풍각 폭풍 하늘 배경</td><td>4.0</td><td class="ok">pass</td></tr>
+    <tr><td>XF04</td><td>천풍각 바람의 발</td><td>3.71</td><td class="ok">pass</td></tr>
+    <tr><td>XF05</td><td>기신 강림 기의 구름 배경</td><td>4.14</td><td class="ok">pass</td></tr>
+    <tr><td>XF06</td><td>기신 강림 기의 거인</td><td>3.29 → <b>3.71</b></td><td class="ok">fix → pass</td></tr>
+    <tr><td>XK08</td><td>패왕권 막타</td><td>3.71</td><td class="ok">pass</td></tr>
+    <tr><td>XK09</td><td>천풍각 막타</td><td>3.71</td><td class="ok">pass</td></tr>
+    <tr><td>XK10</td><td>기신 강림 막타</td><td>3.57</td><td class="ok">pass</td></tr>
+  </table>
+  <div class="gallery">
+    <figure><img class="pix" src="../boxer/icons/xf06-ba.png"><figcaption>XF06 수리: 위 = 전(4번째 프레임만 옷이 꽉 차 면적 3,702 vs 2,400대 → 루프가 튐), 아래 = 후(1·2·3·2 핑퐁)</figcaption></figure>
+    <figure><img class="pix" src="../boxer/icons/ult-sheets.png"><figcaption>9장 원본 (게임은 외곽선 벗김·직업색 램프)</figcaption></figure>
+  </div>
+  <p class="sub">선택 수리로 남긴 흠: XF02 2번째 프레임 흰 테, XK08 끝 프레임 사라짐 단계 없음, XK10 2~3번째 프레임 위쪽 살짝 잘림.</p>
+</main>
+</body>
+</html>

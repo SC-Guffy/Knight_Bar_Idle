@@ -1,0 +1,37 @@
+{
+ "id": "xf04",
+ "kind": "vfx",
+ "file": "src\\vfx\\xf04.png",
+ "frames": 4,
+ "color": "#9ff0ff",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "천풍각: 하늘에서 내려오는 거대한 바람의 발, 4프레임 루프",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.25,
+  "lrange": 0.669,
+  "colors": 5,
+  "low": 0.155,
+  "edge": 0.413,
+  "lone": 0.08,
+  "flick": 0.068,
+  "churn": 0.193,
+  "fill": 0.418,
+  "area": [
+   1792,
+   1654,
+   1709,
+   1689
+  ],
+  "strip": 0.092
+ },
+ "flags": []
+}

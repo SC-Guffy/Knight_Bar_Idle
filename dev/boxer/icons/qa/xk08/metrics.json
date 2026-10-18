@@ -1,0 +1,39 @@
+{
+ "id": "xk08",
+ "kind": "vfx",
+ "file": "src\\vfx\\xk08.png",
+ "frames": 6,
+ "color": "#ffd257",
+ "size": [
+  288,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "패왕권 막타: 황금 사자 머리 모양 충격, 6프레임 한 번",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 2.5,
+  "lrange": 0.685,
+  "colors": 5,
+  "low": 0.146,
+  "edge": 0.643,
+  "lone": 0.251,
+  "flick": 0.187,
+  "churn": 0.625,
+  "fill": 0.414,
+  "area": [
+   1142,
+   907,
+   948,
+   920,
+   890,
+   912
+  ],
+  "strip": 0.092
+ },
+ "flags": []
+}

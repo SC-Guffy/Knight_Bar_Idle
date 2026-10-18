@@ -1,0 +1,37 @@
+{
+ "id": "xf06",
+ "kind": "vfx",
+ "file": "src\\vfx\\xf06.png",
+ "frames": 4,
+ "color": "#e8e0ff",
+ "size": [
+  384,
+  96
+ ],
+ "scale": 1.0,
+ "intent": "기신 강림: 시전자 뒤에 서는 기의 거인 상반신, 4프레임 루프 (1·2·3·2 핑퐁)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 1.75,
+  "lrange": 0.373,
+  "colors": 5,
+  "low": 0.004,
+  "edge": 0.12,
+  "lone": 0.031,
+  "flick": 0.233,
+  "churn": 0.059,
+  "fill": 0.268,
+  "area": [
+   2498,
+   2495,
+   2381,
+   2495
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,39 @@
+{
+ "id": "xk09",
+ "kind": "vfx",
+ "file": "src\\vfx\\xk09.png",
+ "frames": 6,
+ "color": "#9ff0ff",
+ "size": [
+  288,
+  48
+ ],
+ "scale": 1.0,
+ "intent": "천풍각 막타: 하늘에서 내리꽂는 바람 폭발, 6프레임 한 번",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 2.83,
+  "lrange": 0.669,
+  "colors": 5,
+  "low": 0.126,
+  "edge": 0.565,
+  "lone": 0.167,
+  "flick": 0.294,
+  "churn": 0.61,
+  "fill": 0.234,
+  "area": [
+   638,
+   611,
+   533,
+   508,
+   422,
+   516
+  ],
+  "strip": 0.258
+ },
+ "flags": []
+}

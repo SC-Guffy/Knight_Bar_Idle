@@ -1,6 +1,6 @@
 # 신규 직업 계열: 파이터 (7종)
 
-- 상태: 진행 중 — ①②③ 구현 끝, 배포 전 (서버 배포는 다음 main 배포 때 로드맵이 함께. 남은 것: 궁극기 텍스처 XF·XK08~10 등 PixelLab 계획서, 아이콘)
+- 상태: 진행 중 — ①②③ 구현 끝, 배포 전 (서버 배포는 다음 main 배포 때 로드맵이 함께. 궁극기 텍스처·아이콘 끝 — 브랜치 impl-fighter-ult)
 - 관련 코드: src/classes.js (`WEAPONS`·`CLASSES`·`SKILLS`·`CLASS_REQ`·`SKILL_DMG`·`INHERIT_DMG`·`TREE_RIGHT`·`SPEC_TYPES`·`skillCdOf`), src/skills.js (`tickSkills`·`tryCastSkill`·`drawSkillIcons`·`SKILL_FX`), src/world.js (`fightTick`·`dashSkill`·`drawHero`·`drawHeroRaw`), src/core.js (`stats`·`dpsOf`·`profile`), src/procs.js (`procOnCast`), src/body2.js (`applyHiRes`), src/ui.js (`viewClass`·스킬 탭), server/duel.js (`readySkill`·`GAP`), server/raid.js, server/bots.js (`LINES`), server/bot-curve.json, server/mentor-k.json, dev/bot-curve.js, dev/duel-balance.js
 - 관련 스펙: [roadmap.md](roadmap.md) "결정 사항"·"D. 권투가", [character-sprites.md](character-sprites.md) (통짜 스프라이트), [skill-tree-nodes.md](skill-tree-nodes.md), [duel-gap-closer.md](duel-gap-closer.md), [unique-procs.md](unique-procs.md)
 - 최종 갱신: 2026-10-17 (결투 재조정 · 새 그림체 시트는 쓰지 않기로 — impl-boxer)
@@ -728,6 +728,11 @@
   - 레이드 딜 (같은 전투력 혼자, 쿨타임 계열 평균 대비): 2차 80~114% · 3차 챔피언 71~97% · 템페스트 79~90% · 그랜드마스터 98~111% — 쿨타임 계열 범위(54~163%) 안.
 - 2026-10-17: **새 그림체 시트 (그림체 B · 키 46, 로드맵 승인 계획: PixelLab 상한 80, 재시도 0)** — 자세한 기록은 [legacy-class-sheets.md](legacy-class-sheets.md) 파이터 계열 항목. 6종(파이터·스트라이커·킥복서·기공사·템페스트·그랜드마스터) `src/sprites/<직업>B.png·json`(칸 96), `SHEET_ON.<직업>B` false 로 푸시(켜면 지금 시트 대신). 챔피언은 디자인 2라운드 미달로 멈춤(지금 시트 유지).
 
+- 2026-10-18: **궁극기 텍스처·아이콘 (PixelLab 0, 브랜치 impl-fighter-ult — main 0.27.0 위)**.
+  - 궁극기 텍스처 XF01~06·XK08~10 은 0.24.4 에 이미 들어가 있었다(배경·거대 형상·막타, `fighter-fx.js` `qiUltFx`). 다시 검수(dev/pixel-qa, sonnet 묶음): 8장 pass(3.57~4.14), XF06 기의 거인 3.29 fix — 4번째 프레임만 옷이 꽉 차 면적이 튐(3,702 vs 2,400대) → 1·2·3·2 핑퐁으로 바꿔 3.71 pass. 선택 흠: XF02 2번째 흰 테, XK08 끝 사라짐 없음, XK10 위쪽 살짝 잘림.
+  - 아이콘 16개(직업 🥊👊🦶🧘🦁☯️ + 스킬 10, 궁극기는 금테 배지) — 손 도트 생성기 `dev/boxer/icons/gen.py` → `dev/icon-art/f-fighter.js` → `node dev/make-icons.js`. 검수 3.71 pass → 지적(가부좌가 물약병처럼 보임, 발차기 둘·장풍/기막 바탕색 겹침) 고쳐 3.86 pass. 시험장 20시전 예외 0, 궁극기 띠·스킬 칸에 새 아이콘.
+  - 검토 `dev/review/fighter-ult.html`.
+
 ## 남은 일 / 미정
 
 - [x] 사용자 확인 (2026-10-14): 스펙 요지는 이름을 고친 초안대로 간다. 그림은 7:3 v2 (3차 키 맞춤판).
@@ -736,7 +741,7 @@
 - [x] 기존 기사의 파이터 체험 → **새 기사만** (사용자, 2026-10-13). 계열 전환권은 만들지 않는다.
 - [x] 장풍 단계 → **2단 고정** (사용자, 2026-10-13). 선택 UI 없음.
 - [ ] 구현 순서 제안: ① 기 게이지·투지 엔진(원정 + 서버 결투·레이드, 임시 몸통으로 견습 기사 그림 사용) → ② 밸런스 측정·조정 → ③ 기준 그림·PixelLab 시트 → ④ UI(게이지·스킬 탭·직업 트리) → ⑤ 1·2차 출시 → ⑥ 3차.
-- [ ] 스킬 아이콘 10종(`sk-<id>`)·직업 아이콘 7종·☯️ 기 절약 아이콘 도트 (`dev/make-icons.js`).
+- [x] 스킬 아이콘 10종(`sk-<id>`)·직업 아이콘 6종(🍃 템페스트는 기존 잎)·☯️ 기 절약 아이콘 도트 (2026-10-18, `dev/icon-art/f-fighter.js`).
 - [ ] 결투·레이드 재생 화면의 기 게이지 막대 표시 (이번 범위 밖).
 - [ ] **서버 배포 필요**: server/duel.js·raid.js·index.js (파이터 기 규칙). 배포 전 서버는 `qi` 를 버리고 등가 cd 로 계산한다.
 - [ ] ② 2차 3종 시트·텍스처·연출 마무리, ③ 3차 시트·궁극기 연출(XF), 봇 곡선(2차까지 / 15계열)·mentor-k.json 굽기, 결투 리그전·레이드 측정.
