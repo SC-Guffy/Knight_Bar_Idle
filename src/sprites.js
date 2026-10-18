@@ -21,7 +21,7 @@ const SHEET_ON = {
   // 마법사 계열 (칸 96, dev/sheets-mage — 시험: dev/skills.html?patch=sheets-mage) — 시트를 사용자가 승인하면 true
   mage: true, pyromancer: true, cryomancer: true, electromancer: true, archmage: true, frostlord: true, thunderEmperor: true,
   // 검사 계열 + 견습 (칸 장검·쌍검 96 · 대검 128, 원형 마네킹 → 입히기·덧그리기 dev/sheets-sword/build.py) — 2026-10-16 검수 미달(몸·팔이 거의 안 움직이고 칼만 돎)로 다시 끔. 시트 파일은 남김
-  squire: false, swordsman: false, paladin: false, blademaster: false, greatswordsman: false, archon: false, swordsaint: false, tyrant: false,
+  squire: true, swordsman: true, paladin: true, blademaster: true, greatswordsman: true, archon: true, swordsaint: true, tyrant: true,
   // 파이터 계열 새 그림체 (그림체 B·키 46, 칸 96, dev/boxer/b) — <직업>B 시트. true 면 지금 시트(<직업>) 대신 그린다. 사용자 확인 전 false
   fighterB: false, strikerB: false, kickboxerB: false, qigongB: false, tempestB: false, grandmasterB: false,
 };
