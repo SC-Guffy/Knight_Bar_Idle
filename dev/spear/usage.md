@@ -112,3 +112,17 @@
 | 106 | skyGeneral | `/edit-image-pixen` | key-slam-4: same young chibi sky general knight with a white and gold wi | 1.0 | 153.0 | 349.0 |
 | 107 | skyGeneral | `/edit-image-pixen` | key-lunge1: same young chibi sky general knight with a white and gold wi | 1.0 | 154.0 | 346.0 |
 | 108 | skyGeneral | `/edit-image-pixen` | key-lunge2: same young chibi sky general knight with a white and gold wi | 1.0 | 155.0 | 345.0 |
+| 109 | cavalier | `/edit-image-pixen` | key-thrust-2: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 156.0 | 318.0 |
+| 110 | cavalier | `/edit-image-pixen` | key-slam-2: same young chibi cavalry lancer knight with a red plume helm | 1.0 | 157.0 | 316.0 |
+| 111 | cavalier | `/edit-image-pixen` | key-thrust-3: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 158.0 | 314.0 |
+| 112 | cavalier | `/edit-image-pixen` | key-slam-3: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 159.0 | 311.0 |
+| 113 | cavalier | `/edit-image-pixen` | key-slam-1: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 160.0 | 307.0 |
+| 114 | cavalier | `/edit-image-pixen` | key-walk-1: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 161.0 | 307.0 |
+| 115 | cavalier | `/edit-image-pixen` | key-walk-2: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 162.0 | 303.0 |
+| 116 | cavalier | `/edit-image-pixen` | key-walk-3: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 163.0 | 299.0 |
+| 117 | cavalier | `/edit-image-pixen` | key-walk-4: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 164.0 | 296.0 |
+| 118 | skyGeneral | `/edit-image-pixen` | key-slam-1: same chibi sky general knight, white and gold winged helmet, | 1.0 | 165.0 | 296.0 |
+| 119 | cavalier | `/edit-image-pixen` | key-walkL-1: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 166.0 | 291.0 |
+| 120 | cavalier | `/edit-image-pixen` | key-walkL-2: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 167.0 | 287.0 |
+| 121 | cavalier | `/edit-image-pixen` | key-walkL-3: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 168.0 | 286.0 |
+| 122 | cavalier | `/edit-image-pixen` | key-walkL-4: same chibi cavalry lancer knight, red plume helmet, blue sur | 1.0 | 169.0 | 286.0 |

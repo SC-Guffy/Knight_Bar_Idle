@@ -14,10 +14,13 @@ from wpn import line_fit
 SEQ = {'default': [4, 1, 2, 3, 3, 4]}   # 원본(정지 그림)은 키와 인상이 달라 뺀다 — 마무리 키(대기 자세)로 시작·끝 (용황 시험 교훈)
 # 용황: 합격 정지 그림(검은 머리)과 pixen 키(금발) 인상이 달라 원본을 빼고, 잘 나온 찌르기 키2 를 새 기준(dragonlord-key2-src64)으로 재편집한 대기·준비를 쓴다
 #  (검수 k1 3.00: 얼굴·머리색 튐, 준비 키 발치 꼬리 모양). 재편집 '들기'는 창이 두 자루라 안 씀
-SEQ_CLS = {'skyGeneral': {'thrust': ['key-thrust-4', 'key-lunge1', 'key-lunge2', 'key-lunge2', 'key-lunge1', 'key-thrust-4'],   # 찌르기 키2·3 손이 보호대 뒤에 가려 떠 보임 → 키4 기준 재편집 2장
+SEQ_CLS = {'cavalier': {'thrust': [2, 2, 3, 3, 3, 2], 'slam': [('thrust', 2), 2, 2, 3, 3, ('thrust', 2)]},   # 들기 키1(가는 랜스) 뺌 — 재편집 들기는 몸이 돌아서 못 씀   # 2026-10-18 랜스가 칼처럼 → 굵은 원뿔 랜스로 재편집한 키(찌르기 2·3, 내리찍기 2·3) 위주
+           'skyGeneral': {'thrust': ['key-thrust-4', 'key-lunge1', 'key-lunge2', 'key-lunge2', 'key-lunge1', 'key-thrust-4'],   # 찌르기 키2·3 손이 보호대 뒤에 가려 떠 보임 → 키4 기준 재편집 2장
                            'slam': ['key-thrust-4', 1, 1, 3, 3, 'key-thrust-4']},   # 내리찍기 키2·4 안 옴 → 들기 반복, 마무리는 찌르기 키4
            'dragonlord': {'thrust': ['key-ready', 'key-windup', 'dragonlord-key2-src64', 3, 3, 'key-ready'],
                           'slam': ['key-ready', 2, 2, 3, 3, 'key-ready']}}
+# 걷기를 키 자세로 바꾸는 직업 (2026-10-18 랜서: 예전 걷기 랜스가 가늘어 칼처럼) — 대기도 새 걷기 첫 장을 들썩여 다시 만든다
+WALK_KEYS = {'cavalier': ['key-walkL-1', 'key-walkL-1', 'key-walkL-2', 'key-walkL-2', 'key-walkL-3', 'key-walkL-3', 'key-walkL-4', 'key-walkL-4']}   # 랜스를 허리 높이로 앞에 겨눈 걷기 (세워 든 판은 칼처럼 읽혔다)
 WALK_DROP = {'warlord': [4, 6], 'dragoon': [2]}                      # 검사 세션 점검: 전쟁군주 walk5·7, 용기병 walk3 (1부터 센 번호)
 
 
@@ -27,6 +30,7 @@ def key_img(cls, atk, k):
         for p in (os.path.join(HERE, 'work', cls, f'{k}-0.png'), os.path.join(HERE, 'skel', f'{k}.png')):
             if os.path.exists(p): return Image.open(p).convert('RGBA')
         return None
+    if isinstance(k, tuple) and isinstance(k[0], str): atk, k = k          # ('thrust', 2) = 다른 평타의 키
     kk, v = (k if isinstance(k, tuple) else (k, 0))
     for vv in (v, 1 - v):
         p = os.path.join(HERE, 'work', cls, f'key-{atk}-{kk}-{vv}.png')
@@ -39,6 +43,19 @@ def to_cell(cls, im):
     S, (fx, fy) = B.CELL[cls]; bb = im.getbbox(); P = im.load()
     cx = 32                       # 가로는 64칸 가운데 고정 (pixen 이 캐릭터 자리를 대체로 지킨다 — 발 구간으로 재면 돌진·타격 자세에서 몸이 칸 밖으로 밀렸다)
     o = Image.new('RGBA', (S, S)); o.alpha_composite(im, (fx - cx, fy - (bb[3] - 1))); return o
+
+
+def silver_lance(im):
+    """몸 앞쪽(가운데 +6칸 밖) 밝은 하늘색 칸 → 같은 밝기의 은색 (재편집 걷기 키 중 원뿔이 하늘색으로 나온 장이 있다). 파란 보호대(어두운 파랑)는 둔다"""
+    P = im.load(); W, H = im.size
+    pts = [(x, y) for y in range(H) for x in range(W) if P[x, y][3]]
+    if not pts: return im
+    xs = sorted(x for x, _ in pts); xm = xs[len(xs) // 2]
+    for x, y in pts:
+        r, g, b, a = P[x, y]
+        if x > xm + 6 and b > r + 30 and (r + g + b) / 3 > 120:
+            l = round(0.3 * r + 0.59 * g + 0.11 * b); P[x, y] = (l, min(255, l + 4), min(255, l + 14), a)
+    return im
 
 
 def wpn_angle(im):
@@ -67,6 +84,12 @@ def run(cls):
             im = key_img(cls, atk, k)
             if im is None: im = key_img(cls, atk, 'src')
             f = to_cell(cls, im); f.save(os.path.join(dst, f'{row}-{n}.png')); cand.append((wpn_angle(f), f))
+    if cls in WALK_KEYS:
+        for p in glob.glob(os.path.join(dst, 'walk-*.png')) + glob.glob(os.path.join(dst, 'idle-*.png')): os.remove(p)
+        ws = [silver_lance(to_cell(cls, key_img(cls, None, k))) for k in WALK_KEYS[cls]]
+        for i, im in enumerate(ws): im.save(os.path.join(dst, f'walk-{i}.png'))
+        up = B.bob(ws[0], 112 - 18, 1)
+        for i, im in enumerate((ws[0], up, up, ws[0])): im.save(os.path.join(dst, f'idle-{i}.png'))
     if cls in WALK_DROP:
         ws = sorted(glob.glob(os.path.join(dst, 'walk-*.png')), key=lambda p: int(p.rsplit('-', 1)[1][:-4]))
         keep = [Image.open(p).convert('RGBA') for i, p in enumerate(ws) if i not in WALK_DROP[cls]]
