@@ -302,8 +302,11 @@ function t7Cd(sk) {
   return (1 - R.cd * (r - 1)) * (m.cd[sk] || 1) * m.cdAll;
 }
 // 모습 단계 (0~3): 칸에서 정해지고, 캠프에서 낮은 모습을 골라 쓸 수 있다 (S.t7.use)
+// 융합은 3칸이 끝이라 액티브 표(5칸)로는 ★ 까지만 갔다 → 1칸 기본 · 2칸 ★★ · 3칸 ★★★ (연출이 ★★★ 까지 커지게)
+const T7_FUSE_STAGE_AT = [0, 0, 2, 3];
 function t7Stage(sk) {
-  const max = T7_STAGE_AT[Math.min(5, t7SkillRank(sk))] || 0, use = t7S().use[sk];
+  const n = t7NodeOf(sk), r = t7SkillRank(sk);
+  const max = (n && n.t === 'fusion' ? T7_FUSE_STAGE_AT[Math.min(3, r)] : T7_STAGE_AT[Math.min(5, r)]) || 0, use = t7S().use[sk];
   return use == null ? max : Math.max(0, Math.min(max, use));
 }
 // 고유 특수 (지금 SPEC_TYPES 효과 재사용) — 없으면 null
