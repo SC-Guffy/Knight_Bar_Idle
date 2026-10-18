@@ -1,0 +1,36 @@
+{
+ "id": "xf01",
+ "kind": "vfx",
+ "file": "src\\vfx\\xf01.png",
+ "frames": 1,
+ "color": "#ffd257",
+ "size": [
+  240,
+  100
+ ],
+ "scale": 1.0,
+ "intent": "패왕권(챔피언 궁극기) 배경: 황금 투기장 조명 — 화면 뒤 240×100 판, 각성 동안 깔림",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "1번 프레임이 칸 왼쪽·오른쪽·위 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.858,
+  "colors": 6,
+  "low": 0.416,
+  "edge": 0.218,
+  "lone": 0.016,
+  "flick": 0,
+  "churn": 0,
+  "fill": 1.0,
+  "area": [
+   24000
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

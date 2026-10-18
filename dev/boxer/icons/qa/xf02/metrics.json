@@ -1,0 +1,37 @@
+{
+ "id": "xf02",
+ "kind": "vfx",
+ "file": "src\\vfx\\xf02.png",
+ "frames": 4,
+ "color": "#ffd257",
+ "size": [
+  256,
+  64
+ ],
+ "scale": 1.0,
+ "intent": "패왕권: 거대 황금 사자 주먹(머리 위에서 적에게 내리꽂힘), 4프레임 루프",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.432,
+  "colors": 5,
+  "low": 0.025,
+  "edge": 0.39,
+  "lone": 0.082,
+  "flick": 0.146,
+  "churn": 0.176,
+  "fill": 0.353,
+  "area": [
+   1527,
+   1602,
+   1313,
+   1337
+  ],
+  "strip": 0.093
+ },
+ "flags": []
+}
