@@ -1,0 +1,16 @@
+{
+ "class": "archmage",
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 4,
+  "pixel": 4,
+  "motion": 4,
+  "rules": 5
+ },
+ "avg": 4.14,
+ "pass": true,
+ "vs_before": "better",
+ "notes": "불꽃 머리 읽힘 유지, 샤프트 깔끔. 얇은 어두운 샤프트가 붉은 몸 옆에서 약간 약하지만 허용. 저해상 확인으로 확신도 중간."
+}

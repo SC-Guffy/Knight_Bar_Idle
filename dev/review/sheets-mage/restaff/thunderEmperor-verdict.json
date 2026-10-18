@@ -1,0 +1,16 @@
+{
+ "class": "thunderEmperor",
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 4,
+  "pixel": 4,
+  "motion": 4,
+  "rules": 5
+ },
+ "avg": 4.14,
+ "pass": true,
+ "vs_before": "better",
+ "notes": "샤프트·헤드 선명, 헤드가 더 또렷. 어두운 샤프트가 어두운 배경에서 가는 점은 전과 같음. 짧아져도 허용."
+}

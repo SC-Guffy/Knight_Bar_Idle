@@ -4,6 +4,7 @@
 foot·pts 도 같은 비율로. 원본은 dev/sheets-common/full/ 에 보관(되돌리기 = 거기서 복사 후 sheet-meta).
   python -I -B dev/sheets-common/rescale.py [배율=0.78]
   node dev/boxer/sheet-meta.js
+주의: 마법사 계열 5종(게임 지팡이)은 그다음 python -I -B dev/sheets-mage/restaff.py 로 지팡이를 1배 원본 도트로 다시 얹는다 (2026-10-18).
 """
 import json, os, shutil, sys
 from PIL import Image

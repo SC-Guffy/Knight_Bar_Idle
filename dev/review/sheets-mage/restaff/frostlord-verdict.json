@@ -1,0 +1,16 @@
+{
+ "class": "frostlord",
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 4,
+  "pixel": 4,
+  "motion": 4,
+  "rules": 5
+ },
+ "avg": 4.14,
+ "pass": true,
+ "vs_before": "better",
+ "notes": "얼음 결정 머리 선명, 샤프트 계단 감소. 흰 머리끝이 배경에서 약간 흐린 건 전후 동일."
+}
