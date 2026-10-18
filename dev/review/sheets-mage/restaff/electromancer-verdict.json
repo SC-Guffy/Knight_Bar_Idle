@@ -1,0 +1,16 @@
+{
+ "class": "electromancer",
+ "scores": {
+  "intent": 4,
+  "read": 4,
+  "clean": 4,
+  "value": 4,
+  "pixel": 4,
+  "motion": 4,
+  "rules": 5
+ },
+ "avg": 4.14,
+ "pass": true,
+ "vs_before": "better",
+ "notes": "금색 머리 형태가 또렷해지고 샤프트 계단 감소. 분리·잘림 없음. 길이 무난."
+}
