@@ -8,11 +8,12 @@
 // 노드 배치·아이콘은 시안 dev/review/skill-build-tree.html 과 같다 (화면은 2단계에서 ui.js).
 // 이 파일은 classes.js(SKILLS·CLASSES) 다음, core.js 앞에 불러온다 (freshState 가 freshT7 을 쓴다).
 
-// 견습 기사(0차)는 넣지 않는다 — 모든 계열이 거쳐 가서, 넣으면 다른 14줄기도 바뀐다. 검사로 전직하면 그동안 쌓인 포인트(레벨 − 1)를 한꺼번에 찍는다.
-// 1차 검사는 성기사·대검전사 줄기도 거쳐 가서, 시제품에선 이 줄기를 고른 캐릭터(S.t7.pick)만 켠다 — 다른 줄기는 하나도 안 바뀌게.
-//  (시즌7 정식: 1차 계열 공용 줄기로 모두 켠다.) 고르는 법: 게임은 ?t7=1 (2단계 UI), 봇은 --line swordsaint
-const TREE7_CLS = ['swordsman', 'blademaster', 'swordsaint'];
-const t7On = (cls = S.cls) => !T7_OFF && (T7_OPEN || S7_DEV) && TREE7_CLS.includes(cls) && (cls !== 'swordsman' || !!(S.t7 && S.t7.pick));
+// 견습 기사(0차)는 넣지 않는다. 1차로 전직하면 그동안 쌓인 포인트(레벨 − 1)를 한꺼번에 찍는다.
+// 15줄기 모두 같은 틀 (docs/specs/skill-tree-all.md): 노드 id 는 "칸" 이름이고(검성 시제품 이름 그대로 — slash 1차 스킬 · gale·iaido 2차 스킬 둘 ·
+//  whirl·flash·wave·storm 새 스킬 넷 · f_ab·f_bk·f_ak 융합 · ult 궁극기), 줄기마다 칸 → 실제 SKILLS id 를 T7_LINES 에 둔다 (src/tree7-l-*.js).
+//  캐릭터의 줄기가 바뀌면 t7Sync 가 노드의 sk·T7_BY_SKILL 을 그 줄기 것으로 다시 채운다. 1차 직업은 갈래가 없어 같은 1차의 줄기 아무거나(줄기 노드만 쓴다).
+const TREE7_CLS = [];   // 트리를 쓰는 직업 (t7DefLine 이 채운다)
+const t7On = (cls = S.cls) => !T7_OFF && (T7_OPEN || S7_DEV) && TREE7_CLS.includes(cls);
 let T7_OFF = false;   // 측정용: 켜면 이 줄기도 지금 시스템 (dev/lifespan-bot.js --old 1). 배포 스위치는 src/data.js T7_OPEN
 const T7_PICK_URL = typeof location !== 'undefined' && /[?&]t7=1(&|$)/.test(location.search || '');   // 게임 주소 ?t7=1 → 이 캐릭터를 시제품 줄기로 (core.js loadState)
 
@@ -39,56 +40,90 @@ const T7_NODES = [
   { id: 'c_spd', t: 'stat', lane: 'c', tier: 0, req: ['c_atk'], fx: { stat: { aspd: 0.02 } } },
   { id: 'c_crit', t: 'stat', lane: 'c', tier: 0, req: ['c_hp'], fx: { stat: { crit: 0.015 } } },
   { id: 'c_def', t: 'stat', lane: 'c', tier: 0, req: ['c_hp'], fx: { stat: { guard: 0.02 } } },
-  { id: 'slash', t: 'active', lane: 'c', tier: 1, req: ['c_atk', 'c_hp'], sk: 'steelCleave' },
+  { id: 'slash', t: 'active', lane: 'c', tier: 1, req: ['c_atk', 'c_hp'], sk: null, slot: 1 },
   { id: 's_twin', t: 'mod', lane: 'c', tier: 1, req: ['slash'], fx: { shape: 'twin' } },
   { id: 'k_blade', t: 'key', lane: 'c', tier: 1, req: ['slash'], fx: { rule: 'blade', powAll: 0.9, evAll: 1.18 } },   // 평타 3타마다 모든 스킬 쿨 −0.5초 (t7OnBasic)
 
-  { id: 'gale', t: 'active', lane: 'a', tier: 2, req: ['slash'], sk: 'gale' },
+  { id: 'gale', t: 'active', lane: 'a', tier: 2, req: ['slash'], sk: null, slot: 1 },
   { id: 'a_more', t: 'mod', lane: 'a', tier: 2, req: ['gale'], fx: { shape: 'more' } },
   { id: 'a_bleed', t: 'mod', lane: 'a', tier: 2, req: ['gale'], fx: { spec: { gale: { type: 'dot', name: '출혈', icon: '🩸', v: 0.4, dur: 3 } } } },
-  { id: 'whirl', t: 'active', lane: 'a', tier: 2, req: ['a_more', 'a_bleed'], sk: 'whirl' },
+  { id: 'whirl', t: 'active', lane: 'a', tier: 2, req: ['a_more', 'a_bleed'], sk: null, slot: 1 },
   { id: 'a_follow', t: 'mod', lane: 'a', tier: 2, req: ['whirl'], pair: 'pa', fx: { shape: 'follow' } },   // 회오리가 적에게 날아가 붙는다 (범위 +60px, 연출은 tree7-fx)
   { id: 'a_grow', t: 'mod', lane: 'a', tier: 2, req: ['whirl'], pair: 'pa', fx: { shape: 'grow', ev: { whirl: 1.1 } } },
   { id: 'a_key', t: 'key', lane: 'a', tier: 2, req: ['a_follow', 'a_grow'], fx: { rule: 'frenzy', basic: 0.85, basicDps: 1.02 } },   // 스킬 명중마다 공속 +4% 겹침(최대 10, 3초) · 평타 피해 −15%
   { id: 'a_k3', t: 'key', lane: 'a', tier: 3, min: 12, req: ['a_key'], fx: { rule: 'endless', ev: { gale: 1.3 }, cd: { gale: 1.25 } } },   // 질풍난무가 끝나면 30% 로 바로 한 번 더
-  { id: 'uv_a', t: 'uvar', lane: 'a', tier: 3, req: ['ult'], fx: { shape: 'uvA', ev: { thousandCuts: 1.05 }, duel: 1.2 } },
+  { id: 'uv_a', t: 'uvar', lane: 'a', tier: 3, req: ['ult'], fx: { shape: 'uvA', ev: { ult: 1.05 }, duel: 1.2 } },
 
-  { id: 'iaido', t: 'active', lane: 'b', tier: 2, req: ['slash'], sk: 'iaido' },
+  { id: 'iaido', t: 'active', lane: 'b', tier: 2, req: ['slash'], sk: null, slot: 1 },
   { id: 'b_reset', t: 'mod', lane: 'b', tier: 2, req: ['iaido'], fx: { rule: 'echo', ev: { iaido: 1.2 } } },   // 일섬으로 처치하면 잔상이 가장 가까운 적을 50% 로
   { id: 'b_exec', t: 'mod', lane: 'b', tier: 2, req: ['iaido'], fx: { spec: { iaido: { type: 'exec', name: '처형', icon: '🗡️', v: 1.0, thr: 0.25 } } } },
-  { id: 'flash', t: 'active', lane: 'b', tier: 2, req: ['b_reset', 'b_exec'], sk: 'flash' },
+  { id: 'flash', t: 'active', lane: 'b', tier: 2, req: ['b_reset', 'b_exec'], sk: null, slot: 1 },
   { id: 'b_after', t: 'mod', lane: 'b', tier: 2, req: ['flash'], pair: 'pb', fx: { shape: 'after' } },
   { id: 'b_triple', t: 'mod', lane: 'b', tier: 2, req: ['flash'], pair: 'pb', fx: { shape: 'triple' } },
   { id: 'b_key', t: 'key', lane: 'b', tier: 2, req: ['b_after', 'b_triple'], fx: { pow: { iaido: 1.17, flash: 1.17 }, cd: { iaido: 1.3, flash: 1.3 } } },
   { id: 'b_k3', t: 'key', lane: 'b', tier: 3, min: 12, req: ['b_key'], fx: { stat: { atkMul: 2.6, noCrit: 1 } } },   // 모든 피해 ×2.6 (봇: 2.3 이면 발도 빌드가 10일차 240 에 멈춤), 치명 0 (확정 치명 스킬도 일반타 — t7NoCrit). 1.35 는 확정 치명 3.3배를 잃는 값을 못 메워 0.6배 손해였다
-  { id: 'uv_b', t: 'uvar', lane: 'b', tier: 3, req: ['ult'], fx: { shape: 'uvB', pow: { thousandCuts: 1.2 }, duel: 0.95 } },
+  { id: 'uv_b', t: 'uvar', lane: 'b', tier: 3, req: ['ult'], fx: { shape: 'uvB', pow: { ult: 1.2 }, duel: 0.95 } },
 
-  { id: 'wave', t: 'active', lane: 'k', tier: 2, req: ['slash'], sk: 'wave' },
+  { id: 'wave', t: 'active', lane: 'k', tier: 2, req: ['slash'], sk: null, slot: 1 },
   { id: 'k_wave', t: 'mod', lane: 'k', tier: 2, req: ['wave'], fx: { shape: 'slashWave' } },
   { id: 'k_pierce', t: 'mod', lane: 'k', tier: 2, req: ['wave'], fx: { shape: 'pierce' } },   // 비검이 첫 적에서 멈추지 않고 줄로 뚫는다 · 검기 폭풍 범위 +20%
-  { id: 'storm', t: 'active', lane: 'k', tier: 2, req: ['k_wave', 'k_pierce'], sk: 'storm' },
+  { id: 'storm', t: 'active', lane: 'k', tier: 2, req: ['k_wave', 'k_pierce'], sk: null, slot: 1 },
   { id: 'k_split', t: 'mod', lane: 'k', tier: 2, req: ['storm'], pair: 'pk', fx: { shape: 'split' } },
   { id: 'k_homing', t: 'mod', lane: 'k', tier: 2, req: ['storm'], pair: 'pk', fx: { spec: { storm: { type: 'boss', name: '유도', icon: '🎯', v: 0.5 } } } },
   { id: 'k_key', t: 'key', lane: 'k', tier: 2, req: ['k_split', 'k_homing'], fx: { stat: { rangeMul: 3 }, basic: 0.8, basicDps: 0.9 } },   // 평타가 검기로 (사거리 ×3, 검기 그림) · 평타 피해 −20%
   { id: 'k_k3', t: 'key', lane: 'k', tier: 3, min: 12, req: ['k_key'], fx: { rule: 'myriad', ev: { wave: 1.25, storm: 1.25 }, powNot: { lane: 'k', v: 0.8 } } },   // 검기 스킬 명중마다 다른 검기 스킬 쿨 −0.3초
-  { id: 'uv_k', t: 'uvar', lane: 'k', tier: 3, req: ['ult'], fx: { shape: 'uvK', ev: { thousandCuts: 1.1 }, duel: 1.4 } },   // duel: 결투 전용 공격력 (t7Duel — 검기는 광역·쿨 줄이기가 1:1 에서 안 먹어서 ×1.4, 연타 ×1.2, 발도 ×0.95. 맞대결 60판으로 맞춤)
+  { id: 'uv_k', t: 'uvar', lane: 'k', tier: 3, req: ['ult'], fx: { shape: 'uvK', ev: { ult: 1.1 }, duel: 1.4 } },   // duel: 결투 전용 공격력 (t7Duel — 검기는 광역·쿨 줄이기가 1:1 에서 안 먹어서 ×1.4, 연타 ×1.2, 발도 ×0.95. 맞대결 60판으로 맞춤)
 
-  { id: 'ult', t: 'ult', lane: 'c', tier: 3, req: ['slash'], sk: 'thousandCuts' },
-  { id: 'f_ab', t: 'fusion', lanes: ['a', 'b'], tier: 2, req: [], sk: 'f_ab' },
-  { id: 'f_bk', t: 'fusion', lanes: ['b', 'k'], tier: 2, req: [], sk: 'f_bk' },
-  { id: 'f_ak', t: 'fusion', lanes: ['a', 'k'], tier: 2, req: [], sk: 'f_ak' },
+  { id: 'ult', t: 'ult', lane: 'c', tier: 3, req: ['slash'], sk: null, slot: 1 },
+  { id: 'f_ab', t: 'fusion', lanes: ['a', 'b'], tier: 2, req: [], sk: null, slot: 1 },
+  { id: 'f_bk', t: 'fusion', lanes: ['b', 'k'], tier: 2, req: [], sk: null, slot: 1 },
+  { id: 'f_ak', t: 'fusion', lanes: ['a', 'k'], tier: 2, req: [], sk: null, slot: 1 },
 ];
 const T7_BY = Object.fromEntries(T7_NODES.map((n) => [n.id, n]));
-const T7_BY_SKILL = Object.fromEntries(T7_NODES.filter((n) => n.sk).map((n) => [n.sk, n]));
+const T7_BY_SKILL = {};   // 실제 스킬 id → 노드 (지금 캐릭터의 줄기, t7Sync)
+const T7_SLOTS_SK = T7_NODES.filter((n) => n.slot).map((n) => n.id);   // 스킬 칸 노드 id
+
+// ── 줄기 (15개) ──
+// t7DefLine({ id: 3차 직업, cls: [1차, 2차, 3차], sk: { slash, gale, iaido, ult }  (지금 스킬),
+//   newSkills: { whirl|flash|wave|storm|f_ab|f_bk|f_ak: { id, base, name, icon, ...SKILLS 덮어쓸 값 } }, lanes: { a|b|k: { name, sub } },
+//   ui: { 노드 id: { n, d, looks, cost, ic } }, duel: { a, b, k } 궁극기 변형별 결투 배율, tune: { pow } 줄기 위력 눈금(T7_TUNE 대신), fx: { 노드 id: 효과 덮어쓰기 } })  — 1차 줄기 공용 글은 t7DefStem(1차, { ui })
+const T7_LINES = {}, T7_STEMS = {}, T7_FX_BASE = {}, T7_LINE_OF = {};
+function t7DefStem(first, o) { T7_STEMS[first] = o; }
+function t7DefLine(L) {
+  const sk = { ...L.sk };
+  for (const [slot, o] of Object.entries(L.newSkills)) {
+    const { id, base, ...rest } = o;
+    SKILLS[id] = { ...SKILLS[base], ...rest, id, cls: L.cls[1], lv: 0, t7: true, t7base: base };
+    T7_FX_BASE[id] = base;
+    sk[slot] = id;
+  }
+  T7_LINES[L.id] = { ...L, sk, slotOf: Object.fromEntries(Object.entries(sk).map(([a, b]) => [b, a])) };
+  for (const c of L.cls) if (!TREE7_CLS.includes(c)) TREE7_CLS.push(c);
+  if (!T7_LINE_OF[L.cls[0]]) T7_LINE_OF[L.cls[0]] = L.id;   // 1차 직업 → 대표 줄기 (줄기 노드만 쓴다)
+  T7_LINE_OF[L.cls[1]] = T7_LINE_OF[L.cls[2]] = L.id;
+}
+// 지금 캐릭터의 줄기 (없으면 null)
+let t7SyncedCls = null;
+const t7L = () => { if (S.cls !== t7SyncedCls) t7Sync(); return T7_LINES[T7_LINE_OF[S.cls]] || null; };
+function t7Sync() {
+  t7SyncedCls = S.cls;
+  const L = T7_LINES[T7_LINE_OF[S.cls]];
+  for (const k of Object.keys(T7_BY_SKILL)) delete T7_BY_SKILL[k];
+  if (!L) return;
+  for (const id of T7_SLOTS_SK) { const n = T7_BY[id]; n.sk = L.sk[id]; if (n.sk) T7_BY_SKILL[n.sk] = n; }
+  t7ModsKey = '';
+}
+// 효과 키(칸 이름) → 지금 줄기의 스킬 id
+const t7SkKey = (k) => { const L = t7L(); return (L && L.sk[k]) || k; };
 // 스킬 → 갈래 (만검귀종처럼 "검기 스킬" 을 가리는 데)
-const t7LaneOf = (sk) => (T7_BY_SKILL[sk] ? T7_BY_SKILL[sk].lane || null : null);
+const t7LaneOf = (sk) => { t7L(); return T7_BY_SKILL[sk] ? T7_BY_SKILL[sk].lane || null : null; };
 
 // 장착 칸: [필요 레벨, 필요 차수, 비용 종류, 값 or 함수]
 const T7_SLOTS = [null, null, { tier: 2, lv: 50, gold: 300 }, { lv: 80, mana: 300 }, { lv: 120, mana: 1500 }];
 const T7_RESET_GOLD = 100;   // 전체 초기화 = 최고 스테이지 잡몹 골드 × 100 (원정 약 20분)
 
-function freshT7() { return { pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {} }; }   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
-const t7S = () => S.t7 || (S.t7 = freshT7());
+function freshT7() { return { pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {}, auto: true, free: 1 }; }   // auto: 직접 찍기 전까지 추천 순서로 자동 · free: 첫 초기화 무료   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
+const t7S = () => { if (S.cls !== t7SyncedCls) t7Sync(); return S.t7 || (S.t7 = freshT7()); };
 const t7Rank = (id) => t7S().rk[id] || 0;
 const t7Pts = () => Math.max(0, S.level - 1);
 const t7Spent = () => T7_NODES.reduce((a, n) => a + t7Rank(n.id) * T7_SPEC[n.t].cost, 0);
@@ -126,7 +161,7 @@ function t7Undo(id) {
   if (!s.rk[id]) { delete s.rk[id]; if (n.sk) s.eq = s.eq.filter((x) => x !== n.sk); }
   return true;
 }
-const t7ResetCost = () => Math.ceil(monsterStats(Math.max(1, S.best), false).gold * T7_RESET_GOLD);
+const t7ResetCost = () => (t7S().free ? 0 : 1) * Math.ceil(monsterStats(Math.max(1, S.best), false).gold * T7_RESET_GOLD);
 // 전체 초기화 (캠프에서, 골드). 쓴 포인트는 전부 돌아온다
 function t7Reset() {
   if (S.phase !== 'camp' || !t7Spent()) return false;
@@ -134,7 +169,7 @@ function t7Reset() {
   if (S.gold < c) return false;
   S.gold -= c;
   const s = t7S();
-  s.rk = {}; s.eq = []; s.use = {}; s.camp = {};
+  s.rk = {}; s.eq = []; s.use = {}; s.camp = {}; s.free = 0; s.auto = false;
   return true;
 }
 // 원정을 떠나면 "이번 캠프" 가 끝난다
@@ -181,7 +216,7 @@ function t7Equip(sk) {
 // 전투에 나오는 스킬 (장착 순서 + 궁극기). core.js unlockedSkills 가 부른다
 function t7Skills() {
   const s = t7S(), out = s.eq.filter((sk) => T7_BY_SKILL[sk] && t7Rank(T7_BY_SKILL[sk].id) > 0).slice(0, t7Slots());
-  if (t7Rank('ult') > 0 && t7Tier() >= 3) out.unshift('thousandCuts');   // 궁극기는 맨 앞 (쿨이 길어 먼저 쓰는 게 이득)
+  if (t7Rank('ult') > 0 && t7Tier() >= 3 && T7_BY.ult.sk) out.unshift(T7_BY.ult.sk);   // 궁극기는 맨 앞 (쿨이 길어 먼저 쓰는 게 이득)
   return out;
 }
 
@@ -192,12 +227,14 @@ function t7Mods() {
   const key = JSON.stringify(t7S().rk) + S.cls;
   if (key === t7ModsKey) return t7ModsVal;
   const m = { stat: {}, pow: {}, cd: {}, ev: {}, spec: {}, shape: new Set(), rules: new Set(), cdAll: 1, powAll: 1, evAll: 1, basic: 1, basicDps: 1, duel: 1, powNot: [] };
+  const L = t7L();
   for (const n of T7_NODES) {
-    const r = t7Rank(n.id), f = n.fx;
+    const r = t7Rank(n.id), f = (L && L.fx && L.fx[n.id]) || n.fx;   // 줄기별 노드 효과 덮어쓰기 (t7DefLine fx)
     if (!r || !f) continue;
     if (f.stat) for (const k in f.stat) m.stat[k] = k === 'atkMul' ? (m.stat[k] || 1) * f.stat[k] : (m.stat[k] || 0) + f.stat[k] * r;
-    for (const g of ['pow', 'cd', 'ev']) if (f[g]) for (const sk in f[g]) m[g][sk] = (m[g][sk] || 1) * f[g][sk];
-    if (f.spec) Object.assign(m.spec, f.spec);
+    for (const g of ['pow', 'cd', 'ev']) if (f[g]) for (const k in f[g]) { const sk = t7SkKey(k); m[g][sk] = (m[g][sk] || 1) * f[g][k]; }
+    if (f.spec) for (const k in f.spec) m.spec[t7SkKey(k)] = f.spec[k];
+    if (n.t === 'uvar') { const d = L && L.duel && L.duel[n.lane]; if (d) m.duel *= d / (f.duel || 1); }   // 줄기별 결투 배율 (t7DefLine duel)
     if (f.shape) m.shape.add(f.shape);
     if (f.rule) m.rules.add(f.rule);
     for (const g of ['evAll', 'basic', 'basicDps', 'duel']) if (f[g]) m[g] *= f[g];
@@ -216,16 +253,17 @@ function t7Stats(st) {
   st.aspd *= 1 + (s.aspd || 0);
   st.crit = s.noCrit ? 0 : Math.min(0.8, st.crit + (s.crit || 0));
   if (s.guard) st.guard = Math.min(0.85, 1 - (1 - st.guard) * (1 - s.guard));
-  if (s.rangeMul) st.range *= s.rangeMul;   // 심검: 평타 사거리
+  if (s.rangeMul) st.range = Math.max(st.range, Math.min(330, st.range * s.rangeMul));   // 심검: 평타 사거리 (원거리 직업은 화면 안 330 까지)
   return st;
 }
-const t7NodeOf = (sk) => T7_BY_SKILL[sk];
+const t7NodeOf = (sk) => { t7L(); return T7_BY_SKILL[sk]; };
 // 칸 수 (궁극기·융합 포함)
-const t7SkillRank = (sk) => (T7_BY_SKILL[sk] ? t7Rank(T7_BY_SKILL[sk].id) : 0);
+const t7SkillRank = (sk) => { t7L(); return T7_BY_SKILL[sk] ? t7Rank(T7_BY_SKILL[sk].id) : 0; };
 // 한 방 위력 배수 (기준 = 지금 트리 V2 0칸 값, core.js skillPow 가 곱한다)
 function t7Pow(sk) {
   const n = T7_BY_SKILL[sk], r = Math.max(1, t7SkillRank(sk)), m = t7Mods(), R = n && n.t === 'fusion' ? T7_FUSE : T7_RANK;
-  let p = T7_TUNE.pow * (1 + R.pow * (r - 1)) * (m.pow[sk] || 1) * m.powAll * ((SKILLS[sk] && SKILLS[sk].t7mul) || 1);
+  const L = t7L();
+  let p = ((L && L.tune && L.tune.pow) || T7_TUNE.pow) * (1 + R.pow * (r - 1)) * (m.pow[sk] || 1) * m.powAll * ((SKILLS[sk] && SKILLS[sk].t7mul) || 1);
   for (const x of m.powNot) if (t7LaneOf(sk) !== x.lane) p *= x.v;
   return p;
 }
@@ -263,28 +301,29 @@ const t7ShapeCache = {};
 function t7Shape(sk, k) {
   const m = t7Mods(), sh = m.shape, key = sk + k.stage + '|' + [...sh].join(',');
   if (t7ShapeCache[key]) return t7ShapeCache[key];
+  const L = t7L(), slot = (L && L.slotOf[sk]) || sk;   // 칸 이름으로 본다 (slash 1차 · gale·iaido 2차 · whirl·flash·wave·storm 새 · ult)
   let s = k;
   const big = (hits) => hits.reduce((a, h) => (h[1] > a[1] ? h : a), hits[0]);
   const after = (t, dt) => Math.min(0.98, t + dt / s.dur);
-  if (sk === 'steelCleave' && sh.has('twin')) { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.15), b[1] * 0.6]] }; }
-  if (sk === 'steelCleave' && sh.has('slashWave')) { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.2), b[1] * 0.5, { area: 'line', reach: 3 }]] }; }
-  if (sk === 'gale' && sh.has('more')) {
+  if (slot === 'slash' && sh.has('twin')) { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.15), b[1] * 0.6]] }; }
+  if (slot === 'slash' && sh.has('slashWave')) { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.2), b[1] * 0.5, { area: 'line', reach: 3 }]] }; }
+  if (slot === 'gale' && sh.has('more')) {
     const small = s.hits.filter((h) => h === s.hits.reduce((a, x) => (x[1] < a[1] ? x : a), s.hits[0]));
     const extra = small.slice(0, 3).map((h, i) => [Math.min(0.97, h[0] + 0.03 * (i + 1)), h[1]]);
     s = { ...s, hits: [...s.hits.map((h) => (small.includes(h) ? [h[0], h[1] * 0.85, ...h.slice(2)] : h)), ...extra.map((h) => [h[0], h[1] * 0.85])] };
   }
-  if (sk === 'whirl' && sh.has('grow')) s = { ...s, radius: (s.radius || 40) * 2 };
-  if (sk === 'whirl' && sh.has('follow')) s = { ...s, radius: (s.radius || 40) + 60 };
+  if (slot === 'whirl' && sh.has('grow')) s = { ...s, radius: (s.radius || 40) * 2 };
+  if (slot === 'whirl' && sh.has('follow')) s = { ...s, radius: (s.radius || 40) + 60 };
   // 비검: 관통 전엔 앞의 한 적만(투사체가 첫 적에서 멈춘다), 관통이면 앞 줄 전부 · 검기 폭풍은 관통이면 범위 +20%
-  if (sk === 'wave') s = { ...s, area: sh.has('pierce') ? 'line' : 'single', reach: 4, hits: s.hits.map((h) => [h[0], h[1]]) };
-  if (sk === 'storm' && sh.has('pierce')) s = { ...s, radius: (s.radius || 120) * 1.2 };
-  if (sk === 'flash' && sh.has('after')) s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.5), h[1] * 0.5, ...h.slice(2)])] };
-  if (sk === 'flash' && sh.has('triple')) s = { ...s, hits: s.hits.flatMap((h) => [0, 0.04, 0.08].map((d) => [Math.min(0.98, h[0] + d), h[1] * 0.5, ...h.slice(2)])) };
-  if (sk === 'storm' && sh.has('split')) s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.15), h[1] * 0.5, { area: 'all', radius: 60 }])] };
-  if (sk === 'thousandCuts' && sh.has('uvA')) s = { ...s, hits: s.hits.flatMap((h) => [[h[0], h[1] * 0.5], [Math.min(0.98, h[0] + 0.02), h[1] * 0.5]]) };
+  if (slot === 'wave') s = { ...s, area: sh.has('pierce') ? 'line' : 'single', reach: 4, hits: s.hits.map((h) => [h[0], h[1]]) };
+  if (slot === 'storm' && sh.has('pierce')) s = { ...s, radius: (s.radius || 120) * 1.2 };
+  if (slot === 'flash' && sh.has('after')) s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.5), h[1] * 0.5, ...h.slice(2)])] };
+  if (slot === 'flash' && sh.has('triple')) s = { ...s, hits: s.hits.flatMap((h) => [0, 0.04, 0.08].map((d) => [Math.min(0.98, h[0] + d), h[1] * 0.5, ...h.slice(2)])) };
+  if (slot === 'storm' && sh.has('split')) s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.15), h[1] * 0.5, { area: 'all', radius: 60 }])] };
+  if (slot === 'ult' && sh.has('uvA')) s = { ...s, hits: s.hits.flatMap((h) => [[h[0], h[1] * 0.5], [Math.min(0.98, h[0] + 0.02), h[1] * 0.5]]) };
   // 일도양단: 타격 수·시점은 그대로(천검 연출이 타격 순서를 쓴다), 피해의 80% 를 마지막 한 칼에 몰아준다
-  if (sk === 'thousandCuts' && sh.has('uvB')) { const tot = s.hits.reduce((a, h) => a + h[1], 0), n = s.hits.length; s = { ...s, hits: s.hits.map((h, i) => [h[0], i === n - 1 ? tot * 0.8 : (tot * 0.2) / (n - 1), ...h.slice(2)]) }; }
-  if (sk === 'thousandCuts' && sh.has('uvK')) s = { ...s, radius: (s.radius || 230) * 1.3 };
+  if (slot === 'ult' && sh.has('uvB')) { const tot = s.hits.reduce((a, h) => a + h[1], 0), n = s.hits.length; s = { ...s, hits: s.hits.map((h, i) => [h[0], i === n - 1 ? tot * 0.8 : (tot * 0.2) / (n - 1), ...h.slice(2)]) }; }
+  if (slot === 'ult' && sh.has('uvK')) s = { ...s, radius: (s.radius || 230) * 1.3 };
   return (t7ShapeCache[key] = s);
 }
 
@@ -298,7 +337,7 @@ const T7_BUILDS = {
     'wave', 'wave', 'storm', 'storm', 'storm', 'ult', 'k_k3', 'uv_k', 'ult', 'ult', 'ult', 'ult', 'f_bk', 'f_bk', 'slash', 'slash', 'slash', 'c_atk', 'c_atk', 'c_spd', 'c_spd', 'c_spd', 'c_hp', 'c_hp', 'c_crit', 'c_crit', 'c_crit', 'k_blade'],
 };
 // 남은 포인트를 빌드 순서대로 쓴다 (못 찍는 건 건너뛰고, 순서를 다 돌면 남는 걸로 아무 노드나 싼 것부터). 장착 칸도 산다
-function t7AutoSpend(build = 'a') {
+function t7AutoSpend(build = 'a', buy = true) {   // buy: 장착 칸도 산다 (봇) — 플레이어 자동 찍기는 재화를 안 쓴다
   if (!t7On()) return 0;
   let n = 0;
   for (let guard = 0; guard < 400; guard++) {
@@ -309,12 +348,21 @@ function t7AutoSpend(build = 'a') {
     if (!picked || !t7Add(picked)) break;
     n++;
   }
-  while (t7BuySlot()) n++;
+  if (buy) while (t7BuySlot()) n++;
   // 장착: 빌드 순서에 먼저 나오는 배운 액티브부터 칸을 채운다
   const s = t7S(), order = T7_BUILDS[build] || T7_BUILDS.a, seen = [];
   for (const id of order) { const x = T7_BY[id]; if (x && (x.t === 'active' || x.t === 'fusion') && t7Rank(id) > 0 && !seen.includes(x.sk)) seen.push(x.sk); }
   s.eq = seen.slice(0, t7Slots());
   return n;
+}
+// 직접 찍기 전(S.t7.auto)인 캐릭터: 남은 포인트를 추천 순서(a)로 찍고 장착 칸도 채운다 — 전직·레벨업 뒤 스킬이 빈 채로 원정 가지 않게.
+//  캠프 도착(core.js arriveCamp)·불러오기 때 부른다. 스킬 탭에서 한 칸이라도 직접 찍으면 꺼진다 (tree7-ui t7-add)
+function t7AutoTick() {
+  if (!t7On() || !S.t7 || S.t7.auto === false || t7Left() <= 0) return;
+  if (S.t7.auto == null) S.t7.auto = true;
+  if (S.t7.free == null) S.t7.free = 1;
+  t7AutoSpend('a', false);
+  S.t7.camp = {};
 }
 // 트리 전체 비용 (택1·궁극기 변형은 하나씩)
 function t7PathCost() {
@@ -326,7 +374,6 @@ function t7PathCost() {
   }, 0);
 }
 // 새 스킬의 연출: 3단계 전까지는 같은 계열 스킬의 연출을 빌려 쓴다 (skills.js 가 SKILL_FX 에 이어 붙인다)
-const T7_FX_BASE = { whirl: 'gale', flash: 'iaido', wave: 'steelCleave', storm: 'steelCleave', f_ab: 'gale', f_bk: 'iaido', f_ak: 'gale' };
 
 // ── 보스 벽 (4단계, 이 줄기 캐릭터의 원정 1~120 스테이지만) ──
 // 일반 보스 체력 ×0.8 · 10칸 중간 보스(10·30·50…) 체력 ×2.5 공격 ×1.5 + 기믹 1 · 20칸 지역 보스(필드 보스) 체력 ×4 공격 ×2 + 기믹 2 (필드 보스 배율 대신)
@@ -385,7 +432,9 @@ const t7WallPool = (w, fight) => (w.gims.includes('pool') ? fight * (T7_GIM_RULE
 // 귀환 보고 한 줄: 가장 덜 대응한 기믹을 추천
 function t7WallTip(w) {
   const g = w.gims.slice().sort((p, q) => t7Counter(p) - t7Counter(q))[0];
-  return g ? { g, ...T7_GIM[g] } : null;
+  if (!g) return null;
+  const G = T7_GIM[g], L = t7L(), ln = L && L.lanes && L.lanes[G.lane];   // 줄기마다 갈래 이름이 다르다 (검성 글은 T7_GIM.tip)
+  return { g, ...G, tip: ln ? `${ln.name}${ln.tip ? ` (${ln.tip})` : ''}` : G.tip };
 }
 // 원정 기록: 벽 보스에게 진 체력 비율(가장 깊이 깎은 것) · 뚫은 벽
 function t7WallNote(m, left) {

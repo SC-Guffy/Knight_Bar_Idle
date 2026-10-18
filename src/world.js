@@ -308,9 +308,9 @@ function releaseAttack(st) {
   } else {
     vfxBasicRelease();                  // 근접 잔상 텍스처가 명중 순간 늘어나며 사라진다 (src/vfx-tex.js)
     inRange.slice(0, st.targets).forEach(m => { hitMonster(m, t7BasicMul()); vfxBasicHit(m, m.lastCrit); });   // t7BasicMul: 시즌7 트리 키스톤 평타 피해 (src/tree7.js)
-    if (t7On()) t7OnBasic(st, inRange[0]);        // 검의 길·심검 (src/tree7-fx.js)
     if (qiOn()) { qiOnBasic(Math.min(inRange.length, st.targets), inRange[0].lastCrit); qiBasicFx(inRange[0], knight.combo || 0); }   // 파이터 계열 기 충전 · 주먹/발 궤적 (src/jobs/fighter*.js)
   }
+  if (t7On()) t7OnBasic(st, inRange[0]);          // 검의 길·심검 — 근접·원거리 모두 (src/tree7-fx.js)
   procOnBasic(st);
 }
 
@@ -1244,7 +1244,7 @@ function update(dt) {
     sh.trail.push([sh.x, sh.y]);
     if (sh.trail.length > 8) sh.trail.shift();
     if (dist <= step) {
-      hitMonster(sh.m, sh.mult);
+      hitMonster(sh.m, sh.mult * t7BasicMul());   // t7BasicMul: 시즌7 트리 키스톤 평타 피해
       vfxBasicHit(sh.m, sh.m.lastCrit, true);
       if (qiOn()) { qiOnBasic(1, sh.m.lastCrit); qiRangedHit(sh.m); }
       // 화염 계열: 맞은 자리 주변의 다른 적도 splash 배율로 (원정에서만 — 결투·레이드는 상대가 하나라 상관없다)

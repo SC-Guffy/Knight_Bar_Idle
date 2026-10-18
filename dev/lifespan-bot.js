@@ -44,7 +44,6 @@ function runOne({ days, seed, mode }) {
   const C = vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
   const cs = {}, M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
   const S = A.S(); S.gear.auto = true;
-  if (LINE === 'swordsaint' && S.t7) S.t7.pick = true;   // 검사 단계부터 시즌7 트리 (src/tree7.js t7On)
   const line = LINE || LINES[(seed - 1) % LINES.length];
   const chain = A.classPath(line).slice(1);
   let autoB = 'a', lastWall = null, resets = 0;

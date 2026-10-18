@@ -13,6 +13,7 @@ function qiSt() {
   if (q && q.cls === S.cls && (q.key === key || S.phase === 'returning' || S.phase === 'camp')) return q;
   const Q = QI[S.cls], tj = {};
   for (const id in Q.need) tj[id] = qiNeed(id);
+  if (t7On()) for (const id of t7Skills()) if (SKILLS[id].qi && !qiMain(id) && !(id in tj)) tj[id] = qiNeed(id);   // 시즌7 트리 새 투지 기술 (바탕 스킬의 문턱)
   return (knight.qi = { cls: S.cls, key, v: Q.max, tj, aw: 0, hurtT: -1, hurtN: 0, flash: 0, red: 0, log: [] });
 }
 // 지금 소모량(주 기술) · 문턱(투지 기술) — 기 절약(☯️) 반영

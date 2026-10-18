@@ -12,7 +12,7 @@ const vm = require('vm'), fs = require('fs'), path = require('path'), cp = requi
 const { simulateDuel } = require('../server/duel');
 const { mentorProfile } = require('../server/mentor');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['data', 'classes', 'tree7', 'fighter-data', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'castle', 'core'];
+const FILES = ['data', 'classes', 'tree7', 'tree7-l-swordsaint', 'tree7-l-tyrant', 'tree7-l-archon', 'tree7-l-skyGeneral', 'tree7-l-dragonlord', 'tree7-l-warlord', 'tree7-l-siegeMaster', 'tree7-l-deadeye', 'tree7-l-voidArcher', 'tree7-l-thunderEmperor', 'tree7-l-archmage', 'tree7-l-frostlord', 'tree7-l-champion', 'tree7-l-tempest', 'tree7-l-grandmaster', 'fighter-data', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'castle', 'core'];
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140, 160, 180];
 const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'];
 const TOWER_TOMES_PER_DAY = 4;
@@ -31,7 +31,7 @@ function makeGame(rev, host = null) {
   for (const f of FILES) {
     let src;
     if (rev && rev !== '.') { try { src = cp.execFileSync('git', ['show', `${rev}:src/${f}.js`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { continue; } } // 그 커밋에 아직 없는 파일(예: 0.12.0 이전의 dungeon.js)은 건너뜀
-    else src = fs.readFileSync(path.join(ROOT, 'src', f + '.js'), 'utf8');
+    else { try { src = fs.readFileSync(path.join(ROOT, 'src', f + '.js'), 'utf8'); } catch { continue; } }   // 아직 없는 파일(시즌7 줄기 파일 일부 등)은 건너뜀
     vm.runInContext(src, ctx, { filename: f + '.js' });
   }
   // 게임 시계를 봇 시간으로 (창고 비축·하루 초기화가 봇의 하루를 따라가게). runOne 이 ctx.__T 를 민다

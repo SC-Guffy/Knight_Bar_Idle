@@ -1500,26 +1500,7 @@ const SKILLS = {
   },
 };
 for (const id in SKILLS) SKILLS[id].id = id;
-// 시즌7 스킬 빌드 트리 시제품(src/tree7.js, docs/specs/skill-tree-swordsaint.md)의 새 스킬·융합 — 검성(blademaster) 소속, 전직 즉시(lv 0), 트리에서 찍어야 쓴다.
-//  1단계(규칙·수치)는 같은 계열 스킬(base)의 타격·모습을 그대로 빌리고 쿨·범위·위력 배율(t7mul)만 다르다. 모양·연출은 3단계에서 바꾼다.
-//  stageName = 트리 칸마다 모습 이름 (1칸 · 2~3칸 · 4칸 · 5칸)
-const T7_NEW_SKILLS = {
-  whirl: { base: 'gale', name: '검무 회오리', icon: '🌀', cd: 12, radius: 70, t7mul: 0.9, stageName: ['검무', '쌍 회오리', '칼날 회오리', '천검무'],
-    desc: '칼날 회오리가 기사 주위를 돌며 벤다.' },
-  flash: { base: 'iaido', name: '섬광 베기', icon: '⚡', cd: 18, radius: 260, t7mul: 1.0, stageName: ['섬광', '섬광 베기', '뇌광', '천섬'],
-    desc: '잠깐 멈췄다가 화면 끝까지 한 줄로 베어 지나간다.' },
-  wave: { base: 'steelCleave', name: '비검', icon: '🌙', cd: 9, t7mul: 0.9, stageName: ['비검', '삼연 비검', '오연 비검', '비검 난무'],
-    desc: '초승달 검기를 부채꼴로 날린다.' },
-  storm: { base: 'steelCleave', name: '검기 폭풍', icon: '✴️', cd: 13, area: 'all', radius: 120, t7mul: 0.85, stageName: ['검기 방사', '팔방 검기', '검기 폭풍', '검기 대폭풍'],
-    desc: '사방으로 검기를 뿜는다.' },
-  f_ab: { base: 'gale', name: '질풍 일섬', icon: '💫', cd: 14, t7mul: 1.5, stageName: ['질풍 일섬', '질풍 일섬', '질풍 일섬·분신', '월하 일섬'],
-    desc: '융합(연타+발도). 난무 마지막 타가 일섬으로 돌진한다.' },
-  f_bk: { base: 'iaido', name: '섬광 검기', icon: '🌠', cd: 18, t7mul: 1.4, stageName: ['섬광 검기', '섬광 검기', '섬광 검기·납도', '적월 검기'],
-    desc: '융합(발도+검기). 일섬이 지나간 줄에 검기가 남아 터진다.' },
-  f_ak: { base: 'gale', name: '칼날 폭풍', icon: '🌪️', cd: 14, radius: 90, t7mul: 1.3, stageName: ['칼날 폭풍', '칼날 폭풍', '칼날 폭풍·분신', '월하 폭풍'],
-    desc: '융합(연타+검기). 회오리가 돌며 검기를 흩뿌린다.' },
-};
-for (const [id, o] of Object.entries(T7_NEW_SKILLS)) { const { base, ...rest } = o; SKILLS[id] = { ...SKILLS[base], ...rest, id, cls: 'blademaster', lv: 0, t7: true, t7base: base }; }
+// 시즌7 스킬 빌드 트리의 새 스킬·융합은 줄기마다 src/tree7-l-*.js 가 t7DefLine 으로 SKILLS 에 더한다 (t7: true, 트리에서 찍어야 쓴다)
 // 대상 하나가 받는 총 피해 배율 (보호막 지속 피해 포함)
 const skillMult = (k) => k.hits.reduce((a, h) => a + h[1], 0) + (k.ward ? k.ward.tick * k.ward.dur + (k.ward.finish || 0) : 0);
 // 숙련 단계 stage(0~3, 적용한 별 수)의 모양이 반영된 스킬 (stages). 타격 배율 합은 원래 skillMult 와 같게 맞춘다.

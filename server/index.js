@@ -63,6 +63,7 @@ function sanitizeProfile(p = {}) {
       cd: num(s.cd, 2, 150, 10), dur: num(s.dur, 0, 4, 1), mult: num(s.mult, 0, 300, 1), crit: !!s.crit,
       // 트리 V2: cp 치명 확률 보정, lc 흡혈 비율 (src/classes.js TREE_RIGHT)
       ...(s.cp ? { cp: num(s.cp, 0, 0.5, 0) } : {}), ...(s.lc ? { lc: num(s.lc, 0, 0.3, 0) } : {}),
+      ...(t7 && s.gap ? { gap: num(s.gap, 0, 300, 0) } : {}),   // 시즌7 트리 새 스킬의 돌진 거리 (server/duel.js GAP 에 없는 id)
       ...(s.ward && typeof s.ward === 'object'
         ? { ward: { dur: num(s.ward.dur, 0, 8, 0), guard: num(s.ward.guard, 0, 0.8, 0), heal: num(s.ward.heal, 0, 0.5, 0) } } : {}),
       // 파이터 계열 (server/duel.js qiReady): cost 주 기술 소모량 · need 투지 기술 문턱 · m3 장풍 3단 배수 · awaken 궁극기 각성 · qiHurt 기막 피격 충전 배수

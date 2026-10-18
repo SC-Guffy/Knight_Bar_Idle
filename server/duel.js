@@ -129,7 +129,7 @@ function simulateDuel(pa, pb, seed = (Math.random() * 2 ** 32) >>> 0) {
     cd: 0.2 + rng() * 0.3,
     leapCd: p.leap ? p.leap.every / 2 : Infinity,
     // 돌진기는 개전 직후 준비되고, 걸어가는 동안에도 쿨타임이 돈다 (다른 스킬은 교전 시작 후부터)
-    skills: makeSkills(p).map((s) => (GAP[s.id] ? { ...s, gap: GAP[s.id], left: 0.3 } : s)), busy: 0, ward: null,
+    skills: makeSkills(p).map((s) => (GAP[s.id] || s.gap ? { ...s, gap: GAP[s.id] || s.gap, left: 0.3 } : s)),   // s.gap: 시즌7 트리 새 스킬 (프로필이 바탕 스킬 값을 싣는다) busy: 0, ward: null,
     dash: null, dashed: null, stopT: null, dealt: 0,
   });
   const a = make(pa, 0, 1), b = make(pb, START_DIST, -1);
