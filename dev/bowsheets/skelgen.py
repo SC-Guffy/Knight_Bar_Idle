@@ -91,12 +91,12 @@ BODY_KP.update({
                      'RIGHT SHOULDER': (85, 126.25), 'RIGHT ELBOW': (84, 137.5), 'RIGHT ARM': (83.75, 148.75),
                      'RIGHT HIP': (101.25, 146.25), 'RIGHT KNEE': (102.5, 160), 'RIGHT LEG': (103.75, 175),
                      'LEFT HIP': (90, 146.25), 'LEFT KNEE': (88.75, 160), 'LEFT LEG': (88.75, 175)},
-    # 석궁사수: RIGHT = 뒷손(개머리·방아쇠), LEFT = 앞손(받침). 정면에 가까운 그림이라 앞손을 화면 앞쪽(오른쪽) 팔로 읽는다 (반대로 읽으면 KB 가 음수가 되어 석궁이 뒤를 향함)
-    'arbalest': {'NECK': (98.75, 122), 'NOSE': (103.75, 115.5), 'RIGHT EYE': (107.5, 111.25), 'LEFT EYE': (100, 111.25), 'RIGHT EAR': (93.75, 112.5), 'LEFT EAR': (91.25, 113),
-                 'LEFT SHOULDER': (108.75, 127.5), 'LEFT ELBOW': (111, 139), 'LEFT ARM': (112.5, 150),
-                 'RIGHT SHOULDER': (85, 127.5), 'RIGHT ELBOW': (84, 139), 'RIGHT ARM': (83, 150),
-                 'RIGHT HIP': (101.25, 151.25), 'RIGHT KNEE': (102.5, 162.5), 'RIGHT LEG': (103.75, 175),
-                 'LEFT HIP': (90, 151.25), 'LEFT KNEE': (88.75, 162.5), 'LEFT LEG': (87.5, 175)},
+    # 석궁사수: 2026-10-18 PixelLab rotate(south-east → east) 옆모습 중립에서 다시 읽음 (예전 3/4 정면 판: design/ref/arbalest-neutral-34.png). RIGHT = 뒷손(개머리), LEFT = 앞손(받침)
+    'arbalest': {'NECK': (105, 120), 'NOSE': (115, 113.75), 'RIGHT EYE': (111.25, 110), 'LEFT EYE': (108.75, 110), 'RIGHT EAR': (102.5, 112.5), 'LEFT EAR': (100, 112.75),
+                 'LEFT SHOULDER': (108, 124), 'LEFT ELBOW': (107, 136), 'LEFT ARM': (106, 147),
+                 'RIGHT SHOULDER': (101, 124), 'RIGHT ELBOW': (102, 136), 'RIGHT ARM': (103, 148),
+                 'RIGHT HIP': (107.5, 151.25), 'RIGHT KNEE': (108.75, 161), 'RIGHT LEG': (107.5, 175),
+                 'LEFT HIP': (101, 151.25), 'LEFT KNEE': (100, 161), 'LEFT LEG': (98.75, 175)},
 })
 
 

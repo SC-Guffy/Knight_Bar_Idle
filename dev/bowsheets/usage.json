@@ -1,5 +1,5 @@
 {
- "used": 102.0,
+ "used": 112.0,
  "calls": [
   {
    "cls": "mq-bow",
@@ -368,6 +368,38 @@
    "usage": 3.0,
    "n": 8,
    "bal_before": 827.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/rotate",
+   "purpose": "rot: rotate south-east->east",
+   "usage": 1.0,
+   "n": 1,
+   "bal_before": 314.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-walk2: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 311.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-shoot2: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 308.0
+  },
+  {
+   "cls": "arbalest",
+   "ep": "/animate-with-skeleton-v3",
+   "purpose": "skel-sky2: animate-with-skeleton-v3 192 8f",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 303.0
   }
  ]
 }
