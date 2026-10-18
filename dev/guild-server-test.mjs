@@ -1,6 +1,6 @@
 // 기사단 서버 API 점검 (docs/specs/guild.md 2단계). 가짜 Google 을 받는 로컬 서버를 새로 띄운 직후에 돌린다
-// (IP 당 한 시간에 기사·기사단 5개 제한이 있어서 같은 서버로 두 번 돌리면 뒤쪽이 429 로 실패한다):
-//   cd server && PORT=3792 DATA_DIR=<스크래치>/srv GOOGLE_FAKE=1 node index.js
+// (IP 당 한 시간에 기사·기사단 5개 제한이 있으니 ACCOUNT_PER_HOUR=50 으로 띄운다 — 안 그러면 뒤쪽이 429):
+//   cd server && PORT=3792 DATA_DIR=<스크래치>/srv GOOGLE_FAKE=1 ACCOUNT_PER_HOUR=50 node index.js
 //   P=3792 node dev/guild-server-test.mjs
 const B = 'http://localhost:' + (process.env.P || 3792);
 let fails = 0;
@@ -83,5 +83,30 @@ r = await api('GET', '/api/guilds/name?name=' + encodeURIComponent('푸른방패
     r = await api('GET', '/api/admin/audit?guild=' + encodeURIComponent('공용단' + sfx) + '&kind=guild-snap', null, { 'X-Admin-Key': process.env.ADMIN_KEY });
     ok('운영 기록 guild-snap', r.d.log && r.d.log.length === 1 && r.d.log[0].data.gold === 1234, r.d.log);
   }
+}
+
+// 5단계: 기사 이름 바꾸기 · 삭제 · 기사단 이름 바꾸기
+{
+  const Gq = (await api('POST', '/api/auth/google', { idToken: 'fake:q' + sfx, deviceId: 'devQ' })).d;
+  const T = (await api('POST', '/api/guilds', { name: '정리단' + sfx, ticket: Gq.ticket, deviceId: 'devQ' })).d.token;
+  const h = (ch) => gh(T, 'devQ', ch);
+  for (const n of ['갑' + sfx, '을' + sfx]) await api('POST', '/api/guilds/chars', { nickname: n }, h());
+  await api('PUT', '/api/guilds/slots', { slots: ['갑' + sfx, '을' + sfx, null, null, null] }, h());
+  r = await api('POST', '/api/me/nickname', { nickname: '병' + sfx }, h('을' + sfx)); ok('기사단 기사 이름 바꾸기', r.d.nickname === '병' + sfx, r.d);
+  r = await api('GET', '/api/guilds/me', null, h()); ok('슬롯도 새 이름으로', r.d.slots[1] === '병' + sfx && r.d.chars.some((c) => c.nickname === '병' + sfx), r.d.slots);
+  r = await api('POST', '/api/me/nickname', { nickname: '정' + sfx }, h('병' + sfx)); ok('하루 안에 다시 바꾸면 cooldown', r.s === 429 && r.d.code === 'cooldown', r.d.error);
+  r = await api('POST', '/api/guilds/chars/delete', { nickname: '병' + sfx, confirm: '병' }, h()); ok('확인 이름이 다르면 거부', r.s === 400, r.d.error);
+  r = await api('POST', '/api/guilds/chars/delete', { nickname: '병' + sfx, confirm: '병' + sfx }, h()); ok('기사 삭제', r.d.ok && r.d.guild.chars.length === 1 && r.d.guild.slots[1] === null, r.d.guild);
+  r = await api('GET', '/api/me', null, h('병' + sfx)); ok('지운 기사로는 못 들어감', r.s === 401);
+  r = await api('POST', '/api/guilds/chars', { nickname: '병' + sfx }, h()); ok('지운 이름을 바로 다시 씀', r.s === 201, r.d);
+  r = await api('POST', '/api/guilds/chars/delete', { nickname: '병' + sfx, confirm: '병' + sfx }, h());
+  r = await api('POST', '/api/guilds/chars/delete', { nickname: '갑' + sfx, confirm: '갑' + sfx }, h()); ok('마지막 1명은 못 지움', r.s === 400, r.d.error);
+  r = await api('PUT', '/api/me', { state: { phase: 'expedition' }, profile: {} }, { ...h('갑' + sfx), 'X-Game-Version': '99.0.0' });
+  await api('POST', '/api/guilds/chars', { nickname: '무' + sfx }, h());
+  r = await api('POST', '/api/guilds/chars/delete', { nickname: '갑' + sfx, confirm: '갑' + sfx }, h()); ok('원정 중(세이브 phase)이면 못 지움', r.s === 409, r.d.error);
+  r = await api('POST', '/api/guilds/name', { name: '새정리단' + sfx }, h()); ok('기사단 이름 바꾸기', r.d.name === '새정리단' + sfx, r.d);
+  r = await api('POST', '/api/guilds/name', { name: '또정리단' + sfx }, h()); ok('일주일 안에 다시 → cooldown', r.s === 429 && r.d.code === 'cooldown', r.d.error);
+  r = await api('GET', '/api/guilds/name?name=' + encodeURIComponent('정리단' + sfx)); ok('옛 기사단 이름은 다시 비어 있음', r.d.available === true);
+  r = await api('POST', '/api/guilds', { name: '새 정리단' + sfx }); ok('새 이름은 중복(띄어쓰기 무시)', r.s === 409);
 }
 console.log(fails ? `실패 ${fails}` : '모두 통과');

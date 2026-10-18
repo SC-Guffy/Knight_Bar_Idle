@@ -19,7 +19,7 @@ const GAME_VERSION = '0.27.0';
 //  시즌7 정식 공개 때 true 로 바꾼다.
 const S7_DEV = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$|\.test$/.test(location.hostname || '');
 // 기사단 (docs/specs/guild.md): 꺼져 있으면 ?guild=1 을 무시하고 보통 게임으로 연다. src/guild.js 의 GUILD_OPEN 도 같이 바꾼다
-const GUILD_OPEN = false;
+const GUILD_OPEN = true;   // 시즌7 오픈 (2026-10-18 impl-guild-open) — 켜지면 모든 플레이어가 기사단(로그인 화면)부터 시작
 const guildAllowed = () => GUILD_OPEN || S7_DEV;
 // 스킬 빌드 트리 (docs/specs/skill-tree-swordsaint.md, src/tree7.js): 켜면 검성·검신(그리고 ?t7=1 로 고른 검사)이 바로 새 트리로 바뀐다.
 //  켤 때는 server/index.js SAVE_MIN_VERSION 도 그 버전으로 올린다 (예전 버전은 세이브의 t7 을 버리고 올린다)
