@@ -170,16 +170,16 @@ const SHEET_BACK_AURA = {
   thunderEmperor(g, meta, anim, f, ft, D) {
     const P = (meta.pts[anim] || [])[f];
     if (!P || typeof vfxDraw !== 'function') return;
-    const cx = (P[2] - ft[0] - 6) * D, cy = (P[3] - ft[1] + 6) * D, R = 11 * D, t = clock * 0.8;
+    const cx = (P[2] - ft[0] - 7) * D, cy = (P[3] - ft[1] + 5) * D, R = 9 * D, t = clock * 0.8;
     for (let i = 0; i < 8; i++) {   // 테: 원을 따라 금빛 번개 마디
       const a = t + (i / 8) * Math.PI * 2;
-      vfxDraw(g, 'p12', '#ffe27a', Math.floor(clock * 12 + i) % 3, cx + Math.cos(a) * R, cy + Math.sin(a) * R, { scale: 2 / 3, rot: a + Math.PI / 2, alpha: 0.8 });
+      vfxDraw(g, 'p12', '#ffe27a', Math.floor(clock * 12 + i) % 3, cx + Math.cos(a) * R, cy + Math.sin(a) * R, { scale: 2 / 3, rot: a + Math.PI / 2, alpha: 0.6 });
     }
     for (let i = 0; i < 4; i++) {   // 살: 가운데서 테까지
       const a = t + (i / 4) * Math.PI * 2 + Math.PI / 8;
-      vfxDraw(g, 'p11', '#fff3b0', Math.floor(clock * 14 + i) % 3, cx + Math.cos(a) * R * 0.5, cy + Math.sin(a) * R * 0.5, { scale: 2 / 3, rot: a, alpha: 0.7 });
+      vfxDraw(g, 'p11', '#fff3b0', Math.floor(clock * 14 + i) % 3, cx + Math.cos(a) * R * 0.5, cy + Math.sin(a) * R * 0.5, { scale: 2 / 3, rot: a, alpha: 0.45 });
     }
-    vfxDraw(g, 'h29', '#ffe27a', Math.floor(clock * 8) % 5, cx, cy, { scale: 2 / 3, alpha: 0.75 });
+    vfxDraw(g, 'h29', '#ffe27a', Math.floor(clock * 8) % 5, cx, cy, { scale: 2 / 3, alpha: 0.5 });
   },
 };
 // 지팡이 구슬 빛 (마법사 계열): 시트에는 구슬만 그리고 빛은 여기서 hand 점(= 구슬 가운데)에 얹는다.
