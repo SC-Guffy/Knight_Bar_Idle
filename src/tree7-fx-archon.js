@@ -31,9 +31,9 @@
   const haloPose = (u) => ({ wa: -1.57 + 0.12 * Math.sin(u * 20), lift: 6 + 4 * Math.sin(u * 14), sy: 1.04 });
 
   // 십자 빛: E44 빛 가시 네 개 (위 · 아래 짧게 · 좌우). rot 만큼 돌린다. 한 개가 32×64 도트라 sy 로 줄여 쓴다
-  function crossDraw(x, y, c, f, sc, alpha, rot = 0) {
+  function crossDraw(x, y, c, f, sc, alpha, rot = 0, lm = 1) {
     for (const [r, fy, len] of [[0, 0, 0.55], [0, 1, 0.35], [Math.PI / 2, 0, 0.45], [-Math.PI / 2, 0, 0.45]])
-      vfxDraw(ctx, 'e44', c, f, x, y, { anchor: 'b', scale: sc, rot: rot + r, flipY: !!fy, sx: 0.6, sy: len, alpha });
+      vfxDraw(ctx, 'e44', c, f, x, y, { anchor: 'b', scale: sc, rot: rot + r, flipY: !!fy, sx: 0.6, sy: len * lm, alpha });
   }
   // 십자 빛 한 발: (x,y) 에서 ang 방향으로 dist 만큼 날아가며 천천히 돈다. 뒤로 작은 별가루(C16)
   function crossShot(x, y, ang, dist, o = {}) {
@@ -41,7 +41,7 @@
     skFx(null, d0, life, (u) => {
       const e = easeOut(u), px = x + Math.cos(ang) * dist * e, py = y + Math.sin(ang) * dist * e, al = u < 0.65 ? 1 : (1 - u) / 0.35;
       for (let k = 1; k <= 3; k++) { const v = Math.max(0, e - k * 0.07); vfxDraw(ctx, 'c16', AR_PALE, Math.floor(clock * 12 + k) % 4, x + Math.cos(ang) * dist * v, y + Math.sin(ang) * dist * v, { scale: 2 / 3, alpha: al * (1 - k * 0.28) }); }
-      crossDraw(px, py, c, Math.min(4, Math.floor(u * 5)), sc, al, u * 0.8);
+      crossDraw(px, py, c, Math.min(4, Math.floor(u * 5)), sc, al, u * 0.8, o.lm || 1);
     });
   }
   // 별 한 발: F02S 4갈래 별이 날아간다
@@ -131,8 +131,8 @@
       const m = a.mast || 0, n = pick(m, [1, 3, 5, 7]), g = gripOf(a), y0 = Math.min(g.y, groundY() - 34), pierce = t7Sh(a, 'pierce');
       const dist = pierce ? 320 : Math.min(260, Math.max(80, Math.abs(a.tx() - g.x) + 20));
       for (let j = 0; j < n; j++) {
-        const row = Math.ceil(j / 2), side = j % 2 ? -1 : 1, y = Math.max(groundY() - 70, Math.min(groundY() - 8, y0 + side * row * 14));
-        crossShot(g.x + a.dir * (14 - row * 16), y, a.dir > 0 ? 0 : Math.PI, dist - row * 10, { delay: row * 0.05, scale: m >= 2 ? 1 : 2 / 3, color: col(a) });
+        const row = Math.ceil(j / 2), side = j % 2 ? -1 : 1, y = Math.max(groundY() - 70, Math.min(groundY() - 8, y0 + side * row * 18));
+        crossShot(g.x + a.dir * (14 - row * 22), y, a.dir > 0 ? 0 : Math.PI, dist - row * 14, { delay: row * 0.07, scale: 2 / 3, lm: m >= 3 ? 0.6 : m >= 2 ? 0.8 : 1, color: col(a) });
       }
       impact({ shake: 0.12 });
     },
@@ -151,10 +151,10 @@
     cues: () => [],
     hit(a, i) {
       if (i !== bigHit(a)) return;
-      const m = a.mast || 0, n = pick(m, [4, 8, 8, 12]), cx = a.px(), cy = groundY() - 30, dist = t7Sh(a, 'pierce') ? 150 : 120, c = col(a);
+      const m = a.mast || 0, n = pick(m, [4, 8, 8, 12]), cx = a.px(), cy = groundY() - 30, dist = (t7Sh(a, 'pierce') ? 150 : 120) + (m >= 3 ? 30 : 0), c = col(a);
       texFx('k29', cx, cy, c, { scale: pick(m, [2 / 3, 1, 1, 4 / 3]), life: 0.4, fade: 0.4 });
       texFx('e07', cx, groundY() - 1, c, { scale: pick(m, [2 / 3, 1, 1, 4 / 3]), life: 0.5, fade: 0.5 });
-      for (let j = 0; j < n; j++) starShot(cx, cy, (j / n) * Math.PI * 2 + (m ? Math.PI / n : 0), dist, { scale: m >= 2 ? 1 : 2 / 3, color: c, life: 0.4 });
+      for (let j = 0; j < n; j++) starShot(cx, cy, (j / n) * Math.PI * 2 + (m ? Math.PI / n : 0), dist, { scale: m >= 3 ? 4 / 3 : m >= 2 ? 1 : 2 / 3, color: c, life: m >= 3 ? 0.55 : 0.4 });
       impact({ stop: 0.06, shake: 0.25 });
     },
     hitTex(a, t) {
@@ -188,7 +188,10 @@
         for (const s of [-1, 1]) texFx('k06', a.px() + s * 44, groundY() - 16, col(a), { scale: 2 / 3, alpha: 0.85, life: 0.36, flip: s < 0, fade: 0.4, move: (u) => [s * 24 * easeOut(u), 0] });
         return;
       }
-      for (const t of a.targets(i)) pillar(t.x, { scale: pick(a.mast, [1, 4 / 3, 4 / 3, 2]), sx: 0.8, life: 0.5 });
+      for (const t of a.targets(i)) {
+        pillar(t.x, { scale: pick(a.mast, [1, 4 / 3, 4 / 3, 2]), sx: (a.mast || 0) >= 3 ? 1.2 : 0.8, life: 0.5 });
+        if ((a.mast || 0) >= 3) for (const d of [0, 0.12]) texFx('c18', t.x, groundY() - 4, col(a), { scale: 2, life: 0.4, delay: d, fade: 0.5 });
+      }
       impact({ stop: 0.14, shake: 0.45 });
     },
     hitTex(a, t, share, i) {
@@ -215,7 +218,8 @@
           crossDraw(x, groundY() - 30, c, Math.floor(clock * 10) % 5, 2 / 3, k * blink * out, clock * 0.5);
         });
         skLater(a, boom, () => {
-          texFx('k29', x, groundY() - 30, c, { scale: pick(m, [2 / 3, 2 / 3, 1, 1]), life: 0.34, fade: 0.4 });
+          texFx('k29', x, groundY() - 30, c, { scale: pick(m, [2 / 3, 2 / 3, 1, 4 / 3]), life: 0.34, fade: 0.4 });
+          if (m >= 3) texFx('c18', x, groundY() - 6, c, { scale: 1, life: 0.4, fade: 0.5 });
           if (j === N - 1 || j === 0) impact({ stop: 0.05, shake: 0.22 });
         });
       }

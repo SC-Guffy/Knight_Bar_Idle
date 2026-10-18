@@ -37,10 +37,10 @@ function teZap(a, x, y, sc) {
   texFx('k27', x, y, teRamp(a), { life: 0.24, scale: sc || ((a.mast || 0) >= 2 ? 1 : 2 / 3), fade: 0.35, flip: Math.random() < 0.5 });
 }
 // 지팡이 끝에 전하가 맺힌다 (E41): 2/3 → 1 → 4/3 로 부푼다. 끝나면 작은 번개 가닥이 튄다
-function teChargeFx(a, until) {
+function teChargeFx(a, until, chest) {
   const ramp = teRamp(a);
   aFx(a, 0, until, (u) => {
-    const p = ilTip(a), sc = u < 0.4 ? 2 / 3 : u < 0.8 ? 1 : 4 / 3;
+    const p = chest ? { x: a.x(), y: groundY() - 30 } : ilTip(a), sc = u < 0.4 ? 2 / 3 : u < 0.8 ? 1 : 4 / 3;
     vfxDraw(ctx, 'e41', ramp, mgLoop('e41', 14), p.x, p.y, { scale: sc, alpha: Math.min(1, u * 5), flip: Math.floor(clock * 7) % 2 === 0 });
     if (Math.floor(clock * 18) % 3 === 0) { const an = rand(0, Math.PI * 2); mgBolt(p.x, p.y, p.x + Math.cos(an) * 16 * sc, p.y + Math.sin(an) * 12 * sc, ramp, { scale: 2 / 3, alpha: 0.8 }); }
   });
@@ -159,11 +159,11 @@ function teRays(a, i, n, o = {}) {
 }
 SKILL_FX.te_storm = {
   pose: tePose('raise'),
-  cues: () => [[0.01, (a) => {
+  cues: () => [[0.01, (a) => teChargeFx(a, Math.max(0.2, a.k.hits[0][0] * a.k.dur - 0.02), true)], [0.01, (a) => {
     const ramp = TE_DIM, life = a.k.dur - 0.02, cx = a.x();
     aFx(a, 0, life, (u) => {
       const k = Math.min(1, u / 0.15) * (u > 0.85 ? (1 - u) / 0.15 : 1);
-      for (let j = -1; j <= 1; j++) vfxDraw(ctx, 'c15', ramp, mgLoop('c15', 5, j + 1), cx + j * 40, 12 + (j ? 3 : -3), { scale: (a.mast || 0) >= 2 ? 4 / 3 : 1, flip: j > 0, alpha: 0.75 * k });
+      for (let j = -1; j <= 1; j++) vfxDraw(ctx, 'c15', ramp, mgLoop('c15', 5, j + 1), cx + j * 40, 12 + (j ? 3 : -3), { scale: (a.mast || 0) >= 2 ? 4 / 3 : 1, flip: j > 0, alpha: 0.95 * k });
     });
   }]],
   hit(a, i, n) {
@@ -201,15 +201,16 @@ SKILL_FX.te_f_bk = {
   cues: (a) => [[0.01, (a) => teChargeFx(a, Math.max(0.2, a.k.hits[0][0] * a.k.dur - 0.04))]],
   hit(a, i, n) {
     if (i !== n - 1) { for (const t of a.targets(i)) mgArcFx(ilTip(a).x, ilTip(a).y, t.x, t.y, teRamp(a), 0.14, { scale: 2 / 3 }); return; }
-    const y = a.ty(), ramp = teRamp(a), cnt = 4 + (a.mast || 0);
-    teLine(a, y, { scale: (a.mast || 0) >= 3 ? 1 : 2 / 3 });
+    const y = a.ty(), ramp = teRamp(a), m = a.mast || 0, cnt = 4 + m, big = m >= 3;
+    teLine(a, y, { scale: big ? 1 : 2 / 3 });
     for (let j = 1; j <= cnt; j++) {
       const x = a.x() + a.dir * j * 64;
       if (x < 10 || x > W - 10) break;
       const d = 0.1 + j * 0.07;
-      texFx('c15', x, y - 46, TE_DIM, { scale: 2 / 3, life: d + 0.3, fade: 0.4, frames: 5, flip: j % 2 === 0 });
-      texFx('e42', x, groundY() + 2, ramp, { scale: 2 / 3, life: 0.24, delay: d, anchor: 'b', fade: 0.4, flip: j % 2 === 0 });
-      texFx('k27', x, y, ramp, { scale: 2 / 3, life: 0.24, delay: d + 0.04, fade: 0.4 });
+      texFx('c15', x, y - 46, TE_DIM, { scale: big ? 1 : 2 / 3, life: d + 0.3, fade: 0.4, frames: 5, flip: j % 2 === 0 });
+      texFx('e42', x, groundY() + 2, ramp, { scale: big ? 1 : 2 / 3, life: 0.24, delay: d, anchor: 'b', fade: 0.4, flip: j % 2 === 0 });
+      if (big) texFx('e42', x + 22, groundY() + 2, ramp, { scale: 2 / 3, life: 0.24, delay: d + 0.05, anchor: 'b', fade: 0.4, flip: true });
+      texFx('k27', x, y, ramp, { scale: big ? 4 / 3 : 2 / 3, life: 0.24, delay: d + 0.04, fade: 0.4 });
     }
     impact({ stop: 0.08, shake: 0.3 });
   },

@@ -59,7 +59,7 @@
           const k = u < 0.12 ? u / 0.12 : u > 0.85 ? (1 - u) / 0.15 : 1, c = cx(u), th0 = ph + u * life * w;
           for (let s = 6; s >= 1; s--) {
             const p = pos(c, th0 - s * step);
-            vfxDraw(ctx, 'e15s', col, 0, p[0], p[1], { scale: sc, rot: Math.atan2(p[3], p[2]), alpha: k * (1 - s * 0.07) });
+            vfxDraw(ctx, 'e15s', col, 0, p[0], p[1], { scale: 2 / 3, rot: Math.atan2(p[3], p[2]), alpha: 0.75 * k * (1 - s * 0.09) });
           }
           const p = pos(c, th0);
           vfxDraw(ctx, 'e15h', col, 0, p[0], p[1] - 4, { scale: sc, flip: p[2] < 0, alpha: k });
@@ -97,7 +97,8 @@
           else run(0, { sc, color: col });
           fireStrip(a, x0, len, { color: col, sc: m >= 2 ? 1 : 2 / 3 });
           if (t7Sh(a, 'after')) { run(0, { sc, color: RED, alpha: 0.55, delay: 0.5 }); fireStrip(a, x0, len, { color: RED, alpha: 0.5, delay: 0.5 }); }
-          ringFx(x0, col, 1.1, 0.4);
+          ringFx(x0, col, m >= 3 ? 2 : 1.1, 0.45);
+          if (m >= 3) { texFx('e34', x0, groundY() + 2, col, { anchor: 'b', scale: 1, frames: 7, life: 0.55, fade: 0.3 }); texFx('k23', x0, groundY() + 3, EMBER, { anchor: 'b', scale: 4 / 3, frames: 7, life: 0.4, fade: 0.3 }); }
           impact({ stop: 0.06, shake: 0.3 });
         }],
       ];
@@ -142,7 +143,7 @@
       if (i) return;
       const m = a.mast || 0, n = [4, 8, 8, 12][m], cx = a.x(), cy = groundY() - 26, dist = t7Sh(a, 'pierce') ? 150 : 120, sc = m >= 2 ? 1 : 2 / 3, col = tone(a, FIRE);
       texFx('e34', cx, groundY() + 2, col, { anchor: 'b', scale: sc, frames: 7, life: 0.55, fade: 0.3 });
-      texFx('e35', cx, groundY() + 2, col, { anchor: 'b', scale: sc, life: 0.5, fade: 0.4 });
+      texFx('e35', cx, groundY() + 2, col, { anchor: 'b', scale: sc, life: 0.8, fade: 0.4 });
       for (let j = 0; j < n; j++) {
         const ang = (j / n) * Math.PI * 2 + (n === 4 ? Math.PI / 4 : 0);
         comet(cx, cy, ang, dist, { scale: 2 / 3, life: 0.36, color: col });
@@ -211,12 +212,13 @@
       return [[T0 / d, (a) => {
         const m = a.mast || 0, n = [4, 5, 6, 8][m], g = gripOf(a), col = tone(a, FIRE), x0 = g.x + a.dir * 20, len = Math.min(farD(a), 330), step = Math.min(60, len / n), sc = m >= 2 ? 1 : 2 / 3;
         comet(x0, g.y, a.dir > 0 ? 0 : Math.PI, len + 40, { life: 0.34, scale: sc, color: col });
-        fireStrip(a, x0, len, { color: col, sc: 2 / 3, life: 0.6 });
+        fireStrip(a, x0, len, { color: col, sc: m >= 3 ? 1 : 2 / 3, life: m >= 3 ? 0.9 : 0.6 });
         for (let j = 1; j <= n; j++) {
           const x = x0 + a.dir * (j * step), dl = 0.12 + j * 0.05;
           if (x < 0 || x > W) break;
-          texFx('e12', x, groundY() - 14, col, { scale: sc, life: 0.7, delay: dl, rot: -Math.PI / 2, fade: 0.25, move: (u) => [0, mix(34, 0, easeOut(Math.min(1, u / 0.25)))] });
-          texFx('e36', x, groundY() - 34, EMBER, { scale: 2 / 3, life: 0.3, delay: dl + 0.4, fade: 0.4 });
+          texFx('e12', x, groundY() - 14, col, { scale: m >= 3 ? 4 / 3 : sc, life: 0.7, delay: dl, rot: -Math.PI / 2, fade: 0.25, move: (u) => [0, mix(34, 0, easeOut(Math.min(1, u / 0.25)))] });
+          texFx('e36', x, groundY() - 34, EMBER, { scale: m >= 3 ? 1 : 2 / 3, life: 0.3, delay: dl + 0.4, fade: 0.4 });
+          if (m >= 3) texFx('k23', x, groundY() + 3, EMBER, { anchor: 'b', scale: 1, frames: 7, life: 0.35, delay: dl + 0.4, fade: 0.3 });
         }
         impact({ stop: 0.06, shake: 0.25 });
       }]];

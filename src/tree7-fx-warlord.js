@@ -66,7 +66,7 @@
       const sc = grow ? (m >= 3 ? 2 : 4 / 3) : m >= 2 ? 1 : 2 / 3, n = grow ? [2, 2, 3, 3][m] : [2, 3, 3, 4][m], col = tone(a, STEEL);
       const cx = (u) => (follow ? mix(a.x(), a.tx(), easeOut(Math.min(1, u / 0.35))) : a.x());
       wheel(a, life, { cx, cy: groundY() - 24, R: 20 + 34 * sc, ry: 9, n, sc, w: (Math.PI * 7) / life, id: 'w6a', color: col });
-      ringFx(a.x(), col, sc >= 1 ? 1.2 : 0.8, 0.45);
+      ringFx(a.x(), col, sc >= 1 ? 0.9 : 0.7, 0.35);
       for (let k = 0; k < 6 + 2 * m; k++) dust(a.x() + rand(-30, 30), k * 0.06);
     }]],
     hit(a) { ringFx(a.x(), tone(a, STEEL), (a.mast || 0) >= 2 ? 1.2 : 0.8, 0.4); impact({ shake: 0.1 }); },
@@ -95,7 +95,8 @@
       if (t7Sh(a, 'triple')) [-6, 0, 6].forEach((dy, j) => run(dy, { color: col, fs: 2 / 3, delay: j * 0.1, gap: 130, noGeyser: j !== 1 }));
       else run(0, { color: col, fs: sc });
       if (t7Sh(a, 'after')) run(0, { color: RED, fs: sc, delay: 0.5, alpha: 0.5, onlyFire: true, noGeyser: true });
-      ringFx(x0, col, 1.3, 0.5);
+      ringFx(x0, col, m >= 3 ? 2 : 1.3, 0.5);
+      if (m >= 3) { texFx('e34', x0, groundY() + 2, LAVA, { anchor: 'b', scale: 1, frames: 7, life: 0.55, fade: 0.3 }); texFx('k23', x0, groundY() + 3, LAVA, { anchor: 'b', scale: 4 / 3, frames: 7, life: 0.4, fade: 0.3 }); }
       debris(x0, 14, ['#5a4a42', EARTH, LAVA], 1.3);
       impact({ stop: 0.12, shake: 0.5 });
     }]],

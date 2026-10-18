@@ -19,7 +19,7 @@
   function meteor(x1, delay = 0, sc = 2 / 3, o = {}) {
     const gy = groundY() - 4, x0 = x1 + (o.from != null ? o.from : (Math.random() < 0.5 ? -1 : 1) * rand(24, 56)), y0 = -20, rot = Math.atan2(gy - y0, x1 - x0) - Math.PI / 4;
     skFx(null, delay, 0.2, (u) => { const k = 0.5 * u + 0.5 * u * u; vfxDraw(ctx, 'e33', o.color || VA_VIO, vfxLoopF('e33', 14), mix(x0, x1, k), mix(y0, gy, k), { rot, scale: sc, alpha: 1 }); }, () => {
-      texFx('k36', x1, gy - 6, VA_VIO, { scale: sc >= 1 ? 1 : 2 / 3, life: 0.35, fade: 0.4 });
+      texFx('k19', x1, gy - 8, VA_VIO, { scale: sc >= 1 ? 4 / 3 : 1, life: 0.35, fade: 0.4 });
       texFx('h25', x1, gy - 8, VA_MAG, { scale: sc >= 1 ? 1 : 2 / 3, life: 0.3 });
       if (o.star) texFx('k20', x1, gy - 14, VA_STAR, { scale: 2 / 3, life: 0.3 });
     });
@@ -35,13 +35,13 @@
   //  확장 궤도(a_grow): 2배 반경 · 한 단계 큰 구슬로 제자리 · 추적 궤도(a_follow): 궤도가 대상에게 날아가 붙는다. 맞힐 때마다 한 발이 곡선으로 적을 쫓아 간다
   function orbit(a) {
     const m = a.mast || 0, W_ = own(a, 'va_whirl'), grow = W_ && t7Sh(a, 'grow'), follow = W_ && t7Sh(a, 'follow');
-    const n = [1, 2, 3, 4][m], life = a.k.dur, R = grow ? 58 : 30, sc = grow ? (m >= 3 ? 4 / 3 : 1) : m >= 2 ? 1 : 2 / 3;
+    const n = [1, 2, 3, 5][m], life = a.k.dur, R = grow ? 58 : m >= 3 ? 42 : 30, sc = grow ? (m >= 3 ? 4 / 3 : 1) : m >= 2 ? 1 : 2 / 3;
     const cxAt = (t) => (follow ? mix(a.x(), a.tx() - a.dir * 26, easeOut(Math.min(1, t / 0.35))) : a.x());
     a.t7pos = (j, t) => { const ang = t * 3.4 + (j * Math.PI * 2) / n; return [cxAt(t) + Math.cos(ang) * R, groundY() - 32 + Math.sin(ang) * R * 0.45 + Math.sin(t * 5 + j) * 2, Math.atan2(Math.cos(ang) * 0.45, -Math.sin(ang))]; };
     a.t7sc = sc;
     aFx(a, 0, life, (u) => {
       const t = u * life, al = Math.min(1, t / 0.12, (life - t) / 0.15);
-      vfxDraw(ctx, 'c9', VA_VIO, vfxLoopF('c9', 8), cxAt(t), groundY() + 2, { scale: grow ? 2 : 1, alpha: 0.8 * al });
+      vfxDraw(ctx, 'c9', VA_VIO, vfxLoopF('c9', 8), cxAt(t), groundY() + 2, { scale: grow || m >= 3 ? 2 : 1, alpha: 0.8 * al });
       for (let j = 0; j < n; j++) for (let k = 3; k >= 0; k--) { const [x, y, rot] = a.t7pos(j, t - k * 0.05); orb(x, y, rot, sc, al * (k ? 0.5 - k * 0.12 : 1)); }
     });
     if (m >= 3) for (let i = 0; i < 5; i++) texFx('c16', a.x() + rand(-30, 30), groundY() - rand(20, 60), VA_STAR, { scale: 1, life: 0.6, delay: i * 0.3 });
@@ -49,7 +49,7 @@
   // 궤도 한 발이 휘어 적을 쫓는다 (곡선)
   function chaseShot(a, i, to) {
     if (!a.t7pos) return;
-    const m = a.mast || 0, n = [1, 2, 3, 4][m], [x, y] = a.t7pos(i % n, a.u * a.k.dur), T = to || tg(a, i), cx = (x + T.x) / 2, cy = Math.min(y, T.y) - 26;
+    const m = a.mast || 0, n = [1, 2, 3, 5][m], [x, y] = a.t7pos(i % n, a.u * a.k.dur), T = to || tg(a, i), cx = (x + T.x) / 2, cy = Math.min(y, T.y) - 26;
     skFx(null, 0, 0.18, (u) => {
       const q = (v) => [(1 - v) ** 2 * x + 2 * (1 - v) * v * cx + v * v * T.x, (1 - v) ** 2 * y + 2 * (1 - v) * v * cy + v * v * T.y];
       for (let k = 2; k >= 0; k--) { const v = Math.max(0, u - k * 0.06), [px, py] = q(v), [nx, ny] = q(Math.min(1, v + 0.03)); orb(px, py, Math.atan2(ny - py, nx - px), a.t7sc, k ? 0.5 - k * 0.15 : 1); }
@@ -62,7 +62,7 @@
     hitTex(a, t, share, i, n) {
       const m = a.mast || 0;
       texFx('h25', t.x, t.y, VA_VIO, { scale: m >= 2 ? 4 / 3 : 1, life: 0.28, delay: 0.12 });
-      if (i === n - 1) texFx('k36', t.x, t.y, VA_VIO, { scale: 2 / 3, life: 0.35, delay: 0.12 });
+      if (i === n - 1) texFx('k19', t.x, t.y, VA_VIO, { scale: 4 / 3, life: 0.35, delay: 0.12 });
     },
   };
   SKILL_FX.va_whirl = whirlFx;
@@ -103,7 +103,7 @@
       if (own(a, 'va_flash') && t7Sh(a, 'triple') && i % 3) { texFx('h25', t.x, t.y, VA_VIO, { scale: 2 / 3, life: 0.25 }); return; }
       rift(t.x, t.y, 2 / 3, 0.04, { life: 0.5 });
       texFx('h25', t.x, t.y, VA_MAG, { scale: m >= 2 ? 4 / 3 : 1, life: 0.3, delay: 0.04 });
-      if (m >= 3 && i === n - 1) texFx('k36', t.x, t.y, VA_VIO, { scale: 4 / 3, life: 0.4, delay: 0.08 });
+      if (m >= 3 && i === n - 1) texFx('k19', t.x, t.y, VA_VIO, { scale: 2, life: 0.4, delay: 0.08 });
     },
     hit(a, i, n) { if (i === n - 1) impact({ stop: 0.06, shake: 0.2 }); },
   };
@@ -149,7 +149,7 @@
       }]];
     },
     hit(a, i, n) {
-      const m = a.mast || 0, N = [4, 8, 8, 12][m], st = own(a, 'va_storm'), split = st && t7Sh(a, 'split'), orig = split ? n / 2 : n;
+      const m = a.mast || 0, N = [4, 8, 10, 16][m], st = own(a, 'va_storm'), split = st && t7Sh(a, 'split'), orig = split ? n / 2 : n;
       if (i >= orig) return;
       const per = Math.ceil(N / orig), rad = 120 * (st && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.x();
       for (let q = 0; q < per; q++) {
@@ -175,10 +175,10 @@
     cues: (a) => {
       const d = a.k.dur, last = a.k.hits[a.k.hits.length - 1][0] * d, t0 = Math.max(0.1, last - 0.3);
       return [...base1.cues(a), [t0 / d, (a) => {
-        const m = a.mast || 0, n = [4, 6, 8, 10][m], x = a.tx(), y = a.ty() - 14;
+        const m = a.mast || 0, n = [4, 6, 10, 14][m], x = a.tx(), y = a.ty() - 14;
         for (let j = 0; j < n; j++) {
           const ang = (j / n) * Math.PI * 2, x0 = x + Math.cos(ang) * 95, y0 = y + Math.sin(ang) * 55;
-          texShotFx('p5', x0, y0, x, y, Math.max(0.15, last - t0 - 0.02), 'raw', { scale: 2 / 3, tail: 2, ease: easeIn, delay: j * 0.01 });
+          texShotFx('p5', x0, y0, x, y, Math.max(0.15, last - t0 - 0.02), 'raw', { scale: m >= 2 ? 1 : 2 / 3, tail: 3, ease: easeIn, delay: j * 0.01 });
         }
       }]].sort((p, q) => p[0] - q[0]);
     },
@@ -186,8 +186,8 @@
       base1.hit(a, i, n);
       if (i !== n - 1) return;
       const m = a.mast || 0, x = a.tx(), y = a.ty() - 14;
-      aFx(a, 0, 0.45, (u) => vfxDraw(ctx, 'e28', VA_VIO, vfxLoopF('e28', 12), x, y, { scale: m >= 2 ? 1 : 2 / 3, alpha: u < 0.7 ? 1 : (1 - u) / 0.3 }));
-      texFx('k36', x, y, VA_VIO, { scale: m >= 3 ? 2 : 4 / 3, life: 0.5, fade: 0.4 });
+      aFx(a, 0, 0.45, (u) => vfxDraw(ctx, 'e28', VA_VIO, vfxLoopF('e28', 12), x, y, { scale: m >= 3 ? 4 / 3 : m >= 2 ? 1 : 2 / 3, alpha: u < 0.7 ? 1 : (1 - u) / 0.3 }));
+      texFx('k19', x, y, VA_VIO, { scale: m >= 3 ? 2 : 4 / 3, life: 0.5, fade: 0.4 });
       texFx('h25', x, y, VA_MAG, { scale: 4 / 3, life: 0.35 });
       if (m >= 3) texFx('k20', x, y - 6, VA_STAR, { scale: 4 / 3, life: 0.45 });
       impact({ stop: 0.14, shake: 0.45 });
@@ -203,7 +203,7 @@
         for (let j = 1; j <= 6; j++) {
           const x = M.x + a.dir * (36 + j * 58);
           if (x < 0 || x > W) break;
-          meteor(x, 0.14 + j * 0.07, m >= 3 ? 1 : 2 / 3, { star: m >= 3 });
+          meteor(x, 0.14 + j * 0.07, m >= 3 ? 4 / 3 : 2 / 3, { star: m >= 3 });
         }
       }]);
       return cs.sort((p, q) => p[0] - q[0]);
@@ -215,9 +215,9 @@
     ...whirlFx,
     hit(a, i) {
       if (!a.t7pos) return;
-      const m = a.mast || 0, n = [1, 2, 3, 4][m], [x, y] = a.t7pos(i % n, a.u * a.k.dur);
+      const m = a.mast || 0, n = [1, 2, 3, 5][m], [x, y] = a.t7pos(i % n, a.u * a.k.dur);
       texShotFx('p5', x, y, x, -14, 0.14, 'raw', { scale: a.t7sc, tail: 1, ease: easeOut });
-      for (let q = 0; q < 2 + m; q++) meteor(a.x() + rand(-110, 110), 0.1 + q * 0.03, m >= 2 ? 1 : 2 / 3, { star: m >= 3 });
+      for (let q = 0; q < 2 + m * 2; q++) meteor(a.x() + rand(-110, 110), 0.1 + q * 0.03, m >= 2 ? 1 : 2 / 3, { star: m >= 3 });
       impact({ shake: 0.06 });
     },
   };

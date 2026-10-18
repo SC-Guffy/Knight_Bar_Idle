@@ -115,11 +115,12 @@
       const x0 = a.px() + a.dir * 24, dist = Math.abs(clampX(a.dir > 0 ? W - 48 : 48) - x0);
       texFx('e12', x0, groundY() - 30, col(a), { scale: pick(m, [2 / 3, 1, 1, 4 / 3]), life: 0.5, flip: a.dir < 0, fade: 0.3, move: (u) => [a.dir * dist * easeOut(u), 0] });
       impact({ stop: 0.08, shake: 0.35 });
-      ring(a.px() + a.dir * 24, { scale: 1 });
+      ring(a.px() + a.dir * 24, { scale: pick(m, [1, 1, 4 / 3, 2]) });
+      if (m >= 2) for (let j = 1; j <= 3; j++) ring(a.px() + a.dir * (24 + j * 40), { scale: 1, delay: j * 0.07 });
     },
     hitTex(a, t, share, i, n) {
       const last = i === n - 1;
-      texFx('k31', t.x, groundY() + 2, col(a), { anchor: 'b', scale: last ? 1 : 2 / 3, life: last ? 0.4 : 0.3, fade: 0.35 });
+      texFx('k31', t.x, groundY() + 2, col(a), { anchor: 'b', scale: (a.mast || 0) >= 3 ? 4 / 3 : last ? 1 : 2 / 3, life: last ? 0.4 : 0.3, fade: 0.35 });
     },
   };
 
@@ -160,6 +161,7 @@
       for (let j = 0; j < n; j++) cone(cx, cy, (j / n) * Math.PI * 2 + (m ? Math.PI / n : 0), dist, { scale: m >= 2 ? 1 : 2 / 3, color: c, life: 0.38 });
       for (const s of [-1, 1]) texFx('c8', cx + s * 30, groundY() + 1, TY_DIRT, { scale: 1, flip: s < 0, life: 0.55, fade: 0.4, move: (u) => [s * 40 * easeOut(u), 0] });
       ring(cx, { scale: pick(m, [1, 1, 4 / 3, 2]) });
+      if (m >= 3) for (const d of [0.1, 0.2]) ring(cx, { scale: 2, delay: d, life: 0.5 });
       debris(cx, 8 + 2 * m, [TY_DIRT, TY_RED, '#5a4a42'], 1.5);
       impact({ stop: 0.06, shake: 0.35 });
     },
@@ -188,7 +190,7 @@
         // 단두대 대검이 마지막 타 직전에 하늘에서 떨어진다
         [Math.max(0.25, (drop - 0.3) / d), (a) => {
           const x = a.tx(), m = a.mast || 0;
-          texFx('e13', x, 0, col(a), { anchor: 'b', scale: m >= 3 ? 4 / 3 : 1, life: 0.42, fade: 0.2, move: (u) => [0, (groundY() + 8) * easeIn(Math.min(1, u / 0.7))] });
+          texFx('e13', x, 0, col(a), { anchor: 'b', scale: m >= 3 ? 2 : m >= 2 ? 4 / 3 : 1, life: 0.42, fade: 0.2, move: (u) => [0, (groundY() + 8) * easeIn(Math.min(1, u / 0.7))] });
         }]];
     },
     hit(a, i, n) {
@@ -197,7 +199,8 @@
       impact({ stop: 0.14, shake: 0.5 });
       texFx('e14', clampX(x), groundY() + 6, TY_DIRT, { anchor: 'b', scale: m >= 3 ? 4 / 3 : 1, life: 0.6, fade: 0.35 });
       ring(x, { scale: pick(m, [1, 1, 4 / 3, 2]) });
-      debris(x, 10, [TY_DIRT, TY_RED, '#5a4a42'], 1.6);
+      if (m >= 3) ring(x, { scale: 2, delay: 0.12 });
+      debris(x, 10 + 4 * m, [TY_DIRT, TY_RED, '#5a4a42'], 1.6);
     },
     hitTex(a, t, share, i, n) {
       const last = i === n - 1;

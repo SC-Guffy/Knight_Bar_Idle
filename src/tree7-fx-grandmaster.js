@@ -7,7 +7,7 @@
 
 (function () {
   const pick = (arr, m) => arr[Math.max(0, Math.min(3, m || 0))];
-  const WHITE_QI = '#eaf6ff';
+  const WHITE_QI = '#eaf6ff', BEAM = '#7fd8ff';
 
   // 한 줄기: (x,y) 에서 ang 방향으로 dist 만큼 날아가는 시트. 왼쪽으로 가도 그림이 뒤집혀 서 있게 (flip + 회전 π). loop: 프레임을 돌린다
   function ray(id, x, y, ang, dist, o = {}) {
@@ -18,7 +18,7 @@
         if (uu < 0) continue;
         const e = easeOut(uu);
         vfxDraw(ctx, id, o.color, o.loop ? Math.floor(clock * 14) % nf : Math.min(nf - 1, Math.floor(u * nf)), x + c * dist * e, y + s * dist * e,
-          { scale: o.scale || 2 / 3, flip: left, rot: ang + (left ? Math.PI : 0), alpha: (u > 0.7 ? (1 - u) / 0.3 : 1) * [1, 0.45, 0.2][k] * (o.alpha == null ? 1 : o.alpha) });
+          { scale: o.scale || 2 / 3, flip: left, rot: ang + (left ? Math.PI : 0) + (o.rotAdd || 0), alpha: (u > 0.7 ? (1 - u) / 0.3 : 1) * [1, 0.45, 0.2][k] * (o.alpha == null ? 1 : o.alpha) });
       }
     });
     if (o.pop) texFx('xe11', x + c * dist, y + s * dist, o.color, { scale: 2 / 3, life: 0.2, delay: (o.delay || 0) + (o.life || 0.32) * 0.85 });
@@ -27,7 +27,7 @@
   function charge(a, T, atBody) {
     aFx(a, 0, T, (u) => {
       const h = atBody ? { x: a.px(), y: groundY() - 26 } : qiHand(a), sc = u < 0.4 ? 2 / 3 : u < 0.8 ? 1 : 4 / 3;
-      vfxDraw(ctx, 'xe10', a.color, Math.floor(clock * 14) % 4, h.x + (atBody ? 0 : a.dir * 10), h.y, { scale: sc, flip: a.dir < 0, alpha: Math.min(1, u * 3) * 0.9 });
+      vfxDraw(ctx, atBody ? 'xe10' : 'xe13', a.color, Math.floor(clock * 14) % 4, h.x + (atBody ? 0 : a.dir * 10), h.y, { scale: atBody ? sc : sc * 0.5 > 2 / 3 ? 2 / 3 : 2 / 3, rot: atBody ? 0 : Math.PI / 2, flip: a.dir < 0, alpha: Math.min(1, u * 3) * 0.9 });
       for (let j = 0; j < 4; j++) {
         const an = clock * 7 + (j * Math.PI) / 2, r = 6 + 34 * (1 - u);
         vfxDraw(ctx, 'xe11', '#ffe8a8', Math.floor(clock * 12) % 4, h.x + Math.cos(an) * r, h.y + Math.sin(an) * r * 0.7, { scale: 2 / 3, alpha: 0.9 * u });
@@ -42,7 +42,7 @@
       vfxTileRun(ctx, 'f30', o.color || a.color, f, x0, y, l, d, { scale: sc, alpha: al, vary: false });
       vfxTileRun(ctx, 'f30', '#ffffff', f, x0, y, l, d, { scale: sc * 0.5 > 2 / 3 ? sc * 0.5 : 2 / 3, alpha: al * 0.7, vary: false });
     });
-    if (!o.noOrb) texFx('xe10', x0 + d * 20, y, o.color || a.color, { scale: sc >= 1 ? 4 / 3 : 1, delay: o.delay || 0, life: 0.3, flip: d < 0, fade: 0.4, move: (u) => [d * len * easeOut(Math.min(1, u / 0.7)), 0] });
+    if (false) texFx('xe10', x0 + d * 20, y, o.color || a.color, { scale: sc >= 1 ? 4 / 3 : 1, delay: o.delay || 0, life: 0.3, flip: d < 0, fade: 0.4, move: (u) => [d * len * easeOut(Math.min(1, u / 0.7)), 0] });
   }
 
   // ── 주천 기환 (whirl) ── 기의 고리(XE13)가 몸 둘레에 쌓여 오르내리고 기탄(XE10) 알이 음양처럼 돈다: 1칸 고리 하나·알 둘 · ★ 고리 둘 · ★★ 알 셋 · ★★★ 알 넷 금빛
@@ -50,7 +50,7 @@
   const whirl = {
     ...SKILL_FX.oneTwo,
     cues: (a) => [[0.01, (a) => {
-      const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow'), rings = pick([1, 2, 2, 3], m), orbs = pick([2, 2, 3, 4], m);
+      const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow'), rings = pick([1, 2, 2, 2], m), orbs = pick([2, 2, 3, 3], m);
       const rs = pick(grow ? [1, 1, 4 / 3, 4 / 3] : [2 / 3, 2 / 3, 1, 1], m), R = pick([30, 34, 38, 42], m) * (grow ? 1.7 : 1);
       aFx(a, 0, a.k.dur, (u) => {
         const gy = groundY(), cx = follow ? mix(a.x(), a.tx(), easeOut(Math.min(1, u / 0.35))) : a.x(), fade = Math.min(1, u / 0.1, (1 - u) / 0.15);
@@ -82,10 +82,10 @@
       if (i !== n - 1 && !tri) return;
       if (tri && i % 3) return;
       const y = a.ty(), m = a.mast || 0;
-      if (tri) for (const dy of [-14, 0, 14]) beam(a, y + dy, { scale: 2 / 3, noOrb: dy !== 0 });
-      else beam(a, y, { scale: m >= 3 ? 4 / 3 : 1 });
+      if (tri) for (const dy of [-14, 0, 14]) beam(a, y + dy, { scale: 2 / 3, color: BEAM });
+      else beam(a, y, { scale: m >= 3 ? 4 / 3 : 1, color: BEAM });
       if (t7Sh(a, 'after') && i === n - 1) beam(a, y + 3, { delay: 0.5, alpha: 0.55, color: '#c8d8ff', scale: m >= 3 ? 4 / 3 : 1, noOrb: true });
-      texFx('xk07', a.tx(), y, a.color, { scale: m >= 2 ? 1 : 2 / 3, life: 0.35, fade: 0.3 });
+      texFx('xe13', a.tx(), y, BEAM, { scale: m >= 2 ? 1 : 2 / 3, life: 0.35, fade: 0.3, rot: Math.PI / 2 });
       impact({ stop: 0.08, shake: 0.25 });
     },
   };
@@ -99,7 +99,7 @@
       const m = a.mast || 0, n = pick([1, 3, 5, 7], m), d = a.dir, h = qiHand(a), dist = t7Sh(a, 'pierce') ? 300 : 170;
       for (let j = 0; j < n; j++) {
         const c = j - (n - 1) / 2, t = c * 0.11 - 0.03;
-        ray('xp1', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04, scale: m >= 2 ? 1 : 2 / 3, life: 0.4, color: a.color, loop: true, trail: 3, pop: true });
+        ray('xe13', h.x + d * 8, h.y, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.04, scale: m >= 2 ? 1 : 2 / 3, life: 0.4, color: j % 2 ? WHITE_QI : a.color, loop: true, trail: 3, pop: true, rotAdd: Math.PI / 2 });
       }
       impact({ shake: 0.1 });
     },
@@ -164,8 +164,10 @@
       for (let j = 1; j <= 6; j++) {
         const x = a.x() + d * (40 + j * 52);
         if (x < 0 || x > W) break;
-        texFx('xe10', x, y, a.color, { scale: 2 / 3, life: 0.26, delay: 0.1 + j * 0.06, flip: d < 0, fade: 0.4 });
-        texFx('xk06', x, y + 2, a.color, { scale: 2 / 3, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
+        const sc = (a.mast || 0) >= 3 ? 1 : 2 / 3;
+        texFx('xe10', x, y, a.color, { scale: sc, life: 0.3, delay: 0.1 + j * 0.06, flip: d < 0, fade: 0.4 });
+        texFx('xe10', x - d * 14, y, a.color, { scale: 2 / 3, life: 0.3, delay: 0.1 + j * 0.06, flip: d < 0, alpha: 0.4 });
+        texFx('xk06', x, y + 2, a.color, { scale: sc, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
       }
     },
   };

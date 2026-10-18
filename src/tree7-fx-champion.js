@@ -47,14 +47,14 @@
     ...SKILL_FX.ironRush,
     tick: null,
     cues: (a) => [[0.01, (a) => {
-      const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow'), n = pick([1, 2, 3, 4], m);
-      const fs = pick(grow ? [1, 1, 4 / 3, 4 / 3] : [2 / 3, 2 / 3, 1, 1], m), R = pick([30, 34, 38, 42], m) * (grow ? 1.7 : 1), rs = pick(grow ? [1, 1, 4 / 3, 4 / 3] : [2 / 3, 2 / 3, 1, 1], m);
+      const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow'), n = pick([1, 2, 2, 3], m);
+      const fs = grow ? 1 : 2 / 3, R = pick([30, 34, 40, 46], m) * (grow ? 1.6 : 1), rs = grow ? 1 : 2 / 3;
       aFx(a, 0, a.k.dur, (u) => {
         const gy = groundY(), cx = follow ? mix(a.x(), a.tx(), easeOut(Math.min(1, u / 0.35))) : a.x(), c = col(a), fade = Math.min(1, u / 0.1, (1 - u) / 0.15);
         for (let j = 0; j < n; j++) for (let k = 0; k < 3; k++) {
           const th = clock * 10 + (j * Math.PI * 2) / n - k * 0.32;
           vfxDraw(ctx, 'xe03', c, Math.floor(clock * 14) % 4, cx + Math.cos(th) * R, gy - 30 + Math.sin(th) * R * 0.3,
-            { scale: fs, flip: Math.sin(th) > 0, alpha: fade * [1, 0.5, 0.25][k] });
+            { scale: fs, flip: Math.sin(th) > 0, alpha: fade * [0.9, 0.4, 0.2][k] });
         }
         vfxDraw(ctx, 'xe13', c, Math.floor(clock * 12) % 6, cx, gy - 2, { scale: rs, alpha: 0.5 * fade });
       });

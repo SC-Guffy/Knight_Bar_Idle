@@ -10,7 +10,7 @@
 // 이 파일은 tree7-fx.js 뒤에 불러온다. 새 스킬 id 에만 연출을 단다 (기존 SKILL_FX 는 건드리지 않는다).
 
 const FL_PALE = ['#2a4a78', '#74b4dc', '#c0ecff', '#f0fcff', '#ffffff'];     // 창백한 청백 램프
-const FL_GOLD = ['#4a5a68', '#a8c8d0', '#e8f0d0', '#fff4c8', '#ffffff'];     // ★★★ 금빛 서리
+const FL_GOLD = ['#3a6a98', '#92cdf0', '#d4f6ff', '#f2fdff', '#ffffff'];     // ★★★ 눈부신 청백 서리
 const FL_DIM = ['#0c1830', '#1c3458', '#2c5078', '#4a7098', '#6a90b0'];      // 메아리(반투명)용 어두운 램프
 const flRamp = (a) => ((a.mast || 0) >= 3 ? FL_GOLD : FL_PALE);
 const flKeys = (t, keys) => ilKeys(t, keys.slice().sort((p, q) => p[0] - q[0]));
@@ -63,7 +63,7 @@ function flLance(a, y, o = {}) {
     const len = Math.abs(head - x0);
     vfxTileRun(ctx, 'e39b', ramp, 0, x0, y + 2, len, a.dir, { scale: 2 / 3, alpha: 0.7 * al, overlap: 4 });
     for (let g = 1; g <= 3; g++) { const gx = head - a.dir * g * sp * 0.55; if ((gx - x0) * a.dir > 0) vfxDraw(ctx, 'e37', ramp, 0, gx, y, { scale: sc, flip: a.dir < 0, alpha: 0.4 * al / g }); }
-    vfxDraw(ctx, 'e37', ramp, 0, head, y, { scale: sc, flip: a.dir < 0, alpha: al });
+    vfxDraw(ctx, 'e37', ramp, 0, head, y, { scale: sc, sx: sc >= 2 ? 1.5 : 1, flip: a.dir < 0, alpha: al });
   });
 }
 // 기사 둘레를 도는 얼음 결정 고리 (P9 여럿, 접선 방향) + 발밑 서리 고리 (C3). a.flOrb 에 지금 자리들을 둔다
@@ -114,7 +114,7 @@ SKILL_FX.fl_flash = {
   cues: () => [[0.01, (a) => flChargeFx(a, Math.max(0.2, a.k.hits[0][0] * a.k.dur - 0.04))]],
   hit(a, i, n) {
     if (i !== n - 1) { const p = ilTip(a); for (const t of a.targets(i)) flShard(a, p.x, p.y, t.x, t.y, { life: 0.14, scale: 4 / 3, ease: 'in' }); return; }
-    const y = a.ty(), m = a.mast || 0, sc = m >= 3 ? 2 : 4 / 3;
+    const y = a.ty(), m = a.mast || 0, sc = m >= 3 ? 2 : m >= 2 ? 4 / 3 : 1;
     if (t7Sh(a, 'triple')) [-16, 0, 16].forEach((dy, j) => flLance(a, y + dy, { delay: j * 0.09, scale: 1 }));
     else flLance(a, y, { scale: sc });
     if (t7Sh(a, 'after')) flLance(a, y + 3, { delay: 0.5, alpha: 0.55, ramp: FL_DIM, scale: sc });
@@ -150,12 +150,13 @@ function flRays(a, i, n) {
   const k = i === 0 || i === n - 1 ? cnt : Math.max(2, cnt >> 1), rot = i * 0.4;
   for (let j = 0; j < k; j++) {
     const an = rot + (j / k) * Math.PI * 2, dx = Math.cos(an), dy = Math.sin(an) * 0.6;
-    for (let r = 0; r < 2; r++) {
+    for (let r = 0; r < (m >= 2 ? 1 : 2); r++) {
       const d0 = (r + 0.7) * (len / 2.2);
       texFx('e38', cx + dx * d0, cy + dy * d0, ramp, { scale: sc, life: 0.4, delay: r * 0.04 + j * 0.006, fade: 0.4, rot: Math.cos(an) < 0 ? an + Math.PI : an, flip: Math.cos(an) < 0,
         crop: [0, 0.5], move: (u) => [dx * 34 * u, dy * 34 * u] });
     }
-    texFx('k26', cx + dx * len, cy + dy * len, ramp, { scale: 2 / 3, life: 0.26, delay: 0.14 + j * 0.006, fade: 0.4, frames: 5 });
+    if (m >= 2) texFx('f19', cx + dx * len, cy + dy * len, ramp, { scale: 2 / 3, life: 0.4, delay: 0.14 + j * 0.006, fade: 0.4, frames: 5 });
+    else texFx('k26', cx + dx * len, cy + dy * len, ramp, { scale: 2 / 3, life: 0.26, delay: 0.14 + j * 0.006, fade: 0.4, frames: 5 });
   }
 }
 SKILL_FX.fl_storm = {
@@ -181,8 +182,8 @@ SKILL_FX.fl_f_ab = {
   cues: (a) => {
     const d = a.k.dur, hL = a.k.hits[a.k.hits.length - 1][0] * d, at = Math.max(0.03, hL - 0.3);
     return [[0.01, (a) => flOrbitFx(a, flOrbOpts(a, a.k.dur - 0.02, true))], [at / d, (a) => {
-      const tx = a.tx(), ty = a.ty(), m = a.mast || 0, sc = m >= 3 ? 1 : 2 / 3, h = 92 * sc * VFX_DOT;
-      texFx('e37b', tx, 0, flRamp(a), { scale: sc, life: 0.3, fade: 0.05, frames: 1, move: (u) => [0, (ty - h / 2 + 10) * easeIn(u) - 40 * (1 - u)] });
+      const tx = a.tx(), ty = a.ty(), m = a.mast || 0, sc = m >= 2 ? 1 : 2 / 3, h = 92 * sc * VFX_DOT;
+      for (const ox of m >= 3 ? [-40, 0, 40] : [0]) texFx('e37b', tx + ox * a.dir, 0, flRamp(a), { scale: ox ? 2 / 3 : sc, life: 0.3, fade: 0.05, frames: 1, move: (u) => [0, (ty - h / 2 + 10) * easeIn(u) - 40 * (1 - u)] });
     }]];
   },
   hit(a, i, n) {
@@ -202,11 +203,11 @@ SKILL_FX.fl_f_bk = {
   hit(a, i, n) {
     if (i !== n - 1) { const p = ilTip(a); for (const t of a.targets(i)) flShard(a, p.x, p.y, t.x, t.y, { life: 0.14, scale: 4 / 3, ease: 'in' }); return; }
     const y = a.ty(), m = a.mast || 0, cnt = 4 + m;
-    flLance(a, y, { scale: m >= 3 ? 2 : 4 / 3 });
+    flLance(a, y, { scale: m >= 3 ? 2 : m >= 2 ? 4 / 3 : 1 });
     for (let j = 1; j <= cnt; j++) {
-      const x = a.x() + a.dir * j * 62;
+      const x = a.x() + a.dir * j * 56;
       if (x < 10 || x > W - 10) break;
-      texFx('e39', x, groundY() + 2, flRamp(a), { scale: 2 / 3, life: 0.5, delay: 0.1 + j * 0.07, anchor: 'b', fade: 0.3, flip: j % 2 === 0 });
+      texFx('e39', x, groundY() + 2, flRamp(a), { scale: m >= 3 ? 1 : 2 / 3, life: 0.5, delay: 0.1 + j * 0.07, anchor: 'b', fade: 0.3, flip: j % 2 === 0 });
     }
     impact({ stop: 0.08, shake: 0.3 });
   },

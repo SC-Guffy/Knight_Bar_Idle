@@ -44,7 +44,7 @@ function amSpark(a, x, y, sc) {
 function amChargeFx(a, until) {
   const ramp = amRamp(a);
   aFx(a, 0, until, (u) => {
-    const p = ilTip(a), sc = u < 0.4 ? 1 : u < 0.8 ? 4 / 3 : 2;
+    const p = ilTip(a), m = a.mast || 0, sc = m >= 3 ? (u < 0.4 ? 4 / 3 : 2) : u < 0.4 ? 1 : 4 / 3;
     vfxDraw(ctx, 'p7', ramp, mgLoop('p7', 15), p.x, p.y, { scale: sc, alpha: Math.min(1, u * 5), flip: a.dir < 0 });
     if (Math.floor(clock * 20) % 3 === 0) parts.push({ x: p.x + rand(-5, 5), y: p.y + rand(-4, 4), vx: rand(-20, 20), vy: rand(-60, -20), g: -10, size: 2, color: ramp[3], life: 0.3, t: 0, add: true });
   });
@@ -72,7 +72,7 @@ function amOrbitFx(a, o) {
       pts.push([cx + Math.cos(an) * o.rx, cy + Math.sin(an) * o.rx * 0.4, Math.sin(an)]);
     }
     a.amOrb = pts;
-    pts.slice().sort((p, q) => p[2] - q[2]).forEach((p, j) => vfxDraw(ctx, 'e36', ramp, (f + j) % 5, p[0], p[1], { scale: o.sc, alpha: al * (p[2] < 0 ? 0.7 : 1), flip: j % 2 === 0 }));
+    pts.slice().sort((p, q) => p[2] - q[2]).forEach((p, j) => vfxDraw(ctx, 'e36', ramp, (f + j) % 5, p[0], p[1], { scale: o.sc, alpha: al * (p[2] < 0 ? 0.6 : 0.85), flip: j % 2 === 0 }));
   });
 }
 // 고리의 불꽃 하나가 대상에게 튀어 간다 (P7 불덩이가 빠르게 날아감)
@@ -85,8 +85,8 @@ function amOrbShot(a, i, targets) {
 }
 const amOrbOpts = (a, life, small) => {
   const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow');
-  const sc = grow || m >= 3 ? 1 : 2 / 3;      // E36 은 32도트라 기본은 작게 (고리 하나하나), ★★★ 와 불바다(grow)만 1배
-  return { life, follow, grow, n: small ? [3, 4, 5, 6][m] : [4, 6, 6, 8][m], sc, rx: grow ? 54 : 32 + 4 * m };
+  const sc = grow ? 1 : 2 / 3;      // E36 은 32도트라 고리 하나하나는 작게 (불바다 grow 만 1배). ★ 단계는 개수·반지름·금빛으로 키운다
+  return { life, follow, grow, n: small ? [3, 4, 5, 6][m] : [4, 6, 6, 8][m], sc, rx: grow ? 54 : m >= 3 ? 48 : 30 + 4 * m };
 };
 
 // ── 불꽃 고리 (whirl) ── 불꽃 꽃이 기사 둘레를 고리로 돈다: 1칸 4송이 · ★ 6송이 · ★★ 6송이 크게 · ★★★ 8송이 금빛
@@ -107,7 +107,7 @@ SKILL_FX.am_flash = {
   cues: () => [[0.01, (a) => amChargeFx(a, Math.max(0.2, a.k.hits[0][0] * a.k.dur - 0.04))]],
   hit(a, i, n) {
     if (i !== n - 1) { for (const t of a.targets(i)) { const p = ilTip(a); skFx(null, 0, 0.14, (u) => vfxDraw(ctx, 'p7', amRamp(a), mgLoop('p7', 15), mix(p.x, t.x, u), mix(p.y, t.y, u), { scale: 1, alpha: 1 - u * 0.3 })); } return; }
-    const y = a.ty(), m = a.mast || 0, sc = m >= 3 ? 1 : 2 / 3;
+    const y = a.ty(), m = a.mast || 0, sc = m >= 3 ? 4 / 3 : m >= 2 ? 1 : 2 / 3;
     if (t7Sh(a, 'triple')) [-16, 0, 16].forEach((dy, j) => amBeam(a, y + dy, { delay: j * 0.09, scale: 2 / 3 }));
     else amBeam(a, y, { scale: sc });
     if (t7Sh(a, 'after')) amBeam(a, y + 3, { delay: 0.5, alpha: 0.55, ramp: AM_DIM, scale: sc });
@@ -152,17 +152,21 @@ SKILL_FX.am_wave = {
 // ── 불길 폭풍 (storm) ── 기사에서 사방으로 불꽃 꽃이 줄지어 번져 나간다: 1칸 4방향 · ★ 8방향 · ★★ 8방향 크게 · ★★★ 12방향 금빛
 //  분화(k_split): 맞은 자리에서 불꽃이 두 갈래로
 function amRays(a, i, n) {
-  const m = a.mast || 0, cnt = [4, 8, 8, 12][m], sc = m >= 3 ? 1 : 2 / 3, reach = t7Sh(a, 'pierce') ? 3 : 2, cx = a.x(), cy = groundY() - 20;
+  const m = a.mast || 0, cnt = [4, 8, 8, 12][m], sc = m >= 3 ? 1 : 2 / 3, reach = t7Sh(a, 'pierce') ? 2 : 1, cx = a.x(), cy = groundY() - 20;
   const k = i === 0 || i === n - 1 ? cnt : Math.max(2, cnt >> 1), rot = i * 0.4;
   for (let j = 0; j < k; j++) {
     const an = rot + (j / k) * Math.PI * 2;
-    for (let r = 1; r <= reach; r++) amFlower(a, cx + Math.cos(an) * r * 42, cy + Math.sin(an) * r * 24, sc, r * 0.05 + j * 0.008, { rot: an * 0.3 });
+    for (let r = 1; r <= reach; r++) amFlower(a, cx + Math.cos(an) * (r + 1.5) * 44, cy + Math.sin(an) * (r + 1.5) * 22, sc, r * 0.05 + j * 0.008, { rot: an * 0.3 });
   }
   mgRing(cx, amRamp(a), m >= 2 ? 1.4 : 1, 0.45);
 }
 SKILL_FX.am_storm = {
   pose: amPose('raise'),
-  cues: () => [],
+  cues: () => [[0.01, (a) => {
+    // 터지기 전: 기사 발밑에서 불 회오리(E35)가 차오른다 (첫 타격까지)
+    const until = Math.max(0.2, a.k.hits[0][0] * a.k.dur - 0.02), ramp = amRamp(a);
+    aFx(a, 0, until, (u) => vfxDraw(ctx, 'e35', ramp, mgLoop('e35', 12), a.x(), groundY() + 2, { scale: 2 / 3, anchor: 'b', sy: 0.5 + 0.5 * u, alpha: Math.min(1, u * 4) }));
+  }]],
   hit(a, i, n) {
     amRays(a, i, n);
     impact({ stop: i === n - 1 ? 0.05 : 0, shake: 0.2 });
@@ -203,11 +207,11 @@ SKILL_FX.am_f_bk = {
   hit(a, i, n) {
     if (i !== n - 1) { for (const t of a.targets(i)) { const p = ilTip(a); skFx(null, 0, 0.14, (u) => vfxDraw(ctx, 'p7', amRamp(a), mgLoop('p7', 15), mix(p.x, t.x, u), mix(p.y, t.y, u), { scale: 1, alpha: 1 - u * 0.3 })); } return; }
     const y = a.ty(), cnt = 4 + (a.mast || 0), m = a.mast || 0;
-    amBeam(a, y, { scale: m >= 3 ? 1 : 2 / 3 });
+    amBeam(a, y, { scale: m >= 3 ? 4 / 3 : m >= 2 ? 1 : 2 / 3 });
     for (let j = 1; j <= cnt; j++) {
       const x = a.x() + a.dir * j * 62;
       if (x < 10 || x > W - 10) break;
-      texFx('h27', x, groundY() + 2, amRamp(a), { scale: 4 / 3, life: 0.34, delay: 0.1 + j * 0.07, anchor: 'b', fade: 0.3, flip: j % 2 === 0 });
+      texFx('h27', x, groundY() + 2, amRamp(a), { scale: m >= 3 ? 2 : 4 / 3, life: 0.34, delay: 0.1 + j * 0.07, anchor: 'b', fade: 0.3, flip: j % 2 === 0 });
       amFlower(a, x, y, 2 / 3, 0.14 + j * 0.07);
     }
     impact({ stop: 0.08, shake: 0.3 });

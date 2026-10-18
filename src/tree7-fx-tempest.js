@@ -43,14 +43,14 @@
   const whirl = {
     ...SKILL_FX.spinKick,
     cues: (a) => [[0.01, (a) => {
-      const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow'), n = pick([1, 2, 2, 3], m);
-      const ps = grow ? 4 / 3 : pick([2 / 3, 2 / 3, 1, 1], m), bs = pick(grow ? [1, 1, 4 / 3, 4 / 3] : [2 / 3, 1, 1, 4 / 3], m), R = pick([26, 30, 34, 38], m) * (grow ? 1.6 : 1);
+      const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow'), n = pick([1, 1, 1, 2], m);
+      const ps = grow ? 1 : 2 / 3, bs = grow ? 1 : 2 / 3, R = pick([26, 30, 34, 40], m) * (grow ? 1.6 : 1);
       aFx(a, 0, a.k.dur, (u) => {
         const gy = groundY(), cx = follow ? mix(a.x(), a.tx(), easeOut(Math.min(1, u / 0.35))) : a.x(), fade = Math.min(1, u / 0.1, (1 - u) / 0.15);
-        vfxDraw(ctx, 'xe08', a.color, Math.floor(clock * 14) % 5, cx, gy - 14, { scale: bs, flip: Math.floor(clock * 6) % 2 === 1, alpha: 0.6 * fade });
+        vfxDraw(ctx, 'xe08', a.color, Math.floor(clock * 14) % 5, cx, gy - 14, { scale: bs, flip: Math.floor(clock * 6) % 2 === 1, alpha: 0.45 * fade });
         for (let j = 0; j < n; j++) {
           const th = clock * 8 + (j * Math.PI * 2) / n, front = Math.sin(th) > 0;
-          vfxDraw(ctx, 'xe09', a.color, Math.floor(clock * 12 + j) % 6, cx + Math.cos(th) * R, gy + 2 + (front ? 2 : -2), { anchor: 'b', scale: ps, flip: j % 2 === 1, alpha: (front ? 0.95 : 0.55) * fade });
+          vfxDraw(ctx, 'xe09', a.color, Math.floor(clock * 12 + j) % 6, cx + Math.cos(th) * R, gy + 2 + (front ? 2 : -2), { anchor: 'b', scale: ps, flip: j % 2 === 1, alpha: (front ? 0.8 : 0.45) * fade });
         }
       });
     }]],
@@ -79,6 +79,7 @@
       if (tri) for (const dy of [-14, 0, 14]) row(a, y + dy, { scale: 2 / 3, step: 30 });
       else row(a, y, { scale: m >= 3 ? 4 / 3 : 1 });
       ghosts(a, tri ? 2 : 4, a.color, 0.4);
+      if (m >= 1) texFx('xk04', a.tx(), y, a.color, { scale: m >= 3 ? 4 / 3 : 1, life: 0.3, fade: 0.3 });
       if (m >= 2) texFx('xe09', a.tx(), groundY() + 2, a.color, { anchor: 'b', life: 0.5, scale: m >= 3 ? 1 : 2 / 3, fade: 0.3 });
       if (t7Sh(a, 'after') && i === n - 1) row(a, y + 3, { delay: 0.5, alpha: 0.55, color: '#9ec0d0', scale: m >= 3 ? 4 / 3 : 1 });
       impact({ stop: 0.08, shake: 0.25 });
@@ -95,8 +96,9 @@
       const m = a.mast || 0, n = pick([1, 3, 5, 7], m), d = a.dir, h = qiHand(a), dist = t7Sh(a, 'pierce') ? 300 : 170, y0 = Math.min(h.y, groundY() - 20);
       for (let j = 0; j < n; j++) {
         const c = j - (n - 1) / 2, t = c * 0.1 - 0.03;
-        ray('xw3a', h.x + d * 10, y0, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.03, scale: m >= 2 ? 1 : 2 / 3, life: 0.36, color: a.color, f: j % 2, wob: 6, ph: j * 1.3, trail: 3 });
+        ray('xw3a', h.x + d * 10, y0, d > 0 ? t : Math.PI - t, dist, { delay: j * 0.03, scale: m >= 2 ? 1 : 2 / 3, life: 0.4, color: mixHex(a.color, '#e8fff4', 0.55), f: j % 2, wob: 12, ph: j * 1.3, trail: 3 });
       }
+      texFx('xe08', h.x + d * 14, y0, '#e8fff4', { scale: 2 / 3, life: 0.25, flip: d < 0, alpha: 0.7 });
       impact({ shake: 0.1 });
     },
     hitTex(a, t) { qiHitTex('xh5', a, t, false, { life: 0.18 }); },
@@ -110,10 +112,10 @@
     hit(a, i) {
       const cx = a.x(), cy = groundY() - 26, m = a.mast || 0;
       if (i) { texFx('xe08', cx, groundY() - 12, a.color, { scale: 2 / 3, life: 0.22, flip: i % 2 === 1, alpha: 0.7 }); return; }
-      const n = pick([4, 8, 8, 12], m), dist = t7Sh(a, 'pierce') ? 150 : 120;
-      for (let j = 0; j < n; j++) ray('xe07', cx, cy, (j / n) * Math.PI * 2 + 0.2, dist, { scale: m >= 2 ? 1 : 2 / 3, life: 0.36, color: a.color });
-      [2 / 3, 1, 4 / 3].forEach((sc, k) => { for (const s of [-1, 1]) texFx('xe08', cx, groundY() - 12, a.color, { scale: sc, life: 0.32, delay: k * 0.07, flip: s < 0, alpha: 0.8, move: (u) => [s * 70 * easeOut(u), 0] }); });
-      if (m >= 2) texFx('xe09', cx, groundY() + 2, a.color, { anchor: 'b', life: 0.5, scale: m >= 3 ? 1 : 2 / 3, fade: 0.3 });
+      const n = pick([4, 6, 6, 8], m), dist = t7Sh(a, 'pierce') ? 150 : 120;
+      for (let j = 0; j < n; j++) ray('xe07', cx, cy, (j / n) * Math.PI * 2 + 0.2, dist, { scale: 2 / 3, life: 0.36, color: a.color });
+      [2 / 3, 2 / 3, 1].forEach((sc, k) => { for (const s of [-1, 1]) texFx('xe08', cx, groundY() - 12, a.color, { scale: sc, life: 0.32, delay: k * 0.07, flip: s < 0, alpha: 0.8, move: (u) => [s * 70 * easeOut(u), 0] }); });
+      if (m >= 2) texFx('xe09', cx, groundY() + 2, a.color, { anchor: 'b', life: 0.5, scale: 2 / 3, fade: 0.3, alpha: 0.7 });
       qiDust(a, 8);
       impact({ stop: 0.05, shake: 0.2 });
     },
@@ -130,9 +132,11 @@
     hit(a, i, n) {
       SKILL_FX.spinKick.hit(a, i, n);
       if (i !== n - 1) return;
-      qiFrontTex('xe07', a, 0.28, { off: 8, len: 70, scale: 4 / 3 });
-      row(a, a.ty(), { scale: 2 / 3, step: 32 });
-      ghosts(a, 3, a.color, 0.4);
+      const m = a.mast || 0;
+      qiFrontTex('xe07', a, 0.28, { off: 8, len: 70, scale: pick([2 / 3, 1, 1, 4 / 3], m) });
+      row(a, a.ty(), { scale: m >= 3 ? 1 : 2 / 3, step: m >= 3 ? 44 : 32 });
+      ghosts(a, 2 + m, a.color, 0.4);
+      if (m >= 3) texFx('xk04', a.tx(), a.ty(), a.color, { scale: 1, life: 0.3, fade: 0.3 });
       impact({ stop: 0.1, shake: 0.3 });
     },
   };
@@ -146,8 +150,9 @@
       for (let j = 1; j <= 6; j++) {
         const x = a.x() + d * (40 + j * 58);
         if (x < 0 || x > W) break;
-        texFx('xw3a', x, y, a.color, { scale: 2 / 3, life: 0.26, delay: 0.1 + j * 0.06, flip: d < 0, frames: 2, fade: 0.4, rot: rand(-0.5, 0.5) });
-        texFx('xk04', x, y + 4, a.color, { scale: 2 / 3, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
+        const sc = (a.mast || 0) >= 3 ? 1 : 2 / 3;
+        texFx('xw3a', x, y, a.color, { scale: sc, life: 0.26, delay: 0.1 + j * 0.06, flip: d < 0, frames: 2, fade: 0.4, rot: rand(-0.5, 0.5) });
+        texFx('xk04', x, y + 4, a.color, { scale: sc, life: 0.24, delay: 0.22 + j * 0.06, fade: 0.4 });
       }
     },
   };

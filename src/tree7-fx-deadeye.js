@@ -33,7 +33,7 @@
   //  정지 궤도(a_grow): 2배 반경 · 한 단계 큰 화살로 제자리 · 추적 선회(a_follow): 궤도가 대상에게 날아가 붙는다. 맞힐 때마다 한 발이 궤도에서 튀어나가 적을 꿰뚫는다
   function orbit(a) {
     const m = a.mast || 0, W_ = own(a, 'de_whirl'), grow = W_ && t7Sh(a, 'grow'), follow = W_ && t7Sh(a, 'follow');
-    const n = [1, 2, 2, 3][m], life = a.k.dur, R = grow ? 58 : 32, sc = grow ? (m >= 3 ? 4 / 3 : 1) : m >= 2 ? 1 : 2 / 3;
+    const n = [1, 2, 3, 5][m], life = a.k.dur, R = grow ? 58 : m >= 3 ? 44 : 32, sc = grow ? (m >= 3 ? 4 / 3 : 1) : m >= 2 ? 1 : 2 / 3;
     const cxAt = (t) => (follow ? mix(a.x(), a.tx() - a.dir * 26, easeOut(Math.min(1, t / 0.35))) : a.x());
     a.t7pos = (j, t) => { const ang = t * 4.2 + (j * Math.PI * 2) / n; return [cxAt(t) + Math.cos(ang) * R, groundY() - 30 + Math.sin(ang) * R * 0.5, Math.atan2(Math.cos(ang) * 0.5, -Math.sin(ang))]; };
     a.t7sc = sc;
@@ -50,7 +50,7 @@
     cues: () => [[0.01, orbit]],
     hit(a, i) {
       if (!a.t7pos) return;
-      const m = a.mast || 0, n = [1, 2, 2, 3][m], [x, y] = a.t7pos(i % n, a.u * a.k.dur), T = tg(a, i), d = T.x >= x ? 1 : -1;
+      const m = a.mast || 0, n = [1, 2, 3, 5][m], [x, y] = a.t7pos(i % n, a.u * a.k.dur), T = tg(a, i), d = T.x >= x ? 1 : -1;
       texShotFx('p3', x, y, T.x + d * 70, T.y, 0.1, 'raw', { scale: a.t7sc, tail: 2 });
       impact({ shake: 0.06 });
     },
@@ -78,7 +78,7 @@
     ...SKILL_FX.headshot,
     pose: aimPose((a) => plan(a).fire),
     cues: (a) => {
-      const p = plan(a), d = a.k.dur, m = a.mast || 0, sc = [2 / 3, 1, 1, 4 / 3][m];
+      const p = plan(a), d = a.k.dur, m = a.mast || 0, sc = [2 / 3, 1, 1, 2][m];
       return [
         // 숨 고르기: 대상 높이에 조준 줄이 화면 끝까지 걸린다 (깜박임)
         [0.04 / d, (a) => aFx(a, 0, Math.max(0.1, p.fire - 0.04), (u) => {
@@ -109,7 +109,7 @@
   // ── 추격탄 (wave) ── P3 태양 화살이 휘어 쫓는 곡선으로 날아가 H24 섬광: 1칸 1발 · ★ 3발 · ★★ 5발 · ★★★ 7발 금빛.
   //  화살마다 위·아래로 번갈아 휘어(곡선 크기 달라서 부채꼴) 대상에게 모인다. 관통 강화(k_pierce)면 닿고도 멈추지 않고 줄 끝까지 뚫고 나간다
   function chase(a) {
-    const m = a.mast || 0, n = [1, 3, 5, 7][m], M = mz(a), d = a.dir, T = tg(a, 0), pierce = t7Sh(a, 'pierce'), sc = m >= 2 ? 1 : 2 / 3;
+    const m = a.mast || 0, n = [1, 3, 5, 7][m], M = mz(a), d = a.dir, T = tg(a, 0), pierce = t7Sh(a, 'pierce'), sc = m >= 3 ? 4 / 3 : m >= 2 ? 1 : 2 / 3;
     for (let j = 0; j < n; j++) {
       const f = n > 1 ? j / (n - 1) - 0.5 : 0, side = j % 2 ? -1 : 1, bend = (n > 1 ? 14 + 10 * Math.abs(f) * 4 : 0) * side;
       const ex = pierce ? M.x + d * Math.max(Math.abs(T.x - M.x) + 170, 300) : T.x, ey = T.y + f * 16, cx = (M.x + ex) / 2, cy = (M.y + ey) / 2 - bend, life = 0.16 + Math.abs(ex - M.x) / 1500;
@@ -148,7 +148,7 @@
       return [[0.01, sun], [0.1 / d, (a) => { const M = mz(a); texShotFx('p3', M.x, M.y - 6, a.x(), 30, 0.22, 'raw', { scale: 2 / 3, tail: 2 }); burst(M.x, M.y, 6, [DE_WHITE, DE_SUN], 70, 2, 0); }]];
     },
     hit(a, i, n) {
-      const m = a.mast || 0, N = [4, 8, 8, 12][m], st = own(a, 'de_storm'), split = st && t7Sh(a, 'split'), orig = split ? n / 2 : n;
+      const m = a.mast || 0, N = [4, 8, 10, 16][m], st = own(a, 'de_storm'), split = st && t7Sh(a, 'split'), orig = split ? n / 2 : n;
       if (i >= orig) return;
       const per = Math.ceil(N / orig), rad = 120 * (st && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.x(), sx = cx, sy = 32;
       for (let q = 0; q < per; q++) {
@@ -215,7 +215,7 @@
     ...whirlFx,
     hit(a, i) {
       if (!a.t7pos) return;
-      const m = a.mast || 0, n = [1, 2, 2, 3][m], [x, y] = a.t7pos(i % n, a.u * a.k.dur);
+      const m = a.mast || 0, n = [1, 2, 3, 5][m], [x, y] = a.t7pos(i % n, a.u * a.k.dur);
       for (let q = 0; q < 2 + m; q++) ray(x, y, a.x() + rand(-110, 110), groundY() - 4 + rand(-3, 3), q * 0.03, a.t7sc, m >= 3);
       impact({ shake: 0.06 });
     },

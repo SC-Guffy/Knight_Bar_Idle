@@ -53,9 +53,9 @@
     pose(u) { const s = Math.sin(u * Math.PI * 4); return { wa: -0.3 + 0.25 * s, wa2: -0.6, skew: 0.1 * s, ext: 3, sy: 0.97 }; },
     cues: (a) => [[0.01, (a) => {
       const m = a.mast || 0, grow = t7Sh(a, 'grow'), follow = t7Sh(a, 'follow'), life = a.k.dur;
-      const sc = grow ? (m >= 3 ? 2 : 4 / 3) : m >= 2 ? 1 : 2 / 3, n = grow ? [1, 1, 2, 2][m] : [1, 2, 2, 3][m], R = 22 + 34 * sc, col = tone(a, GOLD);
+      const sc = grow ? (m >= 3 ? 2 : 4 / 3) : m >= 2 ? 1 : 2 / 3, n = grow ? [1, 1, 1, 1][m] : [1, 2, 2, 2][m], R = 22 + 34 * sc, col = tone(a, GOLD);
       const cx = (u) => (follow ? mix(a.x(), a.tx(), easeOut(Math.min(1, u / 0.35))) : a.x());
-      for (let j = 0; j < n; j++) orbit(a, 'e23r', life, { phase: (j / n) * Math.PI * 2, w: (Math.PI * 4) / life, R, cx, sc, color: col });
+      for (let j = 0; j < n; j++) orbit(a, 'e23r', life, { phase: (j / n) * Math.PI * 2, w: (Math.PI * 4) / life, R, cx, sc: Math.min(sc, 4 / 3), color: col });
       swFollow(a, 'c18', life, (u) => [cx(u), groundY() + 2], { loop: true, fps: 12, anchor: 'b', scale: sc >= 2 ? 2 : sc >= 4 / 3 ? 4 / 3 : 1, color: col, fadeIn: 0.15 });
       for (let k = 0; k < 6 + 2 * m; k++) puff(a.x() + rand(-R, R), k * 0.05, 2 / 3);
     }]],
@@ -75,7 +75,8 @@
       const d = a.k.dur, t0 = Math.max(0.12, T1(a) - 0.16);
       return [[t0 / d, (a) => {
         const m = a.mast || 0, y = groundY() - 20, sc = [2 / 3, 1, 1, 4 / 3][m], col = tone(a, GOLD);
-        ringFx(a.x(), SKY, 1.0, 0.35);
+        ringFx(a.x(), SKY, m >= 3 ? 1.6 : 1.0, 0.4);
+        if (m >= 3) ringFx(a.x(), GOLD, 2.0, 0.5);
         texFx('k27', a.x(), groundY() - 4, SKY, { scale: 2 / 3, life: 0.3, fade: 0.4 });
         if (t7Sh(a, 'triple')) [-12, 0, 12].forEach((dy, j) => dashLine(a, y + dy, { delay: j * 0.05, sc: 2 / 3, color: col }));
         else dashLine(a, y, { sc, color: col });
@@ -117,11 +118,11 @@
     cues: () => [],
     hit(a, i) {
       if (i) return;
-      const m = a.mast || 0, n = [4, 8, 8, 12][m], nR = [2, 4, 4, 6][m], cx = a.x(), cy = groundY() - 26, dist = t7Sh(a, 'pierce') ? 150 : 120, sc = m >= 2 ? 1 : 2 / 3, col = tone(a, GOLD);
+      const m = a.mast || 0, n = [4, 8, 8, 12][m], nR = [2, 4, 4, 4][m], cx = a.x(), cy = groundY() - 26, dist = t7Sh(a, 'pierce') ? 150 : 120, sc = m >= 2 ? 1 : 2 / 3, col = tone(a, GOLD);
       for (let j = 0; j < n; j++) lance(a, cx, cy, (j / n) * Math.PI * 2 + (n === 4 ? Math.PI / 4 : 0), dist, { scale: sc, life: 0.36, color: col });
       for (let j = 0; j < nR; j++) {
         const side = j % 2 ? 1 : -1, reach = 130 + 28 * (j >> 1), dy = ((j >> 1) % 3 - 1) * 4;
-        swFollow(null, 'e23r', 0.55, (u) => [cx + side * reach * easeOut(u), groundY() + 3 + dy], { loop: true, fps: 14, anchor: 'b', scale: sc, color: col, delay: j * 0.03, flip: side < 0 });
+        swFollow(null, 'e23r', 0.55, (u) => [cx + side * reach * easeOut(u), groundY() + 3 + dy], { loop: true, fps: 14, anchor: 'b', scale: 2 / 3, color: col, delay: j * 0.03, flip: side < 0 });
         for (let k = 1; k <= 3; k++) puff(cx + side * (reach * k) / 4, j * 0.03 + k * 0.08, 2 / 3);
       }
       ringFx(cx, col, m >= 2 ? 1.4 : 1, 0.45);
@@ -149,10 +150,14 @@
         vfxThrustLine('w7a', h.x + a.dir * 20, h.y, a.dir, 90, col, { life: 0.3, move: (u) => 12 * easeOut(u) });
         let last = 0;
         aFx(a, 0, life, null, null, () => { if (clock - last > 0.06) { last = clock; puff(a.px() - a.dir * 18, 0, 2 / 3); } });
+        if (m >= 3) {
+          swFollow(a, 'e24', life, () => [a.px() + a.dir * 66, groundY() + 2], { loop: true, fps: 10, anchor: 'b', scale: sc, color: col, flip: a.dir < 0, fadeIn: 0.1 });
+          swFollow(a, 'e23', life, () => [a.px() - a.dir * 46, groundY() + 2], { loop: true, fps: 14, anchor: 'b', scale: 1, color: SKY, flip: a.dir < 0, alpha: 0.3, fadeIn: 0.1 });
+        }
         impact({ shake: 0.1 });
       }]];
     },
-    hit(a, i, n) { const x = a.px() + a.dir * 30; ringFx(x, tone(a, GOLD), 0.9, 0.35); impact(i === n - 1 ? { stop: 0.1, shake: 0.35 } : { stop: 0.03, shake: 0.12 }); },
+    hit(a, i, n) { const x = a.px() + a.dir * 30; ringFx(x, tone(a, GOLD), (a.mast || 0) >= 3 ? 1.7 : 0.9, 0.35); impact(i === n - 1 ? { stop: 0.1, shake: 0.35 } : { stop: 0.03, shake: 0.12 }); },
     hitTex(a, t, share, i, n) {
       const big = i === n - 1;
       texFx('k16', t.x, t.y, tone(a, GOLD), { scale: big && (a.mast || 0) >= 1 ? 1 : 2 / 3, frames: 5, life: 0.3, fade: 0.3 });

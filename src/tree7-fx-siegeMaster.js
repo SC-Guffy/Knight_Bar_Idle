@@ -21,7 +21,7 @@
     skFx(null, delay, 0.14, (u) => vfxDraw(ctx, 'e32', 'raw', 0, mix(x0, x1, u), mix(-24, gy, easeIn(u)), { rot, scale: sc }), () => {
       texFx('k22', x1, gy - 4, 'raw', { scale: 2 / 3, life: 0.25, frames: 4 });
       smoke(x1, gy - 8);
-      if (o.boom) texFx('k21', x1, gy - 8, 'raw', { scale: 2 / 3, life: 0.3, frames: 4 });
+      if (o.boom) texFx('k21', x1, gy - 8, 'raw', { scale: o.gold ? 1 : 2 / 3, life: 0.3, frames: 4 });
       if (o.gold) texFx('k20', x1, gy - 12, SM_GOLD, { scale: 2 / 3, life: 0.3 });
       skFx(null, 0, 0.5, (u) => vfxDraw(ctx, 'e32', 'raw', 0, x1 + Math.sin(u * 60) * (1 - u) * 1.2, gy - 6, { rot, scale: sc, alpha: u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4 }));
     });
@@ -159,7 +159,7 @@
       }]];
     },
     hit(a, i, n) {
-      const m = a.mast || 0, N = [4, 8, 8, 12][m], split = own(a, 'sm_storm') && t7Sh(a, 'split'), orig = split ? n / 2 : n;
+      const m = a.mast || 0, N = [4, 8, 10, 16][m], split = own(a, 'sm_storm') && t7Sh(a, 'split'), orig = split ? n / 2 : n;
       if (i >= orig) return;
       const per = Math.ceil(N / orig), rad = 120 * (own(a, 'sm_storm') && t7Sh(a, 'pierce') ? 1.2 : 1), cx = a.x();
       for (let q = 0; q < per; q++) {
@@ -193,6 +193,8 @@
       base1.hit(a, i, n);
       if (i !== n - 1) return;
       const m = a.mast || 0, x = a.tx();
+      if (m >= 3) for (const s of [-1, 1]) { abBlastFx(x + s * 48, groundY() - 10, 1.2); ringFx(x + s * 48, SM_IRON, 1, 0.4); }
+      ringFx(x, SM_IRON, 1.4, 0.5);
       abBlastFx(x, groundY() - 12, m >= 3 ? 2 : 1.6);
       abMushroomFx(x, 1.0, m >= 2 ? 1 : 2 / 3);
       texFx('k37', x, groundY() - 22, 'raw', { scale: m >= 3 ? 1 : 2 / 3, life: 0.45 });
@@ -211,7 +213,7 @@
           const x = M.x + a.dir * (30 + j * 52);
           if (x < 0 || x > W) break;
           const dl = 0.14 + j * 0.07;
-          texFx('k21', x, y, 'raw', { scale: m >= 3 ? 1 : 2 / 3, life: 0.35, delay: dl, frames: 5 });
+          texFx('k21', x, y, 'raw', { scale: m >= 3 ? 4 / 3 : 2 / 3, life: 0.35, delay: dl, frames: 5 });
           smoke(x, y - 6, { delay: dl + 0.1, life: 0.6 });
           texFx('c16', x, y - 14, SM_GOLD, { scale: 1, life: 0.5, delay: dl + 0.15, move: (u) => [0, -10 * u] });
           if (m >= 3 && j === 7) skFx(null, dl, 0, null, () => abMushroomFx(x, 1.0, 2 / 3));
