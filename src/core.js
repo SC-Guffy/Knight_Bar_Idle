@@ -40,6 +40,7 @@ function freshState() {
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed, 차수별 곡선)
     mastV: 12,                              // 12: 궁극기 별도 숙련도 · 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
+    t7: freshT7(),                          // 시즌7 스킬 빌드 트리 (src/tree7.js) — 검사 계열 시제품: 찍은 칸·장착·장착 칸 수·고른 모습
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
@@ -298,6 +299,7 @@ const GUILD_HOST = (() => { try { return window.parent !== window && window.pare
 function loadState(o) {
   S = freshState();
   try { if (o) S = migrate(o); } catch {}
+  if (T7_PICK_URL && S.t7) S.t7.pick = true;   // ?t7=1: 시즌7 트리 시제품을 1차 검사 단계부터 (src/tree7.js)
   if (GUILD_HOST) GUILD_HOST.bindShared(S);
   seenBase.at = S.lastSeen || 0; seenBase.mono = performance.now();
   if (S.hp == null) S.hp = stats().maxHp;
@@ -331,16 +333,20 @@ function stats(base = false) {
   if (dg) atk *= 1 + dg.atk;
   // 🏰 성벽 지키기 안 배율 (castle.js castleFx — 🚩 군기). 랭킹·결투용(base)에는 넣지 않는다
   if (!base && castleActive()) atk *= 1 + castleFx().atk;
-  return {
+  const out = {
     atk, maxHp, aspd, crit, critMult: 2.5 + (m.critMult || 0) + gb.critMult,
     kind: w.kind, range: w.range, targets: w.targets, shots: w.shots || 1, shotMult: w.shotMult || 1,
     // 받는 피해 감소: 직업·장비(최대 60%)와 방어 훈련을 곱으로 합친다 (최대 85%)
     guard: Math.min(dg ? 0.95 : 0.85, 1 - (1 - Math.min(0.6, (m.guard || 0) + gb.guard)) * (1 - defRed) * (dg ? Math.max(0.2, 1 + dg.taken) : 1)), defRed,
     heal: Math.min(0.1, (m.heal || 0) + gb.heal), skills: unlockedSkills(),
   };
+  return t7On() ? t7Stats(out) : out;   // 시즌7 트리의 스탯·키스톤 (src/tree7.js)
 }
 // 지금 레벨에서 쓸 수 있는 스킬 id (먼저 쓸 순서 = 해금 레벨 높은 순)
-const unlockedSkills = () => skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id);
+// 시즌7 트리 캐릭터는 장착 칸의 스킬 + 궁극기만 (src/tree7.js t7Skills)
+const unlockedSkills = () => (t7On() ? t7Skills() : skillsOf(S.cls).filter((k) => S.level >= k.lv).reverse().map((k) => k.id));
+// 시즌7 트리가 이 스킬을 맡는가 (그 줄기 캐릭터의 트리 스킬)
+const t7Has = (id) => t7On() && !!T7_BY_SKILL[id];
 
 // 스킬 숙련도 (classes.js). lv 는 1~SKILL_MAX. skillPow 는 SKILLS 배율에 곱하는 한 방 위력, skillCd 는 숙련도가 반영된 쿨타임(초)
 const skillLv = (id) => skillLvOf(S.mast[id] || 0, skillTierOf(id)).lv;
@@ -366,14 +372,18 @@ function skillBonus(id) {
   return b;
 }
 // V2 오른쪽 효과의 지금 값 (쿨타임 비율·치명 확률·흡혈 비율·철벽 감소율). V1 스킬은 0
-const skillRight = (id, key) => rightVal(SKILLS[id], key, skillBonus(id));
+const skillRight = (id, key) => (t7Has(id) ? 0 : rightVal(SKILLS[id], key, skillBonus(id)));
 // 고유 특수(classes.js SPEC_TYPES)의 지금 상태 { type, v 지금 값, ...k.spec 인자 } — 한 칸도 안 찍었으면 null
-const skillSpec = (id) => { const k = SKILLS[id], v = k.spec ? skillRight(id, 'spec') : 0; return v ? { ...k.spec, v } : null; };
+const skillSpec = (id) => { if (t7Has(id)) return t7Spec(id); const k = SKILLS[id], v = k.spec ? skillRight(id, 'spec') : 0; return v ? { ...k.spec, v } : null; };
 const skillStar = (id) => skillBonus(id).star;
-const skillStage = (id) => Math.min(skillStar(id), treeOf(id).use);
+const skillStage = (id) => (t7Has(id) ? t7Stage(id) : Math.min(skillStar(id), treeOf(id).use));
+// 내 기사가 지금 쓰는 기술 모양 (숙련 모습 + 시즌7 트리 변형). 전투·DPS·프로필이 모두 이것을 쓴다
+const heroSkill = (id) => (t7Has(id) ? t7Shape(id, skillAt(id, 1, t7Stage(id))) : skillAt(id, skillLv(id), skillStage(id)));
+// 평균 피해 환산 배율 (결투·레이드 프로필 · 전투력 dpsOf): 고유 특수 ev (트리는 근사 효과 포함)
+const skillEv = (id) => (t7Has(id) ? t7Ev(id) : specEv(SKILLS[id], skillBonus(id)));
 // 🎲 스킬 피해 옵션은 한 방 위력에 곱한다 (필드·결투·레이드가 모두 이 값을 쓴다)
-const skillPow = (id) => skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id)) * (1 + gearBonus().skillDmg);
-const skillCd = (id) => (SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
+const skillPow = (id) => (t7Has(id) ? skillPowAt(SKILLS[id], 1, S.cls, {}) * t7Pow(id) : skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id))) * (1 + gearBonus().skillDmg);
+const skillCd = (id) => (t7Has(id) ? Math.round(skillCdOf(SKILLS[id], 1, S.cls, {}) * t7Cd(id) * 10) / 10 : SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
 // 파이터 계열 등가 쿨타임에 쓰는 공속·치명 (장비 포함, stats() 와 같은 식 — dpsOf 안에서 stats 를 다시 부르지 않게)
 const qiStats = () => { const m = heroClass().mods, gb = gearBonus(); return { aspd: 0.9 * (m.aspd || 1) * (1 + gb.aspdPct), crit: Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit) }; };
 // 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
@@ -438,10 +448,10 @@ const canLevelSkill = () => skillsOf(S.cls).some((k) => {
 // 진화한 모습(별 단계)이 0단계보다 오래 시전하면 그동안 못 친 평타 피해만큼 스킬 피해를 얹는다 — 진화는 모습만 바뀌고 손해가 없게.
 //  돌려주는 값은 스킬 한 번의 피해 배율 (dpsOf·profile·skills.js 시전이 같이 쓴다)
 function stageComp(id, st) {
-  const k = skillAt(id, skillLv(id), skillStage(id)), lost = k.dur - skillAt(id, skillLv(id), 0).dur;
+  const k = heroSkill(id), lost = k.dur - skillAt(id, t7Has(id) ? 1 : skillLv(id), 0).dur;
   if (lost <= 0) return 1;
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
-  const cast = (k.crit ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id);
+  const cast = (k.crit && !t7NoCrit() ? st.atk * st.critMult : perHit) * skillMult(k) * skillPow(id);   // t7NoCrit: 시즌7 트리 무념
   return cast > 0 ? 1 + perHit * st.shots * st.shotMult * st.aspd * lost / cast : 1;
 }
 // 한 마리를 상대로 한 초당 피해 (연발·스킬 포함). 스킬을 쓰는 동안은 평타를 멈춘다
@@ -449,15 +459,15 @@ function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
   let busy = 0, extra = 0;
   for (const id of st.skills || []) {
-    const k = skillAt(id, skillLv(id), skillStage(id));
+    const k = heroSkill(id);
     const cd = skillCd(id), cp = skillRight(id, 'crit');
     busy += k.dur / cd;
-    const hitV = k.crit ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
+    const hitV = k.crit && !t7NoCrit() ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
     // 고유 특수는 평균 피해로 환산해 넣는다 (classes.js specEv — 처형·보스 등 상황형은 일부만, 기절·골드 같은 운영형은 0)
-    extra += hitV * skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) * stageComp(id, st) / cd;
+    extra += hitV * skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st) / cd;
   }
   // 고유 발동 효과(투척·불기둥 등)는 평균 피해 배율로 (gear.js procAtkEv)
-  return (perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) + extra) * procAtkEv();
+  return (perHit * st.shots * st.shotMult * st.aspd * Math.max(0.3, 1 - busy) * t7BasicDps() + extra) * procAtkEv();   // t7BasicDps: 시즌7 트리 키스톤의 평타 보정 (src/tree7.js)
 }
 const bossOpts = () => { const gb = gearBonus(); return { ...(gb.bossDmg ? { bossDmg: gb.bossDmg } : {}), ...(gb.execute ? { exec: gb.execute } : {}) }; };
 const powerOf = (st) => Math.round(Math.sqrt(dpsOf(st) * st.maxHp * procHpEv()) * 10);
@@ -476,15 +486,16 @@ function profile() {
     // 결투·레이드는 서버가 계산하므로 스킬은 수치만 넘긴다 (id 는 재생할 때 연출을 고르는 데 쓴다)
     // 파이터 계열: 기 규칙 (서버 duel.js·raid.js 가 실제로 충전·소모를 돌린다. 모르는 서버는 버리고 등가 cd 로 계산)
     ...(isQiCls(S.cls) ? { qi: qiProfileOf(S.cls) } : {}),
+    ...(t7On() ? { t7: 1, ...(t7Duel() !== 1 ? { duel: t7Duel() } : {}) } : {}),   // 시즌7 스킬 트리 줄기: 서버가 스킬을 5개(장착 4 + 궁극기)까지 받는다 · duel 결투 전용 공격력 배율 (server/index.js sanitizeProfile, src/tree7.js fx.duel)
     // 서버는 스킬을 앞에서 3개만 받는다(server/index.js sanitizeProfile). 파이터 계열 3차는 [궁극기·투지·원투·주 기술] 순이라 주 기술이 잘리면
     // 기를 쓰지 않아 투지도 멈춘다 → 물려받은 원투(1차)를 맨 뒤로 보내 그것이 빠지게 한다 (다른 3차도 1차 스킬이 빠진다)
     skills: (isQiCls(S.cls) ? [...st.skills.filter((id) => SKILLS[id].cls !== 'fighter' || S.cls === 'fighter'), ...st.skills.filter((id) => SKILLS[id].cls === 'fighter' && S.cls !== 'fighter')] : st.skills).map((id) => {
-      const k = skillAt(id, skillLv(id), skillStage(id));
+      const k = heroSkill(id);
       // st: 적용한 별 단계 — 결투·레이드 재생이 그 모습으로 시전한다 (서버 duel.js·raid.js 가 이벤트 ss 로 되돌려 준다)
       // cp·lc: 트리 V2 의 치명 확률 보정·흡혈 비율, 철벽은 ward(회복 0)로 넘긴다.
       // 고유 특수(spec)는 서버가 모르는 상황형 효과라 평균 피해 배율(classes.js specEv)로 환산해 mult 에 녹인다 — 결투·레이드에선 그만큼 세진 한 방
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
-      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * specEv(SKILLS[id], skillBonus(id)) * stageComp(id, st), crit: !!k.crit,
+      return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st), crit: !!k.crit && !t7NoCrit(),
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
         ...(k.qi && isQiCls(S.cls) ? { [qiIsMain(id, S.cls) ? 'cost' : 'need']: qiCostOf(SKILLS[id], S.cls, skillBonus(id)), ...(id === 'palmBlast' ? { m3: QI_PALM3 } : {}), ...(k.ult ? { awaken: 1 } : {}),
           ...(k.ward && k.ward.qiHurt ? { qiHurt: k.ward.qiHurt } : {}) } : {}),
@@ -773,9 +784,10 @@ function startExpedition({ charm = false, elixir = false } = {}) {
     stageFrom: S.stage, stageTo: S.stage, boxes: GRADES.map(() => 0),
     potions: 0, crises: 0, deaths: 0, tomes: 0, stones: 0, bossFail: false, reason: null, buffs: { charm, elixir },
   };
-  S.run.kills = 0; S.run.farm = false; S.run.cleared = false;
+  S.run.kills = 0; S.run.farm = false; S.run.cleared = false; S.run.prog = 0;
   S.hp = stats().maxHp;
   S.phase = 'expedition';
+  t7EndCamp();   // 시즌7 트리: 이번 캠프에서 찍은 칸의 무료 되돌리기가 끝난다
   return true;
 }
 
@@ -811,6 +823,8 @@ function arriveCamp(silent = false) {
     for (const k of ['dur', 'kills', 'bosses', 'gold', 'xp', 'levels', 'potions', 'crises', 'deaths', 'tomes', 'stones']) r[k] = (r[k] || 0) + (t[k] || 0);
     t.boxes.forEach((n, i) => { r.boxes[i] = (r.boxes[i] || 0) + n; });
     r.stageTo = t.stageTo; r.reason = t.reason; r.bossFail = r.bossFail || t.bossFail;
+    if (t.wallBreak) r.wallBreak = (r.wallBreak || []).concat(t.wallBreak);   // 시즌7 보스 벽 (src/tree7.js)
+    r.wall = t.wall || (r.wall && !(t.wallBreak || []).includes(r.wall.stage) ? r.wall : null);
     r.trips = (r.trips || 1) + 1;
   } else {
     S.report = t;
@@ -903,27 +917,33 @@ function simulate(sec) {
     if (S.run.kills >= S.run.total) { finishLap(); S.run.total = SIM_LAP; S.run.boss = true; }
     const st = stats();
     const boss = isBossNext();
-    const m = monsterStats(S.stage, boss);
+    const m = t7BossStats(S.stage, monsterStats(S.stage, boss));   // 시즌7 트리 줄기의 보스 벽 (src/tree7.js, 아니면 그대로)
+    const wl = m.wall;
     const walk = 4.5;
-    // 여러 마리를 동시에 때리는 무기는 처치 속도가 조금 빨라진다고 근사
-    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1));
-    const cycle = walk + fight;
+    // 여러 마리를 동시에 때리는 무기는 처치 속도가 조금 빨라진다고 근사 · 벽 보스 기믹은 막는 갈래를 덜 찍었을수록 DPS 손실
+    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1) * (wl ? t7WallDps(wl) : 1));
+    // 벽 보스는 싸움이 simulate 한 번(t)보다 길 수 있다 → 싸운 시간을 S.run.prog 에 이어 쌓는다 (원정이 끝나면 처음부터)
+    const prog = wl ? S.run.prog || 0 : 0;
+    const cycle = walk + fight - prog;
     const staminaLeft = S.stamina / staDrain();
     if (cycle > t || cycle > staminaLeft) {
       const used = Math.min(t, staminaLeft);
       S.stamina -= used * staDrain();
       S.trip.dur += used;
       t -= used;
+      if (wl) { S.run.prog = prog + used; t7WallNote(m, 1 - Math.max(0, S.run.prog - walk) / fight); }
       if (S.stamina <= 0.01) { S.stamina = 0; endExpedition('stamina', true); }
       break;
     }
+    if (wl) S.run.prog = 0;
     t -= cycle;
     S.stamina -= cycle * staDrain();
     S.trip.dur += cycle;
     S.hp = Math.min(st.maxHp, S.hp + st.maxHp * 0.06 * walk);
     // 사거리가 길면 적이 다가오는 동안은 맞지 않는다. 방어(guard)·타격 회복(heal) 반영
     const exposed = Math.max(0, fight - (st.range - MELEE_REACH) / MONSTER_SPEED);
-    S.hp -= (exposed / 1.3) * m.atk * (1 - st.guard);
+    const hurt = (exposed / 1.3) * m.atk * (1 - st.guard) * (wl ? t7WallHurt(wl, fight) : 1) + (wl ? t7WallPool(wl, fight) * st.maxHp : 0);   // 광폭화·장판
+    S.hp -= hurt;
     S.hp += fight * st.aspd * st.heal * st.maxHp;
     // 체력이 30% 아래로 떨어질 때마다 물약이 최대 체력의 70%를 되돌려 준다고 근사
     while (S.hp < st.maxHp * POTION_AT && S.items.potion > 0) {
@@ -932,6 +952,7 @@ function simulate(sec) {
       S.hp += st.maxHp * (1 - POTION_AT);
     }
     if (S.hp <= 0) {
+      if (wl) t7WallNote(m, Math.min(1, -S.hp / Math.max(1, hurt)));   // 버틴 시간 비율만큼 깎았다고 근사 (남은 체력 비율)
       t -= DEFEAT_DOWN_SEC;
       knightDefeated(boss);
       if (S.stamina <= 0) { endExpedition('stamina', true); break; }
@@ -940,6 +961,7 @@ function simulate(sec) {
     S.hp = Math.min(st.maxHp, S.hp);
     if (S.hp < st.maxHp * 0.25) S.trip.crises++;
     rewardKill(m);
+    if (wl) t7WallBreak(m);
     if (bagFull()) endExpedition('bag', true);
   }
   if (t > 0) advanceCamp(t);

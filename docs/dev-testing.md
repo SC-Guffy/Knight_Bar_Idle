@@ -92,3 +92,11 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 - 오른쪽 위 **시험 상태 넣기** (= 콘솔 `preset()`): 기사1 탑 · 기사2 원정 · 기사3 미궁 · 기사4 성벽 · 기사5 원정, 공용 🪙 +100만. 왼쪽 위 슬롯 칩으로 전환.
 - 상태 보기: 콘솔 `gS(frames[0])` (그 기사의 S), `frames[0].win.guildDbg` (clock·knight.x·몬스터 수).
 - 숨은 브라우저 창은 rAF 가 멈춘다 → 자동 측정은 `&drive=mc` (MessageChannel 로 약 60/s 구동). 프레임 수치는 실제로 보이는 창에서 rAF 로 잰 것만 믿는다.
+
+## 시즌7 스킬 빌드 트리 시제품 (검사 계열, `src/tree7.js`)
+
+- 봇 측정: `node dev/lifespan-bot.js --days 10 --seeds 15 --mode heavy|casual --line swordsaint --build a|b|k --out x.json` (a 연타 · b 발도 · k 검기). 지금 시스템과 비교는 `--old 1`, 트리 위력 눈금 바꿔 보기는 `--tune 0.4`. 결과 `snaps[].t7` = 찍은 트리 비율. 스펙 [specs/skill-tree-swordsaint.md](specs/skill-tree-swordsaint.md).
+- 연출: `dev/skills.html?cls=blademaster&skill=whirl&stage=0~3&mods=a_grow,b_triple` — 트리 스킬(새 스킬·융합·궁극기)과 변형을 켜서 반복 재생. 단계 0·1·2·3 = 트리 1·2·4·5칸. 갤러리 `dev/review/skill-tree-fx.html`.
+- 보스 벽(4단계): 봇 `--build auto` (막힌 벽 기믹에 맞춰 갈래 바꾸기), 결과 `trips[].wall`(막힌 벽)·`wallLeft`(남은 보스 체력)·`wallBreak`·`build`, `res[].resets`. 수치 바꿔 보기 `--eval "T7_WALL_MUL.region={hp:2,atk:1.4}"`.
+  게임에서 벽 보스 보기 (오프라인 `?t7=1`, 콘솔): `S.cls='swordsaint'; S.level=170; S.gold=1e30; S.mats.mana=5000; S.t7.pick=true; t7Reset(); t7AutoSpend('a'); S.best=S.stage=79; S.phase='camp'; S.bag=[]; S.stamina=maxStamina(); startExpedition()` → 80 화룡(보호막·광폭화). 약하면 테스트용으로 `_st=stats; stats=()=>({..._st(), maxHp:_st().maxHp*40})`.
+- 게임에서 (오프라인): 콘솔 `S.cls='swordsaint'; S.level=160; S.best=S.stage=150; S.gold=1e30; S.mats.mana=5000; S.t7.pick=true; t7AutoSpend('a'); stats().skills` → 장착 스킬 확인. 숨은 창이면 `for (let i=0;i<2400;i++) update(1/30)` 으로 원정을 직접 돌린다.

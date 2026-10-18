@@ -252,7 +252,7 @@ function tryCastSkill(st, target, only = null) {
   const qi = qiOn();       // 파이터 계열: 기 게이지가 소모량(투지 칸이 문턱) 이상이면 쓴다 — 투지 기술 먼저 (src/jobs/fighter.js)
   for (const id of qi ? qiOrder(st) : st.skills) {
     if ((qi ? !qiCan(id, !!only) : (knight.cds[id] || 0) > 0) || (only && id !== only)) continue;
-    const k0 = qi ? qiShape(id, skillAt(id, skillLv(id), skillStage(id))) : skillAt(id, skillLv(id), skillStage(id)), fx = SKILL_FX[id];
+    const k0 = qi ? qiShape(id, skillAt(id, skillLv(id), skillStage(id))) : heroSkill(id), fx = SKILL_FX[id];   // heroSkill: 시즌7 트리 변형까지 (core.js)
     // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 · 고유 특수 (core.js skillRight · skillSpec, 종류는 classes.js SPEC_TYPES)
     const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward'), sp = skillSpec(id);
     const spT = (t) => (sp && sp.type === t ? sp.v : 0);     // 이 스킬의 특수가 t 종류면 지금 값, 아니면 0
@@ -277,7 +277,7 @@ function tryCastSkill(st, target, only = null) {
     knight.swing = -1;
     let focus = target;
     const a = {
-      cls: S.cls, dir: 1, star: skillStage(id), ...(k0.q3 ? { kOver: k0, q3: true } : {}),
+      cls: S.cls, dir: 1, star: skillStage(id), ...(k0.q3 ? { kOver: k0, q3: true } : t7Has(id) ? { kOver: k0 } : {}),
       x: () => toScreen(knight.x),
       tx: () => toScreen(focus.x) + focus.kb,
       ty: () => monsterMidY(focus),
@@ -304,7 +304,7 @@ function tryCastSkill(st, target, only = null) {
           // 여러 번 나눠 때리는 스킬은 (2타부터) 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다.
           // 한 마리마다 다른 보정(🗡️ 처형 · 🪨 보스 · 🎯 안 맞은 적)은 hitMonster 가 그 적의 상태를 보고 곱한다
           const d = hitMonster(m, k.hits[i][1] * skillPow(id) * mul, {
-            crit: k.crit, critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1,
+            crit: k.crit && !t7NoCrit(), critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1,
             exec: spT('exec') ? { thr: sp.thr, v: sp.v } : null, bossBonus: spT('boss'), first: spT('first'),
           }) || 0;
           dealt += d;
@@ -326,6 +326,7 @@ function tryCastSkill(st, target, only = null) {
           const next = monsters.filter((m) => !m.dying && m.hp > 0).sort((p, q) => aheadDist(knight.x, p.x) - aheadDist(knight.x, q.x))[0];
           if (next) hitMonster(next, over * sp.v / stats().atk, { nocrit: true, kb: 6, color: a.color });
         }
+        if (t7Has(id)) t7OnHit(id, k, i, list, dealt, kills, a, st);   // 시즌7 트리 전투 규칙: 광란·잔영·만검귀종 (src/tree7-fx.js)
         // 🩸 흡혈: 이 타격으로 입힌 피해의 일부를 체력으로
         if (lc && dealt > 0) {
           const max = stats().maxHp, h = Math.min(max - S.hp, dealt * lc);
@@ -333,6 +334,7 @@ function tryCastSkill(st, target, only = null) {
         }
       },
       onEnd: () => {
+        if (t7Has(id)) t7OnEnd(id);   // 무한검 (src/tree7-fx.js)
         if (!k.ward) {
           // 🛡️ 철벽: 시전 뒤 잠깐 받는 피해가 준다 (성역의 보호막 틀을 빌린다, 지속 피해 없음)
           if (wd) knight.ward = { left: TREE_RIGHT.ward.dur, guard: wd, tick: 0, acc: 0, finish: 0, a };
@@ -2820,6 +2822,8 @@ const SKILL_FX = {
     kb: 4,
   },
 };
+// 시즌7 트리의 새 스킬은 3단계 연출 전까지 같은 계열 스킬의 연출을 빌린다 (src/tree7.js T7_FX_BASE)
+if (typeof T7_FX_BASE !== 'undefined') for (const [id, b] of Object.entries(T7_FX_BASE)) if (!SKILL_FX[id]) SKILL_FX[id] = SKILL_FX[b];
 
 // ───────────────────────── 그리기 ─────────────────────────
 function drawSkillFx() {

@@ -52,8 +52,10 @@ const num = (v, min, max, dflt) => {
 function sanitizeProfile(p = {}) {
   const leap = p.leap && typeof p.leap === 'object'
     ? { every: num(p.leap.every, 1, 60, 6), mult: num(p.leap.mult, 0, 20, 1) } : null;
-  // 스킬: 최대 3종. 수치는 클라이언트 src/classes.js 의 SKILLS 에서 계산해 올린다
-  const skills = (Array.isArray(p.skills) ? p.skills : []).slice(0, 3)
+  // 스킬: 최대 3종 · 시즌7 스킬 트리 줄기(t7, src/tree7.js)는 장착 칸 4 + 궁극기 = 5종 (다른 직업은 3차에 4종이어도 지금처럼 3종 — 결투 결과가 안 바뀌게).
+  //  수치는 클라이언트 src/classes.js 의 SKILLS 에서 계산해 올린다
+  const t7 = !!p.t7;
+  const skills = (Array.isArray(p.skills) ? p.skills : []).slice(0, t7 ? 5 : 3)
     .filter((s) => s && typeof s === 'object' && typeof s.id === 'string')
     .map((s) => ({
       id: s.id.slice(0, 24), lv: Math.floor(num(s.lv, 1, 30, 1)),   // 스킬 숙련도 (재생 연출용, 피해는 mult 에 이미 반영)
@@ -92,7 +94,7 @@ function sanitizeProfile(p = {}) {
     heal: num(p.heal, 0, 0.2, 0),
     // 장비 옵션 줄 (시즌6): 레이드·월드 보스 전투만 쓴다 (server/raid.js)
     ...(p.bossDmg ? { bossDmg: num(p.bossDmg, 0, 4, 0) } : {}), ...(p.exec ? { exec: num(p.exec, 0, 4, 0) } : {}),
-    leap, skills, ...(qi ? { qi } : {}),
+    leap, skills, ...(qi ? { qi } : {}), ...(t7 ? { t7: 1, ...(p.duel ? { duel: num(p.duel, 0.3, 3, 1) } : {}) } : {}),   // duel: 시즌7 트리 결투 전용 공격력 배율 (server/duel.js)
     power: Math.floor(num(p.power, 0, 1e150, 0)),
     tower: Math.floor(num(p.tower, 0, 1e5, 0)),   // 도전의 탑 최고 층 (탑 순위)
     gc: 1,

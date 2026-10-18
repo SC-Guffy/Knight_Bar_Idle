@@ -1,0 +1,61 @@
+/* 시즌7 스킬 빌드 트리 — 스킬 탭 화면 (src/tree7-ui.js, docs/specs/skill-tree-swordsaint.md "UI")
+   노드 그림은 canvas 도트(src/tree7-art.js)를 정수배로 키운다. 판은 남보라 + 8px 도트 격자, 갈래 띠·판 테두리는 게임 도트 틀(frame-thin·frame-panel) */
+.t7c { image-rendering: pixelated; display: block; }
+
+/* 장착 칸 줄 */
+.t7slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 8px 0 6px; }
+.t7slot { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 6px; font: inherit; font-size: 12px; color: var(--px-dim, #a59cb8); text-align: left;
+  border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background: #ffffff06; background-clip: padding-box; min-width: 0; }
+.t7slot span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t7slot small { opacity: .8; white-space: nowrap; }
+.t7slot.full { color: #ece6f6; background-color: #2b2538; cursor: pointer; }
+.t7slot.ult.full { border-image: url(frame-gold.svg) 4 / 4px; }
+.t7slot.lock { opacity: .6; }
+.t7slot.buy { justify-content: center; color: #ffd257; cursor: pointer; border-image: url(frame-gold.svg) 4 / 4px; }
+@media (max-width: 560px) { .t7slots { grid-template-columns: repeat(2, minmax(0, 1fr)); } .t7slot.ult { grid-column: span 2; } }
+.t7pool { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 2px 0 6px; font-size: 12px; }
+.t7pool > small { width: 100%; opacity: .75; }
+.t7chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 2px; font: inherit; font-size: 12px; color: #ece6f6; background: #2b2538; border: 2px solid #0b0a14; cursor: pointer; }
+.t7bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin: 4px 0 6px; font-size: 12px; }
+
+/* 트리 판 (가로로 밀어 본다) */
+.t7wrap { overflow-x: auto; overflow-y: hidden; border: 6px solid transparent; border-image: url(frame-panel.svg) 6 / 6px; image-rendering: pixelated; background: #15121c; background-clip: padding-box; overscroll-behavior-x: contain; }
+.t7board { position: relative; background-image: linear-gradient(#ffffff07 1px, transparent 1px), linear-gradient(90deg, #ffffff07 1px, transparent 1px); background-size: 8px 8px; }
+.t7edges { position: absolute; inset: 0; pointer-events: none; }
+.t7lane { position: absolute; font: 700 10px Galmuri11, sans-serif; padding: 1px 8px; text-align: right; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background: #ffffff05; background-clip: padding-box; }
+.t7lane small { font-weight: 400; color: #a59cb8; }
+.t7lane .l-a { color: #ffe08a; } .t7lane .l-b { color: #9fe8ff; } .t7lane .l-k { color: #ff9a6a; }
+
+/* 노드 */
+.t7n { --c: #8f7cc0; position: absolute; transform: translate(-50%, -50%); padding: 0; border: 0; background: none; cursor: pointer; line-height: 0; }
+.t7n.lock .t7c { filter: grayscale(1) brightness(.6); }
+.t7n.can .t7c { filter: drop-shadow(0 0 3px var(--c)); animation: t7pulse 1.6s ease-in-out infinite; }
+.t7n.got .t7c { filter: drop-shadow(0 0 4px var(--c)); }
+.t7n.ult.got .t7c { filter: drop-shadow(0 0 7px #ffd257); }
+@keyframes t7pulse { 50% { filter: drop-shadow(0 0 7px var(--c)); } }
+@media (prefers-reduced-motion: reduce) { .t7n.can .t7c { animation: none; } }
+.t7n .rk { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); font: 10px/1.3 Galmuri11, sans-serif; font-style: normal; color: #a59cb8; white-space: nowrap; text-shadow: 0 1px 0 #000, 0 0 3px #000; pointer-events: none; }
+.t7n.got .rk, .t7n.can .rk { color: #ece6f6; }
+.t7n.mod .rk, .t7n.stat .rk { display: none; }   /* 위아래로 붙은 변형·스탯은 이름표 없이 (누르면 상세) */
+.t7n.mod.sel .rk, .t7n.stat.sel .rk { display: block; z-index: 2; background: #0b0a14cc; padding: 0 3px; }
+.t7n.active .rk, .t7n.ult .rk { font-weight: 700; }
+.t7n.fusion .rk { top: 50%; left: calc(100% + 8px); transform: translateY(-50%); }
+.t7n.fusion.lbl-l .rk { left: auto; right: calc(100% + 8px); }
+.t7n.sel::after { content: ''; position: absolute; inset: -6px; border: 2px dashed #ffd257; }
+.t7pair { position: absolute; transform: translate(-50%, -50%); font: 700 10px Galmuri11, sans-serif; color: #17141f; background: #ffd257; padding: 1px 4px; border: 2px solid #0b0a14; box-shadow: 0 2px 0 #0b0a14; pointer-events: none; }
+
+/* 고른 노드 상세 */
+.t7detail { margin-top: 8px; padding: 8px 10px; font-size: 12px; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background: #ffffff06; background-clip: padding-box; }
+.t7detail p { margin: 6px 0; }
+.t7dh { display: flex; align-items: center; gap: 10px; }
+.t7dh b { font-size: 14px; color: #ffd257; }
+.t7dh small { display: block; color: #a59cb8; }
+.t7cost { color: #ff8a80; }
+.t7why { color: #ffb35c; }
+.t7looks { list-style: none; padding: 0; margin: 6px 0; }
+.t7looks li { padding: 1px 6px; color: #a59cb8; }
+.t7looks li.on { color: #ece6f6; background: #2b2538; border-left: 3px solid #ffd257; }
+.t7act { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+
+/* 귀환 보고: 보스 벽 돌파 (4단계) */
+.reason.t7-break { font-size: 16px; color: #ffe08a; text-shadow: 0 0 6px rgba(255, 200, 80, .6); text-align: center; padding: 6px 0; }
