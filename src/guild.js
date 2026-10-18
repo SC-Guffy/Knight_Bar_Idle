@@ -29,7 +29,7 @@ const PASS = (() => { const q = new URLSearchParams(location.search); q.delete('
 // ───────────────────────── 서버 기사단 (2단계) ─────────────────────────
 // 기사단 토큰(localStorage knight-bar-guild-token)이 있으면 서버 기사단: 이름·기사·슬롯은 서버가 기준, 기사들은 기사단 토큰 + X-Char 로 움직인다 (src/net.js)
 // Google 클라이언트 ID 는 공개값이다 (Google Cloud 콘솔 → OAuth 클라이언트 ID, 웹 애플리케이션). 비어 있으면 Google 버튼 대신 "준비 중"
-const GOOGLE_CLIENT_ID = '';
+const GOOGLE_CLIENT_ID = '155892908637-9qkfu1dksnvmc42jhpoakp1kepou28d0.apps.googleusercontent.com';
 const QS = new URLSearchParams(location.search);
 const SERVER = (QS.get('server') || 'https://knight-bar.onrender.com').replace(/\/+$/, '');
 const FAKE_GOOGLE = QS.get('fakegoogle') === '1';
@@ -49,9 +49,10 @@ function setToken(t) {
 // 서버 시각 (3단계): 응답의 X-Server-Time 을 기준으로 performance.now 만큼 흐른 값 — 기기 시계를 돌려도 건설이 빨라지지 않는다
 const srvClock = { base: 0, mono: 0 };
 const srvNow = () => (srvClock.base ? srvClock.base + (performance.now() - srvClock.mono) : Date.now());
-async function gapi(method, path, body, auth = true, { keepalive = false } = {}) {
+async function gapi(method, path, body, auth = true, { keepalive = false, char = null } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth && account.token) { headers.Authorization = `Bearer ${account.token}`; headers['X-Device'] = DEVICE; }
+  if (char) headers['X-Char'] = encodeURIComponent(char);
   let res, data;
   try {
     res = await fetch(SERVER + path, { method, headers, body: body ? JSON.stringify(body) : undefined, keepalive });
@@ -243,6 +244,64 @@ window.guildHost = {
     showMoved(code);
   },
   linkGoogle() { showLogin('link'); },
+  // ── 5단계: 기사 이름 바꾸기 · 기사 삭제 · 기사단 이름 바꾸기 (회관 화면에서 부른다, 결과는 토스트 글) ──
+  async renameKnight(oldN, newN) {
+    try {
+      const r = await gapi('POST', '/api/me/nickname', { nickname: newN }, true, { char: oldN });
+      const nn = r.nickname, i = slotOf(oldN), f = i >= 0 ? frames[i] : null;
+      const oldKey = `${SAVE_KEY}:${oldN.toLowerCase()}`, newKey = `${SAVE_KEY}:${nn.toLowerCase()}`;
+      if (f && f.win && f.win.guildApi) f.win.guildApi.renamed(nn);   // 돌고 있는 기사는 그 게임이 새 칸에 저장
+      else if (oldKey !== newKey) { const v = localStorage.getItem(oldKey); if (v != null) localStorage.setItem(newKey, v); }
+      if (oldKey !== newKey) localStorage.removeItem(oldKey);
+      if (f) f.nick = nn;
+      guild.chars = guild.chars.map((n) => (n === oldN ? nn : n));
+      guild.slots = guild.slots.map((n) => (n === oldN ? nn : n));
+      serverChars = serverChars.map((c) => (c.nickname === oldN ? { ...c, nickname: nn } : c));
+      const acc = readJSON(ACCOUNTS_KEY);
+      if (acc && acc.list && acc.list[oldN]) { acc.list[nn] = acc.list[oldN]; delete acc.list[oldN]; if (acc.active === oldN) acc.active = nn; localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(acc)); }
+      saveGuild(); updateRoster(); renderSlots(); refreshHall();
+      return `✏️ ${oldN} → ${nn}`;
+    } catch (e) {
+      if (e.code === 'moved' || e.code === 'guild-auth') showMoved(e.code);
+      return `⚠️ ${e.message}`;
+    }
+  },
+  async deleteKnight(nick, confirm) {
+    if (confirm !== nick) return '⚠️ 이름을 그대로 입력해야 지워져요';
+    try {
+      const r = await gapi('POST', '/api/guilds/chars/delete', { nickname: nick, confirm });
+      const i = slotOf(nick);
+      if (i >= 0) {
+        if (active === i) { const j = frames.findIndex((f, k) => f && k !== i); if (j >= 0) pick(j); }
+        kill(i);
+        guild.slots[i] = null;
+      }
+      localStorage.removeItem(`${SAVE_KEY}:${nick.toLowerCase()}`);
+      const acc = readJSON(ACCOUNTS_KEY);
+      if (acc && acc.list && acc.list[nick]) { delete acc.list[nick]; if (acc.active === nick) acc.active = null; localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(acc)); }
+      guild.chars = guild.chars.filter((n) => n !== nick);
+      serverChars = r.guild.chars;
+      // 슬롯에 아무도 없게 됐으면 남은 첫 기사를 1번에
+      if (!frames.some(Boolean) && guild.chars.length) { guild.slots[0] = guild.chars[0]; spawn(0, guild.chars[0]); active = -1; pick(0); pushSlots(); }
+      saveGuild(); updateRoster(); renderSlots(); refreshHall();
+      hostToast(`🗑️ <b>${esc(nick)}</b> 를 지웠어요`);   // 보던 기사를 지웠으면 그 화면은 이미 닫혀서 바깥에서 알린다
+      return `🗑️ ${nick} 를 지웠어요`;
+    } catch (e) {
+      if (e.code === 'moved' || e.code === 'guild-auth') showMoved(e.code);
+      return `⚠️ ${e.message}`;
+    }
+  },
+  async renameGuild(name) {
+    try {
+      const r = await gapi('POST', '/api/guilds/name', { name });
+      guild.name = r.name;
+      saveGuild(); refreshHall();
+      return `🛡️ 기사단 이름을 「${r.name}」 으로 바꿨어요`;
+    } catch (e) {
+      if (e.code === 'moved' || e.code === 'guild-auth') showMoved(e.code);
+      return `⚠️ ${e.message}`;
+    }
+  },
   async linkConfirm(code) {
     try {
       await gapi('POST', '/api/link/confirm', { code });

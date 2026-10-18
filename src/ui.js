@@ -449,6 +449,14 @@ const guildApi = {
     else toast('🛡️ 기사단 회관은 캠프에서 열 수 있어요');
   },
   refresh() { if (campOpen && campTab === 'town') renderCamp(); },
+  // 바깥 페이지가 서버에서 이름을 바꿨다 (5단계): 이 기사의 계정·세이브 칸을 새 이름으로 옮겨 저장
+  renamed(nick) {
+    accounts.active = nick;
+    saveKey = accountSaveKey(nick);
+    save();
+    if (window.bar) window.bar.setAccount(nick);
+    renderHud();
+  },
   save() { save(); },
 };
 // 🛡️ 기사단 회관을 골랐을 때 건물 카드 아래: 보유 기사·슬롯 배정·새 기사 (viewHall 은 명예의 전당)
@@ -463,12 +471,17 @@ function viewGuildHall() {
         <button class="btn" data-action="guild-unslot" data-nick="${esc(c.nick)}" ${!i || i.busy ? 'disabled title="캠프에 있을 때만 뺄 수 있어요"' : ''}>슬롯에서 빼기</button>`
       : `<button class="btn" data-action="guild-slot" data-nick="${esc(c.nick)}" ${free ? '' : 'disabled title="빈 슬롯이 없어요"'}>슬롯에 넣기</button>
         ${g.online ? '' : `<button class="btn" data-action="guild-drop" data-nick="${esc(c.nick)}">기사단에서 빼기</button>`}`;
+    // 5단계: 이름 바꾸기 · 삭제 (마지막 1명·진행 중이면 삭제 못 함)
+    const canDel = g.chars.length > 1 && (!inSlot || (i && !i.busy));
+    const edits = g.online ? `<button class="btn" data-action="guild-edit" data-mode="rename" data-nick="${esc(c.nick)}">이름</button>
+        <button class="btn" data-action="guild-edit" data-mode="delete" data-nick="${esc(c.nick)}" ${canDel ? '' : `disabled title="${g.chars.length > 1 ? '캠프에 있을 때만 지울 수 있어요' : '마지막 기사는 지울 수 없어요'}"`}>삭제</button>` : '';
     return `<div class="fac">
       <span class="fname">${inSlot ? `<b>${c.slot + 1}</b>` : '–'} ${esc(c.nick)} <small>${i ? `${esc(i.cls)} Lv ${i.lv}` : ''}</small></span>
-      <span class="feff">${doing}</span>${btns}</div>`;
+      <span class="feff">${doing}</span>${btns}${edits}</div>${guildEdit.nick === c.nick && guildEdit.mode !== 'gname' ? guildEditRow() : ''}`;
   }).join('');
-  return `<div class="shead sub"><h3>${ico('shield')} ${esc(g.name)} <small>기사 ${g.chars.length}/${g.max} · 슬롯 ${g.open}/5</small></h3>
+  return `<div class="shead sub"><h3>${ico('shield')} ${esc(g.name)} ${g.online ? `<button class="btn" data-action="guild-edit" data-mode="gname" title="기사단 이름 바꾸기 (일주일에 한 번)">✏️</button>` : ''} <small>기사 ${g.chars.length}/${g.max} · 슬롯 ${g.open}/5</small></h3>
       <button class="btn" data-action="guild-new" ${free && g.chars.length < g.max ? '' : `disabled title="${free ? '기사가 가득 찼어요' : '빈 슬롯이 없어요 — 회관을 올리거나 슬롯을 비우세요'}"`}>${ico('plus')} 새 기사</button></div>
+    ${guildEdit.mode === 'gname' ? guildEditRow() : ''}
     <div class="hint">슬롯에 있는 기사는 안 보고 있어도 계속 진행해요. 골드·목재·철광석·마을은 기사단이 같이 써요. 슬롯 배정은 그 기사가 캠프에 있을 때만 바꿀 수 있어요.</div>
     ${rows}
     ${viewGuildFx()}
@@ -484,6 +497,20 @@ function viewGuildHall() {
       <input id="guildLinkCode" maxlength="7" inputmode="numeric" placeholder="000000" autocomplete="off" style="width:72px">
       <button class="btn" data-action="guild-link">연결</button>
     </div>` : ''}`;
+}
+
+// 회관 이름 바꾸기·삭제 입력 줄 (docs/specs/guild.md 5단계). mode: rename(기사 이름) | delete(기사 삭제, 이름 그대로 입력) | gname(기사단 이름)
+const guildEdit = { mode: null, nick: null, msg: '' };
+function guildEditRow() {
+  const m = guildEdit.mode, n = esc(guildEdit.nick || '');
+  const head = m === 'rename' ? `✏️ <b>${n}</b> 의 새 이름 <small>· 하루에 한 번 · 무료</small>`
+    : m === 'delete' ? `🗑️ <b>${n}</b> 를 지우려면 이름을 그대로 입력하세요 <small>· 되돌릴 수 없어요 · 장비·스킬·기사별 재화가 사라지고, 공용 재화·마을은 그대로예요</small>`
+    : `✏️ 새 기사단 이름 <small>· 일주일에 한 번</small>`;
+  return `<div class="fac"><span class="feff">${head}</span>
+    <input id="guildEditIn" maxlength="12" placeholder="${m === 'delete' ? n : '한글·영문·숫자 2~12자'}" autocomplete="off" spellcheck="false" style="width:120px">
+    <button class="btn${m === 'delete' ? ' rd' : ''}" data-action="guild-edit-ok">${m === 'delete' ? '지우기' : '바꾸기'}</button>
+    <button class="btn" data-action="guild-edit-cancel">취소</button>
+    ${guildEdit.msg ? `<small>${esc(guildEdit.msg)}</small>` : ''}</div>`;
 }
 
 // 회관 아래 기사단 효과 표 (core.js guildFx): 계열마다 센 기사·단/최대 단·효과, 다양성·따라잡기
@@ -3063,6 +3090,19 @@ const ACTIONS = {
   'guild-unslot': (el) => GUILD_HOST.slot(el.dataset.nick, false),
   'guild-drop': (el) => GUILD_HOST.drop(el.dataset.nick),
   'guild-new': () => GUILD_HOST.newKnight(),
+  'guild-edit': (el) => { Object.assign(guildEdit, { mode: el.dataset.mode, nick: el.dataset.nick || null, msg: '' }); setTimeout(() => $('guildEditIn') && $('guildEditIn').focus(), 30); },
+  'guild-edit-cancel': () => { guildEdit.mode = null; guildEdit.nick = null; },
+  'guild-edit-ok': () => {
+    const v = ($('guildEditIn') ? $('guildEditIn').value : '').trim(), { mode, nick } = guildEdit;
+    if (!v) return;
+    guildEdit.msg = '⏳ 처리 중…';
+    const p = mode === 'rename' ? GUILD_HOST.renameKnight(nick, v) : mode === 'delete' ? GUILD_HOST.deleteKnight(nick, v) : GUILD_HOST.renameGuild(v);
+    p.then((msg) => {
+      if (msg.startsWith('⚠️')) guildEdit.msg = msg; else { guildEdit.mode = null; guildEdit.nick = null; guildEdit.msg = ''; }
+      toast(msg);
+      if (campOpen) renderCamp();
+    });
+  },
   'guild-google': () => GUILD_HOST.linkGoogle(),
   'guild-link': () => { const el = $('guildLinkCode'); GUILD_HOST.linkConfirm(el ? el.value : '').then((m) => toast(m)); },
   'build-rush': () => { rushBuild(); },
