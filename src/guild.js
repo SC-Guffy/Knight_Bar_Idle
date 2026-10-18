@@ -5,7 +5,7 @@
 // 각 기사의 S 에 getter/setter 로 걸어 같이 쓴다 (같은 origin 이라 동기 접근). 건설 시계는 여기서 한 번만 돌린다.
 
 // 기사단 스위치 (src/data.js GUILD_OPEN 과 같게). 꺼져 있으면 배포 주소에서는 보통 게임으로 돌려보낸다 (로컬 개발 주소는 늘 열림)
-const GUILD_OPEN = false;
+const GUILD_OPEN = true;
 if (!GUILD_OPEN && !/^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$|\.test$/.test(location.hostname)) {
   try { localStorage.removeItem('knight-bar-guild-on'); } catch {}
   location.replace('index.html');
@@ -577,7 +577,8 @@ async function enterGuild(token) {
   for (const n of local) {
     const t = acc.list[n];
     if (!t || t.startsWith('g.')) continue;
-    try { await gapi('POST', '/api/guilds/adopt', { nickname: n, token: t }); } catch (e) { hostToast(`<b>${esc(n)}</b> 기사단에 넣지 못했어요 — ${esc(e.message)}`); }
+    // 시즌 리셋 뒤엔 예전 기사가 서버에 없어서 실패한다 — 알리지 않고 넘긴다
+    try { await gapi('POST', '/api/guilds/adopt', { nickname: n, token: t }); } catch (e) { console.info('adopt 건너뜀', n, e.message); }
   }
   $('naming').hidden = true;
   return boot();

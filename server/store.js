@@ -489,7 +489,7 @@ class PgStore {
   async top(sort, limit, season, opt = {}) {
     const where = [season ? 'season=$2 AND attacks>0' : '', opt.humans ? 'NOT is_bot' : ''].filter(Boolean).join(' AND ');
     const r = await this.pool.query(
-      `SELECT key,nickname,profile,level,best,power,cls,rating,wins,losses,season,attacks,created_at,updated_at,is_bot,tower,'' AS token_hash,NULL AS state
+      `SELECT key,nickname,profile,level,best,power,cls,rating,wins,losses,season,attacks,created_at,updated_at,is_bot,tower,guild_id,'' AS token_hash,NULL AS state
        FROM accounts ${where ? 'WHERE ' + where : ''} ORDER BY ${SQL_ORDER[sort]} LIMIT $1`, season ? [limit, season] : [limit]);
     return r.rows.map(x => this.row(x));
   }

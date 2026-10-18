@@ -947,6 +947,7 @@ routes['POST /api/admin/reset'] = async (req) => {
   }
   await store.wipe();
   rooms.clear(); roomOf.clear(); authCache.clear(); lastDuel.clear(); lastWb.clear();
+  links.clear(); signupTickets.clear(); linkMiss.clear(); guildMade.clear();   // 기사단: 대기 중인 연결 코드·Google 가입 표도 (지운 기사단 토큰을 넘기지 않게)
   bots.reset();
   settledThrough = -1;
   console.log(`전체 초기화: 계정 ${removed}개 삭제`);

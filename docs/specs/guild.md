@@ -1,6 +1,6 @@
 # 기사단 (시즌7 — 여러 캐릭터 동시 육성 + Google 로그인)
 
-- 상태: 1·3·4단계 사용자 확인 완료 · 2단계 구현됨 + 진짜 Google 로그인 확인(10-18) · 5단계 구현됨(사용자 확인 대기) — 2026-10-18. main 병합(0.26.0, 스위치 `GUILD_OPEN` 꺼짐) · **시즌7 오픈 준비 중 (`impl-guild-open`)**
+- 상태: 1~5단계 구현(5단계 사용자 확인 대기) · 진짜 Google 로그인 확인 · **시즌7 오픈 준비 끝 — `impl-guild-open` (GUILD_OPEN 켬, Postgres·리셋 확인)**. main 배포는 로드맵이 스킬 트리 15줄기와 함께 — 2026-10-18
 - 검토 페이지: [dev/review/guild.html](../../dev/review/guild.html)
 - 관련 코드(예정): src/net.js (계정 → 기사단 토큰·캐릭터 key), src/core.js (`S`·`freshState`·`simulate`), src/ui.js (메인 루프 `frame`·HUD), src/world.js (화면·실시간 전투 상태), server/index.js·server/store.js (계정 = 캐릭터 행 유지 + `guilds` 테이블), main.js·preload.js (안 바꾸는 게 목표)
 - 관련 스펙: [roadmap.md](roadmap.md) (시즌7), [currency-roles.md](currency-roles.md), [raid-difficulty.md](raid-difficulty.md)
@@ -349,6 +349,34 @@
 - **지운 기사 이름 — 바로 다시 쓸 수 있게.** 대안: 7일 동안 묶기(남의 이름 가로채기 방지) — 지금 닉네임 바꾸기도 옛 이름을 바로 풀어 주므로 같게.
 - **기사단 이름 바꾸기 — 일주일에 한 번.**
 
+## 시즌7 오픈 준비 (2026-10-18, 브랜치 `impl-guild-open`)
+사용자 결정(로드맵 세션 경유): 시즌7 은 **기사단 + 스킬 빌드 트리 15줄기**로, 다 되면 시즌 리셋과 함께 연다. 스킬 룬·새 직업(사무라이·해머전사·암살자)은 **시즌8** 로 넘김(사용자 10-18). main 배포는 로드맵이 스킬 트리와 함께 한다.
+
+### 브랜치에 들어간 것
+- main(0.26.0) + `spec-guild` 남은 커밋(5단계 구현 · Google 클라이언트 ID) 병합.
+- **`GUILD_OPEN = true`** (`src/data.js`·`src/guild.js` 둘 다) + 켜져 있으면 **모든 플레이어가 기사단(로그인 화면)부터 시작**(`src/ui.js` `start()`; `?guild=0` 은 그 한 번만 보통 게임 — 문제 확인용).
+- 서버 버그 수정: Postgres 랭킹(`PgStore.top`)이 `guild_id` 를 안 읽어 랭킹에 기사단 이름이 안 붙던 것(파일 저장소에선 안 보였음).
+- 리셋 때 기사단 메모리 값(대기 중 연결 코드·Google 가입 표·틀린 코드 기록·기사단 생성 제한)도 비움.
+- 시즌 리셋 뒤 예전 개인 토큰 기사를 기사단에 넣기(adopt)가 실패하는 건 알리지 않고 넘김(전원 실패하므로).
+- `GAME_VERSION` 은 로드맵이 배포 때 올린다(이 브랜치는 0.26.0 그대로).
+
+### 확인 (임시 Postgres 17, `embedded-postgres` — 시스템 설치 없음)
+- **기존 계정 호환** (`dev/guild-pg-compat.mjs`): 지금 배포된 서버(병합 직전 main `4daadf7`)로 Postgres 에 계정·세이브·결투를 만들고 → 새 서버로 바꿔 띄움 → 표가 자동으로 바뀜(`accounts.guild_id`, `guilds` 표와 `shared`·`shared_rev`·`shared_at`·`name_at` 열) · 옛 계정 개인 토큰으로 `/api/me`·세이브 올리기·결투·받은 결투·랭킹 그대로 · 옛 계정 `guild_id` 는 빈 값. 7개 통과.
+- **Postgres 위 기사단 서버 점검** (`dev/guild-server-test.mjs`): 기사단·기사·`X-Char`·결투·레이드 파티·두 기기·연결 코드·손님+Google(가짜)·랭킹 이름·공용 상태·이름 바꾸기·삭제·기사단 이름 전부 통과(랭킹 버그 고친 뒤).
+- **전체 리셋** (`dev/guild-pg-reset.mjs`): `/api/admin/reset` 뒤 계정·**기사단**·결투 기록·월드 보스·시즌 보상 0, 명예의 전당 1줄(사람 기사 수 일치). `store.wipe()` 가 `guilds` 를 이미 TRUNCATE 하고 있었음.
+- **리셋 뒤 빈 DB 에서 브라우저 흐름**: `dev/guild-shared-test.mjs`(두 기기 이어 받기·서버 시각 건설·오프라인) · `dev/guild-raid-test.mjs`(숨은 기사 레이드) · `dev/guild-manage-test.mjs`(이름·삭제) 모두 통과.
+- **배포 주소처럼 열기** (`dev/guild-open-test.mjs`, 로컬 개발 주소가 아닌 `knightbar.example` 을 이 PC 로 묶은 headless Chrome): 주소 그대로 열면 기사단 로그인 화면 · 손님 → 기사단 → 첫 기사 · `?guild=0` 은 보통 게임 · 다시 열면 같은 기사단. 5개 통과.
+
+### 열 때 사용자가 할 일 (순서)
+1. Render 환경 변수 `GOOGLE_CLIENT_ID` = `155892908637-9qkfu1dksnvmc42jhpoakp1kepou28d0.apps.googleusercontent.com` (없으면 Google 버튼만 503 — 손님·연결 코드는 된다).
+2. Google Cloud OAuth 동의 화면 **프로덕션 게시** (안 하면 테스트 사용자만 Google 로그인).
+3. (권장) 배포 직후 실제 Electron 앱 한 번 켜 보기 — 앱 창 API 중계는 가짜 `bar` 로만 확인함.
+4. main 배포(로드맵) 뒤 **전체 리셋**: `curl -X POST https://knight-bar.onrender.com/api/admin/reset -H "X-Admin-Key: <ADMIN_KEY>" -H "Content-Type: application/json" -d '{"confirm":"RESET"}'` — 되돌릴 수 없음, 명예의 전당만 남음.
+
+### 남는 위험
+- 실제 Electron 앱 미확인(위 3). Render 의 실제 Postgres(Supabase)는 로컬 임시 Postgres 17 과 버전·설정이 다를 수 있으나 쓰는 SQL 은 `ADD COLUMN IF NOT EXISTS`·`CREATE TABLE IF NOT EXISTS`·일반 질의뿐.
+- 공용 골드로 본캐가 빨리 큰다(4단계 봇: 7일 스테이지 269 대 240) — 사용자 확인함.
+
 ## 수용 기준
 - [x] 처음 접속: Google 로그인 → 기사단 이름 → 첫 기사 닉네임 → 게임 시작 — 가짜 Google 로 끝까지(2단계), 진짜 Google 로 기사단 이름 화면까지 사용자 확인(10-18)
 - [x] 다른 브라우저에서 같은 Google 계정으로 로그인하면 같은 기사단·기사들(2단계)·마을과 재화(3단계)가 보인다 — 가짜 Google 로 확인
@@ -409,11 +437,13 @@
 
 - 2026-10-18: 사용자가 Google OAuth 클라이언트를 만들어 ID 를 줌 → `GOOGLE_CLIENT_ID` 에 넣고 로컬 서버(진짜 Google 검증)로 패널에서 로그인 → 기사단 이름 화면까지 사용자 확인.
 
+- 2026-10-18: 로드맵 지시(사용자 결정: 시즌7 = 기사단 + 스킬 트리 15줄기, 다 되면 리셋과 함께 오픈 / 룬·새 직업은 시즌8) → **시즌7 오픈 준비** — `impl-guild-open` 브랜치(main + spec-guild + `GUILD_OPEN` 켬). 임시 Postgres 로 기존 계정 호환·기사단 전 흐름·전체 리셋 확인, Postgres 랭킹 기사단 이름 버그 고침. 위 "시즌7 오픈 준비" 절.
+
 ## 남은 일 / 미정
 - ~~인계 (2026-10-16 퇴근)~~ → 10-16 집 PC 에서 처리함(프레임 측정·순서 승인). 원문: 스펙 초안·검토 페이지(`dev/review/guild.html`)·시제품(`dev/guild-spike.html` + `src/core.js` `GUILD_HOST`·`src/net.js` `GUILD_CHAR`·`src/ui.js` `frame(now, shown)`/`guildStep`)은 main 에 커밋·푸시됨(452489e, 9dd7ea8). 사용법은 [dev-testing.md](../dev-testing.md) "기사단 시제품". 사용자에게 시제품 결과를 아직 보고·확인받지 않았다 → 다음 세션은 시제품을 띄워 보여 주고(실제 화면 rAF 로 5명 프레임 측정), 본 구현 순서안(아래) 승인을 받는다. 기사단 효과 수치는 시작안이라 확정 아님.
 - 기사단 효과 수치·회관 슬롯 Lv (사용자 10-16: 시작안 그대로 만들고 마지막 단계에서 봇으로 확정해 다시 보여 준다) — 진행 봇(`dev/progress-bot.js`, `dev/currency-bot.js`)을 기사 여러 명 모드로 늘려서 확정.
 - 1단계 남은 확인: Electron 에서 iframe → 바깥 `bar` 전달 (실제 화면 프레임 측정은 10-16 집 PC 에서 끝남).
-- **다음 할 일**: 시즌7 오픈 준비(`impl-guild-open`) — 아래 "시즌7 오픈 준비" 기록. 사용자 작업: Render `GOOGLE_CLIENT_ID` 환경 변수 · OAuth 동의 화면 프로덕션 게시 · 실제 앱 확인 · 전체 리셋 실행. 시즌8: 암살자 계열 줄(직업이 생길 때).
+- **다음 할 일**: 시즌7 오픈 준비 끝(`impl-guild-open`, 위 "시즌7 오픈 준비" 절). 로드맵이 스킬 트리 15줄기와 함께 main 에 합쳐 배포. 사용자 작업: Render `GOOGLE_CLIENT_ID` 환경 변수 · OAuth 동의 화면 프로덕션 게시 · 실제 앱 확인 · 전체 리셋 실행. 시즌8: 암살자 계열 줄(직업이 생길 때).
 - 본 구현 순서 (**사용자 승인 10-16: 화면 먼저**): 1단계 이 기기 안 기사단(슬롯 칩·알림 모으기·회관·공용 마을, 위 절) → 2단계 서버 기사단(`guilds` 테이블·토큰·`X-Char`)·Google 로그인·연결 코드 → 3단계 공용 상태 서버 저장(다른 기기에서도 같은 마을) → 4단계 기사단 효과 수치(진행 봇).
 - Google Cloud OAuth 클라이언트 만들기 — 사용자 계정으로 해야 함 (콘솔 작업은 사용자가 직접, 순서는 안내).
 - 기사 삭제·이름 바꾸기 → 5단계 절. 슬롯에서 뺀 기사의 입장권 충전 → 1단계에서 정함.

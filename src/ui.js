@@ -3826,7 +3826,8 @@ function start() {
     try {
       if (g === '1') localStorage.setItem('knight-bar-guild-on', '1');
       if (g === '0') localStorage.removeItem('knight-bar-guild-on');
-      if (localStorage.getItem('knight-bar-guild-on')) { location.replace('guild.html' + location.search); return; }
+      // 시즌7 정식(GUILD_OPEN): 모두 기사단으로 시작한다 (?guild=0 은 이번 한 번만 보통 게임 — 개발·문제 확인용)
+      if ((GUILD_OPEN && g !== '0') || localStorage.getItem('knight-bar-guild-on')) { location.replace('guild.html' + location.search); return; }
     } catch {}
     return boot();
   }
