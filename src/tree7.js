@@ -91,22 +91,24 @@ const T7_LINES = {}, T7_STEMS = {}, T7_FX_BASE = {}, T7_LINE_OF = {};
 function t7DefStem(first, o) { T7_STEMS[first] = o; }
 // 줄기별 결투 배율 (궁극기 변형을 찍은 갈래 기준, t7Duel). 맞대결 3쌍 + 지금 시스템 상대 3쌍이 50% 가까이 되게 Lv130·170 결투로 찾은 값
 //  (2026-10-18, 스크래치 tune-duel.js: sanitizeProfile → server/duel.js 40판 좌표 하강). t7DefLine 의 duel 이 있으면 그것
+//  2026-10-19 다시: 시즌 리셋으로 모두 트리라 "15줄기 리그(빌드 a·b·k, Lv130·170) 승률 50%" + "줄기 안 맞대결 50%" 기준으로 (스크래치 league.js --fit --inner).
+//   리그 38~59% · 근접 vs 원거리 48% · 줄기 안 맞대결 14~50/60. 지금 시스템(옛 스킬) 상대 승률은 이제 보지 않는다 (옛 시스템 캐릭터가 없다)
 const T7_DUEL_TUNE = {
-  swordsaint: { a: 1.21, b: 0.93, k: 1.39 },
-  tyrant: { a: 0.99, b: 0.6, k: 1.1 },
-  archon: { a: 0.64, b: 0.42, k: 0.85 },
-  skyGeneral: { a: 0.59, b: 0.42, k: 0.7 },
-  dragonlord: { a: 0.85, b: 0.5, k: 0.93 },
-  warlord: { a: 0.77, b: 0.47, k: 0.83 },
-  siegeMaster: { a: 1.95, b: 1.15, k: 1.3 },
-  deadeye: { a: 1.4, b: 1.16, k: 1.54 },
-  voidArcher: { a: 0.85, b: 0.59, k: 0.91 },
-  thunderEmperor: { a: 1.07, b: 0.75, k: 1.21 },
-  archmage: { a: 1.27, b: 1, k: 1.18 },
-  frostlord: { a: 1.3, b: 0.91, k: 1.5 },
-  champion: { a: 0.91, b: 1, k: 1.1 },
-  tempest: { a: 1.5, b: 0.85, k: 1.4 },
-  grandmaster: { a: 1.12, b: 0.75, k: 1.21 },
+  swordsaint: { a: 0.88, b: 0.75, k: 1.12 },
+  tyrant: { a: 0.84, b: 0.56, k: 0.94 },
+  archon: { a: 1.0, b: 0.69, k: 1.33 },
+  skyGeneral: { a: 0.75, b: 0.51, k: 0.89 },
+  dragonlord: { a: 1.14, b: 0.74, k: 1.45 },
+  warlord: { a: 1.05, b: 0.58, k: 1.14 },
+  siegeMaster: { a: 1.6, b: 1.08, k: 0.89 },
+  deadeye: { a: 1.47, b: 1.09, k: 1.61 },
+  voidArcher: { a: 1.75, b: 1.1, k: 1.78 },
+  thunderEmperor: { a: 1.82, b: 0.97, k: 1.78 },
+  archmage: { a: 1.95, b: 1.42, k: 1.68 },
+  frostlord: { a: 1.43, b: 0.91, k: 1.5 },
+  champion: { a: 0.75, b: 0.55, k: 1.0 },
+  tempest: { a: 1.24, b: 0.78, k: 1.39 },
+  grandmaster: { a: 1.22, b: 0.74, k: 1.49 },
 };
 function t7DefLine(L) {
   if (!L.duel && T7_DUEL_TUNE[L.id]) L.duel = T7_DUEL_TUNE[L.id];
