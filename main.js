@@ -110,11 +110,17 @@ function sendDisplay() {
   if (win && !win.isDestroyed()) win.webContents.send('display', displayInfo());
 }
 
+// 맨 위 레벨. 윈도우의 Electron 은 'floating' 등을 "작업표시줄 바로 뒤"로 넣는데, 작업표시줄(Shell_TrayWnd)이 TOPMOST 가 아니면
+// 그 뒤에 놓이는 순간 우리 창도 TOPMOST 가 풀린다 (실측: 2초 주기로 다시 걸 때마다 풀림). 그래서 윈도우는 항상 'screen-saver'.
+function topLevel() {
+  return process.platform === 'win32' || layout().cover ? 'screen-saver' : 'floating';
+}
+
 // 윈도우는 blur()가 창을 z-order 맨 아래로 보내면서 TOPMOST 도 풀어 버리고, 다른 이유로도 가끔 풀린다.
 // 같은 값으로 다시 켜면 무시될 수 있어서 껐다 켠 뒤 맨 위로 올린다.
 function keepOnTop() {
   if (!win || win.isDestroyed()) return;
-  const level = layout().cover ? 'screen-saver' : 'floating';
+  const level = topLevel();
   if (process.platform === 'win32') win.setAlwaysOnTop(false);
   win.setAlwaysOnTop(true, level);
   if (process.platform === 'win32') win.moveTop();
@@ -371,7 +377,7 @@ app.whenReady().then(() => {
   if (process.platform === 'win32') setInterval(() => {
     if (!win || win.isDestroyed() || !win.isVisible()) return;
     win.setAlwaysOnTop(false);
-    win.setAlwaysOnTop(true, layout().cover ? 'screen-saver' : 'floating');
+    win.setAlwaysOnTop(true, topLevel());
   }, 2000);
 
   const refresh = () => { place(); buildMenu(); };
