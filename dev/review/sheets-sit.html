@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시트 앉기 줄</title>
+<!-- 스펙: docs/specs/legacy-class-sheets.md 규칙 "동작" · 진행 기록 2026-10-19 (앉기 줄).
+     그림 만드는 법: dev/sheets-sit/build.py (대기 하반신 편집, 유료 생성 0). 그림은 게임 drawHero 로 그린 캡처(dev/review/sheets-sit/*.png). -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .dim { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  img.shot { display: block; max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 3px; margin: 6px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  .ok { color: var(--green); } .bad { color: var(--red); }
+  code { background: #0f0d14; padding: 1px 4px; border-radius: 3px; }
+  pre { background: #0f0d14; padding: 8px; border-radius: 4px; overflow-x: auto; }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+<h1>시트 직업 앉기(sit) 줄 — 29장 (시트 직업 36종 중 파이터 계열 7종 외)</h1>
+<p class="dim">2026-10-19 · 사용자 지적 "첫 캐릭 캠프에 앉은 기사랑 싸우는 기사가 왜 다르게 생겼냐" → 시트마다 앉기 줄을 만들어 캠프·교관 무대·결투 패자·레이드 쓰러짐을 모두 시트 그림으로.</p>
+
+<h2>0. 요지</h2>
+<div class="card">
+<ul>
+  <li><b>무엇</b>: 앉기 줄이 없던 시트 29장(견습·검사·창기사·레인저·마법사 계열, 시트를 같이 쓰는 직업 포함 29직업)에 <code>sit</code> 줄(2프레임, 2fps 반복)을 붙였다. 파이터 계열 시트와 같은 형식: <code>anims.sit = {row, frames:2, fps:2, loop:true}</code>, <code>pts.sit</code> = 대기 pts 를 내린 높이만큼 아래로.</li>
+  <li><b>어떻게 (유료 0)</b>: 대기(idle) 프레임 0·1 의 하반신만 편집 — 골반선 위 상체·무기·망토는 그대로 내리고, 다리 픽셀은 90° 눕혀 앞으로 뻗었다(파이터 계열 앉기와 같은 "땅에 앉아 다리를 앞으로" 구도). 색·외곽선·도트는 원래 그림 픽셀 그대로라 전투 그림과 같은 캐릭터로 보인다. ComfyUI·PixelLab 호출 0회 — 무료 스크립트 편집이 검수를 통과해서 유료 계획서가 필요 없었다.</li>
+  <li><b>결과</b>: 시트 직업 36종 모두 <code>heroSheetNoSit</code> = false → 캠프에서 다시 앉는다(임시 규칙 "시트 대기로 서 있기"는 더 이상 걸리지 않음).</li>
+  <li><b>검수</b>: pixel-critic(합격선 전 항목 3+ · 평균 3.5+) 29/29 합격. 1차 20 합격 → 다리 기둥·골반선 조정·낱점 지우기 → 2·3·4차에서 나머지 9종 합격.</li>
+</ul>
+</div>
+
+<h2>1. 전후 비교 (게임 drawHero 로 그림, 3배)</h2>
+<p class="dim">줄마다 [옛 조립식 앉기(지금까지 캠프 모습) | 대기(전투 그림) | 새 앉기 0 | 새 앉기 1]. 갈색 막대 = 캠프 통나무, 발 기준점 = 땅선. 맨 아래 7종은 원래 앉기 줄이 있던 파이터 계열(비교용).</p>
+<div class="wrap"><img class="shot" src="sheets-sit/ingame-lineup.png" alt="전후 비교 줄"></div>
+
+<h2>2. 실제 캠프 화면 (게임 캔버스 잘라냄, 3배)</h2>
+<p class="dim">견습 · 검사 · 마법사 · 공성포수 · 창기사 · 파이터(기존). 통나무 앞 땅에 앉아 모닥불 쪽으로 다리를 뻗는다 — 파이터와 같은 자리·구도.</p>
+<div class="wrap"><img class="shot" src="sheets-sit/camp-crop.png" alt="캠프"></div>
+
+<h2>3. 다른 앉기 화면 (같은 drawHero sit 경로)</h2>
+<p class="dim">교관 무대 앉기 · 결투 패자(왼쪽을 보고 반투명) · 레이드 쓰러짐(반투명). 좌우 반전·반투명·대마도사 등 뒤 불꽃 고리(pts 머리점을 따라 내려옴) 확인. 그리기 예외 0.</p>
+<img class="shot" src="sheets-sit/other-screens.png" alt="다른 화면">
+
+<h2>4. 검수 점수 (pixel-critic, Sonnet)</h2>
+<p class="dim">항목: intent · read · clean · value · pixel · motion · rules. "차"는 합격한 회차.</p>
+<div class="wrap"><table>
+<thead><tr><th>직업 시트</th><th>회차</th><th>의도</th><th>읽힘</th><th>깔끔</th><th>명암</th><th>도트</th><th>움직임</th><th>규칙</th><th>평균</th><th>판정</th></tr></thead>
+<tbody id="scores"></tbody>
+</table></div>
+<ul>
+  <li>1차 수리 사유: greatswordsman·tyrant 망토까지 다리로 잡아 판자 덩어리 → 다리 기둥 좁힘. halberdier·warlord 앞치마를 다리로 잡음 → 골반선 내림. dragoon·dragonlord 누운 것처럼 보임 → 골반선 올려 상체 세우고 다리 짧게. arcaneArcher·voidArcher·arbalest 어두운 덩어리 → 다리 기둥 좁힘. blademaster·swordsaint 땅 위 낱점 → 골반 아래 8도트 이하 외톨이 조각 지움.</li>
+  <li>남은 흠 (전부 합격선 안): 어두운 직업(폭군·공허궁수·석궁병)은 하체가 어두운 덩어리, 할버드·워로드는 하체가 작아 2배에서 약하게 읽힘, 무기를 대기 때처럼 든 채 앉음(의도 — 같은 캐릭터 유지).</li>
+  <li>검수 시트 원본: <a href="sheets-sit/r1-a.png">1차 검</a> · <a href="sheets-sit/r1-b.png">1차 활</a> · <a href="sheets-sit/r1-c.png">1차 창</a> · <a href="sheets-sit/r1-d.png">1차 마법</a> · <a href="sheets-sit/r2.png">2차</a> · <a href="sheets-sit/r3.png">3차 dragoon</a> · <a href="sheets-sit/r4.png">4차 dragonlord</a></li>
+</ul>
+
+<h2>5. 직접 확인하는 법</h2>
+<div class="card">
+<ol>
+  <li>게임 오프라인: <a href="../../index.html?server=http://127.0.0.1:9&guild=0">index.html?server=http://127.0.0.1:9&amp;guild=0</a> (닉네임 창이 뜨면 콘솔에서 아래 한 줄 뒤 새로고침).
+<pre>localStorage.setItem('knight-bar-accounts', JSON.stringify({active:'테스트',list:{'테스트':'local-test-token'}}))</pre></li>
+  <li>약 8초 뒤 캠프의 견습이 시트 그림으로 앉아 있다. 콘솔 <code>heroSheetNoSit('squire')</code> = <code>false</code>, <code>Object.keys(CLASSES).filter(heroSheetNoSit)</code> = <code>[]</code>.</li>
+  <li>다른 직업으로 보기: 콘솔 <code>S.cls = 'mage'</code> (또는 lancer · siegeMaster · archmage …) — 캠프 기사가 바로 바뀐다. 되돌리기 <code>S.cls = 'squire'</code> (저장 안 함).</li>
+  <li>그림 다시 만들기: <code>python dev/sheets-sit/build.py install</code> → <code>node dev/boxer/sheet-meta.js</code>. 미리보기만: <code>python dev/sheets-sit/build.py preview</code> → <code>dev/sheets-sit/out/</code>, 검수 시트 <code>python dev/sheets-sit/qa_sheet.py 출력.png 직업,…</code>.</li>
+</ol>
+</div>
+</main>
+<script>
+fetch('sheets-sit/scores.html').then((r) => r.text()).then((t) => { document.getElementById('scores').innerHTML = t; });
+</script>
+</body>
+</html>

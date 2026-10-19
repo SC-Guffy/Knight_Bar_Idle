@@ -2678,8 +2678,8 @@ function drawKnight() {
   ctx.fillRect(x + (sp ? (sp.dx || 0) * (sp.facing || knight.facing) : 0) - shadowW / 2, gy - 1, shadowW, 2);
 
   const pose = {
-    // 캠프에선 앉아 있지만, 스킬 탭 「비주얼 확인」으로 시전 중이면 일어나서 쓴다
-    mode: S.phase === 'camp' ? (sp ? 'fight' : 'sit') : knight.fighting ? 'fight' : 'walk',
+    // 캠프에선 앉아 있지만, 스킬 탭 「비주얼 확인」으로 시전 중이면 일어나서 쓴다. 앉기 줄 없는 시트 직업은 대기 그림으로 서 있는다 (src/sprites.js heroSheetNoSit)
+    mode: S.phase === 'camp' ? (sp ? 'fight' : heroSheetNoSit(S.cls) ? 'idle' : 'sit') : knight.fighting ? 'fight' : 'walk',
     walkT: knight.walkT, swing: knight.swing, combo: knight.combo, facing: knight.facing, t: clock,
     flash: knight.flash > 0,
     recoil: knight.recoil, down: knight.down, dash: !!knight.dash, ranged: heroWeapon().kind === 'ranged',    // 시트 직업의 피격·쓰러짐·돌진 동작 (src/sprites.js)

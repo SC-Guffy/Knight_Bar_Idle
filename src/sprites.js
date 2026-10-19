@@ -34,6 +34,12 @@ function heroSheetOn(id) {
   const c = CLASSES[id];
   return !!c && (!!c.look.sheet || (!!SHEET_ON[id] && typeof SHEET_META !== 'undefined' && !!SHEET_META[id]));
 }
+// 시트로 그리는데 앉기 줄이 없는 직업 — 캠프에선 앉지 않고 시트 대기 그림으로 서 있는다 (조립식 앉기와 그림체가 달라 보여서, 2026-10-19 사용자 지시)
+function heroSheetNoSit(id) {
+  if (!heroSheetOn(id) || typeof SHEET_META === 'undefined') return false;
+  const m = SHEET_META[sheetKey(id)];
+  return !!m && !(m.anims && m.anims.sit);
+}
 // 머리 위 이름표·체력바·스킬 아이콘 높이 (땅에서 위로, 화면 px). 조립식 = 58.
 //  시트 직업은 대기 프레임의 머리 위(pts head y, 후광 포함)에서 6px 위 — 키를 키운 새 그림(1.3배, 스펙 legacy-class-sheets.md)도 머리와 안 겹친다
 const HERO_TOP = 58;
