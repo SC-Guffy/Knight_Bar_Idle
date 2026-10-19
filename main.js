@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, dialog, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -190,12 +190,27 @@ function gameQuery() {
   return { speed: process.env.KB_SPEED || '1', server: process.env.KB_SERVER || settings.serverUrl || '' };
 }
 
+// 웹을 못 불러와 앱 안 파일로 열었을 때: 앱 안 파일은 설치 때 버전이라 금방 낡는다 (컴퓨터를 켜자마자 실행해 인터넷이 아직 안 붙었을 때 등).
+// 웹이 닿으면 바로 웹으로 다시 연다 — 낡은 게임으로 계속 노는 일이 없게.
+const RETRY_EVERY = 20000;
+let retryTimer = null;
 function loadLocal() {
   win.loadFile('index.html', { query: gameQuery() });
+  if (!WEB_URL || retryTimer) return;
+  retryTimer = setInterval(async () => {
+    try {
+      const res = await net.fetch(new URL('src/data.js', WEB_URL).toString(), { method: 'HEAD', cache: 'no-store' });
+      if (!res.ok) return;
+    } catch { return; }
+    clearInterval(retryTimer);
+    retryTimer = null;
+    if (win && !win.isDestroyed()) loadGame();
+  }, RETRY_EVERY);
 }
 
 async function loadGame() {
   if (!WEB_URL) return loadLocal();
+  if (retryTimer) { clearInterval(retryTimer); retryTimer = null; }
   await migrateLocalStorage();
   await win.webContents.session.clearCache();   // 항상 최신 게임 코드를 받는다
   const url = new URL(WEB_URL);
@@ -345,6 +360,14 @@ app.whenReady().then(() => {
   tray.setToolTip('기사 키우기');
   buildMenu();
   tray.on('mouse-down', buildMenu);
+
+  // 윈도우는 맨 위(TOPMOST)가 이유 없이 풀릴 때가 있다 (다른 창 클릭·전체화면 앱·절전 복귀 등 — 실제 사용자 PC에서 풀려 있었음). 풀린 걸 알아낼 방법이 없어서 주기적으로 다시 건다.
+  // setAlwaysOnTop 은 포커스를 가져가지 않는다(SWP_NOACTIVATE). moveTop 은 창을 활성화할 수 있어서 여기선 안 쓴다
+  if (process.platform === 'win32') setInterval(() => {
+    if (!win || win.isDestroyed() || !win.isVisible()) return;
+    win.setAlwaysOnTop(false);
+    win.setAlwaysOnTop(true, layout().cover ? 'screen-saver' : 'floating');
+  }, 2000);
 
   const refresh = () => { place(); buildMenu(); };
   screen.on('display-metrics-changed', refresh);

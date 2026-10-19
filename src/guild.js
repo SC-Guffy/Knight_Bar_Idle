@@ -113,11 +113,31 @@ function barApply(win, on) {
   const r = recOf(win);
   for (const [k, spec] of Object.entries(r.win)) BAR.setWindow && BAR.setWindow(k, on ? spec : null);
   if (!on) return;
-  if (r.interactive !== undefined) BAR.setInteractive(r.interactive);
+  sendInteractive();
   if (r.camp !== undefined) BAR.setCampMode(r.camp);
   if (r.overlay !== undefined && BAR.setOverlay) BAR.setOverlay(r.overlay);
   if (r.tray !== undefined && BAR.setTrayTitle) BAR.setTrayTitle(r.tray);
   if (r.account !== undefined) BAR.setAccount(r.account);
+}
+// 앱 창이 클릭을 받을지: 보이는 기사가 원하거나(HUD 위) 마우스가 바깥의 슬롯 버튼 위에 있을 때
+let overSlots = false;
+function sendInteractive() {
+  if (!BAR) return;
+  const f = frames[active], r = f && barRec.get(f.el.contentWindow);
+  BAR.setInteractive(overSlots || !!(r && r.interactive));
+}
+function setOverSlots(v) { if (overSlots !== v) { overSlots = v; sendInteractive(); } }
+// 앱: 바깥 페이지는 투명하게(기사 뒤로 바탕화면·다른 창이 비쳐야 함). 로그인·이름 짓기 화면이 떠 있는 동안은
+// 창을 화면 전체로 키우고 클릭·키보드를 받는다 — 하단바 150px 에 끼어 있으면 버튼도 못 누르고 입력도 안 된다
+if (BAR) {
+  document.documentElement.classList.add('app');
+  const syncLogin = () => {
+    const on = !$('naming').hidden;
+    if (BAR.setWindow) BAR.setWindow('guild-login', on ? { height: 'full', focus: true, mouse: 'all' } : null);
+    else BAR.setCampMode(on);   // 창 API v2 이전 앱: 크기는 못 바꿔도 클릭·키보드는 받게
+  };
+  new MutationObserver(syncLogin).observe($('naming'), { attributes: true, attributeFilter: ['hidden'] });
+  syncLogin();
 }
 const each = (sig, ...a) => { for (const [win, r] of barRec) for (const cb of r.cbs[sig] || []) { try { cb(...a); } catch (e) { console.error(e); } } };
 const activeCbs = (sig, ...a) => { const f = frames[active]; const r = f && barRec.get(f.el.contentWindow); for (const cb of (r && r.cbs[sig]) || []) cb(...a); };
@@ -147,7 +167,7 @@ function barFor(win) {
   return {
     api: BAR.api,
     setWindow: (key, spec) => { r.win[key] = spec || null; if (isShown(win) && BAR.setWindow) BAR.setWindow(key, spec || null); },
-    setInteractive: (v) => rec('interactive', v, () => BAR.setInteractive(v)),
+    setInteractive: (v) => rec('interactive', v, sendInteractive),
     setCampMode: (v) => rec('camp', v, () => BAR.setCampMode(v)),
     setOverlay: BAR.setOverlay ? (v) => rec('overlay', v, () => BAR.setOverlay(v)) : undefined,
     setTrayTitle: BAR.setTrayTitle ? (v) => rec('tray', v, () => BAR.setTrayTitle(v)) : undefined,
@@ -429,7 +449,13 @@ function placeSlots() {
   let r = null;
   try { const h = f && f.win && f.win.document.getElementById('hud'); r = h && h.offsetParent ? h.getBoundingClientRect() : null; } catch {}
   if (!r || !r.width) { bar.style.left = '10px'; bar.style.top = `${innerHeight - 150 - bar.offsetHeight - 2}px`; }
-  else { bar.style.left = `${Math.round(r.left)}px`; bar.style.top = `${Math.round(r.top - bar.offsetHeight - 3)}px`; }
+  else if (r.top - bar.offsetHeight - 3 >= 0) { bar.style.left = `${Math.round(r.left)}px`; bar.style.top = `${Math.round(r.top - bar.offsetHeight - 3)}px`; }
+  else {
+    // 앱 하단바(150px 창)처럼 HUD 위에 자리가 없으면 창 밖으로 나가 안 보인다 — HUD 옆(왼쪽, 모자라면 오른쪽)에 붙인다
+    const w = bar.offsetWidth, left = r.left - w - 6 >= 4 ? r.left - w - 6 : r.right + 6;
+    bar.style.left = `${Math.round(left)}px`;
+    bar.style.top = `${Math.round(Math.max(0, r.top + r.height - bar.offsetHeight))}px`;
+  }
   bar.hidden = false;
 }
 function readInfo() {
@@ -480,12 +506,26 @@ function showTip(b) {
 }
 function hideTip() { $('tip').hidden = true; }
 $('slots').addEventListener('mouseover', (e) => { const b = e.target.closest('.gs'); if (b) showTip(b); });
-$('slots').addEventListener('mouseleave', () => {
-  hideTip();
-  const f = frames[active], r = f && barRec.get(f.el.contentWindow);
-  if (BAR) BAR.setInteractive(!!(r && r.interactive));   // 버튼에서 벗어나면 보는 기사의 클릭 영역으로
-});
-$('slots').addEventListener('mouseenter', () => { if (BAR) BAR.setInteractive(true); });   // Electron: 버튼 위에선 창이 클릭을 받게
+$('slots').addEventListener('mouseleave', () => { hideTip(); setOverSlots(false); });   // 버튼에서 벗어나면 보는 기사의 클릭 영역으로
+$('slots').addEventListener('mouseenter', () => setOverSlots(true));   // Electron: 버튼 위에선 창이 클릭을 받게
+// 어떤 Windows PC 는 클릭 통과 중인 창에 마우스 이동이 안 들어와서 mouseenter 가 안 온다 — 커서 위치를 직접 물어본다 (기사 iframe 의 ui.js 도 같은 방식)
+if (BAR && BAR.getCursor && BAR.getDisplay) {
+  BAR.getDisplay().then((d) => {
+    if (!d || d.platform !== 'win32') return;
+    let busy = false;
+    setInterval(async () => {
+      if (busy) return;
+      if ($('slots').hidden) { setOverSlots(false); return; }
+      busy = true;
+      try {
+        const c = await BAR.getCursor();
+        const el = document.elementFromPoint(c.x, c.y);
+        setOverSlots(!!(el && el.closest('#slots')));
+      } catch {}
+      busy = false;
+    }, 100);
+  }, () => {});
+}
 let pressT = null;
 $('slots').addEventListener('touchstart', (e) => { const b = e.target.closest('.gs'); if (b) pressT = setTimeout(() => showTip(b), 450); }, { passive: true });
 $('slots').addEventListener('touchend', () => { clearTimeout(pressT); setTimeout(hideTip, 1500); });

@@ -88,7 +88,7 @@ S.phase='camp'; S.stones=5000; S.mats.mana=5000; S.mats.ore=5000; S.gold=1e5; S.
 
 ## 기사단 (1단계, `guild.html`, [specs/guild.md](specs/guild.md))
 
-- 켜기: `index.html?guild=1` (끄기 `?guild=0`). 로컬 개발 주소에서만 — 배포 주소는 `src/data.js` `GUILD_OPEN` 이 켜져야 한다(시즌7 스킬 트리 `T7_OPEN` 도 같음). 웹만 — Electron(`window.bar`)에선 무시된다. 켜져 있으면 `guild.html` 로 넘어가 기사단 이름 → 지금 계정이 기사1.
+- 켜기: `index.html?guild=1` (끄기 `?guild=0`). 로컬 개발 주소에서만 — 배포 주소는 `src/data.js` `GUILD_OPEN` 이 켜져야 한다(시즌7 스킬 트리 `T7_OPEN` 도 같음). Electron 앱에서도 켜진다(앱은 웹 주소에서 열리므로 `GUILD_OPEN` 을 따른다). 켜져 있으면 `guild.html` 로 넘어가 기사단 이름 → 지금 계정이 기사1.
 - 새 기사를 만들려면 진짜 로컬 서버가 필요하다(위 "진짜 로컬 서버"): `index.html?server=http://localhost:<서버 포트>&guild=1`. 오프라인 주소(`127.0.0.1:9`)면 기사 만들기만 안 되고 나머지는 된다.
 - 바깥 페이지 콘솔: `guild`(저장 내용) · `shared`(공용 상태) · `frames[i].win`(기사 i 의 게임 창, `frames[i].win.guildS` = S) · `guildHost.slot('닉', true)` · `renderSlots()`. 회관 Lv 바로 바꾸기: `shared.bld.hall = 10; renderSlots()`.
 - 처음부터: 바깥 페이지 콘솔 `localStorage.removeItem('knight-bar-guild')` 후 새로 고침.

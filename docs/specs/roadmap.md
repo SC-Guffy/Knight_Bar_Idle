@@ -174,7 +174,7 @@
 | ⑥ | 기존 직업 29종 통짜 시트 | [legacy-class-sheets.md](legacy-class-sheets.md) | **배포** (0.25.0~0.25.3) — 29종 모두 시트 켜짐. 마법사·레인저·창기사는 새 그림체 B(3등신)를 파이터 키에 맞춰 0.78 로 줄임(0.25.x, 원본 `dev/sheets-common/full`). 검사 계열 8종은 사용자 지시로 파이터 그림체로 새로 그림(12단계, 칼은 모델이 몸과 같이 그린 키 자세). 창기사 7종 평타도 같은 방식으로 교체. 남은 일: 검성·대검전사·파천검왕 임시 걷기(들썩임), 일부 시전 짧은 판 |
 | — | 도트 품질 검수 에이전트 | [pixel-qa.md](pixel-qa.md) | **완료** — 아트 후보는 검수 통과분만 사용자에게 |
 | 시즌7 | 스킬 빌드 트리 (15줄기) | [skill-build-tree.md](skill-build-tree.md) · [skill-tree-all.md](skill-tree-all.md) | **배포 (0.27.0, T7_OPEN=true)** — 10-18 사용자 "전부 즉시 만들고 완성시키고 연다". 15줄기, 봇 빌드 차 ≤6%·현행 대비 −7~+6%. 남은 일: 검성 외 전용 연출·아이콘, 줄기 글 다듬기 |
-| 시즌7 | 기사단(길드) | [guild.md](guild.md) | **배포 (0.27.0, GUILD_OPEN=true)** — Postgres 호환·리셋 뒤 흐름 확인(impl-guild-open). Google 로그인: Render GOOGLE_CLIENT_ID·OAuth 프로덕션 게시 완료(10-18). 남은 일: 실제 Electron 앱 확인 |
+| 시즌7 | 기사단(길드) | [guild.md](guild.md) | **배포 (0.27.0, GUILD_OPEN=true)** — Postgres 호환·리셋 뒤 흐름 확인(impl-guild-open). Google 로그인: Render GOOGLE_CLIENT_ID·OAuth 프로덕션 게시 완료(10-18). 실제 윈도우 앱 확인·수리 10-19(0.27.3, 앱 0.5.0 — 설치 파일 Releases 업로드 필요) |
 
 - [x] 시즌7 범위 확정 (10-18 사용자): **시즌7 = 기사단 + 스킬 빌드 트리 15줄기**. 스킬 룬(E)·새 직업(사무라이·해머전사·암살자, F)은 **시즌8 로 넘긴다**. 시즌7 오픈 때 전체 시즌 리셋.
 
