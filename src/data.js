@@ -13,7 +13,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.27.5';
+const GAME_VERSION = '0.27.6';
 // 시즌7 기능 스위치. false 면 배포 주소(GitHub Pages·Electron 등)에서는 꺼져 있고, 로컬 개발 주소(localhost·127.0.0.1·*.localhost·*.test, 봇의 가짜 location 포함)에서만 켜진다.
 //  아래 DEV_HOST(배속용)와 달리 file: 은 넣지 않는다 — Electron 앱이 파일로 열 때 플레이어에게 켜지지 않게.
 //  시즌7 정식 공개 때 true 로 바꾼다.
@@ -277,9 +277,9 @@ const RARE_DROP = {
   wbKill: { protect: 0.3 },
 };
 // 재굴림권은 확률 뽑기가 아니라 넉넉히 뿌린다 (reroll-drop.md)
-//  box: 원정 상자 하나 열 때마다 확률 (원정 1회 상자 약 13개 → 평균 1.5장)
+//  box: 원정 상자 하나 열 때마다 확률 (원정 1회 상자 약 13개 → 평균 약 0.5장, 2판에 1장꼴)
 //  raid / wb: 레이드 처치 상자 하나 · 월드 보스 하루 보상마다 [최소, 최대]장 확정
-const REROLL_DROP = { box: 0.12, raid: [3, 5], wb: [3, 5] };
+const REROLL_DROP = { box: 0.04, raid: [3, 5], wb: [3, 5] };
 // ───────────────────────── 우편함 ─────────────────────────
 // 모든 기사에게 보내는 우편. id 는 한 번 정하면 바꾸지 않는다 (받았는지를 S.mail.got 에 id 로 남긴다).
 // at ~ until 사이에만 우편함에 보인다. reward: { items: { 보급품 id: 개수 }, gold, stones, tomes, raidTickets }
