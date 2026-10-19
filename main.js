@@ -227,11 +227,16 @@ async function loadGame() {
   const onFail = (_e, code, _desc, _url, isMainFrame) => { if (isMainFrame && code !== -3) fallback(); };
   win.webContents.on('did-fail-load', onFail);
   const timer = setTimeout(fallback, LOAD_TIMEOUT);
-  win.webContents.once('did-finish-load', () => {
+  // 웹이 응답했으면(메인 문서가 열림) 성공으로 친다. did-finish-load 는 iframe 까지 다 받아야 와서 기사단처럼 무거운 화면은 15초를 넘길 수 있다
+  const onNavigate = (_e, _url, code) => { if (code && code < 400) settle(); };
+  win.webContents.once('did-navigate', onNavigate);
+  win.webContents.once('did-finish-load', () => settle());
+  function settle() {
+    if (settled) return;
     settled = true;
     clearTimeout(timer);
     win.webContents.removeListener('did-fail-load', onFail);
-  });
+  }
   win.loadURL(url.toString()).catch(() => {});
 }
 

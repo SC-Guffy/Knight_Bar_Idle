@@ -550,6 +550,9 @@ function nextToast() {
 // ───────────────────────── 시작 · 로그인 (2단계) ─────────────────────────
 function start() {
   if (started) return;
+  // 기사 iframe 은 이 페이지의 load 가 끝난 뒤에 만든다. 앱(0.4.0)은 15초 안에 페이지 load 가 안 끝나면 웹이 안 되는 줄 알고
+  // 설치 파일 속 옛 게임으로 열어 버리는데, load 는 iframe(기사 게임 전체)까지 기다리므로 기사가 있으면 15초를 넘기곤 했다
+  if (document.readyState !== 'complete') { window.addEventListener('load', () => setTimeout(start, 0), { once: true }); return; }
   started = true;
   if (!guild.chars.length) { spawn(0, NEW); active = 0; }
   guild.slots.forEach((nick, i) => { if (nick && i < openSlots()) spawn(i, nick); });
