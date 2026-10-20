@@ -3,6 +3,7 @@
 - 상태: 0.27.0 공개됨 (main 3e9e6ec3). 14줄기 전용 연출·아이콘·결투 다시 맞춤은 impl-tree7-fx (main 배포는 로드맵)
 - 상위 스펙: [skill-build-tree.md](skill-build-tree.md) (방향) · 시제품 [skill-tree-swordsaint.md](skill-tree-swordsaint.md) (검성 한 줄기, 규칙·수치·UI·보스 벽·결투의 기준)
 - 관련 코드: src/tree7.js (노드 틀·규칙, `t7DefLine`·`t7DefStem`·`t7Sync`), src/tree7-l-<줄기>.js (줄기 데이터 15개), src/tree7-ui.js (`t7U`·`t7Lane`), src/tree7-fx.js (연출·전투 규칙), src/tree7-wall.js (보스 벽), dev/tree7-check.js (줄기 데이터 검사)
+- 구조 개편 초안: [skill-tree-v3.md](skill-tree-v3.md) (위력 칸·모습 노드·스탯 점·메인 스킬에서 시작, 2026-10-20 확인 대기)
 - 최종 갱신: 2026-10-18
 
 ## 목표
