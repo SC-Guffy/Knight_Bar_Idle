@@ -45,6 +45,7 @@
 |---|---|---|
 | [guild.md](guild.md) | 초안 | **기사단 (시즌7)** — 기사 여러 명 동시 육성(슬롯 2→5, 🛡️ 기사단 회관), 모든 콘텐츠 동시 진행(기사마다 iframe 검증안), 입장권 기사별, 계열 효과·따라잡기, Google 로그인 + Electron 연결 코드. 공용 범위 안 A/B 미정 (검토 `dev/review/guild.html`) |
 | [currency-roles.md](currency-roles.md) | 구현 (0.23.2) | 재화 역할 지도 — 재화마다 얻는 곳·쓰는 곳. 💎 마력석 = 고강화(+10~)·전직 전용(건물·시설·레이드 입장권에서 뺌, 강화 마력석 ×3) · 🪨 대장간 시설 철광석 ×0.5 · 💠 강화 강화석 ×1.5 (`dev/currency-bot.js`, 검토 `dev/review/currency-roles.html`) |
+| [dungeon-slot-roles.md](dungeon-slot-roles.md) | 구현 (0.28.6) | 재료의 미궁 슬롯에서 💎 마력석·💠 강화석 뺌 → 4종, 💰🪵🪨 한 판 ×1.45 · 📖 그대로 (검토 `dev/review/dungeon-slot-roles.html`) |
 | [dungeon-reward-buff.md](dungeon-reward-buff.md) | 완료 (0.22.3) | 재료의 미궁 보상 ×2(강화석 ×3) · 강화 비용에서 🪨 철광석 제외 (검토 `dev/review/dungeon-buff.html`) |
 | [build-rush.md](build-rush.md) | 완료 (0.21.1) | 건설 즉시 완료 — 남은 1분당 최고 스테이지 잡몹 골드 ×2.2 (남은 1시간 ≈ 원정 30분 골드) |
 | [building-materials-and-training.md](building-materials-and-training.md) | 완료 (0.20.15) | 건물 목재·철광석 비용 Lv8 위로 ×1.5 · 교역 1회 = 다음 건물 비용 10% · 공격력·체력 훈련 배율(훈련 : 장비 ≈ 3:7) |

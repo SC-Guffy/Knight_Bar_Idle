@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미궁 슬롯 정리 — 스펙 검토</title>
+<!-- 스펙: docs/specs/dungeon-slot-roles.md. 한 판 기대치는 src/dungeon.js dgUnitValue 를 Node 에서 계산, 봇은 dev/currency-bot.js 7일 · 12시드 (2026-10-20). -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .up { color: var(--green); font-weight: 700; }
+  .bad { color: var(--red); }
+  .gone { color: var(--dim); text-decoration: line-through; }
+  .tabs { display: flex; gap: 6px; margin: 6px 0; }
+  .tabs button { background: #0f0d14; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; font: inherit; cursor: pointer; }
+  .tabs button.on { color: var(--ink); border-color: var(--gold); }
+  .bar { display: inline-block; height: 9px; background: var(--blue); vertical-align: middle; margin-right: 4px; }
+  .bar.dg { background: var(--gold); }
+  .reels { display: flex; gap: 6px; font-size: 22px; }
+  .reels span { background: #0f0d14; border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; }
+</style>
+</head>
+<body>
+<main>
+<h1>🎰 재료의 미궁 슬롯 정리 — 💎 마력석 · 💠 강화석 빼기</h1>
+<div class="sub">스펙 <code>docs/specs/dungeon-slot-roles.md</code> · 초안 · 2026-10-20</div>
+
+<div class="card">
+  <b>요지</b>
+  <ul>
+    <li>미궁은 🪵 목재(46%)·📖 비전서(53%)·🪨 철광석(37%)에선 <b>1위 수급처</b>. 그런데 💎 마력석(8%)·💠 강화석(4%)은 한 판 수십 개라 거의 의미 없음.</li>
+    <li>슬롯 그림 6종 → <b>4종 (💰🪵🪨📖)</b>. 슬롯 확률·보스·입장권은 그대로.</li>
+    <li>빠진 몫: <b>안 B (추천)</b> 💰🪵🪨 한 판 ×1.45, 📖 그대로 / 안 A 전부 그대로.</li>
+  </ul>
+  <div class="reels"><span>💰</span><span>🪵</span><span>🪨</span><span>📖</span><span class="gone">💎</span><span class="gone">💠</span></div>
+</div>
+
+<h2>① 지금 7일 수입에서 미궁 몫 (봇 12시드 중앙값)</h2>
+<div class="scroll"><table id="share"></table></div>
+<p class="sub">노란 막대 = 미궁 몫. 💠 은 장비 판매 91%, 💎 는 원정 상자 65% · 레이드 27%.</p>
+
+<h2>② 한 판 기대 획득 (보스 9마리)</h2>
+<div class="tabs"><button data-o="B" class="on">안 B — 남은 재화가 나눠 가짐 (추천)</button><button data-o="A">안 A — 그대로</button></div>
+<div class="scroll"><table id="run"></table></div>
+<p class="sub">📖 비전서는 두 안 모두 그대로 (숙련도 기준 재화, 수입의 ~100% 를 씀). 💰 골드는 지수 값이라 배율만 표시.</p>
+
+<h2>③ 봇 전후 (안 B, 7일 · 12시드)</h2>
+<div class="scroll"><table>
+  <tr><th></th><th>지금</th><th>안 B</th></tr>
+  <tr><td>최종 스테이지 · 건물 Lv 합 · 강화 합</td><td>255 · 46 · 71</td><td>260 · 45 · 71</td></tr>
+  <tr><td>🪵 미궁 몫 · 지출/수입</td><td>46% · 65%</td><td class="up">58% · 57%</td></tr>
+  <tr><td>🪨 미궁 몫 · 지출/수입</td><td>37% · 58%</td><td class="up">47% · 50%</td></tr>
+  <tr><td>💎 지출/수입 (남음)</td><td>64% (5,636)</td><td>80% (3,785)</td></tr>
+  <tr><td>💠 지출/수입 (남음)</td><td>60% (10,442)</td><td>67% (8,806)</td></tr>
+  <tr><td>📖 지출/수입</td><td>101%</td><td>100%</td></tr>
+</table></div>
+<p class="sub">진행은 그대로 — 건물은 건설 시간이 벽이라 목재·철광석이 늘어도 빨라지지 않는다. 안 B 는 진행을 안 바꾸고 '한 판이 크다'는 체감만 준다. 💎💠 는 빠져도 남아서 강화가 막히지 않는다.</p>
+
+<h2>결정할 것</h2>
+<div class="card">빠진 💎💠 몫을 <b>안 B</b>(💰🪵🪨 ×1.45) 로 줄지, <b>안 A</b>(그대로) 로 둘지.</div>
+</main>
+<script>
+const SHARE = [ // [재화, 7일 수입, 미궁 몫 %]
+  ['🪵 목재', 200197, 46.2], ['🪨 철광석', 99716, 37.0], ['📖 비전서', 300, 53.0], ['💰 골드', '2.7e24', 3.3], ['💎 마력석', 16471, 7.9], ['💠 강화석', 23679, 4.4]];
+document.getElementById('share').innerHTML = '<tr><th>재화</th><th>7일 수입</th><th>미궁 몫</th></tr>' + SHARE.map(([n, v, p]) =>
+  `<tr><td>${n}</td><td>${typeof v === 'number' ? v.toLocaleString() : v}</td><td style="text-align:left"><span class="bar dg" style="width:${p * 2}px"></span>${p}%</td></tr>`).join('');
+const RUN = [ // 최고 스테이지, 건물 Lv, 지금 {wood, ore, tomes, mana, stones}
+  [60, 6, 403, 167, 4, 31, 28], [120, 9, 2419, 1002, 6, 46, 38], [200, 12, 8165, 3382, 8, 65, 52], [300, 14, 18371, 7610, 12, 90, 70]];
+const K = 55 / 38;
+function drawRun(o) {
+  const k = o === 'B' ? K : 1, f = (a) => Math.round(a * k).toLocaleString(), cls = o === 'B' ? 'up' : '';
+  document.getElementById('run').innerHTML = '<tr><th>스테이지 · 건물 Lv</th><th>🪵 목재</th><th>🪨 철광석</th><th>💰 골드</th><th>📖 비전서</th><th>💎 마력석</th><th>💠 강화석</th></tr>' +
+    RUN.map(([b, l, w, r, t, m, s]) => `<tr><td>${b} · ${l}</td><td>${w.toLocaleString()} → <span class="${cls}">${f(w)}</span></td><td>${r.toLocaleString()} → <span class="${cls}">${f(r)}</span></td>` +
+      `<td>×${k.toFixed(2)}</td><td>${t} → ${t}</td><td>${m} → <span class="bad">0</span></td><td>${s} → <span class="bad">0</span></td></tr>`).join('');
+}
+document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b)); drawRun(b.dataset.o);
+});
+drawRun('B');
+</script>
+</body>
+</html>

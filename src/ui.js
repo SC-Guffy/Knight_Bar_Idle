@@ -2724,7 +2724,7 @@ const SUB_CARDS = [
       if (towerSweepReady()) out.push([`🧹 소탕 📖 +${t.best}`, 'ok']);
       return out;
     } },
-  { k: 'dungeon', icon: 'pick', name: '재료의 미궁', desc: '보스 러시 — 보스를 잡을 때마다 🎰 슬롯머신을 돌려 🪵 🪨 💎 재화를 받아요. 3연속이면 우수수',
+  { k: 'dungeon', icon: 'pick', name: '재료의 미궁', desc: '보스 러시 — 보스를 잡을 때마다 🎰 슬롯머신을 돌려 🪵 🪨 📖 재화를 받아요. 3연속이면 우수수',
     unlocked: () => dgUnlocked(), lockText: () => `스테이지 ${DG_UNLOCK_STAGE}에 열려요`, dot: (d) => d.dungeon, view: () => viewDungeon(),
     chips: () => {
       const d = S.dg, out = [];
@@ -2848,7 +2848,7 @@ function drawSubDungeon(g, w, h) {
     g.save(); g.beginPath(); g.rect(wx, wy, ww, wh); g.clip();
     const p = clock * (5 + i * 1.3) + i * 2, idx = Math.floor(p), off = (p - idx) * wh;
     g.fillStyle = '#000';
-    for (let j = -1; j <= 1; j++) fillTextIco(g, DG_RES[DG_RES_IDS[((idx + j) % 6 + 6) % 6]].icon, wx + ww / 2, wy + wh / 2 + 1 - j * wh + off);
+    for (let j = -1; j <= 1; j++) fillTextIco(g, DG_RES[DG_RES_IDS[((idx + j) % DG_RES_IDS.length + DG_RES_IDS.length) % DG_RES_IDS.length]].icon, wx + ww / 2, wy + wh / 2 + 1 - j * wh + off);
     g.restore();
   }
   g.fillStyle = '#c9c4d6'; g.fillRect(mx + mw + 3, my + 18, 2, 16); g.fillStyle = '#ff6b6b'; g.fillRect(mx + mw + 1, my + 15, 6, 6);
@@ -2939,8 +2939,8 @@ const RES_GUIDE = [
   { k: 'gold', name: '골드', icon: () => '<i class="gc"></i>', get: '원정 처치 · 장비 판매 · 재료의 미궁 · 레이드 · 탑 · 월드 보스', use: '창고 교역 · 훈련 · 건물 · 보급품 · 입장권 · 즉시 완료', trade: true },
   { k: 'wood', name: '목재', icon: () => ico('wood'), get: '재료의 미궁 · 원정 골동품 · 창고 비축·교역 · 레이드 · 월드 보스', use: '건물 · 가방', trade: true },
   { k: 'ore', name: '철광석', icon: () => ico('ore'), get: '원정 골동품 · 재료의 미궁 · 창고 비축·교역 · 레이드 · 월드 보스', use: '건물 · 대장간 시설', trade: true },
-  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '원정 골동품 · 레이드 · 재료의 미궁 · 월드 보스', use: '강화(+10부터) · 전직' },
-  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '장비 판매(분해대) · 원정 보스 · 재료의 미궁 · 월드 보스', use: '장비 강화' },
+  { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '원정 골동품 · 레이드 · 월드 보스', use: '강화(+10부터) · 전직' },
+  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '장비 판매(분해대) · 원정 보스 · 월드 보스', use: '장비 강화' },
   { k: 'tomes', name: '비전서', icon: () => ico('tome'), get: '재료의 미궁 · 원정 보스 · 레이드 상자 · 도전의 탑 · 월드 보스 · 결투 시즌', use: '스킬 숙련도' },
 ];
 function viewResGuide() {

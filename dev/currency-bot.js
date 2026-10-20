@@ -70,7 +70,7 @@ function runOne({ days, seed, rev, dg, forge, raidBuy, patch }) {
       for (let n = 0; n < A.DG_TICKETS; n++) {
         const got = {};
         for (const r of A.DG_RES_IDS) got[r] = Math.floor(A.dgUnitValue(r) * A.DG_RUN_UNITS * A.DG_RES[r].w / wsum);
-        S.gold += got.gold; S.mats.wood += got.wood; S.mats.ore += got.ore; S.mats.mana += got.mana; S.stones += got.stones; S.tomes += got.tomes;
+        S.gold += got.gold || 0; S.mats.wood += got.wood || 0; S.mats.ore += got.ore || 0; S.mats.mana += got.mana || 0; S.stones += got.stones || 0; S.tomes += got.tomes || 0;
       }
     });
   };

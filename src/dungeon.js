@@ -12,7 +12,7 @@
 //          slot 지금 돌릴 슬롯 결과 | null { reels, tier, payout, mult, paid }, spins { diff, pair, perfect } 결과 수, kills, t0 }
 // 규칙
 //  - 고를 것이 없다. 보스가 한 마리씩 나오고, 잡을 때마다 슬롯머신을 한 번 돌린다. 보스는 한 마리마다 1 스테이지씩 세진다.
-//  - 슬롯은 3칸, 칸마다 재화 6종 중 하나. 결과는 세 가지 — 셋 다 다름(각각 소량) · 2연속(그 재화 중량 + 나머지 소량) · 3연속 퍼펙트(그 재화 대량).
+//  - 슬롯은 3칸, 칸마다 재화 4종(💰🪵🪨📖) 중 하나 (0.28.6 에 💎 마력석·💠 강화석을 뺐다 — 한 판 수십 개라 다른 수급처에 묻혀서, docs/specs/dungeon-slot-roles.md). 결과는 세 가지 — 셋 다 다름(각각 소량) · 2연속(그 재화 중량 + 나머지 소량) · 3연속 퍼펙트(그 재화 대량).
 //    등급은 DG_SLOT_TIERS 확률로 먼저 정하고 그에 맞는 그림을 뽑는다 (칸 셋이 독립이면 퍼펙트가 2.8% 뿐이라 너무 안 터진다).
 //    보상은 잡은 보스 수에 따라 ×(1 + DG_BOSS_BONUS × k) — 깊이 갈수록 한 번이 크다.
 //  - 체력은 저절로 차지 않지만(물약도 못 쓴다) 보스를 잡으면 DG_HEAL 만큼 찬다. 쓰러져도 모은 자원은 모두 가져간다. 언제든 나갈 수 있다.
@@ -21,6 +21,7 @@
 //  - 재화 1칸 값(dgUnitValue): 한 판 기대 칸(DG_RUN_UNITS)이 목재·철광석은 내 건물 다음 레벨 비용 평균의 DG_RUN_SHARE 배가 되게 (마력석은 스테이지 기준, 0.23.2) —
 //    재화 여섯에 나뉘어 한 판에 목재·철광석이 다음 레벨의 약 60%, 하루 입장권 3장이면 약 1.8 레벨어치. 골드는 나누기 전 사냥 60분치(한 판 실제 몫은 사냥 약 10분치).
 //    0.22.3 에 전부 ×2, 강화석은 ×3 (사용자 "수급량이 너무 작아" — 그 전엔 재화당 다음 레벨의 25%, 강화석 한 판 9~23개).
+//    0.28.6 에 💎💠 를 빼서 그림 비중 합이 55 → 38: 💰🪵🪨 의 한 판 몫은 저절로 ×1.45, 📖 비전서만 DG_TOMES_KEEP 로 한 판 몫을 그대로 둔다 (숙련도 속도 유지).
 //  - 입장권: 하루 DG_TICKETS 장 무료. 더 필요하면 골드로 산다 (dgTicketPrice, 탑과 같은 곡선 · 기준값 DG_TICKET_GOLD)
 
 const DG_UNLOCK_STAGE = 15;
@@ -43,8 +44,6 @@ const DG_RES = {
   gold:   { name: '골드',   icon: '💰', w: 9 },
   wood:   { name: '목재',   icon: '🪵', w: 11 },
   ore:    { name: '철광석', icon: '🪨', w: 11 },
-  mana:   { name: '마력석', icon: '💎', w: 9 },
-  stones: { name: '강화석', icon: '💠', w: 8 },
   tomes:  { name: '비전서', icon: '📖', w: 7 },
 };
 const DG_RES_IDS = Object.keys(DG_RES);
@@ -121,6 +120,7 @@ const DG_SLOT_AVG = (() => { const tot = DG_SLOT_TIER_IDS.reduce((a, id) => a + 
 const DG_RUN_BOSSES = 9;
 const DG_RUN_UNITS = DG_SLOT_AVG * Array.from({ length: DG_RUN_BOSSES }, (_, k) => 1 + DG_BOSS_BONUS * k).reduce((a, b) => a + b, 0);
 const DG_RUN_SHARE = 3;
+const DG_TOMES_KEEP = 38 / 55;      // 📖 1칸 값 보정: 그림이 6종(비중 합 55)일 때와 한 판 몫이 같게 (0.28.6)
 function dgNextBuildCost(k) {
   const ids = Object.keys(BUILDINGS).filter((id) => id !== 'hall');   // 기사단 회관은 보상 기준에 넣지 않는다
   const sum = ids.reduce((a, id) => a + buildCost(id, Math.min(S.bld[id], bldMax(id) - 1))[k], 0);
@@ -131,10 +131,7 @@ function dgUnitValue(r, best = S.best) {
     case 'gold': return monsterStats(best, false).gold * 600 / DG_RUN_UNITS;   // 나누기 전 사냥 60분치 → 한 판 몫은 약 10분치
     case 'wood': return Math.max(1, dgNextBuildCost('wood') * DG_RUN_SHARE / DG_RUN_UNITS);
     case 'ore': return Math.max(1, dgNextBuildCost('ore') * DG_RUN_SHARE / DG_RUN_UNITS);
-    // 마력석은 0.23.2 부터 건물에 안 들어서(고강화·전직 재료) 건물 비용 대신 스테이지로 — 나누기 전 100 + 1.5·최고 스테이지 (스테이지 200 에서 그 전과 비슷한 400)
-    case 'mana': return (100 + 1.5 * best) / DG_RUN_UNITS;
-    case 'stones': return (120 + 1.2 * best) / DG_RUN_UNITS;
-    case 'tomes': return (16 + best / 4) / DG_RUN_UNITS;
+    case 'tomes': return (16 + best / 4) * DG_TOMES_KEEP / DG_RUN_UNITS;
   }
   return 0;
 }
@@ -172,7 +169,8 @@ function endDungeon(reason) {
   if (run.slot && !run.slot.paid) dgSlotPayout(run.slot, run);
   const got = {};
   for (const r of DG_RES_IDS) got[r] = Math.floor(run.bag[r] || 0);
-  S.gold += got.gold; S.mats.wood += got.wood; S.mats.ore += got.ore; S.mats.mana += got.mana; S.stones += got.stones; S.tomes += got.tomes;
+  S.gold += got.gold; S.mats.wood += got.wood; S.mats.ore += got.ore; S.tomes += got.tomes;
+  S.mats.mana += Math.floor(run.bag.mana || 0); S.stones += Math.floor(run.bag.stones || 0);   // 0.28.6 전에 시작한 판의 배낭에 남은 💎·💠
   const k = run.k || 0, best = k > (S.dg.best || 0);
   if (best) S.dg.best = k;
   const at = Date.now();

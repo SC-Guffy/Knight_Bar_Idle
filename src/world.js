@@ -1019,7 +1019,7 @@ function drawSlotMachine() {
       const p = r.phase, idx = Math.floor(p), off = (p - idx) * wh;
       ctx.fillStyle = '#000';
       for (let j = -1; j <= 1; j++) {
-        const id = DG_RES_IDS[((idx + j) % 6 + 6) % 6];
+        const id = DG_RES_IDS[((idx + j) % DG_RES_IDS.length + DG_RES_IDS.length) % DG_RES_IDS.length];
         ctx.globalAlpha = 0.85;
         fillTextIco(ctx, DG_RES[id].icon, cx, cy + 1 - j * wh + off);
         ctx.globalAlpha = 0.25;
