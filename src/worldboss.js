@@ -48,6 +48,6 @@ function claimWbReward(row) {
   // 🎲 재굴림권 3~5장 확정 · 📜 보호 주문서 (잡은 날은 확률 2배)
   reward.items = rollRareDrops(row.killed ? RARE_DROP.wbKill : RARE_DROP.wb, REROLL_DROP.wb);
   for (let i = 0; i < reward.chests; i++) S.raid.chests.push({ k: 'rbox', b: reward.boss, s: Math.max(RAID_BOSSES[reward.boss].stage, S.best || 1) });
-  S.wb.last = { ...row, reward, at: Date.now() };
+  S.wb.last = { ...row, reward, at: Date.now(), seen: false };   // seen: 레이드 탭에서 봤는지 (ui.js takeNews)
   return S.wb.last;
 }

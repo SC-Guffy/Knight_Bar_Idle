@@ -102,8 +102,10 @@ const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 function campStatus() {
   if (duelActive()) return { icon: '⚔️', text: '결투 중' };
   if (raidActive()) return raidPlay.res.world ? { icon: '🌍', text: '월드 보스' } : { icon: '🐉', text: '레이드 중' };
-  if (raidUi.room) return { icon: '🐉', text: raidUi.room.state === 'open' ? `레이드 대기 ${raidUi.room.members.length}/4` : '레이드 정산' };
   if (S.report || S.bag.length) return { icon: '❗', text: '정산 대기' };
+  if (S.raid.pending) return { icon: '❗', text: '레이드 정산' };       // 결과는 눌러야 본다 (docs/specs/result-on-click.md)
+  if (duelUnseen()) return { icon: '❗', text: '결투 결과' };
+  if (raidUi.room) return { icon: '🐉', text: raidUi.room.state === 'open' ? `레이드 대기 ${raidUi.room.members.length}/4` : '레이드 정산' };
   if (S.stamina < maxStamina() - 0.5) return { icon: '💤', text: `휴식 ${Math.floor((100 * S.stamina) / maxStamina())}%` };
   return { icon: '🚩', text: '출정 준비 완료' };
 }
@@ -213,14 +215,16 @@ function openCamp(tab) {
   if (S.phase !== 'camp' || campOpen || acctOpen) return;
   skipDuel();                          // 결투를 보는 중이었으면 결과만 알리고 끝낸다
   if (raidActive()) {
-    // 월드 보스는 건너뛸 수 있지만, 레이드는 끝까지 봐야 보상이 들어온다 (끝나면서 정산 화면을 연다)
+    // 월드 보스는 건너뛸 수 있지만, 레이드는 끝까지 봐야 보상이 들어온다 (끝나면서 정산 화면을 연다 — 직접 눌러 본 재생이라)
     if (raidPlay.res.world) skipRaid();
     else toast('⚔️ 레이드 전투가 끝나면 보상과 정산 화면이 열려요');
     return;
   }
+  // 기사를 눌렀을 때 레이드 결과가 기다리고 있으면 그때 재생한다 (원정 정산이 먼저)
+  if (typeof tab !== 'string' && S.raid.pending && !(S.report || S.bag.length)) { watchRaid(); return; }
   campOpen = true;
   revealed = [];
-  campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : castleResultPending() ? 'castle' : raidUi.room ? 'raid' : guideTab() || 'town');
+  campTab = normalizeTab(typeof tab === 'string' ? tab : S.report || S.bag.length ? 'report' : towerResultPending() ? 'tower' : dgResultPending() ? 'dungeon' : castleResultPending() ? 'castle' : duelUnseen() ? 'rank' : raidUi.room ? 'raid' : guideTab() || 'town');
   markSubSeen();
   if (window.bar) window.bar.setCampMode(true);
   setInteractive(true, true);
@@ -234,6 +238,7 @@ function closeCamp() {
   clearInterval(openAllTimer); openAllTimer = null;
   campOpen = false;
   inbox.newAfter = null;
+  newsShown.clear();
   S.report = null;                     // 창을 닫으면 보고는 읽은 것으로 처리
   if (towerResultViewed && S.tower.last) S.tower.last.seen = true;   // 탑 정산도 본 채로 닫았으면 읽은 것으로
   towerResultViewed = false;
@@ -1327,9 +1332,9 @@ function campDots() {
     gear: Object.keys(GEAR_SLOTS).some(gearBetter),      // 부위 강화 레드닷은 마을(대장간) 쪽 (town.js townTodo)
     skill: t7On() ? t7Dot() : canLevelSkill() || canInvestAny(),
     class: anyClassReady(),
-    rank: inboxUnread() > 0,
+    rank: inboxUnread() > 0 || duelUnseen() || newsUnseen(S.season.last),
     mail: mailUnclaimed() > 0,
-    raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot(),
+    raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot() || !!S.raid.pending || newsUnseen(S.wb.last),
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '',
     // 던전: 처음 열렸거나, 안 본 결과가 있거나, 입장권이 남았을 때
@@ -1801,8 +1806,7 @@ async function takeSeasonRewards(rows) {
   const got = rows.map(claimSeasonReward).filter(Boolean);
   save();
   if (got.length) {
-    const L = got[got.length - 1];
-    toast(`🏆 결투 시즌 ${L.season} 보상 — ${seasonTier(L.rank, L.total).name} (${L.total}명 중 ${L.rank}위) · ${seasonRewardText(L.reward, false)}`, 10000);
+    toast(`🏆 결투 시즌 ${got[got.length - 1].season} 보상이 도착했어요 — 🏆 랭킹 탭에서 확인`, 10000);
     renderHud();
   }
   await pushSave(true);
@@ -1847,7 +1851,27 @@ function viewSeason() {
     </div>`;
 }
 
+// 받은 보상(시즌·월드 보스)을 아직 안 봤으면 탭 맨 위에 한 번 보여 주고 본 것으로 친다.
+// 탭을 보고 있는 동안은 다시 그려도 남도록 newsShown 에 기억해 둔다 (탭을 떠나거나 창을 닫으면 지움)
+const newsShown = new Set();
+const newsUnseen = (L) => !!L && L.seen === false;
+function takeNews(key, L) {
+  if (newsUnseen(L)) { L.seen = true; newsShown.add(key); save(); }
+  return !!L && newsShown.has(key);
+}
+function viewSeasonNews() {
+  const L = S.season.last;
+  if (!takeNews('season', L)) return '';
+  return `<div class="reason">🏆 결투 시즌 ${L.season} 보상 — ${seasonTier(L.rank, L.total).name} (${L.total}명 중 ${L.rank}위) · ${seasonRewardText(L.reward)}</div>`;
+}
+function viewWbNews() {
+  const L = S.wb.last;
+  if (!takeNews('wb', L)) return '';
+  const b = WORLD_BOSSES[L.boss];
+  return `<div class="reason">🎁 월드 보스 보상 — ${b ? b.name : ''} ${L.killed ? '처치 ✅' : '생존'} · 피해 ${L.players}명 중 ${L.rank}위 · ${wbRewardText(L.reward)}</div>`;
+}
 function viewRank() {
+  duelSeen = true;
   loadRanking();
   const d = rank.data && rank.data.sort === rank.sort ? rank.data : null;
   const seg = (id, label) => `<button class="seg ${rank.sort === id ? 'on' : ''}" data-action="rank-sort" data-sort="${id}">${label}</button>`;
@@ -1883,9 +1907,10 @@ function viewRank() {
     <div class="hint">결투는 서로의 저장된 능력치로 자동으로 싸우고, 캠프 앞 하단바에서 벌어져요. 이기면 상대의 결투 점수를 가져오고, 상대가 접속해 있지 않아도 도전할 수 있어요.
       결투 점수는 3일마다 바뀌는 시즌마다 1000점에서 다시 시작하고, 시즌이 끝나면 직접 결투를 1번 이상 건 기사에게 순위별 보상을 줘요.
       ${d && d.bots ? `<br>🤖 표시는 서버가 키우는 <b>AI 기사</b>예요. 결투 상대가 되고 가끔 먼저 결투를 걸기도 하지만, 시즌 보상 순위는 AI 를 빼고 사람끼리 매겨요.` : ''}</div>
+    ${viewSeasonNews()}
+    ${lastDuel ? `<div class="reason ${lastDuel.won ? '' : 'warn'}">최근 결투 — ${esc(duelResultText(lastDuel))}</div>` : ''}
     ${viewInbox()}
     ${rank.sort === 'duel' ? viewSeason() : ''}
-    ${lastDuel ? `<div class="reason ${lastDuel.won ? '' : 'warn'}">최근 결투 — ${esc(duelResultText(lastDuel))}</div>` : ''}
     <div class="rlist">${body}</div>
     ${viewHall(d && d.hall)}`;
 }
@@ -1940,11 +1965,10 @@ function tellInbox() {
   if (!fresh.length) return;
   inbox.told = fresh[0].id;
   if (campOpen && campTab === 'rank') return;          // 지금 우편함을 보고 있다
-  const win = fresh.filter((m) => m.won).length, sum = fresh.reduce((a, m) => a + (m.won ? m.delta : -m.delta), 0);
-  const m = fresh[0];
+  // 결과(승패·점수)는 랭킹 탭에서 본다 (docs/specs/result-on-click.md)
   toast(fresh.length === 1
-    ? `📬 받은 결투 — ${botName(m)}(Lv ${m.level}) · ${m.won ? `🛡️ 방어 성공! 결투 점수 +${m.delta}` : `💀 패배… 결투 점수 -${m.delta}`} · 🏆 랭킹 탭에서 확인`
-    : `📬 받은 결투 ${fresh.length}건 — 방어 ${win} · 패배 ${fresh.length - win} · 결투 점수 ${sum >= 0 ? '+' : ''}${sum} · 🏆 랭킹 탭에서 확인`, 9000);
+    ? `📬 ${botName(fresh[0])}이(가) 결투를 걸어 왔어요 — 🏆 랭킹 탭에서 확인`
+    : `📬 받은 결투 ${fresh.length}건 — 🏆 랭킹 탭에서 확인`, 9000);
 }
 
 // ───────────────────────── 서버 확성기 ─────────────────────────
@@ -2054,6 +2078,8 @@ function viewMail() {
 // 서버에 결투를 신청하고, 받은 기록은 캠프 창을 닫고 하단바에서 재생한다 (world.js playDuel).
 let duelBusy = false;        // 서버 응답을 기다리는 중
 let lastDuel = null;         // 마지막 결투 결과 (랭킹 탭 위에 보여 준다)
+let duelSeen = true;         // lastDuel 을 랭킹 탭에서 봤는지 — 안 봤으면 말풍선 ❗ (docs/specs/result-on-click.md)
+const duelUnseen = () => !!lastDuel && !duelSeen;
 
 // practice: 점수가 오가지 않는 연습 결투 (서버가 하루 한도·같은 상대 간격에 걸리면 연습으로 돌린다 — 그 이유)
 const duelResultText = (r) =>
@@ -2069,13 +2095,15 @@ function startDuel(nick) {
   toast(`⚔️ ${nick}에게 결투를 신청하는 중…`, 70000);
   requestDuel(nick).then((res) => {
     rank.at = 0; seasonUi.at = 0;             // 다음에 랭킹 탭을 열면 바뀐 점수로 다시 불러온다
-    if (activeNick() !== who || S.phase !== 'camp' || campOpen || acctOpen) {
-      toast(duelResultText(res), 6000);       // 그사이 다른 화면으로 갔으면 결과만 알린다
-      lastDuel = res;
+    if (activeNick() !== who) return;
+    lastDuel = res; duelSeen = false;         // 결과는 기사를 눌러 랭킹 탭에서 본다
+    if (S.phase !== 'camp' || campOpen || acctOpen) {
+      toast('⚔️ 결투가 끝났어요 — 기사를 눌러 결과를 확인하세요', 6000);   // 그사이 다른 화면으로 갔으면 끝났다고만 알린다
+      renderHud();
       return;
     }
     $('toast').classList.remove('show');
-    playDuel(res, (r) => { lastDuel = r; toast(duelResultText(r), 6000); renderHud(); });
+    playDuel(res, () => renderHud());
   }, (e) => {
     toast(`⚠️ ${e.message}`, 5000);
   }).finally(() => { duelBusy = false; renderHud(); });
@@ -2149,16 +2177,20 @@ function onRaidResult(result) {
     if (L) {
       save(); pushSave();
       raidUi.revealed = []; raidUi.showResult = true;   // 이 기사로 바꿔 캠프를 열면 레이드 탭에 정산이 보인다
-      toast(`🐉 ${RAID_BOSSES[result.boss].name} 레이드 ${L.won ? '승리' : '패배'} — 이 기사로 가서 캠프 레이드 탭에서 보상 상자를 열어요`, 6000);
+      toast(`🐉 ${RAID_BOSSES[result.boss].name} 레이드가 끝났어요 — 이 기사로 가서 캠프 레이드 탭에서 확인해요`, 6000);
     }
     return;
   }
-  if (S.phase !== 'camp' || acctOpen) {
-    toast(`🐉 ${RAID_BOSSES[result.boss].name} 레이드 전투가 끝났어요 — 캠프로 돌아가면 전투를 보고 보상을 받아요`, 6000);
-    return;
-  }
-  closeCamp();
-  playQueuedRaid();
+  // 창을 닫거나 저절로 재생하지 않는다 — 기사를 누르거나 레이드 탭의 '전투 보기'로 본다 (docs/specs/result-on-click.md)
+  toast(`🐉 ${RAID_BOSSES[result.boss].name} 레이드 전투가 끝났어요 — ${S.phase === 'camp' ? '기사를 눌러' : '캠프로 돌아가면'} 전투를 보고 보상을 받아요`, 6000);
+  if (raidTabOpen()) renderCamp();
+  renderHud();
+}
+// 보류된 레이드 결과를 본다: 재생 기록이 있으면 재생 뒤 정산, 없으면(앱을 다시 켬) 바로 지급하고 정산 화면
+function watchRaid() {
+  if (!S.raid.pending || raidActive() || duelActive() || S.phase !== 'camp' || acctOpen) return;
+  if (raidUi.queued && raidUi.queued.id === S.raid.pending.id) { closeCamp(); playQueuedRaid(); }
+  else { raidUi.queued = null; closeCamp(); finishRaid(); }
 }
 function playQueuedRaid() {
   const result = raidUi.queued;
@@ -2177,13 +2209,6 @@ function finishRaid() {
   openCamp('raid');
   renderHud();
 }
-// 보류된 정산이 남아 있으면(원정 중에 받았거나 재생 중에 앱을 껐을 때) 캠프에서 한가할 때 마저 처리한다
-function raidCatchUp() {
-  if (!S.raid.pending || raidActive() || duelActive() || S.phase !== 'camp' || campOpen || acctOpen || modalOpen()) return;
-  if (raidUi.queued && raidUi.queued.id === S.raid.pending.id) playQueuedRaid();
-  else { raidUi.queued = null; finishRaid(); }   // 재생할 기록이 없으면(앱을 다시 켬) 바로 지급
-}
-setInterval(raidCatchUp, 1000);
 
 // 서버 요청을 하나 보내고 결과 방으로 화면을 바꾼다
 function raidRequest(fn, okMsg) {
@@ -2219,6 +2244,13 @@ function raidLeave() {
 }
 
 // ── 정산 화면 ──
+// 받았지만 아직 안 본 레이드 결과 — 승패는 쓰지 않고 '전투 보기' 만 (docs/specs/result-on-click.md)
+function viewRaidPending() {
+  const P = S.raid.pending;
+  if (!P) return '';
+  const b = RAID_BOSSES[P.boss];
+  return `<div class="reason">🐉 ${b.icon} ${b.name} 레이드 전투가 끝났어요 <button class="btn rd" data-action="raid-watch" ${raidActive() || duelActive() ? 'disabled' : ''}>${ico('sword')} 전투 보기</button></div>`;
+}
 function viewRaidResult() {
   const L = S.raid.last;
   if (!L) return '';
@@ -2458,8 +2490,7 @@ async function takeWbRewards(rows) {
   const got = rows.map(claimWbReward).filter(Boolean);
   save();
   if (got.length) {
-    const L = got[got.length - 1], b = WORLD_BOSSES[L.boss];
-    toast(`🌍 월드 보스 보상 — ${b ? b.name : ''} ${L.killed ? '처치 ✅' : '생존'} · 피해 ${L.players}명 중 ${L.rank}위 · ${wbRewardText(L.reward, false)}`, 10000);
+    toast('🌍 월드 보스 보상이 도착했어요 — 🐉 레이드 탭에서 확인', 10000);
     renderHud();
   }
   await pushSave(true);
@@ -2885,7 +2916,7 @@ function drawSubSoon(g, w, h) {
 function viewRaid() {
   refillTickets();
   raidPoll();
-  return `${viewWorldBoss()}${viewRaidResult()}${viewRaidChests()}${raidUi.room ? viewRaidRoom() : viewRaidLobby()}`;
+  return `${viewRaidPending()}${viewWbNews()}${viewWorldBoss()}${viewRaidResult()}${viewRaidChests()}${raidUi.room ? viewRaidRoom() : viewRaidLobby()}`;
 }
 
 function openRaidChestAt(i) {
@@ -2909,7 +2940,7 @@ function renderCamp() {
     ['report', `${ico('home')} 홈`, S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
     ['town', `${ico('town')} 마을`, S.build ? `<i class="info">${ico('hammer')}</i>` : dots.town ? DOT : ''],
     ['char', `${ico('char')} 캐릭터`, dots.gear || dots.skill || dots.class ? DOT : ''],
-    ['rank', `${ico('rank')} 랭킹`, inboxUnread() ? `<i>${inboxUnread()}</i>` : ''],
+    ['rank', `${ico('rank')} 랭킹`, inboxUnread() ? `<i>${inboxUnread()}</i>` : dots.rank ? DOT : ''],
     ['raid', `${ico('raid')} 레이드`, S.raid.chests.length ? `<i>${S.raid.chests.length}</i>` : dots.raid ? DOT : ''],
     ['sub', `${ico('sub')} 도전`, dots.tower || dots.dungeon || dots.castle ? DOT : ''],
   ];
@@ -3020,6 +3051,7 @@ const ACTIONS = {
   'res-trade': () => { resOpen = null; campTab = 'town'; townUi.sel = 'storage'; $('campBody').scrollTop = 0; },
   'tab': (el) => {
     campTab = normalizeTab(el.dataset.tab);
+    newsShown.clear();
     markSubSeen();
     $('campBody').scrollTop = 0;
   },
@@ -3054,6 +3086,7 @@ const ACTIONS = {
   'raid-start': () => { if (S.raid.tickets > 0) raidRequest(withSave(startRaid)); },
   'raid-again': () => raidRequest(againRaid),
   'raid-result': () => { raidUi.showResult = true; },
+  'raid-watch': watchRaid,
   'raid-result-close': () => { raidUi.showResult = false; },
   'raid-open': (el) => openRaidChestAt(Number(el.dataset.i)),
   'raid-open-all': () => {
@@ -3613,17 +3646,17 @@ document.addEventListener('keydown', (e) => {
 hooks.onTowerEnd = (r) => {
   renderHud();
   if (!r) return;
-  toast(`🗼 ${TOWER_REASON[r.reason] || '도전 끝'} — ${r.cleared}개 층 돌파${r.tomes ? ` · 📖 +${r.tomes}` : ''} · 기사를 클릭해 정산을 확인하세요`, 8000);
+  toast('🗼 도전의 탑 도전이 끝났어요 — 기사를 눌러 정산을 확인하세요', 8000);   // 결과는 정산에서 (docs/specs/result-on-click.md)
 };
 hooks.onDungeonEnd = (r) => {
   renderHud();
   if (!r) return;
-  toast(`⛏️ ${DG_REASON[r.reason] || '던전 끝'} — ${dgResText(r.got, '받은 게 없어요')} · 기사를 클릭해 정산을 확인하세요`, 8000);
+  toast('⛏️ 재료의 미궁이 끝났어요 — 기사를 눌러 정산을 확인하세요', 8000);
 };
 hooks.onCastleEnd = (r) => {
   renderHud();
   if (!r) return;
-  toast(`🏰 ${CASTLE_REASON[r.reason] || '도전 끝'} — ${r.lv}단계 막은 웨이브 ${r.waves}/${CASTLE_WAVES.length} · 🧱 +${fmt(r.bricks)} · 📕 +${r.books} · 기사를 클릭해 정산을 확인하세요`, 8000);
+  toast('🏰 성벽 지키기가 끝났어요 — 기사를 눌러 정산을 확인하세요', 8000);
 };
 hooks.onArrive = () => {
   const r = S.report;

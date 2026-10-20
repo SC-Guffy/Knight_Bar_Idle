@@ -45,6 +45,6 @@ function claimSeasonReward(row) {
   S.mats.wood += reward.wood; S.mats.ore += reward.ore; S.mats.mana += reward.mana;
   S.tomes += reward.tomes;
   for (let i = 0; i < reward.chests; i++) S.raid.chests.push({ k: 'rbox', b: reward.boss, s: RAID_BOSSES[reward.boss].stage });
-  S.season.last = { ...row, tier: tier.id, reward, at: Date.now() };
+  S.season.last = { ...row, tier: tier.id, reward, at: Date.now(), seen: false };   // seen: 랭킹 탭에서 봤는지 (ui.js takeNews)
   return S.season.last;
 }

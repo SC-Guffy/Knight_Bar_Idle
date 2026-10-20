@@ -43,6 +43,7 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
+| [result-on-click.md](result-on-click.md) | 구현 (0.28.12, 확인 전) | 결과는 눌러야 본다 — 레이드 결과가 와도 창을 닫거나 재생하지 않고 ❗→기사 클릭 시 재생, 결투·탑·미궁·성벽·시즌·월드 보스 알림 토스트에서 승패·보상 숫자 뺌 |
 | [guild.md](guild.md) | 초안 | **기사단 (시즌7)** — 기사 여러 명 동시 육성(슬롯 2→5, 🛡️ 기사단 회관), 모든 콘텐츠 동시 진행(기사마다 iframe 검증안), 입장권 기사별, 계열 효과·따라잡기, Google 로그인 + Electron 연결 코드. 공용 범위 안 A/B 미정 (검토 `dev/review/guild.html`) |
 | [currency-roles.md](currency-roles.md) | 구현 (0.23.2) | 재화 역할 지도 — 재화마다 얻는 곳·쓰는 곳. 💎 마력석 = 고강화(+10~)·전직 전용(건물·시설·레이드 입장권에서 뺌, 강화 마력석 ×3) · 🪨 대장간 시설 철광석 ×0.5 · 💠 강화 강화석 ×1.5 (`dev/currency-bot.js`, 검토 `dev/review/currency-roles.html`) |
 | [dungeon-slot-roles.md](dungeon-slot-roles.md) | 구현 (0.28.6) | 재료의 미궁 슬롯에서 💎 마력석·💠 강화석 뺌 → 4종, 💰🪵🪨 한 판 ×1.45 · 📖 그대로 (검토 `dev/review/dungeon-slot-roles.html`) |
