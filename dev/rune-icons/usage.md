@@ -1,0 +1,55 @@
+# 룬 아이콘 PixelLab 사용 (상한 80)
+
+| 이름 | 엔드포인트 | 잔량 | usage |
+|---|---|---|---|
+| exec-s11 | create-image-pixen | 275.0 → 274.0 | 1.0 |
+| twin-s11 | create-image-pixen | 274.0 → 273.0 | 1.0 |
+| L-zen-s11 | create-image-pixen | 273.0 → 272.0 | 1.0 |
+| exec-s21 | create-image-pixen | 272.0 → 272.0 | 1.0 |
+| boss-s21 | create-image-pixen | 271.0 → 271.0 | 1.0 |
+| first-s21 | create-image-pixen | 270.0 → 269.0 | 1.0 |
+| solo-s21 | create-image-pixen | 269.0 → 268.0 | 1.0 |
+| crowd-s21 | create-image-pixen | 268.0 → 268.0 | 1.0 |
+| dot-s21 | create-image-pixen | 268.0 → 266.0 | 1.0 |
+| double-s21 | create-image-pixen | 266.0 → 265.0 | 1.0 |
+| stack-s21 | create-image-pixen | 265.0 → 265.0 | 1.0 |
+| vuln-s21 | create-image-pixen | 264.0 → 264.0 | 1.0 |
+| refund-s21 | create-image-pixen | 264.0 → 262.0 | 1.0 |
+| haste-s21 | create-image-pixen | 262.0 → 262.0 | 1.0 |
+| chain-s21 | create-image-pixen | 262.0 → 261.0 | 1.0 |
+| range-s21 | create-image-pixen | 260.0 → 260.0 | 1.0 |
+| overkill-s21 | create-image-pixen | 260.0 → 258.0 | 1.0 |
+| twin-s21 | create-image-pixen | 258.0 → 257.0 | 1.0 |
+| after-s21 | create-image-pixen | 257.0 → 256.0 | 1.0 |
+| burst-s21 | create-image-pixen | 256.0 → 256.0 | 1.0 |
+| more-s21 | create-image-pixen | 255.0 → 255.0 | 1.0 |
+| L-blade-s21 | create-image-pixen | 255.0 → 253.0 | 1.0 |
+| L-frenzy-s21 | create-image-pixen | 253.0 → 252.0 | 1.0 |
+| L-endless-s21 | create-image-pixen | 252.0 → 252.0 | 1.0 |
+| L-echo-s21 | create-image-pixen | 252.0 → 252.0 | 1.0 |
+| L-myriad-s21 | create-image-pixen | 252.0 → 251.0 | 1.0 |
+| L-reach-s21 | create-image-pixen | 250.0 → 249.0 | 1.0 |
+| boss-s31 | create-image-pixen | 248.0 → 248.0 | 1.0 |
+| first-s31 | create-image-pixen | 248.0 → 247.0 | 1.0 |
+| crowd-s31 | create-image-pixen | 247.0 → 246.0 | 1.0 |
+| double-s31 | create-image-pixen | 245.0 → 244.0 | 1.0 |
+| stack-s31 | create-image-pixen | 244.0 → 244.0 | 1.0 |
+| vuln-s31 | create-image-pixen | 244.0 → 243.0 | 1.0 |
+| refund-s31 | create-image-pixen | 242.0 → 242.0 | 1.0 |
+| chain-s31 | create-image-pixen | 241.0 → 241.0 | 1.0 |
+| exec-s31 | create-image-pixen | 241.0 → 239.0 | 1.0 |
+| twin-s31 | create-image-pixen | 239.0 → 238.0 | 1.0 |
+| after-s31 | create-image-pixen | 238.0 → 238.0 | 1.0 |
+| burst-s31 | create-image-pixen | 237.0 → 236.0 | 1.0 |
+| more-s31 | create-image-pixen | 236.0 → 235.0 | 1.0 |
+| L-echo-s31 | create-image-pixen | 235.0 → 234.0 | 1.0 |
+| vuln-s41 | create-image-pixen | 234.0 → 234.0 | 1.0 |
+| stack-s41 | create-image-pixen | 234.0 → 233.0 | 1.0 |
+| vuln-s51 | create-image-pixen | 232.0 → 232.0 | 1.0 |
+| dot-s51 | create-image-pixen | 231.0 → 230.0 | 1.0 |
+| haste-s51 | create-image-pixen | 230.0 → 230.0 | 1.0 |
+| overkill-s51 | create-image-pixen | 230.0 → 229.0 | 1.0 |
+| range-s51 | create-image-pixen | 228.0 → 227.0 | 1.0 |
+| dot-s61 | create-image-pixen | 227.0 → 227.0 | 1.0 |
+| overkill-s61 | create-image-pixen | 226.0 → 226.0 | 1.0 |
+| range-s61 | create-image-pixen | 226.0 → 224.0 | 1.0 |

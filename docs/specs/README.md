@@ -85,3 +85,4 @@
 | [storage-logistics.md](storage-logistics.md) | 완료 | 창고 개편: 창고는 🪵·🪨 비축(12시간분) + Lv5 부터 골드 교역 (하루 2+Lv/5회, 값 ×2씩) |
 | [raid-sig-drop.md](raid-sig-drop.md) | 완료 (0.20.9) | 레이드 고유 장비 드랍률 ×3 — 처치 상자당 6~18% (세트 평균 17~50회) |
 | [bag-upgrade.md](bag-upgrade.md) | 완료 | 🎒 가방은 여관 안 별도 업그레이드: 무게 10 + 2/Lv, 최대 Lv = 여관 Lv(최대 48), 비용 = 여관 목재의 1/4, 가방 가득 귀환 때만 레드닷 |
+| [rune-icons.md](rune-icons.md) | 배포됨 (0.29.2) | 룬 25종 32×32 PixelLab 룬석 그림 (판석 14 · 별꼴 결정 4 · 금테 메달 7), 등급 = 1px 테두리 색, PixelLab 51회 |

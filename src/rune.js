@@ -50,6 +50,9 @@ const runeIsLeg = (r) => r.g >= 4;
 // 이름·아이콘·색 (전설은 줄기 글 — src/tree7-ui.js t7U)
 const runeName = (r) => (runeIsLeg(r) ? (typeof t7U === 'function' ? t7U(RUNE_LEG[r.id].node).n : r.id) : RUNE_DEF[r.id].n);
 const runeIcon = (r) => (runeIsLeg(r) ? RUNE_LEG[r.id].icon : RUNE_DEF[r.id].icon);
+// 32×32 룬석 그림 (src/skin/runes.png ← dev/rune-icons/build.py, docs/specs/rune-icons.md): 범용·모양 18칸 다음 전설 7칸. 테두리 = 등급 색
+const RUNE_CELLS = [...Object.keys(RUNE_DEF), ...RUNE_LEG_IDS.map((id) => 'L-' + id)];
+const runeArt = (r) => `<i class="rn${runeIsLeg(r) ? ' leg' : ''}" style="background-position:-${RUNE_CELLS.indexOf(runeIsLeg(r) ? 'L-' + r.id : r.id) * 32}px 0;--gc:${GRADES[r.g].color}"></i>`;
 const runeCol = (r) => (runeIsLeg(r) ? RUNE_LEG[r.id].col : RUNE_DEF[r.id].col);
 const runeTag = (r) => (runeIsLeg(r) ? null : RUNE_DEF[r.id].tag || null);
 // 지금 등급의 값 (범용·모양)

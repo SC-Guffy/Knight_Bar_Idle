@@ -289,7 +289,7 @@ const gearIcon = (it, cls = '') => {
 };
 // 상자도 16×16 그림(src/box-art.js BOX_ART·CHEST_ART)이 있으면 18px 캔버스 + a16
 const boxIcon = (g) => (BOX_ART[g] ? `<canvas class="gicon g${g} a16" width="18" height="18" data-bx="${g}"></canvas>` : `<canvas class="gicon g${g}" width="14" height="14" data-bx="${g}"></canvas>`);
-const lootIconHtml = (it) => (it.k === 'gear' ? gearIcon(it) : `<span class="lic">${lootIcon(it)}</span>`);
+const lootIconHtml = (it) => (it.k === 'gear' ? gearIcon(it) : `<span class="lic">${it.k === 'rune' ? runeArt(it) : lootIcon(it)}</span>`);
 
 const gearSprCache = {};
 // key: 캐시 키, def: { spr, pal } (장비 도감 항목 또는 LOOT_BOXES 항목) 또는 { rows, pal } (GEAR_ART)

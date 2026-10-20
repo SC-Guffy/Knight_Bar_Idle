@@ -112,7 +112,7 @@ function viewTree7() {
   return `${head}${moved}${tier1}<div class="t7slots">${slots.join('')}</div><div class="t7cards skl">${cards}</div>${runeBagHtml()}`;
 }
 // 🔮 룬 칸 (스킬 카드 안): 숙련 ★ 1칸 · ★★★ 2칸. 빈 칸을 누르면 아래 주머니에서 고른다, 끼운 룬을 누르면 뺀다 (src/rune.js)
-const runeChip = (r, extra = '') => `<span class="gem" style="background:${runeCol(r)}"></span><span style="color:${GRADES[r.g].color}">${runeIcon(r)} ${runeName(r)}</span>${extra}`;
+const runeChip = (r, extra = '') => `${runeArt(r)}<span style="color:${GRADES[r.g].color}">${runeName(r)}</span>${extra}`;
 function runeSockHtml(sk) {
   const cap = runeCap(sk), on = runesOf(sk);
   return `<div class="rsocks">${[0, 1].map((j) => {
@@ -128,7 +128,7 @@ function runeBagHtml() {
   const idx = bag.map((r, i) => i).sort((a, b) => bag[b].g - bag[a].g || (bag[a].id < bag[b].id ? -1 : 1));
   const chips = idx.map((i) => { const r = bag[i], w = pick ? runeWhy(pick, r) : null;
     return `<button class="rchip${pick && !w ? ' can' : ''}${pick && w ? ' no' : ''}" data-action="t7-sock" data-i="${i}" title="${esc(runeText(r))}${w ? ' · ' + w : ''}">${runeChip(r)}</button>`; }).join('');
-  const merges = runeMergeable().map((m) => `<button class="btn" data-action="t7-merge" data-id="${m.id}" data-g="${m.g}" title="같은 룬 3개 → ${m.g === 3 ? '전설 룬 하나 (무작위)' : GRADES[m.g + 1].name}">${runeIcon(m)} ${RUNE_DEF[m.id].n} <span style="color:${GRADES[m.g].color}">${GRADES[m.g].name}</span> ×3 → <span style="color:${GRADES[m.g + 1].color}">${m.g === 3 ? '전설' : GRADES[m.g + 1].name}</span></button>`).join('');
+  const merges = runeMergeable().map((m) => `<button class="btn" data-action="t7-merge" data-id="${m.id}" data-g="${m.g}" title="같은 룬 3개 → ${m.g === 3 ? '전설 룬 하나 (무작위)' : GRADES[m.g + 1].name}">${runeArt(m)} ${RUNE_DEF[m.id].n} <span style="color:${GRADES[m.g].color}">${GRADES[m.g].name}</span> ×3 → <span style="color:${GRADES[m.g + 1].color}">${m.g === 3 ? '전설' : GRADES[m.g + 1].name}</span></button>`).join('');
   const pn = pick && t7NodeOf(pick) ? t7U(t7NodeOf(pick).id).n : '';
   return `<div class="rbag"><div class="rbagh"><b>🔮 룬 주머니</b> <small>${bag.length}/${RUNE_BAG_MAX} · ${pick ? `<b>${pn}</b> 에 끼울 룬을 누르세요 <button class="btn" data-action="t7-pick" data-sk="${pick}">취소</button>` : '스킬 카드의 빈 칸(◇)을 누른 뒤 룬을 고르세요 · 원정 상자·레이드·탑에서 나와요'}</small></div>
     ${chips ? `<div class="rchips">${chips}</div>` : '<small class="t7note">아직 룬이 없어요 — 원정 상자를 열면 가끔 나와요 (보물상자일수록 자주)</small>'}
