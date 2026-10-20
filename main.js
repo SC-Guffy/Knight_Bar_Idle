@@ -124,6 +124,28 @@ function keepOnTop() {
   if (process.platform === 'win32') win.setAlwaysOnTop(false);
   win.setAlwaysOnTop(true, level);
   if (process.platform === 'win32') win.moveTop();
+  raisePopups();
+}
+
+// 게임이 window.open 으로 띄운 창(Google 로그인 등). 게임 창이 '항상 위'라서 그냥 두면 그 뒤에 깔려 안 보인다 (앱 0.5.2).
+// 게임 창보다 한 단계 위에 두고, 게임 창을 다시 맨 위로 올릴 때마다 같이 올린다.
+const popups = new Set();
+function raisePopups() {
+  for (const p of popups) {
+    if (p.isDestroyed()) { popups.delete(p); continue; }
+    // 껐다 켜면 윈도우에서도 같은 TOPMOST 무리 안에서 맨 위로 온다 (moveTop 은 창을 활성화할 수 있어서 안 씀)
+    if (process.platform === 'win32') p.setAlwaysOnTop(false);
+    p.setAlwaysOnTop(true, 'screen-saver', 1);
+  }
+}
+function watchPopup(child) {
+  popups.add(child);
+  child.on('closed', () => popups.delete(child));
+  if (process.platform === 'darwin') child.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  raisePopups();
+  // 메뉴바 앱(Dock 없음)이라 앱이 활성화돼야 로그인 창에 글자를 칠 수 있다
+  if (process.platform === 'darwin') app.focus({ steal: true });
+  child.focus();
 }
 
 function createWindow() {
@@ -150,6 +172,7 @@ function createWindow() {
   });
 
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.webContents.on('did-create-window', watchPopup);
   // 기본은 클릭 통과. forward:true 로 마우스 이동은 계속 받아서 HUD hover 를 감지한다.
   win.setIgnoreMouseEvents(true, { forward: true });
   place();
@@ -378,6 +401,7 @@ app.whenReady().then(() => {
     if (!win || win.isDestroyed() || !win.isVisible()) return;
     win.setAlwaysOnTop(false);
     win.setAlwaysOnTop(true, topLevel());
+    raisePopups();   // 로그인 창이 떠 있으면 게임 창 위로 다시 (포커스는 안 가져감)
   }, 2000);
 
   const refresh = () => { place(); buildMenu(); };
