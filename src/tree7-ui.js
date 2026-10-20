@@ -56,6 +56,8 @@ function t7LookName(n, st) {
 const t7LookDesc = (n, st) => { const k = SKILLS[n.sk]; return k && !k.t7 && k.stageDesc ? k.stageDesc[st] : ''; };
 const t7Icon = (id) => t7U(id).ic || id;
 const t7Canvas = (attr, id, cls = '') => `<canvas class="t7c ${cls}" data-${attr}="${id}"></canvas>`;
+// 스킬 카드·장착 칸 아이콘: 32×32 배지(src/skin/skill-icons.css 생성물, docs/specs/skill-card-icons.md) — 그림이 없는 스킬은 안의 도트 캔버스가 보인다
+const t7SkIcon = (id) => `<i class="ski ski-${id}">${t7Canvas('t7icon', id)}</i>`;
 // 지금 쓰는 모습 이름 (가진 스킬) · 아니면 스킬 이름
 const t7Look = (n) => (n.slot && n.sk && t7Rank(n.id) > 0 ? t7LookName(n, t7Stage(n.sk)) : t7U(n.id).n);
 const t7Ui = { sel: null, pick: null };   // pick: 룬을 끼우려고 고른 스킬
@@ -79,16 +81,16 @@ function viewTree7() {
       slots.push(next && !need
         ? `<button class="t7slot buy${rd(true)}" data-action="t7-slot">🔓 칸 열기 <small>${cost}</small></button>`
         : `<div class="t7slot lock">🔒 ${cond}${next && need ? ` <small>${need}</small>` : ''}${next && cost ? ` <small>${cost}</small>` : ''}</div>`);
-    } else slots.push(n ? `<button class="t7slot full" data-action="t7-eq" data-sk="${sk}" title="누르면 빼요 (장착 순서 = 시전 순서)">${t7Canvas('t7icon', t7Icon(n.id))}<span>${t7Look(n)}</span><small>Lv${t7Rank(n.id)}</small></button>`
+    } else slots.push(n ? `<button class="t7slot full" data-action="t7-eq" data-sk="${sk}" title="누르면 빼요 (장착 순서 = 시전 순서)">${t7SkIcon(t7Icon(n.id))}<span>${t7Look(n)}</span><small>Lv${t7Rank(n.id)}</small></button>`
       : '<div class="t7slot">빈 칸 <small>아래 스킬의 장착</small></div>');
   }
   const ult = T >= 3 && L && L.sk.ult;
-  slots.push(ult ? `<div class="t7slot ult full">${t7Canvas('t7icon', t7Icon('ult'))}<span>${t7Look(T7_BY.ult)}</span><small>Lv${t7Rank('ult')}</small></div>` : '<div class="t7slot lock">★ 궁극기 칸 (3차)</div>');
+  slots.push(ult ? `<div class="t7slot ult full">${t7SkIcon(t7Icon('ult'))}<span>${t7Look(T7_BY.ult)}</span><small>Lv${t7Rank('ult')}</small></div>` : '<div class="t7slot lock">★ 궁극기 칸 (3차)</div>');
   const moved = s.moved === 'skm' ? '<div class="gtip big">🔄 스킬 트리가 숙련으로 바뀌었어요 — 찍어 둔 스킬 칸·모습만큼 숙련 Lv 으로 옮겼어요. 스탯은 전직하면 자동으로 붙어요. 이제 장착한 스킬이 원정에서 쓸수록 자라요.</div>' : '';
   // 스킬 카드
   const cards = SKM_SLOTS.filter((slot) => L && L.sk[slot] && (slot !== 'ult' || T >= 2)).map((slot) => {
     const n = T7_BY[slot], sk = L.sk[slot], u = t7U(slot), own = skmOwnedSlot(slot);
-    if (!own) return `<div class="t7card skl lock" data-t7tip="${slot}">${t7Canvas('t7icon', t7Icon(slot))}<div><b>${u.n}</b><small>🔒 ${skmLockText(slot)}</small></div></div>`;
+    if (!own) return `<div class="t7card skl lock" data-t7tip="${slot}">${t7SkIcon(t7Icon(slot))}<div><b>${u.n}</b><small>🔒 ${skmLockText(slot)}</small></div></div>`;
     const lv = skmLv(sk), st = skmStage(sk), use = t7Stage(sk), p = skmProg(sk), eq = s.eq.includes(sk), isUlt = slot === 'ult';
     const nextStar = lv < 30 ? `다음 ★ Lv${(Math.floor(lv / 10) + 1) * 10}` : '숙련 끝';
     const feedMax = skmFeedMax(sk), feed = Math.min(feedMax, S.tomes || 0);
@@ -97,7 +99,7 @@ function viewTree7() {
       ? `<span class="lk lock" title="숙련 Lv${i * 10} 에 열려요">${i ? '★'.repeat(i) : '기본'}</span>`
       : `<button class="lk${i === use ? ' on' : ''}" data-action="t7-use" data-sk="${sk}" data-s="${i}" title="${t7LookName(n, i)}">${i ? '★'.repeat(i) : '기본'}</button>`).join('')}</div>` : '';
     return `<div class="t7card skl${eq || isUlt ? ' eq' : ''}${t7Ui.sel === slot ? ' sel' : ''}" data-t7tip="${slot}">
-      ${t7Canvas('t7icon', t7Icon(slot))}
+      ${t7SkIcon(t7Icon(slot))}
       <div class="t7cbody"><b>${t7Look(n)} <span class="t7st">${T7_STARS(st)}</span></b>
         <small>${u.n !== t7Look(n) ? u.n + ' · ' : ''}숙련 Lv ${lv}/30 · 위력 ×${(1 + SKM_POW * (lv - 1)).toFixed(2)} · 쿨 ×${(1 - SKM_CD * (lv - 1)).toFixed(2)}</small>
         ${runeSockHtml(sk)}

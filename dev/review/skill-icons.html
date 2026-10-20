@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>스킬 카드 아이콘 검토</title>
+<link rel="stylesheet" href="../../src/skin/skill-icons.css">
+<style>
+@font-face { font-family: G; src: url(../../src/skin/Galmuri11.woff2); }
+body { margin: 0; padding: 16px 20px 40px; background: #1d1828; color: #ece6f6; font: 13px/1.6 G, sans-serif; }
+h1 { font-size: 18px; margin: 0 0 4px; } h2 { font-size: 14px; margin: 20px 0 6px; color: #ffd257; }
+.mut, small { color: #a59cb8; }
+.ski { display: inline-block; vertical-align: middle; }
+.ski > canvas { display: none; }
+.line { display: grid; grid-template-columns: 110px repeat(8, 1fr); gap: 6px; align-items: start; margin-bottom: 6px; }
+.line > b { font-size: 12px; padding-top: 30px; }
+.c { background: #2b2538; border: 2px solid #0b0a14; padding: 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.c small { font-size: 10px; text-align: center; line-height: 1.2; }
+.x2 { zoom: 2; }
+.bw .ski { filter: grayscale(1) contrast(1.2); }
+.hd { display: grid; grid-template-columns: 110px repeat(8, 1fr); gap: 6px; color: #a59cb8; font-size: 11px; text-align: center; }
+.tog { margin: 8px 0; } .tog label { margin-right: 14px; cursor: pointer; }
+</style></head><body>
+<h1>스킬 카드 아이콘 110개 (32×32 PixelLab + 차수 테두리)</h1>
+<div class="mut">스펙 docs/specs/skill-card-icons.md · 테두리 = 1차 철 · 2차·새 스킬 은 · 궁극기 금 (스크립트가 덧그림) · 같은 줄은 한 줄기, 같은 열은 같은 칸</div>
+<div class="tog"><label><input type="checkbox" id="z" checked> 2배</label><label><input type="checkbox" id="bw"> 흑백</label></div>
+<div class="hd"><span></span><span>1차</span><span>2차 연타</span><span>2차 한방</span><span>새: 투사체</span><span>새: 회전</span><span>새: 관통</span><span>새: 폭발</span><span>궁극기</span></div>
+<div id="g"></div>
+<script>
+const L = [
+ ['검성','sk-steelCleave 강철 베기|sk-gale 질풍난무|sk-iaido 일섬|wave 비검|whirl 검무 회오리|flash 섬광 베기|storm 검기 폭풍|sk-thousandCuts 천검'],
+ ['파천검왕','sk-steelCleave 강철 베기|sk-ramCharge 돌진 격돌|sk-wideCleave 대검 횡참|sk-ty_wave 참마도 파동|sk-ty_whirl 철퇴 회전|sk-ty_flash 관통 돌격|sk-ty_storm 대검 폭풍|sk-skyBreak 파천참'],
+ ['성좌기사','sk-steelCleave 강철 베기|sk-sanctuary 성역|sk-judgment 심판의 일격|sk-ar_wave 성검 파동|sk-ar_whirl 성광 선회|sk-ar_flash 천벌의 빛줄기|sk-ar_storm 별빛 폭풍|sk-starJudgment 성좌 강림'],
+ ['천마장군','sk-piercingThrust 관통 찌르기|sk-shieldWall 방패 벽|sk-cavalryCharge 기병 돌격|sk-sg_wave 투창|sk-sg_whirl 방진 선회|sk-sg_flash 번개 돌격|sk-sg_storm 기병 폭풍|sk-cavalryLegion 천마군단'],
+ ['용황','sk-piercingThrust 관통 찌르기|sk-dragonBreath 용의 숨결|sk-dragonFall 용추락|sk-dl_wave 용아창|sk-dl_whirl 용염 회오리|sk-dl_flash 용섬|sk-dl_storm 용염 폭풍|sk-dragonEmperor 용황 강림'],
+ ['전쟁군주','sk-piercingThrust 관통 찌르기|sk-whirlwind 대회전|sk-earthSplitter 대지 가르기|sk-wl_wave 투척 도끼창|sk-wl_whirl 전부 회전|sk-wl_flash 지열참|sk-wl_storm 전장 폭풍|sk-worldBreaker 천붕'],
+ ['공성포수','sk-rapidFire 연사|sk-boltStorm 다연장 사격|sk-blastBolt 폭열탄|sk-sm_wave 화약 쇠뇌살|sk-sm_whirl 회전 포대|sk-sm_flash 파성 꿰뚫기|sk-sm_storm 철우 포화|sk-siegeBarrage 대공성포'],
+ ['신궁','sk-rapidFire 연사|sk-armorPiercer 철갑 관통탄|sk-headshot 헤드샷|sk-de_wave 추격탄|sk-de_whirl 관통 선회|sk-de_flash 일섬 저격|sk-de_storm 광휘 화살비|sk-sunArrow 태양 관통'],
+ ['차원궁사','sk-rapidFire 연사|sk-starfall 별빛 화살비|sk-homingBolts 유도 마탄|sk-va_wave 공허 화살|sk-va_whirl 마탄 궤도|sk-va_flash 공간 절단|sk-va_storm 유성 낙하|sk-dimensionCollapse 차원 붕괴'],
+ ['뇌제','sk-manaBurst 마력 폭발|sk-chainLightning 연쇄 번개|sk-thunderstorm 낙뢰|sk-te_wave 뇌전 화살|sk-te_whirl 뇌전 구체|sk-te_flash 섬뢰|sk-te_storm 뇌운 폭풍|sk-thunderJudgment 뇌제 강림'],
+ ['대마도사','sk-manaBurst 마력 폭발|sk-flameVortex 화염 회오리|sk-meteor 메테오|sk-am_wave 화염탄|sk-am_whirl 불꽃 고리|sk-am_flash 화염 광선|sk-am_storm 불길 폭풍|sk-apocalypse 종언의 겁화'],
+ ['빙결의 군주','sk-manaBurst 마력 폭발|sk-blizzard 블리자드|sk-iceLance 얼음창|sk-fl_wave 얼음 파편|sk-fl_whirl 서리 소용돌이|sk-fl_flash 빙창 관통|sk-fl_storm 눈보라 폭풍|sk-absoluteZero 절대영도'],
+ ['챔피언','sk-oneTwo 원투 스트레이트|sk-ironRush 연타 러시|sk-crushFist 붕권|sk-ch_wave 권풍|sk-ch_whirl 맹호 난타|sk-ch_flash 철갑 직권|sk-ch_storm 사방 권격|sk-kingFist 패왕권'],
+ ['템페스트','sk-oneTwo 원투 스트레이트|sk-spinKick 회전 발차기|sk-flyingKick 돌진 발차기|sk-tp_wave 풍인각|sk-tp_whirl 선풍 회오리|sk-tp_flash 뇌정 관통각|sk-tp_storm 폭풍 돌려차기|sk-heavenWind 천풍각'],
+ ['그랜드마스터','sk-oneTwo 원투 스트레이트|sk-qiBarrier 기막|sk-palmBlast 장풍|sk-gm_wave 기탄|sk-gm_whirl 주천 기환|sk-gm_flash 관천 장풍|sk-gm_storm 기공 폭풍|sk-qiGodDescent 기신 강림'],
+];
+document.getElementById('g').innerHTML = L.map(([n, s]) => `<div class="line"><b>${n}</b>${s.split('|').map((x) => { const [ic, ...nm] = x.split(' ');
+  return `<div class="c"><i class="ski ski-${ic}"></i><small>${nm.join(' ')}</small></div>`; }).join('')}</div>`).join('');
+const z = document.getElementById('z'), bw = document.getElementById('bw'), g = document.getElementById('g');
+const up = () => { g.querySelectorAll('.ski').forEach((e) => e.classList.toggle('x2', z.checked)); document.body.classList.toggle('bw', bw.checked); };
+z.onchange = bw.onchange = up; up();
+</script>
+</body></html>
