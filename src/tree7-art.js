@@ -454,7 +454,7 @@
 
   // ── 틀 (도트) ──
   // 갈래 색: [밝음, 보통, 그늘]
-  const LANE = { a: ['#fff2b8', '#e0c472', '#a8842e'], b: ['#cff6ff', '#6fd0d0', '#2f8a96'], k: ['#ffd0a0', '#ec9a3c', '#b0561e'], c: ['#d8c8f0', '#a98ccf', '#6f58a8'], f: ['#ffd0e0', '#e88aa8', '#a8506e'] };
+  const LANE = { a: ['#fff2b8', '#e0c472', '#a8842e'], b: ['#cff6ff', '#6fd0d0', '#2f8a96'], k: ['#ffd0a0', '#ec9a3c', '#b0561e'], c: ['#d8c8f0', '#a98ccf', '#6f58a8'], f: ['#ffd0e0', '#e88aa8', '#a8506e'], u: ['#ffe9a8', '#ffd257', '#a8842e'] };
   // 상태별 테 색: 찍음 = 금 · 찍을 수 있음 = 은 · 잠김 = 어두운 쇠
   const RIM = { got: ['#fff2b8', '#e0c472', '#a8842e'], can: ['#ebe7dc', '#b9b4cc', '#5e5a78'], lock: ['#5e5a78', '#34324a', '#1d1928'] };
 
@@ -574,8 +574,21 @@
     for (const x of xs) c.fillRect(x, 5, 1, 3);
     return cv;
   }
+  // 허브 (디아블로 4 식 줄기의 길목): 23×23 이중 마름모 — 바깥 테(상태색) · 안쪽 보석(줄 색, 잠기면 쇠색) · 가운데 빛점
+  function paintHub(cv, state, lane) {
+    const g = 23, m = 11; cv.width = cv.height = g; const c = cv.getContext('2d'); c.clearRect(0, 0, g, g);
+    const [hi, mid, lo] = RIM[state === 'lock' ? 'lock' : 'got'], L = state === 'lock' ? ['#5e5a78', '#34324a', '#1d1928'] : LANE[lane] || LANE.c;
+    for (let y = 0; y < g; y++) for (let x = 0; x < g; x++) {
+      const d = Math.abs(x - m) + Math.abs(y - m), lit = x + y < 2 * m;
+      if (d > m) continue;
+      c.fillStyle = d === m ? INK : d >= m - 2 ? (lit ? hi : lo) : d === m - 3 ? mid : d === m - 4 ? INK : d >= 4 ? (lit ? L[1] : L[2]) : d >= 2 ? L[0] : state === 'lock' ? '#34324a' : '#ffffff';
+      c.fillRect(x, y, 1, 1);
+    }
+    return cv;
+  }
   function paint(cv, kind, icon, state, lane, pips = 0, max = 1) {
     if (kind === 'dot') return paintDot(cv, state);
+    if (kind === 'hub') return paintHub(cv, state, lane);
     if (kind === 'look') return paintLook(cv, state, lane, pips);
     let w, h, frame, ix, iy, fy = 0;
     if (kind === 'active') { w = h = 22; frame = squareFrame(22, state, lane, pips, max); ix = iy = 4; }

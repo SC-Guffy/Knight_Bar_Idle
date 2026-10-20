@@ -21,7 +21,11 @@
 
 /* 트리 판 (가로로 밀어 본다) */
 .t7wrap { overflow-x: auto; overflow-y: hidden; border: 6px solid transparent; border-image: url(frame-panel.svg) 6 / 6px; image-rendering: pixelated; background: #15121c; background-clip: padding-box; overscroll-behavior-x: contain; }
-.t7board { position: relative; background-image: linear-gradient(#ffffff07 1px, transparent 1px), linear-gradient(90deg, #ffffff07 1px, transparent 1px); background-size: 8px 8px; }
+.t7board { position: relative; background: radial-gradient(ellipse at 50% 50%, #1f1b22 0%, #141216 60%, #0e0c10 100%); }   /* 3안: 디아블로 4 식 어두운 바탕 */
+.t7n.hub .t7c { filter: drop-shadow(0 0 6px #c2373f); }
+.t7n.hub.lock .t7c { filter: grayscale(1) brightness(.6); }
+.t7n.hub .rk { color: #ece6f6; font-weight: 700; top: calc(100% + 1px); }
+.t7n.hub.lock .rk { color: #77708a; }
 .t7edges { position: absolute; inset: 0; pointer-events: none; }
 .t7lane { position: absolute; font: 700 10px Galmuri11, sans-serif; white-space: nowrap; pointer-events: none; text-shadow: 0 1px 0 #000; }
 .t7lane small { font-weight: 400; color: #a59cb8; }

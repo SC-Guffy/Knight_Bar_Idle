@@ -21,7 +21,7 @@ const T7_PICK_URL = typeof location !== 'undefined' && /[?&]t7=1(&|$)/.test(loca
 // 2안 (docs/specs/skill-tree-v3.md): 스킬 Lv = 위력·쿨만 (🌟1, 융합 🌟2) · 모습(look)은 스킬 안 ★ 카드 · 스탯은 길 위의 점(한 번이면 끝)
 const T7_SPEC = {
   stat: { cost: 1, max: 1 }, active: { cost: 1, max: 5 }, mod: { cost: 4, max: 1 }, key: { cost: 7, max: 1 },
-  ult: { cost: 1, max: 5 }, fusion: { cost: 2, max: 3 }, uvar: { cost: 6, max: 1 }, look: { cost: 2, max: 1 },
+  ult: { cost: 1, max: 5 }, fusion: { cost: 2, max: 3 }, uvar: { cost: 6, max: 1 }, look: { cost: 2, max: 1 }, hub: { cost: 0, max: 0 },
 };
 const t7Cost = (n) => n.cost || T7_SPEC[n.t].cost;
 // 액티브·궁극기 칸 → 위력·쿨 배수, 융합 칸 → 배수
@@ -36,63 +36,70 @@ const T7_STAGE_AT = [0, 0, 1, 1, 2, 3], T7_FUSE_STAGE_AT = [0, 0, 2, 3];
 //  fx 효과 (아래 t7Mods 가 읽는다): { stat:{키:칸당}, pow:{스킬:배}, cd:{스킬:배}, ev:{스킬:배} 결투·전투력 평균 배율, spec:{스킬:{type,v,…}}, shape:이름,
 //     rule:이름 (전투 규칙 — src/tree7-fx.js t7OnHit·t7OnEnd·t7OnBasic), basic: 평타 피해 배율, basicDps: 평타 DPS 평균 배율(dpsOf), evAll: 모든 스킬 평균 배율,
 //     duel: 결투에서만 공격력 배율 (1:1·6~7초 첫 폭딜 싸움이라 광역·쿨 줄이기 갈래가 손해 — server/duel.js 가 profile.duel 을 곱한다. 레이드·원정은 그대로) }
-// 2안 판: 메인 스킬(slash, 1차 전직 때 1Lv 공짜 — free)에서 시작해 길 위 스탯 점을 따라 줄의 첫 스킬 → 둘째 스킬 → 키스톤 → 3차 키스톤.
-//  변형(mod)·궁극기 변형(uvar)·모습(look)은 판이 아니라 스킬 상세 안에 있다 (src/tree7-ui.js). 조건은 "앞을 배우면"(req 하나라도 · reqAll 모두) + 전직 차수, 그리고 택1(pair)·셋 중 하나(uvar)
+// 판 (디아블로 4 식, docs/specs/skill-tree-v3.md "3안"): 허브 6개가 줄기로 이어지고, 스킬·키스톤·스탯 점 사슬이 자기 허브에서 뻗는다. 메인 스킬(slash)·궁극기는 1Lv 공짜(free).
+//  스킬 바깥으로 모습(look) 사슬, 옆에 변형(mod·uvar). 조건은 "앞을 배우면"(req 하나라도 · reqAll 모두) + 전직 차수, 그리고 택1(pair)·셋 중 하나(uvar)
 const T7_NODES = [
-  { id: 'slash', t: 'active', lane: 'c', tier: 1, req: [], free: 1, sk: null, slot: 1 },
+  // 허브 (디아블로 4 식 줄기, 2026-10-20 사용자): 찍지 않는 길목. 전직 차수가 되면 열리고 앞 허브와 줄기로 이어진다. 노드는 모두 자기 허브에서 뻗는다
+  { id: 'hub_c', t: 'hub', lane: 'c', tier: 1, req: [] },
+  { id: 'hub_a', t: 'hub', lane: 'a', tier: 2, req: ['hub_c'] },
+  { id: 'hub_b', t: 'hub', lane: 'b', tier: 2, req: ['hub_a'] },
+  { id: 'hub_k', t: 'hub', lane: 'k', tier: 2, req: ['hub_b'] },
+  { id: 'hub_f', t: 'hub', lane: 'f', tier: 2, req: ['hub_k'] },
+  { id: 'hub_u', t: 'hub', lane: 'u', tier: 3, req: ['hub_f'] },
+  { id: 'slash', t: 'active', lane: 'c', tier: 1, req: ['hub_c'], free: 1, sk: null, slot: 1 },
   { id: 's_twin', t: 'mod', lane: 'c', tier: 1, req: ['slash'], fx: { shape: 'twin' } },
   { id: 'k_wave', t: 'mod', lane: 'c', tier: 1, req: ['slash'], fx: { shape: 'slashWave' } },   // 참격파: 메인 스킬을 바꾸는 효과라 검기 줄 → 메인 스킬 변형으로 (2안)
-  { id: 'k_blade', t: 'key', lane: 'c', tier: 1, req: ['slash'], fx: { rule: 'blade', powAll: 0.9, evAll: 1.18 } },   // 평타 3타마다 모든 스킬 쿨 −0.5초 (t7OnBasic)
-  // 스탯 점 (path: 길 [앞 스킬, 뒤 스킬]과 몇 번째) — 메인 → 첫 스킬 길은 1차부터, 첫 → 둘째 스킬 길은 2차부터. 합계는 옛 스탯 15칸과 같다
-  { id: 'c_atk1', t: 'stat', lane: 'c', tier: 1, req: ['slash'], path: ['slash', 'gale', 0], fx: { stat: { atk: 0.02 } } },
-  { id: 'c_atk2', t: 'stat', lane: 'c', tier: 1, req: ['c_atk1'], path: ['slash', 'gale', 1], fx: { stat: { atk: 0.02 } } },
-  { id: 'c_spd1', t: 'stat', lane: 'c', tier: 1, req: ['c_atk2'], path: ['slash', 'gale', 2], fx: { stat: { aspd: 0.02 } } },
-  { id: 'c_crit1', t: 'stat', lane: 'c', tier: 1, req: ['slash'], path: ['slash', 'iaido', 0], fx: { stat: { crit: 0.015 } } },
-  { id: 'c_crit2', t: 'stat', lane: 'c', tier: 1, req: ['c_crit1'], path: ['slash', 'iaido', 1], fx: { stat: { crit: 0.015 } } },
-  { id: 'c_atk3', t: 'stat', lane: 'c', tier: 1, req: ['c_crit2'], path: ['slash', 'iaido', 2], fx: { stat: { atk: 0.02 } } },
-  { id: 'c_hp1', t: 'stat', lane: 'c', tier: 1, req: ['slash'], path: ['slash', 'wave', 0], fx: { stat: { hp: 0.03 } } },
-  { id: 'c_hp2', t: 'stat', lane: 'c', tier: 1, req: ['c_hp1'], path: ['slash', 'wave', 1], fx: { stat: { hp: 0.03 } } },
-  { id: 'c_def1', t: 'stat', lane: 'c', tier: 1, req: ['c_hp2'], path: ['slash', 'wave', 2], fx: { stat: { guard: 0.02 } } },
-  { id: 'c_spd2', t: 'stat', lane: 'c', tier: 2, req: ['gale'], path: ['gale', 'whirl', 0], fx: { stat: { aspd: 0.02 } } },
-  { id: 'c_spd3', t: 'stat', lane: 'c', tier: 2, req: ['c_spd2'], path: ['gale', 'whirl', 1], fx: { stat: { aspd: 0.02 } } },
-  { id: 'c_crit3', t: 'stat', lane: 'c', tier: 2, req: ['iaido'], path: ['iaido', 'flash', 0], fx: { stat: { crit: 0.015 } } },
-  { id: 'c_def2', t: 'stat', lane: 'c', tier: 2, req: ['c_crit3'], path: ['iaido', 'flash', 1], fx: { stat: { guard: 0.02 } } },
-  { id: 'c_hp3', t: 'stat', lane: 'c', tier: 2, req: ['wave'], path: ['wave', 'storm', 0], fx: { stat: { hp: 0.03 } } },
-  { id: 'c_def3', t: 'stat', lane: 'c', tier: 2, req: ['c_hp3'], path: ['wave', 'storm', 1], fx: { stat: { guard: 0.02 } } },
+  { id: 'k_blade', t: 'key', lane: 'c', tier: 1, req: ['hub_c'], fx: { rule: 'blade', powAll: 0.9, evAll: 1.18 } },   // 평타 3타마다 모든 스킬 쿨 −0.5초 (t7OnBasic)
+  // 스탯 점: 허브에서 뻗는 사슬 (한 번이면 끝). 시작 허브 9개(사슬 3 × 3)는 1차부터, 줄 허브 6개(2개씩)는 2차부터 — 1차 때 찍을 수 있는 수가 옛 1차 길과 같게. 합계는 옛 스탯 15칸과 같다
+  { id: 'c_atk1', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { atk: 0.02 } } },
+  { id: 'c_atk2', t: 'stat', lane: 'c', tier: 1, req: ['c_atk1'], fx: { stat: { atk: 0.02 } } },
+  { id: 'c_spd1', t: 'stat', lane: 'c', tier: 1, req: ['c_atk2'], fx: { stat: { aspd: 0.02 } } },
+  { id: 'c_crit1', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { crit: 0.015 } } },
+  { id: 'c_crit2', t: 'stat', lane: 'c', tier: 1, req: ['c_crit1'], fx: { stat: { crit: 0.015 } } },
+  { id: 'c_atk3', t: 'stat', lane: 'c', tier: 1, req: ['c_crit2'], fx: { stat: { atk: 0.02 } } },
+  { id: 'c_hp1', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { hp: 0.03 } } },
+  { id: 'c_hp2', t: 'stat', lane: 'c', tier: 1, req: ['c_hp1'], fx: { stat: { hp: 0.03 } } },
+  { id: 'c_def1', t: 'stat', lane: 'c', tier: 1, req: ['c_hp2'], fx: { stat: { guard: 0.02 } } },
+  { id: 'c_spd2', t: 'stat', lane: 'c', tier: 2, req: ['hub_a'], fx: { stat: { aspd: 0.02 } } },
+  { id: 'c_spd3', t: 'stat', lane: 'c', tier: 2, req: ['c_spd2'], fx: { stat: { aspd: 0.02 } } },
+  { id: 'c_crit3', t: 'stat', lane: 'c', tier: 2, req: ['hub_b'], fx: { stat: { crit: 0.015 } } },
+  { id: 'c_def2', t: 'stat', lane: 'c', tier: 2, req: ['c_crit3'], fx: { stat: { guard: 0.02 } } },
+  { id: 'c_hp3', t: 'stat', lane: 'c', tier: 2, req: ['hub_k'], fx: { stat: { hp: 0.03 } } },
+  { id: 'c_def3', t: 'stat', lane: 'c', tier: 2, req: ['c_hp3'], fx: { stat: { guard: 0.02 } } },
 
-  { id: 'gale', t: 'active', lane: 'a', tier: 2, req: ['c_spd1'], sk: null, slot: 1 },
+  { id: 'gale', t: 'active', lane: 'a', tier: 2, req: ['hub_a'], sk: null, slot: 1 },
   { id: 'a_more', t: 'mod', lane: 'a', tier: 2, req: ['gale'], fx: { shape: 'more' } },
   { id: 'a_bleed', t: 'mod', lane: 'a', tier: 2, req: ['gale'], fx: { spec: { gale: { type: 'dot', name: '출혈', icon: '🩸', v: 0.4, dur: 3 } } } },
-  { id: 'whirl', t: 'active', lane: 'a', tier: 2, req: ['c_spd3'], sk: null, slot: 1 },
+  { id: 'whirl', t: 'active', lane: 'a', tier: 2, req: ['hub_a'], sk: null, slot: 1 },
   { id: 'a_follow', t: 'mod', lane: 'a', tier: 2, req: ['whirl'], pair: 'pa', fx: { shape: 'follow' } },   // 회오리가 적에게 날아가 붙는다 (범위 +60px, 연출은 tree7-fx)
   { id: 'a_grow', t: 'mod', lane: 'a', tier: 2, req: ['whirl'], pair: 'pa', fx: { shape: 'grow', ev: { whirl: 1.1 } } },
-  { id: 'a_key', t: 'key', lane: 'a', tier: 2, req: ['whirl'], fx: { rule: 'frenzy', basic: 0.85, basicDps: 1.02 } },   // 스킬 명중마다 공속 +4% 겹침(최대 10, 3초) · 평타 피해 −15%
+  { id: 'a_key', t: 'key', lane: 'a', tier: 2, req: ['hub_a'], fx: { rule: 'frenzy', basic: 0.85, basicDps: 1.02 } },   // 스킬 명중마다 공속 +4% 겹침(최대 10, 3초) · 평타 피해 −15%
   { id: 'a_k3', t: 'key', lane: 'a', tier: 3, req: ['a_key'], fx: { rule: 'endless', ev: { gale: 1.3 }, cd: { gale: 1.25 } } },   // 질풍난무가 끝나면 30% 로 바로 한 번 더
   { id: 'uv_a', t: 'uvar', lane: 'a', tier: 3, req: ['ult'], fx: { shape: 'uvA', ev: { ult: 1.05 }, duel: 1.2 } },
 
-  { id: 'iaido', t: 'active', lane: 'b', tier: 2, req: ['c_atk3'], sk: null, slot: 1 },
+  { id: 'iaido', t: 'active', lane: 'b', tier: 2, req: ['hub_b'], sk: null, slot: 1 },
   { id: 'b_reset', t: 'mod', lane: 'b', tier: 2, req: ['iaido'], fx: { rule: 'echo', ev: { iaido: 1.2 } } },   // 일섬으로 처치하면 잔상이 가장 가까운 적을 50% 로
   { id: 'b_exec', t: 'mod', lane: 'b', tier: 2, req: ['iaido'], fx: { spec: { iaido: { type: 'exec', name: '처형', icon: '🗡️', v: 1.0, thr: 0.25 } } } },
-  { id: 'flash', t: 'active', lane: 'b', tier: 2, req: ['c_def2'], sk: null, slot: 1 },
+  { id: 'flash', t: 'active', lane: 'b', tier: 2, req: ['hub_b'], sk: null, slot: 1 },
   { id: 'b_after', t: 'mod', lane: 'b', tier: 2, req: ['flash'], pair: 'pb', fx: { shape: 'after' } },
   { id: 'b_triple', t: 'mod', lane: 'b', tier: 2, req: ['flash'], pair: 'pb', fx: { shape: 'triple' } },
-  { id: 'b_key', t: 'key', lane: 'b', tier: 2, req: ['flash'], fx: { pow: { iaido: 1.17, flash: 1.17 }, cd: { iaido: 1.3, flash: 1.3 } } },
+  { id: 'b_key', t: 'key', lane: 'b', tier: 2, req: ['hub_b'], fx: { pow: { iaido: 1.17, flash: 1.17 }, cd: { iaido: 1.3, flash: 1.3 } } },
   { id: 'b_k3', t: 'key', lane: 'b', tier: 3, req: ['b_key'], fx: { stat: { atkMul: 2.6, noCrit: 1 } } },   // 모든 피해 ×2.6 (봇: 2.3 이면 발도 빌드가 10일차 240 에 멈춤), 치명 0 (확정 치명 스킬도 일반타 — t7NoCrit). 1.35 는 확정 치명 3.3배를 잃는 값을 못 메워 0.6배 손해였다
   { id: 'uv_b', t: 'uvar', lane: 'b', tier: 3, req: ['ult'], fx: { shape: 'uvB', pow: { ult: 1.2 }, duel: 0.95 } },
 
-  { id: 'wave', t: 'active', lane: 'k', tier: 2, req: ['c_def1'], sk: null, slot: 1 },
+  { id: 'wave', t: 'active', lane: 'k', tier: 2, req: ['hub_k'], sk: null, slot: 1 },
   { id: 'k_pierce', t: 'mod', lane: 'k', tier: 2, req: ['wave'], fx: { shape: 'pierce' } },   // 비검이 첫 적에서 멈추지 않고 줄로 뚫는다 · 검기 폭풍 범위 +20%
-  { id: 'storm', t: 'active', lane: 'k', tier: 2, req: ['c_def3'], sk: null, slot: 1 },
+  { id: 'storm', t: 'active', lane: 'k', tier: 2, req: ['hub_k'], sk: null, slot: 1 },
   { id: 'k_split', t: 'mod', lane: 'k', tier: 2, req: ['storm'], pair: 'pk', fx: { shape: 'split' } },
   { id: 'k_homing', t: 'mod', lane: 'k', tier: 2, req: ['storm'], pair: 'pk', fx: { spec: { storm: { type: 'boss', name: '유도', icon: '🎯', v: 0.5 } } } },
-  { id: 'k_key', t: 'key', lane: 'k', tier: 2, req: ['storm'], fx: { stat: { rangeMul: 3 }, basic: 0.8, basicDps: 0.9 } },   // 평타가 검기로 (사거리 ×3, 검기 그림) · 평타 피해 −20%
+  { id: 'k_key', t: 'key', lane: 'k', tier: 2, req: ['hub_k'], fx: { stat: { rangeMul: 3 }, basic: 0.8, basicDps: 0.9 } },   // 평타가 검기로 (사거리 ×3, 검기 그림) · 평타 피해 −20%
   { id: 'k_k3', t: 'key', lane: 'k', tier: 3, req: ['k_key'], fx: { rule: 'myriad', ev: { wave: 1.25, storm: 1.25 }, powNot: { lane: 'k', v: 0.8 } } },   // 검기 스킬 명중마다 다른 검기 스킬 쿨 −0.3초
   { id: 'uv_k', t: 'uvar', lane: 'k', tier: 3, req: ['ult'], fx: { shape: 'uvK', ev: { ult: 1.1 }, duel: 1.4 } },   // duel: 결투 전용 공격력 (t7Duel — 검기는 광역·쿨 줄이기가 1:1 에서 안 먹어서 ×1.4, 연타 ×1.2, 발도 ×0.95. 맞대결 60판으로 맞춤)
 
-  { id: 'ult', t: 'ult', lane: 'c', tier: 3, req: [], free: 1, sk: null, slot: 1 },   // 3차 전직 때 1Lv 공짜 (메인 스킬처럼)
-  { id: 'f_ab', t: 'fusion', lanes: ['a', 'b'], tier: 2, req: [], reqAll: ['whirl', 'flash'], sk: null, slot: 1 },   // 융합: 두 줄의 둘째 스킬을 모두 배우면
-  { id: 'f_bk', t: 'fusion', lanes: ['b', 'k'], tier: 2, req: [], reqAll: ['flash', 'storm'], sk: null, slot: 1 },
-  { id: 'f_ak', t: 'fusion', lanes: ['a', 'k'], tier: 2, req: [], reqAll: ['whirl', 'storm'], sk: null, slot: 1 },
+  { id: 'ult', t: 'ult', lane: 'c', tier: 3, req: ['hub_u'], free: 1, sk: null, slot: 1 },   // 3차 전직 때 1Lv 공짜 (메인 스킬처럼)
+  { id: 'f_ab', t: 'fusion', lanes: ['a', 'b'], tier: 2, req: ['hub_f'], reqAll: ['whirl', 'flash'], sk: null, slot: 1 },   // 융합: 두 줄의 둘째 스킬을 모두 배우면
+  { id: 'f_bk', t: 'fusion', lanes: ['b', 'k'], tier: 2, req: ['hub_f'], reqAll: ['flash', 'storm'], sk: null, slot: 1 },
+  { id: 'f_ak', t: 'fusion', lanes: ['a', 'k'], tier: 2, req: ['hub_f'], reqAll: ['whirl', 'storm'], sk: null, slot: 1 },
 ];
 // 모습 노드: 스킬(액티브·궁극기 ★·★★·★★★ / 융합 ★★·★★★)마다 <스킬>_s<단계>. 앞 모습이 있어야 다음, 마지막 모습만 그 스킬 최대 Lv. 비용 🌟2 (융합 ★★★ 🌟3)
 const T7_LOOKS = {};
@@ -174,11 +181,11 @@ const t7LaneOf = (sk) => { t7L(); return T7_BY_SKILL[sk] ? T7_BY_SKILL[sk].lane 
 const T7_SLOTS = [null, null, { tier: 2, lv: 50, gold: 30 }, { lv: 80, mana: 300 }, { lv: 120, mana: 1500 }];
 const T7_RESET_GOLD = 100;   // 전체 초기화 = 최고 스테이지 잡몹 골드 × 100 (원정 약 20분)
 
-function freshT7() { return { v: 2, pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {}, auto: true, free: 1 }; }   // auto: 직접 찍기 전까지 추천 순서로 자동 · free: 첫 초기화 무료   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
+function freshT7() { return { v: 3, pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {}, auto: true, free: 1 }; }   // auto: 직접 찍기 전까지 추천 순서로 자동 · free: 첫 초기화 무료   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
 const t7S = () => {
   if (S.cls !== t7SyncedCls) t7Sync();
   if (!S.t7) S.t7 = freshT7();
-  if (S.t7.v !== 2) t7Migrate(S.t7);
+  if (S.t7.v !== 3) t7Migrate(S.t7);
   return S.t7;
 };
 // 공짜 칸 스킬(메인 스킬)이 장착 칸 밖에 있으면 맨 앞에 넣는다 (전직·초기화·옮기기 뒤 빈 손으로 원정 가지 않게)
@@ -189,29 +196,41 @@ function t7FixEq() {
 }
 // 0.27 세이브 → 2안 (docs/specs/skill-tree-v3.md "옮기기"): 칸 → 위력 Lv + 그 칸에서 열렸던 모습, 스탯 칸 → 점.
 //  규칙에 안 맞으면 길 점을 남은 포인트로 채워 보고, 그래도 안 되면 전부 돌려준다(+ 무료 초기화 · 자동 찍기)
-const T7_OLD_STAT = { c_atk: ['c_atk1', 'c_atk2', 'c_atk3'], c_hp: ['c_hp1', 'c_hp2', 'c_hp3'], c_spd: ['c_spd1', 'c_spd2', 'c_spd3'], c_crit: ['c_crit1', 'c_crit2', 'c_crit3'], c_def: ['c_def1', 'c_def2', 'c_def3'] };
+const T7_OLD_STAT = { c_atk: 3, c_hp: 3, c_spd: 3, c_crit: 3, c_def: 3 };   // 0.27 스탯 노드 (칸 3)
+// 0.28.0~0.28.2 (v2) → 3안: 스탯 점 사슬이 허브별로 바뀌어 찍은 점 수(종류별)를 새 사슬 앞에서부터 다시 깐다. 나머지 노드 id·비용은 같다
 function t7Migrate(s) {
-  s.v = 2;
-  const old = s.rk || {}, rk = {};
+  const from = s.v || 1;
+  s.v = 3;
+  const old = s.rk || {};
+  let rk = {};
   if (!Object.keys(old).length) { s.rk = {}; t7FixEq(); return; }
-  for (const [k, ids] of Object.entries(T7_OLD_STAT)) for (let i = 0; i < Math.min(3, old[k] || 0); i++) rk[ids[i]] = 1;
-  for (const n of T7_NODES) {
-    const r = old[n.id] || 0;
-    if (!r || n.t === 'stat' || n.t === 'look') continue;
-    if (!n.slot) { rk[n.id] = r; continue; }
-    const keep = r - t7Free(n);
-    if (keep > 0) rk[n.id] = keep;
-    const st = n.t === 'fusion' ? T7_FUSE_STAGE_AT[Math.min(3, r)] : T7_STAGE_AT[Math.min(5, r)];
-    for (const l of T7_LOOKS[n.id]) if (l.st <= st) rk[l.id] = 1;
+  const want = {};   // 스탯 종류별 찍은 점 수
+  if (from < 2) {
+    for (const [k, n] of Object.entries(T7_OLD_STAT)) want[k] = Math.min(3, old[k] || 0);
+    for (const n of T7_NODES) {
+      const r = old[n.id] || 0;
+      if (!r || n.t === 'stat' || n.t === 'look' || n.t === 'hub') continue;
+      if (!n.slot) { rk[n.id] = r; continue; }
+      const keep = r - t7Free(n);
+      if (keep > 0) rk[n.id] = keep;
+      const st = n.t === 'fusion' ? T7_FUSE_STAGE_AT[Math.min(3, r)] : T7_STAGE_AT[Math.min(5, r)];
+      for (const l of T7_LOOKS[n.id]) if (l.st <= st) rk[l.id] = 1;
+    }
+  } else {
+    for (const [id, r] of Object.entries(old)) { const n = T7_BY[id]; if (!n || !r) continue; if (n.t === 'stat') { const k = id.replace(/\d$/, ''); want[k] = (want[k] || 0) + 1; } else rk[id] = r; }
   }
   s.rk = rk;
+  // 스탯 점 다시 깔기: 열린 점 중 아직 모자란 종류부터, 그다음 아무 열린 점 (총 개수는 같게)
+  let left = Object.values(want).reduce((a, b) => a + b, 0);
+  for (let g = 0; g < 40 && left > 0; g++) {
+    const open = T7_NODES.filter((n) => n.t === 'stat' && !rk[n.id] && t7Open(n));
+    const d = open.find((n) => want[n.id.replace(/\d$/, '')] > 0) || open[0];
+    if (!d) break;
+    rk[d.id] = 1; left--;
+    const k = d.id.replace(/\d$/, ''); if (want[k] > 0) want[k]--;
+  }
   // 포인트가 넘치면 마지막 모습부터 뺀다 (모습 비용 때문에 다 찍은 스킬은 1 더 든다)
   for (const l of T7_NODES.filter((x) => x.t === 'look' && x.last)) if (t7Spent() > t7Pts() && rk[l.id]) delete rk[l.id];
-  for (let g = 0; g < 20 && !t7Valid(); g++) {
-    const d = T7_NODES.find((n) => n.t === 'stat' && !rk[n.id] && t7Open(n));
-    if (!d || t7Left() < 1) break;
-    rk[d.id] = 1;
-  }
   if (!t7Valid()) { s.rk = {}; s.eq = []; s.use = {}; s.free = 1; s.auto = true; s.moved = 'reset'; }
   else s.moved = 'ok';
   s.camp = {};
@@ -220,7 +239,7 @@ function t7Migrate(s) {
 }
 // 공짜 칸: 메인 스킬(1차부터)·궁극기(3차부터)는 1Lv 이 찍혀 있다 (저장된 rk 에는 없다 — 포인트를 안 쓴다)
 const t7Free = (n) => (n && n.free && t7Tier() >= n.tier ? 1 : 0);
-const t7Rank = (id) => { const r = t7S().rk[id] || 0, n = T7_BY[id]; return n && n.free ? Math.min(T7_SPEC[n.t].max, r + t7Free(n)) : r; };
+const t7Rank = (id) => { const n = T7_BY[id]; if (n && n.t === 'hub') return t7Open(n) ? 1 : 0; const r = t7S().rk[id] || 0; return n && n.free ? Math.min(T7_SPEC[n.t].max, r + t7Free(n)) : r; };   // 허브는 열렸으면 1
 const t7Pts = () => Math.max(0, S.level - 1);
 const t7Spent = () => { const rk = t7S().rk; return T7_NODES.reduce((a, n) => a + (rk[n.id] || 0) * t7Cost(n), 0); };
 const t7Left = () => t7Pts() - t7Spent();
@@ -429,19 +448,19 @@ function t7Shape(sk, k) {
 }
 
 // ── 봇·측정용: 빌드별 포인트 쓰기 순서 (dev/lifespan-bot.js · progress-bot.js --build) ──
-const T7_BUILDS = {   // 2안 노드 (스킬 이름이 한 번 나올 때마다 Lv +1 — 메인 스킬·궁극기는 공짜 1Lv 을 센다)
-  a: ['c_atk1', 'c_atk2', 'c_spd1', 'slash', 'slash', 's_twin', 'gale', 'gale', 'slash_s1', 'gale', 'gale_s1', 'a_more', 'a_bleed', 'c_spd2', 'c_spd3', 'whirl', 'whirl', 'whirl_s1', 'a_grow',
-    'gale', 'gale_s2', 'c_crit1', 'c_crit2', 'c_atk3', 'iaido', 'iaido', 'c_crit3', 'c_def2', 'flash', 'a_key', 'f_ab', 'whirl', 'whirl', 'whirl_s2', 'gale', 'gale_s3',
-    'ult', 'a_k3', 'uv_a', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_ab', 'f_ab', 'f_ab_s2', 'f_ab_s3', 'whirl', 'whirl_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3',
-    'c_hp1', 'c_hp2', 'c_def1', 'k_blade'],
-  b: ['c_crit1', 'c_crit2', 'c_atk3', 'slash', 'slash', 's_twin', 'iaido', 'iaido', 'slash_s1', 'iaido', 'iaido_s1', 'b_exec', 'b_reset', 'c_crit3', 'c_def2', 'flash', 'flash', 'flash_s1', 'b_after',
-    'iaido', 'iaido_s2', 'c_atk1', 'c_atk2', 'c_spd1', 'gale', 'gale', 'c_spd2', 'c_spd3', 'whirl', 'b_key', 'f_ab', 'flash', 'flash', 'flash_s2', 'iaido', 'iaido_s3',
-    'ult', 'b_k3', 'uv_b', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_ab', 'f_ab', 'f_ab_s2', 'f_ab_s3', 'flash', 'flash_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3',
-    'c_hp1', 'c_hp2', 'c_def1', 'k_blade'],
-  k: ['c_atk1', 'c_atk2', 'c_spd1', 'slash', 'slash', 's_twin', 'c_hp1', 'c_hp2', 'c_def1', 'wave', 'wave', 'slash_s1', 'wave', 'wave_s1', 'k_pierce', 'c_hp3', 'c_def3', 'storm', 'storm', 'storm_s1', 'k_split',
-    'wave', 'wave_s2', 'c_crit1', 'c_crit2', 'c_atk3', 'iaido', 'iaido', 'c_crit3', 'c_def2', 'flash', 'k_key', 'f_bk', 'storm', 'storm', 'storm_s2', 'wave', 'wave_s3',
-    'ult', 'k_k3', 'uv_k', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_bk', 'f_bk', 'f_bk_s2', 'f_bk_s3', 'storm', 'storm_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3',
-    'k_wave', 'k_blade'],
+const T7_BUILDS = {   // 3안 노드 (스킬 이름이 한 번 나올 때마다 Lv +1 — 메인 스킬·궁극기는 공짜 1Lv 을 센다). 스탯 점은 🌟1 에 +2% 라 먼저 (자동 찍기 a 도 이 순서)
+  a: ['c_atk1', 'c_atk2', 'c_spd1', 'c_crit1', 'c_crit2', 'c_atk3', 'c_hp1', 'c_hp2', 'c_def1', 'slash', 'slash', 's_twin', 'c_spd2', 'c_spd3', 'gale', 'gale', 'slash_s1', 'gale', 'gale_s1', 'a_more', 'a_bleed',
+    'c_crit3', 'c_def2', 'whirl', 'whirl', 'whirl_s1', 'a_grow', 'gale', 'gale_s2', 'c_hp3', 'c_def3', 'iaido', 'iaido', 'flash', 'a_key', 'f_ab',
+    'whirl', 'whirl', 'whirl_s2', 'gale', 'gale_s3',
+    'ult', 'a_k3', 'uv_a', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_ab', 'f_ab', 'f_ab_s2', 'f_ab_s3', 'whirl', 'whirl_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3', 'k_blade'],
+  b: ['c_crit1', 'c_crit2', 'c_atk3', 'c_atk1', 'c_atk2', 'c_spd1', 'c_hp1', 'c_hp2', 'c_def1', 'slash', 'slash', 's_twin', 'c_crit3', 'c_def2', 'iaido', 'iaido', 'slash_s1', 'iaido', 'iaido_s1', 'b_exec', 'b_reset',
+    'c_spd2', 'c_spd3', 'flash', 'flash', 'flash_s1', 'b_after', 'iaido', 'iaido_s2', 'c_hp3', 'c_def3', 'gale', 'gale', 'whirl', 'b_key', 'f_ab',
+    'flash', 'flash', 'flash_s2', 'iaido', 'iaido_s3',
+    'ult', 'b_k3', 'uv_b', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_ab', 'f_ab', 'f_ab_s2', 'f_ab_s3', 'flash', 'flash_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3', 'k_blade'],
+  k: ['c_atk1', 'c_atk2', 'c_spd1', 'c_crit1', 'c_crit2', 'c_atk3', 'c_hp1', 'c_hp2', 'c_def1', 'slash', 'slash', 's_twin', 'c_hp3', 'c_def3', 'wave', 'wave', 'slash_s1', 'wave', 'wave_s1', 'k_pierce',
+    'c_spd2', 'c_spd3', 'storm', 'storm', 'storm_s1', 'k_split', 'wave', 'wave_s2', 'c_crit3', 'c_def2', 'iaido', 'iaido', 'flash', 'k_key', 'f_bk',
+    'storm', 'storm', 'storm_s2', 'wave', 'wave_s3',
+    'ult', 'k_k3', 'uv_k', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_bk', 'f_bk', 'f_bk_s2', 'f_bk_s3', 'storm', 'storm_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3', 'k_wave', 'k_blade'],
 };
 // 남은 포인트를 빌드 순서대로 쓴다 (못 찍는 건 건너뛰고, 순서를 다 돌면 남는 걸로 아무 노드나 싼 것부터). 장착 칸도 산다
 function t7AutoSpend(build = 'a', buy = true) {   // buy: 장착 칸도 산다 (봇) — 플레이어 자동 찍기는 재화를 안 쓴다
