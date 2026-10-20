@@ -138,8 +138,8 @@ if (BAR) {
   };
   new MutationObserver(syncLogin).observe($('naming'), { attributes: true, attributeFilter: ['hidden'] });
   syncLogin();
-  // 슬롯 줄은 HUD 바로 위에 뜬다 — 하단바 150px 창엔 HUD 위 자리가 없으니 창을 그만큼 위로 늘린다 (늘린 곳은 클릭 통과)
-  if (BAR.setWindow) BAR.setWindow('guild-slots', { height: 150 + 40 });
+  // 슬롯 줄은 HUD 바로 위, 마우스를 올리면 정보 풍선은 그 위에 뜬다 — 하단바 150px 창엔 자리가 없으니 창을 그만큼 위로 늘린다 (늘린 곳은 클릭 통과)
+  if (BAR.setWindow) BAR.setWindow('guild-slots', { height: 150 + 90 });
 }
 const each = (sig, ...a) => { for (const [win, r] of barRec) for (const cb of r.cbs[sig] || []) { try { cb(...a); } catch (e) { console.error(e); } } };
 const activeCbs = (sig, ...a) => { const f = frames[active]; const r = f && barRec.get(f.el.contentWindow); for (const cb of (r && r.cbs[sig]) || []) cb(...a); };
