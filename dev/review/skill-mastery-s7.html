@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스킬 숙련 시안</title>
+<!-- 스펙: docs/specs/skill-mastery-s7.md (스킬 재기획 1단계). 숙련 곡선 · 날짜별 Lv · 원정마다 +Lv 비율 · 비전서 효과. 원정 길이·수는 봇(0.28.5 heavy) 중앙값, 수치는 시안 -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --panel2: #2b2538; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --green: #7dffb0; --warn: #ffb35c; --c1: #c9b8ff; --c2: #8fd8ff; --c3: #ffd257; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.65 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  p { margin: 6px 0; max-width: 82ch; }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+  .grid > * { min-width: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 4px 7px; text-align: right; white-space: nowrap; }
+  th { background: var(--panel2); color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 8px 0; }
+  .bar label { color: var(--dim); }
+  input[type=number] { width: 64px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; font: inherit; }
+  svg text { font: 11px Galmuri11, sans-serif; fill: var(--dim); }
+  .legend span { margin-right: 14px; } .legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 4px; }
+  ul { margin: 4px 0; padding-left: 20px; }
+  .star { color: var(--gold); }
+</style>
+</head>
+<body>
+<main>
+<h1>스킬 숙련 시안 · 쓰면 자란다</h1>
+<div class="sub">2026-10-20 · 스펙 docs/specs/skill-mastery-s7.md (스킬 재기획 1단계) · 사용자 확인 대기 · 수치는 시안</div>
+
+<h2>요지</h2>
+<div class="grid">
+  <div class="card"><h3>장착 = 성장</h3><p>장착해서 데려간 스킬만 시전 1번에 숙련 경험치 +1. 원정 화면·오프라인 계산·미궁·탑·성벽 모두. 레이드·결투는 안 오름.</p></div>
+  <div class="card"><h3>Lv 1~30</h3><p>Lv 마다 위력 +2% · 쿨 −0.8% (Lv30 = ×1.58 · ×0.77). Lv 10·20·30 에 <span class="star">★ · ★★ · ★★★</span> 모습.</p></div>
+  <div class="card"><h3>📖 바치기</h3><p>1권 = 경험치 +20, <b>Lv20(★★) 까지만</b> — ★★★ 는 써야 온다. 막 배운 스킬 따라잡기.</p></div>
+  <div class="card"><h3>트리 대신</h3><p>포인트·트리 판 없음. 스탯은 전직하면 자동. 새 스킬은 부모 스킬 ★ 에 열림. 변형·키스톤은 룬(2단계)으로 — 그래서 <b>숙련 + 룬 한 릴리스</b>.</p></div>
+</div>
+
+<h2>숙련 곡선 (값을 바꿔 보세요)</h2>
+<div class="bar">
+  <label class="" style="color:var(--c1)">1차 ★ <input type="number" id="a1" value="60"> ★★ <input type="number" id="b1" value="800"> ★★★ <input type="number" id="c1" value="6000"></label>
+  <label style="color:var(--c2)">2차·새 ★ <input type="number" id="a2" value="100"> ★★ <input type="number" id="b2" value="1500"> ★★★ <input type="number" id="c2" value="11000"></label>
+  <label style="color:var(--c3)">궁극 ★ <input type="number" id="a3" value="60"> ★★ <input type="number" id="b3" value="800"> ★★★ <input type="number" id="c3" value="5000"></label>
+</div>
+<div class="bar">
+  <label>전투 중 시전 비율 <input type="number" id="eff" value="0.51" step="0.01"></label>
+  <label>📖 1권 = <input type="number" id="tome" value="20"></label>
+  <label><input type="checkbox" id="feed"> 비전서를 2차 스킬(일섬)에 다 바침</label>
+</div>
+<div class="legend sub"><span><i style="background:var(--c1)"></i>강철 베기 (1차, 쿨 8초 · 1차 전직부터)</span><span><i style="background:var(--c2)"></i>질풍난무 (2차, 10초 · 2차 전직 1일차부터)</span><span><i style="background:#5fb0d0"></i>일섬 (2차, 15초)</span><span><i style="background:var(--c3)"></i>천검 (궁극기, 20초 · 3차 전직 3일차부터)</span></div>
+<svg id="chart" viewBox="0 0 900 300" style="width:100%;max-width:900px;background:var(--panel);border:1px solid var(--line);border-radius:6px"></svg>
+<p class="sub">가로 = 날짜(0~10일), 세로 = 숙련 Lv. 점선 = Lv 10·20·30 (★ 모습). 원정 길이·하루 원정 수는 봇 중앙값(1일 2.5분 × 81번 → 10일 38분 × 17번), 시전 = 원정 길이 × 시전 비율 ÷ 쿨.</p>
+
+<h2>날짜별</h2>
+<div class="scroll"><table id="days"></table></div>
+<p class="sub">"+Lv 원정 비율" = 그날 원정 중 장착 스킬이 Lv 하나 이상 오른 원정의 비율. 처음 시안(60/600/3,000 …)은 7일차에 모두 Lv30 이 되고 8~10일 성장이 0% 라 문턱을 올렸다. 지금 값: 주력 2차 스킬 ★★★ 9일차 · 1차 5일차 · 궁극기 9일차. <b>후반엔 Lv 한 칸이 커서 +Lv 비율이 15~30%</b> → 귀환 보고에 "다음 Lv 까지 %" 를 같이 보여 주고, 후반의 잦은 변화는 룬(드랍)·진화가 맡는다.</p>
+
+<h2>얻는 때 · 트리에서 옮겨 가는 것</h2>
+<div class="scroll"><table>
+<tr><th>스킬</th><th style="text-align:left">얻는 때</th></tr>
+<tr><td>1차 스킬</td><td style="text-align:left">1차 전직</td></tr>
+<tr><td>2차 스킬 둘</td><td style="text-align:left">2차 전직</td></tr>
+<tr><td>새 스킬 넷 (검무 회오리 · 섬광 베기 · 비검 · 검기 폭풍)</td><td style="text-align:left">부모 ★ + 2차 전직 (질풍난무 ★ → 검무 회오리 · 일섬 ★ → 섬광 베기 · 강철 베기 ★ → 비검 · 비검 ★ → 검기 폭풍)</td></tr>
+<tr><td>궁극기</td><td style="text-align:left">3차 전직</td></tr>
+<tr><td>융합 · 궁극기 변형</td><td style="text-align:left">4단계 진화</td></tr>
+</table></div>
+<ul>
+  <li>스탯 5 → 전직하면 자동 (1차: 공격 +6% · 치명 +4.5% · 체력 +9% / 2차: 공속 +6% · 받는 피해 −6%).</li>
+  <li>변형 13 · 키스톤 7 → 2단계 룬. 융합 · 궁극기 변형 → 4단계 진화.</li>
+  <li>보스 벽 기믹: 대응 없을 때 DPS 손실 35~45% → <b>10% 안팎</b> (정답 강요 금지). 같은 릴리스.</li>
+  <li>0.28 세이브: 스킬 칸 r·모습 단계 → 시작 숙련 Lv = max(2(r−1)+1, 단계×10).</li>
+</ul>
+</main>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const DAYS = [[0, 1, 81, 2.5], [1, 2, 30, 5.9], [2, 3, 26, 10.6], [3, 5, 23, 20.5], [5, 7, 20, 32.2], [7, 10, 17, 38.3]];
+const TOMES = [[0, 0], [1, 22], [2, 38], [3, 57], [5, 96], [7, 130], [10, 173]];   // 누적 비전서 (봇 중앙값)
+const tomesAt = (d) => { for (let i = 1; i < TOMES.length; i++) if (d <= TOMES[i][0]) { const [a, x] = TOMES[i - 1], [b, y] = TOMES[i]; return x + ((y - x) * (d - a)) / (b - a); } return 173; };
+const SK = [
+  { id: 'slash', n: '강철 베기', cd: 8, t: 1, from: 0, col: 'var(--c1)' },
+  { id: 'gale', n: '질풍난무', cd: 10, t: 2, from: 1, col: 'var(--c2)' },
+  { id: 'iaido', n: '일섬', cd: 15, t: 2, from: 1, col: '#5fb0d0', feed: 1 },
+  { id: 'ult', n: '천검', cd: 20, t: 3, from: 3, col: 'var(--c3)' },
+];
+// 문턱 → Lv 별 누적 경험치 (Lv1 = 0, Lv10·20·30 = 문턱, 사이는 등비)
+function curve(t) {
+  const th = [+$('a' + t).value, +$('b' + t).value, +$('c' + t).value], need = [0];
+  for (let lv = 2; lv <= 30; lv++) {
+    if (lv <= 10) need.push(th[0] * Math.pow((lv - 1) / 9, 1.6));
+    else { const seg = Math.floor((lv - 1) / 10), lo = th[seg - 1], hi = th[seg], f = ((lv - 1) % 10 + 1) / 10; need.push(lo * Math.pow(hi / lo, f)); }
+  }
+  return need;   // need[lv-1]
+}
+const lvOf = (need, xp) => { let lv = 1; while (lv < 30 && xp >= need[lv]) lv++; return lv; };
+function run() {
+  const eff = +$('eff').value, tome = +$('tome').value, feed = $('feed').checked;
+  const C = { 1: curve(1), 2: curve(2), 3: curve(3) };
+  const series = SK.map(() => []), days = {};
+  const xp = SK.map(() => 0); let fed = 0;
+  for (const [a, b, n, len] of DAYS) for (let i = 0; i < (b - a) * n; i++) {
+    const d = a + i / n;
+    const before = SK.map((s, k) => lvOf(C[s.t], xp[k]));
+    SK.forEach((s, k) => { if (d >= s.from) xp[k] += (len * 60 * eff) / s.cd; });
+    if (feed) { const k = SK.findIndex((s) => s.feed), cap = C[2][19], can = Math.floor(tomesAt(d) - fed); if (can > 0 && xp[k] < cap) { const use = Math.min(can, Math.ceil((cap - xp[k]) / tome)); xp[k] += use * tome; fed += use; } }
+    const after = SK.map((s, k) => lvOf(C[s.t], xp[k]));
+    const day = Math.floor(d); days[day] = days[day] || { trips: 0, up: 0, lv: null };
+    days[day].trips++; if (after.some((v, k) => v > before[k])) days[day].up++;
+    days[day].lv = after;
+    SK.forEach((s, k) => series[k].push([d, after[k]]));
+  }
+  // 그래프
+  const W = 900, H = 300, L = 40, B = 24, x = (d) => L + (d / 10) * (W - L - 10), y = (lv) => H - B - ((lv - 1) / 29) * (H - B - 10);
+  let g = '';
+  for (const lv of [10, 20, 30]) g += `<line x1="${L}" x2="${W - 10}" y1="${y(lv)}" y2="${y(lv)}" stroke="#4b3f66" stroke-dasharray="4 4"/><text x="4" y="${y(lv) + 4}">${'★'.repeat(lv / 10)}</text>`;
+  for (let d = 0; d <= 10; d++) g += `<text x="${x(d) - 4}" y="${H - 6}">${d}</text>`;
+  SK.forEach((s, k) => { const pts = series[k].filter((p, i) => i % 3 === 0).map((p) => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' '); g += `<polyline fill="none" stroke="${s.col}" stroke-width="2" points="${pts}"/>`; });
+  $('chart').innerHTML = g;
+  let h = '<tr><th>날</th><th>원정 수</th><th>원정 길이</th><th>+Lv 원정 비율</th>' + SK.map((s) => `<th>${s.n} Lv</th>`).join('') + '</tr>';
+  for (const [d, o] of Object.entries(days)) {
+    const len = DAYS.find(([a, b]) => d >= a && d < b)[3];
+    h += `<tr><td>${+d + 1}일차</td><td>${o.trips}</td><td>${len}분</td><td>${Math.round((100 * o.up) / o.trips)}%</td>${o.lv.map((v, k) => `<td>${d < SK[k].from ? '—' : v + (v >= 30 ? ' ★★★' : v >= 20 ? ' ★★' : v >= 10 ? ' ★' : '')}</td>`).join('')}</tr>`;
+  }
+  $('days').innerHTML = h;
+}
+document.querySelectorAll('input').forEach((i) => (i.oninput = run));
+run();
+</script>
+</body>
+</html>
