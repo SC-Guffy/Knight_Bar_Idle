@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스킬 재기획</title>
+<!-- 스펙: docs/specs/skill-redesign.md. 방치·자동 전투에 맞는 스킬 기획 비교 — 아이디어 5 · 원칙 4 · 숙련 속도 계산기 · 연출 등급표. 수치는 시안 -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --panel2: #2b2538; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --green: #7dffb0; --warn: #ffb35c; --red: #ff8a80; --blue: #8fd8ff; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.65 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  p { margin: 6px 0; max-width: 82ch; }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+  .grid > * { min-width: 0; }
+  .card.pick { border-color: #8f7cc0; box-shadow: inset 0 0 0 1px #8f7cc0; }
+  .tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--line); color: var(--dim); margin-left: 4px; }
+  .tag.on { color: #17141f; background: var(--gold); border-color: var(--gold); }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 4px 7px; text-align: left; vertical-align: top; }
+  th { background: var(--panel2); color: var(--dim); font-weight: 400; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  ul, ol { margin: 4px 0; padding-left: 20px; } li { margin: 2px 0; }
+  .loop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+  .loop span { padding: 3px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); }
+  .loop i { color: var(--dim); font-style: normal; }
+  .loop .bad { border-color: #7a3a3a; color: var(--red); }
+  .loop .good { border-color: #3a7a55; color: var(--green); }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 8px 0; }
+  .bar label { color: var(--dim); }
+  input[type=number] { width: 70px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; font: inherit; }
+  input[type=range] { width: 140px; }
+  .tier1 { color: #c9b8ff; } .tier2 { color: var(--blue); } .tier3 { color: var(--gold); }
+  .meter { display: inline-block; height: 8px; background: var(--gold); border-radius: 2px; vertical-align: middle; }
+  .ok { color: var(--green); } .warn { color: var(--warn); } .no { color: var(--red); }
+  code { font: 12px ui-monospace, monospace; color: #ffe08a; }
+</style>
+</head>
+<body>
+<main>
+<h1>스킬 재기획 · 방치·자동 전투에 맞는 스킬</h1>
+<div class="sub">2026-10-20 · 스펙 docs/specs/skill-redesign.md · 기획 초안 (사용자와 방향 잡는 중) · 수치는 시안</div>
+
+<h2>왜 다시 기획하나</h2>
+<p>0.28.x 트리(1안~4안)는 디아블로·로아처럼 <b>직접 조작하는 게임</b>의 틀을 가져와 모양만 바꿨다. 노드를 어떻게 그려도 루프는 그대로다.</p>
+<div class="loop"><span>레벨업 🌟</span><i>→</i><span class="bad">트리 찍기 (딸깍)</span><i>→</i><span>원정 보내기</span><i>→</i><span>보고 확인</span><i>→</i><span class="bad">다시 딸깍</span></div>
+<p>우리 게임에서 플레이어가 겪는 건 세 가지뿐이다: <b>캠프에서의 선택</b> · <b>돌아왔을 때의 결과</b> · <b>원정 중 화면 구석에서 기사가 싸우는 걸 보는 것</b>. 스킬 시스템은 이 셋을 재미있게 만들어야 한다.</p>
+<div class="loop"><span class="good">원정: 쓴 스킬이 자람 · 룬을 주움</span><i>→</i><span class="good">귀환 보고: "★★ 해금! · 🔴 관통 룬"</span><i>→</i><span class="good">캠프: 룬 끼우기 · 데려갈 스킬·순서</span><i>→</i><span class="good">벽 도전 → 막히면 이유와 답</span></div>
+
+<h2>원칙</h2>
+<div class="grid">
+  <div class="card"><h3>① 성장은 원정이 만든다</h3><p>포인트를 찍는 대신, 원정에서 <b>쓰고·주운 것</b>이 쌓여 돌아온다. 방치하는 동안에도 자란다.</p></div>
+  <div class="card"><h3>② 선택은 캠프에서</h3><p>무엇을 데려갈지(장착 칸) · 무엇을 끼울지(룬) · 어떤 순서로(연계). 결정은 적게, 하나하나 무겁게.</p></div>
+  <div class="card"><h3>③ 막히면 이유와 답이 보인다</h3><p>보스 벽에서 지면 귀환 보고에 "🛡️ 보호막에 막힘 → 여러 번 때리는 스킬·룬이 답" 한 줄. 지금은 벽과 트리가 따로 논다.</p></div>
+  <div class="card pick"><h3>④ 연출 등급은 전직 차수를 따라간다 <span class="tag on">사용자</span></h3><p>"초반부 스킬은 절제된 멋. 1차부터 ★★★ 달았다고 화면에 대문짝만하게 텍스트가 뜨면 후반부 스킬과 차이를 벌리지 못해 매력이 떨어진다." → 1차 ★★★ = 더 정교·묵직, 화면 전체 연출은 3차·궁극기만.</p></div>
+</div>
+
+<h2>아이디어 5개</h2>
+<div class="grid">
+  <div class="card pick"><h3>1. 숙련 — 쓰면 자란다 <span class="tag on">뼈대</span></h3>
+    <p>장착해서 원정에 데려간 스킬만 명중·처치만큼 자란다. 숙련 Lv(1~30)이 원정마다 조금씩 오르며 위력도 조금씩, <b>Lv 10·20·30 에 ★ 모습</b>이 바뀐다 — 원정 1~2번마다 "+Lv", 며칠마다 "★ 해금".</p>
+    <ul><li>원정 1회: 귀환 보고에 "질풍난무 숙련 +38 (★★ 까지 60)"</li><li>하루: ★ 하나쯤</li><li>시즌: 주력 스킬 ★★★, 나머지는 데려간 만큼</li></ul>
+    <p class="sub">맡는 것: <b>성장</b>. 딸깍 대신 "무엇을 데려갈까"가 성장 방향.</p></div>
+  <div class="card pick"><h3>2. 룬 — 줍는 변형 <span class="tag on">뼈대</span></h3>
+    <p>지금 변형(2연참·관통·출혈·분열…)을 원정 상자·벽 보스에서 나오는 <b>룬</b>으로. 스킬마다 룬 칸 1~2개, 캠프에서 자유롭게 바꿔 끼움.</p>
+    <ul><li>원정 1회: 상자에서 룬이 나올까 기대</li><li>하루: 룬 1~2개, 빌드 하나 바꿔 보기</li><li>시즌: 희귀 룬(키스톤급) 수집</li></ul>
+    <p class="sub">맡는 것: <b>선택 + 기대감</b>. 룬 색으로 스킬을 다시 칠해 VFX 시트 재사용.</p></div>
+  <div class="card pick"><h3>3. 벽이 알려 주는 답 <span class="tag on">뼈대</span></h3>
+    <p>막힌 벽: 기믹 · 얼마나 깎았나 · 답이 되는 스킬/룬. 벽 보스가 자기 카운터 룬을 떨어뜨림(보호막 보스 → 연타 룬).</p>
+    <ul><li>원정 1회: "광폭화에 막힘 · 72% 까지"</li><li>하루: 룬 바꿔 돌파</li><li>시즌: 지역마다 다른 답</li></ul>
+    <p class="sub">맡는 것: <b>목표·문제 풀이</b>. 지금 보스 벽(T7_GIM) 그대로 활용.</p></div>
+  <div class="card"><h3>4. 연계 — 시전 순서 퍼즐</h3>
+    <p>장착 순서 = 시전 순서. A 뒤 2초 안에 B → 이름 붙은 합동기(돌진 → 일섬 = 추격참). 장착 칸 4개를 배치하는 퍼즐.</p>
+    <p class="sub">맡는 것: 보는 재미. 화면 구석에서도 연계가 터지는 게 보인다.</p></div>
+  <div class="card"><h3>5. 진화</h3>
+    <p>숙련 최대 + 조건(특정 룬·키스톤) → 진화 스킬. 지금 융합 스킬 45종(15줄기 × 3)을 진화 결과로 재사용.</p>
+    <p class="sub">맡는 것: 시즌 긴 목표 ("이번 시즌은 ○○ 진화").</p></div>
+  <div class="card"><h3>트리 포인트는?</h3>
+    <p>둘 중 하나: <b>(가)</b> 없앤다 — 레벨업 보상은 스탯 자동 상승 + 장착 칸·룬 칸 해금. <b>(나)</b> 작은 패시브 판만 — 스탯 5 · 키스톤 몇 개(대가 있는 큰 규칙).</p></div>
+</div>
+
+<h2>숙련 속도 계산기 (아이디어 1)</h2>
+<p class="sub">원정 길이·하루 원정 수는 봇(dev/lifespan-bot.js heavy, 4줄기 × 3빌드 × 8시드, 0.28.5) 중앙값. 전투 비율 = 원정 중 실제로 싸우는 시간. 시전 수 = 전투 시간 ÷ 쿨.</p>
+<div class="bar">
+  <label>전투 비율 <input type="range" id="fight" min="0.3" max="0.9" step="0.05" value="0.6"> <b id="fightv"></b></label>
+  <label>1차 ★ <input type="number" id="t1a" value="60"> ★★ <input type="number" id="t1b" value="600"> ★★★ <input type="number" id="t1c" value="3000"></label>
+  <label>2차 ★ <input type="number" id="t2a" value="100"> ★★ <input type="number" id="t2b" value="1000"> ★★★ <input type="number" id="t2c" value="4500"></label>
+  <label>궁극 ★ <input type="number" id="t3a" value="60"> ★★ <input type="number" id="t3b" value="400"> ★★★ <input type="number" id="t3c" value="1500"></label>
+</div>
+<div class="scroll"><table id="calc"></table></div>
+<p class="sub">읽는 법: 그 스킬을 계속 장착해 데려갔을 때 각 ★ 에 닿는 날·그날까지의 원정 수. 시작안: 1차 스킬은 첫날 ★·★★, 3일쯤 ★★★ (1차 ★★★ 는 절제된 연출이라 일찍 와도 된다) · 2차 스킬은 전직 다음 날 ★, 4~5일 ★★★ · 궁극기는 3차 전직(약 4일) 뒤 하루쯤에 ★★★. 숙련은 장착한 스킬만 오르니 장착 칸이 곧 성장 방향.</p>
+
+<h2>연출 등급표 (원칙 ④)</h2>
+<div id="vfx"><p>지금(코드 조사): 연출 세기의 축이 <b>숙련 단계(★)</b> 하나라서, 1차 스킬도 ★★★ 가 되면 2차 ★★★ 와 같은 장치가 다 붙는다.</p>
+<ul>
+  <li><b>이름 띠</b> — 화면 위쪽에 「천강검 ★★★」: 조건이 <code>★★★ 이거나 (2차 이상 & ★★)</code> → <b>1차도 ★★★ 면 뜬다</b> (src/skills.js:87). 궁극기는 레터박스 + 22px 큰 컷인.</li>
+  <li><b>금빛</b> — ★★★ 는 모든 스킬이 금빛 45% 섞임 · 금빛 오라 고리 · 시전 끝 금빛 마무리 섬광(고리 2 + 파티클 14) (skills.js:74·177·848, vfx-tex.js:345).</li>
+  <li><b>타격감</b> — 강철 베기 ★★★ 막타 정지 0.18초·흔들림 0.55: 스펙상 1차 막타(0.06~0.1 · 0.15~0.3)를 넘어 <b>2차 ★★★ 급</b> (skills.js:2019).</li>
+  <li>차수를 보는 코드는 이름 띠 조건 · 명중 파편 ×1.35(2차) · 궁극기 여부뿐. 스펙(skill-vfx.md §2)엔 차수별 표가 있지만 코드는 거의 ★ 만 본다.</li>
+</ul>
+<p><b>제안: 연출 예산 = 전직 차수가 정하고, ★ 는 그 예산 안에서 채운다.</b></p>
+<div class="scroll"><table>
+<tr><th>장치</th><th class="tier1">1차 스킬</th><th class="tier2">2차 스킬 (새 스킬 포함)</th><th class="tier3">3차·융합/진화</th><th class="tier3">궁극기</th></tr>
+<tr><td>★ 가 바꾸는 것</td><td>기술이 <b>정교·묵직</b>해짐: 궤적이 또렷해지고 잔상, 검풍 한 줄, 타격음·파편 조금 더. 크기는 기사 주변 그대로</td><td>범위·갈래가 늘어남 (여러 겹 검흔, 분신, 마법진)</td><td>새 그림이 더해짐 (낙하 대검, 장판, 소환)</td><td>화면 전체를 쓰는 장면 전환</td></tr>
+<tr><td>이름 글자</td><td><b>작은 떠오르는 글자만</b> (★★★ 도)</td><td>★★★ 에서만 작은 이름 띠</td><td>★★ 부터 이름 띠</td><td>레터박스 + 큰 컷인</td></tr>
+<tr><td>정지·흔들림 (막타)</td><td>정지 ≤ 0.1초 · 흔들림 ≤ 0.3</td><td>≤ 0.16 · ≤ 0.45 (★★★ ≤ 0.22 · 0.6)</td><td>2차 ★★★ 와 궁극기 사이</td><td>≤ 0.32 · ≤ 0.95</td></tr>
+<tr><td>금빛</td><td>없음 — ★★★ 는 <b>무기 날·궤적 가장자리만</b> 은빛→흰빛</td><td>★★★ 에 금빛 섞기 (지금처럼)</td><td>★★ 부터</td><td>자유</td></tr>
+<tr><td>오라·마무리 섬광</td><td>없음</td><td>★★ 오라 · ★★★ 마무리 섬광</td><td>있음</td><td>있음</td></tr>
+<tr><td>섬광·어둡게</td><td>없음</td><td>타격 지점 반경 안만</td><td>타격 지점 반경 안만</td><td>하단바 전체 (α ≤ 0.6)</td></tr>
+</table></div>
+<p class="sub">이렇게 하면 1차 ★★★ 는 "오래 쓴 기술이 날카로워진" 느낌이고, 2차·3차로 갈수록 장치가 하나씩 열려 후반부 스킬이 확실히 화려해진다. 이 등급표는 재기획과 따로 지금 스킬에도 바로 적용할 수 있다 (작은 작업: 이름 띠 조건 · 1차 금빛·오라·마무리 섬광 끄기 · 1차 ★★★ 막타 값 낮추기).</p></div>
+
+<h2>지금 것을 얼마나 살리나</h2>
+<div class="scroll"><table>
+<tr><th>지금 (0.28.5)</th><th>재기획에서</th></tr>
+<tr><td>스킬 15줄기 × 1차 1 · 2차 2 · 새 스킬 4 · 융합 3 · 궁극기 1, ★ 모습 4단계 + 전용 연출</td><td>그대로. ★ 는 숙련으로, 융합은 진화로</td></tr>
+<tr><td>변형 노드 13 · 궁극기 변형 3 (shape·spec·rule)</td><td>룬으로 (효과 코드 그대로, 얻는 법만 드랍)</td></tr>
+<tr><td>키스톤 7 (대가 있는 규칙)</td><td>희귀 룬 또는 작은 패시브 판</td></tr>
+<tr><td>스탯 5 (🌟3)</td><td>레벨업 자동 또는 패시브 판</td></tr>
+<tr><td>장착 칸 1~4 · 궁극기 칸</td><td>그대로 (성장 방향을 정하는 핵심 선택)</td></tr>
+<tr><td>보스 벽 기믹 4종 · 귀환 보고 한 줄</td><td>그대로 + "답" 안내와 카운터 룬 드랍</td></tr>
+<tr><td>📖 비전서 (지금 쓰는 곳 없이 쌓임)</td><td>숙련을 앞당기는 재료로? (예: 비전서 1권 = 숙련 +10) — 정할 것</td></tr>
+<tr><td>결투·레이드·AI 기사 (서버는 스킬 위력·단계만 받음)</td><td>단계 출처만 바뀜 → 서버 수정 작음. 룬 효과는 지금 변형처럼 평균 배율(ev)로</td></tr>
+</table></div>
+
+<h2>정해야 할 것</h2>
+<ol>
+  <li>뼈대 <b>1 숙련 + 2 룬 + 3 벽의 답</b> 으로 갈지 (4 연계 · 5 진화는 뒤에 얹기).</li>
+  <li>트리 포인트: (가) 없앰 / (나) 작은 패시브 판만.</li>
+  <li>📖 비전서를 숙련 재료로 쓸지 (사용자가 말한 "갖다 바쳐서 렙업"의 손맛).</li>
+  <li>연출 등급표의 경계 — 2차 ★★★ 는 어디까지 허용할지.</li>
+</ol>
+</main>
+<script>
+'use strict';
+// 봇 중앙값 (0.28.5, heavy): [시작일, 끝일, 하루 원정 수, 원정 길이 분]
+const DAYS = [[0, 1, 81, 2.5], [1, 2, 30, 5.9], [2, 3, 26, 10.6], [3, 5, 23, 20.5], [5, 7, 20, 32.2], [7, 10, 17, 38.3]];
+const SKILLS = [
+  { n: '강철 베기 (1차)', cd: 8, tier: 1, from: 0 },
+  { n: '질풍난무 (2차)', cd: 10, tier: 2, from: 1 },
+  { n: '일섬 (2차)', cd: 15, tier: 2, from: 1 },
+  { n: '천검 (궁극기)', cd: 20, tier: 3, from: 4 },
+];
+const $ = (id) => document.getElementById(id);
+function calc() {
+  const f = +$('fight').value; $('fightv').textContent = Math.round(f * 100) + '%';
+  const T = { 1: [$('t1a'), $('t1b'), $('t1c')], 2: [$('t2a'), $('t2b'), $('t2c')], 3: [$('t3a'), $('t3b'), $('t3c')] };
+  let h = '<tr><th>스킬 (쿨)</th><th>데려가기 시작</th><th class="n">원정 1회 시전 (1일 → 10일)</th><th>★</th><th>★★</th><th>★★★</th></tr>';
+  for (const s of SKILLS) {
+    const th = T[s.tier].map((x) => +x.value);
+    let casts = 0, trips = 0; const at = [null, null, null];
+    for (const [a, b, n, len] of DAYS) for (let d = a; d < b; d += 1 / n) {
+      if (d < s.from) continue;
+      casts += (len * 60 * f) / s.cd; trips++;
+      th.forEach((t, i) => { if (at[i] == null && casts >= t) at[i] = { d, trips }; });
+    }
+    const per = DAYS.map(([a, , , len]) => (a >= s.from ? Math.round((len * 60 * f) / s.cd) : '—'));
+    const cell = (x) => (x ? `${x.d < 1 ? (x.d * 24).toFixed(0) + '시간' : x.d.toFixed(1) + '일'} <span class="sub">(원정 ${x.trips})</span>` : '<span class="no">10일 안에 못 감</span>');
+    h += `<tr><td class="tier${s.tier}">${s.n} · ${s.cd}초</td><td>${s.from ? s.from + '일차' : '1차 전직'}</td><td class="n">${per.join(' → ')}</td>${at.map(cell).map((c) => `<td>${c}</td>`).join('')}</tr>`;
+  }
+  $('calc').innerHTML = h;
+}
+document.querySelectorAll('input').forEach((i) => (i.oninput = calc));
+calc();
+</script>
+</body>
+</html>
