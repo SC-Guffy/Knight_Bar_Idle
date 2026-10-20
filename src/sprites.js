@@ -71,7 +71,15 @@ function sheetOf(cls) {
 function sheetFrame(meta, pose) {
   const A = meta.anims, has = (k) => !!A[k];
   const loopF = (k, t) => Math.floor(t * (A[k].fps || 8)) % A[k].frames;
-  const onceF = (k, u) => Math.max(0, Math.min(A[k].frames - 1, Math.floor(u * A[k].frames)));
+  const timedF = (k, u, start = 0, end = A[k].frames) => {
+    const d = A[k].durations;
+    if (!d) return Math.min(end - 1, start + Math.floor(Math.max(0, u) * (end - start)));
+    const total = d.slice(start, end).reduce((sum, ms) => sum + ms, 0);
+    let t = Math.max(0, u) * total;
+    for (let i = start; i < end; i++) { if (t < d[i]) return i; t -= d[i]; }
+    return end - 1;
+  };
+  const onceF = (k, u) => Math.max(0, timedF(k, u));
   if (pose.sheet && has(pose.sheet.anim)) {
     const k = pose.sheet.anim, sp = pose.sheet;
     return { anim: k, f: sp.frame != null ? Math.max(0, Math.min(A[k].frames - 1, sp.frame)) : sp.u != null ? onceF(k, sp.u) : loopF(k, pose.t || 0) };
@@ -103,6 +111,8 @@ function sheetFrame(meta, pose) {
     // 평타 2종 번갈아 (knight.combo). 타격 프레임(hit)이 평타 타격 시점(근접 35% · 원거리 45%)에 오게 나눈다
     const k = (pose.combo || 0) % 2 && has('atkB') ? 'atkB' : 'atkA', a = A[k], hit = a.hit != null ? a.hit : Math.floor(a.frames / 2);
     const hs = pose.ranged ? 0.45 : 0.35, s = pose.swing;
+    // 프레임별 시간 비율이 있는 시트도 실제 명중 시점에 hit 프레임을 맞춘다.
+    if (a.durations) return { anim: k, f: s < hs ? timedF(k, s / hs, 0, hit) : timedF(k, (s - hs) / (1 - hs), hit) };
     const f = s < hs ? Math.floor(s / hs * hit) : hit + Math.floor((s - hs) / (1 - hs) * (a.frames - hit));
     return { anim: k, f: Math.max(0, Math.min(a.frames - 1, f)) };
   }

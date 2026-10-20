@@ -1,0 +1,65 @@
+{
+  "width": 80,
+  "height": 80,
+  "duration": 385,
+  "hitMs": 135,
+  "status": "v8 핵심 포즈 사용자 승인 / 연결·타이밍 검토본 / 게임 미적용",
+  "frames": [
+    {
+      "file": "frame-1.png",
+      "name": "가드·준비 시작",
+      "duration": 20,
+      "source": "approved-v8",
+      "offsetY": 3
+    },
+    {
+      "file": "between-1.png",
+      "name": "준비 연결",
+      "duration": 45,
+      "source": "generated-inbetween",
+      "offsetY": -8
+    },
+    {
+      "file": "frame-2.png",
+      "name": "준비 절정",
+      "duration": 70,
+      "source": "approved-v8",
+      "offsetY": 2
+    },
+    {
+      "file": "frame-3.png",
+      "name": "타격",
+      "duration": 15,
+      "source": "approved-v8",
+      "offsetY": 3
+    },
+    {
+      "file": "frame-4.png",
+      "name": "짧은 여운",
+      "duration": 15,
+      "source": "approved-v8",
+      "offsetY": 3
+    },
+    {
+      "file": "between-2.png",
+      "name": "회수 시작",
+      "duration": 35,
+      "source": "generated-inbetween",
+      "offsetY": -7
+    },
+    {
+      "file": "between-3.png",
+      "name": "회수 연결",
+      "duration": 35,
+      "source": "generated-inbetween",
+      "offsetY": -5
+    },
+    {
+      "file": "frame-5.png",
+      "name": "가드 복귀",
+      "duration": 150,
+      "source": "approved-v8",
+      "offsetY": 1
+    }
+  ]
+}

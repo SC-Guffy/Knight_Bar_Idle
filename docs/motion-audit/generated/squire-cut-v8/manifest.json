@@ -1,0 +1,32 @@
+{
+  "width": 80,
+  "height": 80,
+  "frames": [
+    {
+      "file": "frame-1.png",
+      "name": "가드",
+      "duration": 165
+    },
+    {
+      "file": "frame-2.png",
+      "name": "오른팔 준비",
+      "duration": 100
+    },
+    {
+      "file": "frame-3.png",
+      "name": "대각 베기",
+      "duration": 50
+    },
+    {
+      "file": "frame-4.png",
+      "name": "짧은 회수",
+      "duration": 35
+    },
+    {
+      "file": "frame-5.png",
+      "name": "가드 복귀",
+      "duration": 35
+    }
+  ],
+  "status": "검토 시안 / v7 팔 연결을 유지하며 어깨·팔꿈치와 체중 이동 확장, 게임 미적용"
+}
