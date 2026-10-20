@@ -309,9 +309,9 @@ function versionAtLeast(v, min) {
   for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
   return true;
 }
-// 최소 앱 버전 (src/app-gate.js APP_MIN_VERSION 과 같게). 데스크탑 앱은 User-Agent 에 "KnightBar/0.5.1" 이 들어 있다.
+// 최소 앱 버전 (src/app-gate.js APP_MIN_VERSION 과 같게). 데스크탑 앱은 User-Agent 에 "KnightBar/0.5.2" 이 들어 있다.
 // 예전 설치본(또는 버전을 못 읽는 Electron)은 모든 API 를 426 app-outdated 로 막는다 → 클라이언트가 새 설치 파일 받기 화면을 띄운다
-const APP_MIN_VERSION = '0.5.1';
+const APP_MIN_VERSION = '0.5.2';
 function appOutdated(req) {
   const ua = String(req.headers['user-agent'] || '');
   const m = /KnightBar\/(\d+(?:\.\d+)*)/i.exec(ua);

@@ -1,9 +1,9 @@
 'use strict';
 // 최소 앱 버전 (민클라). 데스크탑 앱(Electron)은 게임 화면을 웹에서 불러오지만 main.js·preload.js 는 설치 때 버전 그대로라,
-// 예전 설치본은 여기서 막고 새 설치 파일을 받게 한다. 앱 버전은 Electron 기본 User-Agent 의 "KnightBar/0.5.1" 에서 읽는다.
+// 예전 설치본은 여기서 막고 새 설치 파일을 받게 한다. 앱 버전은 Electron 기본 User-Agent 의 "KnightBar/0.5.2" 에서 읽는다.
 // 다른 스크립트보다 먼저(<head> 맨 앞) 불러야 한다 — 막히면 window.stop() 으로 나머지 스크립트가 아예 돌지 않는다.
 // 서버도 같은 기준으로 막는다 (server/index.js APP_MIN_VERSION) — 두 값을 같이 올린다.
-const APP_MIN_VERSION = '0.5.1';
+const APP_MIN_VERSION = '0.5.2';
 const APP_RELEASES = 'https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest';
 
 // 로컬 개발 주소에서는 ?fakeapp=0.4.0 으로 예전 앱인 척 막는 화면을 볼 수 있다 (docs/specs/app-min-version.md 확인 방법)
