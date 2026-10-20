@@ -29,7 +29,8 @@ async function api(method, path, body, { token, timeout = 20000, keepalive = fal
       // 지금 플레이 중인 기사가 서버에서 지워졌다 (전체 초기화) → ui.js 가 이 기기의 기사를 지우고 처음 화면으로 보낸다
       if (data.code === 'gone' && token && token === activeToken()) hooks.onAccountGone();
       // 서버가 이 버전을 더는 받지 않는다 (426, server/index.js requireClient) → ui.js 가 저장하고 새 버전으로 다시 불러온다
-      if (res.status === 426) hooks.onOutdated();
+      //  app-outdated: 데스크탑 앱 설치본이 최소 앱 버전보다 낮다 → 새로 고쳐도 소용없으니 새 설치 파일 받기 화면 (src/app-gate.js)
+      if (res.status === 426) { if (data.code === 'app-outdated' && window.showAppGate) window.showAppGate(); else hooks.onOutdated(); }
       // 기사단: 다른 기기에서 접속(moved) · 기사단 토큰이 끝남(guild-auth) → 바깥 페이지(src/guild.js)가 멈추고 안내한다
       if (GUILD_HOST && GUILD_HOST.full && (data.code === 'moved' || data.code === 'guild-auth') && token && token.startsWith('g.')) GUILD_HOST.serverLost(data.code);
       throw new ApiError(data.error || `서버 오류 (${res.status})`, res.status, data.code);

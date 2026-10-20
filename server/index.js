@@ -293,10 +293,12 @@ async function runDuel(me, op, practice = '') {
 // ───────────────────────── 라우트 ─────────────────────────
 // 클라이언트 버전 (src/data.js GAME_VERSION, 헤더 X-Game-Version). 보상 정산이 클라이언트에서 일어나는 기능은 구멍을 고친 뒤 예전 버전을 막는다
 //   0.19.11: 레이드 실패 보상 0 (예전 버전은 실패해도 재화 25%를 받아 입장권 한 장으로 무한 파밍이 됐다)
-const RAID_MIN_VERSION = '0.21.0';    // 0.21.0: 성장 압축 (보스·기사 눈금이 바뀜) · 0.19.15: 출정·준비 전에 세이브를 올려 서버가 입장권을 확인
+const RAID_MIN_VERSION = '0.27.10';   // 0.27.10: 민클라 도입 — 지금 버전만
+//   0.21.0: 성장 압축 (보스·기사 눈금이 바뀜) · 0.19.15: 출정·준비 전에 세이브를 올려 서버가 입장권을 확인
 //   0.19.12: 운영 차감 반영(0.19.10) + 배포 주소 ?speed= 배속 차단
 //   0.19.13: 운영 지급(gift) 반영 — 예전 버전은 지급을 차감으로 알고 ack 해 버려 선물이 사라진다
-const SAVE_MIN_VERSION = '0.27.0';    // 0.27.0: 시즌7 스킬 빌드 트리(T7_OPEN) — 예전 버전이 세이브의 t7(찍은 트리·장착)을 버리고 덮어쓰지 않게
+const SAVE_MIN_VERSION = '0.27.10';   // 0.27.10: 민클라 도입 — 지금 버전만 세이브를 올린다 (예전 탭은 426 → 새로 고침)
+//   0.27.0: 시즌7 스킬 빌드 트리(T7_OPEN) — 예전 버전이 세이브의 t7(찍은 트리·장착)을 버리고 덮어쓰지 않게
 //   0.22.0: 시즌6 — 강화 +30·옵션 줄 수(gearV 9)·성벽 지키기·교관 📕 세이브를 예전 버전이 덮어써 잃지 않게
 //   0.21.0: 성장 압축 — 예전 눈금(공격력 1e20 쯤)의 프로필이 올라오지 않게 (새로 고치면 같은 세이브가 새 눈금으로 올라온다)
 //   0.20.0: 훈련 Lv50·교관 수련·옵션 줄 세이브 이전 — 예전 버전이 이전 안 된 세이브로 덮어쓰지 못하게
@@ -306,6 +308,15 @@ function versionAtLeast(v, min) {
   const a = verNum(v), b = verNum(min);
   for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
   return true;
+}
+// 최소 앱 버전 (src/app-gate.js APP_MIN_VERSION 과 같게). 데스크탑 앱은 User-Agent 에 "KnightBar/0.5.1" 이 들어 있다.
+// 예전 설치본(또는 버전을 못 읽는 Electron)은 모든 API 를 426 app-outdated 로 막는다 → 클라이언트가 새 설치 파일 받기 화면을 띄운다
+const APP_MIN_VERSION = '0.5.1';
+function appOutdated(req) {
+  const ua = String(req.headers['user-agent'] || '');
+  const m = /KnightBar\/(\d+(?:\.\d+)*)/i.exec(ua);
+  if (m) return !versionAtLeast(m[1], APP_MIN_VERSION);
+  return /Electron\//.test(ua);
 }
 function requireClient(req, min) {
   if (!versionAtLeast(req.headers['x-game-version'], min)) throw new HttpError(426, '게임이 업데이트됐어요 — 새로 고침(또는 다시 실행)한 뒤 이용해 주세요');
@@ -1324,6 +1335,9 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const handler = routes[`${req.method} ${url.pathname}`];
   if (!handler) return send(res, 404, { error: '없는 주소입니다' });
+  if (!url.pathname.startsWith('/api/admin/') && appOutdated(req)) {
+    return send(res, 426, { error: '새 버전 앱이 나왔어요 — 새 설치 파일을 받아 설치해 주세요', code: 'app-outdated' });
+  }
   try {
     const out = await handler(req, url);
     if (out && out.status) send(res, out.status, out.body);
