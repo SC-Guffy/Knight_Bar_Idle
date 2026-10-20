@@ -190,7 +190,7 @@ async function guildView(g) {
   const members = await store.guildMembers(g.id);
   const nickOf = Object.fromEntries(members.map((a) => [a.key, a.nickname]));
   return {
-    name: g.name, google: !!g.googleSub, shared: g.shared || null, sharedRev: g.sharedRev || 0, sharedAt: g.sharedAt || 0,
+    id: g.id, name: g.name, google: !!g.googleSub, shared: g.shared || null, sharedRev: g.sharedRev || 0, sharedAt: g.sharedAt || 0,
     chars: members.sort((a, b) => a.createdAt - b.createdAt).map((a) => ({ nickname: a.nickname, cls: a.cls, level: a.level, best: a.best })),
     slots: Array.from({ length: GUILD_SLOTS }, (_, i) => (g.slots && g.slots[i] && nickOf[g.slots[i]]) || null),
   };
@@ -1199,11 +1199,25 @@ function sanitizeShared(o) {
   return { gold: nn(o.gold), wood: nn(o.wood), ore: nn(o.ore), bld, forge, build,
     stock: { wood: nn(st.wood), ore: nn(st.ore), at: nn(st.at), tradeDay: String(st.tradeDay || '').slice(0, 16), trades: Math.floor(nn(st.trades)) } };
 }
+// 새 기사단의 공용 상태는 빈 마을에서 시작한다. 첫 저장(서버 rev 0)이 이보다 크면 이 기기에 남은 지난 기사단(초기화 전 시즌 등)의
+// 마을이 올라온 것이라 받지 않고 빈 마을을 저장한 뒤 409 stale 로 내려보낸다 — 예전 클라이언트도 stale 이면 서버 것으로 맞춘다 (src/guild.js pushShared)
+const FRESH_SHARED = () => sanitizeShared({ bld: {}, stock: {} });
+const FIRST_SHARED_MAX = { gold: 5000, wood: 500, ore: 500 };
+const looksFresh = (sh) => Object.keys(FIRST_SHARED_MAX).every((k) => sh[k] <= FIRST_SHARED_MAX[k])
+  && BLD_IDS.every((k) => sh.bld[k] === 1) && !Object.values(sh.forge).some((v) => v > 0) && !sh.build;
 routes['PUT /api/guilds/shared'] = async (req) => {
   const g = await guildAuth(req);
   const body = await readJson(req);
   if (JSON.stringify(body.shared || {}).length > 16 * 1024) throw new HttpError(413, '공용 상태가 너무 큽니다');
-  const shared = sanitizeShared(body.shared), now = Date.now();
+  let shared = sanitizeShared(body.shared);
+  const now = Date.now();
+  if (!(g.sharedRev > 0) && !looksFresh(shared)) {
+    audit(`guild:${g.id}`, 'guild-carry', { gold: shared.gold, wood: shared.wood, ore: shared.ore, bld: shared.bld });
+    console.log(`기사단 첫 공용 상태 거절 (지난 마을 이식): ${g.name} gold ${shared.gold}`);
+    shared = FRESH_SHARED();
+    const rev = await store.putShared(g.id, shared, g.sharedRev || 0, now);
+    return { status: 409, body: { error: '새 기사단은 빈 마을에서 시작해요', code: 'stale', shared, sharedRev: rev || 0, sharedAt: now } };
+  }
   const rev = await store.putShared(g.id, shared, Math.floor(nn(body.rev)), now);
   if (rev == null) {
     const cur = await store.guild(g.id);

@@ -574,6 +574,15 @@ let started = false;
 
 // 서버 기사단을 이 기기 기록에 덮는다: 이름·기사 목록·슬롯은 서버가 기준 (공용 상태는 3단계까지 이 기기)
 function applyServer(v) {
+  // 다른 기사단(시즌 초기화 전 기사단·다른 계정)의 기록이 이 기기에 남아 있으면 공용 상태(골드·재료·건물)를 넘기지 않는다 — 서버 것(없으면 빈 마을)으로 시작
+  if (v.id && guild.gid !== v.id) {
+    replaceShared(v.shared);
+    guild.sharedRev = v.sharedRev || 0;
+    guild.at = v.sharedAt || srvNow();
+    sharedSent = v.shared ? JSON.stringify(shared) : null;
+    guild.gid = v.id;
+    if (!v.shared) setTimeout(() => pushShared({ force: true }), 0);
+  } else
   // 공용 상태: 서버 rev 가 더 크면 서버 것(다른 기기에서 이어 받기 — 건설은 서버가 저장한 시각부터 흐른다), 아니면 이 기기 것을 올린다
   if ((v.sharedRev || 0) > (guild.sharedRev || 0) && v.shared) {
     replaceShared(v.shared);
