@@ -81,7 +81,7 @@ function mgRamp(el, mast = 2) {
   return r;
 }
 // 시전(a)의 속성 램프
-const mgA = (a, el) => mgRamp(el || MG_EL[a.cls] || 'mana', a.mast || 0);
+const mgA = (a, el) => mgRamp(el || MG_EL[a.cls] || 'mana', Math.min(a.mast || 0, fxGold(a) ? 3 : 2));   // 1차 ★★★ 는 금빛 없이 ★★ 램프
 // 시트 한 장의 화면 크기(px)
 const mgPx = (id, sc = 1) => (VFX_SHEETS[id] ? VFX_SHEETS[id].fw * sc * VFX_DOT : 0);
 const mgHash = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };

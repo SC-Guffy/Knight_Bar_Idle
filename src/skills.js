@@ -16,7 +16,10 @@
 //   Lv1   세기 70%, 직업색에 회색 25%, 오라·몸 잔상·이름 띠 없음 (이름은 작은 글자만)
 //   ★ 숙련  세기 85%, 색이 살아나고 작은 오라, 타격마다 직업색 파편
 //   ★★ 달인  세기 100%, 원래 색, 발밑 빛 고리·짙은 잔상, 2차 스킬 이름 띠
-//   ★★★ 극의 세기 120%, 금빛으로 물듦, 이름 띠(1차도), 바깥 금빛 고리, 시전 끝 마무리 섬광
+//   ★★★ 극의 세기 120%, 금빛으로 물듦, 바깥 금빛 고리, 시전 끝 마무리 섬광 (2차 이상만 — 아래 연출 예산)
+// 연출 예산 (docs/specs/skill-vfx.md "연출 등급표"): 상한은 전직 차수(fxTier)가 정하고 ★ 는 그 안에서 채운다.
+//   1차   ★★★ 도 금빛·발밑 고리·마무리 섬광·이름 띠 없음 (작은 떠오르는 글자, 잔상만 흰빛). 오라는 ★ 크기까지. 정지 ≤0.1·흔들림 ≤0.3 (FX_CAP1)
+//   2차   이름 띠는 ★★★ 만. 금빛·마무리 섬광 ★★★ · 3차(시즌7 융합) 이름 띠 ★★ 부터 · 궁극기 레터박스 컷인
 // 기술의 모양(타격 횟수·마무리 일격)은 classes.js 의 stages 가 따로 바꾼다
 //
 // 1차와 2차의 차이: 1차는 직업색 이펙트 하나 + 가벼운 흔들림. 2차는 이름 띠(컷인), 히트스톱, 검흔 여러 겹, 잔상·마법진·지형 연출.
@@ -39,10 +42,15 @@ const easeIn = (u) => u * u * u;
 const mix = (a, b, u) => a + (b - a) * u;
 const HAND_Y = 18;        // 땅에서 손까지 높이 (다리 3칸 + 몸통 3칸)
 const skillTier = (k) => CLASSES[k.cls].tier;
+// 연출 예산 차수: 1·2 = 직업 차수, 3 = 시즌7 융합(트리 칸 f_*), 4 = 궁극기
+const fxTier = (k) => (k.ult ? 4 : k.t7slot && k.t7slot.startsWith('f_') ? 3 : skillTier(k));
+const fxGold = (a) => (a.mast || 0) >= 3 && (a.tier || 2) >= 2;     // ★★★ 금빛·마무리 섬광을 쓰는 시전인가 (1차는 아님)
+const FX_CAP1 = { stop: 0.1, shake: 0.3 };      // 1차 스킬 정지·흔들림 상한 (★★ 기준값, fxVis 곱하기 전 — skill-vfx.md §2)
 const MASTERY_GOLD = '#fff0b8';
 const MASTERY_VIS = [0.7, 0.85, 1, 1.2];       // 바닥을 올렸다 (skill-vfx.md ⑤-0: Lv1 에서도 스킬 고유 모양이 보이게)
 const MASTERY_FADE = ['#a9adb8', 0.25, 0.2];   // Lv1·★ 에서 직업색을 섞을 회색과 비율
 let fxVis = 1;            // 지금 만드는 연출의 세기 (시전의 숙련 단계, updateCasts 가 정한다)
+let fxCap = null;         // 지금 만드는 연출의 정지·흔들림 상한 (1차 스킬이면 FX_CAP1, updateCasts 가 정한다)
 let impactSoft = false;   // 지금 타격이 잔타(막타 아님, 궁극기 아님)면 impact 의 정지를 연출 정지로 바꾼다 (updateCasts)
 // '#rrggbb' 두 색을 u 만큼 섞는다
 function mixHex(c1, c2, u) {
@@ -70,8 +78,9 @@ function startCast(owner, id, a, queue = false) {
   a.lv = lv;
   a.mast = Math.max(0, Math.min(3, stage));
   a.vis = MASTERY_VIS[a.mast];
+  a.tier = fxTier(k);
   a.name = skillNameAt(k, lv, a.mast);      // 단계마다 진화하는 기술 이름 (classes.js stageName)
-  if (a.mast >= 3) a.color = mixHex(a.color, MASTERY_GOLD, 0.45);
+  if (fxGold(a)) a.color = mixHex(a.color, MASTERY_GOLD, 0.45);
   else if (a.mast < 2) a.color = mixHex(a.color, MASTERY_FADE[0], MASTERY_FADE[1 + a.mast]);
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
   // 화면에서 시전자가 실제로 서 있는 x. 자세가 뒤돌아(facing -1) 있으면 dx 도 뒤집혀 있다
@@ -84,7 +93,7 @@ function startCast(owner, id, a, queue = false) {
   // 숙련도를 키운 스킬은 이름 옆에 레벨과 단계 별을 붙여서, 먹인 비전서가 전투에 보이게 한다
   const star = (a.lv > 1 ? ` Lv${a.lv}` : '') + (a.mast ? ' ' + MASTERY[a.mast].star : '');
   if (k.ult) ultIntro = { name: a.name, icon: k.icon, color: a.color, star, cx: a.x(), t: 0 };
-  else if (a.mast >= 3 || (skillTier(k) >= 2 && a.mast >= 2)) cutin = { k, name: a.name, color: a.color, t: 0, cx: a.x(), star };
+  else if (a.mast >= (a.tier >= 3 ? 2 : a.tier === 2 ? 3 : 9)) cutin = { k, name: a.name, color: a.color, t: 0, cx: a.x(), star };
   else addFloater(`${k.icon} ${a.name}${star}`, a.x(), groundY() - 72, a.color, 12);
 }
 function endCast(owner) {
@@ -135,7 +144,8 @@ function finalPose(c) {
 function drawCastTrail(owner, cls, gy, facing) {
   const c = castOf(owner);
   if (!c || !c.a.mast) return;            // Lv1 은 몸 잔상 없이
-  const h = c.hist, fx = c.a.mast >= 3 ? c.a.color : CLASSES[cls].look.fx;
+  // ★★★ 잔상은 시전 색(2차 이상은 금빛이 섞여 있다), 1차 ★★★ 는 금빛 대신 흰빛
+  const h = c.hist, fx = c.a.mast < 3 ? CLASSES[cls].look.fx : c.a.tier >= 2 ? c.a.color : mixHex(CLASSES[cls].look.fx, '#ffffff', 0.55);
   for (let j = h.length - 1; j >= 1; j--) {
     const p = h[j].p, q = h[j - 1].p;
     const off = (r) => (r.dx || 0) * (r.facing || facing);         // 화면에서의 이동량 (뒤돌면 dx 부호가 바뀐다)
@@ -152,6 +162,7 @@ function drawCastTrail(owner, cls, gy, facing) {
 function updateCasts(dt) {
   for (const c of casts) {
     fxVis = c.a.vis || 1;
+    fxCap = c.a.tier <= 1 ? FX_CAP1 : null;
     c.t += dt;
     const u = Math.min(1, c.t / c.k.dur);
     c.a.u = u;
@@ -174,12 +185,13 @@ function updateCasts(dt) {
     if (c.fx.pose) { c.hist.unshift({ p: finalPose(c), x: c.a.x() }); if (c.hist.length > 5) c.hist.pop(); }
     if (u >= 1) {
       c.done = true;
-      if (c.a.mast >= 3) masteryFinish(c.a);
+      if (fxGold(c.a)) masteryFinish(c.a);
       if (!hits.length && c.a.onHit) c.a.onHit(0, 1);
       if (c.a.onEnd) c.a.onEnd();
     }
   }
   fxVis = 1;
+  fxCap = null;
   const finished = casts.filter((c) => c.done);
   casts = casts.filter((c) => !c.done);
   for (const c of finished) {
@@ -377,6 +389,7 @@ function heroAirborne() {
 // ───────────────────────── 타격감 도구 ─────────────────────────
 // stop: 잔타면 연출 정지(그림만, src/vfx-tex.js visStop), 막타·궁극기·그 밖의 순간이면 게임 정지(hitstop — 게임 시간이 멈춘다)
 function impact({ stop = 0, shake: sh = 0 } = {}) {
+  if (fxCap) { stop = Math.min(stop, fxCap.stop); sh = Math.min(sh, fxCap.shake); }   // 1차 스킬은 등급표 상한까지만
   stop *= fxVis; sh *= fxVis;
   if (impactSoft) visStop(stop);
   else hitstop = Math.max(hitstop, stop * 1.3);
@@ -576,7 +589,7 @@ function autoHitFx(c, i) {
     return;
   }
   // 숙련: 타격마다 직업색 파편 (극의는 금빛이 섞인다)
-  if (mast) for (const t of tg) burst(t.x, t.y, Math.round((3 + 3 * mast) * Math.min(1.5, pow / 1.4)), [c.a.color, '#ffffff', mast >= 3 ? MASTERY_GOLD : c.a.color], 70 + 25 * mast, 2, 160);
+  if (mast) for (const t of tg) burst(t.x, t.y, Math.round((3 + 3 * mast) * Math.min(1.5, pow / 1.4)), [c.a.color, '#ffffff', fxGold(c.a) ? MASTERY_GOLD : c.a.color], 70 + 25 * mast, 2, 160);
   // 스킬마다 고유한 타격 이미지(fx.marks). 없으면 무기별 기본 검흔
   for (const t of tg) { hitFx(t.x, t.y, c.a.color, pow, c.fx.hitK); (c.fx.marks || weaponMarks)(c.a, t, pow, i, n); }
   const big = share >= 0.2 || last;
@@ -869,7 +882,8 @@ function drawAuras() {
     const pose = c.fx.pose ? c.fx.pose(c.a.u, c.a) : {};
     if (pose.alpha === 0) continue;
     if (c.auraSeed == null) c.auraSeed = Math.floor(Math.random() * 5);
-    vfxAura(c.a.px(), groundY() - (pose.lift || 0), groundY() - 1, c.a.mast, c.a.color, k, c.auraSeed);
+    // 1차는 ★★·★★★ 도 ★ 오라(작은 불꽃 테두리)까지 — 발밑 룬 고리·금빛 고리는 2차부터 (연출 예산)
+    vfxAura(c.a.px(), groundY() - (pose.lift || 0), groundY() - 1, c.a.tier >= 2 ? c.a.mast : Math.min(1, c.a.mast), c.a.color, k, c.auraSeed);
   }
 }
 
@@ -2004,7 +2018,7 @@ const SKILL_FX = {
         if (i === 0) {
           // 대검이 땅을 찍는다: 양옆으로 무거운 흙 파도
           for (const s of [-1, 1]) for (let j = 0; j < 10; j++) parts.push({ x: a.px() + a.dir * 14, y: groundY() - 2, vx: s * rand(60, 160), vy: rand(-120, -30), g: 420, size: 3, color: j % 2 ? '#8a7a68' : '#c9b38a', life: 0.55, t: 0 });
-          impact({ stop: 0.12, shake: 0.35 });
+          impact({ stop: 0.1, shake: 0.3 });
         } else {
           rockSpikesFx(a, a.px() + a.dir * 18, 5, 15, 1.1);
           impact({ shake: 0.18 });
@@ -2015,7 +2029,7 @@ const SKILL_FX = {
       const x = a.skyX != null ? a.skyX : a.tx();
       craterFx(x);
       for (let j = 0; j < 24; j++) parts.push({ x: x + rand(-6, 6), y: groundY() - 4, vx: rand(-180, 180), vy: rand(-260, -80), g: 520, size: Math.random() < 0.3 ? 4 : 3, color: j % 3 ? '#8a7a68' : '#dfe7f3', life: rand(0.5, 0.9), t: 0 });
-      impact({ stop: 0.18, shake: 0.55 });
+      impact({ stop: 0.1, shake: 0.3 });      // 1차 막타 상한 (skill-vfx.md §2)
     },
     marks(a, t, pow, i) {
       const m = a.mast;
@@ -2078,7 +2092,7 @@ const SKILL_FX = {
       if (m === 0) { jabLineFx(h.x + a.dir * 4, h.y, a.dir); impact({ shake: 0.05 }); return; }
       if (m >= 3) {
         if (i === 0) { starFx(h.x + a.dir * 30, h.y, 10, '#eafff0', 0.2); return; }
-        impact({ stop: i === n - 1 ? 0.12 : 0.02, shake: i === n - 1 ? 0.35 : 0.08 });
+        impact({ stop: i === n - 1 ? 0.1 : 0.02, shake: i === n - 1 ? 0.3 : 0.08 });
         return;
       }
       if (m === 2 && i === 1) { impact({ stop: 0.05, shake: 0.15 }); return; }
@@ -2116,7 +2130,7 @@ const SKILL_FX = {
         impact({ shake: 0.05 });
         return;
       }
-      if (m >= 3 && i === n - 1) { impact({ stop: 0.12, shake: 0.35 }); return; }
+      if (m >= 3 && i === n - 1) { impact({ stop: 0.1, shake: 0.3 }); return; }
       for (const t of a.targets(i)) texShotFx('p1', x0, h.y, t.x, t.y, 0.05, a.color, { tail: 2 });
       impact({ shake: i === n - 1 ? 0.1 : 0.04 });
     },

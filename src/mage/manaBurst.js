@@ -174,7 +174,7 @@ function mbNovaFx(a, x, y) {
   mgFx(a, 'e04', x, y, ramp, { scale: 4 / 3, life: 0.6, fade: 0.35, add: true });
   mgFx(a, 'e04', x, y, ramp, { scale: 2 / 3, life: 0.35, delay: 0.12, fade: 0.4, add: true, flip: true });
   mgRing(x, ramp, 1.6, 0.5);
-  mbShards(a, x, y, 14, 210, 0.8, [a.color, '#ffffff', MB_LIGHT, MASTERY_GOLD]);
+  mbShards(a, x, y, 14, 210, 0.8, [a.color, '#ffffff', MB_LIGHT, fxGold(a) ? MASTERY_GOLD : '#ffffff']);
 }
 
 Object.assign(SKILL_FX, {
@@ -223,7 +223,7 @@ Object.assign(SKILL_FX, {
       }
       mbNovaFx(a, x, y + 10);
       for (const t of a.targets(i)) if (Math.abs(t.x - x) > 20) mbZapFx(a, x, y + 10, t.x, t.y);
-      impact({ stop: 0.1, shake: 0.35 });
+      impact({ stop: 0.1, shake: 0.3 });
     },
     // 명중 그림 K04 (겹 마름모가 차례로 깨지는 파열): Lv1 앞 3프레임, ★ 4프레임, ★★ 이상 전부. 2/3배, ★★★ 막타(비전 붕괴)만 1배
     hitTex(a, t, share, i, n) {

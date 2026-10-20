@@ -341,6 +341,7 @@ function vfxFit(px, dots, scales = VFX_SCALES) {
 
 // ───────── 시전 오라 (공용, skills.js drawAuras 가 부른다) ─────────
 // 숙련 ★ 부터: C17 불꽃 테두리 (★ 2/3배·흐리게, ★★ 이상 1배). ★★ 부터 발밑 C18 룬 고리, ★★★ 는 바깥에 금빛 고리 한 겹 더.
+// 1차 스킬은 drawAuras 가 mast 를 1 로 눌러 넘긴다 (연출 예산 — 1차는 고리 없이 작은 테두리까지, skills.js fxTier)
 // k: 시전 진행에 따른 세기(0~1, 켜졌다 꺼짐). 루프는 초당 10프레임, 시전마다 시작 프레임을 달리한다
 function vfxAura(x, y, gy, mast, color, k, seed = 0) {
   if (!mast || k <= 0.02) return;
