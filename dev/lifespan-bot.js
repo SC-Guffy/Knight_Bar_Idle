@@ -40,7 +40,7 @@ function runOne({ days, seed, mode }) {
   if (opt.eval) vm.runInContext(String(opt.eval), ctx);   // 측정용: 수치 바꿔 보기 (예: --eval "T7_WALL_MUL.region.hp = 3")
   const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, bagWeight, bagCap, upgradeBag, claimStock, trade, tradeBlocker, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt, bldMax,
-    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, CLASSES, profile, TRAIN_MAX, rushBuild, rushPrice, endExpedition, t7On: typeof t7On === 'function' ? t7On : () => false, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null, t7Spent: typeof t7Spent === 'function' ? t7Spent : () => 0, t7PathCost: typeof t7PathCost === 'function' ? t7PathCost : () => 1, t7Reset: typeof t7Reset === 'function' ? t7Reset : () => false, t7AutoTick: typeof t7AutoTick === 'function' ? t7AutoTick : () => {}, t7BuySlot: typeof t7BuySlot === 'function' ? t7BuySlot : () => false, t7WallBuild: typeof t7WallBuild === 'function' ? t7WallBuild : () => null })`, ctx);
+    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, CLASSES, profile, TRAIN_MAX, rushBuild, rushPrice, endExpedition, t7On: typeof t7On === 'function' ? t7On : () => false, skmEqLv: typeof skmEqLv === 'function' ? skmEqLv : () => 0, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null, t7Spent: typeof t7Spent === 'function' ? t7Spent : () => 0, t7PathCost: typeof t7PathCost === 'function' ? t7PathCost : () => 1, t7Reset: typeof t7Reset === 'function' ? t7Reset : () => false, t7AutoTick: typeof t7AutoTick === 'function' ? t7AutoTick : () => {}, t7BuySlot: typeof t7BuySlot === 'function' ? t7BuySlot : () => false, t7WallBuild: typeof t7WallBuild === 'function' ? t7WallBuild : () => null })`, ctx);
   const C = vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
   const cs = {}, M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
   const S = A.S(); S.gear.auto = true;
@@ -52,12 +52,12 @@ function runOne({ days, seed, mode }) {
     for (let next = chain[chain.indexOf(S.cls) + 1]; next && A.changeClass(next); next = chain[chain.indexOf(S.cls) + 1]);
     if (A.t7On() && BUILD === 'auto') {   // 막힌 벽의 기믹에 맞춰 갈래를 바꾼다
       const want = lastWall && blocked[lastWall] >= 2 && !tried[lastWall] ? A.t7WallBuild(lastWall) : null;   // 벽 하나에 한 번만 갈아탄다
-      if (want && want !== autoB && A.t7Reset()) { autoB = want; resets++; tried[lastWall] = true; }
+      if (want && want !== autoB) { autoB = want; resets++; tried[lastWall] = true; }   // 숙련(0.29): 장착만 바꾸면 된다 (초기화 없음)
       A.t7AutoSpend(autoB); return;
     }
     // player: 사람처럼 — 포인트는 게임의 자동 찍기(t7AutoTick, 캠프 도착 때)에 맡기고 장착 칸만 열 수 있으면 산다 (시즌 리셋 뒤 새 계정 흐름 확인)
     if (A.t7On() && BUILD === 'player') { A.t7AutoTick(); while (A.t7BuySlot()) A.t7AutoTick(); return; }
-    if (A.t7On()) { A.t7AutoSpend(BUILD); return; }   // 시즌7 트리 줄기: 비전서·스킬별 트리 대신 🌟 포인트
+    if (A.t7On()) { A.t7AutoSpend(BUILD); return; }   // 시즌7 숙련 (src/skm.js): 빌드 순서대로 장착 · 칸 사기 · 비전서 바치기
     const ids = A.skillsOf(S.cls).map((k) => k.id);
     for (let g = 0; S.tomes > 0 && g < 400; g++) { const id = ids.slice().sort((a, b) => A.skillLv(a) - A.skillLv(b))[0]; if (!id || !A.feedTomes(id, 1)) break; }
     for (const id of ids) for (const nid of Object.keys(A.treeNodesOf(A.SKILLS[id]))) for (let i = 0; i < 40 && A.canInvest(id, nid); i++) A.investNode(id, nid);
@@ -116,7 +116,7 @@ function runOne({ days, seed, mode }) {
       mentor: M ? M.mentorStarSum() : 0, castle: S.castle ? S.castle.best : 0,
       castleUp: S.castle ? Object.values(S.castle.up).reduce((a, b) => a + b, 0) : 0,
       raidTop, power: p.power, goldLog: Math.log10(Math.max(1, S.gold)),
-      ore: S.mats.ore, wood: S.mats.wood, stones: S.stones, mana: S.mats.mana, tomes: S.tomes, t7: A.t7On() ? A.t7Spent() / A.t7PathCost() : null, skills: p.skills.length });
+      ore: S.mats.ore, wood: S.mats.wood, stones: S.stones, mana: S.mats.mana, tomes: S.tomes, t7: A.t7On() ? A.skmEqLv() : null, skills: p.skills.length });
   };
   let nextSnap = DAY;
   while (t < days * DAY) {

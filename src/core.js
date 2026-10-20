@@ -40,7 +40,8 @@ function freshState() {
     cls: 'squire',                          // 현재 직업 (CLASSES 키)
     mast: {},                               // 스킬 숙련도: 스킬 id → 먹인 비전서 누적 권수 (classes.js SKILL_MAX·skillNeed, 차수별 곡선)
     mastV: 12,                              // 12: 궁극기 별도 숙련도 · 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
-    t7: freshT7(),                          // 시즌7 스킬 빌드 트리 (src/tree7.js) — 검사 계열 시제품: 찍은 칸·장착·장착 칸 수·고른 모습
+    t7: freshT7(),                          // 시즌7 스킬 장착 (src/tree7.js): 장착·장착 칸 수·고른 모습 (0.29 부터 트리 포인트 없음)
+    skm: {},                                // 스킬 숙련 (src/skm.js): 스킬 id → 경험치 (시전 1번 = 1, 비전서 1권 = 20)
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
@@ -81,6 +82,7 @@ function migrate(o) {
     const isObj = s[k] && typeof s[k] === 'object' && !Array.isArray(s[k]);
     s[k] = isObj && o[k] ? Object.assign(s[k], o[k]) : o[k];
   }
+  if (o.t7 && o.t7.v == null && s.t7) s.t7.v = 1;   // 0.27 트리 세이브(v 없음)도 숙련으로 옮기게 (src/skm.js skmMigrate)
   s.bag = (s.bag || []).map(upgradeOldLoot);     // v2 초기의 미감정 상자 → 전리품 상자
   migrateMentor(s.mentor);                       // 🎓 0.20.0 판 교관 (eye·duelDay) → 시즌6 판 (duel), 받은 별은 그대로
   // 공속·치명 훈련이 없어졌다: 올려 둔 단계만큼 쓴 골드를 돌려준다
@@ -862,6 +864,7 @@ function startExpedition({ charm = false, elixir = false } = {}) {
     stageFrom: S.stage, stageTo: S.stage, boxes: GRADES.map(() => 0),
     potions: 0, crises: 0, deaths: 0, tomes: 0, stones: 0, bossFail: false, reason: null, buffs: { charm, elixir },
   };
+  skmTripStart(S.trip);   // 숙련: 떠날 때 경험치를 적어 두고 귀환 보고에서 오른 만큼 (src/skm.js)
   S.run.kills = 0; S.run.farm = false; S.run.cleared = false; S.run.prog = 0;
   S.hp = stats().maxHp;
   S.phase = 'expedition';
@@ -904,6 +907,7 @@ function arriveCamp(silent = false) {
     if (t.wallBreak) r.wallBreak = (r.wallBreak || []).concat(t.wallBreak);   // 시즌7 보스 벽 (src/tree7.js)
     r.wall = t.wall || (r.wall && !(t.wallBreak || []).includes(r.wall.stage) ? r.wall : null);
     r.trips = (r.trips || 1) + 1;
+    // 숙련 보고는 처음 떠날 때 기준을 남긴다 (합친 보고 = 그동안 오른 전부)
   } else {
     S.report = t;
   }
@@ -1040,6 +1044,7 @@ function simulate(sec) {
     S.hp = Math.min(st.maxHp, S.hp);
     if (S.hp < st.maxHp * 0.25) S.trip.crises++;
     rewardKill(m);
+    skmSimFight(fight);   // 숙련: 싸운 시간 ÷ 쿨 만큼 장착 스킬 경험치 (src/skm.js)
     if (wl) t7WallBreak(m);
     if (bagFull()) endExpedition('bag', true);
   }

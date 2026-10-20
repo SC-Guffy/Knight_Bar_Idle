@@ -98,3 +98,22 @@
 .t7tipact.lock { color: #ffb35c; }
 .t7tipact.got { color: #ffe08a; }
 .t7tip p b { display: inline; font-size: inherit; }
+
+/* 숙련 스킬 탭 (0.29, docs/specs/skill-mastery-s7.md): 스킬 카드 줄 */
+.t7cards.skl { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; margin-top: 8px; }
+.t7card.skl { display: flex; gap: 8px; align-items: flex-start; max-width: none; padding: 7px 8px; cursor: default; }
+.t7card.skl > canvas { flex: none; margin-top: 2px; }
+.t7card.skl .t7cbody { min-width: 0; flex: 1; }
+.t7card.skl b { font-size: 13px; }
+.t7card.skl .t7st { color: #ffd257; font-size: 11px; }
+.t7card.skl.eq { border-color: #8f7cc0; }
+.t7card.skl.lock { opacity: .6; }
+.t7card.skl .t7act { margin-top: 4px; gap: 4px; }
+.t7card.skl .btn { padding: 1px 8px; font-size: 11px; }
+.t7card.skl .btn.on { background: #4b3f66; border-color: #8f7cc0; }
+.t7xp { height: 6px; margin: 4px 0 1px; background: #2b2538; border: 1px solid #0b0a14; }
+.t7xp i { display: block; height: 100%; background: linear-gradient(#ffe08a, #c9a23a); }
+.skmrep { margin: 6px 0; padding: 6px 10px; border: 1px dashed #3a3348; font-size: 12px; }
+.skmrep > b { display: block; color: #ffd257; margin-bottom: 2px; }
+.skmrow small { color: #a59cb8; }
+.skmrow.star, .skmrow.fresh { color: #ffe08a; }

@@ -1,6 +1,6 @@
 # 스킬 숙련 (쓰면 자람) — 스킬 재기획 1단계 구현 스펙
 
-- 상태: **초안 — 사용자 확인 대기** (2026-10-20). 수치는 시안, 봇으로 맞춘다.
+- 상태: **구현됨 — 브랜치 `skill-redesign` (worktree ../knight-bar-skm), main 미배포** (2026-10-20 사용자: "룬과 한 릴리스로 낼 거니까 main 에는 아직 안 올리기"). 사용자 화면 확인 대기.
 - 상위 기획: [skill-redesign.md](skill-redesign.md) (뼈대: 1 숙련 · 2 룬 · 4 연계 · 5 진화, 원칙) · 대체하는 것: [skill-tree-v3.md](skill-tree-v3.md) (0.28 트리) · 연출 기준: skill-redesign.md "연출 등급표"
 - 관련 코드(예정): 새 `src/skm.js` (숙련 규칙·데이터), src/core.js (`skillPow`·`skillCd`·`skillStage`·`skillLv`·`unlockedSkills`·`stats`·`simulate`·`arriveCamp`·`loadState`), src/skills.js (`startCast` 에서 경험치), src/tree7.js (장착 칸·보스 벽·줄기 데이터는 남기고 트리 포인트·노드는 뺌), src/tree7-ui.js → 스킬 탭 새 화면, src/ui.js (귀환 보고), dev/lifespan-bot.js·progress-bot.js·tree7-check.js
 - 최종 갱신: 2026-10-20
@@ -102,11 +102,20 @@
 - [ ] 봇 1·3·5·10일 스테이지 0.28.5 ±5%.
 - [ ] (릴리스) 숙련만 단독 배포하지 않는다 — 룬과 함께.
 
-## 확인 방법 (구현 뒤 채움)
-- 오프라인 게임 + 콘솔 스니펫(숙련 경험치 넣기 · 원정 한 번 돌리기 · 보고 열기), 검토 페이지 dev/review/skill-mastery-s7.html (숙련 곡선·봇 결과).
+## 확인 방법
+- 서버: `preview_start skm-web` (포트 9053, worktree ../knight-bar-skm 를 띄움) → http://localhost:9053/index.html?server=http://127.0.0.1:9&guild=0 (로드 전 localStorage `knight-bar-accounts` = `{"active":"테스트","list":{"테스트":"local-test-token"}}`, 로드 후 9초).
+- 옛 트리 세이브 옮기기 + 원정 한 번 + 보고 (콘솔):
+  `S.cls='swordsaint'; S.level=150; S.best=S.stage=8; S.gold=1e9; S.mats.mana=5000; S.tomes=120; S.skm={}; S.t7={v:4, pick:false, rk:{slash:3, slash_look:2, gale:4, gale_look:2, whirl:1, iaido:2, iaido_look:1, ult:1}, eq:['gale','whirl','steelCleave'], slots:4, use:{}}; t7S(); t7FixEq(); S.stamina=maxStamina(); startExpedition(); simulate(1500); if (S.phase==='expedition') endExpedition('recall', true); campOpen=false; openCamp('report')`
+  → 홈 보고에 "⚔️ 숙련" 줄 → 캐릭터 → 스킬: 스킬 카드 (강철 대검 ★★ Lv20 · 질풍난무·분신 ★★ Lv20 · 일섬 ★ Lv10 · 검무 Lv1, 비검·섬광은 부모 ★ 로 열림, 검기 폭풍은 "비검 ★" 잠김). 비검 📖 바치기 6번 → Lv19 · 검기 폭풍 열림.
+- 검사: `node dev/tree7-check.js` (숙련 표 + 15줄기 · 원정 1시간 숙련 오름). 봇: `node dev/lifespan-bot.js --line swordsaint --build a --days 10 --seeds 8 --mode heavy`.
 
 ## 진행 기록
+- 2026-10-20: 구현 (브랜치 skill-redesign). src/skm.js 새 파일(숙련 표 `SKM_NEED`·경험치·비전서·칸 얻기·보고 줄·옮기기 `skmMigrate` v5) · src/tree7.js(트리 포인트·찍기 제거, `t7Rank` 스킬 칸 = 숙련 Lv, `t7Pow`/`t7Cd`/`t7StageMax` 숙련, 전직 스탯 `T7_TIER_STAT`, 새 스킬 자동 장착 `t7FixEq`, 봇 빌드 = 장착 우선순위, 보스 벽 `pen` 0.1 · 기본 대응 0.5 · 장판은 2차부터 대응 1) · src/tree7-ui.js 새로(스킬 카드 줄·장착 칸·📖 바치기·설명창·⚔️ 숙련 보고·벽 보고 "추천" 줄 뺌) · src/skills.js 실제 시전 +1 · src/core.js(`S.skm`, simulate `skmSimFight`, `skmTripStart`, 0.27 세이브 v1 표시) · index.html skm.js · dev(progress-bot FILES, lifespan-bot 장착 빌드·평균 숙련 기록, tree7-check 숙련 검사).
+- 봇 10일 (4줄기 × 3빌드 × 8시드, 0.28.5 대비 최고 스테이지 평균): 1일 +0.3% · 2일 +2.2% · 3일 +0.9% · 5일 −3.7% · 7일 −5.2% · 10일 +1.8%. 중반이 조금 처지는 건 변형·키스톤(룬 몫)이 아직 없어서 — 룬 단계에서 다시 잰다. 검성 a 장착 평균 숙련 Lv: 1일 12 · 3일 19 · 7일 25 · 10일 27.4.
 - 2026-10-20: 초안. 사용자 결정(트리 포인트 없앰, 나머지 시안대로) 반영. 검토 페이지 dev/review/skill-mastery-s7.html 로 문턱을 10일 시즌에 맞게 올림.
 
 ## 남은 일
-- 사용자 확인 → 구현(브랜치) → 2단계 룬 스펙 → 숙련 + 룬 한 릴리스 → 3단계 연계 · 4단계 진화.
+- 사용자 화면 확인.
+- 결투 리그 다시 맞춤 (`T7_DUEL_TUNE` 은 궁극기 변형 갈래 기준 → 변형이 없어 1).
+- 처음 비전서 얻을 때 HUD 안내("스킬 탭에서 스킬에 먹이면 쿨타임이 줄고 위력이 올라요") 글을 숙련에 맞게.
+- 2단계 룬 스펙 → 구현 → 숙련 + 룬 한 릴리스 (GAME_VERSION 0.29.0, SAVE_MIN_VERSION 함께) → 3단계 연계 · 4단계 진화.

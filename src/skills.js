@@ -360,6 +360,7 @@ function tryCastSkill(st, target, only = null) {
       },
     };
     startCast('hero', id, a);
+    if (t7Has(id)) skmGain(id, 1);   // 숙련: 실제 전투 시전 1번 = 경험치 +1 (src/skm.js — 미리보기·결투·레이드 재생은 이 길로 오지 않는다)
     return true;
   }
   return false;

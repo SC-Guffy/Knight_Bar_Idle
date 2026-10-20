@@ -9,15 +9,15 @@ const c = makeGame();
 const lines = vm.runInContext('Object.keys(T7_LINES)', c);
 const todo = want.length ? want : lines;
 let bad = 0;
-// 2안 판 모양: 모든 노드가 시작점(공짜 칸 노드)에서 이어지는지 · 숫자 게이트(min)가 남지 않았는지 (docs/specs/skill-tree-v3.md)
+// 숙련 (src/skm.js): Lv 표가 오름차순인지 · ★ 문턱이 Lv 10·20·30 과 맞는지
 {
   const e = vm.runInContext(`(() => {
-    const err = [], ok = new Set(T7_NODES.filter((n) => n.free || !(n.reqAll || n.req).length).map((n) => n.id));
-    for (let g = 0; g < 30; g++) for (const n of T7_NODES) if (!ok.has(n.id) && ((n.reqAll || n.req).length && (n.reqAll || n.req)[n.reqAll ? 'every' : 'some']((r) => ok.has(r)))) ok.add(n.id);
-    for (const n of T7_NODES) { if (!ok.has(n.id)) err.push('시작점과 안 이어짐: ' + n.id); if (n.min) err.push('숫자 게이트 남음: ' + n.id); }
+    const err = [];
+    for (const g of [1, 2, 3]) { const need = SKM_NEED[g]; for (let i = 1; i < need.length; i++) if (!(need[i] > need[i - 1])) err.push('SKM_NEED[' + g + '] Lv' + (i + 1) + ' 이 앞보다 작음');
+      SKM_TH[g].forEach((t, k) => { if (need[(k + 1) * 10 - 1] !== t) err.push('SKM_NEED[' + g + '] Lv' + (k + 1) * 10 + ' ≠ ' + t); }); }
     return err;
   })()`, c);
-  if (e.length) { bad++; console.log('✗ 판 모양\n  - ' + e.join('\n  - ')); } else console.log('✓ 판 모양 (노드 ' + vm.runInContext('T7_NODES.length', c) + '개, 모두 시작점에서 이어짐)');
+  if (e.length) { bad++; console.log('✗ 숙련 표\n  - ' + e.join('\n  - ')); } else console.log('✓ 숙련 표 (Lv 1~30, ★ 문턱 맞음)');
 }
 for (const id of todo) {
   if (!lines.includes(id)) { console.log(`✗ ${id}: 줄기 파일이 없음 (src/tree7-l-${id}.js)`); bad++; continue; }
@@ -58,13 +58,14 @@ for (const id of todo) {
     const out = {};
     for (const b of ['a', 'b', 'k']) {
       S = freshState(); S.cls = L.cls[2]; S.level = 230; S.best = S.stage = 200; S.gold = 1e30; S.mats.mana = 1e6;
+      for (const slot of SKM_SLOTS) if (L.sk[slot]) S.skm[L.sk[slot]] = SKM_NEED[SKM_GRADE(slot)][19];   // 숙련 Lv20 — 새 스킬이 다 열리게
       t7AutoSpend(b);
       const st = stats(), p = profile();
       if (!t7On()) err.push('t7On 꺼짐');
       if (st.skills.length < 4) err.push(b + ': 전투 스킬 ' + st.skills.length + '개');
       if (!(dpsOf(st) > 0) || !isFinite(dpsOf(st))) err.push(b + ': dps ' + dpsOf(st));
       if (p.skills.length > 5 || p.skills.some((s) => !(s.mult > 0) || !(s.cd > 0))) err.push(b + ': 프로필 스킬 이상');
-      out[b] = { skills: st.skills.join(','), dps: +dpsOf(st).toPrecision(3), power: p.power, spent: t7Spent() };
+      out[b] = { skills: st.skills.join(','), dps: +dpsOf(st).toPrecision(3), power: p.power };
     }
     // 1차·2차에서도
     for (const [cls, lv] of [[L.cls[0], 30], [L.cls[1], 60]]) {
@@ -77,8 +78,9 @@ for (const id of todo) {
   // 원정 1시간 (오프라인 계산)
   let simErr = null;
   try {
-    vm.runInContext(`S = freshState(); S.cls = T7_LINES[${JSON.stringify(id)}].cls[2]; S.level = 150; S.best = S.stage = 120; S.gold = 1e30; S.mats.mana = 1e6; t7AutoSpend('k');
+    vm.runInContext(`S = freshState(); S.cls = T7_LINES[${JSON.stringify(id)}].cls[2]; S.level = 150; S.best = S.stage = 20; S.gold = 1e30; S.mats.mana = 1e6; t7AutoSpend('k'); globalThis.__sk0 = t7Skills()[1]; globalThis.__x0 = skmXp(__sk0);
       S.stamina = maxStamina(); startExpedition(); simulate(3600);`, c);
+    if (!(vm.runInContext('skmXp(__sk0) > __x0', c))) simErr = '원정 1시간에 장착 스킬 숙련이 안 오름';   // 오프라인 계산 숙련 (src/skm.js skmSimFight)
   } catch (e) { simErr = String(e && e.stack || e).split('\n').slice(0, 3).join(' / '); }
   if (simErr) r.err.push('원정 계산 오류: ' + simErr);
   if (r.err.length) { bad++; console.log(`✗ ${id}\n  - ${r.err.join('\n  - ')}`); }

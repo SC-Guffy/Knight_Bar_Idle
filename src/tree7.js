@@ -172,108 +172,41 @@ const t7LaneOf = (sk) => { t7L(); return T7_BY_SKILL[sk] ? T7_BY_SKILL[sk].lane 
 const T7_SLOTS = [null, null, { tier: 2, lv: 50, gold: 30 }, { lv: 80, mana: 300 }, { lv: 120, mana: 1500 }];
 const T7_RESET_GOLD = 100;   // 전체 초기화 = 최고 스테이지 잡몹 골드 × 100 (원정 약 20분)
 
-function freshT7() { return { v: 4, pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {}, auto: true, free: 1 }; }   // auto: 직접 찍기 전까지 추천 순서로 자동 · free: 첫 초기화 무료   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
+// 2026-10-20 스킬 재기획 1단계 (docs/specs/skill-mastery-s7.md): 트리 포인트·노드 찍기를 없앴다. 스킬은 숙련(src/skm.js)으로 얻고 자란다.
+//  T7_NODES 는 칸 이름(slash·gale…)과 줄기 데이터·연출·보스 벽이 쓰는 틀로만 남는다 — 변형·키스톤(mod·key·uvar)은 2단계 룬, 융합은 4단계 진화에서 다시
+function freshT7() { return { v: 5, pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, got: [], seen: [] }; }   // eq 장착(순서 = 시전 순서) · slots 산 칸 · use 고른 모습 · got 옛 트리에서 옮겨 온 칸 · seen 이미 알린 칸 (새 스킬 자동 장착)
 const t7S = () => {
   if (S.cls !== t7SyncedCls) t7Sync();
   if (!S.t7) S.t7 = freshT7();
-  if (S.t7.v !== 4) t7Migrate(S.t7);
+  if (S.t7.v !== 5) skmMigrate(S.t7);
   return S.t7;
 };
-// 공짜 칸 스킬(메인 스킬)이 장착 칸 밖에 있으면 맨 앞에 넣는다 (전직·초기화·옮기기 뒤 빈 손으로 원정 가지 않게)
+// 새로 가진 칸(전직·부모 ★)의 스킬을 빈 장착 칸에 넣는다 (한 번만 — 일부러 뺀 스킬은 다시 넣지 않는다)
 function t7FixEq() {
-  const s = S.t7, n = T7_BY.slash;
-  if (!s || !n.sk || !t7Free(n) || s.eq.includes(n.sk) || s.eq.length >= (s.slots || 1)) return;
-  s.eq.unshift(n.sk);
-}
-// 0.27 세이브 → 2안 (docs/specs/skill-tree-v3.md "옮기기"): 칸 → 위력 Lv + 그 칸에서 열렸던 모습, 스탯 칸 → 점.
-//  규칙에 안 맞으면 길 점을 남은 포인트로 채워 보고, 그래도 안 되면 전부 돌려준다(+ 무료 초기화 · 자동 찍기)
-// 세이브 옮기기 → v4 (4안: 스탯 종류당 하나 · 모습 스킬당 하나). 옛 판마다 "스탯 종류별 찍은 수"와 "스킬별 ★ 단계"를 뽑아 새 노드로 다시 찍는다
-//  v1 (0.27): 칸 → 위력 Lv + 그 칸에서 열렸던 ★ · v2·v3 (0.28.0~0.28.4): 스탯 점 c_atk1… · 모습 <스킬>_s1~3. 스탯은 2개 이상 찍었던 종류만 (🌟3)
-function t7Migrate(s) {
-  const from = s.v || 1;
-  s.v = 4;
-  const old = s.rk || {}, rk = {};
-  if (!Object.keys(old).length) { s.rk = {}; t7FixEq(); return; }
-  const statN = {}, stage = {};
-  for (const [id, r] of Object.entries(old)) {
-    if (!r) continue;
-    const m = /^(c_[a-z]+)(\d)?$/.exec(id);
-    if (m) { statN[m[1]] = (statN[m[1]] || 0) + (from < 2 ? r : 1); continue; }
-    const lk = /^(.+)_s(\d)$/.exec(id);
-    if (lk) { stage[lk[1]] = Math.max(stage[lk[1]] || 0, +lk[2]); continue; }
-    const n = T7_BY[id];
-    if (!n || n.t === 'hub' || n.t === 'look') continue;
-    if (!n.slot || from >= 2) { rk[id] = Math.min(t7MaxN(n), r); continue; }
-    const keep = r - t7Free(n);   // v1 은 공짜 칸이 없었다
-    if (keep > 0) rk[id] = keep;
-    stage[id] = n.t === 'fusion' ? T7_FUSE_STAGE_AT[Math.min(3, r)] : T7_STAGE_AT[Math.min(5, r)];
+  const s = S.t7, L = t7L();
+  if (!s || !L) return [];
+  s.seen = s.seen || [];
+  const fresh = [];
+  for (const slot of SKM_SLOTS) {
+    if (slot === 'ult' || s.seen.includes(slot) || !skmOwnedSlot(slot)) continue;
+    s.seen.push(slot); fresh.push(slot);
+    const sk = L.sk[slot];
+    if (sk && !s.eq.includes(sk) && s.eq.length < (s.slots || 1)) s.eq.push(sk);
   }
-  for (const [k, c] of Object.entries(statN)) if (c >= 2 && T7_BY[k]) rk[k] = 1;
-  for (const [sk, st] of Object.entries(stage)) { const l = T7_LOOK[sk]; if (l && st) rk[l.id] = Math.min(t7MaxN(l), st - (l.st0 || 0)); }
-  s.rk = rk;
-  // 포인트가 넘치면 모습 마지막 칸부터 뺀다
-  for (const l of Object.values(T7_LOOK)) while (t7Spent() > t7Pts() && rk[l.id]) { rk[l.id]--; if (!rk[l.id]) delete rk[l.id]; }
-  if (!t7Valid()) { s.rk = {}; s.eq = []; s.use = {}; s.free = 1; s.auto = true; s.moved = 'reset'; }
-  else s.moved = 'ok';
-  s.camp = {};
-  s.eq = (s.eq || []).filter((sk) => { const x = T7_BY_SKILL[sk]; return x && t7Rank(x.id) > 0; });
-  t7FixEq();
+  return fresh;
 }
-// 공짜 칸: 메인 스킬(1차부터)·궁극기(3차부터)는 1Lv 이 찍혀 있다 (저장된 rk 에는 없다 — 포인트를 안 쓴다)
-const t7Free = (n) => (n && n.free && t7Tier() >= n.tier ? 1 : 0);
-const t7Rank = (id) => { const n = T7_BY[id]; if (n && n.t === 'hub') return t7Open(n) ? 1 : 0; const r = t7S().rk[id] || 0; return n && n.free ? Math.min(t7MaxN(n), r + t7Free(n)) : r; };   // 허브는 열렸으면 1
-const t7Pts = () => Math.max(0, S.level - 1);
-const t7Spent = () => { const rk = t7S().rk; return T7_NODES.reduce((a, n) => a + (rk[n.id] || 0) * t7Cost(n), 0); };
-const t7Left = () => t7Pts() - t7Spent();
-const t7LanePts = (l) => { const rk = t7S().rk; return T7_NODES.reduce((a, n) => a + (n.lane === l && n.t !== 'fusion' ? (rk[n.id] || 0) * t7Cost(n) : 0), 0); };   // 화면 표시용 (조건으로는 안 쓴다)
 const t7Tier = () => (CLASSES[S.cls] ? CLASSES[S.cls].tier : 0);
-const t7PairTaken = (n) => n.pair && T7_NODES.some((x) => x.pair === n.pair && x.id !== n.id && t7Rank(x.id) > 0);
-// 규칙상 열려 있는지 (포인트와 상관없이)
-function t7Open(n) {
-  if (typeof n === 'string') n = T7_BY[n];
-  if (!n || t7Tier() < n.tier) return false;
-  if (t7Free(n)) return true;
-  if (n.reqAll) return n.reqAll.every((r) => t7Rank(r) > 0);
-  if (n.t === 'uvar' && T7_NODES.some((x) => x.t === 'uvar' && x.id !== n.id && t7Rank(x.id) > 0)) return false;
-  if (t7PairTaken(n)) return false;
-  if (n.t === 'look' && (t7S().rk[n.id] || 0) >= t7MaxN(n) && t7Rank(n.of) < t7MaxN(T7_BY[n.of])) return false;   // 마지막 모습은 그 스킬 최대 Lv (찍은 뒤 스킬 Lv 을 되돌리지 못하게)
-  return !n.req.length || n.req.some((r) => t7Rank(r) > 0);
-}
-const t7LookLastLock = (n) => n.t === 'look' && t7Rank(n.id) + 1 >= t7MaxN(n) && t7Rank(n.of) < t7MaxN(T7_BY[n.of]);   // 다음 칸이 마지막 모습인데 스킬이 최대 Lv 이 아님
-const t7CanAdd = (id) => { const n = T7_BY[id]; return !!n && t7On() && t7Open(n) && t7Rank(id) < t7MaxN(n) && !t7LookLastLock(n) && t7Left() >= t7Cost(n); };
-const t7Valid = () => T7_NODES.every((n) => !(t7Rank(n.id) > 0) || t7Open(n)) && t7Spent() <= t7Pts();
-// 한 칸 찍기. 새 액티브·융합이면 빈 칸에 자동 장착
-function t7Add(id) {
-  if (!t7CanAdd(id)) return false;
-  const s = t7S(), n = T7_BY[id];
-  s.rk[id] = (s.rk[id] || 0) + 1;
-  s.camp[id] = (s.camp[id] || 0) + 1;
-  if ((n.t === 'active' || n.t === 'fusion') && t7Rank(id) === 1 && s.eq.length < t7Slots() && !s.eq.includes(n.sk)) s.eq.push(n.sk);
-  return true;
-}
-// 이번 캠프에서 새로 찍은 칸만 무료로 되돌린다 (다른 노드가 기대고 있으면 못 뺀다)
-function t7Undo(id) {
-  const s = t7S(), n = T7_BY[id];
-  if (!n || !(s.camp[id] > 0) || !(s.rk[id] > 0)) return false;
-  s.rk[id]--; s.camp[id]--;
-  if (!t7Valid()) { s.rk[id]++; s.camp[id]++; return false; }
-  if (!s.rk[id]) { delete s.rk[id]; if (n.sk && !(t7Rank(id) > 0)) s.eq = s.eq.filter((x) => x !== n.sk); }
-  return true;
-}
-const t7ResetCost = () => (t7S().free ? 0 : 1) * Math.ceil(monsterStats(Math.max(1, S.best), false).gold * T7_RESET_GOLD);
-// 전체 초기화 (캠프에서, 골드). 쓴 포인트는 전부 돌아온다
-function t7Reset() {
-  if (S.phase !== 'camp' || !t7Spent()) return false;
-  const c = t7ResetCost();
-  if (S.gold < c) return false;
-  S.gold -= c;
-  const s = t7S();
-  s.rk = {}; s.eq = []; s.use = {}; s.camp = {}; s.free = 0; s.auto = false;
-  t7FixEq();
-  return true;
-}
-// 원정을 떠나면 "이번 캠프" 가 끝난다
-const t7EndCamp = () => { if (S.t7) { S.t7.camp = {}; S.t7.log = []; } };   // log: 이번 캠프에서 찍은 순서 (↩ 되돌리기, tree7-ui)
+// 노드 "칸 수": 스킬 칸 = 숙련 Lv (가졌으면 1~30, 없으면 0) · 허브 = 열렸으면 1 · 나머지(변형·키스톤·스탯·모습)는 이제 찍지 않아 0
+const t7Rank = (id) => {
+  const n = T7_BY[id];
+  if (!n) return 0;
+  if (n.t === 'hub') return t7Tier() >= n.tier ? 1 : 0;
+  if (n.slot) { t7S(); return n.sk && skmOwnedSlot(id) ? skmLv(n.sk) : 0; }
+  return 0;
+};
+const t7Spent = () => 0;   // 트리 포인트 없음 (봇·검사 도구 호환)
+// 원정을 떠나면 "이번 캠프" 가 끝난다 (옛 되돌리기 기록)
+const t7EndCamp = () => { if (S.t7) { S.t7.camp = {}; S.t7.log = []; } };
 
 // ── 장착 칸 ──
 const t7Slots = () => t7S().slots || 1;
@@ -301,7 +234,7 @@ function t7BuySlot() {
   t7S().slots++;
   // 배운 액티브가 칸을 기다리고 있으면 바로 채운다
   const s = t7S();
-  for (const n of T7_NODES) if ((n.t === 'active' || n.t === 'fusion') && t7Rank(n.id) > 0 && !s.eq.includes(n.sk) && s.eq.length < s.slots) s.eq.push(n.sk);
+  for (const n of T7_NODES) if (n.t === 'active' && t7Rank(n.id) > 0 && !s.eq.includes(n.sk) && s.eq.length < s.slots) s.eq.push(n.sk);
   return true;
 }
 // 장착/해제 (캠프 아무 때나, 무료). 순서 = 시전 순서
@@ -346,8 +279,11 @@ function t7Mods() {
   return m;
 }
 // stats() 보정: 공격 % · 체력 % · 공속 % · 치명 · 받는 피해 · 키스톤 배수
+// 전직 스탯 (옛 트리 스탯 노드 몫, 이제 자동): 1차 전직 공격 +6% · 치명 +4.5% · 체력 +9% / 2차 전직 + 공속 +6% · 받는 피해 −6%
+const T7_TIER_STAT = { 1: { atk: 0.06, crit: 0.045, hp: 0.09 }, 2: { aspd: 0.06, guard: 0.06 } };
 function t7Stats(st) {
-  const s = t7Mods().stat;
+  const s = { ...t7Mods().stat }, T = t7Tier();
+  for (const t of [1, 2]) if (T >= t) for (const [k, v] of Object.entries(T7_TIER_STAT[t])) s[k] = (s[k] || 0) + v;
   st.atk *= (1 + (s.atk || 0)) * (s.atkMul || 1);
   st.maxHp *= 1 + (s.hp || 0);
   st.aspd *= 1 + (s.aspd || 0);
@@ -360,22 +296,21 @@ const t7NodeOf = (sk) => { t7L(); return T7_BY_SKILL[sk]; };
 // 칸 수 (궁극기·융합 포함)
 const t7SkillRank = (sk) => { t7L(); return T7_BY_SKILL[sk] ? t7Rank(T7_BY_SKILL[sk].id) : 0; };
 // 한 방 위력 배수 (기준 = 지금 트리 V2 0칸 값, core.js skillPow 가 곱한다)
+// 숙련 (src/skm.js): Lv 마다 위력 +2% · 쿨 −0.8%
 function t7Pow(sk) {
-  const n = T7_BY_SKILL[sk], r = Math.max(1, t7SkillRank(sk)), m = t7Mods(), R = n && n.t === 'fusion' ? T7_FUSE : T7_RANK;
+  const lv = Math.max(1, t7SkillRank(sk)), m = t7Mods();
   const L = t7L();
-  let p = ((L && L.tune && L.tune.pow) || T7_TUNE.pow) * (1 + R.pow * (r - 1)) * (m.pow[sk] || 1) * m.powAll * ((SKILLS[sk] && SKILLS[sk].t7mul) || 1);
+  let p = ((L && L.tune && L.tune.pow) || T7_TUNE.pow) * (1 + SKM_POW * (lv - 1)) * (m.pow[sk] || 1) * m.powAll * ((SKILLS[sk] && SKILLS[sk].t7mul) || 1);
   for (const x of m.powNot) if (t7LaneOf(sk) !== x.lane) p *= x.v;
   return p;
 }
 // 쿨타임 배수
 function t7Cd(sk) {
-  const n = T7_BY_SKILL[sk], r = Math.max(1, t7SkillRank(sk)), m = t7Mods(), R = n && n.t === 'fusion' ? T7_FUSE : T7_RANK;
-  return (1 - R.cd * (r - 1)) * (m.cd[sk] || 1) * m.cdAll;
+  const lv = Math.max(1, t7SkillRank(sk)), m = t7Mods();
+  return (1 - SKM_CD * (lv - 1)) * (m.cd[sk] || 1) * m.cdAll;
 }
-// 모습 단계 (0~3): 칸에서 정해지고, 캠프에서 낮은 모습을 골라 쓸 수 있다 (S.t7.use)
-// 융합은 3칸이 끝이라 액티브 표(5칸)로는 ★ 까지만 갔다 → 1칸 기본 · 2칸 ★★ · 3칸 ★★★ (연출이 ★★★ 까지 커지게)
-// 2안: 모습은 칸이 아니라 찍은 모습 노드(★·★★·★★★)로 정해진다
-const t7StageMax = (sk) => { const n = t7NodeOf(sk), l = n && T7_LOOK[n.id]; return l ? t7LookSt(l, t7Rank(l.id)) : 0; };
+// 모습 단계 (0~3): 숙련 Lv 10·20·30 (src/skm.js). 캠프에서 낮은 모습을 골라 쓸 수 있다 (S.t7.use)
+const t7StageMax = (sk) => (t7SkillRank(sk) > 0 ? skmStage(sk) : 0);
 function t7Stage(sk) {
   const max = t7StageMax(sk), use = t7S().use[sk];
   return use == null ? max : Math.max(0, Math.min(max, use));
@@ -431,59 +366,32 @@ function t7Shape(sk, k) {
 }
 
 // ── 봇·측정용: 빌드별 포인트 쓰기 순서 (dev/lifespan-bot.js · progress-bot.js --build) ──
-const T7_BUILDS = {   // 4안 노드 (스킬 이름이 한 번 나올 때마다 Lv +1 — 메인 스킬·궁극기는 공짜 1Lv 을 센다). 스탯은 🌟3 에 +6% 라 먼저 (자동 찍기 a 도 이 순서)
-  a: ['c_atk', 'c_spd', 'c_crit', 'c_hp', 'c_def', 'slash', 'slash', 's_twin', 'gale', 'gale', 'slash_look', 'gale', 'gale_look', 'a_more', 'a_bleed',
-    'whirl', 'whirl', 'whirl_look', 'a_grow', 'gale', 'gale_look', 'iaido', 'iaido', 'flash', 'a_key', 'f_ab',
-    'whirl', 'whirl', 'whirl_look', 'gale', 'gale_look',
-    'ult', 'a_k3', 'uv_a', 'ult', 'ult', 'ult', 'ult_look', 'ult', 'ult_look', 'ult_look', 'f_ab', 'f_ab', 'f_ab_look', 'f_ab_look', 'whirl', 'whirl_look', 'slash', 'slash', 'slash_look', 'slash', 'slash_look', 'k_blade'],
-  b: ['c_crit', 'c_atk', 'c_spd', 'c_hp', 'c_def', 'slash', 'slash', 's_twin', 'iaido', 'iaido', 'slash_look', 'iaido', 'iaido_look', 'b_exec', 'b_reset',
-    'flash', 'flash', 'flash_look', 'b_after', 'iaido', 'iaido_look', 'gale', 'gale', 'whirl', 'b_key', 'f_ab',
-    'flash', 'flash', 'flash_look', 'iaido', 'iaido_look',
-    'ult', 'b_k3', 'uv_b', 'ult', 'ult', 'ult', 'ult_look', 'ult', 'ult_look', 'ult_look', 'f_ab', 'f_ab', 'f_ab_look', 'f_ab_look', 'flash', 'flash_look', 'slash', 'slash', 'slash_look', 'slash', 'slash_look', 'k_blade'],
-  k: ['c_atk', 'c_spd', 'c_crit', 'c_hp', 'c_def', 'slash', 'slash', 's_twin', 'wave', 'wave', 'slash_look', 'wave', 'wave_look', 'k_pierce',
-    'storm', 'storm', 'storm_look', 'k_split', 'wave', 'wave_look', 'iaido', 'iaido', 'flash', 'k_key', 'f_bk',
-    'storm', 'storm', 'storm_look', 'wave', 'wave_look',
-    'ult', 'k_k3', 'uv_k', 'ult', 'ult', 'ult', 'ult_look', 'ult', 'ult_look', 'ult_look', 'f_bk', 'f_bk', 'f_bk_look', 'f_bk_look', 'storm', 'storm_look', 'slash', 'slash', 'slash_look', 'slash', 'slash_look', 'k_wave', 'k_blade'],
+// 봇·측정용 장착 우선순위 (숙련 — 무엇을 데려가느냐가 성장 방향). a 연타 · b 발도 · k 검기
+const T7_BUILDS = {
+  a: ['gale', 'whirl', 'slash', 'iaido', 'flash', 'wave', 'storm'],
+  b: ['iaido', 'flash', 'slash', 'gale', 'whirl', 'wave', 'storm'],
+  k: ['wave', 'storm', 'slash', 'iaido', 'flash', 'gale', 'whirl'],
 };
-// 남은 포인트를 빌드 순서대로 쓴다 (못 찍는 건 건너뛰고, 순서를 다 돌면 남는 걸로 아무 노드나 싼 것부터). 장착 칸도 산다
-function t7AutoSpend(build = 'a', buy = true) {   // buy: 장착 칸도 산다 (봇) — 플레이어 자동 찍기는 재화를 안 쓴다
+// 빌드대로 장착 (가진 스킬만, 우선순위 앞부터 칸 수만큼). buy: 장착 칸도 산다 · tomes: 비전서를 장착 스킬 중 가장 낮은 것부터 바친다 (봇)
+function t7AutoSpend(build = 'a', buy = true, tomes = buy) {
   if (!t7On()) return 0;
   let n = 0;
-  for (let guard = 0; guard < 400; guard++) {
-    const order = T7_BUILDS[build] || T7_BUILDS.a, want = {};
-    let picked = null;
-    for (const id of order) { want[id] = (want[id] || 0) + 1; if (t7Rank(id) < want[id] && t7CanAdd(id)) { picked = id; break; } }
-    if (!picked) picked = T7_NODES.filter((x) => t7CanAdd(x.id)).sort((p, q) => t7Cost(p) - t7Cost(q))[0]?.id;
-    if (!picked || !t7Add(picked)) break;
-    n++;
-  }
+  t7S(); t7FixEq();
   if (buy) while (t7BuySlot()) n++;
-  // 장착: 빌드 순서에 먼저 나오는 배운 액티브부터 칸을 채운다
-  const s = t7S(), order = T7_BUILDS[build] || T7_BUILDS.a, seen = [];
-  for (const id of order) { const x = T7_BY[id]; if (x && (x.t === 'active' || x.t === 'fusion') && t7Rank(id) > 0 && !seen.includes(x.sk)) seen.push(x.sk); }
-  s.eq = seen.slice(0, t7Slots());
+  const s = t7S(), L = t7L(), order = T7_BUILDS[build] || T7_BUILDS.a;
+  s.eq = order.filter((id) => L && L.sk[id] && skmOwnedSlot(id)).map((id) => L.sk[id]).slice(0, t7Slots());
+  if (tomes) for (let g = 0; g < 50 && S.tomes > 0; g++) {
+    const sk = s.eq.filter((x) => skmFeedMax(x) > 0).sort((p, q) => skmXp(p) - skmXp(q))[0];
+    if (!sk || !skmFeed(sk, 10)) break;
+  }
   return n;
 }
-// 직접 찍기 전(S.t7.auto)인 캐릭터: 남은 포인트를 추천 순서(a)로 찍고 장착 칸도 채운다 — 전직·레벨업 뒤 스킬이 빈 채로 원정 가지 않게.
-//  캠프 도착(core.js arriveCamp)·불러오기 때 부른다. 스킬 탭에서 한 칸이라도 직접 찍으면 꺼진다 (tree7-ui t7-add)
+// 캠프 도착·불러오기 (core.js): 새로 가진 스킬을 빈 장착 칸에 (돈은 안 쓴다)
 function t7AutoTick() {
   if (!t7On() || !S.t7) return;
   t7S(); t7FixEq();
-  if (S.t7.auto === false || t7Left() <= 0) return;
-  if (S.t7.auto == null) S.t7.auto = true;
-  if (S.t7.free == null) S.t7.free = 1;
-  t7AutoSpend('a', false);
-  S.t7.camp = {};
 }
-// 트리 전체 비용 (택1·궁극기 변형은 하나씩)
-function t7PathCost() {
-  const seen = new Set();
-  return T7_NODES.reduce((a, n) => {
-    const g = n.t === 'uvar' ? 'uvar' : n.pair;
-    if (g) { if (seen.has(g)) return a; seen.add(g); }
-    return a + t7Cost(n) * (t7MaxN(n) - (n.free ? 1 : 0));
-  }, 0);
-}
+const t7PathCost = () => 0;   // 트리 없음 (검사 도구 호환)
 // 새 스킬의 연출: 3단계 전까지는 같은 계열 스킬의 연출을 빌려 쓴다 (skills.js 가 SKILL_FX 에 이어 붙인다)
 
 // ── 보스 벽 (4단계, 이 줄기 캐릭터의 원정 1~120 스테이지만) ──
@@ -491,10 +399,10 @@ function t7PathCost() {
 // 기믹의 실제 규칙은 src/tree7-wall.js (게임), 봇·오프라인 계산(core.js simulate)은 아래 근사: 막는 갈래를 찍었는지(t7Counter 0~1)로 DPS·받는 피해를 깎는다
 let T7_WALL_MAX = 120;   // 측정용으로 바꿀 수 있게 let
 const T7_GIM = {
-  //  pen: 대응 0 일 때 DPS 손실 · cnt: 대응 노드 → 무게 (액티브·융합은 장착해야, 칸 비율만큼) · lane: auto 봇이 갈아탈 갈래
-  shield: { icon: '🛡️', name: '보호막', lane: 'a', pen: 0.45, cnt: { a_more: 0.35, whirl: 0.35, uv_a: 0.45, a_key: 0.15, f_ak: 0.15 }, tip: '연타 갈래 (난무 +3타·검무 회오리·만검)' },
-  adds: { icon: '👥', name: '졸개', lane: 'k', pen: 0.45, cnt: { k_pierce: 0.35, storm: 0.35, k_split: 0.2, uv_k: 0.45, f_bk: 0.15, f_ak: 0.15 }, tip: '검기 갈래 (관통·검기 폭풍·분열·검우)' },
-  enrage: { icon: '🔥', name: '광폭화', lane: 'b', pen: 0.35, cnt: { b_exec: 0.3, iaido: 0.2, flash: 0.3, uv_b: 0.45, b_key: 0.2 }, tip: '발도 갈래 (처형·일섬·섬광 베기·일도양단)' },
+  //  pen: 대응 0 일 때 DPS 손실 — 2026-10-20 0.35~0.45 → 0.1 (정답 강요 금지, docs/specs/skill-redesign.md 원칙 ③). 대응은 2단계 룬 꼬리표로 다시 · cnt: 대응 노드 → 무게 (액티브·융합은 장착해야, 칸 비율만큼) · lane: auto 봇이 갈아탈 갈래
+  shield: { icon: '🛡️', name: '보호막', lane: 'a', pen: 0.1, cnt: { a_more: 0.35, whirl: 0.35, uv_a: 0.45, a_key: 0.15, f_ak: 0.15 }, tip: '연타 갈래 (난무 +3타·검무 회오리·만검)' },
+  adds: { icon: '👥', name: '졸개', lane: 'k', pen: 0.1, cnt: { k_pierce: 0.35, storm: 0.35, k_split: 0.2, uv_k: 0.45, f_bk: 0.15, f_ak: 0.15 }, tip: '검기 갈래 (관통·검기 폭풍·분열·검우)' },
+  enrage: { icon: '🔥', name: '광폭화', lane: 'b', pen: 0.1, cnt: { b_exec: 0.3, iaido: 0.2, flash: 0.3, uv_b: 0.45, b_key: 0.2 }, tip: '발도 갈래 (처형·일섬·섬광 베기·일도양단)' },
   pool: { icon: '🩸', name: '장판', lane: 'c', pen: 0, cnt: { c_hp: 0.5, c_def: 0.5 }, tip: '체력·방어 스탯' },
 };
 // 배치: 지역 안에서 중간 보스와 지역 보스의 답이 겹치고, 지역마다 답이 바뀐다
@@ -520,13 +428,15 @@ function t7BossStats(stage, m) {
   return { ...m, hp, atk, ...(w.gims.length ? { wall: { stage, kind: w.kind, gims: w.gims } } : {}) };
 }
 // 이 기믹을 막는 노드를 얼마나 찍었나 (0~1)
+// 숙련 단계: 대응 노드(변형·키스톤)를 찍지 않으니, 기본 대응 0.5 (기믹 손실은 pen × 0.5 = 5% 안팎) + 장착 스킬 몫. 장판은 전직 스탯(체력·방어)이 자동이라 2차부터 1
 function t7Counter(g) {
   const s = t7S();
-  let c = 0;
+  if (g === 'pool') return t7Tier() >= 2 ? 1 : 0.5;
+  let c = 0.5;
   for (const [id, w] of Object.entries(T7_GIM[g].cnt)) {
     const n = T7_BY[id], r = t7Rank(id);
     if (!r || (n.sk && n.t !== 'ult' && !s.eq.includes(n.sk))) continue;
-    c += w * r / t7MaxN(n);   // 공짜 칸도 센다
+    c += w * Math.min(1, r / 30);   // 스킬 칸 = 숙련 Lv / 30
   }
   return Math.min(1, c);
 }
