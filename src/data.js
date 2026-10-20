@@ -13,7 +13,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.28.10';
+const GAME_VERSION = '0.28.11';
 // 시즌7 기능 스위치. false 면 배포 주소(GitHub Pages·Electron 등)에서는 꺼져 있고, 로컬 개발 주소(localhost·127.0.0.1·*.localhost·*.test, 봇의 가짜 location 포함)에서만 켜진다.
 //  아래 DEV_HOST(배속용)와 달리 file: 은 넣지 않는다 — Electron 앱이 파일로 열 때 플레이어에게 켜지지 않게.
 //  시즌7 정식 공개 때 true 로 바꾼다.
@@ -297,7 +297,7 @@ const MAIL = [
       '시즌7에는 🛡️ 기사단(여러 기사 동시 진행)과 새 스킬 빌드 트리가 열려 있어요. 처음부터 다시 키워 보세요.',
       '불편을 드려 죄송한 마음과 감사의 마음을 담아 출발 선물을 보내 드려요. 이번엔 🍱 도시락을 넉넉하게 담았어요. 우편함에서 받아 가세요!',
     ],
-    reward: { items: { lunch: 30, charm: 1, elixir: 1, potion: 3 } },
+    reward: { items: { lunch: 10, charm: 1, elixir: 1, potion: 3 } },
   },
 ];
 
