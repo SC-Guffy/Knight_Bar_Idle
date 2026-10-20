@@ -1,6 +1,6 @@
 # 스킬 트리 구조 개편 — 디아블로 4 식 줄기·허브 + 스킬 둘레 모습·변형 + 스킬 안 3줄
 
-- 상태: 구현됨 0.28.5 (4안: 노드 줄이기 + 마우스 설명) · 0.28.4 3안 디아블로 식 · 0.28.1 위성 · 0.28.0 2안 (2026-10-20 사용자 2안 확정 + "노드를 누르면 찍기") — 사용자 확인 대기
+- 상태: **대체됨** — 0.29.0 에서 트리 포인트를 없애고 스킬 숙련(skill-mastery-s7.md)·룬(skill-runes.md)으로 바뀜 (방향: skill-redesign.md). 아래는 0.28.x 기록
 - 상위 스펙: [skill-tree-all.md](skill-tree-all.md) (15줄기 틀) · [skill-tree-swordsaint.md](skill-tree-swordsaint.md) (규칙·수치 기준) · [skill-build-tree.md](skill-build-tree.md) (방향)
 - 관련 코드: src/tree7.js (`T7_NODES`·`T7_SPEC`·`t7Open`·`t7Stage`·`t7Pts`·`T7_BUILDS`), src/tree7-ui.js (판·상세 화면 전체), src/tree7-art.js (스탯 점), src/tree7-l-*.js (줄기 글: 모습 이름·설명), dev/tree7-check.js, dev/lifespan-bot.js
 - 검토 페이지: **dev/review/skill-tree-v4.html (2안)** · dev/review/skill-tree-v3.html (1안, 참고)

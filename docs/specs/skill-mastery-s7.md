@@ -1,6 +1,6 @@
 # 스킬 숙련 (쓰면 자람) — 스킬 재기획 1단계 구현 스펙
 
-- 상태: **구현됨 — 브랜치 `skill-redesign` (worktree ../knight-bar-skm), main 미배포** (2026-10-20 사용자: "룬과 한 릴리스로 낼 거니까 main 에는 아직 안 올리기"). 사용자 화면 확인 대기.
+- 상태: **배포됨 0.29.0** (2026-10-20, 룬과 한 릴리스, main 1bd34188) · 작업 브랜치 `skill-redesign` (worktree ../knight-bar-skm) (2026-10-20 사용자: "룬과 한 릴리스로 낼 거니까 main 에는 아직 안 올리기"). 사용자 화면 확인 대기.
 - 상위 기획: [skill-redesign.md](skill-redesign.md) (뼈대: 1 숙련 · 2 룬 · 4 연계 · 5 진화, 원칙) · 대체하는 것: [skill-tree-v3.md](skill-tree-v3.md) (0.28 트리) · 연출 기준: skill-redesign.md "연출 등급표"
 - 관련 코드(예정): 새 `src/skm.js` (숙련 규칙·데이터), src/core.js (`skillPow`·`skillCd`·`skillStage`·`skillLv`·`unlockedSkills`·`stats`·`simulate`·`arriveCamp`·`loadState`), src/skills.js (`startCast` 에서 경험치), src/tree7.js (장착 칸·보스 벽·줄기 데이터는 남기고 트리 포인트·노드는 뺌), src/tree7-ui.js → 스킬 탭 새 화면, src/ui.js (귀환 보고), dev/lifespan-bot.js·progress-bot.js·tree7-check.js
 - 최종 갱신: 2026-10-20

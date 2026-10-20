@@ -1,6 +1,6 @@
 # 스킬 룬 (줍는 변형) — 스킬 재기획 2단계 구현 스펙
 
-- 상태: **구현됨 — 브랜치 `skill-redesign`, main 미배포** (2026-10-20 사용자: "룬 스펙 시안대로 구현, 정할 것 3개도 시안대로"). 숙련(1단계)과 **한 릴리스(0.29.0)** 로 낸다. 사용자 화면 확인 대기.
+- 상태: **배포됨 0.29.0** (2026-10-20, 숙련과 한 릴리스, main 1bd34188) (2026-10-20 사용자: "룬 스펙 시안대로 구현, 정할 것 3개도 시안대로"). 숙련(1단계)과 **한 릴리스(0.29.0)** 로 낸다. 사용자 화면 확인 대기.
 - 상위 기획: [skill-redesign.md](skill-redesign.md) · 1단계: [skill-mastery-s7.md](skill-mastery-s7.md) (브랜치 `skill-redesign`)
 - 관련 코드(예정): 새 `src/rune.js` (룬 표·드랍·합치기·효과), src/gear.js (`openBox` 덤 · 전리품 `{ k: 'rune' }`), src/tree7.js (`t7Mods` 에 룬 효과 · `t7Shape` 범용 모양 · `t7Counter` 룬 꼬리표), src/tree7-ui.js (스킬 카드 룬 칸 · 룬 주머니), src/raid.js·tower.js (전설 룬), src/ui.js (귀환 보고), src/skills.js·tree7-fx.js (전설 룬 규칙 — 지금 키스톤 규칙 재사용), dev/lifespan-bot.js
 - 검토 페이지: dev/review/skill-runes.html
