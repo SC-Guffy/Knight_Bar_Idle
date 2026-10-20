@@ -117,3 +117,11 @@
 .skmrep > b { display: block; color: #ffd257; margin-bottom: 2px; }
 .skmrow small { color: #a59cb8; }
 .skmrow.star, .skmrow.fresh { color: #ffe08a; }
+
+/* 모습 고르기: 기본 · ★ · ★★ · ★★★ 칸 */
+.t7look { display: inline-flex; margin-top: 5px; border: 2px solid #0b0a14; background: #17141f; }
+.t7look .lk { padding: 1px 8px; font: inherit; font-size: 11px; line-height: 1.5; color: #a59cb8; background: none; border: 0; border-left: 1px solid #3a3348; cursor: pointer; }
+.t7look .lk:first-child { border-left: 0; }
+.t7look button.lk:hover { color: #ece6f6; background: #2b2538; }
+.t7look .lk.on { color: #17141f; background: #ffd257; font-weight: 700; }
+.t7look .lk.lock { color: #4f4866; cursor: default; }

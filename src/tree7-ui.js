@@ -92,9 +92,10 @@ function viewTree7() {
     const lv = skmLv(sk), st = skmStage(sk), use = t7Stage(sk), p = skmProg(sk), eq = s.eq.includes(sk), isUlt = slot === 'ult';
     const nextStar = lv < 30 ? `다음 ★ Lv${(Math.floor(lv / 10) + 1) * 10}` : '숙련 끝';
     const feedMax = skmFeedMax(sk), feed = Math.min(feedMax, S.tomes || 0);
-    const stageCtl = st ? `<span class="srem" title="전투에 쓸 모습 — 위력·쿨은 그대로">모습
-        <button data-action="t7-use" data-sk="${sk}" data-s="${use - 1}" ${use > 0 ? '' : 'disabled'}>‹</button><span class="stars">${[1, 2, 3].map((i) => `<i class="${i <= st ? (i <= use ? 'on' : 'have') : 'lock'}">${i <= st ? '★' : '☆'}</i>`).join('')}</span>
-        <button data-action="t7-use" data-sk="${sk}" data-s="${use + 1}" ${use < st ? '' : 'disabled'}>›</button></span>` : '';
+    // 모습 고르기: 기본 · ★ · ★★ · ★★★ 칸을 바로 누른다 (연 단계까지, 위력·쿨은 그대로)
+    const stageCtl = st ? `<div class="t7look" title="전투에 쓸 모습 — 연 단계 안에서 고르고, 위력·쿨은 그대로">${[0, 1, 2, 3].map((i) => i > st
+      ? `<span class="lk lock" title="숙련 Lv${i * 10} 에 열려요">${i ? '★'.repeat(i) : '기본'}</span>`
+      : `<button class="lk${i === use ? ' on' : ''}" data-action="t7-use" data-sk="${sk}" data-s="${i}" title="${t7LookName(n, i)}">${i ? '★'.repeat(i) : '기본'}</button>`).join('')}</div>` : '';
     return `<div class="t7card skl${eq || isUlt ? ' eq' : ''}${t7Ui.sel === slot ? ' sel' : ''}" data-t7tip="${slot}">
       ${t7Canvas('t7icon', t7Icon(slot))}
       <div class="t7cbody"><b>${t7Look(n)} <span class="t7st">${T7_STARS(st)}</span></b>
@@ -103,8 +104,8 @@ function viewTree7() {
         <div class="t7act">
           ${isUlt ? '<small class="t7note">궁극기 칸 — 늘 장착</small>' : `<button class="btn${eq ? ' on' : ''}" data-action="t7-eq" data-sk="${sk}">${eq ? '✓ 장착' : '장착'}</button>`}
           <button class="btn" data-action="t7-feed" data-sk="${sk}" data-n="10" ${feed > 0 ? '' : 'disabled'} title="${feedMax ? `비전서 10권까지 (1권 = 경험치 ${SKM_TOME}, Lv20 까지)` : 'Lv20 부터는 써야 자라요'}">📖 바치기</button>
-          <button class="btn mprev" data-action="preview" data-id="${sk}" ${S.phase === 'camp' ? '' : 'disabled'}>▶</button>${stageCtl}
-        </div></div></div>`;
+          <button class="btn mprev" data-action="preview" data-id="${sk}" ${S.phase === 'camp' ? '' : 'disabled'} title="아래 기사가 지금 모습으로 한 번 시전해요">▶</button>
+        </div>${stageCtl}</div></div>`;
   }).join('');
   const tier1 = T < 2 ? '<div class="gtip">2차 전직하면 2차 스킬 둘이 생기고, 스킬을 ★ 까지 키우면 새 스킬이 열려요.</div>' : '';
   return `${head}${moved}${tier1}<div class="t7slots">${slots.join('')}</div><div class="t7cards skl">${cards}</div>`;
