@@ -2620,7 +2620,8 @@ function guideTick() {
   }
   if (!g.tomeIntro && S.tomes > 0) {
     g.tomeIntro = 1;
-    if (skillsOf(S.cls).length) toast('📖 첫 비전서! 캠프 → ⚡ 스킬 탭에서 스킬에 먹이면 쿨타임이 줄고 위력이 올라요', 9000);
+    if (t7On()) toast('📖 첫 비전서! 캠프 → 캐릭터 → 스킬 탭에서 스킬에 바치면 숙련이 올라요 (Lv20 까지)', 9000);
+    else if (skillsOf(S.cls).length) toast('📖 첫 비전서! 캠프 → ⚡ 스킬 탭에서 스킬에 먹이면 쿨타임이 줄고 위력이 올라요', 9000);
     else toast('📖 첫 비전서! 1차 전직 후 스킬을 익히면 ⚡ 스킬 탭에서 비전서로 강화할 수 있어요', 9000);
     save();
   }
