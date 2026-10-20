@@ -559,8 +559,24 @@
     for (let y = 0; y < g; y++) for (let x = 0; x < g; x++) { const d = Math.hypot(x - 4, y - 4); if (d > 4.4) continue; c.fillStyle = d > 3.5 ? INK : d > 2.6 ? rim : fill; c.fillRect(x, y, 1, 1); }
     return cv;
   }
+  // 모습 위성 (스킬 위에 붙는 ◆, docs/specs/skill-tree-v3.md B안): 13×13 마름모 테 + 가운데 ★ 개수만큼 점 (pips = 단계 1~3)
+  function paintLook(cv, state, lane, st) {
+    const g = 13, m = 6; cv.width = cv.height = g; const c = cv.getContext('2d'); c.clearRect(0, 0, g, g);
+    const [hi, mid, lo] = state === 'got' ? LANE[lane] || LANE.c : RIM[state];
+    for (let y = 0; y < g; y++) for (let x = 0; x < g; x++) {
+      const d = Math.abs(x - m) + Math.abs(y - m);
+      if (d > m) continue;
+      c.fillStyle = d === m ? INK : d >= m - 2 ? (x + y < 2 * m ? hi : x + y === 2 * m ? mid : lo) : d === m - 3 ? INK : '#1d1928';
+      c.fillRect(x, y, 1, 1);
+    }
+    c.fillStyle = state === 'lock' ? '#5e5a78' : state === 'got' ? '#fff2b8' : '#ebe7dc';
+    const xs = st === 1 ? [6] : st === 2 ? [5, 7] : [4, 6, 8];
+    for (const x of xs) c.fillRect(x, 5, 1, 3);
+    return cv;
+  }
   function paint(cv, kind, icon, state, lane, pips = 0, max = 1) {
     if (kind === 'dot') return paintDot(cv, state);
+    if (kind === 'look') return paintLook(cv, state, lane, pips);
     let w, h, frame, ix, iy, fy = 0;
     if (kind === 'active') { w = h = 22; frame = squareFrame(22, state, lane, pips, max); ix = iy = 4; }
     else if (kind === 'fusion') { w = h = 22; frame = fusionFrame(22, state, pips, max); ix = iy = 4; }

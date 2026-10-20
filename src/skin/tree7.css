@@ -41,8 +41,8 @@
 .t7n.active .rk, .t7n.ult .rk, .t7n.fusion .rk { font-weight: 700; }
 /* 스탯 점: 단조롭게 — 빛·맥동 없음 */
 .t7n.stat .t7c, .t7n.stat.can .t7c, .t7n.stat.got .t7c, .t7n.stat.lock .t7c { filter: none; animation: none; }
-.t7tag { position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%); font: 700 10px/1.2 Galmuri11, sans-serif; color: #17141f; background: #ffd257; padding: 0 4px; border: 2px solid #0b0a14; white-space: nowrap; pointer-events: none; }
-.t7badge { position: absolute; top: -6px; right: -8px; font: 700 10px/1 Galmuri11, sans-serif; color: #17141f; background: #ffd257; border: 2px solid #0b0a14; padding: 2px 4px; pointer-events: none; }
+.t7tag { position: absolute; right: calc(100% + 3px); top: 50%; transform: translateY(-50%); font: 700 10px/1.2 Galmuri11, sans-serif; color: #17141f; background: #ffd257; padding: 0 4px; border: 2px solid #0b0a14; white-space: nowrap; pointer-events: none; }
+.t7badge { position: absolute; bottom: -4px; right: -8px; font: 700 10px/1 Galmuri11, sans-serif; color: #17141f; background: #ffd257; border: 2px solid #0b0a14; padding: 2px 4px; pointer-events: none; }
 .t7n.sel::after { content: ''; position: absolute; inset: -6px; border: 2px dashed #ffd257; }
 .t7pair { position: absolute; transform: translate(-50%, -50%); font: 700 10px Galmuri11, sans-serif; color: #17141f; background: #ffd257; padding: 1px 4px; border: 2px solid #0b0a14; box-shadow: 0 2px 0 #0b0a14; pointer-events: none; }
 
