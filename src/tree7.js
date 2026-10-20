@@ -114,25 +114,12 @@ function t7DefStem(first, o) { T7_STEMS[first] = o; }
 //  (2026-10-18, 스크래치 tune-duel.js: sanitizeProfile → server/duel.js 40판 좌표 하강). t7DefLine 의 duel 이 있으면 그것
 //  2026-10-19 다시: 시즌 리셋으로 모두 트리라 "15줄기 리그(빌드 a·b·k, Lv130·170) 승률 50%" + "줄기 안 맞대결 50%" 기준으로 (스크래치 league.js --fit --inner).
 //   리그 38~59% · 근접 vs 원거리 48% · 줄기 안 맞대결 14~50/60. 지금 시스템(옛 스킬) 상대 승률은 이제 보지 않는다 (옛 시스템 캐릭터가 없다)
-const T7_DUEL_TUNE = {
-  swordsaint: { a: 0.88, b: 0.75, k: 1.12 },
-  tyrant: { a: 0.84, b: 0.56, k: 0.94 },
-  archon: { a: 1.0, b: 0.69, k: 1.33 },
-  skyGeneral: { a: 0.75, b: 0.51, k: 0.89 },
-  dragonlord: { a: 1.14, b: 0.74, k: 1.45 },
-  warlord: { a: 1.05, b: 0.58, k: 1.14 },
-  siegeMaster: { a: 1.6, b: 1.08, k: 0.89 },
-  deadeye: { a: 1.47, b: 1.09, k: 1.61 },
-  voidArcher: { a: 1.75, b: 1.1, k: 1.78 },
-  thunderEmperor: { a: 1.82, b: 0.97, k: 1.78 },
-  archmage: { a: 1.95, b: 1.42, k: 1.68 },
-  frostlord: { a: 1.43, b: 0.91, k: 1.5 },
-  champion: { a: 0.75, b: 0.55, k: 1.0 },
-  tempest: { a: 1.24, b: 0.78, k: 1.39 },
-  grandmaster: { a: 1.22, b: 0.74, k: 1.49 },
+// 0.29 (숙련·룬): 궁극기 변형이 없어져 줄기별 결투 배율 하나 (t7Duel). dev/duel-league.js --fit 으로 맞춘 값 — 15줄기 × 빌드 3 × Lv130·170 리그 승률 50% 쪽
+let T7_DUEL_LINE = {   // 2026-10-20 리그 승률 47~53% (폭 3%p, 배율 없이는 12~88%)
+  swordsaint: 0.78, tyrant: 0.81, archon: 0.92, skyGeneral: 0.69, dragonlord: 1.03, warlord: 1.01, siegeMaster: 1.27, deadeye: 1.17,
+  voidArcher: 1.64, thunderEmperor: 1.70, archmage: 1.92, frostlord: 1.33, champion: 0.74, tempest: 1.19, grandmaster: 1.20,
 };
 function t7DefLine(L) {
-  if (!L.duel && T7_DUEL_TUNE[L.id]) L.duel = T7_DUEL_TUNE[L.id];
   const sk = { ...L.sk };
   for (const [slot, o] of Object.entries(L.newSkills)) {
     const { id, base, ...rest } = o;
@@ -267,7 +254,6 @@ function t7Mods() {
     if (f.stat) for (const k in f.stat) m.stat[k] = k === 'atkMul' ? (m.stat[k] || 1) * f.stat[k] : (m.stat[k] || 0) + f.stat[k] * r;
     for (const g of ['pow', 'cd', 'ev']) if (f[g]) for (const k in f[g]) { const sk = t7SkKey(k); m[g][sk] = (m[g][sk] || 1) * f[g][k]; }
     if (f.spec) for (const k in f.spec) m.spec[t7SkKey(k)] = f.spec[k];
-    if (n.t === 'uvar') { const d = L && L.duel && L.duel[n.lane]; if (d) m.duel *= d / (f.duel || 1); }   // 줄기별 결투 배율 (t7DefLine duel)
     if (f.shape) m.shape.add(f.shape);
     if (f.rule) m.rules.add(f.rule);
     for (const g of ['evAll', 'basic', 'basicDps', 'duel']) if (f[g]) m[g] *= f[g];
@@ -340,8 +326,8 @@ const t7Rule = (name, sk) => t7On() && (sk ? !!(t7Mods().ruleSk[name] && t7Mods(
 // 결투 전용 공격력 배율 (궁극기 변형 셋 중 하나에 붙음, fx.duel). 다른 갈래 3차 키스톤까지 찍을수록 줄어든다 (트리를 거의 다 찍으면 갈래 약점이 없어져서) — 하나 1 · 둘 ½ · 셋 0
 function t7Duel() {
   if (!t7On()) return 1;
-  const f = t7Mods().duel, n = ['a_k3', 'b_k3', 'k_k3'].filter((id) => t7Rank(id) > 0).length;
-  return 1 + (f - 1) * Math.max(0, Math.min(1, 1 - (n - 1) / 2));
+  const L = t7L();
+  return (L && T7_DUEL_LINE[L.id]) || 1;
 }
 const t7NoCrit = () => t7On() && !!t7Mods().stat.noCrit;
 const t7BasicMul = () => (t7On() ? t7Mods().basic : 1);
