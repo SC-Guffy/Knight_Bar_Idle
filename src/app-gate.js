@@ -1,7 +1,7 @@
 'use strict';
 // 최소 앱 버전 (민클라). 데스크탑 앱(Electron)은 게임 화면을 웹에서 불러오지만 main.js·preload.js 는 설치 때 버전 그대로라,
 // 예전 설치본은 여기서 막고 새 설치 파일을 받게 한다. 앱 버전은 Electron 기본 User-Agent 의 "KnightBar/0.5.2" 에서 읽는다.
-// 다른 스크립트보다 먼저(<head> 맨 앞) 불러야 한다 — 막히면 window.stop() 으로 나머지 스크립트가 아예 돌지 않는다.
+// 다른 스크립트보다 먼저(<head> 맨 앞) 불러야 한다 — 막히면 문서 나머지를 글자로 삼켜서 나머지 스크립트가 아예 돌지 않는다.
 // 서버도 같은 기준으로 막는다 (server/index.js APP_MIN_VERSION) — 두 값을 같이 올린다.
 const APP_MIN_VERSION = '0.5.2';
 const APP_RELEASES = 'https://github.com/SC-Guffy/Knight_Bar_Idle/releases/latest';
@@ -55,7 +55,7 @@ function showAppGate() {
     const q = document.getElementById('appGateQuit');
     if (q) q.onclick = () => window.bar.quit();
   };
-  if (document.readyState === 'loading' && !window.KB_GATE_STOPPED) document.addEventListener('DOMContentLoaded', mount); else mount();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
   // 앱 창을 화면 전체로 키우고 클릭·키보드를 받게 한다 (창 API v2 가 없는 예전 앱은 예전 통로로)
   const bar = window.bar;
   if (bar) {
@@ -70,6 +70,8 @@ function showAppGate() {
 if (window.top === window && isApp && !appAtLeast(appVersion, APP_MIN_VERSION)) {
   window.KB_APP_OUTDATED = true;
   window.KB_GATE_STOPPED = true;
-  window.stop();            // 아래 게임 스크립트·리소스를 더 받지 않는다 (게임이 부팅·저장하지 않게)
+  // 아래 게임 스크립트·리소스를 더 돌리지 않는다 (게임이 부팅·저장하지 않게). 문서 나머지를 <plaintext> 로 삼켜 글자로만 읽힌다.
+  // window.stop() 은 쓰면 안 된다: 문서 읽기가 중간에 끊겨 첫 화면 그리기(ready-to-show)가 안 오고, 그때만 창을 보여 주는 앱(0.5.1 맥)은 창이 끝내 안 뜬다
+  document.write('<plaintext style="display:none">');
   showAppGate();
 }
