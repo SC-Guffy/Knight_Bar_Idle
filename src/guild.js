@@ -446,8 +446,12 @@ function renderSlots() {
 // 보고 있는 기사의 HUD 위치를 읽어 버튼 줄을 그 위 왼쪽 끝에 붙인다 (iframe 이 창 전체라 좌표가 같다)
 function placeSlots() {
   const f = frames[active], bar = $('slots');
-  let r = null;
-  try { const h = f && f.win && f.win.document.getElementById('hud'); r = h && h.offsetParent ? h.getBoundingClientRect() : null; } catch {}
+  let r = null, faded = false;
+  try {
+    const h = f && f.win && f.win.document.getElementById('hud'); r = h && h.offsetParent ? h.getBoundingClientRect() : null;
+    faded = !!(f && f.win && f.win.document.body.classList.contains('faded'));
+  } catch {}
+  bar.classList.toggle('faded', faded);   // 자동 숨기기로 HUD 가 숨으면 슬롯 줄도 같이
   if (!r || !r.width) { bar.style.left = '10px'; bar.style.top = `${innerHeight - 150 - bar.offsetHeight - 2}px`; }
   else if (r.top - bar.offsetHeight - 3 >= 0) { bar.style.left = `${Math.round(r.left)}px`; bar.style.top = `${Math.round(r.top - bar.offsetHeight - 3)}px`; }
   else {
@@ -506,8 +510,10 @@ function showTip(b) {
 }
 function hideTip() { $('tip').hidden = true; }
 $('slots').addEventListener('mouseover', (e) => { const b = e.target.closest('.gs'); if (b) showTip(b); });
-$('slots').addEventListener('mouseleave', () => { hideTip(); setOverSlots(false); });   // 버튼에서 벗어나면 보는 기사의 클릭 영역으로
-$('slots').addEventListener('mouseenter', () => setOverSlots(true));   // Electron: 버튼 위에선 창이 클릭을 받게
+// 슬롯 위 마우스는 기사 iframe 이 못 보므로, 자동 숨기기 타이머(ui.js showBar/scheduleFade)에 그대로 전해 준다
+const pokeKnight = (type) => { const f = frames[active]; try { f && f.win && f.win.document.dispatchEvent(new MouseEvent(type)); } catch {} };
+$('slots').addEventListener('mouseleave', () => { hideTip(); setOverSlots(false); pokeKnight('mouseleave'); });   // 버튼에서 벗어나면 보는 기사의 클릭 영역으로
+$('slots').addEventListener('mouseenter', () => { setOverSlots(true); pokeKnight('mousemove'); });   // Electron: 버튼 위에선 창이 클릭을 받게
 // 어떤 Windows PC 는 클릭 통과 중인 창에 마우스 이동이 안 들어와서 mouseenter 가 안 온다 — 커서 위치를 직접 물어본다 (기사 iframe 의 ui.js 도 같은 방식)
 if (BAR && BAR.getCursor && BAR.getDisplay) {
   BAR.getDisplay().then((d) => {

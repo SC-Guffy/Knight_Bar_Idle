@@ -20,6 +20,9 @@
   /* 슬롯 버튼: 보고 있는 기사 HUD 바로 위에 작게. 버튼 위에는 지금 하는 일 아이콘 하나 */
   #slots { position: fixed; z-index: 5; display: flex; gap: 3px; align-items: flex-end; }
   #slots[hidden] { display: none; }
+  /* 자동 숨기기: 보고 있는 기사의 HUD 가 숨으면 같이 숨는다 (index.html body.faded 와 같은 속도) */
+  #slots { transition: opacity .4s; }
+  #slots.faded { opacity: 0; pointer-events: none; }
   .gs { all: unset; position: relative; box-sizing: border-box; width: 22px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; }
   .gs .act { height: 14px; line-height: 14px; font-size: 11px; }
   .gs b { display: block; width: 22px; height: 17px; line-height: 16px; text-align: center; border-radius: 5px; font-size: 11px;
