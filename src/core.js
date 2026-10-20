@@ -445,7 +445,9 @@ function skillBonus(id) {
 // V2 오른쪽 효과의 지금 값 (쿨타임 비율·치명 확률·흡혈 비율·철벽 감소율). V1 스킬은 0
 const skillRight = (id, key) => (t7Has(id) ? 0 : rightVal(SKILLS[id], key, skillBonus(id)));
 // 고유 특수(classes.js SPEC_TYPES)의 지금 상태 { type, v 지금 값, ...k.spec 인자 } — 한 칸도 안 찍었으면 null
-const skillSpec = (id) => { if (t7Has(id)) return t7Spec(id); const k = SKILLS[id], v = k.spec ? skillRight(id, 'spec') : 0; return v ? { ...k.spec, v } : null; };
+const skillSpec = (id) => { const k = SKILLS[id], v = k.spec ? skillRight(id, 'spec') : 0; return v ? { ...k.spec, v } : null; };
+// 이 스킬의 고유 특수 목록 — 시즌7 은 끼운 룬마다 하나 (src/tree7.js t7Specs · src/rune.js), 옛 방식은 0~1개
+const skillSpecs = (id) => (t7Has(id) ? t7Specs(id) : [skillSpec(id)].filter(Boolean));
 const skillStar = (id) => skillBonus(id).star;
 const skillStage = (id) => (t7Has(id) ? t7Stage(id) : Math.min(skillStar(id), treeOf(id).use));
 // 내 기사가 지금 쓰는 기술 모양 (숙련 모습 + 시즌7 트리 변형). 전투·DPS·프로필이 모두 이것을 쓴다

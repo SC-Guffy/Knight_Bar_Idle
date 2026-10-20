@@ -152,6 +152,8 @@ function claimRaidChest(i) {
   S.tomes += got.tomes;
   // 🎲 재굴림권 3~5장 확정 (REROLL_DROP.raid) · 📜 보호 주문서는 낮은 확률로 (RARE_DROP.raid)
   got.items = rollRareDrops(RARE_DROP.raid, REROLL_DROP.raid);
+  // 🔮 전설 룬 (레이드 상자 RUNE_RAID_LEG 확률, src/rune.js)
+  if (typeof RUNE_RAID_LEG !== 'undefined' && t7On() && Math.random() < RUNE_RAID_LEG) { const r = runeRoll(4); if (runeAdd(r)) got.rune = r; }
   return got;
 }
 // 재굴림권은 [최소, 최대]장 확정, 보호 주문서는 표의 확률로 굴려 바로 챙긴다. 받은 것 { reroll?: n, protect?: 1 }

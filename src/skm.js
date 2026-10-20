@@ -124,6 +124,7 @@ function skmMigrate(s) {
     S.skm[sk] = Math.max(S.skm[sk] || 0, SKM_NEED[SKM_GRADE(slot)][lv - 1]);
     if (!s.got.includes(slot)) s.got.push(slot);
   }
+  if (typeof runeFromOld === 'function') runeFromOld(old);   // 찍어 둔 변형·키스톤 → 룬 지급 (src/rune.js)
   s.rk = {}; s.camp = {}; s.log = [];
   if (from > 1 || Object.keys(old).length) s.moved = 'skm';
 }

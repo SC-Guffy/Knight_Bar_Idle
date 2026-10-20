@@ -145,7 +145,10 @@ function clearTowerFloor() {
   if (f > S.tower.best) {
     if (!r.record) { r.record = true; record = S.tower.best > 0; }
     S.tower.best = f;
-    if (f % 10 === 0 && f > (S.tower.paid || 0)) { tomes += towerFirstTomes(f); r.firsts.push(f); first = true; S.tower.paid = f; }
+    if (f % 10 === 0 && f > (S.tower.paid || 0)) {
+      tomes += towerFirstTomes(f); r.firsts.push(f); first = true; S.tower.paid = f;
+      if (typeof runeRoll === 'function' && t7On()) { const rr = runeRoll(4); if (runeAdd(rr)) (r.runes = r.runes || []).push(rr); }   // 🔮 10층마다 첫 돌파 전설 룬 (src/rune.js)
+    }
   }
   S.tomes += tomes; r.tomes += tomes;
   r.floor++;
@@ -158,7 +161,7 @@ function endTower(reason) {
   if (!r) return null;
   const at = Date.now();
   S.tower.last = {
-    start: r.start, reached: r.floor, cleared: r.cleared, kills: r.kills || 0, gold: r.gold, exp: r.exp, tomes: r.tomes, base: r.base || 0, firsts: r.firsts,
+    start: r.start, reached: r.floor, cleared: r.cleared, kills: r.kills || 0, gold: r.gold, exp: r.exp, tomes: r.tomes, base: r.base || 0, firsts: r.firsts, runes: r.runes || [],
     reason, best: S.tower.best, best0: r.best0 ?? S.tower.best, dur: r.t0 && reason !== 'offline' ? (at - r.t0) / 1000 : 0, levels: r.lv0 ? S.level - r.lv0 : 0, at, seen: false,
   };
   S.tower.run = null;

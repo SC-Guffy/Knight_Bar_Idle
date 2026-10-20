@@ -60,6 +60,8 @@ function openBox(b) {
   for (let i = 0; i < n; i++) out.push(rollLoot(i === 0 ? b.g : Math.max(0, b.g - 1), b.s, !!b.boss && i === 0));
   // 🎲 재굴림권: 상자마다 REROLL_DROP.box 확률로 한 장 더
   if (Math.random() < REROLL_DROP.box) out.push({ k: 'use', id: 'reroll' });
+  // 🔮 룬: 상자 등급 확률로 하나 더 — 룬 등급 = 상자 등급 (원정 상자는 영웅까지, src/rune.js)
+  if (typeof RUNE_BOX !== 'undefined' && t7On() && Math.random() < (RUNE_BOX[Math.min(3, b.g)] || 0)) out.push({ k: 'rune', ...runeRoll(Math.min(3, b.g)) });
   return out;
 }
 
@@ -85,12 +87,14 @@ function lootIcon(it) {
   if (it.k === 'box') return '📦';
   if (it.k === 'gear') return GEAR_ITEMS[it.t].icon;
   if (it.k === 'curio') return CURIOS[it.id].icon;
+  if (it.k === 'rune') return runeIcon(it);
   return SUPPLIES[it.id].icon;
 }
 function lootName(it) {
   if (it.k === 'box') return LOOT_BOXES[it.g].name;
   if (it.k === 'gear') return gearName(it);
   if (it.k === 'curio') return CURIOS[it.id].name;
+  if (it.k === 'rune') return runeName(it) + ' 룬';
   return SUPPLIES[it.id].name;
 }
 
@@ -265,6 +269,9 @@ function claimLoot(it) {
     got[c.res] = Math.max(1, Math.round(c.amt * GRADES[it.g].res * scale * jitter * opt));
     S.gold += got.gold;
     S.mats.wood += got.wood; S.mats.ore += got.ore; S.mats.mana += got.mana;
+  } else if (it.k === 'rune') {
+    got.rune = runeAdd({ id: it.id, g: it.g });   // 🔮 룬 주머니 (넘치면 자동 합치기 → 그래도 넘치면 골드)
+    if (!got.rune) { got.gold = monsterStats(Math.max(1, S.best), false).gold * 20 * (it.g + 1); S.gold += got.gold; }
   } else {
     S.items[it.id] = (S.items[it.id] || 0) + 1;
   }

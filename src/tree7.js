@@ -257,9 +257,9 @@ function t7Skills() {
 // 찍은 노드의 효과를 모은다 (캐시: 찍은 상태가 바뀌면 다시)
 let t7ModsKey = '', t7ModsVal = null;
 function t7Mods() {
-  const key = JSON.stringify(t7S().rk) + S.cls;
+  const key = JSON.stringify(t7S().rk) + S.cls + JSON.stringify(t7S().rs || {}) + t7S().eq.join(',') + t7Tier();
   if (key === t7ModsKey) return t7ModsVal;
-  const m = { stat: {}, pow: {}, cd: {}, ev: {}, spec: {}, shape: new Set(), rules: new Set(), cdAll: 1, powAll: 1, evAll: 1, basic: 1, basicDps: 1, duel: 1, powNot: [] };
+  const m = { stat: {}, pow: {}, cd: {}, ev: {}, spec: {}, shape: new Set(), rules: new Set(), ruleSk: {}, cdAll: 1, powAll: 1, evAll: 1, basic: 1, basicDps: 1, duel: 1, powNot: [] };
   const L = t7L();
   for (const n of T7_NODES) {
     const r = t7Rank(n.id), f = (L && L.fx && L.fx[n.id]) || n.fx;   // 줄기별 노드 효과 덮어쓰기 (t7DefLine fx)
@@ -274,6 +274,19 @@ function t7Mods() {
     if (f.cdAll) m.cdAll *= f.cdAll;
     if (f.powAll) m.powAll *= f.powAll;
     if (f.powNot) m.powNot.push(f.powNot);
+  }
+  // 전설 룬 (src/rune.js) = 옛 키스톤 규칙과 대가. scope sk 규칙은 끼운 스킬에만 (ruleSk), 같은 전설은 하나만. 평균 배율(ev)은 옛 노드 값 그대로
+  const seen = new Set(), skRule = (name, sk) => (m.ruleSk[name] = m.ruleSk[name] || new Set()).add(sk);
+  for (const [sk, on] of Object.entries(runeLive())) for (const r of on) {
+    if (!runeIsLeg(r) || seen.has(r.id)) continue;
+    seen.add(r.id);
+    if (r.id === 'blade') { m.rules.add('blade'); m.powAll *= 0.9; m.evAll *= 1.18; }
+    else if (r.id === 'frenzy') { skRule('frenzy', sk); m.basic *= 0.85; m.basicDps *= 1.02; }
+    else if (r.id === 'endless') { skRule('endless', sk); m.ev[sk] = (m.ev[sk] || 1) * 1.3; m.cd[sk] = (m.cd[sk] || 1) * 1.25; }
+    else if (r.id === 'echo') { skRule('echo', sk); m.ev[sk] = (m.ev[sk] || 1) * 1.2; }
+    else if (r.id === 'myriad') { skRule('myriad', sk); m.ev[sk] = (m.ev[sk] || 1) * 1.25; m.powNot.push({ sk, v: 0.8 }); }
+    else if (r.id === 'reach') { m.stat.rangeMul = 3; m.basic *= 0.8; m.basicDps *= 0.9; }
+    else if (r.id === 'zen') { m.stat.atkMul = (m.stat.atkMul || 1) * (SKILLS[sk] && SKILLS[sk].crit ? 2.6 : 1.9); m.stat.noCrit = 1; }   // 확정 치명 스킬에 끼우면 그 치명 몫(3.3배)을 잃으니 ×2.6
   }
   t7ModsKey = key; t7ModsVal = m;
   return m;
@@ -301,7 +314,7 @@ function t7Pow(sk) {
   const lv = Math.max(1, t7SkillRank(sk)), m = t7Mods();
   const L = t7L();
   let p = ((L && L.tune && L.tune.pow) || T7_TUNE.pow) * (1 + SKM_POW * (lv - 1)) * (m.pow[sk] || 1) * m.powAll * ((SKILLS[sk] && SKILLS[sk].t7mul) || 1);
-  for (const x of m.powNot) if (t7LaneOf(sk) !== x.lane) p *= x.v;
+  for (const x of m.powNot) if (x.sk ? x.sk !== sk : t7LaneOf(sk) !== x.lane) p *= x.v;   // 만검귀종: 다른 스킬 피해 −20%
   return p;
 }
 // 쿨타임 배수
@@ -315,15 +328,14 @@ function t7Stage(sk) {
   const max = t7StageMax(sk), use = t7S().use[sk];
   return use == null ? max : Math.max(0, Math.min(max, use));
 }
-// 고유 특수 (지금 SPEC_TYPES 효과 재사용) — 없으면 null
-const t7Spec = (sk) => t7Mods().spec[sk] || null;
+// 고유 특수 목록 (SPEC_TYPES 효과 — 범용 룬, src/rune.js). 스킬마다 여러 개
+const t7Specs = (sk) => [...(t7Mods().spec[sk] ? [t7Mods().spec[sk]] : []), ...runeSpecs(sk)];
 // 결투·레이드·전투력용 평균 피해 배율 (연출이 필요한 근사 효과 + 고유 특수 ev)
 function t7Ev(sk) {
-  const sp = t7Spec(sk);
-  return (t7Mods().ev[sk] || 1) * t7Mods().evAll * (sp ? 1 + sp.v * SPEC_TYPES[sp.type].ev : 1);
+  return (t7Mods().ev[sk] || 1) * t7Mods().evAll * t7Specs(sk).reduce((a, sp) => a * (1 + sp.v * SPEC_TYPES[sp.type].ev), 1);
 }
 // 전투 규칙이 켜졌는가 (src/tree7-fx.js) · 평타 피해 배율 (world.js releaseAttack) · 평타 DPS 평균 배율 (core.js dpsOf)
-const t7Rule = (name) => t7On() && t7Mods().rules.has(name);
+const t7Rule = (name, sk) => t7On() && (sk ? !!(t7Mods().ruleSk[name] && t7Mods().ruleSk[name].has(sk)) : t7Mods().rules.has(name));   // sk: 끼운 스킬에만 걸리는 전설 룬 규칙
 // 무념(b_k3): 치명이 전혀 안 터진다 — 확정 치명 스킬(일섬·섬광 베기·천검)도 일반타 (core.js dpsOf·profile, skills.js, world.js hitMonster)
 // 결투 전용 공격력 배율 (궁극기 변형 셋 중 하나에 붙음, fx.duel). 다른 갈래 3차 키스톤까지 찍을수록 줄어든다 (트리를 거의 다 찍으면 갈래 약점이 없어져서) — 하나 1 · 둘 ½ · 셋 0
 function t7Duel() {
@@ -337,7 +349,7 @@ const t7BasicDps = () => (t7On() ? t7Mods().basic * t7Mods().basicDps : 1);
 // 변형이 바꾼 기술 모양 (타격 추가·범위). k = skillAt 결과 (숙련 모습이 반영된 것)
 const t7ShapeCache = {};
 function t7Shape(sk, k) {
-  const m = t7Mods(), sh = m.shape, key = sk + k.stage + '|' + [...sh].join(',');
+  const m = t7Mods(), sh = m.shape, rsh = runeShapes(sk), key = sk + k.stage + '|' + [...sh].join(',') + '|' + rsh.map((x) => x.shape + x.v).join(',');
   if (t7ShapeCache[key]) return t7ShapeCache[key];
   const L = t7L(), slot = (L && L.slotOf[sk]) || sk;   // 칸 이름으로 본다 (slash 1차 · gale·iaido 2차 · whirl·flash·wave·storm 새 · ult)
   let s = k;
@@ -362,6 +374,16 @@ function t7Shape(sk, k) {
   // 일도양단: 타격 수·시점은 그대로(천검 연출이 타격 순서를 쓴다), 피해의 80% 를 마지막 한 칼에 몰아준다
   if (slot === 'ult' && sh.has('uvB')) { const tot = s.hits.reduce((a, h) => a + h[1], 0), n = s.hits.length; s = { ...s, hits: s.hits.map((h, i) => [h[0], i === n - 1 ? tot * 0.8 : (tot * 0.2) / (n - 1), ...h.slice(2)]) }; }
   if (slot === 'ult' && sh.has('uvK')) s = { ...s, radius: (s.radius || 230) * 1.3 };
+  // 모양 룬 (src/rune.js): 어느 스킬에나 덧타격 — 한 번 더 · 잔상 · 파열 · 난무
+  for (const x of rsh) {
+    if (x.shape === 'twin') { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.15), b[1] * x.v, ...b.slice(2)]] }; }
+    else if (x.shape === 'after') s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.5), h[1] * x.v, ...h.slice(2)])] };
+    else if (x.shape === 'burst') s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.12), h[1] * x.v, { area: 'all', radius: 60 }])] };
+    else if (x.shape === 'more') {
+      const lo = s.hits.reduce((a, h) => (h[1] < a[1] ? h : a), s.hits[0]), n = Math.max(1, Math.round(x.v));
+      s = { ...s, hits: [...s.hits.map((h) => (h === lo ? [h[0], h[1] * 0.85, ...h.slice(2)] : h)), ...Array.from({ length: n }, (_, i) => [Math.min(0.97, lo[0] + 0.03 * (i + 1)), lo[1] * 0.85, ...lo.slice(2)])] };
+    }
+  }
   return (t7ShapeCache[key] = s);
 }
 
@@ -380,6 +402,7 @@ function t7AutoSpend(build = 'a', buy = true, tomes = buy) {
   if (buy) while (t7BuySlot()) n++;
   const s = t7S(), L = t7L(), order = T7_BUILDS[build] || T7_BUILDS.a;
   s.eq = order.filter((id) => L && L.sk[id] && skmOwnedSlot(id)).map((id) => L.sk[id]).slice(0, t7Slots());
+  if (buy && typeof runeAutoFill === 'function') runeAutoFill({ a: 'shield', b: 'enrage', k: 'adds' }[build]);   // 봇: 룬 합치기·끼우기 (src/rune.js)
   if (tomes) for (let g = 0; g < 50 && S.tomes > 0; g++) {
     const sk = s.eq.filter((x) => skmFeedMax(x) > 0).sort((p, q) => skmXp(p) - skmXp(q))[0];
     if (!sk || !skmFeed(sk, 10)) break;
@@ -432,7 +455,7 @@ function t7BossStats(stage, m) {
 function t7Counter(g) {
   const s = t7S();
   if (g === 'pool') return t7Tier() >= 2 ? 1 : 0.5;
-  let c = 0.5;
+  let c = 0.5 + (runeTags().has(g) ? 0.25 : 0);   // 룬 꼬리표(보호막·졸개·광폭화)를 장착 스킬에 끼웠으면 +0.25 (src/rune.js)
   for (const [id, w] of Object.entries(T7_GIM[g].cnt)) {
     const n = T7_BY[id], r = t7Rank(id);
     if (!r || (n.sk && n.t !== 'ult' && !s.eq.includes(n.sk))) continue;

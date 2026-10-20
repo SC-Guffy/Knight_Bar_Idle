@@ -1,6 +1,6 @@
 # 스킬 룬 (줍는 변형) — 스킬 재기획 2단계 구현 스펙
 
-- 상태: **초안 — 사용자 확인 대기** (2026-10-20). 수치는 시안, 봇으로 맞춘다. 숙련(1단계)과 **한 릴리스(0.29.0)** 로 낸다.
+- 상태: **구현됨 — 브랜치 `skill-redesign`, main 미배포** (2026-10-20 사용자: "룬 스펙 시안대로 구현, 정할 것 3개도 시안대로"). 숙련(1단계)과 **한 릴리스(0.29.0)** 로 낸다. 사용자 화면 확인 대기.
 - 상위 기획: [skill-redesign.md](skill-redesign.md) · 1단계: [skill-mastery-s7.md](skill-mastery-s7.md) (브랜치 `skill-redesign`)
 - 관련 코드(예정): 새 `src/rune.js` (룬 표·드랍·합치기·효과), src/gear.js (`openBox` 덤 · 전리품 `{ k: 'rune' }`), src/tree7.js (`t7Mods` 에 룬 효과 · `t7Shape` 범용 모양 · `t7Counter` 룬 꼬리표), src/tree7-ui.js (스킬 카드 룬 칸 · 룬 주머니), src/raid.js·tower.js (전설 룬), src/ui.js (귀환 보고), src/skills.js·tree7-fx.js (전설 룬 규칙 — 지금 키스톤 규칙 재사용), dev/lifespan-bot.js
 - 검토 페이지: dev/review/skill-runes.html
@@ -84,7 +84,7 @@
 - **스킬 카드**: 이름 아래 룬 칸(◇) 1~2개. 빈 칸 누르면 룬 주머니가 그 스킬용으로 열림(끼울 수 있는 것만). 끼운 룬 누르면 뺌.
 - **룬 주머니**(스킬 탭 아래 접는 줄): 등급 색 칩 목록 · 효과 한 줄 · "3개 합치기" 버튼(되는 것만 빛남).
 - 설명창: 룬 효과(지금 등급 값과 영웅·전설 값) · 꼬리표.
-- **귀환 보고**: "🔮 룬 3개 — 💢 약점(희귀) · 🗡️ 처형 · 🔥 겁화" (영웅 이상은 강조).
+- **상자 카드**: 룬은 원정 상자를 캠프에서 열 때 카드로 나온다 ("🗡️ 처형 룬 · 희귀 룬 · 효과 한 줄 · 룬 주머니로") — 원정 중엔 상자 안이라 귀환 보고 줄은 따로 두지 않았다. 레이드 전설은 토스트, 탑 첫 돌파 전설은 탑 결과 줄.
 - 연출: 룬 획득·합치기에 큰 배너 없음 (원칙 ④).
 
 ## 서버·결투·AI 기사
@@ -113,13 +113,24 @@
 - [ ] 보스 벽 꼬리표 대응이 "조금 더 빨리" 수준 (봇: 대응 없이도 뚫는 원정 수가 크게 다르지 않음).
 - [ ] 봇: 0.28.5 대비 1·3·5·7·10일 ±5%, 룬 수급 목표 범위.
 
-## 정할 것 (사용자)
-1. 전설 룬 얻는 곳: 레이드·탑·합치기 (원정에선 안 나옴) — 괜찮나?
-2. 같은 전설 룬 중복 무효 · 스킬 하나에 전설 하나.
-3. 룬 색을 시전 색에 섞는 정도 (30% 시안).
+## 사용자 결정 (2026-10-20)
+- 시안대로: 전설은 레이드·탑 첫 돌파·영웅 3개 합치기 (원정 X) · 같은 전설 하나만 효과 · 스킬 하나에 전설 하나 · 룬 색 30%.
+
+## 확인 방법
+- `preview_start skm-web` (포트 9053, worktree ../knight-bar-skm) → http://localhost:9053/index.html?server=http://127.0.0.1:9&guild=0 (로드 전 localStorage `knight-bar-accounts` = `{"active":"테스트","list":{"테스트":"local-test-token"}}`, 로드 후 9초) → 콘솔:
+  `S.cls='swordsaint'; S.level=150; S.best=S.stage=8; S.gold=1e9; S.tomes=60; S.skm={}; S.runes=[]; S.t7={v:4, pick:false, rk:{slash:4, slash_look:3, gale:4, gale_look:3, a_more:1, a_bleed:1, whirl:2, whirl_look:1, iaido:3, iaido_look:1, b_exec:1, a_key:1, ult:4, ult_look:2}, eq:['gale','whirl','steelCleave','iaido'], slots:4, use:{}}; t7S(); for (const g of [0,0,1,1,1,2,3]) runeAdd(runeRoll(g)); runeAdd({id:'dot',g:1}); runeAdd({id:'dot',g:1}); runeAdd({id:'dot',g:1}); campOpen=false; openCamp('char'); campTab='char'; charUi.sub='skill'; renderCamp()`
+  → 스킬 카드 룬 칸(◇) · 아래 룬 주머니(옛 트리 난무·출혈·처형 → 영웅 룬, 광란 → 전설) · 빈 칸 누르고 룬 누르기 = 끼우기 · 합치기 "출혈 고급 ×3 → 희귀".
+- 상자 룬: 콘솔 `openBox({k:'box', g:3, s:8})` 를 여러 번 → 약 25% 로 `{ k: 'rune' }`.
+- 검사 `node dev/tree7-check.js` · 봇 `node dev/lifespan-bot.js --line swordsaint --build a --days 10 --seeds 8 --mode heavy` (스냅샷 runes·rsock).
 
 ## 진행 기록
+- 2026-10-20: 구현 (브랜치 skill-redesign). src/rune.js 새 파일(룬 표 범용 14·모양 4·전설 7, 주머니·칸·합치기·드랍·효과·옛 노드 → 룬 `runeFromOld`·봇 `runeAutoFill`) · src/tree7.js(`t7Mods` 전설 룬 = 옛 키스톤 fx, 끼운 스킬 규칙 `ruleSk`, `t7Specs` 여러 개, `t7Shape` 모양 룬, `t7Counter` 꼬리표 +0.25, 만검귀종 powNot 을 스킬 기준으로) · src/skills.js(고유 특수 여러 개 `spT`·`spOf`, 시전 색에 룬 색 30%) · src/core.js `skillSpecs` · src/tree7-fx.js(광란·잔영·만검귀종·무한을 끼운 스킬 기준으로) · src/gear.js(상자 덤·전리품 rune) · src/raid.js(전설 8%) · src/tower.js(10층 첫 돌파 전설) · src/ui.js(상자 카드·레이드 토스트·탑 결과) · src/tree7-ui.js(룬 칸·주머니·합치기·설명창) · src/skm.js(옮기기 때 룬 지급).
+- 봇 10일 (4줄기 × 3빌드 × 8시드, 0.28.5 대비 최고 스테이지 평균): **1일 +3.6% · 2일 +5.1% · 3일 +2.5% · 5일 −2.9% · 7일 −3.5% · 10일 +3.2%** (숙련만: +0.3 · +2.2 · +0.9 · −3.7 · −5.2 · +1.8). 봇 룬 수: 하루 약 6개, 10일 약 50~65개, 끼운 룬 10일차 영웅 6칸.
+  - 처음엔 봇이 한 번 끼운 룬을 안 바꾸고 대가 큰 전설(무념·검의 길)을 먼저 끼워 숙련만보다 나빴다 → 봇이 매번 다시 끼우고 대가 큰 전설은 뒤로.
 - 2026-10-20: 초안.
 
 ## 남은 일
-- 사용자 확인 → 구현(브랜치 skill-redesign) → 숙련 + 룬 봇 측정 → 0.29.0 릴리스 → 3단계 연계 · 4단계 진화.
+- 사용자 화면 확인.
+- 결투 리그 다시 맞춤 (`T7_DUEL_TUNE` 궁극기 변형 기준 → 지금 1). 전설 룬별 결투 보정.
+- 룬 색: 텍스처 시트까지 다시 칠할지 (지금은 코드 그림·궤적 색 `a.color` 만).
+- 0.29.0 릴리스: GAME_VERSION · SAVE_MIN_VERSION · RAID_MIN_VERSION 0.29.0, main 머지 → 3단계 연계 · 4단계 진화.

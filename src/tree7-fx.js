@@ -184,14 +184,14 @@ for (const [id, b] of Object.entries(T7_FX_BASE)) if (!SKILL_FX[id] && SKILL_FX[
 // 스킬 타격 하나가 끝난 뒤 (skills.js tryCastSkill onHit): 광란 · 잔영 · 만검귀종
 function t7OnHit(id, k, i, list, dealt, kills, a, st) {
   // ⚡ 광란: 스킬이 맞힐 때마다 공속 +4% 겹침 (최대 10겹, 3초 안 맞히면 풀린다 — 가속은 knight.haste 틀을 빌린다)
-  if (t7Rule('frenzy') && dealt > 0) {
+  if (t7Rule('frenzy', id) && dealt > 0) {   // 전설 룬: 끼운 스킬이 맞힐 때 (src/rune.js)
     if (!knight.haste) knight.frenzy = 0;
     knight.frenzy = Math.min(10, (knight.frenzy || 0) + 1);
     knight.haste = { left: 3, v: 0.04 * knight.frenzy };
     if (knight.frenzy === 10 && i === 0) addFloater('🔥 광란 10겹', toScreen(knight.x), groundY() - 84, '#ff6a6a', 12);
   }
   // 🗡️ 잔영: 일섬(마지막 타)으로 처치하면 잔상이 되돌아와 가장 가까운 다른 적을 50% 로 벤다
-  if (t7Rule('echo') && id === T7_BY.iaido.sk && kills && i === k.hits.length - 1) {
+  if (t7Rule('echo', id) && kills && i === k.hits.length - 1) {   // 전설 룬: 끼운 스킬의 마지막 타로 처치
     const next = monsters.filter((m) => !m.dying && m.hp > 0 && !list.includes(m)).sort((p, q) => aheadDist(knight.x, p.x) - aheadDist(knight.x, q.x))[0];
     if (next) {
       const x = toScreen(next.x) + next.kb, y = monsterMidY(next);
@@ -201,11 +201,11 @@ function t7OnHit(id, k, i, list, dealt, kills, a, st) {
     }
   }
   // 🌙 만검귀종: 검기 스킬이 맞힐 때마다 다른 검기 스킬 쿨 −0.3초
-  if (t7Rule('myriad') && t7LaneOf(id) === 'k' && dealt > 0) for (const o of st.skills) if (o !== id && t7LaneOf(o) === 'k' && knight.cds[o] > 0) knight.cds[o] = Math.max(0, knight.cds[o] - 0.3);
+  if (t7Rule('myriad', id) && dealt > 0) for (const o of st.skills) if (o !== id && knight.cds[o] > 0) knight.cds[o] = Math.max(0, knight.cds[o] - 0.3);   // 전설 룬: 끼운 스킬이 맞힐 때 다른 스킬 전부
 }
 // 시전이 끝날 때 (skills.js onEnd): ⚡ 무한검 — 질풍난무가 끝나면 30% 로 쿨 없이 한 번 더
 function t7OnEnd(id) {
-  if (t7Rule('endless') && id === T7_BY.gale.sk && Math.random() < 0.3) {
+  if (t7Rule('endless', id) && Math.random() < 0.3) {   // 전설 룬: 끼운 스킬이 끝나면
     knight.cds[id] = 0;
     addFloater('♾️ 무한검', toScreen(knight.x), groundY() - 84, '#ffe08a', 12);
   }

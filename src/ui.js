@@ -270,12 +270,13 @@ function gainText(got) {
 function claimedText(b) {
   if (b.it.k === 'curio') return '+' + gainText(b.got);
   if (b.it.k === 'use') return '보급품 +1';
+  if (b.it.k === 'rune') return b.got.rune ? `${runeText(b.it)}<br><em class="on">룬 주머니로</em>` : '주머니가 가득 — 골드로';
   const g = gearById(b.got.gearId);
   if (!g) return '판매됨';
   return `${gearStatText(gearStat(g))}<br>${isEquipped(g) ? '<em class="on">장착!</em>' : '창고로'}`;
 }
 
-const LOOT_KIND = { gear: '장비', curio: '골동품', use: '소비' };
+const LOOT_KIND = { gear: '장비', curio: '골동품', use: '소비', rune: '룬' };
 const isMystery = (it) => it.k === 'gear' && it.g >= 3;
 
 // ── 장비 도트 아이콘 ──
@@ -2638,7 +2639,7 @@ function towerResultHtml(L) {
   const blocker = towerBlocker();
   const cell = (label, value) => `<div class="cell"><span>${label}</span><b>${value}</b></div>`;
   const top = L.start + L.cleared - 1;
-  const rec = L.best > L.best0 ? `<div class="reason">🏆 최고 기록 경신! ${L.best0}F → <b>${L.best}F</b>${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')} (📖 ${L.firsts.map(towerFirstTomes).reduce((a, b) => a + b, 0)}권 포함)` : ''}</div>` : '';
+  const rec = L.best > L.best0 ? `<div class="reason">🏆 최고 기록 경신! ${L.best0}F → <b>${L.best}F</b>${L.firsts.length ? ` · 🎉 첫 돌파 ${L.firsts.map((f) => f + 'F').join(', ')} (📖 ${L.firsts.map(towerFirstTomes).reduce((a, b) => a + b, 0)}권 포함)` : ''}${(L.runes || []).length ? ` · 🔮 전설 룬 ${L.runes.map((x) => runeIcon(x) + ' ' + runeName(x)).join(', ')}` : ''}</div>` : '';
   return `
     <div class="treport" style="margin-bottom:10px">
       <div class="reason">${TOWER_REASON[L.reason] || '도전 끝'}${L.cleared ? ` — ${L.start}F → ${top}F, <b>${L.cleared}개 층</b> 돌파` : ` — ${L.start}F 를 넘지 못했어요`}</div>
@@ -2925,6 +2926,7 @@ function openRaidChestAt(i) {
   if (got.tomes) toast(`📖 비전서 +${got.tomes}`);
   if (got.items && got.items.reroll) toast(`🎲 재굴림권 +${got.items.reroll}`, 4000);
   if (got.items && got.items.protect) toast('📜 보호 주문서 획득!', 4000);
+  if (got.rune) toast(`🔮 전설 룬: ${runeIcon(got.rune)} ${runeName(got.rune)} — 스킬 탭에서 끼워요`, 5000);
   const sig = got.find((x) => GEAR_ITEMS[x.it.t].raid);
   const top = got.map((x) => x.it).sort((a, b) => b.g - a.g)[0];
   if (sig) toast(`🌟 고유 장비 — ${gearName(sig.it)}!`, 5000);

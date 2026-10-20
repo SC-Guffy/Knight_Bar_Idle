@@ -125,3 +125,20 @@
 .t7look button.lk:hover { color: #ece6f6; background: #2b2538; }
 .t7look .lk.on { color: #17141f; background: #ffd257; font-weight: 700; }
 .t7look .lk.lock { color: #4f4866; cursor: default; }
+
+/* 🔮 룬 (0.29, docs/specs/skill-runes.md): 스킬 카드 룬 칸 · 룬 주머니 */
+.rsocks { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 2px; }
+.rsock { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px 0 3px; font: inherit; font-size: 11px; line-height: 1.6; color: #a59cb8; background: none; border: 2px dashed #4b3f66; cursor: pointer; }
+.rsock.full { border-style: solid; border-color: #0b0a14; background: #17141f; color: #ece6f6; }
+.rsock.pick { border-color: #ffd257; color: #ffd257; }
+.rsock.lock { opacity: .45; cursor: default; }
+.gem { display: inline-block; width: 9px; height: 9px; transform: rotate(45deg); border: 2px solid #0b0a14; flex: none; }
+.rbag { margin-top: 10px; padding: 8px 10px; border: 4px solid transparent; border-image: url(frame-thin.svg) 4 / 4px round; image-rendering: pixelated; background: #ffffff06; background-clip: padding-box; }
+.rbagh small { color: #a59cb8; }
+.rchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.rchip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 1px 3px; font: inherit; font-size: 11px; color: #ece6f6; background: #2b2538; border: 2px solid #0b0a14; cursor: pointer; }
+.rchip.can { outline: 2px solid #ffd257; }
+.rchip.no { opacity: .4; }
+.rmerge { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
+.rmerge small { color: #a59cb8; margin-right: 4px; }
+.rmerge .btn { font-size: 11px; padding: 1px 8px; }

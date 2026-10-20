@@ -80,6 +80,7 @@ function startCast(owner, id, a, queue = false) {
   a.vis = MASTERY_VIS[a.mast];
   a.tier = fxTier(k);
   a.name = skillNameAt(k, lv, a.mast);      // 단계마다 진화하는 기술 이름 (classes.js stageName)
+  if (owner === 'hero' && t7Has(id)) { const rc = runeTint(id); if (rc) a.color = mixHex(a.color, rc, RUNE_TINT); }   // 끼운 룬 색 (src/rune.js) — 가장 높은 등급 룬
   if (fxGold(a)) a.color = mixHex(a.color, MASTERY_GOLD, 0.45);
   else if (a.mast < 2) a.color = mixHex(a.color, MASTERY_FADE[0], MASTERY_FADE[1 + a.mast]);
   a.targets = a.targets || (() => [{ x: a.tx(), y: a.ty() }]);
@@ -266,10 +267,12 @@ function tryCastSkill(st, target, only = null) {
     if ((qi ? !qiCan(id, !!only) : (knight.cds[id] || 0) > 0) || (only && id !== only)) continue;
     const k0 = qi ? qiShape(id, skillAt(id, skillLv(id), skillStage(id))) : heroSkill(id), fx = SKILL_FX[id];   // heroSkill: 시즌7 트리 변형까지 (core.js)
     // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 · 고유 특수 (core.js skillRight · skillSpec, 종류는 classes.js SPEC_TYPES)
-    const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward'), sp = skillSpec(id);
-    const spT = (t) => (sp && sp.type === t ? sp.v : 0);     // 이 스킬의 특수가 t 종류면 지금 값, 아니면 0
+    const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward'), sps = skillSpecs(id);
+    // 고유 특수: 시즌7 은 끼운 룬마다 하나 (같은 종류는 값을 더한다) — spT(종류) 지금 값 · spOf(종류) 인자(dur·thr·icon)
+    const spT = (t) => sps.reduce((a, x) => a + (x.type === t ? x.v : 0), 0);
+    const spOf = (t) => sps.find((x) => x.type === t) || {};
     // ↔️ 범위: 사거리·반경을 늘린 사본으로 대상을 고른다 (skillTargets 의 rangeUp, hitRange 가 펼쳐 넘긴다)
-    const k = spT('range') ? { ...k0, rangeUp: sp.v } : k0;
+    const k = spT('range') ? { ...k0, rangeUp: spT('range') } : k0;
     const cdNow = skillCd(id);
     const qiMul = qi ? qiCast(id) : ((knight.cds[id] = cdNow), 1);     // 장풍 3단은 위력 배수
     procLater.push({ at: clock + 0.05, fn: () => procOnCast(id) });   // 우로보로스: 쿨타임 초기화 (시전 처리가 끝난 뒤)
@@ -279,13 +282,13 @@ function tryCastSkill(st, target, only = null) {
       knight.stacks = knight.stacks || {};
       const s = knight.stacks[id], n = s && clock - s.t < 12 ? Math.min(5, s.n + 1) : 0;
       knight.stacks[id] = { n, t: clock };
-      stackMul *= 1 + sp.v * n / 5;
-      if (n) addFloater(`${sp.icon} ${n}겹`, toScreen(knight.x), groundY() - 80, '#bfe9ff', 12);
+      stackMul *= 1 + spT('stack') * n / 5;
+      if (n) addFloater(`${(spOf('stack').icon || '')} ${n}겹`, toScreen(knight.x), groundY() - 80, '#bfe9ff', 12);
     }
     // 💨 가속(시전 뒤 잠깐 평타가 빨라진다, world.js 평타 타이머) · ✨ 연계(다른 스킬 쿨타임을 당긴다)는 시전 즉시
-    if (spT('haste')) knight.haste = { left: sp.dur, v: sp.v };
-    if (spT('chain') && qi) qiChain(id, sp.v);
-    else if (spT('chain')) for (const o of st.skills) if (o !== id && knight.cds[o] > 0) knight.cds[o] = Math.max(0, knight.cds[o] - skillCd(o) * sp.v);
+    if (spT('haste')) knight.haste = { left: (spOf('haste').dur || 3), v: spT('haste') };
+    if (spT('chain') && qi) qiChain(id, spT('chain'));
+    else if (spT('chain')) for (const o of st.skills) if (o !== id && knight.cds[o] > 0) knight.cds[o] = Math.max(0, knight.cds[o] - skillCd(o) * spT('chain'));
     knight.swing = -1;
     let focus = target;
     const a = {
@@ -305,38 +308,38 @@ function tryCastSkill(st, target, only = null) {
         if (list.length) focus = list[0];
         // 고유 특수 — 이 타격 전체의 배율: 🍃 맞은 마리당 · ⚖️ 하나만 맞으면 · 🔮 내 체력이 낮을수록 · ✴️ 확률 2배 · 🌀 겹침
         let mul = stackMul;
-        if (spT('crowd')) mul *= 1 + sp.v * Math.min(5, list.length) / 5;
-        if (spT('solo') && list.length === 1) mul *= 1 + sp.v;
-        if (spT('lowhp')) mul *= 1 + sp.v * Math.max(0, Math.min(1, (0.5 - S.hp / stats().maxHp) / 0.5));
-        const dbl = spT('double') && Math.random() < sp.v;
+        if (spT('crowd')) mul *= 1 + spT('crowd') * Math.min(5, list.length) / 5;
+        if (spT('solo') && list.length === 1) mul *= 1 + spT('solo');
+        if (spT('lowhp')) mul *= 1 + spT('lowhp') * Math.max(0, Math.min(1, (0.5 - S.hp / stats().maxHp) / 0.5));
+        const dbl = spT('double') && Math.random() < spT('double');
         if (dbl) mul *= 2;
         let dealt = 0, over = 0, kills = 0;
         for (const m of list) {
-          if (spT('gold')) m.goldBonus = sp.v;       // 💰 처치하면 core.js rewardKill 이 읽는다
+          if (spT('gold')) m.goldBonus = spT('gold');       // 💰 처치하면 core.js rewardKill 이 읽는다
           // 여러 번 나눠 때리는 스킬은 (2타부터) 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다.
           // 한 마리마다 다른 보정(🗡️ 처형 · 🪨 보스 · 🎯 안 맞은 적)은 hitMonster 가 그 적의 상태를 보고 곱한다
           const d = hitMonster(m, k.hits[i][1] * skillPow(id) * mul, {
             crit: k.crit && !t7NoCrit(), critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1,
-            exec: spT('exec') ? { thr: sp.thr, v: sp.v } : null, bossBonus: spT('boss'), first: spT('first'),
+            exec: spT('exec') ? { thr: (spOf('exec').thr || 0.3), v: spT('exec') } : null, bossBonus: spT('boss'), first: spT('first'),
           }) || 0;
           dealt += d;
           if (m.hp <= 0) { kills++; over += -m.hp; }
           else {
             // 맞고 살아 있는 적에게 남는 효과: 🩻 취약(받는 모든 피해 ↑) · 🔥 지속 피해(이 타격 피해의 일부를 나눠서) · 💫 기절(움직임·공격 멈춤, 보스 절반)
-            if (spT('vuln')) m.vuln = { left: sp.dur, v: sp.v };
-            if (spT('dot') && d > 0) m.dot = { left: sp.dur, per: d * sp.v / sp.dur, acc: 0, color: a.color };
-            if (spT('stun')) m.stun = Math.max(m.stun || 0, m.boss ? sp.v / 2 : sp.v);
+            if (spT('vuln')) m.vuln = { left: (spOf('vuln').dur || 3), v: spT('vuln') };
+            if (spT('dot') && d > 0) m.dot = { left: (spOf('dot').dur || 3), per: d * spT('dot') / (spOf('dot').dur || 3), acc: 0, color: a.color };
+            if (spT('stun')) m.stun = Math.max(m.stun || 0, m.boss ? spT('stun') / 2 : spT('stun'));
           }
           if ((fx.launch || hk.launch) && !m.boss) m.air = 0;
         }
-        if (dbl && dealt > 0) addFloater(`${sp.icon} 2배!`, toScreen(focus.x), monsterTop(focus) - 24, '#ffd257', 13, true);
+        if (dbl && dealt > 0) addFloater(`${(spOf('stun').icon || '')} 2배!`, toScreen(focus.x), monsterTop(focus) - 24, '#ffd257', 13, true);
         // 🔁 환급: 처치한 수만큼 이 스킬 쿨타임을 돌려받는다
-        if (spT('refund') && kills && qi) qiRefund(id, sp.v * kills);
-        else if (spT('refund') && kills) knight.cds[id] = Math.max(0, knight.cds[id] - cdNow * sp.v * kills);
+        if (spT('refund') && kills && qi) qiRefund(id, spT('refund') * kills);
+        else if (spT('refund') && kills) knight.cds[id] = Math.max(0, knight.cds[id] - cdNow * spT('refund') * kills);
         // ➡️ 관통: 넘친 피해의 일부가 아직 살아 있는 가장 가까운 적에게 (치명 없이)
         if (spT('overkill') && over > 0) {
           const next = monsters.filter((m) => !m.dying && m.hp > 0).sort((p, q) => aheadDist(knight.x, p.x) - aheadDist(knight.x, q.x))[0];
-          if (next) hitMonster(next, over * sp.v / stats().atk, { nocrit: true, kb: 6, color: a.color });
+          if (next) hitMonster(next, over * spT('overkill') / stats().atk, { nocrit: true, kb: 6, color: a.color });
         }
         if (t7Has(id)) t7OnHit(id, k, i, list, dealt, kills, a, st);   // 시즌7 트리 전투 규칙: 광란·잔영·만검귀종 (src/tree7-fx.js)
         // 🩸 흡혈: 이 타격으로 입힌 피해의 일부를 체력으로

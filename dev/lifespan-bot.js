@@ -116,7 +116,7 @@ function runOne({ days, seed, mode }) {
       mentor: M ? M.mentorStarSum() : 0, castle: S.castle ? S.castle.best : 0,
       castleUp: S.castle ? Object.values(S.castle.up).reduce((a, b) => a + b, 0) : 0,
       raidTop, power: p.power, goldLog: Math.log10(Math.max(1, S.gold)),
-      ore: S.mats.ore, wood: S.mats.wood, stones: S.stones, mana: S.mats.mana, tomes: S.tomes, t7: A.t7On() ? A.skmEqLv() : null, skills: p.skills.length });
+      ore: S.mats.ore, wood: S.mats.wood, stones: S.stones, mana: S.mats.mana, tomes: S.tomes, t7: A.t7On() ? A.skmEqLv() : null, runes: (S.runes || []).length + Object.values((S.t7 && S.t7.rs) || {}).reduce((x, v) => x + v.length, 0), rsock: Object.values((S.t7 && S.t7.rs) || {}).flat().map((r) => r.g).join(''), skills: p.skills.length });
   };
   let nextSnap = DAY;
   while (t < days * DAY) {

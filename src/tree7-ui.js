@@ -58,7 +58,7 @@ const t7Icon = (id) => t7U(id).ic || id;
 const t7Canvas = (attr, id, cls = '') => `<canvas class="t7c ${cls}" data-${attr}="${id}"></canvas>`;
 // 지금 쓰는 모습 이름 (가진 스킬) · 아니면 스킬 이름
 const t7Look = (n) => (n.slot && n.sk && t7Rank(n.id) > 0 ? t7LookName(n, t7Stage(n.sk)) : t7U(n.id).n);
-const t7Ui = { sel: null };
+const t7Ui = { sel: null, pick: null };   // pick: 룬을 끼우려고 고른 스킬
 // 레드닷: 장착 칸을 열 수 있을 때 · 빈 장착 칸에 넣을 가진 스킬이 있을 때
 const t7Dot = () => t7On() && (!t7SlotNeed() || (t7S().eq.length < t7Slots() && SKM_SLOTS.some((x) => x !== 'ult' && skmOwnedSlot(x) && !t7S().eq.includes(t7L().sk[x]))));
 const T7_STARS = (n) => (n ? '★'.repeat(n) : '');
@@ -100,6 +100,7 @@ function viewTree7() {
       ${t7Canvas('t7icon', t7Icon(slot))}
       <div class="t7cbody"><b>${t7Look(n)} <span class="t7st">${T7_STARS(st)}</span></b>
         <small>${u.n !== t7Look(n) ? u.n + ' · ' : ''}숙련 Lv ${lv}/30 · 위력 ×${(1 + SKM_POW * (lv - 1)).toFixed(2)} · 쿨 ×${(1 - SKM_CD * (lv - 1)).toFixed(2)}</small>
+        ${runeSockHtml(sk)}
         <div class="t7xp"><i style="width:${Math.round(p * 100)}%"></i></div><small>${lv < 30 ? `다음 Lv ${Math.round(p * 100)}% · ${nextStar}` : '숙련 끝 (★★★)'}</small>
         <div class="t7act">
           ${isUlt ? '<small class="t7note">궁극기 칸 — 늘 장착</small>' : `<button class="btn${eq ? ' on' : ''}" data-action="t7-eq" data-sk="${sk}">${eq ? '✓ 장착' : '장착'}</button>`}
@@ -108,7 +109,30 @@ function viewTree7() {
         </div>${stageCtl}</div></div>`;
   }).join('');
   const tier1 = T < 2 ? '<div class="gtip">2차 전직하면 2차 스킬 둘이 생기고, 스킬을 ★ 까지 키우면 새 스킬이 열려요.</div>' : '';
-  return `${head}${moved}${tier1}<div class="t7slots">${slots.join('')}</div><div class="t7cards skl">${cards}</div>`;
+  return `${head}${moved}${tier1}<div class="t7slots">${slots.join('')}</div><div class="t7cards skl">${cards}</div>${runeBagHtml()}`;
+}
+// 🔮 룬 칸 (스킬 카드 안): 숙련 ★ 1칸 · ★★★ 2칸. 빈 칸을 누르면 아래 주머니에서 고른다, 끼운 룬을 누르면 뺀다 (src/rune.js)
+const runeChip = (r, extra = '') => `<span class="gem" style="background:${runeCol(r)}"></span><span style="color:${GRADES[r.g].color}">${runeIcon(r)} ${runeName(r)}</span>${extra}`;
+function runeSockHtml(sk) {
+  const cap = runeCap(sk), on = runesOf(sk);
+  return `<div class="rsocks">${[0, 1].map((j) => {
+    if (j >= cap) return `<span class="rsock lock">${j === 0 ? '◇ ★ 에 열림' : '◇ ★★★ 에 열림'}</span>`;
+    const r = on[j];
+    return r ? `<button class="rsock full" data-action="t7-unsock" data-sk="${sk}" data-j="${j}" title="${esc(runeText(r))} — 누르면 빼요">${runeChip(r)}</button>`
+      : `<button class="rsock${t7Ui.pick === sk ? ' pick' : ''}" data-action="t7-pick" data-sk="${sk}" title="누르고 아래 룬 주머니에서 골라요">◇ 빈 칸</button>`;
+  }).join('')}</div>`;
+}
+// 🔮 룬 주머니: 등급 높은 것부터 · 고른 스킬에 못 끼우는 룬은 흐리게 · 같은 룬 3개 합치기
+function runeBagHtml() {
+  const bag = runeBag(), pick = t7Ui.pick;
+  const idx = bag.map((r, i) => i).sort((a, b) => bag[b].g - bag[a].g || (bag[a].id < bag[b].id ? -1 : 1));
+  const chips = idx.map((i) => { const r = bag[i], w = pick ? runeWhy(pick, r) : null;
+    return `<button class="rchip${pick && !w ? ' can' : ''}${pick && w ? ' no' : ''}" data-action="t7-sock" data-i="${i}" title="${esc(runeText(r))}${w ? ' · ' + w : ''}">${runeChip(r)}</button>`; }).join('');
+  const merges = runeMergeable().map((m) => `<button class="btn" data-action="t7-merge" data-id="${m.id}" data-g="${m.g}" title="같은 룬 3개 → ${m.g === 3 ? '전설 룬 하나 (무작위)' : GRADES[m.g + 1].name}">${runeIcon(m)} ${RUNE_DEF[m.id].n} <span style="color:${GRADES[m.g].color}">${GRADES[m.g].name}</span> ×3 → <span style="color:${GRADES[m.g + 1].color}">${m.g === 3 ? '전설' : GRADES[m.g + 1].name}</span></button>`).join('');
+  const pn = pick && t7NodeOf(pick) ? t7U(t7NodeOf(pick).id).n : '';
+  return `<div class="rbag"><div class="rbagh"><b>🔮 룬 주머니</b> <small>${bag.length}/${RUNE_BAG_MAX} · ${pick ? `<b>${pn}</b> 에 끼울 룬을 누르세요 <button class="btn" data-action="t7-pick" data-sk="${pick}">취소</button>` : '스킬 카드의 빈 칸(◇)을 누른 뒤 룬을 고르세요 · 원정 상자·레이드·탑에서 나와요'}</small></div>
+    ${chips ? `<div class="rchips">${chips}</div>` : '<small class="t7note">아직 룬이 없어요 — 원정 상자를 열면 가끔 나와요 (보물상자일수록 자주)</small>'}
+    ${merges ? `<div class="rmerge"><small>합치기</small>${merges}</div>` : ''}</div>`;
 }
 // renderCamp 뒤: 아이콘 canvas 를 도트로 칠하고 설명창을 단다
 function paintTree7(root) {
@@ -133,7 +157,8 @@ function t7TipShow(el) {
   else {
     const lv = skmLv(sk), st = skmStage(sk), nx = Math.min(3, st + 1);
     body = `<p>${u.d || ''}</p><p>지금: ${st ? `${T7_STARS(st)} ` : '기본 · '}${t7LookName(n, st)}${st < 3 ? `<br>다음 (숙련 Lv${nx * 10}): ${T7_STARS(nx)} ${t7LookName(n, nx)}${t7LookDesc(n, nx) ? ` — ${t7LookDesc(n, nx)}` : ''}` : ''}</p>
-      <div class="t7tipact">장착해서 원정에 데려가면 시전 1번에 경험치 +1</div>`;
+      ${runesOf(sk).length ? `<p>🔮 ${runesOf(sk).map((r) => `${runeIcon(r)} ${runeName(r)}: ${runeText(r)}`).join('<br>🔮 ')}</p>` : ''}
+      <div class="t7tipact">장착해서 원정에 데려가면 시전 1번에 경험치 +1 · 룬 칸 ${runeCap(sk)}/2</div>`;
   }
   let tip = document.getElementById('t7tip');
   if (!tip) { tip = document.createElement('div'); tip.id = 't7tip'; tip.className = 't7tip'; document.body.appendChild(tip); }
@@ -150,6 +175,17 @@ const T7_ACTIONS = ({
   't7-slot': () => { if (t7BuySlot()) toast(`🔓 장착 칸 ${t7Slots()}칸`, 3000); },
   't7-eq': (el) => { if (!t7Equip(el.dataset.sk)) toast('장착 칸이 다 찼어요 — 장착한 스킬을 눌러 먼저 빼세요'); },
   't7-use': (el) => { const s = t7S(); s.use[el.dataset.sk] = Number(el.dataset.s); },
+  // 🔮 룬: 빈 칸 고르기(다시 누르면 취소) → 주머니에서 룬 누르기 = 끼우기 · 끼운 룬 누르기 = 빼기 · 합치기
+  't7-pick': (el) => { t7Ui.pick = t7Ui.pick === el.dataset.sk ? null : el.dataset.sk; },
+  't7-sock': (el) => {
+    const sk = t7Ui.pick, r = runeBag()[Number(el.dataset.i)];
+    if (!sk) { toast('먼저 스킬 카드의 빈 칸(◇)을 누르세요'); return; }
+    const w = r && runeWhy(sk, r);
+    if (w) { toast(w); return; }
+    if (runeSocket(sk, Number(el.dataset.i))) { toast(`🔮 ${runeName(r)} → ${t7U(t7NodeOf(sk).id).n}`, 2500); t7Ui.pick = runesOf(sk).length < runeCap(sk) ? sk : null; }
+  },
+  't7-unsock': (el) => { runeUnsock(el.dataset.sk, Number(el.dataset.j)); },
+  't7-merge': (el) => { const r = runeMerge(el.dataset.id, Number(el.dataset.g)); if (r) toast(`🔮 합치기 → ${runeIcon(r)} ${runeName(r)} (${GRADES[r.g].name})`, 3500); },
   't7-feed': (el) => {
     const sk = el.dataset.sk, lv0 = skmLv(sk), used = skmFeed(sk, Number(el.dataset.n) || 10);
     if (!used) { toast(skmFeedMax(sk) ? '📖 비전서가 없어요' : '숙련 Lv20 부터는 장착해서 써야 자라요'); return; }
