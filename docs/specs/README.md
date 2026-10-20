@@ -86,4 +86,4 @@
 | [raid-sig-drop.md](raid-sig-drop.md) | 완료 (0.20.9) | 레이드 고유 장비 드랍률 ×3 — 처치 상자당 6~18% (세트 평균 17~50회) |
 | [bag-upgrade.md](bag-upgrade.md) | 완료 | 🎒 가방은 여관 안 별도 업그레이드: 무게 10 + 2/Lv, 최대 Lv = 여관 Lv(최대 48), 비용 = 여관 목재의 1/4, 가방 가득 귀환 때만 레드닷 |
 | [rune-icons.md](rune-icons.md) | 배포됨 (0.29.2) | 룬 25종 32×32 PixelLab 룬석 그림 (판석 14 · 별꼴 결정 4 · 금테 메달 7), 등급 = 1px 테두리 색, PixelLab 51회 |
-| [skill-card-icons.md](skill-card-icons.md) | 배포됨 (0.29.3) | 스킬 카드·장착 칸 아이콘 110개 32×32 PixelLab 장면 + 스크립트 차수 테두리(철·은·금), PixelLab 150회 · 줄기 안 비슷한 칸 다듬기는 11월 PixelLab 초기화 뒤 |
+| [skill-card-icons.md](skill-card-icons.md) | 배포됨 (0.29.4) | 스킬 카드·장착 칸 아이콘 110개 32×32 PixelLab 장면 + 스크립트 차수 테두리(철·은·금), 줄기 안 비슷한 칸 다듬기까지 PixelLab 175회, 검수 pass |

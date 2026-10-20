@@ -35,9 +35,9 @@ SK = {
     'sk-thousandCuts': ('swordsaint', 'ult', 'a thousand swords raining down from the sky among swirling cherry blossom petals, epic'),
     # 파천검왕
     'sk-ramCharge': ('tyrant', 'gale', 'a giant greatsword dragged on the ground, charging forward with dust and an upward slash'),
-    'sk-wideCleave': ('tyrant', 'iaido', 'a huge greatsword swinging in a wide horizontal red cleave arc'),
+    'sk-wideCleave': ('tyrant', 'iaido', 'a huge bright silver greatsword blade swinging in a wide horizontal arc with a bright red trail, bright highlights'),
     'sk-ty_wave': ('tyrant', 'wave', 'three tall red crescent shaped shockwaves rolling from left to right across cracked ground, side view'),
-    'sk-ty_whirl': ('tyrant', 'whirl', 'a warrior spinning like a top with a greatsword, red slash ring and cracked ground'),
+    'sk-ty_whirl': ('tyrant', 'whirl', 'a dark armored warrior seen from the front holding a greatsword out, spinning, a bright red horizontal ring of light around his waist'),
     'sk-ty_flash': ('tyrant', 'flash', 'a greatsword point charging straight ahead leaving a long line of fire on the ground'),
     'sk-ty_storm': ('tyrant', 'storm', 'a shadow greatsword plunged into the ground with red shock cones exploding outward'),
     'sk-skyBreak': ('tyrant', 'ult', 'a colossal greatsword splitting the sky in two, red lightning cracks, epic'),
@@ -47,7 +47,7 @@ SK = {
     'sk-ar_wave': ('archon', 'wave', 'one glowing golden cross of light flying to the right with a long light trail, side view'),
     'sk-ar_whirl': ('archon', 'whirl', 'a ring of holy light circling with small stars orbiting along it'),
     'sk-ar_flash': ('archon', 'flash', 'three vertical golden light pillars falling from the sky onto the ground in a row, side view'),
-    'sk-ar_storm': ('archon', 'storm', 'a big star exploding with small stars flying out in all directions'),
+    'sk-ar_storm': ('archon', 'storm', 'a big five pointed golden star in the night sky with small shooting stars falling down from it'),
     'sk-starJudgment': ('archon', 'ult', 'a giant constellation knight figure made of stars descending from the heavens, epic'),
     # 천마장군
     'sk-shieldWall': ('skyGeneral', 'gale', 'a tall tower shield planted in the ground as a glowing barrier wall'),
@@ -63,13 +63,13 @@ SK = {
     'sk-dl_wave': ('dragonlord', 'wave', 'a fiery crescent dragon fang snaking forward like a serpent'),
     'sk-dl_whirl': ('dragonlord', 'whirl', 'a segmented red fire dragon coiling in a circle'),
     'sk-dl_flash': ('dragonlord', 'flash', 'a single blazing comet shot straight across with a fire trail'),
-    'sk-dl_storm': ('dragonlord', 'storm', 'a fire dome erupting with flaming comets bursting outward into fire flowers'),
+    'sk-dl_storm': ('dragonlord', 'storm', 'a purple volcano erupting with flaming dragon heads shooting out of the crater, side view'),
     'sk-dragonEmperor': ('dragonlord', 'ult', 'a huge crowned dragon emperor rising with spread wings and purple flames, epic'),
     # 전쟁군주
     'sk-whirlwind': ('warlord', 'gale', 'a single halberd spinning in a full glowing circle, motion blur ring, seen from the front'),
     'sk-earthSplitter': ('warlord', 'iaido', 'side view of the ground splitting open with jagged rock spikes erupting upward in a row, a halberd stuck in the ground at left'),
     'sk-wl_wave': ('warlord', 'wave', 'one spinning axe blade flying horizontally to the right with a curved motion trail'),
-    'sk-wl_whirl': ('warlord', 'whirl', 'an iron wheel of axe blades with afterimages spinning'),
+    'sk-wl_whirl': ('warlord', 'whirl', 'a big iron cartwheel made of axe blades rolling to the right on the ground, sparks flying, side view'),
     'sk-wl_flash': ('warlord', 'flash', 'a crack running across the ground with lava geysers erupting in a row'),
     'sk-wl_storm': ('warlord', 'storm', 'a round shockwave ring on the ground with rock slabs thrust up around its edge, seen from above'),
     'sk-worldBreaker': ('warlord', 'ult', 'a giant war hammer smashing the world, the earth shattering into pieces with lava, epic'),
@@ -77,7 +77,7 @@ SK = {
     'sk-boltStorm': ('siegeMaster', 'gale', 'a big repeating crossbow seen from the side with a round revolving drum magazine, bolts shooting out to the right'),
     'sk-blastBolt': ('siegeMaster', 'iaido', 'a fat crossbow bolt with a round black bomb strapped to it, fuse burning, flying to the right'),
     'sk-sm_wave': ('siegeMaster', 'wave', 'three crossbow bolts with gunpowder smoke trails flying upward to the right in a spread'),
-    'sk-sm_whirl': ('siegeMaster', 'whirl', 'small ballista turrets placed in a circle around firing bolts'),
+    'sk-sm_whirl': ('siegeMaster', 'whirl', 'a small wooden ballista turret seen from the side shooting a bolt, with two more turrets behind it'),
     'sk-sm_flash': ('siegeMaster', 'flash', 'side view of one huge siege bolt flying to the right and smashing through a stone brick wall, bricks flying'),
     'sk-sm_storm': ('siegeMaster', 'storm', 'a rain of iron bolts falling from the sky and exploding on the ground'),
     'sk-siegeBarrage': ('siegeMaster', 'ult', 'a giant siege cannon firing a massive barrage with huge flames, epic'),
@@ -85,33 +85,33 @@ SK = {
     'sk-armorPiercer': ('deadeye', 'gale', 'a fully drawn bow shooting an arrow that shatters a steel armor plate'),
     'sk-headshot': ('deadeye', 'iaido', 'a kneeling archer seen from the side aiming a drawn bow, calm and focused'),
     'sk-de_wave': ('deadeye', 'wave', 'three golden arrows curving like bent paths from the left and meeting at one bright point on the right'),
-    'sk-de_whirl': ('deadeye', 'whirl', 'a ring of golden arrows flying in a circle around an archer silhouette, seen from above'),
+    'sk-de_whirl': ('deadeye', 'whirl', 'three golden arrows chasing each other around a circular glowing orbit track, seen from above, no explosion'),
     'sk-de_flash': ('deadeye', 'flash', 'an archer drawing a bow at the left with a long thin golden aiming line stretching to a small target on the right'),
     'sk-de_storm': ('deadeye', 'storm', 'a small sun in the sky with light arrows shooting out in all directions'),
     'sk-sunArrow': ('deadeye', 'ult', 'a giant golden arrow flying upward diagonally piercing a huge blazing sun at the top right'),
     # 차원궁사
     'sk-starfall': ('voidArcher', 'gale', 'a magic circle in the sky raining down starlight arrows'),
-    'sk-homingBolts': ('voidArcher', 'iaido', 'six magic missiles curving in arcs from a magic circle'),
+    'sk-homingBolts': ('voidArcher', 'iaido', 'side view, three small purple glowing orbs flying in a wavy line one behind another like a snake, toward the right'),
     'sk-va_wave': ('voidArcher', 'wave', 'an archer silhouette at the left shooting a purple arrow into a single swirling purple portal on the right, side view'),
     'sk-va_whirl': ('voidArcher', 'whirl', 'void orbs orbiting above a purple magic circle'),
     'sk-va_flash': ('voidArcher', 'flash', 'a dark purple crescent shaped crack in the air like torn paper, glowing edges, one arrow flying through it'),
     'sk-va_storm': ('voidArcher', 'storm', 'purple meteors falling from a dimensional crack in the sky'),
     'sk-dimensionCollapse': ('voidArcher', 'ult', 'a black hole collapsing space with shattered glass-like dimension shards, epic'),
     # 뇌제
-    'sk-chainLightning': ('thunderEmperor', 'gale', 'a lightning bolt jumping between three points in a zigzag chain'),
-    'sk-thunderstorm': ('thunderEmperor', 'iaido', 'a massive lightning bolt striking down from a dark cloud'),
+    'sk-chainLightning': ('thunderEmperor', 'gale', 'three small enemy silhouettes in a row connected by one bright zigzag lightning chain jumping from one to the next, side view'),
+    'sk-thunderstorm': ('thunderEmperor', 'iaido', 'one single giant vertical lightning bolt striking the ground from the top, bright white impact flash at the bottom'),
     'sk-te_wave': ('thunderEmperor', 'wave', 'three short jagged lightning arrows flying horizontally to the right, side view'),
     'sk-te_whirl': ('thunderEmperor', 'whirl', 'three glowing electric balls orbiting around a wizard silhouette in an oval path, side view'),
-    'sk-te_flash': ('thunderEmperor', 'flash', 'one horizontal lightning beam shot across the frame from a staff tip'),
-    'sk-te_storm': ('thunderEmperor', 'storm', 'a dark thundercloud with lightning bolts spraying in all directions'),
+    'sk-te_flash': ('thunderEmperor', 'flash', 'side view of a wizard in a blue robe standing at the left edge, a thin straight horizontal electric line from his hand to the right edge, mostly dark empty sky'),
+    'sk-te_storm': ('thunderEmperor', 'storm', 'a dark round thundercloud at the top with rain and four lightning bolts falling down, side view'),
     'sk-thunderJudgment': ('thunderEmperor', 'ult', 'a thunder god emperor silhouette in the storm clouds raising lightning, epic'),
     # 대마도사
     'sk-flameVortex': ('archmage', 'gale', 'a tall spiral fire tornado rising from the ground, side view'),
     'sk-meteor': ('archmage', 'iaido', 'a huge flaming meteor crashing down from the sky'),
-    'sk-am_wave': ('archmage', 'wave', 'comet-like fireballs thrown in arcs'),
-    'sk-am_whirl': ('archmage', 'whirl', 'a ring of fire flowers circling over a magic circle'),
+    'sk-am_wave': ('archmage', 'wave', 'side view, one big round fireball with a long flame tail flying from left to right over the ground, mostly empty dark sky'),
+    'sk-am_whirl': ('archmage', 'whirl', 'a glowing red magic circle on the ground seen in perspective with a ring of small flames standing on its edge'),
     'sk-am_flash': ('archmage', 'flash', 'a thick fire beam shooting straight across from a staff'),
-    'sk-am_storm': ('archmage', 'storm', 'rows of fire flowers spreading outward in all directions'),
+    'sk-am_storm': ('archmage', 'storm', 'side view of flat ground with a wide wall of tall flames burning along the whole bottom half, dark sky above'),
     'sk-apocalypse': ('archmage', 'ult', 'a world ending firestorm, burning sky with falling meteors, epic'),
     # 빙결의 군주
     'sk-blizzard': ('frostlord', 'gale', 'a dark cloud above heavy diagonal falling snow and wind, ground covered in frost'),
@@ -120,7 +120,7 @@ SK = {
     'sk-fl_whirl': ('frostlord', 'whirl', 'pale ice crystals orbiting over a frost ring'),
     'sk-fl_flash': ('frostlord', 'flash', 'one enormous ice spear flying horizontally to the right, frost trail behind it'),
     'sk-fl_storm': ('frostlord', 'storm', 'blizzard bursts spreading out in all directions with frost blooming at the ends'),
-    'sk-absoluteZero': ('frostlord', 'ult', 'everything frozen solid, a giant ice crystal flower freezing time, epic'),
+    'sk-absoluteZero': ('frostlord', 'ult', 'a knight frozen inside a giant block of clear blue ice, frost cracks on the ground'),
     # 챔피언
     'sk-ironRush': ('champion', 'gale', 'a boxer seen from the side throwing a rapid flurry of punches to the right, many fist afterimages in a horizontal row'),
     'sk-crushFist': ('champion', 'iaido', 'one massive glowing fist punch with a shockwave crater'),
@@ -130,11 +130,11 @@ SK = {
     'sk-ch_storm': ('champion', 'storm', 'a boxer seen from above slamming a fist into the ground, a bright white shockwave ring spreading on the floor'),
     'sk-kingFist': ('champion', 'ult', 'a giant lion spirit roaring behind a golden fist, epic'),
     # 템페스트
-    'sk-spinKick': ('tempest', 'gale', 'a spinning roundhouse kick leg with a circular wind trail'),
+    'sk-spinKick': ('tempest', 'gale', 'a fighter seen from the front spinning on one leg with a green circular wind ring around the waist'),
     'sk-flyingKick': ('tempest', 'iaido', 'a flying kick foot slicing through the wind'),
     'sk-tp_wave': ('tempest', 'wave', 'spiral kick arcs of wind flying forward'),
     'sk-tp_whirl': ('tempest', 'whirl', 'a tornado pillar with kicking legs inside it'),
-    'sk-tp_flash': ('tempest', 'flash', 'a lightning fast kick dash leaving afterimages across the frame'),
+    'sk-tp_flash': ('tempest', 'flash', 'side view of a green blurred fighter silhouette dashing horizontally to the right with a long green speed trail, low to the ground'),
     'sk-tp_storm': ('tempest', 'storm', 'a spinning kick with wind wedges spreading in all directions'),
     'sk-heavenWind': ('tempest', 'ult', 'a giant leg kick of heavenly wind with swirling leaves and clouds, epic'),
     # 그랜드마스터
@@ -143,7 +143,7 @@ SK = {
     'sk-gm_wave': ('grandmaster', 'wave', 'three small glowing qi orbs with comet tails flying to the right from an open hand at the left'),
     'sk-gm_whirl': ('grandmaster', 'whirl', 'yin yang energy orbs circling with stacked qi rings'),
     'sk-gm_flash': ('grandmaster', 'flash', 'two hands pushed forward at the left firing a thick horizontal qi beam to the right, side view'),
-    'sk-gm_storm': ('grandmaster', 'storm', 'a qi dome expanding with energy orbs bursting in all directions'),
+    'sk-gm_storm': ('grandmaster', 'storm', 'a glowing teal dome of energy over a meditating monk on the ground, seen from the side'),
     'sk-qiGodDescent': ('grandmaster', 'ult', 'a giant meditating qi god with many arms descending in glowing light, epic'),
 }
 TIER = {'slash': 1, 'gale': 2, 'iaido': 2, 'wave': 2, 'whirl': 2, 'flash': 2, 'storm': 2, 'ult': 3}
@@ -151,4 +151,4 @@ TIER = {'slash': 1, 'gale': 2, 'iaido': 2, 'wave': 2, 'whirl': 2, 'flash': 2, 's
 def prompt(ic):
     line, slot, scene = SK[ic]
     return ('square fantasy RPG skill icon, pixel art, ' + scene + ', ' + LINE[line] +
-            ', one clear focal subject, no symmetric radial burst, avoid an X shaped composition, bold readable shapes, strong contrast, dramatic, the scene fills the entire square edge to edge, no border, no frame, no text, no UI')
+            ', one clear focal subject, no symmetric radial burst, avoid an X shaped composition, the subject is much brighter than the background, bold readable shapes, strong contrast, dramatic, the scene fills the entire square edge to edge, no border, no frame, no text, no UI')

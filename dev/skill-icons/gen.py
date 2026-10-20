@@ -10,7 +10,7 @@ from PIL import Image
 from prompts import prompt
 RAW = os.path.join(HERE, 'raw'); os.makedirs(RAW, exist_ok=True)
 USAGE = os.path.join(HERE, 'usage.md')
-FLOOR, CAP = 74, 150
+FLOOR, CAP = 44, 180   # 2차 다듬기(2026-10-21): +30
 
 def spent():
     if not os.path.exists(USAGE): return 0.0
