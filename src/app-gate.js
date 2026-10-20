@@ -33,18 +33,28 @@ function showAppGate() {
     ['win', 'KnightBar-win-x64.exe', 'Windows'],
   ].filter(([o]) => !os || o === os);
   const btn = 'display:block;padding:11px 14px;border-radius:9px;text-decoration:none;font-weight:700;text-align:center;';
+  // 창이 하단바 높이(150px 안팎)로 남아도 쓸 수 있게: 낮으면 제목 + 받기 버튼 한 줄만 (@media max-height)
   const html = `
+    <style>@media (max-height: 420px) {
+      #appGate { padding: 6px !important; align-items: flex-end !important; }
+      #appGate .ag-box { width: auto !important; max-width: 100%; padding: 8px 12px !important; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      #appGate .ag-title { font-size: 14px !important; margin: 0 !important; }
+      #appGate .ag-hide { display: none !important; }
+      #appGate .ag-btns { flex-direction: row !important; flex-wrap: wrap; }
+      #appGate .ag-btns a { padding: 6px 10px !important; }
+      #appGate #appGateQuit { margin: 0 !important; }
+    }</style>
     <div id="appGate" style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;
       background:rgba(6,6,12,.82);font:14px/1.6 -apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#ece8f4;">
-      <div style="width:min(440px,100%);background:#1c1a2a;border:2px solid #4a4566;border-radius:12px;padding:20px 22px;box-sizing:border-box;">
-        <div style="font-size:18px;font-weight:800;margin-bottom:6px;">새 버전 앱을 받아 주세요</div>
-        <div style="color:#b5afc8;margin-bottom:14px;">지금 설치된 앱(${appVersion ? 'v' + appVersion : '예전 버전'})으로는 더 이상 플레이할 수 없어요.
+      <div class="ag-box" style="width:min(440px,100%);background:#1c1a2a;border:2px solid #4a4566;border-radius:12px;padding:20px 22px;box-sizing:border-box;">
+        <div class="ag-title" style="font-size:18px;font-weight:800;margin-bottom:6px;">새 버전 앱을 받아 주세요</div>
+        <div class="ag-hide" style="color:#b5afc8;margin-bottom:14px;">지금 설치된 앱(${appVersion ? 'v' + appVersion : '예전 버전'})으로는 더 이상 플레이할 수 없어요.
           아래에서 새 설치 파일(v${APP_MIN_VERSION} 이상)을 받아 덮어 설치하면, 기사·진행 상황은 그대로 이어져요.</div>
-        <div style="display:flex;flex-direction:column;gap:7px;">
+        <div class="ag-btns" style="display:flex;flex-direction:column;gap:7px;">
           ${btns.map(([, f, label], i) => `<a href="${dl(f)}" style="${btn}${i === 0 ? 'background:#e8b04a;color:#1a1206;' : 'background:#2c2940;color:#ece8f4;border:1px solid #4a4566;'}">⬇ ${label} 설치 파일 받기</a>`).join('')}
-          <a href="${APP_RELEASES}" target="_blank" rel="noopener" style="${btn}background:transparent;color:#e8b04a;border:1px solid #4a4566;">다운로드 페이지 열기</a>
+          <a class="ag-hide" href="${APP_RELEASES}" target="_blank" rel="noopener" style="${btn}background:transparent;color:#e8b04a;border:1px solid #4a4566;">다운로드 페이지 열기</a>
         </div>
-        <div style="color:#8a84a0;font-size:12px;margin-top:12px;word-break:break-all;">브라우저에서 직접 받기: ${APP_RELEASES}</div>
+        <div class="ag-hide" style="color:#8a84a0;font-size:12px;margin-top:12px;word-break:break-all;">브라우저에서 직접 받기: ${APP_RELEASES}</div>
         ${window.bar && window.bar.quit ? '<button id="appGateQuit" style="all:unset;cursor:pointer;display:block;margin:12px auto 0;color:#8a84a0;font-size:12px;">앱 끄기</button>' : ''}
       </div>
     </div>`;
@@ -58,13 +68,15 @@ function showAppGate() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
   // 앱 창을 화면 전체로 키우고 클릭·키보드를 받게 한다 (창 API v2 가 없는 예전 앱은 예전 통로로)
   const bar = window.bar;
-  if (bar) {
+  const grow = () => {
     try {
       if (bar.setWindow) bar.setWindow('app-gate', { height: 'full', mouse: 'all', focus: true });
       else { if (bar.setOverlay) bar.setOverlay(true); if (bar.setCampMode) bar.setCampMode(true); }
       if (bar.setInteractive) bar.setInteractive(true);
     } catch {}
-  }
+  };
+  // 한 번만 요청하면 실제 0.5.1 맥 앱에서 창이 하단바 높이로 남아 안내가 잘렸다 (10-20 사용자 신고) — 떠 있는 동안 계속 다시 요청한다
+  if (bar) { grow(); setInterval(grow, 1000); }
 }
 
 if (window.top === window && isApp && !appAtLeast(appVersion, APP_MIN_VERSION)) {
