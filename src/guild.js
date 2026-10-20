@@ -138,6 +138,8 @@ if (BAR) {
   };
   new MutationObserver(syncLogin).observe($('naming'), { attributes: true, attributeFilter: ['hidden'] });
   syncLogin();
+  // 슬롯 줄은 HUD 바로 위에 뜬다 — 하단바 150px 창엔 HUD 위 자리가 없으니 창을 그만큼 위로 늘린다 (늘린 곳은 클릭 통과)
+  if (BAR.setWindow) BAR.setWindow('guild-slots', { height: 150 + 40 });
 }
 const each = (sig, ...a) => { for (const [win, r] of barRec) for (const cb of r.cbs[sig] || []) { try { cb(...a); } catch (e) { console.error(e); } } };
 const activeCbs = (sig, ...a) => { const f = frames[active]; const r = f && barRec.get(f.el.contentWindow); for (const cb of (r && r.cbs[sig]) || []) cb(...a); };
@@ -455,7 +457,7 @@ function placeSlots() {
   if (!r || !r.width) { bar.style.left = '10px'; bar.style.top = `${innerHeight - 150 - bar.offsetHeight - 2}px`; }
   else if (r.top - bar.offsetHeight - 3 >= 0) { bar.style.left = `${Math.round(r.left)}px`; bar.style.top = `${Math.round(r.top - bar.offsetHeight - 3)}px`; }
   else {
-    // 앱 하단바(150px 창)처럼 HUD 위에 자리가 없으면 창 밖으로 나가 안 보인다 — HUD 옆(왼쪽, 모자라면 오른쪽)에 붙인다
+    // HUD 위에 자리가 없으면(창 API v2 이전 앱의 150px 하단바) 창 밖으로 나가 안 보인다 — HUD 옆(왼쪽, 모자라면 오른쪽)에 붙인다
     const w = bar.offsetWidth, left = r.left - w - 6 >= 4 ? r.left - w - 6 : r.right + 6;
     bar.style.left = `${Math.round(left)}px`;
     bar.style.top = `${Math.round(Math.max(0, r.top + r.height - bar.offsetHeight))}px`;
