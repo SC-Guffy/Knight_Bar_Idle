@@ -5,7 +5,7 @@
 - 브랜치: `season6` (③ 성벽 지키기와 같은 패치로 낸다 — [roadmap.md](roadmap.md) 진행 순서)
 - 관련 스펙: [castle-defense.md](castle-defense.md) (📕 수련의 서 수급 — 작성 중), [roadmap.md](roadmap.md) "결정 사항"
 - 관련 코드: src/data.js (`MENTOR_ON`, `TRAIN_MAX`, `trainCapAt`, `TRAINING`, `BUILDINGS.training`, `MENTORS`·`MENTOR_*`), src/mentor.js (규칙: `mentorLock`·`mentorNeed`·`mentorTry`·`mentorDuelLeft`·`mentorSettle`·`mentorTodo`·`migrateMentor`·보너스), src/mentor-stage.js (무대: 교관 스프라이트·배경·연출·대사), src/core.js (`freshState` `books`, migrate → `migrateMentor`, `claimMail` 의 `books`), src/gear.js (`gearBonus`·`gearBonusParts` — 교관 보너스 합산), src/ui.js (`viewTraining` 탭·`viewMentor`·`mentorSpText`·`mentorPreview`, 액션 `train-tab`·`goto-castle`·`mentor-*`, 우편 `books`·함수 문단), src/town.js (`townTodo`), src/net.js (`fetchMentor`·`requestMentorDuel`), server/index.js (`GET /api/mentor`·`POST /api/mentor/duel` — `MENTOR_DUEL_DAY`·`mentorDay` 하루 횟수, `MENTOR_OPEN_STAGE`), server/mentor.js (교관 프로필·배수), server/mentor-k.json (계열×교관×레벨 배수 표), server/bots.js (`curveAtLevel`), server/bot-curve.json, dev/mentor-sim.js (배수 보정), dev/progress-bot.js·dev/bot-curve.js (`playMentors`)
-- 최종 갱신: 2026-10-16 (**0.24.0 ★1~4 확률 수련 구현** — 사용자가 제안대로 승인(천장 3번 · 실패 시 📕 전부 소모 · 시작안 표). 사용자 화면 확인 대기)
+- 최종 갱신: 2026-10-20 (**0.28.7 성공 확률을 수련 버튼 바로 위에 크게** — 사용자 요청. 0.24.0 확률 수련은 실제 함수 5만 번 시뮬로 표대로 동작 확인 (교관별 기대 📕 합 107.3). 사용자 화면 확인 대기)
 - 개정안 검토 페이지: `dev/review/mentor-odds.html` (확률·비용 표를 바꿔 보며 기대 📕·며칠 걸리는지 시뮬)
 
 ## 이번 개정 요약 (0.20.0 판 → 시즌6 판)
@@ -97,6 +97,10 @@
 
 **정한 것 (10-16 사용자 "제안대로 진행해")**: 천장 3번 · 실패 시 📕 전부 소모 · 위 시작안 표 그대로.
 코드: data.js `MENTOR_ODDS`·`MENTOR_TRY_BOOKS`·`MENTOR_PITY` (`MENTOR_BOOKS` 삭제), mentor.js `mentorTry(i, rnd)`·`mentorOdds`·`mentorSure`·`mentorFails`·`S.mentor.fail`, ui.js 확률 줄·실패 점 + 시도 직후 `save()`, mentor-stage.js 숨 고르기·실패 갈래·`drawFailDots`·`MENTOR_SAY[].fail`. 봇(`playMentors`)은 `mentorTry` 를 그대로 불러 확률이 저절로 들어간다.
+
+**확률 표시 (0.28.7 — 10-20 사용자 요청 "확률이 훈련 버튼 위에 큼직하게")**: 성공 확률을 안내 줄에서 빼서 `📕 수련하기` 버튼 바로 위에 큰 글씨(22px)로 `성공 50%` 를 띄운다. 천장 차례면 금색 `성공 확정`. 📕 이 모자라도 그대로 보인다 (ui.js `.mtry`·`.modds`, index.html 스타일).
+- 확인 방법 (오프라인 `index.html?server=http://127.0.0.1:9&guild=0`, 콘솔): `S.best=80; S.books=30; S.mentor.stars=[2,0,0,0,0]; S.mentor.fail=1; openCamp(); campTab='town'; townUi.sel='training'; townUi.trainTab='mentor'; renderCamp()` → 버튼 위 `성공 50%`. `S.mentor.fail=3; renderCamp()` → `성공 확정`.
+- [x] 버튼 위에 큰 확률 (내장 브라우저 캡처) · [x] 천장 차례 금색 `확정` · [x] 📕 부족일 때도 보임 · [ ] 사용자 확인
 
 ### (이전, 0.22.0~0.23.x) ★1~4 — 📕 수련의 서로 확정 상승 — 0.24.0 확률 수련으로 바뀜
 
