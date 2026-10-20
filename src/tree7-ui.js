@@ -51,16 +51,16 @@ const t7Lane = () => { const L = t7L(), o = {}; for (const l of ['a', 'b', 'k'])
 // 2차 전직 전엔 줄기(1차) 노드만 보인다 — 줄은 2차 직업마다 달라서
 const t7Vis = (n) => n.t === 'hub' || t7Tier() >= 2 || n.tier <= 1;   // 허브는 늘 보인다 (앞으로 열릴 줄기)
 const T7_KIND = { stat: '스탯', active: '액티브', mod: '변형', key: '키스톤', ult: '궁극기', uvar: '궁극기 변형', fusion: '융합 스킬', look: '모습' };
-const T7_STATN = { atk: '공격 +2%', hp: '체력 +3%', aspd: '공격 속도 +2%', crit: '치명 확률 +1.5%', guard: '받는 피해 −2%' };
+const T7_STATN = { atk: '공격 +6%', hp: '체력 +9%', aspd: '공격 속도 +6%', crit: '치명 확률 +4.5%', guard: '받는 피해 −6%' };
 // 스킬 지도 자리 (칸 단위). 스탯 점은 노드의 path [앞, 뒤, 몇 번째] 로 두 스킬 사이에 고르게. 캠프 창(본문 약 330px)에 판이 거의 다 들어오게 약 850×340
 // 판 (3안, 디아블로 4 식 — docs/specs/skill-tree-v3.md): 허브 6개가 가로 지그재그 줄기로 이어지고, 노드는 자기 허브에서 방사형 가지로 뻗는다.
 //  가지 = [뿌리 노드, 각도(도, 0 오른쪽 · 90 아래), 반지름 px]. 스킬은 바깥으로 ◆ 모습 사슬, 옆(위쪽)에 ● 변형 · 키스톤은 바깥으로 3차 키스톤 · 스탯 점은 바깥으로 다음 점
 const T7_HUB = { hub_c: [230, 320], hub_a: [480, 160], hub_b: [730, 320], hub_k: [980, 160], hub_f: [1230, 320], hub_u: [1480, 160] };
 const T7_BR = {
-  hub_c: [['slash', 180, 80], ['k_blade', 50, 72], ['c_atk1', -105, 50], ['c_hp1', 125, 50], ['c_crit1', -62, 54]],
-  hub_a: [['gale', 180, 80], ['whirl', 0, 80], ['a_key', -90, 62], ['c_spd2', 90, 58]],
-  hub_b: [['iaido', 180, 80], ['flash', 0, 80], ['b_key', 90, 80], ['c_crit3', -90, 58]],
-  hub_k: [['wave', 180, 80], ['storm', 0, 80], ['k_key', -90, 62], ['c_hp3', 90, 58]],
+  hub_c: [['slash', 180, 80], ['k_blade', 50, 72], ['c_atk', -100, 56], ['c_crit', -58, 58], ['c_hp', 125, 56]],
+  hub_a: [['gale', 180, 80], ['whirl', 0, 80], ['a_key', -90, 62], ['c_spd', 90, 60]],
+  hub_b: [['iaido', 180, 80], ['flash', 0, 80], ['b_key', 90, 80]],
+  hub_k: [['wave', 180, 80], ['storm', 0, 80], ['k_key', -90, 62], ['c_def', 90, 60]],
   hub_f: [['f_ab', 180, 80], ['f_bk', 90, 80], ['f_ak', 0, 80]],
   hub_u: [['ult', 0, 84]],
 };
@@ -78,7 +78,7 @@ const T7_POS = {}, T7_HUB_OF = {};   // 노드 → 자리 px · 노드 → 허�
       put(id, at(0), h);
       const n = T7_BY[id];
       if (n.slot) {
-        (T7_LOOKS[id] || []).forEach((l, i) => put(l.id, at(44 * (i + 1)), h));
+        if (T7_LOOK[id]) put(T7_LOOK[id].id, at(46), h);   // 모습 ◆ 하나 (칸 = ★)
         const mods = T7_NODES.filter((m) => (m.t === 'mod' || m.t === 'uvar') && m.req[0] === id);
         mods.forEach((m, j) => put(m.id, at((j - (mods.length - 1) / 2) * 36, 44), h));
       } else {
@@ -94,7 +94,7 @@ const t7Px = (n) => T7_POS[n.id];
 const t7Icon = (id) => t7U(id).ic || id;
 const t7ArtLane = (n) => (n.t === 'fusion' ? 'f' : n.lane);
 const t7State = (n) => (t7Rank(n.id) > 0 ? 'got' : t7CanAdd(n.id) ? 'can' : 'lock');
-const t7Max = (n) => T7_SPEC[n.t].max;
+const t7Max = (n) => t7MaxN(n);
 // 모습 이름·설명 (단계 0~3): 줄기 글 looks(옛 칸 5개) → 스킬 stageName. 설명은 지금 스킬의 stageDesc (새 스킬은 바탕 스킬 글이라 쓰지 않는다)
 const T7_LOOK_IDX = [0, 1, 3, 4];
 function t7LookName(n, st) {
@@ -107,8 +107,7 @@ const t7LookDesc = (n, st) => { const k = SKILLS[n.sk]; return k && !k.t7 && k.s
 const t7Look = (n) => (n.slot && n.sk && t7Rank(n.id) > 0 ? t7LookName(n, t7Stage(n.sk)) : t7U(n.id).n);   // 안 배운 스킬은 스킬 이름
 const t7Ui = { sel: null, scroll: null };
 // 스킬 안에서 지금 찍을 수 있는 것 수 (판 노드의 숫자 배지)
-const t7Inside = (n) => (t7Rank(n.id) > 0 ? T7_NODES.filter((x) => x.req.includes(n.id) && (x.t === 'look' || x.t === 'mod' || x.t === 'uvar') && t7CanAdd(x.id)).length + (t7Rank(n.id) < t7Max(n) && t7CanAdd(n.id) ? 1 : 0)
-  + (T7_LOOKS[n.id] || []).filter((l) => l.req[0] !== n.id && t7CanAdd(l.id)).length : 0);
+
 // 레드닷: 찍을 수 있는 노드가 있거나 장착 칸을 열 수 있을 때
 const t7Dot = () => t7On() && (T7_NODES.some((n) => t7CanAdd(n.id)) || !t7SlotNeed());
 const t7Canvas = (attr, id, cls = '') => `<canvas class="t7c ${cls}" data-${attr}="${id}"></canvas>`;
@@ -120,10 +119,10 @@ function t7Why(n) {
   if (n.reqAll && !n.reqAll.every((r) => t7Rank(r) > 0)) return `${n.reqAll.map((r) => t7U(r).n).join(' + ')} 를 배우면 열려요`;
   if (n.t === 'uvar' && T7_NODES.some((x) => x.t === 'uvar' && x.id !== n.id && t7Rank(x.id) > 0)) return '셋 중 하나만 — 초기화하면 바꿀 수 있어요';
   if (t7PairTaken(n)) return '다른 쪽을 골랐어요 — 초기화하면 바꿀 수 있어요';
-  if (n.last && t7Rank(n.of) < t7Max(T7_BY[n.of])) return `위력 Lv${t7Max(T7_BY[n.of])} 필요`;
+  if (t7LookLastLock(n)) return `마지막 모습은 위력 Lv${t7Max(T7_BY[n.of])} 필요`;
   if (n.req.length && !n.req.some((r) => t7Rank(r) > 0)) {
     const r = T7_BY[n.req[0]];
-    return n.t === 'look' ? '앞 모습 먼저' : r.t === 'stat' ? '앞의 점을 먼저 찍어요' : `${t7U(r.id).n} 먼저`;
+    return n.t === 'look' ? '스킬을 먼저 배워요' : `${t7U(r.id).n} 먼저`;
   }
   if (t7Rank(n.id) >= t7Max(n)) return '';
   if (t7Left() < t7Cost(n)) return `🌟 ${t7Cost(n)} 필요 (남은 ${t7Left()})`;
@@ -134,7 +133,8 @@ function viewTree7() {
   const s = t7S(), left = t7Left(), path = t7PathCost(), spent = t7Spent(), T = t7Tier();
   const head = `<div class="mhead"><div><h3>${ico('glow')} 스킬 트리</h3>
       <small>레벨이 오를 때마다 🌟 1 · 노드를 누르면 바로 찍혀요 · 스킬 바깥 ◆ 모습, 옆 ● 변형</small></div>
-    <span class="mchip${left ? '' : ' none'}" title="남은 스킬 포인트">🌟 <b>${left}</b><small>/ ${t7Pts()}</small></span></div>`;
+    <span class="mchip${left ? '' : ' none'}" title="남은 스킬 포인트">🌟 <b>${left}</b><small>/ ${t7Pts()}</small></span></div>
+    <div class="t7legend">${[['hub', '허브 (전직하면 열림)'], ['active', '스킬 (누를 때마다 위력 +1 Lv)'], ['look', '모습 (스킬 그림이 바뀜)'], ['mod', '변형 (스킬에 효과 추가)'], ['key', '키스톤 (큰 효과 + 대가)'], ['stat', '스탯 점']].map(([k, t]) => `<span>${t7Canvas('t7leg', k)}${t}</span>`).join('')}<small>노드에 마우스를 올리면 설명이 나와요</small></div>`;
   // 장착 칸 (순서 = 시전 순서) + 궁극기 칸
   const slots = [];
   for (let i = 0; i < 4; i++) {
@@ -186,8 +186,8 @@ function viewTree7() {
       const sub = r ? (n.lane === 'a' || n.lane === 'b' || n.lane === 'k' ? LN[n.lane].sub : '') : `${n.tier}차 전직`;
       return `<button class="t7n hub ${r ? 'got' : 'lock'}" style="left:${x}px;top:${y}px;--c:#e8545c" data-action="t7-tap" data-id="${n.id}" aria-label="${hubName(n.id)}">${t7Canvas('t7node', n.id)}<i class="rk">${hubName(n.id)}${sub ? `<small>${sub}</small>` : ''}</i></button>`;
     }
-    if (t7SatOf(n)) { const u = n.t === 'look' ? `${'★'.repeat(n.st)} ${t7LookName(T7_BY[n.of], n.st)}` : t7U(n.id).n; return `<button class="t7n sat ${n.t} ${st}" style="left:${x}px;top:${y}px;--c:${col}" data-action="t7-tap" data-id="${n.id}" title="${u}" aria-label="${u}">${t7Canvas('t7node', n.id)}</button>`; }
-    if (n.t === 'stat') return `<button class="t7n stat ${st}" style="left:${x}px;top:${y}px" data-action="t7-tap" data-id="${n.id}" title="${T7_STATN[Object.keys(n.fx.stat)[0]]}" aria-label="${T7_STATN[Object.keys(n.fx.stat)[0]]}">${t7Canvas('t7node', n.id)}</button>`;
+    if (t7SatOf(n)) { const u = n.t === 'look' ? `${t7U(n.of).n} 모습 ${r}/${t7Max(n)}` : t7U(n.id).n; return `<button class="t7n sat ${n.t} ${st}" style="left:${x}px;top:${y}px;--c:${col}" data-action="t7-tap" data-id="${n.id}" aria-label="${u}">${t7Canvas('t7node', n.id)}${n.t === 'look' ? `<i class="rk lk">${'★'.repeat(r)}${'☆'.repeat(t7Max(n) - r)}</i>` : ''}</button>`; }
+    if (n.t === 'stat') return `<button class="t7n stat ${st}" style="left:${x}px;top:${y}px" data-action="t7-tap" data-id="${n.id}" aria-label="${T7_STATN[Object.keys(n.fx.stat)[0]]}">${t7Canvas('t7node', n.id)}</button>`;
     const b = skill && r > 0 && t7CanAdd(n.id) ? '+' : 0, sub = skill && r ? `Lv${r}${t7StageMax(n.sk) ? ' ' + '★'.repeat(t7StageMax(n.sk)) : ''}` : n.tier === 3 && n.t === 'key' ? '3차' : '';
     const tag = n.free ? `<span class="t7tag">${n.t === 'ult' ? '3차' : '시작'}</span>` : '';
     return `<button class="t7n ${n.t} ${st}${t7Ui.sel === n.id ? ' sel' : ''}" style="left:${x}px;top:${y}px;--c:${col}" data-action="t7-tap" data-id="${n.id}" aria-label="${t7U(n.id).n}">${t7Canvas('t7node', n.id)}${tag}${b ? `<span class="t7badge">${b}</span>` : ''}<i class="rk">${t7Look(n)}${sub ? `<small>${sub}</small>` : ''}</i></button>`;
@@ -216,9 +216,10 @@ function viewTree7Detail() {
     <small class="t7note">Lv 마다 위력 +${Math.round(R.pow * 100)}% · 쿨 −${Math.round(R.cd * 100)}% — 모습은 바뀌지 않아요${n.free && !t7S().rk[id] ? ' · 1Lv 은 공짜' : ''}</small></div></div>`;
   // ② 모습
   const sk = n.sk, maxSt = t7StageMax(sk), use = t7Stage(sk);
-  const cards = [`<div class="t7card base${r ? ' got' : ''}"><b>기본 · ${t7LookName(n, 0)}</b><small>${t7LookDesc(n, 0)}</small></div>`].concat((T7_LOOKS[id] || []).map((l) => {
-    const got = t7Rank(l.id) > 0, w = got ? '' : t7Why(l), can = t7CanAdd(l.id);
-    return `<span class="t7arrow">→</span><button class="t7card ${got ? 'got' : can ? 'can' : 'lock'}${rd(can)}" data-action="t7-add" data-id="${l.id}" ${can ? '' : 'disabled'}><b>${'★'.repeat(l.st)} ${t7LookName(n, l.st)}</b><small>${t7LookDesc(n, l.st) || '그림·타격 범위가 커진다'}</small><small>${got ? '✓ 찍음' : `🌟 ${t7Cost(l)}`}${w ? ` · <span class="t7why">${w}</span>` : ''}</small></button>`;
+  const L7 = T7_LOOK[id], lr = t7Rank(L7.id), lmax = t7Max(L7);
+  const cards = [`<div class="t7card base${r ? ' got' : ''}"><b>기본 · ${t7LookName(n, 0)}</b><small>${t7LookDesc(n, 0)}</small></div>`].concat(Array.from({ length: lmax }, (_, i) => {
+    const st = t7LookSt(L7, i + 1), got = lr > i, next = lr === i, can = next && t7CanAdd(L7.id), w = got ? '' : next ? t7Why(L7) : '앞 모습 먼저';
+    return `<span class="t7arrow">→</span><button class="t7card ${got ? 'got' : can ? 'can' : 'lock'}${rd(can)}" data-action="t7-add" data-id="${L7.id}" ${can ? '' : 'disabled'}><b>${'★'.repeat(st)} ${t7LookName(n, st)}</b><small>${t7LookDesc(n, st) || '그림·타격 범위가 커진다'}</small><small>${got ? '✓ 찍음' : `🌟 ${t7Cost(L7)}`}${w ? ` · <span class="t7why">${w}</span>` : ''}</small></button>`;
   })).join('');
   const stageCtl = maxSt ? `<span class="srem" title="전투에 쓸 모습 — 찍은 모습 안에서 고르고, 위력·쿨은 그대로">쓸 모습
       <button data-action="t7-use" data-sk="${sk}" data-s="${use - 1}" ${use > 0 ? '' : 'disabled'}>‹</button><span class="stars">${[1, 2, 3].map((i) => `<i class="${i <= maxSt ? (i <= use ? 'on' : 'have') : 'lock'}">${i <= maxSt ? '★' : '☆'}</i>`).join('')}</span>
@@ -246,18 +247,88 @@ function paintTree7(root) {
   wrap.onscroll = () => { t7Ui.scroll = wrap.scrollLeft; };
   const go = () => {
     root.querySelectorAll('canvas[data-t7node]').forEach((cv) => {
-      const n = T7_BY[cv.dataset.t7node], k = n.t === 'hub' || n.t === 'stat' || n.t === 'look' ? 2 : n.t === 'mod' || n.t === 'uvar' ? 1.1 : cv.classList.contains('big') ? 2 : n.t === 'key' ? 1.8 : 2.2;
+      const n = T7_BY[cv.dataset.t7node], k = n.t === 'stat' ? 2.6 : n.t === 'hub' || n.t === 'look' ? 2 : n.t === 'mod' || n.t === 'uvar' ? 1.1 : cv.classList.contains('big') ? 2 : n.t === 'key' ? 1.8 : 2.2;
       if (n.t === 'hub') TreeArt.paint(cv, 'hub', null, t7Rank(n.id) > 0 ? 'got' : 'lock', n.lane);
       else if (n.t === 'stat') TreeArt.paint(cv, 'dot', null, t7State(n));
-      else if (n.t === 'look') TreeArt.paint(cv, 'look', null, t7State(n), t7ArtLane(T7_BY[n.of]), n.st);
+      else if (n.t === 'look') TreeArt.paint(cv, 'look', null, t7State(n), t7ArtLane(T7_BY[n.of]), 1);
       else TreeArt.paint(cv, n.t, t7Icon(n.id), t7State(n), t7ArtLane(n), n.slot ? t7Rank(n.id) : 0, n.slot ? t7Max(n) : 1);
       cv.style.width = cv.width * k + 'px'; cv.style.height = cv.height * k + 'px';
     });
     root.querySelectorAll('canvas[data-t7icon]').forEach((cv) => { TreeArt.paintIcon(cv, cv.dataset.t7icon); cv.style.width = cv.style.height = '28px'; });
+    root.querySelectorAll('canvas[data-t7leg]').forEach((cv) => {
+      const k = cv.dataset.t7leg;
+      if (k === 'stat') TreeArt.paint(cv, 'dot', null, 'got');
+      else if (k === 'look') TreeArt.paint(cv, 'look', null, 'got', 'a', 2);
+      else TreeArt.paint(cv, k, k === 'active' ? t7Icon('slash') : k === 'mod' ? 's_twin' : k === 'key' ? 'k_blade' : null, 'got', k === 'hub' ? 'b' : 'c', 1, 5);
+      const z = k === 'stat' ? 1.4 : k === 'look' ? 1.3 : 0.8;
+      cv.style.width = cv.width * z + 'px'; cv.style.height = cv.height * z + 'px';
+    });
   };
+  // 설명창: 판 노드에 마우스를 올리면 (터치는 누르면 바로 찍혀서 아래 상세·토스트로)
+  const board = root.querySelector('.t7board');
+  if (board) {
+    board.onmouseover = (e) => { const b = e.target.closest('.t7n'); if (b) t7TipShow(b); };
+    board.onmouseout = (e) => { if (!e.relatedTarget || !e.relatedTarget.closest || e.relatedTarget.closest('.t7n') !== e.target.closest('.t7n')) t7TipHide(); };
+  }
+  t7TipHide();
   go();
   TreeArt.ready().then(go);   // 아이콘 시트를 처음 불러오는 중이면 다 받은 뒤 한 번 더
 }
+// ── 설명창 (모든 노드) ── 무엇인지 · 하는 일 · 지금 상태 · 누르면 무엇이 되는지
+function t7Tip(n) {
+  const u = t7U(n.id), r = t7Rank(n.id), why = t7Why(n), can = t7CanAdd(n.id), c = t7Cost(n);
+  let head = '', kind = '', body = '', act = '';
+  if (n.t === 'hub') {
+    const L = t7Lane()[n.lane];
+    head = { hub_c: '시작 허브', hub_f: '💫 융합 허브', hub_u: '★ 궁극 허브' }[n.id] || `${L ? L.name.replace(/ 갈래$/, '') : ''} 허브`;
+    kind = '허브 — 찍는 노드가 아니라 길목';
+    body = { hub_c: '메인 스킬과 기본 스탯이 모여 있어요. 메인 스킬은 1Lv 이 공짜예요.', hub_f: '두 줄의 둘째 스킬을 모두 배우면 그 둘을 합친 융합 스킬이 열려요.', hub_u: '3차 전직하면 궁극기가 1Lv 공짜로 찍혀요. 궁극기 변형은 셋 중 하나만.' }[n.id]
+      || `이 직업의 싸움 방식 하나. 스킬 2개와 키스톤이 여기서 뻗어요.${L ? ` ${L.sub}` : ''}`;
+    act = r ? '✓ 열림' : `🔒 ${n.tier}차 전직하면 열려요`;
+    return { head, kind, body, act };
+  }
+  if (n.t === 'stat') {
+    head = `스탯 · ${T7_STATN[Object.keys(n.fx.stat)[0]]}`; kind = '스탯 — 한 번 찍으면 끝';
+    body = '늘 적용되는 능력치예요.';
+  } else if (n.t === 'look') {
+    const p = T7_BY[n.of];
+    const mx = t7Max(n), cur = t7LookSt(n, r), nxt = r < mx ? t7LookSt(n, r + 1) : 0;
+    head = `${t7U(p.id).n} 모습 ${'★'.repeat(r)}${'☆'.repeat(mx - r)}`; kind = `모습 — 누를 때마다 ★ 하나 · 칸마다 🌟 ${t7Cost(n)}`;
+    body = `지금: ${cur ? `${'★'.repeat(cur)} ${t7LookName(p, cur)}` : `기본 · ${t7LookName(p, 0)}`}${nxt ? `<br>다음: <b class="t7nx">${'★'.repeat(nxt)} ${t7LookName(p, nxt)}</b> — ${t7LookDesc(p, nxt) || '그림·타격 범위가 커진다'}` : ''}<br><small>시전 그림·타격 범위만 바뀌고 위력은 그대로예요. 마지막 모습은 위력 Lv${t7Max(p)} 필요.</small>`;
+    act = r >= mx ? '✓ 모습 끝까지' : t7CanAdd(n.id) ? `누르면 ${'★'.repeat(nxt)} 모습 · 🌟 ${t7Cost(n)}` : `🔒 ${why}`;
+    return { head, kind, body, act };
+  } else if (n.t === 'mod' || n.t === 'uvar') {
+    const p = T7_BY[n.req[0]], other = T7_NODES.filter((x) => x.id !== n.id && ((n.pair && x.pair === n.pair) || (n.t === 'uvar' && x.t === 'uvar')));
+    head = u.n; kind = `${n.t === 'uvar' ? '궁극기 변형' : '변형'} — ${t7U(p.id).n}`;
+    body = `${u.d || ''}${other.length ? `<br><small>${other.map((x) => t7U(x.id).n).join(' · ')} 와 ${other.length > 1 ? '셋 중 하나' : '둘 중 하나'}만 (초기화하면 바꿀 수 있어요)</small>` : ''}`;
+  } else if (n.t === 'key') {
+    head = u.n; kind = `키스톤${n.tier === 3 ? ' (3차)' : ''}`;
+    body = `${u.d || ''}${u.cost ? `<br><span class="t7cost">대가: ${u.cost}</span>` : ''}`;
+  } else {   // 스킬 (액티브·융합·궁극기)
+    const mx = t7Max(n), R = n.t === 'fusion' ? T7_FUSE : T7_RANK, L = Math.max(1, r);
+    head = r ? t7Look(n) : u.n; kind = `${n.t === 'fusion' ? '융합 스킬' : n.t === 'ult' ? '궁극기' : n.free ? '메인 스킬' : '스킬'} · Lv ${r}/${mx}`;
+    body = `${u.d || ''}<br><small>위력 ×${(1 + R.pow * (L - 1)).toFixed(2)} · 쿨 ×${(1 - R.cd * (L - 1)).toFixed(2)} — Lv 마다 위력 +${Math.round(R.pow * 100)}% · 쿨 −${Math.round(R.cd * 100)}%. 모습(◆)·변형(●)은 둘레 노드로 찍어요.</small>`;
+    act = r >= mx ? '✓ 최대 Lv' : can ? `누르면 ${r ? '위력 +1 Lv' : '배우기'} · 🌟 ${c}` : `🔒 ${why}`;
+    return { head, kind, body, act };
+  }
+  act = r ? '✓ 찍음' : can ? `누르면 찍기 · 🌟 ${c}` : `🔒 ${why}`;
+  return { head, kind, body, act };
+}
+function t7TipShow(b) {
+  const n = T7_BY[b.dataset.id];
+  if (!n) return;
+  let el = document.getElementById('t7tip');
+  if (!el) { el = document.createElement('div'); el.id = 't7tip'; el.className = 't7tip'; document.body.appendChild(el); }
+  const t = t7Tip(n);
+  el.innerHTML = `<b>${t.head}</b><small>${t.kind}</small><p>${t.body}</p><div class="t7tipact${t.act.startsWith('🔒') ? ' lock' : t.act.startsWith('✓') ? ' got' : ''}">${t.act}</div>`;
+  el.style.display = 'block';
+  const r = b.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2, y = r.top - h - 8;
+  if (y < 4) y = r.bottom + 8;
+  x = Math.max(4, Math.min(innerWidth - w - 4, x));
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+}
+function t7TipHide() { const el = document.getElementById('t7tip'); if (el) el.style.display = 'none'; }
 // 찍기 공통 (판 누르기 · 상세 카드). 이번 캠프 기록(s.log)에 쌓아 ↩ 되돌리기가 마지막 것부터 되돌린다
 function t7Buy(id) {
   const n = T7_BY[id], before = t7Rank(id);
@@ -266,7 +337,7 @@ function t7Buy(id) {
   s.auto = false; s.moved = null;   // 직접 찍었으니 자동 찍기 끝 (src/tree7.js t7AutoTick)
   (s.log = s.log || []).push(id);
   const u = t7U(id);
-  if (n.t === 'look') toast(`✨ ${t7U(n.of).n} — 모습이 「${t7LookName(T7_BY[n.of], n.st)}」로 바뀌었어요`, 4000);
+  if (n.t === 'look') toast(`✨ ${t7U(n.of).n} — 모습이 「${t7LookName(T7_BY[n.of], t7LookSt(n, before + 1))}」로 바뀌었어요`, 4000);
   else if (!before && (n.t === 'active' || n.t === 'fusion')) toast(`✨ ${u.n} 배움${s.eq.includes(n.sk) ? ' — 장착 칸에 넣었어요' : ' — 장착 칸이 모자라요. 배운 스킬에서 눌러 바꿔 끼우세요'}`, 4000);
   else if (n.slot) toast(`${u.n} 위력 Lv${before + 1}`, 2000);
   else if (n.t === 'stat') toast(`· ${T7_STATN[Object.keys(n.fx.stat)[0]]}`, 1500);
@@ -281,7 +352,7 @@ const T7_ACTIONS = ({
     if (n.t === 'hub') { if (!(t7Rank(id) > 0)) toast(`🔒 ${n.tier}차 전직하면 열려요`, 2500); return; }
     if (n.t !== 'stat') t7Ui.sel = sat || id;   // 위성을 누르면 그 스킬 상세가 열린다
     if (t7CanAdd(id)) { t7Buy(id); return; }
-    if ((n.t === 'stat' || sat) && !(t7Rank(id) > 0)) toast(`🔒 ${t7U(sat || id).n && sat ? (n.t === 'look' ? t7LookName(T7_BY[sat], n.st) : t7U(id).n) + ' — ' : ''}${t7Why(n) || '찍을 수 없어요'}`, 2500);
+    if ((n.t === 'stat' || sat) && (n.t === 'look' ? t7Rank(id) < t7Max(n) : !(t7Rank(id) > 0))) toast(`🔒 ${sat ? (n.t === 'look' ? `${t7U(sat).n} 모습` : t7U(id).n) + ' — ' : ''}${t7Why(n) || '찍을 수 없어요'}`, 2500);
   },
   't7-add': (el) => { t7Buy(el.dataset.id); },
   // 되돌리기: 이번 캠프에서 찍은 것을 마지막 것부터 (다른 것이 기대고 있으면 못 뺀다)

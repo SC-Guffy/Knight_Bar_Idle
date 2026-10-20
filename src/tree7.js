@@ -20,10 +20,11 @@ const T7_PICK_URL = typeof location !== 'undefined' && /[?&]t7=1(&|$)/.test(loca
 // 종류별 비용·최대 칸 (스펙 "노드 종류·비용")
 // 2안 (docs/specs/skill-tree-v3.md): 스킬 Lv = 위력·쿨만 (🌟1, 융합 🌟2) · 모습(look)은 스킬 안 ★ 카드 · 스탯은 길 위의 점(한 번이면 끝)
 const T7_SPEC = {
-  stat: { cost: 1, max: 1 }, active: { cost: 1, max: 5 }, mod: { cost: 4, max: 1 }, key: { cost: 7, max: 1 },
-  ult: { cost: 1, max: 5 }, fusion: { cost: 2, max: 3 }, uvar: { cost: 6, max: 1 }, look: { cost: 2, max: 1 }, hub: { cost: 0, max: 0 },
+  stat: { cost: 3, max: 1 }, active: { cost: 1, max: 5 }, mod: { cost: 4, max: 1 }, key: { cost: 7, max: 1 },
+  ult: { cost: 1, max: 5 }, fusion: { cost: 2, max: 3 }, uvar: { cost: 6, max: 1 }, look: { cost: 2, max: 3 }, hub: { cost: 0, max: 0 },
 };
 const t7Cost = (n) => n.cost || T7_SPEC[n.t].cost;
+const t7MaxN = (n) => n.max || T7_SPEC[n.t].max;   // 노드별 최대 칸 (융합 모습은 2)
 // 액티브·궁극기 칸 → 위력·쿨 배수, 융합 칸 → 배수
 const T7_RANK = { pow: 0.15, cd: 0.06 }, T7_FUSE = { pow: 0.25, cd: 0.08 };
 // 전체 위력 눈금: 트리 스킬 위력 × T7_TUNE.pow (봇으로 지금 시스템과 진행 속도를 맞춘 값, docs/specs/skill-tree-swordsaint.md 진행 기록)
@@ -50,22 +51,12 @@ const T7_NODES = [
   { id: 's_twin', t: 'mod', lane: 'c', tier: 1, req: ['slash'], fx: { shape: 'twin' } },
   { id: 'k_wave', t: 'mod', lane: 'c', tier: 1, req: ['slash'], fx: { shape: 'slashWave' } },   // 참격파: 메인 스킬을 바꾸는 효과라 검기 줄 → 메인 스킬 변형으로 (2안)
   { id: 'k_blade', t: 'key', lane: 'c', tier: 1, req: ['hub_c'], fx: { rule: 'blade', powAll: 0.9, evAll: 1.18 } },   // 평타 3타마다 모든 스킬 쿨 −0.5초 (t7OnBasic)
-  // 스탯 점: 허브에서 뻗는 사슬 (한 번이면 끝). 시작 허브 9개(사슬 3 × 3)는 1차부터, 줄 허브 6개(2개씩)는 2차부터 — 1차 때 찍을 수 있는 수가 옛 1차 길과 같게. 합계는 옛 스탯 15칸과 같다
-  { id: 'c_atk1', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { atk: 0.02 } } },
-  { id: 'c_atk2', t: 'stat', lane: 'c', tier: 1, req: ['c_atk1'], fx: { stat: { atk: 0.02 } } },
-  { id: 'c_spd1', t: 'stat', lane: 'c', tier: 1, req: ['c_atk2'], fx: { stat: { aspd: 0.02 } } },
-  { id: 'c_crit1', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { crit: 0.015 } } },
-  { id: 'c_crit2', t: 'stat', lane: 'c', tier: 1, req: ['c_crit1'], fx: { stat: { crit: 0.015 } } },
-  { id: 'c_atk3', t: 'stat', lane: 'c', tier: 1, req: ['c_crit2'], fx: { stat: { atk: 0.02 } } },
-  { id: 'c_hp1', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { hp: 0.03 } } },
-  { id: 'c_hp2', t: 'stat', lane: 'c', tier: 1, req: ['c_hp1'], fx: { stat: { hp: 0.03 } } },
-  { id: 'c_def1', t: 'stat', lane: 'c', tier: 1, req: ['c_hp2'], fx: { stat: { guard: 0.02 } } },
-  { id: 'c_spd2', t: 'stat', lane: 'c', tier: 2, req: ['hub_a'], fx: { stat: { aspd: 0.02 } } },
-  { id: 'c_spd3', t: 'stat', lane: 'c', tier: 2, req: ['c_spd2'], fx: { stat: { aspd: 0.02 } } },
-  { id: 'c_crit3', t: 'stat', lane: 'c', tier: 2, req: ['hub_b'], fx: { stat: { crit: 0.015 } } },
-  { id: 'c_def2', t: 'stat', lane: 'c', tier: 2, req: ['c_crit3'], fx: { stat: { guard: 0.02 } } },
-  { id: 'c_hp3', t: 'stat', lane: 'c', tier: 2, req: ['hub_k'], fx: { stat: { hp: 0.03 } } },
-  { id: 'c_def3', t: 'stat', lane: 'c', tier: 2, req: ['c_hp3'], fx: { stat: { guard: 0.02 } } },
+  // 스탯 점 (4안, 노드 줄이기 2026-10-20): 종류마다 하나, 🌟3 에 옛 점 3개 몫. 시작 허브 3개는 1차부터, 연타·검기 허브에 하나씩(2차)
+  { id: 'c_atk', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { atk: 0.06 } } },
+  { id: 'c_crit', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { crit: 0.045 } } },
+  { id: 'c_hp', t: 'stat', lane: 'c', tier: 1, req: ['hub_c'], fx: { stat: { hp: 0.09 } } },
+  { id: 'c_spd', t: 'stat', lane: 'c', tier: 2, req: ['hub_a'], fx: { stat: { aspd: 0.06 } } },
+  { id: 'c_def', t: 'stat', lane: 'c', tier: 2, req: ['hub_k'], fx: { stat: { guard: 0.06 } } },
 
   { id: 'gale', t: 'active', lane: 'a', tier: 2, req: ['hub_a'], sk: null, slot: 1 },
   { id: 'a_more', t: 'mod', lane: 'a', tier: 2, req: ['gale'], fx: { shape: 'more' } },
@@ -101,14 +92,14 @@ const T7_NODES = [
   { id: 'f_bk', t: 'fusion', lanes: ['b', 'k'], tier: 2, req: ['hub_f'], reqAll: ['flash', 'storm'], sk: null, slot: 1 },
   { id: 'f_ak', t: 'fusion', lanes: ['a', 'k'], tier: 2, req: ['hub_f'], reqAll: ['whirl', 'storm'], sk: null, slot: 1 },
 ];
-// 모습 노드: 스킬(액티브·궁극기 ★·★★·★★★ / 융합 ★★·★★★)마다 <스킬>_s<단계>. 앞 모습이 있어야 다음, 마지막 모습만 그 스킬 최대 Lv. 비용 🌟2 (융합 ★★★ 🌟3)
-const T7_LOOKS = {};
+// 모습 노드 (4안): 스킬마다 하나 <스킬>_look — 칸 = ★ 단계 (액티브·궁극기 ★~★★★ 3칸, 융합 ★★~★★★ 2칸 = st0 1 만큼 밀림). 칸마다 🌟2, 마지막 칸만 그 스킬 최대 Lv
+const T7_LOOK = {};
 for (const n of T7_NODES.filter((x) => x.slot)) {
-  const sts = n.t === 'fusion' ? [2, 3] : [1, 2, 3];
-  T7_LOOKS[n.id] = sts.map((st, i) => ({ id: `${n.id}_s${st}`, t: 'look', lane: n.lane, tier: n.tier, of: n.id, st, last: i === sts.length - 1,
-    req: [i ? `${n.id}_s${sts[i - 1]}` : n.id], ...(n.t === 'fusion' && st === 3 ? { cost: 3 } : {}) }));
+  const f = n.t === 'fusion';
+  T7_LOOK[n.id] = { id: `${n.id}_look`, t: 'look', lane: n.lane, tier: n.tier, of: n.id, req: [n.id], ...(f ? { max: 2, st0: 1 } : {}) };
 }
-for (const ls of Object.values(T7_LOOKS)) T7_NODES.push(...ls);
+T7_NODES.push(...Object.values(T7_LOOK));
+const t7LookSt = (l, r) => (r > 0 ? r + (l.st0 || 0) : 0);   // 모습 노드 칸 → ★ 단계
 const T7_BY = Object.fromEntries(T7_NODES.map((n) => [n.id, n]));
 const T7_BY_SKILL = {};   // 실제 스킬 id → 노드 (지금 캐릭터의 줄기, t7Sync)
 const T7_SLOTS_SK = T7_NODES.filter((n) => n.slot).map((n) => n.id);   // 스킬 칸 노드 id
@@ -181,11 +172,11 @@ const t7LaneOf = (sk) => { t7L(); return T7_BY_SKILL[sk] ? T7_BY_SKILL[sk].lane 
 const T7_SLOTS = [null, null, { tier: 2, lv: 50, gold: 30 }, { lv: 80, mana: 300 }, { lv: 120, mana: 1500 }];
 const T7_RESET_GOLD = 100;   // 전체 초기화 = 최고 스테이지 잡몹 골드 × 100 (원정 약 20분)
 
-function freshT7() { return { v: 3, pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {}, auto: true, free: 1 }; }   // auto: 직접 찍기 전까지 추천 순서로 자동 · free: 첫 초기화 무료   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
+function freshT7() { return { v: 4, pick: T7_PICK_URL, rk: {}, eq: [], slots: 1, use: {}, camp: {}, auto: true, free: 1 }; }   // auto: 직접 찍기 전까지 추천 순서로 자동 · free: 첫 초기화 무료   // pick: 1차 검사 단계부터 시제품 트리를 쓴다   // camp: 이번 캠프에서 새로 찍은 칸 (무료 되돌리기)
 const t7S = () => {
   if (S.cls !== t7SyncedCls) t7Sync();
   if (!S.t7) S.t7 = freshT7();
-  if (S.t7.v !== 3) t7Migrate(S.t7);
+  if (S.t7.v !== 4) t7Migrate(S.t7);
   return S.t7;
 };
 // 공짜 칸 스킬(메인 스킬)이 장착 칸 밖에 있으면 맨 앞에 넣는다 (전직·초기화·옮기기 뒤 빈 손으로 원정 가지 않게)
@@ -196,41 +187,32 @@ function t7FixEq() {
 }
 // 0.27 세이브 → 2안 (docs/specs/skill-tree-v3.md "옮기기"): 칸 → 위력 Lv + 그 칸에서 열렸던 모습, 스탯 칸 → 점.
 //  규칙에 안 맞으면 길 점을 남은 포인트로 채워 보고, 그래도 안 되면 전부 돌려준다(+ 무료 초기화 · 자동 찍기)
-const T7_OLD_STAT = { c_atk: 3, c_hp: 3, c_spd: 3, c_crit: 3, c_def: 3 };   // 0.27 스탯 노드 (칸 3)
-// 0.28.0~0.28.2 (v2) → 3안: 스탯 점 사슬이 허브별로 바뀌어 찍은 점 수(종류별)를 새 사슬 앞에서부터 다시 깐다. 나머지 노드 id·비용은 같다
+// 세이브 옮기기 → v4 (4안: 스탯 종류당 하나 · 모습 스킬당 하나). 옛 판마다 "스탯 종류별 찍은 수"와 "스킬별 ★ 단계"를 뽑아 새 노드로 다시 찍는다
+//  v1 (0.27): 칸 → 위력 Lv + 그 칸에서 열렸던 ★ · v2·v3 (0.28.0~0.28.4): 스탯 점 c_atk1… · 모습 <스킬>_s1~3. 스탯은 2개 이상 찍었던 종류만 (🌟3)
 function t7Migrate(s) {
   const from = s.v || 1;
-  s.v = 3;
-  const old = s.rk || {};
-  let rk = {};
+  s.v = 4;
+  const old = s.rk || {}, rk = {};
   if (!Object.keys(old).length) { s.rk = {}; t7FixEq(); return; }
-  const want = {};   // 스탯 종류별 찍은 점 수
-  if (from < 2) {
-    for (const [k, n] of Object.entries(T7_OLD_STAT)) want[k] = Math.min(3, old[k] || 0);
-    for (const n of T7_NODES) {
-      const r = old[n.id] || 0;
-      if (!r || n.t === 'stat' || n.t === 'look' || n.t === 'hub') continue;
-      if (!n.slot) { rk[n.id] = r; continue; }
-      const keep = r - t7Free(n);
-      if (keep > 0) rk[n.id] = keep;
-      const st = n.t === 'fusion' ? T7_FUSE_STAGE_AT[Math.min(3, r)] : T7_STAGE_AT[Math.min(5, r)];
-      for (const l of T7_LOOKS[n.id]) if (l.st <= st) rk[l.id] = 1;
-    }
-  } else {
-    for (const [id, r] of Object.entries(old)) { const n = T7_BY[id]; if (!n || !r) continue; if (n.t === 'stat') { const k = id.replace(/\d$/, ''); want[k] = (want[k] || 0) + 1; } else rk[id] = r; }
+  const statN = {}, stage = {};
+  for (const [id, r] of Object.entries(old)) {
+    if (!r) continue;
+    const m = /^(c_[a-z]+)(\d)?$/.exec(id);
+    if (m) { statN[m[1]] = (statN[m[1]] || 0) + (from < 2 ? r : 1); continue; }
+    const lk = /^(.+)_s(\d)$/.exec(id);
+    if (lk) { stage[lk[1]] = Math.max(stage[lk[1]] || 0, +lk[2]); continue; }
+    const n = T7_BY[id];
+    if (!n || n.t === 'hub' || n.t === 'look') continue;
+    if (!n.slot || from >= 2) { rk[id] = Math.min(t7MaxN(n), r); continue; }
+    const keep = r - t7Free(n);   // v1 은 공짜 칸이 없었다
+    if (keep > 0) rk[id] = keep;
+    stage[id] = n.t === 'fusion' ? T7_FUSE_STAGE_AT[Math.min(3, r)] : T7_STAGE_AT[Math.min(5, r)];
   }
+  for (const [k, c] of Object.entries(statN)) if (c >= 2 && T7_BY[k]) rk[k] = 1;
+  for (const [sk, st] of Object.entries(stage)) { const l = T7_LOOK[sk]; if (l && st) rk[l.id] = Math.min(t7MaxN(l), st - (l.st0 || 0)); }
   s.rk = rk;
-  // 스탯 점 다시 깔기: 열린 점 중 아직 모자란 종류부터, 그다음 아무 열린 점 (총 개수는 같게)
-  let left = Object.values(want).reduce((a, b) => a + b, 0);
-  for (let g = 0; g < 40 && left > 0; g++) {
-    const open = T7_NODES.filter((n) => n.t === 'stat' && !rk[n.id] && t7Open(n));
-    const d = open.find((n) => want[n.id.replace(/\d$/, '')] > 0) || open[0];
-    if (!d) break;
-    rk[d.id] = 1; left--;
-    const k = d.id.replace(/\d$/, ''); if (want[k] > 0) want[k]--;
-  }
-  // 포인트가 넘치면 마지막 모습부터 뺀다 (모습 비용 때문에 다 찍은 스킬은 1 더 든다)
-  for (const l of T7_NODES.filter((x) => x.t === 'look' && x.last)) if (t7Spent() > t7Pts() && rk[l.id]) delete rk[l.id];
+  // 포인트가 넘치면 모습 마지막 칸부터 뺀다
+  for (const l of Object.values(T7_LOOK)) while (t7Spent() > t7Pts() && rk[l.id]) { rk[l.id]--; if (!rk[l.id]) delete rk[l.id]; }
   if (!t7Valid()) { s.rk = {}; s.eq = []; s.use = {}; s.free = 1; s.auto = true; s.moved = 'reset'; }
   else s.moved = 'ok';
   s.camp = {};
@@ -239,7 +221,7 @@ function t7Migrate(s) {
 }
 // 공짜 칸: 메인 스킬(1차부터)·궁극기(3차부터)는 1Lv 이 찍혀 있다 (저장된 rk 에는 없다 — 포인트를 안 쓴다)
 const t7Free = (n) => (n && n.free && t7Tier() >= n.tier ? 1 : 0);
-const t7Rank = (id) => { const n = T7_BY[id]; if (n && n.t === 'hub') return t7Open(n) ? 1 : 0; const r = t7S().rk[id] || 0; return n && n.free ? Math.min(T7_SPEC[n.t].max, r + t7Free(n)) : r; };   // 허브는 열렸으면 1
+const t7Rank = (id) => { const n = T7_BY[id]; if (n && n.t === 'hub') return t7Open(n) ? 1 : 0; const r = t7S().rk[id] || 0; return n && n.free ? Math.min(t7MaxN(n), r + t7Free(n)) : r; };   // 허브는 열렸으면 1
 const t7Pts = () => Math.max(0, S.level - 1);
 const t7Spent = () => { const rk = t7S().rk; return T7_NODES.reduce((a, n) => a + (rk[n.id] || 0) * t7Cost(n), 0); };
 const t7Left = () => t7Pts() - t7Spent();
@@ -254,10 +236,11 @@ function t7Open(n) {
   if (n.reqAll) return n.reqAll.every((r) => t7Rank(r) > 0);
   if (n.t === 'uvar' && T7_NODES.some((x) => x.t === 'uvar' && x.id !== n.id && t7Rank(x.id) > 0)) return false;
   if (t7PairTaken(n)) return false;
-  if (n.last && t7Rank(n.of) < T7_SPEC[T7_BY[n.of].t].max) return false;   // 마지막 모습은 그 스킬 최대 Lv
+  if (n.t === 'look' && (t7S().rk[n.id] || 0) >= t7MaxN(n) && t7Rank(n.of) < t7MaxN(T7_BY[n.of])) return false;   // 마지막 모습은 그 스킬 최대 Lv (찍은 뒤 스킬 Lv 을 되돌리지 못하게)
   return !n.req.length || n.req.some((r) => t7Rank(r) > 0);
 }
-const t7CanAdd = (id) => { const n = T7_BY[id]; return !!n && t7On() && t7Open(n) && t7Rank(id) < T7_SPEC[n.t].max && t7Left() >= t7Cost(n); };
+const t7LookLastLock = (n) => n.t === 'look' && t7Rank(n.id) + 1 >= t7MaxN(n) && t7Rank(n.of) < t7MaxN(T7_BY[n.of]);   // 다음 칸이 마지막 모습인데 스킬이 최대 Lv 이 아님
+const t7CanAdd = (id) => { const n = T7_BY[id]; return !!n && t7On() && t7Open(n) && t7Rank(id) < t7MaxN(n) && !t7LookLastLock(n) && t7Left() >= t7Cost(n); };
 const t7Valid = () => T7_NODES.every((n) => !(t7Rank(n.id) > 0) || t7Open(n)) && t7Spent() <= t7Pts();
 // 한 칸 찍기. 새 액티브·융합이면 빈 칸에 자동 장착
 function t7Add(id) {
@@ -392,7 +375,7 @@ function t7Cd(sk) {
 // 모습 단계 (0~3): 칸에서 정해지고, 캠프에서 낮은 모습을 골라 쓸 수 있다 (S.t7.use)
 // 융합은 3칸이 끝이라 액티브 표(5칸)로는 ★ 까지만 갔다 → 1칸 기본 · 2칸 ★★ · 3칸 ★★★ (연출이 ★★★ 까지 커지게)
 // 2안: 모습은 칸이 아니라 찍은 모습 노드(★·★★·★★★)로 정해진다
-const t7StageMax = (sk) => { const n = t7NodeOf(sk); return n && T7_LOOKS[n.id] ? T7_LOOKS[n.id].reduce((a, l) => (t7Rank(l.id) > 0 ? Math.max(a, l.st) : a), 0) : 0; };
+const t7StageMax = (sk) => { const n = t7NodeOf(sk), l = n && T7_LOOK[n.id]; return l ? t7LookSt(l, t7Rank(l.id)) : 0; };
 function t7Stage(sk) {
   const max = t7StageMax(sk), use = t7S().use[sk];
   return use == null ? max : Math.max(0, Math.min(max, use));
@@ -448,19 +431,19 @@ function t7Shape(sk, k) {
 }
 
 // ── 봇·측정용: 빌드별 포인트 쓰기 순서 (dev/lifespan-bot.js · progress-bot.js --build) ──
-const T7_BUILDS = {   // 3안 노드 (스킬 이름이 한 번 나올 때마다 Lv +1 — 메인 스킬·궁극기는 공짜 1Lv 을 센다). 스탯 점은 🌟1 에 +2% 라 먼저 (자동 찍기 a 도 이 순서)
-  a: ['c_atk1', 'c_atk2', 'c_spd1', 'c_crit1', 'c_crit2', 'c_atk3', 'c_hp1', 'c_hp2', 'c_def1', 'slash', 'slash', 's_twin', 'c_spd2', 'c_spd3', 'gale', 'gale', 'slash_s1', 'gale', 'gale_s1', 'a_more', 'a_bleed',
-    'c_crit3', 'c_def2', 'whirl', 'whirl', 'whirl_s1', 'a_grow', 'gale', 'gale_s2', 'c_hp3', 'c_def3', 'iaido', 'iaido', 'flash', 'a_key', 'f_ab',
-    'whirl', 'whirl', 'whirl_s2', 'gale', 'gale_s3',
-    'ult', 'a_k3', 'uv_a', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_ab', 'f_ab', 'f_ab_s2', 'f_ab_s3', 'whirl', 'whirl_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3', 'k_blade'],
-  b: ['c_crit1', 'c_crit2', 'c_atk3', 'c_atk1', 'c_atk2', 'c_spd1', 'c_hp1', 'c_hp2', 'c_def1', 'slash', 'slash', 's_twin', 'c_crit3', 'c_def2', 'iaido', 'iaido', 'slash_s1', 'iaido', 'iaido_s1', 'b_exec', 'b_reset',
-    'c_spd2', 'c_spd3', 'flash', 'flash', 'flash_s1', 'b_after', 'iaido', 'iaido_s2', 'c_hp3', 'c_def3', 'gale', 'gale', 'whirl', 'b_key', 'f_ab',
-    'flash', 'flash', 'flash_s2', 'iaido', 'iaido_s3',
-    'ult', 'b_k3', 'uv_b', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_ab', 'f_ab', 'f_ab_s2', 'f_ab_s3', 'flash', 'flash_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3', 'k_blade'],
-  k: ['c_atk1', 'c_atk2', 'c_spd1', 'c_crit1', 'c_crit2', 'c_atk3', 'c_hp1', 'c_hp2', 'c_def1', 'slash', 'slash', 's_twin', 'c_hp3', 'c_def3', 'wave', 'wave', 'slash_s1', 'wave', 'wave_s1', 'k_pierce',
-    'c_spd2', 'c_spd3', 'storm', 'storm', 'storm_s1', 'k_split', 'wave', 'wave_s2', 'c_crit3', 'c_def2', 'iaido', 'iaido', 'flash', 'k_key', 'f_bk',
-    'storm', 'storm', 'storm_s2', 'wave', 'wave_s3',
-    'ult', 'k_k3', 'uv_k', 'ult', 'ult', 'ult', 'ult_s1', 'ult', 'ult_s2', 'ult_s3', 'f_bk', 'f_bk', 'f_bk_s2', 'f_bk_s3', 'storm', 'storm_s3', 'slash', 'slash', 'slash_s2', 'slash', 'slash_s3', 'k_wave', 'k_blade'],
+const T7_BUILDS = {   // 4안 노드 (스킬 이름이 한 번 나올 때마다 Lv +1 — 메인 스킬·궁극기는 공짜 1Lv 을 센다). 스탯은 🌟3 에 +6% 라 먼저 (자동 찍기 a 도 이 순서)
+  a: ['c_atk', 'c_spd', 'c_crit', 'c_hp', 'c_def', 'slash', 'slash', 's_twin', 'gale', 'gale', 'slash_look', 'gale', 'gale_look', 'a_more', 'a_bleed',
+    'whirl', 'whirl', 'whirl_look', 'a_grow', 'gale', 'gale_look', 'iaido', 'iaido', 'flash', 'a_key', 'f_ab',
+    'whirl', 'whirl', 'whirl_look', 'gale', 'gale_look',
+    'ult', 'a_k3', 'uv_a', 'ult', 'ult', 'ult', 'ult_look', 'ult', 'ult_look', 'ult_look', 'f_ab', 'f_ab', 'f_ab_look', 'f_ab_look', 'whirl', 'whirl_look', 'slash', 'slash', 'slash_look', 'slash', 'slash_look', 'k_blade'],
+  b: ['c_crit', 'c_atk', 'c_spd', 'c_hp', 'c_def', 'slash', 'slash', 's_twin', 'iaido', 'iaido', 'slash_look', 'iaido', 'iaido_look', 'b_exec', 'b_reset',
+    'flash', 'flash', 'flash_look', 'b_after', 'iaido', 'iaido_look', 'gale', 'gale', 'whirl', 'b_key', 'f_ab',
+    'flash', 'flash', 'flash_look', 'iaido', 'iaido_look',
+    'ult', 'b_k3', 'uv_b', 'ult', 'ult', 'ult', 'ult_look', 'ult', 'ult_look', 'ult_look', 'f_ab', 'f_ab', 'f_ab_look', 'f_ab_look', 'flash', 'flash_look', 'slash', 'slash', 'slash_look', 'slash', 'slash_look', 'k_blade'],
+  k: ['c_atk', 'c_spd', 'c_crit', 'c_hp', 'c_def', 'slash', 'slash', 's_twin', 'wave', 'wave', 'slash_look', 'wave', 'wave_look', 'k_pierce',
+    'storm', 'storm', 'storm_look', 'k_split', 'wave', 'wave_look', 'iaido', 'iaido', 'flash', 'k_key', 'f_bk',
+    'storm', 'storm', 'storm_look', 'wave', 'wave_look',
+    'ult', 'k_k3', 'uv_k', 'ult', 'ult', 'ult', 'ult_look', 'ult', 'ult_look', 'ult_look', 'f_bk', 'f_bk', 'f_bk_look', 'f_bk_look', 'storm', 'storm_look', 'slash', 'slash', 'slash_look', 'slash', 'slash_look', 'k_wave', 'k_blade'],
 };
 // 남은 포인트를 빌드 순서대로 쓴다 (못 찍는 건 건너뛰고, 순서를 다 돌면 남는 걸로 아무 노드나 싼 것부터). 장착 칸도 산다
 function t7AutoSpend(build = 'a', buy = true) {   // buy: 장착 칸도 산다 (봇) — 플레이어 자동 찍기는 재화를 안 쓴다
@@ -498,7 +481,7 @@ function t7PathCost() {
   return T7_NODES.reduce((a, n) => {
     const g = n.t === 'uvar' ? 'uvar' : n.pair;
     if (g) { if (seen.has(g)) return a; seen.add(g); }
-    return a + t7Cost(n) * (T7_SPEC[n.t].max - (n.free ? 1 : 0));
+    return a + t7Cost(n) * (t7MaxN(n) - (n.free ? 1 : 0));
   }, 0);
 }
 // 새 스킬의 연출: 3단계 전까지는 같은 계열 스킬의 연출을 빌려 쓴다 (skills.js 가 SKILL_FX 에 이어 붙인다)
@@ -512,7 +495,7 @@ const T7_GIM = {
   shield: { icon: '🛡️', name: '보호막', lane: 'a', pen: 0.45, cnt: { a_more: 0.35, whirl: 0.35, uv_a: 0.45, a_key: 0.15, f_ak: 0.15 }, tip: '연타 갈래 (난무 +3타·검무 회오리·만검)' },
   adds: { icon: '👥', name: '졸개', lane: 'k', pen: 0.45, cnt: { k_pierce: 0.35, storm: 0.35, k_split: 0.2, uv_k: 0.45, f_bk: 0.15, f_ak: 0.15 }, tip: '검기 갈래 (관통·검기 폭풍·분열·검우)' },
   enrage: { icon: '🔥', name: '광폭화', lane: 'b', pen: 0.35, cnt: { b_exec: 0.3, iaido: 0.2, flash: 0.3, uv_b: 0.45, b_key: 0.2 }, tip: '발도 갈래 (처형·일섬·섬광 베기·일도양단)' },
-  pool: { icon: '🩸', name: '장판', lane: 'c', pen: 0, cnt: { c_hp1: 0.5 / 3, c_hp2: 0.5 / 3, c_hp3: 0.5 / 3, c_def1: 0.5 / 3, c_def2: 0.5 / 3, c_def3: 0.5 / 3 }, tip: '체력·방어 스탯 점' },
+  pool: { icon: '🩸', name: '장판', lane: 'c', pen: 0, cnt: { c_hp: 0.5, c_def: 0.5 }, tip: '체력·방어 스탯' },
 };
 // 배치: 지역 안에서 중간 보스와 지역 보스의 답이 겹치고, 지역마다 답이 바뀐다
 const T7_WALLS = { 10: ['enrage'], 20: ['enrage', 'shield'], 30: ['adds'], 40: ['adds', 'pool'], 50: ['pool'], 60: ['pool', 'shield'],
@@ -543,7 +526,7 @@ function t7Counter(g) {
   for (const [id, w] of Object.entries(T7_GIM[g].cnt)) {
     const n = T7_BY[id], r = t7Rank(id);
     if (!r || (n.sk && n.t !== 'ult' && !s.eq.includes(n.sk))) continue;
-    c += w * r / T7_SPEC[n.t].max;   // 공짜 칸도 센다
+    c += w * r / t7MaxN(n);   // 공짜 칸도 센다
   }
   return Math.min(1, c);
 }

@@ -569,9 +569,9 @@
       c.fillStyle = d === m ? INK : d >= m - 2 ? (x + y < 2 * m ? hi : x + y === 2 * m ? mid : lo) : d === m - 3 ? INK : '#1d1928';
       c.fillRect(x, y, 1, 1);
     }
-    c.fillStyle = state === 'lock' ? '#5e5a78' : state === 'got' ? '#fff2b8' : '#ebe7dc';
-    const xs = st === 1 ? [6] : st === 2 ? [5, 7] : [4, 6, 8];
-    for (const x of xs) c.fillRect(x, 5, 1, 3);
+    // 가운데 작은 ★ (5×5) — 단계 수는 노드 아래 이름표(★·★★·★★★)로
+    c.fillStyle = state === 'lock' ? '#77708a' : state === 'got' ? '#fff2b8' : '#ebe7dc';
+    ['..#..', '#####', '.###.', '.#.#.'].forEach((row, yy) => [...row].forEach((ch, xx) => { if (ch === '#') c.fillRect(4 + xx, 4 + yy, 1, 1); }));
     return cv;
   }
   // 허브 (디아블로 4 식 줄기의 길목): 23×23 이중 마름모 — 바깥 테(상태색) · 안쪽 보석(줄 색, 잠기면 쇠색) · 가운데 빛점

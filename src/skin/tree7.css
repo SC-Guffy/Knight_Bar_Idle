@@ -82,3 +82,19 @@
 
 /* 귀환 보고: 보스 벽 돌파 (4단계) */
 .reason.t7-break { font-size: 16px; color: #ffe08a; text-shadow: 0 0 6px rgba(255, 200, 80, .6); text-align: center; padding: 6px 0; }
+
+/* 3안 직관 보강: 범례 줄 · 모습 ★ 이름표 · 마우스 설명창 */
+.t7legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 4px 0 2px; font-size: 11px; color: #a59cb8; }
+.t7legend span { display: inline-flex; align-items: center; gap: 4px; }
+.t7legend small { margin-left: auto; opacity: .8; }
+.t7n.look .rk.lk { font-size: 9px; color: #a59cb8; letter-spacing: -1px; top: calc(100% + 1px); }
+.t7n.look.got .rk.lk { color: #ffe08a; }
+.t7tip { position: fixed; z-index: 9999; display: none; max-width: 260px; padding: 7px 10px; font: 12px/1.45 Galmuri11, sans-serif; color: #ece6f6; background: #17141fee; border: 2px solid #0b0a14; box-shadow: 0 0 0 2px #4b3f66, 0 6px 14px #000a; pointer-events: none; }
+.t7tip b { display: block; font-size: 13px; color: #ffd257; }
+.t7tip > small { display: block; color: #a59cb8; font-size: 11px; }
+.t7tip p { margin: 5px 0; }
+.t7tip p small { color: #a59cb8; }
+.t7tipact { padding-top: 4px; border-top: 1px dashed #3a3348; color: #7dffb0; font-weight: 700; }
+.t7tipact.lock { color: #ffb35c; }
+.t7tipact.got { color: #ffe08a; }
+.t7tip p b { display: inline; font-size: inherit; }

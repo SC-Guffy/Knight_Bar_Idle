@@ -118,8 +118,9 @@ function run() {
     if (T7SIM && TREE7_CLS.includes(T.cls)) {
       S.t7 = freshT7(); S.t7.pick = true; S.t7.slots = 4;
       for (const n of T7_NODES) if (n.slot) {
-        S.t7.rk[n.id] = Math.min(T7_SPEC[n.t].max, [1, 2, 4, 5][st]);
-        for (const l of T7_LOOKS[n.id]) if (l.st <= st || (n.t === 'fusion' && st >= 1 && l.st === 2)) S.t7.rk[l.id] = 1;
+        S.t7.rk[n.id] = Math.min(t7MaxN(n), [1, 2, 4, 5][st]);
+        const l = T7_LOOK[n.id];
+        if (l && st) S.t7.rk[l.id] = Math.max(1, Math.min(t7MaxN(l), st - (l.st0 || 0)));   // 모습 노드 칸 = ★ 단계 (융합은 ★★ 부터)
       }
       for (const id of T7_SIM_MODS) if (T7_BY[id]) S.t7.rk[id] = 1;
     }
