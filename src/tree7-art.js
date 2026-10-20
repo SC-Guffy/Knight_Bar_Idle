@@ -552,7 +552,15 @@
   const SIZE = { active: [22, 22], fusion: [22, 22], ult: [26, 31], uvar: [22, 22], mod: [20, 20], key: [22, 22], stat: [18, 18] };
   // 노드 하나를 canvas 에 그린다 (canvas 크기를 도트 칸 수로 맞춘다 — 화면 크기는 CSS 로 정수배)
   //  kind: active|ult|fusion|uvar|mod|key|stat · icon: 아이콘 이름 · state: got|can|lock · lane · pips/max: 찍은 칸
+  // 스탯 점 (2안, docs/specs/skill-tree-v3.md): 아이콘 없는 9×9 도트 점 — 잠김 짙은 회색 · 찍을 수 있음 은테 · 찍음 연보라
+  function paintDot(cv, state) {
+    const g = 9; cv.width = cv.height = g; const c = cv.getContext('2d'); c.clearRect(0, 0, g, g);
+    const fill = state === 'got' ? '#c9b8ff' : state === 'can' ? '#5e5a78' : '#2b2838', rim = state === 'got' ? '#ebe7dc' : state === 'can' ? '#d8d2ee' : '#55516c';
+    for (let y = 0; y < g; y++) for (let x = 0; x < g; x++) { const d = Math.hypot(x - 4, y - 4); if (d > 4.4) continue; c.fillStyle = d > 3.5 ? INK : d > 2.6 ? rim : fill; c.fillRect(x, y, 1, 1); }
+    return cv;
+  }
   function paint(cv, kind, icon, state, lane, pips = 0, max = 1) {
+    if (kind === 'dot') return paintDot(cv, state);
     let w, h, frame, ix, iy, fy = 0;
     if (kind === 'active') { w = h = 22; frame = squareFrame(22, state, lane, pips, max); ix = iy = 4; }
     else if (kind === 'fusion') { w = h = 22; frame = fusionFrame(22, state, pips, max); ix = iy = 4; }

@@ -9,6 +9,16 @@ const c = makeGame();
 const lines = vm.runInContext('Object.keys(T7_LINES)', c);
 const todo = want.length ? want : lines;
 let bad = 0;
+// 2안 판 모양: 모든 노드가 시작점(공짜 칸 노드)에서 이어지는지 · 숫자 게이트(min)가 남지 않았는지 (docs/specs/skill-tree-v3.md)
+{
+  const e = vm.runInContext(`(() => {
+    const err = [], ok = new Set(T7_NODES.filter((n) => n.free).map((n) => n.id));
+    for (let g = 0; g < 30; g++) for (const n of T7_NODES) if (!ok.has(n.id) && ((n.reqAll || n.req).length && (n.reqAll || n.req)[n.reqAll ? 'every' : 'some']((r) => ok.has(r)))) ok.add(n.id);
+    for (const n of T7_NODES) { if (!ok.has(n.id)) err.push('시작점과 안 이어짐: ' + n.id); if (n.min) err.push('숫자 게이트 남음: ' + n.id); }
+    return err;
+  })()`, c);
+  if (e.length) { bad++; console.log('✗ 판 모양\n  - ' + e.join('\n  - ')); } else console.log('✓ 판 모양 (노드 ' + vm.runInContext('T7_NODES.length', c) + '개, 모두 시작점에서 이어짐)');
+}
 for (const id of todo) {
   if (!lines.includes(id)) { console.log(`✗ ${id}: 줄기 파일이 없음 (src/tree7-l-${id}.js)`); bad++; continue; }
   const r = vm.runInContext(`(() => {
@@ -35,7 +45,7 @@ for (const id of todo) {
       const st = T7_STEMS[L.cls[0]];
       if (!st) err.push('1차 줄기 글 없음 t7DefStem(' + L.cls[0] + ')');
       for (const n of T7_NODES) {
-        if (n.t === 'stat') continue;
+        if (n.t === 'stat' || n.t === 'look') continue;   // 스탯 점은 글 공통, 모습 이름은 스킬 stageName·looks 에서
         if (n.tier <= 1 && L.cls[0] === 'swordsman') continue;   // 검사 1차 줄기 글은 화면 기본값(src/tree7-ui.js T7_UI)
         const u = { ...(st && n.tier <= 1 ? st.ui[n.id] : {}), ...L.ui[n.id] };
         if (!u.n || !u.d) err.push('ui.' + n.id + ' n·d');

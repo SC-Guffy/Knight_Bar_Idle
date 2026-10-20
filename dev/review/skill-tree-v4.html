@@ -100,7 +100,7 @@
   <button data-tier="1">1차 검사</button><button data-tier="2">2차 검성</button><button data-tier="3">3차 검신</button>
   <label>레벨 <input type="range" id="lv" min="25" max="240" value="40"> <b id="lvv"></b></label>
   <span class="stat">🌟 남은 <b id="left"></b> / <span id="pts"></span> · 판 전체 <span id="total"></span></span>
-  <button id="reset">초기화</button>
+  <button id="undo">↩ 되돌리기</button> <button id="reset">초기화</button>
 </div>
 <div class="legend" id="legend"></div>
 <div class="wrap"><div class="map" id="map"></div></div>
@@ -109,7 +109,7 @@
   <div class="card"><h3>읽는 법</h3><ul>
     <li>빛나는 노드 = 지금 찍을 수 있음. 스킬 오른쪽 위 숫자 = 그 스킬 안에서 찍을 수 있는 것 수.</li>
     <li>스킬 이름 아래 작은 글 = 지금 위력 Lv · 모습 단계.</li>
-    <li>점(스탯)은 눌러서 바로 찍는다. 스킬은 눌러서 아래 3줄에서 찍는다.</li>
+    <li><b>누르면 바로 찍힌다</b>: 점·키스톤 = 찍기, 스킬 = 배우기 / 위력 +1 Lv (아래에 그 스킬의 3줄이 열린다). 모습·변형은 아래 카드를 누르면 찍힌다.</li><li>잘못 찍었으면 ↩ 되돌리기 (Ctrl/⌘+Z) — 마지막 것부터.</li>
   </ul></div></div>
 
 <h2>1안 → 2안</h2>
@@ -206,7 +206,7 @@ for (const [a, b, ks] of PATHS) {
 }
 
 // ── 상태 ──
-const st = { tier: 1, lv: 40, lvOf: {}, own: {}, use: {}, log: [] };   // lvOf: 스킬 위력 Lv · own: 모습·변형·키스톤·점 (id → 1)
+const st = { tier: 1, lv: 40, lvOf: {}, own: {}, use: {}, log: [], hist: [] };   // lvOf: 스킬 위력 Lv · own: 모습·변형·키스톤·점 (id → 1)
 const look = (s, i) => `${s}_l${i}`;
 const lvOf = (s) => (st.lvOf[s] || 0) + ((SK[s].free && st.tier >= SK[s].tier) ? 1 : 0);
 const has = (id) => (SK[id] ? lvOf(id) > 0 : !!st.own[id]);
@@ -259,14 +259,14 @@ const lookStage = (s) => SK[s].looks.reduce((a, _, i) => a + (st.own[look(s, i)]
 const stars = (s) => { const k = lookStage(s); return k ? '★'.repeat(k + (SK[s].fuse ? 1 : 0)) : ''; };
 const curName = (s) => { const k = lookStage(s); return k ? SK[s].looks[k - 1][0] : SK[s].n; };
 function logIt(t) { st.log.push(`Lv${st.lv} ${t}`); }
-function buyLv(s) { if (whyLv(s)) return; st.lvOf[s] = (st.lvOf[s] || 0) + 1; logIt(lvOf(s) === 1 ? `✨ 새 스킬: ${SK[s].n}` : `${SK[s].n} 위력 Lv${lvOf(s)}`); }
-function buyLook(s, i) { if (st.own[look(s, i)] || whyLook(s, i)) return; st.own[look(s, i)] = 1; logIt(`✨ 모습: ${SK[s].n} → ${SK[s].looks[i][0]}`); }
-function buyMod(s, m) { if (st.own[m[0]] || whyMod(s, m)) return; st.own[m[0]] = 1; logIt(`✨ 변형: ${m[1]}`); }
+function buyLv(s) { if (whyLv(s)) return false; st.hist.push(['lv', s]); st.lvOf[s] = (st.lvOf[s] || 0) + 1; logIt(lvOf(s) === 1 ? `✨ 새 스킬: ${SK[s].n}` : `${SK[s].n} 위력 Lv${lvOf(s)}`); }
+function buyLook(s, i) { if (st.own[look(s, i)] || whyLook(s, i)) return; st.hist.push(['own', look(s, i)]); st.own[look(s, i)] = 1; logIt(`✨ 모습: ${SK[s].n} → ${SK[s].looks[i][0]}`); }
+function buyMod(s, m) { if (st.own[m[0]] || whyMod(s, m)) return; st.hist.push(['own', m[0]]); st.own[m[0]] = 1; logIt(`✨ 변형: ${m[1]}`); }
 function buyNode(id) {
   if (st.own[id] || open(id)) return;
   const c = KEY[id] ? 7 : 1;
   if (left() < c) return;
-  st.own[id] = 1; logIt(KEY[id] ? `✨ 키스톤: ${KEY[id].n}` : `· ${DOT[id].n}`);
+  st.hist.push(['own', id]); st.own[id] = 1; logIt(KEY[id] ? `✨ 키스톤: ${KEY[id].n}` : `· ${DOT[id].n}`);
 }
 
 // ── 그리기 ──
@@ -376,7 +376,16 @@ function legend() {
   document.getElementById('legend').innerHTML = items.map(([t, s]) => `<span><canvas data-lg="${t}"></canvas>${s}</span>`).join('');
   document.querySelectorAll('[data-lg]').forEach((cv) => { const t = cv.dataset.lg; if (t === 'dot') paintDot(cv, 'got'); else TreeArt.paint(cv, t, t === 'key' ? 'b_key' : t === 'fusion' ? 'f_ab' : 'sk-iaido', 'got', t === 'fusion' ? 'f' : 'b', 2, 5); cv.style.width = cv.width * 1.2 + 'px'; cv.style.height = cv.height * 1.2 + 'px'; });
 }
-document.getElementById('map').addEventListener('click', (e) => { const b = e.target.closest('.n'); if (!b) return; const id = b.dataset.id; if (DOT[id]) buyNode(id); else sel = id; render(); });
+// 판 노드를 누르면 바로 찍는다: 점·키스톤 = 찍기, 스킬 = 배우기 / +1 Lv (최대면 열어 보기만). 스킬은 아래 상세가 열린다
+document.getElementById('map').addEventListener('click', (e) => { const b = e.target.closest('.n'); if (!b) return; const id = b.dataset.id; if (SK[id]) { buyLv(id); sel = id; } else { buyNode(id); if (KEY[id]) sel = id; } render(); });
+// 되돌리기: 마지막으로 찍은 것부터 하나씩 (게임에선 "이번 캠프에서 찍은 것" 무료 되돌리기)
+function undo() {
+  const h = st.hist.pop(); if (!h) return;
+  if (h[0] === 'lv') { st.lvOf[h[1]]--; if (!st.lvOf[h[1]]) delete st.lvOf[h[1]]; } else delete st.own[h[1]];
+  st.log.pop();
+}
+document.getElementById('undo').onclick = () => { undo(); render(); };
+document.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); undo(); render(); } });
 document.getElementById('panel').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   if (b.dataset.lv) buyLv(b.dataset.lv);
@@ -388,7 +397,7 @@ document.getElementById('panel').addEventListener('click', (e) => {
 });
 document.querySelectorAll('[data-tier]').forEach((b) => (b.onclick = () => { st.tier = +b.dataset.tier; st.lv = Math.max(st.lv, [0, 25, 50, 100][st.tier]); document.getElementById('lv').value = st.lv; render(); }));
 document.getElementById('lv').oninput = (e) => { st.lv = +e.target.value; render(); };
-document.getElementById('reset').onclick = () => { st.lvOf = {}; st.own = {}; st.use = {}; st.log = []; render(); };
+document.getElementById('reset').onclick = () => { st.lvOf = {}; st.own = {}; st.use = {}; st.log = []; st.hist = []; render(); };
 legend(); costTable(); render();
 TreeArt.ready().then(() => { legend(); render(); });
 window.__t4 = { st, render, buyLv, buyLook, buyMod, buyNode, SK, KEY, DOT, set: (id) => { sel = id; render(); } };
