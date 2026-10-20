@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스킬 트리 2안</title>
+<!-- 스펙: docs/specs/skill-tree-v3.md (2안 · 직관형). 판에는 스킬만, 스킬 안은 언제나 위력 / 모습 / 변형 세 줄. 검성 줄기 시안, 수치는 시안 -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --panel2: #2b2538; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --green: #7dffb0; --warn: #ffb35c; --pink: #ff9ff3; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.6 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px 16px 40px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  p { margin: 6px 0; max-width: 80ch; }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+  .grid > * { min-width: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: right; white-space: nowrap; }
+  th { background: var(--panel2); color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child, td.l { text-align: left; } td.l { white-space: normal; }
+  .scroll { overflow-x: auto; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 8px 0; }
+  .bar label { color: var(--dim); }
+  button { background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 2px 10px; font: inherit; cursor: pointer; }
+  button.on { background: #4b3f66; border-color: #8f7cc0; }
+  button:disabled { opacity: .45; cursor: default; }
+  .stat b { color: var(--gold); }
+  .wrap { overflow-x: auto; border: 4px solid transparent; border-image: url(../../src/skin/frame-panel.svg) 6 / 6px; }
+  .map { position: relative; background: #15121c; background-image: linear-gradient(#ffffff07 1px, transparent 1px), linear-gradient(90deg, #ffffff07 1px, transparent 1px); background-size: 8px 8px; }
+  .map svg { position: absolute; inset: 0; pointer-events: none; }
+  .row { position: absolute; font: 700 11px Galmuri11; pointer-events: none; }
+  .row small { font-weight: 400; color: var(--dim); }
+  .n { position: absolute; transform: translate(-50%, -50%); padding: 0; border: 0; background: none; cursor: pointer; line-height: 0; }
+  .n canvas { image-rendering: pixelated; display: block; }
+  .n.lock canvas { filter: grayscale(1) brightness(.5); }
+  .n.dot.lock canvas { filter: none; }
+  .n.can canvas { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--c) 70%, transparent)); animation: pulse 1.6s ease-in-out infinite; }
+  .n.got canvas { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c) 75%, transparent)); }
+  .n.dot canvas { filter: none !important; animation: none !important; }
+  @keyframes pulse { 50% { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--c) 95%, transparent)); } }
+  @media (prefers-reduced-motion: reduce) { .n.can canvas { animation: none; } }
+  .n .nm { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); font: 700 11px/1.25 Galmuri11; font-style: normal; white-space: nowrap; text-align: center; color: var(--dim); text-shadow: 0 1px 0 #000, 0 0 3px #000; pointer-events: none; }
+  .n.got .nm, .n.can .nm { color: var(--ink); }
+  .n .nm small { display: block; font-weight: 400; font-size: 10px; color: #ffe9a8; }
+  .n .badge { position: absolute; top: -6px; right: -8px; font: 700 10px/1 Galmuri11; color: #17141f; background: var(--gold); border: 2px solid #0b0a14; padding: 2px 4px; pointer-events: none; }
+  .n .tag { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); font: 700 10px/1.2 Galmuri11; color: #17141f; background: var(--gold); padding: 1px 4px; border: 2px solid #0b0a14; white-space: nowrap; pointer-events: none; }
+  .n.sel::after { content: ''; position: absolute; inset: -6px; border: 2px dashed var(--gold); border-radius: 4px; }
+  /* 스킬 상세 = 위력 / 모습 / 변형 */
+  .panel { margin-top: 10px; }
+  .ph { display: flex; gap: 10px; align-items: center; }
+  .ph canvas { image-rendering: pixelated; }
+  .ph b { font-size: 16px; color: var(--gold); }
+  .sec { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 6px 10px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--line); }
+  .sec > .lab { color: var(--dim); font-weight: 700; }
+  .pips { display: inline-flex; gap: 4px; vertical-align: middle; margin-right: 8px; }
+  .pips i { width: 18px; height: 12px; border: 2px solid #0b0a14; background: #34324a; display: block; }
+  .pips i.on { background: var(--gold); box-shadow: inset 0 -3px 0 #a8842e; }
+  .looks, .mods { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+  .lk, .md { border: 2px solid var(--line); border-radius: 4px; padding: 5px 8px; background: var(--panel2); flex: 1 1 130px; min-width: 0; max-width: 230px; text-align: left; line-height: 1.4; }
+  .lk b, .md b { display: block; }
+  .lk small, .md small { color: var(--dim); display: block; }
+  .lk.got, .md.got { border-color: var(--gold); background: #3a3020; }
+  .lk.can, .md.can { border-color: #8f7cc0; }
+  .lk.lock, .md.lock { opacity: .55; }
+  .lk.base { border-style: dashed; cursor: default; }
+  .lk .why, .md .why { color: var(--warn); }
+  .arrow { align-self: center; color: var(--dim); flex: none; }
+  .or { align-self: center; font: 700 10px Galmuri11; color: #17141f; background: var(--gold); padding: 0 4px; border: 2px solid #0b0a14; }
+  .use { margin-left: 6px; }
+  .log { font-size: 12px; max-height: 200px; overflow: auto; }
+  .log div { padding: 1px 0; border-bottom: 1px dashed #ffffff10; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--dim); align-items: center; margin: 6px 0; }
+  .legend canvas { image-rendering: pixelated; vertical-align: middle; margin-right: 4px; }
+  ul, ol { margin: 4px 0; padding-left: 20px; } li { margin: 2px 0; }
+  .ok { color: var(--green); } .warn { color: var(--warn); }
+</style>
+</head>
+<body>
+<main>
+<h1>스킬 트리 2안 · 직관형 (검성 줄기)</h1>
+<div class="sub">2026-10-20 · 스펙 docs/specs/skill-tree-v3.md · 1안(노드를 다 판에 펼침)은 <a href="skill-tree-v3.html" style="color:#8fd8ff">skill-tree-v3.html</a> · 수치는 시안</div>
+
+<h2>한눈에</h2>
+<div class="grid">
+  <div class="card"><h3>판 = 스킬 지도</h3><p>판에는 <b>스킬·키스톤·스탯 점만</b> 있다. 메인 스킬(강철 베기)에서 시작해 점을 따라가면 다음 스킬이 열린다. 줄 하나 = 싸움 방식 하나(연타·발도·검기), 왼쪽→오른쪽으로 깊어진다.</p></div>
+  <div class="card"><h3>스킬 안 = 언제나 같은 3줄</h3><p>스킬을 누르면 <b>위력</b>(Lv 1~5: 위력·쿨) · <b>모습</b>(★ → ★★ → ★★★) · <b>변형</b>(2연참 같은 추가 효과)이 나온다. 모든 스킬이 같은 모양이라 하나만 배우면 다 읽힌다.</p></div>
+  <div class="card"><h3>스탯 = 길 위의 작은 점</h3><p>아이콘 없는 점 15개. 스킬과 스킬 사이 길에 놓여서, 다음 스킬로 가는 길에 자연히 찍힌다. 점 하나 🌟1, 한 번이면 끝.</p></div>
+  <div class="card"><h3>규칙을 줄였다</h3><p>숫자 게이트(갈래 12포인트·융합 6/6)를 없애고 <b>"앞에 있는 걸 배우면 열린다"</b> 하나로. 융합 = 두 줄의 둘째 스킬을 다 배우면. 궁극기 = 3차 전직하면 1Lv 공짜(메인 스킬처럼).</p></div>
+</div>
+
+<h2>직접 찍어 보기</h2>
+<div class="bar">
+  <span>전직</span>
+  <button data-tier="1">1차 검사</button><button data-tier="2">2차 검성</button><button data-tier="3">3차 검신</button>
+  <label>레벨 <input type="range" id="lv" min="25" max="240" value="40"> <b id="lvv"></b></label>
+  <span class="stat">🌟 남은 <b id="left"></b> / <span id="pts"></span> · 판 전체 <span id="total"></span></span>
+  <button id="reset">초기화</button>
+</div>
+<div class="legend" id="legend"></div>
+<div class="wrap"><div class="map" id="map"></div></div>
+<div class="card panel" id="panel"></div>
+<div class="grid" style="margin-top:8px"><div class="card"><h3>찍은 순서</h3><div class="log" id="log"></div></div>
+  <div class="card"><h3>읽는 법</h3><ul>
+    <li>빛나는 노드 = 지금 찍을 수 있음. 스킬 오른쪽 위 숫자 = 그 스킬 안에서 찍을 수 있는 것 수.</li>
+    <li>스킬 이름 아래 작은 글 = 지금 위력 Lv · 모습 단계.</li>
+    <li>점(스탯)은 눌러서 바로 찍는다. 스킬은 눌러서 아래 3줄에서 찍는다.</li>
+  </ul></div></div>
+
+<h2>1안 → 2안</h2>
+<div class="scroll"><table>
+<tr><th>무엇</th><th>지금 (0.27)</th><th>1안</th><th>2안 (이 페이지)</th></tr>
+<tr><td>판의 노드 수</td><td>41</td><td>79</td><td id="cnt"></td></tr>
+<tr><td>위력 / 모습</td><td class="l">칸 하나에 같이</td><td class="l">칸 = 위력, 모습 = 판 위 ◆ 사슬</td><td class="l">칸 = 위력, 모습 = <b>스킬 안</b> ★ 3장</td></tr>
+<tr><td>변형</td><td class="l">판 위 원 노드</td><td class="l">판 위 원 노드</td><td class="l"><b>스킬 안</b> 카드 (택1은 "또는")</td></tr>
+<tr><td>열리는 조건</td><td class="l">앞 노드 · 갈래 12포인트 · 융합 6/6 · 택1 · 셋 중 하나</td><td class="l">+ 모습 칸 조건</td><td class="l"><b>앞에 있는 걸 배우면</b> (+ 전직 차수). 택1·셋 중 하나만 남김</td></tr>
+<tr><td>궁극기</td><td class="l">3차 + 강철 베기 → 찍기</td><td class="l">3차 키스톤 뒤</td><td class="l">3차 전직하면 1Lv 공짜</td></tr>
+</table></div>
+
+<h2>비용 (검성, 택1·셋 중 하나는 하나씩)</h2>
+<div class="scroll"><table id="cost"></table></div>
+
+<h2>정해야 할 것</h2>
+<ol>
+  <li>참격파(강철 베기 끝 검기)를 검기 줄에서 <b>강철 베기 변형</b>으로 옮겼다 — 이게 맞나? (원래 강철 베기를 바꾸는 효과라)</li>
+  <li>궁극기 1Lv 공짜 (3차 전직 보상) — 괜찮나?</li>
+  <li>★★★ 모습만 위력 Lv5 필요, ★·★★ 는 앞 모습만 있으면.</li>
+</ol>
+</main>
+
+<script src="../../src/iconmap.js"></script>
+<script src="../../src/tree7-art.js"></script>
+<script>
+'use strict';
+const COL = { c: '#c9b8ff', a: '#ffe08a', b: '#9fe8ff', k: '#ff9a6a', f: '#ff9ff3', u: '#ffd257' };
+// ── 스킬 (판의 큰 노드). looks: [이름, 설명] ×3 (융합 ×2) · mods: [id, 이름, 설명, 🌟, pair?]
+const SK = {
+  slash: { n: '강철 베기', ic: 'sk-steelCleave', lane: 'c', tier: 1, x: 0, y: 2, free: 1, base: '강철 베기 — 제자리에서 내려벤다',
+    d: '메인 스킬. 1차 전직하면 1Lv 이 공짜로 찍혀 있다. 여기서 모든 길이 시작된다.',
+    looks: [['강철 검풍', '검이 빛나며 초승달 검풍을 날린다 (앞 한 줄)'], ['강철 대검', '거대한 강철 대검으로 내려찍고 바위 송곳이 솟는다 (주위)'], ['천강검', '하늘에서 거대한 강철 검이 떨어져 꽂힌다 (넓은 주위)']],
+    mods: [['s_twin', '2연참', '한 번 더 반대로 벤다 (두 번째 타 60%)', 4], ['k_wave', '참격파', '마지막 타 끝에 검기가 한 발 날아간다 (50%, 줄)', 4]] },
+  gale: { n: '질풍난무', ic: 'sk-gale', lane: 'a', tier: 2, x: 2.1, y: 0.55, base: '삼연참 — 제자리에서 쌍검으로 세 번',
+    d: '적 사이를 오가며 여러 번 벤다. 연타 줄의 첫 스킬.',
+    looks: [['질풍난무', '적 사이를 지그재그로 돌진하며 5번 베고 X자'], ['질풍난무·분신', '그림자 분신이 반대편에서 함께 난무 (6회)'], ['월하난무', '분신 셋과 함께 — 어두워졌다가 솟구쳐 내려찍는 마무리']],
+    mods: [['a_more', '난무 +3타', '타수 +3 (타당 피해 −15%) — 보호막에 강함', 4], ['a_bleed', '출혈', '베인 적이 3초간 피를 흘린다 (지속 피해 40%)', 4]] },
+  whirl: { n: '검무 회오리', ic: 'whirl', lane: 'a', tier: 2, x: 4.0, y: 0.55, base: '검무 — 칼날 회오리 하나가 기사 주위를 돈다',
+    d: '새 스킬. 칼날 회오리가 4초간 기사 주위를 돌며 벤다.',
+    looks: [['쌍 회오리', '회오리 두 개가 엇갈려 돈다'], ['칼날 회오리', '회오리가 커지고 칼날 조각이 흩날린다'], ['천검무', '하늘까지 닿는 칼날 기둥이 된다']],
+    mods: [['a_follow', '쫓는 칼날', '회오리가 가장 가까운 적에게 날아가 붙는다 — 먼 적·졸개', 4, 'pa'], ['a_grow', '제자리 폭풍', '회오리가 그 자리에서 2배로 커진다 — 붙어 있는 보스', 4, 'pa']] },
+  iaido: { n: '일섬', ic: 'sk-iaido', lane: 'b', tier: 2, x: 2.1, y: 2, base: '발도 — 제자리에서 한 번 발도',
+    d: '한 줄기 섬광으로 지나가며 벤다, 반드시 치명. 발도 줄의 첫 스킬.',
+    looks: [['일섬', '섬광처럼 돌진해 지나가며 벤다'], ['일섬·납도', '칼을 거두는 순간 지나간 적이 모두 늦게 갈라진다'], ['적월일섬', '붉은 달이 뜨고 — 되돌아오는 이중 일섬']],
+    mods: [['b_reset', '잔영', '일섬으로 처치하면 잔상이 다른 적을 한 번 더 (50%)', 4], ['b_exec', '처형', '체력 25% 이하 적에게 피해 +100%', 4]] },
+  flash: { n: '섬광 베기', ic: 'flash', lane: 'b', tier: 2, x: 4.0, y: 2, base: '섬광 — 잠깐 멈췄다 한 줄로 벤다',
+    d: '새 스킬. 화면 끝까지 한 줄로 베어 지나간다.',
+    looks: [['섬광 베기', '화면이 멈췄다가 끝까지 한 줄'], ['뇌광', '검선에 번개가 남아 터진다'], ['천섬', '하늘이 갈라지는 거대한 검선']],
+    mods: [['b_after', '잔상 베기', '0.5초 뒤 잔상이 같은 줄을 한 번 더 (50%) — 한 줄 강하게', 4, 'pb'], ['b_triple', '삼중 섬광', '위·가운데·아래 세 줄 (줄마다 45%) — 넓게', 4, 'pb']] },
+  wave: { n: '비검', ic: 'wave', lane: 'k', tier: 2, x: 2.1, y: 3.45, base: '비검 — 초승달 검기 한 발',
+    d: '새 스킬. 초승달 검기를 날린다 (앞의 한 적). 검기 줄의 첫 스킬.',
+    looks: [['삼연 비검', '검기 세 발을 부채꼴로'], ['오연 비검', '검기 다섯 발'], ['비검 난무', '검기가 쉴 새 없이 쏟아진다']],
+    mods: [['k_pierce', '관통', '검기가 적을 뚫고 지나간다 (줄 공격), 검기 폭풍 범위 +20%', 4]] },
+  storm: { n: '검기 폭풍', ic: 'storm', lane: 'k', tier: 2, x: 4.0, y: 3.45, base: '검기 방사 — 사방으로 검기 넷',
+    d: '새 스킬. 사방으로 검기를 뿜는다 — 졸개에 강함.',
+    looks: [['팔방 검기', '여덟 방향으로'], ['검기 폭풍', '검기가 소용돌이치며 퍼진다'], ['검기 대폭풍', '화면을 덮는 검기 폭풍']],
+    mods: [['k_split', '분열', '검기가 처음 맞힌 적에서 두 갈래로 — 졸개 무리', 4, 'pk'], ['k_homing', '유도 검기', '검기가 휘어 보스에 꽂힌다 (보스 피해 +50%)', 4, 'pk']] },
+  f_ab: { n: '질풍 일섬', ic: 'f_ab', lane: 'f', tier: 2, x: 5.5, y: 1.28, fuse: ['whirl', 'flash'], base: '난무 마지막 타가 일섬으로 돌진',
+    d: '융합. 검무 회오리 + 섬광 베기를 둘 다 배우면 열린다.', looks: [['질풍 일섬·연격', '돌진이 두 번 이어진다'], ['천풍 일섬', '분신과 함께 십자로 가른다']], mods: [] },
+  f_bk: { n: '섬광 검기', ic: 'f_bk', lane: 'f', tier: 2, x: 5.5, y: 2.72, fuse: ['flash', 'storm'], base: '일섬이 지나간 줄에 검기가 남아 터진다',
+    d: '융합. 섬광 베기 + 검기 폭풍을 둘 다 배우면 열린다.', looks: [['섬광 검기·잔향', '터지는 검기가 두 번'], ['천섬 검우', '검선 위로 검기가 비처럼']], mods: [] },
+  f_ak: { n: '칼날 폭풍', ic: 'f_ak', lane: 'f', tier: 2, x: 5.5, y: 4.15, fuse: ['whirl', 'storm'], base: '회오리가 돌며 검기를 흩뿌린다',
+    d: '융합. 검무 회오리 + 검기 폭풍을 둘 다 배우면 열린다.', looks: [['칼날 폭풍·분신', '회오리 둘이 검기를 뿌린다'], ['천검 폭풍', '화면 전체가 칼날 폭풍']], mods: [] },
+  ult: { n: '천검', ic: 'sk-thousandCuts', lane: 'u', tier: 3, x: 8.3, y: 2, free: 1, base: '천검 — 하늘에서 칼이 쏟아진다',
+    d: '궁극기 (궁극기 칸). 3차 전직하면 1Lv 이 공짜로 찍혀 있다.',
+    looks: [['천검·만화', '칼이 꽃잎처럼 흩날리며 쏟아진다'], ['천검·벚꽃폭풍', '벚꽃 폭풍과 함께'], ['무명검·천지개벽', '하늘과 땅이 갈라지는 일격']],
+    mods: [['uv_a', '만검', '천검이 작은 칼날 수십 개로 — 보호막에 강함', 6, 'pu'], ['uv_b', '일도양단', '거대한 칼 하나로 한 번 — 광폭화에 강함', 6, 'pu'], ['uv_k', '검우', '검기가 비처럼 넓게 — 졸개에 강함', 6, 'pu']] },
+};
+// 키스톤 (판의 팔각): req 앞 노드, tier
+const KEY = {
+  k_blade: { n: '검의 길', lane: 'c', tier: 1, x: 0.95, y: 3.6, req: 'slash', d: '평타 3타마다 모든 스킬 쿨 −0.5초.', cost: '스킬 피해 −10%' },
+  a_key: { n: '광란', lane: 'a', tier: 2, x: 6.85, y: 0.55, req: 'whirl', d: '스킬이 맞힐 때마다 공속 +4% (최대 +40%).', cost: '평타 피해 −15%' },
+  b_key: { n: '발도술', lane: 'b', tier: 2, x: 6.85, y: 2, req: 'flash', d: '일섬·섬광 베기 위력 +17%.', cost: '두 스킬 쿨 +30%' },
+  k_key: { n: '심검', lane: 'k', tier: 2, x: 6.85, y: 3.45, req: 'storm', d: '평타가 푸른 검기로 (사거리 3배).', cost: '평타 피해 −20%' },
+  a_k3: { n: '무한검', lane: 'a', tier: 3, x: 7.75, y: 0.55, req: 'a_key', d: '질풍난무가 끝나면 30% 확률로 한 번 더.', cost: '질풍난무 쿨 +25%' },
+  b_k3: { n: '무념', lane: 'b', tier: 3, x: 7.75, y: 2, req: 'b_key', d: '모든 피해 +160%.', cost: '치명 확률 0' },
+  k_k3: { n: '만검귀종', lane: 'k', tier: 3, x: 7.75, y: 3.45, req: 'k_key', d: '검기 명중마다 다른 검기 스킬 쿨 −0.3초.', cost: '검기가 아닌 스킬 피해 −20%' },
+};
+// 스탯 점: 길(앞 → 뒤) 위에 고르게
+const STATN = { atk: '공격 +2%', hp: '체력 +3%', spd: '공속 +2%', crit: '치명 +1.5%', def: '받는 피해 −2%' };
+const PATHS = [['slash', 'gale', ['atk', 'atk', 'spd']], ['slash', 'iaido', ['crit', 'crit', 'atk']], ['slash', 'wave', ['hp', 'hp', 'def']],
+  ['gale', 'whirl', ['spd', 'spd']], ['iaido', 'flash', ['crit', 'def']], ['wave', 'storm', ['hp', 'def']]];
+const DOT = {};
+const SK_REQ = {};   // 스킬 → 앞 노드 (길의 마지막 점)
+for (const [a, b, ks] of PATHS) {
+  let prev = a;
+  ks.forEach((k, i) => {
+    const id = `d_${b}_${i}`, f = (i + 1) / (ks.length + 1);
+    DOT[id] = { k, n: STATN[k], tier: SK[b].tier === 2 && a !== 'slash' ? 2 : 1, req: prev, x: SK[a].x + (SK[b].x - SK[a].x) * f, y: SK[a].y + (SK[b].y - SK[a].y) * f, lane: SK[b].lane };
+    prev = id;
+  });
+  SK_REQ[b] = prev;
+}
+
+// ── 상태 ──
+const st = { tier: 1, lv: 40, lvOf: {}, own: {}, use: {}, log: [] };   // lvOf: 스킬 위력 Lv · own: 모습·변형·키스톤·점 (id → 1)
+const look = (s, i) => `${s}_l${i}`;
+const lvOf = (s) => (st.lvOf[s] || 0) + ((SK[s].free && st.tier >= SK[s].tier) ? 1 : 0);
+const has = (id) => (SK[id] ? lvOf(id) > 0 : !!st.own[id]);
+const lookCost = (s, i) => (SK[s].fuse ? [2, 3][i] : 2);
+const LVCOST = (s) => (SK[s].fuse ? 2 : 1);
+const LVMAX = (s) => (SK[s].fuse ? 3 : 5);
+const pts = () => Math.max(0, st.lv - 1);
+function spent() {
+  let a = 0;
+  for (const s in SK) {
+    a += (st.lvOf[s] || 0) * LVCOST(s);
+    SK[s].looks.forEach((_, i) => { if (st.own[look(s, i)]) a += lookCost(s, i); });
+    for (const m of SK[s].mods) if (st.own[m[0]]) a += m[3];
+  }
+  for (const k in KEY) if (st.own[k]) a += 7;
+  for (const d in DOT) if (st.own[d]) a += 1;
+  return a;
+}
+const left = () => pts() - spent();
+// 판 노드가 열렸나
+function open(id) {
+  if (SK[id]) { const s = SK[id]; if (st.tier < s.tier) return `${s.tier}차 전직 필요`; if (s.free) return null; if (s.fuse) return s.fuse.every(has) ? null : `${s.fuse.map((x) => SK[x].n).join(' + ')} 를 배우면 열림`; return has(SK_REQ[id]) ? null : '앞의 점을 먼저'; }
+  if (KEY[id]) { const k = KEY[id]; if (st.tier < k.tier) return `${k.tier}차 전직 필요`; return has(k.req) ? null : `${(SK[k.req] || KEY[k.req]).n} 를 먼저`; }
+  if (DOT[id]) { const d = DOT[id]; if (st.tier < d.tier) return `${d.tier}차 전직 필요`; return has(d.req) ? null : '앞을 먼저'; }
+}
+// 스킬 안 항목
+function whyLook(s, i) {
+  if (!has(s)) return '스킬을 먼저 배우기';
+  if (i > 0 && !st.own[look(s, i - 1)]) return '앞 모습 먼저';
+  if (i === SK[s].looks.length - 1 && lvOf(s) < LVMAX(s)) return `위력 Lv${LVMAX(s)} 필요`;
+  if (left() < lookCost(s, i)) return `🌟 ${lookCost(s, i)} 필요`;
+  return null;
+}
+function whyMod(s, m) {
+  if (!has(s)) return '스킬을 먼저 배우기';
+  if (m[4] && SK[s].mods.some((x) => x[4] === m[4] && x[0] !== m[0] && st.own[x[0]])) return '다른 쪽을 골랐어요 (초기화로 바꾸기)';
+  if (left() < m[3]) return `🌟 ${m[3]} 필요`;
+  return null;
+}
+const whyLv = (s) => open(s) || (lvOf(s) >= LVMAX(s) ? '최대' : left() < LVCOST(s) ? `🌟 ${LVCOST(s)} 필요` : null);
+// 스킬 안에서 지금 찍을 수 있는 것 수 (판의 배지)
+function inside(s) {
+  if (!has(s)) return 0;
+  let n = whyLv(s) ? 0 : 1;
+  SK[s].looks.forEach((_, i) => { if (!st.own[look(s, i)] && !whyLook(s, i)) n++; });
+  for (const m of SK[s].mods) if (!st.own[m[0]] && !whyMod(s, m)) n++;
+  return n;
+}
+const lookStage = (s) => SK[s].looks.reduce((a, _, i) => a + (st.own[look(s, i)] ? 1 : 0), 0);
+const stars = (s) => { const k = lookStage(s); return k ? '★'.repeat(k + (SK[s].fuse ? 1 : 0)) : ''; };
+const curName = (s) => { const k = lookStage(s); return k ? SK[s].looks[k - 1][0] : SK[s].n; };
+function logIt(t) { st.log.push(`Lv${st.lv} ${t}`); }
+function buyLv(s) { if (whyLv(s)) return; st.lvOf[s] = (st.lvOf[s] || 0) + 1; logIt(lvOf(s) === 1 ? `✨ 새 스킬: ${SK[s].n}` : `${SK[s].n} 위력 Lv${lvOf(s)}`); }
+function buyLook(s, i) { if (st.own[look(s, i)] || whyLook(s, i)) return; st.own[look(s, i)] = 1; logIt(`✨ 모습: ${SK[s].n} → ${SK[s].looks[i][0]}`); }
+function buyMod(s, m) { if (st.own[m[0]] || whyMod(s, m)) return; st.own[m[0]] = 1; logIt(`✨ 변형: ${m[1]}`); }
+function buyNode(id) {
+  if (st.own[id] || open(id)) return;
+  const c = KEY[id] ? 7 : 1;
+  if (left() < c) return;
+  st.own[id] = 1; logIt(KEY[id] ? `✨ 키스톤: ${KEY[id].n}` : `· ${DOT[id].n}`);
+}
+
+// ── 그리기 ──
+const SX = 104, SY = 74, OX = 70, OY = 46, W = OX * 2 + 8.4 * SX, H = OY * 2 + 4.45 * SY;
+const px = (o) => [OX + o.x * SX, OY + o.y * SY];
+function paintDot(cv, s) {
+  const g = 9; cv.width = cv.height = g; const c = cv.getContext('2d');
+  const fill = s === 'got' ? '#c9b8ff' : s === 'can' ? '#5e5a78' : '#2b2838', rim = s === 'got' ? '#ebe7dc' : s === 'can' ? '#d8d2ee' : '#55516c';
+  for (let y = 0; y < g; y++) for (let x = 0; x < g; x++) { const d = Math.hypot(x - 4, y - 4); if (d > 4.4) continue; c.fillStyle = d > 3.5 ? '#0b0a14' : d > 2.6 ? rim : fill; c.fillRect(x, y, 1, 1); }
+  return cv;
+}
+const nodeState = (id) => (has(id) ? 'got' : open(id) ? 'lock' : (SK[id] ? left() >= LVCOST(id) : KEY[id] ? left() >= 7 : left() >= 1) ? 'can' : 'lock');
+let sel = 'slash';
+function render() {
+  const map = document.getElementById('map');
+  map.style.width = W + 'px'; map.style.height = H + 'px';
+  let svg = `<svg width="${W}" height="${H}">`;
+  const line = (a, b, on, col, dash) => { const [x1, y1] = px(a), [x2, y2] = px(b); svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0b0a14" stroke-width="7"/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${on ? col : '#3a3348'}" stroke-width="${on ? 4 : 2}"${dash ? ' stroke-dasharray="7 6"' : ''}/>`; };
+  const vis = (o) => st.tier >= 2 || o.tier <= 1;
+  for (const [a, b] of PATHS) { if (!vis(SK[b])) continue; let prev = SK[a]; let pid = a; Object.entries(DOT).filter(([id]) => id.startsWith(`d_${b}_`)).forEach(([id, d]) => { line(prev, d, has(pid) && has(id), COL[d.lane]); prev = d; pid = id; }); line(prev, SK[b], has(pid) && has(b), COL[SK[b].lane]); }
+  for (const [id, k] of Object.entries(KEY)) if (vis(k)) line(SK[k.req] || KEY[k.req], k, has(k.req) && has(id), COL[k.lane]);
+  for (const [id, s] of Object.entries(SK)) if (s.fuse && vis(s)) for (const p of s.fuse) line(SK[p], s, has(id), COL.f, true);
+  svg += '</svg>';
+  let h = svg;
+  if (st.tier >= 2) [['a', '⚡ 연타', '🛡️ 보호막', 0.55], ['b', '🗡️ 발도', '🔥 광폭화', 2], ['k', '🌙 검기', '👥 졸개', 3.45]].forEach(([l, nm, sub, y]) => { h += `<div class="row" style="left:${OX + 2.6 * SX}px;top:${OY + y * SY - 30}px;color:${COL[l]}">${nm} <small>${sub}에 강함</small></div>`; });
+  for (const [id, s] of Object.entries(SK)) {
+    if (!vis(s)) continue;
+    const [x, y] = px(s), stt = nodeState(id), b = inside(id), lv = lvOf(id);
+    const sub = lv ? `Lv${lv}${stars(id) ? ' ' + stars(id) : ''}` : '';
+    h += `<button class="n sk ${stt}${sel === id ? ' sel' : ''}" style="left:${x}px;top:${y}px;--c:${COL[s.lane]}" data-id="${id}"><canvas></canvas>${s.free ? `<span class="tag">${id === 'ult' ? '3차' : '시작'}</span>` : ''}${b ? `<span class="badge">${b}</span>` : ''}<i class="nm">${lv ? curName(id) : s.n}${sub ? `<small>${sub}</small>` : ''}</i></button>`;
+  }
+  for (const [id, k] of Object.entries(KEY)) { if (!vis(k)) continue; const [x, y] = px(k); h += `<button class="n key ${nodeState(id)}${sel === id ? ' sel' : ''}" style="left:${x}px;top:${y}px;--c:${COL[k.lane]}" data-id="${id}"><canvas></canvas><i class="nm">${k.n}${k.tier === 3 ? '<small>3차</small>' : ''}</i></button>`; }
+  for (const [id, d] of Object.entries(DOT)) { if (!vis(d)) continue; const [x, y] = px(d); h += `<button class="n dot ${nodeState(id)}" style="left:${x}px;top:${y}px" data-id="${id}" title="${d.n}"><canvas></canvas></button>`; }
+  map.innerHTML = h;
+  map.querySelectorAll('.n').forEach((b) => {
+    const id = b.dataset.id, cv = b.querySelector('canvas'), s = nodeState(id);
+    if (DOT[id]) { paintDot(cv, s); cv.style.width = cv.style.height = '20px'; return; }
+    if (KEY[id]) { TreeArt.paint(cv, 'key', id, s, KEY[id].lane); cv.style.width = cv.style.height = cv.width * 1.8 + 'px'; return; }
+    const S = SK[id], kind = id === 'ult' ? 'ult' : S.fuse ? 'fusion' : 'active';
+    TreeArt.paint(cv, kind, S.ic, s, S.lane === 'u' ? 'a' : S.lane, lvOf(id), LVMAX(id));
+    cv.style.width = cv.width * 2.2 + 'px'; cv.style.height = cv.height * 2.2 + 'px';
+  });
+  document.getElementById('lvv').textContent = st.lv;
+  document.getElementById('left').textContent = left();
+  document.getElementById('pts').textContent = pts();
+  document.getElementById('total').textContent = totals().sum;
+  document.getElementById('cnt').innerHTML = `${Object.keys(SK).length + Object.keys(KEY).length + Object.keys(DOT).length} <small class="sub">(스킬 ${Object.keys(SK).length} · 키스톤 ${Object.keys(KEY).length} · 점 ${Object.keys(DOT).length})</small>`;
+  document.querySelectorAll('[data-tier]').forEach((b) => b.classList.toggle('on', +b.dataset.tier === st.tier));
+  document.getElementById('log').innerHTML = st.log.slice().reverse().map((x) => `<div>${x}</div>`).join('') || '<small class="sub">아직 없음</small>';
+  panel();
+}
+function panel() {
+  const el = document.getElementById('panel');
+  if (KEY[sel]) {
+    const k = KEY[sel], w = open(sel);
+    el.innerHTML = `<div class="ph"><canvas id="pcv"></canvas><div><b>${k.n}</b><br><small class="sub">키스톤 · 🌟 7${k.tier === 3 ? ' · 3차' : ''}</small></div></div><p>${k.d}</p><p class="warn">대가: ${k.cost}</p>${w && !has(sel) ? `<p class="warn">🔒 ${w}</p>` : ''}
+      <div class="bar"><button data-k="${sel}" ${!has(sel) && !w && left() >= 7 ? '' : 'disabled'}>${has(sel) ? '찍음' : '찍기 🌟7'}</button></div>`;
+    const cv = document.getElementById('pcv'); TreeArt.paint(cv, 'key', sel, nodeState(sel), k.lane); cv.style.width = cv.style.height = '44px';
+    return;
+  }
+  const S = SK[sel], lv = lvOf(sel), mx = LVMAX(sel), wl = whyLv(sel), locked = open(sel);
+  const pow = (S.fuse ? 0.25 : 0.15), cdk = (S.fuse ? 0.08 : 0.06);
+  const pips = Array.from({ length: mx }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('');
+  const L = Math.max(1, lv);
+  const lvRow = `<div class="lab">위력</div><div><span class="pips">${pips}</span>Lv ${lv}/${mx} · 위력 ×${(1 + pow * (L - 1)).toFixed(2)} · 쿨 ×${(1 - cdk * (L - 1)).toFixed(2)}
+    <button data-lv="${sel}" ${wl ? 'disabled' : ''}>${lv ? '+1 Lv' : '배우기'} 🌟${LVCOST(sel)}</button>${wl && wl !== '최대' ? ` <small class="warn">${wl}</small>` : ''}<br><small class="sub">Lv 마다 위력 +${pow * 100}% · 쿨 −${cdk * 100}%. 모습은 바뀌지 않는다.</small></div>`;
+  const k = lookStage(sel), off = S.fuse ? 1 : 0;
+  const lookCards = [`<div class="lk base ${lv ? 'got' : ''}"><b>기본</b><small>${S.base}</small></div>`].concat(S.looks.map(([nm, ds], i) => {
+    const got = st.own[look(sel, i)], w = got ? null : whyLook(sel, i);
+    return `<span class="arrow">→</span><button class="lk ${got ? 'got' : w ? 'lock' : 'can'}" data-look="${i}"><b>${'★'.repeat(i + 1 + off)} ${nm}</b><small>${ds}</small><small>${got ? '✓ 찍음' : `🌟 ${lookCost(sel, i)}`}${w ? ` · <span class="why">${w}</span>` : ''}</small></button>`;
+  })).join('');
+  const useCtl = k > 0 ? `<div class="use"><small class="sub">쓸 모습</small> <button data-use="-1">‹</button> <b>${st.use[sel] == null ? '★'.repeat(k + off) : st.use[sel] ? '★'.repeat(st.use[sel] + off) : '기본'}</b> <button data-use="1">›</button></div>` : '';
+  const lookRow = `<div class="lab">모습</div><div><div class="looks">${lookCards}</div>${useCtl}<small class="sub">찍으면 시전 그림·타격 범위가 바뀐다. 마지막 모습만 위력 Lv${mx} 필요.</small></div>`;
+  let modRow = '';
+  if (S.mods.length) {
+    let prevPair = null;
+    const cards = S.mods.map((m) => {
+      const got = st.own[m[0]], w = got ? null : whyMod(sel, m), or = m[4] && prevPair === m[4] ? '<span class="or">또는</span>' : '';
+      prevPair = m[4] || null;
+      return `${or}<button class="md ${got ? 'got' : w ? 'lock' : 'can'}" data-mod="${m[0]}"><b>${m[1]}</b><small>${m[2]}</small><small>${got ? '✓ 찍음' : `🌟 ${m[3]}`}${w ? ` · <span class="why">${w}</span>` : ''}</small></button>`;
+    }).join('');
+    modRow = `<div class="lab">${sel === 'ult' ? '변형<br><small class="sub">셋 중 하나</small>' : '변형'}</div><div><div class="mods">${cards}</div></div>`;
+  }
+  el.innerHTML = `<div class="ph"><canvas id="pcv"></canvas><div><b>${S.n}</b> <small class="sub">${S.fuse ? '융합 스킬' : sel === 'ult' ? '궁극기' : sel === 'slash' ? '메인 스킬' : '액티브'}</small><br><small>${S.d}</small>${locked ? `<br><small class="warn">🔒 ${locked}</small>` : ''}</div></div>
+    <div class="sec">${lvRow}</div><div class="sec">${lookRow}</div>${modRow ? `<div class="sec">${modRow}</div>` : ''}`;
+  const cv = document.getElementById('pcv'); TreeArt.paint(cv, sel === 'ult' ? 'ult' : S.fuse ? 'fusion' : 'active', S.ic, nodeState(sel), S.lane === 'u' ? 'a' : S.lane, lv, mx); cv.style.width = cv.width * 2 + 'px'; cv.style.height = cv.height * 2 + 'px';
+}
+function totals() {
+  const g = { '스탯 점': 0, '스킬 위력 Lv': 0, '모습': 0, '변형': 0, '키스톤': 0 };
+  for (const s in SK) {
+    g['스킬 위력 Lv'] += (LVMAX(s) - (SK[s].free ? 1 : 0)) * LVCOST(s);
+    SK[s].looks.forEach((_, i) => { g['모습'] += lookCost(s, i); });
+    const seen = new Set(); for (const m of SK[s].mods) { if (m[4]) { if (seen.has(m[4])) continue; seen.add(m[4]); } g['변형'] += m[3]; }
+  }
+  g['키스톤'] = Object.keys(KEY).length * 7; g['스탯 점'] = Object.keys(DOT).length;
+  return { g, sum: Object.values(g).reduce((a, b) => a + b, 0) };
+}
+function costTable() {
+  const { g, sum } = totals(), OLD = { '스탯 점': 15, '스킬 위력 Lv': '116 (모습 포함)', '모습': '—', '변형': 46, '키스톤': 49 };
+  let h = '<tr><th>종류</th><th>지금 🌟</th><th>2안 🌟</th></tr>';
+  for (const k in g) h += `<tr><td>${k}</td><td>${OLD[k]}</td><td>${g[k]}</td></tr>`;
+  h += `<tr><th>합계</th><th>226</th><th>${sum}</th></tr>`;
+  document.getElementById('cost').innerHTML = h;
+}
+function legend() {
+  const items = [['active', '스킬 (누르면 위력·모습·변형)'], ['key', '키스톤 (규칙 + 대가)'], ['dot', '스탯 점'], ['fusion', '융합 스킬']];
+  document.getElementById('legend').innerHTML = items.map(([t, s]) => `<span><canvas data-lg="${t}"></canvas>${s}</span>`).join('');
+  document.querySelectorAll('[data-lg]').forEach((cv) => { const t = cv.dataset.lg; if (t === 'dot') paintDot(cv, 'got'); else TreeArt.paint(cv, t, t === 'key' ? 'b_key' : t === 'fusion' ? 'f_ab' : 'sk-iaido', 'got', t === 'fusion' ? 'f' : 'b', 2, 5); cv.style.width = cv.width * 1.2 + 'px'; cv.style.height = cv.height * 1.2 + 'px'; });
+}
+document.getElementById('map').addEventListener('click', (e) => { const b = e.target.closest('.n'); if (!b) return; const id = b.dataset.id; if (DOT[id]) buyNode(id); else sel = id; render(); });
+document.getElementById('panel').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.dataset.lv) buyLv(b.dataset.lv);
+  else if (b.dataset.look != null) buyLook(sel, +b.dataset.look);
+  else if (b.dataset.mod) buyMod(sel, SK[sel].mods.find((m) => m[0] === b.dataset.mod));
+  else if (b.dataset.k) buyNode(b.dataset.k);
+  else if (b.dataset.use) { const k = lookStage(sel), cur = st.use[sel] == null ? k : st.use[sel]; st.use[sel] = Math.max(0, Math.min(k, cur + +b.dataset.use)); }
+  render();
+});
+document.querySelectorAll('[data-tier]').forEach((b) => (b.onclick = () => { st.tier = +b.dataset.tier; st.lv = Math.max(st.lv, [0, 25, 50, 100][st.tier]); document.getElementById('lv').value = st.lv; render(); }));
+document.getElementById('lv').oninput = (e) => { st.lv = +e.target.value; render(); };
+document.getElementById('reset').onclick = () => { st.lvOf = {}; st.own = {}; st.use = {}; st.log = []; render(); };
+legend(); costTable(); render();
+TreeArt.ready().then(() => { legend(); render(); });
+window.__t4 = { st, render, buyLv, buyLook, buyMod, buyNode, SK, KEY, DOT, set: (id) => { sel = id; render(); } };
+</script>
+</body>
+</html>
