@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스킬 룬 시안</title>
+<!-- 스펙: docs/specs/skill-runes.md (스킬 재기획 2단계). 룬 표·등급별 값 · 수급 계산기 · 스킬 카드 룬 칸 모형. 수치는 시안 -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --panel2: #2b2538; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --g0: #b8bcc6; --g1: #5fcf5a; --g2: #4aa3ff; --g3: #b36bff; --g4: #ff9f1c; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.65 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  p { margin: 6px 0; max-width: 82ch; }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+  .grid > * { min-width: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: left; vertical-align: top; }
+  th { background: var(--panel2); color: var(--dim); font-weight: 400; }
+  td.n { text-align: right; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 8px 0; }
+  .bar label { color: var(--dim); }
+  input[type=number] { width: 60px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; font: inherit; }
+  .g0 { color: var(--g0); } .g1 { color: var(--g1); } .g2 { color: var(--g2); } .g3 { color: var(--g3); } .g4 { color: var(--g4); }
+  .tag { display: inline-block; font-size: 11px; padding: 0 5px; border: 1px solid var(--line); border-radius: 8px; color: var(--dim); }
+  /* 스킬 카드 모형 */
+  .mock { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+  .sk { background: var(--panel2); border: 2px solid #8f7cc0; padding: 8px; }
+  .sk b { font-size: 13px; } .sk .st { color: var(--gold); font-size: 11px; }
+  .sk small { display: block; color: var(--dim); }
+  .sockets { display: flex; gap: 6px; margin: 6px 0 2px; }
+  .sock { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 4px; border: 2px dashed #4b3f66; font-size: 11px; color: var(--dim); cursor: pointer; background: none; font-family: inherit; }
+  .sock.full { border-style: solid; color: var(--ink); background: #17141f; }
+  .sock.lock { opacity: .4; cursor: default; }
+  .gem { width: 12px; height: 12px; transform: rotate(45deg); border: 2px solid #0b0a14; display: inline-block; }
+  .bag { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 4px; font-size: 11px; background: var(--panel2); border: 2px solid #0b0a14; cursor: pointer; font-family: inherit; color: var(--ink); }
+  .chip.sel { outline: 2px solid var(--gold); }
+  ul { margin: 4px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+<h1>스킬 룬 시안 · 줍는 변형</h1>
+<div class="sub">2026-10-20 · 스펙 docs/specs/skill-runes.md (스킬 재기획 2단계, 숙련과 한 릴리스 0.29.0) · 사용자 확인 대기 · 수치는 시안</div>
+
+<h2>요지</h2>
+<div class="grid">
+  <div class="card"><h3>룬 = 효과 하나 + 등급</h3><p>어느 스킬에나 끼우는 범용 룬. 일반~영웅은 값만 다르고(×0.4·0.6·0.8·1.0), <b class="g4">전설 = 키스톤급 규칙 + 대가</b>.</p></div>
+  <div class="card"><h3>숙련이 칸을 연다</h3><p>스킬 ★ 에 1칸 · ★★★ 에 2칸. 장착 4 + 궁극기 = 최대 10칸. 캠프에서 무료로 끼우고 뺀다.</p></div>
+  <div class="card"><h3>원정 상자에서</h3><p>상자를 열 때 덤으로 (낡은 3% · 나무 6% · 철제 12% · 보물상자 25%), 룬 등급 = 상자 등급. 전설은 레이드·탑 첫 돌파·영웅 3개 합치기.</p></div>
+  <div class="card"><h3>정답 강요 없음</h3><p>보호막·졸개·광폭화 꼬리표 룬은 그 기믹에 "조금 더 빨리" (대응 +0.25 → 손실 5% 안팎이 더 줄 뿐).</p></div>
+</div>
+
+<h2>룬 표 (등급을 바꿔 값을 보세요)</h2>
+<div class="bar"><label>등급 <select id="grade" style="background:var(--panel2);color:var(--ink);border:1px solid var(--line);font:inherit"><option value="0">일반</option><option value="1">고급</option><option value="2">희귀</option><option value="3" selected>영웅</option></select></label><span class="sub">값 = 영웅 값 × [0.4 · 0.6 · 0.8 · 1.0]. 모양 룬은 희귀·영웅만.</span></div>
+<div class="scroll"><table id="runes"></table></div>
+<h3 style="margin-top:12px" class="g4">전설 룬 (키스톤급)</h3>
+<div class="scroll"><table id="legend"></table></div>
+
+<h2>수급 계산기</h2>
+<p class="sub">하루에 여는 원정 상자 수(등급별)를 넣으면 기대 룬 수. 상자 수는 시안 — 구현 뒤 봇으로 실측해 덤 확률을 맞춘다.</p>
+<div class="bar">
+  <label class="g0">낡은 <input type="number" id="b0" value="60"></label>
+  <label class="g1">나무 <input type="number" id="b1" value="25"></label>
+  <label class="g2">철제 <input type="number" id="b2" value="6"></label>
+  <label class="g3">보물상자 <input type="number" id="b3" value="1"></label>
+  <label>덤 확률 % <input type="number" id="p0" value="3"> <input type="number" id="p1" value="6"> <input type="number" id="p2" value="12"> <input type="number" id="p3" value="25"></label>
+</div>
+<div class="scroll"><table id="drop"></table></div>
+
+<h2>스킬 카드 모형 (눌러 보세요)</h2>
+<p class="sub">빈 칸(◇)을 누르고 아래 주머니에서 룬을 고르면 끼워진다. 끼운 룬을 누르면 뺀다. 같은 룬 3개는 "합치기".</p>
+<div class="mock" id="mock"></div>
+<div class="card" style="margin-top:8px"><h3>🔮 룬 주머니</h3><div class="bag" id="bag"></div><div class="bar"><button id="merge" class="chip">3개 합치기</button><span class="sub" id="mergeTxt"></span></div></div>
+
+<h2>정할 것</h2>
+<ol>
+  <li>전설 룬 얻는 곳: 레이드·탑 첫 돌파·영웅 3개 합치기 (원정에선 안 나옴).</li>
+  <li>같은 전설 룬은 하나만 효과 · 스킬 하나에 전설 하나.</li>
+  <li>룬 색을 시전 색에 섞는 정도 (30% 시안).</li>
+</ol>
+</main>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const GN = ['일반', '고급', '희귀', '영웅', '전설'], GM = [0.4, 0.6, 0.8, 1.0];
+// [id, 이름, 영웅 값, 글(값 자리 {v}), 꼬리표, 색, 모양?]
+const RUNES = [
+  ['exec', '🗡️ 처형', 0.6, '체력 30% 이하 적에게 피해 +{v}', '광폭화', '#e0504a'],
+  ['boss', '👑 거인 사냥', 0.6, '보스에게 피해 +{v}', '광폭화', '#d8a030'],
+  ['first', '🚩 선봉', 0.7, '체력 가득한 적에게 피해 +{v}', '', '#e0d080'],
+  ['solo', '⚖️ 일기토', 0.6, '적 하나만 맞으면 피해 +{v}', '', '#c0c8e0'],
+  ['crowd', '🔥 겁화', 0.5, '맞은 적 1마리당 +{v5} (5마리 +{v})', '졸개', '#ff8a30'],
+  ['dot', '🩸 출혈', 0.45, '3초에 걸쳐 스킬 피해의 {v} 추가', '보호막', '#b0203a'],
+  ['double', '⚡ 과부하', 0.3, '{v} 확률로 피해 2배', '', '#f0e060'],
+  ['stack', '🌀 가속', 0.5, '12초 안에 다시 쓰면 +{v5} 씩 (최대 +{v})', '', '#60d0c0'],
+  ['vuln', '💢 약점', 0.3, '맞은 적이 4초간 받는 모든 피해 +{v}', '', '#a060e0'],
+  ['refund', '🔁 재장전', 0.15, '처치마다 이 스킬 쿨 {v} 환급', '졸개', '#80c0ff'],
+  ['haste', '💨 속사', 0.4, '시전 뒤 4초간 평타 속도 +{v}', '보호막', '#a0e0a0'],
+  ['chain', '✨ 연결', 0.3, '시전 시 다른 스킬 쿨 {v} 감소', '', '#fff0a0'],
+  ['range', '↔️ 확장', 0.5, '기술 범위 +{v}', '졸개', '#80d8ff'],
+  ['overkill', '➡️ 관통', 0.5, '처치 시 넘친 피해 {v} 를 다음 적에게', '졸개', '#c0a0ff'],
+  ['twin', '⚔️ 한 번 더', 0.6, '가장 센 타가 0.15초 뒤 한 번 더 ({v})', '보호막', '#e8e8f0', 1],
+  ['after', '👻 잔상', 0.5, '0.5초 뒤 잔상이 전체 타격을 한 번 더 ({v})', '보호막', '#9090c0', 1],
+  ['burst', '💥 파열', 0.5, '타격마다 맞은 자리 작은 폭발 ({v}, 반경 60)', '졸개', '#ffb060', 1],
+  ['more', '🌪️ 난무', 3, '작은 타 +{n} (타당 −15%)', '보호막', '#d0f0ff', 1],
+];
+const LEG = [
+  ['blade', '검의 길', '평타 3타마다 모든 스킬 쿨 −0.5초', '스킬 피해 −10%', '기사 전체'],
+  ['frenzy', '광란', '이 스킬이 맞힐 때마다 공속 +4% 겹침 (최대 10, 3초)', '평타 피해 −15%', '이 스킬'],
+  ['endless', '무한', '이 스킬이 끝나면 30% 로 바로 한 번 더', '이 스킬 쿨 +25%', '이 스킬'],
+  ['echo', '잔영', '이 스킬로 처치하면 잔상이 가장 가까운 적을 50% 로', '—', '이 스킬'],
+  ['myriad', '만검귀종', '이 스킬이 맞힐 때마다 다른 스킬 쿨 −0.3초', '다른 스킬 피해 −20%', '이 스킬'],
+  ['reach', '심검', '평타 사거리 ×3 (원거리 330 까지)', '평타 피해 −20%', '기사 전체'],
+  ['zen', '무념', '모든 피해 ×1.9 (확정 치명 스킬이면 ×2.6)', '치명 확률 0', '기사 전체'],
+];
+const pct = (x) => Math.round(x * 100) + '%';
+const text = (r, g) => { const v = r[2] * GM[g]; return r[3].replace('{v5}', pct(v / 5)).replace('{v}', pct(v)).replace('{n}', Math.max(1, Math.round(v))); };
+function table() {
+  const g = +$('grade').value;
+  $('runes').innerHTML = '<tr><th>룬</th><th>효과 (' + GN[g] + ')</th><th>꼬리표</th><th>종류</th></tr>' + RUNES.map((r) => `<tr><td><span class="gem" style="background:${r[5]}"></span> ${r[1]}</td><td class="g${g}">${r[6] && g < 2 ? '<span class="sub">— 희귀부터</span>' : text(r, g)}</td><td>${r[4] ? `<span class="tag">${r[4]}</span>` : ''}</td><td>${r[6] ? '모양' : '범용'}</td></tr>`).join('');
+  $('legend').innerHTML = '<tr><th>룬</th><th>효과</th><th>대가</th><th>범위</th></tr>' + LEG.map((r) => `<tr><td class="g4">◆ ${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('');
+}
+function drop() {
+  const n = [0, 1, 2, 3].map((i) => +$('b' + i).value), p = [0, 1, 2, 3].map((i) => +$('p' + i).value / 100);
+  const per = n.map((x, i) => x * p[i]), tot = per.reduce((a, b) => a + b, 0);
+  let h = '<tr><th>등급</th><th class="n">하루 기대 룬</th><th class="n">10일</th><th>메모</th></tr>';
+  per.forEach((x, i) => { h += `<tr><td class="g${i}">${GN[i]}</td><td class="n">${x.toFixed(1)}</td><td class="n">${(x * 10).toFixed(0)}</td><td class="sub">${i === 3 ? `영웅 3개 → 전설 1 (합치기) · 10일 영웅 ${(x * 10).toFixed(0)}개 ≈ 전설 ${Math.floor((x * 10) / 3)}개` : i === 2 ? '희귀부터 모양 룬' : ''}</td></tr>`; });
+  h += `<tr><th>합계</th><th class="n">${tot.toFixed(1)}</th><th class="n">${(tot * 10).toFixed(0)}</th><th class="sub">목표: 하루 4~6 · 희귀 하루 1 · 영웅 2~3일에 1 · 전설 시즌 3~5 (+ 레이드 8% · 탑)</th></tr>`;
+  $('drop').innerHTML = h;
+}
+// 모형
+const SK = [{ n: '질풍난무·분신', st: 2, s: [null] }, { n: '일섬', st: 3, s: [null, null] }, { n: '검무', st: 0, s: [] }];
+let bag = [['exec', 2], ['dot', 1], ['dot', 1], ['dot', 1], ['twin', 3], ['crowd', 0], ['range', 2], ['zen', 4]];
+let pick = null;   // [스킬, 칸]
+const RB = Object.fromEntries(RUNES.map((r) => [r[0], r])), LB = Object.fromEntries(LEG.map((r) => [r[0], r]));
+const rname = (id) => (RB[id] ? RB[id][1] : '◆ ' + LB[id][1]);
+const rcol = (id) => (RB[id] ? RB[id][5] : '#ff9f1c');
+function mock() {
+  $('mock').innerHTML = SK.map((k, i) => `<div class="sk"><b>${k.n}</b> <span class="st">${'★'.repeat(k.st)}</span><small>숙련 ${k.st ? k.st * 10 : 3}/30 · 룬 칸 ${k.st >= 3 ? 2 : k.st ? 1 : 0}</small>
+    <div class="sockets">${[0, 1].map((j) => { const cap = k.st >= 3 ? 2 : k.st ? 1 : 0; if (j >= cap) return `<span class="sock lock">${j === 0 ? '★ 에 열림' : '★★★ 에 열림'}</span>`; const r = k.s[j]; return r ? `<button class="sock full" data-k="${i}" data-j="${j}"><span class="gem" style="background:${rcol(r[0])}"></span><span class="g${r[1]}">${rname(r[0])}</span></button>` : `<button class="sock${pick && pick[0] === i && pick[1] === j ? ' full' : ''}" data-k="${i}" data-j="${j}">◇ 빈 칸</button>`; }).join('')}</div></div>`).join('');
+  $('bag').innerHTML = bag.map((r, i) => `<button class="chip" data-b="${i}"><span class="gem" style="background:${rcol(r[0])}"></span><span class="g${r[1]}">${rname(r[0])}</span></button>`).join('') || '<span class="sub">비었음</span>';
+  const groups = {}; bag.forEach((r) => { if (r[1] < 3) { const k = r[0] + ':' + r[1]; groups[k] = (groups[k] || 0) + 1; } });
+  const m = Object.entries(groups).find(([, c]) => c >= 3);
+  $('merge').disabled = !m; $('mergeTxt').textContent = m ? `${rname(m[0].split(':')[0])} (${GN[+m[0].split(':')[1]]}) 3개 → ${GN[+m[0].split(':')[1] + 1]} 1개` : '같은 룬·등급 3개가 없어요';
+  $('mock').onclick = (e) => { const b = e.target.closest('.sock'); if (!b || b.classList.contains('lock')) return; const k = +b.dataset.k, j = +b.dataset.j; if (SK[k].s[j]) { bag.push(SK[k].s[j]); SK[k].s[j] = null; pick = null; } else pick = [k, j]; mock(); };
+  $('bag').onclick = (e) => { const b = e.target.closest('.chip'); if (!b || !pick) return; const r = bag[+b.dataset.b], k = SK[pick[0]]; if (k.s.some((x) => x && x[0] === r[0])) return; if (r[1] === 4 && k.s.some((x) => x && x[1] === 4)) return; k.s[pick[1]] = r; bag.splice(+b.dataset.b, 1); pick = null; mock(); };
+  $('merge').onclick = () => { if (!m) return; const [id, g] = m[0].split(':'); let n = 0; bag = bag.filter((r) => !(r[0] === id && r[1] === +g && n++ < 3)); bag.push([id, +g + 1]); mock(); };
+}
+$('grade').onchange = table;
+document.querySelectorAll('input').forEach((i) => (i.oninput = drop));
+table(); drop(); mock();
+</script>
+</body>
+</html>
