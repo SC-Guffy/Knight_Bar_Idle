@@ -1,0 +1,47 @@
+{
+ "job": {
+  "id": "k09",
+  "kind": "vfx",
+  "file": "src/vfx/k09.png",
+  "frames": 5,
+  "cell": [
+   48,
+   32
+  ],
+  "color": "#4da6ff",
+  "scale": 1,
+  "intent": "횡참 명중: 대검을 수평으로 크게 그은 자리의 참격 충격(가로로 넓은 호·띠) + 쇳조각 몇 개. 직업색 시트(대표색 #4da6ff 로 칠함). 쓰는 곳: greatswordsman.js·tree7-fx (세로로 세워 쓰기도 함)",
+  "why": "비평 regen — 수평 참격이 아니라 기운 칼날 물체로 읽힘 (의도 2)",
+  "paid_cap": 4
+ },
+ "versions": [
+  {
+   "v": 0,
+   "frames": 5,
+   "by": "원래 그림",
+   "avg": 2.86,
+   "pass": false,
+   "verdict": "regen"
+  },
+  {
+   "v": 1,
+   "frames": 5,
+   "by": "다시 뽑기 1: vfx_workbench slash_trail (facing 100, flatten 0.35, sweep 1.1, thickness 1.6) 렌더 + 로컬 build.py",
+   "avg": 4.14,
+   "pass": true,
+   "verdict": "pass"
+  }
+ ],
+ "repairs": 0,
+ "regens": 1,
+ "paid": 0,
+ "critic_calls": 2,
+ "done": {
+  "why": "합격",
+  "best": 1,
+  "frames": 5,
+  "avg": 4.14,
+  "passed": true
+ },
+ "line_start": 1
+}

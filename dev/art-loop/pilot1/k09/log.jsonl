@@ -1,0 +1,8 @@
+{"step": "init", "v": 0, "t": "2026-10-21 14:22:45"}
+{"step": "qa", "v": 0, "t": "2026-10-21 14:22:45"}
+{"step": "critic", "v": 0, "avg": 2.86, "verdict": "regen", "t": "2026-10-21 14:23:55"}
+{"step": "gen", "k": 1, "paid": 0, "tool": "vfx_workbench slash_trail (facing 100, flatten 0.35, sweep 1.1, thickness 1.6) 렌더 + 로컬 build.py", "t": "2026-10-21 14:30:09"}
+{"step": "new", "v": 1, "by": "다시 뽑기 1: vfx_workbench slash_trail (facing 100, flatten 0.35, sweep 1.1, thickness 1.6) 렌더 + 로컬 build.py", "t": "2026-10-21 14:30:09"}
+{"step": "qa", "v": 1, "t": "2026-10-21 14:30:09"}
+{"step": "critic", "v": 1, "avg": 4.14, "verdict": "pass", "t": "2026-10-21 14:35:30"}
+{"step": "done", "why": "합격", "best": 1, "t": "2026-10-21 14:35:30"}

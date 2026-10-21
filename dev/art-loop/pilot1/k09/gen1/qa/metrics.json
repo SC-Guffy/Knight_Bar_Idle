@@ -1,0 +1,43 @@
+{
+ "id": "k09",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot1/k09/gen1/out.png",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  240,
+  32
+ ],
+ "scale": 1.0,
+ "anchor": "c",
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "2번 프레임이 칸 왼쪽 가장자리에 닿는다 (잘림?)",
+   "3번 프레임이 칸 왼쪽 가장자리에 닿는다 (잘림?)",
+   "4번 프레임이 칸 왼쪽 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 1.4,
+  "lrange": 0.414,
+  "colors": 4,
+  "low": 0.007,
+  "edge": 0.274,
+  "lone": 0.1,
+  "flick": 0.327,
+  "churn": 0.266,
+  "fill": 0.171,
+  "area": [
+   238,
+   323,
+   345,
+   282,
+   129
+  ],
+  "strip": 0.001
+ },
+ "flags": []
+}

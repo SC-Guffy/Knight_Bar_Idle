@@ -1,0 +1,7 @@
+[
+ {"op": "fill_holes", "n": 30, "frames": [1, 2, 3]},
+ {"op": "erode", "k": 1, "frames": [0, 1, 2, 3]},
+ {"op": "drop_crumbs", "n": 60, "frames": [0, 1, 2, 3]},
+ {"op": "anchor", "where": "bottom", "frames": [0, 1, 2, 3]},
+ {"op": "fade_tail", "k": 1}
+]

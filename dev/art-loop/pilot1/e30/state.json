@@ -1,0 +1,71 @@
+{
+ "job": {
+  "id": "e30",
+  "kind": "vfx",
+  "file": "src/vfx/e30.png",
+  "frames": 5,
+  "cell": [
+   96,
+   48
+  ],
+  "color": "raw",
+  "scale": 1.3333,
+  "intent": "E30 별빛 화살비 ★★★: 하늘에 깔리는 밤하늘 조각 + 오로라 커튼, 프레임이 돌며 일렁이는 루프. 원래 색 시트. 쓰는 곳: skills.js",
+  "why": "비평 fix — 색 888개, 위쪽 회색 얼룩이 탁함, 끝 프레임이 튐",
+  "paid_cap": 0
+ },
+ "versions": [
+  {
+   "v": 0,
+   "frames": 5,
+   "by": "원래 그림",
+   "avg": 2.86,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 1,
+   "frames": 5,
+   "by": "수리: recolor_gray, quantize, drop_crumbs",
+   "avg": 3.0,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 2,
+   "frames": 5,
+   "by": "수리 v1: deink, drop_crumbs",
+   "avg": 3.29,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 3,
+   "frames": 5,
+   "by": "수리 v2: erode, drop_crumbs, frame_copy",
+   "avg": 3.0,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 4,
+   "frames": 5,
+   "by": "다시 뽑기 2: vfx_workbench (free, own recipe layers) + dev/vfx5/strip.py",
+   "avg": 3.29,
+   "pass": false,
+   "verdict": "regen"
+  }
+ ],
+ "repairs": 0,
+ "regens": 2,
+ "paid": 0,
+ "critic_calls": 5,
+ "done": {
+  "why": "두 판 연속 점수가 오르지 않음",
+  "best": 2,
+  "frames": 5,
+  "avg": 3.29,
+  "passed": false
+ },
+ "line_start": 4
+}

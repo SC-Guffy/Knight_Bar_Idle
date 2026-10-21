@@ -1,0 +1,1 @@
+[{"op":"recolor_gray","dst":[16,32,96]},{"op":"quantize","n":10},{"op":"drop_crumbs","n":2},{"op":"frame_copy","src":2,"to":4},{"op":"frames_order","order":[0,1,2,3,4]}]

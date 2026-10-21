@@ -1,0 +1,43 @@
+{
+ "id": "e30",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot1/e30/v0/try/b.png",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  480,
+  48
+ ],
+ "scale": 1.3333,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 1.8,
+  "lrange": 0.56,
+  "colors": 427,
+  "low": 0.087,
+  "edge": 0.334,
+  "lone": 0.12,
+  "flick": 0.18,
+  "churn": 0.301,
+  "fill": 0.387,
+  "area": [
+   1764,
+   1750,
+   1866,
+   1669,
+   1866
+  ],
+  "strip": 0.201
+ },
+ "flags": [
+  {
+   "k": "colors",
+   "why": "색이 너무 많다 — AI 흐림 계조·잡색 (> 24)"
+  }
+ ]
+}

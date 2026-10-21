@@ -139,8 +139,9 @@ def checker(w, h, a=BG_DARK, b=(26, 30, 40), s=4):
     return Image.fromarray(out)
 
 
-def qa_sheet(game, frames, knight=KNIGHT, scale=1.0):
-    """비평용 검수 시트: ①1배 ②4배 프레임 나열(어두운 체크) ③4배 흑백 ④기사 옆 장면(가장 큰 프레임, 어두운 필드·풀밭) 3배"""
+def qa_sheet(game, frames, knight=KNIGHT, scale=1.0, anchor='c'):
+    """비평용 검수 시트: ①1배 ②4배 프레임 나열(어두운 체크) ③4배 흑백 ④기사 옆 장면(가장 큰 프레임, 어두운 필드·풀밭) 3배
+    anchor 'b': 바닥 기준 이펙트(texFx anchor 'b') — 프레임 줄 칸 바닥에 땅선을 긋고, 장면에서 칸 바닥을 기사 발과 맞춘다"""
     H, W = game.shape[:2]; fw = W // frames; g = Image.fromarray(game)
     fr = [g.crop((i * fw, 0, (i + 1) * fw, H)) for i in range(frames)]
     sc = 4 if fw * frames * 4 + (frames + 1) * 8 <= 1400 else 3 if fw * frames * 3 <= 1400 else 2
@@ -158,16 +159,21 @@ def qa_sheet(game, frames, knight=KNIGHT, scale=1.0):
     for label, fs in (('frames x%d' % sc, fr), ('grayscale x%d' % sc, gray)):
         r = checker(rowW, H * sc + 2 * gap)
         for i, f in enumerate(fs):
-            r.alpha_composite(f.resize((fw * sc, H * sc), Image.NEAREST), (gap + i * (fw * sc + gap), gap))
-        rows.append((label, r))
+            x0 = gap + i * (fw * sc + gap)
+            r.alpha_composite(f.resize((fw * sc, H * sc), Image.NEAREST), (x0, gap))
+            if anchor == 'b': ImageDraw.Draw(r).line((x0, gap + H * sc, x0 + fw * sc - 1, gap + H * sc), fill=(150, 120, 80, 255), width=2)
+        rows.append((label + (' (ground line = cell bottom)' if anchor == 'b' else ''), r))
     # ④ 장면: 기사(왼쪽, 바닥 맞춤) + 가장 큰 프레임
     scene = Image.new('RGBA', (2 * (sw * s3) + 3 * gap, sh * s3 + 2 * gap), (12, 12, 16, 255))
     for k, bg in enumerate((BG_DARK, BG_FIELD)):
         sc_im = Image.new('RGBA', (sw, sh), bg + (255,))
         if kn: sc_im.alpha_composite(kn, (2, sh - kh - 3))
-        sc_im.alpha_composite(bf, (kw + 4, (sh - bf.height) // 2))
+        if anchor == 'b':
+            sc_im.alpha_composite(bf, (kw + 4, sh - 3 - bf.height))
+            ImageDraw.Draw(sc_im).line((0, sh - 3, sw, sh - 3), fill=(150, 120, 80, 255))
+        else: sc_im.alpha_composite(bf, (kw + 4, (sh - bf.height) // 2))
         scene.alpha_composite(sc_im.resize((sw * s3, sh * s3), Image.NEAREST), (gap + k * (sw * s3 + gap), gap))
-    rows.append((f'scene x{s3} (frame {big + 1} at game scale {scale:g}, knight 30x35)', scene))
+    rows.append((f'scene x{s3} (frame {big + 1} at game scale {scale:g}, knight 30x35' + (', effect bottom on ground' if anchor == 'b' else '') + ')', scene))
     out = Image.new('RGBA', (max(r.width for _, r in rows) + 16, sum(r.height + 18 for _, r in rows) + 8), (8, 9, 12, 255))
     d = ImageDraw.Draw(out); y = 4
     for label, r in rows:
@@ -176,7 +182,7 @@ def qa_sheet(game, frames, knight=KNIGHT, scale=1.0):
     return out
 
 
-def run(png, sid=None, color=None, frames=None, tile=False, intent='', out=None, opts=None, raw_flag=None, tmp=None, scale=1.0, kind='vfx'):
+def run(png, sid=None, color=None, frames=None, tile=False, intent='', out=None, opts=None, raw_flag=None, tmp=None, scale=1.0, kind='vfx', anchor='c'):
     opts = dict(opts or sheet_opts().get(sid, {}))
     if frames: opts['frames'] = frames
     opts.setdefault('frames', 5); fr = opts['frames']
@@ -190,12 +196,12 @@ def run(png, sid=None, color=None, frames=None, tile=False, intent='', out=None,
     m = metrics(game, fr) or {}
     if m: m.pop('_n'); m['strip'] = strip
     flags = [{'k': k, 'why': why} for k, (f, why) in FLAGS.items() if m and f(m)]
-    res = dict(id=sid, kind=kind, file=os.path.relpath(png, ROOT), frames=fr, color=color, size=list(raw.shape[1::-1]), scale=scale, intent=intent,
+    res = dict(id=sid, kind=kind, file=os.path.relpath(png, ROOT), frames=fr, color=color, size=list(raw.shape[1::-1]), scale=scale, anchor=anchor, intent=intent,
                gate={'pass': not fail, 'fail': fail, 'warn': warn}, metrics=m, flags=flags)
     if out:
         os.makedirs(out, exist_ok=True)
         Image.fromarray(game).save(os.path.join(out, 'game.png'))
-        qa_sheet(game, fr, scale=scale).save(os.path.join(out, 'sheet.png'))
+        qa_sheet(game, fr, scale=scale, anchor=anchor).save(os.path.join(out, 'sheet.png'))
         json.dump(res, open(os.path.join(out, 'metrics.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     return res, game
 
@@ -205,8 +211,8 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('png'); ap.add_argument('--id'); ap.add_argument('--color'); ap.add_argument('--frames', type=int)
     ap.add_argument('--tile', action='store_true'); ap.add_argument('--intent', default=''); ap.add_argument('--out'); ap.add_argument('--scale', type=float, default=1.0)
-    ap.add_argument('--kind', choices=('vfx', 'char'), default='vfx')
+    ap.add_argument('--kind', choices=('vfx', 'char'), default='vfx'); ap.add_argument('--anchor', choices=('c', 'b'), default='c')
     a = ap.parse_args()
     sid = a.id or os.path.splitext(os.path.basename(a.png))[0]
-    res, _ = run(a.png, sid, a.color, a.frames, a.tile, a.intent, a.out or os.path.join(ROOT, 'dev/pixel-qa/out', sid), scale=a.scale, kind=a.kind)
+    res, _ = run(a.png, sid, a.color, a.frames, a.tile, a.intent, a.out or os.path.join(ROOT, 'dev/pixel-qa/out', sid), scale=a.scale, kind=a.kind, anchor=a.anchor)
     print(json.dumps(res, ensure_ascii=False, indent=1))

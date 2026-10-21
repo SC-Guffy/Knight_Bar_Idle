@@ -1,0 +1,13 @@
+{"step": "init", "v": 0, "t": "2026-10-21 14:27:43"}
+{"step": "qa", "v": 0, "t": "2026-10-21 14:27:43"}
+{"step": "critic", "v": 0, "avg": 3.29, "verdict": "fix", "t": "2026-10-21 14:28:45"}
+{"step": "new", "v": 1, "by": "수리 v0: anchor, frame_copy, recolor, recolor, recolor, drop_crumbs, recolor, recolor, recolor", "t": "2026-10-21 14:30:14"}
+{"step": "qa", "v": 1, "t": "2026-10-21 14:30:14"}
+{"step": "critic", "v": 1, "avg": 3.43, "verdict": "fix", "t": "2026-10-21 14:31:07"}
+{"step": "new", "v": 2, "by": "수리 v1: frames_order, frame_copy, recolor, recolor, recolor, recolor, recolor, erode, drop_crumbs, anchor", "t": "2026-10-21 14:32:43"}
+{"step": "qa", "v": 2, "t": "2026-10-21 14:32:44"}
+{"step": "critic", "v": 2, "avg": 3.43, "verdict": "fix", "t": "2026-10-21 14:33:24"}
+{"step": "new", "v": 3, "by": "수리 v2: fill_holes, erode, drop_crumbs, anchor", "t": "2026-10-21 14:34:45"}
+{"step": "qa", "v": 3, "t": "2026-10-21 14:34:46"}
+{"step": "critic", "v": 3, "avg": 3.29, "verdict": "fix", "t": "2026-10-21 14:35:26"}
+{"step": "done", "why": "두 판 연속 점수가 오르지 않음", "best": 2, "t": "2026-10-21 14:35:26"}

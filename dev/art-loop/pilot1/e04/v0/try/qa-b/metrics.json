@@ -1,0 +1,40 @@
+{
+ "id": "e04",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot1/e04/v0/try/b.png",
+ "frames": 7,
+ "color": "#4da6ff",
+ "size": [
+  322,
+  46
+ ],
+ "scale": 1.3333,
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 1.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.167,
+  "edge": 0.468,
+  "lone": 0.192,
+  "flick": 0.394,
+  "churn": 0.686,
+  "fill": 0.319,
+  "area": [
+   534,
+   732,
+   965,
+   937,
+   964,
+   520,
+   68
+  ],
+  "strip": 0.103
+ },
+ "flags": []
+}

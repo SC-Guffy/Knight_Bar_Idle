@@ -1,0 +1,38 @@
+{
+ "id": "k09",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot1/k09/v0/sheet-raw.png",
+ "frames": 5,
+ "color": "#4da6ff",
+ "size": [
+  240,
+  32
+ ],
+ "scale": 1,
+ "intent": "횡참 명중: 대검을 수평으로 크게 그은 자리의 참격 충격(가로로 넓은 호·띠) + 쇳조각 몇 개. 직업색 시트(대표색 #4da6ff 로 칠함). 쓰는 곳: greatswordsman.js·tree7-fx (세로로 세워 쓰기도 함)",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 2.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.123,
+  "edge": 0.586,
+  "lone": 0.274,
+  "flick": 0.305,
+  "churn": 0.304,
+  "fill": 0.25,
+  "area": [
+   497,
+   532,
+   404,
+   270,
+   220
+  ],
+  "strip": 0.234
+ },
+ "flags": []
+}

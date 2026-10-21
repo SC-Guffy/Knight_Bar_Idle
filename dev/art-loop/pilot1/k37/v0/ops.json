@@ -1,0 +1,11 @@
+[
+ {"op": "anchor", "where": "bottom", "frames": [0, 1]},
+ {"op": "frame_copy", "src": 2, "to": 3},
+ {"op": "recolor", "src": [255,180,70], "dst": [232,116,44], "tol": 10, "frames": [3]},
+ {"op": "recolor", "src": [255,232,144], "dst": [255,180,70], "tol": 10, "frames": [3]},
+ {"op": "recolor", "src": [255,255,255], "dst": [255,232,144], "tol": 10, "frames": [3]},
+ {"op": "drop_crumbs", "n": 3, "frames": [1, 2, 3]},
+ {"op": "recolor", "src": [230,220,200], "dst": [214,214,210], "tol": 8},
+ {"op": "recolor", "src": [200,187,163], "dst": [190,190,186], "tol": 8},
+ {"op": "recolor", "src": [168,152,127], "dst": [150,150,146], "tol": 8}
+]

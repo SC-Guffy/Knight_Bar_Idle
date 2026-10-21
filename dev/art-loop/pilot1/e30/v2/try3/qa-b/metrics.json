@@ -1,0 +1,39 @@
+{
+ "id": "e30",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot1/e30/v2/try3/b.png",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  480,
+  48
+ ],
+ "scale": 1.3333,
+ "anchor": "c",
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.6,
+  "lrange": 0.577,
+  "colors": 9,
+  "low": 0.302,
+  "edge": 0.479,
+  "lone": 0.163,
+  "flick": 0.08,
+  "churn": 0.399,
+  "fill": 0.438,
+  "area": [
+   2031,
+   2021,
+   2031,
+   1979,
+   2021
+  ],
+  "strip": 0.097
+ },
+ "flags": []
+}

@@ -1,0 +1,40 @@
+{
+ "id": "e04",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot1/e04/v0/sheet-raw.png",
+ "frames": 7,
+ "color": "#4da6ff",
+ "size": [
+  322,
+  46
+ ],
+ "scale": 1.3333,
+ "intent": "E04 마력 폭발: 마름모 노바 — 마력이 모였다가 마름모꼴로 터져 퍼지는 폭발, 한 번 재생(0.6초). 직업색 시트(마법사 램프, 대표색 #4da6ff 로 칠함). 쓰는 곳: manaBurst.js",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 1.0,
+  "lrange": 0.77,
+  "colors": 5,
+  "low": 0.067,
+  "edge": 0.468,
+  "lone": 0.219,
+  "flick": 0.587,
+  "churn": 0.73,
+  "fill": 0.284,
+  "area": [
+   752,
+   734,
+   874,
+   520,
+   68,
+   534,
+   732
+  ],
+  "strip": 0.199
+ },
+ "flags": []
+}

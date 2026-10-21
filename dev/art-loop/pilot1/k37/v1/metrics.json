@@ -1,0 +1,39 @@
+{
+ "id": "k37",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot1/k37/v1/sheet-raw.png",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  320,
+  64
+ ],
+ "scale": 2,
+ "anchor": "b",
+ "intent": "대공성포(궁극기) 포격 마지막 타격 — 바닥 기준 대폭발: 주황·흰 폭발 + 밝은 회색 돌덩이 몇 개 + 먼지. 원래 색 시트. 쓰는 곳: siegeBarrage.js",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.511,
+  "colors": 11,
+  "low": 0.023,
+  "edge": 0.232,
+  "lone": 0.082,
+  "flick": 0.532,
+  "churn": 0.661,
+  "fill": 0.124,
+  "area": [
+   440,
+   405,
+   790,
+   790,
+   121
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

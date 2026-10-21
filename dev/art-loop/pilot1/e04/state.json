@@ -1,0 +1,46 @@
+{
+ "job": {
+  "id": "e04",
+  "kind": "vfx",
+  "file": "src/vfx/e04.png",
+  "frames": 7,
+  "cell": [
+   46,
+   46
+  ],
+  "color": "#4da6ff",
+  "scale": 1.3333,
+  "intent": "E04 마력 폭발: 마름모 노바 — 마력이 모였다가 마름모꼴로 터져 퍼지는 폭발, 한 번 재생(0.6초). 직업색 시트(마법사 램프, 대표색 #4da6ff 로 칠함). 쓰는 곳: manaBurst.js",
+  "why": "비평 fix — 프레임 순서가 뒤섞이고 5번에서 툭 꺼짐 (움직임 2)",
+  "paid_cap": 0
+ },
+ "versions": [
+  {
+   "v": 0,
+   "frames": 7,
+   "by": "원래 그림",
+   "avg": 3.43,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 1,
+   "frames": 7,
+   "by": "수리: drop_isolated, frames_order",
+   "avg": 3.57,
+   "pass": true,
+   "verdict": "pass"
+  }
+ ],
+ "repairs": 1,
+ "regens": 0,
+ "paid": 0,
+ "critic_calls": 2,
+ "done": {
+  "why": "합격",
+  "best": 1,
+  "frames": 7,
+  "avg": 3.57,
+  "passed": true
+ }
+}

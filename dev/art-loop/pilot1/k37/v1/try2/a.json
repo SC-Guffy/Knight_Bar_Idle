@@ -1,0 +1,8 @@
+[
+ {"op": "frames_order", "order": [1, 2, 3, 3, 4]},
+ {"op": "erode", "k": 2, "frames": [3]},
+ {"op": "drop_crumbs", "n": 3, "keep_largest": true, "frames": [3]},
+ {"op": "recolor", "src": [232,116,44], "dst": [150,150,146], "tol": 10, "frames": [3]},
+ {"op": "recolor", "src": [255,180,70], "dst": [190,190,186], "tol": 10, "frames": [3]},
+ {"op": "recolor", "src": [255,232,144], "dst": [214,214,210], "tol": 10, "frames": [3]}
+]

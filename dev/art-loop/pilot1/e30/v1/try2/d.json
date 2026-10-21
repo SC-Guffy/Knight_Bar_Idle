@@ -1,0 +1,1 @@
+[{"op":"deink","to":[2,10,98]},{"op":"recolor","src":[2,30,145],"dst":[2,10,98],"tol":4},{"op":"drop_crumbs","n":2}]

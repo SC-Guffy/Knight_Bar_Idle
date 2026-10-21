@@ -1,0 +1,63 @@
+{
+ "job": {
+  "id": "k37",
+  "kind": "vfx",
+  "file": "src/vfx/k37.png",
+  "frames": 5,
+  "cell": [
+   64,
+   64
+  ],
+  "color": "raw",
+  "scale": 2,
+  "intent": "대공성포(궁극기) 포격 마지막 타격 — 바닥 기준 대폭발: 주황·흰 폭발 + 밝은 회색 돌덩이 몇 개 + 먼지. 원래 색 시트. 쓰는 곳: siegeBarrage.js",
+  "why": "비평 + 사용자 동의 — 아래 파편이 잡부스러기이고 바닥에 안 붙음",
+  "paid_cap": 4,
+  "anchor": "b"
+ },
+ "versions": [
+  {
+   "v": 0,
+   "frames": 5,
+   "by": "원래 그림",
+   "avg": 3.29,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 1,
+   "frames": 5,
+   "by": "수리 v0: anchor, frame_copy, recolor, recolor, recolor, drop_crumbs, recolor, recolor, recolor",
+   "avg": 3.43,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 2,
+   "frames": 5,
+   "by": "수리 v1: frames_order, frame_copy, recolor, recolor, recolor, recolor, recolor, erode, drop_crumbs, anchor",
+   "avg": 3.43,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 3,
+   "frames": 5,
+   "by": "수리 v2: fill_holes, erode, drop_crumbs, anchor",
+   "avg": 3.29,
+   "pass": false,
+   "verdict": "fix"
+  }
+ ],
+ "repairs": 3,
+ "regens": 0,
+ "paid": 0,
+ "critic_calls": 4,
+ "done": {
+  "why": "두 판 연속 점수가 오르지 않음",
+  "best": 2,
+  "frames": 5,
+  "avg": 3.43,
+  "passed": false
+ }
+}

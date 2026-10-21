@@ -1,0 +1,18 @@
+{"step": "init", "v": 0, "t": "2026-10-21 14:22:45"}
+{"step": "qa", "v": 0, "t": "2026-10-21 14:22:45"}
+{"step": "critic", "v": 0, "avg": 2.86, "verdict": "fix", "t": "2026-10-21 14:24:42"}
+{"step": "new", "v": 1, "by": "수리: recolor_gray, quantize, drop_crumbs", "t": "2026-10-21 14:25:48"}
+{"step": "qa", "v": 1, "t": "2026-10-21 14:25:48"}
+{"step": "critic", "v": 1, "avg": 3.0, "verdict": "fix", "t": "2026-10-21 14:28:06"}
+{"step": "new", "v": 2, "by": "수리 v1: deink, drop_crumbs", "t": "2026-10-21 14:29:17"}
+{"step": "qa", "v": 2, "t": "2026-10-21 14:29:17"}
+{"step": "critic", "v": 2, "avg": 3.29, "verdict": "fix", "t": "2026-10-21 14:30:11"}
+{"step": "new", "v": 3, "by": "수리 v2: erode, drop_crumbs, frame_copy", "t": "2026-10-21 14:31:26"}
+{"step": "qa", "v": 3, "t": "2026-10-21 14:31:27"}
+{"step": "critic", "v": 3, "avg": 3.0, "verdict": "fix", "t": "2026-10-21 14:32:05"}
+{"step": "gen", "k": 1, "paid": 0, "tool": "local python (gen1/make.py, 절차 생성)", "t": "2026-10-21 14:34:09"}
+{"step": "gen", "k": 2, "paid": 0, "tool": "vfx_workbench (free, own recipe layers) + dev/vfx5/strip.py", "t": "2026-10-21 14:47:43"}
+{"step": "new", "v": 4, "by": "다시 뽑기 2: vfx_workbench (free, own recipe layers) + dev/vfx5/strip.py", "t": "2026-10-21 14:47:43"}
+{"step": "qa", "v": 4, "t": "2026-10-21 14:47:44"}
+{"step": "critic", "v": 4, "avg": 3.29, "verdict": "regen", "t": "2026-10-21 14:48:23"}
+{"step": "done", "why": "두 판 연속 점수가 오르지 않음", "best": 2, "t": "2026-10-21 14:48:23"}

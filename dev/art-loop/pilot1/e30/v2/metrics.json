@@ -1,0 +1,39 @@
+{
+ "id": "e30",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot1/e30/v2/sheet-raw.png",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  480,
+  48
+ ],
+ "scale": 1.3333,
+ "anchor": "c",
+ "intent": "E30 별빛 화살비 ★★★: 하늘에 깔리는 밤하늘 조각 + 오로라 커튼, 프레임이 돌며 일렁이는 루프. 원래 색 시트. 쓰는 곳: skills.js",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.8,
+  "lrange": 0.577,
+  "colors": 9,
+  "low": 0.291,
+  "edge": 0.473,
+  "lone": 0.161,
+  "flick": 0.105,
+  "churn": 0.353,
+  "fill": 0.426,
+  "area": [
+   2031,
+   2021,
+   2031,
+   1979,
+   1745
+  ],
+  "strip": 0.11
+ },
+ "flags": []
+}

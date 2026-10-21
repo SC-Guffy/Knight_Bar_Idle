@@ -1,0 +1,1 @@
+[{"op":"recolor","src":[2,10,98],"dst":[14,28,84],"tol":10},{"op":"drop_crumbs","n":6},{"op":"frame_copy","src":2,"to":4}]
