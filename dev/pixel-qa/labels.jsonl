@@ -185,3 +185,7 @@
 {"file": null, "id": "ui-wood-tone", "kind": "ui", "verdict": "fail", "reason": "UI 나무 톤 통일 — \"기존이 더 깔끔하다\", 갈색은 강조색을 탁하게 함", "date": "2026-10-13", "source": "art-upgrade.md"}
 {"file": null, "id": "black-outline-particles", "kind": "vfx", "verdict": "fail", "reason": "검은 아웃라인 들어간 지저분한 파티클은 싫다", "date": "2026-10-15", "source": "skill-vfx.md"}
 {"file": "src/vfx/k37.png", "id": "k37", "kind": "vfx", "verdict": "fail", "reason": "아래 파편이 잡부스러기이고 바닥에 안 붙는다 (블라인드 비평 지적에 사용자 동의 — 다시 뽑기 결과도 손볼 후보)", "date": "2026-10-16", "source": "pixel-qa 블라인드 시험"}
+{"file": "src/vfx/e04.png", "id": "e04", "kind": "vfx", "verdict": "pass", "reason": "아트 루프 pilot1 수리판(프레임 순서·외톨이 점) 적용 확인", "date": "2026-10-21", "source": "art-loop pilot1 (사용자 결과 확인)"}
+{"file": "src/vfx/k09.png", "id": "k09", "kind": "vfx", "verdict": "pass", "reason": "아트 루프 pilot1 다시 뽑기(수평 초승달 참격) 적용 확인", "date": "2026-10-21", "source": "art-loop pilot1 (사용자 결과 확인)"}
+{"file": "dev/art-loop/pilot1/e30/v2/sheet-raw.png", "id": "e30-loop-v2", "kind": "vfx", "verdict": "fail", "reason": "루프 결과(3.29, 미합격)는 적용하지 않음 — 원래대로", "date": "2026-10-21", "source": "art-loop pilot1 (사용자 결과 확인)"}
+{"file": "dev/art-loop/pilot1/k37/v2/sheet-raw.png", "id": "k37-loop-v2", "kind": "vfx", "verdict": "fail", "reason": "루프 결과(3.43, 미합격)는 적용하지 않음 — 원래대로", "date": "2026-10-21", "source": "art-loop pilot1 (사용자 결과 확인)"}
