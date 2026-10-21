@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스킬 진화 시안</title>
+<!-- 스펙: docs/specs/skill-evolve.md (스킬 재기획 4단계). 진행 계산기 · 15줄기 진화 표 · 카드 모형. 수치는 시안 -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --panel2: #2b2538; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --pink: #ff9ff3; --green: #7dffb0; --warn: #ffb35c; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.65 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  p { margin: 6px 0; max-width: 82ch; }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+  .grid > * { min-width: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: left; vertical-align: top; }
+  th { background: var(--panel2); color: var(--dim); font-weight: 400; }
+  td.n { text-align: right; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 8px 0; }
+  .bar label { color: var(--dim); }
+  input[type=number] { width: 64px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; font: inherit; }
+  select { background: var(--panel2); color: var(--ink); border: 1px solid var(--line); font: inherit; }
+  .evo { color: var(--pink); font-weight: 700; }
+  .chip { display: inline-flex; gap: 6px; align-items: center; padding: 2px 10px; border: 2px solid #0b0a14; background: var(--panel2); font-size: 12px; }
+  .chip b { color: var(--pink); }
+  .mock { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 8px; }
+  .ec { background: var(--panel2); border: 2px solid #4b3f66; padding: 8px; }
+  .ec.lock { opacity: .75; border-style: dashed; }
+  .ec.open { border-color: var(--pink); box-shadow: 0 0 8px #ff9ff355; }
+  .ec b { font-size: 13px; }
+  .ec small { display: block; color: var(--dim); }
+  .pbar { height: 6px; background: #17141f; border: 1px solid #0b0a14; margin: 2px 0 4px; }
+  .pbar i { display: block; height: 100%; background: linear-gradient(#ffd0e8, #c06090); }
+  .ok { color: var(--green); } .warn { color: var(--warn); }
+  ul, ol { margin: 4px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+<h1>스킬 진화 시안 · 시즌 목표</h1>
+<div class="sub">2026-10-21 · 스펙 docs/specs/skill-evolve.md (스킬 재기획 4단계) · 연계(3단계, docs/specs/skill-combo.md)의 기록을 읽는다 · 사용자 확인 대기 · 수치는 시안</div>
+
+<h2>요지</h2>
+<div class="grid">
+  <div class="card"><h3>키우고 + 함께 쓰면</h3><p>재료 두 스킬 <b>숙련 ★★</b> + 둘을 <b>연계로 이은 횟수 1,500</b> → <span class="evo">진화 스킬</span>이 열린다 (영구). 정해진 보스를 깨는 문이 아니다.</p></div>
+  <div class="card"><h3>두 칸 → 한 칸</h3><p>진화 스킬을 장착하면 재료 둘이 빠지고 빈 칸에 다른 스킬. 위력 ≈ 재료 합 × 0.9. 빼면 재료로 되돌아간다 (숙련·룬 그대로).</p></div>
+  <div class="card"><h3>★★ 로 태어나 써서 ★★★</h3><p>진화 스킬은 3차급 연출. ★★ 부터 이름 띠·금빛 (1·2차가 절제한 만큼 여기서 화려하게).</p></div>
+  <div class="card"><h3>궁극기 변형</h3><p>궁극기 ★★ + 그 줄 스킬과 연계 300 → 줄마다 변형이 열린다. 셋 다 열 수 있고 하나 골라 쓴다.</p></div>
+</div>
+
+<h2>진행 계산기 — 첫 진화는 며칠차?</h2>
+<p class="sub">원정 길이·하루 원정 수는 봇(0.28.5 heavy) 중앙값, 전투 비율 0.6, 숙련 = 시전 수 (2차 등급 표: ★ 100 · ★★ 1,500 · ★★★ 11,000). 새 스킬은 부모 ★ + 2차 전직(약 1일차 끝)에 얻는다고 보고, 얻자마자 진화 짝을 붙여 장착한다고 가정. 짝 연계 수 = 싸우는 1분에 짝 하나 연계 수 (연계 스펙 시뮬 2~5).</p>
+<div class="bar">
+  <label>조건 숙련 <select id="need"><option value="1500" selected>★★ (Lv20)</option><option value="11000">★★★ (Lv30)</option></select></label>
+  <label>짝 연계 N <input type="number" id="n" value="1500"></label>
+  <label>짝 연계 / 전투 분 <input type="number" id="rate" value="3" step="0.5"></label>
+  <label>궁극기 줄 연계 N <input type="number" id="nu" value="300"></label>
+  <label>궁극기 연계 / 분 <input type="number" id="ru" value="1" step="0.5"></label>
+</div>
+<div class="scroll"><table id="calc"></table></div>
+<p class="sub" id="calcNote"></p>
+
+<h2>스킬 탭 모형</h2>
+<div class="chip">✨ 다음 진화 <b>질풍 일섬</b> — 검무 회오리 ★★ <span class="ok">✓</span> · 섬광 베기 Lv17/20 · 연계 640/1,500</div>
+<div class="mock">
+  <div class="ec lock"><b class="evo">✨ 질풍 일섬</b> <small>진화 · 검무 회오리 + 섬광 베기 · 난무 마지막 타가 일섬으로 돌진한다</small>
+    <small>검무 회오리 ★★ <span class="ok">✓</span></small><div class="pbar"><i style="width:100%"></i></div>
+    <small>섬광 베기 숙련 Lv17/20</small><div class="pbar"><i style="width:85%"></i></div>
+    <small>두 스킬 연계 640/1,500 (✨ 장착 칸에서 둘을 붙여 두면 빨리 찬다)</small><div class="pbar"><i style="width:43%"></i></div></div>
+  <div class="ec open"><b class="evo">✨ 칼날 폭풍 ★★</b> <small>진화 · 검무 회오리 + 검기 폭풍 · 숙련 Lv20/30 · 위력 ≈ 두 재료 합 × 0.9</small>
+    <small>장착하면 검무 회오리 · 검기 폭풍이 빠지고 빈 칸이 하나 생겨요</small><div class="bar"><span class="chip">장착 (두 칸 → 한 칸)</span><span class="chip">▶</span></div></div>
+  <div class="ec open"><b class="evo">★ 천검 변형</b> <small>쓸 변형: <span class="chip">기본</span> <span class="chip" style="border-color:var(--pink)">만검 ✓</span> <span class="chip">일도양단 🔒 연계 120/300</span> <span class="chip">검우 🔒 연계 40/300</span></small></div>
+</div>
+
+<h2>15줄기 진화 표</h2>
+<div class="scroll"><table id="table"></table></div>
+
+<h2>정할 것</h2>
+<ol>
+  <li><b>장착 방식</b>: 두 칸 → 한 칸 (시안) vs 재료와 별개 새 스킬 (함께 장착, 대신 약하게).</li>
+  <li><b>조건</b>: ★★ + 연계 1,500 (시안, 4~5일차) vs ★★★ + 2,000~3,000 (9~10일차, 시즌 끝 목표) — 위 계산기로 비교.</li>
+  <li><b>위력</b>: 재료 합 × 0.9.</li>
+  <li><b>궁극기 변형</b>: 셋 다 열고 하나 골라 씀 (시안) vs 하나만.</li>
+  <li>연계 스펙(3단계) "정할 것"이 먼저 — 특히 "바로 다음 칸만" 연계라면 진화 짝을 붙여 둬야 연계 수가 쌓인다.</li>
+</ol>
+</main>
+<script>
+'use strict';
+const D = [{"cls": "검신", "fus": [["질풍 일섬", "검무 회오리", "섬광 베기"], ["섬광 검기", "섬광 베기", "검기 폭풍"], ["칼날 폭풍", "검무 회오리", "검기 폭풍"]], "ult": "천검", "uv": ["천검: 만검", "천검: 일도양단", "천검: 검우"], "lanes": ["⚡ 연타 갈래", "🗡️ 발도 갈래", "🌙 검기 갈래"], "laneSk": {"a": ["질풍난무", "검무 회오리"], "b": ["일섬", "섬광 베기"], "k": ["비검", "검기 폭풍"]}}, {"cls": "파천검왕", "fus": [["철벽 돌파", "철퇴 회전", "관통 돌격"], ["단두 충격파", "관통 돌격", "대검 폭풍"], ["폭군의 선풍", "철퇴 회전", "대검 폭풍"]], "ult": "파천참", "uv": ["파천참: 백검", "파천참: 천지양단", "파천참: 지열"], "lanes": ["💢 돌진 갈래", "🪓 단두 갈래", "🩸 파동 갈래"], "laneSk": {"a": ["돌진 격돌", "철퇴 회전"], "b": ["대검 횡참", "관통 돌격"], "k": ["참마도 파동", "대검 폭풍"]}}, {"cls": "성좌기사", "fus": [["성역 심판", "성광 선회", "천벌의 빛줄기"], ["십자 천벌", "천벌의 빛줄기", "별빛 폭풍"], ["성광 폭풍", "성광 선회", "별빛 폭풍"]], "ult": "성좌 강림", "uv": ["성좌 강림: 별무리", "성좌 강림: 일성", "성좌 강림: 별비"], "lanes": ["🛡️ 성역 갈래", "⚖️ 심판 갈래", "✝️ 성검 갈래"], "laneSk": {"a": ["성역", "성광 선회"], "b": ["심판의 일격", "천벌의 빛줄기"], "k": ["성검 파동", "별빛 폭풍"]}}, {"cls": "천마장군", "fus": [["철벽 돌격", "방진 선회", "번개 돌격"], ["뇌창 투척", "번개 돌격", "기병 폭풍"], ["군단 선회", "방진 선회", "기병 폭풍"]], "ult": "천마군단", "uv": ["천마군단: 만창", "천마군단: 일창관천", "천마군단: 창우"], "lanes": ["🛡️ 방진 갈래", "🐎 돌격 갈래", "🔱 투창 갈래"], "laneSk": {"a": ["방패 벽", "방진 선회"], "b": ["기병 돌격", "번개 돌격"], "k": ["투창", "기병 폭풍"]}}, {"cls": "용황", "fus": [["업화 강하", "용염 회오리", "용섬"], ["용섬 창기", "용섬", "용염 폭풍"], ["용염 선풍", "용염 회오리", "용염 폭풍"]], "ult": "용황 강림", "uv": ["용황 강림: 만룡", "용황 강림: 일룡관천", "용황 강림: 용우"], "lanes": ["🔥 용염 갈래", "☄️ 강하 갈래", "🦷 용아 갈래"], "laneSk": {"a": ["용의 숨결", "용염 회오리"], "b": ["용추락", "용섬"], "k": ["용아창", "용염 폭풍"]}}, {"cls": "전쟁군주", "fus": [["회전 분쇄", "전부 회전", "지열참"], ["열진 투척", "지열참", "전장 폭풍"], ["철폭풍", "전부 회전", "전장 폭풍"]], "ult": "천붕", "uv": ["천붕: 만부", "천붕: 일부분천", "천붕: 부우"], "lanes": ["🌀 회전 갈래", "⛰️ 분쇄 갈래", "🪓 투척 갈래"], "laneSk": {"a": ["대회전", "전부 회전"], "b": ["대지 가르기", "지열참"], "k": ["투척 도끼창", "전장 폭풍"]}}, {"cls": "공성포수", "fus": [["연장 폭격", "회전 포대", "파성 꿰뚫기"], ["파성 포화", "파성 꿰뚫기", "철우 포화"], ["회전 철우", "회전 포대", "철우 포화"]], "ult": "대공성포", "uv": ["대공성포: 만문 포격", "대공성포: 요새 붕괴", "대공성포: 광역 포격"], "lanes": ["🔩 연사 갈래", "🏰 공성 갈래", "💥 포화 갈래"], "laneSk": {"a": ["다연장 사격", "회전 포대"], "b": ["폭열탄", "파성 꿰뚫기"], "k": ["화약 쇠뇌살", "철우 포화"]}}, {"cls": "신궁", "fus": [["연환 저격", "관통 선회", "일섬 저격"], ["광휘 일발", "일섬 저격", "광휘 화살비"], ["선회 화살비", "관통 선회", "광휘 화살비"]], "ult": "태양 관통", "uv": ["태양 관통: 천 개의 눈", "태양 관통: 일식", "태양 관통: 일출"], "lanes": ["🎯 연발 갈래", "👁️ 저격 갈래", "☀️ 광휘 갈래"], "laneSk": {"a": ["철갑 관통탄", "관통 선회"], "b": ["헤드샷", "일섬 저격"], "k": ["추격탄", "광휘 화살비"]}}, {"cls": "차원궁사", "fus": [["성운 연격", "마탄 궤도", "공간 절단"], ["단층 유성", "공간 절단", "유성 낙하"], ["궤도 유성우", "마탄 궤도", "유성 낙하"]], "ult": "차원 붕괴", "uv": ["차원 붕괴: 성군 포격", "차원 붕괴: 사건의 지평선", "차원 붕괴: 차원 범람"], "lanes": ["🌠 별비 갈래", "🔮 집중 갈래", "🌑 공허 갈래"], "laneSk": {"a": ["별빛 화살비", "마탄 궤도"], "b": ["유도 마탄", "공간 절단"], "k": ["공허 화살", "유성 낙하"]}}, {"cls": "뇌제", "fus": [["뇌광 연쇄", "뇌전 구체", "섬뢰"], ["섬전 폭풍", "섬뢰", "뇌운 폭풍"], ["뇌구 폭풍", "뇌전 구체", "뇌운 폭풍"]], "ult": "뇌제 강림", "uv": ["뇌제 강림: 천뢰", "뇌제 강림: 일벼락", "뇌제 강림: 뇌우"], "lanes": ["⚡ 연쇄 갈래", "🌩️ 낙뢰 갈래", "🔱 뇌운 갈래"], "laneSk": {"a": ["연쇄 번개", "뇌전 구체"], "b": ["낙뢰", "섬뢰"], "k": ["뇌전 화살", "뇌운 폭풍"]}}, {"cls": "대마도사", "fus": [["화염 낙하", "불꽃 고리", "화염 광선"], ["열선 폭풍", "화염 광선", "불길 폭풍"], ["불꽃 대회전", "불꽃 고리", "불길 폭풍"]], "ult": "종언의 겁화", "uv": ["종언의 겁화: 불의 비", "종언의 겁화: 일점 낙하", "종언의 겁화: 화우"], "lanes": ["🔥 연소 갈래", "☄️ 운석 갈래", "🌋 불길 갈래"], "laneSk": {"a": ["화염 회오리", "불꽃 고리"], "b": ["메테오", "화염 광선"], "k": ["화염탄", "불길 폭풍"]}}, {"cls": "빙결의 군주", "fus": [["빙설 관통", "서리 소용돌이", "빙창 관통"], ["빙창 폭풍", "빙창 관통", "눈보라 폭풍"], ["파편 소용돌이", "서리 소용돌이", "눈보라 폭풍"]], "ult": "절대영도", "uv": ["절대영도: 성에 비", "절대영도: 일점 동결", "절대영도: 설우"], "lanes": ["❄️ 서리 갈래", "🧊 빙창 갈래", "🌨️ 눈보라 갈래"], "laneSk": {"a": ["블리자드", "서리 소용돌이"], "b": ["얼음창", "빙창 관통"], "k": ["얼음 파편", "눈보라 폭풍"]}}, {"cls": "챔피언", "fus": [["연타 붕권", "맹호 난타", "철갑 직권"], ["관통 권풍", "철갑 직권", "사방 권격"], ["난타 권풍", "맹호 난타", "사방 권격"]], "ult": "패왕권", "uv": ["패왕권: 난타무쌍", "패왕권: 일권파천", "패왕권: 권풍 폭우"], "lanes": ["⚡ 연타 갈래", "🔨 일격 갈래", "💨 권풍 갈래"], "laneSk": {"a": ["연타 러시", "맹호 난타"], "b": ["붕권", "철갑 직권"], "k": ["권풍", "사방 권격"]}}, {"cls": "템페스트", "fus": [["선풍 돌진각", "선풍 회오리", "뇌정 관통각"], ["뇌풍 관통각", "뇌정 관통각", "폭풍 돌려차기"], ["칼바람 선풍각", "선풍 회오리", "폭풍 돌려차기"]], "ult": "천풍각", "uv": ["천풍각: 만풍", "천풍각: 일천풍", "천풍각: 풍인 소나기"], "lanes": ["🌀 선풍 갈래", "🦶 돌진 갈래", "🍃 풍인 갈래"], "laneSk": {"a": ["회전 발차기", "선풍 회오리"], "b": ["돌진 발차기", "뇌정 관통각"], "k": ["풍인각", "폭풍 돌려차기"]}}, {"cls": "그랜드마스터", "fus": [["순환 장풍", "주천 기환", "관천 장풍"], ["관통 기탄", "관천 장풍", "기공 폭풍"], ["기환 폭풍", "주천 기환", "기공 폭풍"]], "ult": "기신 강림", "uv": ["기신 강림: 만수", "기신 강림: 일장천붕", "기신 강림: 기탄 소나기"], "lanes": ["☯️ 호신 갈래", "🖐️ 장풍 갈래", "🔮 기탄 갈래"], "laneSk": {"a": ["기막", "주천 기환"], "b": ["장풍", "관천 장풍"], "k": ["기탄", "기공 폭풍"]}}];
+const $ = (id) => document.getElementById(id);
+const DAYS = [[0, 1, 81, 2.5], [1, 2, 30, 5.9], [2, 3, 26, 10.6], [3, 5, 23, 20.5], [5, 7, 20, 32.2], [7, 10, 17, 38.3]];
+// 검신 쿨 (숙련 Lv20 쿨 ×0.848 쯤이지만 단순하게 기본 쿨) · 얻는 날 (부모 ★ + 2차)
+const SK = { whirl: { n: '검무 회오리', cd: 12, from: 1.2 }, flash: { n: '섬광 베기', cd: 18, from: 1.3 }, storm: { n: '검기 폭풍', cd: 13, from: 1.8 } };
+const PAIRS = [['f_ab', '질풍 일섬', 'whirl', 'flash'], ['f_bk', '섬광 검기', 'flash', 'storm'], ['f_ak', '칼날 폭풍', 'whirl', 'storm']];
+function calc() {
+  const need = +$('need').value, N = +$('n').value, rate = +$('rate').value, Nu = +$('nu').value, ru = +$('ru').value;
+  const xp = { whirl: 0, flash: 0, storm: 0 }, cmb = { f_ab: 0, f_bk: 0, f_ak: 0 }, got = {};
+  let ultXp = 0, ultC = 0, ultGot = null;
+  for (const [a, b, n, len] of DAYS) for (let i = 0; i < (b - a) * n; i++) {
+    const d = a + i / n, fight = len * 60 * 0.6;
+    for (const k of Object.keys(SK)) if (d >= SK[k].from) xp[k] += (fight * 0.85) / SK[k].cd;
+    for (const [id, , x, y] of PAIRS) if (d >= Math.max(SK[x].from, SK[y].from)) cmb[id] += (fight / 60) * rate;
+    if (d >= 3) { ultXp += (fight * 0.85) / 20; ultC += (fight / 60) * ru; }
+    for (const [id, , x, y] of PAIRS) if (!got[id] && xp[x] >= need && xp[y] >= need && cmb[id] >= N) got[id] = d;
+    if (!ultGot && ultXp >= 800 && ultC >= Nu) ultGot = d;
+  }
+  const f = (d) => (d == null ? '<span class="warn">10일 안에 못 감</span>' : `${(d + 1).toFixed(1)}일차`);
+  $('calc').innerHTML = '<tr><th>진화 (검신)</th><th>재료</th><th>열리는 때 (열심 유저)</th></tr>' + PAIRS.map(([id, nm, x, y]) => `<tr><td class="evo">${nm}</td><td>${SK[x].n} + ${SK[y].n}</td><td>${f(got[id])}</td></tr>`).join('') + `<tr><td class="evo">궁극기 변형 (줄 하나)</td><td>천검 ★★ + 줄 연계 ${Nu}</td><td>${f(ultGot)}</td></tr>`;
+  $('calcNote').textContent = '가정: 셋 다 동시에 키운다고 봤다 (실제로는 장착 칸 4개라 짝 둘을 함께 키우기 어렵다 → 둘째·셋째 진화는 이보다 늦다). 가벼운 유저는 하루 원정이 절반쯤이라 대략 1.5~2배.';
+}
+function table() {
+  $('table').innerHTML = '<tr><th>줄기</th><th>whirl + flash</th><th>flash + storm</th><th>whirl + storm</th><th>궁극기 변형 (a · b · k 줄)</th></tr>' + D.map((x) => `<tr><td>${x.cls}</td>${x.fus.map((f) => `<td><span class="evo">${f[0]}</span><br><small class="sub">${f[1]} + ${f[2]}</small></td>`).join('')}<td>${x.uv.map((u, i) => `<span class="evo">${(u || '').replace(/^[^:]*: /, '')}</span> <small class="sub">${['a', 'b', 'k'][i]}: ${x.laneSk[['a', 'b', 'k'][i]].join('·')}</small>`).join('<br>')}</td></tr>`).join('');
+}
+document.querySelectorAll('input, select').forEach((e) => (e.oninput = calc));
+calc(); table();
+</script>
+</body>
+</html>
