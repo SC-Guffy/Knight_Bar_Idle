@@ -2190,7 +2190,10 @@ function onRaidResult(result) {
 // 보류된 레이드 결과를 본다: 재생 기록이 있으면 재생 뒤 정산, 없으면(앱을 다시 켬) 바로 지급하고 정산 화면
 function watchRaid() {
   if (!S.raid.pending || raidActive() || duelActive() || S.phase !== 'camp' || acctOpen) return;
-  if (raidUi.queued && raidUi.queued.id === S.raid.pending.id) { closeCamp(); playQueuedRaid(); }
+  // 재생 기록을 놓쳤어도(다시 접속 등) 서버 방에 그 결과가 남아 있으면 그걸로 재생한다
+  const r = raidUi.room, id = S.raid.pending.id;
+  if (!(raidUi.queued && raidUi.queued.id === id) && r) raidUi.queued = [r.result, r.last].find((x) => x && x.id === id) || null;
+  if (raidUi.queued && raidUi.queued.id === id) { closeCamp(); playQueuedRaid(); }
   else { raidUi.queued = null; closeCamp(); finishRaid(); }
 }
 function playQueuedRaid() {
@@ -2356,7 +2359,11 @@ function viewRaidRoom() {
       <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">${ico('ticket')} 입장권 구매</button>`;
   }
   let acts;
-  if (room.state === 'done') {
+  // 앞 판 전투를 아직 안 봤으면 다음 판은 못 나간다 — 새 결과가 오면 앞 판 보상이 재생 없이 들어가 버린다 (raid.js settleRaid)
+  if (S.raid.pending) {
+    acts = `<span class="blocker">앞 판 전투를 먼저 봐야 보상이 들어와요</span>
+      <button class="go compact" data-action="raid-watch" ${raidActive() || duelActive() ? 'disabled' : ''}>${ico('sword')} 전투 보기</button>`;
+  } else if (room.state === 'done') {
     acts = meHost
       ? `<button class="go compact" data-action="raid-again" ${raidUi.busy ? 'disabled' : ''}>${ico('repeat')} 같은 파티로 다시 도전</button>`
       : '<span class="small">방장이 다시 도전하면 대기실이 다시 열려요</span>';
@@ -3080,14 +3087,14 @@ const ACTIONS = {
   'raid-leave': () => { raidLeave(); raidPoll(true); },
   'raid-ready': (el) => {
     const on = el.dataset.on === '1';
-    if (on && S.raid.tickets <= 0) return;
+    if (on && (S.raid.tickets <= 0 || S.raid.pending)) return;
     raidRequest(on ? withSave(() => readyRaid(true)) : () => readyRaid(false));
   },
   'raid-boss': (el) => raidRequest(() => setRaidBoss(el.dataset.boss)),
   'raid-kick': (el) => raidRequest(() => kickRaid(el.dataset.nick)),
   'raid-fill': () => raidRequest(withSave(fillRaid), '🤖 빈자리를 AI 기사로 채웠어요'),
-  'raid-start': () => { if (S.raid.tickets > 0) raidRequest(withSave(startRaid)); },
-  'raid-again': () => raidRequest(againRaid),
+  'raid-start': () => { if (S.raid.tickets > 0 && !S.raid.pending) raidRequest(withSave(startRaid)); },
+  'raid-again': () => { if (!S.raid.pending) raidRequest(againRaid); },
   'raid-result': () => { raidUi.showResult = true; },
   'raid-watch': watchRaid,
   'raid-result-close': () => { raidUi.showResult = false; },
