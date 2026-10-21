@@ -126,7 +126,7 @@ Object.assign(SKILL_FX, {
       if (m === 0) {
         for (const t of a.targets(i)) burst(t.x, t.y, 12, ['#c9c2b4', '#ffffff', SG_COL.fire], 160);
         // 둘째 살: 불붙은 포탄(F15)이 꽂혀 작은 버섯구름(E31)과 요새 붕괴 폭발(K37)을 작게 터뜨린다
-        if (last) { sgShellFx(tx - a.dir * 60, gy - 40, tx, gy - 12, 0.1, 1); skLater(a, 0.1, () => { abMushroomFx(tx, 0.9, 2 / 3); texFx('k37', tx, gy - 12, 'raw', { scale: 2 / 3, life: 0.45, fade: 0.35 }); scorchFx(tx, groundY() - 2, SG_COL.smoke, 0.7); }); impact({ stop: 0.12, shake: 0.5 }); }
+        if (last) { sgShellFx(tx - a.dir * 60, gy - 40, tx, gy - 12, 0.1, 1); skLater(a, 0.1, () => { abMushroomFx(tx, 0.9, 2 / 3); texFx('k37', tx, gy - 2, 'raw', { anchor: 'b', scale: 2 / 3, life: 0.45, fade: 0.35 }); scorchFx(tx, groundY() - 2, SG_COL.smoke, 0.7); }); impact({ stop: 0.12, shake: 0.5 }); }
         return;
       }
       if (first) { abBlastFx(tx, gy - 12, 1.6); impact({ stop: 0.1, shake: 0.5 }); return; }

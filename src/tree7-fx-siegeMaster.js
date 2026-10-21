@@ -110,7 +110,7 @@
     hitTex(a, t, share, i, n) {
       const m = a.mast || 0, last = i === n - 1;
       if (own(a, 'sm_flash') && t7Sh(a, 'triple') && i % 3) { texFx('k22', t.x, t.y, 'raw', { scale: 2 / 3, life: 0.22, frames: 4 }); return; }
-      texFx('k37', t.x, t.y + 6, 'raw', { scale: m >= 3 && last ? 4 / 3 : 2 / 3, life: 0.4, flip: a.dir < 0 });
+      texFx('k37', t.x, t.y - 2, 'raw', { scale: m >= 3 && last ? 4 / 3 : 2 / 3, life: 0.4, flip: a.dir < 0 });
       if (m >= 3 && last) abMushroomFx(t.x, 1.0, 2 / 3);
     },
     hit(a, i, n) { if (i === n - 1) impact({ stop: 0.06, shake: 0.2 }); },
@@ -195,9 +195,9 @@
       if (m >= 3) for (const s of [-1, 1]) { abBlastFx(x + s * 48, groundY() - 10, 1.2); ringFx(x + s * 48, SM_IRON, 1, 0.4); }
       ringFx(x, SM_IRON, 1.4, 0.5);
       abBlastFx(x, groundY() - 12, m >= 3 ? 2.6 : 2);
-      if (m >= 2) for (const s of [-1, 1]) skFx(null, 0.14, 0, null, () => { abBlastFx(x + s * 60, groundY() - 10, 1.4); texFx('k37', x + s * 60, groundY() - 22, 'raw', { scale: 2 / 3, life: 0.4 }); });
+      if (m >= 2) for (const s of [-1, 1]) skFx(null, 0.14, 0, null, () => { abBlastFx(x + s * 60, groundY() - 10, 1.4); texFx('k37', x + s * 60, groundY() - 2, 'raw', { anchor: 'b', scale: 2 / 3, life: 0.4 }); });
       abMushroomFx(x, 1.0, m >= 2 ? 1 : 2 / 3);
-      texFx('k37', x, groundY() - 22, 'raw', { scale: m >= 3 ? 4 / 3 : 1, life: 0.45 });
+      texFx('k37', x, groundY() - 3, 'raw', { anchor: 'b', scale: m >= 3 ? 4 / 3 : 1, life: 0.45 });   // K37 은 칸 바닥 기준 (0.30.1 아트 루프판)
       if (m >= 3) texFx('k20', x, groundY() - 30, SM_GOLD, { scale: 4 / 3, life: 0.4 });
       impact({ stop: 0.14, shake: 0.55 });
     },
@@ -216,7 +216,7 @@
           const dl = 0.06 + j * 0.05;
           if (m >= 3) ringFx(x, SM_IRON, 1, 0.4);
           texFx('k21', x, y - 4, 'raw', { scale: [1, 4 / 3, 4 / 3, 2][m], life: 0.5, delay: dl, frames: 5 });
-          if (m >= 2) texFx('k37', x, y - 8, 'raw', { scale: m >= 3 ? 1 : 2 / 3, life: 0.4, delay: dl + 0.05 });
+          if (m >= 2) texFx('k37', x, y - 20, 'raw', { scale: m >= 3 ? 1 : 2 / 3, life: 0.4, delay: dl + 0.05 });
           smoke(x, y - 6, { delay: dl + 0.1, life: 0.6 });
           texFx('c16', x, y - 14, SM_GOLD, { scale: 1, life: 0.5, delay: dl + 0.15, move: (u) => [0, -10 * u] });
           if (m >= 3 && j === nE) skFx(null, dl, 0, null, () => abMushroomFx(x, 1.0, 2 / 3));
