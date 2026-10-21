@@ -1,6 +1,6 @@
 # 레이드 입장권
 
-- 상태: 확인 대기 (0.30.2 가격 인상)
+- 상태: 완료 (0.30.2 가격 인상, 2026-10-21 사용자 확인)
 - 관련 코드: src/data.js (RAID_TICKET_*), src/raid.js (refillTickets·ticketPrice·buyTicket), src/ui.js (입장권 카드), src/core.js (우편 raidTickets)
 - 최종 갱신: 2026-10-21
 
