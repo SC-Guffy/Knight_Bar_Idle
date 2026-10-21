@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>레이드 입장권 가격 — 스펙 검토</title>
+<!-- 스펙: docs/specs/raid-tickets.md (0.30.2). 봇 수치는 dev/progress-bot.js 5일 · 12시드 중앙값 (2026-10-21), --rev HEAD(0.30.1) --rev .(0.30.2).
+     '산다' = RAID_BUY=1 (무료 5장 뒤, 바로 전 판 골드보다 싼 동안 산다). '안 산다' = 무료 5장만. 가격 표는 src/raid.js ticketPrice 식을 그대로 옮겨 계산. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --blue: #8fd8ff; --warn: #ffb35c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .ok { color: var(--green); } .bad { color: var(--red); font-weight: 700; } .warn { color: var(--warn); }
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 6px 0; color: var(--dim); }
+  input[type=number] { width: 70px; background: #0f0d14; color: var(--ink); border: 1px solid var(--line); padding: 2px 4px; font: inherit; }
+  input[type=text] { width: 150px; background: #0f0d14; color: var(--ink); border: 1px solid var(--line); padding: 2px 4px; font: inherit; }
+  .bars { display: grid; grid-template-columns: 70px 1fr 90px; gap: 3px 8px; align-items: center; font-size: 12px; }
+  .bar { height: 10px; border-radius: 2px; }
+  .bar.old { background: #6d6585; } .bar.new { background: var(--gold); }
+  .line { position: relative; }
+  .win { position: absolute; top: -2px; bottom: -2px; border-left: 2px dashed var(--green); }
+  ul { margin: 4px 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+<main>
+<h1>🎟️ 레이드 입장권 가격 <small class="sub">0.30.2 · 확인 대기</small></h1>
+<div class="sub">스펙 <code>docs/specs/raid-tickets.md</code> · 진행 봇 <code>dev/progress-bot.js</code> 5일 × 12시드 중앙값</div>
+
+<h2>요지</h2>
+<div class="card">
+  <ul>
+    <li><b>문제</b>: 첫 장이 몬스터 골드(M) × 1이었습니다. 사냥 6초면 버는 돈입니다. 레이드 한 판 승리 골드는 M × 120이라, 하루 5장째까지는 사서 이기면 골드가 남았습니다. 골드 보너스·MVP까지 치면 봇은 하루 7장 가까이 본전 이상이었습니다.</li>
+    <li><b>바꾼 것</b>: 기준값 <code>RAID_TICKET_GOLD</code> 20 → <b>120</b>(승리 골드 한 번치), 첫 구매 배율 0.05 → <b>0.5</b>. 그 뒤 배율(1·2·3.5·6, 이후 ×1.6)은 그대로입니다.</li>
+    <li><b>결과</b>: 첫 장은 승리 골드의 절반, 둘째 장은 본전, 셋째 장부터 골드로는 손해입니다. 사는 이유는 처치 상자·재료가 됩니다.</li>
+    <li>무료 5장 · 클리어할 때만 1장 차감 · 보유 상한 5장은 그대로입니다.</li>
+  </ul>
+</div>
+
+<h2>하루 n번째 구매 가격 (M = 최고 스테이지 몬스터 골드)</h2>
+<div class="card">
+  <div class="ctl">
+    <label>기준값 <input type="number" id="k" value="120"></label>
+    <label>배율 표 <input type="text" id="steps" value="0.5, 1, 2, 3.5, 6"></label>
+    <label>그 뒤 × <input type="number" id="grow" value="1.6" step="0.1"></label>
+    <label>승리 골드(M ×) <input type="number" id="win" value="120"></label>
+  </div>
+  <div class="sub">원정은 약 6초에 1마리라 M × 10 ≈ 사냥 1분입니다. 초록 점선은 승리 골드 한 번치입니다(골드 보너스·MVP 제외).</div>
+  <div class="scroll"><table id="tbl"></table></div>
+  <div id="bars" class="bars" style="margin-top:10px"></div>
+</div>
+
+<h2>진행 봇 전후 비교</h2>
+<div class="card">
+  <div class="sub">'산다' 봇은 무료 5장을 다 쓴 뒤, 바로 전 판 골드보다 싼 동안 입장권을 사서 더 돕니다(계산 빠른 유저). '안 산다' 봇은 무료 5장만 씁니다. 둘 다 4인 파티로 이길 수 있는 가장 센 보스를 잡고, 이긴다고 가정합니다.</div>
+  <div class="scroll"><table id="bot"></table></div>
+  <div id="botNote" style="margin-top:8px">
+    <ul>
+      <li><b>사는 유저는 확실히 느려집니다</b>: 레이드 64 → 45판, 전설 이상 장비 242 → 143개, 스테이지 180 도달 55 → 73시간입니다. 그래도 안 사는 유저(30판 · 88개 · 86~96시간)보다는 앞섭니다. 사는 의미는 남아 있습니다.</li>
+      <li><b>안 사는 유저는 그대로입니다</b>: 가격과 상관없는 경로라 레이드 횟수·장비가 같습니다. 최종 스테이지 200 → 215는 봇 흔들림입니다(같은 코드를 두 번 돌려도 200 ↔ 211).</li>
+      <li>입장권 지출 비율이 16%로 같은 이유: 전에는 싼 표를 많이(34장), 지금은 비싼 표를 적게(15장) 샀기 때문입니다.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>수용 기준</h2>
+<div class="card" id="acc"></div>
+
+<h2>확인 방법</h2>
+<div class="card">
+  <ul>
+    <li>게임: <code>index.html?server=http://127.0.0.1:9&amp;guild=0</code> → 캠프 → 레이드 탭 → 맨 위 입장권 카드의 가격 칩.</li>
+    <li>콘솔 상태: <code>S.best = 100; S.gold = 1e15; S.raid.tickets = 0; S.raid.bought = 0; S.raid.buyDay = todayKey(); openCamp('raid')</code> → 구매를 누를 때마다 ×60 → ×120 → ×240 → ×420 순으로 오릅니다(스테이지 100이면 8.28B → 16.6B → 33.1B → 58.0B).</li>
+    <li>봇: <code>RAID_BUY=1 node dev/progress-bot.js --days 5 --seeds 12 --rev HEAD --rev .</code> (기준선은 <code>RAID_BUY</code> 없이)</li>
+  </ul>
+</div>
+</main>
+<script>
+// 봇 결과 (5일 · 12시드 중앙값). 열: [0.30.1 산다, 0.30.2 산다, 0.30.1 안 산다, 0.30.2 안 산다]
+const BOT = [
+  ['최종 최고 스테이지', 255, 237, 200, 215],
+  ['스테이지 140 도달 (시간)', 36.9, 48.5, 52.4, 52.9],
+  ['스테이지 180 도달 (시간)', 55.3, 72.7, 96.2, 86.1],
+  ['레이드 횟수 (5일)', 64, 45, 30, 30],
+  ['산 입장권 (5일)', 34, 15, 0, 0],
+  ['하루 평균 구매', '6.8장', '3장', '-', '-'],
+  ['입장권 지출 / 레이드 골드', '16.5%', '16.4%', '-', '-'],
+  ['레이드 장비 전설 이상', 242, 143, 88, 89],
+  ['강화 합계 (3부위)', 71, 64, 64, 63],
+  ['훈련 합계', 520, 480, 440, 440],
+  ['남은 골드 / 원정 골드', '128%', '90%', '37%', '40%'],
+];
+const ACC = [
+  [true, '하루 1~5번째 가격이 M × 60 · 120 · 240 · 420 · 720 — 게임 입장권 카드에서 구매를 눌러 8.28B → 16.6B → 33.1B → 58.0B 확인 (스테이지 100)'],
+  [true, '산다 봇: 하루 구매 6.8장 → 3장, 입장권 지출은 레이드 골드의 16% (절반 이하)'],
+  [true, '안 산다 봇: 레이드 30판·전설 88→89개 그대로. 최종 스테이지 200→215 는 봇 흔들림 (같은 코드 두 번: 200 ↔ 211)'],
+  [true, "입장권 카드 문구 '하루 첫 구매는 반값'"],
+];
+
+const $ = (id) => document.getElementById(id);
+const fmtK = (x) => x >= 1000 ? Math.round(x).toLocaleString() : (Math.round(x * 10) / 10).toString();
+function priceRows(k, steps, grow, n = 8) {
+  const last = steps.length - 1;
+  return Array.from({ length: n }, (_, i) => k * (i <= last ? steps[i] : steps[last] * Math.pow(grow, i - last)));
+}
+function draw() {
+  const k = +$('k').value, grow = +$('grow').value, win = +$('win').value;
+  const steps = $('steps').value.split(',').map(Number).filter((x) => !isNaN(x));
+  const OLD = priceRows(20, [0.05, 1, 2, 3.5, 6], 1.6), NEW = priceRows(k, steps.length ? steps : [1], grow);
+  let cumO = 0, cumN = 0;
+  let h = '<tr><th>n번째</th><th>0.30.1 (M ×)</th><th>사냥 시간</th><th>지금 값 (M ×)</th><th>사냥 시간</th><th>승리 골드 대비</th><th>누적 (전 → 지금)</th></tr>';
+  NEW.forEach((p, i) => {
+    cumO += OLD[i]; cumN += p;
+    const r = p / win, cls = r < 1 ? 'ok' : r <= 1.0001 ? 'warn' : 'bad';
+    h += `<tr><td>${i + 1}장째</td><td>${fmtK(OLD[i])}</td><td class="sub">${fmtMin(OLD[i])}</td><td><b>${fmtK(p)}</b></td><td class="sub">${fmtMin(p)}</td><td class="${cls}">${(r * 100).toFixed(0)}%</td><td class="sub">${fmtK(cumO)} → ${fmtK(cumN)}</td></tr>`;
+  });
+  $('tbl').innerHTML = h;
+  const max = Math.max(...NEW.slice(0, 6), win * 1.2);
+  let b = '';
+  NEW.slice(0, 6).forEach((p, i) => {
+    b += `<div>${i + 1}장째</div><div class="line"><div class="bar old" style="width:${Math.min(100, OLD[i] / max * 100)}%"></div><div class="bar new" style="width:${Math.min(100, p / max * 100)}%;margin-top:2px"></div><div class="win" style="left:${win / max * 100}%"></div></div><div class="sub">${fmtK(OLD[i])} → ${fmtK(p)}</div>`;
+  });
+  $('bars').innerHTML = b + '<div></div><div class="sub">회색 = 0.30.1 · 노랑 = 지금 값</div><div></div>';
+}
+const fmtMin = (m) => { const min = m / 10; return min < 1 ? `${Math.round(min * 60)}초` : min < 60 ? `${min.toFixed(min < 10 ? 1 : 0)}분` : `${(min / 60).toFixed(1)}시간`; };
+['k', 'steps', 'grow', 'win'].forEach((id) => $(id).addEventListener('input', draw));
+draw();
+
+function drawBot() {
+  if (!BOT.length) { $('bot').innerHTML = '<tr><td>봇 결과 없음</td></tr>'; return; }
+  let h = '<tr><th>항목</th><th>0.30.1 산다</th><th>0.30.2 산다</th><th>0.30.1 안 산다</th><th>0.30.2 안 산다</th></tr>';
+  for (const [name, ...v] of BOT) h += `<tr><td>${name}</td>${v.map((x, i) => `<td${i === 1 ? ' style="color:var(--gold)"' : ''}>${x}</td>`).join('')}</tr>`;
+  $('bot').innerHTML = h;
+}
+drawBot();
+$('acc').innerHTML = ACC.map(([ok, t]) => `<div>${ok ? '✅' : '❌'} ${t}</div>`).join('');
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@
 //  🎓 교관 수련(2차 훈련)이 있는 src 면: 훈련 뒤 남는 골드로 수련하고(비용 2배 이상일 때), 승부(★5)는 하루 한 번 server/duel.js 로 바로 계산한다.
 // 봇의 하루: 원정(스태미나 다 쓰면 귀환) → 가방 정리·자동 장착·안 낀 장비 전부 판매 → 창고 비축 수령·교역(목재·철광석 중 적은 쪽, 하루 횟수 다) → 레이드 3회(4인 파티로 이길 수 있는 가장 센 보스, 이긴다고 가정)
 //  → 전직(시드마다 3차 계열 하나를 정해 조건이 되는 대로) · 비전서(레이드 상자 + 탑 몫 하루 4권)를 낮은 스킬부터 먹이고 트리 노드 찍기
+//  (RAID_BUY=1 이면 무료 5장 뒤에 '한 판 골드보다 싼 동안' 입장권을 사서 더 돈다)
 //  → 강화(+15 까지, 그 위는 보호 주문서가 있을 때만) → 건설 → 훈련 → 스태미나 차면 다시 원정. 탑·월드 보스·결투는 돌리지 않는다.
 //  전직·스킬은 0.21.0 성장 압축에서 넣었다 — 곡선이 완만해져 전직 배율·스킬 비중이 커져서, 안 하면 실제 유저보다 한참 느려진다 (dev/bot-curve.js 와 같은 방식)
 // 수치는 '24시간 켜 둔 봇' 기준이라 실제 플레이어보다 빠르다. 변경 전후의 차이를 보는 용도다.
@@ -16,6 +17,7 @@ const FILES = ['data', 'classes', 'tree7', 'skm', 'rune', 'combo', 'evolve', 'fi
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140, 160, 180];
 const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'];
 const TOWER_TOMES_PER_DAY = 4;
+const RAID_BUY = !!process.env.RAID_BUY;   // 레이드 입장권 구매 켬 (docs/specs/raid-tickets.md)
 const ENH_MARKS = [20, 25, 30];   // 어느 부위든 처음 이 강화 단계에 닿은 시간 (docs/specs/enhance-30.md)
 
 // host: 기사단 봇(dev/guild-bot.js)이 넘기는 가짜 GUILD_HOST — 있으면 게임이 기사단 iframe 안인 것처럼 돈다 (src/core.js GUILD_HOST)
@@ -102,7 +104,7 @@ function runOne({ days, seed, rev }) {
   const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, bagWeight, bagCap,
     upgradeBag: typeof upgradeBag === 'function' ? upgradeBag : null, bagUpCost: typeof bagUpCost === 'function' ? bagUpCost : null,
-    claimStock: typeof claimStock === 'function' ? claimStock : null, trade: typeof trade === 'function' ? trade : null, tradeBlocker: typeof tradeBlocker === 'function' ? tradeBlocker : null, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt,
+    claimStock: typeof claimStock === 'function' ? claimStock : null, trade: typeof trade === 'function' ? trade : null, tradeBlocker: typeof tradeBlocker === 'function' ? tradeBlocker : null, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, ticketPrice, buyTicket, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt,
     classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode })`, ctx);
   const C = castleApi(ctx), cs = { openAt: null, books: 0, runs: 0, firsts: 0, doneAt: null };
   // 성벽 봇이 📕 을 벌면 교관 쪽 '하루 n권 가정'은 끈다 (이중 수입 방지)
@@ -115,10 +117,10 @@ function runOne({ days, seed, rev }) {
     for (let g = 0; S.tomes > 0 && g < 200; g++) { const id = ids.slice().sort((a, b) => A.skillLv(a) - A.skillLv(b))[0]; if (!id || !A.feedTomes(id, 1)) break; }
     for (const id of ids) for (const nid of Object.keys(A.treeNodesOf(A.SKILLS[id]))) for (let i = 0; i < 40 && A.canInvest(id, nid); i++) A.investNode(id, nid);
   };
-  const inc = { expGold: 0, curioGold: 0, raidGold: 0, saleGold: 0, bossStones: 0, saleStones: 0, raidGear: [0, 0, 0, 0, 0, 0, 0, 0], raids: 0, trips: 0, kills: 0, dur: 0, stockWood: 0, stockOre: 0, tradeWood: 0, tradeOre: 0, tradeGold: 0 };
+  const inc = { expGold: 0, curioGold: 0, raidGold: 0, saleGold: 0, bossStones: 0, saleStones: 0, raidGear: [0, 0, 0, 0, 0, 0, 0, 0], raids: 0, raidBuys: 0, raidTixGold: 0, trips: 0, kills: 0, dur: 0, stockWood: 0, stockOre: 0, tradeWood: 0, tradeOre: 0, tradeGold: 0 };
   const spend = { train: 0, build: 0, enhStone: 0, enhOre: 0, buildOre: 0, buildWood: 0, bagWood: 0 };
   const why = {};   // 원정이 끝난 사유별 횟수 (stamina 지침 · bag 가방 가득 · ...)
-  const reach = {}, enhReach = {}, prot = { used: 0 }; let maxBag = 0, rid = 0, t = 0, lastDay = -1;
+  const reach = {}, enhReach = {}, prot = { used: 0 }; let maxBag = 0, rid = 0, t = 0, lastDay = -1, lastRaidGold = 0;
   const sell = () => { const l = S.gear.inv.filter((x) => !A.isEquipped(x) && !A.isSetGear(x)); if (!l.length) return; const g0 = S.gold, s0 = S.stones; A.sellGear(l); inc.saleGold += S.gold - g0; inc.saleStones += S.stones - s0; };
   const chores = () => {
     const w = A.bagWeight();
@@ -134,13 +136,19 @@ function runOne({ days, seed, rev }) {
     }
     const day = Math.floor(t / DAY);
     if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; S.tomes += TOWER_TOMES_PER_DAY; }
-    while (S.raid.tickets > 0) {
+    for (;;) {
+      // RAID_BUY=1: 무료 입장권을 다 쓰면 '한 판 골드보다 싸면' 사서 더 돈다 (본전 넘는 구매만 하는 계산 빠른 유저)
+      if (S.raid.tickets <= 0) {
+        if (!RAID_BUY || !lastRaidGold || A.ticketPrice().gold > lastRaidGold) break;
+        const g0 = S.gold; if (!A.buyTicket()) break;
+        inc.raidTixGold += g0 - S.gold; inc.raidBuys++;
+      }
       const ids = Object.keys(A.RAID_BOSSES).filter((id) => A.RAID_BOSSES[id].stage <= S.best && A.raidStageOf(A.RAID_BOSSES[id], 4) <= S.best);
       if (!ids.length) break;
       const g0 = S.gold;
       A.settleRaid({ id: 'r' + (++rid), boss: ids[ids.length - 1], members: ['me', 'a', 'b', 'c'].map((nickname) => ({ nickname })),
         fight: { won: true, mvp: rnd() < 0.25 ? 0 : 1, contrib: [{}, {}, {}, {}], dur: 60, timeout: false } }, 'me');
-      inc.raidGold += S.gold - g0; inc.raids++;
+      lastRaidGold = S.gold - g0; inc.raidGold += lastRaidGold; inc.raids++;
       while (S.raid.chests.length) for (const x of A.claimRaidChest(0)) inc.raidGear[x.it.g]++;
       sell();
     }
@@ -202,6 +210,9 @@ function main() {
   row('🏰 업그레이드 완료 (열린 뒤 일)', (r) => nz(r.castle && r.castle.doneDays), dash((x) => x.toFixed(1)));
   row('골드: 훈련 지출 / 원정', (r) => r.spend.train / (r.inc.expGold + r.inc.curioGold), pct);
   row('건물 Lv 합계', (r) => r.bld); row('원정 횟수', (r) => r.inc.trips); row('레이드 횟수', (r) => r.inc.raids);
+  row('레이드: 산 입장권', (r) => r.inc.raidBuys);
+  row('골드: 입장권 지출', (r) => r.inc.raidTixGold);
+  row('골드: 입장권 지출 / 레이드', (r) => r.inc.raidTixGold / Math.max(1, r.inc.raidGold), pct);
   row('레이드 장비 전설 이상', (r) => r.inc.raidGear.slice(4).reduce((a, b) => a + b, 0));
   row('골드: 수입 합계', (r) => r.inc.expGold + r.inc.curioGold + r.inc.raidGold + r.inc.saleGold);
   row('원정 시간 비율(하루 중)', (r) => r.inc.dur / (opt.days * DAY), pct);

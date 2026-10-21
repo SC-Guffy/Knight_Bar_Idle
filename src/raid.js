@@ -28,7 +28,7 @@ function refillTickets() {
   S.raid.tickets = RAID_TICKET_FREE;
   return true;
 }
-// 하루 첫 구매는 헐값, 두 번째부터 RAID_TICKET_STEPS 대로 비싸지고 그 뒤로는 × RAID_TICKET_GROW
+// 하루 첫 구매는 반값, 두 번째부터 RAID_TICKET_STEPS 대로 비싸지고 그 뒤로는 × RAID_TICKET_GROW
 function ticketPrice() {
   const n = ticketsBoughtToday(), last = RAID_TICKET_STEPS.length - 1;
   const k = n <= last ? RAID_TICKET_STEPS[n] : RAID_TICKET_STEPS[last] * Math.pow(RAID_TICKET_GROW, n - last);

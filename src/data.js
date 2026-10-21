@@ -13,7 +13,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.30.1';
+const GAME_VERSION = '0.30.2';
 // 시즌7 기능 스위치. false 면 배포 주소(GitHub Pages·Electron 등)에서는 꺼져 있고, 로컬 개발 주소(localhost·127.0.0.1·*.localhost·*.test, 봇의 가짜 location 포함)에서만 켜진다.
 //  아래 DEV_HOST(배속용)와 달리 file: 은 넣지 않는다 — Electron 앱이 파일로 열 때 플레이어에게 켜지지 않게.
 //  시즌7 정식 공개 때 true 로 바꾼다.
@@ -2359,11 +2359,12 @@ const RAID_BOSSES = {
 
 // 입장권: 매일 RAID_TICKET_FREE 장까지 무료로 채워 주고, 그 이상은 골드로 산다 (0.23.2 에 💎 마력석을 뺐다 — 탑·미궁·성벽 입장권과 같이 골드만).
 // 입장권은 레이드를 클리어했을 때만 1장 쓰인다 (실패하면 그대로 남음).
-// 하루 첫 구매는 헐값, 두 번째부터 점점 비싸진다(자정에 초기화). 사서 모으는 건 최대 RAID_TICKET_MAX 장까지
+// 하루 첫 구매는 반값, 두 번째부터 점점 비싸진다(자정에 초기화). 사서 모으는 건 최대 RAID_TICKET_MAX 장까지
+// 기준 가격 = 레이드 승리 골드(보스 골드 × 1.5 × 8 = 몬스터 골드 × 120, 골드 보너스 제외) 한 번치 — 사는 순간 골드로는 손해, 상자·재료를 보고 산다
 const RAID_TICKET_FREE = 5;           // = RAID_TICKET_MAX: 매일 보유 상한까지 채워 준다 (표기 /5 와 맞춤)
 const RAID_TICKET_MAX = 5;
-const RAID_TICKET_GOLD = 20;           // 기준 가격: 최고 스테이지 몬스터 골드 × 이 값 (레이드 승리 골드의 약 1/4)
-const RAID_TICKET_STEPS = [0.05, 1, 2, 3.5, 6];  // 오늘 n번째 구매의 기준 가격 배율 (첫 구매는 헐값)
+const RAID_TICKET_GOLD = 120;          // 기준 가격: 최고 스테이지 몬스터 골드 × 이 값 (= 레이드 승리 골드 한 번치, 0.30.2 에 20 → 120)
+const RAID_TICKET_STEPS = [0.5, 1, 2, 3.5, 6];   // 오늘 n번째 구매의 기준 가격 배율 (첫 구매는 반값, 0.30.2 에 0.05 → 0.5)
 const RAID_TICKET_GROW = 1.6;          // 표를 넘어가면 한 장마다 × 1.6
 const RAID_MVP_MULT = 1.5;             // MVP 는 재화 1.5배
 const RAID_FAIL_MULT = 0;              // 실패하면 보상 없음 (입장권을 안 깎으므로 위로 보상을 주면 무한 파밍이 된다)

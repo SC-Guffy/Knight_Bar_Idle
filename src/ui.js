@@ -2421,7 +2421,7 @@ function viewRaidLobby() {
     <div class="card">
       <div class="ic">🎟️</div>
       <div class="info"><b>레이드 입장권 <small>보유 ${S.raid.tickets} / ${RAID_TICKET_MAX}</small></b>
-        <div class="eff">매일 자정에 ${RAID_TICKET_FREE}장까지 무료로 채워져요(우편으로 받은 건 넘어도 그대로). 클리어했을 때만 1장 쓰여요(실패하면 그대로, 보상도 없음). 하루 첫 구매는 헐값, 그다음부터 점점 비싸져요 — 오늘 ${bought}장 샀어요 (자정에 초기화).</div></div>
+        <div class="eff">매일 자정에 ${RAID_TICKET_FREE}장까지 무료로 채워져요(우편으로 받은 건 넘어도 그대로). 클리어했을 때만 1장 쓰여요(실패하면 그대로, 보상도 없음). 하루 첫 구매는 반값, 그다음부터 점점 비싸져요 — 오늘 ${bought}장 샀어요 (자정에 초기화).</div></div>
       <div class="act">
         <div class="costs">${costChip('<i class="gc"></i>', p.gold, S.gold)}</div>
         <button class="btn" data-action="raid-ticket" ${tb ? 'disabled' : ''} title="${esc(tb)}">구매</button>
