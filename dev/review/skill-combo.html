@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스킬 연계 시안</title>
+<!-- 스펙: docs/specs/skill-combo.md (스킬 재기획 3단계). 꼬리표 표 · 합동기 표 · 시전 타임라인 모형 · 쿨 맞물림 예시 · 줄기별 시뮬. 수치는 시안 -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --panel2: #2b2538; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --ok: #7dffb0; --bad: #ff8a8a;
+    --rush: #ff8a5c; --single: #ffd257; --area: #6ec3ff; --shot: #b9a2ff; --zone: #ff6f7d; --buff: #7dffb0; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.65 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  p { margin: 6px 0; max-width: 84ch; }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+  .grid > * { min-width: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: left; vertical-align: top; }
+  th { background: var(--panel2); color: var(--dim); font-weight: 400; }
+  td.n { text-align: right; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 8px 0; }
+  .bar label { color: var(--dim); }
+  select, input[type=number] { background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; font: inherit; }
+  input[type=number] { width: 56px; }
+  button { background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--dim); }
+  .tag { display: inline-block; padding: 0 5px; border-radius: 3px; font-size: 11px; border: 1px solid; white-space: nowrap; }
+  .t-rush { color: var(--rush); border-color: #ff8a5c66; } .t-single { color: var(--single); border-color: #ffd25766; } .t-area { color: var(--area); border-color: #6ec3ff66; }
+  .t-shot { color: var(--shot); border-color: #b9a2ff66; } .t-zone { color: var(--zone); border-color: #ff6f7d66; } .t-buff { color: var(--buff); border-color: #7dffb066; }
+  .chip { display: inline-flex; gap: 4px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 1px 9px; font-size: 12px; white-space: nowrap; }
+  .chip.j { border-color: #ffd25788; color: #ffe9a8; }
+  .chip.off { opacity: 0.45; }
+  .slots { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
+  .slot { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+  .slot .nm { font-weight: 700; }
+  .slot .ct { display: flex; gap: 4px; }
+  .slot.ult { border-style: dashed; }
+  .arrow { color: var(--dim); font-size: 12px; display: flex; flex-direction: column; align-items: center; }
+  .pool { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pool button.on { border-color: var(--gold); color: var(--gold); }
+  .stat { display: flex; flex-wrap: wrap; gap: 6px 18px; font-variant-numeric: tabular-nums; }
+  .stat b { color: var(--gold); }
+  svg text { font-family: Galmuri11, sans-serif; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  ul { margin: 4px 0; padding-left: 20px; } li { margin: 2px 0; }
+  .tl { width: 100%; overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+<h1>🔗 스킬 연계 — 시전 순서 퍼즐 (시안)</h1>
+<p class="sub">스킬 재기획 3단계 · 스펙 <code>docs/specs/skill-combo.md</code> · 상위 <code>docs/specs/skill-redesign.md</code> · 2026-10-21 초안 (구현 전, 수치 시안)</p>
+
+<h2>요지</h2>
+<div class="grid">
+  <div class="card"><h3>연계</h3>
+    <p>장착 순서 = 시전 순서 (돌고 돈다). 앞 스킬이 끝나고 <b>2초 안에 바로 다음 칸</b> 스킬이 나가면 연계 → 그 시전 피해 <b>+20%</b> + 작은 글자 <code>🔗 연계</code>.</p>
+    <p class="sub">궁극기는 순서 밖 — 준비되면 먼저 나가고, 앞·뒤 어느 칸과도 연계된다.</p></div>
+  <div class="card"><h3>자동 전투</h3>
+    <p>다음 칸이 <b>1초 안에</b> 준비되면 다른 스킬을 쓰지 않고 평타하며 <b>기다렸다 잇는다</b>. 더 멀면 지금처럼 준비된 앞 칸부터 (순서 건너뜀 = 연계 아님).</p></div>
+  <div class="card"><h3>꼬리표 · 합동기</h3>
+    <p>스킬마다 꼬리표 하나: <span class="tag t-rush">⚔️ 돌진</span> <span class="tag t-single">🎯 단일</span> <span class="tag t-area">🌀 광역</span> <span class="tag t-shot">➶ 투사체</span> <span class="tag t-zone">🔥 장판</span> <span class="tag t-buff">✨ 강화</span>. 짝이 맞으면 이름 붙은 합동기 6가지.</p></div>
+  <div class="card"><h3>기록 · 근사</h3>
+    <p><code>S.combo = { n, p: {'앞id>뒤id': 횟수}, j: {합동기: 횟수} }</code> — 진화가 읽는다. 오프라인·결투·레이드는 시뮬로 얻은 스킬별 평균 배율 <code>comboEv</code> 를 곱한다 (서버 변경 없음).</p></div>
+</div>
+
+<h2>① 시전 타임라인 모형 — 장착 순서를 바꿔 보세요</h2>
+<div class="card">
+  <div class="bar">
+    <label>줄기 <select id="line"></select></label>
+    <label>숙련 Lv <input id="mlv" type="number" min="1" max="30" value="20"></label>
+    <label><input id="ult" type="checkbox" checked> 궁극기</label>
+    <label>규칙 <select id="rule">
+      <option value="strict">다음 칸만 2초 + 1초 기다림 (시안)</option>
+      <option value="nowait">다음 칸만 2초, 기다림 없음</option>
+      <option value="any">아무 스킬이나 2초</option>
+      <option value="off">연계 없음 (지금)</option>
+    </select></label>
+    <label>보여 줄 시간 <select id="span"><option>40</option><option selected>60</option><option>90</option></select>초</label>
+  </div>
+  <div class="sub">스킬 고르기 (최대 4칸, 누른 순서대로 장착):</div>
+  <div class="pool" id="pool"></div>
+  <div class="slots" id="slots"></div>
+  <div class="stat" id="stat"></div>
+  <div class="tl" id="tl"></div>
+  <div class="legend sub" style="margin-top:4px">
+    <span>막대 = 시전(색 = 꼬리표) · 위 글자 = 연계 · <span style="color:var(--gold)">금빛</span> = 합동기 · 회색 칸 = 기다림 · 아래 점 = 순서 건너뜀</span>
+  </div>
+  <p class="sub" style="margin-top:8px">가정: 보스 1마리와 계속 교전 · 한 번 시전 피해 ∝ 쿨 (스킬 초당 피해가 비슷하다고) · 평타는 스킬을 막지 않음 · 파이터 계열도 쿨로 근사 · 시뮬 600초. "스킬 피해" = 연계로 늘어난 스킬 피해 합.</p>
+</div>
+
+<h2>② 합동기 6가지</h2>
+<div class="scroll"><table id="joints"><thead><tr><th>짝</th><th>이름</th><th>효과 (시안)</th><th class="n">보스 1마리 기대 배율</th><th>1·2차 연출 (작은 글자 + 국소)</th></tr></thead><tbody></tbody></table></div>
+<p class="sub">나머지 짝은 평범한 연계 (+20%, <code>🔗 연계</code>). 화면 정지·흔들림은 더하지 않고, 어두워짐·큰 글자는 없다 (연출 등급표). 그림은 이미 있는 VFX 시트를 다시 쓴다 — 새 유료 생성 없음.</p>
+
+<h2>③ 쿨 맞물림 예시</h2>
+<div class="grid" id="examples"></div>
+
+<h2>④ 꼬리표 표 — 15줄기 × 8칸</h2>
+<div class="scroll"><table id="tags"><thead></thead><tbody></tbody></table></div>
+<p class="sub">정한 기준: ⚔️ <code>gap</code> 돌진 거리 + 몸이 움직임 · 🎯 <code>area:'single'</code>·한 점 저격 · 🌀 한 번에 둘레·앞 · ➶ 쏘거나 던짐 · 🔥 오래 그 자리를 때림 (4초간 도는 새 스킬 whirl 전부) · ✨ <code>ward</code> 보호막. 개수 <span id="tagcount"></span></p>
+
+<h2>⑤ 줄기별 시뮬 — 장착 순서 모든 경우의 최저~최고</h2>
+<p class="sub">시안 규칙, 숙련 Lv20. 2칸 = 1차 + 2차① · 3칸 = + 2차② · 4칸(2차·새) = 2차①② + 새①② (+궁) · 4칸(후반) = 2차② + 새①③④ (+궁). 2칸은 A→B→A 로 돌아 순서 차이가 없다 — 퍼즐은 3칸(Lv80)부터.</p>
+<div class="scroll"><table id="lines"><thead><tr><th>줄기</th><th class="n">2칸</th><th class="n">3칸</th><th class="n">4칸 (2차·새)</th><th class="n">4칸 (후반)</th><th>가장 좋은 순서 (후반)</th><th>가장 나쁜 순서 (후반)</th></tr></thead><tbody></tbody></table></div>
+<h3 style="margin-top:12px">규칙 변형 비교 (15줄기 평균)</h3>
+<div class="scroll"><table><thead><tr><th>규칙</th><th class="n">2칸</th><th class="n">3칸</th><th class="n">4칸+궁</th><th class="n">순서 차이 최대</th><th class="n">4칸 연계율</th></tr></thead><tbody>
+  <tr><td>아무 스킬이나 2초 안</td><td class="n">+8~10%</td><td class="n">+12~15%</td><td class="n">+16~19%</td><td class="n">7~9%p</td><td class="n">80%</td></tr>
+  <tr><td><b>다음 칸만 2초 + 1초 기다림 (시안)</b></td><td class="n">+8~10%</td><td class="n">+7~13%</td><td class="n">+10~17%</td><td class="n">11~13%p</td><td class="n">63%</td></tr>
+  <tr><td>다음 칸만 2초, 기다림 없음</td><td class="n">+8~10%</td><td class="n">+6~12%</td><td class="n">+10~16%</td><td class="n">11~15%p</td><td class="n">58%</td></tr>
+  <tr><td>다음 칸만 1초 + 1초 기다림</td><td class="n">+6~7%</td><td class="n">+5~11%</td><td class="n">+9~16%</td><td class="n">11~15%p</td><td class="n">56%</td></tr>
+</tbody></table></div>
+<p class="sub"><code>node dev/review/skill-combo-run.js</code> 로 다시 계산. "아무 스킬이나" 는 연계가 너무 자주라 순서가 거의 상관없다 → "다음 칸만" 을 시안으로. 최악 순서도 +4~10% → 몰라도 손해 없음 (정답 강요 아님).</p>
+
+<h2>⑥ 어디에 들어가나 (구현 때)</h2>
+<div class="scroll"><table><thead><tr><th>곳</th><th>지금</th><th>바뀌는 것</th></tr></thead><tbody>
+  <tr><td><code>src/skills.js tryCastSkill</code></td><td>장착 순서(<code>st.skills</code>)로 "준비된 것 중 앞 칸부터", 궁극기는 <code>t7Skills</code> 맨 앞</td><td>고르기 규칙 1~4 (궁극기 → 다음 칸 → 1초 기다림 → 앞 칸부터). 연계 판정·합동기 배율을 <code>stackMul</code> 에 곱한다. <code>S.combo</code> +1</td></tr>
+  <tr><td><code>src/skills.js</code> 시전 끝</td><td><code>casts</code> 에서 빠짐</td><td><code>knight.lastEnd = clock · knight.lastSk = id</code> (2초 창의 기준)</td></tr>
+  <tr><td><code>src/world.js fightTick</code></td><td>스킬 못 쓰면 평타</td><td>기다림 중에도 평타 그대로 · 기다림 중 돌진은 다음 칸이 돌진기일 때만</td></tr>
+  <tr><td><code>src/core.js dpsOf · profile</code></td><td>스킬 배율 = 숙련 × 룬 기대값 × …</td><td><code>× comboEv(id)</code> (장착·순서·쿨로 600초 시뮬, 바뀔 때만 다시) → 결투·레이드 서버는 그대로</td></tr>
+  <tr><td><code>src/core.js simulate</code></td><td>숙련 경험치 <code>skmSimFight</code></td><td>짝별 분당 연계 수 × 싸운 시간 → <code>S.combo.p</code></td></tr>
+  <tr><td><code>src/tree7-ui.js</code></td><td>장착 칩, 순서는 해제·재장착으로만</td><td>칸 사이 연계 칩 · ◀ ▶ 순서 버튼 · "예상 연계 62% · 스킬 피해 +14%" 한 줄</td></tr>
+  <tr><td><code>dev/duel-league.js</code></td><td>15줄기 48~51%</td><td>연계 넣은 뒤 <code>--fit</code> 로 다시 맞춤 (줄기마다 +10~20% 로 고르지 않다)</td></tr>
+</tbody></table></div>
+
+<h2>⑦ 정할 것</h2>
+<ol>
+  <li><b>연계 대상</b>: 바로 다음 칸만 (시안) vs 아무 스킬이나 2초 안.</li>
+  <li><b>보너스 +20%</b> 그대로 상향 (스킬 피해 +10~20%, 전체 DPS 약 +5~10%) vs 다른 곳에서 덜어 냄.</li>
+  <li><b>합동기 값</b> (②) 시안대로?</li>
+  <li><b>꼬리표 표</b> (④) 시안대로? whirl 새 스킬 전부 🔥, ✨ 은 3개뿐.</li>
+  <li><b>진화 연계 수 N</b>: 짝 하나 2,000~3,000 (★★★ 무게, 한 짝 분당 2~5번) vs 더 짧게 — 진화 스펙에서 확정해도 됨.</li>
+  <li><b>순서 바꾸기 UI</b>: 칸 옆 ◀ ▶ (시안) vs 끌어 놓기.</li>
+</ol>
+</main>
+
+<script src="skill-combo-sim.js"></script>
+<script src="skill-combo-tags.js"></script>
+<script src="skill-combo-data.js"></script>
+<script>
+'use strict';
+const D = window.COMBO_DATA, SLOTS = ['slash', 'gale', 'iaido', 'wave', 'whirl', 'flash', 'storm', 'ult'];
+const SLOT_N = { slash: '1차', gale: '2차 ①', iaido: '2차 ②', wave: '새 ①', whirl: '새 ②', flash: '새 ③', storm: '새 ④', ult: '궁극기' };
+const COL = { rush: '#ff8a5c', single: '#ffd257', area: '#6ec3ff', shot: '#b9a2ff', zone: '#ff6f7d', buff: '#7dffb0' };
+const tagHtml = (t) => `<span class="tag t-${t}">${TAGS[t].ic} ${TAGS[t].n}</span>`;
+const RULES = { strict: { win: 2, wait: 1, bonus: 0.2, strict: true }, nowait: { win: 2, wait: 0, bonus: 0.2, strict: true }, any: { win: 2, wait: 1, bonus: 0.2, strict: false }, off: { win: -1, wait: 0, bonus: 0, strict: true } };
+const pc = (x) => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(0)}%`;
+const JOINT_FX = { chase: '순간이동 잔상 한 줄', chain: '범위 고리가 한 번 더 번짐', focus: '대상 위 작은 조준점', burst: '장판 자리 작은 폭발', charge: '무기 끝 작은 빛', shard: '맞은 적에서 파편 몇 개' };
+const DOWN = { swordsaint: 0 };
+
+// ── 합동기 표 ──
+document.querySelector('#joints tbody').innerHTML = JOINTS.map((j) => `<tr><td>${j.a === '*' ? '' : tagHtml(j.a)} → ${j.b === '*' ? '아무거나' : tagHtml(j.b)}</td><td><b>${j.n}</b></td><td>${j.d}</td><td class="n">×${j.ev}</td><td><code>${TAGS[j.a].ic}${j.b === '*' ? '' : TAGS[j.b].ic} ${j.n}</code> · ${JOINT_FX[j.id]}</td></tr>`).join('');
+
+// ── 꼬리표 표 ──
+document.querySelector('#tags thead').innerHTML = `<tr><th>줄기</th>${SLOTS.map((s) => `<th>${SLOT_N[s]}</th>`).join('')}</tr>`;
+document.querySelector('#tags tbody').innerHTML = Object.keys(COMBO_TAGS).map((l) => `<tr><td>${D[l].cls.join(' → ')}</td>${SLOTS.map((s) => { const k = D[l].sk[s]; return `<td>${tagHtml(COMBO_TAGS[l][s])}<br>${k.icon} ${k.name}<br><span class="sub">쿨 ${k.cd} · ${k.dur}초${k.gap ? ' · 돌진' + k.gap : ''}</span></td>`; }).join('')}</tr>`).join('');
+{ const c = {}; for (const l in COMBO_TAGS) for (const s of SLOTS) c[COMBO_TAGS[l][s]] = (c[COMBO_TAGS[l][s]] || 0) + 1;
+  document.getElementById('tagcount').innerHTML = Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${tagHtml(t)} ${n}`).join(' · '); }
+
+// ── 타임라인 모형 ──
+const lineSel = document.getElementById('line');
+lineSel.innerHTML = Object.keys(D).map((l) => `<option value="${l}">${D[l].cls[2]} (${D[l].cls[0]})</option>`).join('');
+let eq = ['slash', 'gale', 'iaido'];
+const skOf = (line, slot, mlv) => { const k = D[line].sk[slot]; return { id: slot, name: k.name, icon: k.icon, tag: COMBO_TAGS[line][slot], cd: k.cd * (1 - 0.008 * (mlv - 1)), dur: k.dur, ult: slot === 'ult' }; };
+function build(line, order, withUlt, mlv) { return [...(withUlt ? [skOf(line, 'ult', mlv)] : []), ...order.map((s) => skOf(line, s, mlv))]; }
+
+function render() {
+  const line = lineSel.value, mlv = Math.max(1, Math.min(30, +document.getElementById('mlv').value || 20)), withUlt = document.getElementById('ult').checked;
+  const rule = RULES[document.getElementById('rule').value], span = +document.getElementById('span').value;
+  document.getElementById('pool').innerHTML = SLOTS.filter((s) => s !== 'ult').map((s) => { const k = D[line].sk[s]; return `<button data-s="${s}" class="${eq.includes(s) ? 'on' : ''}">${k.icon} ${k.name} ${TAGS[COMBO_TAGS[line][s]].ic}</button>`; }).join('');
+  const sk = build(line, eq, withUlt, mlv);
+  const ord = sk.filter((s) => !s.ult);
+  // 장착 칸 + 사이 연계 칩
+  let h = '';
+  if (withUlt) { const u = sk[0]; h += `<div class="slot ult"><span class="sub">궁극기 (순서 밖)</span><span class="nm">${u.icon} ${u.name}</span>${tagHtml(u.tag)}<span class="sub">쿨 ${u.cd.toFixed(1)}초</span></div><div class="arrow">·</div>`; }
+  ord.forEach((s, i) => {
+    h += `<div class="slot"><span class="sub">${i + 1}번 칸</span><span class="nm">${s.icon} ${s.name}</span>${tagHtml(s.tag)}<span class="sub">쿨 ${s.cd.toFixed(1)} · 시전 ${s.dur}초</span><span class="ct"><button data-mv="${i}" data-d="-1">◀</button><button data-mv="${i}" data-d="1">▶</button><button data-rm="${i}">✕</button></span></div>`;
+    if (ord.length > 1) { const nx = ord[(i + 1) % ord.length], j = jointOf(s.tag, nx.tag); h += `<div class="arrow"><span class="chip ${j ? 'j' : ''}">${j ? TAGS[s.tag].ic + (j.b === '*' ? '' : TAGS[nx.tag].ic) + ' ' + j.n : '🔗'}</span>${i === ord.length - 1 ? '<span class="sub">↺ 1번으로</span>' : '→'}</div>`; }
+  });
+  document.getElementById('slots').innerHTML = h || '<span class="sub">스킬을 골라 주세요</span>';
+  if (!ord.length) { document.getElementById('stat').innerHTML = ''; document.getElementById('tl').innerHTML = ''; return; }
+  const r = simCombo(sk, 600, rule), st = r.stat, base = simCombo(sk, 600, RULES.off).stat;
+  // 모든 순서 중 이 순서의 위치
+  const perms = (a) => (a.length <= 1 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map((p) => [x, ...p])));
+  const all = perms(eq).map((p) => ({ p, u: simCombo(build(line, p, withUlt, mlv), 600, rule).stat.uplift })).sort((a, b) => b.u - a.u);
+  const rank = all.findIndex((x) => x.p.join() === eq.join()) + 1;
+  const jn = Object.entries(st.joint).map(([id, n]) => `${JOINTS.find((j) => j.id === id).n} ${(n / 10).toFixed(1)}`).join(' · ');
+  document.getElementById('stat').innerHTML = `<span>연계율 <b>${(st.rate * 100).toFixed(0)}%</b></span><span>스킬 피해 <b>${pc(st.uplift)}</b></span><span>분당 연계 <b>${st.perMin.toFixed(1)}</b></span><span>분당 시전 ${st.castsPerMin.toFixed(1)} (연계 없음 ${base.castsPerMin.toFixed(1)})</span><span>기다림 분당 ${(st.waits / 10).toFixed(1)}번</span>`
+    + (jn ? `<span>합동기 분당: ${jn}</span>` : '<span class="sub">합동기 없음</span>')
+    + (all.length > 1 ? `<span>이 순서: ${all.length}가지 중 <b>${rank}위</b> (최고 ${pc(all[0].u)} · 최저 ${pc(all[all.length - 1].u)})${rank > 1 ? ` <button id="best">최고 순서로</button>` : ''}</span>` : '<span class="sub">1~2칸은 순서 차이가 없다</span>');
+  const bb = document.getElementById('best'); if (bb) bb.onclick = () => { eq = all[0].p.slice(); render(); };
+  drawTimeline(r.log, sk, span, rule);
+}
+
+function drawTimeline(log, sk, span, rule) {
+  const W = Math.max(720, span * 14), rows = sk.length, RH = 26, top = 30, H = top + rows * RH + 26, X = (t) => 90 + (t / span) * (W - 100);
+  const rowOf = Object.fromEntries(sk.map((s, i) => [s.id, i]));
+  let g = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  for (let t = 0; t <= span; t += 5) g += `<line x1="${X(t)}" y1="${top - 4}" x2="${X(t)}" y2="${H - 22}" stroke="#3a3348" stroke-width="1"/><text x="${X(t)}" y="${H - 8}" font-size="10" fill="#a59cb8" text-anchor="middle">${t}s</text>`;
+  sk.forEach((s, i) => { g += `<text x="4" y="${top + i * RH + 16}" font-size="11" fill="#ece6f6">${s.icon} ${s.name.slice(0, 6)}</text><line x1="90" y1="${top + i * RH + RH - 2}" x2="${W - 10}" y2="${top + i * RH + RH - 2}" stroke="#2b2538"/>`; });
+  const ev = log.filter((e) => e.t0 <= span);
+  // 기다림 (앞 끝 ~ 이번 시작, 연계인데 간격 > 0.15)
+  for (let i = 1; i < ev.length; i++) {
+    const e = ev[i], p = ev[i - 1];
+    if (e.gap != null && e.gap > 0.1) {
+      const y = top + rowOf[e.id] * RH + 4;
+      g += `<rect x="${X(p.t1)}" y="${y + 6}" width="${Math.max(1, X(e.t0) - X(p.t1))}" height="6" fill="${e.combo ? '#5a5370' : 'transparent'}" opacity="0.7"/>`;
+    }
+    if (e.combo) {
+      const y1 = top + rowOf[p.id] * RH + 10, y2 = top + rowOf[e.id] * RH + 10, jj = e.joint && JOINTS.find((j) => j.id === e.joint);
+      g += `<path d="M${X(p.t1)} ${y1} C ${X(p.t1) + 8} ${y1}, ${X(e.t0) - 8} ${y2}, ${X(e.t0)} ${y2}" stroke="${jj ? '#ffd257' : '#a59cb8'}" stroke-width="1.4" fill="none"/>`;
+      g += `<text x="${X(e.t0)}" y="${top + rowOf[e.id] * RH - 1}" font-size="10" fill="${jj ? '#ffd257' : '#cfc6e2'}">${jj ? jj.n : '🔗'}</text>`;
+    } else if (p && e.gap != null && e.gap <= rule.win && rule.win > 0) {
+      g += `<circle cx="${X(e.t0)}" cy="${top + rowOf[e.id] * RH + RH - 4}" r="2" fill="#ff8a8a"/>`;
+    }
+  }
+  for (const e of ev) {
+    const s = sk[rowOf[e.id]], y = top + rowOf[e.id] * RH + 4;
+    g += `<rect x="${X(e.t0)}" y="${y}" width="${Math.max(2, X(Math.min(span, e.t1)) - X(e.t0))}" height="${RH - 10}" rx="2" fill="${COL[s.tag]}" opacity="${e.combo ? 1 : 0.55}" stroke="${e.joint ? '#ffd257' : 'none'}"/>`;
+  }
+  g += '</svg>';
+  document.getElementById('tl').innerHTML = g;
+}
+
+document.getElementById('pool').addEventListener('click', (e) => {
+  const s = e.target.closest('button') && e.target.closest('button').dataset.s; if (!s) return;
+  if (eq.includes(s)) eq = eq.filter((x) => x !== s); else if (eq.length < 4) eq.push(s);
+  render();
+});
+document.getElementById('slots').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.rm != null) eq.splice(+b.dataset.rm, 1);
+  if (b.dataset.mv != null) { const i = +b.dataset.mv, j = (i + +b.dataset.d + eq.length) % eq.length; [eq[i], eq[j]] = [eq[j], eq[i]]; }
+  render();
+});
+for (const id of ['line', 'mlv', 'ult', 'rule', 'span']) document.getElementById(id).addEventListener('change', () => { if (id === 'line') eq = ['slash', 'gale', 'iaido']; render(); });
+
+// ── 쿨 맞물림 예시 ──
+function miniSvg(sk, rule, span) {
+  const r = simCombo(sk, span, rule), W = 460, RH = 18, top = 6, H = top + sk.length * RH + 4, X = (t) => 4 + (t / span) * (W - 8), row = Object.fromEntries(sk.map((s, i) => [s.id, i]));
+  let g = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  for (const e of r.log) { const s = sk[row[e.id]]; g += `<rect x="${X(e.t0)}" y="${top + row[e.id] * RH}" width="${Math.max(2, X(e.t1) - X(e.t0))}" height="${RH - 5}" rx="2" fill="${COL[s.tag]}" opacity="${e.combo ? 1 : 0.4}" stroke="${e.joint ? '#ffd257' : 'none'}"/>`; if (e.combo) g += `<text x="${X(e.t0)}" y="${top + row[e.id] * RH + 10}" font-size="8" fill="#17141f">🔗</text>`; }
+  return g + '</svg>' + `<div class="sub">${sk.map((s) => s.icon + ' ' + s.name + ' ' + s.cd.toFixed(1) + '초').join(' → ')}<br>연계율 ${(simCombo(sk, 600, rule).stat.rate * 100).toFixed(0)}% · 스킬 피해 ${pc(simCombo(sk, 600, rule).stat.uplift)}</div>`;
+}
+const EX = [
+  { h: '쿨이 같으면 늘 붙어서 나간다', p: '쿨 8초 둘: 앞 스킬이 끝나자마자 다음 스킬도 준비돼 있어 매번 연계. 쿨이 크게 다르면 짧은 쿨 스킬이 혼자 여러 번 나가며 순서를 건너뛴다.',
+    a: [{ id: 'a', name: '쿨 8 🎯', icon: '🎯', tag: 'single', cd: 8, dur: 0.7 }, { id: 'b', name: '쿨 8 🌀', icon: '🌀', tag: 'area', cd: 8, dur: 1.2 }],
+    b: [{ id: 'a', name: '쿨 6 🎯', icon: '🎯', tag: 'single', cd: 6, dur: 0.7 }, { id: 'b', name: '쿨 15 🌀', icon: '🌀', tag: 'area', cd: 15, dur: 1.2 }], la: '맞물림 (8 · 8)', lb: '안 맞물림 (6 · 15)' },
+  { h: '1초 기다림이 잇는 연계', p: '다음 칸이 0.5초 뒤 준비될 때: 기다림이 없으면 다른 준비된 스킬이 끼어들어 순서가 깨진다. 기다리면 이어서 나간다.', rule: true,
+    a: [{ id: 'a', name: '쿨 7 ⚔️', icon: '⚔️', tag: 'rush', cd: 7, dur: 1 }, { id: 'b', name: '쿨 8.5 🎯', icon: '🎯', tag: 'single', cd: 8.5, dur: 0.7 }, { id: 'c', name: '쿨 6 ➶', icon: '➶', tag: 'shot', cd: 6, dur: 0.7 }], la: '1초 기다림 (시안)', lb: '기다림 없음' },
+  { h: '같은 셋, 순서만 다르게 (검신 3칸)', p: '일섬 → 강철 베기 → 질풍난무 는 ⚔️→🎯 추격 · 🎯→🌀 파편 두 합동기가 이어진다. 거꾸로 두면 합동기가 없다.', line: ['iaido', 'slash', 'gale'], line2: ['gale', 'slash', 'iaido'], la: '일섬 → 강철 베기 → 질풍난무', lb: '질풍난무 → 강철 베기 → 일섬' },
+];
+document.getElementById('examples').innerHTML = EX.map((x, i) => `<div class="card"><h3>${x.h}</h3><p class="sub">${x.p}</p><div id="exa${i}"></div><div id="exb${i}" style="margin-top:6px"></div></div>`).join('');
+EX.forEach((x, i) => {
+  const ra = RULES.strict, rb = x.rule ? RULES.nowait : RULES.strict, span = 40;
+  const A = x.line ? build('swordsaint', x.line, false, 20) : x.a, B = x.line ? build('swordsaint', x.line2, false, 20) : x.b || x.a;
+  document.getElementById('exa' + i).innerHTML = `<b>${x.la}</b>` + miniSvg(A, ra, span);
+  document.getElementById('exb' + i).innerHTML = `<b>${x.lb}</b>` + miniSvg(B, rb, span);
+});
+
+// ── 줄기별 표 ──
+fetch('skill-combo-lines.json').then((r) => r.json()).then((L) => {
+  const f = (x) => (Math.round(x.lo * 100) === Math.round(x.hi * 100) ? pc(x.lo) : `${pc(x.lo)}~${Math.round(x.hi * 100)}%`);
+  document.querySelector('#lines tbody').innerHTML = Object.entries(L).map(([l, rows]) => `<tr><td>${D[l].cls[2]}</td>${rows.map((x) => `<td class="n">${f(x)}</td>`).join('')}<td>${rows[3].best.map((s) => D[l].sk[s].name).join(' → ')}</td><td class="sub">${rows[3].worst.map((s) => D[l].sk[s].name).join(' → ')}</td></tr>`).join('');
+}).catch(() => { document.querySelector('#lines tbody').innerHTML = '<tr><td colspan="7">skill-combo-lines.json 을 못 읽음 — 로컬 서버로 열어 주세요</td></tr>'; });
+
+render();
+</script>
+</body>
+</html>
