@@ -38,7 +38,7 @@ function runOne({ days, seed, mode }) {
   if (OLD) vm.runInContext('T7_OFF = true', ctx);
   if (opt.tune) vm.runInContext(`T7_TUNE.pow = ${Number(opt.tune)}`, ctx);   // 측정용: 트리 위력 눈금
   if (opt.eval) vm.runInContext(String(opt.eval), ctx);   // 측정용: 수치 바꿔 보기 (예: --eval "T7_WALL_MUL.region.hp = 3")
-  const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
+  const A = vm.runInContext(`({ S: () => S, skmLv: typeof skmLv === "function" ? skmLv : () => 0, evoProg: typeof evoProg === "function" ? evoProg : () => null, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, bagWeight, bagCap, upgradeBag, claimStock, trade, tradeBlocker, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt, bldMax,
     classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, CLASSES, profile, TRAIN_MAX, rushBuild, rushPrice, endExpedition, t7On: typeof t7On === 'function' ? t7On : () => false, skmEqLv: typeof skmEqLv === 'function' ? skmEqLv : () => 0, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null, t7Spent: typeof t7Spent === 'function' ? t7Spent : () => 0, t7PathCost: typeof t7PathCost === 'function' ? t7PathCost : () => 1, t7Reset: typeof t7Reset === 'function' ? t7Reset : () => false, t7AutoTick: typeof t7AutoTick === 'function' ? t7AutoTick : () => {}, t7BuySlot: typeof t7BuySlot === 'function' ? t7BuySlot : () => false, t7WallBuild: typeof t7WallBuild === 'function' ? t7WallBuild : () => null })`, ctx);
   const C = vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
@@ -116,7 +116,7 @@ function runOne({ days, seed, mode }) {
       mentor: M ? M.mentorStarSum() : 0, castle: S.castle ? S.castle.best : 0,
       castleUp: S.castle ? Object.values(S.castle.up).reduce((a, b) => a + b, 0) : 0,
       raidTop, power: p.power, goldLog: Math.log10(Math.max(1, S.gold)),
-      ore: S.mats.ore, wood: S.mats.wood, stones: S.stones, mana: S.mats.mana, tomes: S.tomes, t7: A.t7On() ? A.skmEqLv() : null, runes: (S.runes || []).length + Object.values((S.t7 && S.t7.rs) || {}).reduce((x, v) => x + v.length, 0), rsock: Object.values((S.t7 && S.t7.rs) || {}).flat().map((r) => r.g).join(''), skills: p.skills.length });
+      ore: S.mats.ore, wood: S.mats.wood, stones: S.stones, mana: S.mats.mana, tomes: S.tomes, t7: A.t7On() ? A.skmEqLv() : null, runes: (S.runes || []).length + Object.values((S.t7 && S.t7.rs) || {}).reduce((x, v) => x + v.length, 0), rsock: Object.values((S.t7 && S.t7.rs) || {}).flat().map((r) => r.g).join(''), evo: ((S.evo && S.evo.got) || []).join(','), combo: Math.round((S.combo && S.combo.n) || 0), skills: p.skills.length, ...(process.env.EVO_DBG ? { eq: A.t7Skills ? p.skills : null, lv: Object.fromEntries(Object.keys(S.skm || {}).map((k) => [k, A.skmLv(k)])), pairs: S.combo && S.combo.p, prog: ['f_ab', 'f_bk', 'f_ak'].map((f) => { const g = A.evoProg(f); return g && `${f} ${g.mats.map((m) => m.sk + ':' + m.lv + (m.own ? '' : 'x')).join('/')} c${Math.round(g.combo)}`; }) } : {}) });
   };
   let nextSnap = DAY;
   while (t < days * DAY) {

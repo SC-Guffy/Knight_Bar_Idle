@@ -15,7 +15,7 @@ const sanitizeProfile = new Function(`${cut('const num = ')}\n${cut('function sa
 const FIT = process.argv.includes("--fit"), ROUNDS = FIT ? 14 : 1, N = 10;
 const c = makeGame();
 const lines = vm.runInContext('Object.keys(T7_LINES)', c);
-// 프로필: 숙련 Lv(130 → 21 · 170 → 26, 봇 중앙값) · 룬 주머니 = 범용 영웅 하나씩 + 전설 무한·잔영 → 봇 끼우기 · 장착 칸 4
+// 프로필: 숙련 Lv(130 → 21 · 170 → 26, 봇 중앙값) · 룬 주머니 = 범용 영웅 하나씩 + 전설 무한·잔영 → 봇 끼우기 · 장착 칸 4 · 연계 평균 배율(src/combo.js) · Lv170 은 진화·궁극기 변형
 const profs = [];
 for (const id of lines) for (const b of ['a', 'b', 'k']) for (const lv of [130, 170]) {
   const p = vm.runInContext(`(() => {
@@ -24,6 +24,11 @@ for (const id of lines) for (const b of ['a', 'b', 'k']) for (const lv of [130, 
     const mlv = ${lv >= 170 ? 26 : 21};
     for (const slot of SKM_SLOTS) if (L.sk[slot]) S.skm[L.sk[slot]] = SKM_NEED[SKM_GRADE(slot)][mlv - 1];
     S.runes = [...RUNE_GENERIC.map((id) => ({ id, g: 3 })), { id: 'endless', g: 4 }, { id: 'echo', g: 4 }];
+    // Lv170 (약 7일차): 진화 셋·궁극기 변형이 열린 상태 — 빌드가 자기 진화·변형을 고른다 (t7AutoSpend, src/evolve.js)
+    if (${lv} >= 170 && typeof EVO_FUSE !== 'undefined') {
+      for (const [f, [a, b]] of Object.entries(EVO_FUSE)) S.combo.p[L.sk[a] + '>' + L.sk[b]] = 3000;
+      for (const m of ['gale', 'whirl', 'iaido', 'flash', 'wave', 'storm']) S.combo.p[L.sk.ult + '>' + L.sk[m]] = 1000;
+    }
     t7AutoSpend('${b}');
     return profile();
   })()`, c);

@@ -146,3 +146,28 @@
 .rmerge { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
 .rmerge small { color: #a59cb8; margin-right: 4px; }
 .rmerge .btn { font-size: 11px; padding: 1px 8px; }
+
+/* 🔗 연계 · ✨ 진화 (0.30, docs/specs/skill-combo.md · skill-evolve.md) */
+.t7slot.full { padding: 2px 4px; gap: 2px; }
+.t7slot .t7sl { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; padding: 2px; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; text-align: left; }
+.t7slot .t7sl span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t7slot.full { position: relative; }
+.t7mv { position: absolute; right: 2px; bottom: 1px; display: inline-flex; gap: 1px; }   /* 순서 바꾸기 ◀ ▶ — 이름을 가리지 않게 칸 오른쪽 아래 */
+.t7mv button { padding: 0 2px; font: 8px/1.1 Galmuri11, sans-serif; color: #a59cb8; background: #17141f; border: 1px solid #3a3348; cursor: pointer; }
+.t7slot .t7sl small { margin-right: 26px; }
+.t7mv button:disabled { opacity: .3; cursor: default; }
+.crow { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 4px; margin: 2px 0 6px; font-size: 11px; }
+.crow > small { color: #a59cb8; margin-right: 2px; }
+.crow .cnm { color: #ece6f6; }
+.crow .cj { padding: 0 5px; color: #a59cb8; border: 1px solid #3a3348; background: #17141f; }
+.crow .cj.on { color: #ffe9a8; border-color: #8f7cc0; }
+.crow .cev { margin-left: auto; color: #bfe9ff; }
+.ctag { font-size: 11px; opacity: .85; }
+.evo { color: #ff9ff3; }
+.evonext { margin: 4px 0 6px; padding: 2px 8px; font-size: 12px; border: 2px solid #0b0a14; background: #2b2538; display: inline-block; }
+.evonext b { color: #ff9ff3; }
+.t7xp.evo i { background: linear-gradient(#ffd0e8, #c06090); }
+.t7card.skl.evoc { border-style: dashed; border-color: #6a4a6a; }
+.t7look.evo { flex-wrap: wrap; }
+.t7look.evo .lk.on { background: #ff9ff3; }
+.ok { color: #7dffb0; }

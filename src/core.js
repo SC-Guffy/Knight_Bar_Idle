@@ -42,6 +42,8 @@ function freshState() {
     mastV: 12,                              // 12: 궁극기 별도 숙련도 · 11: 차수별 요구량 · 7: 스킬 트리(tree) · 6: 진화 버튼 · 5: mast 가 권수, 레벨당 최대 15권 (4: 30권, 3: 10권, 2: 20권, 1: 옛 경험치, 1권 = 10)
     t7: freshT7(),                          // 시즌7 스킬 장착 (src/tree7.js): 장착·장착 칸 수·고른 모습 (0.29 부터 트리 포인트 없음)
     skm: {},                                // 스킬 숙련 (src/skm.js): 스킬 id → 경험치 (시전 1번 = 1, 비전서 1권 = 20)
+    combo: { n: 0, p: {}, j: {} },          // 스킬 연계 기록 (src/combo.js): 총 횟수 · 짝('앞>뒤') · 합동기 — 진화가 읽는다
+    evo: { got: [], uv: null },             // 스킬 진화 (src/evolve.js): 열린 진화 칸 · 쓰는 궁극기 변형
     tree: {},                               // 스킬 트리: 스킬 id → { n: { 노드 id → 찍은 Lv } (classes.js SKILL_TREE), use 적용한 모습 0~단 별 수 (기술 형태·연출) }
     tomes: 0,                               // 📖 비전서
     stones: 0,                              // 💠 강화석 (장비 강화 전용, gear.js)
@@ -453,7 +455,7 @@ const skillStage = (id) => (t7Has(id) ? t7Stage(id) : Math.min(skillStar(id), tr
 // 내 기사가 지금 쓰는 기술 모양 (숙련 모습 + 시즌7 트리 변형). 전투·DPS·프로필이 모두 이것을 쓴다
 const heroSkill = (id) => (t7Has(id) ? t7Shape(id, skillAt(id, 1, t7Stage(id))) : skillAt(id, skillLv(id), skillStage(id)));
 // 평균 피해 환산 배율 (결투·레이드 프로필 · 전투력 dpsOf): 고유 특수 ev (트리는 근사 효과 포함)
-const skillEv = (id) => (t7Has(id) ? t7Ev(id) : specEv(SKILLS[id], skillBonus(id)));
+const skillEv = (id) => (t7Has(id) ? t7Ev(id) * comboEv(id) : specEv(SKILLS[id], skillBonus(id)));
 // 🎲 스킬 피해 옵션은 한 방 위력에 곱한다 (필드·결투·레이드가 모두 이 값을 쓴다)
 const skillPow = (id) => { const gf = guildFx(); return (t7Has(id) ? skillPowAt(SKILLS[id], 1, S.cls, {}) * t7Pow(id) : skillPowAt(SKILLS[id], skillLv(id), S.cls, skillBonus(id))) * (1 + gearBonus().skillDmg) * (1 + (gf ? gf.skill : 0)); };
 // 시즌7 트리 스킬은 1칸 기준 쿨 × 트리 배수 (파이터 계열은 기 등가 쿨)
@@ -867,6 +869,7 @@ function startExpedition({ charm = false, elixir = false } = {}) {
     potions: 0, crises: 0, deaths: 0, tomes: 0, stones: 0, bossFail: false, reason: null, buffs: { charm, elixir },
   };
   skmTripStart(S.trip);   // 숙련: 떠날 때 경험치를 적어 두고 귀환 보고에서 오른 만큼 (src/skm.js)
+  comboTripStart(S.trip);   // 연계 기록도 (src/combo.js)
   S.run.kills = 0; S.run.farm = false; S.run.cleared = false; S.run.prog = 0;
   S.hp = stats().maxHp;
   S.phase = 'expedition';
@@ -1047,6 +1050,7 @@ function simulate(sec) {
     if (S.hp < st.maxHp * 0.25) S.trip.crises++;
     rewardKill(m);
     skmSimFight(fight);   // 숙련: 싸운 시간 ÷ 쿨 만큼 장착 스킬 경험치 (src/skm.js)
+    comboSimFight(fight);   // 연계: 싸운 시간 × 지금 장착의 분당 연계 수 (src/combo.js)
     if (wl) t7WallBreak(m);
     if (bagFull()) endExpedition('bag', true);
   }

@@ -28,7 +28,7 @@ const t7MaxN = (n) => n.max || T7_SPEC[n.t].max;   // 노드별 최대 칸 (융�
 // 액티브·궁극기 칸 → 위력·쿨 배수, 융합 칸 → 배수
 const T7_RANK = { pow: 0.15, cd: 0.06 }, T7_FUSE = { pow: 0.25, cd: 0.08 };
 // 전체 위력 눈금: 트리 스킬 위력 × T7_TUNE.pow (봇으로 지금 시스템과 진행 속도를 맞춘 값, docs/specs/skill-tree-swordsaint.md 진행 기록)
-const T7_TUNE = { pow: 0.4 };
+const T7_TUNE = { pow: 0.4, s30: 1.08 };   // s30: 0.30.0 연계·진화 — 진화를 쫓는 장착(부모 스킬)으로 초반이 느려진 만큼 (봇 전후 비교, skill-evolve.md)
 // 옛 규칙(0.27): 칸 → 모습 단계 (1칸 0 · 2·3칸 ★ · 4칸 ★★ · 5칸 ★★★, 융합 1칸 0 · 2칸 ★★ · 3칸 ★★★) — 지금은 세이브 옮기기(t7Migrate)에만 쓴다
 const T7_STAGE_AT = [0, 0, 1, 1, 2, 3], T7_FUSE_STAGE_AT = [0, 0, 2, 3];
 
@@ -115,9 +115,9 @@ function t7DefStem(first, o) { T7_STEMS[first] = o; }
 //  2026-10-19 다시: 시즌 리셋으로 모두 트리라 "15줄기 리그(빌드 a·b·k, Lv130·170) 승률 50%" + "줄기 안 맞대결 50%" 기준으로 (스크래치 league.js --fit --inner).
 //   리그 38~59% · 근접 vs 원거리 48% · 줄기 안 맞대결 14~50/60. 지금 시스템(옛 스킬) 상대 승률은 이제 보지 않는다 (옛 시스템 캐릭터가 없다)
 // 0.29 (숙련·룬): 궁극기 변형이 없어져 줄기별 결투 배율 하나 (t7Duel). dev/duel-league.js --fit 으로 맞춘 값 — 15줄기 × 빌드 3 × Lv130·170 리그 승률 50% 쪽
-let T7_DUEL_LINE = {   // 2026-10-20 리그 승률 47~53% (폭 3%p, 배율 없이는 12~88%)
-  swordsaint: 0.78, tyrant: 0.81, archon: 0.92, skyGeneral: 0.69, dragonlord: 1.03, warlord: 1.01, siegeMaster: 1.27, deadeye: 1.17,
-  voidArcher: 1.64, thunderEmperor: 1.70, archmage: 1.92, frostlord: 1.33, champion: 0.74, tempest: 1.19, grandmaster: 1.20,
+let T7_DUEL_LINE = {   // 2026-10-21 (0.30: 연계 평균 배율 + Lv170 진화·궁극기 변형 + 진화 쫓는 봇 빌드 · 위력 눈금 s30) 리그 승률 50% (폭 0%p, 맞추기 전 38~53%)
+  swordsaint: 0.76, tyrant: 0.81, archon: 1.00, skyGeneral: 0.70, dragonlord: 1.01, warlord: 1.01, siegeMaster: 1.22, deadeye: 1.03,
+  voidArcher: 1.54, thunderEmperor: 1.64, archmage: 1.89, frostlord: 1.32, champion: 0.80, tempest: 1.36, grandmaster: 1.38,
 };
 function t7DefLine(L) {
   const sk = { ...L.sk };
@@ -175,7 +175,7 @@ function t7FixEq() {
   s.seen = s.seen || [];
   const fresh = [];
   for (const slot of SKM_SLOTS) {
-    if (slot === 'ult' || s.seen.includes(slot) || !skmOwnedSlot(slot)) continue;
+    if (slot === 'ult' || slot.startsWith('f_') || s.seen.includes(slot) || !skmOwnedSlot(slot)) continue;   // 진화 스킬은 자동 장착 안 함 (재료가 빠지니까)
     s.seen.push(slot); fresh.push(slot);
     const sk = L.sk[slot];
     if (sk && !s.eq.includes(sk) && s.eq.length < (s.slots || 1)) s.eq.push(sk);
@@ -189,6 +189,7 @@ const t7Rank = (id) => {
   if (!n) return 0;
   if (n.t === 'hub') return t7Tier() >= n.tier ? 1 : 0;
   if (n.slot) { t7S(); return n.sk && skmOwnedSlot(id) ? skmLv(n.sk) : 0; }
+  if (n.t === 'uvar') return typeof evoS === 'function' && evoS().uv === id && evoGot(id) ? 1 : 0;   // 궁극기 변형 = 고른 진화 하나 (src/evolve.js) — 노드 fx 가 그대로 켜진다
   return 0;
 };
 const t7Spent = () => 0;   // 트리 포인트 없음 (봇·검사 도구 호환)
@@ -229,6 +230,10 @@ function t7Equip(sk) {
   const s = t7S(), n = T7_BY_SKILL[sk];
   if (!n || n.t === 'ult' || !(t7Rank(n.id) > 0)) return false;
   if (s.eq.includes(sk)) { s.eq = s.eq.filter((x) => x !== sk); return true; }
+  // 진화 스킬과 재료는 함께 장착할 수 없다: 진화를 끼우면 재료 둘이 빠지고, 재료를 끼우면 그걸 쓰는 진화가 빠진다 (src/evolve.js)
+  const mats = evoMatsOf(sk), users = evoUsersOf(sk);
+  if (mats.length) s.eq = s.eq.filter((x) => !mats.includes(x));
+  if (users.length) s.eq = s.eq.filter((x) => !users.includes(x));
   if (s.eq.length >= t7Slots()) return false;
   s.eq.push(sk);
   return true;
@@ -299,7 +304,8 @@ const t7SkillRank = (sk) => { t7L(); return T7_BY_SKILL[sk] ? t7Rank(T7_BY_SKILL
 function t7Pow(sk) {
   const lv = Math.max(1, t7SkillRank(sk)), m = t7Mods();
   const L = t7L();
-  let p = ((L && L.tune && L.tune.pow) || T7_TUNE.pow) * (1 + SKM_POW * (lv - 1)) * (m.pow[sk] || 1) * m.powAll * ((SKILLS[sk] && SKILLS[sk].t7mul) || 1);
+  let p = ((L && L.tune && L.tune.pow) || T7_TUNE.pow) * T7_TUNE.s30 * (1 + SKM_POW * (lv - 1)) * (m.pow[sk] || 1) * m.powAll * ((SKILLS[sk] && SKILLS[sk].t7mul) || 1);
+  if (evoMatsOf(sk).length) p *= evoScale(sk);   // 진화 스킬: 재료 초당 피해 합 × 0.9 (src/evolve.js)
   for (const x of m.powNot) if (x.sk ? x.sk !== sk : t7LaneOf(sk) !== x.lane) p *= x.v;   // 만검귀종: 다른 스킬 피해 −20%
   return p;
 }
@@ -375,10 +381,10 @@ function t7Shape(sk, k) {
 
 // ── 봇·측정용: 빌드별 포인트 쓰기 순서 (dev/lifespan-bot.js · progress-bot.js --build) ──
 // 봇·측정용 장착 우선순위 (숙련 — 무엇을 데려가느냐가 성장 방향). a 연타 · b 발도 · k 검기
-const T7_BUILDS = {
-  a: ['gale', 'whirl', 'slash', 'iaido', 'flash', 'wave', 'storm'],
-  b: ['iaido', 'flash', 'slash', 'gale', 'whirl', 'wave', 'storm'],
-  k: ['wave', 'storm', 'slash', 'iaido', 'flash', 'gale', 'whirl'],
+const T7_BUILDS = {   // 진화 짝을 붙여 장착 (연계 수가 쌓이게) → 진화가 열리면 맨 앞에 (재료는 빠짐)
+  a: ['f_ab', 'whirl', 'flash', 'gale', 'iaido', 'slash', 'wave', 'storm'],   // 재료가 없을 땐 부모(gale·iaido)를 끼워 ★ 로 연다
+  b: ['f_bk', 'flash', 'storm', 'iaido', 'wave', 'slash', 'gale', 'whirl'],
+  k: ['f_ak', 'whirl', 'storm', 'gale', 'wave', 'slash', 'iaido', 'flash'],
 };
 // 빌드대로 장착 (가진 스킬만, 우선순위 앞부터 칸 수만큼). buy: 장착 칸도 산다 · tomes: 비전서를 장착 스킬 중 가장 낮은 것부터 바친다 (봇)
 function t7AutoSpend(build = 'a', buy = true, tomes = buy) {
@@ -387,7 +393,16 @@ function t7AutoSpend(build = 'a', buy = true, tomes = buy) {
   t7S(); t7FixEq();
   if (buy) while (t7BuySlot()) n++;
   const s = t7S(), L = t7L(), order = T7_BUILDS[build] || T7_BUILDS.a;
-  s.eq = order.filter((id) => L && L.sk[id] && skmOwnedSlot(id)).map((id) => L.sk[id]).slice(0, t7Slots());
+  if (typeof evoCheck === 'function') evoCheck();
+  const used = new Set(), eq = [];   // 진화를 끼우면 재료는 건너뛴다
+  for (const id of order) {
+    const sk = L && L.sk[id];
+    if (!sk || !skmOwnedSlot(id) || used.has(sk) || eq.length >= t7Slots()) continue;
+    eq.push(sk); used.add(sk); for (const m of evoMatsOf(sk)) used.add(m);
+  }
+  s.eq = eq;
+  const uvPick = { a: 'uv_a', b: 'uv_b', k: 'uv_k' }[build];   // 봇: 빌드 줄의 궁극기 변형 (열렸으면)
+  if (uvPick && evoGot(uvPick)) evoS().uv = uvPick;
   if (buy && typeof runeAutoFill === 'function') runeAutoFill({ a: 'shield', b: 'enrage', k: 'adds' }[build]);   // 봇: 룬 합치기·끼우기 (src/rune.js)
   if (tomes) for (let g = 0; g < 50 && S.tomes > 0; g++) {
     const sk = s.eq.filter((x) => skmFeedMax(x) > 0).sort((p, q) => skmXp(p) - skmXp(q))[0];
@@ -399,6 +414,8 @@ function t7AutoSpend(build = 'a', buy = true, tomes = buy) {
 function t7AutoTick() {
   if (!t7On() || !S.t7) return;
   t7S(); t7FixEq();
+  const nw = typeof evoCheck === 'function' ? evoCheck() : [];   // 조건을 채운 진화 열기 → 귀환 보고 강조 줄 (src/evolve.js)
+  if (nw.length && S.report) S.report.evoNew = (S.report.evoNew || []).concat(nw);
 }
 const t7PathCost = () => 0;   // 트리 없음 (검사 도구 호환)
 // 새 스킬의 연출: 3단계 전까지는 같은 계열 스킬의 연출을 빌려 쓴다 (skills.js 가 SKILL_FX 에 이어 붙인다)

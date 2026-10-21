@@ -1,6 +1,6 @@
 # 스킬 연계 — 시전 순서 퍼즐 (스킬 재기획 3단계)
 
-- 상태: **확정** (2026-10-21 사용자: "연계 스펙 정할 것도 시안대로") — 구현 전. 진화(4단계)와 한 릴리스(0.30.0)로
+- 상태: **구현됨, 사용자 확인 전** (브랜치 `combo-evolve`, 0.30.0 진화와 한 릴리스) — 확정 2026-10-21 "연계 스펙 정할 것도 시안대로"
 - 상위 스펙: [skill-redesign.md](skill-redesign.md) "4. 연계" · 앞 단계: [skill-mastery-s7.md](skill-mastery-s7.md) (숙련) · [skill-runes.md](skill-runes.md) (룬) · 연출 기준: [skill-vfx.md](skill-vfx.md)
 - 검토 페이지: [dev/review/skill-combo.html](../../dev/review/skill-combo.html) (꼬리표 표 · 합동기 표 · 장착 순서를 바꿔 보는 시전 타임라인 · 쿨 맞물림 예시 · 줄기별 시뮬)
 - 시뮬레이터: `dev/review/skill-combo-sim.js` (규칙) · `dev/review/skill-combo-tags.js` (꼬리표 시안) · `node dev/review/skill-combo-run.js [--lines]` (규칙 변형 비교 · 줄기별 표) · `node dev/review/skill-combo-dump.js` (스킬 데이터 다시 뽑기)
@@ -178,13 +178,24 @@ S.combo = {
 2. 연계 보너스 **+20%** 그대로 (전체 DPS 약 +5~10% — 봇 전후 비교로 확인, 넘치면 `T7_TUNE` 로).
 3. 합동기 값 시안대로: 추격 확정 치명 · 연쇄 범위 +30% · 집중 +20% 더 · 폭발 돌파 30% · 충전 +40% · 파편 50%.
 4. 꼬리표 120칸 시안대로 (`dev/review/skill-combo-tags.js`).
-5. 진화 연계 수 N = **1,500** (방향 상관없이, 진화 스펙).
+5. 진화 연계 수 N = ~~1,500~~ → **300** (구현 중 봇 측정으로 바꿈 — 실제 쿨에선 붙여 둔 짝도 분당 0.3~1번, 진화 스펙 진행 기록. 사용자 확인 필요).
 6. 순서 바꾸기 UI: 칸 옆 **◀ ▶ 버튼**.
 
+## 확인 방법
+- 테스트 주소: `http://localhost:9053/index.html?server=http://127.0.0.1:9&guild=0` (worktree knight-bar-skm)
+- 연계 로그: 콘솔 `window.COMBO_LOG = []` → 원정 → `COMBO_LOG` 에 `{cast, combo:'앞>뒤', joint, gap}` · 건너뛴 시전 `{cast, combo:false}` · 기다림 `{wait, cd}`
+- 기록: `S.combo` (n·p·j), 예상: `comboStats()` (pair 분당 · joint 분당 · uplift)
+- 순서 바꾸기: 스킬 탭 장착 칸의 ◀ ▶ → 칸 사이 칩(합동기 이름)·"예상 연계 분당 X번 · 스킬 피해 +Y%" 가 바뀐다
+- 브라우저 캐시: 스크립트를 고친 뒤엔 강력 새로 고침 (옛 skills.js 가 남아 연계가 0 으로 보인 적 있음)
+
 ## 진행 기록
+- 2026-10-21: **구현** (브랜치 combo-evolve). 새 `src/combo.js` (꼬리표 120칸·합동기 6·comboPickOrder 기다림·comboStart/Hit/End·comboSim/comboStats·comboEv·오프라인 comboSimFight·귀환 보고 줄), skills.js `tryCastSkill` (순서·배율·치명·범위·덧피해), core.js (`S.combo`, skillEv × comboEv, simulate·원정 시작), tree7-ui.js (◀ ▶ · 연계 칩 · 예상 줄).
+  - 실전투 버그 둘 고침: 기사 `knight.combo` 가 평타 모션 번호와 겹쳐 → 연계 상태를 `knight.cmb` 로. 브라우저 옛 캐시(skills.js)로 연계가 안 잡힌 것처럼 보임 → 새로 고침으로 확인, 실전투에서 `S.combo.p` 오름.
+  - 시뮬 실측 (검성 질풍난무·검무 회오리·섬광 베기·강철 가르기): 스킬 피해 +7.4%, 짝별 분당 0.3~1.2번 (시안의 2~5번보다 훨씬 적음 — 쿨이 15~33초라 2초 창이 잘 안 맞는다).
+  - 진행 봇·결투 리그: 진화 스펙 진행 기록 (0.29 대비 d2 −1% ~ d7 +2.6%, 리그 49~50%).
 - 2026-10-21: 사용자 확정 (정할 것 6개 모두 시안대로).
 - 2026-10-21: 초안. 꼬리표 120칸 시안(스킬 모양 area·gap·dur·ward 와 설명으로), 지금 시전 흐름(`tryCastSkill` 은 장착 순서로 "준비된 것 중 앞 칸부터", 궁극기는 `t7Skills` 맨 앞) 위에 연계 판정·기다림 규칙 자리 정함. 시뮬레이터로 규칙 변형 4가지 비교 → "아무 스킬이나" 는 순서 차이가 작아 "바로 다음 칸만" 을 시안으로. 오프라인·결투·레이드는 `comboEv` 평균 배율로 (서버 변경 없음). `S.combo` 정의. 검토 페이지 dev/review/skill-combo.html.
 
 ## 남은 일
-- 사용자 확인 (위 "정할 것") → 상태 확정 → 구현 (게임 코드, src/combo.js 새 파일 + skills.js·world.js·core.js·tree7-ui.js) → 결투 리그·진행 봇 → 배포.
-- 진화 스펙(4단계): `S.combo.p` 를 읽는 조건 N, 진화 결과(융합 45종 · 궁극기 변형)의 꼬리표.
+- 사용자 확인 (화면 · 진화 N 300) → main 배포 (0.30.0).
+- 연출 `cutShot` 비교·360px 좁은 창 확인은 배포 전 화면 확인 때.

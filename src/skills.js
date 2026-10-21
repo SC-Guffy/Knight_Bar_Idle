@@ -263,7 +263,7 @@ function tickSkills(dt, st) {
 // 교전 중 쿨타임이 찬 스킬이 있으면 쓴다 (해금 레벨 높은 것부터). only: 그 스킬만 (돌진이 닿았을 때, world.js fightTick)
 function tryCastSkill(st, target, only = null) {
   const qi = qiOn();       // 파이터 계열: 기 게이지가 소모량(투지 칸이 문턱) 이상이면 쓴다 — 투지 기술 먼저 (src/jobs/fighter.js)
-  for (const id of qi ? qiOrder(st) : st.skills) {
+  for (const id of qi ? qiOrder(st) : comboPickOrder(st.skills, only)) {   // 연계(src/combo.js): 궁극기 → 다음 칸 → (1초 안이면 기다림) → 나머지
     if ((qi ? !qiCan(id, !!only) : (knight.cds[id] || 0) > 0) || (only && id !== only)) continue;
     const k0 = qi ? qiShape(id, skillAt(id, skillLv(id), skillStage(id))) : heroSkill(id), fx = SKILL_FX[id];   // heroSkill: 시즌7 트리 변형까지 (core.js)
     // 트리 V2 오른쪽 효과: 치명 확률 보정 · 흡혈 비율 · 철벽 감소율 · 고유 특수 (core.js skillRight · skillSpec, 종류는 classes.js SPEC_TYPES)
@@ -271,13 +271,16 @@ function tryCastSkill(st, target, only = null) {
     // 고유 특수: 시즌7 은 끼운 룬마다 하나 (같은 종류는 값을 더한다) — spT(종류) 지금 값 · spOf(종류) 인자(dur·thr·icon)
     const spT = (t) => sps.reduce((a, x) => a + (x.type === t ? x.v : 0), 0);
     const spOf = (t) => sps.find((x) => x.type === t) || {};
+    // 🔗 연계 (src/combo.js): 앞 스킬이 끝나고 2초 안에 다음 칸이면 이번 시전 +20% · 합동기(추격 확정 치명 · 연쇄 범위 +30% …)
+    const cmb = t7Has(id) ? comboStart(id, target) : null;
     // ↔️ 범위: 사거리·반경을 늘린 사본으로 대상을 고른다 (skillTargets 의 rangeUp, hitRange 가 펼쳐 넘긴다)
-    const k = spT('range') ? { ...k0, rangeUp: spT('range') } : k0;
+    const rng = spT('range') + (cmb ? cmb.range : 0);
+    const k = rng ? { ...k0, rangeUp: rng } : k0;
     const cdNow = skillCd(id);
     const qiMul = qi ? qiCast(id) : ((knight.cds[id] = cdNow), 1);     // 장풍 3단은 위력 배수
     procLater.push({ at: clock + 0.05, fn: () => procOnCast(id) });   // 우로보로스: 쿨타임 초기화 (시전 처리가 끝난 뒤)
     // 🌀 겹침: 12초 안에 다시 쓰면 한 겹씩 쌓이고(최대 5), 이번 시전은 지금까지 쌓인 겹 수만큼 세다
-    let stackMul = stageComp(id, st) * qiMul;   // 진화 모습이 오래 시전하는 만큼 (core.js stageComp) × 장풍 3단 배수
+    let stackMul = stageComp(id, st) * qiMul * (cmb ? cmb.mul : 1);   // 진화 모습이 오래 시전하는 만큼 (core.js stageComp) × 장풍 3단 배수
     if (spT('stack')) {
       knight.stacks = knight.stacks || {};
       const s = knight.stacks[id], n = s && clock - s.t < 12 ? Math.min(5, s.n + 1) : 0;
@@ -306,6 +309,7 @@ function tryCastSkill(st, target, only = null) {
         const hk = hitRange(k, i);
         const list = skillTargets(hk, stats());
         if (list.length) focus = list[0];
+        if (t7Has(id)) comboHit(a, list, k.hits[i][1] * skillPow(id));   // 연계: 맞힌 적 · 한 타 배율 (파편·폭발 돌파)
         // 고유 특수 — 이 타격 전체의 배율: 🍃 맞은 마리당 · ⚖️ 하나만 맞으면 · 🔮 내 체력이 낮을수록 · ✴️ 확률 2배 · 🌀 겹침
         let mul = stackMul;
         if (spT('crowd')) mul *= 1 + spT('crowd') * Math.min(5, list.length) / 5;
@@ -319,7 +323,7 @@ function tryCastSkill(st, target, only = null) {
           // 여러 번 나눠 때리는 스킬은 (2타부터) 숫자를 모아 두었다가 마지막 타격(또는 처치) 때 합쳐서 띄운다.
           // 한 마리마다 다른 보정(🗡️ 처형 · 🪨 보스 · 🎯 안 맞은 적)은 hitMonster 가 그 적의 상태를 보고 곱한다
           const d = hitMonster(m, k.hits[i][1] * skillPow(id) * mul, {
-            crit: k.crit && !t7NoCrit(), critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1,
+            crit: (k.crit || (cmb && cmb.crit)) && !t7NoCrit(), critPlus: cp, kb: k.kb != null ? k.kb : fx.kb != null ? fx.kb : 8, color: a.color, quiet: k.hits.length >= 2 && i < k.hits.length - 1,
             exec: spT('exec') ? { thr: (spOf('exec').thr || 0.3), v: spT('exec') } : null, bossBonus: spT('boss'), first: spT('first'),
           }) || 0;
           dealt += d;
@@ -349,6 +353,7 @@ function tryCastSkill(st, target, only = null) {
         }
       },
       onEnd: () => {
+        if (t7Has(id)) comboEnd(id, a);   // 연계: 이 시전이 끝난 때 (2초 창의 시작)
         if (t7Has(id)) t7OnEnd(id);   // 무한검 (src/tree7-fx.js)
         if (!k.ward) {
           // 🛡️ 철벽: 시전 뒤 잠깐 받는 피해가 준다 (성역의 보호막 틀을 빌린다, 지속 피해 없음)

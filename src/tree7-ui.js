@@ -81,7 +81,8 @@ function viewTree7() {
       slots.push(next && !need
         ? `<button class="t7slot buy${rd(true)}" data-action="t7-slot">🔓 칸 열기 <small>${cost}</small></button>`
         : `<div class="t7slot lock">🔒 ${cond}${next && need ? ` <small>${need}</small>` : ''}${next && cost ? ` <small>${cost}</small>` : ''}</div>`);
-    } else slots.push(n ? `<button class="t7slot full" data-action="t7-eq" data-sk="${sk}" title="누르면 빼요 (장착 순서 = 시전 순서)">${t7SkIcon(t7Icon(n.id))}<span>${t7Look(n)}</span><small>Lv${t7Rank(n.id)}</small></button>`
+    } else slots.push(n ? `<div class="t7slot full"><button class="t7sl" data-action="t7-eq" data-sk="${sk}" title="누르면 빼요 (장착 순서 = 시전 순서)">${t7SkIcon(t7Icon(n.id))}<span>${t7Look(n)}</span><small>Lv${t7Rank(n.id)}</small></button>
+        <span class="t7mv"><button data-action="t7-move" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} title="앞으로 (먼저 시전)">◀</button><button data-action="t7-move" data-i="${i}" data-d="1" ${i >= s.eq.length - 1 ? 'disabled' : ''} title="뒤로">▶</button></span></div>`
       : '<div class="t7slot">빈 칸 <small>아래 스킬의 장착</small></div>');
   }
   const ult = T >= 3 && L && L.sk.ult;
@@ -90,6 +91,7 @@ function viewTree7() {
   // 스킬 카드
   const cards = SKM_SLOTS.filter((slot) => L && L.sk[slot] && (slot !== 'ult' || T >= 2)).map((slot) => {
     const n = T7_BY[slot], sk = L.sk[slot], u = t7U(slot), own = skmOwnedSlot(slot);
+    if (!own && slot.startsWith('f_')) return evoLockCard(slot);
     if (!own) return `<div class="t7card skl lock" data-t7tip="${slot}">${t7SkIcon(t7Icon(slot))}<div><b>${u.n}</b><small>🔒 ${skmLockText(slot)}</small></div></div>`;
     const lv = skmLv(sk), st = skmStage(sk), use = t7Stage(sk), p = skmProg(sk), eq = s.eq.includes(sk), isUlt = slot === 'ult';
     const nextStar = lv < 30 ? `다음 ★ Lv${(Math.floor(lv / 10) + 1) * 10}` : '숙련 끝';
@@ -100,18 +102,63 @@ function viewTree7() {
       : `<button class="lk${i === use ? ' on' : ''}" data-action="t7-use" data-sk="${sk}" data-s="${i}" title="${t7LookName(n, i)}">${i ? '★'.repeat(i) : '기본'}</button>`).join('')}</div>` : '';
     return `<div class="t7card skl${eq || isUlt ? ' eq' : ''}${t7Ui.sel === slot ? ' sel' : ''}" data-t7tip="${slot}">
       ${t7SkIcon(t7Icon(slot))}
-      <div class="t7cbody"><b>${t7Look(n)} <span class="t7st">${T7_STARS(st)}</span></b>
+      <div class="t7cbody"><b>${slot.startsWith('f_') ? '<span class="evo">✨</span> ' : ''}${t7Look(n)} <span class="t7st">${T7_STARS(st)}</span> ${comboTagHtml(sk)}</b>
         <small>${u.n !== t7Look(n) ? u.n + ' · ' : ''}숙련 Lv ${lv}/30 · 위력 ×${(1 + SKM_POW * (lv - 1)).toFixed(2)} · 쿨 ×${(1 - SKM_CD * (lv - 1)).toFixed(2)}</small>
         ${runeSockHtml(sk)}
         <div class="t7xp"><i style="width:${Math.round(p * 100)}%"></i></div><small>${lv < 30 ? `다음 Lv ${Math.round(p * 100)}% · ${nextStar}` : '숙련 끝 (★★★)'}</small>
         <div class="t7act">
-          ${isUlt ? '<small class="t7note">궁극기 칸 — 늘 장착</small>' : `<button class="btn${eq ? ' on' : ''}" data-action="t7-eq" data-sk="${sk}">${eq ? '✓ 장착' : '장착'}</button>`}
+          ${isUlt ? '<small class="t7note">궁극기 칸 — 늘 장착</small>' : `<button class="btn${eq ? ' on' : ''}" data-action="t7-eq" data-sk="${sk}" ${evoMatsOf(sk).length ? `title="장착하면 ${evoMatsOf(sk).map((m) => SKILLS[m].name).join(' · ')} 이(가) 빠져요 (두 칸 → 한 칸)"` : ''}>${eq ? '✓ 장착' : evoMatsOf(sk).length ? '장착 (두 칸 → 한 칸)' : '장착'}</button>`}
           <button class="btn" data-action="t7-feed" data-sk="${sk}" data-n="10" ${feed > 0 ? '' : 'disabled'} title="${feedMax ? `비전서 10권까지 (1권 = 경험치 ${SKM_TOME}, Lv20 까지)` : 'Lv20 부터는 써야 자라요'}">📖 바치기</button>
           <button class="btn mprev" data-action="preview" data-id="${sk}" ${S.phase === 'camp' ? '' : 'disabled'} title="아래 기사가 지금 모습으로 한 번 시전해요">▶</button>
-        </div>${stageCtl}</div></div>`;
+        </div>${stageCtl}${isUlt ? evoUvHtml() : ''}</div></div>`;
   }).join('');
   const tier1 = T < 2 ? '<div class="gtip">2차 전직하면 2차 스킬 둘이 생기고, 스킬을 ★ 까지 키우면 새 스킬이 열려요.</div>' : '';
-  return `${head}${moved}${tier1}<div class="t7slots">${slots.join('')}</div><div class="t7cards skl">${cards}</div>${runeBagHtml()}`;
+  return `${head}${moved}${tier1}${evoNextHtml()}<div class="t7slots">${slots.join('')}</div>${comboRowHtml()}<div class="t7cards skl">${cards}</div>${runeBagHtml()}`;
+}
+// 🔗 연계 (src/combo.js): 꼬리표 아이콘 · 장착 순서 줄(칸 사이 합동기 칩, 마지막 → 첫 칸 순환) · 예상 연계
+const comboTagHtml = (sk) => { const t = comboTag(sk); return t ? `<span class="ctag" title="연계 꼬리표: ${COMBO_TAG[t].n}">${COMBO_TAG[t].ic}</span>` : ''; };
+function comboRowHtml() {
+  const ord = comboOrd();
+  if (ord.length < 2) return '';
+  const nm = (sk) => t7Look(t7NodeOf(sk));
+  const pairEvo = (a, b) => Object.keys(EVO_FUSE).some((f) => !evoGot(f) && evoMatsOf(evoSk(f)).includes(a) && evoMatsOf(evoSk(f)).includes(b));
+  const chips = ord.map((sk, i) => {
+    const nx = ord[(i + 1) % ord.length], j = comboJointOf(comboTag(sk), comboTag(nx));
+    const ch = j ? `${COMBO_TAG[j.a].ic}${COMBO_TAG[j.b] ? COMBO_TAG[j.b].ic : '✦'} ${j.n}` : '🔗';
+    return `<span class="cnm">${nm(sk)}</span><span class="cj${j ? ' on' : ''}" title="${j ? `합동기 ${j.n}` : '연계 +20%'} — ${nm(sk)} 다음 2초 안에 ${nm(nx)}${pairEvo(sk, nx) ? ' · ✨ 진화 짝 (연계 수가 쌓여요)' : ''}">${ch}${pairEvo(sk, nx) ? ' ✨' : ''}${i === ord.length - 1 ? ' ↩' : ''}</span>`;
+  }).join('');
+  const c = comboStats();
+  return `<div class="crow"><small>시전 순서</small>${chips}${c ? `<small class="cev">예상 연계 분당 ${c.perMin.toFixed(1)}번 · 스킬 피해 +${Math.round(c.uplift * 100)}%</small>` : ''}</div>`;
+}
+// ✨ 진화 (src/evolve.js): 다음 진화 칩 · 잠긴 진화 카드 · 궁극기 변형 고르기
+const evoNum = (x) => Math.floor(x).toLocaleString('ko-KR');
+const evoBar = (x, need) => `<div class="t7xp evo"><i style="width:${Math.round(Math.min(1, x / need) * 100)}%"></i></div>`;
+function evoMatsHtml(p) {
+  return p.mats.map((m) => `<small>${SKILLS[m.sk] ? SKILLS[m.sk].name : m.slot} ${!m.own ? '🔒 아직 없음' : m.ok ? '★★ <span class="ok">✓</span>' : `숙련 Lv${m.lv}/${m.need}`}</small>${m.own && !m.ok ? evoBar(m.lv, m.need) : ''}`).join('')
+    + `<small>연계 ${evoNum(p.combo)}/${evoNum(p.need)}</small>${evoBar(p.combo, p.need)}`;
+}
+function evoLockCard(slot) {
+  const p = evoProg(slot), sk = evoSk(slot), u = t7U(slot);
+  if (!p) return '';
+  return `<div class="t7card skl lock evoc" data-t7tip="${slot}">${t7SkIcon(t7Icon(slot))}<div class="t7cbody"><b><span class="evo">✨</span> ${SKILLS[sk] ? SKILLS[sk].name : u.n}</b>
+    <small>진화 · ${p.mats.map((m) => SKILLS[m.sk] ? SKILLS[m.sk].name : m.slot).join(' + ')} — 둘 다 ★★ + 둘을 이은 연계 ${evoNum(p.need)}번</small>${evoMatsHtml(p)}</div></div>`;
+}
+function evoNextHtml() {
+  const b = evoNext();
+  if (!b) return '';
+  const sk = evoSk(b.slot), nm = EVO_UV[b.slot] ? `${SKILLS[evoSk('ult')].name} 변형 · ${t7U(b.slot).n.replace(/^[^:]*: /, '')}` : SKILLS[sk].name;
+  return `<div class="evonext">✨ 다음 진화 <b>${nm}</b> — ${b.p.mats.map((m) => `${SKILLS[m.sk].name} ${m.ok ? '★★ ✓' : `Lv${m.lv}/${m.need}`}`).join(' · ')} · 연계 ${evoNum(b.p.combo)}/${evoNum(b.p.need)}</div>`;
+}
+function evoUvHtml() {
+  if (t7Tier() < 3) return '';
+  const s = evoS();
+  const chips = [`<button class="lk${!s.uv ? ' on' : ''}" data-action="t7-uv" data-v="">기본</button>`].concat(Object.keys(EVO_UV).map((v) => {
+    const nm = t7U(v).n.replace(/^[^:]*: /, '');
+    if (evoGot(v)) return `<button class="lk${s.uv === v ? ' on' : ''}" data-action="t7-uv" data-v="${v}" title="${esc(t7U(v).d || '')}">${nm}</button>`;
+    const p = evoProg(v);
+    return `<span class="lk lock" title="궁극기 ★★ + 이 줄 스킬(${EVO_UV[v].map((m) => SKILLS[evoSk(m)] ? SKILLS[evoSk(m)].name : m).join('·')})과 연계 ${p.need}번">${nm} 🔒 ${evoNum(p.combo)}/${p.need}</span>`;
+  })).join('');
+  return `<div class="t7look evo" title="궁극기 변형 — 열린 것 중 하나를 골라 써요">${chips}</div>`;
 }
 // 🔮 룬 칸 (스킬 카드 안): 숙련 ★ 1칸 · ★★★ 2칸. 빈 칸을 누르면 아래 주머니에서 고른다, 끼운 룬을 누르면 뺀다 (src/rune.js)
 const runeChip = (r, extra = '') => `${runeArt(r)}<span style="color:${GRADES[r.g].color}">${runeName(r)}</span>${extra}`;
@@ -177,6 +224,10 @@ const T7_ACTIONS = ({
   't7-slot': () => { if (t7BuySlot()) toast(`🔓 장착 칸 ${t7Slots()}칸`, 3000); },
   't7-eq': (el) => { if (!t7Equip(el.dataset.sk)) toast('장착 칸이 다 찼어요 — 장착한 스킬을 눌러 먼저 빼세요'); },
   't7-use': (el) => { const s = t7S(); s.use[el.dataset.sk] = Number(el.dataset.s); },
+  // 🔗 장착 순서 바꾸기 (◀ ▶) — 순서 = 시전 순서 = 연계
+  't7-move': (el) => { const s = t7S(), i = Number(el.dataset.i), j = i + Number(el.dataset.d); if (j < 0 || j >= s.eq.length) return; [s.eq[i], s.eq[j]] = [s.eq[j], s.eq[i]]; },
+  // ✨ 궁극기 변형 고르기 (열린 것 중, 무료)
+  't7-uv': (el) => { const v = el.dataset.v || null; if (v && !evoGot(v)) return; evoS().uv = v; },
   // 🔮 룬: 빈 칸 고르기(다시 누르면 취소) → 주머니에서 룬 누르기 = 끼우기 · 끼운 룬 누르기 = 빼기 · 합치기
   't7-pick': (el) => { t7Ui.pick = t7Ui.pick === el.dataset.sk ? null : el.dataset.sk; },
   't7-sock': (el) => {
@@ -210,13 +261,15 @@ function t7WallReport(r) {
 }
 // 귀환 보고: ⚔️ 숙련 — 장착 스킬마다 오른 Lv(또는 다음 Lv 까지 %), ★ 해금·새 스킬은 강조 (src/skm.js skmTripLines)
 function skmReport(r) {
-  const ls = skmTripLines(r);
-  if (!ls.length) return '';
+  const ls = skmTripLines(r).filter((x) => !(x.fresh && x.slot.startsWith('f_')));   // 진화 스킬은 아래 ✨ 진화 줄로
+  if (!ls.length && !(r.evoNew || []).length && !comboTripLine(r)) return '';
   const row = (x) => {
     const n = t7NodeOf(x.sk), name = t7U(n.id).n;
     if (x.fresh) return `<div class="skmrow fresh">✨ 새 스킬: <b>${name}</b> <small>— 스킬 탭에서 장착</small></div>`;
     const up = x.lv1 > x.lv0 ? `Lv${x.lv0} → <b>${x.lv1}</b>` : `Lv${x.lv1} <small>(다음까지 ${Math.round(x.p0 * 100)}% → ${Math.round(x.p1 * 100)}%)</small>`;
     return `<div class="skmrow${x.star ? ' star' : ''}">${name} ${up}${x.star ? ` · ✨ ${T7_STARS(x.star)} <b>${t7LookName(n, x.star)}</b>` : ''}</div>`;
   };
-  return `<div class="skmrep"><b>⚔️ 숙련</b>${ls.map(row).join('')}</div>`;
+  const cl = comboTripLine(r), evo = (r.evoNew || []).map((slot) => `<div class="skmrow star">✨ 진화: <b>${EVO_UV[slot] ? `${SKILLS[evoSk('ult')].name} 변형 · ${t7U(slot).n.replace(/^[^:]*: /, '')}` : SKILLS[evoSk(slot)].name}</b> <small>— 스킬 탭에서 ${EVO_UV[slot] ? '골라 써요' : '장착 (두 칸 → 한 칸)'}</small></div>`).join('');
+  const cline = cl ? `<div class="skmrow">🔗 연계 ${fmt(cl.n)}번${cl.best ? ` · 가장 많이: ${cl.best.split('>').map((x) => SKILLS[x] ? SKILLS[x].name : x).join(' → ')} ${fmt(cl.bv)}` : ''}</div>` : '';
+  return `<div class="skmrep"><b>⚔️ 숙련</b>${evo}${ls.map(row).join('')}${cline}</div>`;
 }

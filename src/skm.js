@@ -42,6 +42,7 @@ function skmOwnedSlot(slot) {
   if (slot === 'slash') return T >= 1;
   if (slot === 'gale' || slot === 'iaido') return T >= 2;
   if (slot === 'ult') return T >= 3;
+  if (slot.startsWith('f_')) return T >= 2 && typeof evoGot === 'function' && evoGot(slot);   // 진화 스킬 (src/evolve.js)
   const p = SKM_UNLOCK[slot];
   return !!p && T >= 2 && skmOwnedSlot(p) && skmStage(L.sk[p]) >= 1;
 }
@@ -51,11 +52,11 @@ function skmLockText(slot) {
   if (slot === 'slash') return '1차 전직';
   if (slot === 'gale' || slot === 'iaido') return '2차 전직';
   if (slot === 'ult') return '3차 전직';
-  if (!p) return '진화 (나중에)';
+  if (!p) return '✨ 진화 — 재료 둘 ★★ + 연계';
   const pn = L && SKILLS[L.sk[p]] ? SKILLS[L.sk[p]].name : p;
   return `${t7Tier() < 2 ? '2차 전직 + ' : ''}${pn} ★ (숙련 Lv10)`;
 }
-const SKM_SLOTS = ['slash', 'gale', 'iaido', 'wave', 'whirl', 'flash', 'storm', 'ult'];   // 스킬 탭 카드 순서 (메인 → 2차 → 새 스킬 → 궁극기)
+const SKM_SLOTS = ['slash', 'gale', 'iaido', 'wave', 'whirl', 'flash', 'storm', 'f_ab', 'f_bk', 'f_ak', 'ult'];   // 스킬 탭 카드 순서 (메인 → 2차 → 새 스킬 → 진화 → 궁극기)
 // 경험치 더하기 (실제 시전 · 오프라인 계산 · 비전서)
 function skmGain(sk, x) {
   if (!x || !t7Has(sk)) return;
