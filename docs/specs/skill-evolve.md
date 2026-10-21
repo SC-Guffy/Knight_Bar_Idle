@@ -1,6 +1,6 @@
 # 스킬 진화 — 시즌 목표 (스킬 재기획 4단계)
 
-- 상태: **구현됨, 사용자 확인 전** (브랜치 `combo-evolve`, 0.30.0 연계와 한 릴리스) — 확정 2026-10-21 "진화는 시안대로 가자". 구현 중 **연계 수 1,500 → 300** 으로 바꿈 (아래 진행 기록, 사용자 확인 필요)
+- 상태: **배포됨 (0.30.0, 2026-10-21)** — 연계와 한 릴리스. 확정 2026-10-21 "진화는 시안대로 가자", 구현 중 바꾼 **연계 수 300** 도 사용자 확인 ("연계 수 300 으로 0.30.0 main 에")
 - 상위 스펙: [skill-redesign.md](skill-redesign.md) "5. 진화" · 앞 단계: [skill-mastery-s7.md](skill-mastery-s7.md) (숙련) · [skill-runes.md](skill-runes.md) (룬) · [skill-combo.md](skill-combo.md) (연계, 초안 — 진화는 연계 기록 `S.combo.p` 를 읽는다)
 - 검토 페이지: dev/review/skill-evolve.html (진화 표 15줄기 · 진행 계산기 · 카드 모형)
 - 관련 코드 (구현할 곳): 새 `src/evolve.js` · src/skm.js (숙련 · 칸 얻기) · src/tree7.js (`t7Skills`·`t7Equip`·`t7Shape` uvA/uvB/uvK) · src/combo.js (연계 기록, 3단계) · src/tree7-ui.js (스킬 카드) · src/ui.js (귀환 보고) · src/tree7-l-*.js (융합 `newSkills.f_*` · 궁극기 변형 글 `ui.uv_*`)
@@ -85,6 +85,7 @@
 - 봇: `node dev/lifespan-bot.js --line swordsaint --build a --days 10 --seeds 8 --mode heavy` (스냅샷 `evo`·`combo`, `EVO_DBG=1` 이면 재료 Lv·짝 연계 수)
 
 ## 진행 기록
+- 2026-10-21: 사용자 화면 확인 · 연계 수 300 확인 → **0.30.0 main 배포**.
 - 2026-10-21: **구현** (브랜치 combo-evolve). 새 `src/evolve.js` (EVO_FUSE·EVO_UV·EVO_NEED·evoCheck·evoProg·evoScale·evoNext), skm.js (`f_*` 칸 = 진화로 얻음, 📖 Lv20 까지), tree7.js (진화·재료 함께 장착 불가, 궁극기 변형 `S.evo.uv`, t7Pow × evoScale), tree7-ui.js (진화 카드·잠긴 진화 진행 막대·다음 진화 칩·궁극기 변형 고르기·귀환 보고 줄).
   - 봇 측정 (4줄기 × 빌드 a·b·k × 8시드, 열심 유저, 0.29.5 대비): 시안 1,500 은 **10일 안에 융합 진화가 하나도 안 열림** (붙여 둔 짝 연계가 하루 70~200번) → **300** 으로. 봇 빌드도 재료의 부모(gale·iaido·wave)를 먼저 끼워 ★ 로 열게 고침.
   - 300 결과: 첫 진화 **4~6일차** (빌드 b 일부 7일), 궁극기 변형 5~6일차. 진화 위력 눈금 실측 0.902.
@@ -94,6 +95,6 @@
 - 2026-10-21: 초안. 융합 45종(줄기마다 whirl+flash · flash+storm · whirl+storm)과 궁극기 변형 45종(a·b·k 줄)을 진화 결과로. 조건 = 재료 숙련 ★★ + 짝 연계 수 (S.combo.p, 연계 스펙). 검토 페이지 dev/review/skill-evolve.html.
 
 ## 남은 일
-- 사용자 확인: 연계 수 300 (1,500 에서 바꿈) · 화면 → main 배포 (0.30.0).
+- 가벼운 유저 첫 진화 9~12일차 (목표 6~8) — ★★ 조건이 병목, 실제 유저 데이터 보고 다시 볼 것.
 - 진화 스킬 룬 옮겨 보이기(규칙 1 "룬")는 아직 — 지금은 진화 스킬 칸에 룬을 따로 끼운다.
 - 0.28 융합 찍음 기록 되살리기(규칙 5)는 하지 않음 — 0.29.0 세이브에 기록이 남아 있지 않다.

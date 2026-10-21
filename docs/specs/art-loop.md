@@ -1,9 +1,9 @@
 # 아트 자동 루프 (생성 → 검수 → 수리)
 
-- 상태: 확정 (2026-10-21 사용자 — 시범 e04·e30·k37·k09 · 묶음 유료 상한 8회 · loop.py 상태 기계 · 게임 적용은 사용자 확인 뒤)
-- 관련 코드: `dev/art-loop/loop.py` (상태 기계: init·next·task·status) · `repair.py` (수리 연산) · `report.py` (결과 페이지), `.claude/agents/art-repairer.md` · `art-generator.md`. 시범 묶음 `dev/art-loop/pilot1/` → 결과 `dev/review/art-loop-pilot1.html`. 쓰는 것: [pixel-qa.md](pixel-qa.md) (`dev/pixel-qa/qa.py`, `rank.py`, 비평 `pixel-critic`), PixelLab MCP·`dev/pixellab/`, ComfyUI `dev/comfy/` (Windows PC 만)
+- 상태: 진행 중 — 시범 끝·e04·k09 적용(0.29.6), 다음 개선 남음 (확정 2026-10-21 사용자 — 시범 e04·e30·k37·k09 · 묶음 유료 상한 8회 · loop.py 상태 기계 · 게임 적용은 사용자 확인 뒤)
+- 관련 코드: `dev/art-loop/loop.py` (상태 기계: init·next·task·status) · `repair.py` (수리 연산) · `report.py` (결과 페이지), `.claude/agents/art-repairer.md` · `art-generator.md`. 시범 묶음 `dev/art-loop/pilot1/` → 결과 `dev/review/art-loop-pilot1.html`, 다시 돌린 `pilot2/` → `dev/review/art-loop-pilot2.html` (`http://localhost:9023/dev/review/art-loop-pilot2.html`). 쓰는 것: [pixel-qa.md](pixel-qa.md) (`dev/pixel-qa/qa.py`, `rank.py`, 비평 `pixel-critic`), PixelLab MCP·`dev/pixellab/`, ComfyUI `dev/comfy/` (Windows PC 만)
 - 검토 페이지: `dev/review/art-loop.html` (서버 `pixelqa-web` 9023 → `http://localhost:9023/dev/review/art-loop.html`)
-- 최종 갱신: 2026-10-21 (구현 + 시범 묶음)
+- 최종 갱신: 2026-10-21 (workbench 수리 연산 · 멈춤 규칙 변경 · pilot2)
 
 ## 목표
 
@@ -32,7 +32,8 @@
 
 - `fix` 인데 수리 3번으로도 `pass` 가 안 나오면 `regen` 으로 넘긴다.
 - `regen` 은 비평의 "다시 뽑을 때 바꿀 것"을 계획 에이전트가 프롬프트·기준 그림에 반영해 다시 생성한다. 무료 길을 먼저 다시 쓴다.
-- **멈춤**: 유료 상한에 닿거나, regen 2번을 다 썼거나, 두 바퀴 연속 평균 점수가 오르지 않으면 멈춘다. 이때는 지금까지 **가장 점수 높은 판**(원래 그림 포함)을 남기고 이유를 적는다. 원래 그림보다 못하면 원래 그림을 그대로 둔다.
+- **정체**: 줄기(원래 그림 또는 마지막 다시 뽑기 이후) 안에서 두 판 연속 평균 점수가 오르지 않으면 수리를 그만두고 **다시 뽑기로 넘어간다**(2026-10-21 사용자 결정 — 예전엔 여기서 멈춰서 k37 이 유료 한도·다시 뽑기를 남긴 채 끝났다). 다시 뽑기는 무료 길 먼저, 유료는 남은 한도 안에서.
+- **멈춤**: regen 2번을 다 썼거나(정체로 넘어온 것 포함), 유료 상한에 닿고 무료 길도 다 썼으면 멈춘다. 이때는 지금까지 **가장 점수 높은 판**(원래 그림 포함)을 남기고 이유를 적는다. 원래 그림보다 못하면 원래 그림을 그대로 둔다.
 - 원래 그림도 같은 검수를 받아 기준점이 된다(전후 점수 비교).
 - 결과 판 고르기: 합격 판 > 평균 높은 판 > 2점 이하 항목이 적은 판 > 나중 판. 원래 그림보다 평균이 낮으면 원래 그림.
 - 생성은 그림 본체를 PixelLab(·ComfyUI)으로만 만든다. 코드로 도형·파티클을 찍어 만든 판은 규칙 위반으로 버린다(CLAUDE.md "VFX는 PixelLab 텍스처로").
@@ -55,8 +56,9 @@
 | `anchor bottom` · `center` | 프레임마다 바닥/가운데 맞춤 | 바닥 기준인데 떠 있음 |
 | `fit w h` | 규격 칸에 맞춰 자르기·여백·nearest 정수배 | 크기·칸 잘림 |
 | `tile_seam` | 루프 타일 좌우 끝 열 맞추기 | 이음매 |
-| (`workbench ...`) | `pixelart_workbench` 명령 — 아직 연산으로 안 붙였다 | 별 찍기처럼 새 픽셀을 그려야 하는 손질 (시범에서 필요했음) |
+| `workbench changes cleanup` | PixelLab `pixelart_workbench`(구독 무료·결정적)의 `edit --changes`(brush·patch_pixels·flood_fill·map_colors·copy_region·outline) 와 `repair --ops`. 시트를 n×1 로 잘라 올리고 결과 격자를 받아 다시 잇는다. 프레임 번호는 0부터(넘길 때 1을 더함). 호출은 `dev/pixellab/mcpw.py` (맥은 Claude Code MCP 설정의 키를 읽는다, 출력 안 함) | 별 찍기·먼지 덩어리·끊긴 띠 잇기처럼 새 픽셀을 그려야 하는 손질 |
 
+- `workbench` 의 `patch_pixels` 는 연산 전체 48픽셀까지(`PATCH_MAX`). pilot2 첫 e30 수리안이 스크립트로 계산한 2,453픽셀을 찍어 넣었다 → 코드로 그리기를 우회하는 것이라 막았다. 넓은 손질은 붓 획·`flood_fill`·구역(`select_mask` 다각형) + `map_colors`·`copy_region` 으로, 수리 담당이 눈으로 보고 고른다.
 - 프레임 수가 바뀌면 시트 등록(`frames:`)도 바뀐다 → 결과에 적고, 게임 적용 때 같이 고친다.
 - 연산은 원본을 덮어쓰지 않고 새 판(`v2`, `v3` …)을 만든다.
 
@@ -101,7 +103,7 @@
 - [x] 끝난 판은 비평 합격선 A 를 넘거나, 멈춘 이유와 가장 나은 판을 남긴다. 원래보다 못한 판을 결과로 내지 않는다. → 4건 모두 결과 평균 ≥ 원래 (e04 3.43→3.57 · e30 2.86→3.29 · k37 3.29→3.43 · k09 2.86→4.14).
 - [x] 중간에 끊고 다시 부르면 같은 자리에서 이어 간다. → 모든 단계가 따로 실행한 `loop.py task` 프로세스였고 상태 파일만으로 이어 갔다(k37 은 도중에 일감 폴더를 치우고 init 으로 다시 시작). 세션을 일부러 끊는 시험은 따로 하지 않았다.
 - [x] 일감 하나가 30분 안. → 로그 기준 e04 3분 · k37 8분(다시 시작 뒤) · k09 13분 · e30 26분 (생성 대기 포함).
-- [ ] 결과 페이지에서 4건 중 3건 이상을 사용자가 "좋아졌다"고 본다 — 사용자 확인.
+- [x] 결과 페이지 사용자 확인 (10-21): **합격한 e04·k09 만 적용**, e30·k37 은 원래대로. "4건 중 3건 좋아짐" 기준으로는 2/4 — 미합격 2건은 사용자도 적용하지 않았다.
 
 ## 진행 기록
 
@@ -115,11 +117,21 @@
   - 돌리면서 고친 것: 바닥 기준 검수 시트(`--anchor b`, k37 은 고친 뒤 처음부터 다시) · `deink`·`fill_holes` 연산 · `frames_order` 같은 번호 두 번 쓸 때 공유 버그 · 수리는 가장 나은 판에 · 생성 실패 뒤 수리 횟수 초기화 버그 · 결과 판 동점 처리(2점 이하 항목 적은 판) · 생성 지침에 "코드로 그림 본체를 그리지 않는다".
   - 배운 것: 새 픽셀을 그려야 하는 손질(별 찍기, 먼지 덩어리 더하기)이 연산 밖이라 수리가 막힌다 → `pixelart_workbench` 를 수리 연산으로 붙이는 게 다음 개선. 점수 정체 판단이 다시 뽑기보다 먼저 와서 k37 은 유료 한도를 쓰지 않고 멈췄다.
 
+- 2026-10-21: workbench 수리 연산 · 멈춤 규칙 변경 · 묶음 `pilot2` (e30·k37 다시).
+  - 사용자 결정: ① 정체 = 수리 중단 → 다시 뽑기(다시 뽑기 2번까지, 다 쓰면 멈춤) ② PixelLab 잔량 49회(바닥 300 아래, 11-13 리필)라 pilot2 유료 0, 무료만.
+  - `repair.py` `workbench`: 시트를 n×1 로 잘라 `split` → `edit --changes`/`repair --ops` → 결과 `frames.png`(격자)를 받아 다시 잇는다. 왕복이 픽셀 단위로 정확함을 확인. `dev/pixellab/mcpw.py` 가 맥에서도 돈다(키는 `~/.claude.json` MCP 설정에서 읽음, python.org 파이썬 인증서 문제는 `/etc/ssl/cert.pem`).
+  - `loop.py`: 정체 판단을 줄기 단위로 바꾸고, 정체면 `repairs` 를 다 쓴 것으로 돌려 다시 뽑기로 넘긴다(`stall` 로그). pilot1 k37 상태로 모의 실행 → 멈추지 않고 다시 뽑기 지시가 나옴.
+  - e30: 수리 1번으로 합격 2.86→3.57 (회색 걷기·10색·deink + workbench 다각형 구역 `map_colors` 로 윗단 하늘 남색 한 판·띠 가운데 밝히기 + 붓 도장 별 2~3개 반짝임). 9색. 남은 흠: 커튼이 누운 가로 리본이라 '의도' 3, 일렁임 약함, 5번 프레임 10% 작음.
+  - k37: 수리 2번으로 합격 3.43→3.29→3.57 (1~4번을 바닥에 묻어 바닥에서 솟게·잔조각 지우기 + workbench 로 5번 낮은 먼지층 붓질·4번에 돌 두 개 복사). 남은 흠: 4번 단색 주황 V자, 3번 작은 구멍.
+  - 비평 5회 · 수리 3회(1회는 규칙 위반으로 거부) · 생성 0 · 유료 0. 일감당 약 8분.
+
 ## 남은 일 / 미정
 
-- **사용자 확인 대기**: 결과 페이지 `dev/review/art-loop-pilot1.html` 에서 4건 각각 "적용 / 원래대로". 적용분만 `src/vfx/` 로 옮기고 GAME_VERSION 을 올려 배포한다 (k09 는 tree7 파일들도 같은 시트를 쓰니 그쪽 화면도 확인).
-- k09 의 코드로 찍은 쇳조각을 예외로 둘지 — 사용자 판단.
-- 다음 개선: `pixelart_workbench` 수리 연산 · 정체 판단 전에 유료 한도가 남으면 다시 뽑기 1번 허용할지 · `art-planner` 지침.
+- **사용자 확인 대기 (pilot2)**: `dev/review/art-loop-pilot2.html` 에서 e30·k37 각각 "적용 / 원래대로". 적용분만 `dev/art-loop/pilot2/<id>/final.png` → `src/vfx/<id>.png`, GAME_VERSION 올려 배포. 프레임 수는 둘 다 5장 그대로라 시트 등록은 안 바뀐다.
+
+- **적용·배포 끝 (10-21, 0.29.6)**: e04 = pilot1 e04 v1, k09 = pilot1 k09 v1 → `src/vfx/`. 프레임 수 그대로라 등록 변경 없음. `dev/skills.html` 에서 마법사·대검사 스킬 4단계 40회 예외 0, 전후 캡처 `dev/art-loop/pilot1/ingame-ba.png`(위 k09, 아래 e04 두 순간 — 왼쪽 전·오른쪽 후). tree7 파일(검귀·폭군 줄기)의 k09 사용처는 시뮬레이터로 따로 안 봤다. 사용자 판정은 취향 기록에 4줄.
+- e30·k37 은 원래대로. 다음 묶음에서 다시 할 때: k37 은 다시 뽑기(유료 한도 안), e30 은 "하늘에 걸린 세로 커튼" 구도를 ComfyUI/PixelLab 키 그림으로.
+- 다음 개선: `art-planner` 지침 · 비평이 Write 를 못 해 세션이 verdict.json 을 옮겨 적는다(비평 지침에 Write 를 줄지) · 정체→다시 뽑기 길은 pilot2 에서 실제로 밟지 않았다(둘 다 수리로 합격).
 
 
 - **결정됨 (2026-10-21 사용자)**: 시범 e04·e30·k37·k09, 묶음 유료 상한 8회, `loop.py` 상태 기계 + 세션이 에이전트 호출, 게임 적용은 사용자 확인 뒤. (이 승인이 시범 묶음의 계획 승인 ①을 겸한다.)

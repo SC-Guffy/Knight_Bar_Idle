@@ -2182,7 +2182,9 @@ function onRaidResult(result) {
     }
     return;
   }
-  // 창을 닫거나 저절로 재생하지 않는다 — 기사를 누르거나 레이드 탭의 '전투 보기'로 본다 (docs/specs/result-on-click.md)
+  // 레이드 대기실을 보고 있었으면(출정을 눌렀거나 준비하고 기다림) 바로 전투로 넘어간다
+  if (raidTabOpen() && raidUi.room) { watchRaid(); renderHud(); return; }
+  // 다른 걸 하던 중이면 창을 닫거나 저절로 재생하지 않는다 — 기사를 누르거나 레이드 탭의 '전투 보기'로 본다 (docs/specs/result-on-click.md)
   toast(`🐉 ${RAID_BOSSES[result.boss].name} 레이드 전투가 끝났어요 — ${S.phase === 'camp' ? '기사를 눌러' : '캠프로 돌아가면'} 전투를 보고 보상을 받아요`, 6000);
   if (raidTabOpen()) renderCamp();
   renderHud();

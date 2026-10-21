@@ -1,0 +1,55 @@
+{
+ "job": {
+  "id": "k37",
+  "kind": "vfx",
+  "file": "src/vfx/k37.png",
+  "frames": 5,
+  "cell": [
+   64,
+   64
+  ],
+  "color": "raw",
+  "scale": 2,
+  "anchor": "b",
+  "intent": "대공성포(궁극기) 포격 마지막 타격 — 바닥 기준 대폭발: 바닥에서 솟는 주황·흰 폭발 + 밝은 회색 돌덩이 몇 개 + 마지막에 낮게 퍼지는 먼지. 원래 색 시트. 쓰는 곳: siegeBarrage.js",
+  "why": "pilot1 에서 정체(3.29→3.43) — 아래 파편이 잡부스러기, '털뭉치 생물 같은 실루엣', 먼지 단계 없음. 연산으로 못 고친 것은 workbench 그리기 또는 다시 뽑기로",
+  "paid_cap": 0
+ },
+ "versions": [
+  {
+   "v": 0,
+   "frames": 5,
+   "by": "원래 그림",
+   "avg": 3.43,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 1,
+   "frames": 5,
+   "by": "수리 v0: anchor, anchor, drop_crumbs, anchor, workbench",
+   "avg": 3.29,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 2,
+   "frames": 5,
+   "by": "수리 v0: anchor, anchor, anchor, anchor, drop_crumbs, anchor, workbench",
+   "avg": 3.57,
+   "pass": true,
+   "verdict": "pass"
+  }
+ ],
+ "repairs": 2,
+ "regens": 0,
+ "paid": 0,
+ "critic_calls": 3,
+ "done": {
+  "why": "합격",
+  "best": 2,
+  "frames": 5,
+  "avg": 3.57,
+  "passed": true
+ }
+}

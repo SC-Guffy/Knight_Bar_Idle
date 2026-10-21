@@ -1,0 +1,7 @@
+{"step": "init", "v": 0, "t": "2026-10-21 16:26:45"}
+{"step": "qa", "v": 0, "t": "2026-10-21 16:26:45"}
+{"step": "critic", "v": 0, "avg": 2.86, "verdict": "fix", "t": "2026-10-21 16:27:33"}
+{"step": "new", "v": 1, "by": "수리 v0: recolor_gray, quantize, drop_crumbs, deink, drop_crumbs, fill_holes, workbench", "t": "2026-10-21 16:33:40"}
+{"step": "qa", "v": 1, "t": "2026-10-21 16:33:40"}
+{"step": "critic", "v": 1, "avg": 3.57, "verdict": "pass", "t": "2026-10-21 16:34:26"}
+{"step": "done", "why": "합격", "best": 1, "t": "2026-10-21 16:34:26"}

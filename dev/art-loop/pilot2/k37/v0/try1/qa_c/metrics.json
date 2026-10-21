@@ -1,0 +1,39 @@
+{
+ "id": "k37",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot2/k37/v0/try1/c.png",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  320,
+  64
+ ],
+ "scale": 2.0,
+ "anchor": "b",
+ "intent": "",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.4,
+  "lrange": 0.511,
+  "colors": 11,
+  "low": 0.045,
+  "edge": 0.201,
+  "lone": 0.097,
+  "flick": 0.694,
+  "churn": 0.681,
+  "fill": 0.125,
+  "area": [
+   244,
+   407,
+   790,
+   709,
+   403
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

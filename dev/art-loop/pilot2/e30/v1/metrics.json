@@ -1,0 +1,39 @@
+{
+ "id": "e30",
+ "kind": "vfx",
+ "file": "dev/art-loop/pilot2/e30/v1/sheet-raw.png",
+ "frames": 5,
+ "color": "raw",
+ "size": [
+  480,
+  48
+ ],
+ "scale": 1.3333,
+ "anchor": "c",
+ "intent": "E30 별빛 화살비 ★★★: 하늘에 걸린 세로 오로라 커튼(위에서 아래로 드리운 세로 주름 띠, 아랫단이 밝고 위로 갈수록 옅어짐) + 별이 반짝이는 밤하늘 조각. 프레임이 돌며 커튼이 옆으로 일렁이는 루프. 원래 색 시트. 쓰는 곳: skills.js",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.4,
+  "lrange": 0.577,
+  "colors": 9,
+  "low": 0.308,
+  "edge": 0.37,
+  "lone": 0.082,
+  "flick": 0.092,
+  "churn": 0.287,
+  "fill": 0.431,
+  "area": [
+   2038,
+   2027,
+   2054,
+   2003,
+   1818
+  ],
+  "strip": 0.099
+ },
+ "flags": []
+}

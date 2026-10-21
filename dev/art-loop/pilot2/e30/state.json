@@ -1,0 +1,46 @@
+{
+ "job": {
+  "id": "e30",
+  "kind": "vfx",
+  "file": "src/vfx/e30.png",
+  "frames": 5,
+  "cell": [
+   96,
+   48
+  ],
+  "color": "raw",
+  "scale": 1.3333,
+  "intent": "E30 별빛 화살비 ★★★: 하늘에 걸린 세로 오로라 커튼(위에서 아래로 드리운 세로 주름 띠, 아랫단이 밝고 위로 갈수록 옅어짐) + 별이 반짝이는 밤하늘 조각. 프레임이 돌며 커튼이 옆으로 일렁이는 루프. 원래 색 시트. 쓰는 곳: skills.js",
+  "why": "pilot1 에서 정체 — 원본은 색 888개·위쪽 회색 얼룩·끝 프레임 튐(2.86), 수리판 3.29. workbench 로 다시 그린 판은 '바닥에 깔린 톱니 능선'으로 읽혀 의도 2 → 커튼이 하늘에 걸려 아래로 드리운 모양이어야 한다(바닥 능선·풀숲 금지)",
+  "paid_cap": 0
+ },
+ "versions": [
+  {
+   "v": 0,
+   "frames": 5,
+   "by": "원래 그림",
+   "avg": 2.86,
+   "pass": false,
+   "verdict": "fix"
+  },
+  {
+   "v": 1,
+   "frames": 5,
+   "by": "수리 v0: recolor_gray, quantize, drop_crumbs, deink, drop_crumbs, fill_holes, workbench",
+   "avg": 3.57,
+   "pass": true,
+   "verdict": "pass"
+  }
+ ],
+ "repairs": 1,
+ "regens": 0,
+ "paid": 0,
+ "critic_calls": 2,
+ "done": {
+  "why": "합격",
+  "best": 1,
+  "frames": 5,
+  "avg": 3.57,
+  "passed": true
+ }
+}
