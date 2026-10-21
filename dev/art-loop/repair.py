@@ -3,11 +3,13 @@
 #   ops.json: [{"op": "drop_crumbs", "n": 3}, {"op": "frames_order", "order": [5,6,0,1,2,3,4]}, ...]   (프레임 번호는 0부터)
 # 연산은 원본 시트(로더 전)에 쓴다. 게임 모습은 검수(qa.py)가 다시 만든다.
 # 프레임 수는 기본으로 유지한다(시트 등록 frames: 를 안 바꾸게). 바꾸는 연산(frames_drop·dup)은 결과에 새 프레임 수를 적는다.
-import sys, json
+# workbench 연산만 네트워크를 쓴다(PixelLab pixelart_workbench, 구독 무료·결정적): 새 픽셀을 그려야 하는 손질(별·먼지 덩어리·파편).
+import sys, os, json, re, base64, urllib.request
 import numpy as np
 from PIL import Image
 
 A = 24   # 로더가 그리는 알파 문턱 (src/vfx-tex.js)
+PATCH_MAX = 48   # workbench patch_pixels 상한 (점 몇 개 손질용 — 코드로 그리기 우회 방지)
 
 
 def split(im, n):
@@ -152,6 +154,43 @@ def tile_seam(f):
     f[:, -1] = f[:, 0]; return f
 
 
+def workbench(fr, changes=None, cleanup=None):
+    """PixelLab pixelart_workbench 로 시트를 고친다 (dev/pixellab/mcpw.py 로 MCP 호출, 무료).
+    changes: `edit --changes` 연산 목록 (brush·patch_pixels·flood_fill·map_colors·copy_region·outline·select_mask — 계약은 workbench `describe edits`).
+      좌표는 프레임 안 좌표(0부터), 각 연산의 frames·source_frame 도 이 파일 규칙대로 0부터 쓴다(여기서 1을 더해 넘긴다). layer·reason 은 없으면 채운다.
+    cleanup: `repair --ops` 값 (예 "stray,holes") — workbench 의 결정적 정리.
+    시트를 n×1 격자로 잘라 애니로 올리고, 결과 frames.png(격자)를 받아 다시 가로로 잇는다."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'pixellab'))
+    import mcpw, io
+    n = len(fr); H, W = fr[0].shape[:2]; buf = io.BytesIO(); Image.fromarray(join(fr)).save(buf, 'PNG')
+
+    def call(argv):
+        r = mcpw.rpc('tools/call', {'name': 'pixelart_workbench', 'arguments': {'argv': argv}})
+        txt = '\n'.join(c.get('text', '') for c in ((r or {}).get('result') or {}).get('content', []) if c.get('type') == 'text')
+        m = re.search(r'image_id:\s*([0-9a-f-]{36})', txt)
+        if not m or ((r or {}).get('result') or {}).get('isError'): raise RuntimeError('workbench 실패: ' + (txt or json.dumps(r, ensure_ascii=False))[:800])
+        return m.group(1), txt
+
+    npx = sum(len(c.get('pixels', [])) for c in (changes or []))
+    if npx > PATCH_MAX: raise ValueError(f'workbench patch_pixels {npx}개 > {PATCH_MAX} — 스크립트로 픽셀 목록을 만들어 그리기를 우회하지 않는다 (붓·채우기·색 바꾸기·복사로)')
+    mcpw.init()
+    iid, _ = call(['split', 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode(), '--grid', f'{n}x1'])
+    if changes:
+        ch = []
+        for c in changes:
+            c = dict(c); c.setdefault('layer', 'image'); c.setdefault('reason', 'art-loop 수리')
+            c['frames'] = [i + 1 for i in c.get('frames', range(n))]
+            if 'source_frame' in c: c['source_frame'] += 1
+            ch.append(c)
+        iid, _ = call(['edit', iid, '--changes', json.dumps(ch, ensure_ascii=False)])
+    if cleanup: iid, _ = call(['repair', iid, '--ops', cleanup])
+    raw = urllib.request.urlopen(f'https://api.pixellab.ai/mcp/pixel-tools/{iid}/frames.png', context=mcpw._CTX, timeout=120).read()
+    g = np.asarray(Image.open(io.BytesIO(raw)).convert('RGBA')); cols = g.shape[1] // W
+    out = [g[(i // cols) * H:(i // cols + 1) * H, (i % cols) * W:(i % cols + 1) * W].copy() for i in range(n)]
+    if any(f.shape != fr[0].shape for f in out): raise RuntimeError('workbench 결과 크기가 다름')
+    return out
+
+
 PER_FRAME = {'drop_crumbs': drop_crumbs, 'drop_isolated': drop_isolated, 'lift_dark': lift_dark, 'recolor': recolor,
              'recolor_gray': recolor_gray, 'deink': deink, 'fill_holes': fill_holes, 'erode': erode, 'anchor': anchor, 'tile_seam': tile_seam}
 
@@ -170,6 +209,7 @@ def apply(sheet, n, ops):
         elif op == 'frames_dup': fr = sum(([f, f.copy()] if i in o['dup'] else [f] for i, f in enumerate(fr)), [])
         elif op == 'fade_tail': fr = fade_tail(fr, o.get('k', 1))
         elif op == 'frame_copy': fr[o['to']] = fr[o['src']].copy()
+        elif op == 'workbench': fr = workbench(fr, o.get('changes'), o.get('cleanup'))
         else: raise ValueError('모르는 연산: ' + op)
         log.append(op)
     return join(fr), len(fr), log

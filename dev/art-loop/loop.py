@@ -141,12 +141,12 @@ def step_job(bd, jd, budget_left):
                 st['critic_calls'] += 1; log(jd, step='critic', v=ver['v'], avg=ver['avg'], verdict=ver['verdict'])
             if ver['pass']:
                 finish(jd, st, '합격' if ver['v'] else '원래 그림이 이미 합격'); break
-            scored = [x for x in st['versions'] if 'avg' in x]
-            if len(scored) >= 3 and max(x['avg'] for x in scored[-2:]) <= max(x['avg'] for x in scored[:-2]):
-                finish(jd, st, '두 판 연속 점수가 오르지 않음'); break
+            # 줄기(마지막 다시 뽑기 이후) 안에서 두 판 연속 점수가 오르지 않으면 수리를 그만두고 다시 뽑기로 (2026-10-21 결정, 예전엔 여기서 멈췄다)
+            line = [x for x in st['versions'] if x['v'] >= st.get('line_start', 0) and 'avg' in x]
+            if st['repairs'] < MAX_REPAIR and len(line) >= 3 and max(x['avg'] for x in line[-2:]) <= max(x['avg'] for x in line[:-2]):
+                st['repairs'] = MAX_REPAIR; st['stalled'] = st.get('stalled', 0) + 1; log(jd, step='stall', v=ver['v'])
             if ver['verdict'] == 'fix' and st['repairs'] < MAX_REPAIR:
-                # 수리는 이번 줄기(마지막 다시 뽑기 이후)에서 점수가 가장 높은 판에 한다 — 나빠진 수리 위에 덧대지 않게
-                line = [x for x in st['versions'] if x['v'] >= st.get('line_start', 0) and 'avg' in x]
+                # 수리는 이번 줄기에서 점수가 가장 높은 판에 한다 — 나빠진 수리 위에 덧대지 않게
                 base = max(line, key=lambda x: (x['avg'], x['v']))
                 ops = rd(ops_path(jd, st, base))
                 if ops is None: return repair_task(jd, st, base, ver)
@@ -159,7 +159,7 @@ def step_job(bd, jd, budget_left):
                 new_version(jd, st, tmp, n2, f"수리 v{base['v']}: " + ', '.join(applied)); continue
             # regen (비평 regen, 또는 수리를 다 씀)
             if st['regens'] >= MAX_REGEN:
-                finish(jd, st, '다시 뽑기·수리 횟수를 다 씀'); break
+                finish(jd, st, '다시 뽑기·수리 횟수를 다 씀' + (' (수리 줄기 점수 정체 포함)' if st.get('stalled') else '')); break
             k = st['regens'] + 1; gd = os.path.join(jd, f'gen{k}'); os.makedirs(gd, exist_ok=True)
             g = rd(os.path.join(gd, 'gen.json'))
             cap = min(st['job'].get('paid_cap', 0) - st['paid'], budget_left)

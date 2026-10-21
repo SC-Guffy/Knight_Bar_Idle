@@ -1,0 +1,1 @@
+[{"op":"recolor_gray","dst":[16,32,96]},{"op":"quantize","n":10},{"op":"drop_crumbs","n":2},{"op":"deink","to":[14,28,84]},{"op":"drop_crumbs","n":2}]

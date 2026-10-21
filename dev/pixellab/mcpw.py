@@ -1,7 +1,11 @@
-# PixelLab MCP 최소 클라이언트 (Windows). 키는 사용자 환경변수 PIXELLAB_API_KEY 에서 읽고 절대 출력하지 않는다.
+# PixelLab MCP 최소 클라이언트. 키는 환경변수 PIXELLAB_API_KEY (Windows 사용자 환경변수) 또는 맥에선 Claude Code 의 MCP 설정
+# (~/.claude.json 의 pixellab 서버 Authorization 헤더)에서 읽고 절대 출력하지 않는다.
 # 쓰기: python mcpw.py list                      — 도구 목록
 #       python mcpw.py call <도구> <args.json|->  — 도구 호출 (args 는 JSON 파일, '-' 면 stdin)
-import sys, json, os, urllib.request, urllib.error
+import sys, json, os, ssl, urllib.request, urllib.error
+_CTX = ssl.create_default_context()
+if not _CTX.get_ca_certs() and os.path.exists('/etc/ssl/cert.pem'):   # python.org 맥 파이썬은 인증서 묶음이 비어 있다
+    _CTX = ssl.create_default_context(cafile='/etc/ssl/cert.pem')
 try:
     import winreg
 except ImportError:
@@ -14,6 +18,13 @@ def key():
     if not k and winreg:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment') as h:
             k = winreg.QueryValueEx(h, 'PIXELLAB_API_KEY')[0]
+    if not k:
+        try:
+            d = json.load(open(os.path.expanduser('~/.claude.json'), encoding='utf-8'))
+            srv = [d.get('mcpServers', {})] + [p.get('mcpServers', {}) for p in d.get('projects', {}).values()]
+            k = next(s['pixellab']['headers']['Authorization'].split(' ', 1)[-1] for s in srv if 'pixellab' in s)
+        except (OSError, ValueError, KeyError, StopIteration):
+            k = None
     return k
 
 _sid = None
@@ -31,7 +42,7 @@ def rpc(method, params=None, notify=False, timeout=600):
         h['Mcp-Session-Id'] = _sid
     req = urllib.request.Request(URL, data=json.dumps(body).encode(), headers=h, method='POST')
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(req, timeout=timeout, context=_CTX) as r:
             _sid = r.headers.get('Mcp-Session-Id') or _sid
             raw = r.read().decode('utf-8', 'replace')
     except urllib.error.HTTPError as e:

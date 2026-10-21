@@ -1,0 +1,12 @@
+[
+ {"op": "anchor", "where": "bottom", "margin": -11, "frames": [0]},
+ {"op": "anchor", "where": "bottom", "frames": [1]},
+ {"op": "drop_crumbs", "n": 4, "frames": [2]},
+ {"op": "workbench", "changes": [
+   {"operation": "brush", "frames": [4], "points": [[5, 62], [58, 62]], "color": "#c8bba3", "size": 3},
+   {"operation": "brush", "frames": [4], "points": [[9, 60], [54, 60]], "color": "#c8bba3", "size": 3},
+   {"operation": "brush", "frames": [4], "points": [[14, 58], [26, 58]], "color": "#e6dcc8", "size": 3},
+   {"operation": "brush", "frames": [4], "points": [[30, 58], [44, 58]], "color": "#e6dcc8", "size": 3},
+   {"operation": "brush", "frames": [4], "points": [[6, 63], [57, 63]], "color": "#a8987f", "size": 2}
+ ]}
+]

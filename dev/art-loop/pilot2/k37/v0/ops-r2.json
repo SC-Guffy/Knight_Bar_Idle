@@ -1,0 +1,200 @@
+[
+ {
+  "op": "anchor",
+  "where": "bottom",
+  "margin": -9,
+  "frames": [
+   0
+  ]
+ },
+ {
+  "op": "anchor",
+  "where": "bottom",
+  "margin": -11,
+  "frames": [
+   1
+  ]
+ },
+ {
+  "op": "anchor",
+  "where": "bottom",
+  "margin": -12,
+  "frames": [
+   2
+  ]
+ },
+ {
+  "op": "anchor",
+  "where": "bottom",
+  "margin": -15,
+  "frames": [
+   3
+  ]
+ },
+ {
+  "op": "drop_crumbs",
+  "n": 4,
+  "frames": [
+   1,
+   2,
+   3
+  ]
+ },
+ {
+  "op": "anchor",
+  "where": "bottom",
+  "margin": 5,
+  "frames": [
+   4
+  ]
+ },
+ {
+  "op": "workbench",
+  "changes": [
+   {
+    "operation": "copy_region",
+    "frames": [
+     3
+    ],
+    "source_layer": "image",
+    "source_frame": 4,
+    "region": [
+     5,
+     50,
+     12,
+     57
+    ],
+    "at": [
+     5,
+     56
+    ]
+   },
+   {
+    "operation": "copy_region",
+    "frames": [
+     3
+    ],
+    "source_layer": "image",
+    "source_frame": 4,
+    "region": [
+     45,
+     50,
+     54,
+     57
+    ],
+    "at": [
+     45,
+     56
+    ]
+   },
+   {
+    "operation": "brush",
+    "frames": [
+     4
+    ],
+    "points": [
+     [
+      3,
+      63
+     ],
+     [
+      60,
+      63
+     ]
+    ],
+    "color": "#a8987f",
+    "size": 2
+   },
+   {
+    "operation": "brush",
+    "frames": [
+     4
+    ],
+    "points": [
+     [
+      6,
+      61
+     ],
+     [
+      57,
+      61
+     ]
+    ],
+    "color": "#c8bba3",
+    "size": 3
+   },
+   {
+    "operation": "brush",
+    "frames": [
+     4
+    ],
+    "points": [
+     [
+      11,
+      59
+     ],
+     [
+      23,
+      59
+     ]
+    ],
+    "color": "#c8bba3",
+    "size": 3
+   },
+   {
+    "operation": "brush",
+    "frames": [
+     4
+    ],
+    "points": [
+     [
+      33,
+      59
+     ],
+     [
+      50,
+      59
+     ]
+    ],
+    "color": "#c8bba3",
+    "size": 3
+   },
+   {
+    "operation": "brush",
+    "frames": [
+     4
+    ],
+    "points": [
+     [
+      26,
+      60
+     ],
+     [
+      30,
+      60
+     ]
+    ],
+    "color": "#e6dcc8",
+    "size": 2
+   },
+   {
+    "operation": "brush",
+    "frames": [
+     4
+    ],
+    "points": [
+     [
+      40,
+      60
+     ],
+     [
+      45,
+      60
+     ]
+    ],
+    "color": "#e6dcc8",
+    "size": 2
+   }
+  ]
+ }
+]

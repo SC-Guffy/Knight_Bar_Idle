@@ -15,8 +15,24 @@ tools: Read, Bash, Write
 
 ## 연산 (`dev/art-loop/repair.py`, 머리 주석과 함수 참고)
 
-`drop_crumbs n` · `drop_isolated` · `deink to` · `fill_holes n` · `lift_dark t` · `quantize n` · `recolor src dst tol` · `recolor_gray dst` · `erode k` · `anchor where(bottom|center)` · `tile_seam` · `frames_order order` · `frames_drop drop` · `frames_dup dup` · `fade_tail k` · `frame_copy src to`.
+`drop_crumbs n` · `drop_isolated` · `deink to` · `fill_holes n` · `lift_dark t` · `quantize n` · `recolor src dst tol` · `recolor_gray dst` · `erode k` · `anchor where(bottom|center)` · `tile_seam` · `frames_order order` · `frames_drop drop` · `frames_dup dup` · `fade_tail k` · `frame_copy src to` · `workbench changes cleanup`.
 연산 하나는 `{"op": "...", 인자...}` 이고, `"frames": [번호...]` 를 붙이면 그 프레임에만 쓴다(번호는 0부터).
+
+### `workbench` — 새 픽셀을 그려야 할 때 (PixelLab `pixelart_workbench`, 구독 무료)
+위 연산은 있는 픽셀을 지우거나 바꾸기만 한다. 별 찍기·먼지 덩어리 더하기·끊긴 띠 잇기·빈 프레임 채우기처럼 **새 픽셀이 필요한 손질**은 `workbench` 로 한다.
+```json
+{"op": "workbench", "changes": [
+  {"operation": "brush", "frames": [3, 4], "points": [[10, 60], [20, 58]], "color": "#c8bba3", "size": 3},
+  {"operation": "patch_pixels", "frames": [0], "pixels": [[40, 6, "#00000000", "#ffffff"]]},
+  {"operation": "copy_region", "frames": [4], "source_layer": "image", "source_frame": 3, "region": [0, 40, 63, 63], "at": [0, 40]}
+], "cleanup": "stray,holes"}
+```
+- `changes` 는 workbench `edit` 의 연산(`brush`·`patch_pixels`·`flood_fill`·`map_colors`·`copy_region`·`outline`·`select_mask`, 계약 전문은 `python3 dev/pixellab/mcpw.py call pixelart_workbench <(echo '{"argv":"describe edits"}')`). 좌표는 **프레임 안 좌표**, `frames` 와 `source_frame` 은 이 파일 규칙대로 **0부터**(repair.py 가 1을 더해 넘긴다). `layer`·`reason` 은 비우면 채운다.
+- **`patch_pixels` 는 한 연산 전체 48픽셀까지**(별 몇 개·틈 몇 점). 스크립트로 수백 픽셀 목록을 계산해 넣는 것은 코드로 그리기를 우회하는 것이라 금지 — repair.py 가 거부한다. 넓은 손질은 `brush`(점 몇 개로 획)·`flood_fill`·`map_colors`(구역 `region`/`select_mask` 와 함께)·`copy_region` 으로, 획과 구역은 눈으로 보고 손으로 고른다.
+- `patch_pixels` 의 기대색은 지금 픽셀 RGBA 와 정확히 같아야 한다(투명은 `#00000000`). 시험 전에 numpy 로 그 자리 색을 읽어 둔다.
+- `cleanup` 은 workbench `repair --ops` (regrid·defringe·snap·stray·holes·deflicker 중 골라 쉼표로).
+- 색은 그림에 이미 있는 색(팔레트)에서 고른다. 새 색을 만들면 도트다움이 깎인다. 큰 덩어리를 붓 한두 번으로 찍고, 1픽셀 점을 흩뿌리지 않는다(부스러기로 읽힌다).
+- 네트워크를 쓰므로 느리다(호출당 수 초). 실패하면 `repair.py` 가 에러를 내고 멈춘다 → 안을 고치거나 그 연산을 빼라.
 
 ### 게임 로더가 하는 일 (원본과 게임 모습이 다른 이유)
 - 거의 검은 무채색(RGB 최대 < 48, 채도 < 28)은 **외곽선**으로 본다: 가장자리에서 이어진 것은 벗기고, 그림 안에 갇힌 작은 덩어리는 둘레 색 평균으로 메운다 → 색이 늘고 흐린 계조가 생긴다. 어두운 면이 그림의 일부라면 `deink` 로 어두운 '색 있는' 색으로 바꿔 둔다.
@@ -30,7 +46,7 @@ tools: Read, Bash, Write
    `python3 dev/pixel-qa/qa.py <try/x.png> --id <일감 id> --frames <n> --color <색> --scale <배율> --out <try/qa>` → `try/qa/sheet.png` 를 Read 로 보고 판단한다.
    여러 안을 시험해도 된다. 비평 에이전트는 부르지 않는다.
 3. **프레임 수는 유지한다**(게임 등록 `frames:` 를 안 바꾸게). 순서 바꾸기·`fade_tail`·`frame_copy` 로 해결한다. `frames_drop`·`frames_dup` 은 꼭 필요할 때만 쓰고 이유에 적는다.
-4. 그림 모양 자체가 틀렸으면(의도와 다른 물체, 구도) 연산으로 억지로 바꾸지 않는다. 빈 배열 `[]` 을 쓰고 이유에 "다시 뽑기 필요"라고 적는다 — 루프가 다시 뽑기로 넘어간다.
+4. 그림 모양 자체가 틀렸으면(그리는 양이 프레임의 절반을 넘을 만큼)(의도와 다른 물체, 구도) 연산으로 억지로 바꾸지 않는다. 빈 배열 `[]` 을 쓰고 이유에 "다시 뽑기 필요"라고 적는다 — 루프가 다시 뽑기로 넘어간다.
 5. 원래 그림보다 나빠지게 하지 않는다. 안이 원래보다 낫다고 확신하지 못하면 덜 바꾼 안을 고른다.
 
 ## 결과
