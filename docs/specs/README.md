@@ -78,6 +78,7 @@
 | [duel-length.md](duel-length.md) | 완료 | 결투 체력 ×2(%회복은 늘리기 전 기준) + 성기사·성좌기사·천마장군 방어·회복 하향 — 스킬 한두 방에 끝나지 않게 |
 | [raid-difficulty.md](raid-difficulty.md) | 완료 | 레이드 보스 세기 = 입장 + 9 − 인원 보정 (4인 바로 · AI 파티 +8 · 혼자 +20), 전 보스는 스근하게 |
 | [raid-tickets.md](raid-tickets.md) | 완료 (0.20.16) | 레이드 입장권: 매일 자정 5장까지 무료로 채움(=보유 상한), 구매·우편 규칙 |
+| [duel-season-chest.md](duel-season-chest.md) | 구현됨 (0.30.3, 확인 전) | 결투 시즌 보상에서 레이드 처치 상자 제거 → ⚔️ 결투 시즌 상자(강화석·비전서·재굴림권·보호 주문서, 장비 없음), 🏆 랭킹 탭에서 [받기] |
 | [skill-build-tree.md](skill-build-tree.md) | 초안 (시즌7) | 스킬 빌드 트리: 레벨업마다 🌟 포인트, 직업 안 갈래 3개·변형·키스톤·융합·궁극기 변형, 장착 칸 1→4, 10·20칸 보스 벽, 비전서 없앰. 레퍼런스 9게임. 검토 `dev/review/skill-build-tree.html` |
 | [skill-tree-all.md](skill-tree-all.md) | 0.27.0 공개 · 14줄기 전용 연출·아이콘 impl-tree7-fx (검수 93/98) | 시즌7 스킬 빌드 트리 15줄기 전체 — 칸 틀·줄기 데이터·자동 찍기·결투 배율·측정 |
 | [skill-tree-swordsaint.md](skill-tree-swordsaint.md) | 진행 중 — 1~5단계 구현, 6단계 사용자 시험 차례 (impl-skill-tree) | 위 트리를 검사→검성→검신 한 줄기에 먼저 구현하는 스펙 — 노드 표·구현 방식·보스 벽 1~120 배치·봇 `--build`·작업 순서 |

@@ -315,6 +315,7 @@ function paintGearIcons(root) {
   root.querySelectorAll('canvas[data-gi]').forEach((cv) => { const t = cv.dataset.gi; paint(cv, (GEAR_ART[t] ? 'art:' : '') + t, GEAR_ART[t] || GEAR_ITEMS[t]); });
   root.querySelectorAll('canvas[data-bx]').forEach((cv) => { const g = cv.dataset.bx; paint(cv, (BOX_ART[g] ? 'boxart' : 'box') + g, BOX_ART[g] || LOOT_BOXES[g]); });
   root.querySelectorAll('canvas[data-rb]').forEach((cv) => { const b = cv.dataset.rb; paint(cv, (CHEST_ART[b] ? 'rboxart' : 'rbox') + b, CHEST_ART[b] || RAID_BOSSES[b].chest); });
+  root.querySelectorAll('canvas[data-dc]').forEach((cv) => paint(cv, 'duelchest', DUEL_CHEST));
   // 레이드·월드 보스 초상: 몬스터 도트 첫 프레임을 캔버스 크기에 맞춰 찍는다
   root.querySelectorAll('canvas[data-boss]').forEach((cv) => {
     const def = raidDef(cv.dataset.boss), rows = SPR[def.spr][0];
@@ -1333,7 +1334,7 @@ function campDots() {
     gear: Object.keys(GEAR_SLOTS).some(gearBetter),      // 부위 강화 레드닷은 마을(대장간) 쪽 (town.js townTodo)
     skill: t7On() ? t7Dot() : canLevelSkill() || canInvestAny(),
     class: anyClassReady(),
-    rank: inboxUnread() > 0 || duelUnseen() || newsUnseen(S.season.last),
+    rank: inboxUnread() > 0 || duelUnseen() || newsUnseen(S.season.last) || S.season.pending.length > 0 || S.season.chests > 0,
     mail: mailUnclaimed() > 0,
     raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot() || !!S.raid.pending || newsUnseen(S.wb.last),
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
@@ -1780,9 +1781,10 @@ function loadRanking(force = false) {
 }
 
 // ───────────────────────── 결투 시즌 ─────────────────────────
-// 시즌은 서버가 3일마다 자동으로 바꾼다. 끝난 시즌의 보상은 접속해 있을 때(입장 직후·10분마다·랭킹 탭) 받아서 세이브에 넣고,
-// 서버에 저장한 뒤에 받았다고 알린다 (season.js claimSeasonReward 가 시즌 번호로 두 번 받지 않게 막는다).
-const seasonUi = { data: null, at: 0, loading: false, error: null, tiers: false };
+// 시즌은 서버가 3일마다 자동으로 바꾼다. 끝난 시즌의 보상은 접속해 있을 때(입장 직후·10분마다·랭킹 탭) 가져와 받을 목록(S.season.pending)에 넣고,
+// 서버에 저장한 뒤에 도착했다고 알린다 (season.js queueSeasonReward 가 시즌 번호로 두 번 가져오지 않게 막는다).
+// 재화·⚔️ 결투 시즌 상자는 🏆 랭킹 탭에서 [받기]를 눌러야 들어온다 (docs/specs/duel-season-chest.md)
+const seasonUi = { data: null, at: 0, loading: false, error: null, tiers: false, opened: [] };   // opened: 이번에 연 결투 상자 내용물
 const SEASON_CHECK_EVERY = 10 * 60 * 1000;
 
 function loadSeason(force = false) {
@@ -1804,11 +1806,12 @@ setInterval(() => loadSeason(true), SEASON_CHECK_EVERY);
 
 async function takeSeasonRewards(rows) {
   if (!rows.length) return;
-  const got = rows.map(claimSeasonReward).filter(Boolean);
+  const got = rows.filter(queueSeasonReward);
   save();
   if (got.length) {
-    toast(`🏆 결투 시즌 ${got[got.length - 1].season} 보상이 도착했어요 — 🏆 랭킹 탭에서 확인`, 10000);
+    toast(`🏆 결투 시즌 ${got[got.length - 1].season} 보상이 도착했어요 — 🏆 랭킹 탭에서 받기`, 10000);
     renderHud();
+    if (campOpen && campTab === 'rank') renderCamp();
   }
   await pushSave(true);
   if (!sync.error) await ackSeason(rows.map((r) => r.season)).catch(() => {});
@@ -1816,7 +1819,9 @@ async function takeSeasonRewards(rows) {
 
 function seasonRewardText(r, html = true) {
   const parts = html ? [gainText(r)] : [`골드 ${fmt(r.gold)} · 🪵 ${fmt(r.wood)} · 🪨 ${fmt(r.ore)} · 💎 ${fmt(r.mana)}`];
-  if (r.chests) parts.push(`🎁 ${html ? esc(RAID_BOSSES[r.boss].chest.name) : RAID_BOSSES[r.boss].chest.name} ×${r.chests}`);
+  // r.boss 는 0.30.3 전에 받은 보상 (그때는 레이드 처치 상자를 줬다)
+  const chest = r.boss && RAID_BOSSES[r.boss] ? RAID_BOSSES[r.boss].chest.name : `⚔️ ${DUEL_CHEST.name}`;
+  if (r.chests) parts.push(`🎁 ${html ? esc(chest) : chest} ×${r.chests}`);
   if (r.tomes) parts.push(`📖 비전서 ×${r.tomes}`);
   return parts.join(' · ');
 }
@@ -1847,7 +1852,7 @@ function viewSeason() {
       <div class="shd"><b>⚔️ 결투 시즌 ${d.id}</b><small>${fmtDate(d.endsAt)} 마감 · 남은 시간 ${fmtLeft(d.endsAt - d.now - (Date.now() - seasonUi.at))} · 참가 ${d.players}명${d.bots ? ` <span title="${BOT_TIP}">+ 🤖 ${d.bots}</span> · 보상은 사람끼리 순위` : ''}</small></div>
       <div class="sme">${status}</div>
       <div class="stiers"><button class="lnk" data-action="season-tiers">${seasonUi.tiers ? '▾' : '▸'} 순위별 보상</button>
-        <small>내 최고 스테이지 기준 · 상자는 열 수 있는 가장 높은 레이드 보스의 처치 상자</small>${seasonUi.tiers ? tiers : ''}</div>
+        <small>내 최고 스테이지 기준 · ${duelChestText()}</small>${seasonUi.tiers ? tiers : ''}</div>
       ${last}
     </div>`;
 }
@@ -1859,6 +1864,49 @@ const newsUnseen = (L) => !!L && L.seen === false;
 function takeNews(key, L) {
   if (newsUnseen(L)) { L.seen = true; newsShown.add(key); save(); }
   return !!L && newsShown.has(key);
+}
+
+// ⚔️ 결투 시즌 상자 한 개의 내용물 설명
+const duelChestText = () => `⚔️ ${DUEL_CHEST.name} 1개 = 💠 강화석 ${fmt(DUEL_CHEST.stones + DUEL_CHEST.stonesPerStage * (S.best || 1))} · 📖 비전서 ${DUEL_CHEST.tomes} · 🎲 재굴림권 ${DUEL_CHEST.reroll[0]}~${DUEL_CHEST.reroll[1]} · 📜 보호 주문서 ${Math.round(DUEL_CHEST.protect * 100)}%`;
+// 받을 시즌 보상 카드 + 안 연 결투 시즌 상자. 랭킹 탭 맨 위
+function viewSeasonClaim() {
+  const S2 = S.season;
+  if (!S2.pending.length && !S2.chests && !seasonUi.opened.length) return '';
+  const cards = S2.pending.map((row, i) => {
+    const tier = seasonTier(row.rank, row.total);
+    return `<div class="reason">🏆 결투 시즌 ${row.season} 보상 — ${tier.name} (${row.total}명 중 ${row.rank}위) · ${seasonRewardText(seasonReward(tier))}
+      <button class="btn rd" data-action="season-claim" data-i="${i}">받기</button></div>`;
+  }).join('');
+  const opened = seasonUi.opened.map((g) => `
+    <div class="box opened ${g.fresh ? 'fresh' : ''}" style="--c:#c9d1dd">
+      <canvas class="gicon" width="14" height="14" data-dc="1"></canvas>
+      <div class="loot">💠 +${fmt(g.stones)}<br>📖 +${g.tomes}${g.reroll ? ` 🎲 +${g.reroll}` : ''}${g.protect ? '<br>📜 보호 주문서' : ''}</div>
+    </div>`).join('');
+  seasonUi.opened.forEach((g) => { g.fresh = false; });
+  const closed = Array.from({ length: S2.chests }, () => `
+    <button class="box chestbox glow" data-action="duel-chest-open" style="--c:#c9d1dd" title="${duelChestText()} · 눌러서 열기">
+      <canvas class="gicon" width="14" height="14" data-dc="1"></canvas><span class="lname">⚔️ ${DUEL_CHEST.name}</span>
+    </button>`).join('');
+  const chests = S2.chests || opened ? `
+    <div class="shead">
+      <h3>${ico('gift')} 결투 시즌 상자 <small>${S2.chests}개</small></h3>
+      <button class="btn${rd(S2.chests)}" data-action="duel-chest-open-all" ${S2.chests ? '' : 'disabled'}>모두 열기</button>
+    </div>
+    <div class="boxes">${opened}${closed}</div>` : '';
+  return cards + chests;
+}
+function claimSeasonAt(i) {
+  const L = claimSeasonReward(i);
+  if (!L) return;
+  save();
+  toast(`🏆 결투 시즌 ${L.season} 보상 — ${seasonRewardText(L.reward, false)}`, 6000);
+  renderHud();
+}
+function openDuelChestNow() {
+  const g = openDuelChest();
+  if (!g) return;
+  seasonUi.opened.push({ ...g, fresh: true });
+  if (g.protect) toast('📜 보호 주문서 획득!', 4000);
 }
 function viewSeasonNews() {
   const L = S.season.last;
@@ -1909,6 +1957,7 @@ function viewRank() {
       결투 점수는 3일마다 바뀌는 시즌마다 1000점에서 다시 시작하고, 시즌이 끝나면 직접 결투를 1번 이상 건 기사에게 순위별 보상을 줘요.
       ${d && d.bots ? `<br>🤖 표시는 서버가 키우는 <b>AI 기사</b>예요. 결투 상대가 되고 가끔 먼저 결투를 걸기도 하지만, 시즌 보상 순위는 AI 를 빼고 사람끼리 매겨요.` : ''}</div>
     ${viewSeasonNews()}
+    ${viewSeasonClaim()}
     ${lastDuel ? `<div class="reason ${lastDuel.won ? '' : 'warn'}">최근 결투 — ${esc(duelResultText(lastDuel))}</div>` : ''}
     ${viewInbox()}
     ${rank.sort === 'duel' ? viewSeason() : ''}
@@ -2947,6 +2996,7 @@ function renderCamp() {
   if (!campOpen) return;
   if (campTab === 'report') reportSeen = S.report;
   if (campTab !== 'rank') inbox.newAfter = null;     // 우편함 NEW 표시는 랭킹 탭을 떠나면 지운다
+  if (campTab !== 'rank') seasonUi.opened = [];     // 연 결투 시즌 상자 내용물도
   const dots = campDots();
   const tabs = [
     ['report', `${ico('home')} 홈`, S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
@@ -2984,7 +3034,7 @@ const RES_GUIDE = [
   { k: 'wood', name: '목재', icon: () => ico('wood'), get: '재료의 미궁 · 원정 골동품 · 창고 비축·교역 · 레이드 · 월드 보스', use: '건물 · 가방', trade: true },
   { k: 'ore', name: '철광석', icon: () => ico('ore'), get: '원정 골동품 · 재료의 미궁 · 창고 비축·교역 · 레이드 · 월드 보스', use: '건물 · 대장간 시설', trade: true },
   { k: 'mana', name: '마력석', icon: () => ico('mana'), get: '원정 골동품 · 레이드 · 월드 보스', use: '강화(+10부터) · 전직' },
-  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '장비 판매(분해대) · 원정 보스 · 월드 보스', use: '장비 강화' },
+  { k: 'stones', name: '강화석', icon: () => ico('stone'), get: '장비 판매(분해대) · 원정 보스 · 월드 보스 · 결투 시즌 상자', use: '장비 강화' },
   { k: 'tomes', name: '비전서', icon: () => ico('tome'), get: '재료의 미궁 · 원정 보스 · 레이드 상자 · 도전의 탑 · 월드 보스 · 결투 시즌', use: '스킬 숙련도' },
 ];
 function viewResGuide() {
@@ -3101,6 +3151,12 @@ const ACTIONS = {
   'raid-watch': watchRaid,
   'raid-result-close': () => { raidUi.showResult = false; },
   'raid-open': (el) => openRaidChestAt(Number(el.dataset.i)),
+  'season-claim': (el) => claimSeasonAt(Number(el.dataset.i)),
+  'duel-chest-open': () => { openDuelChestNow(); save(); },
+  'duel-chest-open-all': () => {
+    while (S.season.chests > 0) openDuelChestNow();
+    save();
+  },
   'raid-open-all': () => {
     if (openAllTimer) return;
     openAllTimer = setInterval(() => {
