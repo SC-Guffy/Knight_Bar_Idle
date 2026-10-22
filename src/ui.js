@@ -397,7 +397,7 @@ function viewReport() {
     <div class="hint">상자를 눌러 열면 내용물이 나옵니다. 장비는 창고로 가고, 골동품은 팔려서 재화가 되고, 소비 아이템은 아래 보급품에 더해집니다.</div>
     <div class="boxes">${opened}${closed || (opened ? '' : '<div class="empty">가방이 비어 있습니다.</div>')}</div>
     ${revealed.length ? `<div class="gain">획득 합계 — ${sumLine || '없음'}${sum.gear ? ` <button class="btn${rd(Object.keys(GEAR_SLOTS).some(gearBetter))}" data-action="tab" data-tab="gear">${ico('dagger')} 장비 보기</button>` : ''}</div>` : ''}
-    <h3>${ico('bag')} 보급품 <small>가격은 최고 스테이지에 따라 올라요 · 원정 가방에서도 가끔 나와요</small></h3>
+    <h3>${ico('bag')} 보급품 <small>가격은 ${GUILD_HOST ? '기사단 ' : ''}최고 스테이지에 따라 올라요 · 원정 가방에서도 가끔 나와요</small></h3>
     ${viewSupplies()}`;
 }
 

@@ -43,6 +43,7 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
+| [guild-price-base.md](guild-price-base.md) | 구현 (0.30.4, 확인 전) | **기사단 공용 골드 가격 기준** — 즉시 완료·교역·보급품·입장권 4종·스킬 슬롯 8곳이 기사별 `S.best` 라 저렙 부캐로 싸게 삼 → 기사단 최고 스테이지(내려가지 않음)로, 보상은 기사 스테이지 그대로 (검토 `dev/review/guild-price-base.html`) |
 | [skill-combo.md](skill-combo.md) | 초안 | **스킬 연계 (재기획 3단계)** — 장착 순서상 바로 다음 칸이 2초 안에 이어지면 피해 +20%, 1초 기다렸다 잇기, 꼬리표 6종 × 합동기 6가지, S.combo 기록, 오프라인·결투는 comboEv 평균 배율 (검토 `dev/review/skill-combo.html`) |
 | [result-on-click.md](result-on-click.md) | 구현 (0.28.12, 확인 전) | 결과는 눌러야 본다 — 레이드 결과가 와도 창을 닫거나 재생하지 않고 ❗→기사 클릭 시 재생, 결투·탑·미궁·성벽·시즌·월드 보스 알림 토스트에서 승패·보상 숫자 뺌 |
 | [guild.md](guild.md) | 초안 | **기사단 (시즌7)** — 기사 여러 명 동시 육성(슬롯 2→5, 🛡️ 기사단 회관), 모든 콘텐츠 동시 진행(기사마다 iframe 검증안), 입장권 기사별, 계열 효과·따라잡기, Google 로그인 + Electron 연결 코드. 공용 범위 안 A/B 미정 (검토 `dev/review/guild.html`) |

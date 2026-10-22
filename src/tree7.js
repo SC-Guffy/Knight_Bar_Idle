@@ -212,7 +212,7 @@ function t7SlotNeed() {
 function t7SlotCost() {
   const r = T7_SLOTS[t7Slots() + 1];
   if (!r) return {};
-  return r.gold ? { gold: Math.ceil(monsterStats(Math.max(1, S.best), false).gold * r.gold) } : { mana: r.mana };
+  return r.gold ? { gold: Math.ceil(monsterStats(priceBest(), false).gold * r.gold) } : { mana: r.mana };
 }
 function t7BuySlot() {
   if (t7SlotNeed()) return false;

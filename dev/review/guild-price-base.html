@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기사단 가격 기준 — 스펙 검토</title>
+<!-- 스펙: docs/specs/guild-price-base.md. 가격 식은 src/core.js·raid.js·tower.js·dungeon.js·castle.js·tree7.js 를 그대로 옮김 (2026-10-22 main). -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --warn: #ffb35c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .ok { color: var(--green); } .bad { color: var(--red); font-weight: 700; } .warn { color: var(--warn); }
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 6px 0; color: var(--dim); align-items: center; }
+  input[type=number] { width: 70px; background: #0f0d14; color: var(--ink); border: 1px solid var(--line); padding: 2px 4px; font: inherit; }
+  label.r { cursor: pointer; }
+  ul { margin: 4px 0; padding-left: 18px; }
+  .chip { display: inline-block; padding: 0 6px; border: 1px solid var(--line); border-radius: 10px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<main>
+<h1>🛡️ 기사단 공용 골드 가격 기준 <small class="sub">초안 · 확인 전</small></h1>
+<div class="sub">스펙 <code>docs/specs/guild-price-base.md</code></div>
+
+<h2>문제</h2>
+<div class="card">
+  <ul>
+    <li>골드로 사는 가격 8곳이 전부 <b>보고 있는 기사의</b> 최고 스테이지 잡몹 골드(2 × 1.2<sup>스테이지−1</sup>)에 묶여 있다.</li>
+    <li>기사단에선 골드가 공용 → 본캐가 번 골드를 <b>저렙 부캐 화면에서 부캐 값</b>으로 쓸 수 있다.</li>
+    <li>특히 <b>즉시 완료 · 교역 · 재료의 미궁 입장권</b>은 산 결과가 공용 마을·🪵🪨 로 들어온다(미궁 재료 양은 건물 비용 기준이라 기사 스테이지와 무관).</li>
+    <li><code>buildCost</code>(건물 비용 자체)는 건물 Lv 만 봐서 기사와 무관 — "건물이 싸게 오르는" 건 재료·시간을 싸게 사서다.</li>
+  </ul>
+</div>
+
+<h2>가격 비교 — 값을 바꿔 보세요</h2>
+<div class="ctl">
+  <span>본캐 최고 스테이지 <input type="number" id="main" value="250" min="1" max="2000"></span>
+  <span>부캐 최고 스테이지 <input type="number" id="alt" value="20" min="1" max="2000"></span>
+  <span>즉시 완료 남은 시간(분) <input type="number" id="mins" value="600" min="1"></span>
+  <label class="r"><input type="radio" name="plan" value="A" checked> 안 A (8곳 전부, 추천)</label>
+  <label class="r"><input type="radio" name="plan" value="B"> 안 B (새는 3곳만)</label>
+</div>
+<div class="scroll"><table id="tbl"></table></div>
+<div class="sub" id="note"></div>
+
+<h2>제안 규칙</h2>
+<div class="card">
+  <ul>
+    <li><b>가격 기준</b> <code>priceBest()</code> = 기사단이면 <b>기사단 최고 스테이지</b>(모든 기사의 <code>S.best</code> 최댓값, 공용 상태 <code>shared.best</code>에 저장, <b>내려가지 않음</b>), 아니면 <code>S.best</code>.</li>
+    <li>본캐를 슬롯에서 빼거나 지워도 값이 그대로 → "빼 놓고 싸게 사기" 차단.</li>
+    <li><b>얻는 쪽은 그대로</b> 기사 스테이지(원정 골드·룬 넘침 골드·미궁 💰). 보상까지 올리면 반대 방향 치팅.</li>
+    <li>배율(<code>BUILD_RUSH_GOLD</code> 2.2 · <code>TRADE_GOLD</code> 200 · 입장권 기준값 · 보급품 가격)은 그대로. 1명일 땐 지금과 완전히 같다.</li>
+    <li>서버 공용 상태 검사에 <code>best</code> 키 추가 (Render 배포, 재설치 없음).</li>
+  </ul>
+</div>
+
+<h2>안 A / 안 B</h2>
+<div class="card">
+  <p><b>안 A (추천)</b> — 8곳 전부 기사단 기준. 공용 골드의 가치가 하나로 맞는다. 부캐 보급품·입장권이 본캐 값이 되지만 골드가 공용이라 본캐 수입이 받친다.</p>
+  <p><b>안 B</b> — 공용으로 새는 3곳(즉시 완료·교역·미궁 입장권)만. 부캐 보급품·레이드/탑/성벽 입장권은 싸게 남아 따라잡기 윤활이 되지만, "보는 기사마다 값이 다른" 상태가 남는다(보고 2번 그대로).</p>
+</div>
+
+<h2>따로 볼 것</h2>
+<div class="card">재료의 미궁 <b>무료</b> 입장권(하루 기사별)으로 들어오는 🪵🪨 은 기사 수만큼 늘어난다. 기사단 봇(<code>dev/guild-bot.js</code>)은 미궁을 안 돌려서 "목재·철광석은 기사 수만큼 안 는다" 전제였다 — 이번 수정과 별개로 봇에 미궁을 넣어 마을 Lv 합 1.5배 기준을 다시 볼 필요가 있다.</div>
+</main>
+<script>
+const g = (s) => 2 * Math.pow(1.2, s - 1);   // monsterStats(s).gold
+const ROWS = [
+  { name: '⏩ 건설 즉시 완료', leak: true, f: (s, m) => Math.ceil(g(s) * 2.2 * m) },
+  { name: '📦 창고 교역 (오늘 첫 번)', leak: true, f: (s) => Math.floor(g(s) * 200) },
+  { name: '🎰 재료의 미궁 입장권 (첫 구매)', leak: true, f: (s) => Math.floor(g(s) * 600 * 0.5) },
+  { name: '🍱 도시락', f: (s) => Math.floor(15 * g(s)) },
+  { name: '🧪 회복 물약', f: (s) => Math.floor(10 * g(s)) },
+  { name: '🍀 행운의 부적', f: (s) => Math.floor(30 * g(s)) },
+  { name: '🔥 투지의 영약', f: (s) => Math.floor(30 * g(s)) },
+  { name: '🎟️ 레이드 입장권 (첫 구매)', f: (s) => Math.floor(g(s) * 120 * 0.5) },
+  { name: '🗼 탑 입장권 (첫 구매)', f: (s) => Math.floor(g(s) * 300 * 0.5) },
+  { name: '🧱 성벽 입장권 (첫 구매)', f: (s) => Math.floor(g(s) * 300 * 0.5) },
+  { name: '✨ 스킬 슬롯 3칸째', f: (s) => Math.ceil(g(s) * 30) },
+];
+function fmt(n) {
+  if (!isFinite(n)) return '∞';
+  if (n < 1e4) return Math.max(1, Math.round(n)).toLocaleString();
+  const u = [[1e12, '조'], [1e8, '억'], [1e4, '만']];
+  if (n >= 1e16) return n.toExponential(1).replace('e+', '×10^');
+  for (const [v, k] of u) if (n >= v) return (n / v).toFixed(n / v < 10 ? 1 : 0) + k;
+}
+function draw() {
+  const main = Math.max(1, +document.getElementById('main').value || 1);
+  const alt = Math.max(1, +document.getElementById('alt').value || 1);
+  const mins = Math.max(1, +document.getElementById('mins').value || 1);
+  const plan = document.querySelector('input[name=plan]:checked').value;
+  const top = Math.max(main, alt);
+  let h = '<tr><th>가격</th><th>공용으로 새나</th><th>지금 · 본캐 화면</th><th>지금 · 부캐 화면</th><th>부캐가 몇 배 싸나</th><th>바뀐 뒤 · 부캐 화면</th></tr>';
+  for (const r of ROWS) {
+    const a = r.f(main, mins), b = r.f(alt, mins);
+    const fixed = plan === 'A' || r.leak;
+    const n = fixed ? r.f(top, mins) : b;
+    const ratio = a / Math.max(1, b);
+    h += `<tr><td>${r.name}</td><td>${r.leak ? '<span class="bad">샌다</span>' : '<span class="sub">그 기사만</span>'}</td>
+      <td>${fmt(a)}</td><td>${fmt(b)}</td><td class="${ratio > 10 ? 'bad' : ''}">×${fmt(ratio)}</td>
+      <td class="${fixed ? 'ok' : 'warn'}">${fmt(n)}${fixed ? ' (본캐와 같음)' : ' (그대로)'}</td></tr>`;
+  }
+  document.getElementById('tbl').innerHTML = h;
+  document.getElementById('note').textContent = `기준 잡몹 골드: 본캐 ${fmt(g(main))} · 부캐 ${fmt(g(alt))} — 스테이지 1 차이마다 1.2배라 ${Math.abs(main - alt)} 스테이지 차이 = ${fmt(Math.pow(1.2, Math.abs(main - alt)))}배.`;
+}
+document.querySelectorAll('input').forEach((el) => el.addEventListener('input', draw));
+draw();
+</script>
+</body>
+</html>

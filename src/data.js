@@ -13,7 +13,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.30.3';
+const GAME_VERSION = '0.30.4';
 // 시즌7 기능 스위치. false 면 배포 주소(GitHub Pages·Electron 등)에서는 꺼져 있고, 로컬 개발 주소(localhost·127.0.0.1·*.localhost·*.test, 봇의 가짜 location 포함)에서만 켜진다.
 //  아래 DEV_HOST(배속용)와 달리 file: 은 넣지 않는다 — Electron 앱이 파일로 열 때 플레이어에게 켜지지 않게.
 //  시즌7 정식 공개 때 true 로 바꾼다.
@@ -126,11 +126,11 @@ const stockRateAt = (k, lv) => Math.round(STOCK_BASE[k] * Math.pow(STOCK_GROW, l
 const stockCapAt = (k, lv) => stockRateAt(k, lv) * STOCK_HOURS;
 // 창고 교역: 창고 Lv TRADE_LV 부터 골드로 목재·철광석을 산다. 한 번에 TRADE_HOURS 시간 생산량과 다음 건물 비용 평균의 TRADE_SHARE 중 큰 쪽
 //  (0.20.15 — 2시간 생산량만으론 건물 비용을 못 따라가 남는 골드를 재료로 바꿀 길이 없었다), 하루 5 + Lv 회 (목재·철광석 공용)
-//  가격 = 최고 스테이지 잡몹 골드 × TRADE_GOLD × TRADE_GROW^(오늘 교역한 횟수) — 골드가 스테이지를 따라 기하급수로 느는 경제라 가격도 스테이지를 따라간다
+//  가격 = 최고 스테이지(기사단이면 기사단 최고 — core.js priceBest) 잡몹 골드 × TRADE_GOLD × TRADE_GROW^(오늘 교역한 횟수) — 골드가 스테이지를 따라 기하급수로 느는 경제라 가격도 스테이지를 따라간다
 const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200, TRADE_GROW = 1.3, TRADE_SHARE = 0.1;
 const tradesAt = (lv) => (lv >= TRADE_LV ? 5 + lv : 0);
 const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
-// 건설 즉시 완료 (0.21.1): 남은 1분당 최고 스테이지 잡몹 골드 × BUILD_RUSH_GOLD (원정 1시간 ≈ 잡몹 263마리라 남은 1시간 ≈ 원정 30분 골드). 기다릴수록 싸진다
+// 건설 즉시 완료 (0.21.1): 남은 1분당 최고 스테이지(기사단이면 기사단 최고 — core.js priceBest) 잡몹 골드 × BUILD_RUSH_GOLD (원정 1시간 ≈ 잡몹 263마리라 남은 1시간 ≈ 원정 30분 골드). 기다릴수록 싸진다
 const BUILD_RUSH_GOLD = 2.2;
 
 const BUILDINGS = {

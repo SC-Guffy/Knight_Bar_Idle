@@ -74,7 +74,7 @@ const useDgTicket = () => { if (dgFreeTickets() > 0) S.dg.tixUsed++; else S.dg.t
 // 구매: 오늘 n번째 구매는 subTicketMult(n) 배 (data.js, 탑과 같은 곡선, 구매 수는 따로)
 const dgTicketsBoughtToday = () => (newDay(S.dg.buyDay) ? 0 : (S.dg.bought || 0));
 function dgTicketPrice() {
-  return { gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * DG_TICKET_GOLD * subTicketMult(dgTicketsBoughtToday()))) };
+  return { gold: Math.max(1, Math.floor(monsterStats(priceBest(), false).gold * DG_TICKET_GOLD * subTicketMult(dgTicketsBoughtToday()))) };
 }
 function dgTicketBlocker() {
   if (!dgUnlocked()) return `스테이지 ${DG_UNLOCK_STAGE} 도달 시 열려요`;

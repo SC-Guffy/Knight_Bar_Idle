@@ -101,7 +101,7 @@ const useTowerTicket = () => { if (towerFreeTickets() > 0) S.tower.tixUsed++; el
 // ── 입장권 구매 ── 오늘 n번째 구매는 subTicketMult(n) 배 (data.js, 미궁과 같은 곡선)
 const towerTicketsBoughtToday = () => (newDay(S.tower.buyDay) ? 0 : S.tower.bought);
 function towerTicketPrice() {
-  return { gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * TOWER_TICKET_GOLD * subTicketMult(towerTicketsBoughtToday()))) };
+  return { gold: Math.max(1, Math.floor(monsterStats(priceBest(), false).gold * TOWER_TICKET_GOLD * subTicketMult(towerTicketsBoughtToday()))) };
 }
 function towerTicketBlocker() {
   if (!towerUnlocked()) return `스테이지 ${TOWER_UNLOCK_STAGE} 도달 시 열려요`;

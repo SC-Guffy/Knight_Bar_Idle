@@ -185,7 +185,7 @@ function barFor(win) {
 // ───────────────────────── 기사단 저장 ─────────────────────────
 function freshShared() {
   return { gold: 0, wood: 0, ore: 0, bld: { training: 1, inn: 1, storage: 1, forge: 1, hall: 1 },
-    stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 }, forge: {}, build: null };
+    stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 }, forge: {}, build: null, best: 0 };   // best: 기사단 최고 스테이지 (가격 기준, docs/specs/guild-price-base.md)
 }
 // 처음 켤 때: 지금 고른 계정을 기사1 로, 그 기사의 공용 항목을 기사단 출발점으로 옮긴다
 function initGuild() {
@@ -336,6 +336,9 @@ window.guildHost = {
     Object.defineProperty(S, 'gold', { get: () => shared.gold, set: (v) => { shared.gold = v; }, enumerable: false, configurable: true });
     for (const k of ['wood', 'ore']) Object.defineProperty(S.mats, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: false, configurable: true });
     for (const k of ['bld', 'stock', 'forge', 'build']) Object.defineProperty(S, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: false, configurable: true });
+    // 기사단 최고 스테이지: 기사가 붙을 때·스테이지를 넘을 때 올리고 내리지 않는다 (src/core.js priceBest)
+    Object.defineProperty(S, 'guildBest', { get: () => shared.best || 0, set: (v) => { shared.best = v; }, enumerable: false, configurable: true });
+    if ((S.best || 0) > (shared.best || 0)) shared.best = S.best;
   },
   ready(win) {
     const i = frameOf(win);

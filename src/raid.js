@@ -33,7 +33,7 @@ function ticketPrice() {
   const n = ticketsBoughtToday(), last = RAID_TICKET_STEPS.length - 1;
   const k = n <= last ? RAID_TICKET_STEPS[n] : RAID_TICKET_STEPS[last] * Math.pow(RAID_TICKET_GROW, n - last);
   return {
-    gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * RAID_TICKET_GOLD * k)),
+    gold: Math.max(1, Math.floor(monsterStats(priceBest(), false).gold * RAID_TICKET_GOLD * k)),
   };
 }
 function ticketBlocker() {

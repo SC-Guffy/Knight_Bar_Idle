@@ -125,7 +125,7 @@ const castleTickets = () => castleFreeTickets() + (S.castle.tixExtra || 0);
 const useCastleTicket = () => { if (castleFreeTickets() > 0) S.castle.tixUsed++; else S.castle.tixExtra = Math.max(0, S.castle.tixExtra - 1); };
 const castleTicketsBoughtToday = () => (newDay(S.castle.buyDay) ? 0 : S.castle.bought);
 // 오늘 n번째 구매 가격 — 탑·미궁과 같은 공통 곡선 (data.js subTicketMult, ticket-buy.md)
-const castleTicketPrice = () => ({ gold: Math.max(1, Math.floor(monsterStats(S.best, false).gold * CASTLE_TICKET_GOLD * subTicketMult(castleTicketsBoughtToday()))) });
+const castleTicketPrice = () => ({ gold: Math.max(1, Math.floor(monsterStats(priceBest(), false).gold * CASTLE_TICKET_GOLD * subTicketMult(castleTicketsBoughtToday()))) });
 function castleTicketBlocker() {
   if (!castleUnlocked()) return `스테이지 ${CASTLE_UNLOCK_STAGE} 도달 시 열려요`;
   if ((S.castle.tixExtra || 0) >= CASTLE_TICKET_HOLD) return `산 입장권은 ${CASTLE_TICKET_HOLD}장까지 가질 수 있어요`;

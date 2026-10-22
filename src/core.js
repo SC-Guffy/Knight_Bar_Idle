@@ -730,8 +730,16 @@ function advanceBuildNow(sec) {
     hooks.onBuilt(id);
   }
 }
+// 골드로 사는 값의 기준 스테이지 (docs/specs/guild-price-base.md): 기사단이면 기사단 최고 스테이지(내려가지 않음) — 골드가 공용이라
+//  저렙 기사 화면에서 싸게 사지 못하게. 보상(원정 골드 등)은 계속 그 기사 S.best. 공용 골드를 쓰는 새 가격도 이걸 쓴다
+function priceBest() {
+  const b = Math.max(1, S.best || 1);
+  if (!GUILD_HOST) return b;
+  if (b > (S.guildBest || 0)) S.guildBest = b;
+  return Math.max(b, S.guildBest || 0);
+}
 // 남은 시간을 골드로 끝낸다 (data.js BUILD_RUSH_GOLD)
-const rushPrice = () => (S.build ? Math.max(1, Math.ceil(monsterStats(S.best, false).gold * BUILD_RUSH_GOLD * Math.ceil(S.build.remain / 60))) : 0);
+const rushPrice = () => (S.build ? Math.max(1, Math.ceil(monsterStats(priceBest(), false).gold * BUILD_RUSH_GOLD * Math.ceil(S.build.remain / 60))) : 0);
 function rushBuild() {
   if (!S.build) return false;
   const p = rushPrice();
@@ -771,7 +779,7 @@ function claimStock() {
 const tradesUsed = () => (newDay(S.stock.tradeDay) ? 0 : S.stock.trades);
 const tradesLeft = () => Math.max(0, tradesAt(S.bld.storage) - tradesUsed());
 const tradeAmount = (k) => Math.max(stockRateAt(k, S.bld.storage) * TRADE_HOURS, Math.floor(dgNextBuildCost(k) * TRADE_SHARE));
-const tradePrice = () => Math.max(1, Math.floor(monsterStats(S.best, false).gold * TRADE_GOLD * Math.pow(TRADE_GROW, tradesUsed())));
+const tradePrice = () => Math.max(1, Math.floor(monsterStats(priceBest(), false).gold * TRADE_GOLD * Math.pow(TRADE_GROW, tradesUsed())));
 function tradeBlocker() {
   if (S.bld.storage < TRADE_LV) return `창고 Lv${TRADE_LV} 에 교역이 열려요`;
   if (!srvClock.known) return '서버 시각 확인 중';
@@ -812,7 +820,7 @@ function claimMail(id) {
 }
 
 // ───────────────────────── 보급품 ─────────────────────────
-const supplyPrice = (id) => Math.floor(SUPPLIES[id].price * monsterStats(S.best, false).gold);
+const supplyPrice = (id) => Math.floor(SUPPLIES[id].price * monsterStats(priceBest(), false).gold);
 
 function buySupply(id) {
   if (!SUPPLIES[id] || SUPPLIES[id].shop === false) return false;
@@ -959,6 +967,7 @@ function finishLap() {
   if (stageUp) {
     S.stage++;
     S.best = Math.max(S.best, S.stage);
+    if (GUILD_HOST && S.best > (S.guildBest || 0)) S.guildBest = S.best;
   }
   S.run.kills = 0; S.run.cleared = false;
   return stageUp;

@@ -14,6 +14,7 @@ const HALL_MARKS = [8, 12, 14];   // 슬롯 3·4·5칸이 열리는 회관 Lv
 // 수치 맞추기용 (환경 변수): GUILD_SLOTS=1,3,6,10 (슬롯 2~5칸이 열리는 회관 Lv) · HALL_MUL=1.5 (회관 비용 배율) · HALL_FIRST=1 (회관을 먼저 짓기)
 //  FX_SCALE=1 (계열 효과 단당 크기 배율) · HALL_START=15 (처음부터 회관 Lv — 효과 최대치 보기) · HALL_MAX=15 (회관 최대 Lv)
 //  확정 수치 재현(10-17): HALL_FIRST=1 node dev/guild-bot.js --days 7 --seeds 5
+//  TRADE_MAIN_ONLY=1 (창고 교역은 첫 기사만 — 부캐가 공용 골드로 교역을 다 써 버리지 않게, guild-price-base.md)
 //  SHARED_GOLD=0 (골드는 기사별 — 목재·철광석·마을만 공용인 안 비교)
 //  TUNE_JSON='{"hallPerTier":3,"divPer":0,"catchupExp":1}' (src/core.js GUILD_TUNE 덮어쓰기 — 효과·따라잡기를 하나씩 꺼 보기)
 const TUNE = { slots: process.env.GUILD_SLOTS ? process.env.GUILD_SLOTS.split(',').map(Number) : null, hallMul: process.env.HALL_MUL ? Number(process.env.HALL_MUL) : null,
@@ -21,11 +22,11 @@ const TUNE = { slots: process.env.GUILD_SLOTS ? process.env.GUILD_SLOTS.split(',
   hallMax: process.env.HALL_MAX ? Number(process.env.HALL_MAX) : null, tune: process.env.TUNE_JSON ? JSON.parse(process.env.TUNE_JSON) : null };
 
 function freshShared() {
-  return { gold: 0, wood: 0, ore: 0, bld: { training: 1, inn: 1, storage: 1, forge: 1, hall: 1 }, stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 }, forge: {}, build: null };
+  return { gold: 0, wood: 0, ore: 0, bld: { training: 1, inn: 1, storage: 1, forge: 1, hall: 1 }, stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 }, forge: {}, build: null, best: 0 };
 }
 
 // 기사 한 명: 게임 vm + 봇 하루 (progress-bot runOne 의 기사 몫)
-function makeKnight({ host, seed, line, clock, rnd }) {
+function makeKnight({ host, seed, line, clock, rnd, main = true }) {
   const ctx = makeGame(null, host);
   ctx.Math.random = rnd;
   if (host) vm.runInContext(`(${(t) => {
@@ -61,7 +62,7 @@ function makeKnight({ host, seed, line, clock, rnd }) {
     A.autoEquip(); sell();
     if (S.bagHit) while (A.bagCap() < w * 1.3) { if (!A.upgradeBag()) break; }
     A.claimStock();
-    while (!A.tradeBlocker()) { const k = S.mats.wood <= S.mats.ore * 1.5 ? 'wood' : 'ore'; if (!A.trade(k)) break; }
+    if (main || !process.env.TRADE_MAIN_ONLY) while (!A.tradeBlocker()) { const k = S.mats.wood <= S.mats.ore * 1.5 ? 'wood' : 'ore'; if (!A.trade(k)) break; }
     const day = Math.floor(clock.t / DAY);
     if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; S.tomes += TOWER_TOMES_PER_DAY; }
     while (S.raid.tickets > 0) {
@@ -106,6 +107,7 @@ function runGuildSeeded({ days, seed, knights }) {
       if (process.env.SHARED_GOLD !== '0') Object.defineProperty(S, 'gold', { get: () => shared.gold, set: (v) => { shared.gold = v; }, enumerable: false, configurable: true });
       for (const k of ['wood', 'ore']) Object.defineProperty(S.mats, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: false, configurable: true });
       for (const k of ['bld', 'stock', 'forge', 'build']) Object.defineProperty(S, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: false, configurable: true });
+      Object.defineProperty(S, 'guildBest', { get: () => shared.best || 0, set: (v) => { shared.best = v; }, enumerable: false, configurable: true });   // 가격 기준 (guild-price-base.md)
     },
     roster: () => roster, toast() {}, ready() {}, addKnight() {}, serverLost() {},
   } : null;
@@ -117,7 +119,7 @@ function runGuildSeeded({ days, seed, knights }) {
     let line;
     if (!ks.length) line = firstLine;
     else line = Object.entries(FAMILY_LINES).find(([f]) => !fams.includes(f))?.[1] || firstLine;
-    const kn = makeKnight({ host, seed: seed * 10 + ks.length, line, clock, rnd });
+    const kn = makeKnight({ host, seed: seed * 10 + ks.length, line, clock, rnd, main: !ks.length });
     const fam = famOf(line);
     fams.push(fam);
     ks.push({ kn, line, fam, start: clock.t, catchAt: null, nick: 'k' + ks.length });
