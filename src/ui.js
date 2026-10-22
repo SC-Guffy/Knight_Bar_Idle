@@ -316,6 +316,7 @@ function paintGearIcons(root) {
   root.querySelectorAll('canvas[data-bx]').forEach((cv) => { const g = cv.dataset.bx; paint(cv, (BOX_ART[g] ? 'boxart' : 'box') + g, BOX_ART[g] || LOOT_BOXES[g]); });
   root.querySelectorAll('canvas[data-rb]').forEach((cv) => { const b = cv.dataset.rb; paint(cv, (CHEST_ART[b] ? 'rboxart' : 'rbox') + b, CHEST_ART[b] || RAID_BOSSES[b].chest); });
   root.querySelectorAll('canvas[data-dc]').forEach((cv) => paint(cv, 'duelchest', DUEL_CHEST));
+  root.querySelectorAll('canvas[data-wc]').forEach((cv) => paint(cv, 'wbchest' + cv.dataset.wc, wbChestDef(cv.dataset.wc)));
   // 레이드·월드 보스 초상: 몬스터 도트 첫 프레임을 캔버스 크기에 맞춰 찍는다
   root.querySelectorAll('canvas[data-boss]').forEach((cv) => {
     const def = raidDef(cv.dataset.boss), rows = SPR[def.spr][0];
@@ -1336,7 +1337,7 @@ function campDots() {
     class: anyClassReady(),
     rank: inboxUnread() > 0 || duelUnseen() || newsUnseen(S.season.last) || S.season.pending.length > 0 || S.season.chests > 0,
     mail: mailUnclaimed() > 0,
-    raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot() || !!S.raid.pending || newsUnseen(S.wb.last),
+    raid: S.raid.chests.length > 0 || !!raidUi.room || wbDot() || !!S.raid.pending || newsUnseen(S.wb.last) || S.wb.pending.length > 0 || S.wb.chests.length > 0,
     // 탑: 처음 열렸거나, 아직 안 본 도전 정산이 있거나, 오늘 받을 비전서가 남았고 지금 도전할 수 있을 때
     tower: towerUnlocked() && !S.guide.towerSeen || towerResultPending() || towerSweepReady() || towerBlocker() === '',
     // 던전: 처음 열렸거나, 안 본 결과가 있거나, 입장권이 남았을 때
@@ -2525,8 +2526,9 @@ function viewRaidLobby() {
 // ───────────────────────── 월드 보스 ─────────────────────────
 // 하루 한 마리, 서버의 모든 기사가 체력 하나를 함께 깎는다 (server/worldboss.js · src/worldboss.js).
 // 도전하면 서버가 30초 전투를 계산해 돌려주고, 캠프 앞 하단바에서 레이드처럼 재생한다(world.js playRaid, res.world).
-// 지난 날의 보상은 접속해 있을 때(입장 직후·10분마다·레이드 탭) 받아서 세이브에 넣고, 저장한 뒤에 받았다고 알린다.
-const wbUi = { data: null, at: 0, loading: false, error: null, busy: false };
+// 지난 날의 보상은 접속해 있을 때(입장 직후·10분마다·레이드 탭) 가져와 받을 목록(S.wb.pending)에 넣고, 저장한 뒤에 도착했다고 알린다.
+// 재화·🌍 전리품 상자는 🐉 레이드 탭에서 [받기]를 눌러야 들어온다 (docs/specs/worldboss-chest.md)
+const wbUi = { data: null, at: 0, loading: false, error: null, busy: false, opened: [] };   // opened: 이번에 연 전리품 상자 내용물
 const WB_CHECK_EVERY = 10 * 60 * 1000;
 
 function loadWorldBoss(force = false) {
@@ -2546,11 +2548,12 @@ setInterval(() => loadWorldBoss(true), WB_CHECK_EVERY);
 
 async function takeWbRewards(rows) {
   if (!rows.length) return;
-  const got = rows.map(claimWbReward).filter(Boolean);
+  const got = rows.filter(queueWbReward);
   save();
   if (got.length) {
-    toast('🌍 월드 보스 보상이 도착했어요 — 🐉 레이드 탭에서 확인', 10000);
+    toast('🌍 월드 보스 보상이 도착했어요 — 🐉 레이드 탭에서 받기', 10000);
     renderHud();
+    if (campOpen && campTab === 'raid') renderCamp();
   }
   await pushSave(true);
   if (!sync.error) await ackWorldBoss(rows.map((r) => r.day)).catch(() => {});
@@ -2558,10 +2561,56 @@ async function takeWbRewards(rows) {
 
 function wbRewardText(r, html = true) {
   const parts = [html ? gainText(r) : `골드 ${fmt(r.gold)} · 🪵 ${fmt(r.wood)} · 🪨 ${fmt(r.ore)} · 💎 ${fmt(r.mana)}`, `💠 ${r.stones}`, `📖 ${r.tomes}`];
-  if (r.chests) parts.push(`🎁 ${html ? esc(RAID_BOSSES[r.boss].chest.name) : RAID_BOSSES[r.boss].chest.name}`);
+  // r.boss 는 0.30.4 전에 받은 보상 (그때는 레이드 처치 상자를 줬다)
+  const chest = r.wb ? `🌍 ${wbChestName(r.wb)}` : r.boss && RAID_BOSSES[r.boss] ? RAID_BOSSES[r.boss].chest.name : '';
+  if (r.chests && chest) parts.push(`🎁 ${html ? esc(chest) : chest}`);
   if (r.items && r.items.reroll) parts.push(`🎲 재굴림권 ${r.items.reroll}`);
   if (r.items && r.items.protect) parts.push('📜 보호 주문서');
   return parts.join(' · ');
+}
+
+// 🌍 전리품 상자 한 개의 내용물 설명
+const wbChestText = () => {
+  const C = WB_CHEST, sc = 1 + ((S.best || 1) - 1) * 0.04;
+  return `🪵 ${fmt(Math.round(C.wood * sc))} · 🪨 ${fmt(Math.round(C.ore * sc))} · 💎 ${fmt(Math.round(C.mana * sc))} · 💠 ${fmt(Math.floor(C.stones + C.stonesPerStage * (S.best || 1)))} · 🎲 재굴림권 ${C.reroll[0]}~${C.reroll[1]}`;
+};
+// 받을 월드 보스 보상 카드 + 안 연 전리품 상자. 레이드 탭 맨 위
+function viewWbClaim() {
+  const W = S.wb;
+  if (!W.pending.length && !W.chests.length && !wbUi.opened.length) return '';
+  const cards = W.pending.map((row, i) => {
+    const b = WORLD_BOSSES[row.boss];
+    return `<div class="reason">🌍 월드 보스 보상 — ${b ? b.name : ''} ${row.killed ? '처치 ✅' : '생존'} · 피해 ${row.players}명 중 ${row.rank}위 · ${wbRewardText(wbReward(row))} · 🎲 재굴림권 ${REROLL_DROP.wb[0]}~${REROLL_DROP.wb[1]}
+      <button class="btn rd" data-action="wb-claim" data-i="${i}">받기</button></div>`;
+  }).join('');
+  const opened = wbUi.opened.map((g) => `
+    <div class="box opened ${g.fresh ? 'fresh' : ''}" style="--c:#7dffb0">
+      <canvas class="gicon" width="14" height="14" data-wc="${g.b}"></canvas>
+      <div class="loot">🪵 +${fmt(g.wood)} 🪨 +${fmt(g.ore)}<br>💎 +${fmt(g.mana)} 💠 +${fmt(g.stones)}${g.reroll ? `<br>🎲 +${g.reroll}` : ''}</div>
+    </div>`).join('');
+  wbUi.opened.forEach((g) => { g.fresh = false; });
+  const closed = W.chests.map((c, i) => `
+    <button class="box chestbox glow" data-action="wb-chest-open" data-i="${i}" style="--c:#7dffb0" title="${esc(wbChestName(c.b))} — ${wbChestText()} · 눌러서 열기">
+      <canvas class="gicon" width="14" height="14" data-wc="${c.b}"></canvas><span class="lname">${WORLD_BOSSES[c.b] ? WORLD_BOSSES[c.b].icon : '🌍'} 전리품 상자</span>
+    </button>`).join('');
+  const chests = W.chests.length || opened ? `
+    <div class="shead">
+      <h3>${ico('gift')} 월드 보스 상자 <small>${W.chests.length}개</small></h3>
+      <button class="btn${rd(W.chests.length)}" data-action="wb-chest-open-all" ${W.chests.length ? '' : 'disabled'}>모두 열기</button>
+    </div>
+    <div class="boxes">${opened}${closed}</div>` : '';
+  return cards + chests;
+}
+function claimWbAt(i) {
+  const L = claimWbReward(i);
+  if (!L) return;
+  save();
+  toast(`🌍 월드 보스 보상 — ${wbRewardText(L.reward, false)}`, 6000);
+  renderHud();
+}
+function openWbChestAt(i) {
+  const g = openWbChest(i);
+  if (g) wbUi.opened.push({ ...g, fresh: true });
 }
 
 // 지금 도전할 수 있는가 — 막히면 이유
@@ -2976,7 +3025,7 @@ function drawSubSoon(g, w, h) {
 function viewRaid() {
   refillTickets();
   raidPoll();
-  return `${viewRaidPending()}${viewWbNews()}${viewWorldBoss()}${viewRaidResult()}${viewRaidChests()}${raidUi.room ? viewRaidRoom() : viewRaidLobby()}`;
+  return `${viewRaidPending()}${viewWbNews()}${viewWbClaim()}${viewWorldBoss()}${viewRaidResult()}${viewRaidChests()}${raidUi.room ? viewRaidRoom() : viewRaidLobby()}`;
 }
 
 function openRaidChestAt(i) {
@@ -2997,6 +3046,7 @@ function renderCamp() {
   if (campTab === 'report') reportSeen = S.report;
   if (campTab !== 'rank') inbox.newAfter = null;     // 우편함 NEW 표시는 랭킹 탭을 떠나면 지운다
   if (campTab !== 'rank') seasonUi.opened = [];     // 연 결투 시즌 상자 내용물도
+  if (campTab !== 'raid') wbUi.opened = [];         // 연 월드 보스 상자 내용물도
   const dots = campDots();
   const tabs = [
     ['report', `${ico('home')} 홈`, S.bag.length ? `<i>${S.bag.length}</i>` : dots.report ? DOT : ''],
@@ -3152,6 +3202,9 @@ const ACTIONS = {
   'raid-result-close': () => { raidUi.showResult = false; },
   'raid-open': (el) => openRaidChestAt(Number(el.dataset.i)),
   'season-claim': (el) => claimSeasonAt(Number(el.dataset.i)),
+  'wb-claim': (el) => claimWbAt(Number(el.dataset.i)),
+  'wb-chest-open': (el) => openWbChestAt(Number(el.dataset.i)),
+  'wb-chest-open-all': () => { while (S.wb.chests.length) openWbChestAt(0); },
   'duel-chest-open': () => { openDuelChestNow(); save(); },
   'duel-chest-open-all': () => {
     while (S.season.chests > 0) openDuelChestNow();
