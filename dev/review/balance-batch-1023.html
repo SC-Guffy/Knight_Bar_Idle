@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>총점검 나머지 스펙</title>
+<!-- 총점검 balance-audit-1023.md 의 C~N 스펙 초안 묶음. 수치는 갱신된 봇(시즌7 숙련·탑 소탕, 10-23)과 dev/audit-1023/ 시험 패치로 잰 값. -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --warn: #ffb35c; --blue: #8fd8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; margin: 6px 0; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  ul { margin: 4px 0; padding-left: 18px; }
+  .rec { color: var(--gold); font-weight: 700; }
+  .q { margin-top: 6px; padding: 6px 8px; background: #1b1824; border-left: 3px solid var(--gold); border-radius: 3px; }
+  .q b { color: var(--gold); }
+  .tag { font-size: 11px; color: var(--dim); border: 1px solid var(--line); padding: 0 5px; border-radius: 8px; margin-left: 4px; }
+  .ok { color: var(--green); } .bad { color: var(--red); } .warn { color: var(--warn); }
+  .toc { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toc a { color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 1px 8px; border-radius: 10px; }
+  .toc a:hover { border-color: var(--gold); }
+  ol { margin: 4px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+<h1>📋 총점검 나머지 항목 <small class="sub">스펙 초안 · 확인 전</small></h1>
+<div class="sub">총점검 <code>docs/specs/balance-audit-1023.md</code> 의 C~N. 이미 끝난 것: A·B(0.30.7) · K 봇 갱신 · 버그 4건(0.30.5 가방 · 0.30.6 성벽 시각 · 0.30.8 성좌기사 궁극기 · 0.30.9 '한 번 더' 룬)</div>
+
+<h2>한눈에</h2>
+<div class="toc">
+  <a href="#F">F 성벽 실패 손해</a><a href="#GHL">G·H·L 남는 재화</a><a href="#C">C 골드·건설 시간</a><a href="#DEJN">D·E·J·N 직업·룬</a><a href="#I">I 결투·AI 곡선</a><a href="#M">M 기사단 부캐</a><a href="#order">순서</a>
+</div>
+<div class="card">
+  <b>추천대로 가면 결정할 것이 없습니다.</b> 각 항목의 <span class="rec">추천</span>이 기본값이고, 노란 줄은 바꾸고 싶을 때만 골라 주시면 됩니다.
+</div>
+
+<h2 id="F">F. 성벽: 도전 실패가 소탕보다 손해 <span class="tag">castle-fail-floor.md</span></h2>
+<div class="card">
+  <ul>
+    <li>지금: 최고 20 에서 21 도전, 3웨이브 실패 → 🧱 56 · 📕 1.23 (소탕이면 🧱 250 · 📕 4.06). 9웨이브까지 막아도 소탕보다 적다.</li>
+    <li><span class="rec">추천</span>: 끝날 때 🧱·📕 를 각각 <b>max(이번 도전 몫, 최고 단계 소탕 몫)</b>. 성공하면 지금처럼 더 받음, 첫 도전(최고 0)은 바닥 없음. 결과에 "(소탕 보장)".</li>
+  </ul>
+</div>
+
+<h2 id="GHL">G·H·L. 쓸 곳 없이 쌓이는 재화 <span class="tag">currency-surplus-1023.md</span></h2>
+<div class="card">
+  <div class="scroll"><table>
+    <tr><th></th><th>열심 21일 지금</th><th>→ 추천</th><th>24시간 봇 14일 지금</th><th>→ 추천</th></tr>
+    <tr><td>📖 비전서 남음</td><td class="bad">6,564</td><td>975</td><td class="bad">5,749</td><td>1,358</td></tr>
+    <tr><td>💠 강화석 남음</td><td class="bad">31,382</td><td>18,985</td><td>62,283</td><td>43,396</td></tr>
+    <tr><td>💎 마력석 남음</td><td>21,091</td><td>10,744</td><td>14,402</td><td>10,544</td></tr>
+    <tr><td>최고 스테이지</td><td>359</td><td>361</td><td>360</td><td>367</td></tr>
+    <tr><td>강화 합 (최대 90)</td><td>79</td><td>78</td><td>89</td><td>90</td></tr>
+  </table></div>
+  <ul>
+    <li><b>G 📖</b>: 수입의 88% 가 탑 소탕(최고 층 수만큼). <span class="rec">추천</span> 탑 소탕·입장 보장을 <b>min(층, 8 + 층/5)</b> 로(49층 49 → 18권, 100층 → 28권) + 숙련 Lv20 위로도 <b>1권 = +5</b> 로 Lv29 까지 바치기(★★★ 는 여전히 써야 옴).</li>
+    <li><b>H 💠💎</b>: 스테이지 300 위에선 장비 판매 강화석이 수입 대부분. <span class="rec">추천</span> 판매 강화석 6등급 150 → 90 · 7등급 400 → 150, 🔮 골동품 마력석 5 → 4. 강화 속도는 📜 주문서가 정해서 그대로.</li>
+    <li><b>L 🧱📕</b>: 열심 유저는 10일에 성벽·교관이 다 끝남. <span class="rec">추천</span> "성벽 졸업" — 30단계·업그레이드 6종 최대·교관 별 25 를 다 채우면 레드닷 끄고 구매 막고 "✅ 성벽 완성" 칩. 보상은 그대로.</li>
+  </ul>
+  <div class="q"><b>결정</b> · G-B(Lv20 위 바치기)를 고르면 쌓아 둔 비전서가 한꺼번에 들어가 스킬 하나에 최대 +12% 가 붙을 수 있음 — 괜찮은지 · 세 부위 +30 을 다 찍은 뒤 💠💎 는 쓸 곳 0(콘텐츠 끝) — 그대로 둘지(추천) 새 성장을 따로 기획할지</div>
+</div>
+
+<h2 id="C">C. 골드 소모처 · 건설 시간 벽 <span class="tag">economy-build-gold.md</span></h2>
+<div class="card">
+  <ul>
+    <li>새로 안 것: "골드 10³² 잉여"는 눈금 착시 — 보유 골드 ÷ 잡몹 골드는 7~21일 내내 약 2,000마리(원정 8시간분). 골드를 세게 묶으면 교역과 서로 막혀 진행이 느려진다.</li>
+    <li>진짜 벽은 <b>건설 시간</b>: 한 채를 Lv1→20 까지 61.5일(4채 246일).</li>
+    <li><span class="rec">추천</span>: (a) 건설 시간을 <b>Lv10 위로 ×1.8 → ×1.3</b> (Lv10 까지는 지금과 같음, 4채 246일 → 24일) + (d) 목재·철광석 Lv8 위 증가율 1.5 → 1.35 + (b 약) 건물·시설·전직 골드를 <code>priceBest()</code> 잡몹 골드 × 작은 마리 수(건물 10·1.3^(L−1) · 시설 5·1.3^L · 2차 5 · 3차 400마리).</li>
+  </ul>
+  <div class="scroll"><table>
+    <tr><th>안 (열심 21일 · 8시드)</th><th>스테이지 7·21일</th><th>건물 합 10→21일</th><th>훈련장 Lv 21일</th><th>목재 잔고</th></tr>
+    <tr><td>지금</td><td>219 · 359</td><td>45 → 48</td><td>16</td><td>12만</td></tr>
+    <tr><td>(a) Lv10·×1.3</td><td>220 · 381</td><td>48 → 63</td><td>17</td><td>4.2만</td></tr>
+    <tr><td>(c) 건설 줄 2칸</td><td>220 · 359</td><td>48 → 58</td><td>16</td><td>9.8만</td></tr>
+    <tr><td><b>추천 (a)+(d)+(b 약)</b></td><td>230 · 388</td><td>48 → 60</td><td class="ok">19</td><td>6.6만</td></tr>
+    <tr><td>보수안 (a) Lv12·×1.3 + (d)</td><td>· 372</td><td></td><td>17~18</td><td></td></tr>
+  </table></div>
+  <div class="sub">다른 봇: 진행 봇 7일 272 → 280(훈련 상한 520 → 600) · 기사단 봇 5명 290 → 333, 회관 Lv14 5.2 → 4.5일, 기사단 효과 +12.0% 그대로</div>
+  <div class="q"><b>결정</b> · 추천 / 보수안(Lv12 부터 꺾기) · 골드 비용: (b 약) 스테이지에 묶기(추천) / 그대로 / 건물·시설 골드 0 — 셋 다 진행 차이는 흔들림 수준 · 기사단 회관도 새 시간 곡선(추천: 예, 슬롯 5칸이 0.7일 빨라짐) · 이미 짓는 중인 건설의 남은 시간도 새 식으로 줄여 줄지(추천: 예)</div>
+</div>
+
+<h2 id="DEJN">D·E·J·N. 직업 · 룬 <span class="tag">class-balance-1023.md</span></h2>
+<div class="card">
+  <ul>
+    <li><b>D 파이터</b>: 원인 셋 확인 — ① 오프라인(dpsOf)이 기 게이지 하나를 나눠 쓰는 주 기술을 각자 따로 세서 부풀림 ② 숙련 쿨 감소가 실제 기 소모에 빠짐 ③ <span class="bad">버그</span>: 주 기술이 없으면 투지 기술이 시작 때 한 번 뒤로 안 나감. 수정 + 기 충전 상향(챔피언 hit 2.5→4.5 · 템페스트 5.8→8.5 · 그랜드마스터 perSec 5→8) + 공격력(템페스트 3.18→3.5 · 그랜드마스터 2.77→2.95).</li>
+    <li><b>E 무념</b>: 고정 ×1.9 → <b>×1.12 × 그 기사의 치명 기대값</b>(확정 치명 칸 ×1.2 더). 룬 한 칸 평균 ×1.34 → ×1.12 (난무와 같은 급).</li>
+    <li><b>J 검신</b>: 공속은 거의 상관없었음 → 공격력 1.7 → 1.5 + 공속 2.2 → 1.85. 단일 DPS 1.39 → 1.14 (원거리 셋 아래).</li>
+    <li><b>N</b>: 공허궁 오프라인 광역 ×1.25 를 여러 발 나눠 쏘는 스킬엔 안 줌. 광란·만검·월광은 점검 추정과 달리 오프라인·실시간 둘 다 빈 칸보다 손해(룬 설계 문제) → 이번엔 대가 반만 줄임.</li>
+  </ul>
+  <div class="scroll"><table>
+    <tr><th>줄기 (Lv170)</th><th>레이드 지금 → 안</th><th>실시간 원정</th><th>실시간 ÷ 오프라인</th></tr>
+    <tr><td>champion</td><td>0.96 → 1.09</td><td>0.59 → 0.82</td><td>0.77 → 0.99</td></tr>
+    <tr><td>tempest</td><td class="bad">0.66 → 0.94</td><td>0.70 → 0.90</td><td>0.80 → 1.08</td></tr>
+    <tr><td>grandmaster</td><td class="bad">0.70 → 0.86</td><td>0.75 → 0.87</td><td>0.81 → 0.98</td></tr>
+    <tr><td>swordsaint</td><td>1.30 → 1.08</td><td>1.49 → 1.24</td><td>1.39</td></tr>
+    <tr><td>voidArcher</td><td>1.18 → 1.13</td><td>1.16 → 1.10</td><td>1.05 → 1.23</td></tr>
+  </table></div>
+  <div class="sub">남는 것: Lv130 템페스트 레이드 0.75 · 그랜드마스터 빌드 b 0.64. 결투 승률은 I 에서 다시 맞춤(검신 52 → 34% 등 참고값).</div>
+  <div class="q"><b>결정</b> · 검신 공격력 1.5(추천) / 1.4 · 광란·만검·월광은 대가 반만(추천) / 룬 재설계로 미룸 · 그랜드마스터 결투 시작 기 240 → 300(레이드 1.01, 결투에도 걸려 I 와 같이)</div>
+</div>
+
+<h2 id="I">I. 결투 재정비 · AI 곡선 <span class="tag">duel-rebalance-1023.md</span></h2>
+<div class="card">
+  <ul>
+    <li>새로 안 것: 지금 결투 배율 0.70~1.89 는 장비 없는 프로필로 맞춘 값이라, 장비를 입히면 거꾸로 과보정 — 근접 승률 20~29%.</li>
+    <li><span class="rec">추천</span>: 결투 체력을 <b>전체 DPS(평타 + 스킬) 기준 7.5초</b>로(직업 공통 규칙) + 결투 배율을 장비 곡선 3벌 × St60·100·140 × 30판으로 다시 맞추되 <b>0.85~1.25</b> 로 묶음. 빌드 편차는 키스톤·스킬 수치로.</li>
+    <li>AI 곡선(<code>server/bot-curve.json</code>, 10-17)을 시즌7 스킬로 다시 굽고 서버 <code>bots.js</code> 가 새 스킬·배율을 싣게 → AI 결투 상대·교관·레이드 AI 가 같이 바뀜. 사람 대 AI 승률 50 / 48 / 51% (지금 50 / 50 / 56%).</li>
+  </ul>
+  <div class="scroll"><table>
+    <tr><th>장비 곡선 · 같은 전투력</th><th>지금 St60/100/140</th><th>추천</th></tr>
+    <tr><td>결투 평균</td><td>24.5 / 14.1 / 8.8초</td><td>13.3 / 11.1 / 8.9초</td></tr>
+    <tr><td>45초 시간 종료</td><td class="bad">St60 7%</td><td>0%</td></tr>
+    <tr><td>근접 승률</td><td class="bad">22 / 20 / 29%</td><td>50 / 44 / 55%</td></tr>
+    <tr><td>줄기 평균 승률</td><td class="bad">13~89%</td><td>43~59%</td></tr>
+    <tr><td>배율 폭</td><td>0.70~1.89</td><td>0.85~1.25</td></tr>
+  </table></div>
+  <div class="sub">남는 것: 성좌기사 59%(0.85 바닥) · 템페스트 43%(1.25 천장) · 빌드 폭 평균 17%p (그랜드마스터 b 18% — 투지 보호막을 안 끼는 차이).</div>
+  <div class="q"><b>결정</b> · 추천(d) / (c) 결투 체력을 스테이지 표로 · 목표 판 길이 7.5초(약 9~13초, 추천) / 6초(약 6~10초) · AI 곡선 교체를 결투 규칙과 같은 배포에(추천: 예)</div>
+</div>
+
+<h2 id="M">M. 기사단 부캐와 함께 하는 콘텐츠 <span class="tag">guild-shared-content.md</span></h2>
+<div class="card">
+  <ul>
+    <li>월드 보스 평균 지분을 <b>기사단 한 명</b>으로 셈(부캐가 평균을 끌어내려 모두의 몫이 부푸는 것 막기).</li>
+    <li>레이드에서 같은 기사단 기사는 방장 기사단의 첫 기사 말고 <b>AI 자리처럼</b>(보스 세기 반 명, 재화 −10%/자리). 파티 자체는 막지 않음.</li>
+    <li>둘 다 계산·코드로 본 추정이라 심각도 하. 서버 배포 필요(재설치 없음).</li>
+  </ul>
+</div>
+
+<h2 id="order">진행 순서 (확인 뒤)</h2>
+<div class="card">
+  <ol>
+    <li><b>F · G·H·L · M</b> — 서로 안 겹치고 작음. 한 버전에.</li>
+    <li><b>C</b> — 건설 시간·재료·골드 비용. 진행 중 건설 남은 시간 이행 포함.</li>
+    <li><b>D·E·J·N → I</b> — 직업을 먼저 고치고 곡선을 다시 구운 뒤 결투 배율을 맞춰 <b>한 번에</b> 배포(직업만 먼저 내면 결투가 한동안 틀어짐).</li>
+  </ol>
+  <div class="sub">각 단계마다 봇 전후 비교·게임 화면 확인 뒤 푸시. 스펙 상태는 확인 전까지 '구현'.</div>
+</div>
+</main>
+</body>
+</html>
