@@ -347,7 +347,7 @@ function t7Shape(sk, k) {
   let s = k;
   const big = (hits) => hits.reduce((a, h) => (h[1] > a[1] ? h : a), hits[0]);
   const after = (t, dt) => Math.min(0.98, t + dt / s.dur);
-  if (slot === 'slash' && sh.has('twin')) { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.15), b[1] * 0.6]] }; }
+  if (slot === 'slash' && sh.has('twin') && s.hits.length) { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.15), b[1] * 0.6]] }; }
   if (slot === 'slash' && sh.has('slashWave')) { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.2), b[1] * 0.5, { area: 'line', reach: 3 }]] }; }
   if (slot === 'gale' && sh.has('more')) {
     const small = s.hits.filter((h) => h === s.hits.reduce((a, x) => (x[1] < a[1] ? x : a), s.hits[0]));
@@ -368,7 +368,8 @@ function t7Shape(sk, k) {
   if (slot === 'ult' && sh.has('uvK')) s = { ...s, radius: (s.radius || 230) * 1.3 };
   // 모양 룬 (src/rune.js): 어느 스킬에나 덧타격 — 한 번 더 · 잔상 · 파열 · 난무
   for (const x of rsh) {
-    if (x.shape === 'twin') { const b = big(s.hits); s = { ...s, hits: [...s.hits, [after(b[0], 0.15), b[1] * x.v, ...b.slice(2)]] }; }
+    if (x.shape === 'twin' && s.hits.length) { const b = big(s.hits);   // 타격 없는 스킬(소환·버프 등)엔 덧붙일 타가 없다
+      s = { ...s, hits: [...s.hits, [after(b[0], 0.15), b[1] * x.v, ...b.slice(2)]] }; }
     else if (x.shape === 'after') s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.5), h[1] * x.v, ...h.slice(2)])] };
     else if (x.shape === 'burst') s = { ...s, hits: [...s.hits, ...s.hits.map((h) => [after(h[0], 0.12), h[1] * x.v, { area: 'all', radius: 60 }])] };
     else if (x.shape === 'more') {
