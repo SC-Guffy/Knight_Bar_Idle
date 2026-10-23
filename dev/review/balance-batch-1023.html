@@ -21,6 +21,7 @@
   th { background: #2b2538; color: var(--dim); font-weight: 400; }
   td:first-child, th:first-child { text-align: left; }
   .scroll { overflow-x: auto; }
+  table.wrap td { white-space: normal; text-align: left; vertical-align: top; }
   ul { margin: 4px 0; padding-left: 18px; }
   .rec { color: var(--gold); font-weight: 700; }
   .q { margin-top: 6px; padding: 6px 8px; background: #1b1824; border-left: 3px solid var(--gold); border-radius: 3px; }
@@ -40,7 +41,7 @@
 
 <h2>구현 결과 (10-23, 추천안 그대로)</h2>
 <div class="card">
-  <div class="scroll"><table>
+  <div class="scroll"><table class="wrap">
     <tr><th>버전</th><th>항목</th><th>확인한 것</th></tr>
     <tr><td>0.31.0</td><td>F · G·H·L · M</td><td>성벽 21단계 3웨이브 실패 → 🧱 250 (소탕과 같음, "소탕 보장") · 탑 49층 소탕 📖 49 → 18 · Lv20 스킬에 821권 → Lv29 · 판매 💠 6·7등급 90·150 · 성벽 졸업 칩 · 월드 보스 지분(부캐 4명) 1.359 → 0.996 · 같은 기사단 파티 party 1.5 · botMult 0.9<br>진행 봇 7일: 스테이지 260 → 259, 남은 📖 1,711 → 0</td></tr>
     <tr><td>0.31.1</td><td>C</td><td>건설 Lv14→15 34.7시간 → 9.4시간 · 짓던 건설도 줄임 · 훈련장 Lv14 목재 15.5K<br>수명 봇 21일: 스테이지 343 → <b>394</b> · 건물 합 49 → 61 · 훈련 상한 640 → 720 · 기사단 5명 279 → 354 (마을 Lv 합 1.5배 기준 안)</td></tr>
