@@ -386,7 +386,7 @@ Object.assign(SKILL_FX, {
           const tg = sjAim(a, i), gy = groundY();
           let x0 = tg.x - a.dir * rand(40, 90), y0 = 4;
           if (m === 1) { const p = sjFigPt(a, SJ_FIG.order[(i * 5 + 3) % SJ_FIG.order.length]); x0 = p.x; y0 = p.y; }
-          if (m === 2 && a.sjCons) [x0, y0] = a.sjCons[i].pts[0];
+          if (m === 2 && a.sjCons) [x0, y0] = a.sjCons[i % a.sjCons.length].pts[0];   // 성좌는 12개 — 룬 등으로 타수가 13을 넘으면 돌려 쓴다
           if (m >= 3) { x0 = tg.x + rand(-60, 60); y0 = a.sjRiftY ? a.sjRiftY(x0) : 26; }
           sjFallFx(a, 0, fall, x0, y0, tg.x, gy - 8, m >= 3 ? 1.6 : m ? 1.3 : 1.5, m >= 3 && i % 2 ? SJ_GOLD : SJ_BLUE);
         });
