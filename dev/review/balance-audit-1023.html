@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>밸런스 총점검 — 10-23</title>
+<!-- 스펙: docs/specs/balance-audit-1023.md. 수치는 node vm 실험(dev/audit-1023/)·lifespan/currency/guild/duel 봇 결과 (0.30.4). -->
+<style>
+  @font-face { font-family: Galmuri11; src: url(../../src/skin/Galmuri11.woff2) format('woff2'); }
+  @font-face { font-family: Galmuri11; font-weight: 700; src: url(../../src/skin/Galmuri11-Bold.woff2) format('woff2'); }
+  :root { --bg: #17141f; --panel: #221e2d; --line: #3a3348; --ink: #ece6f6; --dim: #a59cb8; --gold: #ffd257; --red: #ff6b6b; --green: #7dffb0; --warn: #ffb35c; --blue: #8fd8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.55 Galmuri11, -apple-system, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--dim); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th { background: #2b2538; color: var(--dim); font-weight: 400; }
+  td:first-child, th:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chip { cursor: pointer; padding: 1px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--dim); background: none; font: inherit; }
+  .chip.on { color: var(--ink); border-color: var(--gold); }
+  .sev { display: inline-block; min-width: 20px; text-align: center; padding: 0 6px; border-radius: 3px; font-weight: 700; margin-right: 6px; }
+  .s3 { background: #5a1f2a; color: var(--red); } .s2 { background: #4d3a1a; color: var(--warn); } .s1 { background: #2a3340; color: var(--blue); } .s0 { background: #1f3d2c; color: var(--green); }
+  .f { border-left: 3px solid var(--line); }
+  .f.s3b { border-left-color: var(--red); } .f.s2b { border-left-color: var(--warn); } .f.s1b { border-left-color: var(--blue); } .f.s0b { border-left-color: var(--green); }
+  .f h3 { margin: 0 0 4px; font-size: 14px; }
+  .f .meta { color: var(--dim); font-size: 12px; }
+  .f ul { margin: 4px 0; padding-left: 18px; }
+  .fix { margin-top: 6px; padding: 4px 8px; background: #1b1824; border-radius: 4px; }
+  .fix b { color: var(--gold); }
+  .tag { font-size: 11px; color: var(--dim); border: 1px solid var(--line); padding: 0 5px; border-radius: 8px; margin-left: 4px; }
+  .hi { color: var(--red); font-weight: 700; } .lo { color: var(--blue); } .ok { color: var(--green); }
+</style>
+</head>
+<body>
+<main>
+<h1>🔎 밸런스 총점검 <small class="sub">2026-10-23 · 0.30.4 기준</small></h1>
+<div class="sub">스펙 <code>docs/specs/balance-audit-1023.md</code> · 실험 <code>dev/audit-1023/</code> · 네 갈래(기사단 경제 · 보상/비용 역전 · 진행 곡선/재화 · 직업/결투)</div>
+
+<div class="card">
+  <b>요약</b> — 버그 2건은 바로 고쳐 배포했고(0.30.5·0.30.6), 밸런스 항목 15개(상 5 · 중 6 · 하 4)는 결정을 기다립니다.
+  상 5개: <b>A</b> 기사단 미궁 재료 ×기사 수 · <b>B</b> 레이드 입장권 가격 기준 어긋남 · <b>C</b> 골드 소모처 없음 + 건설 시간 벽 · <b>D</b> 파이터 3줄기 실전 약함 · <b>E</b> 무념 룬 정답 강요.
+</div>
+
+<h2>항목</h2>
+<div class="chips" id="sevChips"></div>
+<div class="chips" id="areaChips"></div>
+<div id="list"></div>
+
+<h2>진행 곡선 (lifespan-bot 열심 · 비전서 바침 · 12시드 중앙값)</h2>
+<div class="scroll"><table>
+<tr><th>일</th><th>스테이지</th><th>Lv</th><th>건물 합</th><th>훈련 상한</th><th>강화 합</th><th>골드 log10</th><th>🪵</th><th>🪨</th><th>💠</th><th>💎</th><th>📖</th></tr>
+<tr><td>1</td><td>70</td><td>68</td><td>21</td><td>200</td><td>33</td><td>8.4</td><td>185</td><td>438</td><td>7</td><td>277</td><td>0</td></tr>
+<tr><td>3</td><td>120</td><td>109</td><td>30</td><td>320</td><td>44</td><td>12.4</td><td>673</td><td>1.5k</td><td>9</td><td>583</td><td>0</td></tr>
+<tr><td>5</td><td>172</td><td>151</td><td>36</td><td>400</td><td>53</td><td>17.0</td><td>884</td><td>2.5k</td><td>30</td><td>1.1k</td><td>0</td></tr>
+<tr><td>7</td><td>215</td><td>187</td><td>42</td><td>480</td><td>59</td><td>20.8</td><td>3.3k</td><td>4.4k</td><td>26</td><td>2.0k</td><td class="hi">17</td></tr>
+<tr><td>10</td><td>260</td><td>226</td><td class="hi">46</td><td>520</td><td>66</td><td>24.4</td><td>12k</td><td>13k</td><td>45</td><td>4.6k</td><td>72</td></tr>
+<tr><td>11</td><td>277</td><td>236</td><td>46</td><td>520</td><td>68</td><td>25.6</td><td>33k</td><td>23k</td><td class="hi">1.9k</td><td>5.6k</td><td>84</td></tr>
+<tr><td>14</td><td>311</td><td>262</td><td>47</td><td>560</td><td>72</td><td>28.1</td><td>68k</td><td>48k</td><td>8.1k</td><td>10.7k</td><td>126</td></tr>
+<tr><td>21</td><td>359</td><td>298</td><td class="hi">49</td><td>640</td><td>79</td><td class="hi">32.0</td><td>130k</td><td>96k</td><td>31k</td><td>20k</td><td>225</td></tr>
+</table></div>
+<div class="sub">해금: 2차 1일 · 3차 3일 · 첫 진화 5일 · 성벽 업그레이드 완료 7일 · 교관 별 25 10일 · 마지막 레이드 14일. 하루 상승 1~10일 약 +19칸 → 10~21일 약 +9칸. 보스 벽은 40·80·100·120, 뒤로 240·260·280 에서 시드당 10~15시간.</div>
+
+<h2>직업 지표 (3차 Lv170 · 장비 없음 · 숙련 26 · 15줄기 기하평균 = 1.00)</h2>
+<div class="scroll"><table id="cls"></table></div>
+<div class="sub">실시간 = world.js update() 를 vm 에서 900초(처치 29~98, ±10%). 결투 범위 = 빌드 a·b·k 별 승률. 배율 없음 = 결투 전용 공격력 배율(T7_DUEL_LINE)을 끈 승률.</div>
+</main>
+<script>
+const F = [
+  { id: '✔1', sev: 0, area: '기사단', title: '기사를 불러올 때마다 가방 Lv 이 1로 깎임 — 고침 (0.30.5)',
+    pts: ['기사 세이브엔 공용 값(bld)이 없어 migrate 가 여관을 Lv1 로 보고 가방을 내렸다. 환급 목재도 버려지고 "창고 개편" 공지가 매번 떴다.', '시즌7 시작(10-20)부터 모든 플레이어. node 재현: 여관 10·가방 6 → 다시 불러와도 6 유지 확인.'],
+    fix: '<b>결정</b>: 깎인 가방은 기록이 없어 되돌릴 수 없다 — 우편으로 목재 보상할지?' },
+  { id: '✔2', sev: 0, area: '보상', title: '성벽 입장·소탕·구매에 서버 시각 확인 — 고침 (0.30.6)',
+    pts: ['탑·미궁은 0.20.11 에 막은 구멍(자정 직후 어제 장수를 쓰고 다시 3장 충전). 성벽만 빠져 있었다.'], fix: '배포 완료. 결정할 것 없음.' },
+  { id: 'A', sev: 3, area: '기사단', title: '재료의 미궁 🪵🪨 이 기사 수만큼 는다',
+    pts: ['칸 값은 공용 건물 비용 기준(기사 스테이지 무관), 무료 3장·구매 횟수는 기사별, 난이도는 그 기사 기준 → 누구나 보스 7~8마리.',
+      '봇 7일·5명: 본캐만 21판·목재 1.64e5 → 전원 87판·<span class="hi">8.9e5 (5.4배)</span>, 회관 Lv14 5.0일 → 3.2일.',
+      '기사 10명·슬롯 교체로 하루 최대 30판(혼자 3판). 새 기사는 0.5시간이면 미궁이 열려, 만들고 지우기로 무료 3판 반복 가능(추정).'],
+    fix: '<b>안</b> ① 무료 입장권·구매 횟수를 기사단 공용(하루 3장 + 기사 수 보너스 소량) ② 미궁 🪵🪨 하루 총량 상한 ③ 칸 값 × min(1, 기사 최고 ÷ 기사단 최고)' },
+  { id: 'B', sev: 3, area: '보상', title: '레이드 입장권 가격과 승리 골드의 기준이 다르다',
+    pts: ['가격 = 내 최고 스테이지 × 120, 승리 골드 = 레이드 보스 스테이지(4인이면 보스 입장 스테이지) 기준.',
+      '최고 129 가 서리 거인(100) 4인 → 첫 장(반값)이 승리 골드의 <span class="hi">약 99배</span>, 혼자여도 19배. 새 보스 열린 직후만 맞고 오를수록 톱니처럼 뜀.'],
+    fix: '<b>안</b> 가격 기준을 "열 수 있는 가장 높은 보스의 4인 rs" 로 (raid-tickets.md 의 "둘째 장 본전" 이 늘 맞게)' },
+  { id: 'C', sev: 3, area: '곡선', title: '골드는 교역 말고 쓸 곳이 없고, 건설 시간이 10일차부터 훈련을 멈춘다',
+    pts: ['골드 지출의 100% 가 교역. 건물·시설 골드(40·1.9^Lv)는 스테이지를 안 따라가 0% 수준, 21일 보유 10^32.',
+      '건설 줄 1개 × 60·1.8^(Lv−1)초: Lv14→15 34.7시간 · Lv16→17 4.7일 · Lv19→20 <span class="hi">27일</span>. 건물 합 10일 46 → 21일 49. 훈련 상한이 묶여 4:6 목표가 장비로 쏠림.',
+      '즉시 완료를 써도 다음 벽은 목재(Lv17 하나 약 15만).'],
+    fix: '<b>안</b> 건물·시설·전직 골드 비용을 priceBest() 배수로 · Lv12 위 건설 시간 ×1.8 → ×1.4 · balance-lifespan 제안 C 재검토. <span class="tag">큰 작업 · 경제 2단계</span>' },
+  { id: 'D', sev: 3, area: '직업', title: '파이터 3줄기가 실제 화면에서 가장 느리고 오프라인은 과대 계산',
+    pts: ['실시간 원정 지수 champion 0.55 · tempest 0.68 · grandmaster 0.74 (최하위 3). 실시간 ÷ 오프라인 0.76~0.82 (다른 줄기 1.17~1.34).',
+      '레이드 DPS tempest 0.66 · grandmaster 0.70. 추정 원인: dpsOf 가 기 충전 한계를 안 봄 + 결투용으로 깎은 공속이 기 충전까지 줄임.'],
+    fix: '<b>안</b> 기 충전 상향(champion hit 2.5→3.2 · tempest 5.8→7 · grandmaster perSec +25%), dpsOf 에 기 충전 상한, 결투 배율 다시 맞춤' },
+  { id: 'E', sev: 3, area: '직업', title: '무념(zen) 전설 룬: 초·중반 정답 강요, 후반엔 함정',
+    pts: ['룬 하나 DPS 배율: zen <span class="hi">×1.34</span>(최대 1.52) · 2위 ×1.12 · 나머지 1.01~1.08. 결투 Lv130 tempest 44→89%, warlord 56→86%.',
+      '고정 ×1.9 가 장비 적을 때 치명 기대값(1.5~1.9)보다 큼. St140 뒤 치명 기대값 2.4~5.6 이면 손해. 봇은 zen 을 최하 점수로 줘서 검증에 안 잡혔다.'],
+    fix: '<b>안</b> 치명 기대값 연동 min(1.9, 1+crit×(critMult−1)) × 1.15, 또는 ×1.45 고정' },
+  { id: 'F', sev: 2, area: '보상', title: '성벽: 새 단계 도전 실패가 소탕보다 크게 손해',
+    pts: ['최고 20 → 21 도전, 3웨이브 실패: 🧱 56·📕 1.23 vs 소탕 🧱 250·📕 4.06. 9웨이브까지 막아도 소탕보다 적다 → 도전을 피하게 됨.'],
+    fix: '<b>안</b> 탑(0.20.10)처럼 입장 때 최고 단계 소탕분을 먼저 주고 새 단계 몫만 얹기' },
+  { id: 'G', sev: 2, area: '곡선', title: '📖 비전서가 7일차부터 쌓인다 (쓸 곳 = 숙련 Lv20 까지)',
+    pts: ['장착 스킬은 전투 경험치로 7일 평균 Lv23 → 잔고 7일 17 → 21일 225. 탑 소탕은 최고 층 수만큼 줘서 실제 수입은 봇 가정(하루 4권)보다 훨씬 많음(추정 하루 ~100권).'],
+    fix: '<b>안</b> Lv20 위로 효율을 줄여 계속 바치기(1권 = +5) 또는 안 낀 스킬·진화 재료에도 쓰기' },
+  { id: 'H', sev: 2, area: '곡선', title: '💠 강화석·💎 마력석 11일차 급변 후 잉여, 병목은 📜 보호 주문서',
+    pts: ['강화석 잔고 10일 45 → <span class="hi">11일 1.9k</span> → 21일 31k (7등급 판매 400개와 장착 최저 7등급 시점이 겹침). 마력석 21일 2만.',
+      '+15→+30 은 부위당 주문서 약 82장, 하루 약 19장 수입을 다 씀 → 강화석이 수만 개 있어도 못 올림.'],
+    fix: '<b>안</b> 7등급 판매 강화석 400 → 200 수준, 주문서 레이드 상자 몫 상향' },
+  { id: 'I', sev: 2, area: '결투', title: '결투 전용 공격력 배율 폭 0.70~1.89 · 빌드별 편차 · 너무 짧은 판',
+    pts: ['배율을 끄면 근접이 원거리를 77% 로 이기고 archmage 15%. "콘텐츠 전용 보정 금지" 와 충돌, 장비 없음·10판으로 맞춘 값.',
+      '같은 줄기 안 빌드별 34~66% (archon b 34 / k 63). 평균 8.1초 · 3초 안 판 24% (목표 11%), archon–skyGeneral 은 41초 (상한 45).'],
+    fix: '<b>안</b> 사거리 불리를 결투 규칙(시작 거리·원거리 체력)으로, 배율 0.85~1.25 로 좁히기, 장비 곡선·30판 이상으로 재맞춤, DUEL_HP 를 스테이지 따라 상향 <span class="tag">큰 작업</span>' },
+  { id: 'J', sev: 2, area: '직업', title: '검성이 근접인데 딜 1등',
+    pts: ['단일 DPS 1.39 · 실시간 1.39 · 레이드 1.30 (전 원거리보다 높음) + EHP 1.06. aspd 2.2 (다른 3차 0.62~1.45).'],
+    fix: '<b>안</b> aspd 2.2 → 1.85 또는 atk 1.7 → 1.5, 결투 배율 0.76 → 0.85 쪽' },
+  { id: 'K', sev: 2, area: '봇', title: '봇이 낡음 (게임 문제 아님 — 다음 점검의 정확도)',
+    pts: ['progress·currency-bot: 비전서를 옛 feedTomes 에, 스킬 칸·룬·진화 안 함, 파이터 3줄기 빠짐 → 7일 스테이지 약 10% 과소. --rev 에서 0.30.0 이 느려 보이는 건 착시.',
+      'server/bot-curve.json(10-17) 옛 스킬 → AI 결투 상대·레이드 AI·교관이 지금 스킬을 반영 못 함. 탑 비전서·재굴림·월드 보스/결투 상자·미궁 실전투는 어느 봇에도 없음.'],
+    fix: '<b>안</b> classUp 을 lifespan-bot 처럼 t7AutoSpend 로, dev/bot-curve.js 를 t7 로 다시 굽기 — C·G·H 를 고치기 전에 먼저 하면 수치를 더 믿을 수 있음' },
+  { id: 'L', sev: 1, area: '곡선', title: '성벽 수명 짧음 — 🧱·📕 가 7~10일 뒤 죽은 재화',
+    pts: ['업그레이드 6종 🧱 7,530 = 약 7일. 📕 은 교관 별 25(10일) 뒤 쓸 곳 없음 → 이후 성벽 보상 0, 구매는 순손해.'], fix: '<b>결정</b> 완료 뒤 보상을 다른 재화로 바꿀지, 완료 시점을 시즌 길이에 맞출지' },
+  { id: 'M', sev: 1, area: '기사단', title: '월드 보스 지분 희석 · 같은 기사단 레이드 파티',
+    pts: ['피해 거의 0 인 부캐 4명이 평균을 끌어내려 모두의 몫 +27% (사람 10명 예). 같은 기사단 기사끼리 파티로 AI 자리 −10% 회피. 둘 다 추정.'],
+    fix: '<b>안</b> 지분 평균에서 기사단을 1명으로 세기 · 같은 기사단 파티원을 인원 보정에서 AI 처럼' },
+  { id: 'N', sev: 1, area: '직업', title: '룬 오프라인 반영 · 공허궁 오프라인 과대',
+    pts: ['광란·만검·월광은 이득 규칙이 실시간 전용 → 오프라인·결투·레이드엔 대가만 (DPS ×0.90~0.96). 그런데 봇은 무념보다 높게 침.', '공허궁 실시간 ÷ 오프라인 0.97 (다른 원거리 1.21~1.34) → 오프라인 약 20% 과대.'],
+    fix: '<b>안</b> 세 룬에 평균 배율(ev) 넣기(예: 광란 ×1.08), 관통 오프라인 배율 1.25 줄기별 재맞춤' },
+  { id: 'O', sev: 1, area: '직업', title: '성좌기사 궁극기 오류 가능성 (확인 필요)',
+    pts: ['헤드리스 실행에서 starJudgment.js:389 pts undefined 오류 20회/900초. 그림 없는 환경 탓일 수 있음.'], fix: '<b>안</b> 내장 브라우저에서 성좌기사 빌드 a 로 확인' },
+];
+const CLS = [
+  ['swordsaint', 1.39, 1.39, 1.34, 1.06, 1.30, '36~61', 80, 0.76], ['tyrant', 1.05, 1.18, 1.19, 1.43, 1.26, '46~57', 75, 0.81],
+  ['archon', 0.65, 0.77, 1.32, 1.49, 0.70, '34~63', 59, 1.00], ['skyGeneral', 0.75, 0.91, 1.17, 1.74, 0.77, '35~62', 84, 0.70],
+  ['dragonlord', 0.97, 1.10, 1.17, 1.23, 1.04, '46~55', 57, 1.01], ['warlord', 0.90, 1.04, 1.17, 1.32, 1.03, '41~57', 55, 1.01],
+  ['siegeMaster', 1.23, 1.15, 1.21, 0.82, 1.24, '49~51', 45, 1.22], ['deadeye', 1.28, 1.26, 1.30, 0.67, 1.33, '38~66', 52, 1.03],
+  ['voidArcher', 1.16, 1.04, 0.97, 0.67, 1.18, '46~54', 28, 1.54], ['thunderEmperor', 1.05, 1.06, 1.24, 0.69, 1.08, '48~52', 24, 1.64],
+  ['archmage', 1.00, 1.09, 1.34, 0.65, 1.08, '48~53', 15, 1.89], ['frostlord', 1.02, 1.06, 1.27, 0.89, 1.06, '43~60', 32, 1.32],
+  ['champion', 0.86, 0.55, 0.76, 1.10, 0.96, '46~54', 74, 0.80], ['tempest', 0.85, 0.68, 0.79, 0.98, 0.66, '48~53', 35, 1.36],
+  ['grandmaster', 1.13, 0.74, 0.82, 0.99, 0.70, '40~57', 36, 1.38],
+];
+const SEV = ['고침', '하', '중', '상'];
+const state = { sev: new Set([0, 1, 2, 3]), area: 'all' };
+try { const v = JSON.parse(localStorage.getItem('audit1023') || 'null'); if (v) { state.sev = new Set(v.sev); state.area = v.area; } } catch {}
+function chips() {
+  document.getElementById('sevChips').innerHTML = [3, 2, 1, 0].map((s) => `<button class="chip ${state.sev.has(s) ? 'on' : ''}" data-sev="${s}"><span class="sev s${s}">${SEV[s]}</span>${F.filter((f) => f.sev === s).length}</button>`).join('');
+  const areas = ['all', ...new Set(F.map((f) => f.area))];
+  document.getElementById('areaChips').innerHTML = areas.map((a) => `<button class="chip ${state.area === a ? 'on' : ''}" data-area="${a}">${a === 'all' ? '전체' : a}</button>`).join('');
+}
+function list() {
+  const L = F.filter((f) => state.sev.has(f.sev) && (state.area === 'all' || f.area === state.area));
+  document.getElementById('list').innerHTML = L.map((f) => `<div class="card f s${f.sev}b">
+    <h3><span class="sev s${f.sev}">${f.id}</span>${f.title}</h3>
+    <div class="meta">${SEV[f.sev]} · ${f.area}</div>
+    <ul>${f.pts.map((p) => `<li>${p}</li>`).join('')}</ul>
+    <div class="fix">${f.fix}</div></div>`).join('') || '<div class="sub">고른 조건에 맞는 항목이 없어요</div>';
+}
+function cls() {
+  const c = (v, lo, hi) => (v <= lo ? 'lo' : v >= hi ? 'hi' : '');
+  document.getElementById('cls').innerHTML = '<tr><th>줄기</th><th>단일 DPS</th><th>실시간 원정</th><th>실시간÷오프라인</th><th>EHP</th><th>레이드 DPS</th><th>결투(빌드별 %)</th><th>배율 없음 %</th><th>결투 배율</th></tr>' +
+    CLS.map((r) => `<tr><td>${r[0]}</td><td class="${c(r[1], 0.75, 1.3)}">${r[1].toFixed(2)}</td><td class="${c(r[2], 0.75, 1.3)}">${r[2].toFixed(2)}</td><td class="${c(r[3], 0.9, 9)}">${r[3].toFixed(2)}</td><td>${r[4].toFixed(2)}</td><td class="${c(r[5], 0.75, 1.3)}">${r[5].toFixed(2)}</td><td>${r[6]}</td><td class="${c(r[7], 20, 80)}">${r[7]}</td><td class="${c(r[8], 0.75, 1.5)}">${r[8].toFixed(2)}</td></tr>`).join('');
+}
+function draw() { chips(); list(); try { localStorage.setItem('audit1023', JSON.stringify({ sev: [...state.sev], area: state.area })); } catch {} }
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  if (b.dataset.sev) { const s = +b.dataset.sev; state.sev.has(s) ? state.sev.delete(s) : state.sev.add(s); }
+  if (b.dataset.area) state.area = b.dataset.area;
+  draw();
+});
+draw(); cls();
+</script>
+</body>
+</html>
