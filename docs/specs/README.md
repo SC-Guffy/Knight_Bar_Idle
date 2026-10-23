@@ -43,14 +43,14 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
-| [castle-fail-floor.md](castle-fail-floor.md) | 초안 | 성벽 도전 보상 바닥 = 소탕분 — 끝날 때 🧱·📕 를 max(도전 몫, 최고 단계 소탕 몫) (총점검 F, 검토 `dev/review/balance-batch-1023.html`) |
-| [currency-surplus-1023.md](currency-surplus-1023.md) | 초안 | 남는 재화 — 📖 탑 소탕 min(층, 8+층/5) + 숙련 Lv20 위 1권 +5, 💠 판매 6·7등급 90·150, 💎 골동품 4, 성벽 졸업 (총점검 G·H·L) |
-| [economy-build-gold.md](economy-build-gold.md) | 초안 | 건설 시간 Lv10 위 ×1.3 · 목재·철광석 Lv8 위 ×1.35 · 건물·시설·전직 골드 priceBest 배수 (총점검 C) |
-| [class-balance-1023.md](class-balance-1023.md) | 초안 | 파이터 기 게이지·오프라인 계산 수정·충전 상향 · 무념 치명 기대값 연동 · 검신 공격력 1.5 · 공허궁 오프라인 · 전설 룬 대가 반 (총점검 D·E·J·N) |
-| [duel-rebalance-1023.md](duel-rebalance-1023.md) | 초안 | 결투 체력 전체 DPS 7.5초 · 결투 배율 장비 곡선 재맞춤 0.85~1.25 · AI 곡선 시즌7 재생성 (총점검 I·K) |
-| [guild-shared-content.md](guild-shared-content.md) | 초안 | 월드 보스 평균 지분 기사단 1명 · 같은 기사단 레이드 파티원은 AI 자리처럼 (총점검 M) |
+| [castle-fail-floor.md](castle-fail-floor.md) | 구현 (0.31.0, 확인 전) | 성벽 도전 보상 바닥 = 소탕분 — 끝날 때 🧱·📕 를 max(도전 몫, 최고 단계 소탕 몫) (총점검 F, 검토 `dev/review/balance-batch-1023.html`) |
+| [currency-surplus-1023.md](currency-surplus-1023.md) | 구현 (0.31.0, 확인 전) | 남는 재화 — 📖 탑 소탕 min(층, 8+층/5) + 숙련 Lv20 위 1권 +5, 💠 판매 6·7등급 90·150, 💎 골동품 4, 성벽 졸업 (총점검 G·H·L) |
+| [economy-build-gold.md](economy-build-gold.md) | 구현 (0.31.1, 확인 전) | 건설 시간 Lv10 위 ×1.3 · 목재·철광석 Lv8 위 ×1.35 · 건물·시설·전직 골드 priceBest 배수 (총점검 C) |
+| [class-balance-1023.md](class-balance-1023.md) | 구현 (0.31.2, 확인 전) | 파이터 기 게이지·오프라인 계산 수정·충전 상향 · 무념 치명 기대값 연동 · 검신 공격력 1.5 · 공허궁 오프라인 · 전설 룬 대가 반 (총점검 D·E·J·N) |
+| [duel-rebalance-1023.md](duel-rebalance-1023.md) | 구현 (0.31.2, 확인 전) | 결투 체력 전체 DPS 7.5초 · 결투 배율 장비 곡선 재맞춤 0.85~1.25 · AI 곡선 시즌7 재생성 (총점검 I·K) |
+| [guild-shared-content.md](guild-shared-content.md) | 구현 (0.31.0, 확인 전) | 월드 보스 평균 지분 기사단 1명 · 같은 기사단 레이드 파티원은 AI 자리처럼 (총점검 M) |
 | [guild-dungeon-tickets.md](guild-dungeon-tickets.md) | 완료 (0.30.7) | **기사단 미궁 입장권 공용** — 무료 하루 3장·산 입장권·구매 가격 단계를 기사단 하나로(미궁 🪵🪨 이 기사 수만큼 늘던 것), 산 입장권은 처음 한 번 공용으로 옮김 (검토 `dev/review/audit-ab.html`) |
-| [balance-audit-1023.md](balance-audit-1023.md) | 점검 끝 · A·B 구현 (0.30.7) | **밸런스 총점검 (10-23)** — 버그 2건 수정(0.30.5 기사단 가방 Lv 초기화 · 0.30.6 성벽 서버 시각), 상 5(미궁 재료 ×기사 수 · 레이드 입장권 기준 · 골드 소모처/건설 시간 벽 · 파이터 실전 · 무념 룬) · 중 6 · 하 4 (검토 `dev/review/balance-audit-1023.html`, 실험 `dev/audit-1023/`) |
+| [balance-audit-1023.md](balance-audit-1023.md) | 점검 끝 · 전 항목 구현 (0.30.5~0.31.2) | **밸런스 총점검 (10-23)** — 버그 2건 수정(0.30.5 기사단 가방 Lv 초기화 · 0.30.6 성벽 서버 시각), 상 5(미궁 재료 ×기사 수 · 레이드 입장권 기준 · 골드 소모처/건설 시간 벽 · 파이터 실전 · 무념 룬) · 중 6 · 하 4 (검토 `dev/review/balance-audit-1023.html`, 실험 `dev/audit-1023/`) |
 | [guild-price-base.md](guild-price-base.md) | 완료 (0.30.4) | **기사단 공용 골드 가격 기준** — 즉시 완료·교역·보급품·입장권 4종·스킬 슬롯 8곳이 기사별 `S.best` 라 저렙 부캐로 싸게 삼 → 기사단 최고 스테이지(내려가지 않음)로, 보상은 기사 스테이지 그대로 (검토 `dev/review/guild-price-base.html`) |
 | [skill-combo.md](skill-combo.md) | 초안 | **스킬 연계 (재기획 3단계)** — 장착 순서상 바로 다음 칸이 2초 안에 이어지면 피해 +20%, 1초 기다렸다 잇기, 꼬리표 6종 × 합동기 6가지, S.combo 기록, 오프라인·결투는 comboEv 평균 배율 (검토 `dev/review/skill-combo.html`) |
 | [result-on-click.md](result-on-click.md) | 구현 (0.28.12, 확인 전) | 결과는 눌러야 본다 — 레이드 결과가 와도 창을 닫거나 재생하지 않고 ❗→기사 클릭 시 재생, 결투·탑·미궁·성벽·시즌·월드 보스 알림 토스트에서 승패·보상 숫자 뺌 |

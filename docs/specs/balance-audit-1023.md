@@ -1,6 +1,6 @@
 # 밸런스 총점검 (2026-10-23, 0.30.4 기준)
 
-- 상태: 점검 끝 · A·B 구현(0.30.7, 확인 전) · 나머지 결정 대기
+- 상태: 점검 끝 · 전 항목 구현 (0.30.5~0.31.2, 사용자 확인 전)
 - 검토 페이지: [dev/review/balance-audit-1023.html](../../dev/review/balance-audit-1023.html)
 - 관련 스펙: [guild-price-base.md](guild-price-base.md), [reward-inversion-audit.md](reward-inversion-audit.md)(10-14 1차 전수조사), [raid-tickets.md](raid-tickets.md), [castle-defense.md](castle-defense.md), [currency-roles.md](currency-roles.md), [growth-compression.md](growth-compression.md), [balance-lifespan.md](balance-lifespan.md), [skill-runes.md](skill-runes.md), [duel-length.md](duel-length.md)
 - 최종 갱신: 2026-10-23
@@ -102,6 +102,7 @@ TRADE_MAIN_ONLY=1 HALL_FIRST=1 node dev/guild-bot.js --days 7 --seeds 5
 ```
 
 ## 진행 기록
+- 2026-10-23: 나머지 항목 전부 구현·배포 — 0.31.0 F·G·H·L·M · 0.31.1 C · 0.31.2 D·E·J·N·I + AI 곡선. K 봇 갱신, O 성좌기사 궁극기(0.30.8), 조사 중 찾은 '한 번 더' 룬 오류(0.30.9). 항목별 결과는 각 스펙과 `dev/review/balance-batch-1023.html`.
 
 - 2026-10-23: 네 갈래 점검. 버그 2건 바로 수정·배포(0.30.5 가방, 0.30.6 성벽 서버 시각). 나머지 A~O 를 정리해 사용자 결정 대기.
 
