@@ -1,6 +1,6 @@
 # 기사단 재료의 미궁 입장권 공용화
 
-- 상태: 구현 (0.30.7, 사용자 확인 전) — 안 1 · 보너스 없음 확정 (사용자 10-23)
+- 상태: 완료 (0.30.7, 사용자 확인 10-23) — 안 1 · 보너스 없음
 - 관련 코드: src/dungeon.js (`dgFreeTickets`·`useDgTicket`·`dgTicketsBoughtToday`·`buyDgTicket`·`freshDungeon`), src/guild.js (`freshShared`·`bindShared`), server/index.js (`sanitizeShared`), dev/guild-bot.js
 - 관련 스펙: [balance-audit-1023.md](balance-audit-1023.md) 항목 A, [guild.md](guild.md) (공용 범위 안 A), [guild-price-base.md](guild-price-base.md), [dungeon-slot-roles.md](dungeon-slot-roles.md)
 - 최종 갱신: 2026-10-23
@@ -69,4 +69,4 @@
 
 ## 남은 일 / 미정
 
-- 사용자 확인 뒤 상태 `완료`.
+- 없음.

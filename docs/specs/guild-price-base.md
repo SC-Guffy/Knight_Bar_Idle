@@ -1,6 +1,6 @@
 # 기사단 공용 골드 가격 기준 (기사단 최고 스테이지)
 
-- 상태: 구현 (0.30.4, 사용자 확인 전) — 안 A 확정 (사용자 10-22)
+- 상태: 완료 (0.30.4, 사용자 확인 10-23) — 안 A
 - 관련 코드: src/core.js (`priceBest`·`finishLap`·`rushPrice`·`tradePrice`·`supplyPrice`), src/raid.js (`ticketPrice`), src/tower.js (`towerTicketPrice`), src/dungeon.js (`dgTicketPrice`), src/castle.js (`castleTicketPrice`), src/tree7.js (`t7SlotCost`), src/guild.js (`freshShared.best`·`bindShared` 의 `S.guildBest`), server/index.js (`sanitizeShared` 의 `best`), dev/guild-bot.js·dev/guild-server-test.mjs
 - 관련 스펙: [guild.md](guild.md) (공용 범위 안 A — 골드·목재·철광석·마을 공용), [build-rush.md](build-rush.md), [currency-roles.md](currency-roles.md)
 - 최종 갱신: 2026-10-22
@@ -79,7 +79,7 @@
 
 ## 남은 일 / 미정
 
-- 사용자 확인 뒤 상태 `완료`.
+- 끝. 미궁 입장권 쪽은 [guild-dungeon-tickets.md](guild-dungeon-tickets.md)(0.30.7) 에서 마저 막음.
 - 따로 볼 것: 미궁 무료 입장권(하루 기사별)으로 들어오는 🪵🪨 이 기사 수만큼 늘어난다 — guild.md 4단계 봇은 "목재·철광석은 기사 수만큼 안 늘어난다" 전제였는데 미궁 몫은 늘어난다. 봇이 미궁을 돌리는지 확인하고, 마을 Lv 합 1.5배 기준을 넘는지 같이 본다.
 
 ## 확인 방법

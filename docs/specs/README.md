@@ -43,9 +43,9 @@
 
 | 스펙 | 상태 | 내용 |
 |---|---|---|
-| [guild-dungeon-tickets.md](guild-dungeon-tickets.md) | 구현 (0.30.7, 확인 전) | **기사단 미궁 입장권 공용** — 무료 하루 3장·산 입장권·구매 가격 단계를 기사단 하나로(미궁 🪵🪨 이 기사 수만큼 늘던 것), 산 입장권은 처음 한 번 공용으로 옮김 (검토 `dev/review/audit-ab.html`) |
+| [guild-dungeon-tickets.md](guild-dungeon-tickets.md) | 완료 (0.30.7) | **기사단 미궁 입장권 공용** — 무료 하루 3장·산 입장권·구매 가격 단계를 기사단 하나로(미궁 🪵🪨 이 기사 수만큼 늘던 것), 산 입장권은 처음 한 번 공용으로 옮김 (검토 `dev/review/audit-ab.html`) |
 | [balance-audit-1023.md](balance-audit-1023.md) | 점검 끝 · A·B 구현 (0.30.7) | **밸런스 총점검 (10-23)** — 버그 2건 수정(0.30.5 기사단 가방 Lv 초기화 · 0.30.6 성벽 서버 시각), 상 5(미궁 재료 ×기사 수 · 레이드 입장권 기준 · 골드 소모처/건설 시간 벽 · 파이터 실전 · 무념 룬) · 중 6 · 하 4 (검토 `dev/review/balance-audit-1023.html`, 실험 `dev/audit-1023/`) |
-| [guild-price-base.md](guild-price-base.md) | 구현 (0.30.4, 확인 전) | **기사단 공용 골드 가격 기준** — 즉시 완료·교역·보급품·입장권 4종·스킬 슬롯 8곳이 기사별 `S.best` 라 저렙 부캐로 싸게 삼 → 기사단 최고 스테이지(내려가지 않음)로, 보상은 기사 스테이지 그대로 (검토 `dev/review/guild-price-base.html`) |
+| [guild-price-base.md](guild-price-base.md) | 완료 (0.30.4) | **기사단 공용 골드 가격 기준** — 즉시 완료·교역·보급품·입장권 4종·스킬 슬롯 8곳이 기사별 `S.best` 라 저렙 부캐로 싸게 삼 → 기사단 최고 스테이지(내려가지 않음)로, 보상은 기사 스테이지 그대로 (검토 `dev/review/guild-price-base.html`) |
 | [skill-combo.md](skill-combo.md) | 초안 | **스킬 연계 (재기획 3단계)** — 장착 순서상 바로 다음 칸이 2초 안에 이어지면 피해 +20%, 1초 기다렸다 잇기, 꼬리표 6종 × 합동기 6가지, S.combo 기록, 오프라인·결투는 comboEv 평균 배율 (검토 `dev/review/skill-combo.html`) |
 | [result-on-click.md](result-on-click.md) | 구현 (0.28.12, 확인 전) | 결과는 눌러야 본다 — 레이드 결과가 와도 창을 닫거나 재생하지 않고 ❗→기사 클릭 시 재생, 결투·탑·미궁·성벽·시즌·월드 보스 알림 토스트에서 승패·보상 숫자 뺌 |
 | [guild.md](guild.md) | 초안 | **기사단 (시즌7)** — 기사 여러 명 동시 육성(슬롯 2→5, 🛡️ 기사단 회관), 모든 콘텐츠 동시 진행(기사마다 iframe 검증안), 입장권 기사별, 계열 효과·따라잡기, Google 로그인 + Electron 연결 코드. 공용 범위 안 A/B 미정 (검토 `dev/review/guild.html`) |
@@ -80,7 +80,7 @@
 | [duel-gap-closer.md](duel-gap-closer.md) | 완료 | 돌진기가 사거리 밖에서 달려붙는 이동기 + 직업 체력 근접 ×1.1 · 원거리 ×0.9 — 근접 vs 원거리 손해 보정 |
 | [duel-length.md](duel-length.md) | 완료 | 결투 체력 ×2(%회복은 늘리기 전 기준) + 성기사·성좌기사·천마장군 방어·회복 하향 — 스킬 한두 방에 끝나지 않게 |
 | [raid-difficulty.md](raid-difficulty.md) | 완료 | 레이드 보스 세기 = 입장 + 9 − 인원 보정 (4인 바로 · AI 파티 +8 · 혼자 +20), 전 보스는 스근하게 |
-| [raid-tickets.md](raid-tickets.md) | 구현 (0.30.7, 확인 전) | 레이드 입장권 (0.30.7 가격 기준 = 열린 가장 높은 보스 스테이지): 매일 자정 5장까지 무료로 채움(=보유 상한), 구매·우편 규칙 |
+| [raid-tickets.md](raid-tickets.md) | 완료 (0.30.7) | 레이드 입장권 (0.30.7 가격 기준 = 열린 가장 높은 보스 스테이지): 매일 자정 5장까지 무료로 채움(=보유 상한), 구매·우편 규칙 |
 | [duel-season-chest.md](duel-season-chest.md) | 구현됨 (0.30.3, 확인 전) | 결투 시즌 보상에서 레이드 처치 상자 제거 → ⚔️ 결투 시즌 상자(강화석·비전서·재굴림권·보호 주문서, 장비 없음), 🏆 랭킹 탭에서 [받기] |
 | [worldboss-chest.md](worldboss-chest.md) | 구현됨 (0.30.4, 확인 전) | 월드 보스 처치 보상에서 레이드 처치 상자 제거 → 🌍 보스별 전리품 상자(목재·철광석·마력석·강화석·재굴림권, 장비 없음), 🐉 레이드 탭에서 [받기] |
 | [skill-build-tree.md](skill-build-tree.md) | 초안 (시즌7) | 스킬 빌드 트리: 레벨업마다 🌟 포인트, 직업 안 갈래 3개·변형·키스톤·융합·궁극기 변형, 장착 칸 1→4, 10·20칸 보스 벽, 비전서 없앰. 레퍼런스 9게임. 검토 `dev/review/skill-build-tree.html` |
