@@ -185,7 +185,8 @@ function barFor(win) {
 // ───────────────────────── 기사단 저장 ─────────────────────────
 function freshShared() {
   return { gold: 0, wood: 0, ore: 0, bld: { training: 1, inn: 1, storage: 1, forge: 1, hall: 1 },
-    stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 }, forge: {}, build: null, best: 0 };   // best: 기사단 최고 스테이지 (가격 기준, docs/specs/guild-price-base.md)
+    stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 }, forge: {}, build: null, best: 0,   // best: 기사단 최고 스테이지 (가격 기준, docs/specs/guild-price-base.md)
+    dg: { tixDay: '', tixUsed: 0, tixExtra: 0, buyDay: '', bought: 0 } };   // 재료의 미궁 입장권 — 기사단 공용 (docs/specs/guild-dungeon-tickets.md)
 }
 // 처음 켤 때: 지금 고른 계정을 기사1 로, 그 기사의 공용 항목을 기사단 출발점으로 옮긴다
 function initGuild() {
@@ -339,6 +340,11 @@ window.guildHost = {
     // 기사단 최고 스테이지: 기사가 붙을 때·스테이지를 넘을 때 올리고 내리지 않는다 (src/core.js priceBest)
     Object.defineProperty(S, 'guildBest', { get: () => shared.best || 0, set: (v) => { shared.best = v; }, enumerable: false, configurable: true });
     if ((S.best || 0) > (shared.best || 0)) shared.best = S.best;
+    // 재료의 미궁 입장권(무료·산 것·오늘 산 장수)도 공용 — 미궁 🪵🪨 은 공용 건물 비용 기준이라 기사마다 따로면 기사 수만큼 늘었다.
+    //  기사 세이브에 남아 있던 산 입장권은 처음 한 번만 공용으로 옮긴다 (tixMoved 는 기사 세이브에 남아 다시 옮기지 않게)
+    if (!shared.dg) shared.dg = freshShared().dg;
+    if (!S.dg.tixMoved) { shared.dg.tixExtra = (shared.dg.tixExtra || 0) + (S.dg.tixExtra || 0); S.dg.tixMoved = 1; }
+    for (const k of ['tixDay', 'tixUsed', 'tixExtra', 'buyDay', 'bought']) Object.defineProperty(S.dg, k, { get: () => shared.dg[k], set: (v) => { shared.dg[k] = v; }, enumerable: false, configurable: true });
   },
   ready(win) {
     const i = frameOf(win);

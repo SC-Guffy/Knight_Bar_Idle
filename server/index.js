@@ -1196,7 +1196,9 @@ function sanitizeShared(o) {
   for (const k of FAC_IDS) if (o.forge && o.forge[k] != null) forge[k] = lvOf(o.forge[k], 0, 100);
   const b = o.build;
   const build = b && BLD_IDS.includes(b.id) && nn(b.total) > 0 ? { id: b.id, remain: nn(b.remain), total: nn(b.total) } : null;
+  const dg = o.dg || {};   // 재료의 미궁 입장권 — 기사단 공용 (docs/specs/guild-dungeon-tickets.md)
   return { gold: nn(o.gold), wood: nn(o.wood), ore: nn(o.ore), bld, forge, build, best: Math.min(99999, Math.floor(nn(o.best))),   // best: 기사단 최고 스테이지 (가격 기준)
+    dg: { tixDay: String(dg.tixDay || '').slice(0, 16), tixUsed: Math.min(99, Math.floor(nn(dg.tixUsed))), tixExtra: Math.min(999, Math.floor(nn(dg.tixExtra))), buyDay: String(dg.buyDay || '').slice(0, 16), bought: Math.min(999, Math.floor(nn(dg.bought))) },
     stock: { wood: nn(st.wood), ore: nn(st.ore), at: nn(st.at), tradeDay: String(st.tradeDay || '').slice(0, 16), trades: Math.floor(nn(st.trades)) } };
 }
 // 새 기사단의 공용 상태는 빈 마을에서 시작한다. 첫 저장(서버 rev 0)이 이보다 크면 이 기기에 남은 지난 기사단(초기화 전 시즌 등)의

@@ -2842,7 +2842,7 @@ function viewDungeon() {
   const tiers = DG_SLOT_TIER_IDS.map((id) => { const t = DG_SLOT_TIERS[id]; return `<span class="pchip static" title="${t.big ? `맞춘 재화 ${t.big}칸${t.small ? ` + 나머지 ${t.small}칸` : ''}` : `세 재화 ${t.small}칸씩`}">${id === 'perfect' ? '🌟' : id === 'pair' ? '🎉' : '🎲'} ${t.name} <small>${t.w}%</small></span>`; }).join('');
   return `
     <div class="mhead"><div><h3>${ico('pick')} 재료의 미궁</h3>
-      <small>🎟 입장권 <b>${dgFreeTickets()}/${DG_TICKETS}</b>${d.tixExtra ? ` + 구매 <b>${d.tixExtra}</b>` : ''} · 최고 기록 👑 ${d.best || 0}마리 · 통산 🌟 퍼펙트 ${d.perfects || 0}</small></div></div>
+      <small>🎟 입장권 <b>${dgFreeTickets()}/${DG_TICKETS}</b>${d.tixExtra ? ` + 구매 <b>${d.tixExtra}</b>` : ''}${GUILD_HOST ? ' (기사단 공용)' : ''} · 최고 기록 👑 ${d.best || 0}마리 · 통산 🌟 퍼펙트 ${d.perfects || 0}</small></div></div>
     ${dgBuyRow()}
     ${fresh ? dgResultHtml(d.last) : ''}
     <div class="hint">보스가 한 마리씩 나와요. 잡을 때마다 🎰 슬롯머신을 한 번 돌리고, 보스는 한 마리마다 1 스테이지씩 세져요 (지금 첫 보스 스테이지 ${s0}, 내 전투력에 맞춰요). 슬롯 보상은 보스를 잡을 때마다 +${Math.round(DG_BOSS_BONUS * 100)}%씩 커지고, 보스를 잡으면 체력이 ${Math.round(DG_HEAL * 100)}% 차요. 체력은 저절로 차지 않지만 쓰러져도 모은 자원은 다 가져가요. 입장권이 모자라면 골드로 사서 쓸 수 있어요 (하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${SUB_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>

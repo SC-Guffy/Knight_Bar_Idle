@@ -28,12 +28,21 @@ function refillTickets() {
   S.raid.tickets = RAID_TICKET_FREE;
   return true;
 }
+// 가격 기준 스테이지 = 열 수 있는 가장 높은 보스의 입장 스테이지 (docs/specs/raid-tickets.md "가격 기준 변경").
+//  승리 골드가 보스 스테이지 기준(settleRaid rs, 사람 4인이면 입장 스테이지)이라 내 최고 스테이지로 매기면 보스 사이에서 가격만 1.2^차이 배로 뛰었다.
+//  열리는 기준은 priceBest() — 기사단이면 기사단 최고라 누가 사도 같은 값
+function raidPriceStage() {
+  const pb = priceBest();
+  let st = 0;
+  for (const b of Object.values(RAID_BOSSES)) if (b.stage <= pb && b.stage > st) st = b.stage;
+  return st || Math.min(...Object.values(RAID_BOSSES).map((b) => b.stage));
+}
 // 하루 첫 구매는 반값, 두 번째부터 RAID_TICKET_STEPS 대로 비싸지고 그 뒤로는 × RAID_TICKET_GROW
 function ticketPrice() {
   const n = ticketsBoughtToday(), last = RAID_TICKET_STEPS.length - 1;
   const k = n <= last ? RAID_TICKET_STEPS[n] : RAID_TICKET_STEPS[last] * Math.pow(RAID_TICKET_GROW, n - last);
   return {
-    gold: Math.max(1, Math.floor(monsterStats(priceBest(), false).gold * RAID_TICKET_GOLD * k)),
+    gold: Math.max(1, Math.floor(monsterStats(raidPriceStage(), false).gold * RAID_TICKET_GOLD * k)),
   };
 }
 function ticketBlocker() {

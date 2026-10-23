@@ -1,6 +1,6 @@
 # 밸런스 총점검 (2026-10-23, 0.30.4 기준)
 
-- 상태: 점검 끝 · 고칠 항목 사용자 결정 대기
+- 상태: 점검 끝 · A·B 구현(0.30.7, 확인 전) · 나머지 결정 대기
 - 검토 페이지: [dev/review/balance-audit-1023.html](../../dev/review/balance-audit-1023.html)
 - 관련 스펙: [guild-price-base.md](guild-price-base.md), [reward-inversion-audit.md](reward-inversion-audit.md)(10-14 1차 전수조사), [raid-tickets.md](raid-tickets.md), [castle-defense.md](castle-defense.md), [currency-roles.md](currency-roles.md), [growth-compression.md](growth-compression.md), [balance-lifespan.md](balance-lifespan.md), [skill-runes.md](skill-runes.md), [duel-length.md](duel-length.md)
 - 최종 갱신: 2026-10-23
@@ -29,13 +29,13 @@
 
 ### 상
 
-**A. 기사단: 재료의 미궁 🪵🪨 이 기사 수만큼 는다**
+**A. 기사단: 재료의 미궁 🪵🪨 이 기사 수만큼 는다** → 0.30.7 입장권 기사단 공용 ([guild-dungeon-tickets.md](guild-dungeon-tickets.md))
 - 미궁 목재·철광석 한 칸 값은 공용 건물 비용 기준(`dgUnitValue` → `dgNextBuildCost`)이고, 무료 입장권 3장·구매 횟수는 기사별, 난이도는 그 기사 전투력 기준이라 누구나 보스 7~8마리를 잡는다.
 - 봇(7일, 5명): 본캐만 돌면 21판·목재 1.64e5, 전원 돌면 87판·목재 8.9e5(5.4배), 회관 Lv14 5.0일 → 3.2일.
 - 기사는 10명까지, 슬롯은 캠프에서 갈아 끼울 수 있다 → 하루 최대 30판(혼자 3판). 새 기사는 0.5시간이면 스테이지 15(미궁 열림)라 만들고 지우기를 반복해도 무료 3판이 새로 생긴다(추정, 루프는 안 돌려 봄).
 - 안: ① 무료 입장권·구매 횟수를 **기사단 공용**(하루 3장 + 기사 수 보너스 소량) ② 미궁 🪵🪨 를 기사단 하루 총량으로 상한 ③ 칸 값에 `min(1, S.best / 기사단 최고)` 를 곱함.
 
-**B. 레이드 입장권 가격과 승리 골드의 기준이 다르다**
+**B. 레이드 입장권 가격과 승리 골드의 기준이 다르다** → 0.30.7 기준 = 열린 가장 높은 보스 ([raid-tickets.md](raid-tickets.md))
 - 가격 = 내 최고 스테이지 잡몹 골드 × 120 (`raid.js:36`), 승리 골드 = 레이드 보스 스테이지(`rs`, 4인이면 보스 입장 스테이지) 기준(`raid.js:77`).
 - 최고 129 가 서리 거인(100)을 4인으로 잡으면 첫 장(반값)이 승리 골드의 약 **99배**, 혼자여도 19배. 새 보스가 열린 직후만 맞고 스테이지가 오를수록 톱니처럼 뛴다(강해지면 비용이 뜀 역전). raid-tickets.md 의 "첫 장 반값·둘째 장 본전"은 최고 = 보스 입장일 때만 맞다.
 - 안: 가격 기준을 "열 수 있는 가장 높은 보스의 4인 `rs`" 로.

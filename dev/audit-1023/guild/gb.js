@@ -22,7 +22,7 @@ const TUNE = { slots: process.env.GUILD_SLOTS ? process.env.GUILD_SLOTS.split(',
   hallMax: process.env.HALL_MAX ? Number(process.env.HALL_MAX) : null, tune: process.env.TUNE_JSON ? JSON.parse(process.env.TUNE_JSON) : null };
 
 function freshShared() {
-  return { gold: 0, wood: 0, ore: 0, bld: { training: 1, inn: 1, storage: 1, forge: 1, hall: 1 }, stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 }, forge: {}, build: null, best: 0 };
+  return { gold: 0, wood: 0, ore: 0, bld: { training: 1, inn: 1, storage: 1, forge: 1, hall: 1 }, stock: { wood: 0, ore: 0, at: 0, tradeDay: '', trades: 0 }, forge: {}, build: null, best: 0, dg: { tixDay: '', tixUsed: 0, tixExtra: 0, buyDay: '', bought: 0 } };
 }
 
 // 기사 한 명: 게임 vm + 봇 하루 (progress-bot runOne 의 기사 몫)
@@ -120,6 +120,7 @@ function runGuildSeeded({ days, seed, knights }) {
       for (const k of ['wood', 'ore']) Object.defineProperty(S.mats, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: false, configurable: true });
       for (const k of ['bld', 'stock', 'forge', 'build']) Object.defineProperty(S, k, { get: () => shared[k], set: (v) => { shared[k] = v; }, enumerable: false, configurable: true });
       Object.defineProperty(S, 'guildBest', { get: () => shared.best || 0, set: (v) => { shared.best = v; }, enumerable: false, configurable: true });   // 가격 기준 (guild-price-base.md)
+      for (const k of ['tixDay', 'tixUsed', 'tixExtra', 'buyDay', 'bought']) Object.defineProperty(S.dg, k, { get: () => shared.dg[k], set: (v) => { shared.dg[k] = v; }, enumerable: false, configurable: true });   // 미궁 입장권 공용 (guild-dungeon-tickets.md)
     },
     roster: () => roster, toast() {}, ready() {}, addKnight() {}, serverLost() {},
   } : null;

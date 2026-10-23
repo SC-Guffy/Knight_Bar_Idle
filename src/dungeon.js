@@ -48,7 +48,7 @@ const DG_RES = {
 };
 const DG_RES_IDS = Object.keys(DG_RES);
 
-const freshDungeon = () => ({ tixDay: '', tixUsed: 0, tixExtra: 0, buyDay: '', bought: 0, best: 0, perfects: 0, run: null, last: null });
+const freshDungeon = () => ({ tixDay: '', tixUsed: 0, tixExtra: 0, buyDay: '', bought: 0, best: 0, perfects: 0, run: null, last: null });   // 기사단이면 입장권 5개는 공용 (guild.js bindShared)
 
 const dgUnlocked = () => S.best >= DG_UNLOCK_STAGE;
 const dgRand = (a, b) => a + Math.random() * (b - a);
