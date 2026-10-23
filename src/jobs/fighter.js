@@ -17,13 +17,14 @@ function qiSt() {
   return (knight.qi = { cls: S.cls, key, v: Q.max, tj, aw: 0, hurtT: -1, hurtN: 0, flash: 0, red: 0, log: [] });
 }
 // 지금 소모량(주 기술) · 문턱(투지 기술) — 기 절약(☯️) 반영
-const qiNeed = (id) => qiCostOf(SKILLS[id], S.cls, skillBonus(id));
+const qiNeed = (id) => qiCostOf(SKILLS[id], S.cls, skillBonus(id)) * (t7Has(id) ? t7Cd(id) : 1);
 const qiMain = (id) => qiIsMain(id, S.cls);
 // 충전: 각성 중이면 두 배, 최대치에서 멈춘다
 function qiAdd(n) {
   if (!(n > 0)) return;
-  const q = qiSt();
-  q.v = Math.min(QI[S.cls].max, q.v + n * (q.aw > 0 ? QI_AWAKEN.mult : 1));
+  const q = qiSt(), add = n * (q.aw > 0 ? QI_AWAKEN.mult : 1), over = Math.min(add, q.v + add - QI[S.cls].max);
+  q.v = Math.min(QI[S.cls].max, q.v + add);
+  if (over > 0) for (const o in q.tj) q.tj[o] += over;
 }
 // 평타가 맞았다: n 마리 (킥복서는 함께 맞힌 적 한 마리당 multi), crit 첫 대상이 치명 (스트라이커는 critX 배)
 function qiOnBasic(n, crit) {

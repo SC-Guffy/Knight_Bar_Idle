@@ -472,6 +472,8 @@ const skillPow = (id) => { const gf = guildFx(); return (t7Has(id) ? skillPowAt(
 // 시즌7 트리 스킬은 1칸 기준 쿨 × 트리 배수 (파이터 계열은 기 등가 쿨)
 const skillCd = (id) => (t7Has(id) ? Math.round((SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, {}, qiStats(), S.level) : skillCdOf(SKILLS[id], 1, S.cls, {})) * t7Cd(id) * 10) / 10 : SKILLS[id].qi ? qiCdOf(SKILLS[id], S.cls, skillBonus(id), qiStats(), S.level) : skillCdOf(SKILLS[id], skillLv(id), S.cls, skillBonus(id)));
 // 파이터 계열 등가 쿨타임에 쓰는 공속·치명 (장비 포함, stats() 와 같은 식 — dpsOf 안에서 stats 를 다시 부르지 않게)
+// 파이터 주 기술 하나가 쓰는 기 (숙련 쿨 배수 t7Cd 까지 — 실제 게이지 jobs/fighter.js qiNeed·서버 cost/need 와 같게, class-balance-1023.md D)
+const qiNeedOf = (id) => qiCostOf(SKILLS[id], S.cls, t7Has(id) ? {} : skillBonus(id)) * (t7Has(id) ? t7Cd(id) : 1);
 const qiStats = () => { const m = heroClass().mods, gb = gearBonus(); return { aspd: 0.9 * (m.aspd || 1) * (1 + gb.aspdPct), crit: Math.min(0.8, 0.05 + (m.crit || 0) + gb.crit) }; };
 // 노드를 여는 조건이 모자라면 그 이유 { lv 필요 스킬 레벨 } 또는 { min 필요 투자 합 }, 다 되면 null (classes.js SKILL_TREE 의 lv·min)
 function nodeLock(id, nid) {
@@ -542,12 +544,21 @@ function stageComp(id, st) {
   return cast > 0 ? 1 + perHit * st.shots * st.shotMult * st.aspd * lost / cast : 1;
 }
 // 한 마리를 상대로 한 초당 피해 (연발·스킬 포함). 스킬을 쓰는 동안은 평타를 멈춘다
+// 오프라인 DPS: 주 기술들은 기 게이지 하나를 나눠 쓴다 — 등가 쿨대로면 초당 드는 기가 충전 속도를 넘으므로 넘친 배수만큼 주 기술 쿨을 늘려 센다 (0.31.2)
+function qiMainScale(list) {
+  if (!isQiCls(S.cls)) return 1;
+  const r = qiRateOf(S.cls, qiStats(), S.level);
+  let use = 0;
+  for (const id of list) if (SKILLS[id].qi && qiIsMain(id, S.cls)) use += qiNeedOf(id) / skillCd(id);
+  return r > 0 ? Math.max(1, use / r) : 1;
+}
 function dpsOf(st) {
   const perHit = st.atk * (1 + st.crit * (st.critMult - 1));
   let busy = 0, extra = 0;
+  const qs = qiMainScale(st.skills || []);
   for (const id of st.skills || []) {
     const k = heroSkill(id);
-    const cd = skillCd(id), cp = skillRight(id, 'crit');
+    const cd = skillCd(id) * (SKILLS[id].qi && qiIsMain(id, S.cls) ? qs : 1), cp = skillRight(id, 'crit');
     busy += k.dur / cd;
     const hitV = k.crit && !t7NoCrit() ? st.atk * st.critMult : cp ? st.atk * (1 + Math.min(0.8, st.crit + cp) * (st.critMult - 1)) : perHit;
     // 고유 특수는 평균 피해로 환산해 넣는다 (classes.js specEv — 처형·보스 등 상황형은 일부만, 기절·골드 같은 운영형은 0)
@@ -584,7 +595,7 @@ function profile() {
       const cp = skillRight(id, 'crit'), lc = skillRight(id, 'leech'), wd = skillRight(id, 'ward');
       return { id, lv: skillLv(id), st: skillStage(id), cd: skillCd(id), dur: k.dur, mult: skillMult(k) * skillPow(id) * skillEv(id) * stageComp(id, st), crit: !!k.crit && !t7NoCrit(), ...(t7Has(id) && SKILLS[id].gap ? { gap: SKILLS[id].gap } : {}),
         ...(cp ? { cp } : {}), ...(lc ? { lc } : {}),
-        ...(k.qi && isQiCls(S.cls) ? { [qiIsMain(id, S.cls) ? 'cost' : 'need']: qiCostOf(SKILLS[id], S.cls, skillBonus(id)), ...(id === 'palmBlast' ? { m3: QI_PALM3 } : {}), ...(k.ult ? { awaken: 1 } : {}),
+        ...(k.qi && isQiCls(S.cls) ? { [qiIsMain(id, S.cls) ? 'cost' : 'need']: Math.round(qiCostOf(SKILLS[id], S.cls, skillBonus(id)) * (t7Has(id) ? t7Cd(id) : 1) * 10) / 10, ...(id === 'palmBlast' ? { m3: QI_PALM3 } : {}), ...(k.ult ? { awaken: 1 } : {}),
           ...(k.ward && k.ward.qiHurt ? { qiHurt: k.ward.qiHurt } : {}) } : {}),
         ...(k.ward ? { ward: { dur: k.ward.dur, guard: k.ward.guard, heal: k.ward.heal } } : wd ? { ward: { dur: TREE_RIGHT.ward.dur, guard: wd, heal: 0 } } : {}) };
     }),
@@ -1029,7 +1040,7 @@ function simulate(sec) {
     const wl = m.wall;
     const walk = 4.5;
     // 여러 마리를 동시에 때리는 무기는 처치 속도가 조금 빨라진다고 근사 · 벽 보스 기믹은 막는 갈래를 덜 찍었을수록 DPS 손실
-    const fight = m.hp / (dpsOf(st) * (st.targets > 1 ? 1.25 : 1) * (wl ? t7WallDps(wl) : 1));
+    const fight = m.hp / (dpsOf(st) * (st.targets > 1 && !(st.shots > 1) ? 1.25 : 1) * (wl ? t7WallDps(wl) : 1));
     // 벽 보스는 싸움이 simulate 한 번(t)보다 길 수 있다 → 싸운 시간을 S.run.prog 에 이어 쌓는다 (원정이 끝나면 처음부터)
     const prog = wl ? S.run.prog || 0 : 0;
     const cycle = walk + fight - prog;

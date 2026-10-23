@@ -5,16 +5,27 @@
 const START_DIST = 260;     // 시작 거리(px) — 태양궁(260)은 바로 쏠 수 있다
 const BODY_GAP = 20;        // 두 기사 몸 사이 최소 거리
 const WALK = 40;            // px/s
-const HP_MULT = 4;          // 원정보다 오래 싸우도록 결투에서만 체력을 늘린다 (최소 배수)
+const HP_MULT = 0.5;        // 결투 체력 배수의 바닥 (0.31.2 전 4 — 아래 기준이 스킬까지 보게 되어 바닥을 낮춤)
 // 공격력이 체력보다 빨리 커져서(무기 아이템 레벨 ×1.225 · 갑옷 ×1.18) 뒤로 갈수록 공격력이 체력을 크게 앞지른다.
 // 그대로 두면 결투가 1~2초 만에 끝나 사거리 긴 쪽이 먼저 쏘면 이기므로, 서로 평타만 주고받아도
 // 이 시간(초)은 버티도록 두 기사의 체력 배수를 같이 키운다 (둘 다 같은 배수라 체력·방어 차이는 그대로)
-const DUEL_SEC = 12;
+// 0.31.2 (docs/specs/duel-rebalance-1023.md): 기준을 평타만이 아니라 전체 DPS(평타 + 스킬 쿨 평균, core.js dpsOf 와 같은 꼴)로 바꾸고 7.5초로.
+//  평타만 보던 12초는 장비를 입으면 판 길이가 스테이지 따라 24 → 9초로 흔들리고, 스킬 비중이 큰 쌍은 45초 시간 종료까지 갔다
+const DUEL_SEC = 7.5;
 // 위 기준은 평타만 보고 정해서, 치명 터진 스킬(평타 수십~수백 대 분량) 한두 방에 결투가 끝났다 (평균 3.6초).
 // 그래서 결투 체력을 한 번 더 키운다 — 평균 약 10초 (docs/specs/duel-length.md).
 // 최대 체력 % 로 차는 회복(타격 회복 heal·보호막 회복)은 이 몫만큼 나눠서, 체력을 늘렸다고 회복까지 커지지 않게 한다
 const DUEL_HP = 2;
-const rateOf = (p) => p.atk * (1 + p.crit * (p.critMult - 1)) * p.shots * p.shotMult * p.aspd;
+const rateOf = (p) => {
+  const b = p.atk * (1 + p.crit * (p.critMult - 1)) * p.shots * p.shotMult * p.aspd;
+  let busy = 0, sk = 0;
+  for (const k of p.skills || []) {
+    const cd = Math.max(1, k.cd || 10);
+    busy += (k.dur || 0) / cd;
+    sk += p.atk * k.mult * (k.crit ? p.critMult : 1 + Math.min(0.8, p.crit + (k.cp || 0)) * (p.critMult - 1)) / cd;
+  }
+  return b * Math.max(0.3, 1 - busy) + sk;
+};
 const MAX_T = 45;           // 이 시간이 지나면 남은 체력 비율로 판정
 const HP_TIE = 0.01;        // 시간 종료 때 남은 체력 비율 차이가 이것(또는 결투 중 가장 큰 한 방)보다 작으면 가한 총 피해로 판정
 const DT = 0.05;
@@ -58,7 +69,9 @@ function qiInit(me) {
 function qiAdd(me, n, t) {
   const q = me.qi, Q = me.p.qi;
   if (!q || !(n > 0)) return;
-  q.v = Math.min(Q.max, q.v + n * (Q.awaken && t < q.aw ? Q.awaken.mult : 1));
+  const add = n * (Q.awaken && t < q.aw ? Q.awaken.mult : 1), over = Math.min(add, q.v + add - Q.max);
+  q.v = Math.min(Q.max, q.v + add);
+  if (over > 0) for (const o of me.skills) if (o.need) o.tj += over;
 }
 // 평타 적중: hit (치명이면 critX 배). 결투·레이드는 대상이 하나라 multi 는 없다
 const qiOnHit = (me, crit, t) => me.qi && qiAdd(me, (me.p.qi.hit || 0) * (crit && me.p.qi.critX ? me.p.qi.critX : 1), t);

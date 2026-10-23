@@ -115,9 +115,10 @@ function t7DefStem(first, o) { T7_STEMS[first] = o; }
 //  2026-10-19 다시: 시즌 리셋으로 모두 트리라 "15줄기 리그(빌드 a·b·k, Lv130·170) 승률 50%" + "줄기 안 맞대결 50%" 기준으로 (스크래치 league.js --fit --inner).
 //   리그 38~59% · 근접 vs 원거리 48% · 줄기 안 맞대결 14~50/60. 지금 시스템(옛 스킬) 상대 승률은 이제 보지 않는다 (옛 시스템 캐릭터가 없다)
 // 0.29 (숙련·룬): 궁극기 변형이 없어져 줄기별 결투 배율 하나 (t7Duel). dev/duel-league.js --fit 으로 맞춘 값 — 15줄기 × 빌드 3 × Lv130·170 리그 승률 50% 쪽
-let T7_DUEL_LINE = {   // 2026-10-21 (0.30: 연계 평균 배율 + Lv170 진화·궁극기 변형 + 진화 쫓는 봇 빌드 · 위력 눈금 s30) 리그 승률 50% (폭 0%p, 맞추기 전 38~53%)
-  swordsaint: 0.76, tyrant: 0.81, archon: 1.00, skyGeneral: 0.70, dragonlord: 1.01, warlord: 1.01, siegeMaster: 1.22, deadeye: 1.03,
-  voidArcher: 1.54, thunderEmperor: 1.64, archmage: 1.89, frostlord: 1.32, champion: 0.80, tempest: 1.36, grandmaster: 1.38,
+let T7_DUEL_LINE = {   // 0.31.2 (docs/specs/duel-rebalance-1023.md): 장비 곡선 3벌 × St60·100·140 × 30판, 새 결투 체력(전체 DPS 7.5초)으로 맞춤 · 0.85~1.25 안
+  //  줄기 평균 승률 49~52% · 판 평균 13.3/11.1/8.7초. 전엔 장비 없는 Lv130·170 으로 맞춘 0.70~1.89 라 장비를 입으면 근접이 20~29% 였다
+  swordsaint: 1.06, tyrant: 0.94, archon: 0.85, skyGeneral: 0.89, dragonlord: 1.02, warlord: 1.18, siegeMaster: 1.05, deadeye: 1.06,
+  voidArcher: 1.23, thunderEmperor: 1.25, archmage: 1.19, frostlord: 1.17, champion: 1.15, tempest: 0.99, grandmaster: 0.86,
 };
 function t7DefLine(L) {
   const sk = { ...L.sk };
@@ -272,12 +273,12 @@ function t7Mods() {
     if (!runeIsLeg(r) || seen.has(r.id)) continue;
     seen.add(r.id);
     if (r.id === 'blade') { m.rules.add('blade'); m.powAll *= 0.9; m.evAll *= 1.18; }
-    else if (r.id === 'frenzy') { skRule('frenzy', sk); m.basic *= 0.85; m.basicDps *= 1.02; }
+    else if (r.id === 'frenzy') { skRule('frenzy', sk); m.basic *= 0.95;   /* 0.31.2 대가 0.85 → 0.95 · 만검 0.8 → 0.9 · 월광 평타 0.8 → 0.9·평타 DPS 0.9 → 1 (빈 칸보다 손해였다, class-balance-1023.md N) */ m.basicDps *= 1.02; }
     else if (r.id === 'endless') { skRule('endless', sk); m.ev[sk] = (m.ev[sk] || 1) * 1.3; m.cd[sk] = (m.cd[sk] || 1) * 1.25; }
     else if (r.id === 'echo') { skRule('echo', sk); m.ev[sk] = (m.ev[sk] || 1) * 1.2; }
-    else if (r.id === 'myriad') { skRule('myriad', sk); m.ev[sk] = (m.ev[sk] || 1) * 1.25; m.powNot.push({ sk, v: 0.8 }); }
-    else if (r.id === 'reach') { m.stat.rangeMul = 3; m.basic *= 0.8; m.basicDps *= 0.9; }
-    else if (r.id === 'zen') { m.stat.atkMul = (m.stat.atkMul || 1) * (SKILLS[sk] && SKILLS[sk].crit ? 2.6 : 1.9); m.stat.noCrit = 1; }   // 확정 치명 스킬에 끼우면 그 치명 몫(3.3배)을 잃으니 ×2.6
+    else if (r.id === 'myriad') { skRule('myriad', sk); m.ev[sk] = (m.ev[sk] || 1) * 1.25; m.powNot.push({ sk, v: 0.9 }); }
+    else if (r.id === 'reach') { m.stat.rangeMul = 3; m.basic *= 0.9; m.basicDps *= 1; }
+    else if (r.id === 'zen') { m.stat.zen = SKILLS[sk] && SKILLS[sk].crit ? 1.2 : 1; m.stat.noCrit = 1; }   // 치명 0 대신 그 기사의 치명 기대값 × 1.12 (아래 t7Stat), 확정 치명 스킬 칸이면 ×1.2 더 — 0.31.2 전엔 고정 ×1.9(×2.6)라 초중반 정답·후반 함정 (class-balance-1023.md E)
   }
   t7ModsKey = key; t7ModsVal = m;
   return m;
@@ -291,6 +292,7 @@ function t7Stats(st) {
   st.atk *= (1 + (s.atk || 0)) * (s.atkMul || 1);
   st.maxHp *= 1 + (s.hp || 0);
   st.aspd *= 1 + (s.aspd || 0);
+  if (s.zen) st.atk *= s.zen * 1.12 * (1 + Math.min(0.8, st.crit + (s.crit || 0)) * (st.critMult - 1));
   st.crit = s.noCrit ? 0 : Math.min(0.8, st.crit + (s.crit || 0));
   if (s.guard) st.guard = Math.min(0.85, 1 - (1 - st.guard) * (1 - s.guard));
   if (s.rangeMul) st.range = Math.max(st.range, Math.min(330, st.range * s.rangeMul));   // 심검: 평타 사거리 (원거리 직업은 화면 안 330 까지)

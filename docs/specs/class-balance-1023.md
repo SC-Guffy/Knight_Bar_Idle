@@ -1,6 +1,6 @@
 # 직업·룬 밸런스 (총점검 D·E·J·N)
 
-- 상태: 초안
+- 상태: 구현 (0.31.2, 사용자 확인 전) — 추천안 확정 (사용자 10-23: 검신 공격력 1.5 · 광란·만검·월광 대가 반 · 그랜드마스터 결투 시작 기는 그대로)
 - 관련 코드: src/core.js (`dpsOf`·`skillCd`·`profile`·`simulate`), src/fighter-data.js (`QI`·`qiRateOf`·`qiCdOf`·파이터 3차 `mods`), src/jobs/fighter.js (`qiNeed`·`qiAdd`), server/duel.js (`qiAdd`), src/tree7.js (`t7Mods` 전설 룬·`t7Stats`), src/rune.js (`RUNE_BOT_LEG`), src/classes.js (`swordsaint` mods), src/tree7-fx.js (`t7OnHit`)
 - 출처: [balance-audit-1023.md](balance-audit-1023.md) D·E·J·N (I 는 결투 배율, 따로)
 - 원칙: [skill-redesign.md](skill-redesign.md) 정답 강요 금지 · 콘텐츠 전용 보정 금지(직업 특성 `CLASSES mods`·기 규칙으로) · 근접은 단단, 원거리는 약함
@@ -135,6 +135,12 @@
 ## 진행 기록
 
 - 2026-10-23: 초안. D·E·J·N 원인을 코드·vm 실험으로 확인. D 는 회계 둘(D1 주 기술 공유 게이지, D2 숙련 쿨 미적용) + 버그 하나(D4 주 기술 없으면 투지 멈춤) + 충전량. J 는 공속이 아니라 공격력이 손잡이. N 의 광란·만검·월광은 오프라인 회계 문제가 아니라 실시간에서도 손해(룬 설계 문제)로 정정. 실시간 측정을 줄기마다 새 vm 으로 바꿔 흔들림 ±10% → ±5%.
+
+## 진행 기록 (구현)
+- 2026-10-23: 사용자 확정 → 구현 0.31.2. `dev/audit-1023/class/patch.js` 의 D1·D2·D3·D4·E·J·N1·N2 를 소스에 그대로 옮김 + D5(템페스트 공격력 3.5 · 그랜드마스터 2.95). `core.js qiNeedOf·qiMainScale`, `jobs/fighter.js qiNeed`·넘친 기 → 투지, `server/duel.js` 넘친 기, `fighter-data.js` 충전, `tree7.js` 무념(t7Stat 치명 기대값 × 1.12)·광란/만검/월광 대가, `rune.js` 무념 설명·봇 점수 30, `classes.js` 검신 1.5/1.85.
+  - 재측정(`SEEDS=7,11,13 node dev/audit-1023/class/sum.js`, 패치 없이 = 지금 코드): 레이드 champion 1.09 · tempest 0.94 · grandmaster 0.86 · swordsaint 1.08 · voidArcher 1.13, 실시간 0.82 · 0.90 · 0.87 · 1.24 · 1.10, 실시간÷오프라인 0.99 · 1.08 · 0.98 — 스펙 표와 같음.
+  - 진행 봇 7일·15시드: 최종 스테이지 276 → 280 (직업 사이 조정이라 전체 진행은 그대로).
+  - 결투 배율은 duel-rebalance-1023.md 에서 같은 버전에 다시 맞춤.
 
 ## 남은 일 / 미정
 

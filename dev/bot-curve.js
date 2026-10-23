@@ -1,4 +1,7 @@
 'use strict';
+// 0.31.2 (docs/specs/duel-rebalance-1023.md) 시즌7로 바꿈: 스킬은 progress-bot spendSkills(t7AutoSpend(빌드) — 장착 칸·룬·비전서·진화),
+//  탑 소탕 비전서(towerApi/playTower), 게임 시계를 봇 시간에 맞춰 민다, 줄 끝에 duel(결투 배율 t7Duel)·build 칸 — 서버 bots.js toProfile 이 duel 칸이 있으면 t7·duel 을 싣는다.
+//  BUILD=a|b|k|mix (mix: 계열마다 순번대로 a·b·k, 서버용은 mix --seed 0). 결투 배율(T7_DUEL_LINE)을 바꾸면 다시 구워야 duel 칸이 따라간다
 // AI 기사(봇) 성장 곡선 굽기 (개발용). 진행 봇(dev/progress-bot.js)의 게임 vm 으로 3차 직업 계열마다 며칠치 진행을 돌려,
 // 최고 스테이지가 오를 때마다 클라이언트가 서버에 올리는 것과 똑같은 전투 프로필(core.js profile())을 찍어 server/bot-curve.json 에 남긴다.
 // 서버(server/bots.js)는 봇의 최고 스테이지에 맞는 줄을 골라(사이는 로그 보간) 봇의 랭킹·결투·레이드·월드 보스 능력치로 쓴다.
@@ -11,7 +14,7 @@
 //  전직(조건이 되는 대로 그 계열 다음 직업으로) · 비전서(레이드 상자 + 탑 몫 하루 4권)를 가장 낮은 스킬부터 먹이고 트리 노드를 찍는다.
 // 24시간 켜 둔 봇이라 시간축은 실제 유저보다 빠르다 — 그래서 시간이 아니라 '최고 스테이지 → 능력치' 표로만 쓴다.
 const fs = require('fs'), path = require('path');
-const { makeGame, mentorApi, playMentors } = require('./progress-bot');
+const { makeGame, mentorApi, playMentors, spendSkills, towerApi, playTower } = require('./progress-bot');
 const vm = require('vm');
 
 const DAY = 86400, TICK = 60, TOWER_TOMES_PER_DAY = 4;
@@ -22,33 +25,28 @@ const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon'
 const r3 = (x) => (Math.abs(x) >= 1000 ? Math.round(x) : Math.round(x * 1000) / 1000);
 
 const REACH = [80, 100, 120, 140, 160];
-function runLine(line, { days, every, seed, rev }) {
+function runLine(line, { days, every, seed, rev, build }) {
   let s = seed * 9301 + 49297; const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
   const ctx = makeGame(rev); ctx.Math.random = rnd;
   const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip,
-    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, profile })`, ctx);
+    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, profile,
+    t7On: typeof t7On === 'function' ? t7On : null, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null })`, ctx);
   const S = A.S(); S.gear.auto = true;
+  const TW = towerApi(ctx);
   const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {} };
   const chain = A.classPath(line).slice(1);       // squire 다음부터
   const rows = []; let nextAt = 1, t = 0, lastDay = -1, rid = 0;
   const reach = {};
   const sell = () => { const l = S.gear.inv.filter((x) => !A.isEquipped(x) && !A.isSetGear(x)); if (l.length) A.sellGear(l); };
-  const skills = () => {
-    const ids = A.skillsOf(S.cls).map((k) => k.id);
-    for (let guard = 0; S.tomes > 0 && guard < 200; guard++) {
-      const id = ids.slice().sort((a, b) => A.skillLv(a) - A.skillLv(b))[0];
-      if (!id || !A.feedTomes(id, 1)) break;
-    }
-    // 트리: 열린 노드를 앞에서부터 (공격·쿨타임 특화가 번갈아 있고 진화 문은 조건이 되면 연다)
-    for (const id of ids) for (const nid of Object.keys(A.treeNodesOf(A.SKILLS[id]))) for (let i = 0; i < 40 && A.canInvest(id, nid); i++) A.investNode(id, nid);
-  };
+  const skills = () => spendSkills(A, S, build);
   const chores = () => {
     for (const it of S.bag) for (const x of (it.k === 'box' ? A.openBox(it) : [it])) A.claimLoot(x);
     S.bag = []; S.report = null;
     A.autoEquip(); sell();
     const day = Math.floor(t / DAY);
-    if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; S.tomes += TOWER_TOMES_PER_DAY; }
+    if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; if (!TW) S.tomes += TOWER_TOMES_PER_DAY; }
+    playTower(TW, S);
     while (S.raid.tickets > 0) {
       const ids = Object.keys(A.RAID_BOSSES).filter((id) => A.RAID_BOSSES[id].stage <= S.best && A.raidStageOf(A.RAID_BOSSES[id], 4) <= S.best);
       if (!ids.length) break;
@@ -67,7 +65,7 @@ function runLine(line, { days, every, seed, rev }) {
   const snap = () => {
     const p = A.profile();
     rows.push([p.best, p.level, p.cls, r3(p.atk), r3(p.maxHp), r3(p.aspd), r3(p.crit), r3(p.critMult), p.range, p.shots, r3(p.shotMult), r3(p.guard), r3(p.heal), p.power,
-      p.skills.map((k) => ({ ...k, cd: r3(k.cd), dur: r3(k.dur), mult: r3(k.mult), ...(k.cp ? { cp: r3(k.cp) } : {}), ...(k.lc ? { lc: r3(k.lc) } : {}) })), p.qi || 0]);
+      p.skills.map((k) => ({ ...k, cd: r3(k.cd), dur: r3(k.dur), mult: r3(k.mult), ...(k.cp ? { cp: r3(k.cp) } : {}), ...(k.lc ? { lc: r3(k.lc) } : {}) })), p.qi || 0, r3(p.duel || 1), build]);
   };
   while (t < days * DAY) {
     if (S.phase === 'expedition') { A.simulate(TICK); if (S.phase === 'returning') A.simulate(0); }
@@ -77,7 +75,7 @@ function runLine(line, { days, every, seed, rev }) {
       if (S.best >= nextAt) { snap(); nextAt = S.best + every; }
       if (!A.departBlocker()) A.startExpedition(); else A.advanceCamp(TICK);
     }
-    t += TICK;
+    t += TICK; ctx.__T += TICK * 1000;
     for (const th of REACH) if (reach[th] == null && S.best >= th) reach[th] = t / 3600;
   }
   chores(); snap();
@@ -98,13 +96,14 @@ function main() {
     else if (argv[i] === '--out') outFile = path.resolve(argv[++i]);
   }
   const out = { v: 1, made: new Date().toISOString().slice(0, 10), days: opt.days,
-    cols: ['best', 'level', 'cls', 'atk', 'maxHp', 'aspd', 'crit', 'critMult', 'range', 'shots', 'shotMult', 'guard', 'heal', 'power', 'skills', 'qi'], lines: {} };
+    cols: ['best', 'level', 'cls', 'atk', 'maxHp', 'aspd', 'crit', 'critMult', 'range', 'shots', 'shotMult', 'guard', 'heal', 'power', 'skills', 'qi', 'duel', 'build'], lines: {} };
   LINES.forEach((line, i) => {
     if (opt.only && line !== opt.only) return;
     const t0 = Date.now();
-    out.lines[line] = runLine(line, { ...opt, seed: i + 1 + seedSet * 100 });
+    const BUILD = process.env.BUILD || 'a', build = BUILD === 'mix' ? 'abk'[(i + seedSet) % 3] : BUILD;
+    out.lines[line] = runLine(line, { ...opt, build, seed: i + 1 + seedSet * 100 });
     const L = out.lines[line], last = L[L.length - 1];
-    console.log(`${line.padEnd(15)} ${String(L.length).padStart(4)}줄 · 최고 스테이지 ${last[0]} · Lv ${last[1]} · ${last[2]} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
+    console.log(`${line.padEnd(15)} [${L[0][17]}] ${String(L.length).padStart(4)}줄 · 최고 스테이지 ${last[0]} · Lv ${last[1]} · ${last[2]} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
     const m = L.mentor, h = (x) => (x == null ? '-' : x.toFixed(0) + 'h');
     console.log(`${''.padEnd(15)} 🎓 열림 ${h(m.openAt)} · 별 ${m.stars}/25 · ★4 교관1~5 = ${[0, 1, 2, 3, 4].map((i) => h((m.m4 || [])[i])).join(' / ')} · ★5 = ${[0, 1, 2, 3, 4].map((i) => h((m.m5 || [])[i])).join(' / ')}`);
   });

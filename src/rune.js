@@ -43,7 +43,7 @@ const RUNE_LEG = {
   echo: { node: 'b_reset', icon: '👤', scope: 'sk', col: '#9a8fb0', d: '이 스킬로 처치하면 잔상이 가장 가까운 적을 50% 로', cost: '' },
   myriad: { node: 'k_k3', icon: '🗡️', scope: 'sk', col: '#9fd8ff', d: '이 스킬이 맞힐 때마다 다른 스킬 쿨 −0.3초', cost: '다른 스킬 피해 −20%' },
   reach: { node: 'k_key', icon: '🌙', scope: 'all', col: '#9fd8ff', d: '평타 사거리 ×3 (원거리 330 까지)', cost: '평타 피해 −20%' },
-  zen: { node: 'b_k3', icon: '☯️', scope: 'all', col: '#f4f0ff', d: '모든 피해 ×1.9 (확정 치명 스킬을 끼우면 ×2.6)', cost: '치명 확률 0' },
+  zen: { node: 'b_k3', icon: '☯️', scope: 'all', col: '#f4f0ff', d: '모든 피해 ×(내 치명 기대값 × 1.12) (확정 치명 스킬에 끼우면 ×1.2 더)', cost: '치명 확률 0' },
 };
 const RUNE_LEG_IDS = Object.keys(RUNE_LEG);
 const runeIsLeg = (r) => r.g >= 4;
@@ -161,7 +161,7 @@ function runeFromOld(old) {
 
 // 봇·측정 (dev/lifespan-bot.js via t7AutoSpend): 합칠 수 있으면 합치고, 장착 스킬의 룬을 모두 빼서 가장 좋은 조합으로 다시 끼운다
 //  점수: 등급 × 10 (+ 빌드 꼬리표 2). 전설은 이 스킬에만 걸리고 대가가 작은 것(무한·잔영)만 높게, 기사 전체에 대가가 붙는 것(무념·검의 길·심검·만검귀종·광란)은 낮게
-const RUNE_BOT_LEG = { endless: 33, echo: 32, frenzy: 12, myriad: 8, blade: 6, reach: 4, zen: 2 };
+const RUNE_BOT_LEG = { endless: 33, echo: 32, frenzy: 12, myriad: 8, blade: 6, reach: 4, zen: 30 };
 function runeAutoFill(tag) {
   runeAutoMerge();
   const eq = t7Skills();

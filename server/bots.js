@@ -116,6 +116,9 @@ function toProfile(r, best, x) {
     shots: v('shots'), shotMult: v('shotMult'), guard: v('guard'), heal: v('heal'), leap: null,
     skills: v('skills').map((s) => ({ ...s })), power: Math.round(x.power), gc: 1,
     ...(COL.qi != null && v('qi') ? { qi: { ...v('qi') } } : {}),      // 파이터 계열 기 규칙 (server/duel.js qiReady)
+    // 시즌7 곡선(0.31.2, duel 칸이 있음): 사람과 같이 스킬 5개(장착 4 + 궁극기)와 결투 배율을 싣는다 — 안 실으면 sanitizeProfile 이 스킬을 3개로 자르고
+    //  배율 없이 싸워 AI 가 약해진다 (docs/specs/duel-rebalance-1023.md "bot-curve 영향")
+    ...(COL.duel != null ? { t7: 1, ...(v('duel') && v('duel') !== 1 ? { duel: v('duel') } : {}) } : {}),
   };
 }
 // 성장 압축(0.21.0) 전에 저장된 프로필은 공격력·체력·전투력이 예전 눈금(1e20 쯤)이라 새 기사와 섞어 싸울 수 없다.

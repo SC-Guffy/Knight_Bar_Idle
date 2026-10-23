@@ -692,7 +692,7 @@ const CLASSES = {
   },
   swordsaint: {
     tier: 3, from: 'blademaster', name: '검신', icon: '🌸', weapon: 'moonBlades',
-    mods: { atk: 1.7, hp: 1.87, aspd: 2.2, crit: 0.28, critMult: 0.8, guard: 0.15 },
+    mods: { atk: 1.5, hp: 1.87, aspd: 1.85, crit: 0.28, critMult: 0.8, guard: 0.15 },
     desc: '검의 끝에 닿은 자. 칼을 뽑는 순간 전장 전체가 갈라진다.',
     look: {
       body: BODY.swordsaint, fx: '#ff6a8a',

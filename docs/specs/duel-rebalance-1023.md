@@ -1,6 +1,6 @@
 # 결투 재정비 · AI 곡선 다시 굽기 (총점검 I · K 나머지)
 
-- 상태: 초안
+- 상태: 구현 (0.31.2, 사용자 확인 전) — 추천안(d) 확정 (사용자 10-23: 판 길이 7.5초 · AI 곡선 같은 배포)
 - 관련 코드: server/duel.js (`simulateDuel` 의 `hpMult` · `DUEL_SEC` · `HP_MULT` · `DUEL_HP`), src/tree7.js (`T7_DUEL_LINE` · `t7Duel`), src/core.js (`profile().duel`), server/bots.js (`curveAt` · `toProfile` · `raidProfile`), server/bot-curve.json, dev/bot-curve.js, dev/duel-league.js
 - 관련 스펙: [balance-audit-1023.md](balance-audit-1023.md) I·K (D·E·J 는 class-balance-1023.md, 작성 중), [duel-length.md](duel-length.md), [duel-gap-closer.md](duel-gap-closer.md)
 - 실험: [dev/audit-1023/duel/](../../dev/audit-1023/duel/) — src/·server/ 를 고치지 않고 `lib.js loadDuel()` 이 server/duel.js 글을 메모리에서 바꿔 돌린다
@@ -132,6 +132,16 @@
 ## 진행 기록
 
 - 2026-10-23: 초안. 시즌7 숙련 봇 곡선 3벌을 스크래치에 구워(파일 갱신 없음) 장비 곡선으로 결투를 다시 쟀다. 지금 배율은 장비 없음 기준이라 장비 곡선에선 과보정(근접 승률 20~29%, 줄기 13~89%). 시작 거리는 효과 없음, 원거리 결투 체력은 원칙 위반이라 제외. 추천: 체력 배수를 전체 DPS 7.5초 기준으로 + 배율 0.85~1.25 재맞춤 + 빌드 편차는 키스톤·스킬 조정. 실험 스크립트 `dev/audit-1023/duel/`.
+
+## 진행 기록 (구현)
+- 2026-10-23: 사용자 확정 → 구현 0.31.2 (D·E·J·N 과 같은 버전).
+  - `server/duel.js`: `rateOf` = 평타 × max(0.3, 1 − 시전 비율) + Σ 스킬 위력·치명 기대 / 쿨, `DUEL_SEC` 12 → 7.5, `HP_MULT` 4 → 0.5.
+  - 곡선: D·E·J·N 을 넣은 코드로 `BUILD=mix` 3벌(seed 0·1·2) 구움 → `MULT=none FIT=1 ROUNDS=10 LO=0.85 HI=1.25 rig.js` 로 배율 재맞춤 → `T7_DUEL_LINE` = swordsaint 1.06 · tyrant 0.94 · archon 0.85 · skyGeneral 0.89 · dragonlord 1.02 · warlord 1.18 · siegeMaster 1.05 · deadeye 1.06 · voidArcher 1.23 · thunderEmperor 1.25 · archmage 1.19 · frostlord 1.17 · champion 1.15 · tempest 0.99 · grandmaster 0.86.
+  - 그 배율로 서버 곡선을 다시 구움(`BUILD=mix --seed 0`) → `server/bot-curve.json`(duel·build 칸). `server/bots.js toProfile` 이 duel 칸이 있으면 `t7: 1`·`duel` 을 싣는다. `dev/bot-curve.js` 를 시즌7 굽기로 바꿈(audit 실험본과 같음, 기본 출력 server/bot-curve.json).
+  - 결과(장비 곡선 3벌 × 30판): 결투 평균 13.3 / 11.1 / 8.7초 (St60/100/140), 3초 안 0 / 3 / 5%, 시간 종료 0%, 근접 승률 41 / 52 / 55%, 줄기 평균 49~52%, 빌드 폭 평균 15%p · 최대 35%p (그랜드마스터 b 30 · 성좌기사 b 32). 옛 배율 그대로였다면 줄기 15~81%.
+  - 사람 대 AI(`vsai.js` ③): 50 / 49 / 51% (옛 곡선 52 / 55 / 61%).
+  - 레이드 AI(`dev/raid-curve.js --seeds 2`): 혼자+AI 3 의 50% 스테이지 입장 +7~+19 (옛 곡선 +5~+19), 사람 4 는 그대로 입장 +0~+7.
+  - 교관 ★5(`dev/bot-curve.js --dry`, 3묶음): 교관1 9~24h · 2 48h · 3 72~120h · 4 144~216h · 5 192~240h (옛 곡선 24~96 · 24~96 · 72~120 · 96~168 · 192~216h) — 비슷한 범위.
 
 ## 남은 일 / 미정
 
