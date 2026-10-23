@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>창기사 계열 평타 보강</title>
+<style>
+  :root { --bg: #1d1c28; --card: #262536; --line: #3a3950; --ink: #e6e4f0; --dim: #a09eb8; --ok: #7fd18b; --no: #ff8a7a; --acc: #9db4ff; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 -apple-system, "Apple SD Gothic Neo", sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 20px; margin: 0 0 4px; } h2 { font-size: 16px; margin: 28px 0 8px; color: var(--acc); }
+  p.sub { color: var(--dim); margin: 0 0 16px; }
+  table { border-collapse: collapse; width: 100%; margin: 6px 0; font-size: 13px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: middle; }
+  th { color: var(--dim); font-weight: 600; }
+  td img { max-width: 260px; width: 100%; image-rendering: pixelated; display: block; }
+  .ok { color: var(--ok); } .no { color: var(--no); }
+  figure { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+  figure img { width: 100%; image-rendering: pixelated; display: block; }
+  figcaption { font-size: 12px; color: var(--dim); margin-top: 4px; }
+  .sum { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .sum span { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; }
+  .wide { overflow-x: auto; }
+  a { color: var(--acc); }
+</style>
+</head>
+<body>
+<main>
+<h1>창기사 계열 평타 보강 — 결과</h1>
+<p class="sub">결과 보고 · 사용자 확인 (10-23) · 0.31.4 배포 · 스펙 <code>docs/specs/legacy-class-sheets.md</code> "남은 31회 계획"</p>
+<div class="sum">
+  <span>이번 유료 <b>11회</b> (남은 20, 11-13 까지)</span>
+  <span class="no">그중 3회는 저장 실패로 잃음, 3회는 못 쓴 키</span>
+  <span>대부분 <b>코드로 무료</b> 처리</span>
+</div>
+
+<h2>결과 요약</h2>
+<div class="wide"><table>
+  <tr><th>직업 · 줄</th><th>전</th><th>후</th><th>방법</th><th>자동 검수</th></tr>
+  <tr><td>랜서 평타A</td><td><img src="sheets-attack-31/cavalier-atkA-before.gif" alt=""></td><td><img src="sheets-attack-31/cavalier-atkA-after.gif" alt=""></td><td>코드 (몸·랜스 분리, 윗몸 회전, 걷기 다리)</td><td class="ok">pass 3.57 → 지적 반영</td></tr>
+  <tr><td>천마장군 평타A</td><td><img src="sheets-attack-31/skyGeneral-atkA-before.gif" alt=""></td><td><img src="sheets-attack-31/skyGeneral-atkA-after.gif" alt=""></td><td>코드 (랜서와 같음)</td><td class="ok">pass 3.71</td></tr>
+  <tr><td>창기사 평타A</td><td><img src="sheets-attack-31/lancer-atkA-before.gif" alt=""></td><td><img src="sheets-attack-31/lancer-atkA-after.gif" alt=""></td><td>코드 — 1번 예비동작 + 2~4번 창 자루 갈색으로 통일</td><td class="ok">pass 3.57 → 자루 색 맞춤</td></tr>
+  <tr><td>용기병 평타A</td><td><img src="sheets-attack-31/dragoon-atkA-before.gif" alt=""></td><td><img src="sheets-attack-31/dragoon-atkA-after.gif" alt=""></td><td>코드 — 1번 예비동작</td><td class="ok">pass 3.71</td></tr>
+  <tr><td>용황 평타A</td><td><img src="sheets-attack-31/dragonlord-atkA-before.gif" alt=""></td><td><img src="sheets-attack-31/dragonlord-atkA-after.gif" alt=""></td><td>코드 — 정면으로 돌던 3·4번을 옆 찌름에서</td><td class="ok">pass 3.57</td></tr>
+  <tr><td>용황 평타B</td><td><img src="sheets-attack-31/dragonlord-atkB-before.gif" alt=""></td><td><img src="sheets-attack-31/dragonlord-atkB-after.gif" alt=""></td><td>유료 편집 1장(옆모습 창 세움) + 코드로 들기·정점·내려찍기</td><td class="ok">pass 3.57 (1차 fix 3.14) → 정점·각도 키움</td></tr>
+  <tr><td>창기사 걷기</td><td><img src="sheets-attack-31/lancer-walk-before.gif" alt=""></td><td><img src="sheets-attack-31/lancer-walk-after.gif" alt=""></td><td>유료 걷기 3회 — 평타와 같은 새 디자인으로</td><td class="ok">pass 3.86</td></tr>
+  <tr><td>창기사 대기</td><td><img src="sheets-attack-31/lancer-idle-before.gif" alt=""></td><td><img src="sheets-attack-31/lancer-idle-after.gif" alt=""></td><td>코드 (평타 시작 자세에서) · 전투 대기·피격·쓰러짐·앉기도</td><td>—</td></tr>
+  <tr><td>7종 공통</td><td colspan="3">평타 4번 장(3번 장 반복)을 한 칸 밀어붙인 장으로 — 명중 뒤 멈칫 줄임 (코드)</td><td>—</td></tr>
+</table></div>
+
+<h2>게임 렌더러로 그린 모습</h2>
+<figure><img src="sheets-attack-31/all-game.png" alt=""><figcaption>drawHero — 열: 서기 · 걷기 · 전투 대기 · 평타A 0~3 · 평타B 1~3 (평타B·창기사 자루는 이 캡처 뒤에 다시 고침). 렌더 예외 0.</figcaption></figure>
+
+<h2>유료 사용 내역 (이번 작업 11회)</h2>
+<div class="wide"><table>
+  <tr><th>호출</th><th>회</th><th>결과</th></tr>
+  <tr><td>랜서 키 편집 (첫 시도)</td><td>3</td><td class="no">결과 저장 폴더가 없어 그림을 잃음 — 제 코드 실수, 고침</td></tr>
+  <tr><td>랜서 키 편집 (다시)</td><td>3</td><td class="no">원본과 거의 같아 못 씀 → 코드로 대체</td></tr>
+  <tr><td>용황 키 편집 (찌름·들기)</td><td>2</td><td>찌름은 못 씀, 들기가 옆모습으로 나와 평타B 의 바탕으로 씀</td></tr>
+  <tr><td>창기사 걷기</td><td>3</td><td class="ok">씀</td></tr>
+</table></div>
+<p>사고 1건: 작업 중 시트 축소 도구(<code>rescale.py</code>)를 불러오기만 했는데 전체 시트 35장이 예전 원본에서 다시 만들어졌습니다. 마지막 커밋으로 모두 되돌리고 이번 작업만 스크립트로 다시 적용했습니다. 지금 바뀐 시트는 창기사 계열 7종뿐입니다.</p>
+
+<h2>남은 흠 (선택)</h2>
+<ul>
+  <li>천마장군·용황 평타A: 뒤로 당기는 장이 약함</li>
+  <li>용황 평타B: 창 색이 준비 장보다 조금 어두움</li>
+  <li>창기사 걷기: 보폭이 작아 1배에서 걷는 느낌이 약함</li>
+</ul>
+<p>확인: <a href="../skills.html?mode=basic&cls=cavalier">스킬 시험장 평타</a> — 직업 버튼으로 랜서·천마장군·창기사·용기병·용황을 바꿔 보세요.</p>
+</main>
+</body>
+</html>

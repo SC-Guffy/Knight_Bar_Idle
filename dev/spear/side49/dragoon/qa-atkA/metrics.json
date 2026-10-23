@@ -1,0 +1,40 @@
+{
+ "id": "dragoon-atkA",
+ "kind": "char",
+ "file": "dev/spear/side49/dragoon/atkA-sheet.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  600,
+  100
+ ],
+ "scale": 1.0,
+ "anchor": "c",
+ "intent": "용기병 평타A 찌르기: 준비 → 윗몸을 젖히며 창을 뒤로 당김(1번, 새로 만든 장) → 내지름 → 끝까지 → 밀어붙임 → 준비",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.437,
+  "colors": 19,
+  "low": 0.05,
+  "edge": 0.413,
+  "lone": 0.122,
+  "flick": 0.384,
+  "churn": 0.496,
+  "fill": 0.06,
+  "area": [
+   576,
+   735,
+   583,
+   563,
+   563,
+   576
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

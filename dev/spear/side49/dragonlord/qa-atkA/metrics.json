@@ -1,0 +1,40 @@
+{
+ "id": "dragonlord-atkA",
+ "kind": "char",
+ "file": "dev/spear/side49/dragonlord/atkA-sheet.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  600,
+  100
+ ],
+ "scale": 1.0,
+ "anchor": "c",
+ "intent": "용황 평타A 찌르기: 준비 → 당김 → 찌름 → 끝까지(3·4번 새로, 정면으로 돌지 않게) → 준비",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.756,
+  "colors": 22,
+  "low": 0.364,
+  "edge": 0.447,
+  "lone": 0.162,
+  "flick": 0.241,
+  "churn": 0.479,
+  "fill": 0.087,
+  "area": [
+   745,
+   785,
+   827,
+   1047,
+   1044,
+   745
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

@@ -1,0 +1,40 @@
+{
+ "id": "dragonlord-atkB",
+ "kind": "char",
+ "file": "dev/spear/side49/dragonlord/atkB-sheet.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  600,
+  100
+ ],
+ "scale": 1.0,
+ "anchor": "c",
+ "intent": "용황 평타B 내려찍기: 준비 → 창을 들어 올림 → 머리 위로 치켜듦(정점) → 앞으로 내려찍음(명중) → 밀어붙임 → 준비. 옆모습",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.756,
+  "colors": 20,
+  "low": 0.426,
+  "edge": 0.438,
+  "lone": 0.138,
+  "flick": 0.279,
+  "churn": 0.399,
+  "fill": 0.086,
+  "area": [
+   745,
+   947,
+   953,
+   869,
+   874,
+   745
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

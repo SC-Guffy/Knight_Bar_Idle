@@ -1,0 +1,42 @@
+{
+ "id": "skyGeneral-atkA",
+ "kind": "char",
+ "file": "dev/spear/side49/skyGeneral/atkA-sheet.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  600,
+  100
+ ],
+ "scale": 1.0,
+ "anchor": "c",
+ "intent": "천마장군 평타A 찌르기: 준비 → 윗몸 젖히며 랜스 뒤로 → 디디며 내지름 → 끝까지(몸통 앞으로) → 밀어붙임 → 준비. 방패를 든 옆모습",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": [
+   "2번 프레임이 칸 왼쪽 가장자리에 닿는다 (잘림?)"
+  ]
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.847,
+  "colors": 21,
+  "low": 0.188,
+  "edge": 0.475,
+  "lone": 0.126,
+  "flick": 0.33,
+  "churn": 0.626,
+  "fill": 0.095,
+  "area": [
+   880,
+   917,
+   995,
+   1021,
+   1029,
+   880
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

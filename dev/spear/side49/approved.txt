@@ -4,3 +4,9 @@ dragonlord/walk
 dragoon/walk
 skyGeneral/walk
 lancer/walk
+cavalier/k-windup2
+cavalier/k-step2
+cavalier/k-lunge2
+dragonlord/k-lunge
+dragonlord/k-raise
+lancer/walk

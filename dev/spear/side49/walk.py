@@ -70,15 +70,15 @@ CFG = {
                 'one hand held forward at the waist (the lance is drawn later), side view facing right',
     },
     'lancer': {
-        'base': ('idle', 0), 'keep_idle': True,                             # 대기는 이미 옆모습 — 걷기만 바꾼다
-        'weapon': lambda x, y: x >= 43 and y <= 84,                         # 가로로 든 창 앞부분 + 깃발
-        'kp': {'NECK': (32, 67), 'NOSE': (35, 64), 'RIGHT EYE': (34, 62), 'LEFT EYE': (32, 62), 'RIGHT EAR': (29, 62), 'LEFT EAR': (27, 62),
-               'RIGHT SHOULDER': (27, 69), 'RIGHT ELBOW': (26, 74), 'RIGHT ARM': (25, 78),
-               'LEFT SHOULDER': (35, 69), 'LEFT ELBOW': (37, 73), 'LEFT ARM': (40, 76),
-               'RIGHT HIP': (27, 79), 'RIGHT KNEE': (26, 83), 'RIGHT LEG': (25, 87),
-               'LEFT HIP': (33, 79), 'LEFT KNEE': (33, 83), 'LEFT LEG': (33, 87)},
-        'desc': 'young chibi lancer knight in light steel armor, steel helmet with a green plume, short green cape, '
-                'one hand held low at the waist (the spear is drawn later), side view facing right',
+        # 10-23 둘째: 대기가 예전 디자인(회색 큰 투구)이라 평타·시전(새 디자인)과 달라 → 기준을 평타A 0번으로 (예전 keep_idle 판은 걷기만 바꿨다)
+        'weapon': lambda x, y: (76 <= y <= 80 and (x >= 33 or x <= 13)) or (x >= 40 and y <= 84),   # 허리 높이로 가로 든 창 앞·뒤 + 깃발
+        'kp': {'NECK': (25, 69), 'NOSE': (30, 66), 'RIGHT EYE': (29, 64), 'LEFT EYE': (27, 64), 'RIGHT EAR': (23, 64), 'LEFT EAR': (21, 64),
+               'RIGHT SHOULDER': (22, 71), 'RIGHT ELBOW': (21, 75), 'RIGHT ARM': (23, 78),
+               'LEFT SHOULDER': (28, 71), 'LEFT ELBOW': (30, 75), 'LEFT ARM': (32, 78),
+               'RIGHT HIP': (22, 80), 'RIGHT KNEE': (21, 84), 'RIGHT LEG': (20, 87),
+               'LEFT HIP': (27, 80), 'LEFT KNEE': (28, 84), 'LEFT LEG': (29, 87)},
+        'desc': 'young chibi lancer knight with an open-faced steel helmet, green plume, green tabard, short green cape, steel greaves, '
+                'both hands held low at the waist (the spear is drawn later), side view facing right',
     },
 }
 Z = {'LEFT ARM': 1, 'LEFT ELBOW': 1, 'LEFT SHOULDER': 2, 'LEFT HIP': 3, 'LEFT KNEE': 3, 'LEFT LEG': 3, 'NECK': 5, 'RIGHT HIP': 6, 'RIGHT KNEE': 6,
@@ -211,7 +211,8 @@ def call(cls, act='walk', body=None, ep='/animate-with-skeleton-v3'):
     if tag not in ok: sys.exit(f'STOP: 승인 안 된 호출 {tag} (approved.txt)')
     st = json.load(open(USAGE)) if os.path.exists(USAGE) else {'used': 0.0, 'calls': []}
     s0, b = pl('GET', '/balance'); b0 = b['subscription']['generations'] if s0 == 200 else None
-    if st['used'] + 3 > CAP: sys.exit(f'STOP: 자기 사용 {st["used"]} — 상한 {CAP}')
+    need = 3 if 'skeleton' in ep else 1
+    if st['used'] + need > CAP: sys.exit(f'STOP: 자기 사용 {st["used"]} — 상한 {CAP}')
     body = body or json.load(open(os.path.join(D(cls), 'req.json'), encoding='utf-8'))
     for _ in range(4):
         s, r = pl('POST', ep, body)
@@ -232,6 +233,7 @@ def call(cls, act='walk', body=None, ep='/animate-with-skeleton-v3'):
     used = float(u.get('generations', 1)) if isinstance(u, dict) else None
     imgs = []
     if r is not None: images(r, imgs)
+    os.makedirs(D(cls), exist_ok=True)          # 10-23: 폴더가 없어 결과를 잃은 일이 있다 (3회)
     for i, b64 in enumerate(imgs):
         if ',' in b64[:40]: b64 = b64.split(',', 1)[1]
         open(os.path.join(D(cls), f'raw-{act}-{i}.png'), 'wb').write(base64.b64decode(b64))

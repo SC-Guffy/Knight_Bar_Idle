@@ -1,5 +1,5 @@
 {
- "used": 18.0,
+ "used": 29.0,
  "calls": [
   {
    "tag": "halberdier/walk",
@@ -48,6 +48,75 @@
    "n": 8,
    "bal_before": 34.0,
    "bal_after": 31.0
+  },
+  {
+   "tag": "cavalier/k-windup",
+   "ep": "/edit-image-pixen",
+   "usage": 1.0,
+   "n": 0,
+   "note": "\uacb0\uacfc \uc800\uc7a5 \uc2e4\ud328(\ud3f4\ub354 \uc5c6\uc74c) \u2014 \uadf8\ub9bc \uc783\uc74c, \ub2e4\uc2dc \ud638\ucd9c"
+  },
+  {
+   "tag": "cavalier/k-step",
+   "ep": "/edit-image-pixen",
+   "usage": 1.0,
+   "n": 0,
+   "note": "\uacb0\uacfc \uc800\uc7a5 \uc2e4\ud328(\ud3f4\ub354 \uc5c6\uc74c) \u2014 \uadf8\ub9bc \uc783\uc74c, \ub2e4\uc2dc \ud638\ucd9c"
+  },
+  {
+   "tag": "cavalier/k-lunge",
+   "ep": "/edit-image-pixen",
+   "usage": 1.0,
+   "n": 0,
+   "note": "\uacb0\uacfc \uc800\uc7a5 \uc2e4\ud328(\ud3f4\ub354 \uc5c6\uc74c) \u2014 \uadf8\ub9bc \uc783\uc74c, \ub2e4\uc2dc \ud638\ucd9c"
+  },
+  {
+   "tag": "cavalier/k-windup2",
+   "ep": "/edit-image-pixen",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 28.0,
+   "bal_after": 27.0
+  },
+  {
+   "tag": "cavalier/k-step2",
+   "ep": "/edit-image-pixen",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 27.0,
+   "bal_after": 26.0
+  },
+  {
+   "tag": "cavalier/k-lunge2",
+   "ep": "/edit-image-pixen",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 26.0,
+   "bal_after": 25.0
+  },
+  {
+   "tag": "dragonlord/k-lunge",
+   "ep": "/edit-image-pixen",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 25.0,
+   "bal_after": 24.0
+  },
+  {
+   "tag": "dragonlord/k-raise",
+   "ep": "/edit-image-pixen",
+   "usage": 1.0,
+   "n": 2,
+   "bal_before": 24.0,
+   "bal_after": 23.0
+  },
+  {
+   "tag": "lancer/walk",
+   "ep": "/animate-with-skeleton-v3",
+   "usage": 3.0,
+   "n": 8,
+   "bal_before": 23.0,
+   "bal_after": 20.0
   }
  ]
 }

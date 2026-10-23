@@ -1,0 +1,42 @@
+{
+ "id": "lancer-walk",
+ "kind": "char",
+ "file": "dev/spear/side49/lancer/walk-sheet.png",
+ "frames": 8,
+ "color": "raw",
+ "size": [
+  800,
+  100
+ ],
+ "scale": 1.0,
+ "anchor": "c",
+ "intent": "창기사 걷기: 오른쪽 옆모습, 창을 허리 높이로 가로로 든 채 다리를 번갈아 내딛음. 평타·시전(초록 망토·열린 투구)과 같은 디자인",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.643,
+  "colors": 19,
+  "low": 0.3,
+  "edge": 0.428,
+  "lone": 0.07,
+  "flick": 0.081,
+  "churn": 0.215,
+  "fill": 0.08,
+  "area": [
+   772,
+   781,
+   798,
+   815,
+   799,
+   822,
+   805,
+   789
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}

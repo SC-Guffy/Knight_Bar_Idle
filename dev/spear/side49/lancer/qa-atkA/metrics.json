@@ -1,0 +1,40 @@
+{
+ "id": "lancer-atkA",
+ "kind": "char",
+ "file": "dev/spear/side49/lancer/atkA-sheet.png",
+ "frames": 6,
+ "color": "raw",
+ "size": [
+  600,
+  100
+ ],
+ "scale": 1.0,
+ "anchor": "c",
+ "intent": "창기사 평타A 찌르기: 준비 → 윗몸을 젖히며 창을 뒤로 당김(1번, 새로 만든 장) → 내지름 → 끝까지 찌름 → 밀어붙임 → 준비",
+ "gate": {
+  "pass": true,
+  "fail": [],
+  "warn": []
+ },
+ "metrics": {
+  "crumbs": 0.0,
+  "lrange": 0.643,
+  "colors": 22,
+  "low": 0.203,
+  "edge": 0.452,
+  "lone": 0.112,
+  "flick": 0.388,
+  "churn": 0.628,
+  "fill": 0.067,
+  "area": [
+   654,
+   858,
+   560,
+   658,
+   658,
+   654
+  ],
+  "strip": 0.0
+ },
+ "flags": []
+}
