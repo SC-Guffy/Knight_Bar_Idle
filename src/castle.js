@@ -128,6 +128,7 @@ const castleTicketsBoughtToday = () => (newDay(S.castle.buyDay) ? 0 : S.castle.b
 const castleTicketPrice = () => ({ gold: Math.max(1, Math.floor(monsterStats(priceBest(), false).gold * CASTLE_TICKET_GOLD * subTicketMult(castleTicketsBoughtToday()))) });
 function castleTicketBlocker() {
   if (!castleUnlocked()) return `스테이지 ${CASTLE_UNLOCK_STAGE} 도달 시 열려요`;
+  if (!srvClock.known) return '서버 시각 확인 중';   // 탑·미궁과 같이 — 모르는 채 어제 장수로 쓰고 다시 채워지지 않게
   if ((S.castle.tixExtra || 0) >= CASTLE_TICKET_HOLD) return `산 입장권은 ${CASTLE_TICKET_HOLD}장까지 가질 수 있어요`;
   if (S.gold < castleTicketPrice().gold) return '골드 부족';
   return '';
@@ -142,7 +143,7 @@ function buyCastleTicket() {
 }
 
 // ── 소탕: 입장권 1장으로 깬 최고 단계를 10웨이브 다 막은 몫 ──
-const castleSweepReady = () => castleUnlocked() && S.castle.best > 0 && castleTickets() > 0 && !S.castle.run;
+const castleSweepReady = () => castleUnlocked() && srvClock.known && S.castle.best > 0 && castleTickets() > 0 && !S.castle.run;
 function sweepCastle() {
   if (!castleSweepReady()) return null;
   useCastleTicket();
@@ -179,6 +180,7 @@ function castleMentors() {
 function castleBlocker() {
   if (!castleUnlocked()) return `스테이지 ${CASTLE_UNLOCK_STAGE} 도달 시 열려요`;
   if (S.phase !== 'camp') return '캠프에서만 도전할 수 있어요';
+  if (!srvClock.known) return '서버 시각 확인 중';
   if (castleTickets() <= 0) return '입장권이 없어요 (자정에 충전 · 구매 가능)';
   return '';
 }
