@@ -1,6 +1,6 @@
 # 직업·룬 밸런스 (총점검 D·E·J·N)
 
-- 상태: 구현 (0.31.2, 사용자 확인 전) — 추천안 확정 (사용자 10-23: 검신 공격력 1.5 · 광란·만검·월광 대가 반 · 그랜드마스터 결투 시작 기는 그대로)
+- 상태: 완료 (0.31.2, 사용자 확인 10-23)
 - 관련 코드: src/core.js (`dpsOf`·`skillCd`·`profile`·`simulate`), src/fighter-data.js (`QI`·`qiRateOf`·`qiCdOf`·파이터 3차 `mods`), src/jobs/fighter.js (`qiNeed`·`qiAdd`), server/duel.js (`qiAdd`), src/tree7.js (`t7Mods` 전설 룬·`t7Stats`), src/rune.js (`RUNE_BOT_LEG`), src/classes.js (`swordsaint` mods), src/tree7-fx.js (`t7OnHit`)
 - 출처: [balance-audit-1023.md](balance-audit-1023.md) D·E·J·N (I 는 결투 배율, 따로)
 - 원칙: [skill-redesign.md](skill-redesign.md) 정답 강요 금지 · 콘텐츠 전용 보정 금지(직업 특성 `CLASSES mods`·기 규칙으로) · 근접은 단단, 원거리는 약함

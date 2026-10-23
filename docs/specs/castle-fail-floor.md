@@ -1,6 +1,6 @@
 # 성벽 지키기: 도전 보상 바닥 = 소탕분
 
-- 상태: 구현 (0.31.0, 사용자 확인 전) — 추천안 확정 (사용자 10-23)
+- 상태: 완료 (0.31.0, 사용자 확인 10-23)
 - 관련 코드: src/castle.js (`endCastle`·`castleSweepBricks`·`castleBooksOf`), src/castle-ui.js (결과·판정 칩)
 - 관련 스펙: [balance-audit-1023.md](balance-audit-1023.md) 항목 F, [castle-defense.md](castle-defense.md), [reward-inversion-audit.md](reward-inversion-audit.md) (탑 입장 보장 0.20.10)
 - 최종 갱신: 2026-10-23

@@ -1,6 +1,6 @@
 # 기사단 부캐와 함께 하는 콘텐츠 (월드 보스 지분 · 레이드 파티)
 
-- 상태: 구현 (0.31.0, 사용자 확인 전) — 추천안 확정 (사용자 10-23)
+- 상태: 완료 (0.31.0, 사용자 확인 10-23)
 - 관련 코드: server/store.js (`wbStats`·`wbPending` — 파일·Postgres 둘 다), src/worldboss.js (`wbReward`), server/index.js (`POST /api/raids/start` party·botMult), server/bots.js (`raidParty`·`raidRewardMult`)
 - 관련 스펙: [balance-audit-1023.md](balance-audit-1023.md) 항목 M, [guild.md](guild.md), [guild-dungeon-tickets.md](guild-dungeon-tickets.md)
 - 최종 갱신: 2026-10-23

@@ -1,6 +1,6 @@
 # 결투 재정비 · AI 곡선 다시 굽기 (총점검 I · K 나머지)
 
-- 상태: 구현 (0.31.2, 사용자 확인 전) — 추천안(d) 확정 (사용자 10-23: 판 길이 7.5초 · AI 곡선 같은 배포)
+- 상태: 완료 (0.31.2, 사용자 확인 10-23)
 - 관련 코드: server/duel.js (`simulateDuel` 의 `hpMult` · `DUEL_SEC` · `HP_MULT` · `DUEL_HP`), src/tree7.js (`T7_DUEL_LINE` · `t7Duel`), src/core.js (`profile().duel`), server/bots.js (`curveAt` · `toProfile` · `raidProfile`), server/bot-curve.json, dev/bot-curve.js, dev/duel-league.js
 - 관련 스펙: [balance-audit-1023.md](balance-audit-1023.md) I·K (D·E·J 는 class-balance-1023.md, 작성 중), [duel-length.md](duel-length.md), [duel-gap-closer.md](duel-gap-closer.md)
 - 실험: [dev/audit-1023/duel/](../../dev/audit-1023/duel/) — src/·server/ 를 고치지 않고 `lib.js loadDuel()` 이 server/duel.js 글을 메모리에서 바꿔 돌린다

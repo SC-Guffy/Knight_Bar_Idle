@@ -1,6 +1,6 @@
 # 경제 2단계 — 건설 시간 벽 · 골드 비용 (밸런스 총점검 C)
 
-- 상태: 구현 (0.31.1, 사용자 확인 전) — 추천안 확정 (사용자 10-23: 회관도 새 시간 곡선 · 짓던 건설도 새 식으로 줄임 · 골드 (b 약))
+- 상태: 완료 (0.31.1, 사용자 확인 10-23)
 - 관련 코드: src/data.js (`buildTimeAt`·`buildMatGrow`·`BUILD_MAT_KNEE`·`BUILD_MAT_LATE`·`buildCost`·`forgeFacCost`·`trainCapAt`·`bagUpCost`), src/classes.js (`CLASS_REQ`), src/core.js (`startBuild`·`advanceBuildNow`·`priceBest`·`rushPrice`·`tradeAmount`·`BUILDINGS.hall`), src/dungeon.js (`dgNextBuildCost`), src/ui.js (건물 카드 `건설 · 시간`), src/town.js
 - 관련 스펙: [balance-audit-1023.md](balance-audit-1023.md) (C), [growth-compression.md](growth-compression.md) ("경제는 2단계"), [balance-lifespan.md](balance-lifespan.md) (제안 C), [currency-roles.md](currency-roles.md), [building-materials-and-training.md](building-materials-and-training.md), [build-rush.md](build-rush.md), [guild-price-base.md](guild-price-base.md)
 - 실험 패치: [dev/audit-1023/patches/](../../dev/audit-1023/patches/) (`hook.js` 로 모든 봇에 끼움)

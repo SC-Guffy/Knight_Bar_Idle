@@ -1,6 +1,6 @@
 # 쌓이기만 하는 재화 정리 (총점검 G·H·L — 📖 비전서 · 💠 강화석 · 💎 마력석 · 🧱 성벽돌 · 📕 수련의 서)
 
-- 상태: 구현 (0.31.0, 사용자 확인 전) — 추천안(G-A + G-B · H-A · L-A) 확정 (사용자 10-23)
+- 상태: 완료 (0.31.0, 사용자 확인 10-23)
 - 상위 스펙: [balance-audit-1023.md](balance-audit-1023.md) G·H·L (K 봇 갱신 뒤 다시 잼)
 - 원칙: [currency-roles.md](currency-roles.md) — 재화마다 역할 하나, 수급·소모가 안 맞으면 **다른 소모처를 끼우지 말고 원래 수급처·소모처의 양으로** 맞춘다
 - 관련 스펙: [skill-mastery-s7.md](skill-mastery-s7.md) (비전서 = 숙련 재료, Lv20 상한) · [skill-mastery-cost.md](skill-mastery-cost.md) · [enhance-30.md](enhance-30.md) (+26~30 = 보호 주문서 구간) · [protect-scroll-drop.md](protect-scroll-drop.md) · [castle-defense.md](castle-defense.md) · [training-mentors.md](training-mentors.md) ("📕 다 쓴 뒤" 미정 항목)

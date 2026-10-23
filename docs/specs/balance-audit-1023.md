@@ -1,6 +1,6 @@
 # 밸런스 총점검 (2026-10-23, 0.30.4 기준)
 
-- 상태: 점검 끝 · 전 항목 구현 (0.30.5~0.31.2, 사용자 확인 전)
+- 상태: 완료 (0.30.5~0.31.2, 사용자 확인 10-23)
 - 검토 페이지: [dev/review/balance-audit-1023.html](../../dev/review/balance-audit-1023.html)
 - 관련 스펙: [guild-price-base.md](guild-price-base.md), [reward-inversion-audit.md](reward-inversion-audit.md)(10-14 1차 전수조사), [raid-tickets.md](raid-tickets.md), [castle-defense.md](castle-defense.md), [currency-roles.md](currency-roles.md), [growth-compression.md](growth-compression.md), [balance-lifespan.md](balance-lifespan.md), [skill-runes.md](skill-runes.md), [duel-length.md](duel-length.md)
 - 최종 갱신: 2026-10-23

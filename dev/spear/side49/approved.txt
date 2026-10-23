@@ -1,0 +1,6 @@
+halberdier/walk
+warlord/walk
+dragonlord/walk
+dragoon/walk
+skyGeneral/walk
+lancer/walk
