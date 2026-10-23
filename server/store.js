@@ -205,7 +205,9 @@ class FileStore {
     for (const h of this.sdb.wbHits.filter(x => x.key === key && x.day < today && !x.claimed && !x.bot)) {
       const b = await this.wbGet(h.day), st = await this.wbStats(h.day);
       const rank = this.sdb.wbHits.filter(x => x.day === h.day && !x.bot && x.dmg > h.dmg).length + 1;
-      out.push({ day: h.day, boss: b ? b.boss : null, dmg: h.dmg, rank, total: st.humanTotal, players: st.humans, killed: !!(b && b.killedAt) });
+      // 평균 지분의 인원은 기사단을 한 명으로 센다 — 피해가 적은 부캐가 평균을 끌어내려 모두의 몫이 부풀지 않게 (docs/specs/guild-shared-content.md)
+      const players = new Set(this.sdb.wbHits.filter(x => x.day === h.day && !x.bot).map(x => (this.db[x.key] && this.db[x.key].guildId) || x.key)).size;
+      out.push({ day: h.day, boss: b ? b.boss : null, dmg: h.dmg, rank, total: st.humanTotal, players, killed: !!(b && b.killedAt) });
     }
     return out.sort((a, b) => a.day - b.day);
   }
@@ -631,7 +633,8 @@ class PgStore {
       `SELECT h.day, b.boss, h.dmg, b.killed_at,
          (SELECT count(*) FROM world_boss_hits x WHERE x.day = h.day AND NOT x.bot AND x.dmg > h.dmg) + 1 AS rank,
          (SELECT coalesce(sum(dmg), 0) FROM world_boss_hits x WHERE x.day = h.day AND NOT x.bot) AS total,
-         (SELECT count(*) FROM world_boss_hits x WHERE x.day = h.day AND NOT x.bot) AS players
+         (SELECT count(DISTINCT coalesce(nullif(a.guild_id, ''), x.key)) FROM world_boss_hits x LEFT JOIN accounts a ON a.key = x.key
+            WHERE x.day = h.day AND NOT x.bot) AS players   -- 기사단을 한 명으로 (guild-shared-content.md)
        FROM world_boss_hits h LEFT JOIN world_boss b ON b.day = h.day
        WHERE h.key = $1 AND h.day < $2 AND NOT h.claimed AND NOT h.bot ORDER BY h.day`, [key, today]);
     return r.rows.map(x => ({ day: x.day, boss: x.boss, dmg: Number(x.dmg), rank: Number(x.rank), total: Number(x.total), players: Number(x.players), killed: x.killed_at != null }));

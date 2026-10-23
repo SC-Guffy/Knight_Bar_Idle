@@ -1,6 +1,6 @@
 # 쌓이기만 하는 재화 정리 (총점검 G·H·L — 📖 비전서 · 💠 강화석 · 💎 마력석 · 🧱 성벽돌 · 📕 수련의 서)
 
-- 상태: 초안 (사용자 결정 대기 — 아래 "사용자 결정")
+- 상태: 구현 (0.31.0, 사용자 확인 전) — 추천안(G-A + G-B · H-A · L-A) 확정 (사용자 10-23)
 - 상위 스펙: [balance-audit-1023.md](balance-audit-1023.md) G·H·L (K 봇 갱신 뒤 다시 잼)
 - 원칙: [currency-roles.md](currency-roles.md) — 재화마다 역할 하나, 수급·소모가 안 맞으면 **다른 소모처를 끼우지 말고 원래 수급처·소모처의 양으로** 맞춘다
 - 관련 스펙: [skill-mastery-s7.md](skill-mastery-s7.md) (비전서 = 숙련 재료, Lv20 상한) · [skill-mastery-cost.md](skill-mastery-cost.md) · [enhance-30.md](enhance-30.md) (+26~30 = 보호 주문서 구간) · [protect-scroll-drop.md](protect-scroll-drop.md) · [castle-defense.md](castle-defense.md) · [training-mentors.md](training-mentors.md) ("📕 다 쓴 뒤" 미정 항목)
@@ -137,6 +137,9 @@
   - 성벽 완료: `S.best = 300; S.castle.best = 30; for (const k in S.castle.up) S.castle.up[k] = 10; S.mentor.stars = [5,5,5,5,5]; render()` → 성벽 카드 `✅ 성벽 완성`, 레드닷 없음, 구매 막힘
 
 ## 진행 기록
+- 2026-10-23: 사용자 확정 → 구현 0.31.0. `tower.js towerSweepTomes`(소탕·입장 보장) · `skm.js skmFeedSplit`(Lv20 위 1권 +5, Lv29 까지) · `data.js GEAR_STONES`·`CURIOS.gem.amt 4` · `castle.js castleDone`(구매 막기)·`castle-ui.js` 칩·레드닷. training-mentors.md 의 📕→🧱 미정은 "안 바꿈"으로 닫음.
+  - 확인: node(`dev/audit-1023/guild/stage1.js`) — 소탕 5·10·14·18·28·48권(5·10·30·49·100·200층), Lv20 스킬에 821권 → Lv29, 판매 💠 [1,2,4,10,25,60,90,150]·💎 4, 성벽 졸업 뒤 구매 막힘. 게임 화면 — 탑 카드 49F "📖 +18", 성벽 카드 "✅ 성벽 완성 · 교관 수료", 스킬 탭 Lv20 바치기 10권(+50).
+  - 진행 봇 7일·10시드 `--rev HEAD --rev .`: 최종 스테이지 260 → 259, 탑 비전서 1,761 → 522, 남은 비전서 1,711 → 0, 강화 합 74 → 68 (7일까진 💠 이 일부 시드에서 모자람 — 21일 수명 봇에선 그대로였다), 💠 남음 2,188 → 1,682.
 - 2026-10-23: 초안. K 로 갱신된 봇 두 가지로 지금 상태를 재고(heavy 21일 8시드 · 24h 14일 8시드), `dev/audit-1023/patches/surplus-*.js` 로 안마다 전후를 쟀다.
   - 📖: 탑 소탕이 수입의 88%, 장착 스킬은 전투만으로 Lv30 에 닿아 지출 3%. 탑만 줄이면 −72%, 바치기만 늘리면 −30%, 둘 다 −85%.
   - 💠: 높은 등급 판매(5·6·7등급)가 스테이지 300 위 수입의 대부분 — 7등급만 줄이면 −18%, 6·7등급을 같이 줄여야 반쯤. 강화 합은 주문서가 정해서 안 바뀐다.

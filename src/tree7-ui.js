@@ -68,7 +68,7 @@ const T7_STARS = (n) => (n ? '★'.repeat(n) : '');
 function viewTree7() {
   const s = t7S(), T = t7Tier(), L = t7L();
   const head = `<div class="mhead"><div><h3>${ico('glow')} 스킬</h3>
-      <small>장착해서 데려간 스킬이 쓸수록 자라요 · 숙련 Lv 10·20·30 에 모습이 바뀌어요 · 📖 비전서로 끌어올릴 수 있어요 (Lv20 까지)</small></div>
+      <small>장착해서 데려간 스킬이 쓸수록 자라요 · 숙련 Lv 10·20·30 에 모습이 바뀌어요 · 📖 비전서로 끌어올릴 수 있어요 (Lv20 위는 1권 = 경험치 +${SKM_TOME_HI}, Lv${SKM_FEED_TOP} 까지 — ★★★ 는 써야 와요)</small></div>
     <span class="mchip${S.tomes ? '' : ' none'}" title="📖 비전서 — 스킬 숙련에 바쳐요 (1권 = 경험치 ${SKM_TOME})">📖 <b>${fmt(S.tomes || 0)}</b></span></div>`;
   // 장착 칸 (순서 = 시전 순서) + 궁극기 칸
   const slots = [];
@@ -108,7 +108,7 @@ function viewTree7() {
         <div class="t7xp"><i style="width:${Math.round(p * 100)}%"></i></div><small>${lv < 30 ? `다음 Lv ${Math.round(p * 100)}% · ${nextStar}` : '숙련 끝 (★★★)'}</small>
         <div class="t7act">
           ${isUlt ? '<small class="t7note">궁극기 칸 — 늘 장착</small>' : `<button class="btn${eq ? ' on' : ''}" data-action="t7-eq" data-sk="${sk}" ${evoMatsOf(sk).length ? `title="장착하면 ${evoMatsOf(sk).map((m) => SKILLS[m].name).join(' · ')} 이(가) 빠져요 (두 칸 → 한 칸)"` : ''}>${eq ? '✓ 장착' : evoMatsOf(sk).length ? '장착 (두 칸 → 한 칸)' : '장착'}</button>`}
-          <button class="btn" data-action="t7-feed" data-sk="${sk}" data-n="10" ${feed > 0 ? '' : 'disabled'} title="${feedMax ? `비전서 10권까지 (1권 = 경험치 ${SKM_TOME}, Lv20 까지)` : 'Lv20 부터는 써야 자라요'}">📖 바치기</button>
+          <button class="btn" data-action="t7-feed" data-sk="${sk}" data-n="10" ${feed > 0 ? '' : 'disabled'} title="${feedMax ? `비전서 10권까지 (${skmLv(sk) < SKM_TOME_CAP ? `1권 = 경험치 ${SKM_TOME}` : `1권 = 경험치 ${SKM_TOME_HI}, Lv${SKM_FEED_TOP} 까지`})` : `Lv${SKM_FEED_TOP} 부터는 써야 자라요`}">📖 바치기</button>
           <button class="btn mprev" data-action="preview" data-id="${sk}" ${S.phase === 'camp' ? '' : 'disabled'} title="아래 기사가 지금 모습으로 한 번 시전해요">▶</button>
         </div>${stageCtl}${isUlt ? evoUvHtml() : ''}</div></div>`;
   }).join('');

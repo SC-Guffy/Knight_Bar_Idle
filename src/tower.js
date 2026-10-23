@@ -79,8 +79,8 @@ function startTower() {
   if (towerBlocker()) return false;
   const start = towerCheckpoint();
   useTowerTicket();
-  // 입장만 해도 소탕만큼(최고 층 수) 📖 를 먼저 받는다 — 도전은 소탕 + 깬 층만큼 더
-  const base = S.tower.best;
+  // 입장만 해도 소탕만큼(towerSweepTomes) 📖 를 먼저 받는다 — 도전은 소탕 + 깬 층만큼 더
+  const base = towerSweepTomes();
   S.tomes += base;
   S.tower.run = { start, floor: start, cleared: 0, kills: 0, gold: 0, exp: 0, tomes: base, base, firsts: [], t0: Date.now(), lv0: S.level, best0: S.tower.best };
   S.phase = 'tower';
@@ -119,12 +119,17 @@ function buyTowerTicket() {
   return true;
 }
 // 소탕: 입장권 1장으로 최고 층 수만큼 비전서를 바로 받는다
+// 소탕·입장 보장 📖 = min(최고 층, round(8 + 최고 층/5)) — 0.31.0 전엔 최고 층 수 그대로였다. 층이 오를수록 끝없이 늘어
+//  비전서가 쓸 곳(숙련) 수십 배로 쌓였다 (docs/specs/currency-surplus-1023.md G)
+const TOWER_SWEEP_A = 8, TOWER_SWEEP_B = 5;
+const towerSweepTomes = (best = S.tower.best) => (best > 0 ? Math.min(best, Math.round(TOWER_SWEEP_A + best / TOWER_SWEEP_B)) : 0);
 const towerSweepReady = () => towerUnlocked() && srvClock.known && S.tower.best > 0 && towerTickets() > 0 && !S.tower.run;
 function sweepTower() {
   if (!towerSweepReady()) return 0;
   useTowerTicket();
-  S.tomes += S.tower.best;
-  return S.tower.best;
+  const n = towerSweepTomes();
+  S.tomes += n;
+  return n;
 }
 
 // 탑 몬스터 처치 보상 (골드·경험치)

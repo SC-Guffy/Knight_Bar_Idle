@@ -1,6 +1,6 @@
 # 기사단 부캐와 함께 하는 콘텐츠 (월드 보스 지분 · 레이드 파티)
 
-- 상태: 초안 (사용자 확인 전)
+- 상태: 구현 (0.31.0, 사용자 확인 전) — 추천안 확정 (사용자 10-23)
 - 관련 코드: server/store.js (`wbStats`·`wbPending` — 파일·Postgres 둘 다), src/worldboss.js (`wbReward`), server/index.js (`POST /api/raids/start` party·botMult), server/bots.js (`raidParty`·`raidRewardMult`)
 - 관련 스펙: [balance-audit-1023.md](balance-audit-1023.md) 항목 M, [guild.md](guild.md), [guild-dungeon-tickets.md](guild-dungeon-tickets.md)
 - 최종 갱신: 2026-10-23
@@ -27,17 +27,18 @@
 
 ## UI
 
-- 레이드 대기실: 같은 기사단 파티원 이름 옆에 🛡️ 와 "AI 자리처럼 계산" 말풍선.
+- 레이드 대기실 표시는 이번엔 넣지 않았다(서버 결과의 `party`·`botMult` 만 바뀜 — 결과 화면의 재화 배율로 보임). 필요하면 다음에.
 - 월드 보스: 변화 없음(지분 설명 문구 그대로).
 
 ## 수용 기준
 
-- [ ] 월드 보스: 사람 10명(같은 피해) + 한 기사단의 부캐 4명(피해 1%) → 사람 10명의 지분이 부캐 없을 때와 같다 (서버 단위 시험 `dev/guild-server-test.mjs` 또는 새 시험)
-- [ ] 같은 기사단 기사 3명 + 다른 사람 1명 파티 → 결과 `party` = 2 + 2×0.5, `botMult` = AI 2자리 값
-- [ ] 다른 기사단끼리 파티는 지금과 같다
-- [ ] 파일·Postgres 저장소 둘 다 (`dev/guild-pg-compat.mjs`)
+- [x] 월드 보스: 사람 10명(피해 100) + 기사단 본캐(100) + 부캐 4명(피해 1) → 사람 지분 0.996 (부캐 없을 때 1.000, 바꾸기 전 규칙 1.359) — `node dev/audit-1023/guild/wbplayers.js` (파일 저장소)
+- [x] 같은 기사단 기사 2명 파티 → 결과 `party` 1.5 · `botMult` 0.9 (`dev/guild-server-test.mjs`, 로컬 서버)
+- [x] 다른 기사단·기사단 없는 파티는 코드 경로 그대로(같은 기사단 두 번째부터만 셈)
+- [ ] Postgres 쿼리(`count(DISTINCT coalesce(nullif(a.guild_id,''), x.key))`)는 이 PC 에 Postgres 가 없어 실행 확인 못 함 — 배포 뒤 Render 로그로 확인
 
 ## 진행 기록
+- 2026-10-23: 사용자 확정 → 구현 0.31.0 (store `wbPending` 인원 · index `raids/start` 같은 기사단 → AI 자리).
 
 - 2026-10-23: 총점검 항목 M 으로 스펙 작성. 심각도 하 · 추정이라 우선순위는 낮음.
 

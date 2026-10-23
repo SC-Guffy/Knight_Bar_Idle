@@ -150,7 +150,7 @@
 
 - 저장: `S.books` (정수 — [castle-defense.md](castle-defense.md) 와 같은 이름). 얻는 양은 성벽 스펙이 정한다 (위 수급).
 - 아이콘: 새 도트 `redbook` (빨간 표지 + 금박 띠, `ICON_OF['📕']` — 성벽 스펙이 만든다). 비전서 📖·습득 📗 과 색으로 구분.
-- **다 쓴 뒤**: 교관 별 25개를 모두 받으면 📕 은 쓸 곳이 없다. 그 뒤 성벽 보상의 📕 을 🧱 성벽돌로 바꿔 줄지 [castle-defense.md](castle-defense.md) 와 정한다 (**미정**). 교관 탭에는 `모든 교관 수료 — 📕 은 더 필요 없어요` 를 띄운다.
+- **다 쓴 뒤**: 교관 별 25개를 모두 받으면 📕 은 쓸 곳이 없다. 그 뒤 📕 을 🧱 로 바꿔 주지 **않는다** (0.31.0 결정 — 둘 다 끝나서 쓸 곳이 없고 재화끼리 바꾸기는 역할을 섞는다). 대신 성벽·교관을 다 끝내면 "성벽 졸업"으로 입장권 구매·레드닷을 끈다 ([currency-surplus-1023.md](currency-surplus-1023.md) L). 교관 탭에는 `모든 교관 수료 — 📕 은 더 필요 없어요` 를 띄운다.
 
 ### 상태 · 이행
 
@@ -350,7 +350,7 @@
 
 - [ ] 0.24.0 확률 수련 — 사용자 화면 확인 (확인 방법의 `fail` 스니펫).
 
-- [ ] **castle-defense.md 와 맞출 값 (미정)**: 성벽 보상 계수가 바뀌면 📕 표 비례 조정(기준 110권 ≈ 무료 10일) · 교관 다 끝낸 뒤 📕 처리(🧱 성벽돌로 바꿔 주기?) · 해금 스테이지(40, ±5 면 `MENTOR_OPEN_STAGE`·server `MENTOR_OPEN_STAGE` 도 따라감). `🏰 성벽 지키기로` 는 도전 탭 성벽 화면(`subView = 'castle'`)으로 정했다.
+- [ ] **castle-defense.md 와 맞출 값 (미정)**: 성벽 보상 계수가 바뀌면 📕 표 비례 조정(기준 110권 ≈ 무료 10일) · 교관 다 끝낸 뒤 📕 처리 → 바꿔 주지 않음, 성벽 졸업(0.31.0) · 해금 스테이지(40, ±5 면 `MENTOR_OPEN_STAGE`·server `MENTOR_OPEN_STAGE` 도 따라감). `🏰 성벽 지키기로` 는 도전 탭 성벽 화면(`subView = 'castle'`)으로 정했다.
 - [x] 구현 순서 (③ 패치, 10-14 끝): data.js 연결 끊기(`TRAIN_MAX`·훈련장 max) → `MENTORS` 에서 `bld`·`expPct` 빼고 `MENTOR_BOOKS`·`MENTOR_OPEN_STAGE`·`MENTOR_DUEL_DAY` 추가, `MENTOR_RATE`·`MENTOR_EYE`·`MENTOR_HARD`·`MENTOR_GOLD`·`MENTOR_GROW`·`MENTOR_EXP` 삭제 → mentor.js(`mentorLock`·`mentorTry`·`mentorTodo`·이행) → server/index.js 하루 3회 → ui.js 탭 → mentor-stage.js 수련 연출 → 봇(`playMentors` 📕 가정 수입) → 봇 곡선·k 표 다시 굽기 → 우편 → `MENTOR_ON = true`.
 - 골드는 여전히 남을 수 있다. 사용자 결정 (10-13): 일단 그대로 두고 라이브에서 본다. 필요하면 기존 소모처에 골드 비용을 붙인다 — 새 시설을 만들지 않는다.
 - 곡선 끝 근처(Lv170+)는 외삽이라 계열마다 승률이 흔들릴 수 있다 — 봇 곡선을 더 길게(--days 20) 구우면 나아진다.

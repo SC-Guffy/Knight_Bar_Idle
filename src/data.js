@@ -13,7 +13,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.30.9';
+const GAME_VERSION = '0.31.0';
 // 시즌7 기능 스위치. false 면 배포 주소(GitHub Pages·Electron 등)에서는 꺼져 있고, 로컬 개발 주소(localhost·127.0.0.1·*.localhost·*.test, 봇의 가짜 location 포함)에서만 켜진다.
 //  아래 DEV_HOST(배속용)와 달리 file: 은 넣지 않는다 — Electron 앱이 파일로 열 때 플레이어에게 켜지지 않게.
 //  시즌7 정식 공개 때 true 로 바꾼다.
@@ -852,7 +852,7 @@ function enhanceCost(L) {
 }
 // 💠 강화석 획득: 원정 보스 처치마다 BOSS_STONES 개, 장비를 팔면 등급별로 GEAR_STONES 개 (원정 1회 약 15~20개)
 const BOSS_STONES = 3;
-const GEAR_STONES = [1, 2, 4, 10, 25, 60, 150, 400];
+const GEAR_STONES = [1, 2, 4, 10, 25, 60, 90, 150];   // 0.31.0: 6·7등급 150·400 → 90·150 (스테이지 300 위 💠 이 수만 개 쌓였다, currency-surplus-1023.md H)
 // 강화석이 생기기 전 세이브에 처음 한 번 넣어 주는 양 (+0 → +5 를 바로 해 볼 수 있을 만큼)
 const STONE_GIFT = 20;
 
@@ -863,7 +863,7 @@ const CURIOS = {
   coin:  { name: '옛 금화',     icon: '🪙', res: 'gold', amt: 20, w: 25 },
   idol:  { name: '낡은 목각상', icon: '🗿', res: 'wood', amt: 13, w: 32 },
   helm:  { name: '녹슨 투구',   icon: '⛑️', res: 'ore',  amt: 10, w: 30 },
-  gem:   { name: '빛바랜 보석', icon: '🔮', res: 'mana', amt: 5,  w: 22 },
+  gem:   { name: '빛바랜 보석', icon: '🔮', res: 'mana', amt: 4,  w: 22 },   // 0.31.0: 💎 5 → 4 (마력석 잉여, currency-surplus-1023.md H)
 };
 
 // ───────────────────────── 훈련 (골드) ─────────────────────────

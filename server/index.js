@@ -815,7 +815,10 @@ const raidRoutes = {
     if (broke >= 0) throw new HttpError(403, `${r.members[broke].nickname}님의 입장권이 없어요`);
     if (r.state !== 'open') throw new HttpError(409, '이미 출정한 방이에요');
     // AI 기사 자리는 보스 세기에서 반 명으로 치고(party), 재화·경험치를 덜 준다(botMult). MVP 는 사람 중에서만
-    const nb = r.members.filter((m) => m.bot).length, party = bots.raidParty(r.members.length - nb, nb);
+    //  같은 기사단의 두 번째 기사부터도 AI 자리처럼 센다 — 혼자서 부캐로 사람 파티 보상을 받지 않게 (docs/specs/guild-shared-content.md)
+    const gSeen = new Set();
+    const sameGuild = r.members.filter((m, i) => { const g = !m.bot && accs[i] && accs[i].guildId; if (!g) return false; if (gSeen.has(g)) return true; gSeen.add(g); return false; }).length;
+    const nb = r.members.filter((m) => m.bot).length + sameGuild, party = bots.raidParty(r.members.length - nb, nb);
     const fight = simulateRaid(r.boss, profiles, undefined, party);
     if (nb) fight.mvp = fight.contrib.reduce((best, c, i) => (!r.members[i].bot && (best < 0 || c.score > fight.contrib[best].score) ? i : best), -1);
     r.state = 'done';

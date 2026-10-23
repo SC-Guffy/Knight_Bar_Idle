@@ -2727,7 +2727,7 @@ function guideTick() {
   }
   if (!g.tomeIntro && S.tomes > 0) {
     g.tomeIntro = 1;
-    if (t7On()) toast('📖 첫 비전서! 캠프 → 캐릭터 → 스킬 탭에서 스킬에 바치면 숙련이 올라요 (Lv20 까지)', 9000);
+    if (t7On()) toast('📖 첫 비전서! 캠프 → 캐릭터 → 스킬 탭에서 스킬에 바치면 숙련이 올라요 (Lv20 까지 1권 +20, 그 위 Lv29 까지 1권 +5)', 9000);
     else if (skillsOf(S.cls).length) toast('📖 첫 비전서! 캠프 → ⚡ 스킬 탭에서 스킬에 먹이면 쿨타임이 줄고 위력이 올라요', 9000);
     else toast('📖 첫 비전서! 1차 전직 후 스킬을 익히면 ⚡ 스킬 탭에서 비전서로 강화할 수 있어요', 9000);
     save();
@@ -2786,12 +2786,12 @@ function viewTower() {
   return `
     <div class="mhead"><div><h3>${ico('tower')} 도전의 탑</h3>
       <small>🎟 입장권 <b>${towerFreeTickets()}/${TOWER_TICKETS}</b>${t.tixExtra ? ` + 구매 <b>${t.tixExtra}</b>` : ''} · 최고 <b>${t.best}F</b> · 가진 비전서 ${fmt(S.tomes)}권</small></div>
-      ${t.best ? `<button class="go compact${rd(towerSweepReady())}" data-action="tower-sweep" ${towerSweepReady() ? '' : 'disabled'}>${ico('broom')} 소탕 ${towerTickets() ? `${ico('tome')} +${t.best} <small>${ico('ticket')}1</small>` : '· 입장권 없음'}</button>` : ''}</div>
+      ${t.best ? `<button class="go compact${rd(towerSweepReady())}" data-action="tower-sweep" ${towerSweepReady() ? '' : 'disabled'}>${ico('broom')} 소탕 ${towerTickets() ? `${ico('tome')} +${towerSweepTomes()} <small>${ico('ticket')}1</small>` : '· 입장권 없음'}</button>` : ''}</div>
     ${towerUnlocked() ? towerBuyRow() : ''}
     ${fresh ? towerResultHtml(L) : guideFlow('tower')}
     ${!fresh && S.tomes > 0 && skillsOf(S.cls).length ? `<div class="gtip">📖 비전서 ${fmt(S.tomes)}권이 있어요 — <button class="lnk" data-action="tab" data-tab="skill">${ico('bolt')} 스킬 탭에서 스킬 강화하기 →</button></div>` : ''}
     <div class="hint">층마다 정예 몬스터 하나 — 3·6·9로 끝나는 층은 정예 무리 3마리 — 10층마다 보스. 한 층 오를 때마다 확 세지고, ${TOWER_ENRAGE_SEC}초 안에 못 잡으면 광폭화해 공격력이 계속 치솟습니다. 스태미나를 원정과 같은 속도로 쓰고, 쓰러지거나 지치거나 후퇴하면 귀환 빛에 싸여 곧장 캠프로 돌아옵니다.
-      체크포인트(10층 단위)부터 시작하고, 입장하면 소탕만큼(<b>최고 층 수 📖</b>) 기본으로 받고 깬 층마다 <b>📖 1권</b> 더. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>최고 층 수만큼 📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${SUB_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
+      체크포인트(10층 단위)부터 시작하고, 입장하면 소탕만큼(<b>📖 8 + 최고 층/5</b>, 최고 층 수까지) 기본으로 받고 깬 층마다 <b>📖 1권</b> 더. 10층 단위를 처음 넘으면 📖 묶음. 입장권은 하루 ${TOWER_TICKETS}장 — 도전에 1장, 또는 입장 없이 소탕해 <b>📖</b> 받는 데 1장. 모자라면 사서 쓸 수 있어요(하루 안에서 살수록 비싸지고 자정에 가격 초기화, 산 입장권은 ${SUB_TICKET_HOLD}장까지 모아 둘 수 있어요).</div>
     <div class="card"><div class="ic">${boss ? '👑' : '⚔️'}</div><div class="info"><b>${cp}F 부터 도전</b>
       <div class="eff">첫 상대 ${MONSTERS[m.type].name}${boss ? ' (보스)' : ' (정예)'} · 스테이지 ${towerStage(cp)} 급 · 체력 ${fmt(m.hp)} · 공격 ${fmt(m.atk)}</div>
       <div class="eff">다음 첫 돌파 ${nextFirst}F — 📖 ${towerFirstTomes(nextFirst)}권</div></div>
@@ -2862,7 +2862,7 @@ const SUB_CARDS = [
       if (towerResultPending()) out.push(['📜 정산 보기', 'ok']);
       out.push([`🎟 ${towerTickets()}장`, towerTickets() ? '' : 'lack']);
       out.push([t.best ? `최고 ${t.best}F` : '아직 오르지 않음', '']);
-      if (towerSweepReady()) out.push([`🧹 소탕 📖 +${t.best}`, 'ok']);
+      if (towerSweepReady()) out.push([`🧹 소탕 📖 +${towerSweepTomes()}`, 'ok']);
       return out;
     } },
   { k: 'dungeon', icon: 'pick', name: '재료의 미궁', desc: '보스 러시 — 보스를 잡을 때마다 🎰 슬롯머신을 돌려 🪵 🪨 📖 재화를 받아요. 3연속이면 우수수',

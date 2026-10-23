@@ -126,8 +126,13 @@ const useCastleTicket = () => { if (castleFreeTickets() > 0) S.castle.tixUsed++;
 const castleTicketsBoughtToday = () => (newDay(S.castle.buyDay) ? 0 : S.castle.bought);
 // 오늘 n번째 구매 가격 — 탑·미궁과 같은 공통 곡선 (data.js subTicketMult, ticket-buy.md)
 const castleTicketPrice = () => ({ gold: Math.max(1, Math.floor(monsterStats(priceBest(), false).gold * CASTLE_TICKET_GOLD * subTicketMult(castleTicketsBoughtToday()))) });
+// 성벽 졸업 (0.31.0, docs/specs/currency-surplus-1023.md L): 30단계 · 업그레이드 6종 최대 · 교관 별 다 — 🧱·📕 쓸 곳이 더 없다.
+//  보상·도전·소탕은 그대로 두고, 입장권 구매와 '입장권 남음' 레드닷만 끈다
+const castleDone = () => S.castle.best >= CASTLE_MAX_LV && CASTLE_UP_IDS.every((id) => castleUp(id) >= CASTLE_UP_MAX)
+  && (typeof MENTOR_ON === 'undefined' || !MENTOR_ON || mentorAllDone());
 function castleTicketBlocker() {
   if (!castleUnlocked()) return `스테이지 ${CASTLE_UNLOCK_STAGE} 도달 시 열려요`;
+  if (castleDone()) return '성벽·교관을 모두 마쳤어요 — 더 받을 게 없어요';
   if (!srvClock.known) return '서버 시각 확인 중';   // 탑·미궁과 같이 — 모르는 채 어제 장수로 쓰고 다시 채워지지 않게
   if ((S.castle.tixExtra || 0) >= CASTLE_TICKET_HOLD) return `산 입장권은 ${CASTLE_TICKET_HOLD}장까지 가질 수 있어요`;
   if (S.gold < castleTicketPrice().gold) return '골드 부족';
@@ -242,11 +247,16 @@ function endCastle(reason) {
   if (!r) return null;
   const L = r.lv, waves = castleWavesHeld(r), clear = reason === 'clear' && castleAllClear(r);
   const first = clear && L > S.castle.best;
-  const bricks = castleBricksOf(L, r.pts) * (first ? 2 : 1), books = castleBooksOf(L, waves);
+  let bricks = castleBricksOf(L, r.pts) * (first ? 2 : 1), books = castleBooksOf(L, waves);
+  // 바닥 = 최고 단계 소탕분 (0.31.0, docs/specs/castle-fail-floor.md): 새 단계에 도전하다 무너져도 소탕보다 덜 받지 않게 (탑의 입장 보장과 같은 뜻)
+  const best0 = S.castle.best;
+  const sweepB = best0 > 0 ? castleSweepBricks() : 0, sweepO = best0 > 0 ? castleBooksOf(best0, CASTLE_WAVES.length) : 0;
+  const floor = bricks < sweepB || books < sweepO;
+  bricks = Math.max(bricks, sweepB); books = Math.max(books, sweepO);
   S.castle.bricks += bricks; S.books = (S.books || 0) + books;
   if (clear && L > S.castle.best) S.castle.best = L;
   const at = Date.now();
-  S.castle.last = { lv: L, reason, waves, kills: r.kills, pts: r.pts, downs: r.downs, bricks, books, first, best: S.castle.best, dur: reason === 'offline' ? 0 : Math.round(r.t * 10) / 10, at, seen: false };
+  S.castle.last = { lv: L, reason, waves, kills: r.kills, pts: r.pts, downs: r.downs, bricks, books, first, floor, best: S.castle.best, dur: reason === 'offline' ? 0 : Math.round(r.t * 10) / 10, at, seen: false };
   S.castle.run = null;      // phase 는 부른 쪽이 캠프로 돌린다 (하단바는 귀환 연출 뒤, 오프라인은 바로)
   return S.castle.last;
 }

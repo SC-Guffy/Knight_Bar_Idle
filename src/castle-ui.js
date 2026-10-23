@@ -34,7 +34,7 @@ function castleVerdictChip(L) {
 function castleResultHtml(L) {
   return `
     <div class="treport" style="margin-bottom:10px">
-      <div class="reason">${CASTLE_REASON[L.reason] || '도전 끝'} ${L.first ? '<span class="chip ok">첫 돌파 🧱 ×2</span>' : ''}${L.reason === 'clear' && L.first && L.lv < CASTLE_MAX_LV ? ` <span class="chip ok">🔓 ${L.lv + 1}단계</span>` : ''}</div>
+      <div class="reason">${CASTLE_REASON[L.reason] || '도전 끝'} ${L.first ? '<span class="chip ok">첫 돌파 🧱 ×2</span>' : ''}${L.floor ? ' <span class="chip">소탕 보장</span>' : ''}${L.reason === 'clear' && L.first && L.lv < CASTLE_MAX_LV ? ` <span class="chip ok">🔓 ${L.lv + 1}단계</span>` : ''}</div>
       <div class="dgline">${L.lv}단계 · 막은 웨이브 <b>${L.waves}/${CASTLE_WAVES.length}</b> · 처치 ${L.kills} · 💀 쓰러짐 ${L.downs} · ${ico('wall')} <b>+${fmt(L.bricks)}</b> · 📕 <b>+${L.books}</b>${L.dur ? ` · ${fmtTime(L.dur)}` : ''}</div>
     </div>`;
 }
@@ -84,13 +84,14 @@ function viewCastle() {
 function castleCardChips() {
   const c = S.castle, out = [];
   if (castleResultPending()) out.push(['📜 정산 보기', 'ok']);
+  if (castleDone()) out.push(['✅ 성벽 완성 · 교관 수료', 'ok']);
   out.push([`🎟 ${castleTickets()}장`, castleTickets() ? '' : 'lack']);
   out.push([c.best ? `최고 ${c.best}단계` : '아직 기록 없음', '']);
   if (castleSweepReady()) out.push([`🧹 소탕 🧱 +${fmt(castleSweepBricks())} 📕 +${castleBooksEv(c.best, CASTLE_WAVES.length).toFixed(1)}`, 'ok']);
   return out;
 }
-// 레드닷: 입장권이 있을 때 · 결과 대기 · 처음 열렸는데 안 봤을 때 · 🧱 으로 올릴 수 있는 업그레이드가 있을 때
-const castleDot = () => castleUnlocked() && (!S.guide.castleSeen || castleResultPending() || castleTickets() > 0 || castleUpReady());
+// 레드닷: 입장권이 있을 때(성벽 졸업 뒤엔 빼고) · 결과 대기 · 처음 열렸는데 안 봤을 때 · 🧱 으로 올릴 수 있는 업그레이드가 있을 때
+const castleDot = () => castleUnlocked() && (!S.guide.castleSeen || castleResultPending() || (castleTickets() > 0 && !castleDone()) || castleUpReady());
 
 // 카드 미리보기: 성벽 + 몰려오는 몬스터 실루엣
 function drawSubCastle(g, w, h) {

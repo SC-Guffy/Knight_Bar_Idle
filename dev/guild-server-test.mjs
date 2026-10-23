@@ -30,11 +30,16 @@ r = await api('POST', '/api/guilds/adopt', { nickname: '외톨이' + sfx, token:
 r = await api('GET', '/api/me', null, { Authorization: 'Bearer ' + lone.d.token }); ok('adopt 뒤 개인 토큰도 그대로', r.s === 200);
 // 레이드: 같은 기사단 기사끼리 파티 (기사단 토큰 + X-Char)
 const H = { 'X-Game-Version': '99.0.0' };
-for (const n of ['기사가', '기사나']) await api('PUT', '/api/me', { state: { level: 20 }, profile: { level: 20, best: 12 } }, { ...gh(G, 'devA', n + sfx), ...H });
+for (const n of ['기사가', '기사나']) await api('PUT', '/api/me', { state: { level: 20, raid: { tickets: 5 } }, profile: { level: 20, best: 12 } }, { ...gh(G, 'devA', n + sfx), ...H });
 r = await api('POST', '/api/raids', { boss: 'slimeking' }, { ...gh(G, 'devA', '기사가' + sfx), ...H }); ok('기사단 기사가 레이드 방 만들기', r.s === 200 && r.d.room, r.d.error);
 const roomId = r.d.room && r.d.room.id;
 r = await api('POST', '/api/raids/join', { id: roomId }, { ...gh(G, 'devA', '기사나' + sfx), ...H }); ok('같은 기사단 기사가 파티에 들어감', r.s === 200 && r.d.room.members.length === 2, r.d.room ? r.d.room.members.map((m) => m.nickname) : r.d);
 r = await api('GET', '/api/raids/me', null, gh(G, 'devA', '기사가' + sfx)); ok('방장 쪽에서도 2명', r.d.room && r.d.room.members.length === 2);
+// 같은 기사단 두 번째 기사는 AI 자리처럼: 보스 세기 1 + 0.5 명, 재화 ×0.9 (docs/specs/guild-shared-content.md)
+await api('POST', '/api/raids/ready', { ready: true }, { ...gh(G, 'devA', '기사나' + sfx), ...H });
+r = await api('POST', '/api/raids/start', {}, { ...gh(G, 'devA', '기사가' + sfx), ...H });
+const rr = r.d.result || (r.d.room && r.d.room.result) || {};
+ok('같은 기사단 파티 → party 1.5 · botMult 0.9', rr.party === 1.5 && rr.botMult === 0.9, { s: r.s, party: rr.party, botMult: rr.botMult, err: r.d.error });
 await api('POST', '/api/raids/leave', {}, gh(G, 'devA', '기사나' + sfx)); await api('POST', '/api/raids/leave', {}, gh(G, 'devA', '기사가' + sfx));
 // 다른 기기 로그인
 r = await api('POST', '/api/auth/google', { idToken: 'fake:u' + sfx, deviceId: 'devB' }); ok('B 기기 로그인 → 새 토큰', r.d.token && r.d.guild.chars.length === 3, r.d.guild);

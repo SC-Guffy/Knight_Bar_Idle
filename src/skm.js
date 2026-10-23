@@ -8,7 +8,9 @@
 // 칸 → 숙련 등급 (1 = 1차 스킬 · 2 = 2차·새 스킬 · 3 = 궁극기) · 등급별 ★ 문턱 (누적 경험치)
 const SKM_TH = { 1: [60, 800, 6000], 2: [100, 1500, 11000], 3: [60, 800, 5000] };
 const SKM_MAX = 30, SKM_POW = 0.02, SKM_CD = 0.008;
-const SKM_TOME = 20, SKM_TOME_CAP = 20;   // 비전서 1권 = 경험치 +20, 바치기로는 Lv20(★★)까지만 — ★★★ 는 써야 온다
+const SKM_TOME = 20, SKM_TOME_CAP = 20;   // 비전서 1권 = 경험치 +20 (Lv20 ★★ 까지)
+// Lv20 위는 1권 = 경험치 +SKM_TOME_HI, Lv SKM_FEED_TOP 까지만 — ★★★(Lv30) 는 써야 온다 (0.31.0, docs/specs/currency-surplus-1023.md G)
+const SKM_TOME_HI = 5, SKM_FEED_TOP = 29;
 const SKM_SIM_EFF = 0.85;                 // 오프라인 원정: 싸운 시간 중 이 스킬을 쓸 수 있던 몫 (다른 스킬을 시전하는 동안은 못 쓴다)
 const SKM_UNLOCK = { whirl: 'gale', flash: 'iaido', wave: 'slash', storm: 'wave' };   // 새 스킬 칸 → 부모 칸 (부모 ★ + 2차 전직)
 const SKM_GRADE = (slot) => (slot === 'ult' ? 3 : slot === 'slash' ? 1 : 2);
@@ -68,16 +70,21 @@ function skmSimFight(fight) {
   if (!t7On() || !(fight > 0)) return;
   for (const sk of t7Skills()) skmGain(sk, (fight * SKM_SIM_EFF) / Math.max(1, skillCd(sk)));
 }
-// 📖 비전서 바치기: n 권까지, Lv20 넘게는 못 올린다. 실제로 쓴 권 수를 돌려준다
-function skmFeedMax(sk) {
-  const cap = SKM_NEED[skmGrade(sk)][SKM_TOME_CAP - 1];
-  return Math.max(0, Math.ceil((cap - skmXp(sk)) / SKM_TOME));
+// 📖 비전서 바치기: n 권까지, Lv SKM_FEED_TOP 넘게는 못 올린다. 실제로 쓴 권 수를 돌려준다
+// [Lv20 까지 드는 권 수, Lv20 ~ SKM_FEED_TOP 에 드는 권 수]
+function skmFeedSplit(sk) {
+  const need = SKM_NEED[skmGrade(sk)], x = skmXp(sk), cap = need[SKM_TOME_CAP - 1], top = need[SKM_FEED_TOP - 1];
+  const lo = Math.max(0, Math.ceil((cap - x) / SKM_TOME));
+  const hi = Math.max(0, Math.ceil((top - Math.max(x + lo * SKM_TOME, cap)) / SKM_TOME_HI));
+  return [lo, hi];
 }
+function skmFeedMax(sk) { const [lo, hi] = skmFeedSplit(sk); return lo + hi; }
 function skmFeed(sk, n) {
-  const use = Math.min(n, S.tomes || 0, skmFeedMax(sk));
+  const [lo, hi] = skmFeedSplit(sk), use = Math.min(n, S.tomes || 0, lo + hi);
   if (use <= 0) return 0;
   S.tomes -= use;
-  skmGain(sk, use * SKM_TOME);
+  const a = Math.min(use, lo);
+  skmGain(sk, a * SKM_TOME + (use - a) * SKM_TOME_HI);
   return use;
 }
 // 장착 스킬 평균 숙련 Lv (봇 기록용)
