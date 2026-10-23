@@ -4,7 +4,8 @@
 //  --rev 를 여러 개 주면 그 커밋들의 src 를 각각 불러 나란히 비교한다 (없으면 작업 트리의 src 하나만). --rev . 은 작업 트리.
 //  🎓 교관 수련(2차 훈련)이 있는 src 면: 훈련 뒤 남는 골드로 수련하고(비용 2배 이상일 때), 승부(★5)는 하루 한 번 server/duel.js 로 바로 계산한다.
 // 봇의 하루: 원정(스태미나 다 쓰면 귀환) → 가방 정리·자동 장착·안 낀 장비 전부 판매 → 창고 비축 수령·교역(목재·철광석 중 적은 쪽, 하루 횟수 다) → 레이드 3회(4인 파티로 이길 수 있는 가장 센 보스, 이긴다고 가정)
-//  → 전직(시드마다 3차 계열 하나를 정해 조건이 되는 대로) · 비전서(레이드 상자 + 탑 몫 하루 4권)를 낮은 스킬부터 먹이고 트리 노드 찍기
+//  → 전직(시드마다 3차 계열 하나를 정해 조건이 되는 대로) · 시즌7 숙련이면 t7AutoSpend('a')(장착·칸 사기·룬·비전서), 아니면 옛 비전서·트리
+//  · 🗼 탑: 지금 능력치로 깰 수 있는 층(towerApi lim)을 최고 층으로 보고 무료 입장권을 전부 소탕 (2026-10-23 전엔 '하루 4권' 가정 — balance-audit-1023 K)
 //  (RAID_BUY=1 이면 무료 5장 뒤에 '한 판 골드보다 싼 동안' 입장권을 사서 더 돈다)
 //  → 강화(+15 까지, 그 위는 보호 주문서가 있을 때만) → 건설 → 훈련 → 스태미나 차면 다시 원정. 탑·월드 보스·결투는 돌리지 않는다.
 //  전직·스킬은 0.21.0 성장 압축에서 넣었다 — 곡선이 완만해져 전직 배율·스킬 비중이 커져서, 안 하면 실제 유저보다 한참 느려진다 (dev/bot-curve.js 와 같은 방식)
@@ -15,8 +16,9 @@ const { mentorProfile } = require('../server/mentor');
 const ROOT = path.join(__dirname, '..');
 const FILES = ['data', 'classes', 'tree7', 'skm', 'rune', 'combo', 'evolve', 'fighter-data', 'tree7-l-swordsaint', 'tree7-l-tyrant', 'tree7-l-archon', 'tree7-l-skyGeneral', 'tree7-l-dragonlord', 'tree7-l-warlord', 'tree7-l-siegeMaster', 'tree7-l-deadeye', 'tree7-l-voidArcher', 'tree7-l-thunderEmperor', 'tree7-l-archmage', 'tree7-l-frostlord', 'tree7-l-champion', 'tree7-l-tempest', 'tree7-l-grandmaster', 'gear', 'raid', 'season', 'tower', 'worldboss', 'dungeon', 'mentor', 'castle', 'core'];
 const DAY = 86400, TICK = 60, STAGES = [20, 40, 60, 80, 100, 120, 140, 160, 180];
-const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'];
-const TOWER_TOMES_PER_DAY = 4;
+// 시드 → 3차 줄기 (2026-10-23 파이터 3줄기 추가 — 그 전 결과와 시드별 직업이 다르다)
+const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord', 'champion', 'tempest', 'grandmaster'];
+const TOWER_TOMES_PER_DAY = 4;   // 탑 소탕이 없는 옛 src 에서만 쓰는 가정 (towerApi 가 null 일 때)
 const RAID_BUY = !!process.env.RAID_BUY;   // 레이드 입장권 구매 켬 (docs/specs/raid-tickets.md)
 const ENH_MARKS = [20, 25, 30];   // 어느 부위든 처음 이 강화 단계에 닿은 시간 (docs/specs/enhance-30.md)
 
@@ -75,6 +77,34 @@ function playMentors(M, S, day, t, ms) {
   S.mentor.stars.forEach((n, i) => { if (n >= 4 && ms.m4[i] == null) ms.m4[i] = t / 3600; if (n >= 5 && ms.m5[i] == null) ms.m5[i] = t / 3600; });
 }
 
+// 🗼 탑 소탕이 있는 src 면 그 함수들 + lim(): 지금 능력치로 한 층씩 정예/보스를 잡을 수 있는 가장 높은 층, 아니면 null
+//  한 층 = 정예 1마리(무리 층도 정예로 셈)를 dpsOf 로 잡는 시간 T, 그동안 광폭화까지 받은 피해가 최대 체력 미만이면 깬다
+const towerApi = (ctx) => vm.runInContext(`typeof sweepTower === 'function' ? { towerUnlocked, towerTickets, sweepTower, lim: () => {
+  const st = stats(true), dps = dpsOf(st); let f = 0;
+  for (let x = 1; x <= 600; x++) {
+    const m = towerMonster(x), T = m.hp / dps;
+    const rage = T < TOWER_ENRAGE_SEC ? T : TOWER_ENRAGE_SEC + TOWER_ENRAGE_DOUBLE / Math.LN2 * (Math.pow(2, (T - TOWER_ENRAGE_SEC) / TOWER_ENRAGE_DOUBLE) - 1);
+    if (m.atk / 1.4 * (1 - st.guard) * rage >= st.maxHp) break;
+    f = x;
+  }
+  return f;
+} } : null`, ctx);
+// 탑 하루: 최고 층을 lim 으로 올리고(첫 돌파 묶음은 안 셈) 무료 입장권을 전부 소탕. 받은 📖 수를 돌려준다
+function playTower(T, S) {
+  if (!T || !T.towerUnlocked()) return 0;
+  S.tower.best = Math.max(S.tower.best || 0, T.lim());
+  let got = 0;
+  for (let k = 0; k < 20 && T.towerTickets() > 0; k++) { const n = T.sweepTower(); if (!n) break; got += n; }
+  return got;
+}
+// 시즌7 숙련이면 t7AutoSpend(빌드) 한 번, 아니면 옛 비전서(낮은 스킬부터)·트리 노드 — 진행·재화·기사단 봇이 같이 쓴다
+function spendSkills(A, S, build = 'a') {
+  if (A.t7On && A.t7On() && A.t7AutoSpend) { A.t7AutoSpend(build); return; }
+  const ids = A.skillsOf(S.cls).map((k) => k.id);
+  for (let g = 0; S.tomes > 0 && g < 200; g++) { const id = ids.slice().sort((a, b) => A.skillLv(a) - A.skillLv(b))[0]; if (!id || !A.feedTomes(id, 1)) break; }
+  for (const id of ids) for (const nid of Object.keys(A.treeNodesOf(A.SKILLS[id]))) for (let i = 0; i < 40 && A.canInvest(id, nid); i++) A.investNode(id, nid);
+}
+
 // 🏰 성벽 지키기가 있는 src 면 그 함수들, 아니면 null
 const castleApi = (ctx) => vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
 // 성벽 지키기 하루: 무료 입장권 3장(구매 없음)을 — 간이 시뮬 한계 단계보다 낮으면 다음 단계 도전(다 막은 것으로), 아니면 최고 단계 소탕 — 쓰고,
@@ -105,7 +135,9 @@ function runOne({ days, seed, rev }) {
     settleRaid, claimRaidChest, bagWeight, bagCap,
     upgradeBag: typeof upgradeBag === 'function' ? upgradeBag : null, bagUpCost: typeof bagUpCost === 'function' ? bagUpCost : null,
     claimStock: typeof claimStock === 'function' ? claimStock : null, trade: typeof trade === 'function' ? trade : null, tradeBlocker: typeof tradeBlocker === 'function' ? tradeBlocker : null, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, ticketPrice, buyTicket, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt,
-    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode })`, ctx);
+    classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode,
+    t7On: typeof t7On === 'function' ? t7On : null, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null })`, ctx);
+  const TW = towerApi(ctx);
   const C = castleApi(ctx), cs = { openAt: null, books: 0, runs: 0, firsts: 0, doneAt: null };
   // 성벽 봇이 📕 을 벌면 교관 쪽 '하루 n권 가정'은 끈다 (이중 수입 방지)
   const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
@@ -113,11 +145,9 @@ function runOne({ days, seed, rev }) {
   const chain = A.classPath(LINES[(seed - 1) % LINES.length]).slice(1);   // squire 다음부터
   const classUp = () => {
     for (let next = chain[chain.indexOf(S.cls) + 1]; next && A.changeClass(next); next = chain[chain.indexOf(S.cls) + 1]);
-    const ids = A.skillsOf(S.cls).map((k) => k.id);
-    for (let g = 0; S.tomes > 0 && g < 200; g++) { const id = ids.slice().sort((a, b) => A.skillLv(a) - A.skillLv(b))[0]; if (!id || !A.feedTomes(id, 1)) break; }
-    for (const id of ids) for (const nid of Object.keys(A.treeNodesOf(A.SKILLS[id]))) for (let i = 0; i < 40 && A.canInvest(id, nid); i++) A.investNode(id, nid);
+    spendSkills(A, S);
   };
-  const inc = { expGold: 0, curioGold: 0, raidGold: 0, saleGold: 0, bossStones: 0, saleStones: 0, raidGear: [0, 0, 0, 0, 0, 0, 0, 0], raids: 0, raidBuys: 0, raidTixGold: 0, trips: 0, kills: 0, dur: 0, stockWood: 0, stockOre: 0, tradeWood: 0, tradeOre: 0, tradeGold: 0 };
+  const inc = { towerTomes: 0,  expGold: 0, curioGold: 0, raidGold: 0, saleGold: 0, bossStones: 0, saleStones: 0, raidGear: [0, 0, 0, 0, 0, 0, 0, 0], raids: 0, raidBuys: 0, raidTixGold: 0, trips: 0, kills: 0, dur: 0, stockWood: 0, stockOre: 0, tradeWood: 0, tradeOre: 0, tradeGold: 0 };
   const spend = { train: 0, build: 0, enhStone: 0, enhOre: 0, buildOre: 0, buildWood: 0, bagWood: 0 };
   const why = {};   // 원정이 끝난 사유별 횟수 (stamina 지침 · bag 가방 가득 · ...)
   const reach = {}, enhReach = {}, prot = { used: 0 }; let maxBag = 0, rid = 0, t = 0, lastDay = -1, lastRaidGold = 0;
@@ -135,7 +165,8 @@ function runOne({ days, seed, rev }) {
       while (!A.tradeBlocker()) { const k = S.mats.wood <= S.mats.ore * 1.5 ? 'wood' : 'ore', g0 = S.gold, n = A.trade(k); inc.tradeGold += g0 - S.gold; inc[k === 'wood' ? 'tradeWood' : 'tradeOre'] += n; }
     }
     const day = Math.floor(t / DAY);
-    if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; S.tomes += TOWER_TOMES_PER_DAY; }
+    if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; if (!TW) { S.tomes += TOWER_TOMES_PER_DAY; inc.towerTomes += TOWER_TOMES_PER_DAY; } }
+    inc.towerTomes += playTower(TW, S);
     for (;;) {
       // RAID_BUY=1: 무료 입장권을 다 쓰면 '한 판 골드보다 싸면' 사서 더 돈다 (본전 넘는 구매만 하는 계산 빠른 유저)
       if (S.raid.tickets <= 0) {
@@ -172,7 +203,7 @@ function runOne({ days, seed, rev }) {
   chores();
   const cDays = cs.openAt == null ? 0 : days - cs.openAt / 24;
   return { castle: { ...cs, best: S.castle ? S.castle.best : 0, booksDay: cDays > 0.5 ? cs.books / cDays : null, doneDays: cs.doneAt == null ? null : (cs.doneAt - cs.openAt) / 24, upSum: S.castle ? Object.values(S.castle.up).reduce((a, b) => a + b, 0) : 0 },
-    mentorStars: M ? M.mentorStarSum() : 0, mentorStarAt: ms.starAt, mentorOpenAt: ms.openAt, best: S.best, gold: S.gold, maxBag, bagLv: S.bagLv || 0, stones: S.stones, ore: S.mats.ore, wood: S.mats.wood, why, lv: { ...S.bld }, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
+    tomesLeft: S.tomes || 0, towerBest: S.tower ? S.tower.best : 0, mentorStars: M ? M.mentorStarSum() : 0, mentorStarAt: ms.starAt, mentorOpenAt: ms.openAt, best: S.best, gold: S.gold, maxBag, bagLv: S.bagLv || 0, stones: S.stones, ore: S.mats.ore, wood: S.mats.wood, why, lv: { ...S.bld }, reach, inc, spend, trainCap: 4 * A.trainCapAt(S.bld.training),
     train: S.train.atk + S.train.hp + S.train.def + S.train.fortune, bld: Object.values(S.bld).reduce((a, b) => a + b, 0),
     enh: S.gear.enh.weapon + S.gear.enh.armor + S.gear.enh.ring, enhSlot: { ...S.gear.enh }, enhReach,
     prot: { left: S.items.protect || 0, used: prot.used, got: (S.items.protect || 0) + prot.used },
@@ -190,13 +221,14 @@ function main() {
   const res = cols.map((c, i) => Array.from({ length: opt.seeds }, (_, s) => runOne({ days: opt.days, seed: s + 1, rev: opt.revs[i] })));
   const med = (a) => { const b = [...a].sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; };
   const pct = (x) => (x * 100).toFixed(1) + '%';
-  const row = (name, f, fmt = (x) => Math.round(x)) => console.log(name.padEnd(26) + res.map((rs) => String(fmt(med(rs.map(f)))).padStart(14)).join(''));
+  const row = (name, f, fmt = (x) => (Math.abs(x) >= 1e9 ? x.toExponential(2) : Math.round(x))) => console.log(name.padEnd(26) + res.map((rs) => String(fmt(med(rs.map(f)))).padStart(14)).join(''));
   console.log(`진행 봇 ${opt.days}일 · ${opt.seeds}시드 중앙값`.padEnd(26) + cols.map((c) => c.padStart(14)).join(''));
   row('최종 최고 스테이지', (r) => r.best);
   for (const th of STAGES) row(`스테이지 ${th} 도달(시간)`, (r) => (r.reach[th] == null ? 9999 : r.reach[th]), (x) => (x === 9999 ? '-' : x.toFixed(1)));
   row('장착 등급 합(3부위)', (r) => r.eq); row('강화 합계(3부위)', (r) => r.enh);
   for (const [k, nm] of [['weapon', '무기'], ['armor', '갑옷'], ['ring', '반지']]) row(`부위 강화: ${nm}`, (r) => r.enhSlot[k]);
   for (const th of ENH_MARKS) row(`첫 +${th} 강화(시간)`, (r) => (r.enhReach[th] == null ? 9999 : r.enhReach[th]), (x) => (x === 9999 ? '-' : x.toFixed(1)));
+  row('🗼 탑 최고 층(추정)', (r) => r.towerBest); row('📖 비전서: 탑 소탕', (r) => r.inc.towerTomes); row('📖 비전서: 남은 것', (r) => r.tomesLeft);
   row('📜 주문서: 수입', (r) => r.prot.got); row('📜 주문서: 강화 사용', (r) => r.prot.used); row('📜 주문서: 남은 것', (r) => r.prot.left);
   row('훈련 합계', (r) => r.train); row('훈련 상한(훈련장 기준)', (r) => r.trainCap);
   row('🎓 교관 열림 (시간)', (r) => (r.mentorOpenAt == null ? 9999 : r.mentorOpenAt), (x) => (x === 9999 ? '-' : x.toFixed(1)));
@@ -235,4 +267,4 @@ function main() {
 }
 // 다른 개발 스크립트(dev/bot-curve.js)가 게임 vm 을 빌려 쓸 수 있게
 if (require.main === module) main();
-module.exports = { makeGame, mentorApi, playMentors, castleApi, playCastle, LINES, TOWER_TOMES_PER_DAY, DAY, TICK };
+module.exports = { makeGame, mentorApi, playMentors, castleApi, playCastle, towerApi, playTower, spendSkills, LINES, TOWER_TOMES_PER_DAY, DAY, TICK };

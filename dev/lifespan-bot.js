@@ -7,7 +7,7 @@
 //  bot: 24시간 매 분 관리 · heavy: 08~24시 매시간 · casual: 8·12·19·23시 4번
 const vm = require('vm');
 
-const { makeGame, mentorApi, playMentors } = require('./progress-bot');
+const { makeGame, mentorApi, playMentors, towerApi, playTower } = require('./progress-bot');
 const DAY = 86400, TICK = 60;
 const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord', 'champion', 'tempest', 'grandmaster'];
 // hours: 정각 체크인, active: [시작,끝) 시간대는 화면을 켜 두고 계속 관리, first: 첫날 몰입 시간
@@ -41,6 +41,7 @@ function runOne({ days, seed, mode }) {
   const A = vm.runInContext(`({ S: () => S, skmLv: typeof skmLv === "function" ? skmLv : () => 0, evoProg: typeof evoProg === "function" ? evoProg : () => null, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, bagWeight, bagCap, upgradeBag, claimStock, trade, tradeBlocker, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS, isEquipped, isSetGear, autoEquip, trainCapAt, bldMax,
     classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, CLASSES, profile, TRAIN_MAX, rushBuild, rushPrice, endExpedition, t7On: typeof t7On === 'function' ? t7On : () => false, skmEqLv: typeof skmEqLv === 'function' ? skmEqLv : () => 0, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null, t7Spent: typeof t7Spent === 'function' ? t7Spent : () => 0, t7PathCost: typeof t7PathCost === 'function' ? t7PathCost : () => 1, t7Reset: typeof t7Reset === 'function' ? t7Reset : () => false, t7AutoTick: typeof t7AutoTick === 'function' ? t7AutoTick : () => {}, t7BuySlot: typeof t7BuySlot === 'function' ? t7BuySlot : () => false, t7WallBuild: typeof t7WallBuild === 'function' ? t7WallBuild : () => null })`, ctx);
+  const TW = towerApi(ctx);
   const C = vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
   const cs = {}, M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
   const S = A.S(); S.gear.auto = true;
@@ -79,7 +80,8 @@ function runOne({ days, seed, mode }) {
     if (S.bagHit) while (A.bagCap() < w * 1.3) { if (!A.upgradeBag()) break; }
     A.claimStock(); while (!A.tradeBlocker()) { const k = S.mats.wood <= S.mats.ore * 1.5 ? 'wood' : 'ore'; A.trade(k); }
     const day = Math.floor(t / DAY);
-    if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; S.tomes += 4; }
+    if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; if (!TW) S.tomes += 4; }
+    playTower(TW, S);   // 🗼 깰 수 있는 층 추정 × 무료 입장권 소탕 (progress-bot, 2026-10-23 전엔 하루 4권 가정)
     while (S.raid.tickets > 0) {
       const ids = Object.keys(A.RAID_BOSSES).filter((id) => A.RAID_BOSSES[id].stage <= S.best && A.raidStageOf(A.RAID_BOSSES[id], 4) <= S.best);
       if (!ids.length) break;

@@ -7,7 +7,7 @@
 // 슬롯: 회관 Lv 로 열린 칸만 기사가 돌고, 칸이 열리는 순간 새 기사를 만든다(따라잡기 적용). 기사마다 다른 계열(첫 기사는 시드로, 나머지는 안 쓴 계열 순).
 // 수치는 '24시간 켜 둔 봇' 기준이라 실제보다 빠르다 — 1명 대비 비율로 본다.
 const vm = require('vm');
-const { makeGame, mentorApi, playMentors, castleApi, playCastle, LINES, TOWER_TOMES_PER_DAY, DAY, TICK } = require('./progress-bot');
+const { makeGame, mentorApi, playMentors, castleApi, playCastle, towerApi, playTower, spendSkills, LINES, TOWER_TOMES_PER_DAY, DAY, TICK } = require('./progress-bot');
 
 const FAMILY_LINES = { swordsman: 'swordsaint', lancer: 'dragonlord', ranger: 'deadeye', mage: 'archmage', fighter: 'champion' };
 const HALL_MARKS = [8, 12, 14];   // 슬롯 3·4·5칸이 열리는 회관 Lv
@@ -40,19 +40,19 @@ function makeKnight({ host, seed, line, clock, rnd, main = true }) {
   const A = vm.runInContext(`({ S: () => S, simulate, advanceCamp, startExpedition, departBlocker, openBox, claimLoot, sellGear, doTrainAll, startBuild, enhance, enhanceBlocker,
     settleRaid, claimRaidChest, bagWeight, bagCap, upgradeBag, claimStock, trade, tradeBlocker, raidStageOf, RAID_BOSSES, RAID_TICKET_FREE, BUILDINGS, GEAR_SLOTS,
     isEquipped, isSetGear, autoEquip, classPath, changeClass, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode, profile, advanceBuildNow,
+    t7On: typeof t7On === 'function' ? t7On : null, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null,
     rushPrice, guildFx: typeof guildFx === 'function' ? guildFx : () => null })`, ctx);
   const C = castleApi(ctx), cs = { openAt: null, books: 0, runs: 0, firsts: 0, doneAt: null };
   const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
   const S = A.S(); S.gear.auto = true;
+  const TW = towerApi(ctx);
   if (host) host.bindShared(S);   // 실제 게임은 loadState 가 부른다 — 봇은 freshState 그대로라 여기서 묶는다
   const chain = A.classPath(line).slice(1);
   let rid = 0, lastDay = -1;
   const sell = () => { const l = S.gear.inv.filter((x) => !A.isEquipped(x) && !A.isSetGear(x)); if (l.length) A.sellGear(l); };
   const classUp = () => {
     for (let next = chain[chain.indexOf(S.cls) + 1]; next && A.changeClass(next); next = chain[chain.indexOf(S.cls) + 1]);
-    const ids = A.skillsOf(S.cls).map((k) => k.id);
-    for (let g = 0; S.tomes > 0 && g < 200; g++) { const id = ids.slice().sort((a, b) => A.skillLv(a) - A.skillLv(b))[0]; if (!id || !A.feedTomes(id, 1)) break; }
-    for (const id of ids) for (const nid of Object.keys(A.treeNodesOf(A.SKILLS[id]))) for (let i = 0; i < 40 && A.canInvest(id, nid); i++) A.investNode(id, nid);
+    spendSkills(A, S);   // 시즌7 숙련 (progress-bot)
   };
   const chores = () => {
     const w = A.bagWeight();
@@ -64,7 +64,8 @@ function makeKnight({ host, seed, line, clock, rnd, main = true }) {
     A.claimStock();
     if (main || !process.env.TRADE_MAIN_ONLY) while (!A.tradeBlocker()) { const k = S.mats.wood <= S.mats.ore * 1.5 ? 'wood' : 'ore'; if (!A.trade(k)) break; }
     const day = Math.floor(clock.t / DAY);
-    if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; S.tomes += TOWER_TOMES_PER_DAY; }
+    if (day !== lastDay) { lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE; if (!TW) S.tomes += TOWER_TOMES_PER_DAY; }
+    playTower(TW, S);   // 🗼 깰 수 있는 층 추정 × 무료 입장권 소탕 (progress-bot)
     while (S.raid.tickets > 0) {
       const ids = Object.keys(A.RAID_BOSSES).filter((id) => A.RAID_BOSSES[id].stage <= S.best && A.raidStageOf(A.RAID_BOSSES[id], 4) <= S.best);
       if (!ids.length) break;

@@ -7,11 +7,10 @@
 //  - 🎰 재료의 미궁: 하루 무료 3판을 기대값으로 받는다 (dgUnitValue × 한 판 기대 칸 × 그림 비중 — 실제로 싸우진 않음). --no-dg 로 끔
 //  - ⚒️ 대장간 시설(분해대·재굴림대·담금질대): 건물 다음에 싼 것부터 올린다. --no-forge 로 끔
 //  - 🎟️ 레이드 입장권: 하루 N장 더 산다 (--raid-buy, 기본 0)
-//  - 탑 비전서 하루 4권 가정·월드 보스·결투 시즌 없음은 progress-bot 과 같음
+//  - 🗼 탑 소탕(깰 수 있는 층 추정 × 무료 입장권)·시즌7 숙련(t7AutoSpend)·15줄기는 progress-bot 과 같음 (2026-10-23), 월드 보스·결투 시즌 없음
 const vm = require('vm'), fs = require('fs');
-const { makeGame, mentorApi, playMentors } = require('./progress-bot');
-const DAY = 86400, TICK = 60, TOWER_TOMES_PER_DAY = 4;
-const LINES = ['tyrant', 'skyGeneral', 'siegeMaster', 'thunderEmperor', 'archon', 'swordsaint', 'dragonlord', 'warlord', 'deadeye', 'voidArcher', 'archmage', 'frostlord'];
+const { makeGame, mentorApi, playMentors, towerApi, playTower, spendSkills, LINES, TOWER_TOMES_PER_DAY } = require('./progress-bot');
+const DAY = 86400, TICK = 60;
 const KEYS = ['gold', 'wood', 'ore', 'mana', 'stones', 'tomes', 'books', 'bricks', 'reroll', 'protect'];
 
 function runOne({ days, seed, rev, dg, forge, raidBuy, patch }) {
@@ -23,7 +22,9 @@ function runOne({ days, seed, rev, dg, forge, raidBuy, patch }) {
     classPath, changeClass, classBlocker, CLASSES, CLASS_REQ, skillsOf, feedTomes, skillLv, treeNodesOf, SKILLS, canInvest, investNode,
     FORGE_FAC, forgeFacCost, forgeFacLv, upgradeForgeFac, forgeFacBlocker,
     buyTicket, ticketBlocker, ticketPrice,
-    dgUnlocked, dgUnitValue, DG_RES, DG_RES_IDS, DG_RUN_UNITS, DG_TICKETS })`, ctx);
+    dgUnlocked, dgUnitValue, DG_RES, DG_RES_IDS, DG_RUN_UNITS, DG_TICKETS,
+    t7On: typeof t7On === 'function' ? t7On : null, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null })`, ctx);
+  const TW = towerApi(ctx);
   const C = vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
   const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
   const S = A.S(); S.gear.auto = true;
@@ -59,9 +60,7 @@ function runOne({ days, seed, rev, dg, forge, raidBuy, patch }) {
       if (S.level >= req.level) short('전직', { mana: req.mana, gold: req.gold });
       if (!led('전직', () => A.changeClass(next))) break;
     }
-    const ids = A.skillsOf(S.cls).map((k) => k.id);
-    led('스킬 숙련도', () => { for (let g = 0; S.tomes > 0 && g < 200; g++) { const id = ids.slice().sort((a, b) => A.skillLv(a) - A.skillLv(b))[0]; if (!id || !A.feedTomes(id, 1)) break; } });
-    for (const id of ids) for (const nid of Object.keys(A.treeNodesOf(A.SKILLS[id]))) for (let i = 0; i < 40 && A.canInvest(id, nid); i++) A.investNode(id, nid);
+    led('스킬 숙련도', () => spendSkills(A, S));   // 시즌7: 장착 칸 사기(골드·💎)·룬·비전서 바치기가 한 장부에 같이 잡힌다
   };
   const dungeon = () => {
     if (!dg || !A.dgUnlocked()) return;
@@ -85,7 +84,8 @@ function runOne({ days, seed, rev, dg, forge, raidBuy, patch }) {
     const day = Math.floor(t / DAY);
     if (day !== lastDay) {
       lastDay = day; S.raid.tickets = A.RAID_TICKET_FREE;
-      led('도전의 탑(가정 4권/일)', () => { S.tomes += TOWER_TOMES_PER_DAY; });
+      if (!TW) led('도전의 탑(가정 4권/일)', () => { S.tomes += TOWER_TOMES_PER_DAY; });
+      else led('도전의 탑 소탕', () => playTower(TW, S));
       dungeon();
       for (let n = 0; n < raidBuy; n++) { short('레이드 입장권 구매', A.ticketPrice()); if (!led('레이드 입장권 구매', () => A.buyTicket())) break; }
     }
