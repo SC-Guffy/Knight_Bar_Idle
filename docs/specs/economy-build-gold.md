@@ -1,6 +1,6 @@
 # 경제 2단계 — 건설 시간 벽 · 골드 비용 (밸런스 총점검 C)
 
-- 상태: 초안
+- 상태: 구현 (0.31.1, 사용자 확인 전) — 추천안 확정 (사용자 10-23: 회관도 새 시간 곡선 · 짓던 건설도 새 식으로 줄임 · 골드 (b 약))
 - 관련 코드: src/data.js (`buildTimeAt`·`buildMatGrow`·`BUILD_MAT_KNEE`·`BUILD_MAT_LATE`·`buildCost`·`forgeFacCost`·`trainCapAt`·`bagUpCost`), src/classes.js (`CLASS_REQ`), src/core.js (`startBuild`·`advanceBuildNow`·`priceBest`·`rushPrice`·`tradeAmount`·`BUILDINGS.hall`), src/dungeon.js (`dgNextBuildCost`), src/ui.js (건물 카드 `건설 · 시간`), src/town.js
 - 관련 스펙: [balance-audit-1023.md](balance-audit-1023.md) (C), [growth-compression.md](growth-compression.md) ("경제는 2단계"), [balance-lifespan.md](balance-lifespan.md) (제안 C), [currency-roles.md](currency-roles.md), [building-materials-and-training.md](building-materials-and-training.md), [build-rush.md](build-rush.md), [guild-price-base.md](guild-price-base.md)
 - 실험 패치: [dev/audit-1023/patches/](../../dev/audit-1023/patches/) (`hook.js` 로 모든 봇에 끼움)
@@ -99,7 +99,7 @@
 - 건물·시설 비용 칩의 골드가 스테이지 따라 커진다(Lv14 · 스테이지 250 기준 16.8만 → 3.15e22). 골드가 모자라면 칩이 빨갛게(지금 `canAfford` 그대로).
 - 전직 카드 골드 칩이 스테이지 따라 바뀐다. 2차는 사실상 그대로(잡몹 5마리).
 - 재화 안내(`RES_GUIDE`) 🪙 쓰는 곳은 이미 "건물" 이 있어 그대로.
-- 라이브 세이브: 진행 중인 건설(`S.build.remain`)은 옛 시간 그대로 둔다(줄여 주지 않음) — 남은 시간이 새 식보다 길면 다음 접속 때 새 식 길이로 줄일지는 결정 필요.
+- 라이브 세이브: 짓고 있던 건설은 불러올 때(`loadState` → `fitBuildTime`) 남은 시간이 새 식 길이를 넘으면 그 길이로 줄인다(사용자 결정 10-23). 기사단 회관도 같은 시간 곡선.
 
 ## 수용 기준
 - [ ] `buildTimeAt(10)` = 11,903초(3.3시간, 지금과 같음), `buildTimeAt(14)` ≈ 33,996초(9.4시간), `buildTimeAt(19)` ≈ 126,236초(35.1시간) — node 로 src/data.js 를 vm 에 올려 콘솔 확인
@@ -135,6 +135,11 @@ node $P/cmp.js rec.json
 
 ## 진행 기록
 - 2026-10-23: 점검 C 후속. 봇 4종(수명 21일·장부 7/21일·진행 7일·기사단 7일)에 패치 14가지를 끼워 비교. 알게 된 것: ① 골드 잔고는 잡몹 골드 눈금으로 늘 약 2,000마리분 — '10^32 잉여'는 눈금 착시이고, 교역이 남는 골드를 받는다 ② 시간만 꺾으면 미궁 없는 유저는 목재 벽 ③ 골드를 세게 묶으면 교역과 서로 막아 초반이 느려짐 ④ 건설 줄 2칸은 훈련장 벽을 못 풂. 추천 = (a) Lv10 위 ×1.3 + (d) 재료 ×1.35 + (b 약) 골드 잡몹 10·1.3^(L−1)마리. src 는 안 고침(초안).
+
+## 진행 기록 (구현)
+- 2026-10-23: 사용자 확정 → 구현 0.31.1. `data.js buildTimeAt`(Lv10 위 ×1.3)·`BUILD_MAT_LATE` 1.35·`buildCost` 골드 = priceBest 잡몹 × 10·1.3^(L−1)·mul · `forgeFacCost` 골드 = 잡몹 × 5·1.3^L · `classes.js classReq`(2차 5·3차 400마리, `core.js classBlocker·changeClass`·`ui.js reqChips`) · `core.js fitBuildTime`.
+  - node: 건설 3.3·5.6·9.4·16.0·35.1시간(Lv10·12·14·16·19), 훈련장 목재 Lv14·17·19 = 15,496·38,127·69,488, 스테이지 250 훈련장 Lv14 골드 = 잡몹 303마리, 3차 전직(스테이지 100) 5.52e10, 짓던 30일 건설(여관 Lv17) → 20.7시간. 게임 화면: 훈련장 Lv14 "건설 · 9시간 26분", 목재 15.5K.
+  - 수명 봇 21일·6시드(heavy, a): 스테이지 343 → 394 · 건물 합 49 → 61 · 훈련 상한 640 → 720 · 목재 잔고 15만 → 6.8만. 진행 봇 7일·10시드: 251 → 278, 건물 합 48 → 51. 기사단 봇 7일·3시드(5명): 본캐 279 → 354 (1명 254 → 296), 회관 Lv14 5.2 → 4.4일, 마을 Lv 합 5명 51 / 1명 53 (1.5배 기준 안), 기사단 효과 +12.0 → +13.7%.
 
 ## 남은 일 / 미정
 - **사용자 결정**

@@ -70,6 +70,10 @@ const CLASS_REQ = {
   2: { level: 50, mana: 40, gold: 50000 },
   3: { level: 100, mana: 150, gold: 5e10 },
 };
+// 2·3차 전직 골드는 priceBest() 잡몹 골드 × 마리 수 (0.31.1, economy-build-gold.md) — 3차 400마리 = 스테이지 100 근처에서 예전 5e10 과 같다.
+//  CLASS_REQ[t].gold 대신 classReq(t) 를 쓴다
+const CLASS_GOLD_MOBS = { 2: 5, 3: 400 };
+const classReq = (t) => (CLASS_GOLD_MOBS[t] ? { ...CLASS_REQ[t], gold: Math.ceil(monsterStats(priceBest(), false).gold * CLASS_GOLD_MOBS[t]) } : CLASS_REQ[t]);
 
 // ───────────────────────── 직업별 몸통 스프라이트 (11×13, 오른쪽을 봄) ─────────────────────────
 // 다리는 공용(SPR.knightLegs). 팔레트 글자: h/H 투구, v 눈, a/A 갑옷, y 장식, b 벨트, l/k 다리, 그 외 직업 전용

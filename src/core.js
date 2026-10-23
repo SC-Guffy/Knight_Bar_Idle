@@ -313,11 +313,19 @@ if (GUILD_HOST && GUILD_HOST.full) {
   };
 }
 
+// 0.31.1 건설 시간을 줄였다 — 짓고 있던 건설도 남은 시간이 새 식 길이를 넘으면 줄여 준다 (economy-build-gold.md)
+function fitBuildTime() {
+  const b = S.build;
+  if (!b || !BUILDINGS[b.id]) return;
+  const t = buildTimeAt(S.bld[b.id]);
+  if (b.total > t) { b.remain = Math.min(b.remain, t); b.total = t; }
+}
 function loadState(o) {
   S = freshState();
   try { if (o) S = migrate(o); } catch {}
   t7AutoTick();   // 시즌7 트리: 아직 직접 안 찍은 캐릭터는 남은 포인트를 추천 순서로 (src/tree7.js)
   if (GUILD_HOST) GUILD_HOST.bindShared(S);
+  fitBuildTime();
   seenBase.at = S.lastSeen || 0; seenBase.mono = performance.now();
   if (S.hp == null) S.hp = stats().maxHp;
 }
@@ -683,7 +691,7 @@ function classPath(id = S.cls) {
 function classBlocker(id) {
   const c = CLASSES[id];
   if (c.from !== S.cls) return null;           // 다음 단계가 아님 (UI에서 따로 표시)
-  const req = CLASS_REQ[c.tier];
+  const req = classReq(c.tier);
   if (S.phase !== 'camp') return '캠프에서만 전직할 수 있어요';
   if (S.level < req.level) return `Lv ${req.level} 필요`;
   if (S.mats.mana < req.mana) return `💎 ${req.mana} 필요`;
@@ -692,7 +700,7 @@ function classBlocker(id) {
 }
 function changeClass(id) {
   if (CLASSES[id].from !== S.cls || classBlocker(id)) return false;
-  const req = CLASS_REQ[CLASSES[id].tier];
+  const req = classReq(CLASSES[id].tier);
   S.mats.mana -= req.mana;
   S.gold -= req.gold;
   // 아래 차수 스킬은 윗 차수가 모두 물려받으므로 숙련도도 그대로 둔다 (classes.js skillsOf)

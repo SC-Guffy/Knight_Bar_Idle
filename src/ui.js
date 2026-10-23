@@ -932,7 +932,7 @@ function viewSkill() {
 }
 
 function reqChips(id) {
-  const req = CLASS_REQ[CLASSES[id].tier];
+  const req = classReq(CLASSES[id].tier);
   const chip = (ok, text) => `<span class="chip ${ok ? 'ok' : 'lack'}">${text}</span>`;
   return chip(S.level >= req.level, `Lv ${req.level}`) + (req.mana ? chip(S.mats.mana >= req.mana, `💎 ${req.mana}`) : '') + chip(S.gold >= req.gold, `<i class="gc"></i> ${fmt(req.gold)}`);
 }

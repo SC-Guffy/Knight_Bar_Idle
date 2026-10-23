@@ -23,7 +23,8 @@ function runOne({ days, seed, rev, dg, forge, raidBuy, patch }) {
     FORGE_FAC, forgeFacCost, forgeFacLv, upgradeForgeFac, forgeFacBlocker,
     buyTicket, ticketBlocker, ticketPrice,
     dgUnlocked, dgUnitValue, DG_RES, DG_RES_IDS, DG_RUN_UNITS, DG_TICKETS,
-    t7On: typeof t7On === 'function' ? t7On : null, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null })`, ctx);
+    t7On: typeof t7On === 'function' ? t7On : null, t7AutoSpend: typeof t7AutoSpend === 'function' ? t7AutoSpend : null,
+    classReq: typeof classReq === 'function' ? classReq : null })`, ctx);
   const TW = towerApi(ctx);
   const C = vm.runInContext(`typeof startCastle === 'function' ? { castleUnlocked, castleTickets, castleLimitLv, startCastle, endCastle, sweepCastle, castleUpgrade, castleUpBlocker, CASTLE_UP_IDS, CASTLE_UP_MAX, CASTLE_WAVES, CASTLE_FULL_PTS } : null`, ctx);
   const M = mentorApi(ctx), ms = { duelDay: -1, mid: 0, starAt: {}, noAssume: !!C };
@@ -56,7 +57,7 @@ function runOne({ days, seed, rev, dg, forge, raidBuy, patch }) {
   const sell = () => { const l = S.gear.inv.filter((x) => !A.isEquipped(x) && !A.isSetGear(x)); if (l.length) led('장비 판매', () => A.sellGear(l)); };
   const classUp = () => {
     for (let next = chain[chain.indexOf(S.cls) + 1]; next; next = chain[chain.indexOf(S.cls) + 1]) {
-      const req = A.CLASS_REQ[A.CLASSES[next].tier];
+      const req = A.classReq ? A.classReq(A.CLASSES[next].tier) : A.CLASS_REQ[A.CLASSES[next].tier];
       if (S.level >= req.level) short('전직', { mana: req.mana, gold: req.gold });
       if (!led('전직', () => A.changeClass(next))) break;
     }

@@ -13,7 +13,7 @@ const RETURN_SPEED = 80;
 const MOB_GAP = 170;              // 한 바퀴(스테이지)에 깔리는 일반 몬스터 간격(px)
 const SAVE_KEY = 'knight-bar-save-v1';
 // 게임 버전. 캠프 창 탭 줄 오른쪽 끝에 나온다. 게임 업데이트를 푸시할 때 올린다.
-const GAME_VERSION = '0.31.0';
+const GAME_VERSION = '0.31.1';
 // 시즌7 기능 스위치. false 면 배포 주소(GitHub Pages·Electron 등)에서는 꺼져 있고, 로컬 개발 주소(localhost·127.0.0.1·*.localhost·*.test, 봇의 가짜 location 포함)에서만 켜진다.
 //  아래 DEV_HOST(배속용)와 달리 file: 은 넣지 않는다 — Electron 앱이 파일로 열 때 플레이어에게 켜지지 않게.
 //  시즌7 정식 공개 때 true 로 바꾼다.
@@ -129,7 +129,10 @@ const stockCapAt = (k, lv) => stockRateAt(k, lv) * STOCK_HOURS;
 //  가격 = 최고 스테이지(기사단이면 기사단 최고 — core.js priceBest) 잡몹 골드 × TRADE_GOLD × TRADE_GROW^(오늘 교역한 횟수) — 골드가 스테이지를 따라 기하급수로 느는 경제라 가격도 스테이지를 따라간다
 const TRADE_LV = 5, TRADE_HOURS = 2, TRADE_GOLD = 200, TRADE_GROW = 1.3, TRADE_SHARE = 0.1;
 const tradesAt = (lv) => (lv >= TRADE_LV ? 5 + lv : 0);
-const buildTimeAt = (lv) => 60 * Math.pow(1.8, lv - 1);          // lv → lv+1 소요 시간(초)
+// lv → lv+1 소요 시간(초). Lv BUILD_TIME_KNEE 까지 ×1.8, 그 위로는 ×BUILD_TIME_LATE (0.31.1 — ×1.8 그대로면 Lv19→20 이 27일이라 10일차부터 마을이 멈췄다,
+//  docs/specs/economy-build-gold.md). 기사단 회관도 같은 식
+const BUILD_TIME_KNEE = 10, BUILD_TIME_LATE = 1.3;
+const buildTimeAt = (lv) => 60 * Math.pow(1.8, Math.min(lv, BUILD_TIME_KNEE) - 1) * Math.pow(BUILD_TIME_LATE, Math.max(0, lv - BUILD_TIME_KNEE));
 // 건설 즉시 완료 (0.21.1): 남은 1분당 최고 스테이지(기사단이면 기사단 최고 — core.js priceBest) 잡몹 골드 × BUILD_RUSH_GOLD (원정 1시간 ≈ 잡몹 263마리라 남은 1시간 ≈ 원정 30분 골드). 기다릴수록 싸진다
 const BUILD_RUSH_GOLD = 2.2;
 
@@ -154,13 +157,18 @@ const BUILDINGS = {
 
 // 건물 최대 Lv (건물마다 max 가 있으면 그것, 없으면 BUILD_MAX)
 const bldMax = (id) => BUILDINGS[id].max || BUILD_MAX;
-// 목재·철광석은 Lv BUILD_MAT_KNEE 까지 ×2, 그 위로는 ×BUILD_MAT_LATE (0.20.15 — ×2 그대로면 Lv15 16만·Lv20 1,000만 목재로 수입이 못 따라갔다)
-const BUILD_MAT_KNEE = 8, BUILD_MAT_LATE = 1.5;
+// 목재·철광석은 Lv BUILD_MAT_KNEE 까지 ×2, 그 위로는 ×BUILD_MAT_LATE (0.20.15 — ×2 그대로면 Lv15 16만·Lv20 1,000만 목재로 수입이 못 따라갔다.
+//  0.31.1 1.5 → 1.35: 건설 시간을 꺾자 다음 벽이 목재였다 — economy-build-gold.md)
+const BUILD_MAT_KNEE = 8, BUILD_MAT_LATE = 1.35;
 const buildMatGrow = (lv) => Math.pow(2, Math.min(lv, BUILD_MAT_KNEE) - 1) * Math.pow(BUILD_MAT_LATE, Math.max(0, lv - BUILD_MAT_KNEE));
+// 골드는 priceBest() 잡몹 골드 × 마리 수 (0.31.1 — 40·1.9^Lv 는 스테이지를 안 따라가 의미가 없었다, economy-build-gold.md).
+//  건물 Lv L → L+1: BUILD_GOLD_MOBS × BUILD_GOLD_GROW^(L−1) × mul.gold 마리 (Lv10 약 106마리 ≈ 원정 25분) · 시설: FORGE_GOLD_MOBS × 1.3^L 마리
+const BUILD_GOLD_MOBS = 10, BUILD_GOLD_GROW = 1.3, FORGE_GOLD_MOBS = 5;
+const mobGoldNow = () => monsterStats(priceBest(), false).gold;
 function buildCost(id, lv) {
   const m = BUILDINGS[id].mul;
   return {
-    gold: Math.floor(40 * Math.pow(1.9, lv - 1) * m.gold),
+    gold: Math.ceil(mobGoldNow() * BUILD_GOLD_MOBS * Math.pow(BUILD_GOLD_GROW, lv - 1) * m.gold),
     wood: Math.floor(20 * buildMatGrow(lv) * m.wood),
     ore: Math.floor(12 * buildMatGrow(lv) * m.ore),
     // 💎 마력석은 0.23.2 에 뺐다 — 마력석은 고강화(+10~)·전직 재료 (docs/specs/currency-roles.md). 비용 칩·canAfford 가 0 을 그대로 넘기게 키는 남긴다
@@ -245,7 +253,7 @@ const optValueAt = (k, q, g) => { const o = GEAR_OPTS[k]; return Math.round((o.l
 //  💎 마력석은 뺐다 (마력석은 고강화·전직 재료, docs/specs/currency-roles.md)
 function forgeFacCost(id, lv) {
   return {
-    gold: Math.floor(150 * Math.pow(1.75, lv)),
+    gold: Math.ceil(mobGoldNow() * FORGE_GOLD_MOBS * Math.pow(BUILD_GOLD_GROW, lv)),   // 0.31.1 (전 150·1.75^Lv)
     wood: 0,
     ore: Math.floor(10 * Math.pow(1.7, lv)),
     mana: 0,
